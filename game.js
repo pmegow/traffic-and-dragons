@@ -149,7 +149,7 @@ async function doRender(){
       imgStatus.textContent="Generating image…";
       div.appendChild(imgStatus);
       try{
-        var falRes=await fetch("https://fal.run/fal-ai/nano-banana2",{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify({prompt:resp,image_size:"landscape_4_3",num_inference_steps:4,num_images:1})});
+        var falRes=await fetch("https://fal.run/fal-ai/nano-banana-2",{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify({prompt:resp,aspect_ratio:"4:3",resolution:"1K",num_images:1})});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){
