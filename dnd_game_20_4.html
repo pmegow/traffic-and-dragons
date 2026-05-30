@@ -161,8 +161,11 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   #hud-stats   { flex-wrap: nowrap; gap: 8px; min-width: 0; overflow: hidden; justify-content: flex-start; }
   #hud-btns    { flex-shrink: 0; margin-left: auto; }
 
-  /* Hide non-essential topbar buttons — File stays */
+  /* Hide topbar buttons — they move into File menu on mobile */
   #sync-btn, #render-btn, #state-btn { display: none; }
+
+  /* Show their File menu equivalents */
+  .fm-mobile-only { display: block !important; }
 
   /* Hide less-critical HUD stats — kept in sidebar */
   #hud-loc, #hud-align { display: none; }
@@ -245,6 +248,10 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <div style="position:relative;">
         <button class="ib" id="file-btn" title="File operations: save, load, export, settings">File &#9660;</button>
         <div id="file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
+          <button id="fm-sync-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Sync state</button>
+          <button id="fm-state-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">World state</button>
+          <button id="fm-render-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Render prompt</button>
+          <div class="fm-mobile-only" style="display:none;border-top:1px solid var(--brd);margin:4px 0;"></div>
           <button id="fm-export" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Export save (.json)</button>
           <label style="display:block;padding:8px 14px;font-size:12px;font-family:Georgia,serif;color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="file" id="import-inp" accept=".json" style="display:none;"/>Import save (.json)</label>
           <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>

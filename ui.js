@@ -218,6 +218,9 @@ function wireButtons(){
   document.getElementById("fm-narrative").addEventListener("click",exportNarrative);
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
+  document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
+  document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
+  document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-server-connect").addEventListener("click",connectToServer);
   document.getElementById("fm-server-disconnect").addEventListener("click",disconnectFromServer);
   document.getElementById("fm-newgame").addEventListener("click",newGame);
