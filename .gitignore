@@ -1,0 +1,6 @@
+# Auto-exported narrative files
+*.txt
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -1,0 +1,240 @@
+function buildDots(){
+  var el=document.getElementById("stepdots");if(!el)return;
+  var lvlEl=document.getElementById("rv-start-level");
+  var needPerks=lvlEl&&parseInt(lvlEl.value)>=3;
+  var total=needPerks?8:7;
+  var h="",i;for(i=1;i<=total;i++){h+='<div class="dot '+(i<cs.step?"done":i===cs.step?"active":"")+'"></div>';}
+  el.innerHTML=h;
+}
+function buildToneGrid(){var el=document.getElementById("tone-grid");if(!el)return;var h="",i;for(i=0;i<TONES.length;i++){var t=TONES[i];h+='<div class="sc'+(cs.tone===t.id?" sel":"")+'" onclick="pickTone('+i+')"><div class="nm">'+t.nm+'</div><div class="sb">'+t.tl+'</div></div>';}el.innerHTML=h;}
+function pickTone(idx){cs.tone=TONES[idx].id;buildToneGrid();var cw=document.getElementById("tone-cw"),pv=document.getElementById("tone-prev");if(cs.tone==="custom"){if(cw)cw.style.display="block";if(pv)pv.textContent="";}else{if(cw)cw.style.display="none";if(pv)pv.textContent="Magic: "+TONES[idx].mg+" | Violence: "+TONES[idx].vi;}}
+function buildAncGrid(){var el=document.getElementById("anc-grid");if(!el)return;var h="",i;for(i=0;i<ANCS.length;i++){var a=ANCS[i];h+='<div class="sc'+(cs.ancestry===a.id?" sel":"")+'" onclick="pickAnc('+i+')"><div class="nm">'+a.nm+'</div><div class="sb">'+a.bonus+'</div></div>';}el.innerHTML=h;}
+function pickAnc(idx){cs.ancestry=ANCS[idx].id;cs.fp=[];cs.subrace=null;cs.heritageVariant=null;showAncDetail(cs.ancestry);}
+function showAncDetail(ancId){
+  var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===ancId){a=ANCS[i];break;}}if(!a)return;
+  var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="none";if(det)det.style.display="block";
+  var body=document.getElementById("anc-detail-body");if(!body)return;
+  var isFlexRace=(a.fc>0),tHtml="",ti;
+  if(a.traits){for(ti=0;ti<a.traits.length;ti++){var tr=a.traits[ti],di=tr.indexOf(" -- ");var bold=di>=0?tr.slice(0,di):tr,rest=di>=0?tr.slice(di+4):"";tHtml+='<div class="trbox"><span class="trb">'+bold+'</span>'+(rest?'<span class="trr"> -- '+rest+'</span>':"")+'</div>';}}
+  var srHtml='<div class="slab">'+(ancId==="halfblood"?"Heritage":"Subrace")+'</div>',si2;
+  if(a.subraces){for(si2=0;si2<a.subraces.length;si2++){var sr=a.subraces[si2];var isSel=cs.subrace===sr.id;var lgBadge="";if(isSel&&cs.heritageVariant&&sr.lineages){var lgi;for(lgi=0;lgi<sr.lineages.length;lgi++){if(sr.lineages[lgi].id===cs.heritageVariant){lgBadge='<div style="font-size:10px;color:var(--acc);margin-top:4px;text-transform:uppercase;letter-spacing:.07em;">'+sr.lineages[lgi].nm+' lineage ✓</div>';break;}}}var chevron=sr.lineages&&sr.lineages.length?'<span style="font-size:10px;color:var(--t2);margin-left:6px;">▾</span>':"";srHtml+='<div class="sc sr-c'+(isSel?" sel":"")+'" onclick="pickSub('+si2+')"><div class="nm" style="margin-bottom:2px;">'+sr.nm+chevron+'</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+sr.desc+'</div>'+lgBadge+'</div>';}}
+  body.innerHTML='<div style="font-size:18px;color:var(--acc);margin-bottom:4px;">'+a.nm+'</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;">'+a.bonus+'</div><div style="font-size:13px;color:var(--t1);line-height:1.7;margin-bottom:16px;">'+a.desc+'</div><div class="slab">Racial Traits</div>'+tHtml+srHtml;
+  var fw=document.getElementById("flex-wrap");if(isFlexRace){if(fw)fw.style.display="block";buildFlexPick();}else{if(fw)fw.style.display="none";}
+}
+function pickSub(idx){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||!a.subraces||idx>=a.subraces.length)return;var sr=a.subraces[idx];if(sr.lineages&&sr.lineages.length){cs.subrace=sr.id;cs.heritageVariant=null;showLineagePopup(sr);return;}cs.subrace=sr.id;cs.heritageVariant=null;showAncDetail(cs.ancestry);buildStatGrid();}
+function pickHeritageVariant(varId){cs.heritageVariant=varId;closeLineagePopup();showAncDetail(cs.ancestry);buildStatGrid();}
+function showLineagePopup(sr){
+  var pop=document.getElementById("lineage-popup");if(!pop)return;
+  document.getElementById("lp-title").textContent=sr.nm;
+  var cards="",i;for(i=0;i<sr.lineages.length;i++){var lg=sr.lineages[i];cards+='<div class="sc sr-c" onclick="pickHeritageVariant(\''+lg.id+'\')" style="text-align:left;padding:12px 14px;margin-bottom:8px;cursor:pointer;"><div class="nm" style="margin-bottom:3px;">'+lg.nm+' lineage</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+lg.desc+'</div></div>';}
+  document.getElementById("lp-cards").innerHTML=cards;
+  pop.style.display="flex";
+}
+function closeLineagePopup(){var pop=document.getElementById("lineage-popup");if(pop)pop.style.display="none";}
+function hideAncDetail(){var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail"),fw=document.getElementById("flex-wrap");if(gw)gw.style.display="block";if(det)det.style.display="none";if(fw)fw.style.display="none";buildAncGrid();}
+function buildFlexPick(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||a.fc===0)return;var lim=a.fc,lbl=document.getElementById("flex-lbl");if(lbl)lbl.textContent="Choose "+lim+" stat"+(lim>1?"s":"")+" for +1 ("+cs.fp.length+"/"+lim+"):";var fg=document.getElementById("flex-grid");if(!fg)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],isSel=cs.fp.indexOf(s)>=0,isFull=!isSel&&cs.fp.length>=lim;h+='<div class="fp'+(isSel?" sel":"")+(isFull?" dis":"")+'" onclick="pickFlex(\''+s+'\')">'+s+'</div>';}fg.innerHTML=h;}
+function pickFlex(s){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a)return;var idx=cs.fp.indexOf(s);if(idx>=0)cs.fp.splice(idx,1);else if(cs.fp.length<a.fc)cs.fp.push(s);buildFlexPick();buildStatGrid();}
+function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i;for(i=0;i<CLSS.length;i++){var c=CLSS[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
+function pickCls(idx){cs.cls=CLSS[idx].id;buildClsGrid();var gp=document.getElementById("gear-prev");if(gp)gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>';}
+function buildStatGrid(){var fs=getFin();var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}var bst=[];if(a){if(a.fc>0)bst=cs.fp.slice();else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++)bst.push(keys[i]);}}var has=cs.rolled||cs.statMode==="pb";var el=document.getElementById("stat-grid");if(!el)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],base=cs.bs[s],fin=fs[s],bon=fin-base,ib=bst.indexOf(s)>=0;h+='<div class="sbox'+(ib?" bst":"")+'"><div class="sn">'+s+'</div><div class="sv">'+(has?base:"--")+'</div><div class="sf">'+(has&&bon>0?fin+" (+"+bon+")":"&nbsp;")+'</div><div class="sm">'+(has?smod(fin):"")+'</div></div>';}el.innerHTML=h;}
+function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=STAT_PRIORITY[cs.cls]||STATS;for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
+function setStatMode(m){cs.statMode=m;cs.rolled=false;if(m==="pb"){var i;for(i=0;i<STATS.length;i++)cs.bs[STATS[i]]=8;}document.getElementById("mode-roll").className=m==="roll"?"active":"";document.getElementById("mode-pb").className=m==="pb"?"active":"";document.getElementById("roll-sec").style.display=m==="roll"?"block":"none";document.getElementById("pb-sec").style.display=m==="pb"?"block":"none";if(m==="pb")buildPBCtrls();buildStatGrid();}
+function buildPBCtrls(){var fs=getFin(),el=document.getElementById("pb-ctrls");if(!el)return;var h="",i;for(i=0;i<STATS.length;i++){var s=STATS[i],v=cs.bs[s],fv=fs[s],bon=fv-v;h+='<div class="pb-row"><span class="pn">'+s+'</span><input type="range" min="8" max="15" value="'+v+'" onchange="pbChange(this,\''+s+'\')"/><span class="pv">'+v+'</span><span class="pf">'+(bon>0?"->"+fv:"")+'</span></div>';}el.innerHTML=h;var rem=PBM-pbSp(),el2=document.getElementById("pb-rem");if(el2){el2.textContent=rem;el2.style.color=rem<5?"#c04040":"inherit";}}
+function pbChange(sl,s){var val=parseInt(sl.value),prev=PBC[cs.bs[s]]||0,next=PBC[val]||0;if(pbSp()-prev+next>PBM){sl.value=cs.bs[s];return;}cs.bs[s]=val;buildPBCtrls();buildStatGrid();}
+function rvSyncXp(){
+  var lvlEl=document.getElementById("rv-start-level");
+  var xpEl=document.getElementById("rv-start-xp");
+  var hintEl=document.getElementById("rv-xp-hint");
+  if(!lvlEl||!xpEl)return;
+  var lvl=parseInt(lvlEl.value)||1;
+  var floor=XP_LEVELS[lvl-1]||0;
+  xpEl.value=floor;
+  xpEl.min=floor;
+  if(hintEl)hintEl.textContent="Floor for level "+lvl+": "+floor+" XP"+(lvl<10?" | Next level at: "+XP_LEVELS[lvl]+" XP":"");
+  var goBtn=document.getElementById("rv-go");
+  if(goBtn)goBtn.textContent=lvl>=3?"Assign level perks":"Begin your journey";
+  buildDots();
+}
+function buildReview(){
+  var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
+  var fs=getFin(),hp=getMHP();rvGold=15+droll(10);
+  var init=cs.name.split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+  var trait=pval("char-trait","char-trait-c"),flaw=pval("char-flaw","char-flaw-c"),mot=pval("char-mot","char-mot-c"),subnm=getSubNm();
+  var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
+  var el=document.getElementById("rv-card");if(!el)return;
+  el.innerHTML='<div class="rv-head"><div class="rv-av">'+init+'</div><div><div class="rv-nm">'+cs.name+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+cs.pronouns+'</div></div></div>'
+    +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
+    +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'
+    +(cs.appear?'<div class="desc-pre">"'+cs.appear+(cs.mark?" -- "+cs.mark:"")+'"</div>':"")
+    +'<div class="rv-row"><span class="rk">Alignment</span><span class="rv" style="font-weight:normal;">'+statedAlign+'</span></div>'
+    +(DEITY_CENTRIC.indexOf(cs.cls)>=0&&document.getElementById("char-deity")&&document.getElementById("char-deity").value.trim()?'<div class="rv-row"><span class="rk">Deity</span><span class="rv" style="font-weight:normal;">'+document.getElementById("char-deity").value.trim()+'</span></div>':"")
+    +'<div class="rv-row"><span class="rk">Trait</span><span class="rv" style="font-weight:normal;">'+(trait||"--")+'</span></div>'
+    +'<div class="rv-row"><span class="rk">Flaw</span><span class="rv" style="font-weight:normal;">'+(flaw||"--")+'</span></div>'
+    +'<div class="rv-row"><span class="rk">Wants</span><span class="rv" style="font-weight:normal;">'+(mot||"--")+'</span></div>'
+    +'<div><div class="rk" style="margin-bottom:6px;">Starting gear</div><div class="tags">'+(cls?cls.gear:"").split(", ").map(function(g){return'<span class="tag">'+g+'</span>';}).join("")+'</div></div>';
+  var lvlSel=document.getElementById("rv-start-level"),goBtn=document.getElementById("rv-go");
+  if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
+  rvSyncXp();
+}
+function getDefaultDeity(){
+  var cls=cs.cls;if(!cls||DEITY_CENTRIC.indexOf(cls)<0)return"";
+  var alignEl=document.getElementById("char-alignment");
+  var align=alignEl?alignEl.value:"True Neutral";
+  var anc=cs.ancestry||"",sub=cs.subrace||"",evil=align.indexOf("Evil")>=0;
+  if(anc==="elf"&&cls!=="Paladin")return"Corellon, God of Spring and Beauty";
+  if(anc==="dwarf")return"Moradin, Soul Forger of the Dwarves";
+  if(anc==="halfling")return"Avandra, Goddess of Change and Luck";
+  if(anc==="gnome"&&cls!=="Paladin")return"Ioun, Goddess of Knowledge and Prophecy";
+  if(anc==="dragonborn")return evil?"Tiamat, the Dragon Queen":"Bahamut, the Platinum Dragon";
+  if(anc==="halfblood"){
+    if(sub==="half_elven"&&!evil)return"Sehanine, Goddess of Moonlight and Illusion";
+    if(sub==="half_orcish"&&evil)return"Gruumsh, the One-Eyed Destroyer";
+    if(sub==="half_infernal"&&evil)return"Asmodeus, God of Tyranny";
+    if(sub==="half_fey")return"Sehanine, Goddess of Moonlight and Illusion";
+    if(sub==="half_hollow")return"The Raven Queen, Mistress of Fate";
+    if(sub==="half_draconic")return evil?"Tiamat, the Dragon Queen":"Bahamut, the Platinum Dragon";
+  }
+  return(DEITY_MAP[cls]&&DEITY_MAP[cls][align])||"Unknown";
+}
+function buildStep6Deity(){
+  var wrap=document.getElementById("deity-wrap");if(!wrap)return;
+  var isDeity=DEITY_CENTRIC.indexOf(cs.cls)>=0;
+  wrap.style.display=isDeity?"block":"none";
+  if(!isDeity)return;
+  var inp=document.getElementById("char-deity");
+  if(inp&&!cs.deityEdited){inp.value=getDefaultDeity();}
+}
+function goStep(n){
+  document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;document.getElementById("step"+n).classList.add("active");buildDots();
+  if(n===1)buildToneGrid();
+  if(n===3){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
+  if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();}if(n===6)buildStep6Deity();if(n===7)buildReview();window.scrollTo(0,0);
+}
+function confirmChar(){
+  var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
+  var fs=getFin(),hp=getMHP(),subnm=getSubNm();
+  var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
+  var slEl=document.getElementById("rv-start-level"),startLvl=slEl?parseInt(slEl.value)||1:1;
+  var xpEl=document.getElementById("rv-start-xp"),startXp=xpEl?Math.max(parseInt(xpEl.value)||0,XP_LEVELS[startLvl-1]||0):XP_LEVELS[startLvl-1]||0;
+  var locEl=document.getElementById("rv-start-loc"),startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";
+  if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}
+  var deityEl=document.getElementById("char-deity");var charDeity=deityEl&&deityEl.value.trim()?deityEl.value.trim():null;
+  var char={name:cs.name,pronouns:cs.pronouns,age:cs.age,appear:cs.appear,mark:cs.mark,ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:cls?cls.gear.split(", "):[],level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:pval("char-trait","char-trait-c"),flaw:pval("char-flaw","char-flaw-c"),motivation:pval("char-mot","char-mot-c")};
+  if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
+  if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
+  var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
+  if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationArchetype();}
+  else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc());}}
+}
+function showCreationArchetype(){
+  var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];
+  document.getElementById("char-screen").style.display="none";
+  var wrap=document.createElement("div");wrap.id="creation-arch";wrap.style.cssText="max-width:700px;margin:0 auto;padding:24px 20px;";
+  var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' id='arch-card-"+i+"' onclick='selectCreationArch("+i+")' style='text-align:left;padding:16px 18px;margin-bottom:10px;'><div class='nm' style='margin-bottom:6px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.6;'>"+archs[i].desc+"</div></div>";}
+  var featHtml="",features=CLASS_FEATURES[c.cls]||{};
+  for(i=2;i<=c.level;i++){var f=features[i];if(!f)continue;var col=i===3?"var(--acc)":"var(--t0)";var bc=i===3?"var(--acc)":"var(--brd)";featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid "+bc+";border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:"+col+";'>Lv"+i+"</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>"+f+"</span></div>";}
+  for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:var(--t0);'>Lv"+STAT_BUMP_LEVELS[i]+": Stat bump</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>+2 to one or +1 to two. Max 20.</span></div>";}
+  wrap.innerHTML="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Starting level "+c.level+" -- required</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your archetype</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>You are a <strong style='color:var(--t0);'>"+c.cls+"</strong>. At level 3, every "+c.cls.toLowerCase()+" commits to a path.</p>"+ch+(featHtml?"<div style='border:1px solid var(--brd);border-radius:10px;background:var(--bg1);padding:16px 18px;margin-top:20px;'><div style='font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:10px;'>Abilities at level "+c.level+"</div>"+featHtml+"</div>":"")+"<p id='arch-warn' style='font-size:12px;color:#c04040;min-height:16px;margin-top:12px;'></p><button id='arch-confirm-btn' onclick='confirmCreationArch()' style='width:100%;margin-top:6px;padding:13px;font-size:15px;font-family:Georgia,serif;background:#333;color:#666;border:1px solid #444;border-radius:var(--r);cursor:default;font-weight:bold;' disabled>Choose an archetype above</button>";
+  document.body.appendChild(wrap);
+  window._selectedArchIdx=-1;
+}
+function selectCreationArch(idx){
+  var archs=ARCHETYPES[pendingChar.cls]||[],i;
+  for(i=0;i<archs.length;i++){var el=document.getElementById("arch-card-"+i);if(el){el.style.borderColor=i===idx?"var(--acc)":"var(--brd)";el.style.background=i===idx?"#1e1800":"var(--bg1)";var nm=el.querySelector(".nm");if(nm)nm.style.color=i===idx?"var(--acc)":"var(--t0)";}}
+  window._selectedArchIdx=idx;
+  var btn=document.getElementById("arch-confirm-btn");
+  if(btn){btn.disabled=false;btn.style.background="var(--acc)";btn.style.color="#000";btn.style.cursor="pointer";btn.textContent="Confirm: "+archs[idx].nm;}
+  var w=document.getElementById("arch-warn");if(w)w.textContent="";
+}
+function confirmCreationArch(){
+  if(window._selectedArchIdx<0){var w=document.getElementById("arch-warn");if(w)w.textContent="Choose an archetype first.";return;}
+  pickCreationArch(window._selectedArchIdx);
+}
+function pickCreationArch(idx){
+  var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;
+  c.archetype=archs[idx].id;c.archetypeNm=archs[idx].nm;
+  if(!c.abilities)c.abilities=[];c.abilities.push({nm:archs[idx].nm,ds:archs[idx].desc,gained:0});
+  var features=CLASS_FEATURES[c.cls]||{},i;for(i=2;i<=c.level;i++){if(features[i])c.abilities.push({nm:"Lv"+i,ds:features[i],gained:0});}
+  var wrap=document.getElementById("creation-arch");if(wrap)wrap.remove();
+  var bumpsNeeded=0;for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)bumpsNeeded++;}
+  if(bumpsNeeded>0){pendingBumps=bumpsNeeded;currentBump=1;showCreationStatBump();}
+  else if(buildPendingSpellPool(c)){showCreationSpellPick();}
+  else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);}
+}
+function buildPendingSpellPool(c){
+  var src=SPELLS[c.cls]||(c.archetype?ARCH_SPELLS[c.archetype]:null);
+  if(!src)return false;
+  var maxSlot=c.level>=5?3:c.level>=3?2:1,sl;
+  pendingSpellPool={};
+  if(src.cantrips&&src.cantrips.length)pendingSpellPool.cantrips=src.cantrips.map(function(nm){return{nm:nm,sel:false};});
+  for(sl=1;sl<=maxSlot;sl++){if(src[sl]&&src[sl].length)pendingSpellPool[sl]=src[sl].map(function(nm){return{nm:nm,sel:false};});}
+  return Object.keys(pendingSpellPool).length>0;
+}
+function showCreationSpellPick(){
+  var c=pendingChar;if(!c)return;var ex=document.getElementById("creation-spells");if(ex)ex.remove();
+  document.getElementById("char-screen").style.display="none";
+  var tiers=["cantrips","1","2","3"].filter(function(t){return pendingSpellPool[t]&&pendingSpellPool[t].length;});
+  if(!tiers.length){c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);return;}
+  var wrap=document.createElement("div");wrap.id="creation-spells";wrap.style.cssText="max-width:600px;margin:0 auto;padding:24px 20px;";
+  var html="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Character creation</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your spells</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>Select the spells "+c.name+" begins with.</p>";
+  tiers.forEach(function(tier){
+    var spells=pendingSpellPool[tier],lim=SPELL_PICK_LIMITS[tier]||2;
+    var lbl=tier==="cantrips"?"Cantrips":"Level "+tier+" Spells";
+    var hint=spells.length<=lim?"take all":"pick "+lim;
+    html+="<div style='margin-bottom:20px;'><div class='slab'>"+lbl+" <span style='font-size:9px;color:var(--t2);font-weight:normal;'>("+hint+")</span></div>";
+    spells.forEach(function(sp,idx){
+      var nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
+      var ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
+      html+="<div id='spc-"+tier+"-"+idx+"' class='sc sr-c' onclick='toggleSpellPick(\""+tier+"\","+idx+")' style='text-align:left;padding:10px 14px;margin-bottom:6px;cursor:pointer;'><div class='nm' style='margin-bottom:2px;'>"+nm+"</div>"+(ds?"<div style='font-size:11px;color:var(--t1);'>"+ds+"</div>":"")+"</div>";
+    });
+    html+="</div>";
+  });
+  html+="<p id='sp-warn' style='font-size:12px;color:#c04040;min-height:16px;margin-top:4px;'></p><button onclick='confirmCreationSpells()' style='width:100%;padding:13px;font-size:15px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:4px;'>Confirm spells &rarr; Begin</button>";
+  wrap.innerHTML=html;document.body.appendChild(wrap);
+}
+function toggleSpellPick(tier,idx){
+  var sp=pendingSpellPool[tier];if(!sp)return;
+  var lim=SPELL_PICK_LIMITS[tier]||2;
+  var cur=sp.filter(function(s){return s.sel;}).length;
+  if(sp[idx].sel){sp[idx].sel=false;}
+  else{if(cur>=lim){document.getElementById("sp-warn").textContent="Max "+lim+" for this tier.";return;}sp[idx].sel=true;}
+  document.getElementById("sp-warn").textContent="";
+  var card=document.getElementById("spc-"+tier+"-"+idx);
+  if(card){card.style.borderColor=sp[idx].sel?"var(--acc)":"var(--brd)";card.style.background=sp[idx].sel?"#1e1800":"var(--bg1)";var nm=card.querySelector(".nm");if(nm)nm.style.color=sp[idx].sel?"var(--acc)":"var(--t0)";}
+}
+function confirmCreationSpells(){
+  var c=pendingChar;if(!c)return;
+  var tiers=["cantrips","1","2","3"].filter(function(t){return pendingSpellPool[t]&&pendingSpellPool[t].length;}),ok=true;
+  tiers.forEach(function(tier){
+    var sp=pendingSpellPool[tier],lim=SPELL_PICK_LIMITS[tier]||2,need=Math.min(lim,sp.length);
+    if(sp.length<=lim){sp.forEach(function(s){s.sel=true;});}
+    else if(sp.filter(function(s){return s.sel;}).length<need){if(ok){document.getElementById("sp-warn").textContent="Choose "+need+" "+(tier==="cantrips"?"cantrips":"level "+tier+" spells")+".";ok=false;}}
+  });
+  if(!ok)return;
+  if(!c.spells)c.spells=[];
+  tiers.forEach(function(tier){
+    var lvl=tier==="cantrips"?0:parseInt(tier);
+    pendingSpellPool[tier].forEach(function(s){if(s.sel)c.spells.push({nm:s.nm,lvl:lvl,used:false});});
+  });
+  var wrap=document.getElementById("creation-spells");if(wrap)wrap.remove();
+  c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);
+}
+function showCreationStatBump(){
+  var c=pendingChar;if(!c)return;var ex=document.getElementById("creation-bump");if(ex)ex.remove();
+  var wrap=document.createElement("div");wrap.id="creation-bump";wrap.style.cssText="max-width:500px;margin:40px auto;padding:24px 20px;";
+  var rh="",i;for(i=0;i<STATS.length;i++){var s=STATS[i];rh+="<div style='display:flex;align-items:center;gap:10px;margin-bottom:10px;'><span style='width:36px;font-weight:bold;color:var(--t1);'>"+s+"</span><span style='width:32px;font-size:16px;font-weight:bold;' id='cb-cur-"+s+"'>"+c.stats[s]+"</span><button onclick=\"cbPick('"+s+"',1,this)\" style='padding:5px 14px;border:1px solid #444;border-radius:4px;background:#222;color:var(--t0);cursor:pointer;font-family:Georgia,serif;'>+1</button><button onclick=\"cbPick('"+s+"',2,this)\" style='padding:5px 14px;border:1px solid #444;border-radius:4px;background:#222;color:var(--t0);cursor:pointer;font-family:Georgia,serif;'>+2</button></div>";}
+  wrap.innerHTML="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Stat improvement "+currentBump+" of "+pendingBumps+"</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Improve your stats</h2><p style='font-size:13px;color:var(--t2);margin-bottom:18px;'>+2 to one stat or +1 to two. Max 20.</p>"+rh+"<p id='cb-warn' style='font-size:12px;color:#c04040;min-height:16px;'></p><div style='display:flex;gap:10px;'><button onclick='cbBack()' style='padding:10px 18px;font-family:Georgia,serif;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg1);color:var(--t0);cursor:pointer;'>Back</button><button onclick='cbConfirm()' style='flex:1;padding:12px;font-size:14px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Confirm</button></div>";
+  document.body.appendChild(wrap);window._cbPicks=[];
+}
+function cbPick(s,v,btn){
+  var c=pendingChar,picks=window._cbPicks||[],pi;
+  for(pi=0;pi<picks.length;pi++){if(picks[pi].s===s&&picks[pi].v===v){picks.splice(pi,1);window._cbPicks=picks;btn.style.borderColor="#444";btn.style.color="var(--t0)";document.getElementById("cb-cur-"+s).textContent=c.stats[s];document.getElementById("cb-cur-"+s).style.color="var(--t0)";document.getElementById("cb-warn").textContent="";return;}}
+  if(c.stats[s]+v>20){document.getElementById("cb-warn").textContent=s+" at max.";return;}
+  var total=0;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total+v>2){document.getElementById("cb-warn").textContent="Max +2 total.";return;}
+  if(v===2&&picks.length>0){document.getElementById("cb-warn").textContent="+2 = one stat only.";return;}
+  if(v===1){for(pi=0;pi<picks.length;pi++){if(picks[pi].v===2){document.getElementById("cb-warn").textContent="Can't mix +2 and +1.";return;}}}
+  for(pi=0;pi<picks.length;pi++){if(picks[pi].s===s){document.getElementById("cb-warn").textContent=s+" already picked.";return;}}
+  picks.push({s:s,v:v});window._cbPicks=picks;document.getElementById("cb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("cb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("cb-cur-"+s).style.color="var(--acc)";
+}
+function cbBack(){var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();if(currentBump>1){currentBump--;showCreationStatBump();}else{showCreationArchetype();}}
+function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);}}
