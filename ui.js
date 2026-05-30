@@ -227,6 +227,17 @@ function wireButtons(){
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
   document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);});
+  // Swipe right to collapse, swipe left to expand
+  (function(){
+    var rp=document.getElementById("rpanel"),tx=0;
+    rp.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
+    rp.addEventListener("touchend",function(e){
+      var dx=e.changedTouches[0].clientX-tx;
+      if(Math.abs(dx)<30)return;
+      panelCol=dx>0;  // swipe right → collapse, swipe left → expand
+      rp.classList.toggle("col",panelCol);
+    },{passive:true});
+  })();
   document.getElementById("psh-inv").addEventListener("click",function(){secCol.inv=!secCol.inv;document.getElementById("pss-inv").classList.toggle("col",secCol.inv);});
   document.getElementById("psh-ab").addEventListener("click",function(){secCol.ab=!secCol.ab;document.getElementById("pss-ab").classList.toggle("col",secCol.ab);});
   document.getElementById("psh-sp").addEventListener("click",function(){secCol.sp=!secCol.sp;document.getElementById("pss-sp").classList.toggle("col",secCol.sp);});
