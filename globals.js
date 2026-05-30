@@ -1,7 +1,7 @@
 var API="https://api.anthropic.com/v1/messages";
 var MDL="claude-sonnet-4-6";
 var customRules=[];
-var apiKey="",busy=false,lastAction=null;
+var apiKey="",falKey="",busy=false,lastAction=null;
 var panelCol=false,secCol={inv:false,ab:false,sp:false};
 var activeChatTab="narrative";
 var cs={tone:null,name:"",pronouns:"he/him",age:"early twenties",appear:"",mark:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};

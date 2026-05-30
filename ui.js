@@ -218,6 +218,7 @@ function wireButtons(){
   document.getElementById("import-step1").addEventListener("change",importSave);
   document.getElementById("fm-narrative").addEventListener("click",exportNarrative);
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
+  document.getElementById("fm-fal-key").addEventListener("click",showFalKeyModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
@@ -243,6 +244,27 @@ function wireButtons(){
   document.getElementById("psh-ab").addEventListener("click",function(){secCol.ab=!secCol.ab;document.getElementById("pss-ab").classList.toggle("col",secCol.ab);});
   document.getElementById("psh-sp").addEventListener("click",function(){secCol.sp=!secCol.sp;document.getElementById("pss-sp").classList.toggle("col",secCol.sp);});
 }
-function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);document.getElementById("api-screen").style.display="none";init();}
+function loadFalKey(){var fk=store.get(FAL_KEY_K);if(fk){falKey=fk;var fi=document.getElementById("fal-input");if(fi)fi.value=fk;}}
+function showFalKeyModal(){
+  document.getElementById("file-menu").style.display="none";
+  var ex=document.getElementById("fal-modal");if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id="fal-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 fal.ai Image Key</span><button id='fal-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5;'>Enter your <a href='https://fal.ai' target='_blank' style='color:var(--acc);'>fal.ai</a> API key to enable scene image generation. Free tier available. Stored locally only.</p>"
+    +"<input type='password' id='fal-modal-inp' placeholder='fal_key_...' style='width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:10px;box-sizing:border-box;'/>"
+    +"<div style='display:flex;gap:8px;'>"
+    +"<button id='fal-modal-clear' style='padding:9px 16px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button>"
+    +"<button id='fal-modal-save' style='flex:1;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save</button>"
+    +"</div>"
+    +"<p id='fal-modal-msg' style='font-size:12px;min-height:16px;margin-top:8px;text-align:center;'></p>"
+    +"</div>";
+  document.body.appendChild(modal);
+  var inp=document.getElementById("fal-modal-inp");if(falKey)inp.value=falKey;
+  document.getElementById("fal-modal-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("fal-modal-save").addEventListener("click",function(){var v=inp.value.trim();if(v){falKey=v;store.set(FAL_KEY_K,v);var msg=document.getElementById("fal-modal-msg");msg.textContent="Saved!";msg.style.color="var(--grn)";setTimeout(function(){modal.remove();},800);}else{document.getElementById("fal-modal-msg").textContent="Enter a key.";}});
+  document.getElementById("fal-modal-clear").addEventListener("click",function(){falKey="";store.del(FAL_KEY_K);inp.value="";var msg=document.getElementById("fal-modal-msg");msg.textContent="Key cleared.";msg.style.color="var(--t2)";});
+}
+function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);var fk=document.getElementById("fal-input").value.trim();if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
 function init(){loadRules();loadAdultMode();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
-window.addEventListener("load",function(){wireButtons();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});
+window.addEventListener("load",function(){wireButtons();loadFalKey();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});

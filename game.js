@@ -98,6 +98,22 @@ async function doRender(){
     th.remove();var div=addMsg("render-out",resp);
     var cb=document.createElement("button");cb.className="copy-btn";cb.textContent="Copy";cb.onclick=function(){try{navigator.clipboard.writeText(resp);cb.textContent="Copied!";}catch(e){cb.textContent="Select manually";}};
     div.appendChild(cb);
+    // fal.ai image generation
+    if(falKey){
+      var imgWrap=document.createElement("div");imgWrap.style.cssText="margin-top:10px;";
+      var imgStatus=document.createElement("div");imgStatus.style.cssText="font-size:11px;color:var(--t2);font-style:italic;";imgStatus.textContent="Generating image...";
+      imgWrap.appendChild(imgStatus);div.appendChild(imgWrap);
+      try{
+        var falRes=await fetch("https://fal.run/fal-ai/flux/schnell",{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify({prompt:resp,image_size:"landscape_4_3",num_inference_steps:4,num_images:1})});
+        if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
+        var falData=await falRes.json();
+        if(falData.images&&falData.images[0]&&falData.images[0].url){
+          imgStatus.remove();
+          var img=document.createElement("img");img.src=falData.images[0].url;img.style.cssText="width:100%;border-radius:6px;display:block;border:1px solid var(--brd);";img.alt="Scene illustration";
+          imgWrap.appendChild(img);
+        }else{imgStatus.textContent="No image returned.";}
+      }catch(fe){imgStatus.textContent="Image error: "+fe.message;}
+    }
   }catch(e){th.remove();addMsg("system","Render failed: "+e.message);}
   busy=false;
 }
