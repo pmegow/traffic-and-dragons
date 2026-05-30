@@ -93,28 +93,83 @@ async function doRender(){
   if(!worldState||busy)return;busy=true;var th=addMsg("thinking","Composing scene...");
   try{
     var c=worldState.character,w=worldState.world;
-    var rp="Write an image generation prompt for the current scene. Photorealistic, 50mm lens, cinematic lighting, shallow depth of field. Include: environment ("+w.location+", "+w.time+", "+w.weather+"), protagonist ("+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+"), any present NPCs, mood, composition. Output ONLY the prompt, 2-3 sentences, no game tags.";
-    var resp=await callGM(rp,"You are an image prompt writer. Output ONLY the image generation prompt text. No narration, no tags, no game content.");
-    th.remove();var div=addMsg("render-out",resp);
-    var cb=document.createElement("button");cb.className="copy-btn";cb.textContent="Copy";cb.onclick=function(){try{navigator.clipboard.writeText(resp);cb.textContent="Copied!";}catch(e){cb.textContent="Select manually";}};
-    div.appendChild(cb);
-    // fal.ai image generation
+    // Build a character-specific anchor so the model paints the same person each time
+    var charDesc=c.name+", "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
+    var rp="Write a detailed image generation prompt for the current scene. "
+      +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
+      +"Spell out hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
+      +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
+      +"Style: dark fantasy, dramatic lighting, painterly cinematic. "
+      +"2-3 sentences. Output ONLY the prompt, no game tags.";
+    var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe the protagonist's exact physical appearance with full specificity. No narration, no tags.");
+    th.remove();
+    var div=addMsg("render-out","");
+    div.style.whiteSpace="normal";div.style.fontFamily="inherit";
+    var imageUrl="",promptShown=false;
+
+    // Hidden prompt panel
+    var promptDiv=document.createElement("div");
+    promptDiv.style.cssText="display:none;font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:8px;padding:8px 10px;background:var(--bg2);border-radius:4px;border:1px solid var(--brd);white-space:pre-wrap;font-family:monospace;word-break:break-word;";
+    promptDiv.textContent=resp;
+    div.appendChild(promptDiv);
+
+    // Utility toolbar
+    var toolbar=document.createElement("div");
+    toolbar.style.cssText="display:flex;gap:4px;margin-bottom:8px;";
+    function mkBtn(label,title){
+      var b=document.createElement("button");b.title=title;b.textContent=label;
+      b.style.cssText="height:26px;padding:0 9px;font-size:11px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t1);cursor:pointer;";
+      b.addEventListener("mouseover",function(){b.style.background="var(--bg3)";});
+      b.addEventListener("mouseout",function(){b.style.background="var(--bg2)";});
+      return b;
+    }
+    var saveBtn=mkBtn("↓ Save","Save image to disk");
+    saveBtn.addEventListener("click",function(){
+      if(!imageUrl)return;
+      fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
+        var url=URL.createObjectURL(blob);var a=document.createElement("a");
+        a.href=url;a.download="ashen_t"+worldState.turn+".jpg";a.click();URL.revokeObjectURL(url);
+      }).catch(function(){window.open(imageUrl,"_blank");});
+    });
+    var promptBtn=mkBtn("¶ Prompt","View / hide the image prompt");
+    promptBtn.addEventListener("click",function(){
+      promptShown=!promptShown;
+      promptDiv.style.display=promptShown?"block":"none";
+      promptBtn.style.borderColor=promptShown?"var(--acc)":"var(--brd)";
+      promptBtn.style.color=promptShown?"var(--acc)":"var(--t1)";
+    });
+    var closeBtn=mkBtn("× Close","Remove this image");
+    closeBtn.addEventListener("click",function(){div.remove();});
+    toolbar.appendChild(saveBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
+    div.appendChild(toolbar);
+
     if(falKey){
-      var imgWrap=document.createElement("div");imgWrap.style.cssText="margin-top:10px;";
-      var imgStatus=document.createElement("div");imgStatus.style.cssText="font-size:11px;color:var(--t2);font-style:italic;";imgStatus.textContent="Generating image...";
-      imgWrap.appendChild(imgStatus);div.appendChild(imgWrap);
+      var imgStatus=document.createElement("div");
+      imgStatus.style.cssText="font-size:12px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;";
+      imgStatus.textContent="Generating image…";
+      div.appendChild(imgStatus);
       try{
         var falRes=await fetch("https://fal.run/fal-ai/flux/schnell",{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify({prompt:resp,image_size:"landscape_4_3",num_inference_steps:4,num_images:1})});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){
+          imageUrl=falData.images[0].url;
           imgStatus.remove();
-          var img=document.createElement("img");img.src=falData.images[0].url;img.style.cssText="width:100%;border-radius:6px;display:block;border:1px solid var(--brd);";img.alt="Scene illustration";
-          imgWrap.appendChild(img);
+          var img=document.createElement("img");img.src=imageUrl;
+          img.style.cssText="width:100%;border-radius:4px;display:block;";
+          img.alt="Scene illustration";div.appendChild(img);
         }else{imgStatus.textContent="No image returned.";}
       }catch(fe){imgStatus.textContent="Image error: "+fe.message;}
+    }else{
+      // No fal key — show the prompt text and a hint
+      promptShown=true;promptDiv.style.display="block";
+      promptBtn.style.borderColor="var(--acc)";promptBtn.style.color="var(--acc)";
+      var hint=document.createElement("div");
+      hint.style.cssText="font-size:11px;color:var(--t2);font-style:italic;margin-top:2px;";
+      hint.textContent="Set a fal.ai key (File → fal.ai image key…) to generate images.";
+      div.appendChild(hint);
     }
-  }catch(e){th.remove();addMsg("system","Render failed: "+e.message);}
+  }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}
   busy=false;
 }
 function restSpells(){
