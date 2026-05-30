@@ -221,6 +221,8 @@ function wireButtons(){
   document.getElementById("fm-server-connect").addEventListener("click",connectToServer);
   document.getElementById("fm-server-disconnect").addEventListener("click",disconnectFromServer);
   document.getElementById("fm-newgame").addEventListener("click",newGame);
+  // Start panel collapsed on mobile so first tap expands (not collapses)
+  if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
   document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);});
   document.getElementById("psh-inv").addEventListener("click",function(){secCol.inv=!secCol.inv;document.getElementById("pss-inv").classList.toggle("col",secCol.inv);});
   document.getElementById("psh-ab").addEventListener("click",function(){secCol.ab=!secCol.ab;document.getElementById("pss-ab").classList.toggle("col",secCol.ab);});

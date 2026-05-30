@@ -120,7 +120,19 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 .sc-dir{flex:1;padding:8px;font-size:12px;font-family:Georgia,serif;cursor:pointer;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);color:var(--t1)}.sc-dir.active{background:var(--acc);border-color:var(--acc);color:#000;font-weight:bold}
 #story::-webkit-scrollbar,.rpanel::-webkit-scrollbar{width:4px}#story::-webkit-scrollbar-track,.rpanel::-webkit-scrollbar-track{background:var(--bg0)}
 #story::-webkit-scrollbar-thumb,.rpanel::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
-@media(max-width:600px){.rpanel{width:32px}.psb,.psa,.psbdg,.ptog-l{display:none!important}.psh{padding:10px 0;justify-content:center}.pst{display:none!important}.psic{display:block!important}.ptog{justify-content:center;padding:10px 0}}
+@media(max-width:600px){
+  /* Collapsed state (default on mobile — set via JS) */
+  .rpanel.col{width:32px}
+  .rpanel.col .psb,.rpanel.col .psa,.rpanel.col .psbdg,.rpanel.col .ptog-l{display:none!important}
+  .rpanel.col .psh{padding:10px 0;justify-content:center}
+  .rpanel.col .pst{display:none!important}
+  .rpanel.col .psic{display:block!important}
+  .rpanel.col .ptog{justify-content:center;padding:10px 0}
+  /* Expanded state */
+  .rpanel:not(.col){width:148px}
+  .rpanel:not(.col) .psic{display:none!important}
+  .rpanel:not(.col) .pst{display:block!important}
+}
 
 /* ── Mobile / iOS ───────────────────────────────────────────────────────── */
 
