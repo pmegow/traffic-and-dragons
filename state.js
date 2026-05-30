@@ -17,6 +17,7 @@ function loadState(){
       if(typeof c.level!=="number"||isNaN(c.level))c.level=1;if(typeof c.xp!=="number"||isNaN(c.xp))c.xp=0;
       if(typeof c.hp!=="number"||isNaN(c.hp))c.hp=c.maxHp||8;if(typeof c.gold!=="number"||isNaN(c.gold))c.gold=0;
       if(!c.abilities)c.abilities=[];if(!c.spells)c.spells=[];
+      for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0)c.spells[si].used=false;}// cantrips never expend
       if(!worldState.npcs)worldState.npcs=[];if(!worldState.questLog)worldState.questLog=[];if(!worldState.eventHistory)worldState.eventHistory=[];}
     if(sl)sessionLog=JSON.parse(sl);
     if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];}
