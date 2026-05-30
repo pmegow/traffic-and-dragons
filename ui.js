@@ -215,6 +215,7 @@ function wireButtons(){
   document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";});
   document.getElementById("fm-export").addEventListener("click",exportSave);
   document.getElementById("import-inp").addEventListener("change",importSave);
+  document.getElementById("import-step1").addEventListener("change",importSave);
   document.getElementById("fm-narrative").addEventListener("click",exportNarrative);
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
