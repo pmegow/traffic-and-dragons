@@ -71,7 +71,7 @@ async function sendAction(override){
       applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
-      saveAll();if(worldState.turn>0&&worldState.turn%10===0)exportNarrative();
+      saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
     }
     syncUI();
   }catch(e){th.remove();var em=addMsg("system","GM error: "+e.message);var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=function(){retryLast();};em.appendChild(rb);}
