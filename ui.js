@@ -217,6 +217,13 @@ function wireButtons(){
   document.getElementById("import-inp").addEventListener("change",importSave);
   document.getElementById("import-step1").addEventListener("change",importSave);
   document.getElementById("fm-narrative").addEventListener("click",exportNarrative);
+  document.getElementById("fm-devmode").addEventListener("click",function(e){
+    e.stopPropagation();
+    var sub=document.getElementById("fm-devmenu"),arrow=document.getElementById("fm-devmode-arrow");
+    var open=sub.style.display!=="none";
+    sub.style.display=open?"none":"block";
+    arrow.style.transform=open?"":"rotate(90deg)";
+  });
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
   document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
