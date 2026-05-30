@@ -142,17 +142,21 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   /* Prevent iOS input zoom (requires font-size >= 16px) */
   input, select, textarea, #userinput { font-size: 16px !important; }
 
-  /* Hide non-essential topbar buttons — File is enough on mobile */
+  /* Topbar: single row, no wrapping, buttons pinned right */
+  #topbar      { flex-wrap: nowrap; padding: 6px 12px; gap: 4px; }
+  #hud-namecls { flex-shrink: 0; flex-wrap: nowrap; gap: 4px; }
+  #hud-namecls h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  #hud-stats   { flex-wrap: nowrap; gap: 8px; min-width: 0; overflow: hidden; justify-content: flex-start; }
+  #hud-btns    { flex-shrink: 0; margin-left: auto; }
+
+  /* Hide non-essential topbar buttons — File stays */
   #sync-btn, #render-btn, #state-btn { display: none; }
 
-  /* Tighten topbar padding */
-  #topbar { padding: 6px 12px; gap: 6px; }
+  /* Hide less-critical HUD stats — kept in sidebar */
+  #hud-loc, #hud-align { display: none; }
 
-  /* Hide location in HUD — it's in the sidebar */
-  #hud-loc { display: none; }
-
-  /* Fully hide right panel on mobile (not just collapse) */
-  .rpanel { display: none !important; }
+  /* File menu: anchor to right edge of viewport on mobile */
+  #file-menu { right: 0; left: auto; max-width: calc(100vw - 16px); }
 
   /* Bigger touch targets */
   .qa      { padding: 8px 13px; font-size: 12px; }
@@ -212,17 +216,17 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 </div>
 <div id="game-screen" style="display:none;flex-direction:column;height:100dvh;height:100vh;">
   <div id="topbar">
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+    <div id="hud-namecls" style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
       <h1 id="hud-name">--</h1>
       <span style="font-size:11px;color:var(--t1);" id="hud-cls"></span>
     </div>
-    <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center;flex:1;justify-content:center;">
+    <div id="hud-stats" style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center;flex:1;justify-content:center;">
       <span style="color:#e06060;" id="hud-hp"></span>
       <span style="color:var(--acc);" id="hud-gold"></span>
       <span style="color:var(--t1);" id="hud-align"></span>
       <span style="color:var(--t2);max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="hud-loc"></span>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;">
+    <div id="hud-btns" style="display:flex;gap:6px;align-items:center;">
       <button class="ib" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button>
       <button class="ib" id="state-btn" title="View full world state in sidebar panel">State</button>
       <button class="ib" id="render-btn" title="Generate a photorealistic scene prompt for image AI">Render</button>
