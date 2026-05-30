@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Ashen Crown</title>
 <style>
 
@@ -122,6 +122,71 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 #story::-webkit-scrollbar-thumb,.rpanel::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
 @media(max-width:600px){.rpanel{width:32px}.psb,.psa,.psbdg,.ptog-l{display:none!important}.psh{padding:10px 0;justify-content:center}.pst{display:none!important}.psic{display:block!important}.ptog{justify-content:center;padding:10px 0}}
 
+/* ── Mobile / iOS ───────────────────────────────────────────────────────── */
+
+/* Use dynamic viewport height so layout shrinks when keyboard opens */
+#game-screen { height: 100dvh; }
+
+/* Safe-area insets for notched iPhones (X, 11, 12, 13, 14, 15…) */
+#topbar    { padding-top:    max(8px,  env(safe-area-inset-top,    0px)); }
+#inputarea { padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
+#sidebar   { padding-top:    max(16px, env(safe-area-inset-top,    0px)); }
+
+/* Remove 300ms tap delay everywhere */
+button, a, .sc, .fp, .qa, label, select, input, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  /* Prevent iOS input zoom (requires font-size >= 16px) */
+  input, select, textarea, #userinput { font-size: 16px !important; }
+
+  /* Hide non-essential topbar buttons — File is enough on mobile */
+  #sync-btn, #render-btn, #state-btn { display: none; }
+
+  /* Tighten topbar padding */
+  #topbar { padding: 6px 12px; gap: 6px; }
+
+  /* Hide location in HUD — it's in the sidebar */
+  #hud-loc { display: none; }
+
+  /* Fully hide right panel on mobile (not just collapse) */
+  .rpanel { display: none !important; }
+
+  /* Bigger touch targets */
+  .qa      { padding: 8px 13px; font-size: 12px; }
+  .ib      { padding: 7px 11px; }
+  #sendbtn { padding: 12px 18px; }
+
+  /* Smooth momentum scrolling in story area */
+  #story-narrative, #story-tabletalk {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Chat tabs: bigger tap area */
+  .chat-tab { padding: 6px 14px; font-size: 12px; }
+
+  /* Character creation: single-column on mobile */
+  .two-col { grid-template-columns: 1fr; }
+
+  /* Stat grids: 3 columns instead of 6 */
+  .sgd, .rsgd, .fgd { grid-template-columns: repeat(3, 1fr); }
+
+  /* Messages: slightly tighter */
+  .msg { font-size: 13px; padding: 10px 13px; }
+
+  /* Char screen: full width, less horizontal padding */
+  #char-screen { padding: 16px 14px; }
+}
+
+@media (max-width: 400px) {
+  /* Very small phones (iPhone SE, etc.) */
+  #hud-align { display: none; }
+  .cgrid { grid-template-columns: 1fr 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -145,7 +210,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
     <button onclick="closeLineagePopup()" style="width:100%;margin-top:12px;padding:9px;font-family:Georgia,serif;font-size:13px;background:transparent;color:var(--t2);border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;">Cancel</button>
   </div>
 </div>
-<div id="game-screen" style="display:none;flex-direction:column;height:100vh;">
+<div id="game-screen" style="display:none;flex-direction:column;height:100dvh;height:100vh;">
   <div id="topbar">
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
       <h1 id="hud-name">--</h1>
@@ -194,7 +259,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
     </div>
   </div>
   <div id="inputarea">
-    <div id="inrow"><input type="text" id="userinput" placeholder="What do you do?" autocomplete="off"/><button id="sendbtn" title="Send your action to the Game Master">Send</button></div>
+    <div id="inrow"><input type="text" id="userinput" placeholder="What do you do?" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"/><button id="sendbtn" title="Send your action to the Game Master">Send</button></div>
     <div id="chat-tabs"><button class="chat-tab active" id="tab-narrative" onclick="switchTab('narrative')">Story</button><button class="chat-tab" id="tab-tabletalk" onclick="switchTab('tabletalk')">Table Talk <span class="tab-badge" id="tab-tt-badge"></span></button></div>
   </div>
 </div>
