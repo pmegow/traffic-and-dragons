@@ -149,7 +149,8 @@ async function doRender(){
       imgStatus.textContent="Generating image…";
       div.appendChild(imgStatus);
       try{
-        var falRes=await fetch("https://fal.run/fal-ai/nano-banana-2",{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify({prompt:resp,aspect_ratio:"4:3",resolution:"1K",num_images:1})});
+        var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
+        var falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(mdlCfg.body(resp))});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){

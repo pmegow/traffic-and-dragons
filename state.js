@@ -1,4 +1,4 @@
-var WSK="ashen_core_v9";var SLK="ashen_sess_v9";var MEM_KEY="ashen_mem_v9";var AKK="ashen_ak_v1";var RLK="ashen_rules_v9";var ADK="ashen_adult_v1";var FAL_KEY_K="ashen_fal_k_v1";
+var WSK="ashen_core_v9";var SLK="ashen_sess_v9";var MEM_KEY="ashen_mem_v9";var AKK="ashen_ak_v1";var RLK="ashen_rules_v9";var ADK="ashen_adult_v1";var FAL_KEY_K="ashen_fal_k_v1";var RENDER_MDL_K="ashen_render_mdl_v1";
 var _m={};
 var store={
   get:function(k){try{return localStorage.getItem(k);}catch(e){return _m[k]||null;}},
