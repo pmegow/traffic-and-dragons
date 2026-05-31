@@ -145,6 +145,54 @@ var DEITY_MAP={
   }
 };
 var SPELL_PICK_LIMITS={"cantrips":2,"1":2,"2":2,"3":1};
+var SKILLS=[
+  // Physical
+  {id:"Jumping",          label:"Jumping",              stats:["STR","DEX"], cat:"Physical"},
+  {id:"Sprinting",        label:"Sprinting",            stats:["DEX","STR"], cat:"Physical"},
+  {id:"Lifting",          label:"Lifting",              stats:["STR"],       cat:"Physical"},
+  {id:"Grappling",        label:"Grappling",            stats:["STR"],       cat:"Physical"},
+  {id:"Climbing",         label:"Climbing",             stats:["STR","DEX"], cat:"Physical"},
+  {id:"Swimming",         label:"Swimming",             stats:["STR","CON"], cat:"Physical"},
+  {id:"Distance Running", label:"Distance Running",     stats:["CON","STR"], cat:"Physical"},
+  {id:"Riding",           label:"Riding",               stats:["DEX","WIS"], cat:"Physical"},
+  // Endurance
+  {id:"Hold Breath",           label:"Hold Breath",           stats:["CON"],       cat:"Endurance"},
+  {id:"Endure Pain",           label:"Endure Pain",           stats:["CON"],       cat:"Endurance"},
+  {id:"Tolerate Alcohol/Drugs",label:"Tolerate Alcohol/Drugs",stats:["CON"],       cat:"Endurance"},
+  // Wilderness
+  {id:"Foraging",       label:"Foraging",       stats:["WIS","INT"], cat:"Wilderness"},
+  {id:"Cooking",        label:"Cooking",        stats:["INT","WIS"], cat:"Wilderness"},
+  {id:"Survival",       label:"Survival",       stats:["WIS","INT"], cat:"Wilderness"},
+  {id:"Animal Handling",label:"Animal Handling",stats:["WIS"],       cat:"Wilderness"},
+  {id:"Navigation",     label:"Navigation",     stats:["WIS","INT"], cat:"Wilderness"},
+  // Knowledge
+  {id:"Arcana",      label:"Arcana",      stats:["INT"],       cat:"Knowledge"},
+  {id:"Lore",        label:"Lore",        stats:["INT"],       cat:"Knowledge"},
+  {id:"Investigation",label:"Investigation",stats:["INT"],     cat:"Knowledge"},
+  {id:"Nature",      label:"Nature",      stats:["INT"],       cat:"Knowledge"},
+  {id:"First Aid",   label:"First Aid",   stats:["INT","WIS"], cat:"Knowledge"},
+  {id:"Alchemy",     label:"Alchemy",     stats:["INT"],       cat:"Knowledge"},
+  // Craft
+  {id:"Smithing",  label:"Smithing",  stats:["STR","INT"], cat:"Craft"},
+  {id:"Handcraft", label:"Handcraft", stats:["DEX","INT"], cat:"Craft"},
+  // Social
+  {id:"Persuasion", label:"Persuasion", stats:["CHA"],       cat:"Social"},
+  {id:"Deception",  label:"Deception",  stats:["CHA","INT"], cat:"Social"},
+  {id:"Intimidation",label:"Intimidation",stats:["CHA","STR"],cat:"Social"},
+  {id:"Performance",label:"Performance",stats:["CHA"],       cat:"Social"},
+  {id:"Trading",    label:"Trading",    stats:["CHA","INT"], cat:"Social"},
+  // Roguish
+  {id:"Stealth",        label:"Stealth",        stats:["DEX"],       cat:"Roguish"},
+  {id:"Sleight of Hand",label:"Sleight of Hand",stats:["DEX"],       cat:"Roguish"},
+  {id:"Lockpicking",    label:"Lockpicking",    stats:["DEX","INT"], cat:"Roguish"},
+  {id:"Gambling",       label:"Gambling",       stats:["INT","CHA"], cat:"Roguish"},
+  // Perception
+  {id:"Perception",label:"Perception",stats:["WIS"],cat:"Perception"},
+  {id:"Insight",   label:"Insight",   stats:["WIS"],cat:"Perception"}
+];
+var SKILL_THRESHOLDS=[1,5,12,25,50]; // cumulative successes for levels 1-5
+var SKILL_LEVELS=["Unskilled","Familiar","Trained","Proficient","Expert","Master"];
+var SAVE_THREAT_TYPES=["Poison","Disease","Magic","Fire","Cold","Lightning","Fear","Charm","Psionic","Holy","Shadow","Other"];
 var NAMES={
   human:["Aldric","Brennan","Brynn","Caelan","Caelin","Devra","Dorian","Edric","Eryth","Fayla","Farren","Gavric","Gwynne","Harlan","Hessa","Idren","Ilara","Jareth","Kaelan","Liryn","Lorcan","Maerik","Maeve","Nessa","Norvan","Orla","Osric","Palyn","Pyra","Rendal","Reva","Saevar","Thessa","Torvan","Vanya","Wren","Arden","Eryn","Dael","Raen","Solene","Crest","Mira","Hadden","Taryn","Vael","Brecken","Lysa","Fenwick","Aldara"],
   elf:["Aelindra","Calenmir","Daeris","Erevan","Faerindel","Galindra","Ilrien","Liriel","Miriel","Naelindra","Orindel","Sylvara","Thalindra","Uraiel","Valarei","Windrel","Yaelindra","Zirindel","Elorin","Farindel","Silindra","Quelindel","Rindara","Thessindel","Isindra"],

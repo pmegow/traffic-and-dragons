@@ -1,7 +1,17 @@
 function startGame(char,toneName,toneVoice){
-  worldState={ver:8,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low"},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
+  // Ensure all v10 character fields are initialised
+  if(!char.gender)char.gender="M";
+  if(!char.skills)char.skills=initSkills();
+  if(!char.conditions)char.conditions=[];
+  if(!char.relationships)char.relationships=[];
+  if(!char.saveModifiers)char.saveModifiers=[];
+  if(!char.languages)char.languages=[];
+  if(char.portrait===undefined)char.portrait=null;
+  if(!char.backstory)char.backstory="";
+  if(!char.storyBeats)char.storyBeats=[];
+  worldState={ver:10,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low"},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
   delete worldState.character._startLoc;
-  sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[]};
+  sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   beginAdventure();
