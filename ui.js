@@ -188,17 +188,17 @@ function updatePartyPanel(){
   var h="",i,m,sheet,hp,maxHp,cls;
   // Player always first
   h+="<div onclick='showCharSheet()' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
-    +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+c.name+" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>YOU</span></div>"
-    +"<div style='font-size:10px;color:var(--t2);'>"+c.cls+"</div>"
+    +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(c.name)+" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>YOU</span></div>"
+    +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(c.cls)+"</div>"
     +"<div style='font-size:10px;color:#e06060;'>HP "+c.hp+"/"+c.maxHp+"</div>"
     +"</div>";
   for(i=0;i<npcs.length;i++){
     m=npcs[i];sheet=m.charSheet||null;
     hp=sheet?sheet.hp:null;maxHp=sheet?sheet.maxHp:null;
     cls=sheet?(sheet.cls||""):(m.role||"");
-    h+="<div onclick='showNpcSheet(\""+m.name.replace(/"/g,"&quot;")+"\")' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
-      +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+m.name+"</div>"
-      +(cls?"<div style='font-size:10px;color:var(--t2);'>"+cls+"</div>":"")
+    h+="<div onclick='showNpcSheet(\""+escHtml(m.name)+"\")' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
+      +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+"</div>"
+      +(cls?"<div style='font-size:10px;color:var(--t2);'>"+escHtml(cls)+"</div>":"")
       +(hp!==null?"<div style='font-size:10px;color:#e06060;'>HP "+hp+(maxHp?"/"+maxHp:"")+"</div>":"")
       +"</div>";
   }
@@ -345,10 +345,10 @@ function showSyncModal(){
       +"<div><label class='sc-lbl'>Gold</label><input id='sc-gold' type='number' class='sc-inp' value='"+c.gold+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>XP</label><input id='sc-xp' type='number' class='sc-inp' value='"+c.xp+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='10' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"
-      +"<div><label class='sc-lbl'>Location</label><input id='sc-loc' type='text' class='sc-inp' value='"+w.location+"' "+ro+"/></div>"
-      +"<div><label class='sc-lbl'>Time</label><input id='sc-time' type='text' class='sc-inp' value='"+w.time+"' "+ro+"/></div>"
-      +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+w.weather+"' "+ro+"/></div></div>"
-      +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+c.inventory.join("\n")+"</textarea></div>"
+      +"<div><label class='sc-lbl'>Location</label><input id='sc-loc' type='text' class='sc-inp' value='"+escHtml(w.location)+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Time</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
+      +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
       +(isUI?"<button id='sc-apply' style='width:100%;padding:13px;font-size:15px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>APPLY</button>":"<div style='text-align:center;font-size:12px;color:var(--t2);padding:8px;'>Showing live game state. Switch to UI -> Game to edit.</div>")
       +"<p id='sc-msg' style='font-size:12px;min-height:16px;margin-top:8px;text-align:center;'></p>";
     document.getElementById("sc-x").addEventListener("click",function(){modalDiv.remove();});
@@ -974,10 +974,10 @@ function showCharacterBrowser(){
         var cm=meta[i];
         rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;'>"
           +"<div style='flex:1;min-width:0;'>"
-          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+cm.charName+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+cm.charAncestry+" "+cm.charClass+"&ensp;&mdash;&ensp;"+cm.location+"</div>"
+          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
           +"</div>"
-          +"<button onclick='_charBrowserPick(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Select</button>"
+          +"<button onclick='_charBrowserPick(\""+escHtml(cm.id)+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Select</button>"
           +"</div>";
       }
     }
@@ -1019,39 +1019,39 @@ function showCharImportPreview(char, onAccept, onCancel){
   var modal=document.createElement("div");modal.id="char-import-preview";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var initials=(char.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
-  var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+char.name+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
+  var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
   var statRow=["STR","DEX","CON","INT","WIS","CHA"].map(function(s){
     return "<div style='text-align:center;'><div style='font-size:10px;color:var(--t2);'>"+s+"</div><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+(stats[s]||"—")+"</div></div>";
   }).join("");
-  var abilities=(char.abilities||[]).slice(0,4).map(function(a){return "<div style='font-size:11px;color:var(--t1);margin-bottom:3px;'><span style='color:var(--acc);'>"+a.nm+"</span> — "+a.ds+"</div>";}).join("");
-  var spells=(char.spells||[]).filter(function(s){return!s.used;}).slice(0,6).map(function(s){return s.nm;}).join(", ");
-  var inv=(char.inventory||[]).join(", ")||"Nothing";
-  var langs=(char.languages||[]).map(function(l){return l.name+(l.broken?" (broken)":"");}).join(", ")||"Common";
+  var abilities=(char.abilities||[]).slice(0,4).map(function(a){return "<div style='font-size:11px;color:var(--t1);margin-bottom:3px;'><span style='color:var(--acc);'>"+escHtml(a.nm)+"</span> — "+escHtml(a.ds)+"</div>";}).join("");
+  var spells=(char.spells||[]).filter(function(s){return!s.used;}).slice(0,6).map(function(s){return escHtml(s.nm);}).join(", ");
+  var inv=escHtml((char.inventory||[]).join(", ")||"Nothing");
+  var langs=(char.languages||[]).map(function(l){return escHtml(l.name)+(l.broken?" (broken)":"");}).join(", ")||"Common";
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:520px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
     +"<span style='font-size:15px;color:var(--t0);font-weight:bold;'>Import Character</span>"
     +"<button id='cip-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='display:flex;gap:16px;align-items:center;margin-bottom:18px;'>"
     +"<div style='width:64px;height:64px;border-radius:50%;background:var(--bg3);border:2px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--acc);font-weight:bold;flex-shrink:0;overflow:hidden;'>"+portrait+"</div>"
-    +"<div><div style='font-size:18px;color:var(--acc);font-weight:bold;'>"+char.name+"</div>"
-    +"<div style='font-size:12px;color:var(--t1);margin-top:2px;'>Lv"+(char.level||1)+" · "+(char.subraceNm||char.ancestry||"")+" "+(char.cls||"")+(char.archetypeNm?" ("+char.archetypeNm+")":"")+"</div>"
-    +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+(char.gender||"")+" · "+(char.age||"")+(char.deity?" · "+char.deity:"")+"</div>"
+    +"<div><div style='font-size:18px;color:var(--acc);font-weight:bold;'>"+escHtml(char.name)+"</div>"
+    +"<div style='font-size:12px;color:var(--t1);margin-top:2px;'>Lv"+(char.level||1)+" · "+escHtml(char.subraceNm||char.ancestry||"")+" "+escHtml(char.cls||"")+(char.archetypeNm?" ("+escHtml(char.archetypeNm)+")":"")+"</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(char.gender||"")+" · "+escHtml(char.age||"")+(char.deity?" · "+escHtml(char.deity):"")+"</div>"
     +"</div></div>"
     +"<div style='display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:14px;'>"+statRow+"</div>"
     +"<div style='display:flex;gap:16px;margin-bottom:14px;font-size:12px;'>"
     +"<span style='color:#e06060;'>HP "+char.hp+"/"+char.maxHp+"</span>"
     +"<span style='color:var(--acc);'>"+char.gold+"gp</span>"
-    +"<span style='color:var(--t1);'>"+alignLabel(char.alignLaw||0,char.alignGood||0)+"</span>"
+    +"<span style='color:var(--t1);'>"+escHtml(alignLabel(char.alignLaw||0,char.alignGood||0))+"</span>"
     +"</div>"
-    +(char.appear?"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;font-style:italic;'>"+char.appear+(char.mark?" — "+char.mark:"")+"</div>":"")
-    +(char.backstory?"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>"+char.backstory+"</div>":"")
+    +(char.appear?"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;font-style:italic;'>"+escHtml(char.appear)+(char.mark?" — "+escHtml(char.mark):"")+"</div>":"")
+    +(char.backstory?"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>"+escHtml(char.backstory)+"</div>":"")
     +(abilities?"<div style='margin-bottom:10px;border-top:1px solid var(--brd);padding-top:10px;'>"+abilities+"</div>":"")
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:6px;'><span style='color:var(--t1);'>Languages:</span> "+langs+"</div>"
     +(spells?"<div style='font-size:11px;color:var(--t2);margin-bottom:6px;'><span style='color:var(--t1);'>Spells:</span> "+spells+"</div>":"")
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'><span style='color:var(--t1);'>Inventory:</span> "+inv+"</div>"
     +"<div style='display:flex;gap:10px;'>"
-    +"<button id='cip-accept' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Play as "+char.name+"</button>"
+    +"<button id='cip-accept' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Play as "+escHtml(char.name)+"</button>"
     +"<button id='cip-cancel' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
     +"</div></div>";
   document.body.appendChild(modal);
@@ -1077,10 +1077,10 @@ function showCampaignPicker(){
       rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;'>"
         +"<div style='flex:1;min-width:0;'>"
         +"<div style='display:flex;align-items:center;gap:6px;'>"
-        +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+dispName+"</span>"
-        +"<button onclick='campStartRename(\""+cm.id+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>"
+        +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
+        +"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>"
         +"</div>"
-        +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+cm.charName+" &mdash; Lv"+cm.level+" "+cm.charAncestry+" "+cm.charClass+"&ensp;&mdash;&ensp;"+cm.location+"</div>"
+        +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(cm.charName)+" &mdash; Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
         +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+(isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>":"Last saved "+timeAgo(cm.savedAt))+"</div>"
         +"</div>"
         +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
@@ -1118,7 +1118,8 @@ function campDelete(id){
 function campStartRename(id){
   var span=document.getElementById("camp-name-"+id);if(!span)return;
   var cur=span.textContent;
-  span.outerHTML="<input id='camp-rename-"+id+"' value='"+cur.replace(/'/g,"&#39;")+"' style='font-size:14px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;' onblur='campSaveRename(\""+id+"\")' onkeydown='if(event.key===\"Enter\")campSaveRename(\""+id+"\");if(event.key===\"Escape\")showCampaignPicker();'/>";
+  var safeVal=cur.replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  span.outerHTML="<input id='camp-rename-"+id+"' value='"+safeVal+"' style='font-size:14px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;' onblur='campSaveRename(\""+id+"\")' onkeydown='if(event.key===\"Enter\")campSaveRename(\""+id+"\");if(event.key===\"Escape\")showCampaignPicker();'/>";
   var inp=document.getElementById("camp-rename-"+id);if(inp){inp.focus();inp.select();}
 }
 function campSaveRename(id){

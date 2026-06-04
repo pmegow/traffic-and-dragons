@@ -23,7 +23,6 @@ function checkLevelUp(){
   var hpGain=cls?Math.ceil(cls.hd/2)+1+Math.floor((c.stats.CON-10)/2):3;hpGain=Math.max(1,hpGain);c.maxHp+=hpGain;c.hp+=hpGain;
   addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+hpGain+" (now "+c.maxHp+")");
   var features=CLASS_FEATURES[c.cls]||{};if(features[newLvl]){if(!c.abilities)c.abilities=[];c.abilities.push({nm:"Lv"+newLvl,ds:features[newLvl],gained:worldState.turn});addMsg("narrator","<p><em>"+features[newLvl]+"</em></p>");updateAbPanel(true);}
-  syncUI();saveAll();
   if(newLvl===3&&!c.archetype)showArchetypeModal();
   else if(STAT_BUMP_LEVELS.indexOf(newLvl)>=0)showStatBumpModal();
 }
@@ -74,11 +73,11 @@ async function sendAction(override){
   var th=addMsg("thinking","The world turns...");
   try{
     if(!isTT&&sessionTokens()>=1000)await summarize();
-    if(!isTT)worldState.turn++;
     var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
     var resp=await callGM(txt,sys);th.remove();
     if(isTT){addMsg("tabletalk","<em>[GM]</em> "+resp.replace(/\*(.*?)\*/g,"<em>$1</em>"));}
     else{
+      worldState.turn++;
       applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});

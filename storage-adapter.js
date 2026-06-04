@@ -76,6 +76,7 @@ var storageAdapter = (function() {
     // Listen for postMessage from /auth/done
     function onMsg(e) {
       if (!e.data || e.data.type !== "ashen-auth") return;
+      if (e.origin !== serverUrl) return;
       window.removeEventListener("message", onMsg);
       if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) {} }
       _popup = null;
