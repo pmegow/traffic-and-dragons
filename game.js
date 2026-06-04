@@ -99,8 +99,9 @@ async function beginAdventure(){
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=beginAdventure;em.appendChild(rb);}
   busy=false;document.getElementById("sendbtn").disabled=false;
 }
+var _rendering=false;
 async function doRender(){
-  if(!worldState||busy)return;busy=true;var th=addMsg("thinking","Composing scene...");
+  if(!worldState||_rendering)return;_rendering=true;var th=addMsg("thinking","Composing scene...");
   try{
     var c=worldState.character,w=worldState.world;
     // Build a character-specific anchor so the model paints the same person each time
@@ -196,7 +197,7 @@ async function doRender(){
       div.appendChild(hint);
     }
   }catch(e){if(th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}
-  busy=false;
+  _rendering=false;
 }
 function restSpells(){
   if(!worldState||!worldState.character.spells)return;

@@ -410,7 +410,21 @@ function exportSave(){
 }
 function importSave(event){
   var file=event.target.files[0];if(!file)return;var reader=new FileReader();
-  reader.onload=function(e){try{var data=JSON.parse(e.target.result);if(!data.worldState||!data.worldState.character)throw new Error("Invalid save.");worldState=data.worldState;sessionLog=data.sessionLog||[];memory=data.memory||{npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[]};saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
+  reader.onload=function(e){try{var data=JSON.parse(e.target.result);
+    if(!data.worldState||!data.worldState.character)throw new Error("Invalid save.");
+    var ws=data.worldState,ch=ws.character;
+    if(typeof ch.name!=="string")throw new Error("Invalid character data.");
+    if(!Array.isArray(ch.inventory))ch.inventory=[];
+    if(!Array.isArray(ch.abilities))ch.abilities=[];
+    if(!Array.isArray(ch.spells))ch.spells=[];
+    if(!Array.isArray(ws.npcs))ws.npcs=[];
+    if(!Array.isArray(ws.questLog))ws.questLog=[];
+    if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
+    if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
+    worldState=ws;sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
+    var mm=data.memory||{};
+    memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph||{edges:[]}};
+    saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
 function showCharSheet(){

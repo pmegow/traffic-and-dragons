@@ -107,8 +107,15 @@ var storageAdapter = (function() {
     if (!_serverUrl || _syncing || typeof worldState === "undefined" || !worldState) return;
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     _syncing = true;
+    // Strip portraits from sync payload — they are large base64 blobs stored locally only
+    var wsStripped = Object.assign({}, worldState, {
+      character: Object.assign({}, worldState.character, {portrait: null}),
+      npcs: (worldState.npcs||[]).map(function(n){
+        return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
+      })
+    });
     var payload = JSON.stringify({
-      worldState:  worldState,
+      worldState:  wsStripped,
       sessionLog:  sessionLog,
       memory:      memory,
       campaignId:  campId
