@@ -1,42 +1,37 @@
-# Ashen Crown — CLAUDE.md
+# Traffic and Dragons — CLAUDE.md
 
 ## Project overview
 
-**Ashen Crown** is a browser-based sword & sorcery RPG. The player creates a character through a multi-step wizard, then plays a text adventure narrated by Claude (via the Anthropic API) acting as the Game Master. The GM responds in vivid second-person prose, tracks the world state through hidden tags embedded in its responses, and maintains a rolling memory of NPCs, locations, lore, and decisions across sessions.
+**Traffic and Dragons** is a browser-based sword & sorcery RPG. The player creates a character through a multi-step wizard, then plays a text adventure narrated by Claude (via the Anthropic API) acting as the Game Master. The GM responds in vivid second-person prose, tracks the world state through hidden tags embedded in its responses, and maintains a rolling memory of NPCs, locations, lore, and decisions across sessions.
 
-There is no server, no build step, and no dependencies.
+There is no build step and no npm dependencies. There is a cloud sync server on Fly.dev (`https://ashen-crown-server.fly.dev`) — optional, used for cross-device campaign persistence.
 
 ---
 
-## Current architecture — PARTIALLY SPLIT
+## Current architecture — SPLIT COMPLETE
 
-The monolith split is **in progress**. Four files have been extracted from the original `dnd_game_20_4.html`. The rest of the logic remains in the HTML's main `<script>` block.
+All logic has been extracted from the HTML into separate JS files.
 
 ### Files on disk
 
 | File | Status | Contents |
 |---|---|---|
-| `dnd_game_20_4.html` | **Active host** | CSS, HTML scaffolding, 4 `<script src>` tags, then remaining JS (api, char-creation, game, ui, globals — not yet extracted) |
-| `data.js` | ✅ Extracted | All 18 game data constants |
-| `helpers.js` | ✅ Extracted | 12 utility functions |
+| `dnd_game_1_0.html` | **Active host** | CSS, HTML scaffolding, 9 `<script src>` tags, no inline JS |
+| `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS` |
+| `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
+| `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. |
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
+| `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
-| `api.js` | ⏳ Pending | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `cleanTxt`, `diceTxt`, `parseActions` |
-| `char-creation.js` | ⏳ Pending | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
-| `game.js` | ⏳ Pending | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame` |
-| `ui.js` | ⏳ Pending | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportNarrative`, `exportSave`, `importSave`, `wireButtons` |
-| `globals.js` | ⏳ Pending | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules` |
+| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
+| `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
+| `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame` |
+| `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons` |
 
-### Script load order (current `<script>` tags in HTML)
-
-```
-data.js → helpers.js → state.js → memory.js → [main script block]
-```
-
-Final load order when split is complete:
+### Script load order
 
 ```
-globals.js → data.js → helpers.js → state.js → memory.js → api.js → char-creation.js → game.js → ui.js
+globals.js → data.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js
 ```
 
 Each file depends only on symbols defined by files earlier in this list.
@@ -48,15 +43,16 @@ Each file depends only on symbols defined by files earlier in this list.
 | Element | Purpose |
 |---|---|
 | `#api-screen` | API key entry (shown on first load) |
-| `#char-screen` | 7-step character creation wizard |
+| `#char-screen` | 7-step character creation wizard — has its own File ▾ menu at top |
 | `#game-screen` | Main game interface |
 | `#lineage-popup` | Sub-popup for Half-Blood lineage selection |
-| Dynamic modals | `#creation-arch`, `#creation-bump`, `#creation-spells`, `#arch-modal`, `#sb-modal`, `#rules-modal`, `#sync-modal` — all appended to `<body>` at runtime |
+| Dynamic modals | `#creation-arch`, `#creation-bump`, `#creation-spells`, `#arch-modal`, `#sb-modal`, `#rules-modal`, `#sync-modal`, `#cs-modal`, `#camp-modal` — all appended to `<body>` at runtime |
 
 ## Game screen layout
 
 ```
 #topbar              — HUD: name, HP, gold, alignment, location + action buttons
+                       Buttons: Sheet | Sync | Render | Rest | Retry | File ▾
 #sidebar             — Slide-out world state panel (fixed, off-screen by default)
 #membar              — Memory status bar (~tokens / chapters / NPCs / turn number)
 #cpanel              — Combat tracker (HP bars, rounds) — hidden when not in combat
@@ -66,7 +62,7 @@ Each file depends only on symbols defined by files earlier in this list.
   .rpanel            — Collapsible right panel: Inventory / Abilities / Spells sections
 #inputarea
   #inrow             — Text input + Send button
-  #chat-tabs         — Two pill tabs: Story | Table Talk (replaces old checkbox)
+  #chat-tabs         — Two pill tabs: Story | Table Talk
 ```
 
 ---
@@ -77,8 +73,8 @@ Each file depends only on symbols defined by files earlier in this list.
 
 | Step | Content |
 |---|---|
-| 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom |
-| 2 – Identity | Name, pronouns, age, physical description, distinguishing mark |
+| 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom. Bottom of step has "↩ Import existing campaign" file input. |
+| 2 – Identity | Name, **gender** (M/F/NB), age, physical description, distinguishing mark, **backstory** |
 | 3 – Ancestry | 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Tiefling), each with 2–3 subraces; Half-Blood has nested lineage selection |
 | 4 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
 | 5 – Stats | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table) |
@@ -86,6 +82,13 @@ Each file depends only on symbols defined by files earlier in this list.
 | 7 – Review | Full character preview + starting location + starting level (1–10) |
 
 After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker → `startGame()`.
+
+**Step 2 uses `<select id="char-gender">` with options M/F/NB** — pronouns have been removed from the character schema entirely.
+
+**Starting languages** are derived automatically in `confirmChar()` from ancestry/subrace and stored in `char.languages[]`:
+- All characters start with Common
+- `ancLangMap`: elf→Elvish, dwarf→Dwarvish, gnome→Gnomish, tiefling→Infernal, hollow→Umbral
+- `subLangMap` (halfblood subraces): half_elven→Elvish, half_orcish→Orcish, half_draconic→Draconic, half_infernal→Infernal, half_fey→Sylvan, half_gnomish→Gnomish
 
 ### 2. Game data constants (all in `data.js`)
 
@@ -103,6 +106,12 @@ After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid
 - `DEFAULT_RULES` — 9 hard GM rules always injected into the system prompt
 - `SPELL_PICK_LIMITS` — Max spells selectable per tier during creation: `{cantrips:2, "1":2, "2":2, "3":1}`
+- `SKILLS` — Array of 36 skill objects `{id, label, cat}` across 8 categories (Physical, Endurance, Wilderness, Knowledge, Craft, Social, Roguish, Perception). Wilderness includes **Tracking** (WIS/INT), which doubles as urban tailing.
+- `SKILL_LEVELS` — `["Unskilled","Familiar","Trained","Proficient","Expert","Master"]`
+- `SKILL_THRESHOLDS` — `[1, 5, 12, 25, 50]` (cumulative successes to reach levels 1–5)
+
+**`skillLevel(successes)`** returns 0–5 based on `SKILL_THRESHOLDS`.
+**`initSkills()`** builds a zeroed skill map `{skillId: 0}` for all 36 skills.
 
 **Racial spells:** Subrace and lineage entries in `ANCS` may have a `racial_spells:[{nm, lvl}]` array. `confirmChar` reads this and pushes entries into `char.spells` as `{nm, lvl, used:false, racial:true}`. Currently wired for: Elf Drow (Dancing Lights cantrip, Faerie Fire 1/day, Darkness 1/day) and Half-Blood Drow lineage (Faerie Fire 1/day).
 
@@ -112,13 +121,42 @@ Three live objects, all persisted to `localStorage` via the `store` wrapper:
 
 | Object | Storage key | Contents |
 |---|---|---|
-| `worldState` | `ashen_core_v9` | `character`, `world` (location/region/time/weather/threat), `npcs[]`, `questLog[]`, `eventHistory[]`, `combat`, `turn` |
-| `sessionLog` | `ashen_sess_v9` | Current-session messages sent to the API (`[{role, content}]`); cleared on summarization |
-| `memory` | `ashen_mem_v9` | Long-term narrative memory: `npcs{}`, `locations{}`, `quests{}`, `lore[]`, `keyDecisions[]`, `futureEvents[]`, `chapters[]` |
+| `worldState` | `ashen_core_v10` | `character`, `world` (location/region/time/weather/threat), `npcs[]`, `questLog[]`, `eventHistory[]`, `combat`, `turn` |
+| `sessionLog` | `ashen_sess_v10` | Current-session messages sent to the API (`[{role, content}]`); cleared on summarization |
+| `memory` | `ashen_mem_v10` | Long-term narrative memory: `npcs{}`, `locations{}`, `quests{}`, `lore[]`, `keyDecisions[]`, `futureEvents[]`, `chapters[]` |
 
 `store` wraps `localStorage` with an in-memory fallback `_m`. Storage key constants (`WSK`, `SLK`, `MEM_KEY`, `AKK`, `RLK`) are defined in `state.js`.
 
-### 4. API usage
+Campaign list metadata stored in `ashen_camps_v1` — array of lightweight campaign entries used by the campaign picker.
+
+### 4. v10 Character schema
+
+```javascript
+{
+  name, gender,           // gender: "M" | "F" | "NB"  (replaces pronouns)
+  age, appear, mark, backstory,
+  ancestry, subrace, subraceNm, heritageVariant,
+  cls, stats, hp, maxHp, gold,
+  inventory[],            // plain strings
+  level, xp,
+  abilities[],            // {nm, ds}
+  spells[],               // {nm, lvl, used, racial?}
+  archetype, archetypeNm,
+  statedAlignment, actualAlignment, alignLaw, alignGood,
+  deity,
+  trait, flaw, motivation,
+  languages[],            // {name, broken}
+  skills,                 // {skillId: successCount} — all 36 keys, zeroed at creation
+  conditions[],           // {name, duration}
+  relationships[],        // {entity, descriptor}
+  saveModifiers[],        // {source, type, amount}
+  portrait,               // null | base64 data URL (compressed to max 400×600px JPEG 0.8)
+  storyBeats[],           // {text, turn}
+  partyMember             // bool — always true for the player character
+}
+```
+
+### 5. API usage
 
 **Endpoint:** `https://api.anthropic.com/v1/messages`
 **Model:** `claude-sonnet-4-6` — **verify this string is current before starting work each session**; model identifiers are periodically updated and an outdated string causes API errors.
@@ -133,7 +171,7 @@ Three callers:
 - `beginAdventure()` — opening narrative on game start (1000 tokens)
 - `summarize()` — memory extraction, JSON-only output (2000 tokens)
 
-### 5. System prompt construction (`buildSysPrompt`)
+### 6. System prompt construction (`buildSysPrompt`)
 
 Assembled fresh on every request from live state:
 
@@ -141,15 +179,18 @@ Assembled fresh on every request from live state:
 2. `getRulesBlock()` — default + custom narrative rules
 3. GM role declaration + tone directive
 4. Character sheet (stats, HP, gold, alignment, abilities, spells, inventory)
-5. World state (location, time, weather, NPCs, active quests)
-6. `memoryTOC()` — compact summary of known NPCs, visited locations, pending events, recent decisions, chapter summaries
-7. `memoryNpcDetail()` — full detail on NPCs mentioned in the last 6 session messages
-8. Combat state block (if `worldState.combat` is set)
-9. Event history (last 8 compressed chapter summaries)
-10. State tag instructions + dice format instructions
-11. Style directive: "3-5 sentences vivid second-person. End EVERY response with `*You could [action]; [action]; or [action].*` — **semicolons** separate options, never commas."
+5. **Conditions, relationships, save modifiers, languages, skills** (v10 additions)
+6. World state (location, time, weather, NPCs, active quests)
+7. `memoryTOC()` — compact summary of known NPCs, visited locations, pending events, recent decisions, chapter summaries
+8. `memoryNpcDetail()` — full detail on NPCs mentioned in the last 6 session messages
+9. Combat state block (if `worldState.combat` is set)
+10. Event history (last 8 compressed chapter summaries)
+11. State tag instructions + dice format instructions (includes all v10 tags + full skill ID list)
+12. Style directive: "3-5 sentences vivid second-person. End EVERY response with `*You could [action]; [action]; or [action].*` — **semicolons** separate options, never commas."
 
-### 6. State tag system (`applyMuts`)
+**Gender in image prompts:** `doRender()` uses `c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male"` — never uses pronouns.
+
+### 7. State tag system (`applyMuts`)
 
 The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`.
 
@@ -158,11 +199,18 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[HP:+/-X]` | Adjust `character.hp`, clamped to `[0, maxHp]` |
 | `[GOLD:+/-X]` | Adjust `character.gold` |
 | `[ITEM_GAINED:name]` / `[ITEM_LOST:name]` | Push/filter `character.inventory` |
-| `[LOCATION:name]` | Update `world.location`, file to `memory.locations` |
+| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map` |
+| `[LOCATION_DESC:text]` | Store canonical description for current location (written once on first visit, never overwritten) |
+| `[SUBLOCATION:name]` | Enter a named area within the current world location; sets `world.sublocation` |
+| `[SUBLOCATION_LEAVE]` | Exit sub-location; clears `world.sublocation` |
+| `[LOCATION_ITEM:name\|placed]` | Record item left/hidden at current location node; pairs with `[ITEM_LOST:]` |
+| `[LOCATION_ITEM:name\|taken]` | Mark item as taken by NPC/event; player pickup auto-handled by `[ITEM_GAINED:]` |
 | `[NPC:name|status|relation]` | Upsert `worldState.npcs[]` and `memory.npcs{}` |
 | `[XP:N]` | Add XP, trigger `checkLevelUp()` |
 | `[QUEST:title|status]` | Upsert `worldState.questLog[]` |
 | `[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale]` | Set `worldState.combat` |
+| `[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N]` | Set enemy ability scores and CR (always emit alongside COMBAT_START) |
+| `[COMBAT_IMMUNE:type,type]` / `[COMBAT_RESIST:...]` / `[COMBAT_VULN:...]` | Set damage immunities/resistances/vulnerabilities; displayed in combat panel |
 | `[ENEMY_HP:-X]` / `[COMBAT_ROUND:N]` / `[COMBAT_END:outcome]` | Update or clear combat state |
 | `[ABILITY_GAINED:Name|Desc]` | Append to `character.abilities` (deduplicated) |
 | `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift `alignLaw`/`alignGood` (-3 to +3), recompute `actualAlignment` |
@@ -173,9 +221,21 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[FUTURE_EVENT_RESOLVED:what]` | Mark matching future event resolved |
 | `[NPC_NOTE:name|note]` | Append event note to `memory.npcs[name].events` |
 | `[NPC_PRONOUN:name|pronouns]` | Set pronouns on NPC in both stores |
+| `[NPC_ALIAS:canonical|alias]` | Register alias for an NPC; all future tags using the alias silently resolve to canonical; shown in NPC list as `Name [aka: alias]` |
+| `[NPC_MERGE:canonical|duplicate]` | Absorb duplicate NPC entry into canonical (merges events, knowledge, aliases); cleans up matching relationships; removes duplicate from both stores |
+| `[PARTY_MEMBER:name|true/false]` | Set `partyMember` bool on NPC in `worldState.npcs` and `memory.npcs`; creates NPC entry if missing; flagged in system prompt NPC list |
 | `[DICE:label|result|outcome]` | Rendered visually as a dice block (not a mutation) |
+| `[SKILL_SUCCESS:skillId]` | Increment `character.skills[id]`; toast on level-up |
+| `[CONDITION:name|duration]` | Push `{name, duration}` to `character.conditions` |
+| `[CONDITION_REMOVED:name]` | Filter matching condition from `character.conditions` |
+| `[RELATIONSHIP:entity|descriptor]` | Upsert `{entity, descriptor}` in `character.relationships` |
+| `[RELATIONSHIP_REMOVED:entity]` | Filter matching relationship |
+| `[SAVE_MOD:source|type|amount]` | Upsert `{source, type, amount}` in `character.saveModifiers` |
+| `[SAVE_MOD_REMOVED:source]` | Filter matching save modifier |
+| `[LANGUAGE:name|fluent/broken]` | Push or update language in `character.languages` |
+| `[STORY_BEAT:text]` | Push `{text, turn}` to `character.storyBeats`; also calls `fileDecision` |
 
-### 7. Memory / summarization system (in `memory.js`)
+### 8. Memory / summarization system (in `memory.js`)
 
 `sessionTokens()` estimates the token count of `sessionLog` (sum of `content.length` / 4). When it hits 1000, `summarize()` fires before the next player action.
 
@@ -189,11 +249,38 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 
 Memory status shown in `#membar` as `~NNNtk`: green dot (< 800 tokens), amber (800–999), red (≥ 1000).
 
-### 8. Combat system
+### 9. Map data layer (`memory.map`)
+
+Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArrivalFrom:null}`.
+
+**Node keys:** world locations use the plain name (`"Ashfen"`); sub-locations use `"Location|SubLocation"` (e.g. `"Ashfen|The Rusty Flagon"`).
+
+**Node structure:** `{firstVisit:turn, visits:0, description:null, parent:null, npcs:[], items:[]}`. `parent` is `null` for world nodes, or the world location name for sub-location nodes.
+
+**Edges:** `{from, to, turn}` — undirected connection recorded once on first travel between two world locations.
+
+**`worldState.world.sublocation`** — new field (`null` or string) tracking the current sub-location.
+
+**Location items:** `{name, placed:turn, taken:false}`. `taken` is a boolean toggle — `placed` resets it to `false` even if previously taken (item returned). `autoTakeLocationItem()` is called on `[ITEM_GAINED:]` to auto-mark the matching location item as taken.
+
+**NPC last-seen:** `mapNpcLocation(name)` stamps the NPC into the current node's `npcs[]` array and sets `memory.npcs[name].lastSeenAt` to the current node key.
+
+**`buildGeoBlock()`** (in `api.js`) generates a `GEOGRAPHY` block injected into every system prompt turn:
+- Current world + sub-location header
+- Canonical location/sub-location descriptions
+- Items present vs. items previously taken
+- Known sub-locations of the current world location
+- Arrival direction (`lastArrivalFrom`)
+- Connected world locations (from edges)
+- NPCs last seen elsewhere (prevents phantom-NPC issues)
+
+`[LOCATION_DESC:]` is stored once (never overwritten) and always re-injected, preventing GM description drift.
+
+### 10. Combat system
 
 Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, morale, round}`. All mechanics handled by GM through state tags. `#cpanel` shown/hidden by `syncUI()`.
 
-### 9. Level-up system
+### 11. Level-up system
 
 `checkLevelUp()` called inside `applyMuts()` whenever XP changes:
 - HP gain per level: `ceil(hd/2) + 1 + CON_mod` (minimum 1)
@@ -201,40 +288,88 @@ Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, mora
 - Level 3: `showArchetypeModal()`
 - Levels 4, 8: `showStatBumpModal()` (+2 to one stat or +1 to two, max 20)
 
-### 10. Alignment drift
+### 12. Alignment drift
 
 `character.alignLaw` and `character.alignGood` are integers clamped to [-3, 3]. `alignLabel(law, good)` maps to 9-point grid. GM shifts via `[ALIGNMENT:]` tags.
 
-### 11. Rendered action suggestions
+### 13. Rendered action suggestions
 
 Every GM response ends with `*You could [A]; [B]; or [C].*` (semicolons required — instructed in system prompt). `parseActions(clean)`:
 - If semicolons present: splits on `;\s*(?:or\s+)?`
 - Fallback (no semicolons): splits on `,\s*or\s+|\s+or\s+` only — does NOT split on bare commas
 - Buttons rendered as `<button class="qa">` with `onclick="sendSuggestedAction(this)"`
 
-### 12. Table Talk mode
+### 14. Table Talk mode
 
 Implemented as a **tab** (not a checkbox). `activeChatTab` global is `"narrative"` or `"tabletalk"`. `switchTab(tab)` toggles visibility of `#story-narrative` / `#story-tabletalk` and updates tab button styles. `addMsg` routes by message type. A blue badge dot appears on the inactive tab when a message arrives there. `isTT` in `sendAction` is derived from `activeChatTab === "tabletalk"`.
 
-### 13. File operations (File menu)
+### 15. File menu
 
-- **Export save (.json)**: Full `{worldState, sessionLog, memory}` snapshot
-- **Import save (.json)**: Restore snapshot, re-initialize UI (clears both story divs)
-- **Export narrative (.txt)**: Plain-text transcript from `#story-narrative` only
-- **Narrative rules**: Modal to view/edit custom rules (persisted under `ashen_rules_v9`)
-- **New game**: Clears all storage keys and both story divs, returns to character creation
+Present on both `#game-screen` (in `#topbar`) and `#char-screen` (top-right above step dots).
 
-Auto-export narrative fires every 10 turns as a background download.
+**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
 
-### 14. Sync modal
+**Char screen items:** Same full list, but Sync state, World state, Render prompt, Save Game, Export Character, and New Game are greyed out (`opacity:0.4; pointer-events:none`) — no active game yet.
+
+Both menus share the same underlying functions. `updateServerUI()`, `loadAdultMode()`, and `toggleAdultMode()` sync state across both menus simultaneously.
+
+**File naming:** `buildFilename(type)` in `ui.js` — format `[campName]_[charName]_t[turn].[ext]`. `worldState.campName` is set once at campaign creation and never changes.
+
+Auto-export narrative fires every 10 turns as a background download (no manual export button).
+
+### 16. Campaign management
+
+`showCampaignPicker()` reads `ashen_camps_v1` from localStorage. `saveAll()` calls `storageAdapter.syncToServer()` on every save, pushing state to the server automatically.
+
+After connecting to server, `syncCampaignList()` fetches the server campaign list and merges it into `ashen_camps_v1`, then the campaign picker opens automatically.
+
+### 17. Sync modal
 
 Direct editing of HP, max HP, gold, XP, level, location, time, weather, inventory without going through the GM.
 
-### 15. Render feature
+### 18. Render feature
 
-`doRender()` sends a specialized system prompt asking for a photorealistic image-generation prompt for the current scene. Output displayed as `.msg.render-out` with a copy button.
+`doRender()` calls the **fal.ai** API. Three models selectable via Render Options modal (in Dev Mode):
+- **Flux Dev** — `fal-ai/flux/dev` (text-to-image) / `fal-ai/flux/dev/image-to-image` (img2img, strength 0.6)
+- **Nano Banana 2** — `fal-ai/nano-banana-2` / `fal-ai/nano-banana-2/edit` (img2img via `image_urls`)
+- **Qwen 2512** — `fal-ai/qwen2.5-vl/text-to-image` / `fal-ai/qwen-image-edit/image-to-image` (img2img, strength 0.6)
 
-### 16. Reload behavior
+When `character.portrait` exists, img2img is used automatically (status line shows "Generating scene (portrait-seeded)…"). Falls back to text-to-image if no portrait.
+
+Parameters: `aspect_ratio:"4:3"`, `resolution:"1K"`. `genderWord` derived from `c.gender` (male/female/androgynous).
+
+### 19. Portrait system
+
+`character.portrait` — null or base64 data URL. Compressed via `compressPortrait()` (Canvas resize to max 400×600px, JPEG 0.8) before storage to avoid localStorage quota overflow.
+
+Set from three paths:
+1. Scene render → portrait button on render output
+2. Portrait modal → "Use as Portrait" button
+3. Portrait modal → file upload
+
+### 20. Character sheet modal (`#cs-modal`)
+
+Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by `showCharSheet()` in `ui.js`.
+
+**Visual style:** `rgba(0,0,0,.88)` overlay, inner `#181818` box with `1px solid var(--acc)` amber border, `border-radius:12px`, `max-width:560px`. Click outside or × to close.
+
+**No pill/chip borders anywhere** — all data rendered as plain text. Commas separate list items. Used spells get `text-decoration:line-through` + dim color. Broken languages shown in amber with `(broken)` suffix.
+
+**Sections:** Hero card · Attributes · Character (trait/flaw/motivation/backstory) · Conditions · Relationships · Languages · Save Modifiers · Skills (earned only) · Story Beats · Abilities · Spells · Inventory
+
+### 21. NPC alias system
+
+`resolveNpcName(name)` in `memory.js` resolves aliases to canonical name before any storage op. All NPC-keyed tags resolve aliases: `NPC`, `NPC_PRONOUN`, `NPC_NOTE`, `PARTY_MEMBER`, `RELATIONSHIP`, `RELATIONSHIP_REMOVED`. NPC list in system prompt shows `Name [aka: alias1, alias2]`.
+
+### 22. Cloud sync (`storage-adapter.js`)
+
+**Server:** `https://ashen-crown-server.fly.dev`
+**Auth:** GitHub OAuth popup → server postMessages `{type:"ashen-auth", sessionId, username}` back to opener → token stored in `ashen_server_tok_v1`.
+**CORS:** Server uses `origin: function() { return "*"; }` to handle `null` origin from `file://` pages.
+**Endpoints:** `GET /auth/github`, `GET /auth/github/callback`, `GET /auth/me`, `POST /auth/logout`, `GET /api/campaigns`, `GET /api/campaigns/:id`, `POST /api/state`, `GET /api/state`, `GET /api/messages`
+**Deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
+
+### 23. Reload behavior
 
 On `init()`, if a saved game is found and `sessionLog` has at least 2 entries, the last player action and last GM response are re-rendered in `#story-narrative`. Suggested action buttons from the last response are live and clickable.
 
@@ -242,39 +377,42 @@ On `init()`, if a saved game is found and `sessionLog` has at least 2 entries, t
 
 ## Conventions
 
-- **ES5 JavaScript throughout** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` only in the three API-facing functions. *(ES6+ migration planned for when split is complete.)*
+- **ES5 JavaScript throughout** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` only in the three API-facing functions.
 - **Single-character variables** common in dense utility functions.
 - **HTML built by string concatenation** — no templating engine.
-- **State versioning via key suffix** — all storage keys end in `_v9`.
-- **No external dependencies** — CSS and JS entirely self-contained.
+- **State versioning via key suffix** — all storage keys end in `_v10` (campaigns in `_v1`).
+- **No front-end dependencies** — CSS and JS entirely self-contained.
 - **CSS variables** for theming — palette in `:root`, amber accent `--acc` (#c8922a) is the visual identity color.
 - **Modals always created fresh** — remove prior instance by ID before creating new one.
 - **`busy` flag** — global boolean gates all API calls. Always set `busy=false` in both success and error paths.
 - **Scrollbars** — custom styled via `::-webkit-scrollbar` rules: 6px wide, near-black track, dark grey thumb, amber on hover.
+- **No pill/chip borders on non-interactive elements** — use plain text, comma-separation, or `cs-list-row` rows instead. Borders imply clickability.
+- **Both file menus must stay in sync** — when adding items to the game screen file menu, mirror them to the char screen file menu (`cs-` prefixed IDs) and vice versa.
 
 ---
 
-## Remaining split work
+## Known issues
 
-Files still to extract from `dnd_game_20_4.html` (in order):
+- **Relationships not populating on NPC sheets** — noticed, not investigated
+- **`index.html` redirect is stale** — redirects to `dnd_game_20_4.html` (in BAK); should redirect to `dnd_game_1_0.html`
+- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code)
+- **"↩ Import existing campaign" on tone step** — redundant with File menu; consider removing
 
-1. **`api.js`** — `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `cleanTxt`, `diceTxt`, `parseActions`
-2. **`char-creation.js`** — all wizard step logic and creation-flow functions
-3. **`game.js`** — `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, archetype/stat-bump modals, `restSpells`, `doRender`, `newGame`
-4. **`ui.js`** — all UI update functions, `addMsg`, `switchTab`, modals, export/import, `wireButtons`
-5. **`globals.js`** — `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`
+---
 
-**ES5 → ES6+ migration** happens during the split: `const`/`let`, arrow functions, template literals, native ES modules (`<script type="module">`).
+## Feature backlog & decisions
+
+See [TODO.md](TODO.md) for the full task list, known issues, and architecture decision log.
 
 ---
 
 ## Dev workflow
 
 **Running locally:**
-1. Open `dnd_game_20_4.html` directly in any modern browser (Chrome, Firefox, Edge).
+1. Open `dnd_game_1_0.html` directly in any modern browser (Chrome, Firefox, Edge).
 2. Enter your Anthropic API key (`sk-ant-...`) on the opening screen.
 3. The key is stored in `localStorage` under `ashen_ak_v1` and auto-loaded on subsequent visits.
-4. No server, no build step, no `npm install`.
+4. No build step, no `npm install`.
 
 **Testing changes:**
 - Hard-refresh (`Ctrl+Shift+R`) after editing any `.js` file — Chrome caches aggressively.

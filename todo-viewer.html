@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>T&D — TODO</title>
+  <style>
+    :root{--bg0:#0d0d0d;--bg1:#111;--bg2:#1a1a1a;--bg3:#222;--brd:#2a2a2a;--brd2:#333;--acc:#c8922a;--t0:#e8e0d0;--t1:#b8b0a0;--t2:#706860;--red:#c04040;--grn:#4a9060;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg0);color:var(--t0);font-family:Georgia,serif;padding:24px;max-width:920px;margin:0 auto;font-size:14px;line-height:1.6;}
+    h1{color:var(--acc);font-size:20px;margin-bottom:4px;}
+    h2{color:var(--acc);font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+    h3{color:var(--t1);font-size:13px;margin:16px 0 6px;}
+    p{color:var(--t1);margin-bottom:10px;}
+    a{color:var(--acc);}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+    th{text-align:left;color:var(--t2);font-size:11px;padding:6px 10px;border-bottom:1px solid var(--brd);font-weight:normal;text-transform:uppercase;letter-spacing:.06em;}
+    td{padding:7px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
+    tr:hover td{background:var(--bg2);}
+    .done td{opacity:0.5;}
+    .done td:nth-child(2){text-decoration:line-through;color:var(--t2);}
+    code{font-family:monospace;font-size:12px;background:var(--bg3);padding:1px 4px;border-radius:3px;color:var(--acc);}
+    ul,ol{padding-left:20px;margin-bottom:10px;color:var(--t1);}
+    li{margin-bottom:4px;}
+    strong{color:var(--t0);}
+    .status{font-size:11px;color:var(--t2);white-space:nowrap;}
+    .status.sdone{color:var(--grn);}
+    .status.slow{color:var(--t2);}
+    #load-btn{padding:10px 24px;font-family:Georgia,serif;font-size:13px;background:var(--acc);color:#000;border:none;border-radius:4px;cursor:pointer;}
+    #load-btn:hover{opacity:.85;}
+    #drop-zone{border:2px dashed var(--brd2);border-radius:8px;padding:40px;text-align:center;color:var(--t2);font-size:13px;margin-top:32px;}
+    #drop-zone.over{border-color:var(--acc);color:var(--acc);}
+    hr{border:none;border-top:1px solid var(--brd);margin:20px 0;}
+    blockquote{border-left:3px solid var(--acc);padding-left:12px;color:var(--t2);font-style:italic;margin:10px 0;}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
+    .toolbar-right{display:flex;gap:8px;}
+    .tbtn{padding:7px 14px;font-family:Georgia,serif;font-size:12px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:4px;cursor:pointer;}
+    .tbtn:hover{border-color:var(--acc);color:var(--acc);}
+    .tbtn.danger:hover{border-color:var(--red);color:var(--red);}
+    /* Drag and drop */
+    .drag-handle{cursor:grab;color:var(--t2);padding:0 6px 0 2px;font-size:14px;user-select:none;}
+    .drag-handle:hover{color:var(--acc);}
+    tr.dragging{opacity:0.4;}
+    tr.drag-over td{border-top:2px solid var(--acc);}
+    .num-cell{color:var(--t2);width:36px;font-size:12px;}
+    .handle-cell{width:24px;padding:7px 0;}
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="drop-zone">
+      <p style="margin-bottom:16px;color:var(--t1);">📋 Traffic and Dragons — TODO Viewer</p>
+      <button id="load-btn">Open TODO.md</button>
+      <p style="margin-top:16px;font-size:11px;">or drag &amp; drop TODO.md here</p>
+    </div>
+  </div>
+
+<script>
+var _sections = [];   // parsed sections: {type:'text'|'tasks', content}
+var _tasks = [];      // flat task row array: {num, task, status, raw}
+var _dragSrc = null;
+var _fileHandle = null;  // FileSystemFileHandle for refresh
+
+// ── File loading ─────────────────────────────────────────────────────────────
+document.getElementById("load-btn").addEventListener("click", function(){
+  if(window.showOpenFilePicker){
+    window.showOpenFilePicker({types:[{description:"Markdown",accept:{"text/plain":[".md",".txt"]}}]})
+      .then(function(handles){
+        _fileHandle = handles[0];
+        return _fileHandle.getFile();
+      }).then(function(file){
+        readFile(file);
+      }).catch(function(){});
+  } else {
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".md,.txt";
+    inp.onchange = function(e){ readFile(e.target.files[0]); };
+    inp.click();
+  }
+});
+
+var dz = document.getElementById("drop-zone");
+dz.addEventListener("dragover",function(e){e.preventDefault();dz.classList.add("over");});
+dz.addEventListener("dragleave",function(){dz.classList.remove("over");});
+dz.addEventListener("drop",function(e){
+  e.preventDefault();dz.classList.remove("over");
+  var f = e.dataTransfer.files[0];
+  if(f){ _fileHandle = null; readFile(f); }
+});
+
+function readFile(file){
+  var r = new FileReader();
+  r.onload = function(e){ parse(e.target.result); renderPage(); };
+  r.readAsText(file);
+}
+
+function refresh(){
+  if(!_fileHandle){ alert("No file handle — open the file using the Open button (not drag & drop) to enable refresh."); return; }
+  _fileHandle.getFile().then(function(file){ readFile(file); }).catch(function(e){ alert("Refresh failed: "+e.message); });
+}
+
+// ── Parse TODO.md into sections ──────────────────────────────────────────────
+function parse(md){
+  _sections = [];
+  _tasks = [];
+  var lines = md.split("\n");
+  var i = 0;
+  while(i < lines.length){
+    var line = lines[i];
+    // Detect start of a task table (header row with # | Task | Status)
+    if(/^\|\s*#\s*\|/.test(line)){
+      // skip header and separator
+      i += 2;
+      // read task rows
+      while(i < lines.length && /^\|/.test(lines[i])){
+        var cells = lines[i].split("|").slice(1,-1).map(function(c){return c.trim();});
+        if(cells.length >= 2){
+          _tasks.push({num:cells[0], task:cells[1], status:cells[2]||"", raw:lines[i]});
+        }
+        i++;
+      }
+      _sections.push({type:"tasks"});
+    } else {
+      // Collect non-table text
+      var textLines = [];
+      while(i < lines.length && !/^\|\s*#\s*\|/.test(lines[i])){
+        textLines.push(lines[i]);
+        i++;
+      }
+      _sections.push({type:"text", content:textLines.join("\n")});
+    }
+  }
+}
+
+// ── Render full page ─────────────────────────────────────────────────────────
+function renderPage(){
+  var html = "<div class='toolbar'>"
+    +"<div style='font-size:12px;color:var(--t2);'>"+_tasks.length+" tasks &mdash; "+_tasks.filter(isDone).length+" done</div>"
+    +"<div class='toolbar-right'>"
+    +"<button class='tbtn' onclick='refresh()'>↺ Refresh</button>"
+    +"<button class='tbtn' onclick='renumber()'>Renumber</button>"
+    +"<button class='tbtn danger' onclick='clearDone()'>Clear completed</button>"
+    +"<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
+    +"<button class='tbtn' onclick='location.reload()'>Reset</button>"
+    +"</div></div>";
+
+  for(var s=0;s<_sections.length;s++){
+    var sec = _sections[s];
+    if(sec.type === "tasks"){
+      html += renderTaskTable();
+    } else {
+      html += parseMarkdown(sec.content);
+    }
+  }
+  document.getElementById("root").innerHTML = html;
+  wireTaskTable();
+}
+
+// ── Task table ───────────────────────────────────────────────────────────────
+function isDone(t){
+  return /✅/.test(t.task)||/✅/.test(t.status)||/\bDone\b/.test(t.status);
+}
+function isLow(t){
+  return /[Ll]ow priority/.test(t.status)||/[Ll]ow priority/.test(t.task);
+}
+
+function renderTaskTable(){
+  var h = "<table id='task-table'>"
+    +"<thead><tr><th></th><th>#</th><th>Task</th><th>Status</th></tr></thead>"
+    +"<tbody id='task-tbody'>";
+  for(var i=0;i<_tasks.length;i++){
+    var t = _tasks[i];
+    var done = isDone(t), low = isLow(t);
+    var sCls = done ? "status sdone" : low ? "status slow" : "status";
+    h += "<tr class='"+(done?"done":"")+"' draggable='true' data-idx='"+i+"'>"
+      +"<td class='handle-cell'><span class='drag-handle' title='Drag to reorder'>⠿</span></td>"
+      +"<td class='num-cell'>"+inline(t.num)+"</td>"
+      +"<td>"+inline(t.task)+"</td>"
+      +"<td class='"+sCls+"'>"+inline(t.status)+"</td>"
+      +"</tr>";
+  }
+  h += "</tbody></table>";
+  return h;
+}
+
+function wireTaskTable(){
+  var tbody = document.getElementById("task-tbody");
+  if(!tbody) return;
+  var rows = tbody.querySelectorAll("tr");
+  for(var i=0;i<rows.length;i++){
+    (function(row){
+      row.addEventListener("dragstart",function(e){
+        _dragSrc = row;
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      row.addEventListener("dragend",function(){
+        row.classList.remove("dragging");
+        var all = tbody.querySelectorAll("tr");
+        for(var j=0;j<all.length;j++) all[j].classList.remove("drag-over");
+      });
+      row.addEventListener("dragover",function(e){
+        e.preventDefault();
+        if(_dragSrc && _dragSrc !== row){
+          var all = tbody.querySelectorAll("tr");
+          for(var j=0;j<all.length;j++) all[j].classList.remove("drag-over");
+          row.classList.add("drag-over");
+        }
+      });
+      row.addEventListener("drop",function(e){
+        e.preventDefault();
+        if(_dragSrc && _dragSrc !== row){
+          var srcIdx = parseInt(_dragSrc.getAttribute("data-idx"));
+          var destIdx = parseInt(row.getAttribute("data-idx"));
+          var moved = _tasks.splice(srcIdx,1)[0];
+          var newDest = srcIdx < destIdx ? destIdx : destIdx;
+          _tasks.splice(newDest,0,moved);
+          renderPage();
+        }
+      });
+    })(rows[i]);
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+function renumber(){
+  for(var i=0;i<_tasks.length;i++) _tasks[i].num = String(i+1);
+  renderPage();
+}
+
+function clearDone(){
+  var kept = _tasks.filter(function(t){return !isDone(t);});
+  if(kept.length === _tasks.length){return;}
+  if(!confirm("Remove "+(_tasks.length-kept.length)+" completed task(s)?")) return;
+  _tasks = kept;
+  renderPage();
+}
+
+function exportMd(){
+  var out = "";
+  for(var s=0;s<_sections.length;s++){
+    var sec = _sections[s];
+    if(sec.type === "tasks"){
+      out += "| # | Task | Status |\n|---|---|---|\n";
+      for(var i=0;i<_tasks.length;i++){
+        var t = _tasks[i];
+        out += "| "+t.num+" | "+t.task+" | "+t.status+" |\n";
+      }
+    } else {
+      out += sec.content;
+      if(s < _sections.length-1) out += "\n";
+    }
+  }
+  var blob = new Blob([out],{type:"text/plain"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href=url; a.download="TODO.md"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Markdown renderer (non-task sections) ────────────────────────────────────
+function parseMarkdown(md){
+  var lines = md.split("\n");
+  var out = "";
+  var inTable=false,inUl=false,inOl=false;
+  function closeList(){if(inUl){out+="</ul>";inUl=false;}if(inOl){out+="</ol>";inOl=false;}}
+  function closeTable(){if(inTable){out+="</tbody></table>";inTable=false;}}
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i],trimmed=line.trim();
+    if(/^### /.test(trimmed)){closeList();closeTable();out+="<h3>"+inline(trimmed.slice(4))+"</h3>";continue;}
+    if(/^## /.test(trimmed)){closeList();closeTable();out+="<h2>"+inline(trimmed.slice(3))+"</h2>";continue;}
+    if(/^# /.test(trimmed)){closeList();closeTable();out+="<h1>"+inline(trimmed.slice(2))+"</h1>";continue;}
+    if(/^---+$/.test(trimmed)){closeList();closeTable();out+="<hr>";continue;}
+    if(/^\|/.test(trimmed)){
+      var cells=trimmed.split("|").slice(1,-1).map(function(c){return c.trim();});
+      if(cells.every(function(c){return /^[-: ]+$/.test(c);})){continue;}
+      if(!inTable){inTable=true;out+="<table><thead><tr>"+cells.map(function(c){return "<th>"+inline(c)+"</th>";}).join("")+"</tr></thead><tbody>";continue;}
+      out+="<tr>"+cells.map(function(c){return "<td>"+inline(c)+"</td>";}).join("")+"</tr>";
+      continue;
+    } else {closeTable();}
+    if(/^[-*] /.test(trimmed)){closeTable();if(!inUl){out+="<ul>";inUl=true;}out+="<li>"+inline(trimmed.slice(2))+"</li>";continue;}
+    if(/^\d+\. /.test(trimmed)){closeTable();if(!inOl){out+="<ol>";inOl=true;}out+="<li>"+inline(trimmed.replace(/^\d+\. /,""))+"</li>";continue;}
+    if(!trimmed){closeList();closeTable();out+="<p></p>";continue;}
+    if(/^> /.test(trimmed)){closeList();closeTable();out+="<blockquote>"+inline(trimmed.slice(2))+"</blockquote>";continue;}
+    closeList();closeTable();out+="<p>"+inline(trimmed)+"</p>";
+  }
+  closeList();closeTable();
+  return out;
+}
+
+function inline(s){
+  s = s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
+  s = s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  s = s.replace(/\*([^*]+)\*/g,"<em>$1</em>");
+  s = s.replace(/✅/g,"<span style='color:var(--grn)'>✅</span>");
+  return s;
+}
+</script>
+</body>
+</html>

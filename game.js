@@ -9,11 +9,12 @@ function startGame(char,toneName,toneVoice){
   if(char.portrait===undefined)char.portrait=null;
   if(!char.backstory)char.backstory="";
   if(!char.storyBeats)char.storyBeats=[];
-  worldState={ver:10,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low"},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
+  worldState={ver:10,campName:char.name,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
   delete worldState.character._startLoc;
   sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
+  if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
   beginAdventure();
 }
 function checkLevelUp(){
@@ -104,7 +105,8 @@ async function doRender(){
   try{
     var c=worldState.character,w=worldState.world;
     // Build a character-specific anchor so the model paints the same person each time
-    var charDesc=c.name+", "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
+    var genderWord=c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male";
+    var charDesc=c.name+", a "+genderWord+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
     var rp="Write a detailed image generation prompt for the current scene. "
       +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
       +"Spell out hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
@@ -137,9 +139,18 @@ async function doRender(){
     saveBtn.addEventListener("click",function(){
       if(!imageUrl)return;
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
-        var url=URL.createObjectURL(blob);var a=document.createElement("a");
-        a.href=url;a.download="ashen_t"+worldState.turn+".jpg";a.click();URL.revokeObjectURL(url);
+        var fname=buildFilename("render");exportToFolder("render",blob,fname);
       }).catch(function(){window.open(imageUrl,"_blank");});
+    });
+    var portraitBtn=mkBtn("⧉ Portrait","Use this scene as character portrait");
+    portraitBtn.addEventListener("click",function(){
+      if(!imageUrl){showToast("Image not ready yet.");return;}
+      portraitBtn.textContent="Saving…";portraitBtn.disabled=true;
+      fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
+        var fr=new FileReader();
+        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){worldState.character.portrait=compressed;saveAll();showToast("Portrait updated!");portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;});};
+        fr.readAsDataURL(blob);
+      }).catch(function(){portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;showToast("Could not save portrait.");});
     });
     var promptBtn=mkBtn("¶ Prompt","View / hide the image prompt");
     promptBtn.addEventListener("click",function(){
@@ -150,7 +161,7 @@ async function doRender(){
     });
     var closeBtn=mkBtn("× Close","Remove this image");
     closeBtn.addEventListener("click",function(){div.remove();});
-    toolbar.appendChild(saveBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
+    toolbar.appendChild(saveBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
     div.appendChild(toolbar);
 
     if(falKey){
@@ -160,7 +171,12 @@ async function doRender(){
       div.appendChild(imgStatus);
       try{
         var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
-        var falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(mdlCfg.body(resp))});
+        var portrait=worldState.character.portrait;
+        var usingI2I=!!(portrait&&mdlCfg.img2img);
+        if(usingI2I)imgStatus.textContent="Generating scene (portrait-seeded)…";
+        var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
+        var falBody=usingI2I?mdlCfg.img2img.body(resp,portrait):mdlCfg.body(resp);
+        var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){
@@ -206,8 +222,16 @@ function initSpells(){
 }
 function newGame(){
   var modal=document.createElement("div");modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;";
-  modal.innerHTML='<div style="background:#181818;border:1px solid #6a2020;border-radius:10px;padding:28px 24px;max-width:340px;width:90%;text-align:center;"><p style="font-size:16px;color:var(--t0);margin-bottom:8px;">Start a new game?</p><p style="font-size:13px;color:var(--t2);margin-bottom:24px;">Current save will be permanently deleted.</p><div style="display:flex;gap:10px;"><button id="ng-cancel" style="flex:1;padding:10px;font-family:Georgia,serif;background:#222;border:1px solid #444;border-radius:6px;color:var(--t1);cursor:pointer;">Cancel</button><button id="ng-go" style="flex:1;padding:10px;font-family:Georgia,serif;background:#6a2020;border:1px solid #8b2a2a;border-radius:6px;color:var(--t0);cursor:pointer;font-weight:bold;">New game</button></div></div>';
+  modal.innerHTML='<div style="background:#181818;border:1px solid #6a2020;border-radius:10px;padding:28px 24px;max-width:340px;width:90%;text-align:center;"><p style="font-size:16px;color:var(--t0);margin-bottom:8px;">Start a new campaign?</p><p style="font-size:13px;color:var(--t2);margin-bottom:24px;">Your current playthrough will be saved and can be resumed from Campaigns.</p><div style="display:flex;gap:10px;"><button id="ng-cancel" style="flex:1;padding:10px;font-family:Georgia,serif;background:#222;border:1px solid #444;border-radius:6px;color:var(--t1);cursor:pointer;">Cancel</button><button id="ng-go" style="flex:1;padding:10px;font-family:Georgia,serif;background:#6a2020;border:1px solid #8b2a2a;border-radius:6px;color:var(--t0);cursor:pointer;font-weight:bold;">New game</button></div></div>';
   document.body.appendChild(modal);
   document.getElementById("ng-cancel").addEventListener("click",function(){modal.remove();});
-  document.getElementById("ng-go").addEventListener("click",function(){modal.remove();store.del(WSK);store.del(SLK);store.del(MEM_KEY);store.del(RLK);worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[]};document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showChar();});
+  document.getElementById("ng-go").addEventListener("click",function(){
+    modal.remove();
+    snapshotActiveCamp();
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    var nid=newCampaignId();setActiveCampId(nid);
+    worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
+    showChar();
+  });
 }

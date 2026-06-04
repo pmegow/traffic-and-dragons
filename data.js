@@ -40,14 +40,14 @@ var ANCS=[
   {id:"tiefling",nm:"Tiefling",bonus:"+2 CHA, +1 INT",stats:{CHA:2,INT:1},fc:0,desc:"Infernal heritage runs in your veins. Horns, tail, ember eyes. Distrusted in most places. Feared in the right ones.",traits:["Darkvision 60ft","Fire Resistance -- half damage from fire","Hellish Rebuke -- once per day reaction, 2d10 fire damage to attacker","Infernal Legacy -- minor devil-touched abilities as you level"],subraces:[{id:"infernal",nm:"Infernal",desc:"Descended from devils. Cast Disguise Self once per day."},{id:"abyssal",nm:"Abyssal",desc:"Demon blood. Below half HP, melee attacks deal +1d4 bonus damage."},{id:"fey_tie",nm:"Fey-touched",desc:"Fey and infernal crossed. Unsettling beauty. Misty Step once per day."}]}
 ];
 var CLSS=[
-  {id:"Warrior",desc:"Weapon master, armor bearer",gear:"hand-and-a-half sword, chainmail, belt knife",hd:12,prime:"STR"},
-  {id:"Rogue",desc:"Shadow, cunning, and coin",gear:"short blades x2, leather armor, lockpicks, smoke powder",hd:8,prime:"DEX"},
-  {id:"Sorcerer",desc:"Arcane power, fragile body",gear:"carved staff, spell components, grimoire",hd:6,prime:"INT"},
-  {id:"Ranger",desc:"Hunter and tracker",gear:"recurve bow, hunting knife, leather armor, trail kit",hd:10,prime:"DEX"},
-  {id:"Berserker",desc:"Rage, fury, no mercy",gear:"great axe, hide armor, war paint, iron flask",hd:12,prime:"STR"},
-  {id:"Paladin",desc:"Holy warrior, oath-bound",gear:"longsword, shield, chainmail, holy symbol",hd:10,prime:"CHA"},
-  {id:"Cleric",desc:"Divine power, battle priest",gear:"mace, scale armor, shield, holy symbol, prayer beads",hd:8,prime:"WIS"},
-  {id:"Druid",desc:"Nature magic, wild shape",gear:"wooden staff, leather armor, herbalism kit, totem fetish",hd:8,prime:"WIS"}
+  {id:"Warrior",desc:"Weapon master, armor bearer",gear:"hand-and-a-half sword, chainmail, belt knife, travel rations (3 days)",hd:12,prime:"STR"},
+  {id:"Rogue",desc:"Shadow, cunning, and coin",gear:"short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days)",hd:8,prime:"DEX"},
+  {id:"Sorcerer",desc:"Arcane power, fragile body",gear:"carved staff, spell components, grimoire, travel rations (3 days)",hd:6,prime:"INT"},
+  {id:"Ranger",desc:"Hunter and tracker",gear:"recurve bow, hunting knife, leather armor, trail kit, travel rations (3 days)",hd:10,prime:"DEX"},
+  {id:"Berserker",desc:"Rage, fury, no mercy",gear:"great axe, hide armor, war paint, iron flask, travel rations (3 days)",hd:12,prime:"STR"},
+  {id:"Paladin",desc:"Holy warrior, oath-bound",gear:"longsword, shield, chainmail, holy symbol, travel rations (3 days)",hd:10,prime:"CHA"},
+  {id:"Cleric",desc:"Divine power, battle priest",gear:"mace, scale armor, shield, holy symbol, prayer beads, travel rations (3 days)",hd:8,prime:"WIS"},
+  {id:"Druid",desc:"Nature magic, wild shape",gear:"wooden staff, leather armor, herbalism kit, totem fetish, travel rations (3 days)",hd:8,prime:"WIS"}
 ];
 var ABILS={
   "Warrior":[{nm:"Power Strike",ds:"+d6 bonus damage on a declared attack."},{nm:"Shield Wall",ds:"Reduce incoming damage by 3 until next turn."},{nm:"Weapon Mastery",ds:"No penalty for improvised or unfamiliar arms."}],
@@ -165,6 +165,7 @@ var SKILLS=[
   {id:"Survival",       label:"Survival",       stats:["WIS","INT"], cat:"Wilderness"},
   {id:"Animal Handling",label:"Animal Handling",stats:["WIS"],       cat:"Wilderness"},
   {id:"Navigation",     label:"Navigation",     stats:["WIS","INT"], cat:"Wilderness"},
+  {id:"Tracking",       label:"Tracking",       stats:["WIS","INT"], cat:"Wilderness"},
   // Knowledge
   {id:"Arcana",      label:"Arcana",      stats:["INT"],       cat:"Knowledge"},
   {id:"Lore",        label:"Lore",        stats:["INT"],       cat:"Knowledge"},

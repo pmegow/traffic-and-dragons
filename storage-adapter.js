@@ -104,11 +104,13 @@ var storageAdapter = (function() {
 
   function syncToServer() {
     if (!_serverUrl || _syncing || typeof worldState === "undefined" || !worldState) return;
+    var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     _syncing = true;
     var payload = JSON.stringify({
       worldState:  worldState,
       sessionLog:  sessionLog,
-      memory:      memory
+      memory:      memory,
+      campaignId:  campId
     });
     fetch(_serverUrl + "/api/state", {
       method:  "POST",
@@ -123,6 +125,36 @@ var storageAdapter = (function() {
     }).catch(function(e) {
       _syncing = false;
       console.warn("[storage] server sync failed:", e.message);
+    });
+  }
+
+  // ── Campaign list sync ──────────────────────────────────────────────────────
+
+  function syncCampaignList(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb(null); return; }
+    fetch(_serverUrl + "/api/campaigns", {
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(serverList) {
+      if (!Array.isArray(serverList)) { if (cb) cb(null); return; }
+      // Merge server list into local: server wins on ID conflicts, local-only kept
+      var local = [];
+      try { var raw = localStorage.getItem("ashen_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
+      var merged = local.slice(), i, j, found;
+      for (i = 0; i < serverList.length; i++) {
+        found = false;
+        for (j = 0; j < merged.length; j++) {
+          if (merged[j].id === serverList[i].id) { merged[j] = serverList[i]; found = true; break; }
+        }
+        if (!found) merged.push(serverList[i]);
+      }
+      try { localStorage.setItem("ashen_camps_v1", JSON.stringify(merged)); } catch(e) {}
+      if (cb) cb(merged);
+    }).catch(function(e) {
+      console.warn("[storage] campaign list sync failed:", e.message);
+      if (cb) cb(null);
     });
   }
 
@@ -145,10 +177,14 @@ var storageAdapter = (function() {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }).then(function(data) {
-      if (!data || !data.worldState) return;
+      if (!data || !data.worldState) {
+        syncCampaignList(null);
+        return;
+      }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
       if (serverTurn > localTurn) {
+        var wasFresh = !localOk;
         worldState = data.worldState;
         sessionLog = data.sessionLog || [];
         memory     = data.memory || {
@@ -156,9 +192,15 @@ var storageAdapter = (function() {
           futureEvents:[], chapters:[], usedNames:[]
         };
         saveAll();
+        if (wasFresh && typeof showGame === "function") {
+          showGame();
+          if (typeof initAbilities === "function") initAbilities();
+          if (typeof initSpells    === "function") initSpells();
+        }
         syncUI();
         addMsg("system", "☁ State synced from server (turn " + serverTurn + ").");
       }
+      syncCampaignList(null);
     }).catch(function(e) {
       console.warn("[storage] server load failed:", e.message);
     });
@@ -170,13 +212,14 @@ var storageAdapter = (function() {
   autoConnect();
 
   return {
-    setServer:       setServer,
-    isServerMode:    isServerMode,
-    getServerUrl:    getServerUrl,
-    loginWithServer: loginWithServer,
-    logoutFromServer:logoutFromServer,
-    load:            load,
-    syncToServer:    syncToServer
+    setServer:        setServer,
+    isServerMode:     isServerMode,
+    getServerUrl:     getServerUrl,
+    loginWithServer:  loginWithServer,
+    logoutFromServer: logoutFromServer,
+    load:             load,
+    syncToServer:     syncToServer,
+    syncCampaignList: syncCampaignList
   };
 
 })();
