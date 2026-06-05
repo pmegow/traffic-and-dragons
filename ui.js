@@ -1187,9 +1187,11 @@ function showCharImportPreview(char, onAccept, onCancel){
 function showCampaignPicker(){
   document.getElementById("file-menu").style.display="none";
   var ex=document.getElementById("camp-modal");if(ex)ex.remove();
-  // If server-connected, refresh campaign list before showing
+  // If server-connected, refresh campaign list before showing (3s timeout fallback)
   if(storageAdapter.isServerMode()){
-    storageAdapter.syncCampaignList(function(){_showCampaignPickerModal();});
+    var _shown=false;
+    var _t=setTimeout(function(){if(!_shown){_shown=true;_showCampaignPickerModal();}},3000);
+    storageAdapter.syncCampaignList(function(){clearTimeout(_t);if(!_shown){_shown=true;_showCampaignPickerModal();}});
     return;
   }
   _showCampaignPickerModal();
