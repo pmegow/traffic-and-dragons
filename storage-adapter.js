@@ -73,21 +73,66 @@ var storageAdapter = (function() {
       "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
     );
 
-    // Listen for postMessage from /auth/done
-    function onMsg(e) {
-      if (!e.data || e.data.type !== "ashen-auth") return;
-      if (e.origin !== serverUrl) return;
+    // Listen for postMessage from /auth/done (works on https origins)
+    // AND poll /auth/ticket/:ticket as fallback for file:// origins
+    var _ticket = null;
+    var _pollInterval = null;
+
+    function onAuth(sessionId, username, avatarUrl) {
       window.removeEventListener("message", onMsg);
+      if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
       if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) {} }
       _popup = null;
-
-      setServer(serverUrl, e.data.sessionId);
+      setServer(serverUrl, sessionId);
       if (typeof _popupCb === "function") {
-        _popupCb(null, { username: e.data.username, avatarUrl: e.data.avatarUrl });
+        _popupCb(null, { username: username, avatarUrl: avatarUrl });
         _popupCb = null;
       }
     }
+
+    function onMsg(e) {
+      if (!e.data || e.data.type !== "ashen-auth") return;
+      var ticket = e.data.ticket;
+      if (ticket) {
+        // Claim the ticket from server
+        fetch(serverUrl + "/auth/ticket/" + ticket)
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(d) { if (d && d.sessionId) onAuth(d.sessionId, d.username, d.avatarUrl); })
+          .catch(function() {});
+      } else if (e.data.sessionId) {
+        onAuth(e.data.sessionId, e.data.username, e.data.avatarUrl);
+      }
+    }
     window.addEventListener("message", onMsg);
+
+    // Poll every second as fallback (for file:// where postMessage is blocked)
+    _pollInterval = setInterval(function() {
+      if (!_popup || _popup.closed) {
+        // Popup closed — if we have a ticket try to claim it, else give up
+        clearInterval(_pollInterval); _pollInterval = null;
+        window.removeEventListener("message", onMsg);
+        _popup = null;
+        if (_ticket) {
+          fetch(serverUrl + "/auth/ticket/" + _ticket)
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(d) { if (d && d.sessionId) onAuth(d.sessionId, d.username, d.avatarUrl); else if (_popupCb) { _popupCb("Login cancelled"); _popupCb = null; } })
+            .catch(function() { if (_popupCb) { _popupCb("Login failed"); _popupCb = null; } });
+        }
+      }
+    }, 500);
+
+    // Intercept the popup URL to extract ticket when it lands on /auth/done
+    var _ticketPoll = setInterval(function() {
+      try {
+        if (_popup && !_popup.closed) {
+          var href = _popup.location.href;
+          if (href && href.indexOf("/auth/done") >= 0) {
+            var m = href.match(/ticket=([^&]+)/);
+            if (m) { _ticket = m[1]; clearInterval(_ticketPoll); }
+          }
+        } else { clearInterval(_ticketPoll); }
+      } catch(e) { /* cross-origin — can't read yet */ }
+    }, 200);
   }
 
   // ── Log out from server ─────────────────────────────────────────────────
