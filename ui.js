@@ -1503,6 +1503,7 @@ function wireButtons(){
   document.getElementById("cs-fm-font-lg").addEventListener("change",toggleFontSize);
   document.getElementById("cs-fm-server-connect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";connectToServer();});
   document.getElementById("cs-fm-clearcache").addEventListener("click",clearCacheAndReload);
+  document.getElementById("cs-fm-clearcache-top").addEventListener("click",clearCacheAndReload);
   document.getElementById("cs-fm-server-disconnect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";disconnectFromServer();});
   document.getElementById("cs-fm-set-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("cs-fm-clear-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";clearCampaignFolder();});
@@ -1517,6 +1518,7 @@ function wireButtons(){
   document.getElementById("api-fm-font-lg").addEventListener("change",toggleFontSize);
   document.getElementById("api-fm-server-connect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";connectToServer();});
   document.getElementById("api-fm-clearcache").addEventListener("click",clearCacheAndReload);
+  document.getElementById("api-fm-clearcache-top").addEventListener("click",clearCacheAndReload);
   document.getElementById("api-fm-server-disconnect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";disconnectFromServer();});
   document.getElementById("api-fm-set-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("api-fm-clear-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";clearCampaignFolder();});
@@ -1540,6 +1542,7 @@ function wireButtons(){
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-server-connect").addEventListener("click",connectToServer);
   document.getElementById("fm-clearcache").addEventListener("click",clearCacheAndReload);
+  document.getElementById("fm-clearcache-top").addEventListener("click",clearCacheAndReload);
   document.getElementById("fm-server-disconnect").addEventListener("click",disconnectFromServer);
   document.getElementById("fm-set-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("fm-clear-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";clearCampaignFolder();});
