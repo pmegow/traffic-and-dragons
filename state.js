@@ -18,10 +18,14 @@ function loadState(){
       if(typeof c.hp!=="number"||isNaN(c.hp))c.hp=c.maxHp||8;if(typeof c.gold!=="number"||isNaN(c.gold))c.gold=0;
       if(!c.abilities)c.abilities=[];if(!c.spells)c.spells=[];
       for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0)c.spells[si].used=false;}// cantrips never expend
-      if(!worldState.npcs)worldState.npcs=[];if(!worldState.questLog)worldState.questLog=[];if(!worldState.eventHistory)worldState.eventHistory=[];if(worldState.world&&!('sublocation' in worldState.world))worldState.world.sublocation=null;if(!worldState.campName)worldState.campName=worldState.character.name;}
+      var _m=false;if(!worldState.npcs){worldState.npcs=[];_m=true;}if(!worldState.questLog){worldState.questLog=[];_m=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_m=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_m=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_m=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_m=true;}if(_m)saveCore();}
     if(sl)sessionLog=JSON.parse(sl);
-    if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[]};}
-    else memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[]}};
+    if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+    if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
+    if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+    if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
+    if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};}
+    else memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}}};
     return !!ws;}catch(e){return false;}
 }
 // ── Campaign management ───────────────────────────────────────────────────────

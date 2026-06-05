@@ -23,12 +23,12 @@ var storageAdapter = (function() {
   var _popupCb   = null;
 
   // ── Auto-connect on page load ───────────────────────────────────────────
-  // If a saved server URL + token exist in localStorage, restore server mode.
+  // If a saved server URL + token exist in sessionStorage, restore server mode.
 
   function autoConnect() {
     try {
-      var url = localStorage.getItem(SERVER_URL_KEY);
-      var tok = localStorage.getItem(SERVER_TOK_KEY);
+      var url = sessionStorage.getItem(SERVER_URL_KEY);
+      var tok = sessionStorage.getItem(SERVER_TOK_KEY);
       if (url && tok) {
         _serverUrl = url;
         _token     = tok;
@@ -43,11 +43,11 @@ var storageAdapter = (function() {
     _token     = token || null;
     try {
       if (_serverUrl && _token) {
-        localStorage.setItem(SERVER_URL_KEY, _serverUrl);
-        localStorage.setItem(SERVER_TOK_KEY, _token);
+        sessionStorage.setItem(SERVER_URL_KEY, _serverUrl);
+        sessionStorage.setItem(SERVER_TOK_KEY, _token);
       } else {
-        localStorage.removeItem(SERVER_URL_KEY);
-        localStorage.removeItem(SERVER_TOK_KEY);
+        sessionStorage.removeItem(SERVER_URL_KEY);
+        sessionStorage.removeItem(SERVER_TOK_KEY);
       }
     } catch(e) {}
   }
@@ -152,9 +152,10 @@ var storageAdapter = (function() {
       try { var raw = localStorage.getItem("ashen_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
       var merged = local.slice(), i, j, found;
       for (i = 0; i < serverList.length; i++) {
+        serverList[i].onServer = true;
         found = false;
         for (j = 0; j < merged.length; j++) {
-          if (merged[j].id === serverList[i].id) { merged[j] = serverList[i]; found = true; break; }
+          if (merged[j].id === serverList[i].id) { merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); found = true; break; }
         }
         if (!found) merged.push(serverList[i]);
       }

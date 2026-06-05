@@ -4,14 +4,21 @@ function resolveNpcName(name){
   var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
   return name;
 }
-function fileUsedName(name){if(!memory.usedNames)memory.usedNames=[];if(name&&memory.usedNames.indexOf(name)<0){memory.usedNames.push(name);saveMem();}}
+function fileUsedName(name){} // no-op — replaced by rotating index
 function getNameSuggestions(count){
-  if(!memory.usedNames)memory.usedNames=[];
-  var all=[],cats=Object.keys(NAMES),k,i;
-  for(k=0;k<cats.length;k++){for(i=0;i<NAMES[cats[k]].length;i++)all.push(NAMES[cats[k]][i]);}
-  var avail=all.filter(function(n){return memory.usedNames.indexOf(n)<0;});
-  for(i=avail.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=avail[i];avail[i]=avail[j];avail[j]=tmp;}
-  return avail.slice(0,count||10);
+  var firstNames=[],cats=Object.keys(NAMES),k,i;
+  for(k=0;k<cats.length;k++){if(cats[k]==="surnames")continue;for(i=0;i<NAMES[cats[k]].length;i++)firstNames.push(NAMES[cats[k]][i]);}
+  var surnames=NAMES.surnames||[];
+  if(!firstNames.length)return[];
+  if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
+  var result=[],n=count||10;
+  for(i=0;i<n;i++){
+    var first=firstNames[memory.nameIdx%firstNames.length];
+    var last=surnames.length?surnames[(memory.nameIdx*7+3)%surnames.length]:"";
+    result.push(last?first+" "+last:first);
+    memory.nameIdx++;
+  }
+  return result;
 }
 function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"unknown",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8)memory.npcs[name].events.shift();}
 function fileLocation(loc,note,turn){
@@ -21,7 +28,7 @@ function fileLocation(loc,note,turn){
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  if(!memory.map.nodes[loc])memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[]};
+  if(!memory.map.nodes[loc])memory.map.nodes[loc]={firstVisit:turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   memory.map.nodes[loc].visits++;
   // Edge + arrival tracking
   var prev=worldState&&worldState.world?worldState.world.location:null;
@@ -36,7 +43,7 @@ function fileSubLocation(name,turn){
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var parent=worldState&&worldState.world?worldState.world.location:null;if(!parent)return;
   var key=parent+"|"+name;
-  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[]};
+  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};
   memory.map.nodes[key].visits++;
 }
 function fileLocationDesc(desc){
@@ -84,7 +91,6 @@ function memoryTOC(){
   if(memory.lore.length)lines.push("LORE: "+memory.lore.join("; "));
   if(memory.keyDecisions.length){var d=memory.keyDecisions.slice(-5),ds=[];for(i=0;i<d.length;i++)ds.push("[T"+d[i].turn+"] "+d[i].desc);lines.push("RECENT DECISIONS: "+ds.join("; "));}
   if(memory.chapters.length){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
-  if(memory.usedNames&&memory.usedNames.length)lines.push("USED NAMES (never reuse these): "+memory.usedNames.join(", "));
   return lines.join("\n");
 }
 function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+": "+n.attitude],i;if(n.knowledge.length)lines.push("  Knows: "+n.knowledge.join("; "));if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}return lines.join("\n");}
@@ -136,11 +142,57 @@ function buildNpcGraph(){
     var links=adj[name].map(function(e){return e.other+"("+e.rel+")"+(e.turn?" [T"+e.turn+"]":"");}).join("  ↔ ");
     lines.push(header+": ↔ "+links);
   }
+  // Factions
+  var facs=memory.npcGraph.factions||{};var facNames=Object.keys(facs);
+  if(facNames.length){
+    lines.push("FACTIONS:");
+    for(var fi=0;fi<facNames.length;fi++){
+      var fn=facNames[fi],fd=facs[fn];
+      var fmems=[];var nfMap=memory.npcGraph.npcFactions||{};var nfKeys=Object.keys(nfMap);
+      for(var nfk=0;nfk<nfKeys.length;nfk++){var entries=nfMap[nfKeys[nfk]];for(var ej=0;ej<entries.length;ej++){if(entries[ej].faction===fn)fmems.push(nfKeys[nfk]+(entries[ej].role?" ["+entries[ej].role+"]":""));}}
+      lines.push("  "+fn+(fd.desc?" -- "+fd.desc:"")+(fmems.length?" | Members: "+fmems.join(", "):""));
+    }
+    var feEdges=memory.npcGraph.factionEdges||[];
+    for(var fe=0;fe<feEdges.length;fe++)lines.push("  "+feEdges[fe].a+" ↔ "+feEdges[fe].b+": "+feEdges[fe].rel);
+  }
+  // NPC faction membership for non-faction-member NPCs already listed above
+  var nfMap2=memory.npcGraph.npcFactions||{};var nfk2=Object.keys(nfMap2);
+  for(var ni2=0;ni2<nfk2.length;ni2++){
+    var npcN=nfk2[ni2],entries2=nfMap2[npcN];if(!entries2.length)continue;
+    if(adj[npcN])continue; // already shown above with links
+    lines.push(npcN+": "+entries2.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", "));
+  }
   return lines.join("\n")+"\n\n";
+}
+function factionUpsert(name,desc){
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  var turn=worldState?worldState.turn:0;
+  if(!memory.npcGraph.factions[name])memory.npcGraph.factions[name]={desc:desc||"",turn:turn};
+  else if(desc)memory.npcGraph.factions[name].desc=desc;
+}
+function npcFactionSet(npcName,factionName,role){
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
+  var turn=worldState?worldState.turn:0;
+  if(!memory.npcGraph.npcFactions[npcName])memory.npcGraph.npcFactions[npcName]=[];
+  var entries=memory.npcGraph.npcFactions[npcName],i;
+  for(i=0;i<entries.length;i++){if(entries[i].faction===factionName){entries[i].role=role||entries[i].role;entries[i].turn=turn;return;}}
+  entries.push({faction:factionName,role:role||"",turn:turn});
+  // Auto-register faction if not known
+  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  if(!memory.npcGraph.factions[factionName])memory.npcGraph.factions[factionName]={desc:"",turn:turn};
+}
+function factionLinkUpsert(facA,facB,rel){
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
+  var turn=worldState?worldState.turn:0,i,edges=memory.npcGraph.factionEdges;
+  for(i=0;i<edges.length;i++){if((edges[i].a===facA&&edges[i].b===facB)||(edges[i].a===facB&&edges[i].b===facA)){edges[i].rel=rel;edges[i].turn=turn;return;}}
+  edges.push({a:facA,b:facB,rel:rel,turn:turn});
 }
 function sessionTokens(){var total=0,i;for(i=0;i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
 async function summarize(){
-  if(sessionTokens()<1000)return;
+  if(sessionTokens()<1200)return;
   addMsg("system","Filing memories...");
   try{
     var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\"5-8 sentence narrative summary\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}]}\n\nSESSION:\n";
@@ -154,5 +206,5 @@ async function summarize(){
     if(extracted.decisionsMade){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
     if(extracted.futureEvents){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
     sessionLog=[];saveMem();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
-  }catch(e){worldState.eventHistory.push("[T"+worldState.turn+"] Session continued.");sessionLog=[];addMsg("system","Memory saved (raw).");}
+  }catch(e){worldState.eventHistory.push("[T"+worldState.turn+"] Summarisation failed — "+sessionLog.length+" turns not archived.");sessionLog=[];saveCore();addMsg("system","Memory saved (raw).");}
 }

@@ -23,4 +23,5 @@ var cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",back
 var rvGold=20;
 var pendingChar=null,pendingTone="",pendingVoice="",pendingLoc="",pendingBumps=0,currentBump=0;
 var pendingSpellPool={};
+var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;

@@ -75,6 +75,8 @@ function buildReview(){
     +'<div><div class="rk" style="margin-bottom:6px;">Starting gear</div><div class="tags">'+(cls?cls.gear:"").split(", ").map(function(g){return'<span class="tag">'+g+'</span>';}).join("")+'</div></div>';
   var lvlSel=document.getElementById("rv-start-level"),goBtn=document.getElementById("rv-go");
   if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
+  // Pre-fill campaign name with character name if not yet set
+  var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=cs.name;
   rvSyncXp();
 }
 function getDefaultDeity(){
@@ -118,6 +120,7 @@ function confirmChar(){
   var slEl=document.getElementById("rv-start-level"),startLvl=slEl?parseInt(slEl.value)||1:1;
   var xpEl=document.getElementById("rv-start-xp"),startXp=xpEl?Math.max(parseInt(xpEl.value)||0,XP_LEVELS[startLvl-1]||0):XP_LEVELS[startLvl-1]||0;
   var locEl=document.getElementById("rv-start-loc"),startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";
+  var cnEl=document.getElementById("rv-camp-name"),campNameVal=cnEl&&cnEl.value.trim()?cnEl.value.trim():null;
   if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}
   var deityEl=document.getElementById("char-deity");var charDeity=deityEl&&deityEl.value.trim()?deityEl.value.trim():null;
   // Derive starting languages from ancestry and subrace
@@ -129,6 +132,7 @@ function confirmChar(){
   if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
+  char._campName=campNameVal;
   if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationArchetype();}
   else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc());}}
 }
@@ -172,6 +176,9 @@ function buildPendingSpellPool(c){
   if(!src)return false;
   var maxSlot=c.level>=5?3:c.level>=3?2:1,sl;
   pendingSpellPool={};
+  // Count racial spells already on the character — each grants +1 pick in that tier
+  pendingRacialBonus={};
+  var rs=c.spells||[];for(var ri=0;ri<rs.length;ri++){if(rs[ri].racial){var rk=rs[ri].lvl===0?"cantrips":String(rs[ri].lvl);pendingRacialBonus[rk]=(pendingRacialBonus[rk]||0)+1;}}
   if(src.cantrips&&src.cantrips.length)pendingSpellPool.cantrips=src.cantrips.map(function(nm){return{nm:nm,sel:false};});
   for(sl=1;sl<=maxSlot;sl++){if(src[sl]&&src[sl].length)pendingSpellPool[sl]=src[sl].map(function(nm){return{nm:nm,sel:false};});}
   return Object.keys(pendingSpellPool).length>0;
@@ -184,9 +191,9 @@ function showCreationSpellPick(){
   var wrap=document.createElement("div");wrap.id="creation-spells";wrap.style.cssText="max-width:600px;margin:0 auto;padding:24px 20px;";
   var html="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Character creation</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your spells</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>Select the spells "+c.name+" begins with.</p>";
   tiers.forEach(function(tier){
-    var spells=pendingSpellPool[tier],lim=SPELL_PICK_LIMITS[tier]||2;
+    var spells=pendingSpellPool[tier],base=SPELL_PICK_LIMITS[tier]||2,bonus=pendingRacialBonus[tier]||0,lim=base+bonus;
     var lbl=tier==="cantrips"?"Cantrips":"Level "+tier+" Spells";
-    var hint=spells.length<=lim?"take all":"pick "+lim;
+    var hint=spells.length<=lim?"take all":"pick "+base+(bonus?"+"+bonus+" racial bonus":"");
     html+="<div style='margin-bottom:20px;'><div class='slab'>"+lbl+" <span style='font-size:9px;color:var(--t2);font-weight:normal;'>("+hint+")</span></div>";
     spells.forEach(function(sp,idx){
       var nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
@@ -200,7 +207,7 @@ function showCreationSpellPick(){
 }
 function toggleSpellPick(tier,idx){
   var sp=pendingSpellPool[tier];if(!sp)return;
-  var lim=SPELL_PICK_LIMITS[tier]||2;
+  var lim=(SPELL_PICK_LIMITS[tier]||2)+(pendingRacialBonus[tier]||0);
   var cur=sp.filter(function(s){return s.sel;}).length;
   if(sp[idx].sel){sp[idx].sel=false;}
   else{if(cur>=lim){document.getElementById("sp-warn").textContent="Max "+lim+" for this tier.";return;}sp[idx].sel=true;}
@@ -212,7 +219,7 @@ function confirmCreationSpells(){
   var c=pendingChar;if(!c)return;
   var tiers=["cantrips","1","2","3"].filter(function(t){return pendingSpellPool[t]&&pendingSpellPool[t].length;}),ok=true;
   tiers.forEach(function(tier){
-    var sp=pendingSpellPool[tier],lim=SPELL_PICK_LIMITS[tier]||2,need=Math.min(lim,sp.length);
+    var sp=pendingSpellPool[tier],lim=(SPELL_PICK_LIMITS[tier]||2)+(pendingRacialBonus[tier]||0),need=Math.min(lim,sp.length);
     if(sp.length<=lim){sp.forEach(function(s){s.sel=true;});}
     else if(sp.filter(function(s){return s.sel;}).length<need){if(ok){document.getElementById("sp-warn").textContent="Choose "+need+" "+(tier==="cantrips"?"cantrips":"level "+tier+" spells")+".";ok=false;}}
   });
@@ -241,6 +248,86 @@ function cbPick(s,v,btn){
   if(v===1){for(pi=0;pi<picks.length;pi++){if(picks[pi].v===2){document.getElementById("cb-warn").textContent="Can't mix +2 and +1.";return;}}}
   for(pi=0;pi<picks.length;pi++){if(picks[pi].s===s){document.getElementById("cb-warn").textContent=s+" already picked.";return;}}
   picks.push({s:s,v:v});window._cbPicks=picks;document.getElementById("cb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("cb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("cb-cur-"+s).style.color="var(--acc)";
+}
+// ── AI character assist ───────────────────────────────────────────────────
+function _csContext(){
+  var ctx="";
+  var tone=cs.tone?TONES.filter(function(t){return t.id===cs.tone;})[0]:null;
+  if(tone)ctx+="World tone: "+tone.nm+(tone.vc?" — "+tone.vc:"")+"\n";
+  var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
+  if(anc)ctx+="Ancestry: "+(cs.subraceNm||anc.nm)+"\n";
+  var cls=cs.cls?CLSS.filter(function(c){return c.id===cs.cls;})[0]:null;
+  if(cls)ctx+="Class: "+cls.id+"\n";
+  if(cs.name)ctx+="Name: "+cs.name+"\n";
+  if(cs.gender)ctx+="Gender: "+(cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male")+"\n";
+  if(cs.age)ctx+="Age: "+cs.age+"\n";
+  return ctx;
+}
+async function aiSuggestField(fieldId,fieldLabel,btn){
+  if(btn){btn.classList.add("spinning");btn.disabled=true;}
+  var ctx=_csContext();
+  var el=document.getElementById(fieldId);
+  var current=el?el.value.trim():"";
+  var prompt="Generate a "+(fieldLabel)+" for a dark fantasy sword & sorcery RPG character."
+    +(ctx?"\n\nCharacter so far:\n"+ctx:"")
+    +(current?"\n\nCurrent value (improve or replace): "+current:"")
+    +"\n\nOutput ONLY the "+fieldLabel+" itself — no labels, no explanation, no quotes. 1-2 sentences max.";
+  try{
+    var result=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY the requested content, nothing else.",300);
+    if(el)el.value=result.trim();
+  }catch(e){}
+  if(btn){btn.classList.remove("spinning");btn.disabled=false;}
+}
+async function aiRandomiseAll(btn){
+  if(btn){btn.classList.add("spinning");btn.disabled=true;btn.textContent="✦ …";}
+  var ctx=_csContext();
+  var prompt="Generate a complete dark fantasy RPG character identity. Return ONLY valid JSON, no markdown:\n"
+    +'{"name":"string","appear":"1-2 sentence physical description","mark":"one distinctive physical detail","backstory":"1-2 sentences of history","trait":"one defining personality trait","flaw":"one significant flaw","motivation":"what they want more than anything"}'
+    +"\n\nContext:\n"+ctx;
+  try{
+    var raw=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY a single valid JSON object, no markdown, no commentary.",600);
+    var json=raw.replace(/```[a-z]*\n?/g,"").replace(/```/g,"").trim();
+    var c=JSON.parse(json);
+    if(c.name&&document.getElementById("char-name"))document.getElementById("char-name").value=c.name;
+    if(c.appear&&document.getElementById("char-appear"))document.getElementById("char-appear").value=c.appear;
+    if(c.mark&&document.getElementById("char-mark"))document.getElementById("char-mark").value=c.mark;
+    if(c.backstory&&document.getElementById("char-backstory"))document.getElementById("char-backstory").value=c.backstory;
+    // Step 6 personality fields — set to custom and fill
+    if(c.trait){var ts=document.getElementById("char-trait");if(ts){ts.value="custom";document.getElementById("trait-cw").style.display="block";document.getElementById("char-trait-c").value=c.trait;}}
+    if(c.flaw){var fs=document.getElementById("char-flaw");if(fs){fs.value="custom";document.getElementById("flaw-cw").style.display="block";document.getElementById("char-flaw-c").value=c.flaw;}}
+    if(c.motivation){var ms=document.getElementById("char-mot");if(ms){ms.value="custom";document.getElementById("mot-cw").style.display="block";document.getElementById("char-mot-c").value=c.motivation;}}
+    // Auto-fill cs state from name so review card updates
+    cs.name=c.name||cs.name;cs.appear=c.appear||cs.appear;cs.mark=c.mark||cs.mark;cs.backstory=c.backstory||cs.backstory;
+    buildReview();
+    showToast("Character generated — review and adjust below.");
+  }catch(e){showToast("Generate failed: "+e.message);}
+  if(btn){btn.classList.remove("spinning");btn.disabled=false;btn.textContent="✦ Randomise";}
+}
+// Inject sparkle buttons next to field labels in step 2
+function injectSparkleButtons(){
+  var fields=[
+    {id:"char-name",      label:"character name"},
+    {id:"char-appear",    label:"physical appearance"},
+    {id:"char-mark",      label:"distinguishing mark"},
+    {id:"char-backstory", label:"backstory"}
+  ];
+  fields.forEach(function(f){
+    var el=document.getElementById(f.id);if(!el)return;
+    var lbl=el.parentNode.querySelector("label");if(!lbl||lbl.querySelector(".ai-spark"))return;
+    var btn=document.createElement("button");
+    btn.type="button";btn.className="ai-spark";btn.textContent="✦";btn.title="AI suggest";
+    btn.addEventListener("click",function(){aiSuggestField(f.id,f.label,btn);});
+    lbl.appendChild(btn);
+  });
+  // Personality custom inputs — step 6
+  [["char-trait-c","personality trait"],["char-flaw-c","character flaw"],["char-mot-c","motivation"]].forEach(function(pair){
+    var el=document.getElementById(pair[0]);if(!el)return;
+    var lbl=el.parentNode.querySelector("label");if(!lbl||lbl.querySelector(".ai-spark"))return;
+    var btn=document.createElement("button");
+    btn.type="button";btn.className="ai-spark";btn.textContent="✦";btn.title="AI suggest";
+    btn.addEventListener("click",function(){aiSuggestField(pair[0],pair[1],btn);});
+    lbl.appendChild(btn);
+  });
 }
 function cbBack(){var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();if(currentBump>1){currentBump--;showCreationStatBump();}else{showCreationArchetype();}}
 function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);}}

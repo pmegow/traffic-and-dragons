@@ -9,8 +9,8 @@ function startGame(char,toneName,toneVoice){
   if(char.portrait===undefined)char.portrait=null;
   if(!char.backstory)char.backstory="";
   if(!char.storyBeats)char.storyBeats=[];
-  worldState={ver:10,campName:char.name,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
-  delete worldState.character._startLoc;
+  worldState={ver:10,campName:char._campName||char.name,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
+  delete worldState.character._startLoc;delete worldState.character._campName;
   sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
@@ -78,6 +78,7 @@ async function sendAction(override){
     if(isTT){addMsg("tabletalk","<em>[GM]</em> "+resp.replace(/\*(.*?)\*/g,"<em>$1</em>"));}
     else{
       worldState.turn++;
+      // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
@@ -96,8 +97,22 @@ async function beginAdventure(){
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
     addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
+    _promptCampaignFolder();
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=beginAdventure;em.appendChild(rb);}
   busy=false;document.getElementById("sendbtn").disabled=false;
+}
+function _promptCampaignFolder(){
+  if(!window.showDirectoryPicker)return;  // browser doesn't support it
+  if(typeof _campFolderHandle!=="undefined"&&_campFolderHandle)return;  // already set
+  if(localStorage.getItem("ashen_folder_declined_v1"))return;  // user previously dismissed
+  var banner=document.createElement("div");
+  banner.style.cssText="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg1);border:1px solid var(--acc);border-radius:var(--r);padding:12px 16px;z-index:500;display:flex;align-items:center;gap:12px;font-size:13px;font-family:Georgia,serif;color:var(--t1);box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:420px;width:90%;";
+  banner.innerHTML="<span>📁 Set a campaign folder to keep saves, renders, and logs organized?</span>"
+    +"<button id='folder-yes' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);border:none;border-radius:var(--r);color:#000;cursor:pointer;white-space:nowrap;'>Set folder</button>"
+    +"<button id='folder-no' style='padding:6px 10px;font-size:12px;font-family:Georgia,serif;background:none;border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;white-space:nowrap;'>Not now</button>";
+  document.body.appendChild(banner);
+  document.getElementById("folder-yes").addEventListener("click",function(){banner.remove();setCampaignFolder();});
+  document.getElementById("folder-no").addEventListener("click",function(){banner.remove();localStorage.setItem("ashen_folder_declined_v1","1");});
 }
 var _rendering=false;
 async function doRender(){

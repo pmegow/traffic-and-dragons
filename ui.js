@@ -1,4 +1,32 @@
 var _campFolderHandle=null;
+// Wires mouse+touch drag-to-pan on a portrait <img> with object-fit:cover.
+// getOff() → {x,y} percent; setOff(x,y) → called on drag end to persist.
+function wirePortraitDrag(img,getOff,setOff){
+  var dragging=false,sx,sy,sox,soy,moved;
+  img.style.cursor="grab";
+  function clamp(v){return Math.max(0,Math.min(100,v));}
+  function overflow(){
+    var natW=img.naturalWidth||400,natH=img.naturalHeight||600;
+    var cW=img.parentNode.offsetWidth||60,cH=img.parentNode.offsetHeight||90;
+    var sc=Math.max(cW/natW,cH/natH);
+    return{x:Math.max(1,natW*sc-cW),y:Math.max(1,natH*sc-cH)};}
+  function applyAt(cx,cy){
+    var ov=overflow();
+    var nx=clamp(sox-(cx-sx)/ov.x*100),ny=clamp(soy-(cy-sy)/ov.y*100);
+    img.style.objectPosition=nx+"% "+ny+"%";
+    return{x:nx,y:ny};}
+  function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=getOff();sox=o.x;soy=o.y;img.style.cursor="grabbing";}
+  function onMove(cx,cy){if(!dragging)return;moved=true;applyAt(cx,cy);}
+  function onUp(cx,cy){if(!dragging)return;dragging=false;img.style.cursor="grab";if(moved){var r=applyAt(cx,cy);setOff(r.x,r.y);}}
+  img.addEventListener("mousedown",function(e){e.preventDefault();e.stopPropagation();onDown(e.clientX,e.clientY);});
+  document.addEventListener("mousemove",function(e){onMove(e.clientX,e.clientY);});
+  document.addEventListener("mouseup",function(e){onUp(e.clientX,e.clientY);});
+  img.addEventListener("touchstart",function(e){var t=e.touches[0];onDown(t.clientX,t.clientY);},{passive:true});
+  img.addEventListener("touchmove",function(e){e.preventDefault();var t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:false});
+  img.addEventListener("touchend",function(e){var t=e.changedTouches[0];onUp(t.clientX,t.clientY);});
+  // Return whether the last interaction was a drag (so click handler can bail).
+  img._wasDragged=function(){return moved;};}
+
 var _campRootHandle=null;
 var _SUBFOLDERS={save:"saves",narrative:"logs",character:"characters",render:"renders",portrait:"characters"};
 function buildFilename(type){
@@ -167,16 +195,20 @@ function updateHUD(){
   function sr(k,v){return'<div class="sb-row"><span class="sb-k">'+k+'</span><span class="sb-v">'+v+'</span></div>';}
   var sb=document.getElementById("sb-content");if(!sb)return;
   var i;
-  // ── Party section ────────────────────────────────────────────────────────
-  var partyHtml='<button class="sb-party-btn sb-pb-player" onclick="showCharSheet()">'+c.name+'</button>';
-  for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember){var pnm=worldState.npcs[i].name;partyHtml+='<button class="sb-party-btn" onclick="showNpcSheet(\''+pnm.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')">' +pnm+'</button>';}}
   // ── NPCs (non-party) ─────────────────────────────────────────────────────
-  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember)npcR+=sr(worldState.npcs[i].name,worldState.npcs[i].status+" / "+worldState.npcs[i].rel);}
-  var qR="";for(i=0;i<worldState.questLog.length;i++)qR+=sr(worldState.questLog[i].title,worldState.questLog[i].status);
-  sb.innerHTML='<div class="sb-sec" style="border-top:1px solid var(--brd);padding-top:14px;">'+partyHtml+'</div>'
-    +'<div class="sb-sec">'+sr("Location",w.location)+sr("Time",w.time)+sr("Weather",w.weather)+'</div>'
+  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember)npcR+=sr(escHtml(worldState.npcs[i].name),escHtml(worldState.npcs[i].status+" / "+worldState.npcs[i].rel));}
+  var qR="";for(i=0;i<worldState.questLog.length;i++)qR+=sr(escHtml(worldState.questLog[i].title),escHtml(worldState.questLog[i].status));
+  // Factions
+  var facR="";if(memory&&memory.npcGraph&&memory.npcGraph.factions){var facNames=Object.keys(memory.npcGraph.factions);if(facNames.length){for(var fi=0;fi<facNames.length;fi++){var fn=facNames[fi],fd=memory.npcGraph.factions[fn];facR+=sr(escHtml(fn),escHtml(fd.desc||"faction"));}}}
+  sb.innerHTML='<div class="sb-sec" id="sb-party-sec" style="border-top:1px solid var(--brd);padding-top:14px;"></div>'
+    +'<div class="sb-sec">'+sr(escHtml("Location"),escHtml(w.location))+sr(escHtml("Time"),escHtml(w.time))+sr(escHtml("Weather"),escHtml(w.weather))+'</div>'
     +(npcR?'<div class="sb-sec">'+npcR+'</div>':"")
+    +(facR?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;">Factions</div>'+facR+'</div>':"")
     +(qR?'<div class="sb-sec">'+qR+'</div>':"");
+  // ── Party section — built programmatically to avoid onclick string escaping ──
+  var partySec=document.getElementById("sb-party-sec");
+  var playerBtn=document.createElement("button");playerBtn.className="sb-party-btn sb-pb-player";playerBtn.textContent=c.name;playerBtn.addEventListener("click",showCharSheet);partySec.appendChild(playerBtn);
+  for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember){(function(nm){var btn=document.createElement("button");btn.className="sb-party-btn";btn.textContent=nm;btn.addEventListener("click",function(){showNpcSheet(nm);});partySec.appendChild(btn);})(worldState.npcs[i].name);}}
 }
 function updatePartyPanel(){
   if(!worldState)return;
@@ -286,6 +318,21 @@ function showRulesModal(){
   renderRules();
 }
 function removeRule(idx){customRules.splice(idx,1);saveRules();showRulesModal();}
+var FONT_KEY="ashen_font_v1";
+function loadFontSize(){
+  var saved=store.get(FONT_KEY);
+  // Default to large on iOS if no preference saved
+  var isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var large=saved!==null?(saved==="1"):(isIOS?true:false);
+  if(large)document.body.classList.add("font-large");
+  else document.body.classList.remove("font-large");
+  ["fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=large;});
+}
+function toggleFontSize(){
+  var large=document.body.classList.toggle("font-large");
+  store.set(FONT_KEY,large?"1":"0");
+  ["fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=large;});
+}
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
 function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});}
 
@@ -302,7 +349,7 @@ function updateServerUI(){
   });
   if(connected){
     // Fetch username from server to show in button label
-    fetch(ASHEN_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(localStorage.getItem("ashen_server_tok_v1")||"")}})
+    fetch(ASHEN_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(sessionStorage.getItem("ashen_server_tok_v1")||"")}})
       .then(function(r){return r.ok?r.json():null;})
       .then(function(d){
         ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
@@ -310,12 +357,21 @@ function updateServerUI(){
   }
 }
 
+function clearCacheAndReload(){
+  closeAllMenus();
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      var i=0;function next(){if(i<regs.length){regs[i++].unregister().then(next);}else{location.reload(true);}}
+      next();
+    });
+  }else{location.reload(true);}
+}
+function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});}
+
 function connectToServer(){
   storageAdapter.loginWithServer(ASHEN_SERVER_URL,function(err,info){
     if(err){showToast("Server login failed.");return;}
-    updateServerUI();
-    document.getElementById("file-menu").style.display="none";
-    document.getElementById("cs-file-menu").style.display="none";
+    updateServerUI();closeAllMenus();
     showToast("☁ Connected as "+info.username);
     storageAdapter.syncCampaignList(function(){showCampaignPicker();});
   });
@@ -323,8 +379,7 @@ function connectToServer(){
 
 function disconnectFromServer(){
   storageAdapter.logoutFromServer(function(){
-    updateServerUI();
-    document.getElementById("file-menu").style.display="none";
+    updateServerUI();closeAllMenus();
     showToast("☁ Disconnected from server.");
   });
 }
@@ -423,7 +478,7 @@ function importSave(event){
     if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
     worldState=ws;sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
     var mm=data.memory||{};
-    memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph||{edges:[]}};
+    memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}}};
     saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
@@ -521,7 +576,7 @@ function showCharSheet(){
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar' id='cs-avatar-btn' title='Edit portrait'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+c.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+c.name+"' style='width:100%;height:100%;object-fit:cover;object-position:"+(c.portraitOffset?c.portraitOffset.x+"% "+c.portraitOffset.y+"%":"50% 50%")+";display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+c.name+"</div>"
@@ -570,15 +625,30 @@ function showCharSheet(){
   function refreshAvatar(){
     var av=document.getElementById("cs-avatar-btn");if(!av)return;
     var c2=worldState.character;
-    av.innerHTML=(c2.portrait?"<img src='"+c2.portrait+"' alt='"+c2.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+    var op=c2.portraitOffset?c2.portraitOffset.x+"% "+c2.portraitOffset.y+"%":"50% 50%";
+    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+c2.name+"' style='width:100%;height:100%;object-fit:cover;object-position:"+op+";display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+    wireAvatarDrag();
   }
-  document.getElementById("cs-avatar-btn").addEventListener("click",function(){showPortraitModal(refreshAvatar);});
+  function wireAvatarDrag(){
+    var img=document.getElementById("cs-portrait-img");if(!img)return;
+    wirePortraitDrag(img,
+      function(){return worldState.character.portraitOffset||{x:50,y:50};},
+      function(x,y){worldState.character.portraitOffset={x:x,y:y};saveAll();});
+  }
+  wireAvatarDrag();
+  document.getElementById("cs-avatar-btn").addEventListener("click",function(){
+    var img=document.getElementById("cs-portrait-img");
+    if(img&&img._wasDragged&&img._wasDragged())return;
+    showPortraitModal(refreshAvatar);
+  });
 }
 async function showPortraitModal(refreshFn,opts){
   var ex=document.getElementById("portrait-modal");if(ex)ex.remove();
-  // opts = {getPortrait, setPortrait, subject} — defaults to player character
+  // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
   var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;saveAll();};
+  var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:50,y:50};};
+  var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y){worldState.character.portraitOffset={x:x,y:y};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;
   var genderWord=!c.gender||c.gender==="NB"?"androgynous":c.gender==="F"?"female":"male";
   var pmRefSrc=getPort()||null;
@@ -608,7 +678,7 @@ async function showPortraitModal(refreshFn,opts){
     +"<button id='pm-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;'>&#215;</button>"
     +"</div>"
     // ── Current portrait preview ───────────────────────────────────────────
-    +(hasPortrait?"<div style='text-align:center;margin-bottom:20px;'><img src='"+getPort()+"' style='width:90px;height:135px;object-fit:cover;border-radius:50%;border:2px solid var(--acc);display:inline-block;'></div>":"")
+    +(hasPortrait?"<div style='text-align:center;margin-bottom:20px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;'><img id='pm-preview-img' src='"+getPort()+"' style='width:100%;height:100%;object-fit:cover;object-position:"+getOff().x+"% "+getOff().y+"%;display:block;cursor:grab;'></div></div>":"")
     // ── 1. Upload / Save / Remove (same row) ──────────────────────────────
     +"<div style='display:flex;gap:6px;margin-bottom:4px;'>"
     +"<button id='pm-upload' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:#000;font-weight:bold;'>&#8593; Upload</button>"
@@ -635,6 +705,8 @@ async function showPortraitModal(refreshFn,opts){
   function pmClose(){modal.remove();}
   document.getElementById("pm-x").addEventListener("click",pmClose);
   modal.addEventListener("click",function(e){if(e.target===modal)pmClose();});
+  var pmImg=document.getElementById("pm-preview-img");
+  if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y){setOff(x,y);if(refreshFn)refreshFn();});
   if(document.getElementById("pm-save-portrait")){
     document.getElementById("pm-save-portrait").addEventListener("click",function(){
       var purl=getPort();if(!purl)return;
@@ -811,7 +883,10 @@ async function generateNpcSheet(name,doneCb){
     var json=resp.trim().replace(/^```[a-z]*\n?/,"").replace(/\n?```$/,"").trim();
     var sheet=JSON.parse(json);
     sheet.name=name;
-    if(!sheet.stats)sheet.stats={STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10};
+    if(!sheet.stats||typeof sheet.stats!=="object")sheet.stats={STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10};
+    ["STR","DEX","CON","INT","WIS","CHA"].forEach(function(s){sheet.stats[s]=parseInt(sheet.stats[s])||10;});
+    sheet.hp=parseInt(sheet.hp)||8;sheet.maxHp=parseInt(sheet.maxHp)||8;
+    sheet.level=parseInt(sheet.level)||1;sheet.gold=parseInt(sheet.gold)||0;sheet.xp=parseInt(sheet.xp)||0;
     if(!sheet.abilities)sheet.abilities=[];
     if(!sheet.spells)sheet.spells=[];
     if(!sheet.inventory)sheet.inventory=[];
@@ -863,7 +938,8 @@ function showNpcSheet(name){
     var clsLine=(sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":"");
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
     var xpPct=lvl>=10?100:Math.min(100,Math.round(((sheet.xp-prevXP)/Math.max(1,nextXP-prevXP))*100));
-    heroInfo="<div class='cs-hero-name'>"+name+"</div>"
+    var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
+    heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+name+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
       +"<div class='cs-hero-sub'>"+gLbl+" · "+(sheet.age||"?")+(sheet.deity?" · "+sheet.deity:"")+"</div>"
       +"<div style='margin-top:8px;font-size:13px;'>"
@@ -907,7 +983,19 @@ function showNpcSheet(name){
 
   // ── NPC sections (always shown) ───────────────────────────────────────────
   var statusBlock="";
-  if(wsNpc){statusBlock+=kv("Status",wsNpc.status||"—")+kv("Relation",wsNpc.rel||"—");if(wsNpc.pronouns)statusBlock+=kv("Pronouns",wsNpc.pronouns);}
+  if(wsNpc){statusBlock+=kv("Status",wsNpc.status||"—");if(wsNpc.pronouns)statusBlock+=kv("Pronouns",wsNpc.pronouns);}
+  // Player→NPC relationship from character.relationships (set by [RELATIONSHIP:] tags)
+  var pcRel=null;var pcRels=worldState&&worldState.character&&worldState.character.relationships?worldState.character.relationships:[];
+  for(var pri=0;pri<pcRels.length;pri++){if(pcRels[pri].entity===name){pcRel=pcRels[pri].descriptor;break;}}
+  // Fall back to wsNpc.rel if no [RELATIONSHIP:] tag has been emitted yet
+  var relDisplay=pcRel||(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown"?wsNpc.rel:null);
+  if(relDisplay)statusBlock+=kv("Relationship",relDisplay);
+  // Faction membership
+  var nfEntries=memory&&memory.npcGraph&&memory.npcGraph.npcFactions?memory.npcGraph.npcFactions[name]||[]:[];
+  if(nfEntries.length)statusBlock+=kv("Factions",nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", "));
+  // NPC↔NPC links from graph
+  var npcLinks2="";if(memory&&memory.npcGraph&&memory.npcGraph.edges){var nlEdges=memory.npcGraph.edges;for(var nle=0;nle<nlEdges.length;nle++){var e2=nlEdges[nle];if(e2.a===name)npcLinks2+=(npcLinks2?", ":"")+e2.b+" ("+e2.rel+")";else if(e2.b===name)npcLinks2+=(npcLinks2?", ":"")+e2.a+" ("+e2.rel+")";}}
+  if(npcLinks2)statusBlock+=kv("Links",npcLinks2);
   var memBlock="";
   if(memNpc){if(memNpc.attitude)memBlock+=kv("Attitude",memNpc.attitude);if(memNpc.knowledge&&memNpc.knowledge.length)memBlock+=kv("Knows",memNpc.knowledge.join("; "));}
   var evHtml="";
@@ -934,6 +1022,23 @@ function showNpcSheet(name){
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
 
+  // ── Play as this character ────────────────────────────────────────────────
+  if(document.getElementById("npc-play-btn")){
+    document.getElementById("npc-play-btn").addEventListener("click",function(){
+      var confirm=document.createElement("div");
+      confirm.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;";
+      confirm.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;text-align:center;'>"
+        +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Switch character?</div>"
+        +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>"+escHtml(name)+" will take the lead. "+escHtml(worldState.character.name)+" becomes a companion.</div>"
+        +"<div style='display:flex;gap:10px;justify-content:center;'>"
+        +"<button id='sw-ok' style='padding:10px 28px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Switch</button>"
+        +"<button id='sw-cancel' style='padding:10px 20px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+        +"</div></div>";
+      document.body.appendChild(confirm);
+      document.getElementById("sw-ok").addEventListener("click",function(){confirm.remove();modal.remove();_switchPlayerCharacter(name);});
+      document.getElementById("sw-cancel").addEventListener("click",function(){confirm.remove();});
+    });
+  }
   // ── Generate / Regenerate ─────────────────────────────────────────────────
   if(document.getElementById("npc-gen-sheet")){
     document.getElementById("npc-gen-sheet").addEventListener("click",function(){
@@ -1064,15 +1169,19 @@ function showCharImportPreview(char, onAccept, onCancel){
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:6px;'><span style='color:var(--t1);'>Languages:</span> "+langs+"</div>"
     +(spells?"<div style='font-size:11px;color:var(--t2);margin-bottom:6px;'><span style='color:var(--t1);'>Spells:</span> "+spells+"</div>":"")
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'><span style='color:var(--t1);'>Inventory:</span> "+inv+"</div>"
+    +"<div style='display:flex;flex-direction:column;gap:8px;'>"
     +"<div style='display:flex;gap:10px;'>"
     +"<button id='cip-accept' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Play as "+escHtml(char.name)+"</button>"
     +"<button id='cip-cancel' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"</div>"
+    +(worldState?"<button id='cip-companion' style='width:100%;padding:10px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>+ Add "+escHtml(char.name)+" as companion to current campaign</button>":"")
     +"</div></div>";
   document.body.appendChild(modal);
   function doCancel(){modal.remove();if(typeof onCancel==="function")onCancel();}
   document.getElementById("cip-x").addEventListener("click",doCancel);
   document.getElementById("cip-cancel").addEventListener("click",doCancel);
   document.getElementById("cip-accept").addEventListener("click",function(){modal.remove();onAccept();});
+  if(document.getElementById("cip-companion")){document.getElementById("cip-companion").addEventListener("click",function(){modal.remove();_addImportedCompanion(char);});}
 }
 // ── Campaign management UI ────────────────────────────────────────────────────
 function showCampaignPicker(){
@@ -1088,7 +1197,14 @@ function showCampaignPicker(){
     if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
     else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
       var dispName=cm.campName||cm.charName;
+      var cloudBtns=storageAdapter.isServerMode()
+        ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
+          +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;color:var(--t1);' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'>☁↑</button>"
+          +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">☁↓</button>"
+          +"</div>"
+        :"";
       rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;'>"
+        +cloudBtns
         +"<div style='flex:1;min-width:0;'>"
         +"<div style='display:flex;align-items:center;gap:6px;'>"
         +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
@@ -1110,10 +1226,7 @@ function showCampaignPicker(){
   }
   document.body.appendChild(modal);render();
 }
-function campLoad(id){
-  var modal=document.getElementById("camp-modal");if(modal)modal.remove();
-  var ok=switchToCampaign(id);
-  if(!ok){showToast("Failed to load campaign.");return;}
+function _applyLoadedCampaign(){
   document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
   syncUI();showGame();initAbilities();initSpells();
   addMsg("system","Campaign loaded: "+worldState.character.name+".");
@@ -1122,6 +1235,77 @@ function campLoad(id){
     if(slu&&slu.role==="user")addMsg("player",slu.content);
     if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}
   if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
+}
+function campLoad(id){
+  var modal=document.getElementById("camp-modal");if(modal)modal.remove();
+  // Check if local data exists for this campaign
+  var hasLocal=!!(store.get("ashen_camp_"+id+"_ws"));
+  if(hasLocal){
+    var ok=switchToCampaign(id);
+    if(!ok){showToast("Failed to load campaign.");return;}
+    _applyLoadedCampaign();
+    return;
+  }
+  // No local data — fetch from server if connected
+  if(!storageAdapter.isServerMode()){showToast("Campaign data not found locally. Connect to server to load it.");return;}
+  var serverUrl=storageAdapter.getServerUrl();
+  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  showToast("☁ Fetching campaign from server…");
+  fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(data){
+      if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
+      // Write into the campaign slot then switch to it
+      store.set("ashen_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("ashen_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+      store.set("ashen_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+      var ok=switchToCampaign(id);
+      if(!ok){showToast("Failed to load campaign.");return;}
+      _applyLoadedCampaign();
+    })
+    .catch(function(e){showToast("Failed to fetch campaign: "+e.message);});
+}
+function campCloudPush(id){
+  if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
+  var pushBtn=document.getElementById("camp-push-"+id);if(pushBtn)pushBtn.style.animation="pulse 1s ease-in-out infinite";
+  var ws=store.get("ashen_camp_"+id+"_ws")||store.get(WSK);
+  var sl=store.get("ashen_camp_"+id+"_sl")||store.get(SLK);
+  var mem=store.get("ashen_camp_"+id+"_mem")||store.get(MEM_KEY);
+  if(!ws){showToast("No local data to push.");return;}
+  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var serverUrl=storageAdapter.getServerUrl();
+  var wsObj;try{wsObj=JSON.parse(ws);}catch(e){showToast("Invalid save data.");return;}
+  // Strip portraits
+  var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
+  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl||"[]"),memory:JSON.parse(mem||"{}"),campaignId:id})})
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(){
+      // Mark as onServer in local meta
+      var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
+      showToast("☁ Pushed to server.");var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
+    })
+    .catch(function(e){var b=document.getElementById("camp-push-"+id);if(b)b.style.animation="";showToast("Push failed: "+e.message);});
+}
+function campCloudPull(id){
+  if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
+  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var serverUrl=storageAdapter.getServerUrl();
+  showToast("☁ Pulling from server…");
+  fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(data){
+      if(!data||!data.worldState){showToast("Not found on server.");return;}
+      store.set("ashen_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("ashen_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+      store.set("ashen_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+      // Update meta savedAt
+      var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
+      showToast("☁ Pulled from server.");
+      // If active campaign, reload
+      if(id===getActiveCampId()){var ok=switchToCampaign(id);if(ok)_applyLoadedCampaign();}
+      var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
+    })
+    .catch(function(e){showToast("Pull failed: "+e.message);});
 }
 function campDelete(id){
   if(!confirm("Delete this campaign? This cannot be undone."))return;
@@ -1132,9 +1316,12 @@ function campDelete(id){
 function campStartRename(id){
   var span=document.getElementById("camp-name-"+id);if(!span)return;
   var cur=span.textContent;
-  var safeVal=cur.replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  span.outerHTML="<input id='camp-rename-"+id+"' value='"+safeVal+"' style='font-size:14px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;' onblur='campSaveRename(\""+id+"\")' onkeydown='if(event.key===\"Enter\")campSaveRename(\""+id+"\");if(event.key===\"Escape\")showCampaignPicker();'/>";
-  var inp=document.getElementById("camp-rename-"+id);if(inp){inp.focus();inp.select();}
+  var inp=document.createElement("input");
+  inp.id="camp-rename-"+id;inp.value=cur;
+  inp.style.cssText="font-size:14px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;";
+  inp.addEventListener("blur",function(){campSaveRename(id);});
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter")campSaveRename(id);if(e.key==="Escape")showCampaignPicker();});
+  span.parentNode.replaceChild(inp,span);inp.focus();inp.select();
 }
 function campSaveRename(id){
   var inp=document.getElementById("camp-rename-"+id);if(!inp)return;
@@ -1201,6 +1388,43 @@ function _charExportPick(idx){
   var modal=document.getElementById("char-export-modal");if(modal)modal.remove();
   var c=window._charExportList&&window._charExportList[idx];if(c)_doExportChar(c.name,c.sheet);
 }
+function _switchPlayerCharacter(name){
+  // Find the NPC and their charSheet
+  var npcIdx=-1,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){npcIdx=i;break;}}
+  if(npcIdx<0){showToast("Companion not found.");return;}
+  var npc=worldState.npcs[npcIdx];
+  var newChar=npc.charSheet;
+  if(!newChar){showToast(name+" has no character sheet. Generate one first.");return;}
+  // Demote current player character to companion NPC
+  var oldChar=worldState.character;
+  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,portrait:oldChar.portrait||null,charSheet:oldChar};
+  // Swap
+  worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
+  worldState.npcs.push(oldNpc);             // add old char as npc
+  newChar.portraitOffset=newChar.portraitOffset||{x:50,y:50};
+  worldState.character=newChar;
+  // Update knowledge graph link
+  npcLinkUpsert(newChar.name,oldChar.name,"companions");
+  saveAll();syncUI();initAbilities();initSpells();
+  showToast("Now playing as "+name+".");
+  sendAction(name+" steps into the lead. "+oldChar.name+" falls in alongside. Narrate the transition briefly and continue the scene.");
+}
+function _addImportedCompanion(char){
+  if(!worldState){showToast("No active campaign to add companion to.");return;}
+  // Check if already in party
+  for(var i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===char.name){showToast(char.name+" is already in this campaign.");return;}}
+  // Add as party member NPC with full charSheet
+  var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,portrait:char.portrait||null,charSheet:char};
+  worldState.npcs.push(npc);
+  if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[]};
+  memory.npcs[char.name].partyMember=true;
+  npcLinkUpsert(worldState.character.name,char.name,"companions");
+  saveAll();syncUI();
+  showToast(char.name+" added as companion.");
+  // Introduce companion into the current scene
+  var intro=char.name+" joins the scene. They are a "+(char.subraceNm?char.subraceNm+" ":"")+char.ancestry+" "+char.cls+(char.archetypeNm?" ["+char.archetypeNm+"]":"")+", Level "+char.level+". "+(char.appear?'Appearance: "'+char.appear+(char.mark?" — "+char.mark:"")+'".':"")+" Trait: "+char.trait+". Flaw: "+char.flaw+". Weave their arrival naturally into the current scene.";
+  sendAction(intro);
+}
 function importCharacterFile(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
   var reader=new FileReader();
@@ -1247,6 +1471,8 @@ function wireButtons(){
   document.getElementById("char-deity").addEventListener("input",function(){cs.deityEdited=this.value!==getDefaultDeity();});
   document.getElementById("rv-back").addEventListener("click",function(){goStep(6);});
   document.getElementById("rv-go").addEventListener("click",confirmChar);
+  document.getElementById("rv-randomise").addEventListener("click",function(){aiRandomiseAll(this);});
+  injectSparkleButtons();
   document.getElementById("rv-start-loc").addEventListener("change",function(){document.getElementById("rv-start-loc-custom").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("rv-start-level").addEventListener("change",function(){var b=document.getElementById("rv-go");if(b)b.textContent=parseInt(this.value)>=3?"Assign level perks":"Begin your journey";buildDots();});
   document.getElementById("state-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
@@ -1265,7 +1491,9 @@ function wireButtons(){
   document.getElementById("cs-fm-rules").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRulesModal();});
   document.getElementById("cs-fm-fal-key").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("cs-fm-adult-cb").addEventListener("change",toggleAdultMode);
+  document.getElementById("cs-fm-font-lg").addEventListener("change",toggleFontSize);
   document.getElementById("cs-fm-server-connect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";connectToServer();});
+  document.getElementById("cs-fm-clearcache").addEventListener("click",clearCacheAndReload);
   document.getElementById("cs-fm-server-disconnect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";disconnectFromServer();});
   document.getElementById("cs-fm-set-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("cs-fm-clear-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";clearCampaignFolder();});
@@ -1277,7 +1505,9 @@ function wireButtons(){
   document.getElementById("api-fm-rules").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRulesModal();});
   document.getElementById("api-fm-fal-key").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("api-fm-adult-cb").addEventListener("change",toggleAdultMode);
+  document.getElementById("api-fm-font-lg").addEventListener("change",toggleFontSize);
   document.getElementById("api-fm-server-connect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";connectToServer();});
+  document.getElementById("api-fm-clearcache").addEventListener("click",clearCacheAndReload);
   document.getElementById("api-fm-server-disconnect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";disconnectFromServer();});
   document.getElementById("api-fm-set-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("api-fm-clear-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";clearCampaignFolder();});
@@ -1295,10 +1525,12 @@ function wireButtons(){
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
   document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
+  document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-server-connect").addEventListener("click",connectToServer);
+  document.getElementById("fm-clearcache").addEventListener("click",clearCacheAndReload);
   document.getElementById("fm-server-disconnect").addEventListener("click",disconnectFromServer);
   document.getElementById("fm-set-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";setCampaignFolder();});
   document.getElementById("fm-clear-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";clearCampaignFolder();});
@@ -1371,5 +1603,5 @@ function showRenderOptionsModal(){
   });
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
-function init(){loadRules();loadAdultMode();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
+function init(){loadRules();loadAdultMode();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
 window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});
