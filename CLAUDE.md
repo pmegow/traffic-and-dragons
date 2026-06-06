@@ -416,7 +416,13 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 
 **Testing changes:**
 - Hard-refresh (`Ctrl+Shift+R`) after editing any `.js` file — Chrome caches aggressively.
+- Always test on **Netlify** after `git push` — `file://` and Netlify can have different cached files.
 - Use the **Sync** button in-game to manually patch world state.
 - Use **Table Talk** tab to query the GM out-of-character while debugging.
 - Wipe state: DevTools → Application → Local Storage → delete all `ashen_*` keys, or use **New Game**.
 - **Export save** before testing risky changes.
+
+**Version number:**
+- Current: `v1.2`
+- String is at the end of `updateMemStatus()` in `ui.js`
+- **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.
