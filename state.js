@@ -40,7 +40,7 @@ function updateCampMeta(){
   var c=worldState.character,w=worldState.world;
   var entry={id:id,campName:worldState.campName||c.name,charName:c.name,charClass:c.cls,charAncestry:c.subraceNm||c.ancestry||"",level:c.level,location:w.location,savedAt:Date.now()};
   var meta=getCampMeta(),found=false,i;
-  for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i]=entry;found=true;break;}}
+  for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i]=Object.assign({},meta[i],entry);found=true;break;}}
   if(!found)meta.push(entry);
   setCampMeta(meta);
 }

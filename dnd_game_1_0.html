@@ -180,7 +180,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   #hud-btns    { flex-shrink: 0; margin-left: auto; }
   #sync-btn, #render-btn, #state-btn { display: none; }
   .fm-mobile-only { display: block !important; }
-  #hud-loc, #hud-align { display: none; }
+  #hud-loc, #hud-align, #hud-party { display: none !important; }
   #file-menu { right: 0; left: auto; max-width: calc(100vw - 16px); }
   .qa      { padding: 8px 13px; font-size: 12px; }
   .ib      { padding: 7px 11px; }
@@ -337,6 +337,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <span style="color:var(--t1);" id="hud-align"></span>
       <span style="color:var(--t2);max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="hud-loc"></span>
     </div>
+    <div id="hud-party" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;"></div>
     <div id="hud-btns" style="display:flex;gap:6px;align-items:center;">
       <button class="ib" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button>
       <button class="ib" id="state-btn" title="View full world state in sidebar panel">World State</button>

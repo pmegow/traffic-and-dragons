@@ -185,13 +185,20 @@ var storageAdapter = (function() {
 
   function syncCampaignList(cb) {
     if (!_serverUrl || !_token) { if (cb) cb(null); return; }
+    var _fired = false;
+    function done(result) { if (!_fired) { _fired = true; if (cb) cb(result); } }
+    var _tid = setTimeout(function() {
+      console.warn("[storage] campaign list sync timed out");
+      done(null);
+    }, 10000);
     fetch(_serverUrl + "/api/campaigns", {
       headers: { "Authorization": "Bearer " + _token }
     }).then(function(r) {
+      clearTimeout(_tid);
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }).then(function(serverList) {
-      if (!Array.isArray(serverList)) { if (cb) cb(null); return; }
+      if (!Array.isArray(serverList)) { done(null); return; }
       // Merge server list into local: server wins on ID conflicts, local-only kept
       var local = [];
       try { var raw = localStorage.getItem("ashen_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
@@ -205,10 +212,11 @@ var storageAdapter = (function() {
         if (!found) merged.push(serverList[i]);
       }
       try { localStorage.setItem("ashen_camps_v1", JSON.stringify(merged)); } catch(e) {}
-      if (cb) cb(merged);
+      done(merged);
     }).catch(function(e) {
+      clearTimeout(_tid);
       console.warn("[storage] campaign list sync failed:", e.message);
-      if (cb) cb(null);
+      done(null);
     });
   }
 

@@ -85,10 +85,35 @@ async function sendAction(override){
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
     }
     syncUI();
-  }catch(e){th.remove();var em=addMsg("system","GM error: "+e.message);var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=function(){retryLast();};em.appendChild(rb);}
+  }catch(e){th.remove();var em=addMsg("system","GM error: "+e.message);if(_attachGMErrorUI(em,function(){retryLast();},e.message))return;}
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
 }
 function retryLast(){if(lastAction)sendAction(lastAction);}
+function _attachGMErrorUI(em,retryFn,msg){
+  console.log("[GMError] msg=",msg);
+  var isAuth=/invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i.test(msg);
+  console.log("[GMError] isAuth=",isAuth);
+  if(isAuth){
+    var kw=document.createElement("div");kw.style.cssText="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;";
+    var ki=document.createElement("input");ki.type="password";ki.placeholder="Paste new API key…";ki.autocomplete="off";
+    ki.style.cssText="flex:1;min-width:200px;padding:5px 8px;font-family:Georgia,serif;font-size:12px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);color:var(--t0);outline:none;";
+    var kb=document.createElement("button");kb.className="qa";kb.textContent="Update & Retry";
+    kb.onclick=function(){
+      var k=ki.value.trim();if(!k)return;
+      apiKey=k;try{localStorage.setItem(AKK,k);}catch(x){}
+      em.remove();
+      busy=false;document.getElementById("sendbtn").disabled=false;
+      if(typeof retryFn==="function")retryFn();
+    };
+    ki.addEventListener("keydown",function(e){if(e.key==="Enter")kb.click();});
+    kw.appendChild(ki);kw.appendChild(kb);em.appendChild(kw);
+    ki.focus();
+    return true;
+  }else{
+    var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=retryFn;em.appendChild(rb);
+    return false;
+  }
+}
 async function beginAdventure(){
   busy=true;document.getElementById("sendbtn").disabled=true;var th=addMsg("thinking","The world stirs...");
   try{
@@ -98,7 +123,7 @@ async function beginAdventure(){
     addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
     _promptCampaignFolder();
-  }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=beginAdventure;em.appendChild(rb);}
+  }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message))return;}
   busy=false;document.getElementById("sendbtn").disabled=false;
 }
 function _promptCampaignFolder(){

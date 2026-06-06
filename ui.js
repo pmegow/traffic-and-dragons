@@ -192,6 +192,34 @@ function updateHUD(){
   document.getElementById("hud-gold").textContent=c.gold+" gp";
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=w.location;
+  // ── Party HUD (compact cards — second topbar row) ─────────────────────────
+  var hudParty=document.getElementById("hud-party");
+  if(hudParty){
+    var partyNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
+    if(partyNpcs.length){
+      hudParty.style.display="flex";hudParty.innerHTML="";
+      for(var pi=0;pi<partyNpcs.length;pi++){
+        var pm=partyNpcs[pi],pmSheet=pm.charSheet;
+        var card=document.createElement("div");
+        card.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t1);cursor:pointer;padding:2px 8px 2px 6px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);";
+        (function(nm){card.addEventListener("click",function(){showNpcSheet(nm);});})(pm.name);
+        var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>";
+        if(pmSheet&&pmSheet.maxHp){
+          var pct=Math.max(0,Math.min(100,Math.round((pmSheet.hp||0)/pmSheet.maxHp*100)));
+          var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";
+          card.innerHTML=nameSpan
+            +"<div style='width:48px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;flex-shrink:0;'>"
+            +"<div style='width:"+pct+"%;height:100%;background:"+hpClr+";border-radius:3px;'></div></div>"
+            +"<span style='color:#e06060;flex-shrink:0;'>"+(pmSheet.hp||0)+"/"+pmSheet.maxHp+"</span>";
+        }else{
+          card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"ally")+"</span>";
+        }
+        hudParty.appendChild(card);
+      }
+    }else{
+      hudParty.style.display="none";
+    }
+  }
   function sr(k,v){return'<div class="sb-row"><span class="sb-k">'+k+'</span><span class="sb-v">'+v+'</span></div>';}
   var sb=document.getElementById("sb-content");if(!sb)return;
   var i;
@@ -371,9 +399,9 @@ function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(fu
 function connectToServer(){
   storageAdapter.loginWithServer(ASHEN_SERVER_URL,function(err,info){
     if(err){showToast("Server login failed.");return;}
-    updateServerUI();closeAllMenus();
+    updateServerUI();
     showToast("☁ Connected as "+info.username);
-    storageAdapter.syncCampaignList(function(){showCampaignPicker();});
+    showCampaignPicker();
   });
 }
 
@@ -1185,57 +1213,63 @@ function showCharImportPreview(char, onAccept, onCancel){
 }
 // ── Campaign management UI ────────────────────────────────────────────────────
 function showCampaignPicker(){
-  document.getElementById("file-menu").style.display="none";
-  var ex=document.getElementById("camp-modal");if(ex)ex.remove();
-  // If server-connected, refresh campaign list before showing (3s timeout fallback)
-  if(storageAdapter.isServerMode()){
-    var _shown=false;
-    var _t=setTimeout(function(){if(!_shown){_shown=true;_showCampaignPickerModal();}},3000);
-    storageAdapter.syncCampaignList(function(){clearTimeout(_t);if(!_shown){_shown=true;_showCampaignPickerModal();}});
-    return;
-  }
+  closeAllMenus();
   _showCampaignPickerModal();
+  if(storageAdapter.isServerMode()){
+    var st=document.getElementById("camp-sync-status");
+    if(st){st.textContent="☁ Refreshing from server…";st.style.display="block";}
+    storageAdapter.syncCampaignList(function(result){
+      _renderCampList();
+      var s=document.getElementById("camp-sync-status");if(!s)return;
+      if(result){s.style.display="none";}
+      else{s.textContent="⚠ Couldn't reach server — showing local data";setTimeout(function(){var el=document.getElementById("camp-sync-status");if(el)el.style.display="none";},3000);}
+    });
+  }
 }
 function _showCampaignPickerModal(){
   var ex=document.getElementById("camp-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="camp-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span><button id='camp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div id='camp-sync-status' style='display:none;font-size:11px;color:var(--t2);margin-bottom:10px;text-align:center;'></div>"
+    +"<div id='camp-list'></div>"
+    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
+    +"</div>";
+  document.body.appendChild(modal);
+  document.getElementById("camp-x").addEventListener("click",function(){modal.remove();});
+  _renderCampList();
+}
+function _renderCampList(){
+  var listEl=document.getElementById("camp-list");if(!listEl)return;
   function timeAgo(ts){var d=Math.floor((Date.now()-ts)/1000);if(d<60)return"just now";if(d<3600)return Math.floor(d/60)+"m ago";if(d<86400)return Math.floor(d/3600)+"h ago";return Math.floor(d/86400)+"d ago";}
-  function render(){
-    var meta=getCampMeta(),activeId=getActiveCampId();
-    var sorted=meta.slice().sort(function(a,b){return b.savedAt-a.savedAt;});
-    var rows="";
-    if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
-    else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
-      var dispName=cm.campName||cm.charName;
-      var cloudBtns=storageAdapter.isServerMode()
-        ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
-          +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;color:var(--t1);' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'>☁↑</button>"
-          +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">☁↓</button>"
-          +"</div>"
-        :"";
-      rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;'>"
-        +cloudBtns
-        +"<div style='flex:1;min-width:0;'>"
-        +"<div style='display:flex;align-items:center;gap:6px;'>"
-        +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
-        +"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>"
+  var meta=getCampMeta(),activeId=getActiveCampId();
+  var sorted=meta.slice().sort(function(a,b){return b.savedAt-a.savedAt;});
+  var rows="";
+  if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
+  else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
+    var dispName=cm.campName||cm.charName;
+    var cloudBtns=storageAdapter.isServerMode()
+      ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
+        +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;color:var(--t1);' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'>☁↑</button>"
+        +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">☁↓</button>"
         +"</div>"
-        +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(cm.charName)+" &mdash; Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
-        +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+(isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>":"Last saved "+timeAgo(cm.savedAt))+"</div>"
-        +"</div>"
-        +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
-          :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
-          +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
-        +"</div>";}}
-    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span><button id='camp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-      +rows
-      +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
-      +"</div>";
-    document.getElementById("camp-x").addEventListener("click",function(){modal.remove();});
-  }
-  document.body.appendChild(modal);render();
+      :"";
+    rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;'>"
+      +cloudBtns
+      +"<div style='flex:1;min-width:0;'>"
+      +"<div style='display:flex;align-items:center;gap:6px;'>"
+      +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
+      +"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>"
+      +"</div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(cm.charName)+" &mdash; Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
+      +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+(isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>":"Last saved "+timeAgo(cm.savedAt))+"</div>"
+      +"</div>"
+      +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
+        :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
+        +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
+      +"</div>";}}
+  listEl.innerHTML=rows;
 }
 function _applyLoadedCampaign(){
   document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";

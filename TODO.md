@@ -4,40 +4,24 @@
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Cloud sync | ✅ Done — OAuth ticket polling, per-campaign push/pull, server campaign list sync |
 | 2 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
-| 3 | File menu on all screens | ✅ Done |
-| 4 | Load campaign from tone step | ✅ Done |
-| 5 | Module system | ✅ Folded into #18 |
-| 6 | Load character / skip char creation | ✅ Done |
-| 7 | Name campaigns + file organization | ✅ Done — campaign name field on Review step |
-| 7a | File/download folder structure | ✅ Done — File System Access API, folder prompt on game start |
-| 8 | Alternative starting worlds | ✅ Folded into #18 |
-| 9 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
-| 10 | Narrative flavor / prose style | Pushed to bottom |
-| 11 | File menu cleanup for release | ✅ Mostly done |
-| 12 | Multiple active campaigns review | |
-| 13 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per session load. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
-| 14 | Text to speech | |
-| 15 | Persistent image gallery | ✅ Covered by campaign folder structure |
-| 16 | Narrative knowledge graph | ✅ Done — NPC↔NPC links, factions, faction relationships, sidebar + NPC sheet UI |
-| 17 | Game document | |
-| 18 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. | |
-| 19 | Player takeover | ✅ Done — ▶ button on NPC sheets switches active player character |
-| 20 | Tweak img2img weighting — expose strength slider in Render Options | Low priority |
-| 21 | Racial benefits wiring | ✅ Done — pick limit increases per racial spell, "+N racial bonus" shown in spell picker |
-| 22 | Font size option | ✅ Done — "Large text" in Admin, defaults to large on iOS |
-| 23 | Names list — locate, expand, improve | ✅ Done — doubled to ~240, shuffled, rotating index, full names with surnames |
-| 24 | Map node dimensions | ✅ Done — [LOCATION_SIZE:scale|travelMins] tag, injected in buildGeoBlock |
-| 25 | iOS notch gutter | ✅ Done — deployed, needs phone verification |
-| 26 | Multi-player HUD layout — needed before #2 | |
-| 27 | Char creation AI assist | ✅ Done — ✦ per field + ✦ Randomise button on Review step |
+| 7 | Alternative starting worlds | Folded into #18 |
+| 8 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
+| 9 | Narrative flavor / prose style | Pushed to bottom |
+| 11 | Multiple active campaigns review |  |
+| 12 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
+| 13 | Text to speech |  |
+| 16 | Game document |  |
+| 17 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
+| 24 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
+| 26 | If the api key read fails, don't just retry, provide a field to edit / reinput the key | Ready to test — auth errors show inline password input + Update & Retry; busy stays true until key submitted |
+| 30 | Tweak img2img weighting — expose strength slider in Render Options | Low priority |
 
 ---
 
 ## Known issues
 
-- **Campaign UI issues** — server campaign sync timing unreliable; 3s timeout fallback added but needs proper hardening. Server campaigns not always appearing in picker when connected.
+- **Campaign UI issues** — ✅ Fixed: `onServer` flag stripped on save (root cause), modal now shows instantly from local data and syncs in background, 10s fetch timeout added, double-sync on connect removed.
 - **Portrait drag** — implemented, needs browser verification
 - **iOS notch** — deployed to Netlify, needs phone verification after cache clear
 - **F-11** — `window._sbPicks` namespace pollution, deferred, low risk

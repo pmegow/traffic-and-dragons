@@ -27,15 +27,19 @@
     .status.slow{color:var(--t2);}
     #load-btn{padding:10px 24px;font-family:Georgia,serif;font-size:13px;background:var(--acc);color:#000;border:none;border-radius:4px;cursor:pointer;}
     #load-btn:hover{opacity:.85;}
+    #reopen-btn{display:block;margin:12px auto 0;padding:10px 24px;font-family:Georgia,serif;font-size:13px;background:transparent;color:var(--acc);border:1px solid var(--acc);border-radius:4px;cursor:pointer;}
+    #reopen-btn:hover{background:rgba(200,146,42,.12);}
     #drop-zone{border:2px dashed var(--brd2);border-radius:8px;padding:40px;text-align:center;color:var(--t2);font-size:13px;margin-top:32px;}
     #drop-zone.over{border-color:var(--acc);color:var(--acc);}
     hr{border:none;border-top:1px solid var(--brd);margin:20px 0;}
     blockquote{border-left:3px solid var(--acc);padding-left:12px;color:var(--t2);font-style:italic;margin:10px 0;}
     .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
-    .toolbar-right{display:flex;gap:8px;}
+    .toolbar-right{display:flex;gap:8px;flex-wrap:wrap;}
     .tbtn{padding:7px 14px;font-family:Georgia,serif;font-size:12px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:4px;cursor:pointer;}
     .tbtn:hover{border-color:var(--acc);color:var(--acc);}
     .tbtn.danger:hover{border-color:var(--red);color:var(--red);}
+    .tbtn.accent{background:var(--acc);color:#000;border-color:var(--acc);}
+    .tbtn.accent:hover{opacity:.85;color:#000;}
     /* Drag and drop */
     .drag-handle{cursor:grab;color:var(--t2);padding:0 6px 0 2px;font-size:14px;user-select:none;}
     .drag-handle:hover{color:var(--acc);}
@@ -43,6 +47,32 @@
     tr.drag-over td{border-top:2px solid var(--acc);}
     .num-cell{color:var(--t2);width:36px;font-size:12px;}
     .handle-cell{width:24px;padding:7px 0;}
+    /* Add task bar */
+    #add-task-bar{display:none;align-items:center;gap:8px;margin-top:12px;}
+    #add-task-inp{flex:1;font-family:Georgia,serif;font-size:13px;background:var(--bg2);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:7px 10px;outline:none;}
+    #add-task-inp:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(200,146,42,.15);}
+    /* Row edit button — lives inside task cell, shown on row hover */
+    .row-edit-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:2px 4px;line-height:1;flex-shrink:0;align-self:flex-start;}
+    .row-edit-btn:hover{color:var(--acc);}
+    tr:hover .row-edit-btn{visibility:visible;}
+    .task-cell-inner{display:flex;align-items:flex-start;gap:4px;}
+    .task-cell-inner span{flex:1;}
+    /* Textarea for inline editing */
+    .edit-inp{font-family:Georgia,serif;font-size:13px;background:var(--bg3);border:1px solid var(--acc);border-radius:3px;color:var(--t0);padding:4px 6px;width:100%;outline:none;resize:vertical;line-height:1.5;}
+    /* Done toggle */
+    .check-cell{width:22px;padding:7px 2px;text-align:center;}
+    .check-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0;line-height:1;color:var(--grn);}
+    .check-btn.undone{color:var(--brd2);}
+    .check-btn.rtt{color:var(--acc);}
+    .check-btn:hover{opacity:.7;}
+    /* Ready to test row */
+    tr.rtt td{background:rgba(200,146,42,.07);}
+    tr.rtt:hover td{background:rgba(200,146,42,.14);}
+    /* Delete button */
+    .del-cell{width:22px;padding:7px 2px;text-align:center;}
+    .row-del-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;padding:0 2px;line-height:1;}
+    .row-del-btn:hover{color:var(--red);}
+    tr:hover .row-del-btn{visibility:visible;}
   </style>
 </head>
 <body>
@@ -53,76 +83,135 @@
       <p style="margin-top:16px;font-size:11px;">or drag &amp; drop TODO.md here</p>
     </div>
   </div>
+  <div id="add-task-bar">
+    <input id="add-task-inp" type="text" placeholder="New task description…">
+    <button class="tbtn accent" onclick="doAddTask()">Add</button>
+    <button class="tbtn" onclick="hideAddTask()">&#215;</button>
+  </div>
 
 <script>
-var _sections = [];   // parsed sections: {type:'text'|'tasks', content}
-var _tasks = [];      // flat task row array: {num, task, status, raw}
+var _sections = [];
+var _tasks = [];
 var _dragSrc = null;
-var _fileHandle = null;  // FileSystemFileHandle for refresh
+var _fileHandle = null;
+var _editIdx = -1;
 
-// ── File loading ─────────────────────────────────────────────────────────────
-document.getElementById("load-btn").addEventListener("click", function(){
-  if(window.showOpenFilePicker){
+// ── IndexedDB handle persistence ──────────────────────────────────────────────
+
+function _openDb(cb) {
+  var req = indexedDB.open("tdtodo", 1);
+  req.onupgradeneeded = function(e) { e.target.result.createObjectStore("handles"); };
+  req.onsuccess = function(e) { cb(e.target.result); };
+  req.onerror = function() { cb(null); };
+}
+function saveHandle(handle) {
+  _openDb(function(db) {
+    if (!db) return;
+    try { db.transaction("handles","readwrite").objectStore("handles").put(handle,"todo"); } catch(e) {}
+  });
+}
+function loadStoredHandle(cb) {
+  _openDb(function(db) {
+    if (!db) { cb(null); return; }
+    try {
+      var req = db.transaction("handles","readonly").objectStore("handles").get("todo");
+      req.onsuccess = function(e) { cb(e.target.result || null); };
+      req.onerror = function() { cb(null); };
+    } catch(e) { cb(null); }
+  });
+}
+
+// ── Autoload on page start ────────────────────────────────────────────────────
+
+window.addEventListener("DOMContentLoaded", function() {
+  if (!window.showOpenFilePicker || !window.indexedDB) return;
+  loadStoredHandle(function(handle) {
+    if (!handle) return;
+    _fileHandle = handle;
+    handle.queryPermission({mode:"read"}).then(function(perm) {
+      if (perm === "granted") {
+        // Silent autoload — no user gesture required
+        handle.getFile().then(function(f) { readFile(f); }).catch(function() {});
+      } else {
+        // Offer a single-click reopen button instead of the full picker
+        var dz = document.getElementById("drop-zone");
+        if (!dz) return;
+        var btn = document.createElement("button");
+        btn.id = "reopen-btn";
+        btn.textContent = "↺ Reopen TODO.md";
+        btn.onclick = function() {
+          handle.requestPermission({mode:"read"}).then(function(p) {
+            if (p === "granted") handle.getFile().then(function(f) { readFile(f); }).catch(function() {});
+          }).catch(function() {});
+        };
+        dz.appendChild(btn);
+      }
+    }).catch(function() {});
+  });
+});
+
+// ── File loading ──────────────────────────────────────────────────────────────
+
+document.getElementById("load-btn").addEventListener("click", function() {
+  if (window.showOpenFilePicker) {
     window.showOpenFilePicker({types:[{description:"Markdown",accept:{"text/plain":[".md",".txt"]}}]})
-      .then(function(handles){
+      .then(function(handles) {
         _fileHandle = handles[0];
+        saveHandle(_fileHandle);
         return _fileHandle.getFile();
-      }).then(function(file){
+      }).then(function(file) {
         readFile(file);
-      }).catch(function(){});
+      }).catch(function() {});
   } else {
     var inp = document.createElement("input");
     inp.type = "file"; inp.accept = ".md,.txt";
-    inp.onchange = function(e){ readFile(e.target.files[0]); };
+    inp.onchange = function(e) { readFile(e.target.files[0]); };
     inp.click();
   }
 });
 
 var dz = document.getElementById("drop-zone");
-dz.addEventListener("dragover",function(e){e.preventDefault();dz.classList.add("over");});
-dz.addEventListener("dragleave",function(){dz.classList.remove("over");});
-dz.addEventListener("drop",function(e){
-  e.preventDefault();dz.classList.remove("over");
+dz.addEventListener("dragover", function(e) { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", function() { dz.classList.remove("over"); });
+dz.addEventListener("drop", function(e) {
+  e.preventDefault(); dz.classList.remove("over");
   var f = e.dataTransfer.files[0];
-  if(f){ _fileHandle = null; readFile(f); }
+  if (f) { _fileHandle = null; readFile(f); }
 });
 
-function readFile(file){
+function readFile(file) {
   var r = new FileReader();
-  r.onload = function(e){ parse(e.target.result); renderPage(); };
+  r.onload = function(e) { parse(e.target.result); renderPage(); };
   r.readAsText(file);
 }
 
-function refresh(){
-  if(!_fileHandle){ alert("No file handle — open the file using the Open button (not drag & drop) to enable refresh."); return; }
-  _fileHandle.getFile().then(function(file){ readFile(file); }).catch(function(e){ alert("Refresh failed: "+e.message); });
+function refresh() {
+  if (!_fileHandle) { alert("No file handle — open via the Open button (not drag & drop) to enable refresh."); return; }
+  _fileHandle.getFile().then(function(file) { readFile(file); }).catch(function(e) { alert("Refresh failed: " + e.message); });
 }
 
-// ── Parse TODO.md into sections ──────────────────────────────────────────────
-function parse(md){
+// ── Parse TODO.md ─────────────────────────────────────────────────────────────
+
+function parse(md) {
   _sections = [];
   _tasks = [];
   var lines = md.split("\n");
   var i = 0;
-  while(i < lines.length){
+  while (i < lines.length) {
     var line = lines[i];
-    // Detect start of a task table (header row with # | Task | Status)
-    if(/^\|\s*#\s*\|/.test(line)){
-      // skip header and separator
-      i += 2;
-      // read task rows
-      while(i < lines.length && /^\|/.test(lines[i])){
-        var cells = lines[i].split("|").slice(1,-1).map(function(c){return c.trim();});
-        if(cells.length >= 2){
+    if (/^\|\s*#\s*\|/.test(line)) {
+      i += 2; // skip header and separator
+      while (i < lines.length && /^\|/.test(lines[i])) {
+        var cells = lines[i].split("|").slice(1,-1).map(function(c) { return c.trim(); });
+        if (cells.length >= 2) {
           _tasks.push({num:cells[0], task:cells[1], status:cells[2]||"", raw:lines[i]});
         }
         i++;
       }
       _sections.push({type:"tasks"});
     } else {
-      // Collect non-table text
       var textLines = [];
-      while(i < lines.length && !/^\|\s*#\s*\|/.test(lines[i])){
+      while (i < lines.length && !/^\|\s*#\s*\|/.test(lines[i])) {
         textLines.push(lines[i]);
         i++;
       }
@@ -131,21 +220,23 @@ function parse(md){
   }
 }
 
-// ── Render full page ─────────────────────────────────────────────────────────
-function renderPage(){
-  var html = "<div class='toolbar'>"
-    +"<div style='font-size:12px;color:var(--t2);'>"+_tasks.length+" tasks &mdash; "+_tasks.filter(isDone).length+" done</div>"
-    +"<div class='toolbar-right'>"
-    +"<button class='tbtn' onclick='refresh()'>↺ Refresh</button>"
-    +"<button class='tbtn' onclick='renumber()'>Renumber</button>"
-    +"<button class='tbtn danger' onclick='clearDone()'>Clear completed</button>"
-    +"<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
-    +"<button class='tbtn' onclick='location.reload()'>Reset</button>"
-    +"</div></div>";
+// ── Render ────────────────────────────────────────────────────────────────────
 
-  for(var s=0;s<_sections.length;s++){
+function renderPage() {
+  var html = "<div class='toolbar'>"
+    + "<div style='font-size:12px;color:var(--t2);'>" + _tasks.length + " tasks &mdash; " + _tasks.filter(isDone).length + " done</div>"
+    + "<div class='toolbar-right'>"
+    + "<button class='tbtn accent' onclick='showAddTask()'>&#65291; Add task</button>"
+    + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
+    + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
+    + "<button class='tbtn danger' onclick='clearDone()'>Clear completed</button>"
+    + "<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
+    + "<button class='tbtn' onclick='location.reload()'>Reset</button>"
+    + "</div></div>";
+
+  for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
-    if(sec.type === "tasks"){
+    if (sec.type === "tasks") {
       html += renderTaskTable();
     } else {
       html += parseMarkdown(sec.content);
@@ -155,65 +246,84 @@ function renderPage(){
   wireTaskTable();
 }
 
-// ── Task table ───────────────────────────────────────────────────────────────
-function isDone(t){
-  return /✅/.test(t.task)||/✅/.test(t.status)||/\bDone\b/.test(t.status);
+// ── Task table ────────────────────────────────────────────────────────────────
+
+function isDone(t) {
+  return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
-function isLow(t){
-  return /[Ll]ow priority/.test(t.status)||/[Ll]ow priority/.test(t.task);
+function isReadyToTest(t) {
+  return !isDone(t) && /ready.to.test/i.test(t.status);
+}
+function isLow(t) {
+  return /[Ll]ow priority/.test(t.status) || /[Ll]ow priority/.test(t.task);
 }
 
-function renderTaskTable(){
+function renderTaskTable() {
   var h = "<table id='task-table'>"
-    +"<thead><tr><th></th><th>#</th><th>Task</th><th>Status</th></tr></thead>"
-    +"<tbody id='task-tbody'>";
-  for(var i=0;i<_tasks.length;i++){
+    + "<thead><tr><th></th><th></th><th>#</th><th>Task</th><th style='width:220px;'>Status</th><th></th></tr></thead>"
+    + "<tbody id='task-tbody'>";
+  for (var i = 0; i < _tasks.length; i++) {
     var t = _tasks[i];
-    var done = isDone(t), low = isLow(t);
+    var done = isDone(t), rtt = isReadyToTest(t), low = isLow(t);
     var sCls = done ? "status sdone" : low ? "status slow" : "status";
-    h += "<tr class='"+(done?"done":"")+"' draggable='true' data-idx='"+i+"'>"
-      +"<td class='handle-cell'><span class='drag-handle' title='Drag to reorder'>⠿</span></td>"
-      +"<td class='num-cell'>"+inline(t.num)+"</td>"
-      +"<td>"+inline(t.task)+"</td>"
-      +"<td class='"+sCls+"'>"+inline(t.status)+"</td>"
-      +"</tr>";
+    var rowCls = done ? "done" : rtt ? "rtt" : "";
+    var checkCls = done ? "check-btn" : rtt ? "check-btn rtt" : "check-btn undone";
+    var checkSym = done ? "&#10003;" : rtt ? "&#9679;" : "&#9711;";
+    var checkTitle = done ? "Mark undone" : rtt ? "Mark done" : "Mark ready to test";
+    var editing = (i === _editIdx);
+    var rows = Math.max(2, Math.ceil(t.task.length / 72));
+    var safeText = t.task.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    var taskCell = editing
+      ? "<td><textarea class='edit-inp' id='edit-task-inp' rows='" + rows + "'"
+          + " onkeydown='if(event.key===\"Escape\"){_editIdx=-1;renderPage();}'"
+          + " onblur='saveEditTask(" + i + ")'>" + safeText + "</textarea></td>"
+      : "<td><div class='task-cell-inner'><span>" + inline(t.task) + "</span>"
+          + "<button class='row-edit-btn' title='Edit' onclick='startEditTask(" + i + ")'>&#9998;</button>"
+          + "</div></td>";
+    h += "<tr class='" + rowCls + "' draggable='" + (!editing) + "' data-idx='" + i + "'>"
+      + "<td class='handle-cell'><span class='drag-handle' title='Drag to reorder'>&#10783;</span></td>"
+      + "<td class='check-cell'><button class='" + checkCls + "' onclick='toggleDone(" + i + ")' title='" + checkTitle + "'>" + checkSym + "</button></td>"
+      + "<td class='num-cell'>" + inline(t.num) + "</td>"
+      + taskCell
+      + "<td class='" + sCls + "'>" + inline(t.status) + "</td>"
+      + "<td class='del-cell'><button class='row-del-btn' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
+      + "</tr>";
   }
   h += "</tbody></table>";
   return h;
 }
 
-function wireTaskTable(){
+function wireTaskTable() {
   var tbody = document.getElementById("task-tbody");
-  if(!tbody) return;
+  if (!tbody) return;
   var rows = tbody.querySelectorAll("tr");
-  for(var i=0;i<rows.length;i++){
-    (function(row){
-      row.addEventListener("dragstart",function(e){
+  for (var i = 0; i < rows.length; i++) {
+    (function(row) {
+      row.addEventListener("dragstart", function(e) {
         _dragSrc = row;
         row.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
       });
-      row.addEventListener("dragend",function(){
+      row.addEventListener("dragend", function() {
         row.classList.remove("dragging");
         var all = tbody.querySelectorAll("tr");
-        for(var j=0;j<all.length;j++) all[j].classList.remove("drag-over");
+        for (var j = 0; j < all.length; j++) all[j].classList.remove("drag-over");
       });
-      row.addEventListener("dragover",function(e){
+      row.addEventListener("dragover", function(e) {
         e.preventDefault();
-        if(_dragSrc && _dragSrc !== row){
+        if (_dragSrc && _dragSrc !== row) {
           var all = tbody.querySelectorAll("tr");
-          for(var j=0;j<all.length;j++) all[j].classList.remove("drag-over");
+          for (var j = 0; j < all.length; j++) all[j].classList.remove("drag-over");
           row.classList.add("drag-over");
         }
       });
-      row.addEventListener("drop",function(e){
+      row.addEventListener("drop", function(e) {
         e.preventDefault();
-        if(_dragSrc && _dragSrc !== row){
+        if (_dragSrc && _dragSrc !== row) {
           var srcIdx = parseInt(_dragSrc.getAttribute("data-idx"));
           var destIdx = parseInt(row.getAttribute("data-idx"));
-          var moved = _tasks.splice(srcIdx,1)[0];
-          var newDest = srcIdx < destIdx ? destIdx : destIdx;
-          _tasks.splice(newDest,0,moved);
+          var moved = _tasks.splice(srcIdx, 1)[0];
+          _tasks.splice(srcIdx < destIdx ? destIdx : destIdx, 0, moved);
           renderPage();
         }
       });
@@ -221,73 +331,164 @@ function wireTaskTable(){
   }
 }
 
-// ── Actions ──────────────────────────────────────────────────────────────────
-function renumber(){
-  for(var i=0;i<_tasks.length;i++) _tasks[i].num = String(i+1);
+// ── Add task ──────────────────────────────────────────────────────────────────
+
+function showAddTask() {
+  var bar = document.getElementById("add-task-bar");
+  if (bar) {
+    bar.style.display = "flex";
+    var inp = document.getElementById("add-task-inp");
+    if (inp) { inp.value = ""; inp.focus(); }
+  }
+}
+function hideAddTask() {
+  var bar = document.getElementById("add-task-bar");
+  if (bar) bar.style.display = "none";
+}
+function doAddTask() {
+  var inp = document.getElementById("add-task-inp");
+  if (!inp) return;
+  var task = inp.value.trim();
+  if (!task) return;
+  _tasks.push({num: String(_tasks.length + 1), task: task, status: ""});
+  inp.value = "";
+  renderPage();
+}
+function startEditTask(idx) {
+  _editIdx = idx;
+  renderPage();
+  var inp = document.getElementById("edit-task-inp");
+  if (inp) { inp.focus(); inp.select(); }
+}
+function saveEditTask(idx) {
+  if (_editIdx !== idx) return;
+  var inp = document.getElementById("edit-task-inp");
+  if (!inp) return;
+  var val = inp.value.trim();
+  if (val) _tasks[idx].task = val;
+  _editIdx = -1;
+  renderPage();
+}
+function toggleDone(idx) {
+  var t = _tasks[idx];
+  if (isDone(t)) {
+    // Done → Undone: strip ✅ and "Done" prefix
+    t.status = t.status.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
+    t.task   = t.task.replace(/✅\s*/g, "").trim();
+  } else if (isReadyToTest(t)) {
+    // Ready to test → Done
+    var rest = t.status.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
+    t.status = rest ? "✅ Done — " + rest : "✅ Done";
+  } else {
+    // Undone → Ready to test
+    t.status = t.status.trim() ? "Ready to test — " + t.status.trim() : "Ready to test";
+  }
+  renderPage();
+}
+function deleteTask(idx) {
+  _tasks.splice(idx, 1);
   renderPage();
 }
 
-function clearDone(){
-  var kept = _tasks.filter(function(t){return !isDone(t);});
-  if(kept.length === _tasks.length){return;}
-  if(!confirm("Remove "+(_tasks.length-kept.length)+" completed task(s)?")) return;
+document.getElementById("add-task-inp").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") doAddTask();
+  if (e.key === "Escape") hideAddTask();
+});
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+function renumber() {
+  for (var i = 0; i < _tasks.length; i++) _tasks[i].num = String(i + 1);
+  renderPage();
+}
+
+function clearDone() {
+  var kept = _tasks.filter(function(t) { return !isDone(t); });
+  if (kept.length === _tasks.length) return;
+  if (!confirm("Remove " + (_tasks.length - kept.length) + " completed task(s)?")) return;
   _tasks = kept;
   renderPage();
 }
 
-function exportMd(){
+function buildMd() {
   var out = "";
-  for(var s=0;s<_sections.length;s++){
+  for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
-    if(sec.type === "tasks"){
+    if (sec.type === "tasks") {
       out += "| # | Task | Status |\n|---|---|---|\n";
-      for(var i=0;i<_tasks.length;i++){
+      for (var i = 0; i < _tasks.length; i++) {
         var t = _tasks[i];
-        out += "| "+t.num+" | "+t.task+" | "+t.status+" |\n";
+        out += "| " + t.num + " | " + t.task + " | " + t.status + " |\n";
       }
     } else {
       out += sec.content;
-      if(s < _sections.length-1) out += "\n";
+      if (s < _sections.length - 1) out += "\n";
     }
   }
-  var blob = new Blob([out],{type:"text/plain"});
+  return out;
+}
+function exportMd() {
+  var out = buildMd();
+  if (_fileHandle && _fileHandle.createWritable) {
+    _fileHandle.createWritable().then(function(writable) {
+      return writable.write(out).then(function() { return writable.close(); });
+    }).then(function() {
+      showToast("Saved to TODO.md");
+    }).catch(function(e) {
+      // permission revoked or other error — fall back to download
+      _downloadMd(out);
+    });
+  } else {
+    _downloadMd(out);
+  }
+}
+function _downloadMd(out) {
+  var blob = new Blob([out], {type:"text/plain"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  a.href=url; a.download="TODO.md"; a.click();
+  a.href = url; a.download = "TODO.md"; a.click();
   URL.revokeObjectURL(url);
 }
+function showToast(msg) {
+  var t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--acc);color:var(--t0);font-family:Georgia,serif;font-size:13px;padding:8px 18px;border-radius:6px;z-index:999;pointer-events:none;";
+  document.body.appendChild(t);
+  setTimeout(function() { t.remove(); }, 2000);
+}
 
-// ── Markdown renderer (non-task sections) ────────────────────────────────────
-function parseMarkdown(md){
+// ── Markdown renderer ─────────────────────────────────────────────────────────
+
+function parseMarkdown(md) {
   var lines = md.split("\n");
   var out = "";
-  var inTable=false,inUl=false,inOl=false;
-  function closeList(){if(inUl){out+="</ul>";inUl=false;}if(inOl){out+="</ol>";inOl=false;}}
-  function closeTable(){if(inTable){out+="</tbody></table>";inTable=false;}}
-  for(var i=0;i<lines.length;i++){
-    var line=lines[i],trimmed=line.trim();
-    if(/^### /.test(trimmed)){closeList();closeTable();out+="<h3>"+inline(trimmed.slice(4))+"</h3>";continue;}
-    if(/^## /.test(trimmed)){closeList();closeTable();out+="<h2>"+inline(trimmed.slice(3))+"</h2>";continue;}
-    if(/^# /.test(trimmed)){closeList();closeTable();out+="<h1>"+inline(trimmed.slice(2))+"</h1>";continue;}
-    if(/^---+$/.test(trimmed)){closeList();closeTable();out+="<hr>";continue;}
-    if(/^\|/.test(trimmed)){
-      var cells=trimmed.split("|").slice(1,-1).map(function(c){return c.trim();});
-      if(cells.every(function(c){return /^[-: ]+$/.test(c);})){continue;}
-      if(!inTable){inTable=true;out+="<table><thead><tr>"+cells.map(function(c){return "<th>"+inline(c)+"</th>";}).join("")+"</tr></thead><tbody>";continue;}
-      out+="<tr>"+cells.map(function(c){return "<td>"+inline(c)+"</td>";}).join("")+"</tr>";
+  var inTable=false, inUl=false, inOl=false;
+  function closeList() { if (inUl) { out += "</ul>"; inUl=false; } if (inOl) { out += "</ol>"; inOl=false; } }
+  function closeTable() { if (inTable) { out += "</tbody></table>"; inTable=false; } }
+  for (var i = 0; i < lines.length; i++) {
+    var line=lines[i], trimmed=line.trim();
+    if (/^### /.test(trimmed)) { closeList(); closeTable(); out += "<h3>" + inline(trimmed.slice(4)) + "</h3>"; continue; }
+    if (/^## /.test(trimmed))  { closeList(); closeTable(); out += "<h2>" + inline(trimmed.slice(3)) + "</h2>"; continue; }
+    if (/^# /.test(trimmed))   { closeList(); closeTable(); out += "<h1>" + inline(trimmed.slice(2)) + "</h1>"; continue; }
+    if (/^---+$/.test(trimmed)) { closeList(); closeTable(); out += "<hr>"; continue; }
+    if (/^\|/.test(trimmed)) {
+      var cells = trimmed.split("|").slice(1,-1).map(function(c) { return c.trim(); });
+      if (cells.every(function(c) { return /^[-: ]+$/.test(c); })) { continue; }
+      if (!inTable) { inTable=true; out += "<table><thead><tr>" + cells.map(function(c) { return "<th>" + inline(c) + "</th>"; }).join("") + "</tr></thead><tbody>"; continue; }
+      out += "<tr>" + cells.map(function(c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>";
       continue;
-    } else {closeTable();}
-    if(/^[-*] /.test(trimmed)){closeTable();if(!inUl){out+="<ul>";inUl=true;}out+="<li>"+inline(trimmed.slice(2))+"</li>";continue;}
-    if(/^\d+\. /.test(trimmed)){closeTable();if(!inOl){out+="<ol>";inOl=true;}out+="<li>"+inline(trimmed.replace(/^\d+\. /,""))+"</li>";continue;}
-    if(!trimmed){closeList();closeTable();out+="<p></p>";continue;}
-    if(/^> /.test(trimmed)){closeList();closeTable();out+="<blockquote>"+inline(trimmed.slice(2))+"</blockquote>";continue;}
-    closeList();closeTable();out+="<p>"+inline(trimmed)+"</p>";
+    } else { closeTable(); }
+    if (/^[-*] /.test(trimmed))    { closeTable(); if (!inUl) { out += "<ul>"; inUl=true; } out += "<li>" + inline(trimmed.slice(2)) + "</li>"; continue; }
+    if (/^\d+\. /.test(trimmed))   { closeTable(); if (!inOl) { out += "<ol>"; inOl=true; } out += "<li>" + inline(trimmed.replace(/^\d+\. /,"")) + "</li>"; continue; }
+    if (!trimmed) { closeList(); closeTable(); out += "<p></p>"; continue; }
+    if (/^> /.test(trimmed)) { closeList(); closeTable(); out += "<blockquote>" + inline(trimmed.slice(2)) + "</blockquote>"; continue; }
+    closeList(); closeTable(); out += "<p>" + inline(trimmed) + "</p>";
   }
-  closeList();closeTable();
+  closeList(); closeTable();
   return out;
 }
 
-function inline(s){
+function inline(s) {
   s = s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
   s = s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
