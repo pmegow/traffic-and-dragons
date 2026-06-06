@@ -377,7 +377,7 @@ function updateServerUI(){
   });
   if(connected){
     // Fetch username from server to show in button label
-    fetch(ASHEN_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(sessionStorage.getItem("ashen_server_tok_v1")||"")}})
+    fetch(ASHEN_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(localStorage.getItem("ashen_server_tok_v1")||"")}})
       .then(function(r){return r.ok?r.json():null;})
       .then(function(d){
         ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
@@ -416,7 +416,7 @@ function campCloudPushSilent(id,cb){
   var sl=store.get("ashen_camp_"+id+"_sl")||"[]";
   var mem=store.get("ashen_camp_"+id+"_mem")||"{}";
   if(!ws){if(cb)cb(false);return;}
-  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
   var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
@@ -1339,7 +1339,7 @@ function campLoad(id){
   // No local data — fetch from server if connected
   if(!storageAdapter.isServerMode()){showToast("Campaign data not found locally. Connect to server to load it.");return;}
   var serverUrl=storageAdapter.getServerUrl();
-  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
   showToast("☁ Fetching campaign from server…");
   fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
     .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
@@ -1362,7 +1362,7 @@ function campCloudPush(id){
   var sl=store.get("ashen_camp_"+id+"_sl")||store.get(SLK);
   var mem=store.get("ashen_camp_"+id+"_mem")||store.get(MEM_KEY);
   if(!ws){showToast("No local data to push.");return;}
-  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){showToast("Invalid save data.");return;}
   // Strip portraits
@@ -1378,7 +1378,7 @@ function campCloudPush(id){
 }
 function campCloudPull(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
-  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   showToast("☁ Pulling from server…");
   fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})

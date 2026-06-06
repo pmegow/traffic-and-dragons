@@ -23,12 +23,12 @@ var storageAdapter = (function() {
   var _popupCb   = null;
 
   // ── Auto-connect on page load ───────────────────────────────────────────
-  // If a saved server URL + token exist in sessionStorage, restore server mode.
+  // If a saved server URL + token exist in localStorage, restore server mode.
 
   function autoConnect() {
     try {
-      var url = sessionStorage.getItem(SERVER_URL_KEY);
-      var tok = sessionStorage.getItem(SERVER_TOK_KEY);
+      var url = localStorage.getItem(SERVER_URL_KEY);
+      var tok = localStorage.getItem(SERVER_TOK_KEY);
       if (url && tok) {
         _serverUrl = url;
         _token     = tok;
@@ -43,11 +43,11 @@ var storageAdapter = (function() {
     _token     = token || null;
     try {
       if (_serverUrl && _token) {
-        sessionStorage.setItem(SERVER_URL_KEY, _serverUrl);
-        sessionStorage.setItem(SERVER_TOK_KEY, _token);
+        localStorage.setItem(SERVER_URL_KEY, _serverUrl);
+        localStorage.setItem(SERVER_TOK_KEY, _token);
       } else {
-        sessionStorage.removeItem(SERVER_URL_KEY);
-        sessionStorage.removeItem(SERVER_TOK_KEY);
+        localStorage.removeItem(SERVER_URL_KEY);
+        localStorage.removeItem(SERVER_TOK_KEY);
       }
     } catch(e) {}
   }
