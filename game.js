@@ -90,9 +90,7 @@ async function sendAction(override){
 }
 function retryLast(){if(lastAction)sendAction(lastAction);}
 function _attachGMErrorUI(em,retryFn,msg){
-  console.log("[GMError] msg=",msg);
   var isAuth=/invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i.test(msg);
-  console.log("[GMError] isAuth=",isAuth);
   if(isAuth){
     var kw=document.createElement("div");kw.style.cssText="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;";
     var ki=document.createElement("input");ki.type="password";ki.placeholder="Paste new API key…";ki.autocomplete="off";
