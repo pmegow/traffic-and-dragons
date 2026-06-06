@@ -190,7 +190,7 @@ var storageAdapter = (function() {
     var _tid = setTimeout(function() {
       console.warn("[storage] campaign list sync timed out");
       done(null);
-    }, 30000);
+    }, 60000);
     fetch(_serverUrl + "/api/campaigns", {
       headers: { "Authorization": "Bearer " + _token }
     }).then(function(r) {
