@@ -4,39 +4,45 @@
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Cloud sync | ✅ Done |
-| 2 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. Companion system (#9) is a useful stepping stone. | Unblocked by #1 |
+| 1 | Cloud sync | ✅ Done — OAuth ticket polling, per-campaign push/pull, server campaign list sync |
+| 2 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
 | 3 | File menu on all screens | ✅ Done |
-| 4 | Load campaign from tone step — import button exists on step 1 | ✅ Done |
-| 6 | Load character / skip char creation — character browser + preview modal | ✅ Done |
-| 7 | Name campaigns + file organization | ✅ Done |
-| 7a | File/download folder structure — File System Access API, subfolders per export type | ✅ Done |
-| 8 | Alternative starting worlds — varied world presets at campaign start | Folded into #18 |
-| 9 | Companions system — campaign start only, max 3, load saved char or random | |
-| 10 | Narrative flavor / prose style — let player influence GM writing style beyond tone presets | 🟢 Low-hanging fruit |
-| 11 | File menu cleanup for release | ✅ Done |
+| 4 | Load campaign from tone step | ✅ Done |
+| 5 | Module system | ✅ Folded into #18 |
+| 6 | Load character / skip char creation | ✅ Done |
+| 7 | Name campaigns + file organization | ✅ Done — campaign name field on Review step |
+| 7a | File/download folder structure | ✅ Done — File System Access API, folder prompt on game start |
+| 8 | Alternative starting worlds | ✅ Folded into #18 |
+| 9 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
+| 10 | Narrative flavor / prose style | Pushed to bottom |
+| 11 | File menu cleanup for release | ✅ Mostly done |
 | 12 | Multiple active campaigns review | |
-| 13 | Legacy characters | ⚠ Needs description — original intent unknown |
-| 14 | Text to speech / voice commands | |
-| 15 | Persistent image gallery | |
-| 16 | Narrative knowledge graph | ✅ Done — `memory.npcGraph.edges[]` stores NPC↔NPC and NPC↔player links. `[NPC_LINK:name1\|name2\|relationship]` tag updates the graph. `buildNpcGraph()` injects a compact block into every system prompt after ACTIVE NPC DETAILS. Player→NPC relationships from `character.relationships` included automatically. |
+| 13 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per session load. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
+| 14 | Text to speech | |
+| 15 | Persistent image gallery | ✅ Covered by campaign folder structure |
+| 16 | Narrative knowledge graph | ✅ Done — NPC↔NPC links, factions, faction relationships, sidebar + NPC sheet UI |
 | 17 | Game document | |
 | 18 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. | |
-| 19 | Player takeover | Low priority |
+| 19 | Player takeover | ✅ Done — ▶ button on NPC sheets switches active player character |
 | 20 | Tweak img2img weighting — expose strength slider in Render Options | Low priority |
-| 21 | Production/subscription architecture — move all Claude API calls server-side. `callGM()` hits the server, server proxies to Anthropic with shared key. Server handles auth, rate limiting, usage per subscription tier. GitHub OAuth already in place — add subscription layer on top. `anthropic-dangerous-direct-browser-access` header goes away. Desktop app via Electron (see #23). | |
-| 23 | App distribution — get the game onto phones and desktops as a real installable app, not a browser page. **Phase 1 ✅ Done:** PWA live at verdant-lebkuchen-105119.netlify.app — manifest, service worker, icons deployed. Install via Safari on iOS (Share → Add to Home Screen). **Phase 2 (after #21):** Capacitor — wraps the existing HTML/JS in a native shell, produces real iOS and Android apps for App Store / Google Play submission. Requires #21 first because direct Anthropic API calls from a packaged app are a security risk (key exposed in bundle). **Phase 3 (after #21):** Electron — Windows/Mac desktop app. Already called out in #21. | |
-| 22 | Multi-provider AI support — abstract `callGM()` into a provider adapter (endpoint, auth header, response shape, system prompt format differ per provider). Technical swap is 2-3 days. Real work is QA: the state tag system (`[HP:]`, `[NPC:]`, `[LOCATION:]` etc.) requires reliable structured output across 50+ turns — Claude handles this well, GPT-4o probably fine, Gemini inconsistent, Grok unknown. The location map and narrative knowledge graph (#16) both help weaker models by providing explicit structured world state rather than relying on prose reconstruction — completing #16 before attempting multi-provider is strongly recommended. Dependency of #21. Not worth attempting until #21 and #16 are done. | |
+| 21 | Racial benefits wiring | ✅ Done — pick limit increases per racial spell, "+N racial bonus" shown in spell picker |
+| 22 | Font size option | ✅ Done — "Large text" in Admin, defaults to large on iOS |
+| 23 | Names list — locate, expand, improve | ✅ Done — doubled to ~240, shuffled, rotating index, full names with surnames |
+| 24 | Map node dimensions | ✅ Done — [LOCATION_SIZE:scale|travelMins] tag, injected in buildGeoBlock |
+| 25 | iOS notch gutter | ✅ Done — deployed, needs phone verification |
+| 26 | Multi-player HUD layout — needed before #2 | |
+| 27 | Char creation AI assist | ✅ Done — ✦ per field + ✦ Randomise button on Review step |
 
 ---
 
 ## Known issues
 
-- **Relationships not populating on NPC sheets** — noticed, not investigated
+- **Campaign UI issues** — server campaign sync timing unreliable; 3s timeout fallback added but needs proper hardening. Server campaigns not always appearing in picker when connected.
+- **Portrait drag** — implemented, needs browser verification
+- **iOS notch** — deployed to Netlify, needs phone verification after cache clear
+- **F-11** — `window._sbPicks` namespace pollution, deferred, low risk
 - **`index.html` redirect is stale** — redirects to `dnd_game_20_4.html` (in BAK); should point to `dnd_game_1_0.html`
-- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code)
-- **"↩ Import existing campaign" on tone step** — redundant with File menu; consider removing
-- **Campaign name not set at creation** — defaults to character name; no prompt during char creation wizard. Add a name field to Review step (step 7).
+- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons`
 
 ---
 
@@ -61,18 +67,30 @@
 **Rationale:** As sessions get long and chapters compress, the GM loses fidelity on NPCs — hallucination and character drift become frequent. A machine-readable relationship web gives the GM a stable anchor that survives context compression better than prose summaries.
 
 **Design:**
-- Nodes: NPCs + player character
-- Edges: relationships (`[RELATIONSHIP:]` tags), shared locations, key events (`[NPC_NOTE:]`)
-- Data already exists in `memory.npcs` and `character.relationships`
-- Injected into system prompt alongside `memoryTOC()` — same pattern, richer structure
-- Visual graph view is a bonus, not the primary goal
+- NPC↔NPC edges via `[NPC_LINK:]` tag, stored in `memory.npcGraph.edges[]`
+- Factions via `[FACTION:]`, `[NPC_FACTION:]`, `[FACTION_REL:]` tags
+- `buildNpcGraph()` injects compact block into system prompt
+- Faction display in world state sidebar, NPC faction membership on NPC sheet
 
 ### File System Access API for campaign folders (2026-06)
 **Decision:** Use `showDirectoryPicker()` to let users set a campaign root folder at game start. All exports route into organized subfolders (`saves/`, `logs/`, `renders/`, `characters/`).
 
 **Rationale:** Browser can't auto-create folders without user permission. One prompt at game start is less disruptive than prompting mid-game. Chrome-only but acceptable given target audience.
 
-**Rename behavior:** On campaign rename, copy all files from old folder to new folder (via async iterator + Promise chain), then `removeEntry()` on old folder. No file left behind in the old location.
+### Campaign name field (2026-06)
+**Decision:** Add explicit campaign name field to Review step (step 7) of character creation, defaulting to character name.
+
+**Rationale:** `worldState.campName` is the stable identifier used in all file exports and folder naming. Previously defaulted silently to char name which meant renaming a character didn't update file naming. Now set intentionally at campaign creation.
+
+### Legacy characters (2026-06)
+**Decision:** 5% chance per session load that a past player character from another campaign appears as an NPC.
+
+**Rationale:** Rare enough to be surprising and feel meaningful. Once per campaign per character to prevent repetition. Sourced from other campaign slots in localStorage — no separate storage needed.
+
+### OAuth for file:// origin (2026-06)
+**Decision:** Replace postMessage with server-side auth ticket polling.
+
+**Rationale:** Chrome blocks `postMessage` from `https://` to `file://` origin. New flow: server creates short-lived ticket in `auth_tickets` table after OAuth, client polls `/auth/ticket/:ticket` to claim it. Also listens for postMessage as fallback (works on Netlify). Ticket auto-expires after 5 minutes.
 
 ### Module system → Campaign designer (2026-06)
 **Decision:** Folded module system (#5) into campaign designer (#18).
@@ -80,6 +98,6 @@
 **Rationale:** Module system (alternate campaign settings) is naturally a subset of the campaign designer feature. No point building them separately.
 
 ### Character import flow (2026-06)
-**Decision:** "Import Character" opens a custom character browser (reads from campaign meta / server) rather than an OS file picker. Falls back to `.char` file import at the bottom of the browser.
+**Decision:** Import Character shows preview modal with two options: "Play as [name]" (new campaign) and "+ Add as companion to current campaign".
 
-**Rationale:** Cloud sync means all characters are already available without needing files. The browser works across devices once connected. `.char` file format kept for cross-user character sharing.
+**Rationale:** Adding a character as a companion is a natural use case especially in multiplayer prep. Companion is added to `worldState.npcs` with full `charSheet` and introduced into the current scene via `sendAction`.
