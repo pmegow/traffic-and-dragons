@@ -328,7 +328,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.2";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.3";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -346,7 +346,7 @@ function showRulesModal(){
   renderRules();
 }
 function removeRule(idx){customRules.splice(idx,1);saveRules();showRulesModal();}
-var FONT_KEY="ashen_font_v1";
+var FONT_KEY="tnd_font_v1";
 function loadFontSize(){
   var saved=store.get(FONT_KEY);
   // Default to large on iOS if no preference saved
@@ -365,7 +365,7 @@ function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");
 function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});}
 
 // ── Server connect / disconnect ──────────────────────────────────────────────
-var ASHEN_SERVER_URL = "https://ashen-crown-server.fly.dev"; // URL is fixed (fly.io app name); internal branding updated
+var TND_SERVER_URL = "https://ashen-crown-server.fly.dev"; // URL is fixed (fly.io app name); internal branding updated
 
 function updateServerUI(){
   var connected=storageAdapter.isServerMode();
@@ -377,7 +377,7 @@ function updateServerUI(){
   });
   if(connected){
     // Fetch username from server to show in button label
-    fetch(ASHEN_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(localStorage.getItem("ashen_server_tok_v1")||"")}})
+    fetch(TND_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(localStorage.getItem("tnd_server_tok_v1")||"")}})
       .then(function(r){return r.ok?r.json():null;})
       .then(function(d){
         ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
@@ -397,7 +397,7 @@ function clearCacheAndReload(){
 function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});}
 
 function connectToServer(){
-  storageAdapter.loginWithServer(ASHEN_SERVER_URL,function(err,info){
+  storageAdapter.loginWithServer(TND_SERVER_URL,function(err,info){
     if(err){showToast("Server login failed.");return;}
     updateServerUI();
     showToast("&#9729; Connected as "+info.username);
@@ -412,11 +412,11 @@ function connectToServer(){
 }
 function campCloudPushSilent(id,cb){
   if(!storageAdapter.isServerMode()){if(cb)cb(false);return;}
-  var ws=store.get("ashen_camp_"+id+"_ws");
-  var sl=store.get("ashen_camp_"+id+"_sl")||"[]";
-  var mem=store.get("ashen_camp_"+id+"_mem")||"{}";
+  var ws=store.get("tnd_camp_"+id+"_ws");
+  var sl=store.get("tnd_camp_"+id+"_sl")||"[]";
+  var mem=store.get("tnd_camp_"+id+"_mem")||"{}";
   if(!ws){if(cb)cb(false);return;}
-  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
   var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
@@ -488,7 +488,7 @@ function exportSave(){
   document.getElementById("file-menu").style.display="none";
   var fname=buildFilename("save");
   // Check if we've saved this filename before (same turn = likely overwrite)
-  var saved=[];try{var sr=localStorage.getItem("ashen_saved_files_v1");if(sr)saved=JSON.parse(sr);}catch(e){}
+  var saved=[];try{var sr=localStorage.getItem("tnd_saved_files_v1");if(sr)saved=JSON.parse(sr);}catch(e){}
   var alreadySaved=saved.indexOf(fname)>=0;
   var ex=document.getElementById("save-confirm-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="save-confirm-modal";
@@ -511,7 +511,7 @@ function exportSave(){
     // Record this filename as saved
     if(saved.indexOf(fname)<0)saved.push(fname);
     if(saved.length>100)saved=saved.slice(-100);
-    try{localStorage.setItem("ashen_saved_files_v1",JSON.stringify(saved));}catch(e){}
+    try{localStorage.setItem("tnd_saved_files_v1",JSON.stringify(saved));}catch(e){}
   });
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
@@ -1123,11 +1123,11 @@ function showCharacterBrowser(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
   function getCharFromCampaign(id,cb){
-    var raw=store.get("ashen_camp_"+id+"_ws");
+    var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
     // Fall back to server
-    var tok=localStorage.getItem("ashen_server_tok_v1")||"";
-    var url=(localStorage.getItem("ashen_server_url_v1")||"").replace(/\/$/,"");
+    var tok=localStorage.getItem("tnd_server_tok_v1")||"";
+    var url=(localStorage.getItem("tnd_server_url_v1")||"").replace(/\/$/,"");
     if(!url||!tok){return cb("Not available locally and not connected to server.");}
     fetch(url+"/api/campaigns/"+id,{headers:{"Authorization":"Bearer "+tok}})
       .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
@@ -1331,7 +1331,7 @@ function _applyLoadedCampaign(){
 function campLoad(id){
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
   // Check if local data exists for this campaign
-  var hasLocal=!!(store.get("ashen_camp_"+id+"_ws"));
+  var hasLocal=!!(store.get("tnd_camp_"+id+"_ws"));
   if(hasLocal){
     var ok=switchToCampaign(id);
     if(!ok){showToast("Failed to load campaign.");return;}
@@ -1341,16 +1341,16 @@ function campLoad(id){
   // No local data — fetch from server if connected
   if(!storageAdapter.isServerMode()){showToast("Campaign data not found locally. Connect to server to load it.");return;}
   var serverUrl=storageAdapter.getServerUrl();
-  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   showToast("☁ Fetching campaign from server…");
   fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
     .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
     .then(function(data){
       if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
       // Write into the campaign slot then switch to it
-      store.set("ashen_camp_"+id+"_ws",JSON.stringify(data.worldState));
-      store.set("ashen_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-      store.set("ashen_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+      store.set("tnd_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+      store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
       var ok=switchToCampaign(id);
       if(!ok){showToast("Failed to load campaign.");return;}
       _applyLoadedCampaign();
@@ -1360,11 +1360,11 @@ function campLoad(id){
 function campCloudPush(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
   var pushBtn=document.getElementById("camp-push-"+id);if(pushBtn)pushBtn.style.animation="pulse 1s ease-in-out infinite";
-  var ws=store.get("ashen_camp_"+id+"_ws")||store.get(WSK);
-  var sl=store.get("ashen_camp_"+id+"_sl")||store.get(SLK);
-  var mem=store.get("ashen_camp_"+id+"_mem")||store.get(MEM_KEY);
+  var ws=store.get("tnd_camp_"+id+"_ws")||store.get(WSK);
+  var sl=store.get("tnd_camp_"+id+"_sl")||store.get(SLK);
+  var mem=store.get("tnd_camp_"+id+"_mem")||store.get(MEM_KEY);
   if(!ws){showToast("No local data to push.");return;}
-  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){showToast("Invalid save data.");return;}
   // Strip portraits
@@ -1380,16 +1380,16 @@ function campCloudPush(id){
 }
 function campCloudPull(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
-  var tok=localStorage.getItem("ashen_server_tok_v1")||"";
+  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   showToast("☁ Pulling from server…");
   fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
     .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
     .then(function(data){
       if(!data||!data.worldState){showToast("Not found on server.");return;}
-      store.set("ashen_camp_"+id+"_ws",JSON.stringify(data.worldState));
-      store.set("ashen_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-      store.set("ashen_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+      store.set("tnd_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+      store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
       // Update meta savedAt
       var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
       showToast("☁ Pulled from server.");
@@ -1425,8 +1425,8 @@ function campSaveRename(id){
   if(id===getActiveCampId()&&worldState){worldState.campName=name;saveAll();renameCampaignFolder(name);}
   else {
     // Patch the stored worldState for this campaign
-    var raw=store.get("ashen_camp_"+id+"_ws");
-    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set("ashen_camp_"+id+"_ws",JSON.stringify(ws));}catch(e){}}
+    var raw=store.get("tnd_camp_"+id+"_ws");
+    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set("tnd_camp_"+id+"_ws",JSON.stringify(ws));}catch(e){}}
   }
   showCampaignPicker();
 }

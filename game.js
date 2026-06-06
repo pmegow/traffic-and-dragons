@@ -127,7 +127,7 @@ async function beginAdventure(){
 function _promptCampaignFolder(){
   if(!window.showDirectoryPicker)return;  // browser doesn't support it
   if(typeof _campFolderHandle!=="undefined"&&_campFolderHandle)return;  // already set
-  if(localStorage.getItem("ashen_folder_declined_v1"))return;  // user previously dismissed
+  if(localStorage.getItem("tnd_folder_declined_v1"))return;  // user previously dismissed
   var banner=document.createElement("div");
   banner.style.cssText="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg1);border:1px solid var(--acc);border-radius:var(--r);padding:12px 16px;z-index:500;display:flex;align-items:center;gap:12px;font-size:13px;font-family:Georgia,serif;color:var(--t1);box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:420px;width:90%;";
   banner.innerHTML="<span>📁 Set a campaign folder to keep saves, renders, and logs organized?</span>"
@@ -135,7 +135,7 @@ function _promptCampaignFolder(){
     +"<button id='folder-no' style='padding:6px 10px;font-size:12px;font-family:Georgia,serif;background:none;border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;white-space:nowrap;'>Not now</button>";
   document.body.appendChild(banner);
   document.getElementById("folder-yes").addEventListener("click",function(){banner.remove();setCampaignFolder();});
-  document.getElementById("folder-no").addEventListener("click",function(){banner.remove();localStorage.setItem("ashen_folder_declined_v1","1");});
+  document.getElementById("folder-no").addEventListener("click",function(){banner.remove();localStorage.setItem("tnd_folder_declined_v1","1");});
 }
 var _rendering=false;
 async function doRender(){

@@ -1,4 +1,4 @@
-var WSK="ashen_core_v10";var SLK="ashen_sess_v10";var MEM_KEY="ashen_mem_v10";var AKK="ashen_ak_v1";var RLK="ashen_rules_v9";var ADK="ashen_adult_v1";var FAL_KEY_K="ashen_fal_k_v1";var RENDER_MDL_K="ashen_render_mdl_v1";
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";
 var _m={};
 var store={
   get:function(k){try{return localStorage.getItem(k);}catch(e){return _m[k]||null;}},
@@ -29,7 +29,7 @@ function loadState(){
     return !!ws;}catch(e){return false;}
 }
 // ── Campaign management ───────────────────────────────────────────────────────
-var CAMP_META_K="ashen_camps_v1";var ACTIVE_CAMP_K="ashen_active_v1";
+var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";
 function getCampMeta(){try{var r=store.get(CAMP_META_K);return r?JSON.parse(r):[]}catch(e){return[];}}
 function setCampMeta(arr){store.set(CAMP_META_K,JSON.stringify(arr));}
 function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}
@@ -47,14 +47,14 @@ function updateCampMeta(){
 function snapshotActiveCamp(){
   var id=getActiveCampId();if(!id)return;
   var ws=store.get(WSK),sl=store.get(SLK),mem=store.get(MEM_KEY);
-  if(ws)store.set("ashen_camp_"+id+"_ws",ws);
-  if(sl)store.set("ashen_camp_"+id+"_sl",sl);
-  if(mem)store.set("ashen_camp_"+id+"_mem",mem);
+  if(ws)store.set("tnd_camp_"+id+"_ws",ws);
+  if(sl)store.set("tnd_camp_"+id+"_sl",sl);
+  if(mem)store.set("tnd_camp_"+id+"_mem",mem);
   updateCampMeta();
 }
 function switchToCampaign(id){
   snapshotActiveCamp();
-  var ws=store.get("ashen_camp_"+id+"_ws"),sl=store.get("ashen_camp_"+id+"_sl"),mem=store.get("ashen_camp_"+id+"_mem");
+  var ws=store.get("tnd_camp_"+id+"_ws"),sl=store.get("tnd_camp_"+id+"_sl"),mem=store.get("tnd_camp_"+id+"_mem");
   if(ws)store.set(WSK,ws);else store.del(WSK);
   if(sl)store.set(SLK,sl);else store.del(SLK);
   if(mem)store.set(MEM_KEY,mem);else store.del(MEM_KEY);
@@ -62,7 +62,7 @@ function switchToCampaign(id){
   return loadState();
 }
 function deleteCampaign(id){
-  store.del("ashen_camp_"+id+"_ws");store.del("ashen_camp_"+id+"_sl");store.del("ashen_camp_"+id+"_mem");
+  store.del("tnd_camp_"+id+"_ws");store.del("tnd_camp_"+id+"_sl");store.del("tnd_camp_"+id+"_mem");
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
 }
 function migrateToCampaigns(){

@@ -13,8 +13,8 @@
 
 var storageAdapter = (function() {
 
-  var SERVER_URL_KEY = "ashen_server_url_v1";
-  var SERVER_TOK_KEY = "ashen_server_tok_v1";
+  var SERVER_URL_KEY = "tnd_server_url_v1";
+  var SERVER_TOK_KEY = "tnd_server_tok_v1";
 
   var _serverUrl = null;   // null = local mode
   var _token     = null;
@@ -69,7 +69,7 @@ var storageAdapter = (function() {
     var top  = Math.round(screen.height / 2 - h / 2);
     _popup = window.open(
       serverUrl + "/auth/github",
-      "ashen-auth",
+      "tnd-auth",
       "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
     );
 
@@ -91,7 +91,7 @@ var storageAdapter = (function() {
     }
 
     function onMsg(e) {
-      if (!e.data || e.data.type !== "ashen-auth") return;
+      if (!e.data || e.data.type !== "tnd-auth") return;
       var ticket = e.data.ticket;
       if (ticket) {
         // Claim the ticket from server
@@ -201,7 +201,7 @@ var storageAdapter = (function() {
       if (!Array.isArray(serverList)) { done(null); return; }
       // Merge server list into local: server wins on ID conflicts, local-only kept
       var local = [];
-      try { var raw = localStorage.getItem("ashen_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
+      try { var raw = localStorage.getItem("tnd_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
       var merged = local.slice(), i, j, found;
       for (i = 0; i < serverList.length; i++) {
         serverList[i].onServer = true;
@@ -211,7 +211,7 @@ var storageAdapter = (function() {
         }
         if (!found) merged.push(serverList[i]);
       }
-      try { localStorage.setItem("ashen_camps_v1", JSON.stringify(merged)); } catch(e) {}
+      try { localStorage.setItem("tnd_camps_v1", JSON.stringify(merged)); } catch(e) {}
       done(merged);
     }).catch(function(e) {
       clearTimeout(_tid);
