@@ -1302,7 +1302,7 @@ function _renderCampList(){
     var savedLine=isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>"
       :cloudOnly?"<span style='color:var(--t2);'>&#9729; Cloud only &mdash; click Load to download</span>"
       :"Last saved "+timeAgo(cm.savedAt);
-    rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":cloudOnly?"rgba(74,112,165,.05)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":cloudOnly?"rgba(74,112,165,.3)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;"+(cloudOnly?"opacity:0.8;":"")+";'>"
+    rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(184,147,90,.08)":cloudOnly?"rgba(74,112,165,.05)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":cloudOnly?"rgba(74,112,165,.3)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;"+(cloudOnly?"opacity:0.8;":"")+";'>"
       +cloudBtns
       +"<div style='flex:1;min-width:0;'>"
       +"<div style='display:flex;align-items:center;gap:6px;'>"
@@ -1663,7 +1663,7 @@ function showRenderOptionsModal(){
   var mhtml="",mi;
   for(mi=0;mi<RENDER_MODELS.length;mi++){
     var m=RENDER_MODELS[mi],sel=(m.id===renderModel);
-    mhtml+="<div class='ro-row' data-id='"+m.id+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(200,146,42,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
+    mhtml+="<div class='ro-row' data-id='"+m.id+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
       +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;'></div>"
       +"<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+m.label+"</span>"
       +"</div>";
@@ -1689,7 +1689,7 @@ function showRenderOptionsModal(){
       renderModel=this.getAttribute("data-id");store.set(RENDER_MDL_K,renderModel);
       Array.prototype.forEach.call(rows,function(r){
         var s=(r.getAttribute("data-id")===renderModel);
-        r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(200,146,42,.08)":"var(--bg2)";
+        r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";
         var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}
         var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";
       });
