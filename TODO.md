@@ -16,6 +16,7 @@
 | 24 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
 | 26 | If the api key read fails, don't just retry, provide a field to edit / reinput the key | Ready to test — auth errors show inline password input + Update & Retry; busy stays true until key submitted |
 | 30 | Tweak img2img weighting — expose strength slider in Render Options | Low priority |
+| 33 | Campaign picker — pulse the "Refreshing from server…" text while syncing | ✅ Done |
 
 ---
 

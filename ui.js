@@ -400,9 +400,33 @@ function connectToServer(){
   storageAdapter.loginWithServer(ASHEN_SERVER_URL,function(err,info){
     if(err){showToast("Server login failed.");return;}
     updateServerUI();
-    showToast("☁ Connected as "+info.username);
-    showCampaignPicker();
+    showToast("&#9729; Connected as "+info.username);
+    // Push all local campaigns to server so every device sees the full list
+    snapshotActiveCamp();
+    var meta=getCampMeta();
+    if(!meta.length){showCampaignPicker();return;}
+    var remaining=meta.length;
+    function onPushed(){if(--remaining<=0)showCampaignPicker();}
+    for(var i=0;i<meta.length;i++){campCloudPushSilent(meta[i].id,onPushed);}
   });
+}
+function campCloudPushSilent(id,cb){
+  if(!storageAdapter.isServerMode()){if(cb)cb(false);return;}
+  var ws=store.get("ashen_camp_"+id+"_ws");
+  var sl=store.get("ashen_camp_"+id+"_sl")||"[]";
+  var mem=store.get("ashen_camp_"+id+"_mem")||"{}";
+  if(!ws){if(cb)cb(false);return;}
+  var tok=sessionStorage.getItem("ashen_server_tok_v1")||"";
+  var serverUrl=storageAdapter.getServerUrl();
+  var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
+  var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
+  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id})})
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(function(){
+      var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
+      if(cb)cb(true);
+    })
+    .catch(function(){if(cb)cb(false);});
 }
 
 function disconnectFromServer(){
@@ -1217,10 +1241,11 @@ function showCampaignPicker(){
   _showCampaignPickerModal();
   if(storageAdapter.isServerMode()){
     var st=document.getElementById("camp-sync-status");
-    if(st){st.textContent="☁ Refreshing from server…";st.style.display="block";}
+    if(st){st.textContent="☁ Refreshing from server…";st.style.display="block";st.style.animation="pulse-opacity 1.2s ease-in-out infinite";}
     storageAdapter.syncCampaignList(function(result){
       _renderCampList();
       var s=document.getElementById("camp-sync-status");if(!s)return;
+      s.style.animation="";
       if(result){s.style.display="none";}
       else{s.textContent="⚠ Couldn't reach server — showing local data";setTimeout(function(){var el=document.getElementById("camp-sync-status");if(el)el.style.display="none";},3000);}
     });
@@ -1230,14 +1255,29 @@ function _showCampaignPickerModal(){
   var ex=document.getElementById("camp-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="camp-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  var svrConnected=storageAdapter.isServerMode();
+  var svrBtnStyle="padding:3px 10px;font-family:Georgia,serif;font-size:11px;background:none;border:1px solid "+(svrConnected?"var(--acc)":"var(--brd2)")+";border-radius:var(--r);cursor:pointer;color:"+(svrConnected?"var(--acc)":"var(--t2)")+";";
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span><button id='camp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
+    +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span>"
+    +"<div style='display:flex;align-items:center;gap:8px;'>"
+    +"<button id='camp-svr-btn' style='"+svrBtnStyle+"'>&#9729; "+(svrConnected?"Disconnect":"Connect")+"</button>"
+    +"<button id='camp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
+    +"</div></div>"
     +"<div id='camp-sync-status' style='display:none;font-size:11px;color:var(--t2);margin-bottom:10px;text-align:center;'></div>"
     +"<div id='camp-list'></div>"
     +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
     +"</div>";
   document.body.appendChild(modal);
   document.getElementById("camp-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("camp-svr-btn").addEventListener("click",function(){
+    modal.remove();
+    if(storageAdapter.isServerMode()){
+      storageAdapter.logoutFromServer(function(){updateServerUI();showToast("&#9729; Disconnected.");showCampaignPicker();});
+    }else{
+      connectToServer();
+    }
+  });
   _renderCampList();
 }
 function _renderCampList(){
@@ -1249,21 +1289,26 @@ function _renderCampList(){
   if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
   else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
     var dispName=cm.campName||cm.charName;
+    var hasLocal=!!store.get("ashen_camp_"+cm.id+"_ws");
+    var cloudOnly=cm.onServer&&!hasLocal&&!isActive;
     var cloudBtns=storageAdapter.isServerMode()
       ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
-        +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;color:var(--t1);' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'>☁↑</button>"
-        +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">☁↓</button>"
+        +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(hasLocal?"color:var(--t1);":"color:var(--t2);opacity:0.25;pointer-events:none;")+"' "+(hasLocal?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8593;</button>"
+        +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8595;</button>"
         +"</div>"
       :"";
-    rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;'>"
+    var savedLine=isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>"
+      :cloudOnly?"<span style='color:var(--t2);'>&#9729; Cloud only &mdash; click Load to download</span>"
+      :"Last saved "+timeAgo(cm.savedAt);
+    rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:"+(isActive?"rgba(200,146,42,.08)":cloudOnly?"rgba(74,112,165,.05)":"var(--bg2)")+";border:1px solid "+(isActive?"var(--acc)":cloudOnly?"rgba(74,112,165,.3)":"var(--brd)")+";border-radius:8px;margin-bottom:8px;"+(cloudOnly?"opacity:0.8;":"")+";'>"
       +cloudBtns
       +"<div style='flex:1;min-width:0;'>"
       +"<div style='display:flex;align-items:center;gap:6px;'>"
       +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
-      +"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>"
+      +(!cloudOnly?"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>":"")
       +"</div>"
       +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(cm.charName)+" &mdash; Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
-      +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+(isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>":"Last saved "+timeAgo(cm.savedAt))+"</div>"
+      +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+savedLine+"</div>"
       +"</div>"
       +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
         :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
