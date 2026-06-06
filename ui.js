@@ -1241,8 +1241,10 @@ function showCampaignPicker(){
   _showCampaignPickerModal();
   if(storageAdapter.isServerMode()){
     var st=document.getElementById("camp-sync-status");
-    if(st){st.textContent="☁ Refreshing from server…";st.style.display="block";st.style.animation="pulse-opacity 1.2s ease-in-out infinite";}
+    if(st){st.textContent="☁ Connecting to server…";st.style.display="block";st.style.animation="pulse-opacity 1.2s ease-in-out infinite";}
+    var _wakeTimer=setTimeout(function(){var s=document.getElementById("camp-sync-status");if(s&&s.style.display!=="none")s.textContent="☁ Waking server up, hang tight…";},8000);
     storageAdapter.syncCampaignList(function(result){
+      clearTimeout(_wakeTimer);
       _renderCampList();
       var s=document.getElementById("camp-sync-status");if(!s)return;
       s.style.animation="";
