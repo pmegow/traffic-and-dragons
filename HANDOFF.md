@@ -5,35 +5,12 @@ Local game folder is still named `dnd_rpg` — rename to `traffic-and-dragons` i
 
 ---
 
-## ⚠️ Server migration in progress — COMPLETE THIS FIRST
+## Server migration — ✅ COMPLETE
 
-The Fly.dev server is being migrated from `ashen-crown-server` to `traffic-and-dragons-server`. The new app and volume have been created, GitHub OAuth settings have been updated, but the secrets still need to be set and the new app deployed.
-
-**Steps remaining:**
-
-1. Set secrets on the new app (user has the values):
-```
-cd traffic-and-dragons-server
-flyctl secrets set GITHUB_CLIENT_ID=0v23liPtPcBGLZntn24g GITHUB_CLIENT_SECRET=<secret> SESSION_SECRET=<any-random-string> --app traffic-and-dragons-server
-```
-
-2. Deploy to new app:
-```
-flyctl deploy --ha=false
-```
-
-3. Update `TND_SERVER_URL` in `ui.js` (line ~368):
-```javascript
-var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
-```
-
-4. Bump version to v1.4, commit and push client
-
-5. Verify: open campaign picker → ☁ Connect → should OAuth successfully
-
-6. Delete old client secret (`*****34de1371`) from GitHub OAuth app (now unused)
-
-7. Optionally delete old Fly app: `flyctl apps destroy ashen-crown-server`
+- `traffic-and-dragons-server.fly.dev` live and healthy
+- `ashen-crown-server` destroyed
+- Old GitHub OAuth client secret deleted
+- Client pointing at new URL — v1.4
 
 ---
 
@@ -74,8 +51,7 @@ var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
 
 ## Known issues / follow-ups
 
-- **Server migration** — see top section, must complete before anything else works
-- **Tasks 24 & 26** — marked "Ready to test"; need device verification once server is working
+- **Tasks 24 & 26** — marked "Ready to test"; need device verification
 - **Portrait drag** — implemented, needs browser verification
 - **iOS notch** — deployed, needs phone verification
 - **Duplicate campaign rows** — root cause identified (null campaign ID → server generates new ID per save). Need to verify this is fixed now that tnd_* keys are clean. `getActiveCampId()` reads `tnd_active_v1`; if properly set, the server should upsert the same row. Monitor after migration.
@@ -91,14 +67,13 @@ var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
 - **Server deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
 - **Netlify:** auto-deploys from `pmegow/traffic-and-dragons` GitHub repo on push to master
 - **Testing:** always test on Netlify after push — local `file://` and Netlify can have different cached code
-- **Version:** `v1.3` (bump to v1.4 after server migration commit) — string at end of `updateMemStatus()` in `ui.js`
+- **Version:** `v1.4` — string at end of `updateMemStatus()` in `ui.js`
 
 ---
 
 ## Todo priority order
 
-1. **Complete server migration** (see top of this file)
-2. Verify campaign sync across devices end-to-end
+1. Verify campaign sync across devices end-to-end (first real test with new server)
 3. Verify task #26 (API key re-entry)
 4. Verify task #24 (party HUD with actual companion)
 5. Companions at campaign start (#8)
