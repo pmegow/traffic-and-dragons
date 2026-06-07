@@ -5,56 +5,80 @@ Local game folder is still named `dnd_rpg` — rename to `traffic-and-dragons` i
 
 ---
 
+## ⚠️ Server migration in progress — COMPLETE THIS FIRST
+
+The Fly.dev server is being migrated from `ashen-crown-server` to `traffic-and-dragons-server`. The new app and volume have been created, GitHub OAuth settings have been updated, but the secrets still need to be set and the new app deployed.
+
+**Steps remaining:**
+
+1. Set secrets on the new app (user has the values):
+```
+cd traffic-and-dragons-server
+flyctl secrets set GITHUB_CLIENT_ID=0v23liPtPcBGLZntn24g GITHUB_CLIENT_SECRET=<secret> SESSION_SECRET=<any-random-string> --app traffic-and-dragons-server
+```
+
+2. Deploy to new app:
+```
+flyctl deploy --ha=false
+```
+
+3. Update `TND_SERVER_URL` in `ui.js` (line ~368):
+```javascript
+var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
+```
+
+4. Bump version to v1.4, commit and push client
+
+5. Verify: open campaign picker → ☁ Connect → should OAuth successfully
+
+6. Delete old client secret (`*****34de1371`) from GitHub OAuth app (now unused)
+
+7. Optionally delete old Fly app: `flyctl apps destroy ashen-crown-server`
+
+---
+
 ## What was done this session
 
-### Cloud sync — root-cause fixes
-- **`onServer` flag stripped on every save** — `updateCampMeta` was doing `meta[i]=entry`, replacing the entire object. Fixed to `Object.assign({},meta[i],entry)` so `onServer` survives.
-- **Campaign picker no longer blocks on sync** — modal shows instantly from local data; server sync runs in background and refreshes `#camp-list` in place when done.
-- **10s timeout on `syncCampaignList`** — `done()` wrapper fires exactly once; timeout prevents infinite hang on cold Fly.dev starts.
-- **Removed double-sync on connect** — `connectToServer` was calling `syncCampaignList` then `showCampaignPicker` (which also syncs). Now just calls `showCampaignPicker`.
+### Branding — "ashen" → "tnd" everywhere
+- All localStorage keys renamed: `ashen_*` → `tnd_*` (WSK, SLK, MEM_KEY, AKK, RLK, ADK, FAL_KEY_K, RENDER_MDL_K, CAMP_META_K, ACTIVE_CAMP_K, tnd_camp_* pattern)
+- Auth message type: `ashen-auth` → `tnd-auth` (client + server index.js)
+- Constant: `ASHEN_SERVER_URL` → `TND_SERVER_URL`
+- Campaign name placeholder no longer references old game name
+- `ashen.db` nuked; server now uses `traffic.db`
+- GitHub OAuth app renamed to "Traffic and Dragons" with new URLs
+- **NOTE:** Fly app URL (`ashen-crown-server.fly.dev`) is legacy — migration above completes this
 
-### Campaign picker improvements
-- **☁ Connect / Disconnect button** in modal header (amber when connected, grey when not)
-- **Push-all on connect** — on successful auth, `snapshotActiveCamp()` runs, then all local campaigns are silently pushed to server via `campCloudPushSilent`. Picker opens after all pushes complete.
-- **`campCloudPushSilent(id, cb)`** — new helper for background pushes without reopening picker
-- **Cloud-only rows** — campaigns that exist on server but not locally show with blue tint, "☁ Cloud only — click Load to download" label, rename and push buttons disabled
-- **Pulse animation** — "☁ Refreshing from server…" text pulses with `pulse-opacity` keyframe while sync is in flight; animation stops on completion. `@keyframes pulse-opacity` added to `dnd_game_1_0.html`.
+### Accent colour rebrand
+- `#c8922a` (vibrant amber) → `#b8935a` (aged parchment gold) everywhere
+- Hardcoded `rgba(200,146,42,...)` tints updated to `rgba(184,147,90,...)`
+- `todo-viewer.html` updated to match
 
-### Task #26 — API key re-entry on auth failure
-- `_attachGMErrorUI(em, retryFn, msg)` in `game.js` detects auth errors (`/invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i`)
-- Auth errors: shows inline `<input type=password>` + "Update & Retry" button; returns `true` so caller does `return` early, keeping `busy=true` until user submits
-- On submit: saves new key to `localStorage[AKK]`, sets `busy=false`, re-enables sendbtn, fires retry
-- Both `sendAction` and `beginAdventure` catch blocks use this helper
-- **Important:** was not working because Netlify served old code. All testing must be done on Netlify or after `git push`.
+### Cloud sync improvements
+- Server token moved from `sessionStorage` → `localStorage` (persists across browser restarts)
+- Token reads in `ui.js` were inconsistently split between sessionStorage/localStorage — all now use localStorage
+- Sync timeout raised from 10s → 30s → 60s (Fly.dev cold starts take 15-30s)
+- "☁ Waking server up, hang tight…" message appears after 8s of waiting
+- ☁ Connect / Disconnect button added directly to Campaigns modal header
+- On connect: all local campaigns pushed to server automatically (`campCloudPushSilent`)
+- Cloud-only rows (server campaigns with no local data): blue tint, "Cloud only — click Load" label
 
-### Task #24 — Party HUD
-- `<div id="hud-party">` added to `#topbar` with `flex-basis:100%` (second row)
-- `updateHUD()` populates it: compact cards for each `partyMember` NPC — name + mini HP bar (green/amber/red) + hp/maxHp numbers
-- Clickable — opens NPC sheet
-- Hidden on mobile (`display:none !important` in `@media (max-width: 768px)`)
+### Server — duplicate campaign rows bug identified
+- `syncToServer()` was creating a new DB row on every turn when campaign ID was null
+- Server DB had 230 rows but only ~8 unique campaigns
+- All data wiped (fresh start) when migrating to new app/DB
 
-### Todo-viewer (`todo-viewer.html`)
-- **Auto-load** — `FileSystemFileHandle` persisted in IndexedDB; on load: if permission already granted → silent auto-load; if needs re-grant → shows "↺ Reopen TODO.md" button
-- **Export overwrites file** — uses `createWritable()` on stored handle, shows "Saved to TODO.md" toast; falls back to download if no handle
-- **+ Add task** button — inline bar below table, Enter to add, Escape to cancel, clears input after add
-- **Inline edit** — pencil button on row hover (right side of task cell); opens `<textarea>` sized to content; blur/Escape saves
-- **Delete** — × button on row hover, far right
-- **3-state done toggle**: ○ (undone) → ● amber (Ready to test) → ✓ green (Done) → ○ (undone)
-- **Ready to test rows** get amber background tint
-- **Status convention**: Claude marks completed features as "Ready to test" in TODO.md; user clicks checkbox to confirm testing → Done
-
-### Version bump
-- Bumped to `v1.1` in `updateMemStatus()` in `ui.js`
-- **Convention going forward:** bump minor version on every commit that changes game code. String is at the end of `updateMemStatus()` in `ui.js`.
+### Version
+- v1.3 (next commit after migration complete should be v1.4)
 
 ---
 
 ## Known issues / follow-ups
 
-- **Campaign sync across devices** — connect-and-push-all is new, not yet tested end-to-end on phone. Monitor.
-- **Tasks 24 & 26** — marked "Ready to test" in TODO. Need real device verification.
+- **Server migration** — see top section, must complete before anything else works
+- **Tasks 24 & 26** — marked "Ready to test"; need device verification once server is working
 - **Portrait drag** — implemented, needs browser verification
-- **iOS notch** — deployed, needs phone verification after cache clear
+- **iOS notch** — deployed, needs phone verification
+- **Duplicate campaign rows** — root cause identified (null campaign ID → server generates new ID per save). Need to verify this is fixed now that tnd_* keys are clean. `getActiveCampId()` reads `tnd_active_v1`; if properly set, the server should upsert the same row. Monitor after migration.
 
 ---
 
@@ -63,22 +87,21 @@ Local game folder is still named `dnd_rpg` — rename to `traffic-and-dragons` i
 - **ES5 throughout** — `var`, no arrow functions, no template literals. `async/await` only in API-facing functions.
 - **Script load order:** `globals.js → data.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js`
 - **Model string:** `claude-sonnet-4-6` — verify before API work
-- **Storage keys:** all `ashen_*_v10` — do not change without migration
+- **Storage keys:** all `tnd_*` now — do not revert to `ashen_*`
 - **Server deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
 - **Netlify:** auto-deploys from `pmegow/traffic-and-dragons` GitHub repo on push to master
 - **Testing:** always test on Netlify after push — local `file://` and Netlify can have different cached code
-- **Version:** `v1.1` — bump minor in `updateMemStatus()` (end of function, `ui.js`) on every code-changing commit
+- **Version:** `v1.3` (bump to v1.4 after server migration commit) — string at end of `updateMemStatus()` in `ui.js`
 
 ---
 
-## Todo priority order (see TODO.md for full descriptions)
+## Todo priority order
 
-1. Verify campaign sync across devices (connect on phone, check all campaigns appear)
-2. Verify task #26 (API key re-entry) on Netlify
-3. Verify task #24 (party HUD) with actual companion
-4. Companions at campaign start (#8 — partial, needs start-of-game selection UI)
-5. Text to speech (#13)
-6. Legacy characters (#12 — design done, not implemented)
-7. Multiplayer (#2 — unblocked now that HUD exists)
-8. Multiple campaigns review (#11)
-9. API key migration to server-side / subscription model (architecture decision already made)
+1. **Complete server migration** (see top of this file)
+2. Verify campaign sync across devices end-to-end
+3. Verify task #26 (API key re-entry)
+4. Verify task #24 (party HUD with actual companion)
+5. Companions at campaign start (#8)
+6. Text to speech (#13)
+7. Legacy characters (#12)
+8. Multiplayer (#2)
