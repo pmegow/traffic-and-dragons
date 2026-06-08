@@ -328,7 +328,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.7";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.8";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -426,7 +426,8 @@ function campCloudPushSilent(id,cb){
       var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
       // Also push portrait if this campaign has one
       var portrait=wsObj.character&&wsObj.character.portrait;
-      if(portrait){fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id)+"/portrait",{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({portrait:portrait})}).catch(function(){});}
+      var npcPortraits={};(wsObj.npcs||[]).forEach(function(n){if(n.portrait)npcPortraits[n.name]=n.portrait;});
+      if(portrait||Object.keys(npcPortraits).length){fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id)+"/portrait",{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({portrait:portrait||null,npcPortraits:npcPortraits})}).catch(function(){});}
       if(cb)cb(true);
     })
     .catch(function(){if(cb)cb(false);});
@@ -1112,7 +1113,7 @@ function showNpcSheet(name){
     var npcSubject=sheet||{name:name,gender:"NB",age:"",ancestry:"",cls:"",archetypeNm:null,appear:"",mark:"",inventory:[]};
     var npcPortOpts={
       getPortrait:function(){return wsNpc.portrait||null;},
-      setPortrait:function(url){wsNpc.portrait=url;if(wsNpc.charSheet)wsNpc.charSheet.portrait=url;saveAll();},
+      setPortrait:function(url){wsNpc.portrait=url;if(wsNpc.charSheet)wsNpc.charSheet.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();},
       subject:npcSubject
     };
     document.getElementById("npc-avatar-btn").addEventListener("click",function(){showPortraitModal(refreshNpcAvatar,npcPortOpts);});

@@ -154,16 +154,21 @@ var storageAdapter = (function() {
 
   function syncPortrait(campId) {
     if (!_serverUrl || !_token || !campId) return;
-    var portrait = (typeof worldState !== "undefined" && worldState && worldState.character)
-      ? worldState.character.portrait : null;
-    if (!portrait) return;
+    if (typeof worldState === "undefined" || !worldState) return;
+    var portrait = worldState.character ? worldState.character.portrait : null;
+    // Collect all NPC portraits
+    var npcPortraits = {};
+    (worldState.npcs || []).forEach(function(n) {
+      if (n.portrait) npcPortraits[n.name] = n.portrait;
+    });
+    if (!portrait && !Object.keys(npcPortraits).length) return;
     _portraitDirty = false;
     fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
       method:  "PUT",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
-      body:    JSON.stringify({ portrait: portrait })
+      body:    JSON.stringify({ portrait: portrait, npcPortraits: npcPortraits })
     }).catch(function(e) {
-      _portraitDirty = true;  // retry next save
+      _portraitDirty = true;
       console.warn("[storage] portrait sync failed:", e.message);
     });
   }
@@ -276,6 +281,14 @@ var storageAdapter = (function() {
         };
         if (data.portrait && worldState.character && !worldState.character.portrait) {
           worldState.character.portrait = data.portrait;
+        }
+        if (data.npcPortraits && worldState.npcs) {
+          worldState.npcs.forEach(function(n) {
+            if (!n.portrait && data.npcPortraits[n.name]) {
+              n.portrait = data.npcPortraits[n.name];
+              if (n.charSheet) n.charSheet.portrait = n.portrait;
+            }
+          });
         }
         saveAll();
         if (wasFresh && typeof showGame === "function") {
