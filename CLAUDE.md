@@ -4,7 +4,7 @@
 
 **Traffic and Dragons** is a browser-based sword & sorcery RPG. The player creates a character through a multi-step wizard, then plays a text adventure narrated by Claude (via the Anthropic API) acting as the Game Master. The GM responds in vivid second-person prose, tracks the world state through hidden tags embedded in its responses, and maintains a rolling memory of NPCs, locations, lore, and decisions across sessions.
 
-There is no build step and no npm dependencies. There is a cloud sync server on Fly.dev (`https://ashen-crown-server.fly.dev`) — optional, used for cross-device campaign persistence.
+There is no build step and no npm dependencies. There is a cloud sync server on Fly.dev (`https://traffic-and-dragons-server.fly.dev`) — optional, used for cross-device campaign persistence.
 
 ---
 
@@ -121,13 +121,13 @@ Three live objects, all persisted to `localStorage` via the `store` wrapper:
 
 | Object | Storage key | Contents |
 |---|---|---|
-| `worldState` | `ashen_core_v10` | `character`, `world` (location/region/time/weather/threat), `npcs[]`, `questLog[]`, `eventHistory[]`, `combat`, `turn` |
-| `sessionLog` | `ashen_sess_v10` | Current-session messages sent to the API (`[{role, content}]`); cleared on summarization |
-| `memory` | `ashen_mem_v10` | Long-term narrative memory: `npcs{}`, `locations{}`, `quests{}`, `lore[]`, `keyDecisions[]`, `futureEvents[]`, `chapters[]` |
+| `worldState` | `tnd_core_v10` | `character`, `world` (location/region/time/weather/threat), `npcs[]`, `questLog[]`, `eventHistory[]`, `combat`, `turn` |
+| `sessionLog` | `tnd_sess_v10` | Current-session messages sent to the API (`[{role, content}]`); cleared on summarization |
+| `memory` | `tnd_mem_v10` | Long-term narrative memory: `npcs{}`, `locations{}`, `quests{}`, `lore[]`, `keyDecisions[]`, `futureEvents[]`, `chapters[]` |
 
 `store` wraps `localStorage` with an in-memory fallback `_m`. Storage key constants (`WSK`, `SLK`, `MEM_KEY`, `AKK`, `RLK`) are defined in `state.js`.
 
-Campaign list metadata stored in `ashen_camps_v1` — array of lightweight campaign entries used by the campaign picker.
+Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaign entries used by the campaign picker.
 
 ### 4. v10 Character schema
 
@@ -319,9 +319,9 @@ Auto-export narrative fires every 10 turns as a background download (no manual e
 
 ### 16. Campaign management
 
-`showCampaignPicker()` reads `ashen_camps_v1` from localStorage. `saveAll()` calls `storageAdapter.syncToServer()` on every save, pushing state to the server automatically.
+`showCampaignPicker()` reads `tnd_camps_v1` from localStorage. `saveAll()` calls `storageAdapter.syncToServer()` on every save, pushing state to the server automatically.
 
-After connecting to server, `syncCampaignList()` fetches the server campaign list and merges it into `ashen_camps_v1`, then the campaign picker opens automatically.
+After connecting to server, `syncCampaignList()` fetches the server campaign list and merges it into `tnd_camps_v1`, then the campaign picker opens automatically.
 
 ### 17. Sync modal
 
@@ -363,8 +363,8 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 
 ### 22. Cloud sync (`storage-adapter.js`)
 
-**Server:** `https://ashen-crown-server.fly.dev`
-**Auth:** GitHub OAuth popup → server postMessages `{type:"ashen-auth", sessionId, username}` back to opener → token stored in `ashen_server_tok_v1`.
+**Server:** `https://traffic-and-dragons-server.fly.dev`
+**Auth:** GitHub OAuth popup → server postMessages `{type:"tnd-auth", sessionId, username}` back to opener → token stored in `tnd_server_tok_v1`.
 **CORS:** Server uses `origin: function() { return "*"; }` to handle `null` origin from `file://` pages.
 **Endpoints:** `GET /auth/github`, `GET /auth/github/callback`, `GET /auth/me`, `POST /auth/logout`, `GET /api/campaigns`, `GET /api/campaigns/:id`, `POST /api/state`, `GET /api/state`, `GET /api/messages`
 **Deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
@@ -411,7 +411,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 **Running locally:**
 1. Open `dnd_game_1_0.html` directly in any modern browser (Chrome, Firefox, Edge).
 2. Enter your Anthropic API key (`sk-ant-...`) on the opening screen.
-3. The key is stored in `localStorage` under `ashen_ak_v1` and auto-loaded on subsequent visits.
+3. The key is stored in `localStorage` under `tnd_ak_v1` and auto-loaded on subsequent visits.
 4. No build step, no `npm install`.
 
 **Testing changes:**
@@ -419,7 +419,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - Always test on **Netlify** after `git push` — `file://` and Netlify can have different cached files.
 - Use the **Sync** button in-game to manually patch world state.
 - Use **Table Talk** tab to query the GM out-of-character while debugging.
-- Wipe state: DevTools → Application → Local Storage → delete all `ashen_*` keys, or use **New Game**.
+- Wipe state: DevTools → Application → Local Storage → delete all `tnd_*` keys, or use **New Game**.
 - **Export save** before testing risky changes.
 
 **Version number:**

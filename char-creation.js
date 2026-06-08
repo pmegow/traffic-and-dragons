@@ -78,6 +78,7 @@ function buildReview(){
   // Pre-fill campaign name with character name if not yet set
   var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=cs.name;
   rvSyncXp();
+  if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
 }
 function getDefaultDeity(){
   var cls=cs.cls;if(!cls||DEITY_CENTRIC.indexOf(cls)<0)return"";

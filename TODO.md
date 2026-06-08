@@ -4,19 +4,23 @@
 
 | # | Task | Status |
 |---|---|---|
-| 2 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
-| 7 | Alternative starting worlds | Folded into #18 |
-| 8 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
-| 9 | Narrative flavor / prose style | Pushed to bottom |
-| 11 | Multiple active campaigns review |  |
-| 12 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
-| 13 | Text to speech |  |
-| 16 | Game document |  |
-| 17 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
-| 24 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
-| 26 | If the api key read fails, don't just retry, provide a field to edit / reinput the key | Ready to test — auth errors show inline password input + Update & Retry; busy stays true until key submitted |
-| 30 | Tweak img2img weighting — expose strength slider in Render Options | Low priority |
-| 33 | Campaign picker — pulse the "Refreshing from server…" text while syncing | ✅ Done |
+| 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
+| 2 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
+| 3 | Narrative flavor / prose style | Pushed to bottom |
+| 4 | Multiple active campaigns review |  |
+| 5 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
+| 6 | Text to speech — separate voices for GM, player, NPCs, and system. Car audio is a primary use case. | ⚠ Partially done — GM voice working, per-character voices pending |
+| 7 | **[subtask]** Table Talk voice — voice for out-of-character tab | Deferred to second pass |
+| 8 | **[subtask / reach]** Car Mode — dedicated UX: large touch targets, auto-play on, voice input, suggested actions read as numbered list | Reach goal |
+| 9 | **[subtask]** Per-character voices — GM, player, NPCs each get an assigned voice ID stored on the character/NPC object | Pending |
+| 10 | Game document |  |
+| 11 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
+| 12 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
+| 13 | Swappable LLM support — provider adapter in `callGM()`, key storage per provider, provider selector in Admin menu |  |
+| 14 | **[subtask]** ChatGPT (OpenAI) — `api.openai.com/v1/chat/completions`; messages format nearly identical to Anthropic; lowest-effort, highest-value first target | Pending |
+| 15 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | Pending |
+| 16 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
+| 17 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #14; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | Exploration only |
 
 ---
 
