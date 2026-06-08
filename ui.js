@@ -328,7 +328,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.8";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.9";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -412,9 +412,12 @@ function connectToServer(){
 }
 function campCloudPushSilent(id,cb){
   if(!storageAdapter.isServerMode()){if(cb)cb(false);return;}
-  var ws=store.get("tnd_camp_"+id+"_ws");
-  var sl=store.get("tnd_camp_"+id+"_sl")||"[]";
-  var mem=store.get("tnd_camp_"+id+"_mem")||"{}";
+  // For the active campaign use live keys, not the snapshot (snapshot is only
+  // written on campaign switch and may be many turns stale).
+  var isActive=id===getActiveCampId();
+  var ws=isActive?store.get(WSK):store.get("tnd_camp_"+id+"_ws");
+  var sl=isActive?store.get(SLK):store.get("tnd_camp_"+id+"_sl")||"[]";
+  var mem=isActive?store.get(MEM_KEY):store.get("tnd_camp_"+id+"_mem")||"{}";
   if(!ws){if(cb)cb(false);return;}
   var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
