@@ -1,4 +1,4 @@
-// tts.js — Cartesia text-to-speech engine
+// tts.js — Cartesia streaming TTS (SSE + Web Audio API)
 // Depends on: store (state.js), showToast (ui.js)
 
 var TTS = (function() {
@@ -7,20 +7,23 @@ var TTS = (function() {
   var ON_K    = "tnd_tts_on_v1";
   var VOICE_K = "tnd_tts_voice_gm_v1";
 
-  var CARTESIA_URL     = "https://api.cartesia.ai/tts/bytes";
-  var CARTESIA_VERSION = "2026-03-01";
-  var CARTESIA_MODEL   = "sonic-2";
+  var CARTESIA_SSE_URL  = "https://api.cartesia.ai/tts/sse";
+  var CARTESIA_VERSION  = "2026-03-01";
+  var CARTESIA_MODEL    = "sonic-2";
+  var SAMPLE_RATE       = 22050;
 
-  var _audio  = null;
-  var _queue  = [];
-  var _playing = false;
-  var _paused  = false;
+  var _queue      = [];
+  var _playing    = false;
+  var _paused     = false;
+  var _audioCtx   = null;
+  var _sources    = [];        // scheduled AudioBufferSourceNodes
+  var _abortCtrl  = null;      // AbortController for live fetch
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  function isOn()      { return store.get(ON_K) === "1"; }
-  function getKey()    { return store.get(KEY_K)   || ""; }
-  function getVoice()  { return store.get(VOICE_K) || ""; }
+  function isOn()     { return store.get(ON_K) === "1"; }
+  function getKey()   { return store.get(KEY_K)   || ""; }
+  function getVoice() { return store.get(VOICE_K) || ""; }
 
   // ── Toggle ─────────────────────────────────────────────────────────────────
 
@@ -36,13 +39,11 @@ var TTS = (function() {
 
   function _syncBtn() {
     var on = isOn();
-    ["tts-btn"].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) { el.textContent = on ? "🔊" : "🔇"; el.style.opacity = on ? "1" : "0.5"; }
-    });
+    var el = document.getElementById("tts-btn");
+    if (el) { el.textContent = on ? "🔊" : "🔇"; el.style.opacity = on ? "1" : "0.5"; }
   }
 
-  // ── Speak ──────────────────────────────────────────────────────────────────
+  // ── Public speak entry points ───────────────────────────────────────────────
 
   function speak(text, voiceId) {
     if (!text || !text.trim()) return;
@@ -52,8 +53,6 @@ var TTS = (function() {
     if (!_playing) _drain();
   }
 
-  // Called after every GM response. Splits narration from suggested actions
-  // so the options are read after the main prose.
   function speakResponse(cleanText) {
     if (!isOn()) return;
     var m = cleanText.match(/([\s\S]*?)\s*\*You could([\s\S]*?)\*\s*$/);
@@ -65,7 +64,7 @@ var TTS = (function() {
     }
   }
 
-  // ── Queue ──────────────────────────────────────────────────────────────────
+  // ── Queue management ────────────────────────────────────────────────────────
 
   function _drain() {
     if (!_queue.length) {
@@ -79,66 +78,185 @@ var TTS = (function() {
     _showBar(true);
     _updatePauseBtn(false);
     var item = _queue.shift();
-    _fetch(item.text, item.voiceId);
+    _stream(item.text, item.voiceId);
   }
 
-  function _fetch(text, voiceId) {
+  // ── Streaming core ──────────────────────────────────────────────────────────
+
+  function _stream(text, voiceId) {
     var key = getKey();
     if (!key) { _drain(); return; }
-    fetch(CARTESIA_URL, {
+
+    // Create a fresh AudioContext for each utterance
+    var ctx;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+    } catch(e) {
+      console.warn("[tts] AudioContext unavailable:", e.message);
+      _drain();
+      return;
+    }
+    _audioCtx = ctx;
+    _sources  = [];
+
+    // Resume immediately in case browser auto-suspended it
+    if (ctx.state === "suspended") ctx.resume();
+
+    var nextStart    = ctx.currentTime + 0.05;  // tiny lead-in
+    var streamDone   = false;
+    var activeSrcs   = 0;
+
+    function onAllDone() {
+      try { ctx.close(); } catch(e) {}
+      _audioCtx = null;
+      _sources  = [];
+      _drain();
+    }
+
+    function scheduleChunk(b64) {
+      // base64 → raw bytes → Int16 → Float32
+      var binary  = atob(b64);
+      var nSamples = binary.length >> 1;  // 2 bytes per s16le sample
+      var f32 = new Float32Array(nSamples);
+      for (var i = 0; i < nSamples; i++) {
+        var lo  = binary.charCodeAt(i * 2)     & 0xFF;
+        var hi  = binary.charCodeAt(i * 2 + 1) & 0xFF;
+        var s16 = (hi << 8) | lo;
+        f32[i]  = (s16 > 32767 ? s16 - 65536 : s16) / 32768.0;
+      }
+
+      var buf = ctx.createBuffer(1, nSamples, SAMPLE_RATE);
+      buf.getChannelData(0).set(f32);
+
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+
+      var startAt = Math.max(nextStart, ctx.currentTime + 0.005);
+      src.start(startAt);
+      nextStart = startAt + buf.duration;
+
+      activeSrcs++;
+      _sources.push(src);
+      src.onended = function() {
+        activeSrcs--;
+        if (streamDone && activeSrcs === 0) onAllDone();
+      };
+    }
+
+    _abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+
+    var fetchOpts = {
       method: "POST",
       headers: {
-        "X-API-Key":          key,
-        "Cartesia-Version":   CARTESIA_VERSION,
-        "Content-Type":       "application/json"
+        "X-API-Key":        key,
+        "Cartesia-Version": CARTESIA_VERSION,
+        "Content-Type":     "application/json"
       },
       body: JSON.stringify({
         model_id:      CARTESIA_MODEL,
         transcript:    text,
         voice:         { mode: "id", id: voiceId },
-        output_format: { container: "mp3", encoding: "mp3", sample_rate: 44100 }
+        output_format: { container: "raw", encoding: "pcm_s16le", sample_rate: SAMPLE_RATE }
       })
-    })
+    };
+    if (_abortCtrl) fetchOpts.signal = _abortCtrl.signal;
+
+    fetch(CARTESIA_SSE_URL, fetchOpts)
     .then(function(r) {
       if (!r.ok) throw new Error("Cartesia " + r.status);
-      return r.blob();
-    })
-    .then(function(blob) {
-      var url = URL.createObjectURL(blob);
-      _audio = new Audio(url);
-      _audio.onended = function() { URL.revokeObjectURL(url); _audio = null; _drain(); };
-      _audio.onerror = function() { URL.revokeObjectURL(url); _audio = null; _drain(); };
-      _audio.play().catch(function() { _drain(); });
+      var reader  = r.body.getReader();
+      var decoder = new TextDecoder();
+      var lineBuf = "";
+
+      function read() {
+        reader.read().then(function(result) {
+          if (result.done) {
+            streamDone = true;
+            if (activeSrcs === 0) onAllDone();
+            return;
+          }
+
+          lineBuf += decoder.decode(result.value, { stream: true });
+          var lines = lineBuf.split("\n");
+          lineBuf = lines.pop();  // keep any incomplete line
+
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line || line.slice(0, 5) !== "data:") continue;
+            var json = line.slice(5).trim();
+            if (!json) continue;
+            var evt;
+            try { evt = JSON.parse(json); } catch(e) { continue; }
+
+            if (evt.type === "chunk" && evt.data) {
+              scheduleChunk(evt.data);
+            } else if (evt.type === "done") {
+              streamDone = true;
+              if (activeSrcs === 0) onAllDone();
+            } else if (evt.type === "error") {
+              console.warn("[tts] Cartesia error:", evt.message);
+              streamDone = true;
+              if (activeSrcs === 0) onAllDone();
+            }
+          }
+
+          read();
+        }).catch(function(e) {
+          if (e.name !== "AbortError") console.warn("[tts stream]", e.message);
+          streamDone = true;
+          if (activeSrcs === 0) onAllDone();
+        });
+      }
+
+      read();
     })
     .catch(function(e) {
-      console.warn("[tts]", e.message);
+      if (e.name !== "AbortError") console.warn("[tts]", e.message);
+      try { ctx.close(); } catch(x) {}
+      _audioCtx = null;
       _drain();
     });
   }
 
-  // ── Controls ───────────────────────────────────────────────────────────────
+  // ── Controls ────────────────────────────────────────────────────────────────
 
   function pause() {
-    if (!_audio) return;
-    if (_audio.paused) { _audio.play(); _paused = false; }
-    else               { _audio.pause(); _paused = true; }
+    if (!_audioCtx) return;
+    if (_audioCtx.state === "suspended") {
+      _audioCtx.resume();
+      _paused = false;
+    } else {
+      _audioCtx.suspend();
+      _paused = true;
+    }
     _updatePauseBtn(_paused);
   }
 
   function skip() {
-    if (_audio) { _audio.pause(); _audio.onended = null; _audio = null; }
+    _stopCurrent();
+    _playing = false;
     _drain();
   }
 
   function stop() {
-    if (_audio) { _audio.pause(); _audio.onended = null; _audio = null; }
+    _stopCurrent();
     _queue   = [];
     _playing = false;
     _paused  = false;
     _showBar(false);
   }
 
-  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function _stopCurrent() {
+    if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
+    for (var i = 0; i < _sources.length; i++) {
+      try { _sources[i].onended = null; _sources[i].stop(); } catch(e) {}
+    }
+    _sources = [];
+    if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────────────────────
 
   function _showBar(show) {
     var bar = document.getElementById("tts-bar");
@@ -150,7 +268,7 @@ var TTS = (function() {
     if (btn) btn.textContent = paused ? "▶" : "⏸";
   }
 
-  // ── Settings modal ─────────────────────────────────────────────────────────
+  // ── Settings modal ──────────────────────────────────────────────────────────
 
   function showSettingsModal() {
     var ex = document.getElementById("tts-modal"); if (ex) ex.remove();
@@ -164,18 +282,17 @@ var TTS = (function() {
       + "</div>"
       + "<div style='margin-bottom:14px;'>"
       +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Cartesia API Key</label>"
-      +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + escVal(getKey()) + "'"
+      +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "'"
       +     " style='width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;'/>"
       + "</div>"
       + "<div style='margin-bottom:20px;'>"
       +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>GM Voice ID <span style='opacity:.6;'>(from cartesia.ai/voices)</span></label>"
-      +   "<input id='tts-voice-inp' type='text' placeholder='voice-uuid' value='" + escVal(getVoice()) + "'"
+      +   "<input id='tts-voice-inp' type='text' placeholder='voice-uuid' value='" + _escVal(getVoice()) + "'"
       +     " style='width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;'/>"
       + "</div>"
       + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:Georgia,serif;font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>"
       + "</div>";
     document.body.appendChild(modal);
-
     document.getElementById("tts-modal-x").addEventListener("click", function() { modal.remove(); });
     modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
     document.getElementById("tts-save-btn").addEventListener("click", function() {
@@ -188,19 +305,19 @@ var TTS = (function() {
     });
   }
 
-  function escVal(s) { return (s||"").replace(/"/g, "&quot;"); }
+  function _escVal(s) { return (s || "").replace(/"/g, "&quot;"); }
 
-  // ── Public API ─────────────────────────────────────────────────────────────
+  // ── Public API ──────────────────────────────────────────────────────────────
 
   return {
-    isOn:             isOn,
-    toggle:           toggle,
-    loadSettings:     loadSettings,
-    speak:            speak,
-    speakResponse:    speakResponse,
-    pause:            pause,
-    skip:             skip,
-    stop:             stop,
+    isOn:              isOn,
+    toggle:            toggle,
+    loadSettings:      loadSettings,
+    speak:             speak,
+    speakResponse:     speakResponse,
+    pause:             pause,
+    skip:              skip,
+    stop:              stop,
     showSettingsModal: showSettingsModal
   };
 
