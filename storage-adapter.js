@@ -19,6 +19,7 @@ var storageAdapter = (function() {
   var _serverUrl           = null;   // null = local mode
   var _token               = null;
   var _syncing             = false;
+  var _pendingSync         = false;  // retry after current sync completes
   var _portraitDirty       = false;
   var _portraitSyncedOnce  = false;  // upload portrait on first sync of session
   var _popup               = null;
@@ -174,9 +175,11 @@ var storageAdapter = (function() {
   }
 
   function syncToServer() {
-    if (!_serverUrl || _syncing || typeof worldState === "undefined" || !worldState) return;
+    if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
+    if (_syncing) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
-    _syncing = true;
+    _syncing     = true;
+    _pendingSync = false;
     var wsStripped = Object.assign({}, worldState, {
       character: Object.assign({}, worldState.character, {portrait: null}),
       npcs: (worldState.npcs||[]).map(function(n){
@@ -198,15 +201,16 @@ var storageAdapter = (function() {
       body:    payload
     }).then(function(r) {
       _syncing = false;
-      if (!r.ok) { console.warn("[storage] server sync returned", r.status); return; }
-      // Upload portrait when dirty, or once per session if character has one
-      if (_portraitDirty || !_portraitSyncedOnce) {
+      if (!r.ok) { console.warn("[storage] server sync returned", r.status); }
+      else if (_portraitDirty || !_portraitSyncedOnce) {
         _portraitSyncedOnce = true;
         syncPortrait(campId);
       }
+      if (_pendingSync) syncToServer();
     }).catch(function(e) {
       _syncing = false;
       console.warn("[storage] server sync failed:", e.message);
+      if (_pendingSync) syncToServer();
     });
   }
 
