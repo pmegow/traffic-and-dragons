@@ -6,7 +6,7 @@
   <style>
     :root{--bg0:#0d0d0d;--bg1:#111;--bg2:#1a1a1a;--bg3:#222;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--t0:#e8e0d0;--t1:#b8b0a0;--t2:#706860;--red:#c04040;--grn:#4a9060;}
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:var(--bg0);color:var(--t0);font-family:Georgia,serif;padding:24px;max-width:920px;margin:0 auto;font-size:14px;line-height:1.6;}
+    body{background:var(--bg0);color:var(--t0);font-family:Georgia,serif;padding:24px;max-width:1400px;margin:0 auto;font-size:14px;line-height:1.6;}
     h1{color:var(--acc);font-size:20px;margin-bottom:4px;}
     h2{color:var(--acc);font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
     h3{color:var(--t1);font-size:13px;margin:16px 0 6px;}
@@ -22,7 +22,7 @@
     ul,ol{padding-left:20px;margin-bottom:10px;color:var(--t1);}
     li{margin-bottom:4px;}
     strong{color:var(--t0);}
-    .status{font-size:11px;color:var(--t2);white-space:nowrap;}
+    .status{font-size:11px;color:var(--t2);overflow-wrap:break-word;word-break:break-word;}
     .status.sdone{color:var(--grn);}
     .status.slow{color:var(--t2);}
     #load-btn{padding:10px 24px;font-family:Georgia,serif;font-size:13px;background:var(--acc);color:#000;border:none;border-radius:4px;cursor:pointer;}
@@ -73,6 +73,19 @@
     .row-del-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;padding:0 2px;line-height:1;}
     .row-del-btn:hover{color:var(--red);}
     tr:hover .row-del-btn{visibility:visible;}
+    /* Resizable status column */
+    th.resizable{position:sticky;right:22px;overflow:visible;background:var(--bg1);z-index:3;}
+    .col-resize-handle{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
+    .col-resize-handle:hover,.col-resize-handle.dragging{background:var(--acc);opacity:0.4;}
+    /* Status and delete cells sticky-right — right offset = del-cell width (22px) */
+    td.status-td{position:sticky;right:22px;background:var(--bg1);z-index:1;}
+    td.del-cell,th.del-th{position:sticky;right:0;background:var(--bg1);z-index:3;}
+    tr:hover td.status-td,tr:hover td.del-cell{background:var(--bg2);}
+    tr.rtt td.status-td,tr.rtt td.del-cell{background:rgba(184,147,90,.07);}
+    tr.rtt:hover td.status-td,tr.rtt:hover td.del-cell{background:rgba(184,147,90,.14);}
+    /* Lock task column — don't let it shrink */
+    td.task-td,th.task-th{min-width:400px;}
+    #task-table{table-layout:fixed;width:100%;}
   </style>
 </head>
 <body>
@@ -95,6 +108,7 @@ var _tasks = [];
 var _dragSrc = null;
 var _fileHandle = null;
 var _editIdx = -1;
+var _statusColW = 240;
 
 // ── IndexedDB handle persistence ──────────────────────────────────────────────
 
@@ -260,7 +274,7 @@ function isLow(t) {
 
 function renderTaskTable() {
   var h = "<table id='task-table'>"
-    + "<thead><tr><th></th><th></th><th>#</th><th>Task</th><th style='width:220px;'>Status</th><th></th></tr></thead>"
+    + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th><th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='del-th' style='width:22px;'></th></tr></thead>"
     + "<tbody id='task-tbody'>";
   for (var i = 0; i < _tasks.length; i++) {
     var t = _tasks[i];
@@ -274,10 +288,10 @@ function renderTaskTable() {
     var rows = Math.max(2, Math.ceil(t.task.length / 72));
     var safeText = t.task.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     var taskCell = editing
-      ? "<td><textarea class='edit-inp' id='edit-task-inp' rows='" + rows + "'"
+      ? "<td class='task-td'><textarea class='edit-inp' id='edit-task-inp' rows='" + rows + "'"
           + " onkeydown='if(event.key===\"Escape\"){_editIdx=-1;renderPage();}'"
           + " onblur='saveEditTask(" + i + ")'>" + safeText + "</textarea></td>"
-      : "<td><div class='task-cell-inner'><span>" + inline(t.task) + "</span>"
+      : "<td class='task-td'><div class='task-cell-inner'><span>" + inline(t.task) + "</span>"
           + "<button class='row-edit-btn' title='Edit' onclick='startEditTask(" + i + ")'>&#9998;</button>"
           + "</div></td>";
     h += "<tr class='" + rowCls + "' draggable='" + (!editing) + "' data-idx='" + i + "'>"
@@ -285,7 +299,7 @@ function renderTaskTable() {
       + "<td class='check-cell'><button class='" + checkCls + "' onclick='toggleDone(" + i + ")' title='" + checkTitle + "'>" + checkSym + "</button></td>"
       + "<td class='num-cell'>" + inline(t.num) + "</td>"
       + taskCell
-      + "<td class='" + sCls + "'>" + inline(t.status) + "</td>"
+      + "<td class='status-td " + sCls + "'>" + inline(t.status) + "</td>"
       + "<td class='del-cell'><button class='row-del-btn' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
       + "</tr>";
   }
@@ -329,6 +343,31 @@ function wireTaskTable() {
       });
     })(rows[i]);
   }
+  initColResize();
+}
+
+function initColResize() {
+  var handle = document.querySelector('.col-resize-handle');
+  if (!handle) return;
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    var th = handle.parentElement;
+    var startX = e.clientX;
+    var startW = th.offsetWidth;
+    handle.classList.add('dragging');
+    function onMove(e) {
+      var newW = Math.max(60, startW + (e.clientX - startX));
+      _statusColW = newW;
+      th.style.width = newW + 'px';
+    }
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 // ── Add task ──────────────────────────────────────────────────────────────────
