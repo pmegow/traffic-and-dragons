@@ -16,12 +16,13 @@ var storageAdapter = (function() {
   var SERVER_URL_KEY = "tnd_server_url_v1";
   var SERVER_TOK_KEY = "tnd_server_tok_v1";
 
-  var _serverUrl      = null;   // null = local mode
-  var _token          = null;
-  var _syncing        = false;
-  var _portraitDirty  = false;
-  var _popup          = null;
-  var _popupCb        = null;
+  var _serverUrl           = null;   // null = local mode
+  var _token               = null;
+  var _syncing             = false;
+  var _portraitDirty       = false;
+  var _portraitSyncedOnce  = false;  // upload portrait on first sync of session
+  var _popup               = null;
+  var _popupCb             = null;
 
   // ── Auto-connect on page load ───────────────────────────────────────────
   // If a saved server URL + token exist in localStorage, restore server mode.
@@ -190,7 +191,11 @@ var storageAdapter = (function() {
     }).then(function(r) {
       _syncing = false;
       if (!r.ok) { console.warn("[storage] server sync returned", r.status); return; }
-      if (_portraitDirty) syncPortrait(campId);
+      // Upload portrait when dirty, or once per session if character has one
+      if (_portraitDirty || !_portraitSyncedOnce) {
+        _portraitSyncedOnce = true;
+        syncPortrait(campId);
+      }
     }).catch(function(e) {
       _syncing = false;
       console.warn("[storage] server sync failed:", e.message);
