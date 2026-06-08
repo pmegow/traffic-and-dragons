@@ -6,6 +6,14 @@ var TTS = (function() {
   var KEY_K   = "tnd_cartesia_key_v1";
   var ON_K    = "tnd_tts_on_v1";
   var VOICE_K = "tnd_tts_voice_gm_v1";
+  var BANK_K  = "tnd_voice_bank_v1";
+
+  // ── Voice bank ─────────────────────────────────────────────────────────────
+
+  function getBank() {
+    try { var r = store.get(BANK_K); return r ? JSON.parse(r) : []; } catch(e) { return []; }
+  }
+  function setBank(arr) { store.set(BANK_K, JSON.stringify(arr)); }
 
   var CARTESIA_SSE_URL  = "https://api.cartesia.ai/tts/sse";
   var CARTESIA_VERSION  = "2026-03-01";
@@ -280,42 +288,144 @@ var TTS = (function() {
 
   // ── Settings modal ──────────────────────────────────────────────────────────
 
+  function _escVal(s) { return (s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+  function _buildVoiceOptions() {
+    var bank = getBank(), cur = getVoice(), html = "", found = false;
+    if (!bank.length) return "<option value='' disabled selected>— no voices saved yet —</option>";
+    html += "<option value=''>" + (cur ? "— select —" : "— select a voice —") + "</option>";
+    for (var i = 0; i < bank.length; i++) {
+      var sel = (bank[i].id === cur) ? " selected" : "";
+      if (bank[i].id === cur) found = true;
+      html += "<option value='" + _escVal(bank[i].id) + "'" + sel + ">" + _escVal(bank[i].name) + "</option>";
+    }
+    if (cur && !found) {
+      html += "<option value='" + _escVal(cur) + "' selected>(current) " + _escVal(cur.slice(0,8)) + "…</option>";
+    }
+    return html;
+  }
+
+  function _buildBankRows() {
+    var bank = getBank();
+    if (!bank.length) return "";
+    var html = "<div style='margin-top:8px;border-top:1px solid var(--brd2);padding-top:8px;'>";
+    for (var i = 0; i < bank.length; i++) {
+      html += "<div style='display:flex;align-items:center;gap:6px;padding:4px 0;'>"
+        + "<span style='flex:1;font-size:12px;color:var(--t0);'>" + _escVal(bank[i].name) + "</span>"
+        + "<span style='font-size:10px;color:var(--t2);font-family:monospace;'>" + _escVal(bank[i].id.slice(0,8)) + "…</span>"
+        + "<button data-bank-del='" + i + "' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;' title='Remove'>&#215;</button>"
+        + "</div>";
+    }
+    return html + "</div>";
+  }
+
+  function _refreshVoiceUI() {
+    var sel = document.getElementById("tts-voice-sel");
+    if (sel) sel.innerHTML = _buildVoiceOptions();
+    var rows = document.getElementById("tts-bank-rows");
+    if (rows) {
+      rows.innerHTML = _buildBankRows();
+      _wireBankDelBtns();
+    }
+  }
+
+  function _wireBankDelBtns() {
+    var rows = document.getElementById("tts-bank-rows");
+    if (!rows) return;
+    var btns = rows.querySelectorAll("[data-bank-del]");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", (function(idx) {
+        return function() {
+          var bank = getBank();
+          var removed = bank.splice(idx, 1);
+          setBank(bank);
+          // Clear active voice if the deleted entry was selected
+          if (removed.length && removed[0].id === getVoice()) store.del(VOICE_K);
+          _refreshVoiceUI();
+        };
+      })(parseInt(btns[i].getAttribute("data-bank-del"), 10)));
+    }
+  }
+
   function showSettingsModal() {
     var ex = document.getElementById("tts-modal"); if (ex) ex.remove();
     var modal = document.createElement("div");
     modal.id = "tts-modal";
     modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+    var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
+    var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
     modal.innerHTML = "<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:480px;width:100%;margin-top:60px;'>"
       + "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'>"
-      +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>🔊 Voice Settings</span>"
+      +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
       +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
       + "</div>"
       + "<div style='margin-bottom:14px;'>"
       +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Cartesia API Key</label>"
-      +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "'"
-      +     " style='width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;'/>"
+      +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
       + "</div>"
       + "<div style='margin-bottom:20px;'>"
-      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>GM Voice ID <span style='opacity:.6;'>(from cartesia.ai/voices)</span></label>"
-      +   "<input id='tts-voice-inp' type='text' placeholder='voice-uuid' value='" + _escVal(getVoice()) + "'"
-      +     " style='width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;'/>"
+      +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"
+      +     "<label style='font-size:12px;color:var(--t2);'>Narrator Voice</label>"
+      +     "<button id='tts-add-btn' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>+ Add</button>"
+      +   "</div>"
+      +   "<select id='tts-voice-sel' style='" + inpStyle + "'>" + _buildVoiceOptions() + "</select>"
+      +   "<div id='tts-add-form' style='display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:6px;padding:10px;'>"
+      +     "<input id='tts-add-name' type='text' placeholder='Voice name (e.g. Gravely Narrator)' style='" + smInpStyle + "'/>"
+      +     "<input id='tts-add-id' type='text' placeholder='Cartesia voice UUID' style='" + smInpStyle + "font-family:monospace;'/>"
+      +     "<div style='display:flex;gap:6px;'>"
+      +       "<button id='tts-add-save' style='flex:1;padding:6px;background:var(--acc);border:none;border-radius:4px;color:#000;font-size:12px;cursor:pointer;font-family:Georgia,serif;'>Save</button>"
+      +       "<button id='tts-add-cancel' style='padding:6px 10px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);font-size:12px;cursor:pointer;'>Cancel</button>"
+      +     "</div>"
+      +   "</div>"
+      +   "<div id='tts-bank-rows'>" + _buildBankRows() + "</div>"
       + "</div>"
       + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:Georgia,serif;font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>"
       + "</div>";
     document.body.appendChild(modal);
+
     document.getElementById("tts-modal-x").addEventListener("click", function() { modal.remove(); });
     modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+
+    document.getElementById("tts-add-btn").addEventListener("click", function() {
+      var form = document.getElementById("tts-add-form");
+      form.style.display = form.style.display === "none" ? "block" : "none";
+      if (form.style.display === "block") document.getElementById("tts-add-name").focus();
+    });
+
+    document.getElementById("tts-add-cancel").addEventListener("click", function() {
+      document.getElementById("tts-add-form").style.display = "none";
+    });
+
+    document.getElementById("tts-add-save").addEventListener("click", function() {
+      var name = document.getElementById("tts-add-name").value.trim();
+      var id   = document.getElementById("tts-add-id").value.trim();
+      if (!name || !id) { if (typeof showToast === "function") showToast("Name and voice ID are required."); return; }
+      var bank = getBank();
+      // Replace if same ID already exists
+      var found = false;
+      for (var i = 0; i < bank.length; i++) { if (bank[i].id === id) { bank[i].name = name; found = true; break; } }
+      if (!found) bank.push({ id: id, name: name });
+      bank.sort(function(a, b) { return a.name.localeCompare(b.name); });
+      setBank(bank);
+      // Auto-select the new voice
+      store.set(VOICE_K, id);
+      document.getElementById("tts-add-form").style.display = "none";
+      document.getElementById("tts-add-name").value = "";
+      document.getElementById("tts-add-id").value = "";
+      _refreshVoiceUI();
+    });
+
+    _wireBankDelBtns();
+
     document.getElementById("tts-save-btn").addEventListener("click", function() {
       var key   = document.getElementById("tts-key-inp").value.trim();
-      var voice = document.getElementById("tts-voice-inp").value.trim();
+      var voice = document.getElementById("tts-voice-sel").value;
       if (key)   store.set(KEY_K,   key);   else store.del(KEY_K);
       if (voice) store.set(VOICE_K, voice); else store.del(VOICE_K);
       modal.remove();
       if (typeof showToast === "function") showToast("Voice settings saved.");
     });
   }
-
-  function _escVal(s) { return (s || "").replace(/"/g, "&quot;"); }
 
   // ── Public API ──────────────────────────────────────────────────────────────
 

@@ -22,6 +22,8 @@
 | 16 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
 | 17 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #14; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | Exploration only |
 | 18 | Character library — server-side, campaign-agnostic character storage | ✅ Done — `characters` table on server, GET/POST/DELETE endpoints, export options modal (library vs file download), overwrite confirmation, library browser with import/delete, Export button on companion sheets |
+| 20 | Improve XP tracking — details TBD | Pending |
+| 19 | **[subtask]** Narrator voice bank — replace the raw GM Voice ID text input in voice settings with a named dropdown. Store a user-editable list of `{id, name}` voice entries in localStorage. A `+` button opens an "Add voice" form (name + ElevenLabs voice ID). The dropdown replaces the current free-text field; selecting a voice sets the active GM voice ID. Prerequisite for per-character voice assignment (#9). | ✅ Done — named dropdown, `+ Add` inline form, per-entry delete, auto-selects on add, stored in `tnd_voice_bank_v1` |
 
 ---
 
