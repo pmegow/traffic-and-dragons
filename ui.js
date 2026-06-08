@@ -330,7 +330,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.16";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.17";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -639,7 +639,7 @@ function showCharSheet(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
 
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:flex-end;margin-bottom:10px;'><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
@@ -684,6 +684,7 @@ function showCharSheet(){
 
   document.body.appendChild(modal);
   document.getElementById("cs-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   // ── collapsible sections ──────────────────────────────────────────────────
   (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
@@ -1138,6 +1139,8 @@ function showCharacterBrowser(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
   function getCharFromCampaign(id,cb){
+    // Active campaign: prefer live WSK state (snapshot may be stale — e.g. portrait set after last snapshot)
+    if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
     // Fall back to server
@@ -1170,13 +1173,16 @@ function showCharacterBrowser(){
     modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
       +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
-      +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+      +"<div style='display:flex;align-items:center;gap:10px;'>"
+      +"<button id='cbr-library' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#9729; Library</button>"
+      +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div></div>"
       +rows
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
       +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>"
       +"</div>";
     document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
+    document.getElementById("cbr-library").addEventListener("click",function(){modal.remove();showCharLibrary();});
     document.getElementById("cbr-file-inp").addEventListener("change",function(e){
       modal.remove();
       importCharacterFile(e);
@@ -1550,6 +1556,132 @@ function importCharacterFile(e){
   };
   reader.readAsText(file);e.target.value="";
 }
+// ── Character library ─────────────────────────────────────────────────────────
+function _charLibSlug(name){return(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
+
+function _showCharExportOptions(char){
+  var ex=document.getElementById("char-export-opts");if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id="char-export-opts";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
+  var connected=storageAdapter.isServerMode();
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:380px;width:100%;'>"
+    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>Export "+escHtml(char.name)+"</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:20px;'>Lv"+char.level+" "+escHtml((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim()+"</div>"
+    +"<div style='display:flex;flex-direction:column;gap:8px;'>"
+    +"<button id='ceo-library' style='padding:11px;font-size:13px;font-family:Georgia,serif;background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"#000":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
+    +"<button id='ceo-file' style='padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>&#8595; Download .char file</button>"
+    +"<button id='ceo-cancel' style='padding:8px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t2);cursor:pointer;'>Cancel</button>"
+    +"</div></div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  document.getElementById("ceo-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("ceo-file").addEventListener("click",function(){modal.remove();_doExportChar(char.name,char);showToast("Character downloaded.");});
+  var libBtn=document.getElementById("ceo-library");
+  if(!connected){libBtn.addEventListener("click",function(){showToast("Connect to server to use the character library.");});return;}
+  libBtn.addEventListener("click",function(){
+    libBtn.textContent="Checking…";libBtn.disabled=true;
+    storageAdapter.listCharLibrary(function(err,list){
+      if(err){modal.remove();showToast("Library error: "+err);return;}
+      var slug=_charLibSlug(char.name),existing=null;
+      for(var i=0;i<list.length;i++){if(list[i].slug===slug){existing=list[i];break;}}
+      if(existing){modal.remove();_showCharOverwriteConfirm(char,existing);}
+      else{storageAdapter.saveCharToLibrary(char,function(err2){modal.remove();if(err2)showToast("Save failed: "+err2);else showToast("&#9729; "+char.name+" saved to library.");});}
+    });
+  });
+}
+
+function _showCharOverwriteConfirm(char,existing){
+  var ex=document.getElementById("char-overwrite-modal");if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id="char-overwrite-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:360px;width:100%;'>"
+    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite library entry?</div>"
+    +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>Library has <span style='color:var(--t1);'>"+escHtml(existing.name)+" Lv"+existing.level+"</span>. Replace with <span style='color:var(--acc);'>Lv"+char.level+"</span>?</div>"
+    +"<div style='display:flex;gap:10px;'>"
+    +"<button id='cow-ok' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Overwrite</button>"
+    +"<button id='cow-cancel' style='flex:1;padding:10px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"</div></div>";
+  document.body.appendChild(modal);
+  document.getElementById("cow-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("cow-ok").addEventListener("click",function(){
+    var btn=document.getElementById("cow-ok");btn.textContent="Saving…";btn.disabled=true;
+    storageAdapter.saveCharToLibrary(char,function(err){modal.remove();if(err)showToast("Save failed: "+err);else showToast("&#9729; "+char.name+" updated in library.");});
+  });
+}
+
+function showCharLibrary(){
+  var ex=document.getElementById("char-library-modal");if(ex)ex.remove();
+  if(!storageAdapter.isServerMode()){showToast("Connect to server to access the character library.");return;}
+  var modal=document.createElement("div");modal.id="char-library-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  function renderLib(list){
+    var rows="";
+    if(!list||!list.length){
+      rows="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library yet.<br>Export a character from the character sheet to add one.</div>";
+    }else{
+      for(var i=0;i<list.length;i++){
+        var entry=list[i],ch=entry.character||{};
+        var ini=(ch.name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
+        var av=ch.portrait?"<img src='"+ch.portrait+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
+          :"<div style='width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
+        rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;'>"
+          +av
+          +"<div style='flex:1;min-width:0;'>"
+          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(entry.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
+          +"</div>"
+          +"<div style='display:flex;gap:6px;flex-shrink:0;'>"
+          +"<button onclick='_clibPick(\""+escHtml(entry.slug)+"\")' style='padding:6px 12px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;'>Import</button>"
+          +"<button onclick='_clibDel(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;' title='Remove from library'>&#215;</button>"
+          +"</div></div>";
+      }
+    }
+    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
+      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#9729; Character Library</span>"
+      +"<button id='clib-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Campaign-agnostic character snapshots. Export from the character sheet to add.</div>"
+      +rows+"</div>";
+    document.getElementById("clib-x").addEventListener("click",function(){modal.remove();});
+  }
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'><div style='color:var(--t2);font-size:13px;font-style:italic;'>Loading library…</div></div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  storageAdapter.listCharLibrary(function(err,list){
+    if(err){modal.remove();showToast("Could not load library: "+err);return;}
+    renderLib(list);
+  });
+  window._clibPick=function(slug){
+    storageAdapter.listCharLibrary(function(err,list){
+      if(err){showToast("Error: "+err);return;}
+      var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
+      if(!entry){showToast("Character not found.");return;}
+      modal.remove();
+      var char=entry.character;
+      if(!char.skills)char.skills=initSkills();
+      if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
+      if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];
+      if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
+      if(char.portrait===undefined)char.portrait=null;
+      showCharImportPreview(char,function(){
+        snapshotActiveCamp();
+        store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+        var nid=newCampaignId();setActiveCampId(nid);
+        worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+        document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
+        startGame(char,"Sword and Sorcery","");
+      },showCharLibrary);
+    });
+  };
+  window._clibDel=function(slug,name){
+    if(!confirm("Remove "+name+" from the character library?"))return;
+    storageAdapter.deleteCharFromLibrary(slug,function(err){
+      if(err){showToast("Delete failed: "+err);return;}
+      showToast(name+" removed from library.");
+      showCharLibrary();
+    });
+  };
+}
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
   var sec=document.getElementById("companion-section");if(!sec)return;
@@ -1592,6 +1724,8 @@ function showCompanionBrowser(){
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   function getChar(id,cb){
+    // Active campaign: prefer live WSK state (snapshot may be stale — portrait etc.)
+    if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
     var tok=localStorage.getItem("tnd_server_tok_v1")||"";

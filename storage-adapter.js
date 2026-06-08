@@ -318,21 +318,56 @@ var storageAdapter = (function() {
     });
   }
 
+  // ── Character library ────────────────────────────────────────────────────
+
+  function listCharLibrary(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/characters", {
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  function saveCharToLibrary(char, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/characters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body: JSON.stringify({ character: char })
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  function deleteCharFromLibrary(slug, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/characters/" + encodeURIComponent(slug), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────
 
   // Auto-connect immediately (runs on script load)
   autoConnect();
 
   return {
-    setServer:          setServer,
-    isServerMode:       isServerMode,
-    getServerUrl:       getServerUrl,
-    loginWithServer:    loginWithServer,
-    logoutFromServer:   logoutFromServer,
-    load:               load,
-    syncToServer:       syncToServer,
-    syncCampaignList:   syncCampaignList,
-    markPortraitDirty:  markPortraitDirty
+    setServer:             setServer,
+    isServerMode:          isServerMode,
+    getServerUrl:          getServerUrl,
+    loginWithServer:       loginWithServer,
+    logoutFromServer:      logoutFromServer,
+    load:                  load,
+    syncToServer:          syncToServer,
+    syncCampaignList:      syncCampaignList,
+    markPortraitDirty:     markPortraitDirty,
+    listCharLibrary:       listCharLibrary,
+    saveCharToLibrary:     saveCharToLibrary,
+    deleteCharFromLibrary: deleteCharFromLibrary
   };
 
 })();

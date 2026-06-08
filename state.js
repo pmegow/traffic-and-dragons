@@ -10,7 +10,7 @@ var sessionLog=[];
 var memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[]}};
 function saveCore(){try{store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
-function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
+function saveAll(){saveCore();saveMem();updateCampMeta();snapshotActiveCamp();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
 function loadState(){
   try{var ws=store.get(WSK),sl=store.get(SLK),mm=store.get(MEM_KEY);
     if(ws){worldState=JSON.parse(ws);var c=worldState.character;
