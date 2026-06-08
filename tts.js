@@ -15,9 +15,10 @@ var TTS = (function() {
   var _queue      = [];
   var _playing    = false;
   var _paused     = false;
-  var _audioCtx   = null;
-  var _sources    = [];        // scheduled AudioBufferSourceNodes
-  var _abortCtrl  = null;      // AbortController for live fetch
+  var _audioCtx   = null;   // single persistent context, created on first toggle-on
+  var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
+  var _sources    = [];     // scheduled AudioBufferSourceNodes
+  var _abortCtrl  = null;   // AbortController for live fetch
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -30,9 +31,27 @@ var TTS = (function() {
   function toggle() {
     var on = !isOn();
     store.set(ON_K, on ? "1" : "");
-    if (!on) stop();
+    if (on) {
+      _ensureCtx();  // create AudioContext NOW, inside the user gesture
+    } else {
+      stop();
+      _closeCtx();
+    }
     _syncBtn();
     if (typeof showToast === "function") showToast(on ? "🔊 Voice on" : "🔇 Voice off");
+  }
+
+  function _ensureCtx() {
+    if (_audioCtx && _audioCtx.state !== "closed") return _audioCtx;
+    try {
+      _audioCtx  = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+      _nextStart = 0;
+    } catch(e) { console.warn("[tts] AudioContext unavailable:", e.message); }
+    return _audioCtx;
+  }
+
+  function _closeCtx() {
+    if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
   }
 
   function loadSettings() { _syncBtn(); }
@@ -87,29 +106,20 @@ var TTS = (function() {
     var key = getKey();
     if (!key) { _drain(); return; }
 
-    // Create a fresh AudioContext for each utterance
-    var ctx;
-    try {
-      ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
-    } catch(e) {
-      console.warn("[tts] AudioContext unavailable:", e.message);
-      _drain();
-      return;
-    }
-    _audioCtx = ctx;
-    _sources  = [];
-
-    // Resume immediately in case browser auto-suspended it
+    var ctx = _ensureCtx();
+    if (!ctx) { _drain(); return; }
     if (ctx.state === "suspended") ctx.resume();
 
-    var nextStart    = ctx.currentTime + 0.05;  // tiny lead-in
-    var streamDone   = false;
-    var activeSrcs   = 0;
+    _sources = [];
+
+    // Schedule from wherever we left off, but never in the past
+    var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
+    var streamDone = false;
+    var activeSrcs = 0;
 
     function onAllDone() {
-      try { ctx.close(); } catch(e) {}
-      _audioCtx = null;
-      _sources  = [];
+      _sources   = [];
+      _nextStart = 0;
       _drain();
     }
 
@@ -134,7 +144,8 @@ var TTS = (function() {
 
       var startAt = Math.max(nextStart, ctx.currentTime + 0.005);
       src.start(startAt);
-      nextStart = startAt + buf.duration;
+      nextStart  = startAt + buf.duration;
+      _nextStart = nextStart;
 
       activeSrcs++;
       _sources.push(src);
@@ -213,8 +224,6 @@ var TTS = (function() {
     })
     .catch(function(e) {
       if (e.name !== "AbortError") console.warn("[tts]", e.message);
-      try { ctx.close(); } catch(x) {}
-      _audioCtx = null;
       _drain();
     });
   }
@@ -252,8 +261,9 @@ var TTS = (function() {
     for (var i = 0; i < _sources.length; i++) {
       try { _sources[i].onended = null; _sources[i].stop(); } catch(e) {}
     }
-    _sources = [];
-    if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
+    _sources   = [];
+    _nextStart = 0;
+    // Do NOT close _audioCtx — it is persistent and was created during a user gesture
   }
 
   // ── UI helpers ──────────────────────────────────────────────────────────────
