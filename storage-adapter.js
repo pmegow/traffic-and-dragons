@@ -183,11 +183,14 @@ var storageAdapter = (function() {
         return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
       })
     });
+    var narrativeHtml = "";
+    try { var _ne = document.getElementById("story-narrative"); if (_ne) narrativeHtml = _ne.innerHTML; } catch(e) {}
     var payload = JSON.stringify({
-      worldState:  wsStripped,
-      sessionLog:  sessionLog,
-      memory:      memory,
-      campaignId:  campId
+      worldState:    wsStripped,
+      sessionLog:    sessionLog,
+      memory:        memory,
+      campaignId:    campId,
+      narrativeHtml: narrativeHtml
     });
     fetch(_serverUrl + "/api/state", {
       method:  "POST",
@@ -297,6 +300,12 @@ var storageAdapter = (function() {
           if (typeof initSpells    === "function") initSpells();
         }
         syncUI();
+        if (data.narrativeHtml) {
+          try {
+            var _ne2 = document.getElementById("story-narrative");
+            if (_ne2) { _ne2.innerHTML = data.narrativeHtml; _ne2.scrollTop = _ne2.scrollHeight; }
+          } catch(e) {}
+        }
         addMsg("system", "☁ State synced from server (turn " + serverTurn + ").");
       }
       syncCampaignList(null);
