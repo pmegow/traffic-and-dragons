@@ -16,11 +16,12 @@ var storageAdapter = (function() {
   var SERVER_URL_KEY = "tnd_server_url_v1";
   var SERVER_TOK_KEY = "tnd_server_tok_v1";
 
-  var _serverUrl = null;   // null = local mode
-  var _token     = null;
-  var _syncing   = false;
-  var _popup     = null;
-  var _popupCb   = null;
+  var _serverUrl      = null;   // null = local mode
+  var _token          = null;
+  var _syncing        = false;
+  var _portraitDirty  = false;
+  var _popup          = null;
+  var _popupCb        = null;
 
   // ── Auto-connect on page load ───────────────────────────────────────────
   // If a saved server URL + token exist in localStorage, restore server mode.
@@ -148,11 +149,28 @@ var storageAdapter = (function() {
 
   // ── Write-through sync (fire-and-forget) ────────────────────────────────
 
+  function markPortraitDirty() { _portraitDirty = true; }
+
+  function syncPortrait(campId) {
+    if (!_serverUrl || !_token || !campId) return;
+    var portrait = (typeof worldState !== "undefined" && worldState && worldState.character)
+      ? worldState.character.portrait : null;
+    if (!portrait) return;
+    _portraitDirty = false;
+    fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
+      method:  "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body:    JSON.stringify({ portrait: portrait })
+    }).catch(function(e) {
+      _portraitDirty = true;  // retry next save
+      console.warn("[storage] portrait sync failed:", e.message);
+    });
+  }
+
   function syncToServer() {
     if (!_serverUrl || _syncing || typeof worldState === "undefined" || !worldState) return;
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     _syncing = true;
-    // Strip portraits from sync payload — they are large base64 blobs stored locally only
     var wsStripped = Object.assign({}, worldState, {
       character: Object.assign({}, worldState.character, {portrait: null}),
       npcs: (worldState.npcs||[]).map(function(n){
@@ -167,14 +185,12 @@ var storageAdapter = (function() {
     });
     fetch(_serverUrl + "/api/state", {
       method:  "POST",
-      headers: {
-        "Content-Type":  "application/json",
-        "Authorization": "Bearer " + _token
-      },
-      body: payload
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body:    payload
     }).then(function(r) {
       _syncing = false;
-      if (!r.ok) console.warn("[storage] server sync returned", r.status);
+      if (!r.ok) { console.warn("[storage] server sync returned", r.status); return; }
+      if (_portraitDirty) syncPortrait(campId);
     }).catch(function(e) {
       _syncing = false;
       console.warn("[storage] server sync failed:", e.message);
@@ -253,6 +269,9 @@ var storageAdapter = (function() {
           npcs:{}, locations:{}, quests:{}, lore:[], keyDecisions:[],
           futureEvents:[], chapters:[], usedNames:[]
         };
+        if (data.portrait && worldState.character && !worldState.character.portrait) {
+          worldState.character.portrait = data.portrait;
+        }
         saveAll();
         if (wasFresh && typeof showGame === "function") {
           showGame();
@@ -274,14 +293,15 @@ var storageAdapter = (function() {
   autoConnect();
 
   return {
-    setServer:        setServer,
-    isServerMode:     isServerMode,
-    getServerUrl:     getServerUrl,
-    loginWithServer:  loginWithServer,
-    logoutFromServer: logoutFromServer,
-    load:             load,
-    syncToServer:     syncToServer,
-    syncCampaignList: syncCampaignList
+    setServer:          setServer,
+    isServerMode:       isServerMode,
+    getServerUrl:       getServerUrl,
+    loginWithServer:    loginWithServer,
+    logoutFromServer:   logoutFromServer,
+    load:               load,
+    syncToServer:       syncToServer,
+    syncCampaignList:   syncCampaignList,
+    markPortraitDirty:  markPortraitDirty
   };
 
 })();

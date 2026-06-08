@@ -328,7 +328,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.5";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.6";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -698,7 +698,7 @@ async function showPortraitModal(refreshFn,opts){
   var ex=document.getElementById("portrait-modal");if(ex)ex.remove();
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
-  var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;saveAll();};
+  var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();};
   var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:50,y:50};};
   var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y){worldState.character.portraitOffset={x:x,y:y};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;

@@ -186,7 +186,7 @@ async function doRender(){
       portraitBtn.textContent="Saving…";portraitBtn.disabled=true;
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
         var fr=new FileReader();
-        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){worldState.character.portrait=compressed;saveAll();showToast("Portrait updated!");portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;});};
+        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){worldState.character.portrait=compressed;storageAdapter.markPortraitDirty();saveAll();showToast("Portrait updated!");portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;});};
         fr.readAsDataURL(blob);
       }).catch(function(){portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;showToast("Could not save portrait.");});
     });
