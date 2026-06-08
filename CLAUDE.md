@@ -16,22 +16,22 @@ All logic has been extracted from the HTML into separate JS files.
 
 | File | Status | Contents |
 |---|---|---|
-| `dnd_game_1_0.html` | **Active host** | CSS, HTML scaffolding, 9 `<script src>` tags, no inline JS |
-| `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS` |
+| `dnd_game_1_0.html` | **Active host** | CSS, HTML scaffolding, 10 `<script src>` tags, no inline JS |
+| `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS`, `pendingCompanions` |
 | `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
 | `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. |
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
-| `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer` |
+| `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharLibrary`, `saveCharToLibrary`, `deleteCharFromLibrary` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
 | `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
 | `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame` |
-| `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons` |
+| `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots` |
 
 ### Script load order
 
 ```
-globals.js → data.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js
+globals.js → data.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js → tts.js
 ```
 
 Each file depends only on symbols defined by files earlier in this list.
@@ -79,7 +79,7 @@ Each file depends only on symbols defined by files earlier in this list.
 | 4 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
 | 5 – Stats | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table) |
 | 6 – Personality | Trait, flaw, motivation (dropdowns with custom override); alignment; auto-suggested deity for Cleric/Paladin/Druid |
-| 7 – Review | Full character preview + starting location + starting level (1–10) |
+| 7 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) |
 
 After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker → `startGame()`.
 
@@ -155,6 +155,8 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
   partyMember             // bool — always true for the player character
 }
 ```
+
+`worldState` also carries `campId` (string matching `tnd_active_v1`) so the campaign ID survives exports and reimports without creating duplicate campaign slots.
 
 ### 5. API usage
 
@@ -382,12 +384,31 @@ On `init()`, if a saved game is found and `sessionLog` has at least 2 entries, t
 - **HTML built by string concatenation** — no templating engine.
 - **State versioning via key suffix** — all storage keys end in `_v10` (campaigns in `_v1`).
 - **No front-end dependencies** — CSS and JS entirely self-contained.
-- **CSS variables** for theming — palette in `:root`, amber accent `--acc` (#c8922a) is the visual identity color.
+- **CSS variables** for theming — palette in `:root`, amber accent `--acc` (#b8935a) is the visual identity color.
 - **Modals always created fresh** — remove prior instance by ID before creating new one.
 - **`busy` flag** — global boolean gates all API calls. Always set `busy=false` in both success and error paths.
 - **Scrollbars** — custom styled via `::-webkit-scrollbar` rules: 6px wide, near-black track, dark grey thumb, amber on hover.
 - **No pill/chip borders on non-interactive elements** — use plain text, comma-separation, or `cs-list-row` rows instead. Borders imply clickability.
-- **Both file menus must stay in sync** — when adding items to the game screen file menu, mirror them to the char screen file menu (`cs-` prefixed IDs) and vice versa.
+- **Three file menus must stay in sync** — `fm-` (game screen), `cs-fm-` (char screen), `api-fm-` (API key screen). When adding items to any menu, mirror to the others.
+
+---
+
+### 23. Character library (`storage-adapter.js` + server)
+
+Server-side character storage separate from campaigns. Characters are portable snapshots — exporting Ammut at Lv3 stores a Lv3 version; campaigns have no dependency on this store.
+
+**Server table:** `characters (user_id, slug, name, char_data, level, cls, ancestry, updated_at)` — composite PK `(user_id, slug)`. One slot per character name per user.
+
+**Server endpoints:**
+- `GET /api/characters` — list all characters for user (includes full char_data with portrait)
+- `POST /api/characters` — upsert by name slug; body: `{character}`
+- `DELETE /api/characters/:slug` — remove from library
+
+**Client methods on `storageAdapter`:** `listCharLibrary(cb)`, `saveCharToLibrary(char, cb)`, `deleteCharFromLibrary(slug, cb)`
+
+**Export flow:** "Export Character" button (char sheet + companion sheets) opens `_showCharExportOptions(char)` — offers "☁ Save to library" (grayed if not connected) and "⬇ Download .char file". If saving and character already exists in library at a different level, `_showCharOverwriteConfirm` asks before overwriting.
+
+**Import flow:** `showCharLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Library" button in the Import Character browser.
 
 ---
 
@@ -423,6 +444,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.2`
+- Current: `v1.17`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.

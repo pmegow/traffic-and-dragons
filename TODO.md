@@ -5,7 +5,7 @@
 | # | Task | Status |
 |---|---|---|
 | 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
-| 2 | Companions system — campaign start only, max 3 | ⚠ Partially done — import-as-companion and ▶ play switch exist; campaign-start companion selection still needed |
+| 2 | Companions system — campaign start only, max 3 | ✅ Done — step 7 companion browser, up to 3, injected at startGame, introduced in opening narrative |
 | 3 | Narrative flavor / prose style | Pushed to bottom |
 | 4 | Multiple active campaigns review |  |
 | 5 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
@@ -21,6 +21,7 @@
 | 15 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | Pending |
 | 16 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
 | 17 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #14; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | Exploration only |
+| 18 | Character library — server-side, campaign-agnostic character storage | ✅ Done — `characters` table on server, GET/POST/DELETE endpoints, export options modal (library vs file download), overwrite confirmation, library browser with import/delete, Export button on companion sheets |
 
 ---
 

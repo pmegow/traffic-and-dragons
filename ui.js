@@ -1076,7 +1076,7 @@ function showNpcSheet(name){
   var modal=document.createElement("div");modal.id="npc-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:flex-end;margin-bottom:10px;'><button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
     +"<div class='cs-hero-info'>"+heroInfo+"</div></div>"
     +sheetSections
@@ -1087,6 +1087,7 @@ function showNpcSheet(name){
 
   document.body.appendChild(modal);
   document.getElementById("npc-x").addEventListener("click",function(){modal.remove();});
+  if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
 
