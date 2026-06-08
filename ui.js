@@ -328,7 +328,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v2.0";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.10";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1368,23 +1368,11 @@ function campLoad(id){
 function campCloudPush(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
   var pushBtn=document.getElementById("camp-push-"+id);if(pushBtn)pushBtn.style.animation="pulse 1s ease-in-out infinite";
-  var ws=store.get("tnd_camp_"+id+"_ws")||store.get(WSK);
-  var sl=store.get("tnd_camp_"+id+"_sl")||store.get(SLK);
-  var mem=store.get("tnd_camp_"+id+"_mem")||store.get(MEM_KEY);
-  if(!ws){showToast("No local data to push.");return;}
-  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-  var serverUrl=storageAdapter.getServerUrl();
-  var wsObj;try{wsObj=JSON.parse(ws);}catch(e){showToast("Invalid save data.");return;}
-  // Strip portraits
-  var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
-  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl||"[]"),memory:JSON.parse(mem||"{}"),campaignId:id})})
-    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-    .then(function(){
-      // Mark as onServer in local meta
-      var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
-      showToast("☁ Pushed to server.");var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
-    })
-    .catch(function(e){var b=document.getElementById("camp-push-"+id);if(b)b.style.animation="";showToast("Push failed: "+e.message);});
+  campCloudPushSilent(id,function(ok){
+    var b=document.getElementById("camp-push-"+id);if(b)b.style.animation="";
+    if(ok){showToast("☁ Pushed to server.");var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();}
+    else{showToast("Push failed.");}
+  });
 }
 function campCloudPull(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
