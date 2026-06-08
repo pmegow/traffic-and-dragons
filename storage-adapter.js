@@ -281,6 +281,11 @@ var storageAdapter = (function() {
       if (serverTurn > localTurn) {
         var wasFresh = !localOk;
         worldState = data.worldState;
+        // Restore the authoritative campaign ID from the server before saveAll()
+        // fires — without this, getActiveCampId() returns null and syncToServer()
+        // generates a new timestamp-based ID, creating a duplicate campaign record.
+        var _scid = data.campaignId || (worldState && worldState.campId);
+        if (_scid) { if (typeof setActiveCampId === "function") setActiveCampId(_scid); worldState.campId = _scid; }
         sessionLog = data.sessionLog || [];
         memory     = data.memory || {
           npcs:{}, locations:{}, quests:{}, lore:[], keyDecisions:[],
@@ -350,6 +355,16 @@ var storageAdapter = (function() {
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
+  function deleteCampaignFromServer(id, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { console.warn("[storage] campaign delete failed:", e.message); if (cb) cb(e.message); });
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────
 
   // Auto-connect immediately (runs on script load)
@@ -365,9 +380,10 @@ var storageAdapter = (function() {
     syncToServer:          syncToServer,
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
-    listCharLibrary:       listCharLibrary,
-    saveCharToLibrary:     saveCharToLibrary,
-    deleteCharFromLibrary: deleteCharFromLibrary
+    listCharLibrary:            listCharLibrary,
+    saveCharToLibrary:          saveCharToLibrary,
+    deleteCharFromLibrary:      deleteCharFromLibrary,
+    deleteCampaignFromServer:   deleteCampaignFromServer
   };
 
 })();
