@@ -80,7 +80,8 @@ async function sendAction(override){
       worldState.turn++;
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
-      addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
+      addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
+      if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
     }
@@ -118,7 +119,8 @@ async function beginAdventure(){
     var c=worldState.character,w=worldState.world;
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Trait: "+c.trait+". Flaw: "+c.flaw+". Wants: "+c.motivation+". Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with *You could [A]; [B]; or [C].* as always, using semicolons to separate options.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
-    addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""));
+    addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
+    if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
     _promptCampaignFolder();
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message))return;}

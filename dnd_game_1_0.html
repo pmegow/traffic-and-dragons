@@ -116,6 +116,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 ::-webkit-scrollbar-thumb:hover{background:var(--acc)}
 .dice-block{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--bg2);border:1px solid #5a3a0a;border-radius:var(--r);font-size:13px;color:var(--acc)}.dice-block strong{font-size:16px}
 .qa{font-size:11px;padding:5px 11px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:Georgia,serif;display:inline-block;margin:2px 2px 0 0}.qa:hover{border-color:var(--acc);color:var(--acc)}
+.tts-replay{background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:2px 4px;opacity:0.5;vertical-align:middle;line-height:1;}.tts-replay:hover{opacity:1;color:var(--acc);}
 #inputarea{padding:12px 16px;background:var(--bg1);border-top:1px solid var(--brd);flex-shrink:0}
 #inrow{display:flex;gap:8px}
 #userinput{flex:1;padding:10px 14px;font-size:14px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0)}#userinput:focus{outline:none;border-color:var(--acc)}
@@ -261,6 +262,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button id="api-fm-devmode" style="display:flex;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t2);cursor:pointer;text-align:left;justify-content:space-between;align-items:center;box-sizing:border-box;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><span>⚙ Admin</span><span id="api-fm-devmode-arrow" style="font-size:10px;transition:transform .15s;">▶</span></button>
       <div id="api-fm-devmenu" style="display:none;background:var(--bg0);border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:2px 0;">
+        <button id="api-fm-tts-settings" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🔊 Voice Settings&hellip;</button>
         <button id="api-fm-rules" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Narrative rules</button>
         <button id="api-fm-fal-key" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🖼 Render Options&hellip;</button>
         <label id="api-fm-adult-label" style="display:flex;align-items:center;gap:8px;padding:7px 22px;font-size:12px;font-family:Georgia,serif;color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="checkbox" id="api-fm-adult-cb" style="accent-color:var(--acc);cursor:pointer;width:13px;height:13px;"/> 18+ Adult content</label>
@@ -294,6 +296,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button id="cs-fm-devmode" style="display:flex;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t2);cursor:pointer;text-align:left;justify-content:space-between;align-items:center;box-sizing:border-box;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><span>⚙ Admin</span><span id="cs-fm-devmode-arrow" style="font-size:10px;transition:transform .15s;">▶</span></button>
       <div id="cs-fm-devmenu" style="display:none;background:var(--bg0);border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:2px 0;">
+        <button id="cs-fm-tts-settings" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🔊 Voice Settings&hellip;</button>
         <button id="cs-fm-rules" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Narrative rules</button>
         <button id="cs-fm-fal-key" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🖼 Render Options&hellip;</button>
         <label id="cs-fm-adult-label" style="display:flex;align-items:center;gap:8px;padding:7px 22px;font-size:12px;font-family:Georgia,serif;color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="checkbox" id="cs-fm-adult-cb" style="accent-color:var(--acc);cursor:pointer;width:13px;height:13px;"/> 18+ Adult content</label>
@@ -343,6 +346,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <button class="ib" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button>
       <button class="ib" id="state-btn" title="View full world state in sidebar panel">World State</button>
       <button class="ib" id="render-btn" title="Generate a photorealistic scene prompt for image AI">Render</button>
+      <button class="ib" id="tts-btn" title="Toggle voice narration" style="opacity:0.5;">🔇</button>
       <div style="position:relative;">
         <button class="ib" id="file-btn" title="File operations: save, load, export, settings">File &#9660;</button>
         <div id="file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
@@ -359,6 +363,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
           <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
           <button id="fm-devmode" style="display:flex;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t2);cursor:pointer;text-align:left;justify-content:space-between;align-items:center;box-sizing:border-box;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><span>⚙ Admin</span><span id="fm-devmode-arrow" style="font-size:10px;transition:transform .15s;">▶</span></button>
           <div id="fm-devmenu" style="display:none;background:var(--bg0);border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:2px 0;">
+            <button id="fm-tts-settings" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🔊 Voice Settings&hellip;</button>
             <button id="fm-rules" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Narrative rules</button>
             <button id="fm-fal-key" style="display:block;width:100%;padding:7px 22px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">🖼 Render Options…</button>
             <label id="fm-adult-label" style="display:flex;align-items:center;gap:8px;padding:7px 22px;font-size:12px;font-family:Georgia,serif;color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="checkbox" id="fm-adult-cb" style="accent-color:var(--acc);cursor:pointer;width:13px;height:13px;"/> 18+ Adult content</label>
@@ -391,6 +396,11 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <div class="pss" id="pss-sp"><div class="psh" id="psh-sp"><span class="psic">Sp</span><span class="pst">Spells</span><div class="psrt"><span class="psbdg" id="sp-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="sp-list"></div></div></div>
     </div>
   </div>
+  <div id="tts-bar" style="display:none;align-items:center;justify-content:center;gap:24px;padding:8px 16px;background:var(--bg1);border-top:1px solid var(--brd);flex-shrink:0;">
+    <button id="tts-pause-btn" onclick="TTS.pause()" style="font-size:24px;background:none;border:none;color:var(--t0);cursor:pointer;padding:6px 14px;min-width:52px;min-height:52px;line-height:1;">⏸</button>
+    <span style="font-size:12px;color:var(--t2);font-style:italic;">Speaking&hellip;</span>
+    <button id="tts-skip-btn" onclick="TTS.skip()" style="font-size:24px;background:none;border:none;color:var(--t0);cursor:pointer;padding:6px 14px;min-width:52px;min-height:52px;line-height:1;">⏭</button>
+  </div>
   <div id="inputarea">
     <div id="inrow"><input type="text" id="userinput" placeholder="What do you do?" autocomplete="off" autocapitalize="sentences"/><button id="sendbtn" title="Send your action to the Game Master">Send</button></div>
     <div id="chat-tabs"><button class="chat-tab active" id="tab-narrative" onclick="switchTab('narrative')">Story</button><button class="chat-tab" id="tab-tabletalk" onclick="switchTab('tabletalk')">Table Talk <span class="tab-badge" id="tab-tt-badge"></span></button></div>
@@ -406,6 +416,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <script src="char-creation.js"></script>
 <script src="game.js"></script>
 <script src="ui.js"></script>
+<script src="tts.js"></script>
 <script>
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){
