@@ -330,7 +330,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.19";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.20";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -365,6 +365,8 @@ function toggleFontSize(){
 }
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
 function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});}
+function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=legacyCharsOn;});["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=legacyChancePct;});}
+function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}
 
 // ── Server connect / disconnect ──────────────────────────────────────────────
 var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
@@ -1859,10 +1861,27 @@ function wireButtons(){
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){
+  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg","fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
     var lbl=el.closest("label")||el.parentElement;
     if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
+  });
+  // Legacy characters checkbox + chance input
+  ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.addEventListener("change",function(){
+      legacyCharsOn=el.checked;saveLegacySettings();
+      ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(oid){var o=document.getElementById(oid);if(o&&o!==el)o.checked=el.checked;});
+    });
+  });
+  ["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.addEventListener("change",function(){
+      var v=parseInt(el.value,10);if(isNaN(v)||v<1)v=1;if(v>100)v=100;
+      el.value=v;legacyChancePct=v;saveLegacySettings();
+      ["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(oid){var o=document.getElementById(oid);if(o&&o!==el)o.value=v;});
+    });
+    el.addEventListener("click",function(e){e.stopPropagation();});
   });
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
@@ -1949,5 +1968,5 @@ function showRenderOptionsModal(){
   });
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
-function init(){loadRules();loadAdultMode();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
+function init(){loadRules();loadAdultMode();loadLegacySettings();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
 window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});

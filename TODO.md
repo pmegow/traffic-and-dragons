@@ -5,25 +5,21 @@
 | # | Task | Status |
 |---|---|---|
 | 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
-| 2 | Companions system — campaign start only, max 3 | ✅ Done — step 7 companion browser, up to 3, injected at startGame, introduced in opening narrative |
-| 3 | Narrative flavor / prose style | Pushed to bottom |
-| 4 | Multiple active campaigns review |  |
-| 5 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
-| 6 | Text to speech — separate voices for GM, player, NPCs, and system. Car audio is a primary use case. | ⚠ Partially done — GM voice working, per-character voices pending |
-| 7 | **[subtask]** Table Talk voice — voice for out-of-character tab | Deferred to second pass |
-| 8 | **[subtask / reach]** Car Mode — dedicated UX: large touch targets, auto-play on, voice input, suggested actions read as numbered list | Reach goal |
-| 9 | **[subtask]** Per-character voices — GM, player, NPCs each get an assigned voice ID stored on the character/NPC object | Pending |
-| 10 | Game document |  |
-| 11 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
-| 12 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
-| 13 | Swappable LLM support — provider adapter in `callGM()`, key storage per provider, provider selector in Admin menu |  |
-| 14 | **[subtask]** ChatGPT (OpenAI) — `api.openai.com/v1/chat/completions`; messages format nearly identical to Anthropic; lowest-effort, highest-value first target | Pending |
-| 15 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | Pending |
-| 16 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
+| 3 | Multiple active campaigns — each player runs their own campaign simultaneously (e.g. two household members on separate devices). Currently works if each person uses their own GitHub account for server sync. Becomes a first-class requirement when the subscription model lands — subscription accounts replace GitHub accounts as the isolation boundary. | Works today via per-user GitHub auth; revisit at subscription launch |
+| 4 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | Design done — not implemented |
+| 5 | Text to speech — separate voices for GM, player, NPCs, and system. Car audio is a primary use case. | ⚠ Partially done — GM voice working, per-character voices pending |
+| 6 | **[subtask]** Table Talk voice — voice for out-of-character tab | Deferred to second pass |
+| 7 | **[subtask / reach]** Car Mode — dedicated UX: large touch targets, auto-play on, voice input, suggested actions read as numbered list | Reach goal |
+| 8 | **[subtask]** Per-character voices — GM, player, NPCs each get an assigned voice ID stored on the character/NPC object | Pending |
+| 9 | Game document |  |
+| 10 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
+| 11 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
+| 12 | Swappable LLM support — provider adapter in `callGM()`, key storage per provider, provider selector in Admin menu |  |
+| 13 | **[subtask]** ChatGPT (OpenAI) — `api.openai.com/v1/chat/completions`; messages format nearly identical to Anthropic; lowest-effort, highest-value first target | Pending |
+| 14 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | Pending |
+| 15 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
 | 17 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #14; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | Exploration only |
-| 18 | Character library — server-side, campaign-agnostic character storage | ✅ Done — `characters` table on server, GET/POST/DELETE endpoints, export options modal (library vs file download), overwrite confirmation, library browser with import/delete, Export button on companion sheets |
-| 20 | Improve XP tracking — details TBD | Pending |
-| 19 | **[subtask]** Narrator voice bank — replace the raw GM Voice ID text input in voice settings with a named dropdown. Store a user-editable list of `{id, name}` voice entries in localStorage. A `+` button opens an "Add voice" form (name + ElevenLabs voice ID). The dropdown replaces the current free-text field; selecting a voice sets the active GM voice ID. Prerequisite for per-character voice assignment (#9). | ✅ Done — named dropdown, `+ Add` inline form, per-entry delete, auto-selects on add, stored in `tnd_voice_bank_v1` |
+| 20 | Per-turn relationship and XP tracking for all party members — relationship status and XP for companions and player should update on the character sheet after significant events (combat, key decisions, major NPC interactions). Both tracked per-turn, visible on the sheet without opening a modal. | Pending |
 
 ---
 

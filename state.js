@@ -18,7 +18,7 @@ function loadState(){
       if(typeof c.hp!=="number"||isNaN(c.hp))c.hp=c.maxHp||8;if(typeof c.gold!=="number"||isNaN(c.gold))c.gold=0;
       if(!c.abilities)c.abilities=[];if(!c.spells)c.spells=[];
       for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0)c.spells[si].used=false;}// cantrips never expend
-      var _m=false;if(!worldState.npcs){worldState.npcs=[];_m=true;}if(!worldState.questLog){worldState.questLog=[];_m=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_m=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_m=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_m=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_m=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_m=true;}}if(_m)saveCore();}
+      var _m=false;if(!worldState.npcs){worldState.npcs=[];_m=true;}if(!worldState.questLog){worldState.questLog=[];_m=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_m=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_m=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_m=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_m=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_m=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_m=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_m=true;}if(_m)saveCore();}
     if(sl)sessionLog=JSON.parse(sl);
     if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
     if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
@@ -29,7 +29,7 @@ function loadState(){
     return !!ws;}catch(e){return false;}
 }
 // ── Campaign management ───────────────────────────────────────────────────────
-var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";
+var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";
 function getCampMeta(){try{var r=store.get(CAMP_META_K);return r?JSON.parse(r):[]}catch(e){return[];}}
 function setCampMeta(arr){store.set(CAMP_META_K,JSON.stringify(arr));}
 function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}

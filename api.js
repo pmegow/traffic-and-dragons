@@ -57,6 +57,8 @@ function buildSysPrompt(){
   var cb="";if(worldState.combat){var cm=worldState.combat;var cbStats="";if(cm.stats)cbStats=" | STR:"+cm.stats.STR+" DEX:"+cm.stats.DEX+" CON:"+cm.stats.CON+" INT:"+cm.stats.INT+" WIS:"+cm.stats.WIS+" CHA:"+cm.stats.CHA+" CR:"+cm.stats.CR;var cbDmgMod="";if(cm.immune&&cm.immune.length)cbDmgMod+=" | Immune:"+cm.immune.join(",");if(cm.resist&&cm.resist.length)cbDmgMod+=" | Resist:"+cm.resist.join(",");if(cm.vuln&&cm.vuln.length)cbDmgMod+=" | Vuln:"+cm.vuln.join(",");cb="COMBAT ACTIVE:\nEnemy: "+cm.name+" HP:"+cm.hp+"/"+cm.maxHp+" AC:"+cm.ac+" Atk:+"+cm.atk+" Dmg:"+cm.dmg+" Morale:"+cm.morale+" Round:"+cm.round+cbStats+cbDmgMod+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var memToc=memoryTOC();
+  var legacyBlock="";
+  if(worldState.pendingLegacy){var _lc=worldState.pendingLegacy;legacyBlock="LEGACY CHARACTER — INTRODUCE THIS SESSION:\nA figure from another story walks this world: "+_lc.name+", a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")."+(_lc.backstory?" History: "+_lc.backstory:"")+(_lc.trait?" Known trait: "+_lc.trait+".":"")+"\nIntroduce them organically as a background NPC within the next 1-2 turns — do not force them into the scene unnaturally. They have no memory of a prior life. Register them with [NPC:"+_lc.name+"|alive|neutral].\n\n";}
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.content;}).join(" ");for(i=0;i<npcNames.length;i++){if(recent.indexOf(npcNames[i])>=0)hotNpcs+=memoryNpcDetail(npcNames[i])+"\n";}}
   var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+" | Trait: "+c.trait+" | Flaw: "+c.flaw+"\n\n";
@@ -75,6 +77,7 @@ function buildSysPrompt(){
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
   +(function(){var s=getNameSuggestions(10);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
+    +legacyBlock
     +buildNpcGraph()
     +buildGeoBlock()
     +cb+hist

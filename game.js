@@ -9,7 +9,7 @@ function startGame(char,toneName,toneVoice){
   if(char.portrait===undefined)char.portrait=null;
   if(!char.backstory)char.backstory="";
   if(!char.storyBeats)char.storyBeats=[];
-  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
+  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
   delete worldState.character._startLoc;delete worldState.character._campName;
   sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   // Add any companions selected during character creation
@@ -24,6 +24,29 @@ function startGame(char,toneName,toneVoice){
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
   beginAdventure();
+}
+function checkLegacyCharacter(){
+  if(!legacyCharsOn||!worldState)return;
+  if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];
+  if(worldState.pendingLegacy)return;
+  if(Math.random()*100>=legacyChancePct)return;
+  var meta=getCampMeta(),activeId=getActiveCampId(),candidates=[],i;
+  for(i=0;i<meta.length;i++){
+    if(meta[i].id===activeId)continue;
+    var raw=store.get("tnd_camp_"+meta[i].id+"_ws");if(!raw)continue;
+    try{
+      var ws=JSON.parse(raw);var ch=ws&&ws.character;
+      if(!ch||!ch.name)continue;
+      if(worldState.legacyCharsUsed.indexOf(ch.name)>=0)continue;
+      if(worldState.character&&ch.name===worldState.character.name)continue;
+      candidates.push(ch);
+    }catch(e){}
+  }
+  if(!candidates.length)return;
+  var pick=candidates[Math.floor(Math.random()*candidates.length)];
+  worldState.pendingLegacy={name:pick.name,cls:pick.cls||"",ancestry:pick.subraceNm||pick.ancestry||"",level:pick.level||1,backstory:pick.backstory||"",trait:pick.trait||"",queuedAt:worldState.turn};
+  saveCore();
+  if(typeof showToast==="function")showToast("☠ A familiar face approaches...");
 }
 function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
@@ -87,7 +110,9 @@ async function sendAction(override){
     else{
       worldState.turn++;
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
-      applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
+      applyMuts(resp);
+      if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;if(resp.indexOf(_lcn)>=0||(worldState.turn-worldState.pendingLegacy.queuedAt)>=5){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}}
+      var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
       if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});

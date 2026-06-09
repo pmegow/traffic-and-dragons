@@ -26,3 +26,5 @@ var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
+var legacyCharsOn=false;
+var legacyChancePct=5;
