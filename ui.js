@@ -1858,6 +1858,12 @@ function wireButtons(){
   document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
+  // Stop checkbox label clicks from bubbling to the document close-menu handler
+  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    var lbl=el.closest("label")||el.parentElement;
+    if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
+  });
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
