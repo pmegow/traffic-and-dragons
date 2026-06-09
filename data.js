@@ -101,6 +101,7 @@ var DEFAULT_RULES=[
   "Player death must be possible. Do not shield the player from consequences.",
   "Never break character or acknowledge being an AI.",
   "Never repeat lore the player already knows. Check memory first.",
+  "Never reuse a specific detail, phrase, number, or image you have already used in this session. The conversation history is your reference — if you wrote it once (e.g. 'eight years', 'crimson blade', 'the old debt'), do not write it again. Find a different angle or omit it entirely.",
   "NPCs must behave consistently with their recorded attitude and knowledge.",
   "NPC pronouns are absolute once established. Never use a different pronoun for any NPC. If the player corrects you, immediately emit [NPC_PRONOUN:name|correct/pronouns] and never deviate again.",
   "Pending future events must be honored when their time arrives.",
