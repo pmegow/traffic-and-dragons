@@ -62,7 +62,7 @@ function buildSysPrompt(){
   var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+" | Trait: "+c.trait+" | Flaw: "+c.flaw+"\n\n";
   var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, crude language, and graphic mature themes are fully permitted and encouraged when narratively appropriate. Do not fade to black, do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
   return identity+getRulesBlock()+adultBlock
-    +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid, atmospheric, second-person prose. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
+    +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid, economical, second-person prose. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
     +tb
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
@@ -108,7 +108,7 @@ function buildSysPrompt(){
     +"[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n"
     +"[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only\n\n"
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
-    +"STYLE: 2-3 sentences vivid second-person. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
+    +"STYLE: HARD LIMIT — prose must be 2-3 sentences maximum, never more. Then the suggestion line. No exceptions, no matter how dramatic the moment. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
 }
 function cleanTxt(t){
   return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL):[^\]]+\]/g,"")
