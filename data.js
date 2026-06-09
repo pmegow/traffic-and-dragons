@@ -106,7 +106,8 @@ var DEFAULT_RULES=[
   "Pending future events must be honored when their time arrives.",
   "Do not introduce major new NPCs without narrative reason. Use existing NPCs when possible.",
   "Currency is tracked in gold pieces (gp) only. Exchange rate: 10 silver pieces (sp) = 1 gp; 100 copper pieces (cp) = 1 gp. When any transaction is in silver or copper, convert to gp first, then emit [GOLD:±N]. NEVER re-denominate the player's existing gold balance to another denomination -- it is always stored and displayed in gp.",
-  "When naming a new NPC, choose from the AVAILABLE NAMES list provided in the system prompt. NEVER use a name on the USED NAMES list. If no available names remain, invent a thematic name in the same style as the provided pool."
+  "When naming a new NPC, choose from the AVAILABLE NAMES list provided in the system prompt. NEVER use a name on the USED NAMES list. If no available names remain, invent a thematic name in the same style as the provided pool.",
+  "Be economical with words. Favour punchy, precise prose over elaborate description. Never restate what the player just did. Never narrate the obvious. Cut any sentence that adds atmosphere but no information."
 ];
 var DEITY_CENTRIC=["Cleric","Paladin","Druid"];
 var DEITY_MAP={
