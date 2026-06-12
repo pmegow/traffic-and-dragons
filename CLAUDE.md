@@ -23,9 +23,9 @@ All logic has been extracted from the HTML into separate JS files.
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
 | `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharLibrary`, `saveCharToLibrary`, `deleteCharFromLibrary` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
-| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
+| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `findCompanionChar`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
-| `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame` |
+| `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame`, `syncCharSheet`, `checkLegacyCharacter`, `checkCompanionLevelUp` |
 | `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots` |
 
 ### Script load order
@@ -236,6 +236,15 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[SAVE_MOD_REMOVED:source]` | Filter matching save modifier |
 | `[LANGUAGE:name|fluent/broken]` | Push or update language in `character.languages` |
 | `[STORY_BEAT:text]` | Push `{text, turn}` to `character.storyBeats`; also calls `fileDecision` |
+| `[COMPANION_HP:Name\|+/-N]` | Adjust HP on named party member's `charSheet` (clamped to its maxHp) |
+| `[COMPANION_CONDITION:Name\|cond\|dur]` / `[COMPANION_CONDITION_REMOVED:Name\|cond]` | Add/remove condition on companion `charSheet` |
+| `[COMPANION_RELATIONSHIP:Name\|entity\|descriptor]` / `[COMPANION_RELATIONSHIP_REMOVED:Name\|entity]` | Upsert/remove relationship on companion `charSheet` |
+| `[COMPANION_ITEM_GAINED:Name\|item]` / `[COMPANION_ITEM_LOST:Name\|item]` | Push/filter companion `charSheet.inventory` |
+| `[COMPANION_XP:Name\|N]` | Add XP to companion `charSheet` |
+| `[COMPANION_ABILITY:Name\|nm\|desc]` | Append ability to companion `charSheet.abilities` (deduplicated) |
+| `[COMPANION_ALIGNMENT:Name\|law+1]` | Shift companion `alignLaw`/`alignGood`, recompute `actualAlignment` |
+
+**Companion tags** all route through `findCompanionChar(name)` in `api.js`, which matches a party member by name (`npc.partyMember && npc.charSheet`). They mutate the companion's `charSheet` object rather than `worldState.character`. The GM is instructed (via `buildSysPrompt` COMPANION SHEET TAGS block + DEFAULT_RULES upkeep rule) to use the `COMPANION_` prefix when an event affects a party member instead of the player.
 
 ### 8. Memory / summarization system (in `memory.js`)
 
@@ -289,6 +298,10 @@ Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, mora
 - Class feature at new level added from `CLASS_FEATURES`
 - Level 3: `showArchetypeModal()`
 - Levels 4, 8: `showStatBumpModal()` (+2 to one stat or +1 to two, max 20)
+
+`checkCompanionLevelUp(cs)` called from the `[COMPANION_XP:]` handler — companions auto-level silently (HP gain + class features, same formula) with a toast and system message, but no archetype or stat-bump modals.
+
+**First-encounter memory:** the first time an NPC enters `memory.npcs` via `[NPC:]` or `[PARTY_MEMBER:|true]`, a `firstEncounter` snippet is stored — the cleaned response prose with the trailing suggestion line stripped, cut at a sentence boundary (~280 chars max), computed once per response (lazy). Written once, never overwritten; preserved across `[NPC_MERGE:]`. Injected as "First met:" in `memoryNpcDetail()`.
 
 ### 12. Alignment drift
 
@@ -358,6 +371,8 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 **No pill/chip borders anywhere** — all data rendered as plain text. Commas separate list items. Used spells get `text-decoration:line-through` + dim color. Broken languages shown in amber with `(broken)` suffix.
 
 **Sections:** Hero card · Attributes · Character (trait/flaw/motivation/backstory) · Conditions · Relationships · Languages · Save Modifiers · Skills (earned only) · Story Beats · Abilities · Spells · Inventory
+
+**⟳ Sync button** (header, beside Export Character) calls `syncCharSheet()` in `game.js`. It sends an internal GM audit prompt (not a player turn) asking the GM to emit ONLY state tags for anything missing or changed on the player AND every party member — using `COMPANION_*` tags for companions. The prompt enumerates each party member by name. Response passes through `applyMuts()`; the sheet then closes and reopens. Gated by `busy`; uses a 500-token budget. Provides a manual fallback for older sessions where the GM didn't emit upkeep tags inline.
 
 ### 21. NPC alias system
 
@@ -444,6 +459,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.17`
+- Current: `v1.26`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.

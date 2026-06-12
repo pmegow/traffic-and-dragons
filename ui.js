@@ -155,7 +155,7 @@ function compressPortrait(dataUrl,cb){
   img.onerror=function(){cb(dataUrl);}; // fallback: store as-is if canvas fails
   img.src=dataUrl;
 }
-function showToast(msg){var t=document.createElement("div");t.textContent=msg;t.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1800;border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:Georgia,serif;z-index:400;pointer-events:none;";document.body.appendChild(t);setTimeout(function(){t.style.opacity="0";setTimeout(function(){t.remove();},500);},2000);}
+function showToast(msg){var live=document.querySelectorAll(".tnd-toast").length;var t=document.createElement("div");t.className="tnd-toast";t.textContent=msg;t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:#1e1800;border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:Georgia,serif;z-index:400;pointer-events:none;";document.body.appendChild(t);setTimeout(function(){t.style.opacity="0";setTimeout(function(){t.remove();},500);},2000);}
 function showLoadingModal(msg){
   var ex=document.getElementById("loading-modal");if(ex)ex.remove();
   if(!document.getElementById("lm-kf")){var s=document.createElement("style");s.id="lm-kf";s.textContent="@keyframes lm-spin{to{transform:rotate(360deg)}}";document.head.appendChild(s);}
@@ -194,6 +194,7 @@ function updateHUD(){
   document.getElementById("hud-gold").textContent=c.gold+" gp";
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=w.location;
+  var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=XP_LEVELS[c.level];var xpTxt=nxp!==undefined?c.xp+" / "+nxp+" xp":c.xp+" xp (max)";var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
   // ── Party HUD (compact cards — second topbar row) ─────────────────────────
   var hudParty=document.getElementById("hud-party");
   if(hudParty){
@@ -209,10 +210,12 @@ function updateHUD(){
         if(pmSheet&&pmSheet.maxHp){
           var pct=Math.max(0,Math.min(100,Math.round((pmSheet.hp||0)/pmSheet.maxHp*100)));
           var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";
+          var pmXpHtml="";if(pmSheet.xp!==undefined&&pmSheet.level!==undefined){var pmNextXp=XP_LEVELS[pmSheet.level];pmXpHtml="<span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-left:2px;'>"+pmSheet.xp+"/"+(pmNextXp!==undefined?pmNextXp:"max")+" xp</span>";}
           card.innerHTML=nameSpan
             +"<div style='width:48px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;flex-shrink:0;'>"
             +"<div style='width:"+pct+"%;height:100%;background:"+hpClr+";border-radius:3px;'></div></div>"
-            +"<span style='color:#e06060;flex-shrink:0;'>"+(pmSheet.hp||0)+"/"+pmSheet.maxHp+"</span>";
+            +"<span style='color:#e06060;flex-shrink:0;'>"+(pmSheet.hp||0)+"/"+pmSheet.maxHp+"</span>"
+            +pmXpHtml;
         }else{
           card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"ally")+"</span>";
         }
@@ -330,7 +333,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.20";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.26";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -641,7 +644,7 @@ function showCharSheet(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
 
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
@@ -687,6 +690,7 @@ function showCharSheet(){
   document.body.appendChild(modal);
   document.getElementById("cs-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
+  document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   // ── collapsible sections ──────────────────────────────────────────────────
   (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();

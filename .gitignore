@@ -4,3 +4,9 @@
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Local backups
+BAK/
+
+# Personal Claude Code settings (hooks + launch.json ARE committed)
+.claude/settings.local.json

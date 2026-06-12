@@ -110,6 +110,8 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 .msg.render-out{background:var(--bg1);border:1px solid var(--acc);color:var(--t1);font-size:12px;line-height:1.6;position:relative}
 .copy-btn{position:absolute;top:8px;right:8px;font-size:10px;padding:3px 8px;border:1px solid var(--brd2);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:Georgia,serif}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes xp-pulse{0%{color:var(--t2)}40%{color:var(--acc);font-weight:bold}100%{color:var(--t2)}}
+.xp-pulse{animation:xp-pulse 0.8s ease-out;}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
@@ -182,7 +184,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   #hud-btns    { flex-shrink: 0; margin-left: auto; }
   #sync-btn, #render-btn, #state-btn { display: none; }
   .fm-mobile-only { display: block !important; }
-  #hud-loc, #hud-align, #hud-party { display: none !important; }
+  #hud-loc, #hud-align, #hud-party, #hud-xp { display: none !important; }
   #file-menu { right: 0; left: auto; max-width: calc(100vw - 16px); }
   .qa      { padding: 8px 13px; font-size: 12px; }
   .ib      { padding: 7px 11px; }
@@ -344,6 +346,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <span style="color:var(--acc);" id="hud-gold"></span>
       <span style="color:var(--t1);" id="hud-align"></span>
       <span style="color:var(--t2);max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="hud-loc"></span>
+      <span style="color:var(--t2);font-size:11px;" id="hud-xp"></span>
     </div>
     <div id="hud-party" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;"></div>
     <div id="hud-btns" style="display:flex;gap:6px;align-items:center;">

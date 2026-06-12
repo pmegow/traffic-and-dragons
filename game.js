@@ -57,6 +57,24 @@ function checkLevelUp(){
   if(newLvl===3&&!c.archetype)showArchetypeModal();
   else if(STAT_BUMP_LEVELS.indexOf(newLvl)>=0)showStatBumpModal();
 }
+function checkCompanionLevelUp(cs){
+  // Companion auto-level: HP + class features only. No archetype/stat-bump modals —
+  // companions level silently; the GM narrates growth if it matters.
+  if(!cs||typeof cs.xp!=="number")return;
+  if(typeof cs.level!=="number"||cs.level<1)cs.level=1;
+  var newLvl=getLvl(cs.xp);if(newLvl<=cs.level)return;
+  var oldLvl=cs.level,i,cls=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}
+  while(cs.level<newLvl){
+    cs.level++;
+    var conMod=cs.stats&&typeof cs.stats.CON==="number"?Math.floor((cs.stats.CON-10)/2):0;
+    var hpGain=cls?Math.ceil(cls.hd/2)+1+conMod:3;hpGain=Math.max(1,hpGain);
+    cs.maxHp=(cs.maxHp||0)+hpGain;cs.hp=(cs.hp||0)+hpGain;
+    var features=CLASS_FEATURES[cs.cls]||{};
+    if(features[cs.level]){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:"Lv"+cs.level,ds:features[cs.level],gained:worldState?worldState.turn:0});}
+  }
+  addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
+  showToast((cs.name||"Companion")+" reached level "+newLvl+"!");
+}
 function showArchetypeModal(){
   var c=worldState.character,archs=ARCHETYPES[c.cls]||[];var ex=document.getElementById("arch-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="arch-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;";
@@ -294,6 +312,32 @@ function initSpells(){
     var src=SPELLS[c.cls]||(c.archetype?ARCH_SPELLS[c.archetype]:null);
     if(src){if(!c.spells)c.spells=[];var i,sl,maxSlot=c.level>=5?3:c.level>=3?2:1;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}for(sl=1;sl<=maxSlot;sl++){if(src[sl]){for(i=0;i<src[sl].length;i++)c.spells.push({nm:src[sl][i],lvl:sl,used:false});}}}}
   updateSpPanel();
+}
+async function syncCharSheet(){
+  if(busy||!worldState)return;
+  busy=true;
+  if(typeof showToast==="function")showToast("Syncing sheet…");
+  var companions=[];var pi;for(pi=0;pi<worldState.npcs.length;pi++){if(worldState.npcs[pi].partyMember&&worldState.npcs[pi].charSheet)companions.push(worldState.npcs[pi].name);}
+  var compLine=companions.length?"Party members to also audit: "+companions.join(", ")+". For each use COMPANION_ prefixed tags: [COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_CONDITION:Name|cond|dur] [COMPANION_CONDITION_REMOVED:Name|cond] [COMPANION_ALIGNMENT:Name|law+1].":"";
+  var auditMsg="[GM SHEET SYNC — internal, not a player action] Audit ALL character sheets against events in this session. "
+    +"Emit ONLY state tags — zero prose, zero narration, zero 'You could' line. "
+    +"For the player — allowed tags: [RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] [CONDITION:name|duration] [CONDITION_REMOVED:name] "
+    +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1). "
+    +compLine+" "
+    +"Do NOT emit XP, HP, GOLD, ITEM_GAINED, or ITEM_LOST tags — those are tracked turn-by-turn. "
+    +"Only emit tags for things that have actually changed or are genuinely missing. "
+    +"If nothing needs updating, reply with a single period only.";
+  try{
+    var resp=await callGM(auditMsg,null,500);
+    applyMuts(resp);
+    saveAll();
+    if(typeof showToast==="function")showToast("Sheet synced.");
+    var ex=document.getElementById("cs-modal");if(ex)ex.remove();
+    if(typeof showCharSheet==="function")showCharSheet();
+  }catch(e){
+    if(typeof showToast==="function")showToast("Sync failed: "+(e.message||"unknown error"));
+  }
+  busy=false;
 }
 function newGame(){
   var modal=document.createElement("div");modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;";
