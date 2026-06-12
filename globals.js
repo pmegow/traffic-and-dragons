@@ -14,7 +14,9 @@ var RENDER_MODELS=[
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
    img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",
-            body:function(p,imgUrl){return {prompt:p,image_url:imgUrl,strength:0.6,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
+            // qwen-image-edit is edit-style: it preserves the input image unless strength is high.
+            // At 0.6 it returned near-copies of the portrait instead of the scene prompt.
+            body:function(p,imgUrl){return {prompt:p,image_url:imgUrl,strength:0.9,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
 ];
 var renderModel="fal-ai/flux/dev";
 var panelCol=false,secCol={inv:false,ab:false,sp:false};
@@ -28,3 +30,4 @@ var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted b
 var adultMode=false;
 var legacyCharsOn=false;
 var legacyChancePct=5;
+var _sbPicks=[]; // stat-bump modal picks (was window._sbPicks — F-11)

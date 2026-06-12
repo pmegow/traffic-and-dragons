@@ -1,4 +1,4 @@
-var CACHE = "tnd-v2-20260604";
+var CACHE = "tnd-v3-20260612";
 var APP_SHELL = [
   "/dnd_game_1_0.html",
   "/globals.js",
@@ -11,6 +11,7 @@ var APP_SHELL = [
   "/char-creation.js",
   "/game.js",
   "/ui.js",
+  "/tts.js",
   "/manifest.json",
   "/icon.svg"
 ];
@@ -33,19 +34,23 @@ self.addEventListener("activate", function(e){
   self.clients.claim();
 });
 
+// NETWORK-FIRST, cache fallback. The old cache-first strategy pinned every
+// installed browser to whatever was cached until the CACHE constant changed —
+// deploys were invisible without "Clear cache & reload". The game needs the
+// network for every turn anyway; the cache exists only so the shell still
+// opens offline.
 self.addEventListener("fetch", function(e){
-  // Only cache same-origin requests — let API calls through uncached
+  // Only handle same-origin requests — let API calls through untouched
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
   e.respondWith(
-    caches.match(e.request).then(function(cached){
-      if(cached) return cached;
-      return fetch(e.request).then(function(response){
-        if(response && response.status === 200 && response.type === "basic"){
-          var clone = response.clone();
-          caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
-        }
-        return response;
-      });
+    fetch(e.request).then(function(response){
+      if(response && response.status === 200 && response.type === "basic"){
+        var clone = response.clone();
+        caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
+      }
+      return response;
+    }).catch(function(){
+      return caches.match(e.request);
     })
   );
 });
