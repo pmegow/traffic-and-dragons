@@ -3,7 +3,7 @@
 ## Feature backlog
 
 | # | Task | Effort | Status |
-|---|---|---|---|
+|---|---|:---:|---|
 | 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | XL | Unblocked — needs HUD (#10) first |
 | 2 | Multiple active campaigns — each player runs their own campaign simultaneously (e.g. two household members on separate devices). Currently works if each person uses their own GitHub account for server sync. Becomes a first-class requirement when the subscription model lands — subscription accounts replace GitHub accounts as the isolation boundary. | — | Works today via per-user GitHub auth; revisit at subscription launch |
 | 3 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | — | ✅ Done — ready to test. Enable via Admin menu checkbox + chance % input. Set to 100% to force on next session load. |

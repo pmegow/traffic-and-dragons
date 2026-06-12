@@ -86,6 +86,15 @@
     /* Lock task column — don't let it shrink */
     td.task-td,th.task-th{min-width:400px;}
     #task-table{table-layout:fixed;width:100%;}
+    /* Effort column */
+    th.effort-th{width:58px;text-align:center;}
+    td.effort-td{width:58px;text-align:center;}
+    .eff{font-size:11px;font-weight:bold;letter-spacing:.04em;}
+    .eff-none{color:var(--t2);font-weight:normal;}
+    .eff-S{color:var(--t2);}
+    .eff-M{color:var(--t1);}
+    .eff-L{color:var(--acc);}
+    .eff-XL{color:#c87a4a;}
   </style>
 </head>
 <body>
@@ -109,6 +118,7 @@ var _dragSrc = null;
 var _fileHandle = null;
 var _editIdx = -1;
 var _statusColW = 240;
+var _hasEffort = false; // set true when the task table has an Effort column
 
 // ── IndexedDB handle persistence ──────────────────────────────────────────────
 
@@ -209,16 +219,37 @@ function refresh() {
 function parse(md) {
   _sections = [];
   _tasks = [];
+  _hasEffort = false;
   var lines = md.split("\n");
   var i = 0;
   while (i < lines.length) {
     var line = lines[i];
     if (/^\|\s*#\s*\|/.test(line)) {
+      // Map columns by header name so both 3-col (#|Task|Status) and
+      // 4-col (#|Task|Effort|Status) tables parse to the right fields.
+      var hdr = line.split("|").slice(1,-1).map(function(c) { return c.trim().toLowerCase(); });
+      var ciNum = -1, ciTask = -1, ciEffort = -1, ciStatus = -1, hc;
+      for (hc = 0; hc < hdr.length; hc++) {
+        if (hdr[hc] === "#") ciNum = hc;
+        else if (hdr[hc] === "task") ciTask = hc;
+        else if (hdr[hc] === "effort") ciEffort = hc;
+        else if (hdr[hc] === "status") ciStatus = hc;
+      }
+      if (ciNum < 0) ciNum = 0;
+      if (ciTask < 0) ciTask = 1;
+      if (ciStatus < 0) ciStatus = (ciEffort >= 0 ? 3 : 2);
+      if (ciEffort >= 0) _hasEffort = true;
       i += 2; // skip header and separator
       while (i < lines.length && /^\|/.test(lines[i])) {
         var cells = lines[i].split("|").slice(1,-1).map(function(c) { return c.trim(); });
         if (cells.length >= 2) {
-          _tasks.push({num:cells[0], task:cells[1], status:cells[2]||"", raw:lines[i]});
+          _tasks.push({
+            num: cells[ciNum] || "",
+            task: cells[ciTask] || "",
+            effort: ciEffort >= 0 ? (cells[ciEffort] || "") : "",
+            status: cells[ciStatus] || "",
+            raw: lines[i]
+          });
         }
         i++;
       }
@@ -262,6 +293,11 @@ function renderPage() {
 
 // ── Task table ────────────────────────────────────────────────────────────────
 
+function effortBadge(e) {
+  if (!e || e === "—" || e === "-") return "<span class='eff eff-none'>—</span>";
+  var key = e.toUpperCase().replace(/[^A-Z]/g, "");
+  return "<span class='eff eff-" + key + "'>" + e + "</span>";
+}
 function isDone(t) {
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
@@ -274,7 +310,9 @@ function isLow(t) {
 
 function renderTaskTable() {
   var h = "<table id='task-table'>"
-    + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th><th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='del-th' style='width:22px;'></th></tr></thead>"
+    + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
+    + (_hasEffort ? "<th class='effort-th'>Effort</th>" : "")
+    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='del-th' style='width:22px;'></th></tr></thead>"
     + "<tbody id='task-tbody'>";
   for (var i = 0; i < _tasks.length; i++) {
     var t = _tasks[i];
@@ -299,6 +337,7 @@ function renderTaskTable() {
       + "<td class='check-cell'><button class='" + checkCls + "' onclick='toggleDone(" + i + ")' title='" + checkTitle + "'>" + checkSym + "</button></td>"
       + "<td class='num-cell'>" + inline(t.num) + "</td>"
       + taskCell
+      + (_hasEffort ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + "<td class='status-td " + sCls + "'>" + inline(t.status) + "</td>"
       + "<td class='del-cell'><button class='row-del-btn' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
       + "</tr>";
@@ -389,7 +428,7 @@ function doAddTask() {
   if (!inp) return;
   var task = inp.value.trim();
   if (!task) return;
-  _tasks.push({num: String(_tasks.length + 1), task: task, status: ""});
+  _tasks.push({num: String(_tasks.length + 1), task: task, effort: "", status: ""});
   inp.value = "";
   renderPage();
 }
@@ -454,10 +493,18 @@ function buildMd() {
   for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
     if (sec.type === "tasks") {
-      out += "| # | Task | Status |\n|---|---|---|\n";
-      for (var i = 0; i < _tasks.length; i++) {
-        var t = _tasks[i];
-        out += "| " + t.num + " | " + t.task + " | " + t.status + " |\n";
+      if (_hasEffort) {
+        out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
+        for (var i = 0; i < _tasks.length; i++) {
+          var t = _tasks[i];
+          out += "| " + t.num + " | " + t.task + " | " + (t.effort || "—") + " | " + t.status + " |\n";
+        }
+      } else {
+        out += "| # | Task | Status |\n|---|---|---|\n";
+        for (var i = 0; i < _tasks.length; i++) {
+          var t = _tasks[i];
+          out += "| " + t.num + " | " + t.task + " | " + t.status + " |\n";
+        }
       }
     } else {
       out += sec.content;
