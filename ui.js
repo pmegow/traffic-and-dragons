@@ -333,7 +333,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.26";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.28";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1200,12 +1200,7 @@ function showCharacterBrowser(){
         if(err){showToast("Could not load character: "+err);if(btn){btn.textContent="Select";btn.disabled=false;}return;}
         modal.remove();
         showCharImportPreview(char,function(){
-          snapshotActiveCamp();
-          store.del(WSK);store.del(SLK);store.del(MEM_KEY);
-          var nid=newCampaignId();setActiveCampId(nid);
-          worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
-          document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
-          startGame(char,"Sword and Sorcery","");
+          _startImportedCampaign(char);
         },showCharacterBrowser);
       });
     };
@@ -1526,6 +1521,53 @@ function _switchPlayerCharacter(name){
   showToast("Now playing as "+name+".");
   sendAction(name+" steps into the lead. "+oldChar.name+" falls in alongside. Narrate the transition briefly and continue the scene.");
 }
+// Campaign setup for an imported character — replaces the old direct startGame() jump
+// that skipped tone, campaign name, and starting location entirely. The character is
+// played as-is (level, gear, abilities untouched); only world choices are asked here.
+function _startImportedCampaign(char){
+  var ex=document.getElementById("import-setup");if(ex)ex.remove();
+  // Clone starting-location options from the wizard's step-7 select so the lists never drift.
+  var locSel=document.getElementById("rv-start-loc"),locOpts="",li;
+  if(locSel&&locSel.options.length){for(li=0;li<locSel.options.length;li++){var lo=locSel.options[li];locOpts+='<option value="'+escHtml(lo.value)+'">'+escHtml(lo.textContent)+'</option>';}}
+  else locOpts='<option value="The Crossroads of Ashenveil">The Crossroads of Ashenveil</option><option value="custom">Custom…</option>';
+  var toneOpts="",ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id==="custom")continue;toneOpts+='<option value="'+ti+'"'+(TONES[ti].id==="swords"?" selected":"")+'>'+escHtml(TONES[ti].nm)+'</option>';}
+  var modal=document.createElement("div");modal.id="import-setup";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:410;display:flex;align-items:center;justify-content:center;padding:20px;";
+  var lblCss="display:block;font-size:11px;color:var(--t2);margin-bottom:4px;";
+  var inpCss="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:Georgia,serif;font-size:13px;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
+    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>New campaign for "+escHtml(char.name)+"</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:18px;'>Lv"+(char.level||1)+" "+escHtml(((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim())+" — imported as-is</div>"
+    +"<label style='"+lblCss+"'>Campaign name</label>"
+    +"<input id='is-camp-name' type='text' value='"+escHtml(char.name)+"' style='"+inpCss+"margin-bottom:12px;'/>"
+    +"<label style='"+lblCss+"'>World tone</label>"
+    +"<select id='is-tone' style='"+inpCss+"margin-bottom:12px;'>"+toneOpts+"</select>"
+    +"<label style='"+lblCss+"'>Starting location</label>"
+    +"<select id='is-loc' style='"+inpCss+"'>"+locOpts+"</select>"
+    +"<input id='is-loc-text' type='text' placeholder='Describe your starting place…' style='display:none;"+inpCss+"margin-top:6px;'/>"
+    +"<div style='font-size:10px;color:var(--t2);margin:12px 0 16px;'>Companions can be added once in-game: File &gt; Import Character &gt; Add as companion.</div>"
+    +"<div style='display:flex;gap:10px;'>"
+    +"<button id='is-go' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Begin your journey</button>"
+    +"<button id='is-cancel' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"</div></div>";
+  document.body.appendChild(modal);
+  document.getElementById("is-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("is-loc").addEventListener("change",function(){document.getElementById("is-loc-text").style.display=this.value==="custom"?"block":"none";});
+  document.getElementById("is-go").addEventListener("click",function(){
+    var cn=document.getElementById("is-camp-name").value.trim()||char.name;
+    var tone=TONES[parseInt(document.getElementById("is-tone").value)||0]||TONES[2];
+    var loc=document.getElementById("is-loc").value;
+    if(loc==="custom"){var lt=document.getElementById("is-loc-text").value.trim();loc=lt||"A place of your choosing";}
+    modal.remove();
+    snapshotActiveCamp();
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    var nid=newCampaignId();setActiveCampId(nid);
+    worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
+    char._campName=cn;char._startLoc=loc;
+    startGame(char,tone.nm,tone.vc);
+  });
+}
 function _addImportedCompanion(char){
   if(!worldState){showToast("No active campaign to add companion to.");return;}
   // Check if already in party
@@ -1539,8 +1581,8 @@ function _addImportedCompanion(char){
   saveAll();syncUI();
   showToast(char.name+" added as companion.");
   // Introduce companion into the current scene
-  var intro=char.name+" joins the scene. They are a "+(char.subraceNm?char.subraceNm+" ":"")+char.ancestry+" "+char.cls+(char.archetypeNm?" ["+char.archetypeNm+"]":"")+", Level "+char.level+". "+(char.appear?'Appearance: "'+char.appear+(char.mark?" — "+char.mark:"")+'".':"")+" Trait: "+char.trait+". Flaw: "+char.flaw+". Weave their arrival naturally into the current scene.";
-  sendAction(intro);
+  var intro="[Internal — not a player action] "+char.name+" joins the scene. They are a "+(char.subraceNm?char.subraceNm+" ":"")+char.ancestry+" "+char.cls+(char.archetypeNm?" ["+char.archetypeNm+"]":"")+", Level "+char.level+". "+(char.appear?'Appearance: "'+char.appear+(char.mark?" — "+char.mark:"")+'".':"")+" Trait: "+char.trait+". Flaw: "+char.flaw+". Weave their arrival naturally into the current scene.";
+  sendAction(intro,{silent:true});
 }
 function importCharacterFile(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
@@ -1554,12 +1596,7 @@ function importCharacterFile(e){
       if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];if(char.portrait===undefined)char.portrait=null;
       if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
       showCharImportPreview(char, function(){
-        snapshotActiveCamp();
-        store.del(WSK);store.del(SLK);store.del(MEM_KEY);
-        var nid=newCampaignId();setActiveCampId(nid);
-        worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
-        document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
-        startGame(char,"Sword and Sorcery","");
+        _startImportedCampaign(char);
       },showCharacterBrowser);
     }catch(err){showToast("Failed to import: "+err.message);}
   };
@@ -1673,12 +1710,7 @@ function showCharLibrary(){
       if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
       if(char.portrait===undefined)char.portrait=null;
       showCharImportPreview(char,function(){
-        snapshotActiveCamp();
-        store.del(WSK);store.del(SLK);store.del(MEM_KEY);
-        var nid=newCampaignId();setActiveCampId(nid);
-        worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
-        document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
-        startGame(char,"Sword and Sorcery","");
+        _startImportedCampaign(char);
       },showCharLibrary);
     });
   };
@@ -1972,5 +2004,5 @@ function showRenderOptionsModal(){
   });
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
-function init(){loadRules();loadAdultMode();loadLegacySettings();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
+function init(){loadRules();loadAdultMode();loadLegacySettings();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
 window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});

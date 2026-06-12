@@ -126,12 +126,15 @@ function cleanTxt(t){
 function diceTxt(t){var m=t.match(/\[DICE:([^\]]+)\]/);if(!m)return"";var p=m[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';return'<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}
 function parseActions(clean){
   var btns="",match=clean.match(/\*You could (.+?)\*\.?\s*$/i);
+  // Fallback: GM drifted from the canonical phrasing ("You might...", "Perhaps...") —
+  // accept any trailing italic line that contains semicolons rather than rendering plain text.
+  if(!match)match=clean.match(/\*([^*\n]+;[^*\n]+)\*\.?\s*$/);
   if(!match)return{clean:clean,btns:""};
   var hasSemi=match[1].indexOf(";")>=0;
   var raw=hasSemi?match[1].split(/;\s*(?:or\s+)?/):match[1].split(/,\s*or\s+|\s+or\s+/),acts=[],i;
-  for(i=0;i<raw.length;i++){var a=raw[i].trim().replace(/^or\s+/i,"").replace(/[.*]$/,"").replace(/\*\*?/g,"").replace(/^\[?[A-C]\]?\s*/,"").trim();if(a.length>2)acts.push(a);}
+  for(i=0;i<raw.length;i++){var a=raw[i].trim().replace(/^or\s+/i,"").replace(/^you\s+(?:could|might|can|may)\s+/i,"").replace(/[.*]$/,"").replace(/\*\*?/g,"").replace(/^\[?[A-C]\]?\s*/,"").trim();if(a.length>2)acts.push(a);}
   if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){btns+='<button class="qa" onclick="sendSuggestedAction(this)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}btns+='</div>';}
-  return{clean:clean.replace(/\*You could .+?\*\.?\s*$/i,"").trim(),btns:btns};
+  return{clean:clean.replace(match[0],"").trim(),btns:btns};
 }
 function bondToast(owner,entity,desc,kind){var p=owner?owner+" bond":"Bond";if(kind==="ended")showToast(p+" ended: "+entity);else showToast(p+(kind==="updated"?" updated":"")+": "+entity+" -- "+desc);}
 function findCompanionChar(name){

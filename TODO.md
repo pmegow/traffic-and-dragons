@@ -2,43 +2,46 @@
 
 ## Feature backlog
 
-| # | Task | Status |
-|---|---|---|
-| 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | Unblocked — needs HUD (#26) first |
-| 2 | Multiple active campaigns — each player runs their own campaign simultaneously (e.g. two household members on separate devices). Currently works if each person uses their own GitHub account for server sync. Becomes a first-class requirement when the subscription model lands — subscription accounts replace GitHub accounts as the isolation boundary. | Works today via per-user GitHub auth; revisit at subscription launch |
-| 3 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | ✅ Done — ready to test. Enable via Admin menu checkbox + chance % input. Set to 100% to force on next session load. |
-| 4 | Text to speech — separate voices for GM, player, NPCs, and system. Car audio is a primary use case. | ⚠ Partially done — GM voice working, per-character voices pending |
-| 5 | **[subtask]** Table Talk voice — voice for out-of-character tab | Deferred to second pass |
-| 6 | **[subtask / reach]** Car Mode — dedicated UX: large touch targets, auto-play on, voice input, suggested actions read as numbered list | Reach goal |
-| 7 | **[subtask]** Per-character voices — GM, player, NPCs each get an assigned voice ID stored on the character/NPC object | Pending |
-| 8 | Game document |  |
-| 9 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. |  |
-| 10 | Multi-player HUD layout — needed before #2 | Ready to test — compact party cards (name + HP bar) appear as a second topbar row when party members exist |
-| 11 | Swappable LLM support — provider adapter in `callGM()`, key storage per provider, provider selector in Admin menu |  |
-| 12 | **[subtask]** ChatGPT (OpenAI) — `api.openai.com/v1/chat/completions`; messages format nearly identical to Anthropic; lowest-effort, highest-value first target | Pending |
-| 13 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | Pending |
-| 14 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #14 | Pending |
-| 15 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #14; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | Exploration only |
-| 16 | Per-turn relationship and XP tracking for all party members — relationship status and XP for companions and player should update on the character sheet after significant events (combat, key decisions, major NPC interactions). Both tracked per-turn, visible on the sheet without opening a modal. | ✅ Done — XP in HUD (pulse on change), companion XP in party cards, relationship toasts (add/update/remove) for player + companions |
-| 17 | Create story compiler, to take the narative sumaries and weave them together into a short story.  PDF final project, or html as a fallback |  |
-| 18 | Add a necromancer class | ✅ Done — data.js: CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, STAT_PRIORITY |
-| 19 | NPC first-encounter memory — always preserve the full details of a player's first meeting with each NPC. Player should be able to ask "remember when we met [name]?" and get an accurate, vivid answer. Store in `memory.npcs[name].firstEncounter` as a dedicated prose field written once on first contact, never overwritten. Inject into the NPC detail block in `memoryNpcDetail()`. | ✅ Done — auto-captured from cleanTxt on first NPC tag; injected as "First met:" in memoryNpcDetail |
-| 20 | Voice-to-text input — investigate options for speech input on the text field. Candidates: Web Speech API (built-in Chrome, zero dependencies), Whisper via fal.ai (high accuracy, latency cost), hex or similar. Car Mode (#7) is a primary driver — hands-free play. Evaluate accuracy, latency, and offline/mobile support. | Pending — needs investigation |
+| # | Task | Effort | Status |
+|---|---|---|---|
+| 1 | Multiplayer — 2-player co-op, alternating turns, shared world state but per-player character. Split-party supported. | XL | Unblocked — needs HUD (#10) first |
+| 2 | Multiple active campaigns — each player runs their own campaign simultaneously (e.g. two household members on separate devices). Currently works if each person uses their own GitHub account for server sync. Becomes a first-class requirement when the subscription model lands — subscription accounts replace GitHub accounts as the isolation boundary. | — | Works today via per-user GitHub auth; revisit at subscription launch |
+| 3 | Legacy characters — past player characters from other campaigns appear as NPCs. 5% chance per new npc. Scan other campaign slots in localStorage for worldState.character. Once appeared in a campaign, flagged so they can't appear again in that campaign. Inject into system prompt for organic GM introduction. | — | ✅ Done — ready to test. Enable via Admin menu checkbox + chance % input. Set to 100% to force on next session load. |
+| 4 | Text to speech — separate voices for GM, player, NPCs, and system. Car audio is a primary use case. | M | ⚠ Partially done — GM voice working, per-character voices pending |
+| 5 | **[subtask]** Table Talk voice — voice for out-of-character tab | S | Deferred to second pass |
+| 6 | **[subtask / reach]** Car Mode — dedicated UX: large touch targets, auto-play on, voice input, suggested actions read as numbered list | XL | Reach goal |
+| 7 | **[subtask]** Per-character voices — GM, player, NPCs each get an assigned voice ID stored on the character/NPC object | M | Pending |
+| 8 | Game document | L |  |
+| 9 | Campaign designer (+ module system + alternative worlds) — guided UI for creating campaign settings, world presets, factions, plot hooks. Large scope, low priority. | XL |  |
+| 10 | Multi-player HUD layout — needed before #1 | S | Ready to test — compact party cards (name + HP bar + XP) appear as a second topbar row when party members exist |
+| 11 | Swappable LLM support — provider adapter in `callGM()`, key storage per provider, provider selector in Admin menu | M |  |
+| 12 | **[subtask]** ChatGPT (OpenAI) — `api.openai.com/v1/chat/completions`; messages format nearly identical to Anthropic; lowest-effort, highest-value first target | M | Pending |
+| 13 | **[subtask]** Gemini (Google) — `generativelanguage.googleapis.com`; different body schema (`contents`, `generationConfig`), different response path; moderate adapter work | M | Pending |
+| 14 | **[subtask]** Grok (xAI) — OpenAI-compatible endpoint (`api.x.ai/v1`); adapter nearly identical to ChatGPT subtask; add after #12 | S | Pending |
+| 15 | **[subtask / exploration]** Local LLM (Ollama) — OpenAI-compatible localhost API; near-zero adapter work after #12; CORS friction on https origin; tag system reliability is the real risk — 70B+ needed, rules out most consumer hardware including 16GB VRAM; revisit when quantized 70B quality improves | M | Exploration only |
+| 16 | Per-turn relationship and XP tracking for all party members — relationship status and XP for companions and player should update on the character sheet after significant events (combat, key decisions, major NPC interactions). Both tracked per-turn, visible on the sheet without opening a modal. | — | ✅ Done — XP in HUD (pulse on change), companion XP in party cards, relationship toasts (add/update/remove) for player + companions |
+| 17 | Create story compiler, to take the narative sumaries and weave them together into a short story.  PDF final project, or html as a fallback | L | Planning doc written ([STORY_COMPILER.md](STORY_COMPILER.md)) — chunked compile, standalone HTML first, ~5.5h build estimate. Ready to build. |
+| 18 | Add a necromancer class | — | ✅ Done — data.js: CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, STAT_PRIORITY |
+| 19 | NPC first-encounter memory — always preserve the full details of a player's first meeting with each NPC. Player should be able to ask "remember when we met [name]?" and get an accurate, vivid answer. Store in `memory.npcs[name].firstEncounter` as a dedicated prose field written once on first contact, never overwritten. Inject into the NPC detail block in `memoryNpcDetail()`. | — | ✅ Done — hardened in v1.26 review: suggestion line stripped, sentence-boundary cut, captured from [NPC:] or [PARTY_MEMBER:] whichever first, preserved across NPC_MERGE |
+| 20 | Voice-to-text input — investigate options for speech input on the text field. Candidates: Web Speech API (built-in Chrome, zero dependencies), Whisper via fal.ai (high accuracy, latency cost), hex or similar. Car Mode (#6) is a primary driver — hands-free play. Evaluate accuracy, latency, and offline/mobile support. | S | Pending — needs investigation |
+
+**Effort:** S < 1h · M 1–3h · L 3–8h · XL multi-session · — done or no work currently needed
 
 ---
 
 ## Known issues
 
 - **Campaign UI issues** — ✅ Fixed: `onServer` flag stripped on save (root cause), modal now shows instantly from local data and syncs in background, 10s fetch timeout added, double-sync on connect removed.
-- **Portrait drag** — implemented, needs browser verification
-- **iOS notch** — deployed to Netlify, needs phone verification after cache clear
-- **F-11** — `window._sbPicks` namespace pollution, deferred, low risk
-- **`index.html` redirect is stale** — redirects to `dnd_game_20_4.html` (in BAK); should point to `dnd_game_1_0.html`
-- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons`
-- **Qwen render bug** — Qwen model appears to be rendering the portrait image instead of the scene prompt. Investigate `doRender()` img2img path for Qwen: check whether the `image_urls` field is being sent when no portrait-seeded render is intended, or whether the model selection logic is falling through to img2img incorrectly.
-- **Character import (setup) skips steps** — importing a character file during character creation jumps straight to the review step (step 7), bypassing companion selection and starting environment. User should land on step 7 but still be able to navigate back to earlier steps, or the import should at minimum ask about companions and starting location before finalising.
-- **Companion import dumps narrative text** — adding an imported character as a companion injects unwanted raw text into the story narrative. May already be fixed — verify the companion-import flow end-to-end and confirm no spurious `addMsg` calls fire during `sendAction` companion introduction.
-- **Welcome back screen — blank narrative** — on reload/resume, if the session log has no re-renderable messages the narrative area is blank. Always print the last GM response (or last two turns) when reopening a campaign so the player has context. See `init()` reload logic in `game.js`.
+- **Portrait drag** — ✅ code verified (mouse + touch handlers both wired, offset persists); phone verification after next deploy
+- **iOS notch** — ✅ +5px added (topbar safe-area padding 13px → 18px, v1.28); verify on phone after deploy
+- **F-11** — ✅ Fixed v1.28: `_sbPicks` now a declared global in globals.js
+- **`index.html` redirect** — ✅ already fixed (points to dnd_game_1_0.html); known issue was stale
+- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons`. Do in Explorer BEFORE opening Claude Code; then update hardcoded paths in `.claude/settings.local.json` + `.claude/hooks/stop-check.js` as the first act of the next session.
+- **Qwen render bug** — ⚠ Probable fix v1.28: `qwen-image-edit` is edit-style and preserves the input image at low strength; bumped 0.6 → 0.9. **Needs one live Qwen render with a portrait set to confirm.**
+- **Character import (setup) skips steps** — ✅ Fixed v1.28: "Play as X" now opens a campaign-setup modal (campaign name, world tone, starting location) instead of hardcoding Sword & Sorcery and skipping everything. Companions are added in-game via Import Character → Add as companion.
+- **Companion import dumps narrative text** — ✅ Fixed v1.28: the GM intro instruction now goes through `sendAction(intro,{silent:true})` — it reaches the GM but no longer renders as a player chat bubble.
+- **Welcome back screen — blank narrative** — ✅ Fixed v1.28: when sessionLog is empty (e.g. cleared by summarization), the reload path now shows "*Previously:* [last chapter summary]" so the player always has context.
+- **Service worker pinned stale deploys (root cause found during v1.28 batch)** — ✅ Fixed: `sw.js` was cache-first keyed on a manually-bumped `CACHE` constant (last bumped 2026-06-04), so installed browsers never saw new deploys without "Clear cache & reload". Now network-first with cache fallback; `tts.js` added to the offline shell. Browsers with the old SW need one manual Clear cache & reload to pick up the new SW; self-healing after that.
 
 ---
 

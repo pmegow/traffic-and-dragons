@@ -104,7 +104,7 @@ After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `STAT_BUMP_LEVELS` — `[4, 8]` (levels where +2 stat improvement is awarded)
 - `STAT_PRIORITY` — Per-class stat assignment order for rolled stats
 - `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid
-- `DEFAULT_RULES` — 9 hard GM rules always injected into the system prompt
+- `DEFAULT_RULES` — 17 hard GM rules always injected into the system prompt (incl. character sheet upkeep, engine-controlled XP/leveling, mandatory NPC registration on direct interaction)
 - `SPELL_PICK_LIMITS` — Max spells selectable per tier during creation: `{cantrips:2, "1":2, "2":2, "3":1}`
 - `SKILLS` — Array of 36 skill objects `{id, label, cat}` across 8 categories (Physical, Endurance, Wilderness, Knowledge, Craft, Social, Roguish, Perception). Wilderness includes **Tracking** (WIS/INT), which doubles as urban tailing.
 - `SKILL_LEVELS` — `["Unskilled","Familiar","Trained","Proficient","Expert","Master"]`
@@ -425,13 +425,14 @@ Server-side character storage separate from campaigns. Characters are portable s
 
 **Import flow:** `showCharLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Library" button in the Import Character browser.
 
+**"Play as X" flow:** all three import paths (file, campaign browser, library) route through `_startImportedCampaign(char)` in `ui.js` — a campaign-setup modal asking campaign name, world tone, and starting location (options cloned from the wizard's step-7 select) before resetting state and calling `startGame()`. The character is played as-is; companions are added in-game via Import Character → Add as companion (intro instruction sent via `sendAction(intro,{silent:true})` so it never renders as a player message).
+
 ---
 
 ## Known issues
 
 - **Relationships not populating on NPC sheets** — noticed, not investigated
-- **`index.html` redirect is stale** — redirects to `dnd_game_20_4.html` (in BAK); should redirect to `dnd_game_1_0.html`
-- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code)
+- **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code; then update hardcoded paths in `.claude/settings.local.json` and `.claude/hooks/stop-check.js`)
 - **"↩ Import existing campaign" on tone step** — redundant with File menu; consider removing
 
 ---
@@ -452,6 +453,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 
 **Testing changes:**
 - Hard-refresh (`Ctrl+Shift+R`) after editing any `.js` file — Chrome caches aggressively.
+- **Service worker (`sw.js`)**: network-first with cache fallback since v1.28. Before that it was cache-first keyed on the `CACHE` constant — installed browsers were pinned to stale files until the constant changed, which was the root cause of the chronic "wrong version deployed" pain. If a browser seems stuck on an old version, it has the pre-v1.28 SW: use File → Clear cache & reload once; after that, deploys propagate on every load. When testing locally on `localhost`, the SW also intercepts — unregister via DevTools → Application → Service Workers if files look stale.
 - Always test on **Netlify** after `git push` — `file://` and Netlify can have different cached files.
 - Use the **Sync** button in-game to manually patch world state.
 - Use **Table Talk** tab to query the GM out-of-character while debugging.
@@ -459,6 +461,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.26`
+- Current: `v1.28`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.
