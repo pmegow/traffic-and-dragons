@@ -129,6 +129,10 @@ function parseActions(clean){
   // Fallback: GM drifted from the canonical phrasing ("You might...", "Perhaps...") —
   // accept any trailing italic line that contains semicolons rather than rendering plain text.
   if(!match)match=clean.match(/\*([^*\n]+;[^*\n]+)\*\.?\s*$/);
+  // Fallback 2: model dropped the *asterisks* entirely (gpt-4o does this) — accept a
+  // bare trailing "You could ...; ...; or ..." line. Anchored to end + requires a
+  // semicolon, so it won't grab a mid-prose "you could". Never trust the model to emit markdown.
+  if(!match)match=clean.match(/You could ([^\n]*;[^\n]*?)\.?\s*$/i);
   if(!match)return{clean:clean,btns:""};
   var hasSemi=match[1].indexOf(";")>=0;
   var raw=hasSemi?match[1].split(/;\s*(?:or\s+)?/):match[1].split(/,\s*or\s+|\s+or\s+/),acts=[],i;
@@ -145,8 +149,8 @@ function findCompanionChar(name){
 }
 function applyMuts(text){
   var muts=[],turn=worldState.turn;
-  var hpTags=text.match(/\[HP:([+-]?\d+)\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:([+-]?\d+)\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
-  var goldTags=text.match(/\[GOLD:([+-]?\d+)\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:([+-]?\d+)\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);muts.push(dg>0?"+"+dg+" gp":dg+" gp");}
+  var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
+  var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);muts.push(dg>0?"+"+dg+" gp":dg+" gp");}
   var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;worldState.character.inventory.push(igm[1]);muts.push("+"+igm[1]);autoTakeLocationItem(igm[1]);}
   var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilName=ilm[1];worldState.character.inventory=worldState.character.inventory.filter(function(x){return x!==ilName;});muts.push("-"+ilName);}
   var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){worldState.world.location=loc[1];worldState.world.sublocation=null;fileLocation(loc[1],"",turn);muts.push("-> "+loc[1]);}
@@ -227,11 +231,15 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 }
 async function callGM(msg,sysOverride,maxTok){
   var msgs=sessionLog.concat([{role:"user",content:msg}]);
-  var body={model:MDL,max_tokens:maxTok||1000,system:sysOverride||buildSysPrompt(),messages:msgs};
-  var res;try{res=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
+  var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
+  var key=providerKeys[activeProvider]||apiKey||"";
+  var model=providerModels[activeProvider]||prov.defaultModel;
+  var sys=sysOverride||buildSysPrompt();
+  if(!sysOverride&&prov.reinforce)sys+=prov.reinforce; // gameplay turns only; summarize() passes its own sysOverride
+  var body=prov.buildBody(msgs,sys,maxTok||1000,model);
+  var res;try{res=await fetch(prov.endpoint,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
   if(!res.ok)throw new Error((data.error&&data.error.message)||"HTTP "+res.status);
-  if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");
-  return data.content[0].text;
+  return prov.parseResponse(data);
 }

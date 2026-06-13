@@ -333,7 +333,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.28";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.32";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1857,6 +1857,7 @@ function wireButtons(){
   document.getElementById("cs-import-char-btn").addEventListener("click",showCharacterBrowser);
   document.getElementById("cs-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("cs-fm-devmenu"),arrow=document.getElementById("cs-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
   document.getElementById("cs-fm-rules").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRulesModal();});
+  document.getElementById("cs-fm-llm").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showProviderModal();});
   document.getElementById("cs-fm-fal-key").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("cs-fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("cs-fm-font-lg").addEventListener("change",toggleFontSize);
@@ -1872,6 +1873,7 @@ function wireButtons(){
   document.getElementById("api-import-char-btn").addEventListener("click",showCharacterBrowser);
   document.getElementById("api-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("api-fm-devmenu"),arrow=document.getElementById("api-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
   document.getElementById("api-fm-rules").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRulesModal();});
+  document.getElementById("api-fm-llm").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showProviderModal();});
   document.getElementById("api-fm-fal-key").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("api-fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("api-fm-font-lg").addEventListener("change",toggleFontSize);
@@ -1893,6 +1895,7 @@ function wireButtons(){
     arrow.style.transform=open?"":"rotate(90deg)";
   });
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
+  document.getElementById("fm-llm").addEventListener("click",showProviderModal);
   document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
@@ -2003,6 +2006,57 @@ function showRenderOptionsModal(){
     });
   });
 }
-function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;store.set(AKK,k);var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
+function loadProviderSettings(){
+  var p=store.get(PROV_K);if(p&&PROVIDERS[p])activeProvider=p;
+  try{var pk=store.get(PKEYS_K);if(pk)providerKeys=JSON.parse(pk)||{};}catch(e){providerKeys={};}
+  try{var pm=store.get(PMDL_K);if(pm)providerModels=JSON.parse(pm)||{};}catch(e2){providerModels={};}
+  // Migrate the legacy single Anthropic key (AKK) into the provider map
+  var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
+  if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
+}
+function saveProviderSettings(){
+  store.set(PROV_K,activeProvider);
+  store.set(PKEYS_K,JSON.stringify(providerKeys));
+  store.set(PMDL_K,JSON.stringify(providerModels));
+}
+function showProviderModal(){
+  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  var ex=document.getElementById("provider-modal");if(ex)ex.remove();
+  var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
+  var modal=document.createElement("div");modal.id="provider-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  function provRows(){var ids=Object.keys(PROVIDERS),h="",i;for(i=0;i<ids.length;i++){var p=PROVIDERS[ids[i]],sel=(ids[i]===selProv);h+="<div class='pv-row' data-id='"+ids[i]+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"+"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;'></div>"+"<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span></div>";}return h;}
+  function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,o="",i;for(i=0;i<p.models.length;i++){o+="<option value='"+p.models[i]+"'"+(p.models[i]===cur?" selected":"")+">"+p.models[i]+"</option>";}return o;}
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🧠 Language Model</span><button id='pv-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Provider</div>"
+    +"<div id='pv-rows'>"+provRows()+"</div>"
+    +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>API Key</div>"
+    +"<input type='password' id='pv-key' style='width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
+    +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
+    +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
+    +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
+    +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>"
+    +"</div>";
+  document.body.appendChild(modal);
+  var keyInp=document.getElementById("pv-key"),modelSel=document.getElementById("pv-model");
+  function refreshSel(){
+    keyInp.value=providerKeys[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
+    var rows=modal.querySelectorAll(".pv-row");Array.prototype.forEach.call(rows,function(r){var s=(r.getAttribute("data-id")===selProv);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";});
+  }
+  Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){if(keyInp.value.trim())providerKeys[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
+  refreshSel();
+  document.getElementById("pv-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("pv-save").addEventListener("click",function(){
+    var k=keyInp.value.trim();if(k)providerKeys[selProv]=k;else delete providerKeys[selProv];
+    providerModels[selProv]=modelSel.value;activeProvider=selProv;apiKey=providerKeys[activeProvider]||"";
+    if(activeProvider==="anthropic"&&apiKey)store.set(AKK,apiKey);
+    saveProviderSettings();
+    var msg=document.getElementById("pv-msg");
+    if(!apiKey){msg.textContent="No key set for "+PROVIDERS[activeProvider].label+".";msg.style.color="var(--red)";return;}
+    msg.textContent="Using "+PROVIDERS[activeProvider].label+" · "+modelSel.value;msg.style.color="var(--grn)";
+    setTimeout(function(){var m=document.getElementById("provider-modal");if(m)m.remove();},900);
+  });
+}
+function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
 function init(){loadRules();loadAdultMode();loadLegacySettings();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
-window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();var k=store.get(AKK);if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});
+window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});

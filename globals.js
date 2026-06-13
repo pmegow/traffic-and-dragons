@@ -1,5 +1,40 @@
 var API="https://api.anthropic.com/v1/messages";
 var MDL="claude-sonnet-4-6";
+// ── LLM provider adapters ─────────────────────────────────────────────────────
+// Each provider is a self-contained object: callGM() picks the active one and
+// calls headers/buildBody/parseResponse. NO if(provider===...) branches anywhere
+// else. This same shape becomes the server-side routing table under subscription.
+var PROVIDERS={
+  anthropic:{
+    id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
+    endpoint:"https://api.anthropic.com/v1/messages",
+    defaultModel:MDL,
+    models:["claude-opus-4-8","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
+    headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,system:sys,messages:msgs};},
+    parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;}
+  },
+  openai:{
+    id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
+    endpoint:"https://api.openai.com/v1/chat/completions",
+    defaultModel:"gpt-4o",
+    models:["gpt-4o","gpt-4o-mini","gpt-4.1"],
+    // OpenAI carries the system prompt as the first message, uses Bearer auth,
+    // and returns choices[0].message.content. max_tokens works for gpt-4o.
+    headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    // Per-provider system-prompt reinforcement. Claude honors the tag contract from
+    // the base prompt; gpt-4o treats the tags as optional and narrates changes without
+    // emitting them, so the sheet silently desyncs. callGM() appends this for gameplay
+    // turns only (not summarize). This is exactly the kind of per-provider tuning the
+    // abstraction is for — it transfers to the server-side routing table verbatim.
+    reinforce:"\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n"
+  }
+};
+var activeProvider="anthropic"; // id into PROVIDERS
+var providerKeys={};            // {providerId: apiKey}
+var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
 var customRules=[];
 var apiKey="",falKey="",busy=false,lastAction=null;
 var RENDER_MODELS=[
