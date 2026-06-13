@@ -98,7 +98,7 @@ After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `ABILS` — Starting class abilities (name + description)
 - `ARCHETYPES` — 3 archetypes per class (24 total)
 - `CLASS_FEATURES` — Level 2/5/7/9 feature unlocks per class
-- `SPELLS` — Spell lists for Sorcerer, Cleric, Druid, Ranger, Paladin (cantrips + levels 1–3)
+- `SPELLS` — Spell lists for Sorcerer, Cleric, Druid, Ranger, Paladin, Necromancer (cantrips + levels 1–3). **Necromancer also has a tier 4** (Rigor Mortis, Possess Thrall, Sleep of the Dead) — tiers are intentionally open-ended; creation only ever offers up to tier 3 (`buildPendingSpellPool` caps `maxSlot` at 3), so higher tiers are GM-grantable / high-level content only.
 - `ARCH_SPELLS` — Extra spell lists for Eldritch Knight and Arcane Trickster archetypes
 - `XP_LEVELS` — XP thresholds for levels 1–10: `[0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000]`
 - `STAT_BUMP_LEVELS` — `[4, 8]` (levels where +2 stat improvement is awarded)
@@ -160,9 +160,14 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
 
 ### 5. API usage
 
-**Endpoint:** `https://api.anthropic.com/v1/messages`
-**Model:** `claude-sonnet-4-6` — **verify this string is current before starting work each session**; model identifiers are periodically updated and an outdated string causes API errors.
-**Auth header:** `x-api-key` + `anthropic-dangerous-direct-browser-access: true` (required for direct browser calls)
+**Provider-agnostic since v1.30.** `callGM()` routes through the active provider in the `PROVIDERS` table (`globals.js`). Each provider is a self-contained object — `{id, label, keyHint, endpoint, defaultModel, models[], headers(key), buildBody(msgs,sys,maxTok,model), parseResponse(json)}` — and `callGM()` picks `PROVIDERS[activeProvider]` and calls its methods. **No `if(provider===...)` branches anywhere else.** This same shape is the intended server-side routing table under the subscription model.
+
+- **anthropic** — `https://api.anthropic.com/v1/messages`; `x-api-key` + `anthropic-dangerous-direct-browser-access: true`; system as a top-level `system` field; response at `content[0].text`. Default model `claude-sonnet-4-6` — **verify this string is current before starting work each session.**
+- **openai** — `https://api.openai.com/v1/chat/completions`; `Authorization: Bearer`; system carried as a leading `{role:"system"}` message; response at `choices[0].message.content`. Default model `gpt-4o`. (CORS: OpenAI allows direct browser calls, no special header.)
+
+**Provider state** (`globals.js`): `activeProvider` (id), `providerKeys` ({id:key}), `providerModels` ({id:modelOverride}). Persisted via `PROV_K`/`PKEYS_K`/`PMDL_K` in `state.js`; `loadProviderSettings()` migrates the legacy `AKK` Anthropic key into the map. Switch providers / set keys / pick model via **File ▸ Dev Mode ▸ 🧠 Language Model…** (`showProviderModal()` in `ui.js`). Keys for all providers are retained, so switching back and forth needs no re-entry.
+
+**Per-provider prompt reinforcement:** a provider may carry an optional `reinforce` string. `callGM()` appends it to the system prompt for gameplay turns only (`if(!sysOverride&&prov.reinforce)`), never to `summarize()`. **Finding from the v1.32 GPT bring-up:** gpt-4o parses responses and produces valid `summarize()` JSON fine, but treats the state tags as optional — it narrates "you pay 5 gold" without emitting `[GOLD:-5]`, silently desyncing the sheet. `openai.reinforce` is a forceful MANDATORY-TAG-DISCIPLINE block with exact formats + the gold-for-a-room example. Claude needs no reinforcement (its `reinforce` is unset). This is the per-provider tuning the abstraction exists for. Additionally, the `[GOLD:]` and `[HP:]` parsers were loosened to `/\[(GOLD|HP):\s*([+-]?\d+)[^\]]*\]/` shape so a model writing `[GOLD:-5 gp]` (which the prompt's own format hint invites) still parses.
 
 `callGM(msg, sysOverride, maxTok)` is the single API entry point.
 - `maxTok` is optional; defaults to `1000`. `summarize()` passes `2000`.
@@ -310,6 +315,7 @@ Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, mora
 ### 13. Rendered action suggestions
 
 Every GM response ends with `*You could [A]; [B]; or [C].*` (semicolons required — instructed in system prompt). `parseActions(clean)`:
+- Matches the suggestion line in three passes: canonical `*You could …*`, drifted `*…;…*`, then a **bare un-asterisked** `You could …;…` (gpt-4o drops the asterisks). The bare pass is anchored to end-of-string and requires a semicolon so it can't grab a mid-prose "you could".
 - If semicolons present: splits on `;\s*(?:or\s+)?`
 - Fallback (no semicolons): splits on `,\s*or\s+|\s+or\s+` only — does NOT split on bare commas
 - Buttons rendered as `<button class="qa">` with `onclick="sendSuggestedAction(this)"`
@@ -461,6 +467,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.28`
+- Current: `v1.32`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.
