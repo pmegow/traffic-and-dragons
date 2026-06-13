@@ -214,7 +214,8 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[LOCATION_ITEM:name\|taken]` | Mark item as taken by NPC/event; player pickup auto-handled by `[ITEM_GAINED:]` |
 | `[NPC:name|status|relation]` | Upsert `worldState.npcs[]` and `memory.npcs{}` |
 | `[XP:N]` | Add XP, trigger `checkLevelUp()` |
-| `[QUEST:title|status]` | Upsert `worldState.questLog[]` |
+| `[QUEST:title\|status]` or `[QUEST:title\|status\|desc]` | Upsert `worldState.questLog[]`. status: `offered`/`active`/`completed`/`failed`. `offered` toasts "⚑ Quest opportunity"; `completed`/`failed` archive to `memory.quests` and remove from the live log |
+| `[QUEST_STEP:title\|objective\|done]` | Add an objective to a quest (`done` omitted/false), or mark an existing one complete (`done=true`); matched by objective text |
 | `[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale]` | Set `worldState.combat` |
 | `[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N]` | Set enemy ability scores and CR (always emit alongside COMBAT_START) |
 | `[COMBAT_IMMUNE:type,type]` / `[COMBAT_RESIST:...]` / `[COMBAT_VULN:...]` | Set damage immunities/resistances/vulnerabilities; displayed in combat panel |
@@ -227,6 +228,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[FUTURE_EVENT:what|when]` | Append to `memory.futureEvents` |
 | `[FUTURE_EVENT_RESOLVED:what]` | Mark matching future event resolved |
 | `[NPC_NOTE:name|note]` | Append event note to `memory.npcs[name].events` |
+| `[NPC_FORGET:name\|person or event]` | Scrub a specific memory from `memory.npcs[name]` — substring-filters `.knowledge[]` and `.events[]` so the fact stops re-injecting. The engine teeth behind the Arcane Trickster **Oubliate** spell (tier 4). Its lesser sibling **Lethe's Kiss** (tier 3) is narrative-only |
 | `[NPC_PRONOUN:name|pronouns]` | Set pronouns on NPC in both stores |
 | `[NPC_ALIAS:canonical|alias]` | Register alias for an NPC; all future tags using the alias silently resolve to canonical; shown in NPC list as `Name [aka: alias]` |
 | `[NPC_MERGE:canonical|duplicate]` | Absorb duplicate NPC entry into canonical (merges events, knowledge, aliases); cleans up matching relationships; removes duplicate from both stores |
@@ -295,6 +297,16 @@ Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArriva
 ### 10. Combat system
 
 Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, morale, round}`. All mechanics handled by GM through state tags. `#cpanel` shown/hidden by `syncUI()`.
+
+### 10b. Quest system (v1.34)
+
+Quests are GM-emergent and **player-gated**. Live quests live in `worldState.questLog[]` as `{title, status, desc, objectives:[{text,done}], started}`; finished ones archive to `memory.quests{}`.
+
+**Lifecycle:** `offered → active → completed/failed`, plus `declined`. The GM creates quests via `[QUEST:title|offered|desc]` (toasts "⚑ Quest opportunity"). An offered quest is NOT a goal — the GM may not steer toward or advance it. The player accepts via the **Quest Journal** (Accept button → `acceptQuest(idx)` sets `active`) or by agreeing in-story (GM emits `[QUEST:title|active]`). Decline → `declineQuest(idx)` archives as `declined`. On `completed`/`failed`, `archiveQuest()` moves the quest to `memory.quests` and removes it from the live log; rewards come via the GM emitting `[XP:]`/`[GOLD:]`/`[ITEM_GAINED:]` in the same response.
+
+**Anti-drift:** `buildQuestBlock()` re-injects the authoritative ACTIVE (with objective checklists) + OFFERED blocks into every system prompt — the GM reads quest state from data each turn rather than from its own compressible memory, same pattern as the character sheet. A DEFAULT_RULES entry forbids inventing/renaming/dropping quests and auto-accepting. `openai.reinforce` includes the quest tags for non-Claude providers.
+
+**UI:** world-state sidebar shows quest titles + a `⚑ N opportunities` indicator; clicking opens `showQuestModal()` — Opportunities (Accept/Decline) · Active (☑/☐ objective lists) · History (completed/failed/declined from `memory.quests`).
 
 ### 11. Level-up system
 
@@ -467,6 +479,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.32`
+- Current: `v1.35`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.
