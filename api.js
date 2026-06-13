@@ -40,11 +40,35 @@ function buildGeoBlock(){
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
 function saveRules(){try{store.set(RLK,JSON.stringify(customRules));}catch(e){}}
 function loadRules(){try{var r=store.get(RLK);if(r)customRules=JSON.parse(r);}catch(e){}}
+// Move a quest out of the live log into the long-term archive (memory.quests).
+function archiveQuest(title,status){
+  if(!worldState||!worldState.questLog)return;
+  var i;for(i=0;i<worldState.questLog.length;i++){
+    if(worldState.questLog[i].title.toLowerCase()===title.toLowerCase()){
+      var q=worldState.questLog[i];
+      if(!memory.quests)memory.quests={};
+      memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:status,turn:(worldState.turn||0)};
+      worldState.questLog.splice(i,1);
+      return;
+    }
+  }
+}
+// Authoritative active+offered quest block re-injected every turn — the anti-drift anchor.
+function buildQuestBlock(){
+  if(!worldState||!worldState.questLog||!worldState.questLog.length)return "QUESTS: none active.\n\n";
+  var active=[],offered=[],i;
+  for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.status==="active")active.push(q);else if(q.status==="offered")offered.push(q);}
+  var out="";
+  if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";if(aq.objectives&&aq.objectives.length){var oj;for(oj=0;oj<aq.objectives.length;oj++)out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";}}}
+  if(offered.length){out+="OFFERED QUESTS (awaiting player acceptance — do NOT treat as active or advance objectives):\n";for(i=0;i<offered.length;i++){out+="• "+offered[i].title+(offered[i].desc?" — "+offered[i].desc:"")+"\n";}}
+  if(!out)out="QUESTS: none active.\n";
+  return out+"\n";
+}
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
   var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";ns.push(npc.name+npcAka+" ("+npc.status+", "+npc.rel+(npc.pronouns?", "+npc.pronouns:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}nstr=ns.join("; ");}
-  var qstr="none";if(worldState.questLog.length){var qs=[];for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].status==="active")qs.push(worldState.questLog[i].title);}if(qs.length)qstr=qs.join(", ");}
+  var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
   var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
   var nextXP=c.level<10?XP_LEVELS[c.level]:"max";
@@ -73,7 +97,7 @@ function buildSysPrompt(){
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
-    +"NPCs: "+nstr+" | Quests: "+qstr+"\n\n"
+    +"NPCs: "+nstr+"\n\n"+questBlock
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
   +(function(){var s=getNameSuggestions(10);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
@@ -97,6 +121,7 @@ function buildSysPrompt(){
     +"[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n"
     +"[FUTURE_EVENT_RESOLVED:what] (when a pending future event occurs)\n"
     +"[LORE:fact] [DECISION:description] [FUTURE_EVENT:what|when] [NPC_NOTE:name|note] [NPC_PRONOUN:name|she/her]\n"
+    +"[NPC_FORGET:name|person or event] -- erase one specific memory from an NPC (emit when the Oubliate spell is cast and the WIS save fails); the engine scrubs that fact from what the NPC knows so it cannot resurface\n"
     +"[NPC_ALIAS:canonical_name|alias] -- when an NPC is given a new name or title; links alias to canonical; prevents duplicate entries; emit alongside the NPC tag that introduces the alias\n"
     +"[NPC_MERGE:canonical_name|duplicate_name] -- when two NPC entries turn out to be the same person; absorbs events/knowledge from duplicate into canonical and removes duplicate\n"
     +"[NPC_LINK:name1|name2|relationship] -- relationship between two named characters (NPC↔NPC or NPC↔player); emit when establishing or changing how two characters relate (e.g. [NPC_LINK:Zarith|Guard Captain|employer/employee], [NPC_LINK:Borin|player|old debt]); updates existing link if already set\n"
@@ -120,7 +145,7 @@ function buildSysPrompt(){
     +"STYLE: HARD LIMIT — prose must be 2-3 sentences maximum, never more. Then the suggestion line. No exceptions, no matter how dramatic the moment. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
 }
 function cleanTxt(t){
-  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT):[^\]]+\]/g,"")
+  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT):[^\]]+\]/g,"")
     .replace(/\[ENEMY_SURRENDERS\]/g,"").replace(/\[SUBLOCATION_LEAVE\]/g,"").replace(/\n{3,}/g,"\n\n").trim();
 }
 function diceTxt(t){var m=t.match(/\[DICE:([^\]]+)\]/);if(!m)return"";var p=m[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';return'<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}
@@ -171,7 +196,10 @@ function applyMuts(text){
   // NPC tags — resolve aliases to canonical before storing
   var npcs=text.match(/\[NPC:([^|]+)\|([^|]+)\|([^\]]+)\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|]+)\|([^|]+)\|([^\]]+)\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());var found=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===npName){worldState.npcs[nj].status=np[2];worldState.npcs[nj].rel=np[3];found=true;break;}}if(!found){worldState.npcs.push({name:npName,status:np[2],rel:np[3],met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);}if(!memory.npcs[npName])memory.npcs[npName]={attitude:np[3],knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();memory.npcs[npName].attitude=np[3];mapNpcLocation(npName);muts.push("NPC: "+npName);}
   var xpTags=text.match(/\[XP:(\d+)\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:(\d+)\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
-  var quests=text.match(/\[QUEST:([^|]+)\|([^\]]+)\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^\]]+)\]/);if(!qp)continue;var qf=false,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title===qp[1]){worldState.questLog[qj].status=qp[2];qf=true;break;}}if(!qf)worldState.questLog.push({title:qp[1],status:qp[2],started:turn});}
+  // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
+  var quests=text.match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);muts.push("Quest offered: "+qTitle);}else muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;muts.push("Quest "+qTitle+": "+qStat);}if(qStat==="completed"||qStat==="failed")archiveQuest(qTitle,qStat);}
+  // [QUEST_STEP:title|objective|done] — add an objective or set its done state
+  var qsteps=text.match(/\[QUEST_STEP:([^|]+)\|([^|]+)\|?([^\]]*)\]/g)||[];var qsi;for(qsi=0;qsi<qsteps.length;qsi++){var qsp=qsteps[qsi].match(/\[QUEST_STEP:([^|]+)\|([^|]+)\|?([^\]]*)\]/);if(!qsp)continue;var qsTitle=qsp[1].trim(),qsObj=qsp[2].trim(),qsDone=/^(true|done|1|yes|x)$/i.test((qsp[3]||"").trim());var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq)continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;ofound=true;break;}}if(!ofound)qsq.objectives.push({text:qsObj,done:qsDone});muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj);}
   var cs2=text.match(/\[COMBAT_START:([^|]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|(\w+)\]/);if(cs2){worldState.combat={name:cs2[1],hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5],morale:cs2[6],round:1};muts.push("Combat: "+cs2[1]);}
   var cstats=text.match(/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/);if(cstats&&worldState.combat){worldState.combat.stats={STR:+cstats[1],DEX:+cstats[2],CON:+cstats[3],INT:+cstats[4],WIS:+cstats[5],CHA:+cstats[6],CR:cstats[7]};}
   var cimm=text.match(/\[COMBAT_IMMUNE:([^\]]+)\]/);if(cimm&&worldState.combat){worldState.combat.immune=cimm[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}
@@ -189,6 +217,8 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var fes=text.match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],turn);}
   var fres=text.match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/g)||[];var fri;for(fri=0;fri<fres.length;fri++){var frp=fres[fri].match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/);if(frp)resolveFutureEvent(frp[1]);}
   var nns=text.match(/\[NPC_NOTE:([^|]+)\|([^\]]+)\]/g)||[];for(var nni=0;nni<nns.length;nni++){var nnp=nns[nni].match(/\[NPC_NOTE:([^|]+)\|([^\]]+)\]/);if(nnp)fileNpcEvent(nnp[1],nnp[2],turn);}
+  // [NPC_FORGET:name|person or event] — Oubliate: scrub a specific memory from an NPC so it stops re-injecting
+  var forgets=text.match(/\[NPC_FORGET:([^|]+)\|([^\]]+)\]/g)||[];var fgi;for(fgi=0;fgi<forgets.length;fgi++){var fgp=forgets[fgi].match(/\[NPC_FORGET:([^|]+)\|([^\]]+)\]/);if(!fgp)continue;var fgName=resolveNpcName(fgp[1].trim()),fgWhat=fgp[2].trim().toLowerCase();var fgNpc=memory.npcs[fgName];if(!fgNpc)continue;var fgRem=0;if(fgNpc.knowledge){var fgkb=fgNpc.knowledge.length;fgNpc.knowledge=fgNpc.knowledge.filter(function(k){return String(k).toLowerCase().indexOf(fgWhat)<0;});fgRem+=fgkb-fgNpc.knowledge.length;}if(fgNpc.events){var fgeb=fgNpc.events.length;fgNpc.events=fgNpc.events.filter(function(e){return String(e&&e.note!==undefined?e.note:e).toLowerCase().indexOf(fgWhat)<0;});fgRem+=fgeb-fgNpc.events.length;}muts.push(fgName+" forgets: "+fgp[2].trim()+(fgRem?" ("+fgRem+")":""));}
   var nprons=text.match(/\[NPC_PRONOUN:([^|]+)\|([^\]]+)\]/g)||[];for(var pni=0;pni<nprons.length;pni++){var pnp=nprons[pni].match(/\[NPC_PRONOUN:([^|]+)\|([^\]]+)\]/);if(pnp){var pname=resolveNpcName(pnp[1]),ppron=pnp[2],pfound=false,pnj;for(pnj=0;pnj<worldState.npcs.length;pnj++){if(worldState.npcs[pnj].name===pname){worldState.npcs[pnj].pronouns=ppron;pfound=true;break;}}if(!pfound)worldState.npcs.push({name:pname,status:"unknown",rel:"unknown",pronouns:ppron,met:turn,partyMember:false,portrait:null});if(memory.npcs[pname])memory.npcs[pname].pronouns=ppron;else memory.npcs[pname]={attitude:"unknown",knowledge:[],events:[],pronouns:ppron};muts.push("Pronouns: "+pname+" ("+ppron+")");}}
   // NPC_LINK — relationship between two named entities
   var npcLinks=text.match(/\[NPC_LINK:([^|]+)\|([^|]+)\|([^\]]+)\]/g)||[];var nli;for(nli=0;nli<npcLinks.length;nli++){var nlp=npcLinks[nli].match(/\[NPC_LINK:([^|]+)\|([^|]+)\|([^\]]+)\]/);if(!nlp)continue;var nlA=resolveNpcName(nlp[1].trim()),nlB=resolveNpcName(nlp[2].trim()),nlRel=nlp[3].trim();npcLinkUpsert(nlA,nlB,nlRel);muts.push("Link: "+nlA+" ↔ "+nlB+" ("+nlRel+")");}

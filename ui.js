@@ -230,14 +230,15 @@ function updateHUD(){
   var i;
   // ── NPCs (non-party) ─────────────────────────────────────────────────────
   var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember)npcR+=sr(escHtml(worldState.npcs[i].name),escHtml(worldState.npcs[i].status+" / "+worldState.npcs[i].rel));}
-  var qR="";for(i=0;i<worldState.questLog.length;i++)qR+=sr(escHtml(worldState.questLog[i].title),escHtml(worldState.questLog[i].status));
+  var qR="",qOffered=0;for(i=0;i<worldState.questLog.length;i++){var _q=worldState.questLog[i];if(_q.status==="offered")qOffered++;qR+="<div class='sb-row' style='cursor:pointer;' onclick='showQuestModal()'><span class='sb-k'>"+escHtml(_q.title)+"</span><span class='sb-v'>"+escHtml(_q.status)+"</span></div>";}
+  var questSec=worldState.questLog.length?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;cursor:pointer;" onclick="showQuestModal()">Quests'+(qOffered?' &middot; <span style="color:#d8a04a;">⚑ '+qOffered+' opportunit'+(qOffered>1?'ies':'y')+'</span>':'')+'</div>'+qR+'</div>':"";
   // Factions
   var facR="";if(memory&&memory.npcGraph&&memory.npcGraph.factions){var facNames=Object.keys(memory.npcGraph.factions);if(facNames.length){for(var fi=0;fi<facNames.length;fi++){var fn=facNames[fi],fd=memory.npcGraph.factions[fn];facR+=sr(escHtml(fn),escHtml(fd.desc||"faction"));}}}
   sb.innerHTML='<div class="sb-sec" id="sb-party-sec" style="border-top:1px solid var(--brd);padding-top:14px;"></div>'
     +'<div class="sb-sec">'+sr(escHtml("Location"),escHtml(w.location))+sr(escHtml("Time"),escHtml(w.time))+sr(escHtml("Weather"),escHtml(w.weather))+'</div>'
     +(npcR?'<div class="sb-sec">'+npcR+'</div>':"")
     +(facR?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;">Factions</div>'+facR+'</div>':"")
-    +(qR?'<div class="sb-sec">'+qR+'</div>':"");
+    +questSec;
   // ── Party section — built programmatically to avoid onclick string escaping ──
   var partySec=document.getElementById("sb-party-sec");
   var playerBtn=document.createElement("button");playerBtn.className="sb-party-btn sb-pb-player";playerBtn.textContent=c.name;playerBtn.addEventListener("click",showCharSheet);partySec.appendChild(playerBtn);
@@ -333,7 +334,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.32";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.35";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -2056,6 +2057,53 @@ function showProviderModal(){
     msg.textContent="Using "+PROVIDERS[activeProvider].label+" · "+modelSel.value;msg.style.color="var(--grn)";
     setTimeout(function(){var m=document.getElementById("provider-modal");if(m)m.remove();},900);
   });
+}
+// ── Quest journal ─────────────────────────────────────────────────────────────
+function showQuestModal(){
+  var ex=document.getElementById("quest-modal");if(ex)ex.remove();
+  var ql=(worldState&&worldState.questLog)||[];
+  function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";"+(o.done?"text-decoration:line-through;":"")+"margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+"</div>";}return h+"</div>";}
+  var offeredHtml="",activeHtml="",i;
+  for(i=0;i<ql.length;i++){var q=ql[i];
+    if(q.status==="offered"){
+      offeredHtml+="<div style='border:1px solid var(--brd2);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--bg2);'>"
+        +"<div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+escHtml(q.title)+"</div>"
+        +(q.desc?"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>"+escHtml(q.desc)+"</div>":"")+objList(q)
+        +"<div style='display:flex;gap:8px;margin-top:10px;'>"
+        +"<button class='qa' style='background:var(--acc);color:#000;border:none;font-weight:bold;' onclick='acceptQuest("+i+")'>Accept</button>"
+        +"<button class='qa' onclick='declineQuest("+i+")'>Decline</button></div></div>";
+    }else if(q.status==="active"){
+      activeHtml+="<div style='border-bottom:1px solid var(--brd);padding:10px 0;'>"
+        +"<div style='font-size:14px;color:var(--t0);'>"+escHtml(q.title)+"</div>"
+        +(q.desc?"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>"+escHtml(q.desc)+"</div>":"")+objList(q)+"</div>";
+    }
+  }
+  var arch=(memory&&memory.quests)?Object.keys(memory.quests).map(function(k){return memory.quests[k];}):[];
+  var histHtml="";for(i=0;i<arch.length;i++){var aq=arch[i];var clr=aq.status==="completed"?"var(--grn)":aq.status==="failed"?"var(--red)":"var(--t2)";var sym=aq.status==="completed"?"✓":aq.status==="failed"?"✗":"—";histHtml+="<div style='font-size:12px;color:var(--t2);padding:3px 0;'><span style='color:"+clr+";'>"+sym+"</span> "+escHtml(aq.title)+" <span style='font-size:10px;'>("+escHtml(aq.status)+")</span></div>";}
+  var body="";
+  if(offeredHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#d8a04a;margin:2px 0 8px;'>⚑ Opportunities</div>"+offeredHtml;
+  body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:14px 0 8px;'>Active</div>"+(activeHtml||"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No active quests.</div>");
+  if(histHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:14px 0 8px;'>History</div>"+histHtml;
+  var modal=document.createElement("div");modal.id="quest-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:480px;width:100%;margin-top:40px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Quest Journal</span><button id='qm-x' style='background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;'>&#215;</button></div>"+body+"</div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  document.getElementById("qm-x").addEventListener("click",function(){modal.remove();});
+}
+function acceptQuest(idx){
+  if(!worldState||!worldState.questLog||!worldState.questLog[idx])return;
+  worldState.questLog[idx].status="active";saveAll();syncUI();
+  if(typeof showToast==="function")showToast("Quest accepted: "+worldState.questLog[idx].title);
+  showQuestModal();
+}
+function declineQuest(idx){
+  if(!worldState||!worldState.questLog||!worldState.questLog[idx])return;
+  var q=worldState.questLog[idx];if(!memory.quests)memory.quests={};
+  memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};
+  worldState.questLog.splice(idx,1);saveAll();syncUI();
+  if(typeof showToast==="function")showToast("Quest declined: "+q.title);
+  showQuestModal();
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
 function init(){loadRules();loadAdultMode();loadLegacySettings();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
