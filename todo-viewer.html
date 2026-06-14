@@ -216,6 +216,17 @@ function refresh() {
 
 // ── Parse TODO.md ─────────────────────────────────────────────────────────────
 
+// Split a markdown table row on UNESCAPED pipes only; restore literal \| as |.
+// Without this, escaped pipes inside cells (e.g. [QUEST:title\|status]) split into
+// extra columns and shove Effort/Status one cell to the right. Trims each cell.
+function splitCells(line) {
+  return line.split(/(?<!\\)\|/).map(function(c) {
+    return c.replace(/\\\|/g, "|").trim();
+  });
+}
+// Re-escape literal pipes in a cell so the exported markdown table stays valid.
+function escCell(s) { return String(s).replace(/\|/g, "\\|"); }
+
 function parse(md) {
   _sections = [];
   _tasks = [];
@@ -227,7 +238,7 @@ function parse(md) {
     if (/^\|\s*#\s*\|/.test(line)) {
       // Map columns by header name so both 3-col (#|Task|Status) and
       // 4-col (#|Task|Effort|Status) tables parse to the right fields.
-      var hdr = line.split("|").slice(1,-1).map(function(c) { return c.trim().toLowerCase(); });
+      var hdr = splitCells(line).slice(1,-1).map(function(c) { return c.toLowerCase(); });
       var ciNum = -1, ciTask = -1, ciEffort = -1, ciStatus = -1, hc;
       for (hc = 0; hc < hdr.length; hc++) {
         if (hdr[hc] === "#") ciNum = hc;
@@ -243,7 +254,7 @@ function parse(md) {
       var secIdx = _sections.length; // index this tasks section will occupy
       i += 2; // skip header and separator
       while (i < lines.length && /^\|/.test(lines[i])) {
-        var cells = lines[i].split("|").slice(1,-1).map(function(c) { return c.trim(); });
+        var cells = splitCells(lines[i]).slice(1,-1);
         if (cells.length >= 2) {
           _tasks.push({
             num: cells[ciNum] || "",
@@ -521,13 +532,13 @@ function buildMd() {
         out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
         for (var i = 0; i < rows.length; i++) {
           var t = rows[i];
-          out += "| " + t.num + " | " + t.task + " | " + (t.effort || "—") + " | " + t.status + " |\n";
+          out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.effort || "—") + " | " + escCell(t.status) + " |\n";
         }
       } else {
         out += "| # | Task | Status |\n|---|---|---|\n";
         for (var i = 0; i < rows.length; i++) {
           var t = rows[i];
-          out += "| " + t.num + " | " + t.task + " | " + t.status + " |\n";
+          out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.status) + " |\n";
         }
       }
     } else {
