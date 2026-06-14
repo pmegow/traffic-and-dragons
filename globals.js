@@ -4,6 +4,11 @@ var MDL="claude-sonnet-4-6";
 // Each provider is a self-contained object: callGM() picks the active one and
 // calls headers/buildBody/parseResponse. NO if(provider===...) branches anywhere
 // else. This same shape becomes the server-side routing table under subscription.
+// Shared tag-discipline reinforcement for every non-Claude provider. Claude honors the
+// tag contract from the base prompt; other models treat the tags as optional and narrate
+// changes without emitting them, silently desyncing the sheet. callGM() appends this for
+// gameplay turns only (not summarize). Per-provider tuning the abstraction exists for.
+var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n";
 var PROVIDERS={
   anthropic:{
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
@@ -24,12 +29,44 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
-    // Per-provider system-prompt reinforcement. Claude honors the tag contract from
-    // the base prompt; gpt-4o treats the tags as optional and narrates changes without
-    // emitting them, so the sheet silently desyncs. callGM() appends this for gameplay
-    // turns only (not summarize). This is exactly the kind of per-provider tuning the
-    // abstraction is for — it transfers to the server-side routing table verbatim.
-    reinforce:"\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n"
+    reinforce:TAG_REINFORCE
+  },
+  grok:{
+    // xAI is OpenAI-compatible — same body/response shape, different endpoint + key.
+    id:"grok", label:"Grok (xAI)", keyHint:"xai-...",
+    endpoint:"https://api.x.ai/v1/chat/completions",
+    defaultModel:"grok-2-latest",
+    models:["grok-2-latest","grok-2","grok-beta"],
+    headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    reinforce:TAG_REINFORCE
+  },
+  gemini:{
+    // Google's schema differs: system in systemInstruction, messages in contents[]
+    // (role "model" not "assistant"), reply at candidates[0].content.parts[0].text,
+    // and the MODEL NAME is in the URL — so endpoint is a function(model).
+    id:"gemini", label:"Gemini (Google)", keyHint:"AIza...",
+    endpoint:function(model){return "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent";},
+    defaultModel:"gemini-1.5-pro",
+    models:["gemini-2.0-flash","gemini-1.5-pro","gemini-1.5-flash"],
+    headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
+    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}return {systemInstruction:{parts:[{text:sys}]},contents:contents,generationConfig:{maxOutputTokens:maxTok}};},
+    parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
+    reinforce:TAG_REINFORCE
+  },
+  ollama:{
+    // Local OpenAI-compatible server. NOTE: http://localhost is blocked as mixed
+    // content from an https origin (Netlify) and unreachable from file://; usable
+    // only when the game is served from localhost. Exploration tier.
+    id:"ollama", label:"Ollama (local)", keyHint:"(none needed)",
+    endpoint:"http://localhost:11434/v1/chat/completions",
+    defaultModel:"llama3.1:70b",
+    models:["llama3.1:70b","qwen2.5:72b","mixtral:8x22b"],
+    headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+(key||"ollama")};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    reinforce:TAG_REINFORCE
   }
 };
 var activeProvider="anthropic"; // id into PROVIDERS

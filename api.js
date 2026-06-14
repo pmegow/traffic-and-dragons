@@ -267,7 +267,8 @@ async function callGM(msg,sysOverride,maxTok){
   var sys=sysOverride||buildSysPrompt();
   if(!sysOverride&&prov.reinforce)sys+=prov.reinforce; // gameplay turns only; summarize() passes its own sysOverride
   var body=prov.buildBody(msgs,sys,maxTok||1000,model);
-  var res;try{res=await fetch(prov.endpoint,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
+  var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
+  var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
   if(!res.ok)throw new Error((data.error&&data.error.message)||"HTTP "+res.status);
