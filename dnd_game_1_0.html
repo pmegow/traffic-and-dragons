@@ -99,6 +99,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 .an{font-weight:bold;font-size:11px;color:var(--t0);display:block}.ad{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}
 .sp-item{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}
 .sp-item.used{opacity:.35}.sp-nm{font-weight:bold;font-size:11px;color:var(--t0);display:block}.sp-ds{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}
+.qp-item{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px}.qp-item:hover{border-color:var(--acc)}.qp-item.off{border-color:#d8a04a}.qp-nm{color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qp-st{font-size:9px;color:var(--t2);flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}.qp-item.off .qp-st{color:#d8a04a}
 .igold{font-size:13px;font-weight:bold;color:var(--acc);padding:2px 0 6px}
 .msg{width:100%;padding:12px 16px;border-radius:var(--rl);font-size:14px;line-height:1.75}
 .msg.narrator{background:var(--bg1);border:1px solid var(--brd);color:var(--t0)}.msg.narrator em{color:var(--acc);font-style:italic}
@@ -408,6 +409,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
     <div class="rpanel" id="rpanel">
       <div class="ptog" id="panel-tog"><span class="ptog-l">Panels</span><span class="ptog-a">&#9664;</span></div>
       <div class="pss" id="pss-party" style="display:none;"><div class="psh" id="psh-party"><span class="psic">Pty</span><span class="pst">Party</span><div class="psrt"><span class="psbdg" id="party-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="party-list"></div></div></div>
+      <div class="pss" id="pss-quest"><div class="psh" id="psh-quest"><span class="psic">Qst</span><span class="pst">Quests</span><div class="psrt"><span class="psbdg" id="quest-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="quest-list"></div></div></div>
       <div class="pss" id="pss-inv"><div class="psh" id="psh-inv"><span class="psic">Inv</span><span class="pst">Inventory</span><div class="psrt"><span class="psbdg" id="inv-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="inv-list"></div><div class="igold" id="inv-gold">-- gp</div></div></div>
       <div class="pss" id="pss-ab"><div class="psh" id="psh-ab"><span class="psic">Ab</span><span class="pst">Abilities</span><div class="psrt"><span class="psbdg" id="ab-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="ab-list"></div></div></div>
       <div class="pss" id="pss-sp"><div class="psh" id="psh-sp"><span class="psic">Sp</span><span class="pst">Spells</span><div class="psrt"><span class="psbdg" id="sp-cnt">0</span><span class="psa">&#9660;</span></div></div><div class="psb"><div id="sp-list"></div></div></div>

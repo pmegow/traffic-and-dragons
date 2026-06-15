@@ -1,5 +1,10 @@
 # Story Compiler — Planning Doc
 
+> **⚠ DIRECTION REVISED (2026-06-15) — read before building.**
+> Decision: the keepsake is woven from **verbatim prose**, not chapter summaries. The body of this doc below still describes the original summaries-first design (`memory.chapters` as "the spine") — treat that as superseded for the *source* question.
+> New architecture: **complete append-only transcript = the flesh** (real prose/dialogue the player actually saw); **`memory.chapters` + `storyBeats` + `keyDecisions` = the skeleton** (arc shape, pacing, and which transcript stretches to pull verbatim — to control token cost on long campaigns).
+> **Hard dependency:** this needs a complete, ordered, durable transcript that does **not** exist yet. The auto-export `.txt` files cannot serve as the source — desktop-only trigger, DOM-snapshot that reloads truncate, scattered per-device. **Build append-only transcript capture first**, then this compiler. The chunking loop / voice / output sections below are still valid; only the input source changes.
+
 ## What it is
 
 A standalone `story_compiler.html` that takes a Traffic and Dragons save file and uses Claude to weave the campaign's chapter summaries into a readable short story. Output is a styled, downloadable HTML document. PDF via browser print.

@@ -91,7 +91,7 @@ var RENDER_MODELS=[
             body:function(p,imgUrl){return {prompt:p,image_url:imgUrl,strength:0.9,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
 ];
 var renderModel="fal-ai/flux/dev";
-var panelCol=false,secCol={inv:false,ab:false,sp:false};
+var panelCol=false,secCol={quest:false,inv:false,ab:false,sp:false};
 var activeChatTab="narrative";
 var cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};
 var rvGold=20;

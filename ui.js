@@ -211,7 +211,23 @@ function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;div.innerHTML=html;
 if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){TTS.speak(text);};div.appendChild(rb);})(opts.replayText);}
 story.appendChild(div);story.scrollTop=story.scrollHeight;if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}return div;}
-function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}}
+function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}}
+function updateQuestPanel(){
+  if(!worldState)return;var ql=worldState.questLog||[];
+  var live=[];for(var li=0;li<ql.length;li++){if(ql[li].status==="offered"||ql[li].status==="active")live.push(ql[li]);}
+  var cntEl=document.getElementById("quest-cnt");if(cntEl)cntEl.textContent=live.length;
+  var h="",i;
+  for(i=0;i<live.length;i++){
+    var q=live[i],offered=q.status==="offered",prog="";
+    if(!offered&&q.objectives&&q.objectives.length){var done=0,oj;for(oj=0;oj<q.objectives.length;oj++)if(q.objectives[oj].done)done++;prog=" "+done+"/"+q.objectives.length;}
+    h+="<div class='qp-item"+(offered?" off":"")+"' onclick='showQuestModal()' title='"+escHtml(q.desc||q.title)+"'>"
+      +"<span class='qp-nm'>"+(offered?"⚑ ":"")+escHtml(q.title)+"</span>"
+      +"<span class='qp-st'>"+(offered?"opportunity":("active"+prog))+"</span>"
+      +"</div>";
+  }
+  var listEl=document.getElementById("quest-list");
+  if(listEl)listEl.innerHTML=h||"<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No active quests</div>";
+}
 function updateHUD(){
   if(!worldState)return;var c=worldState.character,w=worldState.world;
   document.getElementById("hud-name").textContent=c.name;
@@ -360,7 +376,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.41";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.43";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1031,7 +1047,7 @@ function showNpcSheet(name){
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   var avatarHtml=isParty
-    ?"<div class='cs-avatar' id='npc-avatar-btn' title='Edit portrait'>"+(portrait?"<img src='"+portrait+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    ?"<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     :"<div class='cs-avatar' style='font-size:16px;cursor:default;'>"+initials+"</div>";
 
   // ── Hero info block ───────────────────────────────────────────────────────
@@ -1152,19 +1168,29 @@ function showNpcSheet(name){
 
   // ── Portrait (party members only) ─────────────────────────────────────────
   if(isParty&&document.getElementById("npc-avatar-btn")){
+    // Offset is stored per-companion (mirrored onto charSheet so it survives a swap-to-PC).
+    // Without dedicated get/setOffset the portrait modal would fall back to the PLAYER's
+    // offset — editing a companion's framing would silently rewrite the player's.
+    function npcGetOff(){return wsNpc.portraitOffset||{x:0.5,y:0.5,zoom:1};}
+    function npcSetOff(x,y,zoom){wsNpc.portraitOffset={x:x,y:y,zoom:zoom};if(wsNpc.charSheet)wsNpc.charSheet.portraitOffset=wsNpc.portraitOffset;saveAll();}
+    function wireNpcAvatarDrag(){var img=document.getElementById("npc-portrait-img");if(img)wirePortraitDrag(img,npcGetOff,npcSetOff);}
     function refreshNpcAvatar(){
       var av=document.getElementById("npc-avatar-btn");if(!av)return;
       var port=wsNpc.portrait||null;
-      av.innerHTML=(port?"<img src='"+port+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+port+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+      wireNpcAvatarDrag();
     }
+    wireNpcAvatarDrag(); // apply saved offset on initial render
     // Use charSheet as portrait subject if available — richer prompt
     var npcSubject=sheet||{name:name,gender:"NB",age:"",ancestry:"",cls:"",archetypeNm:null,appear:"",mark:"",inventory:[]};
     var npcPortOpts={
       getPortrait:function(){return wsNpc.portrait||null;},
       setPortrait:function(url){wsNpc.portrait=url;if(wsNpc.charSheet)wsNpc.charSheet.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();},
+      getOffset:npcGetOff,
+      setOffset:npcSetOff,
       subject:npcSubject
     };
-    document.getElementById("npc-avatar-btn").addEventListener("click",function(){showPortraitModal(refreshNpcAvatar,npcPortOpts);});
+    document.getElementById("npc-avatar-btn").addEventListener("click",function(){var img=document.getElementById("npc-portrait-img");if(img&&img._wasDragged&&img._wasDragged())return;showPortraitModal(refreshNpcAvatar,npcPortOpts);});
   }
 }
 // ── Character browser modal ───────────────────────────────────────────────────
@@ -2008,6 +2034,7 @@ function wireButtons(){
     },{passive:true});
   })();
   document.getElementById("psh-party").addEventListener("click",function(){secCol.party=!secCol.party;document.getElementById("pss-party").classList.toggle("col",secCol.party);});
+  document.getElementById("psh-quest").addEventListener("click",function(){secCol.quest=!secCol.quest;document.getElementById("pss-quest").classList.toggle("col",secCol.quest);});
   document.getElementById("psh-inv").addEventListener("click",function(){secCol.inv=!secCol.inv;document.getElementById("pss-inv").classList.toggle("col",secCol.inv);});
   document.getElementById("psh-ab").addEventListener("click",function(){secCol.ab=!secCol.ab;document.getElementById("pss-ab").classList.toggle("col",secCol.ab);});
   document.getElementById("psh-sp").addEventListener("click",function(){secCol.sp=!secCol.sp;document.getElementById("pss-sp").classList.toggle("col",secCol.sp);});
@@ -2111,7 +2138,7 @@ function showProviderModal(){
 function showQuestModal(){
   var ex=document.getElementById("quest-modal");if(ex)ex.remove();
   var ql=(worldState&&worldState.questLog)||[];
-  function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";"+(o.done?"text-decoration:line-through;":"")+"margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+"</div>";}return h+"</div>";}
+  function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+"</div>";}return h+"</div>";}
   var offeredHtml="",activeHtml="",i;
   for(i=0;i<ql.length;i++){var q=ql[i];
     if(q.status==="offered"){
