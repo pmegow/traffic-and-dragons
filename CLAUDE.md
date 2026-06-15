@@ -385,6 +385,8 @@ Set from three paths:
 2. Portrait modal → "Use as Portrait" button
 3. Portrait modal → file upload
 
+**Pan + zoom (v1.39):** `character.portraitOffset = {x, y, zoom}` — x,y are 0..1 (fraction of pannable overflow), zoom ≥ 1. Rendered by `applyPortraitTransform(img, off)` (transform: translate+scale, applied post-load since it needs natural dims), NOT `object-position` (which is intra-element and can only pan the single cover-overflow axis — a landscape image in the portrait oval overflows horizontally only, so vertical pan needs zoom to create slack). `wirePortraitDrag()` does drag-pan + wheel/pinch zoom + exposes `img._zoomBy(factor)` for the modal's +/− buttons. `normPortraitOff()` upconverts legacy `{x:0..100}` object-position saves. Only the player char-sheet avatar + portrait modal use the offset; small NPC/list avatars stay center-cropped. Portraits now generate at **3:4 portrait aspect** via `portraitRenderBody()` (overrides the render model's landscape default; scene renders untouched).
+
 ### 20. Character sheet modal (`#cs-modal`)
 
 Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by `showCharSheet()` in `ui.js`.
@@ -450,6 +452,8 @@ Server-side character storage separate from campaigns. Characters are portable s
 
 **"Play as X" flow:** all three import paths (file, campaign browser, library) route through `_startImportedCampaign(char)` in `ui.js` — a campaign-setup modal asking campaign name, world tone, and starting location (options cloned from the wizard's step-7 select) before resetting state and calling `startGame()`. The character is played as-is; companions are added in-game via Import Character → Add as companion (intro instruction sent via `sendAction(intro,{silent:true})` so it never renders as a player message).
 
+**Mid-game character swap (v1.38):** `_switchPlayerCharacter(name)` (NPC sheet → "Play as this character") demotes the current PC to a companion NPC and promotes the chosen companion's `charSheet` to `worldState.character`. The POV-handoff problem (GM kept narrating the old PC as "you") is fixed two ways: (1) the handoff message is a forceful out-of-character control directive ("the player now controls X; second-person = X; old PC is now third-person"), sent `{silent:true}`; (2) `worldState.recentSwitch = {to, from, turn}` makes `buildSysPrompt` re-inject a "CONTROL RECENTLY SWITCHED" block that explicitly discounts the sessionLog momentum, auto-cleared in `sendAction` after 2 turns (same transient-marker pattern as `pendingLegacy`). The system-prompt re-injection is the load-bearing part — a single handoff line can't overpower many turns of old-POV conversation history.
+
 ---
 
 ## Known issues
@@ -484,6 +488,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.37`
+- Current: `v1.39`
 - String is at the end of `updateMemStatus()` in `ui.js`
 - **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.

@@ -131,6 +131,7 @@ async function sendAction(override,opts){
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       applyMuts(resp);
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;if(resp.indexOf(_lcn)>=0||(worldState.turn-worldState.pendingLegacy.queuedAt)>=5){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}}
+      if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
       if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);

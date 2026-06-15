@@ -1,31 +1,57 @@
 var _campFolderHandle=null;
-// Wires mouse+touch drag-to-pan on a portrait <img> with object-fit:cover.
-// getOff() → {x,y} percent; setOff(x,y) → called on drag end to persist.
+// ── Portrait pan + zoom ───────────────────────────────────────────────────────
+// Offset model: {x, y, zoom}. x,y are 0..1 = fraction of the pannable overflow
+// (0 shows the left/top edge, 1 the right/bottom); zoom >= 1 (1 = cover-fit). Two-axis
+// pan only has slack once zoomed in (a landscape image cover-fit to a portrait oval
+// overflows horizontally only — zooming creates vertical slack too). Legacy saves stored
+// object-position percentages (0..100); normPortraitOff() upconverts them.
+function normPortraitOff(off){
+  off=off||{};
+  var x=(typeof off.x==="number")?off.x:0.5, y=(typeof off.y==="number")?off.y:0.5;
+  if(x>1||y>1){x=x/100;y=y/100;}
+  return {x:Math.min(1,Math.max(0,x)),y:Math.min(1,Math.max(0,y)),zoom:Math.max(1,(off&&off.zoom)||1)};
+}
+// Apply the pan+zoom transform to a cover-style portrait <img>. Needs the image's natural
+// dimensions, so call after it has loaded. The parent is the clipping oval.
+function applyPortraitTransform(img,off){
+  var c=img.parentNode;if(!c)return;
+  var o=normPortraitOff(off);
+  var natW=img.naturalWidth||400,natH=img.naturalHeight||600;
+  var cW=c.offsetWidth||90,cH=c.offsetHeight||135;
+  var s=Math.max(cW/natW,cH/natH)*o.zoom; // cover scale x user zoom
+  var ovX=natW*s-cW,ovY=natH*s-cH; if(ovX<0)ovX=0; if(ovY<0)ovY=0;
+  img.style.position="absolute";img.style.top="0";img.style.left="0";
+  img.style.width=natW+"px";img.style.height=natH+"px";img.style.maxWidth="none";
+  img.style.objectFit="";img.style.objectPosition="";img.style.transformOrigin="0 0";
+  img.style.transform="translate("+(-ovX*o.x)+"px,"+(-ovY*o.y)+"px) scale("+s+")";
+}
+// Wires drag-to-pan + wheel/pinch-to-zoom on a portrait <img>.
+// getOff() -> {x,y,zoom}; setOff(x,y,zoom) persists on change. Exposes img._zoomBy(factor).
 function wirePortraitDrag(img,getOff,setOff){
-  var dragging=false,sx,sy,sox,soy,moved;
-  img.style.cursor="grab";
-  function clamp(v){return Math.max(0,Math.min(100,v));}
-  function overflow(){
-    var natW=img.naturalWidth||400,natH=img.naturalHeight||600;
-    var cW=img.parentNode.offsetWidth||60,cH=img.parentNode.offsetHeight||90;
-    var sc=Math.max(cW/natW,cH/natH);
-    return{x:Math.max(1,natW*sc-cW),y:Math.max(1,natH*sc-cH)};}
-  function applyAt(cx,cy){
-    var ov=overflow();
-    var nx=clamp(sox-(cx-sx)/ov.x*100),ny=clamp(soy-(cy-sy)/ov.y*100);
-    img.style.objectPosition=nx+"% "+ny+"%";
-    return{x:nx,y:ny};}
-  function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=getOff();sox=o.x;soy=o.y;img.style.cursor="grabbing";}
-  function onMove(cx,cy){if(!dragging)return;moved=true;applyAt(cx,cy);}
-  function onUp(cx,cy){if(!dragging)return;dragging=false;img.style.cursor="grab";if(moved){var r=applyAt(cx,cy);setOff(r.x,r.y);}}
+  var dragging=false,sx,sy,sox,soy,moved,liveX,liveY,pinchStart=0,pinchZoom=1;
+  var p=img.parentNode;if(p){if(!p.style.position)p.style.position="relative";p.style.overflow="hidden";}
+  img.style.cursor="grab";img.style.touchAction="none";
+  function reapply(){applyPortraitTransform(img,getOff());}
+  if(img.complete&&img.naturalWidth)reapply(); else img.addEventListener("load",reapply);
+  function overflow(){var o=normPortraitOff(getOff()),natW=img.naturalWidth||400,natH=img.naturalHeight||600,cW=p.offsetWidth||90,cH=p.offsetHeight||135;var s=Math.max(cW/natW,cH/natH)*o.zoom;return {x:Math.max(1,natW*s-cW),y:Math.max(1,natH*s-cH)};}
+  function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=normPortraitOff(getOff());sox=o.x;soy=o.y;liveX=o.x;liveY=o.y;img.style.cursor="grabbing";}
+  function onMove(cx,cy){if(!dragging)return;moved=true;var ov=overflow(),o=normPortraitOff(getOff());liveX=Math.min(1,Math.max(0,sox-(cx-sx)/ov.x));liveY=Math.min(1,Math.max(0,soy-(cy-sy)/ov.y));applyPortraitTransform(img,{x:liveX,y:liveY,zoom:o.zoom});}
+  function onUp(){if(!dragging)return;dragging=false;img.style.cursor="grab";if(moved)setOff(liveX,liveY,normPortraitOff(getOff()).zoom);}
+  function applyZoom(factor){var o=normPortraitOff(getOff());var z=Math.min(4,Math.max(1,o.zoom*factor));applyPortraitTransform(img,{x:o.x,y:o.y,zoom:z});setOff(o.x,o.y,z);}
+  function tdist(e){var a=e.touches[0],b=e.touches[1],dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
   img.addEventListener("mousedown",function(e){e.preventDefault();e.stopPropagation();onDown(e.clientX,e.clientY);});
   document.addEventListener("mousemove",function(e){onMove(e.clientX,e.clientY);});
-  document.addEventListener("mouseup",function(e){onUp(e.clientX,e.clientY);});
-  img.addEventListener("touchstart",function(e){var t=e.touches[0];onDown(t.clientX,t.clientY);},{passive:true});
-  img.addEventListener("touchmove",function(e){e.preventDefault();var t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:false});
-  img.addEventListener("touchend",function(e){var t=e.changedTouches[0];onUp(t.clientX,t.clientY);});
-  // Return whether the last interaction was a drag (so click handler can bail).
-  img._wasDragged=function(){return moved;};}
+  document.addEventListener("mouseup",function(){onUp();});
+  img.addEventListener("wheel",function(e){e.preventDefault();applyZoom(e.deltaY<0?1.1:0.9);},{passive:false});
+  img.addEventListener("touchstart",function(e){if(e.touches.length===2){pinchStart=tdist(e);pinchZoom=normPortraitOff(getOff()).zoom;dragging=false;}else{var t=e.touches[0];onDown(t.clientX,t.clientY);}},{passive:true});
+  img.addEventListener("touchmove",function(e){e.preventDefault();if(e.touches.length===2&&pinchStart){var z=Math.min(4,Math.max(1,pinchZoom*tdist(e)/pinchStart)),o=normPortraitOff(getOff());applyPortraitTransform(img,{x:o.x,y:o.y,zoom:z});setOff(o.x,o.y,z);}else if(e.touches.length===1){var t=e.touches[0];onMove(t.clientX,t.clientY);}},{passive:false});
+  img.addEventListener("touchend",function(e){if(pinchStart&&e.touches.length<2)pinchStart=0;onUp();});
+  img._wasDragged=function(){return moved;};
+  img._zoomBy=applyZoom;
+}
+// Portraits should be portrait-oriented (3:4), not the landscape aspect the render models
+// bake in for scene renders. Override the aspect field on the built request body.
+function portraitRenderBody(cfg,prompt){var b=cfg.body(prompt);if(b.image_size)b.image_size="portrait_4_3";if(b.aspect_ratio)b.aspect_ratio="3:4";return b;}
 
 var _campRootHandle=null;
 var _SUBFOLDERS={save:"saves",narrative:"logs",character:"characters",render:"renders",portrait:"characters"};
@@ -334,7 +360,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.37";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.39";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -649,7 +675,7 @@ function showCharSheet(){
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+c.name+"' style='width:100%;height:100%;object-fit:cover;object-position:"+(c.portraitOffset?c.portraitOffset.x+"% "+c.portraitOffset.y+"%":"50% 50%")+";display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+c.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+c.name+"</div>"
@@ -700,15 +726,14 @@ function showCharSheet(){
   function refreshAvatar(){
     var av=document.getElementById("cs-avatar-btn");if(!av)return;
     var c2=worldState.character;
-    var op=c2.portraitOffset?c2.portraitOffset.x+"% "+c2.portraitOffset.y+"%":"50% 50%";
-    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+c2.name+"' style='width:100%;height:100%;object-fit:cover;object-position:"+op+";display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+c2.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
     wireAvatarDrag();
   }
   function wireAvatarDrag(){
     var img=document.getElementById("cs-portrait-img");if(!img)return;
     wirePortraitDrag(img,
-      function(){return worldState.character.portraitOffset||{x:50,y:50};},
-      function(x,y){worldState.character.portraitOffset={x:x,y:y};saveAll();});
+      function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};},
+      function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();});
   }
   wireAvatarDrag();
   document.getElementById("cs-avatar-btn").addEventListener("click",function(){
@@ -722,8 +747,8 @@ async function showPortraitModal(refreshFn,opts){
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
   var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();};
-  var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:50,y:50};};
-  var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y){worldState.character.portraitOffset={x:x,y:y};saveAll();};
+  var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};};
+  var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;
   var genderWord=!c.gender||c.gender==="NB"?"androgynous":c.gender==="F"?"female":"male";
   var pmRefSrc=getPort()||null;
@@ -753,7 +778,8 @@ async function showPortraitModal(refreshFn,opts){
     +"<button id='pm-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;'>&#215;</button>"
     +"</div>"
     // ── Current portrait preview ───────────────────────────────────────────
-    +(hasPortrait?"<div style='text-align:center;margin-bottom:20px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;'><img id='pm-preview-img' src='"+getPort()+"' style='width:100%;height:100%;object-fit:cover;object-position:"+getOff().x+"% "+getOff().y+"%;display:block;cursor:grab;'></div></div>":"")
+    +(hasPortrait?"<div style='text-align:center;margin-bottom:8px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;position:relative;'><img id='pm-preview-img' src='"+getPort()+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'></div></div>"
+    +"<div style='text-align:center;margin-bottom:18px;font-size:11px;color:var(--t2);'>drag to reframe &middot; scroll / pinch to zoom &nbsp; <button id='pm-zoom-out' style='font-family:Georgia,serif;font-size:14px;line-height:1;padding:2px 10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>&minus;</button> <button id='pm-zoom-in' style='font-family:Georgia,serif;font-size:14px;line-height:1;padding:2px 9px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>+</button></div>":"")
     // ── 1. Upload / Save / Remove (same row) ──────────────────────────────
     +"<div style='display:flex;gap:6px;margin-bottom:4px;'>"
     +"<button id='pm-upload' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:#000;font-weight:bold;'>&#8593; Upload</button>"
@@ -781,7 +807,9 @@ async function showPortraitModal(refreshFn,opts){
   document.getElementById("pm-x").addEventListener("click",pmClose);
   modal.addEventListener("click",function(e){if(e.target===modal)pmClose();});
   var pmImg=document.getElementById("pm-preview-img");
-  if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y){setOff(x,y);if(refreshFn)refreshFn();});
+  if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y,zoom){setOff(x,y,zoom);if(refreshFn)refreshFn();});
+  if(document.getElementById("pm-zoom-in"))document.getElementById("pm-zoom-in").addEventListener("click",function(){if(pmImg&&pmImg._zoomBy)pmImg._zoomBy(1.2);});
+  if(document.getElementById("pm-zoom-out"))document.getElementById("pm-zoom-out").addEventListener("click",function(){if(pmImg&&pmImg._zoomBy)pmImg._zoomBy(0.83);});
   if(document.getElementById("pm-save-portrait")){
     document.getElementById("pm-save-portrait").addEventListener("click",function(){
       var purl=getPort();if(!purl)return;
@@ -860,7 +888,7 @@ async function showPortraitModal(refreshFn,opts){
         for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
         falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(mdlCfg.body(prompt))});
+          body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
       }
       if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
       var falData=await falRes.json();
@@ -890,7 +918,7 @@ async function showPortraitModal(refreshFn,opts){
         for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
         falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(mdlCfg.body(prompt))});
+          body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
       }
       if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
       var falData=await falRes.json();
@@ -1514,13 +1542,21 @@ function _switchPlayerCharacter(name){
   // Swap
   worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
   worldState.npcs.push(oldNpc);             // add old char as npc
-  newChar.portraitOffset=newChar.portraitOffset||{x:50,y:50};
+  newChar.portraitOffset=newChar.portraitOffset||{x:0.5,y:0.5,zoom:1};
   worldState.character=newChar;
+  // Mark the switch so buildSysPrompt re-injects a forceful POV-reassignment block for
+  // the next couple of turns — the sessionLog is full of the OLD character as "you", and a
+  // single handoff line can't overpower that momentum. Cleared in sendAction after ~2 turns.
+  worldState.recentSwitch={to:newChar.name,from:oldChar.name,turn:worldState.turn};
   // Update knowledge graph link
   npcLinkUpsert(newChar.name,oldChar.name,"companions");
   saveAll();syncUI();initAbilities();initSpells();
   showToast("Now playing as "+name+".");
-  sendAction(name+" steps into the lead. "+oldChar.name+" falls in alongside. Narrate the transition briefly and continue the scene.");
+  // Forceful, explicit control-reassignment directive — sent silently (it's out-of-character,
+  // not a player action). The old handoff ("steps into the lead") read as narrative flavor and
+  // never told the GM that the second-person referent had changed.
+  var handoff="[CONTROL SWITCH — out-of-character instruction, NOT a player action] The player now controls "+newChar.name+". From this moment on, the player character IS "+newChar.name+": every second-person reference ('you', 'your') means "+newChar.name+", a "+(newChar.subraceNm?newChar.subraceNm+" ":"")+(newChar.ancestry||"")+" "+(newChar.cls||"")+". "+oldChar.name+" is now a non-player companion travelling with the party — refer to "+oldChar.name+" in the THIRD person by name, never as 'you'. The earlier story was told with "+oldChar.name+" as the player; that has changed. Give ONE brief in-world beat acknowledging "+newChar.name+" taking the lead, then continue the scene from "+newChar.name+"'s eyes.";
+  sendAction(handoff,{silent:true});
 }
 // Campaign setup for an imported character — replaces the old direct startGame() jump
 // that skipped tone, campaign name, and starting location entirely. The character is
