@@ -360,7 +360,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.39";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.40";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1979,6 +1979,13 @@ function wireButtons(){
     if(el)el.addEventListener("click",function(){closeAllMenus();if(typeof TTS!=="undefined")TTS.showSettingsModal();});
   });
   if(typeof TTS!=="undefined")TTS.loadSettings();
+  // STT (speech-to-text dictation) — Car Mode foundation
+  document.getElementById("mic-btn").addEventListener("click",function(){if(typeof STT!=="undefined")STT.toggle();});
+  ["fm-autosend","cs-fm-autosend","api-fm-autosend"].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});
+  });
+  if(typeof STT!=="undefined")STT.loadSettings();
   window.addEventListener("beforeunload",function(){snapshotActiveCamp();});
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
