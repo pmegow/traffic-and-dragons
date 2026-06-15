@@ -360,7 +360,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.40";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.41";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1550,6 +1550,12 @@ function _switchPlayerCharacter(name){
   worldState.recentSwitch={to:newChar.name,from:oldChar.name,turn:worldState.turn};
   // Update knowledge graph link
   npcLinkUpsert(newChar.name,oldChar.name,"companions");
+  // The swap re-homes portraits (PC<->companion) WITHOUT calling a portrait setter, so
+  // the dirty flag stays false and the separate /portrait upload would be skipped mid-session
+  // (_portraitSyncedOnce). Result: the server's portrait store keeps the pre-swap mapping and a
+  // second device loads cross-wired portraits (new PC shows old PC's image). Mark dirty so the
+  // next sync re-uploads {portrait: new PC, npcPortraits: {old PC: ...}}.
+  if(typeof storageAdapter!=="undefined"&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();
   saveAll();syncUI();initAbilities();initSpells();
   showToast("Now playing as "+name+".");
   // Forceful, explicit control-reassignment directive — sent silently (it's out-of-character,
