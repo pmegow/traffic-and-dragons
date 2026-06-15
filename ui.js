@@ -376,7 +376,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.43";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.44";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -538,7 +538,13 @@ function showSyncModal(){
 function exportNarrative(){
   if(!worldState)return;var lines=["TRAFFIC AND DRAGONS -- SESSION LOG","Character: "+worldState.character.name+" | "+worldState.character.cls+" Lv"+worldState.character.level,"Turn: "+worldState.turn,"","===="];
   var story=document.getElementById("story-narrative"),msgs=story.querySelectorAll(".msg"),i;
-  for(i=0;i<msgs.length;i++){var m=msgs[i];if(m.classList.contains("narrator")){lines.push(m.innerText||m.textContent);lines.push("");}else if(m.classList.contains("player")){lines.push("> "+(m.innerText||m.textContent));lines.push("");}else if(m.classList.contains("system")){lines.push("[ "+(m.innerText||m.textContent)+" ]");}}
+  // Extract prose only — strip the suggested-action buttons (.qa) and the 🔊 replay button
+  // (.tts-replay). They're UI affordances, not narrative; the chosen action already appears as
+  // the next "> player" line. Render the cleaned clone offscreen so innerText keeps line breaks.
+  var holder=document.createElement("div");holder.style.cssText="position:absolute;left:-9999px;top:0;width:600px;";document.body.appendChild(holder);
+  function msgText(m){holder.innerHTML=m.innerHTML;var rm=holder.querySelectorAll(".qa,.tts-replay"),k;for(k=0;k<rm.length;k++)rm[k].parentNode.removeChild(rm[k]);return (holder.innerText||holder.textContent||"").trim();}
+  for(i=0;i<msgs.length;i++){var m=msgs[i];if(m.classList.contains("narrator")){lines.push(msgText(m));lines.push("");}else if(m.classList.contains("player")){lines.push("> "+msgText(m));lines.push("");}else if(m.classList.contains("system")){lines.push("[ "+msgText(m)+" ]");}}
+  document.body.removeChild(holder);
   var fname=buildFilename("narrative");var blob=new Blob([lines.join("\n")],{type:"text/plain"});exportToFolder("narrative",blob,fname);
 }
 function exportSave(){

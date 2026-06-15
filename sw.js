@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260615d";
+var CACHE = "tnd-v3-20260615e";
 var APP_SHELL = [
   "/dnd_game_1_0.html",
   "/globals.js",
