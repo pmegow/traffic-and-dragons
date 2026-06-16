@@ -376,7 +376,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.48";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.49";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -850,19 +850,22 @@ async function showPortraitModal(refreshFn,opts){
     var status=document.getElementById("pm-status");
     status.innerHTML="";
     var prev=document.createElement("div");
-    var img=document.createElement("img");img.src=imgUrl;img.style.cssText="width:100%;border-radius:var(--r);display:block;margin-bottom:10px;";
-    var BS2="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--acc);border:none;color:#000;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-right:5px;margin-bottom:6px;";
-    var useBtn=document.createElement("button");useBtn.textContent="Apply";useBtn.style.cssText=BS2;
+    prev.style.cssText="border:1px solid var(--acc);border-radius:var(--r);padding:12px;margin-top:8px;background:var(--bg2);";
+    var hd=document.createElement("div");hd.textContent="New image — tap Apply to set it";hd.style.cssText="font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;text-align:center;";
+    var img=document.createElement("img");img.src=imgUrl;img.style.cssText="width:100%;max-height:280px;object-fit:contain;border-radius:var(--r);display:block;margin-bottom:10px;";
+    var BS2="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:5px;margin-bottom:6px;";
+    var useBtn=document.createElement("button");useBtn.textContent="✓ Apply";useBtn.style.cssText="display:block;width:100%;padding:12px;font-family:Georgia,serif;font-size:15px;font-weight:bold;background:var(--acc);border:none;color:#000;border-radius:var(--r);cursor:pointer;margin-bottom:8px;";
     var editBtn=document.createElement("button");editBtn.textContent="Edit Prompt";editBtn.style.cssText=BS2;
     var discardBtn=document.createElement("button");discardBtn.textContent="Discard";discardBtn.style.cssText=BS2;
-    var btnRow=document.createElement("div");btnRow.appendChild(useBtn);if(genPrompt)btnRow.appendChild(editBtn);btnRow.appendChild(discardBtn);
+    var btnRow=document.createElement("div");if(genPrompt)btnRow.appendChild(editBtn);btnRow.appendChild(discardBtn);
     var editArea=document.createElement("div");editArea.style.cssText="margin-top:8px;display:none;";
     var promptTA=document.createElement("textarea");promptTA.value=genPrompt||"";
     promptTA.style.cssText="width:100%;height:80px;padding:8px;font-size:12px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;resize:vertical;margin-bottom:6px;";
-    var regenBtn=document.createElement("button");regenBtn.textContent="Regenerate with this prompt";regenBtn.style.cssText="display:block;width:100%;"+BS2;
+    var regenBtn=document.createElement("button");regenBtn.textContent="Regenerate with this prompt";regenBtn.style.cssText="display:block;width:100%;padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--acc);border:none;color:#000;border-radius:var(--r);cursor:pointer;font-weight:bold;";
     editArea.appendChild(promptTA);editArea.appendChild(regenBtn);
-    prev.appendChild(img);prev.appendChild(btnRow);prev.appendChild(editArea);
+    prev.appendChild(hd);prev.appendChild(img);prev.appendChild(useBtn);prev.appendChild(btnRow);prev.appendChild(editArea);
     status.appendChild(prev);
+    try{status.scrollIntoView({behavior:"smooth",block:"center"});}catch(e){}
     useBtn.addEventListener("click",function(){
       useBtn.disabled=true;useBtn.textContent="Applying…";
       // Uploaded images are already a compressed data: URL — commit directly (no double-compress).
