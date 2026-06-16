@@ -112,7 +112,7 @@ function buildSysPrompt(){
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
     +"STATE TAGS (use in responses, never shown to player):\n"
     +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
-    +"[NPC:name|status|relation] [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
+    +"[NPC:name|status|relation] -- status=current mood/condition, relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
     +"[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten\n"
     +"[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n"
     +"[SUBLOCATION:name] -- player enters a named area within current world location (e.g. tavern common room, thieves' guild hall)\n"
@@ -176,6 +176,9 @@ function findCompanionChar(name){
   for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npc.partyMember&&npc.charSheet&&npc.name.toLowerCase()===n)return npc.charSheet;}
   return null;
 }
+// True for a pronoun pair like "he/him", "she/her", "they/them" (incl. common neopronouns).
+// Whitelisted tokens so real relations like "ally/foe" don't false-positive.
+function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\s*(him|her|them|it|its|hir|zir|xem|faer|em|per)\s*$/i.test(s||"");}
 function applyMuts(text){
   var muts=[],turn=worldState.turn;
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
@@ -197,8 +200,17 @@ function applyMuts(text){
   // prose reads clean. Written once per NPC, never overwritten.
   var feSnip=null;
   function feGet(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim().slice(0,280);var fb=Math.max(ft.lastIndexOf(". "),ft.lastIndexOf("! "),ft.lastIndexOf("? "));if(fb>60)ft=ft.slice(0,fb+1);feSnip=ft;}return feSnip;}
-  // NPC tags — resolve aliases to canonical before storing
-  var npcs=text.match(/\[NPC:([^|]+)\|([^|]+)\|([^\]]+)\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|]+)\|([^|]+)\|([^\]]+)\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());var found=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===npName){worldState.npcs[nj].status=np[2];worldState.npcs[nj].rel=np[3];found=true;break;}}if(!found){worldState.npcs.push({name:npName,status:np[2],rel:np[3],met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);}if(!memory.npcs[npName])memory.npcs[npName]={attitude:np[3],knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();memory.npcs[npName].attitude=np[3];mapNpcLocation(npName);muts.push("NPC: "+npName);}
+  // NPC tags — resolve aliases to canonical before storing.
+  // name+status groups are bounded by ] ([^|\]]+) so a 2-field tag immediately followed by another
+  // tag (e.g. [NPC_PRONOUN:]) can't be stitched into one over-captured match (the Lorcan corruption).
+  var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());
+    var npStatus=(np[2]||"").trim(),npRel=(np[3]||"").trim(),npPron="";
+    // The GM sometimes writes a pronoun where status/relation belongs — route it to pronouns, never store it as the relation.
+    if(isPronounStr(npRel)){npPron=npRel;npRel="";}
+    if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
+    var found=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===npName){if(npStatus)worldState.npcs[nj].status=npStatus;if(npRel)worldState.npcs[nj].rel=npRel;if(npPron)worldState.npcs[nj].pronouns=npPron;found=true;break;}}
+    if(!found){worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);}
+    if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);muts.push("NPC: "+npName);}
   var xpTags=text.match(/\[XP:(\d+)\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:(\d+)\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
   // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
   var quests=text.match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);muts.push("Quest offered: "+qTitle);}else muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;muts.push("Quest "+qTitle+": "+qStat);}if(qStat==="completed"||qStat==="failed")archiveQuest(qTitle,qStat);}

@@ -376,7 +376,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.44";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.48";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -805,8 +805,8 @@ async function showPortraitModal(refreshFn,opts){
     // ── 1. Upload / Save / Remove (same row) ──────────────────────────────
     +"<div style='display:flex;gap:6px;margin-bottom:4px;'>"
     +"<button id='pm-upload' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:#000;font-weight:bold;'>&#8593; Upload</button>"
-    +(hasPortrait?"<button id='pm-save-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:#000;font-weight:bold;'>&#8595; Save</button>":"")
-    +(hasPortrait?"<button id='pm-remove-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:#000;font-weight:bold;'>&#10005; Remove</button>":"")
+    +(hasPortrait?"<button id='pm-save-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Download a copy of this image to a file'>&#8595; Download</button>":"")
+    +(hasPortrait?"<button id='pm-remove-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);'>&#10005; Remove</button>":"")
     +"</div>"
     +"<input type='file' id='pm-file' accept='image/*' style='display:none;'>"
     // ── 2. Generate from scratch ───────────────────────────────────────────
@@ -852,10 +852,10 @@ async function showPortraitModal(refreshFn,opts){
     var prev=document.createElement("div");
     var img=document.createElement("img");img.src=imgUrl;img.style.cssText="width:100%;border-radius:var(--r);display:block;margin-bottom:10px;";
     var BS2="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--acc);border:none;color:#000;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-right:5px;margin-bottom:6px;";
-    var useBtn=document.createElement("button");useBtn.textContent="Use as Portrait";useBtn.style.cssText=BS2;
+    var useBtn=document.createElement("button");useBtn.textContent="Apply";useBtn.style.cssText=BS2;
     var editBtn=document.createElement("button");editBtn.textContent="Edit Prompt";editBtn.style.cssText=BS2;
     var discardBtn=document.createElement("button");discardBtn.textContent="Discard";discardBtn.style.cssText=BS2;
-    var btnRow=document.createElement("div");btnRow.appendChild(useBtn);btnRow.appendChild(editBtn);btnRow.appendChild(discardBtn);
+    var btnRow=document.createElement("div");btnRow.appendChild(useBtn);if(genPrompt)btnRow.appendChild(editBtn);btnRow.appendChild(discardBtn);
     var editArea=document.createElement("div");editArea.style.cssText="margin-top:8px;display:none;";
     var promptTA=document.createElement("textarea");promptTA.value=genPrompt||"";
     promptTA.style.cssText="width:100%;height:80px;padding:8px;font-size:12px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;resize:vertical;margin-bottom:6px;";
@@ -864,12 +864,15 @@ async function showPortraitModal(refreshFn,opts){
     prev.appendChild(img);prev.appendChild(btnRow);prev.appendChild(editArea);
     status.appendChild(prev);
     useBtn.addEventListener("click",function(){
-      useBtn.disabled=true;useBtn.textContent="Saving…";
+      useBtn.disabled=true;useBtn.textContent="Applying…";
+      // Uploaded images are already a compressed data: URL — commit directly (no double-compress).
+      // fal.ai results are http(s) URLs — fetch, then compress before storing.
+      if(imgUrl.indexOf("data:")===0){setPort(imgUrl);if(refreshFn)refreshFn();pmClose();return;}
       fetch(imgUrl).then(function(r){return r.blob();}).then(function(blob){
         var fr=new FileReader();
         fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){setPort(compressed);if(refreshFn)refreshFn();pmClose();});};
         fr.readAsDataURL(blob);
-      }).catch(function(){useBtn.disabled=false;useBtn.textContent="Use as Portrait";});
+      }).catch(function(){useBtn.disabled=false;useBtn.textContent="Apply";});
     });
     editBtn.addEventListener("click",function(){
       var open=editArea.style.display!=="none";
@@ -957,7 +960,9 @@ async function showPortraitModal(refreshFn,opts){
   document.getElementById("pm-file").addEventListener("change",function(){
     var file=this.files[0];if(!file)return;
     var reader=new FileReader();
-    reader.onload=function(e){compressPortrait(e.target.result,function(compressed){setPort(compressed);if(refreshFn)refreshFn();pmClose();});};
+    // Preview the chosen image with an explicit Apply (no genPrompt → no "Edit Prompt"); nothing is
+    // saved until Apply, so picking a file can't silently set or fail to set the portrait.
+    reader.onload=function(e){compressPortrait(e.target.result,function(compressed){showResult(compressed,false,null);});};
     reader.readAsDataURL(file);this.value="";
   });
 

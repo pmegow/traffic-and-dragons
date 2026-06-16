@@ -180,8 +180,13 @@ var storageAdapter = (function() {
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     _syncing     = true;
     _pendingSync = false;
+    // Keep the CURRENT PC's portrait INLINE in the state blob — it must stay atomic with the
+    // state turn. Splitting it into the separate /portrait request (below) let it desync: after a
+    // character swap the blob said "PC=X" while the separate store still held the old PC's image,
+    // so a second device loaded the wrong portrait. (Companion charSheet portraits already ride in
+    // the blob unstripped — the PC being the one thing split off was the bug.) Only NPC avatar
+    // portraits (n.portrait) are stripped to the separate store, since campaigns can have many.
     var wsStripped = Object.assign({}, worldState, {
-      character: Object.assign({}, worldState.character, {portrait: null}),
       npcs: (worldState.npcs||[]).map(function(n){
         return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
       })
