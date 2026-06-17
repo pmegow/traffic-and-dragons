@@ -42,7 +42,7 @@ function checkLegacyCharacter(){
       candidates.push(ch);
     }catch(e){}
   }
-  if(!candidates.length)return;
+  if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no candidate characters in OTHER campaigns. Need at least one other campaign with a saved character (a local tnd_camp_<id>_ws snapshot).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
   worldState.pendingLegacy={name:pick.name,cls:pick.cls||"",ancestry:pick.subraceNm||pick.ancestry||"",level:pick.level||1,backstory:pick.backstory||"",trait:pick.trait||"",queuedAt:worldState.turn};
   saveCore();

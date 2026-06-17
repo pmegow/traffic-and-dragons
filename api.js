@@ -228,7 +228,7 @@ function applyMuts(text){
     if(isPronounStr(npRel)){npPron=npRel;npRel="";}
     if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
     var found=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===npName){if(npStatus)worldState.npcs[nj].status=npStatus;if(npRel)worldState.npcs[nj].rel=npRel;if(npPron)worldState.npcs[nj].pronouns=npPron;found=true;break;}}
-    if(!found){worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);}
+    if(!found){worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}// per-new-NPC legacy roll (the intended trigger; previously only ran once on page load)
     if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);muts.push("NPC: "+npName);}
   var xpTags=text.match(/\[XP:(\d+)\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:(\d+)\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
   // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
