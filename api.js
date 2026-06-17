@@ -179,13 +179,31 @@ function findCompanionChar(name){
 // True for a pronoun pair like "he/him", "she/her", "they/them" (incl. common neopronouns).
 // Whitelisted tokens so real relations like "ally/foe" don't false-positive.
 function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\s*(him|her|them|it|its|hir|zir|xem|faer|em|per)\s*$/i.test(s||"");}
+// Inventory stacks via a trailing " xN" suffix: gaining a duplicate increments the count instead of
+// pushing a second entry; losing decrements (and drops the suffix at 1). Genuine repeat pickups (5x
+// poison arrow) collapse to one "Poison arrow x5" line.
+function _invEsc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function addInventoryItem(inv,name){var i;
+  for(i=0;i<inv.length;i++){if(inv[i]===name){inv[i]=name+" x2";return;}}
+  var re=new RegExp("^"+_invEsc(name)+" x(\\d+)$","i");
+  for(i=0;i<inv.length;i++){var m=inv[i].match(re);if(m){inv[i]=name+" x"+(parseInt(m[1],10)+1);return;}}
+  inv.push(name);
+}
+function removeInventoryItem(inv,name){var i;
+  for(i=0;i<inv.length;i++){if(inv[i]===name){inv.splice(i,1);return true;}}
+  var re=new RegExp("^"+_invEsc(name)+" x(\\d+)$","i");
+  for(i=0;i<inv.length;i++){var m=inv[i].match(re);if(m){var n=parseInt(m[1],10)-1;inv[i]=n<=1?name:name+" x"+n;return true;}}
+  return false;
+}
 function applyMuts(text){
   var muts=[],turn=worldState.turn;
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
   var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);muts.push(dg>0?"+"+dg+" gp":dg+" gp");}
-  var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;worldState.character.inventory.push(igm[1]);muts.push("+"+igm[1]);autoTakeLocationItem(igm[1]);}
-  var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilName=ilm[1];worldState.character.inventory=worldState.character.inventory.filter(function(x){return x!==ilName;});muts.push("-"+ilName);}
-  var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){worldState.world.location=loc[1];worldState.world.sublocation=null;fileLocation(loc[1],"",turn);muts.push("-> "+loc[1]);}
+  var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;addInventoryItem(worldState.character.inventory,igm[1]);muts.push("+"+igm[1]);autoTakeLocationItem(igm[1]);}
+  var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;removeInventoryItem(worldState.character.inventory,ilm[1]);muts.push("-"+ilm[1]);}
+  // fileLocation reads worldState.world.location as the PREVIOUS node to record a travel edge, so it
+  // must run BEFORE we overwrite it — otherwise prev===dest and no edge is ever recorded (was the bug).
+  var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){fileLocation(loc[1],"",turn);worldState.world.location=loc[1];worldState.world.sublocation=null;muts.push("-> "+loc[1]);}
   var ldesc=text.match(/\[LOCATION_DESC:([^\]]+)\]/);if(ldesc)fileLocationDesc(ldesc[1]);
   var lsize=text.match(/\[LOCATION_SIZE:([^|]+)\|([^\]]+)\]/);if(lsize){var lsKey=worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location;if(memory.map&&memory.map.nodes[lsKey]){memory.map.nodes[lsKey].size=lsize[1].trim();memory.map.nodes[lsKey].travelMins=parseInt(lsize[2])||null;}}
   var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),turn);muts.push("Sub: "+sloctag[1].trim());}
@@ -213,7 +231,7 @@ function applyMuts(text){
     if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);muts.push("NPC: "+npName);}
   var xpTags=text.match(/\[XP:(\d+)\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:(\d+)\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
   // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
-  var quests=text.match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);muts.push("Quest offered: "+qTitle);}else muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;muts.push("Quest "+qTitle+": "+qStat);}if(qStat==="completed"||qStat==="failed")archiveQuest(qTitle,qStat);}
+  var quests=text.match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);muts.push("Quest offered: "+qTitle);}else muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;muts.push("Quest "+qTitle+": "+qStat);}if(qStat==="completed"||qStat==="failed")archiveQuest(qTitle,qStat);}
   // [QUEST_STEP:title|objective|done] — add an objective or set its done state
   var qsteps=text.match(/\[QUEST_STEP:([^|]+)\|([^|]+)\|?([^\]]*)\]/g)||[];var qsi;for(qsi=0;qsi<qsteps.length;qsi++){var qsp=qsteps[qsi].match(/\[QUEST_STEP:([^|]+)\|([^|]+)\|?([^\]]*)\]/);if(!qsp)continue;var qsTitle=qsp[1].trim(),qsObj=qsp[2].trim(),qsDone=/^(true|done|1|yes|x)$/i.test((qsp[3]||"").trim());var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq)continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;ofound=true;break;}}if(!ofound)qsq.objectives.push({text:qsObj,done:qsDone});muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj);}
   var cs2=text.match(/\[COMBAT_START:([^|]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|(\w+)\]/);if(cs2){worldState.combat={name:cs2[1],hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5],morale:cs2[6],round:1};muts.push("Combat: "+cs2[1]);}

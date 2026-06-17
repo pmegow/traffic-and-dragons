@@ -79,14 +79,23 @@ function mapNpcLocation(name){
 }
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memory.lore.shift();}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memory.keyDecisions.shift();}
-function fileFutureEvent(when,who,what,setTurn){memory.futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,resolved:false});}
-function resolveFutureEvent(what){var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what){memory.futureEvents[i].resolved=true;return;}}// Partial match
-for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what.indexOf(what)>=0){memory.futureEvents[i].resolved=true;return;}}}
+// Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
+// and memoryTOC injected ALL unresolved ones into every prompt (a save reached 469). Now: dedupe by
+// `what`, drop resolved on resolve, and cap to the most-recent 30 (same discipline as lore/decisions).
+function fileFutureEvent(when,who,what,setTurn){
+  if(!what)return;
+  var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
+  memory.futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,resolved:false});
+  if(memory.futureEvents.length>30)memory.futureEvents=memory.futureEvents.slice(-30);
+}
+function resolveFutureEvent(what){var i;
+  for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
+  for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what.indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
 function memoryTOC(){
   var lines=[],i;
   var nk=Object.keys(memory.npcs);if(nk.length)lines.push("KNOWN NPCs: "+nk.join(", "));
   var lk=Object.keys(memory.locations);if(lk.length)lines.push("VISITED: "+lk.join(", "));
-  var fe=memory.futureEvents.filter(function(e){return !e.resolved;});
+  var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);
   if(fe.length){var fs=[];for(i=0;i<fe.length;i++)fs.push(fe[i].what+" ("+fe[i].when+")");lines.push("PENDING EVENTS: "+fs.join("; "));}
   if(memory.lore.length)lines.push("LORE: "+memory.lore.join("; "));
   if(memory.keyDecisions.length){var d=memory.keyDecisions.slice(-5),ds=[];for(i=0;i<d.length;i++)ds.push("[T"+d[i].turn+"] "+d[i].desc);lines.push("RECENT DECISIONS: "+ds.join("; "));}
