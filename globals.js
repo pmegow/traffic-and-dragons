@@ -102,4 +102,6 @@ var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted b
 var adultMode=false;
 var legacyCharsOn=false;
 var legacyChancePct=5;
+var legacyLibCache=null;   // cached Character Library list (legacy candidates); fetched async, rolled against synchronously
+var legacyLibLoading=false;
 var _sbPicks=[]; // stat-bump modal picks (was window._sbPicks — F-11)

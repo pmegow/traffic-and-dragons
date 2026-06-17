@@ -25,24 +25,36 @@ function startGame(char,toneName,toneVoice){
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
   beginAdventure();
 }
+// Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
+// pool rather than from other campaigns. Async, so checkLegacyCharacter rolls against the cache.
+function loadLegacyLibrary(){
+  if(!legacyCharsOn||legacyLibLoading)return;
+  if(typeof storageAdapter==="undefined"||!storageAdapter.listCharLibrary)return;
+  legacyLibLoading=true;
+  storageAdapter.listCharLibrary(function(err,list){
+    legacyLibLoading=false;
+    if(!err&&list&&typeof list.length==="number")legacyLibCache=list;
+  });
+}
 function checkLegacyCharacter(){
   if(!legacyCharsOn||!worldState)return;
   if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];
   if(worldState.pendingLegacy)return;
   if(Math.random()*100>=legacyChancePct)return;
-  var meta=getCampMeta(),activeId=getActiveCampId(),candidates=[],i;
-  for(i=0;i<meta.length;i++){
-    if(meta[i].id===activeId)continue;
-    var raw=store.get("tnd_camp_"+meta[i].id+"_ws");if(!raw)continue;
-    try{
-      var ws=JSON.parse(raw);var ch=ws&&ws.character;
-      if(!ch||!ch.name)continue;
-      if(worldState.legacyCharsUsed.indexOf(ch.name)>=0)continue;
-      if(worldState.character&&ch.name===worldState.character.name)continue;
-      candidates.push(ch);
-    }catch(e){}
+  // Draw from the Character Library (server-side). If not cached yet, kick off the fetch and skip this
+  // roll — the next new-NPC roll will have data. Requires a server connection.
+  if(!legacyLibCache){loadLegacyLibrary();return;}
+  var lib=legacyLibCache,candidates=[],i;
+  for(i=0;i<lib.length;i++){
+    var ch=lib[i]&&lib[i].character?lib[i].character:lib[i];
+    if(!ch||!ch.name)continue;
+    if(worldState.legacyCharsUsed.indexOf(ch.name)>=0)continue;
+    if(worldState.character&&ch.name===worldState.character.name)continue;
+    var dup=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===ch.name){dup=true;break;}}
+    if(dup)continue;
+    candidates.push(ch);
   }
-  if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no candidate characters in OTHER campaigns. Need at least one other campaign with a saved character (a local tnd_camp_<id>_ws snapshot).");return;}
+  if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
   worldState.pendingLegacy={name:pick.name,cls:pick.cls||"",ancestry:pick.subraceNm||pick.ancestry||"",level:pick.level||1,backstory:pick.backstory||"",trait:pick.trait||"",queuedAt:worldState.turn};
   saveCore();
