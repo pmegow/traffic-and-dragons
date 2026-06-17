@@ -182,17 +182,18 @@ function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\
 // Inventory stacks via a trailing " xN" suffix: gaining a duplicate increments the count instead of
 // pushing a second entry; losing decrements (and drops the suffix at 1). Genuine repeat pickups (5x
 // poison arrow) collapse to one "Poison arrow x5" line.
-function _invEsc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
-function addInventoryItem(inv,name){var i;
-  for(i=0;i<inv.length;i++){if(inv[i]===name){inv[i]=name+" x2";return;}}
-  var re=new RegExp("^"+_invEsc(name)+" x(\\d+)$","i");
-  for(i=0;i<inv.length;i++){var m=inv[i].match(re);if(m){inv[i]=name+" x"+(parseInt(m[1],10)+1);return;}}
+// Stack-matching tolerates case, extra whitespace, and a trailing plural "s" (so "Travel ration",
+// "travel rations", and "Saddle"/"Saddles" stack) — but NOT parenthetical qualifiers: "Sword (rusty)"
+// and "Sword (enchanted)" are distinct and must stay separate. A trailing " xN" count is stripped first.
+function _invNorm(s){return (s||"").replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/\s+/g," ").trim().replace(/s$/,"");}
+function _invCount(s){var m=(s||"").match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
+function _invBase(s){return (s||"").replace(/\s*x\d+\s*$/i,"").trim();}
+function addInventoryItem(inv,name){var t=_invNorm(name),i;
+  for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);
 }
-function removeInventoryItem(inv,name){var i;
-  for(i=0;i<inv.length;i++){if(inv[i]===name){inv.splice(i,1);return true;}}
-  var re=new RegExp("^"+_invEsc(name)+" x(\\d+)$","i");
-  for(i=0;i<inv.length;i++){var m=inv[i].match(re);if(m){var n=parseInt(m[1],10)-1;inv[i]=n<=1?name:name+" x"+n;return true;}}
+function removeInventoryItem(inv,name){var t=_invNorm(name),i;
+  for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){var n=_invCount(inv[i])-1;if(n<=0)inv.splice(i,1);else if(n===1)inv[i]=_invBase(inv[i]);else inv[i]=_invBase(inv[i])+" x"+n;return true;}}
   return false;
 }
 function applyMuts(text){
