@@ -92,7 +92,7 @@ function buildSysPrompt(){
   var switchBlock="";
   if(worldState.recentSwitch){var rs=worldState.recentSwitch;switchBlock="*** CONTROL RECENTLY SWITCHED — READ CAREFULLY ***\nThe player now plays "+rs.to+". Second-person narration ('you'/'your') refers to "+rs.to+" and ONLY "+rs.to+". "+rs.from+" is now a non-player companion in the party — describe "+rs.from+" in the third person by name, never as 'you'. The conversation history above was written while "+rs.from+" was the player character; do NOT let that mislead you into addressing "+rs.from+" as the protagonist. The protagonist is now "+rs.to+".\n\n";}
   return identity+switchBlock+getRulesBlock()+adultBlock
-    +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid, economical, second-person prose. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
+    +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
     +tb
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
