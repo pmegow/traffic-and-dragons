@@ -181,7 +181,19 @@ function compressPortrait(dataUrl,cb){
   img.onerror=function(){cb(dataUrl);}; // fallback: store as-is if canvas fails
   img.src=dataUrl;
 }
-function showToast(msg){var live=document.querySelectorAll(".tnd-toast").length;var t=document.createElement("div");t.className="tnd-toast";t.textContent=msg;t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:#1e1800;border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:Georgia,serif;z-index:400;pointer-events:none;";document.body.appendChild(t);setTimeout(function(){t.style.opacity="0";setTimeout(function(){t.remove();},500);},2000);}
+function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=0;i<ts.length;i++)ts[i].style.bottom=(80+i*42)+"px";}
+// Toasts stay until acknowledged (tap to dismiss) — important "cheers" (quest opportunity, legacy
+// arrival, level-up) shouldn't vanish before they're seen.
+function showToast(msg){
+  var live=document.querySelectorAll(".tnd-toast").length;
+  var t=document.createElement("div");t.className="tnd-toast";
+  t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:#1e1800;border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:Georgia,serif;z-index:400;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
+  t.title="Tap to dismiss";
+  t.textContent=msg;
+  var x=document.createElement("span");x.textContent="✕";x.style.cssText="margin-left:10px;opacity:.45;font-size:11px;";t.appendChild(x);
+  t.addEventListener("click",function(){t.style.opacity="0";setTimeout(function(){t.remove();_reflowToasts();},250);});
+  document.body.appendChild(t);
+}
 function showLoadingModal(msg){
   var ex=document.getElementById("loading-modal");if(ex)ex.remove();
   if(!document.getElementById("lm-kf")){var s=document.createElement("style");s.id="lm-kf";s.textContent="@keyframes lm-spin{to{transform:rotate(360deg)}}";document.head.appendChild(s);}
@@ -376,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.55";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.56";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";

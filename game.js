@@ -119,12 +119,13 @@ function sbPick(s,v,btn){
 }
 function sbBack(){var m=document.getElementById("sb-modal");if(m)m.remove();}
 function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));syncUI();saveAll();}
+// Suggestions now POPULATE the input (editable) rather than firing the turn — the player can tweak the
+// wording, combine ideas, or send as-is. Buttons stay put so a different option can be chosen.
 function sendSuggestedAction(btn){
-  if(busy)return; // must precede the button-row removal, or a stuck busy flag eats the buttons
   var action=btn.getAttribute("data-action");if(!action)return;
-  var msgs=document.getElementById("story-narrative").querySelectorAll(".msg.narrator");
-  if(msgs.length){var last=msgs[msgs.length-1];var btndivs=last.querySelectorAll(".qa");if(btndivs.length){var parent=btndivs[0].parentElement;if(parent)parent.remove();}}
-  sendAction(action);
+  var inp=document.getElementById("userinput");if(!inp)return;
+  inp.value=action;inp.focus();
+  try{inp.setSelectionRange(action.length,action.length);}catch(e){}
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
