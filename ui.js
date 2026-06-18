@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.56";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.57";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -821,6 +821,8 @@ async function showPortraitModal(refreshFn,opts){
     +(hasPortrait?"<button id='pm-remove-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);'>&#10005; Remove</button>":"")
     +"</div>"
     +"<input type='file' id='pm-file' accept='image/*' style='display:none;'>"
+    // ── Describe appearance from the image (vision; reverse of Generate) ────
+    +(hasPortrait?"<button id='pm-describe' style='display:block;width:100%;margin-top:6px;padding:9px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Use Claude vision to read this image into the appearance field'>&#128269; Describe appearance from image</button>":"")
     // ── 2. Generate from scratch ───────────────────────────────────────────
     +div("or generate from scratch")
     +lbl("Additional details (optional):")
@@ -897,6 +899,47 @@ async function showPortraitModal(refreshFn,opts){
     discardBtn.addEventListener("click",function(){status.innerHTML="";});
   }
 
+  // ── Describe appearance FROM the image (Claude vision; reverse of Generate) ──
+  async function runDescribe(){
+    var status=document.getElementById("pm-status");
+    var src=getPort();if(!src)return;
+    var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
+    if(!key){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Needs a Claude (Anthropic) key — set one via File &#9656; Admin &#9656; &#129504; Language Model.</span>";return;}
+    if(busy){status.innerHTML="<span style='font-size:12px;color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
+    var mm=src.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+    if(!mm){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Portrait must be an uploaded or generated image.</span>";return;}
+    status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Reading the portrait&hellip;</span>";
+    busy=true;
+    try{
+      var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
+      var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
+      var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
+        {type:"text",text:"Describe this character's appearance for their sheet."+(c.name?" Their name is "+c.name+".":"")},
+        {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
+      ]}]};
+      var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
+      if(!r.ok)throw new Error("Claude "+r.status);
+      var data=await r.json();
+      showDescribeResult((PROVIDERS.anthropic.parseResponse(data)||"").trim());
+    }catch(err){status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+(err.message||"Failed")+"</span>";}
+    busy=false;
+  }
+  function showDescribeResult(desc){
+    var status=document.getElementById("pm-status");status.innerHTML="";
+    if(!desc){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Empty description.</span>";return;}
+    var box=document.createElement("div");box.style.cssText="border:1px solid var(--acc);border-radius:var(--r);padding:12px;margin-top:8px;background:var(--bg2);";
+    var hd=document.createElement("div");hd.textContent="Appearance read from the portrait";hd.style.cssText="font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;";
+    var p=document.createElement("div");p.textContent=desc;p.style.cssText="font-size:13px;color:var(--t0);line-height:1.5;margin-bottom:10px;font-family:Georgia,serif;";
+    var sec="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:6px;";
+    var repl=document.createElement("button");repl.textContent=c.appear?"Replace appearance":"Use as appearance";repl.style.cssText="padding:9px 12px;font-family:Georgia,serif;font-size:12px;font-weight:bold;background:var(--acc);border:none;color:#000;border-radius:var(--r);cursor:pointer;margin-right:6px;";
+    var app=document.createElement("button");app.textContent="Append";app.style.cssText=sec;
+    var disc=document.createElement("button");disc.textContent="Discard";disc.style.cssText=sec;
+    box.appendChild(hd);box.appendChild(p);box.appendChild(repl);if(c.appear)box.appendChild(app);box.appendChild(disc);
+    status.appendChild(box);
+    repl.addEventListener("click",function(){c.appear=desc;saveAll();status.innerHTML="";if(typeof showToast==="function")showToast("Appearance updated from portrait.");});
+    app.addEventListener("click",function(){c.appear=(c.appear?c.appear+" ":"")+desc;saveAll();status.innerHTML="";if(typeof showToast==="function")showToast("Appended to appearance.");});
+    disc.addEventListener("click",function(){status.innerHTML="";});
+  }
   // ── Shared: generate / img2img ───────────────────────────────────────────
   async function runGenerate(isImg2Img,details){
     var status=document.getElementById("pm-status");
@@ -981,6 +1024,8 @@ async function showPortraitModal(refreshFn,opts){
     reader.readAsDataURL(file);this.value="";
   });
 
+  // ── Describe appearance from image ───────────────────────────────────────
+  if(document.getElementById("pm-describe"))document.getElementById("pm-describe").addEventListener("click",runDescribe);
   // ── 2. Generate ──────────────────────────────────────────────────────────
   document.getElementById("pm-gen").addEventListener("click",function(){
     runGenerate(false,document.getElementById("pm-details-gen").value.trim());
