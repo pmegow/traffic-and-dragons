@@ -15,8 +15,8 @@ function startGame(char,toneName,toneVoice){
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
     var comp=pendingCompanions[ci];
-    worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,portrait:comp.portrait||null,charSheet:comp});
-    memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true};
+    worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:comp.portrait||null,charSheet:comp});
+    memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
     npcLinkUpsert(char.name,comp.name,"companions");
   }
   pendingCompanions=[];
@@ -119,10 +119,12 @@ function sbPick(s,v,btn){
 }
 function sbBack(){var m=document.getElementById("sb-modal");if(m)m.remove();}
 function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));syncUI();saveAll();}
-// Suggestions now POPULATE the input (editable) rather than firing the turn — the player can tweak the
-// wording, combine ideas, or send as-is. Buttons stay put so a different option can be chosen.
-function sendSuggestedAction(btn){
+// A plain tap POPULATES the input (editable) so the player can tweak/combine before sending.
+// Ctrl/Cmd-click (desktop) or a long-press (mobile, handled in wireButtons) EXECUTES immediately.
+function sendSuggestedAction(btn,ev){
   var action=btn.getAttribute("data-action");if(!action)return;
+  if(Date.now()<_qaSuppressUntil){_qaSuppressUntil=0;return;} // a long-press already executed this; swallow the trailing click
+  if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(action);return;}
   var inp=document.getElementById("userinput");if(!inp)return;
   inp.value=action;inp.focus();
   try{inp.setSelectionRange(action.length,action.length);}catch(e){}
@@ -184,7 +186,7 @@ async function beginAdventure(){
   try{
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
-    var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Introduce the full party together in the opening scene.";}
+    var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Trait: "+c.trait+". Flaw: "+c.flaw+". Wants: "+c.motivation+"."+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with *You could [A]; [B]; or [C].* as always, using semicolons to separate options.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
     addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});

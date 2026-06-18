@@ -67,7 +67,7 @@ function buildQuestBlock(){
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";ns.push(npc.name+npcAka+" ("+npc.status+", "+npc.rel+(npc.pronouns?", "+npc.pronouns:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}nstr=ns.join("; ");}
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"");ns.push(npc.name+npcAka+" ("+npc.status+", "+npc.rel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}nstr=ns.join("; ");}
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
   var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
@@ -166,7 +166,7 @@ function parseActions(clean){
   var hasSemi=match[1].indexOf(";")>=0;
   var raw=hasSemi?match[1].split(/;\s*(?:or\s+)?/):match[1].split(/,\s*or\s+|\s+or\s+/),acts=[],i;
   for(i=0;i<raw.length;i++){var a=raw[i].trim().replace(/^or\s+/i,"").replace(/^you\s+(?:could|might|can|may)\s+/i,"").replace(/[.*]$/,"").replace(/\*\*?/g,"").replace(/^\[?[A-C]\]?\s*/,"").trim();if(a.length>2)acts.push(a);}
-  if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){btns+='<button class="qa" onclick="sendSuggestedAction(this)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}btns+='</div>';}
+  if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){btns+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}btns+='</div>';}
   return{clean:clean.replace(match[0],"").trim(),btns:btns};
 }
 function bondToast(owner,entity,desc,kind){var p=owner?owner+" bond":"Bond";if(kind==="ended")showToast(p+" ended: "+entity);else showToast(p+(kind==="updated"?" updated":"")+": "+entity+" -- "+desc);}
