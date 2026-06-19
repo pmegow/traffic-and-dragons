@@ -3,10 +3,11 @@
 
 var TTS = (function() {
 
-  var KEY_K   = "tnd_cartesia_key_v1";
-  var ON_K    = "tnd_tts_on_v1";
-  var VOICE_K = "tnd_tts_voice_gm_v1";
-  var BANK_K  = "tnd_voice_bank_v1";
+  var KEY_K    = "tnd_cartesia_key_v1";
+  var ON_K     = "tnd_tts_on_v1";
+  var VOICE_K  = "tnd_tts_voice_gm_v1";
+  var BANK_K   = "tnd_voice_bank_v1";
+  var NATIVE_K = "tnd_tts_native_v1";   // use the browser's built-in speechSynthesis instead of Cartesia
 
   // ── Voice bank ─────────────────────────────────────────────────────────────
 
@@ -27,12 +28,19 @@ var TTS = (function() {
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
   var _sources    = [];     // scheduled AudioBufferSourceNodes
   var _abortCtrl  = null;   // AbortController for live fetch
+  var _cartesiaError = "";  // last Cartesia failure reason; once set, speech falls back to native
+  var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
+  var _curNative     = false;// is the currently-playing queue item using native TTS
 
   // ── State ──────────────────────────────────────────────────────────────────
 
   function isOn()     { return store.get(ON_K) === "1"; }
   function getKey()   { return store.get(KEY_K)   || ""; }
   function getVoice() { return store.get(VOICE_K) || ""; }
+  function isNative() { return store.get(NATIVE_K) === "1"; }
+  // Cartesia is usable only with a key and no recorded failure. Otherwise speech routes to native.
+  function _cartesiaOk() { return !!getKey() && !_cartesiaError; }
+  function _useNative()  { return isNative() || !_cartesiaOk(); }
 
   // ── Toggle ─────────────────────────────────────────────────────────────────
 
@@ -74,6 +82,7 @@ var TTS = (function() {
 
   function speak(text, voiceId) {
     if (!text || !text.trim()) return;
+    if (_useNative()) { _queue.push({ text: text.trim(), native: true }); if (!_playing) _drain(); return; }
     voiceId = voiceId || getVoice();
     if (!voiceId || !getKey()) return;
     _queue.push({ text: text.trim(), voiceId: voiceId });
@@ -97,6 +106,7 @@ var TTS = (function() {
     if (!_queue.length) {
       _playing = false;
       _paused  = false;
+      _curNative = false;
       _showBar(false);
       return;
     }
@@ -105,7 +115,23 @@ var TTS = (function() {
     _showBar(true);
     _updatePauseBtn(false);
     var item = _queue.shift();
-    _stream(item.text, item.voiceId);
+    _curNative = !!item.native;
+    if (item.native) _speakNative(item.text);
+    else _stream(item.text, item.voiceId);
+  }
+
+  // ── Native (browser speechSynthesis) path ────────────────────────────────────
+  function _speakNative(text) {
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { _drain(); return; }
+    try {
+      window.speechSynthesis.cancel();            // clear any stuck/previous utterance
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0; u.pitch = 1.0;
+      _nativeUtter = u;
+      u.onend   = function() { _nativeUtter = null; _drain(); };
+      u.onerror = function() { _nativeUtter = null; _drain(); };
+      window.speechSynthesis.speak(u);
+    } catch (e) { _nativeUtter = null; _drain(); }
   }
 
   // ── Streaming core ──────────────────────────────────────────────────────────
@@ -215,6 +241,7 @@ var TTS = (function() {
               if (activeSrcs === 0) onAllDone();
             } else if (evt.type === "error") {
               console.warn("[tts] Cartesia error:", evt.message);
+              _cartesiaError = evt.message || "Cartesia error"; _updateCartErr();
               streamDone = true;
               if (activeSrcs === 0) onAllDone();
             }
@@ -231,14 +258,23 @@ var TTS = (function() {
       read();
     })
     .catch(function(e) {
-      if (e.name !== "AbortError") console.warn("[tts]", e.message);
-      _drain();
+      if (e.name === "AbortError") { _drain(); return; }
+      console.warn("[tts]", e.message);
+      _cartesiaError = e.message || "Cartesia unavailable";  // future lines auto-route to native
+      _updateCartErr();
+      _curNative = true;
+      _speakNative(text);                                    // still speak THIS line via native
     });
   }
 
   // ── Controls ────────────────────────────────────────────────────────────────
 
   function pause() {
+    if (_curNative && window.speechSynthesis) {
+      if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); _paused = false; }
+      else { window.speechSynthesis.pause(); _paused = true; }
+      _updatePauseBtn(_paused); return;
+    }
     if (!_audioCtx) return;
     if (_audioCtx.state === "suspended") {
       _audioCtx.resume();
@@ -266,6 +302,8 @@ var TTS = (function() {
 
   function _stopCurrent() {
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
+    if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
+    if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
     for (var i = 0; i < _sources.length; i++) {
       try { _sources[i].onended = null; _sources[i].stop(); } catch(e) {}
     }
@@ -289,6 +327,18 @@ var TTS = (function() {
   // ── Settings modal ──────────────────────────────────────────────────────────
 
   function _escVal(s) { return (s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+  // Red indicator beside the Cartesia API Key label when Cartesia can't be used.
+  function _updateCartErr() {
+    var el = document.getElementById("tts-cart-err");
+    if (!el) return;
+    var msg = "";
+    if (!getKey())            msg = "⚠ no key — using native voice";
+    else if (_cartesiaError)  msg = "⚠ " + _cartesiaError + " — using native voice";
+    el.textContent = msg;
+    el.title = msg;
+    el.style.display = msg ? "inline" : "none";
+  }
 
   function _buildVoiceOptions() {
     var bank = getBank(), cur = getVoice(), html = "", found = false;
@@ -359,10 +409,17 @@ var TTS = (function() {
       +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
       +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
       + "</div>"
-      + "<div style='margin-bottom:14px;'>"
-      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Cartesia API Key</label>"
+      + "<div style='margin-bottom:10px;'>"
+      +   "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'>"
+      +     "<label style='font-size:12px;color:var(--t2);'>Cartesia API Key</label>"
+      +     "<span id='tts-cart-err' style='font-size:11px;color:#e06060;display:none;'></span>"
+      +   "</div>"
       +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
       + "</div>"
+      + "<label style='display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:12px;color:var(--t1);cursor:pointer;'>"
+      +   "<input type='checkbox' id='tts-native-cb' style='accent-color:var(--acc);width:14px;height:14px;cursor:pointer;flex-shrink:0;'" + (isNative() ? " checked" : "") + "/>"
+      +   "<span>Use native (browser) voice <span style='color:var(--t2);'>— no key needed, lower quality. Used automatically if Cartesia is unavailable.</span></span>"
+      + "</label>"
       + "<div style='margin-bottom:20px;'>"
       +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"
       +     "<label style='font-size:12px;color:var(--t2);'>Narrator Voice</label>"
@@ -385,6 +442,12 @@ var TTS = (function() {
 
     document.getElementById("tts-modal-x").addEventListener("click", function() { modal.remove(); });
     modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+
+    _updateCartErr();
+    document.getElementById("tts-native-cb").addEventListener("change", function() {
+      store.set(NATIVE_K, this.checked ? "1" : "");
+      _updateCartErr();
+    });
 
     document.getElementById("tts-add-btn").addEventListener("click", function() {
       var form = document.getElementById("tts-add-form");
@@ -420,8 +483,9 @@ var TTS = (function() {
     document.getElementById("tts-save-btn").addEventListener("click", function() {
       var key   = document.getElementById("tts-key-inp").value.trim();
       var voice = document.getElementById("tts-voice-sel").value;
-      if (key)   store.set(KEY_K,   key);   else store.del(KEY_K);
+      if (key) { store.set(KEY_K, key); _cartesiaError = ""; } else store.del(KEY_K);  // a fresh key gets Cartesia retried
       if (voice) store.set(VOICE_K, voice); else store.del(VOICE_K);
+      var ncb = document.getElementById("tts-native-cb"); if (ncb) store.set(NATIVE_K, ncb.checked ? "1" : "");
       modal.remove();
       if (typeof showToast === "function") showToast("Voice settings saved.");
     });
