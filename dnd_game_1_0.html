@@ -118,7 +118,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:Georgia,
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--acc)}
 .dice-block{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--bg2);border:1px solid #5a3a0a;border-radius:var(--r);font-size:13px;color:var(--acc)}.dice-block strong{font-size:16px}
-.qa{font-size:11px;padding:5px 11px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:Georgia,serif;display:inline-block;margin:2px 2px 0 0}.qa:hover{border-color:var(--acc);color:var(--acc)}
+.qa{font-size:11px;padding:5px 11px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:Georgia,serif;display:inline-block;margin:2px 2px 0 0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}.qa:hover{border-color:var(--acc);color:var(--acc)}.qa.qa-hold{border-color:var(--acc);color:#000;background:var(--acc)}
 .tts-replay{background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:2px 4px;opacity:0.5;vertical-align:middle;line-height:1;}.tts-replay:hover{opacity:1;color:var(--acc);}
 #inputarea{padding:12px 16px;background:var(--bg1);border-top:1px solid var(--brd);flex-shrink:0}
 #inrow{display:flex;gap:8px}
@@ -180,11 +180,13 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 
 @media (max-width: 768px) {
   input, select, textarea, #userinput { font-size: 16px !important; }
-  #topbar      { flex-wrap: nowrap; padding: 6px 12px; padding-top: max(6px, calc(env(safe-area-inset-top, 0px) / 2)); gap: 4px; }
-  #hud-namecls { flex-shrink: 0; flex-wrap: nowrap; gap: 4px; }
+  #topbar      { flex-wrap: wrap; padding: 6px 12px; padding-top: max(6px, calc(env(safe-area-inset-top, 0px) / 2)); gap: 4px; }
+  #hud-namecls { flex-shrink: 1; min-width: 0; flex-wrap: nowrap; gap: 4px; }
   #hud-namecls h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  #hud-cls     { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   #hud-stats   { flex-wrap: nowrap; gap: 8px; min-width: 0; overflow: hidden; justify-content: flex-start; }
-  #hud-btns    { flex-shrink: 0; margin-left: auto; }
+  /* File/voice buttons get their own full-width row below the name so they can't be shoved off-screen */
+  #hud-btns    { flex-shrink: 0; flex-basis: 100%; margin-left: 0; justify-content: flex-end; }
   #sync-btn, #render-btn, #state-btn { display: none; }
   .fm-mobile-only { display: block !important; }
   #hud-loc, #hud-align, #hud-party, #hud-xp { display: none !important; }
