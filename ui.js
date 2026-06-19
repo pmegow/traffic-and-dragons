@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.65";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.66";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1817,6 +1817,7 @@ function showCharLibrary(){
           +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
           +"</div>"
           +"<div style='display:flex;gap:6px;flex-shrink:0;'>"
+          +"<button onclick='_clibInspect(\""+escHtml(entry.slug)+"\")' style='padding:6px 11px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;' title='View character sheet'>View</button>"
           +"<button onclick='_clibPick(\""+escHtml(entry.slug)+"\")' style='padding:6px 12px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;'>Import</button>"
           +"<button onclick='_clibDel(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;' title='Remove from library'>&#215;</button>"
           +"</div></div>";
@@ -1862,6 +1863,100 @@ function showCharLibrary(){
       showCharLibrary();
     });
   };
+  window._clibInspect=function(slug){
+    storageAdapter.listCharLibrary(function(err,list){
+      if(err){showToast("Error: "+err);return;}
+      var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
+      if(!entry){showToast("Character not found.");return;}
+      showReadOnlyCharSheet(entry.character,{onImport:function(){_clibPick(slug);}});
+    });
+  };
+}
+// Read-only character-sheet viewer — renders any character object (e.g. a library snapshot)
+// using the same cs-* styling as showCharSheet, with none of the live-game editing wiring.
+// opts.onImport, if supplied, adds an Import button to the header.
+function showReadOnlyCharSheet(c,opts){
+  if(!c)return;
+  var ex=document.getElementById("ro-cs-modal");if(ex)ex.remove();
+  opts=opts||{};
+  function sec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
+  function kv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
+  var i;
+  var initials=(c.name||"?").split(" ").map(function(w2){return w2[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+  var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
+  var subnm=c.subraceNm?c.subraceNm+" ":"";
+  var clsLine=subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
+  var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
+  var xpPct=lvl>=10?100:Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100));
+  var statHtml="<div class='cs-stat-grid'>";
+  for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
+  statHtml+="</div>";
+  var earnedSkills=[],si2;
+  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}}
+  var skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
+  var condHtml;
+  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++)condHtml+='<div class="cs-list-row"><span style="color:#e06060">'+c.conditions[i].name+'</span><span class="cs-dim"> — '+c.conditions[i].duration+'</span></div>';condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
+  var relHtml;
+  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
+  var langHtml,langParts=[];
+  if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:#a07838">'+lang.name+' (broken)</span>':lang.name);}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
+  var saveHtml="";
+  if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}saveHtml+="</div>";}
+  var beatsHtml="";
+  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
+  var abilHtml="";
+  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
+  var spellHtml="";
+  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+nm2;spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
+  var invHtml=c.inventory&&c.inventory.length?'<div class="cs-v">'+c.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
+  var modal=document.createElement("div");modal.id="ro-cs-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:420;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
+  var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:Georgia,serif;padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:#000;font-weight:bold;cursor:pointer;'>Import</button>":"";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+    +"<div class='cs-hero'>"
+    +"<div style='position:relative;flex-shrink:0;'>"
+    +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
+    +"</div>"
+    +"<div class='cs-hero-info'>"
+    +"<div class='cs-hero-name'>"+(c.name||"—")+"</div>"
+    +"<div class='cs-hero-cls'>"+clsLine+"</div>"
+    +"<div class='cs-hero-sub'>"+genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
+    +"<div style='margin-top:8px;font-size:13px;'>"
+    +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
+    +" &nbsp;·&nbsp; <span style='color:#e06060'>"+(c.hp!=null?c.hp:"—")+"/"+(c.maxHp!=null?c.maxHp:"—")+" HP</span>"
+    +" &nbsp;·&nbsp; <span style='color:#c0a040'>"+(c.gold!=null?c.gold:0)+" gp</span>"
+    +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
+    +"</div>"
+    +"<div class='cs-xp-wrap'>"
+    +"<div class='cs-xp-lbl'><span>"+(c.xp||0)+" XP</span><span>"+(lvl<10?"Next: "+nextXP+" XP":"Max level")+"</span></div>"
+    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpPct+"%;'></div></div>"
+    +"</div>"
+    +"</div></div>"
+    +sec("Attributes",statHtml)
+    +sec("Character"
+      ,(c.appear?kv("Appearance",c.appear):"")
+      +(c.mark?kv("Distinguishing Mark",c.mark):"")
+      +kv("Trait",c.trait||"—")
+      +kv("Flaw",c.flaw||"—")
+      +kv("Motivation",c.motivation||"—")
+      +(c.backstory?kv("Backstory",c.backstory):"")
+    )
+    +sec("Conditions",condHtml)
+    +sec("Relationships",relHtml)
+    +sec("Languages",langHtml)
+    +(c.saveModifiers&&c.saveModifiers.length?sec("Save Modifiers",saveHtml):"")
+    +sec("Skills",skillHtml)
+    +(c.storyBeats&&c.storyBeats.length?sec("Story Beats",beatsHtml):"")
+    +sec("Abilities",abilHtml)
+    +(c.spells&&c.spells.length?sec("Spells",spellHtml):"")
+    +sec("Inventory",invHtml)
+    +"</div>";
+  document.body.appendChild(modal);
+  document.getElementById("ro-cs-x").addEventListener("click",function(){modal.remove();});
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  if(opts.onImport){document.getElementById("ro-cs-import").addEventListener("click",function(){modal.remove();opts.onImport();});}
+  (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
 }
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
