@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.71";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.72";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1322,7 +1322,7 @@ function showCharacterBrowser(initialMode){
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
       +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
       +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>"+(mode==="library"?"Campaign-agnostic character snapshots. Click to inspect, then import.":"Characters from your saved campaigns. Click to inspect, then import.")+"</div>"
-      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("&#8962; Local","local","right")+"</div>"
+      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local","local","right")+"</div>"
       +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
@@ -1350,8 +1350,8 @@ function showCharacterBrowser(initialMode){
         var cm=meta[i];
         var inner=avatarHtml(cm.charName,campPortrait(cm.id))
           +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
-          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
+          +"<div class='cbr-name'>"+escHtml(cm.charName)+"</div>"
+          +"<div class='cbr-sub'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
           +"</div>";
         rows+=rowHtml("onclick='_cbPickLocal(\""+escHtml(cm.id)+"\")'",inner);
       }
@@ -1375,8 +1375,8 @@ function showCharacterBrowser(initialMode){
         var entry=list[i],ch=entry.character||{};
         var inner=avatarHtml(ch.name,ch.portrait)
           +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
-          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(entry.name)+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
+          +"<div class='cbr-name'>"+escHtml(entry.name)+"</div>"
+          +"<div class='cbr-sub'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
           +"</div>"
           +"<button onclick='event.stopPropagation();_cbDelLib(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from library'>&#215;</button>";
         rows+=rowHtml("onclick='_cbPickLib(\""+escHtml(entry.slug)+"\")'",inner);

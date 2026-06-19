@@ -214,9 +214,12 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 }
 
 /* ── Character browser rows (Import / Library) ────────────────────────── */
-/* Non-selected rows read at 80%; the hovered row's text comes to full. */
-.cbr-row .cbr-txt{opacity:.8;transition:opacity .12s ease;}
+/* Unselected rows read dim + non-bold; the hovered row pops to full white + bold. */
+.cbr-row .cbr-txt{opacity:.65;transition:opacity .12s ease;}
+.cbr-name{font-size:14px;color:var(--t0);font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cbr-sub{font-size:11px;color:var(--t2);margin-top:2px;}
 .cbr-row:hover .cbr-txt{opacity:1;}
+.cbr-row:hover .cbr-name,.cbr-row:hover .cbr-sub{color:#fff;font-weight:bold;}
 
 /* ── Character Sheet Modal ────────────────────────────────────────────── */
 .cs-sec{margin-bottom:22px;}
