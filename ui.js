@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.69";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.70";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1288,6 +1288,18 @@ function showCharacterBrowser(initialMode){
       .catch(function(e){cb(e.message);});
   }
 
+  // Pull a campaign's PC portrait straight from its saved worldState (the portrait rides inline
+  // in the blob; meta deliberately doesn't carry it to avoid bloat). Active campaign prefers live
+  // WSK; others read their snapshot. Returns null gracefully if absent (→ initials avatar).
+  function campPortrait(id){
+    try{
+      var raw=(id===getActiveCampId())?store.get(WSK):store.get("tnd_camp_"+id+"_ws");
+      if(!raw)return null;
+      var ws=JSON.parse(raw);
+      return(ws&&ws.character&&ws.character.portrait)?ws.character.portrait:null;
+    }catch(e){return null;}
+  }
+
   // small round avatar — portrait if present, otherwise initials (matches the Library look)
   function avatarHtml(name,portrait){
     var ini=(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
@@ -1336,7 +1348,7 @@ function showCharacterBrowser(initialMode){
     else{
       for(var i=0;i<meta.length;i++){
         var cm=meta[i];
-        var inner=avatarHtml(cm.charName,null)
+        var inner=avatarHtml(cm.charName,campPortrait(cm.id))
           +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
           +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
           +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
