@@ -213,6 +213,11 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   .cgrid { grid-template-columns: 1fr 1fr; }
 }
 
+/* ── Character browser rows (Import / Library) ────────────────────────── */
+/* Non-selected rows read at 80%; the hovered row's text comes to full. */
+.cbr-row .cbr-txt{opacity:.8;transition:opacity .12s ease;}
+.cbr-row:hover .cbr-txt{opacity:1;}
+
 /* ── Character Sheet Modal ────────────────────────────────────────────── */
 .cs-sec{margin-bottom:22px;}
 .cs-sec-hd{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--acc);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--brd);}

@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.67";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.68";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1268,7 +1268,7 @@ function showNpcSheet(name){
 function showCharacterBrowser(initialMode){
   var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
-  var mode=(initialMode==="library")?"library":"local";
+  var mode=(initialMode==="local")?"local":"library";// Library is the default landing tab
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
@@ -1295,7 +1295,7 @@ function showCharacterBrowser(initialMode){
   }
   // a clickable, gently-highlighting row (click anywhere = inspect)
   function rowHtml(clickAttr,inner){
-    return "<div "+clickAttr+" style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .12s,border-color .12s;' onmouseover='this.style.background=\"rgba(184,147,90,.08)\";this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.background=\"var(--bg2)\";this.style.borderColor=\"var(--brd)\"'>"+inner+"</div>";
+    return "<div class='cbr-row' "+clickAttr+" style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;'>"+inner+"</div>";
   }
   function segBtn(label,m){
     var on=mode===m;
@@ -1336,7 +1336,7 @@ function showCharacterBrowser(initialMode){
       for(var i=0;i<meta.length;i++){
         var cm=meta[i];
         var inner=avatarHtml(cm.charName,null)
-          +"<div style='flex:1;min-width:0;'>"
+          +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
           +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
           +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
           +"</div>";
@@ -1361,7 +1361,7 @@ function showCharacterBrowser(initialMode){
       for(var i=0;i<list.length;i++){
         var entry=list[i],ch=entry.character||{};
         var inner=avatarHtml(ch.name,ch.portrait)
-          +"<div style='flex:1;min-width:0;'>"
+          +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
           +"<div style='font-size:14px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(entry.name)+"</div>"
           +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
           +"</div>"
