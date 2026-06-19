@@ -9,7 +9,7 @@ function startGame(char,toneName,toneVoice){
   if(char.portrait===undefined)char.portrait=null;
   if(!char.backstory)char.backstory="";
   if(!char.storyBeats)char.storyBeats=[];
-  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0};
+  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[]};
   delete worldState.character._startLoc;delete worldState.character._campName;
   sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   // Add any companions selected during character creation
@@ -135,6 +135,7 @@ async function sendAction(override,opts){
   var isTT=activeChatTab==="tabletalk";
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
   if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+txt:txt);
+  if(!isTT&&!(opts&&opts.silent))logTranscript("player",txt);
   var th=addMsg("thinking","The world turns...");
   try{
     if(!isTT&&sessionTokens()>=1000)await summarize();
@@ -149,6 +150,7 @@ async function sendAction(override,opts){
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
       addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
+      logTranscript("gm",parsed.clean);
       if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
@@ -190,6 +192,7 @@ async function beginAdventure(){
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Trait: "+c.trait+". Flaw: "+c.flaw+". Wants: "+c.motivation+"."+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with *You could [A]; [B]; or [C].* as always, using semicolons to separate options.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
     addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
+    logTranscript("gm",parsed.clean);
     if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
     _promptCampaignFolder();

@@ -2,6 +2,15 @@ function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
   var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
+  // #4: conservative first-name consolidation. If `name` is a single word that is the first name of
+  // EXACTLY ONE existing NPC, treat it as that NPC — the GM often drops "Aldara Perdrath" to "Aldara",
+  // which otherwise spawns a duplicate. The single-candidate guard prevents merging two distinct people
+  // who happen to share a first name (then it stays ambiguous and a separate entry is created).
+  if(name.indexOf(" ")<0){
+    var match=null,cnt=0;
+    for(k in memory.npcs){ if(k.split(" ")[0]===name && k!==name){ match=k; cnt++; if(cnt>1)break; } }
+    if(cnt===1)return match;
+  }
   return name;
 }
 function fileUsedName(name){} // no-op — replaced by rotating index

@@ -10,7 +10,14 @@ var sessionLog=[];
 var memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[]}};
 function saveCore(){try{store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
-function saveAll(){saveCore();saveMem();updateCampMeta();snapshotActiveCamp();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
+// #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
+// into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
+// switch-away, beforeunload, and campaign ops — the moments the snapshot is actually read. ~halves the per-turn write.
+function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapter!=="undefined")storageAdapter.syncToServer();}
+// #12 — append-only campaign transcript: the verbatim prose record for the story compiler (#11) + cross-device
+// completeness. Lives in worldState (rides in the sync blob). Written from the turn sources (sendAction/beginAdventure),
+// NOT addMsg — addMsg re-fires when the last turns are re-rendered on reload, which would double-count.
+function logTranscript(role,text){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];worldState.transcript.push({t:worldState.turn,r:role,x:String(text).trim()});}
 function loadState(){
   try{var ws=store.get(WSK),sl=store.get(SLK),mm=store.get(MEM_KEY);
     if(ws){worldState=JSON.parse(ws);var c=worldState.character;
@@ -18,7 +25,7 @@ function loadState(){
       if(typeof c.hp!=="number"||isNaN(c.hp))c.hp=c.maxHp||8;if(typeof c.gold!=="number"||isNaN(c.gold))c.gold=0;
       if(!c.abilities)c.abilities=[];if(!c.spells)c.spells=[];
       for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0)c.spells[si].used=false;}// cantrips never expend
-      var _m=false;if(!worldState.npcs){worldState.npcs=[];_m=true;}if(!worldState.questLog){worldState.questLog=[];_m=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_m=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_m=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_m=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_m=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_m=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_m=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_m=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_m=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_m=true;}}}if(_m)saveCore();}
+      var _m=false;if(!worldState.npcs){worldState.npcs=[];_m=true;}if(!worldState.questLog){worldState.questLog=[];_m=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_m=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_m=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_m=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_m=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_m=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_m=true;}if(!worldState.transcript){worldState.transcript=[];_m=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_m=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_m=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_m=true;}}}if(_m)saveCore();}
     if(sl)sessionLog=JSON.parse(sl);
     if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
     if(typeof memory.nameIdx!=="number")memory.nameIdx=0;

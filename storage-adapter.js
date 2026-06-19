@@ -151,7 +151,11 @@ var storageAdapter = (function() {
 
   // ── Write-through sync (fire-and-forget) ────────────────────────────────
 
-  function markPortraitDirty() { _portraitDirty = true; }
+  function markPortraitDirty() {
+    _portraitDirty = true;
+    // #3: bump a version counter so a portrait change propagates cross-device even without a turn advance.
+    if (typeof worldState !== "undefined" && worldState) worldState.portraitVer = (worldState.portraitVer || 0) + 1;
+  }
 
   function syncPortrait(campId) {
     if (!_serverUrl || !_token || !campId) return;
@@ -321,6 +325,23 @@ var storageAdapter = (function() {
           } catch(e) {}
         }
         addMsg("system", "☁ State synced from server (turn " + serverTurn + ").");
+      } else if (worldState) {
+        // #3: a portrait can change WITHOUT advancing the turn, so the turn-gate above skips it — a portrait
+        // set on another device never propagated. Reconcile portraits via a dedicated version counter instead.
+        var serverPV = data.worldState.portraitVer || 0;
+        var localPV  = worldState.portraitVer || 0;
+        if (serverPV > localPV) {
+          var spc = data.worldState.character && data.worldState.character.portrait;
+          if ((spc || data.portrait) && worldState.character) worldState.character.portrait = spc || data.portrait;
+          if (data.npcPortraits && worldState.npcs) {
+            worldState.npcs.forEach(function(n) {
+              if (data.npcPortraits[n.name]) { n.portrait = data.npcPortraits[n.name]; if (n.charSheet) n.charSheet.portrait = n.portrait; }
+            });
+          }
+          worldState.portraitVer = serverPV;
+          saveAll();
+          if (typeof syncUI === "function") syncUI();
+        }
       }
       syncCampaignList(null);
     }).catch(function(e) {
