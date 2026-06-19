@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.66";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.67";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1265,9 +1265,10 @@ function showNpcSheet(name){
   }
 }
 // ── Character browser modal ───────────────────────────────────────────────────
-function showCharacterBrowser(){
+function showCharacterBrowser(initialMode){
   var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  var mode=(initialMode==="library")?"library":"local";
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
@@ -1286,52 +1287,125 @@ function showCharacterBrowser(){
       .catch(function(e){cb(e.message);});
   }
 
-  function render(){
-    var meta=getCampMeta().slice().sort(function(a,b){return b.savedAt-a.savedAt;});
-    var rows="";
-    if(!meta.length){
-      rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns found.</div>";
-    } else {
-      for(var i=0;i<meta.length;i++){
-        var cm=meta[i];
-        rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;'>"
-          +"<div style='flex:1;min-width:0;'>"
-          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
-          +"</div>"
-          +"<button onclick='_charBrowserPick(\""+escHtml(cm.id)+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Select</button>"
-          +"</div>";
-      }
-    }
+  // small round avatar — portrait if present, otherwise initials (matches the Library look)
+  function avatarHtml(name,portrait){
+    var ini=(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
+    return portrait?"<img src='"+portrait+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
+      :"<div style='width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
+  }
+  // a clickable, gently-highlighting row (click anywhere = inspect)
+  function rowHtml(clickAttr,inner){
+    return "<div "+clickAttr+" style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .12s,border-color .12s;' onmouseover='this.style.background=\"rgba(184,147,90,.08)\";this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.background=\"var(--bg2)\";this.style.borderColor=\"var(--brd)\"'>"+inner+"</div>";
+  }
+  function segBtn(label,m){
+    var on=mode===m;
+    var side=m==="local"?"border-radius:var(--r) 0 0 var(--r);border-right:none;":"border-radius:0 var(--r) var(--r) 0;";
+    return "<button class='cbr-seg' data-mode='"+m+"' style='flex:1;font-size:12px;font-family:Georgia,serif;padding:7px 0;border:1px solid "+(on?"var(--acc)":"var(--brd2)")+";background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"#000":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";cursor:pointer;"+side+"'>"+label+"</button>";
+  }
+
+  function shell(bodyHtml){
     modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
+      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
-      +"<div style='display:flex;align-items:center;gap:10px;'>"
-      +"<button id='cbr-library' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#9729; Library</button>"
-      +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div></div>"
-      +rows
+      +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>"+(mode==="library"?"Campaign-agnostic character snapshots. Click to inspect, then import.":"Characters from your saved campaigns. Click to inspect, then import.")+"</div>"
+      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("Local","local")+segBtn("Library","library")+"</div>"
+      +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
       +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>"
       +"</div>";
     document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
-    document.getElementById("cbr-library").addEventListener("click",function(){modal.remove();showCharLibrary();});
-    document.getElementById("cbr-file-inp").addEventListener("change",function(e){
-      modal.remove();
-      importCharacterFile(e);
-    });
-    window._charBrowserPick=function(id){
-      var btn=modal.querySelector("[onclick*='"+id+"']");if(btn){btn.textContent="Loading…";btn.disabled=true;}
-      getCharFromCampaign(id,function(err,char){
-        if(err){showToast("Could not load character: "+err);if(btn){btn.textContent="Select";btn.disabled=false;}return;}
-        modal.remove();
-        showCharImportPreview(char,function(){
-          _startImportedCampaign(char);
-        },showCharacterBrowser);
-      });
-    };
+    var segs=modal.querySelectorAll(".cbr-seg"),si;
+    for(si=0;si<segs.length;si++){segs[si].addEventListener("click",function(){var m=this.getAttribute("data-mode");if(m!==mode){mode=m;render();}});}
+    document.getElementById("cbr-file-inp").addEventListener("change",function(e){modal.remove();importCharacterFile(e);});
   }
-  document.body.appendChild(modal);render();
+
+  // click a row → full read-only sheet; its Import button drops into the Play-as / companion chooser
+  function inspectAndImport(char){
+    showReadOnlyCharSheet(char,{onImport:function(){
+      showCharImportPreview(char,function(){_startImportedCampaign(char);},function(){showCharacterBrowser(mode);});
+    }});
+  }
+
+  function renderLocal(){
+    var meta=getCampMeta().slice().sort(function(a,b){return b.savedAt-a.savedAt;});
+    var rows="";
+    if(!meta.length){rows="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns on this device.</div>";}
+    else{
+      for(var i=0;i<meta.length;i++){
+        var cm=meta[i];
+        var inner=avatarHtml(cm.charName,null)
+          +"<div style='flex:1;min-width:0;'>"
+          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
+          +"</div>";
+        rows+=rowHtml("onclick='_cbPickLocal(\""+escHtml(cm.id)+"\")'",inner);
+      }
+    }
+    shell(rows);
+  }
+
+  function renderLibrary(){
+    shell("<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading library&hellip;</div>");
+    if(!storageAdapter.isServerMode()){
+      var b0=document.getElementById("cbr-body");if(b0)b0.innerHTML="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Connect to the server to access the character library.</div>";
+      return;
+    }
+    storageAdapter.listCharLibrary(function(err,list){
+      if(document.getElementById("char-browser-modal")!==modal||mode!=="library")return; // stale callback
+      var body=document.getElementById("cbr-body");if(!body)return;
+      if(err){body.innerHTML="<div style='padding:24px;text-align:center;color:#e06060;font-size:12px;'>Could not load library: "+escHtml(String(err))+"</div>";return;}
+      if(!list||!list.length){body.innerHTML="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library yet.<br>Export a character from the character sheet to add one.</div>";return;}
+      var rows="";
+      for(var i=0;i<list.length;i++){
+        var entry=list[i],ch=entry.character||{};
+        var inner=avatarHtml(ch.name,ch.portrait)
+          +"<div style='flex:1;min-width:0;'>"
+          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(entry.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
+          +"</div>"
+          +"<button onclick='event.stopPropagation();_cbDelLib(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from library'>&#215;</button>";
+        rows+=rowHtml("onclick='_cbPickLib(\""+escHtml(entry.slug)+"\")'",inner);
+      }
+      body.innerHTML=rows;
+    });
+  }
+
+  function render(){if(mode==="library")renderLibrary();else renderLocal();}
+
+  window._cbPickLocal=function(id){
+    getCharFromCampaign(id,function(err,char){
+      if(err){showToast("Could not load character: "+err);return;}
+      inspectAndImport(char);
+    });
+  };
+  window._cbPickLib=function(slug){
+    storageAdapter.listCharLibrary(function(err,list){
+      if(err){showToast("Error: "+err);return;}
+      var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
+      if(!entry){showToast("Character not found.");return;}
+      var char=entry.character;
+      if(!char.skills)char.skills=initSkills();
+      if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
+      if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];
+      if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
+      if(char.portrait===undefined)char.portrait=null;
+      inspectAndImport(char);
+    });
+  };
+  window._cbDelLib=function(slug,name){
+    if(!confirm("Remove "+name+" from the character library?"))return;
+    storageAdapter.deleteCharFromLibrary(slug,function(err){
+      if(err){showToast("Delete failed: "+err);return;}
+      showToast(name+" removed from library.");
+      if(mode==="library")render();
+    });
+  };
+
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  render();
 }
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
@@ -1795,83 +1869,8 @@ function _showCharOverwriteConfirm(char,existing){
   });
 }
 
-function showCharLibrary(){
-  var ex=document.getElementById("char-library-modal");if(ex)ex.remove();
-  if(!storageAdapter.isServerMode()){showToast("Connect to server to access the character library.");return;}
-  var modal=document.createElement("div");modal.id="char-library-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  function renderLib(list){
-    var rows="";
-    if(!list||!list.length){
-      rows="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library yet.<br>Export a character from the character sheet to add one.</div>";
-    }else{
-      for(var i=0;i<list.length;i++){
-        var entry=list[i],ch=entry.character||{};
-        var ini=(ch.name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
-        var av=ch.portrait?"<img src='"+ch.portrait+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
-          :"<div style='width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
-        rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;'>"
-          +av
-          +"<div style='flex:1;min-width:0;'>"
-          +"<div style='font-size:14px;color:var(--t0);font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'>"+escHtml(entry.name)+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
-          +"</div>"
-          +"<div style='display:flex;gap:6px;flex-shrink:0;'>"
-          +"<button onclick='_clibInspect(\""+escHtml(entry.slug)+"\")' style='padding:6px 11px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;' title='View character sheet'>View</button>"
-          +"<button onclick='_clibPick(\""+escHtml(entry.slug)+"\")' style='padding:6px 12px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;'>Import</button>"
-          +"<button onclick='_clibDel(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;' title='Remove from library'>&#215;</button>"
-          +"</div></div>";
-      }
-    }
-    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
-      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#9729; Character Library</span>"
-      +"<button id='clib-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-      +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Campaign-agnostic character snapshots. Export from the character sheet to add.</div>"
-      +rows+"</div>";
-    document.getElementById("clib-x").addEventListener("click",function(){modal.remove();});
-  }
-  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'><div style='color:var(--t2);font-size:13px;font-style:italic;'>Loading library…</div></div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  storageAdapter.listCharLibrary(function(err,list){
-    if(err){modal.remove();showToast("Could not load library: "+err);return;}
-    renderLib(list);
-  });
-  window._clibPick=function(slug){
-    storageAdapter.listCharLibrary(function(err,list){
-      if(err){showToast("Error: "+err);return;}
-      var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
-      if(!entry){showToast("Character not found.");return;}
-      modal.remove();
-      var char=entry.character;
-      if(!char.skills)char.skills=initSkills();
-      if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
-      if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];
-      if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
-      if(char.portrait===undefined)char.portrait=null;
-      showCharImportPreview(char,function(){
-        _startImportedCampaign(char);
-      },showCharLibrary);
-    });
-  };
-  window._clibDel=function(slug,name){
-    if(!confirm("Remove "+name+" from the character library?"))return;
-    storageAdapter.deleteCharFromLibrary(slug,function(err){
-      if(err){showToast("Delete failed: "+err);return;}
-      showToast(name+" removed from library.");
-      showCharLibrary();
-    });
-  };
-  window._clibInspect=function(slug){
-    storageAdapter.listCharLibrary(function(err,list){
-      if(err){showToast("Error: "+err);return;}
-      var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
-      if(!entry){showToast("Character not found.");return;}
-      showReadOnlyCharSheet(entry.character,{onImport:function(){_clibPick(slug);}});
-    });
-  };
-}
+// The standalone Character Library is now the Library tab of the unified Import Character browser.
+function showCharLibrary(){showCharacterBrowser("library");}
 // Read-only character-sheet viewer — renders any character object (e.g. a library snapshot)
 // using the same cs-* styling as showCharSheet, with none of the live-game editing wiring.
 // opts.onImport, if supplied, adds an Import button to the header.
