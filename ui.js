@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.68";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.69";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1268,7 +1268,8 @@ function showNpcSheet(name){
 function showCharacterBrowser(initialMode){
   var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
-  var mode=(initialMode==="local")?"local":"library";// Library is the default landing tab
+  // Explicit arg wins; otherwise land on Library when connected, fall back to Local when offline.
+  var mode=(initialMode==="local"||initialMode==="library")?initialMode:(storageAdapter.isServerMode()?"library":"local");
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
