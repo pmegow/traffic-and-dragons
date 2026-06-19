@@ -82,7 +82,25 @@ function buildSysPrompt(){
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var memToc=memoryTOC();
   var legacyBlock="";
-  if(worldState.pendingLegacy){var _lc=worldState.pendingLegacy;legacyBlock="LEGACY CHARACTER — INTRODUCE THIS SESSION:\nA figure from another story walks this world: "+_lc.name+", a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")."+(_lc.backstory?" History: "+_lc.backstory:"")+(_lc.trait?" Known trait: "+_lc.trait+".":"")+"\nIntroduce them organically as a background NPC within the next 1-2 turns — do not force them into the scene unnaturally. They have no memory of a prior life. Register them with [NPC:"+_lc.name+"|alive|neutral].\n\n";}
+  if(worldState.pendingLegacy){
+    var _lc=worldState.pendingLegacy;
+    var _lpron=_lc.gender?pronounsForGender(_lc.gender):"they/them";
+    var _lgw=_lc.gender==="F"?"female":_lc.gender==="NB"?"non-binary":_lc.gender==="M"?"male":"";
+    var _lrel=(_lc.relationships&&_lc.relationships.length)?_lc.relationships.map(function(r){return r.entity+(r.descriptor?" ("+r.descriptor+")":"");}).join(", "):"";
+    var _linv=(_lc.inventory&&_lc.inventory.length)?_lc.inventory.join(", "):"";
+    var _lpers="";if(_lc.trait)_lpers+=" trait — "+_lc.trait+";";if(_lc.flaw)_lpers+=" flaw — "+_lc.flaw+";";if(_lc.motivation)_lpers+=" motivation — "+_lc.motivation+";";
+    legacyBlock="LEGACY CHARACTER — INTRODUCE THIS SESSION:\n"
+      +"A figure from another story walks this world: "+_lc.name+", "+(_lgw?"("+_lgw+", pronouns "+_lpron+") ":"")+"a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")"+(_lc.age?", "+_lc.age:"")+".\n"
+      +(_lc.appear?"Appearance: "+_lc.appear+"\n":"")
+      +(_lc.mark?"Distinguishing mark: "+_lc.mark+"\n":"")
+      +(_lc.backstory?"History: "+_lc.backstory+"\n":"")
+      +(_lpers?"Personality:"+_lpers+"\n":"")
+      +(_lc.alignment?"Alignment: "+_lc.alignment+(_lc.deity?" | Deity: "+_lc.deity:"")+"\n":"")
+      +(_lrel?"People they know and remember (preserve these — do NOT forget or invent relationships): "+_lrel+"\n":"")
+      +(_linv?"Carries: "+_linv+"\n":"")
+      +"This is the SAME person from their own tale. Preserve their gender ("+_lpron+"), appearance, personality, the people they love, and their possessions EXACTLY as listed — never change their pronouns and never invent new family or gear. They retain who they are, but they do NOT recognize "+c.name+" and know nothing of this campaign's events.\n"
+      +"Introduce them organically as a background NPC within the next 1-2 turns — do not force them into the scene unnaturally. Register them with [NPC:"+_lc.name+"|alive|neutral]"+(_lgw?" and [NPC_PRONOUN:"+_lc.name+"|"+_lpron+"]":"")+".\n\n";
+  }
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.content;}).join(" ");for(i=0;i<npcNames.length;i++){if(recent.indexOf(npcNames[i])>=0)hotNpcs+=memoryNpcDetail(npcNames[i])+"\n";}}
   var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+" | Trait: "+c.trait+" | Flaw: "+c.flaw+"\n\n";

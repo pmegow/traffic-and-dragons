@@ -56,7 +56,15 @@ function checkLegacyCharacter(){
   }
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
-  worldState.pendingLegacy={name:pick.name,cls:pick.cls||"",ancestry:pick.subraceNm||pick.ancestry||"",level:pick.level||1,backstory:pick.backstory||"",trait:pick.trait||"",queuedAt:worldState.turn};
+  // Capture the FULL identity so the legacy NPC is portrayed consistently — same person, gender,
+  // relationships and gear as in their own tale (fixes #18: Ammut forgot his wives + got mis-gendered).
+  worldState.pendingLegacy={
+    name:pick.name,gender:pick.gender||"",cls:pick.cls||"",ancestry:pick.subraceNm||pick.ancestry||"",
+    level:pick.level||1,age:pick.age||"",appear:pick.appear||"",mark:pick.mark||"",
+    backstory:pick.backstory||"",trait:pick.trait||"",flaw:pick.flaw||"",motivation:pick.motivation||"",
+    alignment:pick.actualAlignment||pick.statedAlignment||"",deity:pick.deity||"",
+    relationships:(pick.relationships||[]).slice(0,8),inventory:(pick.inventory||[]).slice(0,12),
+    queuedAt:worldState.turn};
   saveCore();
   if(typeof showToast==="function")showToast("☠ A familiar face approaches...");
 }
