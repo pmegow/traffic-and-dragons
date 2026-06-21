@@ -133,7 +133,7 @@ function buildSysPrompt(){
   if(typeof proseAuthor!=="undefined"&&proseAuthor&&typeof AUTHORS!=="undefined"){
     var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===proseAuthor){pa=AUTHORS[pj];break;}}
     if(pa&&pa.vc){
-      proseBlock="PROSE VOICE — "+pa.nm.toUpperCase()+":\n"+pa.vc;
+      proseBlock="*** MANDATORY PROSE VOICE — "+pa.nm.toUpperCase()+" ***\nThis is a HARD stylistic requirement and the single most important rule for your narration. Write EVERY sentence of narration in the unmistakable voice of "+pa.nm+". This OVERRIDES the generic tone voice above — where they conflict, "+pa.nm+" wins. A reader should recognise "+pa.nm+" from the rhythm, sentence length, and word choice alone. Do not blend it with a neutral GM voice; commit to it fully, every turn.\nVOICE: "+pa.vc;
       if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally as "+pa.nm+" would, never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
       proseBlock+="\n\n";
     }
@@ -199,11 +199,13 @@ function buildSysPrompt(){
     +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n"
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +proseBlock
-    +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT cram multiple clauses, em-dashes, and similes into one long sentence — break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
+    +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
 }
 function cleanTxt(t){
   return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT):[^\]]+\]/g,"")
-    .replace(/\[ENEMY_SURRENDERS\]/g,"").replace(/\[SUBLOCATION_LEAVE\]/g,"").replace(/\n{3,}/g,"\n\n").trim();
+    .replace(/\[ENEMY_SURRENDERS\]/g,"").replace(/\[SUBLOCATION_LEAVE\]/g,"")
+    .replace(/[ \t]*[—–][ \t]*/g,", ")   // em/en-dashes are ugly — never display them; comma is the natural substitute (newlines preserved)
+    .replace(/\n{3,}/g,"\n\n").trim();
 }
 function diceTxt(t){var m=t.match(/\[DICE:([^\]]+)\]/);if(!m)return"";var p=m[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';return'<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}
 function parseActions(clean){
