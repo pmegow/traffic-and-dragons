@@ -8,6 +8,7 @@ var TTS = (function() {
   var VOICE_K  = "tnd_tts_voice_gm_v1";
   var BANK_K   = "tnd_voice_bank_v1";
   var NATIVE_K = "tnd_tts_native_v1";   // use the browser's built-in speechSynthesis instead of Cartesia
+  var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native (browser) voice, stored BY NAME (voice list differs per device)
 
   // ── Voice bank ─────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ var TTS = (function() {
   function getKey()   { return store.get(KEY_K)   || ""; }
   function getVoice() { return store.get(VOICE_K) || ""; }
   function isNative() { return store.get(NATIVE_K) === "1"; }
+  function getNativeVoice() { return store.get(NVOICE_K) || ""; }
+  // System voices available to speechSynthesis. May be empty on first call (esp. iOS) until voiceschanged fires.
+  function _voiceList() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch(e) { return []; } }
+  function _findNativeVoice(name) { if (!name) return null; var vs = _voiceList(), i; for (i = 0; i < vs.length; i++) { if (vs[i].name === name) return vs[i]; } return null; }
   // Cartesia is usable only with a key and no recorded failure. Otherwise speech routes to native.
   function _cartesiaOk() { return !!getKey() && !_cartesiaError; }
   function _useNative()  { return isNative() || !_cartesiaOk(); }
@@ -134,6 +139,8 @@ var TTS = (function() {
       window.speechSynthesis.cancel();            // clear any stuck/previous utterance
       var u = new SpeechSynthesisUtterance(_dashToPause(text));
       u.rate = 1.0; u.pitch = 1.0;
+      var nv = _findNativeVoice(getNativeVoice());   // saved voice if present on this device; else system default
+      if (nv) u.voice = nv;
       _nativeUtter = u;
       u.onend   = function() { _nativeUtter = null; _drain(); };
       u.onerror = function() { _nativeUtter = null; _drain(); };
@@ -362,6 +369,31 @@ var TTS = (function() {
     return html;
   }
 
+  function _buildNativeVoiceOptions() {
+    var vs = _voiceList(), cur = getNativeVoice(), html = "", i;
+    if (!vs.length) return "<option value='' selected>— system default (loading…) —</option>";
+    html += "<option value=''>— system default —</option>";
+    for (i = 0; i < vs.length; i++) {
+      var sel = (vs[i].name === cur) ? " selected" : "";
+      var lang = vs[i].lang ? " (" + vs[i].lang + ")" : "";
+      html += "<option value='" + _escVal(vs[i].name) + "'" + sel + ">" + _escVal(vs[i].name) + lang + "</option>";
+    }
+    return html;
+  }
+
+  // Audition a native voice by NAME (reads the live dropdown choice, not the saved one).
+  function _testNativeVoice(name) {
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
+      if (typeof showToast === "function") showToast("No browser speech support."); return;
+    }
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance("The lightless mass rotates, and the weapon-notation locks into place.");
+      var v = _findNativeVoice(name); if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
   function _buildBankRows() {
     var bank = getBank();
     if (!bank.length) return "";
@@ -428,8 +460,16 @@ var TTS = (function() {
       +   "<span>Use native (browser) voice <span style='color:var(--t2);'>— no key needed, lower quality. Used automatically if Cartesia is unavailable.</span></span>"
       + "</label>"
       + "<div style='margin-bottom:20px;'>"
+      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Browser (native) voice</label>"
+      +   "<div style='display:flex;gap:6px;'>"
+      +     "<select id='tts-nvoice-sel' style='" + inpStyle + "flex:1;'>" + _buildNativeVoiceOptions() + "</select>"
+      +     "<button id='tts-nvoice-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
+      +   "</div>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Used for the native voice and the Cartesia fallback. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
+      + "</div>"
+      + "<div style='margin-bottom:20px;'>"
       +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"
-      +     "<label style='font-size:12px;color:var(--t2);'>Narrator Voice</label>"
+      +     "<label style='font-size:12px;color:var(--t2);'>Narrator Voice <span style='color:var(--t2);font-weight:normal;'>(Cartesia)</span></label>"
       +     "<button id='tts-add-btn' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>+ Add</button>"
       +   "</div>"
       +   "<select id='tts-voice-sel' style='" + inpStyle + "'>" + _buildVoiceOptions() + "</select>"
@@ -454,6 +494,19 @@ var TTS = (function() {
     document.getElementById("tts-native-cb").addEventListener("change", function() {
       store.set(NATIVE_K, this.checked ? "1" : "");
       _updateCartErr();
+    });
+
+    // Native voices may not be ready on modal open (esp. iOS) — repopulate when they load.
+    if (window.speechSynthesis) {
+      _voiceList(); // nudge some browsers to start loading the list
+      speechSynthesis.onvoiceschanged = function() {
+        var s = document.getElementById("tts-nvoice-sel");
+        if (s) s.innerHTML = _buildNativeVoiceOptions();
+      };
+    }
+    document.getElementById("tts-nvoice-test").addEventListener("click", function() {
+      var s = document.getElementById("tts-nvoice-sel");
+      _testNativeVoice(s ? s.value : "");
     });
 
     document.getElementById("tts-add-btn").addEventListener("click", function() {
@@ -493,6 +546,7 @@ var TTS = (function() {
       if (key) { store.set(KEY_K, key); _cartesiaError = ""; } else store.del(KEY_K);  // a fresh key gets Cartesia retried
       if (voice) store.set(VOICE_K, voice); else store.del(VOICE_K);
       var ncb = document.getElementById("tts-native-cb"); if (ncb) store.set(NATIVE_K, ncb.checked ? "1" : "");
+      var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }
       modal.remove();
       if (typeof showToast === "function") showToast("Voice settings saved.");
     });
