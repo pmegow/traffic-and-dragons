@@ -193,6 +193,7 @@ Assembled fresh on every request from live state:
 3. GM role declaration + tone directive
 4. Character sheet (stats, HP, gold, alignment, abilities, spells, inventory)
 5. **Conditions, relationships, save modifiers, languages, skills** (v10 additions)
+5b. **PARTY MEMBER SHEETS** (`partyBlock`, v1.75) — for each `npc.partyMember && npc.charSheet` (alive), a rich per-companion block: class/archetype/level, HP, stats, abilities, **spells available** (unused only), inventory. Without this the GM only saw the one-line NPC roster entry and never knew a companion could cast — so companions (even a sorcerer) defaulted to swinging a weapon. The block header instructs the GM to have each companion act in character with their own kit and track resources via `COMPANION_*` tags.
 6. World state (location, time, weather, NPCs, active quests)
 7. `memoryTOC()` — compact summary of known NPCs, visited locations, pending events, recent decisions, chapter summaries
 8. `memoryNpcDetail()` — full detail on NPCs mentioned in the last 6 session messages

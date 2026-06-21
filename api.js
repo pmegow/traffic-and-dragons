@@ -68,6 +68,28 @@ function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
   var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(/\bdead\b/i.test(npc.status||""))continue;/* dead NPCs stay in memory.npcs but aren't listed as present */var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");ns.push(npc.name+npcAka+" ("+npc.status+", "+npc.rel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
+  // PARTY MEMBER SHEETS — companions' full combat kit (class/spells/abilities). Without this the
+  // GM only sees the one-line NPC roster entry and never knows a companion can cast → they default
+  // to swinging a weapon. Rich block so a caster casts, a rogue uses tricks, etc.
+  var partyBlock="";
+  if(worldState.npcs.length){
+    var pmArr=[],pj;
+    for(pj=0;pj<worldState.npcs.length;pj++){
+      var pmN=worldState.npcs[pj];
+      if(!pmN.partyMember||!pmN.charSheet)continue;
+      if(/\bdead\b/i.test(pmN.status||""))continue;
+      var pcs=pmN.charSheet;
+      var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++)pa2.push(pcs.abilities[pai].nm);if(pa2.length)pAb=pa2.join(", ");}
+      var pSp="none";if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){if(!pcs.spells[psi].used)ps2.push(pcs.spells[psi].nm);}if(ps2.length)pSp=ps2.join(", ");}
+      var pSt=pcs.stats?("STR "+pcs.stats.STR+" DEX "+pcs.stats.DEX+" CON "+pcs.stats.CON+" INT "+pcs.stats.INT+" WIS "+pcs.stats.WIS+" CHA "+pcs.stats.CHA):"";
+      var pInv=(pcs.inventory&&pcs.inventory.length)?pcs.inventory.join(", "):"none";
+      var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+"\n";
+      if(pSt)line+="  Stats: "+pSt+"\n";
+      line+="  Abilities: "+pAb+"\n  Spells available: "+pSp+"\n  Inventory: "+pInv;
+      pmArr.push(line);
+    }
+    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags):\n"+pmArr.join("\n")+"\n\n";
+  }
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
   var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
@@ -129,6 +151,7 @@ function buildSysPrompt(){
     +"Trait: "+c.trait+" | Flaw: "+c.flaw+" | Motivation: "+c.motivation+(c.deity?" | Deity: "+c.deity:"")+"\n"
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
+    +partyBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
     +"NPCs: "+nstr+"\n\n"+questBlock
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
