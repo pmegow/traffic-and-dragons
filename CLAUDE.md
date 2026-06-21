@@ -93,7 +93,7 @@ After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 ### 2. Game data constants (all in `data.js`)
 
 - `TONES` — 6 tone presets, each with a `vc` (voice directive sent in the system prompt)
-- `AUTHORS` — Prose-inspiration voices (TODO #23), each `{id, nm, blurb, vc, profane?}`. `vc` is a style directive injected into the system prompt by `buildSysPrompt` (`proseBlock`); `profane:true` voices (Abercrombie, Dinniman, Muir) swear only when `adultMode` is on, otherwise keep the rhythm but stay clean. Selected via **Dev Mode ▸ ✍ Prose inspiration…** (`showProseModal()`), persisted in `PROSE_K` (`tnd_prose_v1`), read live so it takes effect next turn. The old hard `2-3 sentences maximum` STYLE cap was **removed entirely** (it was the run-on root cause — capping count made the model cram everything into one dense sentence). The STYLE rule now forbids clause/em-dash/simile cramming and hands length/rhythm to the selected prose voice.
+- `AUTHORS` — Prose-inspiration voices (TODO #23), each `{id, nm, blurb, vc, profane?}`. `vc` is a style directive injected into the system prompt by `buildSysPrompt` (`proseBlock`); `profane:true` voices (Abercrombie, Dinniman, Muir) swear only when `adultMode` is on, otherwise keep the rhythm but stay clean. Selected via **Dev Mode ▸ ✍ Prose inspiration…** (`showProseModal()`), read live so it takes effect next turn. **Per-campaign (v1.87):** the choice is stored on `worldState.proseAuthor`, so it rides the sync blob and follows the campaign across devices; `buildSysPrompt` uses `worldState.proseAuthor` when set, else the device default (global `proseAuthor`, loaded from `PROSE_K`/`tnd_prose_v1`). Saving in-game pins the campaign AND updates the device default; pre-game selection sets only the default, which new/unset campaigns inherit via the fallback. The old hard `2-3 sentences maximum` STYLE cap was **removed entirely** (it was the run-on root cause — capping count made the model cram everything into one dense sentence). The STYLE rule now forbids clause/em-dash/simile cramming and hands length/rhythm to the selected prose voice.
 - `ANCS` — Ancestry definitions with `stats`, `traits`, `subraces`, optional nested `lineages`, and optional `racial_spells:[{nm,lvl}]` on subraces/lineages
 - `CLSS` — Class definitions: `hd` (hit die), `prime` stat, starting `gear`
 - `ABILS` — Starting class abilities (name + description)
@@ -157,7 +157,7 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
 }
 ```
 
-`worldState` also carries `campId` (string matching `tnd_active_v1`) so the campaign ID survives exports and reimports without creating duplicate campaign slots.
+`worldState` also carries `campId` (string matching `tnd_active_v1`) so the campaign ID survives exports and reimports without creating duplicate campaign slots, and `proseAuthor` (per-campaign prose-inspiration voice id, v1.87 — see AUTHORS above).
 
 ### 5. API usage
 

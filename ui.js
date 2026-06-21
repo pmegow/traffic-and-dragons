@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.86";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.87";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -2343,7 +2343,7 @@ function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="str
 function showProseModal(){
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
   var ex=document.getElementById("prose-modal");if(ex)ex.remove();
-  var sel=proseAuthor||"";
+  var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");
   function rows(){var h="",i;for(i=0;i<AUTHORS.length;i++){var a=AUTHORS[i],s=(a.id===sel);
     h+="<div class='pr-row' data-id='"+a.id+"' style='display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(s?"var(--acc)":"var(--brd)")+";background:"+(s?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
       +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(s?"var(--acc)":"var(--brd2)")+";background:"+(s?"var(--acc)":"transparent")+";flex-shrink:0;margin-top:2px;'></div>"
@@ -2362,9 +2362,10 @@ function showProseModal(){
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   document.getElementById("pr-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("pr-save").addEventListener("click",function(){
-    proseAuthor=sel;store.set(PROSE_K,sel);
+    proseAuthor=sel;store.set(PROSE_K,sel);   // device default for new/unset campaigns
+    if(worldState){worldState.proseAuthor=sel;if(typeof saveAll==="function")saveAll();} // pin to THIS campaign; rides the sync blob across devices
     var a=null,i;for(i=0;i<AUTHORS.length;i++){if(AUTHORS[i].id===sel){a=AUTHORS[i];break;}}
-    showToast(sel?("Prose voice: "+(a?a.nm:sel)):"Prose voice: house default");
+    showToast(sel?("Prose voice: "+(a?a.nm:sel)+(worldState?" · this campaign":"")):"Prose voice: house default");
     modal.remove();
   });
 }

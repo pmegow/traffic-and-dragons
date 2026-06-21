@@ -130,8 +130,10 @@ function buildSysPrompt(){
   // Prose-inspiration voice (TODO #23) — read live so the picker takes effect next turn.
   // Profane voices swear only when adultMode is on; otherwise keep the rhythm, clean the words.
   var proseBlock="";
-  if(typeof proseAuthor!=="undefined"&&proseAuthor&&typeof AUTHORS!=="undefined"){
-    var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===proseAuthor){pa=AUTHORS[pj];break;}}
+  // Per-campaign voice (worldState.proseAuthor) wins; else the device default (global, from PROSE_K).
+  var _paId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
+  if(_paId&&typeof AUTHORS!=="undefined"){
+    var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===_paId){pa=AUTHORS[pj];break;}}
     if(pa&&pa.vc){
       proseBlock="*** MANDATORY PROSE VOICE — "+pa.nm.toUpperCase()+" ***\nThis is a HARD stylistic requirement and the single most important rule for your narration. Write EVERY sentence of narration in the unmistakable voice of "+pa.nm+". This OVERRIDES the generic tone voice above — where they conflict, "+pa.nm+" wins. A reader should recognise "+pa.nm+" from the rhythm, sentence length, and word choice alone. Do not blend it with a neutral GM voice; commit to it fully, every turn.\nVOICE: "+pa.vc;
       if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally as "+pa.nm+" would, never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
