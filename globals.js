@@ -35,8 +35,8 @@ var PROVIDERS={
     // xAI is OpenAI-compatible — same body/response shape, different endpoint + key.
     id:"grok", label:"Grok (xAI)", keyHint:"xai-...",
     endpoint:"https://api.x.ai/v1/chat/completions",
-    defaultModel:"grok-2-latest",
-    models:["grok-2-latest","grok-2","grok-beta"],
+    defaultModel:"grok-4.3", // current xAI flagship (June 2026); old grok-2-*/grok-beta IDs are retired and 400
+    models:["grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"],
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},

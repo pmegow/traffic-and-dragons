@@ -363,6 +363,6 @@ async function callGM(msg,sysOverride,maxTok){
   var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
-  if(!res.ok)throw new Error((data.error&&data.error.message)||"HTTP "+res.status);
+  if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw new Error("HTTP "+res.status+(_em?": "+_em:""));}
   return prov.parseResponse(data);
 }
