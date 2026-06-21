@@ -8,7 +8,8 @@ var TTS = (function() {
   var VOICE_K  = "tnd_tts_voice_gm_v1";
   var BANK_K   = "tnd_voice_bank_v1";
   var NATIVE_K = "tnd_tts_native_v1";   // use the browser's built-in speechSynthesis instead of Cartesia
-  var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native (browser) voice, stored BY NAME (voice list differs per device)
+  var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native voice, stored BY NAME (voice list differs per device)
+  var NVOICE_DEFAULT = "Google US English"; // preferred voice when the user hasn't picked one (falls back to OS default if absent)
 
   // ── Voice bank ─────────────────────────────────────────────────────────────
 
@@ -43,6 +44,8 @@ var TTS = (function() {
   // System voices available to speechSynthesis. May be empty on first call (esp. iOS) until voiceschanged fires.
   function _voiceList() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch(e) { return []; } }
   function _findNativeVoice(name) { if (!name) return null; var vs = _voiceList(), i; for (i = 0; i < vs.length; i++) { if (vs[i].name === name) return vs[i]; } return null; }
+  // The voice to actually speak with: the user's saved pick if present, else the preferred default, else OS default (null).
+  function _resolveNativeVoice() { return _findNativeVoice(getNativeVoice()) || _findNativeVoice(NVOICE_DEFAULT) || null; }
   // Cartesia is usable only with a key and no recorded failure. Otherwise speech routes to native.
   function _cartesiaOk() { return !!getKey() && !_cartesiaError; }
   function _useNative()  { return isNative() || !_cartesiaOk(); }
@@ -139,7 +142,7 @@ var TTS = (function() {
       window.speechSynthesis.cancel();            // clear any stuck/previous utterance
       var u = new SpeechSynthesisUtterance(_dashToPause(text));
       u.rate = 1.0; u.pitch = 1.0;
-      var nv = _findNativeVoice(getNativeVoice());   // saved voice if present on this device; else system default
+      var nv = _resolveNativeVoice();   // saved pick → preferred default → OS default
       if (nv) u.voice = nv;
       _nativeUtter = u;
       u.onend   = function() { _nativeUtter = null; _drain(); };
@@ -370,7 +373,9 @@ var TTS = (function() {
   }
 
   function _buildNativeVoiceOptions() {
-    var vs = _voiceList(), cur = getNativeVoice(), html = "", i;
+    var vs = _voiceList(), html = "", i;
+    // show the effective voice as selected: saved pick if any, else the resolved default
+    var cur = getNativeVoice(); if (!cur) { var rv = _resolveNativeVoice(); if (rv) cur = rv.name; }
     if (!vs.length) return "<option value='' selected>— system default (loading…) —</option>";
     html += "<option value=''>— system default —</option>";
     for (i = 0; i < vs.length; i++) {
@@ -457,10 +462,10 @@ var TTS = (function() {
       + "</div>"
       + "<label style='display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:12px;color:var(--t1);cursor:pointer;'>"
       +   "<input type='checkbox' id='tts-native-cb' style='accent-color:var(--acc);width:14px;height:14px;cursor:pointer;flex-shrink:0;'" + (isNative() ? " checked" : "") + "/>"
-      +   "<span>Use native (browser) voice <span style='color:var(--t2);'>— no key needed, lower quality. Used automatically if Cartesia is unavailable.</span></span>"
+      +   "<span>Use native voice <span style='color:var(--t2);'>— no key needed, lower quality. Used automatically if Cartesia is unavailable.</span></span>"
       + "</label>"
       + "<div style='margin-bottom:20px;'>"
-      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Browser (native) voice</label>"
+      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Native voice</label>"
       +   "<div style='display:flex;gap:6px;'>"
       +     "<select id='tts-nvoice-sel' style='" + inpStyle + "flex:1;'>" + _buildNativeVoiceOptions() + "</select>"
       +     "<button id='tts-nvoice-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
