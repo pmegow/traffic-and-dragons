@@ -216,7 +216,10 @@ function _attachGMErrorUI(em,retryFn,msg){
     ki.focus();
     return true;
   }else{
-    var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=retryFn;em.appendChild(rb);
+    em.style.display="inline-block";em.style.maxWidth="100%"; // shrink the error bubble to its text width
+    var rb=document.createElement("button");rb.className="qa";rb.textContent="Retry";rb.onclick=retryFn;
+    rb.style.cssText="display:block;width:100%;box-sizing:border-box;margin-top:8px;text-align:center;"; // button drops below the text, matched to its width -> solid block
+    em.appendChild(rb);
     return false;
   }
 }
