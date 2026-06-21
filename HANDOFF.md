@@ -1,9 +1,9 @@
 # Traffic and Dragons — Session Handoff
 
 **Date:** 2026-06-20
-**Deployed version:** v1.80 (string in `updateMemStatus()` in `ui.js`)
+**Deployed version:** v1.82 (string in `updateMemStatus()` in `ui.js`)
 **Branch:** `master` — clean, all work pushed to `origin`.
-**SW cache:** `tnd-v3-20260620h` (`sw.js`).
+**SW cache:** `tnd-v3-20260620j` (`sw.js`).
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev` (migrated off Netlify this session).
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
@@ -22,6 +22,8 @@
 | 1.78 | Native voice **defaults to "Google US English"** (`_resolveNativeVoice`: saved → preferred default → OS default); dropped "(browser)" wording → "Use native voice" / "Native voice". |
 | 1.79 | **SW cache-first** (was network-first) — the bandwidth fix. Network-first re-downloaded the whole app shell every load → blew past Netlify's 100 GB/mo cap → site paused. Cache-first serves the shell from Cache Storage between deploys; safe because `CACHE` is bumped every deploy + browsers fetch sw.js fresh per navigation. |
 | 1.80 | **Cloudflare Pages migration** — pure-static, no build, output dir = repo root. Added `_headers` (force sw.js/app-shell no-cache so deploys are always detected). Verified live: ui.js=v1.80, sw.js cache=…h, cache-first, headers applied. |
+| 1.81 | **Game served at root** — renamed `dnd_game_1_0.html` → `index.html`, so the game loads at `traffic-and-dragons.pages.dev/` (no path). `_redirects` 301s the old path. sw.js precache → `/`; manifest `start_url` → `/`. |
+| 1.82 | **iOS home-screen icon fix** — `apple-touch-icon` was `icon.svg` (iOS ignores SVG → showed a page screenshot); pointed it at `icon-192.png`. Users must re-add to Home Screen to pick up the new icon. |
 
 **Net result:** new prose-voice system + the run-on fix, companions use their full kit, better/cheaper TTS, and hosting moved to unlimited-bandwidth Cloudflare Pages.
 
