@@ -93,6 +93,7 @@ After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 ### 2. Game data constants (all in `data.js`)
 
 - `TONES` — 6 tone presets, each with a `vc` (voice directive sent in the system prompt)
+- `AUTHORS` — Prose-inspiration voices (TODO #23), each `{id, nm, blurb, vc, profane?}`. `vc` is a style directive injected into the system prompt by `buildSysPrompt` (`proseBlock`); `profane:true` voices (Abercrombie, Dinniman, Muir) swear only when `adultMode` is on, otherwise keep the rhythm but stay clean. Selected via **Dev Mode ▸ ✍ Prose inspiration…** (`showProseModal()`), persisted in `PROSE_K` (`tnd_prose_v1`), read live so it takes effect next turn. The accompanying STYLE rule was rewritten to forbid clause/em-dash/simile cramming (the run-on root cause) rather than only capping sentence count.
 - `ANCS` — Ancestry definitions with `stats`, `traits`, `subraces`, optional nested `lineages`, and optional `racial_spells:[{nm,lvl}]` on subraces/lineages
 - `CLSS` — Class definitions: `hd` (hit die), `prime` stat, starting `gear`
 - `ABILS` — Starting class abilities (name + description)
@@ -345,7 +346,7 @@ Implemented as a **tab** (not a checkbox). `activeChatTab` global is `"narrative
 
 Present on both `#game-screen` (in `#topbar`) and `#char-screen` (top-right above step dots).
 
-**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
+**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, Render Options…, ✍ Prose inspiration…, 18+ Adult content, Connect/Disconnect server) | New Game
 
 **Char screen items:** Same full list, but Sync state, World state, Render prompt, Save Game, Export Character, and New Game are greyed out (`opacity:0.4; pointer-events:none`) — no active game yet.
 

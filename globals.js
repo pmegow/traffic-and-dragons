@@ -101,6 +101,7 @@ var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
+var proseAuthor=""; // selected prose-inspiration author id ("" = house default); see AUTHORS in data.js
 var legacyCharsOn=false;
 var legacyChancePct=5;
 var legacyLibCache=null;   // cached Character Library list (legacy candidates); fetched async, rolled against synchronously

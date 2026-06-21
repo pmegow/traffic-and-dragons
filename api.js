@@ -104,7 +104,18 @@ function buildSysPrompt(){
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.content;}).join(" ");for(i=0;i<npcNames.length;i++){if(recent.indexOf(npcNames[i])>=0)hotNpcs+=memoryNpcDetail(npcNames[i])+"\n";}}
   var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+" | Trait: "+c.trait+" | Flaw: "+c.flaw+"\n\n";
-  var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, crude language, and graphic mature themes are fully permitted and encouraged when narratively appropriate. Do not fade to black, do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
+  var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, and graphic mature themes are fully permitted and encouraged when narratively appropriate. PROFANITY IS FULLY UNLOCKED — strong language and crude words (fuck, shit, etc.) are permitted without restriction; swear freely and naturally wherever the chosen prose voice, a character's mouth, or the heat of the moment calls for it. Do NOT self-censor, do NOT soften word choice, do NOT substitute milder words or censor with symbols. Do not fade to black, do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
+  // Prose-inspiration voice (TODO #23) — read live so the picker takes effect next turn.
+  // Profane voices swear only when adultMode is on; otherwise keep the rhythm, clean the words.
+  var proseBlock="";
+  if(typeof proseAuthor!=="undefined"&&proseAuthor&&typeof AUTHORS!=="undefined"){
+    var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===proseAuthor){pa=AUTHORS[pj];break;}}
+    if(pa&&pa.vc){
+      proseBlock="PROSE VOICE — "+pa.nm.toUpperCase()+":\n"+pa.vc;
+      if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally as "+pa.nm+" would, never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
+      proseBlock+="\n\n";
+    }
+  }
   // Transient control-switch reinforcement — overrides the sessionLog momentum where the
   // OLD protagonist was "you". Set on swap, auto-cleared in sendAction after ~2 turns.
   var switchBlock="";
@@ -164,7 +175,8 @@ function buildSysPrompt(){
     +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
     +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n"
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
-    +"STYLE: HARD LIMIT — prose must be 2-3 sentences maximum, never more. Then the suggestion line. No exceptions, no matter how dramatic the moment. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
+    +proseBlock
+    +"STYLE: Keep it tight — roughly 2-4 sentences, then the suggestion line. CRITICAL — write clean, readable sentences: do NOT cram multiple clauses, em-dashes, and similes into one long sentence. Break a long thought into several short ones. Vary sentence length and favor short and clear; aim for one main image per sentence. No exceptions, no matter how dramatic the moment. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
 }
 function cleanTxt(t){
   return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT):[^\]]+\]/g,"")

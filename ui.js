@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.72";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.73";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -2105,6 +2105,7 @@ function wireButtons(){
   document.getElementById("cs-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("cs-fm-devmenu"),arrow=document.getElementById("cs-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
   document.getElementById("cs-fm-rules").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRulesModal();});
   document.getElementById("cs-fm-llm").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showProviderModal();});
+  document.getElementById("cs-fm-prose").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showProseModal();});
   document.getElementById("cs-fm-fal-key").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("cs-fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("cs-fm-font-lg").addEventListener("change",toggleFontSize);
@@ -2121,6 +2122,7 @@ function wireButtons(){
   document.getElementById("api-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("api-fm-devmenu"),arrow=document.getElementById("api-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
   document.getElementById("api-fm-rules").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRulesModal();});
   document.getElementById("api-fm-llm").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showProviderModal();});
+  document.getElementById("api-fm-prose").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showProseModal();});
   document.getElementById("api-fm-fal-key").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRenderOptionsModal();});
   document.getElementById("api-fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("api-fm-font-lg").addEventListener("change",toggleFontSize);
@@ -2143,6 +2145,7 @@ function wireButtons(){
   });
   document.getElementById("fm-rules").addEventListener("click",showRulesModal);
   document.getElementById("fm-llm").addEventListener("click",showProviderModal);
+  document.getElementById("fm-prose").addEventListener("click",showProseModal);
   document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
   document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
   document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
@@ -2334,6 +2337,36 @@ function showProviderModal(){
     setTimeout(function(){var m=document.getElementById("provider-modal");if(m)m.remove();},900);
   });
 }
+// ── Prose inspiration (TODO #23) ───────────────────────────────────────────────
+function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
+function showProseModal(){
+  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  var ex=document.getElementById("prose-modal");if(ex)ex.remove();
+  var sel=proseAuthor||"";
+  function rows(){var h="",i;for(i=0;i<AUTHORS.length;i++){var a=AUTHORS[i],s=(a.id===sel);
+    h+="<div class='pr-row' data-id='"+a.id+"' style='display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(s?"var(--acc)":"var(--brd)")+";background:"+(s?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
+      +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(s?"var(--acc)":"var(--brd2)")+";background:"+(s?"var(--acc)":"transparent")+";flex-shrink:0;margin-top:2px;'></div>"
+      +"<div><div style='font-size:13px;color:"+(s?"var(--acc)":"var(--t1)")+";'>"+escHtml(a.nm)+(a.profane?" <span style=\"font-size:10px;color:var(--t2);\">· 18+ for full voice</span>":"")+"</div>"
+      +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div></div>";}return h;}
+  var modal=document.createElement("div");modal.id="prose-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:440px;width:100%;margin-top:40px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM imitates this author's voice. Takes effect on the next turn — switch any time.</p>"
+    +"<div id='pr-rows'>"+rows()+"</div>"
+    +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>"
+    +"</div>";
+  document.body.appendChild(modal);
+  function refresh(){Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(r){var s=(r.getAttribute("data-id")===sel);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var nm=r.querySelector("div>div");if(nm)nm.style.color=s?"var(--acc)":"var(--t1)";});}
+  Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(row){row.addEventListener("click",function(){sel=this.getAttribute("data-id");refresh();});});
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  document.getElementById("pr-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("pr-save").addEventListener("click",function(){
+    proseAuthor=sel;store.set(PROSE_K,sel);
+    var a=null,i;for(i=0;i<AUTHORS.length;i++){if(AUTHORS[i].id===sel){a=AUTHORS[i];break;}}
+    showToast(sel?("Prose voice: "+(a?a.nm:sel)):"Prose voice: house default");
+    modal.remove();
+  });
+}
 // ── Quest journal ─────────────────────────────────────────────────────────────
 function showQuestModal(){
   var ex=document.getElementById("quest-modal");if(ex)ex.remove();
@@ -2382,5 +2415,5 @@ function declineQuest(idx){
   showQuestModal();
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
-function init(){loadRules();loadAdultMode();loadLegacySettings();if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
+function init(){loadRules();loadAdultMode();loadProseAuthor();loadLegacySettings();if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),slp=parseActions(slc);addMsg("narrator",(sld||"")+"<p>"+slp.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(slp.btns||""));}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
 window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});
