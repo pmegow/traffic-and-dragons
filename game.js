@@ -169,6 +169,34 @@ async function sendAction(override,opts){
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
 }
 function retryLast(){if(lastAction)sendAction(lastAction);}
+// Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
+// or re-applying state tags — a clean A/B tool for trying Prose Inspiration voices on the
+// same scene. Pops the last exchange so the GM regenerates in the original context, then
+// swaps the displayed narration + the sessionLog assistant entry for the new one.
+async function rerollLast(){
+  if(busy||!worldState)return;
+  if(activeChatTab==="tabletalk"){if(typeof showToast==="function")showToast("Switch to the Story tab to re-roll.");return;}
+  var n=sessionLog.length;
+  if(n<2||sessionLog[n-1].role!=="assistant"||sessionLog[n-2].role!=="user"){if(typeof showToast==="function")showToast("Nothing to re-roll yet.");return;}
+  busy=true;document.getElementById("sendbtn").disabled=true;
+  var prevA=sessionLog.pop(),prevU=sessionLog.pop(); // context is now just before the last action
+  var th=addMsg("thinking","Re-rolling the scene...");
+  try{
+    var resp=await callGM(prevU.content,null,1000); // current voice; no muts, no turn++
+    th.remove();
+    sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
+    var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean);
+    var story=document.getElementById("story-narrative");
+    if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
+    addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
+    if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
+    saveAll();
+  }catch(e){
+    th.remove();sessionLog.push(prevU,prevA); // restore the original exchange on failure
+    addMsg("system","Re-roll error: "+e.message);
+  }
+  busy=false;document.getElementById("sendbtn").disabled=false;
+}
 function _attachGMErrorUI(em,retryFn,msg){
   var isAuth=/invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i.test(msg);
   if(isAuth){

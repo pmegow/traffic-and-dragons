@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.84";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.85";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -2096,6 +2096,7 @@ function wireButtons(){
   document.getElementById("userinput").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey)sendAction(null);});
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
   document.getElementById("render-btn").addEventListener("click",doRender);
+  var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
   document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();document.getElementById("file-menu").style.display=document.getElementById("file-menu").style.display==="block"?"none":"block";});
   document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";var cfm=document.getElementById("cs-file-menu");if(cfm)cfm.style.display="none";var afm=document.getElementById("api-file-menu");if(afm)afm.style.display="none";});
   document.getElementById("cs-file-btn").addEventListener("click",function(e){e.stopPropagation();var cfm=document.getElementById("cs-file-menu");cfm.style.display=cfm.style.display==="block"?"none":"block";});
