@@ -132,10 +132,11 @@ function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.len
 function sendSuggestedAction(btn,ev){
   var action=btn.getAttribute("data-action");if(!action)return;
   if(Date.now()<_qaSuppressUntil){_qaSuppressUntil=0;return;} // a long-press already executed this; swallow the trailing click
-  if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(action);return;}
+  if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}
   var inp=document.getElementById("userinput");if(!inp)return;
-  inp.value=action;inp.focus();
-  try{inp.setSelectionRange(action.length,action.length);}catch(e){}
+  var fp=toFirstPerson(action);
+  inp.value=fp;inp.focus();
+  try{inp.setSelectionRange(fp.length,fp.length);}catch(e){}
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");

@@ -23,3 +23,19 @@ function getLvl(xp){var i,l=1;for(i=1;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i
 function alignLabel(law,good){var l=law>=2?"Lawful":law<=-2?"Chaotic":"Neutral";var g=good>=2?"Good":good<=-2?"Evil":"Neutral";if(l==="Neutral"&&g==="Neutral")return"True Neutral";if(l==="Neutral")return"Neutral "+g;if(g==="Neutral")return l+" Neutral";return l+" "+g;}
 function skillLevel(successes){var i;for(i=SKILL_THRESHOLDS.length-1;i>=0;i--){if(successes>=SKILL_THRESHOLDS[i])return i+1;}return 0;}
 function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
+// Convert a suggested action from 2nd person ("Gather your belongings") to 1st person
+// ("Gather my belongings") when it transfers into the input / is sent. Possessives,
+// reflexives and contractions convert cleanly; bare "you" is best-effort: object "you"
+// (end of clause, or after a preposition/transitive verb) -> "me", otherwise subject -> "I".
+function toFirstPerson(s){
+  if(!s)return s;
+  var out=s
+    .replace(/\byou're\b/gi,"I'm").replace(/\byou've\b/gi,"I've")
+    .replace(/\byou'll\b/gi,"I'll").replace(/\byou'd\b/gi,"I'd")
+    .replace(/\byourselves\b/gi,"ourselves").replace(/\byourself\b/gi,"myself")
+    .replace(/\byours\b/gi,"mine").replace(/\byour\b/gi,"my")
+    .replace(/\byou\b(?=\s*[.,;:!?]|\s*$)/gi,"me") // object "you" at end of a clause
+    .replace(/\b(to|with|at|for|from|of|on|in|into|onto|behind|near|beside|against|toward|towards|upon|before|after|around|let|lets|trust|trusts|see|sees|catch|catches|follow|follows|join|joins|tell|tells|give|gives|show|shows|warn|warns|grab|grabs|face|faces|help|helps|attack|attacks|reach|reaches|bind|binds|drag|drags|pull|pulls|push|pushes|hold|holds|free|frees|save|saves|lead|leads)\s+you\b/gi,function(m){return m.replace(/you$/i,"me");})
+    .replace(/\byou\b/gi,"I"); // remaining "you" = subject
+  return out.replace(/^([a-z])/,function(m){return m.toUpperCase();});
+}
