@@ -121,11 +121,18 @@ var TTS = (function() {
   }
 
   // ── Native (browser speechSynthesis) path ────────────────────────────────────
+  // The browser's speechSynthesis swallows em/en-dashes (no pause). Ellipses get a real
+  // beat, so convert dashes — and spaced ASCII "--" — to "..." for native narration only.
+  // On-screen prose and Cartesia (which handles dashes) are untouched.
+  function _dashToPause(text) {
+    return (text || "").replace(/\s*--\s*/g, "... ").replace(/\s*[—–]\s*/g, "... ");
+  }
+
   function _speakNative(text) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { _drain(); return; }
     try {
       window.speechSynthesis.cancel();            // clear any stuck/previous utterance
-      var u = new SpeechSynthesisUtterance(text);
+      var u = new SpeechSynthesisUtterance(_dashToPause(text));
       u.rate = 1.0; u.pitch = 1.0;
       _nativeUtter = u;
       u.onend   = function() { _nativeUtter = null; _drain(); };
