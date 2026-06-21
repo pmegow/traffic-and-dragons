@@ -1,0 +1,15 @@
+# Cloudflare Pages (and Netlify) headers.
+# Always revalidate the service worker and app shell so a new deploy is picked
+# up. The cache-first SW (sw.js) serves these from Cache Storage between deploys,
+# so no-cache costs ~nothing in bandwidth — it only ensures the install-time
+# precache and any cache miss fetch the CURRENT deploy's files, not a stale CDN
+# copy. Without this, a long edge/browser cache on the non-hashed asset names
+# could hide a deploy from the SW.
+/sw.js
+  Cache-Control: no-cache
+/*.html
+  Cache-Control: no-cache
+/*.js
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache

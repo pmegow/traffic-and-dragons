@@ -75,7 +75,7 @@ Verified structurally / in a desktop preview only — the preview has no notch, 
 
 ## Deploy
 
-- **Netlify** auto-deploys from `pmegow/traffic-and-dragons` on push to `master`. Hard-refresh on device after deploy (SW cache bump handles propagation post-v1.28).
+- **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build command, output dir = repo root). Migrated off Netlify after its 100 GB/mo free-tier bandwidth cap paused the site (v1.79). Cloudflare Pages = unlimited bandwidth. `_headers` forces sw.js/app-shell revalidation so deploys are detected. Hard-refresh on device after deploy (SW cache bump handles propagation).
 - **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`.
 
 ---
