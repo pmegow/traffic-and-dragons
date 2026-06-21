@@ -1,87 +1,72 @@
 # Traffic and Dragons — Session Handoff
 
 **Date:** 2026-06-20
-**Deployed version:** v1.72 (string in `updateMemStatus()` in `ui.js`)
-**Branch:** `master` — clean, all work pushed to `origin` (HEAD `8ebef67`).
-**SW cache:** `tnd-v3-20260619j` (`sw.js`).
+**Deployed version:** v1.80 (string in `updateMemStatus()` in `ui.js`)
+**Branch:** `master` — clean, all work pushed to `origin`.
+**SW cache:** `tnd-v3-20260620h` (`sw.js`).
+**Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev` (migrated off Netlify this session).
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
 
 ---
 
-## What shipped this session (v1.59 → v1.72)
+## What shipped this session (v1.73 → v1.80)
 
-| Ver | Commit | What |
-|---|---|---|
-| 1.59 | a40423c | Mobile topbar wraps File/voice buttons to their own row |
-| 1.60 | 03a72a5 | NPC roster: hide dead NPCs + pronoun fallback (known #5/#6) |
-| 1.61 | 9a4846c | Native browser TTS fallback + Cartesia error indicator (#20) |
-| 1.62 | 5999071 | Append-only transcript (#12), portrait/NPC sync fixes (#2/#3/#4), button long-press/Ctrl-click |
-| 1.63 | 8b87ce8 | Mobile topbar: stop HP/gold clipping off the right edge |
-| 1.64 | 4db22a6 | Mobile topbar: clear the notch (full `env(safe-area-inset-top)`) |
-| 1.65 | 5758701 | **Legacy characters carry full sheet** — gender/relationships/gear (#18, closed) |
-| 1.66 | af01f65 | Character Library: read-only inspect sheet |
-| 1.67 | f3bb51d | **Unified Import Character + Library** into one modal with Local/Library tabs |
-| 1.68 | 87ee9d5 | Import browser: default to Library tab, dim non-hovered rows |
-| 1.69 | d045069 | Import browser: auto-fall back to Local when offline |
-| 1.70 | 1d02ef1 | Import browser: PC portraits in the Local list (`campPortrait()`) |
-| 1.71 | 224d92c | Import browser: Library-first toggle, ☁/⌂ icons |
-| 1.72 | 8ebef67 | Import browser: filled-SVG house icon + 65%/non-bold → 100% white/bold row highlight |
+| Ver | What |
+|---|---|
+| 1.73 | **Prose Inspiration** — author-voice picker (Admin menu, all 3 file menus). `AUTHORS` table in `data.js` (10 voices + None); selected voice's directive injected via `proseBlock` in `buildSysPrompt`, read live (switch takes effect next turn); persisted in `PROSE_K`. Also reworded the adult block so **profanity is an explicit unlock** under 18+ (profane voices — Abercrombie, Dinniman, Muir — swear only when 18+ is ON). |
+| 1.74 | **Removed the `2-3 sentences maximum` STYLE cap** — it was the run-on root cause (capping count made the model cram everything into one dense sentence). STYLE rule now forbids clause/em-dash/simile cramming and hands length/rhythm to the prose voice. |
+| 1.75 | **Companion party-member sheets** — `partyBlock` in `buildSysPrompt` injects each party member's class/level/stats/abilities/**spells available**/inventory. Fixes "a sorcerer companion bonks with a rod" — the GM never saw companion spell lists, only the one-line NPC roster entry. |
+| 1.76 | **Native TTS dash→ellipsis** — `_dashToPause()` converts em/en-dash + spaced `--` to `...` on the native path only (browser speechSynthesis swallows dashes; Cartesia + on-screen prose untouched). |
+| 1.77 | **Native voice picker** — Voice Settings dropdown from `speechSynthesis.getVoices()` (handles async `voiceschanged`, stored BY NAME in `NVOICE_K`, + Test button). Cross-platform (Windows neural / iOS Enhanced). Zero API cost. |
+| 1.78 | Native voice **defaults to "Google US English"** (`_resolveNativeVoice`: saved → preferred default → OS default); dropped "(browser)" wording → "Use native voice" / "Native voice". |
+| 1.79 | **SW cache-first** (was network-first) — the bandwidth fix. Network-first re-downloaded the whole app shell every load → blew past Netlify's 100 GB/mo cap → site paused. Cache-first serves the shell from Cache Storage between deploys; safe because `CACHE` is bumped every deploy + browsers fetch sw.js fresh per navigation. |
+| 1.80 | **Cloudflare Pages migration** — pure-static, no build, output dir = repo root. Added `_headers` (force sw.js/app-shell no-cache so deploys are always detected). Verified live: ui.js=v1.80, sw.js cache=…h, cache-first, headers applied. |
 
-**Net result:** the Character Library / Import Character UX is rebuilt and unified.
-- `showCharacterBrowser(mode)` is the single entry. `mode` is explicit `"local"`/`"library"`, else defaults to Library when server-connected, Local when offline.
-- `showCharLibrary()` is now a thin wrapper → `showCharacterBrowser("library")`.
-- `showReadOnlyCharSheet(c, opts)` = new read-only sheet viewer (trimmed copy of `showCharSheet`).
-- Rows: avatar + name + sub, click-to-inspect, `.cbr-name`/`.cbr-sub` classes drive the dim/hover states.
+**Net result:** new prose-voice system + the run-on fix, companions use their full kit, better/cheaper TTS, and hosting moved to unlimited-bandwidth Cloudflare Pages.
 
 ---
 
-## ⚠ Still owed: real-device verification (couldn't be done in the desktop preview)
+## ⚠ Still owed: real-device / live verification
 
-Verified structurally / in a desktop preview only — the preview has no notch, no second device, and a stubbed server. Confirm on the actual phone / connected app:
-
-1. **Mobile topbar (v1.63/64)** — HP/gold no longer clip; name clears the iOS Dynamic Island. `env(safe-area-inset-top)` is 0 on desktop so the notch fix is unverified there.
-2. **Cloud portrait propagation (#3, v1.62)** — `portraitVer` reconcile needs a genuine **two-device** round-trip.
-3. **Library tab live populate (v1.67+)** — the preview stubbed `storageAdapter.listCharLibrary`; confirm the real server list renders.
-4. **Legacy character full-sheet (#18, v1.65)** — only fires when a legacy NPC is rolled (needs server + a Character Library char that isn't the current PC). Force via dev: legacy chance 100.
+1. **Prose voices in real play** — code is done; the *directive tuning* (#23) wants your ear. A/B opposite voices (Cook vs Muir) on the same scene; confirm profane three swear with 18+ on, clean with it off; confirm the run-ons are actually gone.
+2. **Native voice** — confirm "Google US English" (or your pick) sounds right on the real device; iOS needs Enhanced voices downloaded (Settings ▸ Accessibility ▸ Spoken Content ▸ Voices), and iOS Web Speech is flaky — real-device test.
+3. **Companion casting** — drop into a fight with a spellcaster companion; confirm they now cast from their list instead of swinging a weapon.
+4. **Cloudflare origin** — confirmed live this session (login + sync work from `*.pages.dev`). Remaining housekeeping: update all devices to the new URL; optionally disconnect the (paused) Netlify site so pushes stop poking a dead deploy.
+5. Carried over from last session: mobile topbar notch (v1.63/64), 2-device portrait propagation (#3), Library tab live-populate, legacy character full-sheet (#18) — all need real devices/server.
 
 ---
 
-## Open items (from TODO.md — user renumbers often, RE-READ before citing numbers)
+## Open items (from TODO.md — RE-READ before citing numbers; user renumbers)
 
-**Known issues still open:**
-- **#1** Local folder rename `dnd_rpg` → `traffic-and-dragons` — do in Explorer **before** opening Claude Code, then fix paths in `.claude/settings.local.json` + `.claude/hooks/stop-check.js`.
-- **#2** Portrait storage bloat — *partial* (per-turn snapshot removed v1.62). **Remaining:** companion portrait stored 2× (`npc.portrait` + `npc.charSheet.portrait`) — deferred (touches swap + export paths).
-- **#4** Duplicate NPC entries — *prevention shipped* v1.62. **Remaining:** one-time merge of dupes already in a save (data surgery; the riskiest part).
-
-**Notable backlog (see TODO.md for full list + effort):**
-- **#11** Story compiler — `STORY_COMPILER.md` written; now unblocked since #12 transcript exists.
-- **Car Mode** — `CAR_MODE.md` written, ready to build (loop-closure of STT→TTS, includes Apple CarPlay audio-only).
-- #14 (#17b) structured 3-button suggested-actions model (drop fragile prose-parsing).
-- #17 spell/inventory tooltips; #16 sound library; #19/#3 per-character voices.
-- Non-Claude providers (Gemini/Grok) shape-verified, still need live money-turn tag-fidelity tests.
+- **#23 Prose Inspiration** — shipped; open part is author/directive *tuning* from real-play feedback.
+- **#24 Token economy / brevity** — the deliberate replacement for the removed sentence cap. Brevity cuts BOTH LLM tokens AND Cartesia's per-character TTS bill. Options: per-voice length character, or an explicit Brevity dial (terse/normal/lavish). Load-bearing under the subscription cost model.
+- **Car Mode** (`CAR_MODE.md`) — unblocked; Phase 1 = `TTS._drain()` onComplete → `STT.start()` → auto-send.
+- **Story Compiler** (`STORY_COMPILER.md`) — unblocked (#12 transcript exists); weave from verbatim transcript prose.
+- **Server architecture** — when going live: evolve the existing Fly server into the subscription API gateway (NOT AWS). Next step is to draft `SERVER_ARCHITECTURE.md` from the existing server's code. Tabled by user.
+- Known issues still open: #1 folder rename, #2 companion-portrait 2× dedup, #4 one-time NPC-dupe merge in saves.
 
 ---
 
 ## Conventions / "don't get burned"
 
 - **ES5 only** — `var`, no arrow/const/let/template-literals. `async/await` only in API-facing funcs.
-- **Bump BOTH** the version string in `updateMemStatus()` (`ui.js`) AND `CACHE` in `sw.js` on every code change.
+- **Always commit; don't push until told.** Pushing to `master` auto-deploys (now Cloudflare). User tests locally (open `dnd_game_1_0.html` or local preview). Batch commits, push on explicit go. (Migration was the exception — Cloudflare needed the code on GitHub.)
+- **Bump BOTH** the version string in `updateMemStatus()` (`ui.js`) AND `CACHE` in `sw.js` on every code-changing commit.
 - **Three file menus** (`fm-`, `cs-fm-`, `api-fm-`) must stay in sync.
-- **Inline styles beat stylesheet rules** — to override color/weight on hover, move it to a class (why `.cbr-name`/`.cbr-sub` exist).
-- Personal save files (`*_t1392*.json`, etc.) are **not committed**.
-- Verify previewable changes with the preview MCP tools; verify prompt-construction-only changes with a node render test instead.
+- Personal save files (`*_t1392*.json`) are **not committed**.
+- Verify previewable changes with the preview MCP; verify prompt-construction-only changes by inspection / a synthetic `buildSysPrompt` call (no preview).
 - **Model string:** confirm `claude-sonnet-4-6` is current before API work (`PROVIDERS.anthropic` default in `globals.js`).
 
 ## Deploy
 
-- **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build command, output dir = repo root). Migrated off Netlify after its 100 GB/mo free-tier bandwidth cap paused the site (v1.79). Cloudflare Pages = unlimited bandwidth. `_headers` forces sw.js/app-shell revalidation so deploys are detected. Hard-refresh on device after deploy (SW cache bump handles propagation).
+- **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build, output = root). Unlimited bandwidth. `_headers` keeps sw.js/shell fresh; hard-refresh on device after deploy.
 - **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`.
 
 ---
 
-## Loose ends / judgment calls to revisit
+## Loose ends / judgment calls
 
-- **Read-only sheet duplication:** `showReadOnlyCharSheet` is a trimmed copy of `showCharSheet` (the live one has portrait-drag/Sync/Export wiring that was risky to generalize). If the sheet layout changes, update both.
-- **House icon:** now a filled inline SVG (`currentColor`) to match the filled cloud glyph — user was fine either way; this is the nicer version.
-- Context window was ~¼ full at session end; a fresh `/clear` is safe now that everything's pushed.
+- **"system default" native voice** now resolves to Google US English (the preferred default), not the bare OS voice. Intentional; make it a true escape hatch if the user ever wants pure-OS default.
+- **Cartesia 402** seen in the wild = character quota exhausted; the v1.61 native-voice fallback worked perfectly — no fix needed.
+- `_headers` returns `Cache-Control: no-cache, no-cache` (Cloudflare default + our file both set it) — harmless duplicate.
