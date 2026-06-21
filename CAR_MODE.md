@@ -162,5 +162,5 @@ not streaming). The *loop architecture* survives either way; only the capture st
 - `stt.js` — a Car-Mode listen cycle (start after TTS, retry on no-speech); number-word → action parse.
 - new `carmode.js` (likely) — the mode controller: enter/exit, settings save/restore, the loop glue,
   local voice commands.
-- `dnd_game_1_0.html` + `ui.js` — the 🚗 entry button and the minimal Car Mode overlay/shell.
+- `index.html` + `ui.js` — the 🚗 entry button and the minimal Car Mode overlay/shell.
 - Script load order: after `tts.js`/`stt.js` (depends on both).

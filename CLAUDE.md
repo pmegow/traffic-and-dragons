@@ -16,7 +16,7 @@ All logic has been extracted from the HTML into separate JS files.
 
 | File | Status | Contents |
 |---|---|---|
-| `dnd_game_1_0.html` | **Active host** | CSS, HTML scaffolding, 10 `<script src>` tags, no inline JS |
+| `index.html` | **Active host** | CSS, HTML scaffolding, 10 `<script src>` tags, no inline JS |
 | `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS`, `pendingCompanions` |
 | `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
 | `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. |
@@ -475,7 +475,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 ## Dev workflow
 
 **Running locally:**
-1. Open `dnd_game_1_0.html` directly in any modern browser (Chrome, Firefox, Edge).
+1. Open `index.html` directly in any modern browser (Chrome, Firefox, Edge).
 2. Enter your Anthropic API key (`sk-ant-...`) on the opening screen.
 3. The key is stored in `localStorage` under `tnd_ak_v1` and auto-loaded on subsequent visits.
 4. No build step, no `npm install`.

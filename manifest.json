@@ -2,7 +2,7 @@
   "name": "Traffic and Dragons",
   "short_name": "T&D",
   "description": "A sword and sorcery RPG narrated by AI.",
-  "start_url": "/dnd_game_1_0.html",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0d0d",

@@ -51,7 +51,7 @@
 ## Conventions / "don't get burned"
 
 - **ES5 only** — `var`, no arrow/const/let/template-literals. `async/await` only in API-facing funcs.
-- **Always commit; don't push until told.** Pushing to `master` auto-deploys (now Cloudflare). User tests locally (open `dnd_game_1_0.html` or local preview). Batch commits, push on explicit go. (Migration was the exception — Cloudflare needed the code on GitHub.)
+- **Always commit; don't push until told.** Pushing to `master` auto-deploys (now Cloudflare). User tests locally (open `index.html` or local preview). Batch commits, push on explicit go. (Migration was the exception — Cloudflare needed the code on GitHub.)
 - **Bump BOTH** the version string in `updateMemStatus()` (`ui.js`) AND `CACHE` in `sw.js` on every code-changing commit.
 - **Three file menus** (`fm-`, `cs-fm-`, `api-fm-`) must stay in sync.
 - Personal save files (`*_t1392*.json`) are **not committed**.
