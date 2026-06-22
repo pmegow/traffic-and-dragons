@@ -201,30 +201,40 @@ function buildSysPrompt(){
     +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n"
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +proseBlock
-    +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with *You could [action]; [action]; or [action].* where each action is plain text with no labels or markdown. Always use semicolons to separate the options, never commas. Never show tags in prose. Death is possible.";
+    +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with a suggested-actions tag on its own line: [ACTIONS:first option|second option|third option] — EXACTLY three options, separated by pipe (|) characters, each a short plain-text action the player could take (no labels, no numbering, no markdown). This tag becomes the player's action buttons and is hidden from the prose; do not also write the options as a sentence. Never show tags in prose. Death is possible.";
 }
 function cleanTxt(t){
-  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT):[^\]]+\]/g,"")
+  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ACTIONS):[^\]]+\]/g,"")
     .replace(/\[ENEMY_SURRENDERS\]/g,"").replace(/\[SUBLOCATION_LEAVE\]/g,"")
     .replace(/[ \t]*[—–][ \t]*/g,", ")   // em/en-dashes are ugly — never display them; comma is the natural substitute (newlines preserved)
     .replace(/\n{3,}/g,"\n\n").trim();
 }
 function diceTxt(t){var m=t.match(/\[DICE:([^\]]+)\]/);if(!m)return"";var p=m[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+p[0]+'</span>':'';return'<div class="dice-block">'+lbl+'d20: <strong>'+(p[1]||"?")+'</strong>'+(p[2]?" -- "+p[2]:"")+'</div>';}
-function parseActions(clean){
-  var btns="",match=clean.match(/\*You could (.+?)\*\.?\s*$/i);
-  // Fallback: GM drifted from the canonical phrasing ("You might...", "Perhaps...") —
-  // accept any trailing italic line that contains semicolons rather than rendering plain text.
-  if(!match)match=clean.match(/\*([^*\n]+;[^*\n]+)\*\.?\s*$/);
-  // Fallback 2: model dropped the *asterisks* entirely (gpt-4o does this) — accept a
-  // bare trailing "You could ...; ...; or ..." line. Anchored to end + requires a
-  // semicolon, so it won't grab a mid-prose "you could". Never trust the model to emit markdown.
-  if(!match)match=clean.match(/You could ([^\n]*;[^\n]*?)\.?\s*$/i);
-  if(!match)return{clean:clean,btns:""};
-  var hasSemi=match[1].indexOf(";")>=0;
-  var raw=hasSemi?match[1].split(/;\s*(?:or\s+)?/):match[1].split(/,\s*or\s+|\s+or\s+/),acts=[],i;
-  for(i=0;i<raw.length;i++){var a=raw[i].trim().replace(/^or\s+/i,"").replace(/^you\s+(?:could|might|can|may)\s+/i,"").replace(/[.*]$/,"").replace(/\*\*?/g,"").replace(/^\[?[A-C]\]?\s*/,"").trim();if(a.length>2)acts.push(a);}
+// Builds the suggested-action buttons. PRIMARY: the structured [ACTIONS:a|b|c] tag, read
+// from the RAW response (cleanTxt has already stripped it from `clean`). FALLBACK: the legacy
+// prose "*You could ...*" line, so messages stored before the tag format still render on reload.
+function parseActions(clean,raw){
+  var btns="",acts=[],i;
+  var tag=raw?raw.match(/\[ACTIONS:(.+)\]/i):null; // greedy to the last ] on the line, so an action containing a bracket still parses
+  if(tag){
+    var parts=tag[1].split("|");
+    for(i=0;i<parts.length;i++){var pt=parts[i].trim().replace(/^[(\[]?[A-C][)\].:]\s*/,"").replace(/\*/g,"").trim();if(pt.length>1&&acts.length<3)acts.push(pt);}
+  }
+  if(!acts.length){
+    // Legacy prose suggestion line (pre-[ACTIONS:] saves). Three passes: canonical *You could …*,
+    // any trailing italic line with semicolons, then a bare un-asterisked "You could …;…".
+    var match=clean.match(/\*You could (.+?)\*\.?\s*$/i);
+    if(!match)match=clean.match(/\*([^*\n]+;[^*\n]+)\*\.?\s*$/);
+    if(!match)match=clean.match(/You could ([^\n]*;[^\n]*?)\.?\s*$/i);
+    if(match){
+      var hasSemi=match[1].indexOf(";")>=0;
+      var rawp=hasSemi?match[1].split(/;\s*(?:or\s+)?/):match[1].split(/,\s*or\s+|\s+or\s+/);
+      for(i=0;i<rawp.length;i++){var a=rawp[i].trim().replace(/^or\s+/i,"").replace(/^you\s+(?:could|might|can|may)\s+/i,"").replace(/[.*]$/,"").replace(/\*\*?/g,"").replace(/^[(\[]?[A-C][)\].:]\s*/,"").trim();if(a.length>2)acts.push(a);}
+      clean=clean.replace(match[0],"").trim(); // strip the legacy line from the displayed prose
+    }
+  }
   if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){btns+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}btns+='</div>';}
-  return{clean:clean.replace(match[0],"").trim(),btns:btns};
+  return{clean:clean,btns:btns};
 }
 function bondToast(owner,entity,desc,kind){var p=owner?owner+" bond":"Bond";if(kind==="ended")showToast(p+" ended: "+entity);else showToast(p+(kind==="updated"?" updated":"")+": "+entity+" -- "+desc);}
 function findCompanionChar(name){

@@ -200,7 +200,7 @@ Assembled fresh on every request from live state:
 9. Combat state block (if `worldState.combat` is set)
 10. Event history (last 8 compressed chapter summaries)
 11. State tag instructions + dice format instructions (includes all v10 tags + full skill ID list)
-12. Style directive: "3-5 sentences vivid second-person. End EVERY response with `*You could [action]; [action]; or [action].*` — **semicolons** separate options, never commas."
+12. Style directive: clean readable prose, no em-dashes, prose-voice-driven length; ends EVERY response with a structured **`[ACTIONS:first|second|third]`** tag (exactly 3 pipe-separated options) that becomes the action buttons — see §13.
 
 **Gender in image prompts:** `doRender()` uses `c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male"` — never uses pronouns.
 
@@ -331,13 +331,13 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 `character.alignLaw` and `character.alignGood` are integers clamped to [-3, 3]. `alignLabel(law, good)` maps to 9-point grid. GM shifts via `[ALIGNMENT:]` tags.
 
-### 13. Rendered action suggestions
+### 13. Rendered action suggestions (structured tag — #14, v1.90)
 
-Every GM response ends with `*You could [A]; [B]; or [C].*` (semicolons required — instructed in system prompt). `parseActions(clean)`:
-- Matches the suggestion line in three passes: canonical `*You could …*`, drifted `*…;…*`, then a **bare un-asterisked** `You could …;…` (gpt-4o drops the asterisks). The bare pass is anchored to end-of-string and requires a semicolon so it can't grab a mid-prose "you could".
-- If semicolons present: splits on `;\s*(?:or\s+)?`
-- Fallback (no semicolons): splits on `,\s*or\s+|\s+or\s+` only — does NOT split on bare commas
-- Buttons rendered as `<button class="qa">` with `onclick="sendSuggestedAction(this)"`
+Every GM response ends with a structured **`[ACTIONS:first|second|third]`** tag (exactly 3 pipe-separated plain-text options, instructed in the STYLE rule). `cleanTxt` strips it like any other tag, so it never shows in prose or TTS. `parseActions(clean, raw)`:
+- **Primary:** reads `[ACTIONS:(.+)]` from the **raw** response (greedy to the last `]`, so an action containing a bracket still parses), splits on `|`, trims, strips any leading `A)`/`[B]`/`C.` label (delimiter-required, so a real word starting with A–C like "Call" is left intact), caps at 3.
+- **Fallback (legacy saves):** if no tag, the old prose-parsing runs on `clean` — three passes (`*You could …*`, drifted `*…;…*`, bare un-asterisked `You could …;…`), splitting on `;\s*(?:or\s+)?` (or `,\s*or\s+|\s+or\s+` with no semicolons), and the matched line is stripped from the displayed prose. Kept only so messages stored before the tag format still render on reload.
+- Buttons rendered as `<button class="qa" onclick="sendSuggestedAction(this,event)" data-action="…">`. Tap fills the input (converted to 1st person via `toFirstPerson`, #14a/v1.83); long-press / Ctrl-click sends (#14a/v1.56).
+- This replaced the fragile prose-parsing as the *primary* path — the #17b half of #14. Switching the source from prose to a tag means the model emits one bracket tag (like every other state tag) instead of a markdown sentence the parser had to reverse-engineer.
 
 ### 14. Table Talk mode
 
