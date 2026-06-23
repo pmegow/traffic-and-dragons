@@ -90,6 +90,9 @@ function buildSysPrompt(){
     }
     if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags):\n"+pmArr.join("\n")+"\n\n";
   }
+  // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
+  var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();
+  var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")+"\n\n";
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
   var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
@@ -154,6 +157,7 @@ function buildSysPrompt(){
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +partyBlock
+    +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
     +"NPCs: "+nstr+"\n\n"+questBlock
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
@@ -331,7 +335,16 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   // FACTION_REL — relationship between two factions
   var frTags=text.match(/\[FACTION_REL:([^|]+)\|([^|]+)\|([^\]]+)\]/g)||[];var frti;for(frti=0;frti<frTags.length;frti++){var frp2=frTags[frti].match(/\[FACTION_REL:([^|]+)\|([^|]+)\|([^\]]+)\]/);if(!frp2)continue;factionLinkUpsert(frp2[1].trim(),frp2[2].trim(),frp2[3].trim());muts.push("FactionRel: "+frp2[1].trim()+" ↔ "+frp2[2].trim()+" ("+frp2[3].trim()+")");}
   // Party member flag
-  var pmTags=text.match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/g)||[];var pmi;for(pmi=0;pmi<pmTags.length;pmi++){var pmp=pmTags[pmi].match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/);if(!pmp)continue;var pmName=resolveNpcName(pmp[1].trim()),pmVal=pmp[2].trim().toLowerCase()==="true",pmFoundIdx=-1,pmk;for(pmk=0;pmk<worldState.npcs.length;pmk++){if(worldState.npcs[pmk].name===pmName){pmFoundIdx=pmk;break;}}if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null});fileUsedName(pmName);}if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
+  var pmTags=text.match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/g)||[];var pmi;for(pmi=0;pmi<pmTags.length;pmi++){var pmp=pmTags[pmi].match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/);if(!pmp)continue;var pmName=resolveNpcName(pmp[1].trim()),pmVal=pmp[2].trim().toLowerCase()==="true",pmFoundIdx=-1,pmk;for(pmk=0;pmk<worldState.npcs.length;pmk++){if(worldState.npcs[pmk].name===pmName){pmFoundIdx=pmk;break;}}
+    // Party cap backstop: refuse a join that would exceed PARTY_MAX (players+companions). Already-members and removals are never blocked.
+    if(pmVal&&!(pmFoundIdx>=0&&worldState.npcs[pmFoundIdx].partyMember)&&partyCompanionCount()>=partyCompanionCap()){
+      if(pmFoundIdx<0){worldState.npcs.push({name:pmName,status:"unknown",rel:"ally",met:turn,partyMember:false,portrait:null});fileUsedName(pmName);}
+      else worldState.npcs[pmFoundIdx].partyMember=false;
+      if(!memory.npcs[pmName])memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:false};
+      if(typeof showToast==="function")showToast("Party full (max "+PARTY_MAX+") — "+pmName+" can't join until someone leaves.");
+      muts.push("Party full: "+pmName+" not added");continue;
+    }
+    if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null});fileUsedName(pmName);}if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
   // Skills
   var skSuccs=text.match(/\[SKILL_SUCCESS:([^\]]+)\]/g)||[];var sski;for(sski=0;sski<skSuccs.length;sski++){var sskp=skSuccs[sski].match(/\[SKILL_SUCCESS:([^\]]+)\]/);if(!sskp)continue;var sskid=sskp[1].trim();if(!worldState.character.skills)worldState.character.skills=initSkills();if(typeof worldState.character.skills[sskid]==="number"){var prevLvl=skillLevel(worldState.character.skills[sskid]);worldState.character.skills[sskid]++;var newLvl=skillLevel(worldState.character.skills[sskid]);if(newLvl>prevLvl){muts.push(sskid+": "+SKILL_LEVELS[newLvl]);showToast(sskid+": "+SKILL_LEVELS[newLvl]);}else muts.push(sskid+" +1");}}
   // Conditions

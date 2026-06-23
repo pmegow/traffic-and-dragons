@@ -23,6 +23,9 @@ function getLvl(xp){var i,l=1;for(i=1;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i
 function alignLabel(law,good){var l=law>=2?"Lawful":law<=-2?"Chaotic":"Neutral";var g=good>=2?"Good":good<=-2?"Evil":"Neutral";if(l==="Neutral"&&g==="Neutral")return"True Neutral";if(l==="Neutral")return"Neutral "+g;if(g==="Neutral")return l+" Neutral";return l+" "+g;}
 function skillLevel(successes){var i;for(i=SKILL_THRESHOLDS.length-1;i>=0;i--){if(successes>=SKILL_THRESHOLDS[i])return i+1;}return 0;}
 function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
+// Party cap helpers (PARTY_MAX total = players + companions). playerCount is 1 today; multiplayer (#1) will make it dynamic.
+function partyCompanionCap(){return PARTY_MAX-1;}
+function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember&&!/\bdead\b/i.test(worldState.npcs[i].status||""))n++;}return n;}
 // Convert a suggested action from 2nd person ("Gather your belongings") to 1st person
 // ("Gather my belongings") when it transfers into the input / is sent. Possessives,
 // reflexives and contractions convert cleanly; bare "you" is best-effort: object "you"

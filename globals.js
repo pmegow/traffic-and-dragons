@@ -102,6 +102,7 @@ var pendingCompanions=[];
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
 var proseAuthor=""; // selected prose-inspiration author id ("" = house default); see AUTHORS in data.js
+var PARTY_MAX=4;    // total party cap = players + companions. Companion cap = PARTY_MAX - playerCount (1 today; multiplayer #1 will subtract the real count)
 var legacyCharsOn=false;
 var legacyChancePct=5;
 var legacyLibCache=null;   // cached Character Library list (legacy candidates); fetched async, rolled against synchronously

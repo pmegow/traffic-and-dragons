@@ -79,7 +79,7 @@ Each file depends only on symbols defined by files earlier in this list.
 | 4 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
 | 5 – Stats | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table) |
 | 6 – Personality | Trait, flaw, motivation (dropdowns with custom override); alignment; auto-suggested deity for Cleric/Paladin/Druid |
-| 7 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) |
+| 7 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) — **party cap is `PARTY_MAX`=4 total** (player + companions): the creation picker, the mid-game import, and the `[PARTY_MEMBER:\|true]` handler all enforce `partyCompanionCap()` (= `PARTY_MAX - playerCount`, 3 today; multiplayer #1 makes playerCount dynamic). `buildSysPrompt` injects a live "PARTY SIZE: N of 3 … FULL" note so the GM doesn't narrate a join it can't make; the `applyMuts` cap is the backstop (keeps the over-cap NPC as a non-party ally). |
 
 After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker → `startGame()`.
 
