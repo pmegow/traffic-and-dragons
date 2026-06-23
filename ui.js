@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.95";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.96";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1101,6 +1101,21 @@ async function generateNpcSheet(name,doneCb){
   }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}
   busy=false;
 }
+// Remove a companion from the party (manual "part ways"). Flips partyMember off and sets a
+// transient worldState.recentlyLeft marker so buildSysPrompt tells the GM they've left — without
+// it the GM keeps narrating them as present. Auto-cleared in sendAction after ~2 turns.
+function partWaysWithCompanion(name){
+  if(!worldState||!worldState.npcs)return;
+  var n=(typeof resolveNpcName==="function")?resolveNpcName(name):name,idx=-1,i;
+  for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===n){idx=i;break;}}
+  if(idx<0||!worldState.npcs[idx].partyMember)return;
+  worldState.npcs[idx].partyMember=false;
+  if(memory.npcs[n])memory.npcs[n].partyMember=false;
+  if(!worldState.recentlyLeft)worldState.recentlyLeft=[];
+  worldState.recentlyLeft.push({name:n,turn:worldState.turn||0});
+  saveAll();syncUI();
+  if(typeof showToast==="function")showToast(n+" has left the party.");
+}
 function showNpcSheet(name){
   if(!worldState)return;
   var ex=document.getElementById("npc-modal");if(ex)ex.remove();
@@ -1194,6 +1209,7 @@ function showNpcSheet(name){
 
   // ── Generate / Regenerate button ──────────────────────────────────────────
   var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:#000;font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
+  var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
   var modal=document.createElement("div");modal.id="npc-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
@@ -1205,6 +1221,7 @@ function showNpcSheet(name){
     +(sheetSections?"<div style='height:1px;background:var(--brd);margin:18px 0;'></div>":"")
     +npcSections
     +genBtnHtml
+    +partWaysHtml
     +"</div>";
 
   document.body.appendChild(modal);
@@ -1234,6 +1251,23 @@ function showNpcSheet(name){
   if(document.getElementById("npc-gen-sheet")){
     document.getElementById("npc-gen-sheet").addEventListener("click",function(){
       modal.remove();generateNpcSheet(name,function(){showNpcSheet(name);});
+    });
+  }
+  // ── Part ways (remove from party) ─────────────────────────────────────────
+  if(document.getElementById("npc-part-btn")){
+    document.getElementById("npc-part-btn").addEventListener("click",function(){
+      var pc=document.createElement("div");
+      pc.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;";
+      pc.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;text-align:center;'>"
+        +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Part ways with "+escHtml(name)+"?</div>"
+        +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>They leave the party and become an ordinary NPC. You can recruit them again later, and a party slot frees up.</div>"
+        +"<div style='display:flex;gap:10px;justify-content:center;'>"
+        +"<button id='pw-ok' style='padding:10px 24px;font-size:13px;font-family:Georgia,serif;background:#c04040;color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Part ways</button>"
+        +"<button id='pw-cancel' style='padding:10px 20px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+        +"</div></div>";
+      document.body.appendChild(pc);
+      document.getElementById("pw-ok").addEventListener("click",function(){pc.remove();modal.remove();partWaysWithCompanion(name);});
+      document.getElementById("pw-cancel").addEventListener("click",function(){pc.remove();});
     });
   }
 
