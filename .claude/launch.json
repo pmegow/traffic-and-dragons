@@ -1,10 +1,11 @@
 {
   "version": "0.0.1",
+  "autoPort": true,
   "configurations": [
     {
       "name": "traffic-and-dragons",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3000", "."],
+      "runtimeArgs": ["serve", "."],
       "port": 3000
     }
   ]

@@ -228,6 +228,13 @@ function parseActions(clean,raw){
     for(i=0;i<parts.length;i++){var pt=parts[i].trim().replace(/^[(\[]?[A-C][)\].:]\s*/,"").replace(/\*/g,"").trim();if(pt.length>1&&acts.length<3)acts.push(pt);}
   }
   if(!acts.length){
+    // Tolerant: the model used the pipe-bracket format but DROPPED the ACTIONS: prefix (common on
+    // non-Claude models), e.g. "You could... [a|b|c]". Match a trailing bracket containing pipes,
+    // with an optional "You could" lead-in, and strip the whole thing from the displayed prose.
+    var pb=clean.match(/(?:you could[\s.…]*)?\[([^\]\n]+\|[^\]\n]+)\]\.?\s*$/i);
+    if(pb){var pbp=pb[1].split("|"),pj;for(pj=0;pj<pbp.length;pj++){var pbx=pbp[pj].trim().replace(/^[(\[]?[A-C][)\].:]\s*/,"").replace(/\*/g,"").trim();if(pbx.length>1&&acts.length<3)acts.push(pbx);}if(acts.length)clean=clean.replace(pb[0],"").trim();}
+  }
+  if(!acts.length){
     // Legacy prose suggestion line (pre-[ACTIONS:] saves). Three passes: canonical *You could …*,
     // any trailing italic line with semicolons, then a bare un-asterisked "You could …;…".
     var match=clean.match(/\*You could (.+?)\*\.?\s*$/i);
