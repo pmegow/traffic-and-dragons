@@ -1,0 +1,172 @@
+{
+  "format": "tnd-campaign-v1",
+  "name": "Rise of the Runelords",
+  "author": "Paizo (adapted for Traffic and Dragons)",
+  "tone": "high_fantasy",
+  "startingLocation": "Sandpoint",
+  "startingRegion": "Varisia",
+  "premise": "An ancient empire of sin-fuelled wizards once ruled Varisia, carving monuments to their decadence across the land. That empire — Thassilon — fell ten thousand years ago, but its Runelords did not truly die. Now, in the quiet coastal town of Sandpoint, an outbreak of goblin raids and a string of grisly murders are pulling at threads that lead deeper and deeper into Thassilonian ruins, where the Runelord of Greed, Karzoug, stirs toward wakefulness. If he rises, the world burns. The only people who can stop him are the unlikely heroes who happened to be in the wrong tavern on the wrong festival day.",
+  "acts": [
+    {
+      "title": "The Skinsaw Murders",
+      "goal": "Defend Sandpoint from escalating threats and uncover the conspiracy behind the goblin raids and a string of ritual murders",
+      "turningPoint": "The heroes discover that the murders and raids are connected to a larger plot involving Thassilonian rune magic, and that someone is harvesting greed-fuelled souls for an ancient ritual",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Festival of Fire",
+          "objective": "Survive the goblin assault on Sandpoint during the Swallowtail Festival and earn the town's trust",
+          "type": "combat"
+        },
+        {
+          "title": "The Glassworks",
+          "objective": "Investigate the disappearance of Ameiko Kaijitsu and uncover her father's treachery at the family glassworks",
+          "type": "investigation"
+        },
+        {
+          "title": "Thistletop",
+          "objective": "Assault the goblin stronghold of Thistletop and defeat the bugbear warlord Bruthazmus and the aasimar villain Nualia before she completes her transformation",
+          "type": "combat"
+        },
+        {
+          "title": "The Skinsaw Man",
+          "objective": "Track a serial killer stalking Sandpoint's back streets, following the trail of carved runes and ritual murders to the haunted Foxglove Manor",
+          "type": "investigation"
+        }
+      ]
+    },
+    {
+      "title": "The Fall of the Runelord",
+      "goal": "Race across Varisia to find and destroy the components of Karzoug's return before his agents can complete the ritual",
+      "turningPoint": "The heroes learn that Karzoug's soul is anchored in the legendary city of Xin-Shalast, hidden high in the Kodar Mountains, and that only runeforged weapons can harm him",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Fort and the Dam",
+          "objective": "Defend the town of Turtleback Ferry from ogre raids and prevent the collapse of Skull's Crossing dam, which would flood the valley",
+          "type": "combat"
+        },
+        {
+          "title": "Mokmurian's Army",
+          "objective": "Infiltrate Jorgenfist, the stone giant fortress, and defeat the stone giant wizard Mokmurian who is raising an army to conquer Varisia",
+          "type": "exploration"
+        },
+        {
+          "title": "Sins of the Saviors",
+          "objective": "Explore the Runeforge, an ancient Thassilonian weapons laboratory sealed beneath a mountain, and forge a weapon capable of harming Karzoug",
+          "type": "exploration"
+        },
+        {
+          "title": "The Politics of Magnimar",
+          "objective": "Navigate the intrigues of Magnimar's Justice Court to expose Ironbriar's secret murder cult and the corruption reaching into the city's elite",
+          "type": "social"
+        }
+      ]
+    },
+    {
+      "title": "Spires of Xin-Shalast",
+      "goal": "Reach the lost city of Xin-Shalast and destroy Karzoug before he fully returns to the world",
+      "turningPoint": "Karzoug is destroyed or the heroes fall, and the last Runelord's grip on Varisia is broken forever",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Road to Xin-Shalast",
+          "objective": "Cross the treacherous Kodar Mountains, survive the ancient guardians, and locate the hidden path to the legendary city",
+          "type": "exploration"
+        },
+        {
+          "title": "The Pinnacle of Avarice",
+          "objective": "Ascend the Pinnacle of Avarice, confront Karzoug's most powerful servants, and face the Runelord of Greed himself in his seat of power",
+          "type": "combat"
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Ameiko Kaijitsu",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "Half-Tian innkeeper of the Rusty Dragon in Sandpoint. Former adventurer, sharp-tongued and warm-hearted. Estranged from her noble family. A key ally and potential romantic interest."
+    },
+    {
+      "name": "Shalelu Andosana",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "Elven ranger and unofficial guardian of the hinterlands around Sandpoint. Hunts goblins, distrusts civilisation, deeply loyal once trust is earned."
+    },
+    {
+      "name": "Sheriff Belor Hemlock",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "Sandpoint's Shoanti sheriff. Gruff, competent, overworked. Will ask the heroes for help when the town guard is outmatched."
+    },
+    {
+      "name": "Father Abstalar Zantus",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "Cleric of Desna and Sandpoint's head priest. Gentle and devout. Oversees the new cathedral whose consecration kicks off the Swallowtail Festival."
+    },
+    {
+      "name": "Nualia Tobyn",
+      "role": "enemy",
+      "pronouns": "she/her",
+      "notes": "Aasimar antipaladin, believed dead in the fire that destroyed the old chapel. Actually alive and consumed by rage — she plans to offer Sandpoint to Lamashtu and transform herself into a demon. The Act 1 villain."
+    },
+    {
+      "name": "Tsuto Kaijitsu",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "Ameiko's half-elf half-brother. Bitter, violent, infatuated with Nualia. Orchestrates the goblin raid and his father's murder."
+    },
+    {
+      "name": "Aldern Foxglove",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "Magnimarian noble who seems charming and grateful after the heroes save him during the festival. Secretly becoming the Skinsaw Man — a ghoul serial killer driven by obsessive love and Thassilonian corruption."
+    },
+    {
+      "name": "Mokmurian",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "Stone giant wizard and scholar of Thassilonian lore. Raising an army at Jorgenfist under Karzoug's influence. An Act 2 villain — dangerous, intelligent, tragic."
+    },
+    {
+      "name": "Karzoug",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "The Runelord of Greed, last of the Thassilonian wizard-kings. Stirring from millennia of magical stasis in Xin-Shalast. The campaign's ultimate antagonist — arrogant, brilliant, and utterly without mercy."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Sandpoint",
+      "description": "A small, prosperous coastal town on the Lost Coast of Varisia. Known for its new cathedral, the Rusty Dragon inn, and the Sandpoint Glassworks. Home to about 1,200 souls — fishers, farmers, merchants. The kind of town where everyone knows everyone, and secrets don't stay buried long."
+    },
+    {
+      "name": "Thistletop",
+      "description": "A goblin-held island fortress north of Sandpoint, connected to the mainland by a precarious rope bridge. Beneath the surface lies a Thassilonian ruin. Nualia has made it her base of operations."
+    },
+    {
+      "name": "Foxglove Manor",
+      "description": "A crumbling mansion on the cliffs south of Sandpoint, known locally as the Misgivings. Haunted by generations of Foxglove family tragedies. The source of the Skinsaw murders."
+    },
+    {
+      "name": "Magnimar",
+      "description": "The largest city in Varisia — a teeming port built in the shadow of a colossal Thassilonian bridge. Home to the Justice Court, a thriving criminal underworld, and monuments to an empire no one fully understands."
+    },
+    {
+      "name": "Jorgenfist",
+      "description": "An ancient stone giant fortress in the Iron Peaks. Mokmurian has rallied the giant tribes here and is excavating the Thassilonian library buried beneath it."
+    },
+    {
+      "name": "Xin-Shalast",
+      "description": "The lost capital of Thassilon's realm of greed, hidden high in the Kodar Mountains above the snowline. A city of impossible golden spires, guarded by ancient magic and populated by the remnants of Karzoug's servitors."
+    }
+  ],
+  "rules": [
+    "This campaign is adapted from Paizo's Rise of the Runelords. Stay true to the major plot beats and NPCs but adapt freely to the player's choices and character.",
+    "Sandpoint should feel like a real community — name shopkeepers, reference town events, make the player care about the place before threatening it.",
+    "Thassilonian magic is keyed to the seven deadly sins. Karzoug's domain is Greed. Rune magic should feel ancient, alien, and dangerous — not just another spell school."
+  ]
+}

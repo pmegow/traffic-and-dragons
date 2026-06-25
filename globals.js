@@ -14,6 +14,7 @@ var PROVIDERS={
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
     endpoint:"https://api.anthropic.com/v1/messages",
     defaultModel:MDL,
+    upgradeModel:"claude-sonnet-4-6",
     models:["claude-opus-4-8","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,system:sys,messages:msgs};},
@@ -23,6 +24,7 @@ var PROVIDERS={
     id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
     endpoint:"https://api.openai.com/v1/chat/completions",
     defaultModel:"gpt-4o",
+    upgradeModel:"gpt-4o",
     models:["gpt-4o","gpt-4o-mini","gpt-4.1"],
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
     // and returns choices[0].message.content. max_tokens works for gpt-4o.
@@ -36,6 +38,7 @@ var PROVIDERS={
     id:"grok", label:"Grok (xAI)", keyHint:"xai-...",
     endpoint:"https://api.x.ai/v1/chat/completions",
     defaultModel:"grok-4.3", // current xAI flagship (June 2026); old grok-2-*/grok-beta IDs are retired and 400
+    upgradeModel:"grok-4.3",
     models:["grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"],
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
@@ -49,6 +52,7 @@ var PROVIDERS={
     id:"gemini", label:"Gemini (Google)", keyHint:"AIza...",
     endpoint:function(model){return "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent";},
     defaultModel:"gemini-3.5-flash", // current stable flagship (June 2026); gemini-1.5-*/2.0-flash are retired and 404
+    upgradeModel:"gemini-2.5-pro",
     models:["gemini-3.5-flash","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"],
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sys}]},contents:contents,generationConfig:gc};},
@@ -63,6 +67,7 @@ var PROVIDERS={
     id:"ollama", label:"Ollama (local)", keyHint:"(none needed)",
     endpoint:"http://localhost:11434/v1/chat/completions",
     defaultModel:"llama3.1:70b",
+    upgradeModel:"llama3.1:70b",
     models:["llama3.1:70b","qwen2.5:72b","mixtral:8x22b"],
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+(key||"ollama")};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
@@ -100,10 +105,12 @@ var rvGold=20;
 var pendingChar=null,pendingTone="",pendingVoice="",pendingLoc="",pendingBumps=0,currentBump=0;
 var pendingSpellPool={};
 var pendingCompanions=[];
+var pendingBlueprint=null; // loaded .campaign blueprint; consumed by startGame
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
 var proseAuthor=""; // selected prose-inspiration author id ("" = house default); see AUTHORS in data.js
 var PARTY_MAX=4;    // total party cap = players + companions. Companion cap = PARTY_MAX - playerCount (1 today; multiplayer #1 will subtract the real count)
+var allowModelUpgrade=true;
 var legacyCharsOn=false;
 var legacyChancePct=5;
 var legacyLibCache=null;   // cached Character Library list (legacy candidates); fetched async, rolled against synchronously

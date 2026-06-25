@@ -77,6 +77,16 @@ function buildReview(){
   if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
   // Pre-fill campaign name with character name if not yet set
   var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=cs.name;
+  // Blueprint overrides: campaign name and starting location
+  if(pendingBlueprint){
+    if(cnInp&&pendingBlueprint.name)cnInp.value=pendingBlueprint.name;
+    var bpLoc=pendingBlueprint.startingLocation;
+    if(bpLoc){
+      var locSel=document.getElementById("rv-start-loc"),matched=false,oi;
+      if(locSel){for(oi=0;oi<locSel.options.length;oi++){if(locSel.options[oi].value===bpLoc){locSel.value=bpLoc;matched=true;break;}}
+        if(!matched){locSel.value="custom";var custW=document.getElementById("rv-start-loc-custom");if(custW)custW.style.display="block";var custI=document.getElementById("rv-start-loc-text");if(custI)custI.value=bpLoc;}}
+    }
+  }
   rvSyncXp();
   if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
 }

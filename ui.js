@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.98";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.100";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -614,6 +614,30 @@ function importSave(event){
     memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}}};
     saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
+}
+function importBlueprint(event){
+  var file=event.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var bp=JSON.parse(e.target.result);
+      var err=validateBlueprint(bp);
+      if(err){showToast("Invalid blueprint: "+err);return;}
+      pendingBlueprint=bp;
+      // Auto-select the matching tone
+      if(bp.tone){var ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===bp.tone){cs.tone=TONES[ti].id;var cards=document.querySelectorAll("#tone-grid .card");Array.prototype.forEach.call(cards,function(c){c.classList.toggle("sel",c.getAttribute("data-id")===bp.tone);});break;}}}
+      // Show banner
+      var banner=document.getElementById("blueprint-banner"),nm=document.getElementById("blueprint-name");
+      if(banner){banner.style.display="block";nm.textContent=bp.name;}
+      showToast("Blueprint loaded: "+bp.name);
+    }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
+  };
+  reader.readAsText(file);event.target.value="";
+}
+function clearBlueprint(){
+  pendingBlueprint=null;
+  var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";
+  showToast("Blueprint cleared.");
 }
 function showCharSheet(){
   if(!worldState)return;
@@ -2171,6 +2195,8 @@ function wireButtons(){
   document.getElementById("fm-export").addEventListener("click",exportSave);
   document.getElementById("import-inp").addEventListener("change",importSave);
   document.getElementById("import-step1").addEventListener("change",importSave);
+  document.getElementById("import-blueprint").addEventListener("change",importBlueprint);
+  document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
   // fm-narrative button removed (auto-export every 10 turns handles this)
   document.getElementById("fm-devmode").addEventListener("click",function(e){
     e.stopPropagation();
@@ -2329,11 +2355,13 @@ function loadProviderSettings(){
   // Migrate the legacy single Anthropic key (AKK) into the provider map
   var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
   if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
+  var upg=store.get(UPGRADE_K);allowModelUpgrade=(upg===null||upg===undefined)?true:upg==="true";
 }
 function saveProviderSettings(){
   store.set(PROV_K,activeProvider);
   store.set(PKEYS_K,JSON.stringify(providerKeys));
   store.set(PMDL_K,JSON.stringify(providerModels));
+  store.set(UPGRADE_K,allowModelUpgrade?"true":"false");
 }
 function showProviderModal(){
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
@@ -2350,6 +2378,7 @@ function showProviderModal(){
     +"<input type='password' id='pv-key' style='width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
     +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
+    +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"
     +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
     +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>"
     +"</div>";
@@ -2365,6 +2394,7 @@ function showProviderModal(){
   document.getElementById("pv-save").addEventListener("click",function(){
     var k=keyInp.value.trim();if(k)providerKeys[selProv]=k;else delete providerKeys[selProv];
     providerModels[selProv]=modelSel.value;activeProvider=selProv;apiKey=providerKeys[activeProvider]||"";
+    allowModelUpgrade=document.getElementById("pv-upgrade").checked;
     if(activeProvider==="anthropic"&&apiKey)store.set(AKK,apiKey);
     saveProviderSettings();
     var msg=document.getElementById("pv-msg");

@@ -220,17 +220,25 @@ function buildSkeletonBlock(){
   for(i=0;i<sk.acts.length;i++){
     var act=sk.acts[i],label="Act "+(i+1)+": "+act.title;
     if(act.status==="completed")label+=" [COMPLETED]";
-    else if(act.status==="active")label+=" [CURRENT]";
+    else if(act.status==="active")label+=" [CURRENT"+(act.parallel?" — PARALLEL: arcs can be pursued in any order":"")+"]";
     lines.push(label+" — Goal: "+act.goal);
     if(act.status==="active"){
       lines.push("  Turning point (end of act): "+act.turningPoint);
       for(j=0;j<act.arcs.length;j++){
         var arc=act.arcs[j],as=arc.status==="completed"?"DONE":arc.status==="active"?"CURRENT":"upcoming";
-        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"] — "+arc.objective);
+        var typeHint=arc.type?" ("+arc.type+")":"";
+        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"]"+typeHint+" — "+arc.objective);
       }
     }
   }
-  lines.push("PACING: Drive scenes toward the CURRENT arc's objective. When the objective is met, emit [ARC_COMPLETE:title]. When the act's turning point occurs, emit [ACT_COMPLETE:title]. Do not stall — if a scene has run 4+ turns without advancing the arc, push toward a transition or resolution.");
+  var pacingNote="PACING: Drive scenes toward the CURRENT arc's objective. When the objective is met, emit [ARC_COMPLETE:title]. When the act's turning point occurs, emit [ACT_COMPLETE:title]. Do not stall — if a scene has run 4+ turns without advancing the arc, push toward a transition or resolution.";
+  var activeAct=null;for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){activeAct=sk.acts[i];break;}}
+  if(activeAct){
+    var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
+    if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order.";
+    if(activeArcs.length===1&&activeArcs[0].type)pacingNote+="\nThe current arc is "+activeArcs[0].type+"-focused. Shape encounters and scenes accordingly: "+(activeArcs[0].type==="investigation"?"clues, interrogation, deduction, piecing together evidence":activeArcs[0].type==="exploration"?"travel, discovery, environmental challenges, mapping unknown territory":activeArcs[0].type==="social"?"politics, alliances, persuasion, betrayal, negotiation":activeArcs[0].type==="combat"?"battles, sieges, hunts, tactical encounters":"varied challenges")+".";
+  }
+  lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
 }
 function cleanTxt(t){
@@ -395,9 +403,39 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var beatTags=text.match(/\[STORY_BEAT:([^\]]+)\]/g)||[];var bti2;for(bti2=0;bti2<beatTags.length;bti2++){var btp2=beatTags[bti2].match(/\[STORY_BEAT:([^\]]+)\]/);if(!btp2)continue;if(!worldState.character.storyBeats)worldState.character.storyBeats=[];worldState.character.storyBeats.push({text:btp2[1],turn:turn});fileDecision(turn,"[Story Beat] "+btp2[1]);}
   // ── Campaign skeleton progression ──
   var arcDone=text.match(/\[ARC_COMPLETE:([^\]]+)\]/);
-  if(arcDone&&worldState.skeleton){var _sk=worldState.skeleton,_ad=arcDone[1].trim(),_found=false,_si,_sj;for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;for(_sj=0;_sj<_sk.acts[_si].arcs.length;_sj++){if(_sk.acts[_si].arcs[_sj].status==="active"){_sk.acts[_si].arcs[_sj].status="completed";_found=true;muts.push("Arc complete: "+_sk.acts[_si].arcs[_sj].title);if(_sj+1<_sk.acts[_si].arcs.length){_sk.acts[_si].arcs[_sj+1].status="active";muts.push("New arc: "+_sk.acts[_si].arcs[_sj+1].title);}break;}}if(_found)break;}}
+  if(arcDone&&worldState.skeleton){
+    var _sk=worldState.skeleton,_ad=arcDone[1].trim(),_si,_sj;
+    for(_si=0;_si<_sk.acts.length;_si++){
+      if(_sk.acts[_si].status!=="active")continue;
+      var _act=_sk.acts[_si],_matched=false;
+      // In parallel acts, match by title; in sequential, complete the first active arc
+      for(_sj=0;_sj<_act.arcs.length;_sj++){
+        if(_act.arcs[_sj].status!=="active")continue;
+        if(_act.parallel&&_act.arcs[_sj].title.toLowerCase()!==_ad.toLowerCase())continue;
+        _act.arcs[_sj].status="completed";_matched=true;
+        muts.push("Arc complete: "+_act.arcs[_sj].title);
+        if(!_act.parallel&&_sj+1<_act.arcs.length){_act.arcs[_sj+1].status="active";muts.push("New arc: "+_act.arcs[_sj+1].title);}
+        break;
+      }
+      if(_matched)break;
+    }
+  }
   var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
-  if(actDone&&worldState.skeleton){var _sk2=worldState.skeleton,_found2=false,_si2;for(_si2=0;_si2<_sk2.acts.length;_si2++){if(_sk2.acts[_si2].status!=="active")continue;_sk2.acts[_si2].status="completed";_found2=true;muts.push("Act complete: "+_sk2.acts[_si2].title);if(_si2+1<_sk2.acts.length){_sk2.acts[_si2+1].status="active";var _fa=_sk2.acts[_si2+1].arcs;if(_fa&&_fa.length&&_fa[0].status==="pending")_fa[0].status="active";muts.push("New act: "+_sk2.acts[_si2+1].title);}else{muts.push("Campaign complete!");}break;}}
+  if(actDone&&worldState.skeleton){
+    var _sk2=worldState.skeleton,_si2;
+    for(_si2=0;_si2<_sk2.acts.length;_si2++){
+      if(_sk2.acts[_si2].status!=="active")continue;
+      _sk2.acts[_si2].status="completed";
+      muts.push("Act complete: "+_sk2.acts[_si2].title);
+      if(_si2+1<_sk2.acts.length){
+        _sk2.acts[_si2+1].status="active";
+        var _fa=_sk2.acts[_si2+1].arcs,_isP=!!_sk2.acts[_si2+1].parallel;
+        if(_fa&&_fa.length){for(var _fj=0;_fj<_fa.length;_fj++){if(_isP||_fj===0)_fa[_fj].status="active";}}
+        muts.push("New act: "+_sk2.acts[_si2+1].title);
+      }else{muts.push("Campaign complete!");}
+      break;
+    }
+  }
   // ── Companion sheet tags (COMPANION_* prefix targets party member charSheets) ──
   var cHpTags=text.match(/\[COMPANION_HP:([^|]+)\|([+-]?\d+)\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|]+)\|([+-]?\d+)\]/);if(!cHpm)continue;var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs)continue;var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}
   var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|]+)\|([^\]]+)\]/g)||[];var cIgi;for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|]+)\|([^\]]+)\]/);if(!cIgm)continue;var cIgCs=findCompanionChar(cIgm[1]);if(!cIgCs)continue;if(!cIgCs.inventory)cIgCs.inventory=[];addInventoryItem(cIgCs.inventory,cIgm[2].trim());muts.push(cIgm[1].trim()+": +"+cIgm[2].trim());}
@@ -412,11 +450,11 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(muts.length)addMsg("system",muts.join(" | "));
   syncUI();saveAll();
 }
-async function callGM(msg,sysOverride,maxTok){
+async function callGM(msg,sysOverride,maxTok,modelOverride){
   var msgs=sessionLog.concat([{role:"user",content:msg}]);
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var key=providerKeys[activeProvider]||apiKey||"";
-  var model=providerModels[activeProvider]||prov.defaultModel;
+  var model=modelOverride||providerModels[activeProvider]||prov.defaultModel;
   var sys=sysOverride||buildSysPrompt();
   if(!sysOverride&&prov.reinforce)sys+=prov.reinforce; // gameplay turns only; summarize() passes its own sysOverride
   var _tok=maxTok||1000;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);

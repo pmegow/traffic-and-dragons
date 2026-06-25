@@ -20,13 +20,23 @@ function startGame(char,toneName,toneVoice){
     npcLinkUpsert(char.name,comp.name,"companions");
   }
   pendingCompanions=[];
+  // Apply campaign blueprint if one was loaded (.campaign file)
+  if(pendingBlueprint){
+    applyBlueprint(pendingBlueprint);
+    pendingBlueprint=null;
+  }
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
-  // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
-  // (network, parse, bad provider), log it and start anyway — the game works without one.
-  var _skMsg=addMsg("thinking","Forging the campaign...");
-  generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();showToast("Campaign skeleton failed — playing freeform");if(typeof console!=="undefined")console.warn("[skeleton] "+e.message);beginAdventure();});
+  if(worldState.skeleton){
+    // Blueprint provided a skeleton — skip generation, go straight to the adventure
+    beginAdventure();
+  }else{
+    // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
+    // (network, parse, bad provider), log it and start anyway — the game works without one.
+    var _skMsg=addMsg("thinking","Forging the campaign...");
+    generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();showToast("Campaign skeleton failed — playing freeform");if(typeof console!=="undefined")console.warn("[skeleton] "+e.message);beginAdventure();});
+  }
 }
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
 // pool rather than from other campaigns. Async, so checkLegacyCharacter rolls against the cache.
@@ -227,6 +237,61 @@ function _attachGMErrorUI(em,retryFn,msg){
     return false;
   }
 }
+function validateBlueprint(bp){
+  if(!bp||typeof bp!=="object")return"Not a valid campaign file.";
+  if(bp.format!=="tnd-campaign-v1")return"Unrecognised campaign format.";
+  if(!bp.name)return"Campaign file has no name.";
+  if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Campaign file has no premise or acts.";
+  if(bp.acts){
+    var i,j;for(i=0;i<bp.acts.length;i++){
+      var a=bp.acts[i];if(!a.title||!a.goal)return"Act "+(i+1)+" is missing a title or goal.";
+      if(!a.arcs||!a.arcs.length)return"Act "+(i+1)+" has no arcs.";
+      for(j=0;j<a.arcs.length;j++){if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
+    }
+  }
+  return null;
+}
+function applyBlueprint(bp){
+  // Skeleton — stamp act/arc status
+  if(bp.acts&&bp.acts.length){
+    var skel={premise:bp.premise||"",acts:bp.acts},i,j;
+    for(i=0;i<skel.acts.length;i++){
+      skel.acts[i].status=i===0?"active":"pending";
+      var isP=!!skel.acts[i].parallel;
+      for(j=0;j<skel.acts[i].arcs.length;j++){skel.acts[i].arcs[j].status=(i===0&&(isP||j===0))?"active":"pending";}
+    }
+    worldState.skeleton=skel;
+  }
+  // NPCs — seed into both worldState.npcs and memory.npcs
+  if(bp.npcs&&bp.npcs.length){
+    var ni;for(ni=0;ni<bp.npcs.length;ni++){
+      var n=bp.npcs[ni];
+      worldState.npcs.push({name:n.name,status:n.role||"neutral",rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"});
+      memory.npcs[n.name]={attitude:n.role||"neutral",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
+    }
+  }
+  // Locations — seed into memory.locations and memory.map
+  if(bp.locations&&bp.locations.length){
+    var li;for(li=0;li<bp.locations.length;li++){
+      var loc=bp.locations[li];
+      if(!memory.locations[loc.name])memory.locations[loc.name]={visits:0,notes:[]};
+      if(loc.description)memory.locations[loc.name].notes.push(loc.description);
+      if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+      if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
+    }
+  }
+  // Custom rules from the blueprint
+  if(bp.rules&&bp.rules.length){
+    var ri;for(ri=0;ri<bp.rules.length;ri++){
+      if(customRules.indexOf(bp.rules[ri])===-1)customRules.push(bp.rules[ri]);
+    }
+    saveRules();
+  }
+  // Region override
+  if(bp.startingRegion)worldState.world.region=bp.startingRegion;
+  // Store blueprint name on worldState for reference
+  worldState.blueprintName=bp.name;
+}
 async function generateSkeleton(){
   var c=worldState.character,w=worldState.world,t=worldState.tone;
   var prompt="Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
@@ -238,10 +303,10 @@ async function generateSkeleton(){
     +"JSON format:\n"
     +'{"premise":"One paragraph: the central conflict driving the campaign",'
     +'"acts":['
-    +'{"title":"Act 1 title","goal":"What must be accomplished","turningPoint":"The event that ends this act and propels into the next","arcs":['
-    +'{"title":"Arc title","objective":"What the player pursues in this arc"}]},'
-    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","arcs":[{"title":"...","objective":"..."}]},'
-    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","arcs":[{"title":"...","objective":"..."}]}'
+    +'{"title":"Act 1 title","goal":"What must be accomplished","turningPoint":"The event that ends this act and propels into the next","parallel":false,"arcs":['
+    +'{"title":"Arc title","objective":"What the player pursues in this arc","type":"combat or investigation or exploration or social"}]},'
+    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","parallel":true,"arcs":[{"title":"...","objective":"...","type":"..."}]},'
+    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","parallel":false,"arcs":[{"title":"...","objective":"...","type":"..."}]}'
     +"]}\n\n"
     +"RULES:\n"
     +"- Each act should have 2-4 arcs\n"
@@ -250,12 +315,16 @@ async function generateSkeleton(){
     +"- Act 3: convergence and climax — the shortest act\n"
     +"- Arcs are waypoints, not scripts — leave room for player agency between them\n"
     +"- The character's flaw should be a source of tension, not just flavor\n"
-    +"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation";
-  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000);
+    +"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n"
+    +"- Each arc has a type: combat (fights, sieges, hunts), investigation (mysteries, clues, interrogation), exploration (travel, discovery, mapping), or social (politics, alliances, persuasion). Mix types within an act for variety.\n"
+    +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
+  var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
+  var skelModel=(allowModelUpgrade&&prov.upgradeModel)?prov.upgradeModel:null;
+  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,skelModel);
   var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
   var skel=JSON.parse(cleaned);
   if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
-  var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&aj===0)?"active":"pending";}}
+  var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");var isParallel=!!skel.acts[ai].parallel;for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&(isParallel||aj===0))?"active":"pending";}}
   worldState.skeleton=skel;saveCore();
 }
 async function beginAdventure(){
