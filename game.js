@@ -23,7 +23,10 @@ function startGame(char,toneName,toneVoice){
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
-  beginAdventure();
+  // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
+  // (network, parse, bad provider), log it and start anyway — the game works without one.
+  var _skMsg=addMsg("thinking","Forging the campaign...");
+  generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();showToast("Campaign skeleton failed — playing freeform");if(typeof console!=="undefined")console.warn("[skeleton] "+e.message);beginAdventure();});
 }
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
 // pool rather than from other campaigns. Async, so checkLegacyCharacter rolls against the cache.
@@ -223,6 +226,37 @@ function _attachGMErrorUI(em,retryFn,msg){
     em.appendChild(rb);
     return false;
   }
+}
+async function generateSkeleton(){
+  var c=worldState.character,w=worldState.world,t=worldState.tone;
+  var prompt="Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
+    +"CHARACTER: "+c.name+", "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+"\n"
+    +"Trait: "+c.trait+" | Flaw: "+c.flaw+" | Motivation: "+c.motivation+(c.deity?" | Deity: "+c.deity:"")+"\n"
+    +(c.backstory?"Backstory: "+c.backstory+"\n":"")
+    +"SETTING: "+w.location+", "+w.region+" | Tone: "+(t&&t.name?t.name:"Sword and Sorcery")+"\n\n"
+    +"Generate a campaign with a central conflict that ties to the character's motivation and flaw. The story should feel personal, not generic.\n\n"
+    +"JSON format:\n"
+    +'{"premise":"One paragraph: the central conflict driving the campaign",'
+    +'"acts":['
+    +'{"title":"Act 1 title","goal":"What must be accomplished","turningPoint":"The event that ends this act and propels into the next","arcs":['
+    +'{"title":"Arc title","objective":"What the player pursues in this arc"}]},'
+    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","arcs":[{"title":"...","objective":"..."}]},'
+    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","arcs":[{"title":"...","objective":"..."}]}'
+    +"]}\n\n"
+    +"RULES:\n"
+    +"- Each act should have 2-4 arcs\n"
+    +"- Act 1: establish the world, introduce the threat, end with a revelation or loss\n"
+    +"- Act 2: escalation, alliances, setbacks — the longest act\n"
+    +"- Act 3: convergence and climax — the shortest act\n"
+    +"- Arcs are waypoints, not scripts — leave room for player agency between them\n"
+    +"- The character's flaw should be a source of tension, not just flavor\n"
+    +"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation";
+  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000);
+  var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
+  var skel=JSON.parse(cleaned);
+  if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
+  var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&aj===0)?"active":"pending";}}
+  worldState.skeleton=skel;saveCore();
 }
 async function beginAdventure(){
   busy=true;document.getElementById("sendbtn").disabled=true;var th=addMsg("thinking","The world stirs...");

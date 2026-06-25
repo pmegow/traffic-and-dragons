@@ -138,8 +138,8 @@ function buildSysPrompt(){
   if(_paId&&typeof AUTHORS!=="undefined"){
     var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===_paId){pa=AUTHORS[pj];break;}}
     if(pa&&pa.vc){
-      proseBlock="*** MANDATORY PROSE VOICE — "+pa.nm.toUpperCase()+" ***\nThis is a HARD stylistic requirement and the single most important rule for your narration. Write EVERY sentence of narration in the unmistakable voice of "+pa.nm+". This OVERRIDES the generic tone voice above — where they conflict, "+pa.nm+" wins. A reader should recognise "+pa.nm+" from the rhythm, sentence length, and word choice alone. Do not blend it with a neutral GM voice; commit to it fully, every turn.\nVOICE: "+pa.vc;
-      if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally as "+pa.nm+" would, never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
+      proseBlock="*** MANDATORY PROSE VOICE ***\nThis is a HARD stylistic requirement and the single most important rule for your narration. Write EVERY sentence of narration in exactly this voice. This OVERRIDES the generic tone voice above — where they conflict, this voice wins. A reader should recognise this voice from the rhythm, sentence length, and word choice alone. Do not blend it with a neutral GM voice; commit to it fully, every turn.\nVOICE: "+pa.vc;
+      if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
       proseBlock+="\n\n";
     }
   }
@@ -162,7 +162,7 @@ function buildSysPrompt(){
     +partyBlock
     +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
-    +"NPCs: "+nstr+"\n\n"+questBlock
+    +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
   +(function(){var s=getNameSuggestions(10);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
@@ -200,6 +200,8 @@ function buildSysPrompt(){
     +"[SAVE_MOD:source|type|amount] [SAVE_MOD_REMOVED:source] -- type=stat (CON/DEX/etc.) or threat (Poison/Fire/Cold/Lightning/Fear/Charm/Psionic/Holy/Shadow/Disease/Magic/Other); amount=integer\n"
     +"[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n"
     +"[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only\n"
+    +"[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n"
+    +"[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n"
     +"COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n"
     +"[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n"
     +"[COMPANION_CONDITION:Name|condName|duration] [COMPANION_CONDITION_REMOVED:Name|condName]\n"
@@ -210,8 +212,29 @@ function buildSysPrompt(){
     +proseBlock
     +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with a suggested-actions tag on its own line: [ACTIONS:first option|second option|third option] — EXACTLY three options, separated by pipe (|) characters, each a short plain-text action the player could take (no labels, no numbering, no markdown). This tag becomes the player's action buttons and is hidden from the prose; do not also write the options as a sentence. Never show tags in prose. Death is possible.";
 }
+function buildSkeletonBlock(){
+  if(!worldState.skeleton)return"";
+  var sk=worldState.skeleton,lines=[],i,j;
+  lines.push("CAMPAIGN SKELETON — this is the overarching narrative structure. Every scene, quest, and encounter should serve this story. Do not invent unrelated side-plots that pull away from the current arc.");
+  lines.push("Premise: "+sk.premise);
+  for(i=0;i<sk.acts.length;i++){
+    var act=sk.acts[i],label="Act "+(i+1)+": "+act.title;
+    if(act.status==="completed")label+=" [COMPLETED]";
+    else if(act.status==="active")label+=" [CURRENT]";
+    lines.push(label+" — Goal: "+act.goal);
+    if(act.status==="active"){
+      lines.push("  Turning point (end of act): "+act.turningPoint);
+      for(j=0;j<act.arcs.length;j++){
+        var arc=act.arcs[j],as=arc.status==="completed"?"DONE":arc.status==="active"?"CURRENT":"upcoming";
+        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"] — "+arc.objective);
+      }
+    }
+  }
+  lines.push("PACING: Drive scenes toward the CURRENT arc's objective. When the objective is met, emit [ARC_COMPLETE:title]. When the act's turning point occurs, emit [ACT_COMPLETE:title]. Do not stall — if a scene has run 4+ turns without advancing the arc, push toward a transition or resolution.");
+  return lines.join("\n")+"\n\n";
+}
 function cleanTxt(t){
-  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ACTIONS):[^\]]+\]/g,"")
+  return t.replace(/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ARC_COMPLETE|ACT_COMPLETE|ACTIONS):[^\]]+\]/g,"")
     .replace(/\[ENEMY_SURRENDERS\]/g,"").replace(/\[SUBLOCATION_LEAVE\]/g,"")
     .replace(/[ \t]*[—–][ \t]*/g,", ")   // em/en-dashes are ugly — never display them; comma is the natural substitute (newlines preserved)
     .replace(/\n{3,}/g,"\n\n").trim();
@@ -370,6 +393,11 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var langTags=text.match(/\[LANGUAGE:([^|]+)\|([^\]]+)\]/g)||[];var lni2;for(lni2=0;lni2<langTags.length;lni2++){var lnp2=langTags[lni2].match(/\[LANGUAGE:([^|]+)\|([^\]]+)\]/);if(!lnp2)continue;if(!worldState.character.languages)worldState.character.languages=[];var lname=lnp2[1].trim(),lbroken=lnp2[2].trim().toLowerCase()==="broken",lfound=false,lj2;for(lj2=0;lj2<worldState.character.languages.length;lj2++){if(worldState.character.languages[lj2].name===lname){worldState.character.languages[lj2].broken=lbroken;lfound=true;break;}}if(!lfound){worldState.character.languages.push({name:lname,broken:lbroken});muts.push((lbroken?"Broken ":"")+"Language: "+lname);}}
   // Story beats
   var beatTags=text.match(/\[STORY_BEAT:([^\]]+)\]/g)||[];var bti2;for(bti2=0;bti2<beatTags.length;bti2++){var btp2=beatTags[bti2].match(/\[STORY_BEAT:([^\]]+)\]/);if(!btp2)continue;if(!worldState.character.storyBeats)worldState.character.storyBeats=[];worldState.character.storyBeats.push({text:btp2[1],turn:turn});fileDecision(turn,"[Story Beat] "+btp2[1]);}
+  // ── Campaign skeleton progression ──
+  var arcDone=text.match(/\[ARC_COMPLETE:([^\]]+)\]/);
+  if(arcDone&&worldState.skeleton){var _sk=worldState.skeleton,_ad=arcDone[1].trim(),_found=false,_si,_sj;for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;for(_sj=0;_sj<_sk.acts[_si].arcs.length;_sj++){if(_sk.acts[_si].arcs[_sj].status==="active"){_sk.acts[_si].arcs[_sj].status="completed";_found=true;muts.push("Arc complete: "+_sk.acts[_si].arcs[_sj].title);if(_sj+1<_sk.acts[_si].arcs.length){_sk.acts[_si].arcs[_sj+1].status="active";muts.push("New arc: "+_sk.acts[_si].arcs[_sj+1].title);}break;}}if(_found)break;}}
+  var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
+  if(actDone&&worldState.skeleton){var _sk2=worldState.skeleton,_found2=false,_si2;for(_si2=0;_si2<_sk2.acts.length;_si2++){if(_sk2.acts[_si2].status!=="active")continue;_sk2.acts[_si2].status="completed";_found2=true;muts.push("Act complete: "+_sk2.acts[_si2].title);if(_si2+1<_sk2.acts.length){_sk2.acts[_si2+1].status="active";var _fa=_sk2.acts[_si2+1].arcs;if(_fa&&_fa.length&&_fa[0].status==="pending")_fa[0].status="active";muts.push("New act: "+_sk2.acts[_si2+1].title);}else{muts.push("Campaign complete!");}break;}}
   // ── Companion sheet tags (COMPANION_* prefix targets party member charSheets) ──
   var cHpTags=text.match(/\[COMPANION_HP:([^|]+)\|([+-]?\d+)\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|]+)\|([+-]?\d+)\]/);if(!cHpm)continue;var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs)continue;var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}
   var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|]+)\|([^\]]+)\]/g)||[];var cIgi;for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|]+)\|([^\]]+)\]/);if(!cIgm)continue;var cIgCs=findCompanionChar(cIgm[1]);if(!cIgCs)continue;if(!cIgCs.inventory)cIgCs.inventory=[];addInventoryItem(cIgCs.inventory,cIgm[2].trim());muts.push(cIgm[1].trim()+": +"+cIgm[2].trim());}
@@ -391,7 +419,8 @@ async function callGM(msg,sysOverride,maxTok){
   var model=providerModels[activeProvider]||prov.defaultModel;
   var sys=sysOverride||buildSysPrompt();
   if(!sysOverride&&prov.reinforce)sys+=prov.reinforce; // gameplay turns only; summarize() passes its own sysOverride
-  var body=prov.buildBody(msgs,sys,maxTok||1000,model);
+  var _tok=maxTok||1000;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
+  var body=prov.buildBody(msgs,sys,_tok,model);
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
   var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
