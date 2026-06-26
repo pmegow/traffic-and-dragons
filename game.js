@@ -345,8 +345,15 @@ async function generateSkeleton(){
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var skelModel=(allowModelUpgrade&&prov.upgradeModel)?prov.upgradeModel:null;
   var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,skelModel);
-  var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
+  var cleaned=resp.replace(/```json/gi,"").replace(/```/g,"").trim();
+  // Extract from first { to last } — discards any stray preamble/postamble
+  var fi=cleaned.indexOf("{");if(fi>0)cleaned=cleaned.slice(fi);
+  var li=cleaned.lastIndexOf("}");if(li>=0&&li<cleaned.length-1)cleaned=cleaned.slice(0,li+1);
+  // Fix trailing commas before } or ]
   cleaned=cleaned.replace(/,\s*([}\]])/g,"$1");
+  // Replace bare control characters (incl. literal newlines the model embeds in string values —
+  // 0x0A inside a JSON string is invalid; the escaped form \\n is two chars and unaffected).
+  cleaned=cleaned.replace(/[\x00-\x1F\x7F]/g," ");
   var skel=JSON.parse(cleaned);
   if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
   var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");var isParallel=!!skel.acts[ai].parallel;for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&(isParallel||aj===0))?"active":"pending";}}
