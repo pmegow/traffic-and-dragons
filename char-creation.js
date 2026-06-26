@@ -126,24 +126,11 @@ async function ftRenderPortrait(){
 async function ftDeriveAppearance(){
   var status=document.getElementById("ft-portrait-status");
   if(!cs.portrait){status.innerHTML="<span style='color:var(--red);'>No portrait to read.</span>";return;}
-  var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
-  if(!key){status.innerHTML="<span style='color:var(--red);'>Needs a Claude (Anthropic) key.</span>";return;}
   if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
-  var mm=cs.portrait.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
-  if(!mm){status.innerHTML="<span style='color:var(--red);'>Portrait must be a base64 image.</span>";return;}
   status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Reading the portrait…</span>";
   busy=true;
   try{
-    var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
-    var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
-    var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
-      {type:"text",text:"Describe this character's appearance for their sheet."+(cs.name?" Their name is "+cs.name+".":"")},
-      {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
-    ]}]};
-    var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
-    if(!r.ok)throw new Error("Claude "+r.status);
-    var data=await r.json();
-    var desc=(PROVIDERS.anthropic.parseResponse(data)||"").trim();
+    var desc=await describePortraitImage(cs.portrait,cs.name);
     if(desc){
       var ap=document.getElementById("char-appear");
       if(ap)ap.value=desc;

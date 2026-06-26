@@ -334,7 +334,7 @@ function applyMuts(text){
     if(isPronounStr(npRel)){npPron=npRel;npRel="";}
     if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
     var found=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===npName){if(npStatus)worldState.npcs[nj].status=npStatus;if(npRel)worldState.npcs[nj].rel=npRel;if(npPron)worldState.npcs[nj].pronouns=npPron;found=true;break;}}
-    if(!found){worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:turn,partyMember:false,portrait:null,aliases:[]});fileUsedName(npName);if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}// per-new-NPC legacy roll (the intended trigger; previously only ran once on page load)
+    if(!found){worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:turn,partyMember:false,portrait:null,aliases:[]});if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}// per-new-NPC legacy roll (the intended trigger; previously only ran once on page load)
     if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);muts.push("NPC: "+npName);}
   var xpTags=text.match(/\[XP:(\d+)\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:(\d+)\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
   // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
@@ -373,13 +373,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var pmTags=text.match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/g)||[];var pmi;for(pmi=0;pmi<pmTags.length;pmi++){var pmp=pmTags[pmi].match(/\[PARTY_MEMBER:([^|]+)\|([^\]]+)\]/);if(!pmp)continue;var pmName=resolveNpcName(pmp[1].trim()),pmVal=pmp[2].trim().toLowerCase()==="true",pmFoundIdx=-1,pmk;for(pmk=0;pmk<worldState.npcs.length;pmk++){if(worldState.npcs[pmk].name===pmName){pmFoundIdx=pmk;break;}}
     // Party cap backstop: refuse a join that would exceed PARTY_MAX (players+companions). Already-members and removals are never blocked.
     if(pmVal&&!(pmFoundIdx>=0&&worldState.npcs[pmFoundIdx].partyMember)&&partyCompanionCount()>=partyCompanionCap()){
-      if(pmFoundIdx<0){worldState.npcs.push({name:pmName,status:"unknown",rel:"ally",met:turn,partyMember:false,portrait:null});fileUsedName(pmName);}
+      if(pmFoundIdx<0){worldState.npcs.push({name:pmName,status:"unknown",rel:"ally",met:turn,partyMember:false,portrait:null});}
       else worldState.npcs[pmFoundIdx].partyMember=false;
       if(!memory.npcs[pmName])memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:false};
       if(typeof showToast==="function")showToast("Party full (max "+PARTY_MAX+") — "+pmName+" can't join until someone leaves.");
       muts.push("Party full: "+pmName+" not added");continue;
     }
-    if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null});fileUsedName(pmName);}if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
+    if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null});}if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
   // Skills
   var skSuccs=text.match(/\[SKILL_SUCCESS:([^\]]+)\]/g)||[];var sski;for(sski=0;sski<skSuccs.length;sski++){var sskp=skSuccs[sski].match(/\[SKILL_SUCCESS:([^\]]+)\]/);if(!sskp)continue;var sskid=sskp[1].trim();if(!worldState.character.skills)worldState.character.skills=initSkills();if(typeof worldState.character.skills[sskid]==="number"){var prevLvl=skillLevel(worldState.character.skills[sskid]);worldState.character.skills[sskid]++;var newLvl=skillLevel(worldState.character.skills[sskid]);if(newLvl>prevLvl){muts.push(sskid+": "+SKILL_LEVELS[newLvl]);showToast(sskid+": "+SKILL_LEVELS[newLvl]);}else muts.push(sskid+" +1");}}
   // Conditions
@@ -459,4 +459,21 @@ async function callGM(msg,sysOverride,maxTok,modelOverride){
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw new Error("HTTP "+res.status+(_em?": "+_em:""));}
   return prov.parseResponse(data);
+}
+
+async function describePortraitImage(base64Url,charName){
+  var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
+  if(!key)throw new Error("Needs a Claude (Anthropic) key.");
+  var mm=base64Url.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+  if(!mm)throw new Error("Portrait must be a base64 image.");
+  var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
+  var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
+  var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
+    {type:"text",text:"Describe this character's appearance for their sheet."+(charName?" Their name is "+charName+".":"")},
+    {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
+  ]}]};
+  var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("Claude "+r.status);
+  var data=await r.json();
+  return (PROVIDERS.anthropic.parseResponse(data)||"").trim();
 }

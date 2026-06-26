@@ -431,7 +431,7 @@ On `init()`, if a saved game is found and `sessionLog` has at least 2 entries, t
 
 ## Conventions
 
-- **ES5 JavaScript throughout** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` only in the three API-facing functions.
+- **ES5.1+ JavaScript** — `var`, no arrow functions, no template literals, no `const`/`let`. `async/await` only in the three API-facing functions. ES5.1 builtins (`.forEach`, `.map`, `.filter`, `Object.keys`) and `Object.assign` (ES6, universally supported) are permitted.
 - **Single-character variables** common in dense utility functions.
 - **HTML built by string concatenation** — no templating engine.
 - **State versioning via key suffix** — all storage keys end in `_v10` (campaigns in `_v1`).

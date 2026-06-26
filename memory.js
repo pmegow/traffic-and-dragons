@@ -13,7 +13,7 @@ function resolveNpcName(name){
   }
   return name;
 }
-function fileUsedName(name){} // no-op — replaced by rotating index
+
 function getNameSuggestions(count){
   var firstNames=[],cats=Object.keys(NAMES),k,i;
   for(k=0;k<cats.length;k++){if(cats[k]==="surnames")continue;for(i=0;i<NAMES[cats[k]].length;i++)firstNames.push(NAMES[cats[k]][i]);}

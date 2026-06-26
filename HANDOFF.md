@@ -1,78 +1,85 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-06-23
-**Deployed version:** v1.97 (string in `updateMemStatus()` in `ui.js`)
+**Date:** 2026-06-26
+**Deployed version:** v1.110 (string in `updateMemStatus()` in `ui.js`)
 **Branch:** `master` — committed, not yet pushed.
-**SW cache:** `tnd-v3-20260620y` (`sw.js`).
+**SW cache:** `tnd-v3-20260626g` (`sw.js`).
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
 
 ---
 
-## What shipped since last handoff (v1.83 → v1.97)
+## What shipped this session (v1.106 → v1.110)
 
 | Ver | What |
 |---|---|
-| 1.83 | **Suggested actions 2nd→1st person** — `toFirstPerson()` converts "Gather your belongings" → "Gather my belongings" when a suggestion button transfers into the input or is sent. |
-| 1.84 | **Prose voice mandate + em-dash strip** — forceful voice directive; `cleanTxt` strips em-dashes from display. |
-| 1.85 | **Re-roll** — ↻ button regenerates the last scene in the current voice with no side effects. |
-| 1.86 | **Prose voice directives** — dialled up to concrete sentence-level rules per author. |
-| 1.87 | **Per-campaign prose voice** — stored on `worldState.proseAuthor`, syncs across devices. Device default is fallback for new/unset campaigns. |
-| 1.88 | **GM error UI** — Retry stacks below the error message at matched width. |
-| 1.89 | **Grok model update** — current xAI model IDs; surface provider error messages. |
-| 1.90 | **#14 close-out: structured `[ACTIONS:]` tag** — replaces fragile prose-parsing. `parseActions(clean,raw)` reads `[ACTIONS:first\|second\|third]` from raw response. Legacy `*You could...*` parsing kept as fallback for old saves. Label-strip regex requires a delimiter (`[A-C][)\].:]\s*`) so real words like "Call" survive. |
-| 1.91 | **#21: First aid kit** — every new character starts with a first aid kit in inventory. |
-| 1.92 | **Poe + Lovecraft** — two public-domain prose-inspiration voices added to AUTHORS. |
-| 1.93 | **Quest bug fix** — anti-administrative rule ate supernatural "inheritance" quest hooks; carved out supernatural-legacy exceptions. |
-| 1.94 | **Party-join + intimacy fade fixes** — DEFAULT_RULES now mandate `[PARTY_MEMBER:name\|true]` on joins (with "INVISIBLE to the roster" warning). Adult block adds explicit anti-fade instruction. |
-| 1.95 | **Party size cap** — `PARTY_MAX=4` (player + 3 companions). Enforced in prompt (`partyCapBlock`), engine backstop in `applyMuts`, and import guard in UI. |
-| 1.96 | **Part ways button** — NPC sheet gets "Part ways with X" for party members. Flips `partyMember` off, sets `worldState.recentlyLeft` (transient marker, auto-cleared after ~2 turns), and `buildSysPrompt` injects a "PARTY DEPARTURE" note. |
-| 1.97 | **Gemini model update + button fix** — retired models (1.5/2.0) replaced with current (3.5-flash/2.5-pro/2.5-flash/lite). Tolerant `parseActions` catches bare `[a\|b\|c]` without `ACTIONS:` prefix. `TAG_REINFORCE` extended with `PARTY_MEMBER` and `ACTIONS` instructions for non-Claude providers. `launch.json` switched to `autoPort` (fixes port-3000 orphan collisions). |
+| 1.106 | **#25 Finishing Touches step** — new wizard step 6 (Attributes → Finishing Touches → Review). Appearance + backstory textareas moved here from Identity. Portrait section: upload, render from sheet (fal.ai), derive appearance from portrait (Claude vision). Mark field removed. Three bugs fixed: portrait pan/zoom wiring (`wirePortraitDrag` in `refreshFtPortrait`), label text ("Derive physical description from portrait"), companion browser cloud library access (Library/Local segmented toggle via `storageAdapter.listCharLibrary()`). |
+| 1.107 | **Skeleton fix (token limit)** — `generateSkeleton()` JSON truncated at 2000 token limit. Raised to 4000. |
+| 1.108 | **Skeleton fix (trailing commas)** — still failing with `Expected ',' or ']'`. Raised limit to 8192. Added `cleaned.replace(/,\s*([}\]])/g,"$1")` before `JSON.parse`. |
+| 1.109 | **beginAdventure prompt alignment** — intro prompt still said `*You could [A]; [B]; or [C].*`, conflicting with system prompt's `[ACTIONS:]` tag instruction. Aligned to tag format. (Superseded by v1.110.) |
+| 1.110 | **#14 close-out: action buttons fully decoupled from GM prose.** GM writes pure narrative — no `[ACTIONS:]` tag, no `*You could…*` line. `generateActions(msgEl)` creates 3 placeholder buttons, fires a lightweight follow-up API call (200 tok, `sysOverride`) for 3 JSON options, populates buttons async. Stored in `worldState.lastActions` for reload. `parseActions` retained only for pre-v1.110 save replay. STYLE block, `TAG_REINFORCE`, and `beginAdventure` all updated. **Side benefit:** removing `[ACTIONS:]` from STYLE freed model attention — prose voice fidelity noticeably improved. |
 
 ---
 
-## Key architectural additions
+## Key architectural changes
 
-### Party system (v1.94–v1.96)
-- `PARTY_MAX=4` global, `partyCompanionCap()` and `partyCompanionCount()` in `helpers.js`
-- Triple enforcement: prompt awareness (GM told party is FULL) → engine backstop (over-cap join refused, NPC kept as non-party ally) → UI import guard
-- Departure uses transient `worldState.recentlyLeft` array, same pattern as `worldState.recentSwitch` — auto-cleared in `sendAction` after ~2 turns
+### Decoupled action suggestions (v1.110, CLAUDE.md §13)
+- `generateActions(msgEl)` in `game.js` — 3 placeholder "…" buttons → lightweight `callGM` (200 tok, `sysOverride`) → JSON array of 3 short strings → populate buttons → `worldState.lastActions` via `saveCore()`
+- `buildActionButtons(acts)` — renders buttons from a stored array (reload path)
+- `sendAction`, `beginAdventure`, `rerollLast` all call `generateActions(narEl)` after rendering prose
+- `init()` and `campLoad()` in `ui.js` — check `worldState.lastActions` first, fall back to `parseActions()` for old saves
+- STYLE block: "Do NOT end your response with suggested actions"
+- `TAG_REINFORCE`: same instruction for non-Claude providers
 
-### Structured action suggestions (v1.90/v1.97)
-- GM emits `[ACTIONS:first|second|third]` tag (instructed in STYLE rule)
-- `parseActions(clean, raw)` — three-tier: (1) `[ACTIONS:]` from raw, (2) tolerant bare `[a|b|c]` for non-Claude, (3) legacy prose fallback
-- `TAG_REINFORCE` (non-Claude providers) includes explicit ACTIONS tag instructions
-
-### Provider state
-- `activeProvider`, `providerKeys`, `providerModels` in `globals.js`
-- Gemini models: `gemini-3.5-flash` (default), `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
-- All non-Claude providers carry `TAG_REINFORCE`; Claude needs none
-
----
-
-## ⚠ Still owed: verification
-
-1. **v1.97 deploy** — committed but not pushed. Push to master → Cloudflare auto-deploys. Verify Gemini model dropdown + button rendering on a non-Claude provider.
-2. **Live tag-fidelity tests** — Grok, Gemini, and Ollama adapters are shape-verified but need a real-play "money turn" test with each provider's key to confirm tags (especially `[ACTIONS:]` and `[PARTY_MEMBER:]`) are emitted consistently.
-3. Carried forward: mobile topbar notch, 2-device portrait propagation, Library tab live-populate, legacy character full-sheet.
+### Wizard step changes (#25, #26, #27)
+- 7 steps (8 with perks): Tone → Identity → Ancestry → Class → Attributes → Finishing Touches → Review
+- Identity step: only name, gender, age (appearance/backstory/mark moved out)
+- Finishing Touches: appearance, backstory, portrait (upload/render/derive)
+- `cs.portrait` and `cs.portraitOffset` flow through `confirmChar()` to the character object
 
 ---
 
-## Open items (from TODO.md)
+## Files changed this session
+- `game.js` — `generateActions()`, `buildActionButtons()`, updated `sendAction`/`beginAdventure`/`rerollLast`, skeleton token limit 8192 + trailing comma strip
+- `api.js` — STYLE block rewritten (no ACTIONS instruction)
+- `globals.js` — `TAG_REINFORCE` updated (no ACTIONS instruction)
+- `ui.js` — reload path uses `worldState.lastActions`; version v1.110
+- `char-creation.js` — `refreshFtPortrait()` wires `wirePortraitDrag`; `confirmChar()` carries `portraitOffset`
+- `index.html` — Finishing Touches step HTML, derive label fix
+- `sw.js` — cache `tnd-v3-20260626g`
+- `CLAUDE.md` — §13 rewritten for decoupled architecture
+- `TODO.md` — #14 updated to v1.110, #25 marked done, #29 unblocked
 
-- **#24 Token economy / brevity** — deliberate replacement for the removed sentence cap. Options: per-voice length character, or a Brevity dial. Load-bearing under subscription cost model.
-- **#25 Prompt caching** — reorder `buildSysPrompt` stable-before-volatile, cache prefix via Anthropic `cache_control`. Logged as standalone task.
-- **Car Mode** (`CAR_MODE.md`) — TTS drain → STT start → auto-send loop.
-- **Story Compiler** (`STORY_COMPILER.md`) — weave from verbatim transcript prose.
-- **Server architecture** — evolve Fly server into subscription API gateway. Tabled.
+---
+
+## TODO status snapshot
+
+| # | Status |
+|---|---|
+| 14 | ✅ Done (v1.110) — fully decoupled action generation |
+| 25 | ✅ Done (v1.106) — Finishing Touches step |
+| 26 | ✅ Done (v1.104) — Specializations rename |
+| 27 | ✅ Done (v1.104) — Personality page removed |
+| 28 | ✅ Done (v1.104) — Blueprint locks location |
+| 29 | Unblocked — #25 landed |
+
+---
+
+## Pending / known
+
+- `parseActions()` in `api.js` is legacy-only (pre-v1.110 save replay). Harmless, removable once old saves age out.
+- `generateActions` doesn't push to `sessionLog` — ephemeral by design (keeps conversation clean).
+- Skeleton generation should be confirmed on a fresh campaign (token + comma fixes applied but only tested once).
+- CORS PUT errors in console (fly.dev from `file://` origin) — pre-existing, unrelated.
+- `DEFAULT_RULES[9]` in `data.js` still references "the 'You could...' suggestion line" as a length guideline — cosmetic only, doesn't affect behavior.
 
 ---
 
 ## Conventions / "don't get burned"
 
-- **ES5 only** — `var`, no arrow/const/let/template-literals. `async/await` only in API-facing funcs.
-- **Always commit; don't push until told.** Pushing to `master` auto-deploys via Cloudflare Pages. User tests locally. Batch commits, push on explicit go.
+- **ES5.1+** — `var`, no arrow/const/let/template-literals. `async/await` only in API-facing funcs. ES5.1 builtins + `Object.assign` are OK.
+- **Always commit; don't push until told.** Pushing to `master` auto-deploys via Cloudflare Pages.
 - **Bump BOTH** the version string in `updateMemStatus()` (`ui.js`) AND `CACHE` in `sw.js` on every code-changing commit.
 - **Three file menus** (`fm-`, `cs-fm-`, `api-fm-`) must stay in sync when adding items.
 - Personal save files (`*.json` game exports) are **not committed**.
@@ -80,5 +87,5 @@
 
 ## Deploy
 
-- **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build, output = root). Unlimited bandwidth. `_headers` keeps sw.js/shell fresh; hard-refresh on device after deploy.
+- **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build, output = root).
 - **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`.

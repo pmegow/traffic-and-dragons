@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.110";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.111";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -712,90 +712,53 @@ function showBlueprintBrowser(){
   document.body.appendChild(modal);
   renderList();
 }
+// ── Shared character-sheet helpers ────────────────────────────────────────────
+function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
+function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
+function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";}
+function csHeroHeader(c){
+  var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
+  var subnm=c.subraceNm?c.subraceNm+" ":"";
+  var clsLine=subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
+  var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
+  var xpPct=lvl>=10?100:Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100));
+  return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
+}
+function csSheetSections(c){
+  var i;
+  var statHtml="<div class='cs-stat-grid'>";
+  for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
+  statHtml+="</div>";
+  var earnedSkills=[],si2;
+  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}  }
+  var skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
+  var condHtml;
+  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++)condHtml+='<div class="cs-list-row"><span style="color:#e06060">'+c.conditions[i].name+'</span><span class="cs-dim"> — '+c.conditions[i].duration+'</span></div>';condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
+  var relHtml;
+  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
+  var langHtml,langParts=[];
+  if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:#a07838">'+lang.name+' (broken)</span>':lang.name);}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
+  var saveHtml="";
+  if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}saveHtml+="</div>";}
+  var beatsHtml="";
+  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
+  var abilHtml="";
+  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
+  var spellHtml="";
+  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+nm2;spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
+  var invHtml=c.inventory&&c.inventory.length?'<div class="cs-v">'+c.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
+  var charKv=(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
+  return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
+}
+function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
+
 function showCharSheet(){
   if(!worldState)return;
   var ex=document.getElementById("cs-modal");if(ex)ex.remove();
   var c=worldState.character;
 
-  // ── helpers ──────────────────────────────────────────────────────────────
-  function sec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
-  function kv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
-
-  // ── header ───────────────────────────────────────────────────────────────
-  var initials=c.name.split(" ").map(function(w2){return w2[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
-  var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
-  var subnm=c.subraceNm?c.subraceNm+" ":"";
-  var clsLine=subnm+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
-  var lvl=c.level,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
-  var xpPct=lvl>=10?100:Math.min(100,Math.round(((c.xp-prevXP)/Math.max(1,nextXP-prevXP))*100));
-
-  // ── stats ─────────────────────────────────────────────────────────────────
-  var statHtml="<div class='cs-stat-grid'>",i;
-  for(i=0;i<STATS.length;i++){var s=STATS[i],v=c.stats[s];statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+smod(v)+"</div></div>";}
-  statHtml+="</div>";
-
-  // ── skills ────────────────────────────────────────────────────────────────
-  var skillHtml,earnedSkills=[],si2;
-  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}  }
-  skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
-
-  // ── conditions ────────────────────────────────────────────────────────────
-  var condHtml;
-  if(c.conditions&&c.conditions.length){
-    condHtml="<div class='cs-list'>";
-    for(i=0;i<c.conditions.length;i++)condHtml+='<div class="cs-list-row"><span style="color:#e06060">'+c.conditions[i].name+'</span><span class="cs-dim"> — '+c.conditions[i].duration+'</span></div>';
-    condHtml+="</div>";
-  }else condHtml='<span class="cs-none">None</span>';
-
-  // ── relationships ─────────────────────────────────────────────────────────
-  var relHtml;
-  if(c.relationships&&c.relationships.length){
-    relHtml="<div class='cs-list'>";
-    for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';
-    relHtml+="</div>";
-  }else relHtml='<span class="cs-none">None</span>';
-
-  // ── languages ─────────────────────────────────────────────────────────────
-  var langHtml,langParts=[];
-  if(c.languages&&c.languages.length){
-    for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:#a07838">'+lang.name+' (broken)</span>':lang.name);}
-    langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";
-  }else langHtml='<span class="cs-none">Common</span>';
-
-  // ── save modifiers ────────────────────────────────────────────────────────
-  var saveHtml="";
-  if(c.saveModifiers&&c.saveModifiers.length){
-    saveHtml="<div class='cs-list'>";
-    for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}
-    saveHtml+="</div>";
-  }
-
-  // ── story beats ───────────────────────────────────────────────────────────
-  var beatsHtml="";
-  if(c.storyBeats&&c.storyBeats.length){
-    for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';
-  }
-
-  // ── abilities ─────────────────────────────────────────────────────────────
-  var abilHtml="";
-  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}
-  else abilHtml='<span class="cs-none">None yet</span>';
-
-  // ── spells ────────────────────────────────────────────────────────────────
-  var spellHtml="";
-  if(c.spells&&c.spells.length){
-    var spParts=[];
-    for(i=0;i<c.spells.length;i++){
-      var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);
-      var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;
-      var spTxt="["+stag+"] "+nm2;
-      spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);
-    }
-    spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";
-  }
-
-  // ── inventory ─────────────────────────────────────────────────────────────
-  var invHtml=c.inventory&&c.inventory.length?'<div class="cs-v">'+c.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
+  var initials=csInitials(c.name);
+  var hdr=csHeroHeader(c);
 
   // ── compose ───────────────────────────────────────────────────────────────
   var modal=document.createElement("div");modal.id="cs-modal";
@@ -810,38 +773,21 @@ function showCharSheet(){
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+c.name+"</div>"
-    +"<div class='cs-hero-cls'>"+clsLine+"</div>"
-    +"<div class='cs-hero-sub'>"+genderLbl+" · "+c.age+(c.deity?" · "+c.deity:"")+"</div>"
+    +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
+    +"<div class='cs-hero-sub'>"+hdr.genderLbl+" · "+c.age+(c.deity?" · "+c.deity:"")+"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"
-    +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
+    +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; <span style='color:#e06060'>"+c.hp+"/"+c.maxHp+" HP</span>"
     +" &nbsp;·&nbsp; <span style='color:#c0a040'>"+c.gold+" gp</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"
-    +"<div class='cs-xp-lbl'><span>"+c.xp+" XP</span><span>"+(lvl<10?"Next: "+nextXP+" XP":"Max level")+"</span></div>"
-    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpPct+"%;'></div></div>"
+    +"<div class='cs-xp-lbl'><span>"+c.xp+" XP</span><span>"+(hdr.lvl<10?"Next: "+hdr.nextXP+" XP":"Max level")+"</span></div>"
+    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
     +"</div>"
     +"</div></div>"
 
-    +sec("Attributes",statHtml)
-    +sec("Character"
-      ,(c.appear?kv("Appearance",c.appear):"")
-      +(c.mark?kv("Distinguishing Mark",c.mark):"")
-      +(c.trait?kv("Trait",c.trait):"")
-      +(c.flaw?kv("Flaw",c.flaw):"")
-      +(c.motivation?kv("Motivation",c.motivation):"")
-      +(c.backstory?kv("Backstory",c.backstory):"")
-    )
-    +sec("Conditions",condHtml)
-    +sec("Relationships",relHtml)
-    +sec("Languages",langHtml)
-    +(c.saveModifiers&&c.saveModifiers.length?sec("Save Modifiers",saveHtml):"")
-    +sec("Skills",skillHtml)
-    +(c.storyBeats&&c.storyBeats.length?sec("Story Beats",beatsHtml):"")
-    +sec("Abilities",abilHtml)
-    +(c.spells&&c.spells.length?sec("Spells",spellHtml):"")
-    +sec("Inventory",invHtml)
+    +csSheetSections(c)
 
     +"</div>";
 
@@ -850,8 +796,7 @@ function showCharSheet(){
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  // ── collapsible sections ──────────────────────────────────────────────────
-  (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
+  csWireToggles(modal);
 
   // ── portrait handlers ─────────────────────────────────────────────────────
   function refreshAvatar(){
@@ -1000,24 +945,12 @@ async function showPortraitModal(refreshFn,opts){
   async function runDescribe(){
     var status=document.getElementById("pm-status");
     var src=getPort();if(!src)return;
-    var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
-    if(!key){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Needs a Claude (Anthropic) key — set one via File &#9656; Admin &#9656; &#129504; Language Model.</span>";return;}
     if(busy){status.innerHTML="<span style='font-size:12px;color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
-    var mm=src.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
-    if(!mm){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Portrait must be an uploaded or generated image.</span>";return;}
     status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Reading the portrait&hellip;</span>";
     busy=true;
     try{
-      var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
-      var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
-      var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
-        {type:"text",text:"Describe this character's appearance for their sheet."+(c.name?" Their name is "+c.name+".":"")},
-        {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
-      ]}]};
-      var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
-      if(!r.ok)throw new Error("Claude "+r.status);
-      var data=await r.json();
-      showDescribeResult((PROVIDERS.anthropic.parseResponse(data)||"").trim());
+      var desc=await describePortraitImage(src,c.name);
+      showDescribeResult(desc);
     }catch(err){status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+(err.message||"Failed")+"</span>";}
     busy=false;
   }
@@ -1222,10 +1155,7 @@ function showNpcSheet(name){
   var isParty=!!(wsNpc&&wsNpc.partyMember);
   var sheet=isParty&&wsNpc&&wsNpc.charSheet?wsNpc.charSheet:null;
 
-  function sec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
-  function kv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
-
-  var initials=name.split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+  var initials=csInitials(name);
   var portrait=wsNpc&&wsNpc.portrait?wsNpc.portrait:null;
 
   // ── Avatar ────────────────────────────────────────────────────────────────
@@ -1261,48 +1191,31 @@ function showNpcSheet(name){
   // ── Full character sheet sections (when charSheet exists) ─────────────────
   var sheetSections="";
   if(sheet){
-    var SN=["STR","DEX","CON","INT","WIS","CHA"],statHtml="<div class='cs-stat-grid'>";
-    for(i=0;i<SN.length;i++){var sv=sheet.stats&&sheet.stats[SN[i]]?sheet.stats[SN[i]]:10;statHtml+="<div class='cs-stat'><div class='cs-sn'>"+SN[i]+"</div><div class='cs-sv'>"+sv+"</div><div class='cs-sm'>"+smod(sv)+"</div></div>";}
-    statHtml+="</div>";
-    var earnedSk=[],ski;
-    if(sheet.skills){for(ski=0;ski<SKILLS.length;ski++){var sk3=SKILLS[ski],sc=(typeof sheet.skills[sk3.id]==="number")?sheet.skills[sk3.id]:0;if(sc>0)earnedSk.push(sk3.label+" ("+SKILL_LEVELS[skillLevel(sc)]+")");}  }
-    var skillHtml2=earnedSk.length?'<div class="cs-v">'+earnedSk.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
-    var condHtml2=sheet.conditions&&sheet.conditions.length?"<div class='cs-list'>"+(function(){var h="";for(i=0;i<sheet.conditions.length;i++)h+='<div class="cs-list-row"><span style="color:#e06060">'+sheet.conditions[i].name+'</span><span class="cs-dim"> — '+sheet.conditions[i].duration+'</span></div>';return h;})()+"</div>":'<span class="cs-none">None</span>';
     // Merge live player relationship in case sheet was generated before this fix
+    var origRels=sheet.relationships;
     var sheetRels=sheet.relationships?sheet.relationships.slice():[];
     if(worldState&&worldState.character){var pcn2=worldState.character.name,hasPC2=false,rki2;for(rki2=0;rki2<sheetRels.length;rki2++){if(sheetRels[rki2].entity===pcn2){hasPC2=true;break;}}if(!hasPC2&&wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown")sheetRels.push({entity:pcn2,descriptor:wsNpc.rel});}
-    var relHtml2=sheetRels.length?"<div class='cs-list'>"+(function(){var h="";for(i=0;i<sheetRels.length;i++)h+='<div class="cs-list-row"><span style="color:var(--acc)">'+sheetRels[i].entity+'</span><span class="cs-dim"> — '+sheetRels[i].descriptor+'</span></div>';return h;})()+"</div>":'<span class="cs-none">None</span>';
-    var langPts=[];if(sheet.languages&&sheet.languages.length){for(i=0;i<sheet.languages.length;i++){var lg=sheet.languages[i];langPts.push(lg.broken?'<span style="color:#a07838">'+lg.name+' (broken)</span>':lg.name);}}
-    var langHtml2=langPts.length?'<div class="cs-v">'+langPts.join(", ")+"</div>":'<span class="cs-none">Common</span>';
-    var saveHtml2="";if(sheet.saveModifiers&&sheet.saveModifiers.length){saveHtml2="<div class='cs-list'>";for(i=0;i<sheet.saveModifiers.length;i++){var smx=sheet.saveModifiers[i],svx=(smx.amount>=0?"+":"")+smx.amount;saveHtml2+='<div class="cs-list-row"><span>'+svx+' vs '+smx.type+'</span><span class="cs-dim"> ['+smx.source+']</span></div>';}saveHtml2+="</div>";}
-    var beatsHtml2="";if(sheet.storyBeats&&sheet.storyBeats.length){for(i=sheet.storyBeats.length-1;i>=0;i--)beatsHtml2+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+sheet.storyBeats[i].turn+'</span>'+sheet.storyBeats[i].text+'</div>';}
-    var abilHtml2=sheet.abilities&&sheet.abilities.length?(function(){var h="";for(i=0;i<sheet.abilities.length;i++)h+='<div class="cs-abil"><span class="cs-abil-nm">'+sheet.abilities[i].nm+'</span><span class="cs-abil-ds">'+sheet.abilities[i].ds+'</span></div>';return h;})():'<span class="cs-none">None yet</span>';
-    var spellHtml2="";if(sheet.spells&&sheet.spells.length){var spPts2=[];for(i=0;i<sheet.spells.length;i++){var sp3=sheet.spells[i],stg=(sp3.lvl===0?"C":String(sp3.lvl)),nm4=(sp3.nm.indexOf("(")>=0?sp3.nm.slice(0,sp3.nm.indexOf("(")).trim():sp3.nm);var stxt="["+stg+"] "+nm4;spPts2.push(sp3.used?'<span style="color:var(--t2);text-decoration:line-through">'+stxt+'</span>':stxt);}spellHtml2='<div class="cs-v" style="line-height:1.9">'+spPts2.join(", ")+"</div>";}
-    var invHtml2=sheet.inventory&&sheet.inventory.length?'<div class="cs-v">'+sheet.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
-    var charKv=(sheet.appear?kv("Appearance",sheet.appear):"")+(sheet.mark?kv("Distinguishing Mark",sheet.mark):"")+(sheet.trait?kv("Trait",sheet.trait):"")+(sheet.flaw?kv("Flaw",sheet.flaw):"")+(sheet.motivation?kv("Motivation",sheet.motivation):"")+(sheet.backstory?kv("Backstory",sheet.backstory):"");
-    sheetSections=sec("Attributes",statHtml)+sec("Character",charKv)+sec("Conditions",condHtml2)+sec("Relationships",relHtml2)+sec("Languages",langHtml2)+(sheet.saveModifiers&&sheet.saveModifiers.length?sec("Save Modifiers",saveHtml2):"")+sec("Skills",skillHtml2)+(sheet.storyBeats&&sheet.storyBeats.length?sec("Story Beats",beatsHtml2):"")+sec("Abilities",abilHtml2)+(sheet.spells&&sheet.spells.length?sec("Spells",spellHtml2):"")+sec("Inventory",invHtml2);
+    sheet.relationships=sheetRels;
+    sheetSections=csSheetSections(sheet);
+    sheet.relationships=origRels;
   }
 
   // ── NPC sections (always shown) ───────────────────────────────────────────
   var statusBlock="";
-  if(wsNpc){statusBlock+=kv("Status",wsNpc.status||"—");if(wsNpc.pronouns)statusBlock+=kv("Pronouns",wsNpc.pronouns);}
-  // Player→NPC relationship from character.relationships (set by [RELATIONSHIP:] tags)
+  if(wsNpc){statusBlock+=csKv("Status",wsNpc.status||"—");if(wsNpc.pronouns)statusBlock+=csKv("Pronouns",wsNpc.pronouns);}
   var pcRel=null;var pcRels=worldState&&worldState.character&&worldState.character.relationships?worldState.character.relationships:[];
   for(var pri=0;pri<pcRels.length;pri++){if(pcRels[pri].entity===name){pcRel=pcRels[pri].descriptor;break;}}
-  // Fall back to wsNpc.rel if no [RELATIONSHIP:] tag has been emitted yet
   var relDisplay=pcRel||(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown"?wsNpc.rel:null);
-  if(relDisplay)statusBlock+=kv("Relationship",relDisplay);
-  // Faction membership
+  if(relDisplay)statusBlock+=csKv("Relationship",relDisplay);
   var nfEntries=memory&&memory.npcGraph&&memory.npcGraph.npcFactions?memory.npcGraph.npcFactions[name]||[]:[];
-  if(nfEntries.length)statusBlock+=kv("Factions",nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", "));
-  // NPC↔NPC links from graph
+  if(nfEntries.length)statusBlock+=csKv("Factions",nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", "));
   var npcLinks2="";if(memory&&memory.npcGraph&&memory.npcGraph.edges){var nlEdges=memory.npcGraph.edges;for(var nle=0;nle<nlEdges.length;nle++){var e2=nlEdges[nle];if(e2.a===name)npcLinks2+=(npcLinks2?", ":"")+e2.b+" ("+e2.rel+")";else if(e2.b===name)npcLinks2+=(npcLinks2?", ":"")+e2.a+" ("+e2.rel+")";}}
-  if(npcLinks2)statusBlock+=kv("Links",npcLinks2);
+  if(npcLinks2)statusBlock+=csKv("Links",npcLinks2);
   var memBlock="";
-  if(memNpc){if(memNpc.attitude)memBlock+=kv("Attitude",memNpc.attitude);if(memNpc.knowledge&&memNpc.knowledge.length)memBlock+=kv("Knows",memNpc.knowledge.join("; "));}
+  if(memNpc){if(memNpc.attitude)memBlock+=csKv("Attitude",memNpc.attitude);if(memNpc.knowledge&&memNpc.knowledge.length)memBlock+=csKv("Knows",memNpc.knowledge.join("; "));}
   var evHtml="";
   if(memNpc&&memNpc.events&&memNpc.events.length){for(i=memNpc.events.length-1;i>=0;i--)evHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+memNpc.events[i].turn+'</span>'+memNpc.events[i].note+'</div>';}
-  var npcSections=sec("Status",statusBlock||'<span class="cs-none">No data</span>')+(memBlock?sec("Profile",memBlock):"")+(evHtml?sec("History",evHtml):"");
+  var npcSections=csSec("Status",statusBlock||'<span class="cs-none">No data</span>')+(memBlock?csSec("Profile",memBlock):"")+(evHtml?csSec("History",evHtml):"");
 
   // ── Generate / Regenerate button ──────────────────────────────────────────
   var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:#000;font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
@@ -1325,7 +1238,7 @@ function showNpcSheet(name){
   document.getElementById("npc-x").addEventListener("click",function(){modal.remove();});
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
+  csWireToggles(modal);
 
   // ── Play as this character ────────────────────────────────────────────────
   if(document.getElementById("npc-play-btn")){
@@ -2023,36 +1936,8 @@ function showReadOnlyCharSheet(c,opts){
   if(!c)return;
   var ex=document.getElementById("ro-cs-modal");if(ex)ex.remove();
   opts=opts||{};
-  function sec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
-  function kv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
-  var i;
-  var initials=(c.name||"?").split(" ").map(function(w2){return w2[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
-  var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
-  var subnm=c.subraceNm?c.subraceNm+" ":"";
-  var clsLine=subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
-  var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
-  var xpPct=lvl>=10?100:Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100));
-  var statHtml="<div class='cs-stat-grid'>";
-  for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
-  statHtml+="</div>";
-  var earnedSkills=[],si2;
-  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}}
-  var skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
-  var condHtml;
-  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++)condHtml+='<div class="cs-list-row"><span style="color:#e06060">'+c.conditions[i].name+'</span><span class="cs-dim"> — '+c.conditions[i].duration+'</span></div>';condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
-  var relHtml;
-  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
-  var langHtml,langParts=[];
-  if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:#a07838">'+lang.name+' (broken)</span>':lang.name);}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
-  var saveHtml="";
-  if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}saveHtml+="</div>";}
-  var beatsHtml="";
-  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
-  var abilHtml="";
-  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
-  var spellHtml="";
-  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+nm2;spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
-  var invHtml=c.inventory&&c.inventory.length?'<div class="cs-v">'+c.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
+  var initials=csInitials(c.name||"?");
+  var hdr=csHeroHeader(c);
   var modal=document.createElement("div");modal.id="ro-cs-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:420;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
   var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:Georgia,serif;padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:#000;font-weight:bold;cursor:pointer;'>Import</button>":"";
@@ -2064,43 +1949,26 @@ function showReadOnlyCharSheet(c,opts){
     +"</div>"
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+(c.name||"—")+"</div>"
-    +"<div class='cs-hero-cls'>"+clsLine+"</div>"
-    +"<div class='cs-hero-sub'>"+genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
+    +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
+    +"<div class='cs-hero-sub'>"+hdr.genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"
-    +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
+    +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; <span style='color:#e06060'>"+(c.hp!=null?c.hp:"—")+"/"+(c.maxHp!=null?c.maxHp:"—")+" HP</span>"
     +" &nbsp;·&nbsp; <span style='color:#c0a040'>"+(c.gold!=null?c.gold:0)+" gp</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"
-    +"<div class='cs-xp-lbl'><span>"+(c.xp||0)+" XP</span><span>"+(lvl<10?"Next: "+nextXP+" XP":"Max level")+"</span></div>"
-    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpPct+"%;'></div></div>"
+    +"<div class='cs-xp-lbl'><span>"+(c.xp||0)+" XP</span><span>"+(hdr.lvl<10?"Next: "+hdr.nextXP+" XP":"Max level")+"</span></div>"
+    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
     +"</div>"
     +"</div></div>"
-    +sec("Attributes",statHtml)
-    +sec("Character"
-      ,(c.appear?kv("Appearance",c.appear):"")
-      +(c.mark?kv("Distinguishing Mark",c.mark):"")
-      +(c.trait?kv("Trait",c.trait):"")
-      +(c.flaw?kv("Flaw",c.flaw):"")
-      +(c.motivation?kv("Motivation",c.motivation):"")
-      +(c.backstory?kv("Backstory",c.backstory):"")
-    )
-    +sec("Conditions",condHtml)
-    +sec("Relationships",relHtml)
-    +sec("Languages",langHtml)
-    +(c.saveModifiers&&c.saveModifiers.length?sec("Save Modifiers",saveHtml):"")
-    +sec("Skills",skillHtml)
-    +(c.storyBeats&&c.storyBeats.length?sec("Story Beats",beatsHtml):"")
-    +sec("Abilities",abilHtml)
-    +(c.spells&&c.spells.length?sec("Spells",spellHtml):"")
-    +sec("Inventory",invHtml)
+    +csSheetSections(c)
     +"</div>";
   document.body.appendChild(modal);
   document.getElementById("ro-cs-x").addEventListener("click",function(){modal.remove();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   if(opts.onImport){document.getElementById("ro-cs-import").addEventListener("click",function(){modal.remove();opts.onImport();});}
-  (function(){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}})();
+  csWireToggles(modal);
 }
 // ── Campaign-start companion selection ────────────────────────────────────────
 function _renderCompanionSlots(){
@@ -2612,6 +2480,42 @@ function declineQuest(idx){
   if(typeof showToast==="function")showToast("Quest declined: "+q.title);
   showQuestModal();
 }
-function submitKey(){var k=document.getElementById("api-input").value.trim();if(k.indexOf("sk-")<0){document.getElementById("api-warn").textContent="Invalid key format.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
-function init(){loadRules();loadAdultMode();loadProseAuthor();loadLegacySettings();if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();loadFontSize();updateServerUI();storageAdapter.load(function(saved){if(saved&&worldState){if(!getActiveCampId())migrateToCampaigns();checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();addMsg("system","Welcome back, "+worldState.character.name+".");addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");var sll=sessionLog.length;if(sll>=2){var slu=sessionLog[sll-2],sla=sessionLog[sll-1];if(slu&&slu.role==="user")addMsg("player",slu.content);if(sla&&sla.role==="assistant"){var slc=cleanTxt(sla.content),sld=diceTxt(sla.content),_rab=worldState.lastActions?buildActionButtons(worldState.lastActions):parseActions(slc,sla.content).btns||"";addMsg("narrator",(sld||"")+"<p>"+slc.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+_rab);}}else{var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){var wbE=worldState.eventHistory[worldState.eventHistory.length-1];wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;}if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");}if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}else{showChar();}});}
+function submitKey(){var k=document.getElementById("api-input").value.trim();if(!k){document.getElementById("api-warn").textContent="Enter an API key.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
+function initSettings(){
+  loadRules();loadAdultMode();loadProseAuthor();loadLegacySettings();
+  if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();
+  loadFontSize();updateServerUI();
+}
+function initReplaySession(){
+  var sll=sessionLog.length;
+  if(sll>=2){
+    var slu=sessionLog[sll-2],sla=sessionLog[sll-1];
+    if(slu&&slu.role==="user")addMsg("player",slu.content);
+    if(sla&&sla.role==="assistant"){
+      var slc=cleanTxt(sla.content),sld=diceTxt(sla.content);
+      var _rab=worldState.lastActions?buildActionButtons(worldState.lastActions):parseActions(slc,sla.content).btns||"";
+      addMsg("narrator",(sld||"")+"<p>"+slc.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+_rab);
+    }
+  }else{
+    var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;
+    if(!wbSrc&&worldState.eventHistory&&worldState.eventHistory.length){
+      var wbE=worldState.eventHistory[worldState.eventHistory.length-1];
+      wbSrc=typeof wbE==="string"?wbE:(wbE&&wbE.summary)||null;
+    }
+    if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");
+  }
+}
+function initState(saved){
+  if(saved&&worldState){
+    if(!getActiveCampId())migrateToCampaigns();
+    checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();
+    addMsg("system","Welcome back, "+worldState.character.name+".");
+    addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
+    initReplaySession();
+    if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
+  }else{
+    showChar();
+  }
+}
+function init(){initSettings();storageAdapter.load(initState);}
 window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k){apiKey=k;document.getElementById("api-screen").style.display="none";init();}});

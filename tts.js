@@ -99,13 +99,7 @@ var TTS = (function() {
 
   function speakResponse(cleanText) {
     if (!isOn()) return;
-    var m = cleanText.match(/([\s\S]*?)\s*\*You could([\s\S]*?)\*\s*$/);
-    if (m) {
-      if (m[1].trim()) speak(m[1].trim());
-      speak("You could" + m[2]);
-    } else {
-      speak(cleanText.trim());
-    }
+    speak(cleanText.trim());
   }
 
   // ── Queue management ────────────────────────────────────────────────────────
