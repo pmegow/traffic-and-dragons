@@ -68,21 +68,24 @@
     /* Ready to test row */
     tr.rtt td{background:rgba(200,146,42,.07);}
     tr.rtt:hover td{background:rgba(200,146,42,.14);}
-    /* Delete button */
-    .del-cell{width:22px;padding:7px 2px;text-align:center;}
-    .row-del-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;padding:0 2px;line-height:1;}
-    .row-del-btn:hover{color:var(--red);}
-    tr:hover .row-del-btn{visibility:visible;}
+    /* Action cells (complete + delete) */
+    .act-cell{width:22px;padding:7px 2px;text-align:center;}
+    .row-act-btn{visibility:hidden;background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;}
+    .row-act-btn:hover{color:var(--acc);}
+    .row-act-btn.del:hover{color:var(--red);}
+    .row-act-btn.del{font-size:16px;}
+    tr:hover .row-act-btn{visibility:visible;}
     /* Resizable status column */
-    th.resizable{position:sticky;right:22px;overflow:visible;background:var(--bg1);z-index:3;}
+    th.resizable{position:sticky;right:44px;overflow:visible;background:var(--bg1);z-index:3;}
     .col-resize-handle{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize-handle:hover,.col-resize-handle.dragging{background:var(--acc);opacity:0.4;}
-    /* Status and delete cells sticky-right — right offset = del-cell width (22px) */
-    td.status-td{position:sticky;right:22px;background:var(--bg1);z-index:1;}
+    /* Status and action cells sticky-right */
+    td.status-td{position:sticky;right:44px;background:var(--bg1);z-index:1;}
+    td.comp-cell,th.comp-th{position:sticky;right:22px;background:var(--bg1);z-index:3;}
     td.del-cell,th.del-th{position:sticky;right:0;background:var(--bg1);z-index:3;}
-    tr:hover td.status-td,tr:hover td.del-cell{background:var(--bg2);}
-    tr.rtt td.status-td,tr.rtt td.del-cell{background:rgba(184,147,90,.07);}
-    tr.rtt:hover td.status-td,tr.rtt:hover td.del-cell{background:rgba(184,147,90,.14);}
+    tr:hover td.status-td,tr:hover td.comp-cell,tr:hover td.del-cell{background:var(--bg2);}
+    tr.rtt td.status-td,tr.rtt td.comp-cell,tr.rtt td.del-cell{background:rgba(184,147,90,.07);}
+    tr.rtt:hover td.status-td,tr.rtt:hover td.comp-cell,tr.rtt:hover td.del-cell{background:rgba(184,147,90,.14);}
     /* Lock task column — don't let it shrink */
     td.task-td,th.task-th{min-width:400px;}
     .task-table{table-layout:fixed;width:100%;}
@@ -95,6 +98,20 @@
     .eff-M{color:var(--t1);}
     .eff-L{color:var(--acc);}
     .eff-XL{color:#c87a4a;}
+    /* Completed section */
+    .completed-wrap{margin:-8px 0 20px;}
+    .completed-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;user-select:none;}
+    .completed-toggle:hover .completed-label{color:var(--t1);}
+    .completed-arr{font-size:9px;color:var(--t2);transition:transform .15s;}
+    .completed-arr.open{transform:rotate(90deg);}
+    .completed-label{font-size:12px;color:var(--t2);letter-spacing:.04em;}
+    .completed-count{font-size:11px;color:var(--t2);opacity:.6;}
+    .completed-body{display:none;}
+    .completed-body.open{display:block;}
+    .completed-body table{opacity:.55;}
+    .completed-body tr:hover td{opacity:1;}
+    .completed-body .row-act-btn.restore{font-size:12px;}
+    .completed-body .row-act-btn.restore:hover{color:var(--grn);}
   </style>
 </head>
 <body>
@@ -118,7 +135,8 @@ var _dragSrc = null;
 var _fileHandle = null;
 var _editIdx = -1;
 var _statusColW = 240;
-var _hasEffort = false; // set true when the task table has an Effort column
+var _hasEffort = false;
+var _compOpen = {}; // track which completed sections are open, keyed by section idx
 
 // ── IndexedDB handle persistence ──────────────────────────────────────────────
 
@@ -154,10 +172,8 @@ window.addEventListener("DOMContentLoaded", function() {
     _fileHandle = handle;
     handle.queryPermission({mode:"read"}).then(function(perm) {
       if (perm === "granted") {
-        // Silent autoload — no user gesture required
         handle.getFile().then(function(f) { readFile(f); }).catch(function() {});
       } else {
-        // Offer a single-click reopen button instead of the full picker
         var dz = document.getElementById("drop-zone");
         if (!dz) return;
         var btn = document.createElement("button");
@@ -216,15 +232,11 @@ function refresh() {
 
 // ── Parse TODO.md ─────────────────────────────────────────────────────────────
 
-// Split a markdown table row on UNESCAPED pipes only; restore literal \| as |.
-// Without this, escaped pipes inside cells (e.g. [QUEST:title\|status]) split into
-// extra columns and shove Effort/Status one cell to the right. Trims each cell.
 function splitCells(line) {
   return line.split(/(?<!\\)\|/).map(function(c) {
     return c.replace(/\\\|/g, "|").trim();
   });
 }
-// Re-escape literal pipes in a cell so the exported markdown table stays valid.
 function escCell(s) { return String(s).replace(/\|/g, "\\|"); }
 
 function parse(md) {
@@ -236,8 +248,6 @@ function parse(md) {
   while (i < lines.length) {
     var line = lines[i];
     if (/^\|\s*#\s*\|/.test(line)) {
-      // Map columns by header name so both 3-col (#|Task|Status) and
-      // 4-col (#|Task|Effort|Status) tables parse to the right fields.
       var hdr = splitCells(line).slice(1,-1).map(function(c) { return c.toLowerCase(); });
       var ciNum = -1, ciTask = -1, ciEffort = -1, ciStatus = -1, hc;
       for (hc = 0; hc < hdr.length; hc++) {
@@ -251,9 +261,18 @@ function parse(md) {
       if (ciStatus < 0) ciStatus = (ciEffort >= 0 ? 3 : 2);
       var secHasEffort = (ciEffort >= 0);
       if (secHasEffort) _hasEffort = true;
-      var secIdx = _sections.length; // index this tasks section will occupy
+      var secIdx = _sections.length;
       i += 2; // skip header and separator
-      while (i < lines.length && /^\|/.test(lines[i])) {
+      var inCompleted = false;
+      while (i < lines.length && (/^\|/.test(lines[i]) || /^<!--\s*completed\s*-->/.test(lines[i].trim()))) {
+        if (/^<!--\s*completed\s*-->/.test(lines[i].trim())) {
+          inCompleted = true;
+          i++;
+          // skip a repeated table header + separator inside the completed block
+          if (i < lines.length && /^\|\s*#\s*\|/.test(lines[i])) i++;
+          if (i < lines.length && /^\|[-\s:|]+\|/.test(lines[i])) i++;
+          continue;
+        }
         var cells = splitCells(lines[i]).slice(1,-1);
         if (cells.length >= 2) {
           _tasks.push({
@@ -262,11 +281,14 @@ function parse(md) {
             effort: ciEffort >= 0 ? (cells[ciEffort] || "") : "",
             status: cells[ciStatus] || "",
             raw: lines[i],
-            sec: secIdx
+            sec: secIdx,
+            completed: inCompleted
           });
         }
         i++;
       }
+      // skip closing comment if present
+      if (i < lines.length && /^<!--\s*\/completed\s*-->/.test(lines[i].trim())) i++;
       _sections.push({type:"tasks", idx:secIdx, hasEffort:secHasEffort});
     } else {
       var textLines = [];
@@ -282,13 +304,16 @@ function parse(md) {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function renderPage() {
+  var active = _tasks.filter(function(t) { return !t.completed; });
+  var completed = _tasks.filter(function(t) { return t.completed; });
   var html = "<div class='toolbar'>"
-    + "<div style='font-size:12px;color:var(--t2);'>" + _tasks.length + " tasks &mdash; " + _tasks.filter(isDone).length + " done</div>"
+    + "<div style='font-size:12px;color:var(--t2);'>" + active.length + " tasks"
+    + (completed.length ? " &middot; " + completed.length + " completed" : "")
+    + " &mdash; " + active.filter(isDone).length + " ready to archive</div>"
     + "<div class='toolbar-right'>"
     + "<button class='tbtn accent' onclick='showAddTask()'>&#65291; Add task</button>"
     + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
     + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
-    + "<button class='tbtn danger' onclick='clearDone()'>Clear completed</button>"
     + "<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
     + "<button class='tbtn' onclick='location.reload()'>Reset</button>"
     + "</div></div>";
@@ -297,6 +322,7 @@ function renderPage() {
     var sec = _sections[s];
     if (sec.type === "tasks") {
       html += renderTaskTable(sec);
+      html += renderCompletedSection(sec);
     } else {
       html += parseMarkdown(sec.content);
     }
@@ -327,10 +353,10 @@ function renderTaskTable(sec) {
   var h = "<table class='task-table'>"
     + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
-    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='del-th' style='width:22px;'></th></tr></thead>"
+    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='comp-th' style='width:22px;'></th><th class='del-th' style='width:22px;'></th></tr></thead>"
     + "<tbody class='tt-body' data-sec='"+sec.idx+"'>";
   for (var i = 0; i < _tasks.length; i++) {
-    if (_tasks[i].sec !== sec.idx) continue; // only this section's rows; data-idx stays global
+    if (_tasks[i].sec !== sec.idx || _tasks[i].completed) continue;
     var t = _tasks[i];
     var done = isDone(t), rtt = isReadyToTest(t), low = isLow(t);
     var sCls = done ? "status sdone" : low ? "status slow" : "status";
@@ -355,10 +381,47 @@ function renderTaskTable(sec) {
       + taskCell
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
       + "<td class='status-td " + sCls + "'>" + inline(t.status) + "</td>"
-      + "<td class='del-cell'><button class='row-del-btn' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
+      + "<td class='comp-cell'><button class='row-act-btn' title='Move to Completed' onclick='completeTask(" + i + ")'>C</button></td>"
+      + "<td class='del-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
       + "</tr>";
   }
   h += "</tbody></table>";
+  return h;
+}
+
+function renderCompletedSection(sec) {
+  var compTasks = [];
+  for (var i = 0; i < _tasks.length; i++) {
+    if (_tasks[i].sec === sec.idx && _tasks[i].completed) compTasks.push({task:_tasks[i], idx:i});
+  }
+  if (!compTasks.length) return "";
+  var isOpen = !!_compOpen[sec.idx];
+  var hasEff = sec.hasEffort;
+  var h = "<div class='completed-wrap'>"
+    + "<div class='completed-toggle' onclick='toggleCompletedSection(" + sec.idx + ")'>"
+    + "<span class='completed-arr" + (isOpen ? " open" : "") + "'>&#9654;</span>"
+    + "<span class='completed-label'>Completed</span>"
+    + "<span class='completed-count'>(" + compTasks.length + ")</span>"
+    + "</div>"
+    + "<div class='completed-body" + (isOpen ? " open" : "") + "'>"
+    + "<table class='task-table'>"
+    + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
+    + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
+    + "<th class='resizable' style='width:"+_statusColW+"px;'>Status</th><th style='width:22px;'></th><th style='width:22px;'></th></tr></thead>"
+    + "<tbody>";
+  for (var j = 0; j < compTasks.length; j++) {
+    var t = compTasks[j].task, gi = compTasks[j].idx;
+    h += "<tr data-idx='" + gi + "'>"
+      + "<td class='check-cell'><span style='color:var(--grn);font-size:13px;'>&#10003;</span></td>"
+      + "<td class='num-cell'>" + inline(t.num) + "</td>"
+      + "<td class='task-td'><div class='task-cell-inner'><span>" + inline(t.task) + "</span></div></td>"
+      + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
+      + "<td class='status-td status sdone'>" + inline(t.status) + "</td>"
+      + "<td class='act-cell'><button class='row-act-btn restore' title='Restore to active' onclick='restoreTask(" + gi + ")'>&#8617;</button></td>"
+      + "<td class='act-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + gi + ")'>&#215;</button></td>"
+      + "</tr>";
+  }
+  h += "</tbody></table></div></div>";
   return h;
 }
 
@@ -396,7 +459,7 @@ function wireTaskBody(tbody) {
           var destIdx = parseInt(row.getAttribute("data-idx"));
           var destSec = _tasks[destIdx].sec;
           var moved = _tasks.splice(srcIdx, 1)[0];
-          moved.sec = destSec; // dragging across tables reassigns the row's section
+          moved.sec = destSec;
           _tasks.splice(destIdx, 0, moved);
           renderPage();
         }
@@ -418,7 +481,6 @@ function wireColResize(handle) {
     function onMove(e) {
       var newW = Math.max(60, startW + (e.clientX - startX));
       _statusColW = newW;
-      // Keep every table's Status column the same width
       var ths = document.querySelectorAll('th.resizable');
       for (var j = 0; j < ths.length; j++) ths[j].style.width = newW + 'px';
     }
@@ -451,12 +513,11 @@ function doAddTask() {
   if (!inp) return;
   var task = inp.value.trim();
   if (!task) return;
-  // Add to the first task section (feature backlog); number within that section.
   var firstSec = 0, s;
   for (s = 0; s < _sections.length; s++) { if (_sections[s].type === "tasks") { firstSec = _sections[s].idx; break; } }
   var n = 0, k;
-  for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === firstSec) n++;
-  _tasks.push({num: String(n + 1), task: task, effort: "", status: "", sec: firstSec});
+  for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === firstSec && !_tasks[k].completed) n++;
+  _tasks.push({num: String(n + 1), task: task, effort: "", status: "", sec: firstSec, completed: false});
   inp.value = "";
   renderPage();
 }
@@ -478,21 +539,31 @@ function saveEditTask(idx) {
 function toggleDone(idx) {
   var t = _tasks[idx];
   if (isDone(t)) {
-    // Done → Undone: strip ✅ and "Done" prefix
     t.status = t.status.replace(/✅\s*/g, "").replace(/^Done\s*[-—]\s*/i, "").replace(/^Done\s*$/i, "").trim();
     t.task   = t.task.replace(/✅\s*/g, "").trim();
   } else if (isReadyToTest(t)) {
-    // Ready to test → Done
     var rest = t.status.replace(/ready\s+to\s+test\s*[-—]?\s*/i, "").trim();
     t.status = rest ? "✅ Done — " + rest : "✅ Done";
   } else {
-    // Undone → Ready to test
     t.status = t.status.trim() ? "Ready to test — " + t.status.trim() : "Ready to test";
   }
   renderPage();
 }
 function deleteTask(idx) {
   _tasks.splice(idx, 1);
+  renderPage();
+}
+function completeTask(idx) {
+  _tasks[idx].completed = true;
+  _compOpen[_tasks[idx].sec] = true; // auto-open to show where it went
+  renderPage();
+}
+function restoreTask(idx) {
+  _tasks[idx].completed = false;
+  renderPage();
+}
+function toggleCompletedSection(secIdx) {
+  _compOpen[secIdx] = !_compOpen[secIdx];
   renderPage();
 }
 
@@ -504,9 +575,9 @@ document.getElementById("add-task-inp").addEventListener("keydown", function(e) 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 function renumber() {
-  // Number each task section independently (1..n within its own table).
   var counters = {};
   for (var i = 0; i < _tasks.length; i++) {
+    if (_tasks[i].completed) continue; // don't renumber completed tasks
     var s = _tasks[i].sec;
     counters[s] = (counters[s] || 0) + 1;
     _tasks[i].num = String(counters[s]);
@@ -527,18 +598,37 @@ function buildMd() {
   for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
     if (sec.type === "tasks") {
-      var rows = _tasks.filter(function(t) { return t.sec === sec.idx; });
+      var active = _tasks.filter(function(t) { return t.sec === sec.idx && !t.completed; });
+      var completed = _tasks.filter(function(t) { return t.sec === sec.idx && t.completed; });
       if (sec.hasEffort) {
         out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
-        for (var i = 0; i < rows.length; i++) {
-          var t = rows[i];
+        for (var i = 0; i < active.length; i++) {
+          var t = active[i];
           out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.effort || "—") + " | " + escCell(t.status) + " |\n";
+        }
+        if (completed.length) {
+          out += "<!-- completed -->\n";
+          out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
+          for (var j = 0; j < completed.length; j++) {
+            var ct = completed[j];
+            out += "| " + escCell(ct.num) + " | " + escCell(ct.task) + " | " + escCell(ct.effort || "—") + " | " + escCell(ct.status) + " |\n";
+          }
+          out += "<!-- /completed -->\n";
         }
       } else {
         out += "| # | Task | Status |\n|---|---|---|\n";
-        for (var i = 0; i < rows.length; i++) {
-          var t = rows[i];
+        for (var i = 0; i < active.length; i++) {
+          var t = active[i];
           out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.status) + " |\n";
+        }
+        if (completed.length) {
+          out += "<!-- completed -->\n";
+          out += "| # | Task | Status |\n|---|---|---|\n";
+          for (var j = 0; j < completed.length; j++) {
+            var ct = completed[j];
+            out += "| " + escCell(ct.num) + " | " + escCell(ct.task) + " | " + escCell(ct.status) + " |\n";
+          }
+          out += "<!-- /completed -->\n";
         }
       }
     } else {
@@ -556,7 +646,6 @@ function exportMd() {
     }).then(function() {
       showToast("Saved to TODO.md");
     }).catch(function(e) {
-      // permission revoked or other error — fall back to download
       _downloadMd(out);
     });
   } else {

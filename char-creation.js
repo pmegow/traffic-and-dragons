@@ -146,7 +146,7 @@ async function ftDeriveAppearance(){
 }
 function buildReview(){
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
-  var fs=getFin(),hp=getMHP();rvGold=15+droll(10);
+  var fs=getFin(),hp=getMHP();if(!rvGoldRolled){rvGold=15+droll(10);rvGoldRolled=true;}
   var init=cs.name.split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
   var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";

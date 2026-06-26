@@ -216,7 +216,7 @@ function showGame(){
 function showChar(){
   document.getElementById("char-screen").style.display="block";
   document.getElementById("game-screen").style.display="none";
-  cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};
+  cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};rvGoldRolled=false;
   buildDots();buildToneGrid();
 }
 function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";}
@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.111";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.113";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -485,7 +485,7 @@ function campCloudPushSilent(id,cb){
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
   var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
-  var narrativeHtml=isActive?(function(){try{var e=document.getElementById("story-narrative");return e?e.innerHTML:"";}catch(x){return "";}})():"";
+  var narrativeHtml=isActive?(function(){try{var e=document.getElementById("story-narrative");if(!e)return"";var msgs=e.querySelectorAll(".msg");if(msgs.length<=10)return e.innerHTML;var frag=document.createElement("div"),i;for(i=msgs.length-10;i<msgs.length;i++)frag.appendChild(msgs[i].cloneNode(true));return frag.innerHTML;}catch(x){return "";}})():"";
   fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id,narrativeHtml:narrativeHtml})})
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
     .then(function(){
@@ -2158,70 +2158,43 @@ function wireButtons(){
   document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();document.getElementById("file-menu").style.display=document.getElementById("file-menu").style.display==="block"?"none":"block";});
   document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";var cfm=document.getElementById("cs-file-menu");if(cfm)cfm.style.display="none";var afm=document.getElementById("api-file-menu");if(afm)afm.style.display="none";});
   document.getElementById("cs-file-btn").addEventListener("click",function(e){e.stopPropagation();var cfm=document.getElementById("cs-file-menu");cfm.style.display=cfm.style.display==="block"?"none":"block";});
-  document.getElementById("cs-fm-campaigns").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showCampaignPicker();});
-  document.getElementById("cs-import-inp").addEventListener("change",importSave);
-  document.getElementById("cs-import-char-btn").addEventListener("click",showCharacterBrowser);
-  document.getElementById("cs-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("cs-fm-devmenu"),arrow=document.getElementById("cs-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
-  document.getElementById("cs-fm-rules").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRulesModal();});
-  document.getElementById("cs-fm-llm").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showProviderModal();});
-  document.getElementById("cs-fm-prose").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showProseModal();});
-  document.getElementById("cs-fm-fal-key").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";showRenderOptionsModal();});
-  document.getElementById("cs-fm-adult-cb").addEventListener("change",toggleAdultMode);
-  document.getElementById("cs-fm-font-lg").addEventListener("change",toggleFontSize);
-  document.getElementById("cs-fm-server-connect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";connectToServer();});
-  document.getElementById("cs-fm-clearcache").addEventListener("click",clearCacheAndReload);
-  document.getElementById("cs-fm-clearcache-top").addEventListener("click",clearCacheAndReload);
-  document.getElementById("cs-fm-server-disconnect").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";disconnectFromServer();});
-  document.getElementById("cs-fm-set-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";setCampaignFolder();});
-  document.getElementById("cs-fm-clear-folder").addEventListener("click",function(){document.getElementById("cs-file-menu").style.display="none";clearCampaignFolder();});
-  document.getElementById("api-file-btn").addEventListener("click",function(e){e.stopPropagation();var afm=document.getElementById("api-file-menu");afm.style.display=afm.style.display==="block"?"none":"block";});
-  document.getElementById("api-fm-campaigns").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showCampaignPicker();});
-  document.getElementById("api-import-inp").addEventListener("change",importSave);
-  document.getElementById("api-import-char-btn").addEventListener("click",showCharacterBrowser);
-  document.getElementById("api-fm-devmode").addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById("api-fm-devmenu"),arrow=document.getElementById("api-fm-devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
-  document.getElementById("api-fm-rules").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRulesModal();});
-  document.getElementById("api-fm-llm").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showProviderModal();});
-  document.getElementById("api-fm-prose").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showProseModal();});
-  document.getElementById("api-fm-fal-key").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";showRenderOptionsModal();});
-  document.getElementById("api-fm-adult-cb").addEventListener("change",toggleAdultMode);
-  document.getElementById("api-fm-font-lg").addEventListener("change",toggleFontSize);
-  document.getElementById("api-fm-server-connect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";connectToServer();});
-  document.getElementById("api-fm-clearcache").addEventListener("click",clearCacheAndReload);
-  document.getElementById("api-fm-clearcache-top").addEventListener("click",clearCacheAndReload);
-  document.getElementById("api-fm-server-disconnect").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";disconnectFromServer();});
-  document.getElementById("api-fm-set-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";setCampaignFolder();});
-  document.getElementById("api-fm-clear-folder").addEventListener("click",function(){document.getElementById("api-file-menu").style.display="none";clearCampaignFolder();});
-  document.getElementById("fm-export").addEventListener("click",exportSave);
-  document.getElementById("import-inp").addEventListener("change",importSave);
-  document.getElementById("import-step1").addEventListener("change",importSave);
-  document.getElementById("open-blueprint-browser").addEventListener("click",showBlueprintBrowser);
-  document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
-  // fm-narrative button removed (auto-export every 10 turns handles this)
-  document.getElementById("fm-devmode").addEventListener("click",function(e){
-    e.stopPropagation();
-    var sub=document.getElementById("fm-devmenu"),arrow=document.getElementById("fm-devmode-arrow");
-    var open=sub.style.display!=="none";
-    sub.style.display=open?"none":"block";
-    arrow.style.transform=open?"":"rotate(90deg)";
+  // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
+  var _menus=[{pfx:"fm-",menu:"file-menu",imp:""},{pfx:"cs-fm-",menu:"cs-file-menu",imp:"cs-"},{pfx:"api-fm-",menu:"api-file-menu",imp:"api-"}];
+  _menus.forEach(function(m){
+    var close=function(){document.getElementById(m.menu).style.display="none";};
+    // Toggle button
+    if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
+    // Items that close the menu then call a function
+    [["campaigns",showCampaignPicker],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+      var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
+    });
+    // Direct click handlers (no close needed)
+    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload]].forEach(function(it){
+      var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
+    });
+    // Change handlers
+    [["adult-cb",toggleAdultMode],["font-lg",toggleFontSize]].forEach(function(it){
+      var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
+    });
+    // Devmode submenu toggle
+    var dm=document.getElementById(m.pfx+"devmode");
+    if(dm)dm.addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById(m.pfx+"devmenu"),arrow=document.getElementById(m.pfx+"devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
+    // Import inputs (different prefix pattern: "", "cs-", "api-")
+    var ii=document.getElementById(m.imp+"import-inp");if(ii)ii.addEventListener("change",importSave);
+    var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
-  document.getElementById("fm-rules").addEventListener("click",showRulesModal);
-  document.getElementById("fm-llm").addEventListener("click",showProviderModal);
-  document.getElementById("fm-prose").addEventListener("click",showProseModal);
-  document.getElementById("fm-fal-key").addEventListener("click",showRenderOptionsModal);
-  document.getElementById("fm-adult-cb").addEventListener("change",toggleAdultMode);
-  document.getElementById("fm-font-lg").addEventListener("change",toggleFontSize);
   // Stop checkbox label clicks from bubbling to the document close-menu handler
   ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg","fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
     var lbl=el.closest("label")||el.parentElement;
     if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
   });
-  // Legacy characters checkbox + chance input
+  // Legacy characters checkbox + chance input (synced across all three menus)
   ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
     el.addEventListener("change",function(){
       legacyCharsOn=el.checked;saveLegacySettings();
-      if(el.checked&&typeof loadLegacyLibrary==="function")loadLegacyLibrary();// warm the library cache when enabled
+      if(el.checked&&typeof loadLegacyLibrary==="function")loadLegacyLibrary();
       ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(oid){var o=document.getElementById(oid);if(o&&o!==el)o.checked=el.checked;});
     });
   });
@@ -2234,16 +2207,14 @@ function wireButtons(){
     });
     el.addEventListener("click",function(e){e.stopPropagation();});
   });
+  // ── Game-screen-only menu items ──
+  document.getElementById("fm-export").addEventListener("click",exportSave);
+  document.getElementById("import-step1").addEventListener("change",importSave);
+  document.getElementById("open-blueprint-browser").addEventListener("click",showBlueprintBrowser);
+  document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
-  document.getElementById("fm-server-connect").addEventListener("click",connectToServer);
-  document.getElementById("fm-clearcache").addEventListener("click",clearCacheAndReload);
-  document.getElementById("fm-clearcache-top").addEventListener("click",clearCacheAndReload);
-  document.getElementById("fm-server-disconnect").addEventListener("click",disconnectFromServer);
-  document.getElementById("fm-set-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";setCampaignFolder();});
-  document.getElementById("fm-clear-folder").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";clearCampaignFolder();});
-  document.getElementById("fm-campaigns").addEventListener("click",showCampaignPicker);
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
   document.getElementById("import-char-btn").addEventListener("click",showCharacterBrowser);
   document.getElementById("fm-newgame").addEventListener("click",newGame);

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Traffic and Dragons — Code Audit (v1.111)</title>
+  <style>
+    :root{--bg0:#0d0d0d;--bg1:#111;--bg2:#1a1a1a;--bg3:#222;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--t0:#e8e0d0;--t1:#b8b0a0;--t2:#706860;--red:#c04040;--grn:#4a9060;--blue:#5080c0;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg0);color:var(--t0);font-family:Georgia,serif;padding:24px;max-width:960px;margin:0 auto;font-size:14px;line-height:1.6;}
+    h1{color:var(--acc);font-size:22px;margin-bottom:4px;}
+    .subtitle{color:var(--t2);font-size:12px;margin-bottom:28px;}
+    h2{color:var(--acc);font-size:16px;margin:32px 0 12px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+    h3{color:var(--t1);font-size:14px;margin:20px 0 8px;}
+
+    .todo{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;margin-bottom:12px;}
+    .todo.done{opacity:0.55;}
+    .todo-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+    .todo-sev{font-size:10px;font-weight:bold;padding:2px 8px;border-radius:3px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em;}
+    .sev-high{background:var(--red);color:#fff;}
+    .sev-med{background:#a07838;color:#000;}
+    .sev-low{background:var(--bg3);color:var(--t2);border:1px solid var(--brd2);}
+    .sev-info{background:var(--blue);color:#fff;}
+    .sev-done{background:var(--grn);color:#fff;}
+    .todo-title{font-size:14px;font-weight:bold;color:var(--t0);}
+    .todo-file{font-size:11px;color:var(--acc);font-family:monospace;margin-bottom:4px;}
+    .todo-desc{font-size:13px;color:var(--t1);line-height:1.55;}
+    .todo-remedy{font-size:12px;color:var(--t2);margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);}
+    .todo-remedy strong{color:var(--t1);}
+
+    .file-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px;}
+    .file-name{font-family:monospace;font-size:12px;color:var(--acc);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .file-reason{font-size:12px;color:var(--t2);}
+
+    .summary-box{background:var(--bg2);border:1px solid var(--acc);border-radius:8px;padding:16px;margin:16px 0 24px;font-size:13px;color:var(--t1);}
+    .summary-box strong{color:var(--t0);}
+    code{font-family:monospace;font-size:12px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--acc);}
+    .toc{margin:16px 0 28px;font-size:13px;}
+    .toc a{color:var(--acc);text-decoration:none;}
+    .toc a:hover{text-decoration:underline;}
+    .toc li{margin-bottom:4px;}
+  </style>
+</head>
+<body>
+
+<h1>Code Audit Report</h1>
+<p class="subtitle">Traffic and Dragons v1.111 &middot; 2026-06-26 &middot; Updated with fix status</p>
+
+<div class="summary-box">
+  <strong>Scope:</strong> Full codebase audit of all 13 JS files, index.html, service worker, ancillary files.
+  <strong>Focus:</strong> Inefficiencies, dead code, ES5/ES6 boundary violations, code duplication, stale references.
+  <br><strong>Files audited:</strong> globals.js, data.js, helpers.js, state.js, storage-adapter.js, memory.js, api.js, char-creation.js, game.js, ui.js (2617 lines), tts.js, stt.js, sw.js, index.html, manifest.json, _headers, hooks.
+  <br><strong>Total findings:</strong> 13 code issues + 8 non-contributing files.
+</div>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#es6">ES6 in an ES5 codebase</a></li>
+    <li><a href="#dead">Dead code &amp; stale references</a></li>
+    <li><a href="#duplication">Code duplication</a></li>
+    <li><a href="#perf">Performance / efficiency</a></li>
+    <li><a href="#bugs">Latent bugs</a></li>
+    <li><a href="#files">Non-contributing files</a></li>
+  </ol>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="es6">1. ES6 in an ES5 Codebase</h2>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">Object.assign usage (ES6) across core files</span>
+  </div>
+  <div class="todo-file">state.js:50 &middot; storage-adapter.js:193,195,252 &middot; ui.js:487</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Took remedy (b): documented ES5.1+ as the real floor in CLAUDE.md conventions. <code>Object.assign</code> and ES5.1 builtins (<code>.forEach</code>, <code>.map</code>, <code>.filter</code>) are explicitly permitted. The <code>es5-check.js</code> hook continues to catch <code>const</code>/<code>let</code>/arrow functions.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="dead">2. Dead Code &amp; Stale References</h2>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">fileUsedName() is a no-op still called from applyMuts()</span>
+  </div>
+  <div class="todo-file">memory.js:16 &middot; api.js:337,376,382</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Deleted the empty function definition in <code>memory.js</code> and removed all 3 call sites in <code>api.js</code>.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">TTS speakResponse() still parses for removed "*You could…*" pattern</span>
+  </div>
+  <div class="todo-file">tts.js:102-108</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Removed the dead regex and <code>if/else</code>. <code>speakResponse()</code> now calls <code>speak(cleanText.trim())</code> directly.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">DEFAULT_RULES[9] references removed "You could…" suggestion line</span>
+  </div>
+  <div class="todo-file">data.js:138</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Reworded the rule to remove the stale "You could…" reference.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">.nojekyll file is a GitHub Pages artifact</span>
+  </div>
+  <div class="todo-file">.nojekyll</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Deleted.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="duplication">3. Code Duplication</h2>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">sec()/kv() helper + character sheet rendering duplicated 3 times</span>
+  </div>
+  <div class="todo-file">ui.js — csSec, csKv, csSheetSections, csWireToggles, csInitials, csHeroHeader</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Extracted 6 shared top-level helpers: <code>csSec()</code>, <code>csKv()</code>, <code>csInitials()</code>, <code>csHeroHeader()</code>, <code>csSheetSections(c)</code> (builds all stat/condition/relationship/language/save-modifier/skill/beat/ability/spell/inventory sections), and <code>csWireToggles(modal)</code>. All three renderers (<code>showCharSheet</code>, <code>showNpcSheet</code>, <code>showReadOnlyCharSheet</code>) now call the shared helpers. NPC relationship-merge logic preserved as a thin wrapper. Net reduction: ~169 lines.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">Portrait "describe from image" logic duplicated</span>
+  </div>
+  <div class="todo-file">api.js (describePortraitImage) &middot; char-creation.js (ftDeriveAppearance) &middot; ui.js (runDescribe)</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Extracted <code>describePortraitImage(base64Url, charName)</code> into <code>api.js</code>. Both <code>ftDeriveAppearance()</code> in char-creation.js and <code>runDescribe()</code> in ui.js now call it, handling only their own UI (textarea population vs. describe-result modal).
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">File menu event wiring repeated 3× in wireButtons()</span>
+  </div>
+  <div class="todo-file">ui.js — wireButtons(), _menus loop</div>
+  <div class="todo-desc">
+    ✅ Done (v1.113) — Replaced ~60 lines of per-prefix <code>addEventListener</code> calls with a <code>_menus</code> table (<code>[{pfx, menu, imp}]</code>) and shared loop. Each iteration wires: close-and-call items (9 entries), direct-click items (2), change handlers (2), devmode toggle, toggle button, and import inputs. Game-screen-only items kept separate below the loop.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="perf">4. Performance / Efficiency</h2>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">cleanTxt() builds a massive regex on every call</span>
+  </div>
+  <div class="todo-file">api.js — _CT_TAGS, _CT_BARE, _CT_DASH, _CT_NL</div>
+  <div class="todo-desc">
+    ✅ Done (v1.113) — Hoisted all four regex patterns to module-level <code>var</code>s (<code>_CT_TAGS</code>, <code>_CT_BARE</code>, <code>_CT_DASH</code>, <code>_CT_NL</code>) compiled once on load. <code>cleanTxt()</code> now references them by name. Also consolidated the two bare-tag patterns (<code>ENEMY_SURRENDERS</code>, <code>SUBLOCATION_LEAVE</code>) into one regex.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">buildReview() re-rolls starting gold every time step 7 renders</span>
+  </div>
+  <div class="todo-file">char-creation.js:149 &middot; globals.js:104 &middot; ui.js:219</div>
+  <div class="todo-desc">
+    ✅ Done (v1.113) — Added <code>rvGoldRolled</code> guard flag. Gold rolls once on first step-7 entry; revisiting the step keeps the same value. Flag resets on <code>cs</code> reset (new character creation).
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">campCloudPushSilent() captures narrativeHtml from DOM innerHTML on every sync</span>
+  </div>
+  <div class="todo-file">ui.js:488</div>
+  <div class="todo-desc">
+    ✅ Done (v1.113) — Capped <code>narrativeHtml</code> to the last 10 <code>.msg</code> elements instead of the full DOM innerHTML. Keeps the "Previously:" recap on cloud load while cutting the serialized payload from hundreds of KB to a few KB in long sessions.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="bugs">5. Latent Bugs / Correctness</h2>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">submitKey() only validates "sk-" prefix, rejects non-Anthropic keys</span>
+  </div>
+  <div class="todo-file">ui.js — submitKey()</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Replaced the <code>sk-</code> prefix check with an empty-string check. All provider key formats are now accepted.
+  </div>
+</div>
+
+<div class="todo done">
+  <div class="todo-header">
+    <span class="todo-sev sev-done">✅ DONE</span>
+    <span class="todo-title">init() is a single 20+ line expression — hard to debug</span>
+  </div>
+  <div class="todo-file">ui.js — init(), initSettings(), initState(), initReplaySession()</div>
+  <div class="todo-desc">
+    ✅ Done (v1.111) — Split into 4 focused functions: <code>initSettings()</code> (rules, adult mode, prose, legacy, font, server UI), <code>initReplaySession()</code> (replays last 2 messages or shows "Previously:" summary), <code>initState(saved)</code> (restores game state, wires UI, restores combat), and <code>init()</code> as a thin orchestrator.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="files">6. Non-Contributing Files</h2>
+
+<p style="font-size:13px;color:var(--t2);margin-bottom:16px;">Files in the project directory that do not contribute to the running game. Some may be worth keeping for reference; others are safe to delete or move.</p>
+
+<h3>Safe to delete / move out</h3>
+
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">Ammut_and_Morwen_and_Friz_Ammut_t1392.json</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">Ammut_and_Morwen_and_Friz_Ammut_t1392_fixed.json</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">Ammut_and_Morwen_and_Friz_Ammut_t1392_clean.json</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">BAK/dnd_game_20_4.html</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">generate-icons.html</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+<div class="file-item" style="opacity:0.55;">
+  <span class="file-name" style="text-decoration:line-through;">.nojekyll</span>
+  <span class="file-reason">✅ Deleted (v1.111)</span>
+</div>
+
+<h3>Reference / design docs — keep or archive based on preference</h3>
+
+<div class="file-item">
+  <span class="file-name">CAR_MODE.md</span>
+  <span class="file-reason">Planning doc for TODO #5 (Car Mode) — not yet built. Reference value if the feature ships.</span>
+</div>
+<div class="file-item">
+  <span class="file-name">STORY_COMPILER.md</span>
+  <span class="file-reason">Planning doc for the story compiler feature — partially revised (2026-06-15). Not yet built.</span>
+</div>
+
+<h3>Utility files — functional but optional</h3>
+
+<div class="file-item">
+  <span class="file-name">todo-viewer.html</span>
+  <span class="file-reason">Styled HTML viewer for TODO.md — developer utility, not part of the game</span>
+</div>
+<div class="file-item">
+  <span class="file-name">rise_of_the_runelords.campaign</span>
+  <span class="file-reason">Sample/personal campaign blueprint file</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2>Summary</h2>
+
+<div class="summary-box">
+  <strong>Fixed:</strong> 13 of 13 findings resolved (v1.111–v1.113) + all 6 deletable files removed<br>
+  <strong>Remaining:</strong> 0 open items. All audit findings closed.
+</div>
+
+<p style="font-size:12px;color:var(--t2);margin-top:24px;text-align:center;">
+  Audit generated 2026-06-26 against v1.110 (commit 5f0c83b).
+  <br>Updated 2026-06-26 with fix status through v1.111 (commit 2085a7e).
+</p>
+
+</body>
+</html>
