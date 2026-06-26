@@ -35,7 +35,7 @@ function hideAncDetail(){var gw=document.getElementById("anc-grid-wrap"),det=doc
 function buildFlexPick(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||a.fc===0)return;var lim=a.fc,lbl=document.getElementById("flex-lbl");if(lbl)lbl.textContent="Choose "+lim+" stat"+(lim>1?"s":"")+" for +1 ("+cs.fp.length+"/"+lim+"):";var fg=document.getElementById("flex-grid");if(!fg)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],isSel=cs.fp.indexOf(s)>=0,isFull=!isSel&&cs.fp.length>=lim;h+='<div class="fp'+(isSel?" sel":"")+(isFull?" dis":"")+'" onclick="pickFlex(\''+s+'\')">'+s+'</div>';}fg.innerHTML=h;}
 function pickFlex(s){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a)return;var idx=cs.fp.indexOf(s);if(idx>=0)cs.fp.splice(idx,1);else if(cs.fp.length<a.fc)cs.fp.push(s);buildFlexPick();buildStatGrid();}
 function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i;for(i=0;i<CLSS.length;i++){var c=CLSS[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
-function pickCls(idx){cs.cls=CLSS[idx].id;buildClsGrid();var gp=document.getElementById("gear-prev");if(gp)gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>';}
+function pickCls(idx){cs.cls=CLSS[idx].id;buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[CLSS[idx].id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
 function buildStatGrid(){var fs=getFin();var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}var bst=[];if(a){if(a.fc>0)bst=cs.fp.slice();else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++)bst.push(keys[i]);}}var has=cs.rolled||cs.statMode==="pb";var el=document.getElementById("stat-grid");if(!el)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],base=cs.bs[s],fin=fs[s],bon=fin-base,ib=bst.indexOf(s)>=0;h+='<div class="sbox'+(ib?" bst":"")+'"><div class="sn">'+s+'</div><div class="sv">'+(has?base:"--")+'</div><div class="sf">'+(has&&bon>0?fin+" (+"+bon+")":"&nbsp;")+'</div><div class="sm">'+(has?smod(fin):"")+'</div></div>';}el.innerHTML=h;}
 function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=STAT_PRIORITY[cs.cls]||STATS;for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
 function setStatMode(m){cs.statMode=m;cs.rolled=false;if(m==="pb"){var i;for(i=0;i<STATS.length;i++)cs.bs[STATS[i]]=8;}document.getElementById("mode-roll").className=m==="roll"?"active":"";document.getElementById("mode-pb").className=m==="pb"?"active":"";document.getElementById("roll-sec").style.display=m==="roll"?"block":"none";document.getElementById("pb-sec").style.display=m==="pb"?"block":"none";if(m==="pb")buildPBCtrls();buildStatGrid();}
@@ -55,37 +55,135 @@ function rvSyncXp(){
   if(goBtn)goBtn.textContent=lvl>=3?"Assign level perks":"Begin your journey";
   buildDots();
 }
+function buildFinishingTouches(){
+  var ap=document.getElementById("char-appear"),bs=document.getElementById("char-backstory");
+  if(ap&&cs.appear&&!ap.value)ap.value=cs.appear;
+  if(bs&&cs.backstory&&!bs.value)bs.value=cs.backstory;
+  var prev=document.getElementById("ft-portrait-preview");
+  if(prev)refreshFtPortrait();
+}
+function refreshFtPortrait(){
+  var prev=document.getElementById("ft-portrait-preview");if(!prev)return;
+  var ph=document.getElementById("ft-portrait-placeholder");
+  var derive=document.getElementById("ft-derive");
+  if(cs.portrait){
+    prev.innerHTML="<img src='"+cs.portrait+"' style='width:100%;height:100%;object-fit:cover;display:block;'/>";
+    if(ph)ph.style.display="none";
+    if(derive)derive.style.display="block";
+  }else{
+    prev.innerHTML="<span id='ft-portrait-placeholder' style='font-size:11px;color:var(--t2);'>No portrait</span>";
+    if(derive)derive.style.display="none";
+  }
+}
+async function ftRenderPortrait(){
+  var status=document.getElementById("ft-portrait-status");
+  if(!falKey){status.innerHTML="<span style='color:var(--red);'>No fal.ai key — add one via File &#9656; fal.ai image key…</span>";return;}
+  if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
+  var genderWord=cs.gender==="F"?"female":cs.gender==="NB"?"androgynous":"male";
+  var d=cs.name||"A character";
+  var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
+  if(anc)d+=", a "+genderWord+" "+(cs.age||"")+(" "+anc.nm)+(cs.cls?" "+cs.cls:"");
+  else d+=", a "+genderWord+(cs.age?" "+cs.age:"")+(cs.cls?" "+cs.cls:"");
+  var ap=document.getElementById("char-appear");
+  if(ap&&ap.value.trim())d+=", "+ap.value.trim();
+  var promptReq="Write a detailed image generation prompt for a fantasy character portrait. "
+    +"Base character description: "+d+". "
+    +"Spell out hair, eyes, skin tone, clothing, and visible gear explicitly. "
+    +"Style: dark fantasy portrait, upper body, detailed face, dramatic chiaroscuro lighting, painterly. 2-3 sentences. Output ONLY the prompt, no commentary, no tags.";
+  status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Writing portrait prompt…</span>";
+  busy=true;
+  try{
+    var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
+    status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Generating portrait…</span>";
+    var mdlCfg=RENDER_MODELS[0],mi;
+    for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
+    var falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
+      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
+      body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
+    if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
+    var falData=await falRes.json();
+    if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
+    var imgUrl=falData.images[0].url;
+    var resp=await fetch(imgUrl);var blob=await resp.blob();
+    var reader=new FileReader();
+    reader.onload=function(e){
+      compressPortrait(e.target.result,function(compressed){
+        cs.portrait=compressed;refreshFtPortrait();
+        status.innerHTML="<span style='color:var(--grn);'>Portrait generated.</span>";
+      });
+    };
+    reader.readAsDataURL(blob);
+  }catch(err){
+    status.innerHTML="<span style='color:var(--red);'>"+err.message+"</span>";
+  }
+  busy=false;
+}
+async function ftDeriveAppearance(){
+  var status=document.getElementById("ft-portrait-status");
+  if(!cs.portrait){status.innerHTML="<span style='color:var(--red);'>No portrait to read.</span>";return;}
+  var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
+  if(!key){status.innerHTML="<span style='color:var(--red);'>Needs a Claude (Anthropic) key.</span>";return;}
+  if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
+  var mm=cs.portrait.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+  if(!mm){status.innerHTML="<span style='color:var(--red);'>Portrait must be a base64 image.</span>";return;}
+  status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Reading the portrait…</span>";
+  busy=true;
+  try{
+    var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
+    var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
+    var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
+      {type:"text",text:"Describe this character's appearance for their sheet."+(cs.name?" Their name is "+cs.name+".":"")},
+      {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
+    ]}]};
+    var r=await fetch(PROVIDERS.anthropic.endpoint,{method:"POST",headers:PROVIDERS.anthropic.headers(key),body:JSON.stringify(body)});
+    if(!r.ok)throw new Error("Claude "+r.status);
+    var data=await r.json();
+    var desc=(PROVIDERS.anthropic.parseResponse(data)||"").trim();
+    if(desc){
+      var ap=document.getElementById("char-appear");
+      if(ap)ap.value=desc;
+      cs.appear=desc;
+      status.innerHTML="<span style='color:var(--grn);'>Appearance derived from portrait.</span>";
+    }else{
+      status.innerHTML="<span style='color:var(--red);'>Empty description returned.</span>";
+    }
+  }catch(err){
+    status.innerHTML="<span style='color:var(--red);'>"+(err.message||"Failed")+"</span>";
+  }
+  busy=false;
+}
 function buildReview(){
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP();rvGold=15+droll(10);
   var init=cs.name.split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
-  var trait=pval("char-trait","char-trait-c"),flaw=pval("char-flaw","char-flaw-c"),mot=pval("char-mot","char-mot-c"),subnm=getSubNm();
+  var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var el=document.getElementById("rv-card");if(!el)return;
   var genderLbl=cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male";
-  el.innerHTML='<div class="rv-head"><div class="rv-av">'+init+'</div><div><div class="rv-nm">'+cs.name+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
+  var avHtml=cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>';
+  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+cs.name+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
     +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'
-    +(cs.appear?'<div class="desc-pre">"'+cs.appear+(cs.mark?" -- "+cs.mark:"")+'"</div>':"")
+    +(cs.appear?'<div class="desc-pre">"'+cs.appear+'"</div>':"")
     +'<div class="rv-row"><span class="rk">Alignment</span><span class="rv" style="font-weight:normal;">'+statedAlign+'</span></div>'
     +(DEITY_CENTRIC.indexOf(cs.cls)>=0&&document.getElementById("char-deity")&&document.getElementById("char-deity").value.trim()?'<div class="rv-row"><span class="rk">Deity</span><span class="rv" style="font-weight:normal;">'+document.getElementById("char-deity").value.trim()+'</span></div>':"")
-    +'<div class="rv-row"><span class="rk">Trait</span><span class="rv" style="font-weight:normal;">'+(trait||"--")+'</span></div>'
-    +'<div class="rv-row"><span class="rk">Flaw</span><span class="rv" style="font-weight:normal;">'+(flaw||"--")+'</span></div>'
-    +'<div class="rv-row"><span class="rk">Wants</span><span class="rv" style="font-weight:normal;">'+(mot||"--")+'</span></div>'
     +'<div><div class="rk" style="margin-bottom:6px;">Starting gear</div><div class="tags">'+(cls?cls.gear:"").split(", ").map(function(g){return'<span class="tag">'+g+'</span>';}).join("")+'</div></div>';
   var lvlSel=document.getElementById("rv-start-level"),goBtn=document.getElementById("rv-go");
   if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
   // Pre-fill campaign name with character name if not yet set
   var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=cs.name;
   // Blueprint overrides: campaign name and starting location
+  var locField=document.getElementById("rv-loc-field"),locFixed=document.getElementById("rv-loc-fixed");
   if(pendingBlueprint){
     if(cnInp&&pendingBlueprint.name)cnInp.value=pendingBlueprint.name;
     var bpLoc=pendingBlueprint.startingLocation;
     if(bpLoc){
-      var locSel=document.getElementById("rv-start-loc"),matched=false,oi;
-      if(locSel){for(oi=0;oi<locSel.options.length;oi++){if(locSel.options[oi].value===bpLoc){locSel.value=bpLoc;matched=true;break;}}
-        if(!matched){locSel.value="custom";var custW=document.getElementById("rv-start-loc-custom");if(custW)custW.style.display="block";var custI=document.getElementById("rv-start-loc-text");if(custI)custI.value=bpLoc;}}
+      if(locField)locField.style.display="none";
+      if(locFixed){locFixed.style.display="block";locFixed.querySelector("span").textContent=bpLoc;}
     }
+  }else{
+    if(locField)locField.style.display="block";
+    if(locFixed)locFixed.style.display="none";
   }
   rvSyncXp();
   if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
@@ -122,7 +220,7 @@ function goStep(n){
   document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;document.getElementById("step"+n).classList.add("active");buildDots();
   if(n===1)buildToneGrid();
   if(n===3){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
-  if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();}if(n===6)buildStep6Deity();if(n===7)buildReview();window.scrollTo(0,0);
+  if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===6)buildFinishingTouches();if(n===7)buildReview();window.scrollTo(0,0);
 }
 function confirmChar(){
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
@@ -130,16 +228,17 @@ function confirmChar(){
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var slEl=document.getElementById("rv-start-level"),startLvl=slEl?parseInt(slEl.value)||1:1;
   var xpEl=document.getElementById("rv-start-xp"),startXp=xpEl?Math.max(parseInt(xpEl.value)||0,XP_LEVELS[startLvl-1]||0):XP_LEVELS[startLvl-1]||0;
-  var locEl=document.getElementById("rv-start-loc"),startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";
+  var startLoc;
+  if(pendingBlueprint&&pendingBlueprint.startingLocation){startLoc=pendingBlueprint.startingLocation;}
+  else{var locEl=document.getElementById("rv-start-loc");startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}}
   var cnEl=document.getElementById("rv-camp-name"),campNameVal=cnEl&&cnEl.value.trim()?cnEl.value.trim():null;
-  if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}
   var deityEl=document.getElementById("char-deity");var charDeity=deityEl&&deityEl.value.trim()?deityEl.value.trim():null;
   // Derive starting languages from ancestry and subrace
   var startLangs=["Common"];
   var ancLangMap={elf:"Elvish",dwarf:"Dwarvish",gnome:"Gnomish",tiefling:"Infernal",hollow:"Umbral"};
   if(ancLangMap[cs.ancestry])startLangs.push(ancLangMap[cs.ancestry]);
   if(cs.ancestry==="halfblood"&&cs.subrace){var subLangMap={half_elven:"Elvish",half_orcish:"Orcish",half_draconic:"Draconic",half_infernal:"Infernal",half_fey:"Sylvan",half_gnomish:"Gnomish"};if(subLangMap[cs.subrace]&&startLangs.indexOf(subLangMap[cs.subrace])<0)startLangs.push(subLangMap[cs.subrace]);}
-  var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:cs.mark,backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:pval("char-trait","char-trait-c"),flaw:pval("char-flaw","char-flaw-c"),motivation:pval("char-mot","char-mot-c"),languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],partyMember:true};
+  var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:null,flaw:null,motivation:null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,storyBeats:[],partyMember:true};
   if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
@@ -293,7 +392,7 @@ async function aiRandomiseAll(btn){
   if(btn){btn.classList.add("spinning");btn.disabled=true;btn.textContent="✦ …";}
   var ctx=_csContext();
   var prompt="Generate a complete dark fantasy RPG character identity. Return ONLY valid JSON, no markdown:\n"
-    +'{"name":"string","appear":"1-2 sentence physical description","mark":"one distinctive physical detail","backstory":"1-2 sentences of history","trait":"one defining personality trait","flaw":"one significant flaw","motivation":"what they want more than anything"}'
+    +'{"name":"string","appear":"1-2 sentence physical description","backstory":"1-2 sentences of history"}'
     +"\n\nContext:\n"+ctx;
   try{
     var raw=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY a single valid JSON object, no markdown, no commentary.",600);
@@ -301,14 +400,8 @@ async function aiRandomiseAll(btn){
     var c=JSON.parse(json);
     if(c.name&&document.getElementById("char-name"))document.getElementById("char-name").value=c.name;
     if(c.appear&&document.getElementById("char-appear"))document.getElementById("char-appear").value=c.appear;
-    if(c.mark&&document.getElementById("char-mark"))document.getElementById("char-mark").value=c.mark;
     if(c.backstory&&document.getElementById("char-backstory"))document.getElementById("char-backstory").value=c.backstory;
-    // Step 6 personality fields — set to custom and fill
-    if(c.trait){var ts=document.getElementById("char-trait");if(ts){ts.value="custom";document.getElementById("trait-cw").style.display="block";document.getElementById("char-trait-c").value=c.trait;}}
-    if(c.flaw){var fs=document.getElementById("char-flaw");if(fs){fs.value="custom";document.getElementById("flaw-cw").style.display="block";document.getElementById("char-flaw-c").value=c.flaw;}}
-    if(c.motivation){var ms=document.getElementById("char-mot");if(ms){ms.value="custom";document.getElementById("mot-cw").style.display="block";document.getElementById("char-mot-c").value=c.motivation;}}
-    // Auto-fill cs state from name so review card updates
-    cs.name=c.name||cs.name;cs.appear=c.appear||cs.appear;cs.mark=c.mark||cs.mark;cs.backstory=c.backstory||cs.backstory;
+    cs.name=c.name||cs.name;cs.appear=c.appear||cs.appear;cs.backstory=c.backstory||cs.backstory;
     buildReview();
     showToast("Character generated — review and adjust below.");
   }catch(e){showToast("Generate failed: "+e.message);}
@@ -319,7 +412,6 @@ function injectSparkleButtons(){
   var fields=[
     {id:"char-name",      label:"character name"},
     {id:"char-appear",    label:"physical appearance"},
-    {id:"char-mark",      label:"distinguishing mark"},
     {id:"char-backstory", label:"backstory"}
   ];
   fields.forEach(function(f){
@@ -328,15 +420,6 @@ function injectSparkleButtons(){
     var btn=document.createElement("button");
     btn.type="button";btn.className="ai-spark";btn.textContent="✦";btn.title="AI suggest";
     btn.addEventListener("click",function(){aiSuggestField(f.id,f.label,btn);});
-    lbl.appendChild(btn);
-  });
-  // Personality custom inputs — step 6
-  [["char-trait-c","personality trait"],["char-flaw-c","character flaw"],["char-mot-c","motivation"]].forEach(function(pair){
-    var el=document.getElementById(pair[0]);if(!el)return;
-    var lbl=el.parentNode.querySelector("label");if(!lbl||lbl.querySelector(".ai-spark"))return;
-    var btn=document.createElement("button");
-    btn.type="button";btn.className="ai-spark";btn.textContent="✦";btn.title="AI suggest";
-    btn.addEventListener("click",function(){aiSuggestField(pair[0],pair[1],btn);});
     lbl.appendChild(btn);
   });
 }

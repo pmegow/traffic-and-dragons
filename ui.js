@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.100";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.105";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -615,29 +615,102 @@ function importSave(event){
     saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
-function importBlueprint(event){
-  var file=event.target.files[0];if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var bp=JSON.parse(e.target.result);
-      var err=validateBlueprint(bp);
-      if(err){showToast("Invalid blueprint: "+err);return;}
-      pendingBlueprint=bp;
-      // Auto-select the matching tone
-      if(bp.tone){var ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===bp.tone){cs.tone=TONES[ti].id;var cards=document.querySelectorAll("#tone-grid .card");Array.prototype.forEach.call(cards,function(c){c.classList.toggle("sel",c.getAttribute("data-id")===bp.tone);});break;}}}
-      // Show banner
-      var banner=document.getElementById("blueprint-banner"),nm=document.getElementById("blueprint-name");
-      if(banner){banner.style.display="block";nm.textContent=bp.name;}
-      showToast("Blueprint loaded: "+bp.name);
-    }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
-  };
-  reader.readAsText(file);event.target.value="";
+function _applyBlueprint(bp){
+  pendingBlueprint=bp;
+  if(bp.tone){var ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===bp.tone){cs.tone=TONES[ti].id;var cards=document.querySelectorAll("#tone-grid .card");Array.prototype.forEach.call(cards,function(c2){c2.classList.toggle("sel",c2.getAttribute("data-id")===bp.tone);});break;}}}
+  var banner=document.getElementById("blueprint-banner"),nm=document.getElementById("blueprint-name");
+  if(banner){banner.style.display="block";nm.textContent=bp.name;}
+  showToast("Blueprint loaded: "+bp.name);
+  goStep(2);
 }
 function clearBlueprint(){
   pendingBlueprint=null;
   var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";
   showToast("Blueprint cleared.");
+}
+function showBlueprintBrowser(){
+  var ex=document.getElementById("bp-browser-modal");if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id="bp-browser-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  function renderList(){
+    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
+      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
+      +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs. Load one before creating your character.</div>"
+      +"<div id='bp-body'></div>"
+      +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
+      +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
+      +"<input type='file' id='bp-file-inp' accept='.campaign' style='display:none;'/> Import from file (.campaign)&hellip;</label></div>"
+      +"</div>";
+    document.getElementById("bp-x").addEventListener("click",function(){modal.remove();});
+    modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    document.getElementById("bp-file-inp").addEventListener("change",function(ev){
+      var file=ev.target.files[0];if(!file)return;
+      var reader=new FileReader();
+      reader.onload=function(re){
+        try{
+          var bp=JSON.parse(re.target.result);
+          var err=validateBlueprint(bp);
+          if(err){showToast("Invalid blueprint: "+err);return;}
+          showPreview(bp);
+        }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
+      };
+      reader.readAsText(file);ev.target.value="";
+    });
+    // TODO: server-side blueprint list would go here
+    var body=document.getElementById("bp-body");
+    if(!body)return;
+    body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No server-hosted blueprints yet. Import a .campaign file below.</div>";
+  }
+  function showPreview(bp){
+    var actCount=bp.acts?bp.acts.length:0;
+    var arcCount=0;if(bp.acts){var ai;for(ai=0;ai<bp.acts.length;ai++)arcCount+=(bp.acts[ai].arcs?bp.acts[ai].arcs.length:0);}
+    var npcCount=bp.npcs?bp.npcs.length:0;
+    var locCount=bp.locations?bp.locations.length:0;
+    var actsHtml="",ai2,aj;
+    if(bp.acts){for(ai2=0;ai2<bp.acts.length;ai2++){
+      var act=bp.acts[ai2];
+      actsHtml+="<div style='margin-bottom:10px;'><div style='font-size:12px;color:var(--acc);font-weight:bold;'>Act "+(ai2+1)+": "+escHtml(act.title)+"</div>"
+        +"<div style='font-size:11px;color:var(--t2);margin:2px 0 4px;'>"+escHtml(act.goal)+"</div>";
+      if(act.arcs){for(aj=0;aj<act.arcs.length;aj++){
+        var arc=act.arcs[aj],typeTag=arc.type?" <span style='font-size:10px;color:var(--t2);'>("+escHtml(arc.type)+")</span>":"";
+        actsHtml+="<div style='font-size:11px;color:var(--t1);padding-left:12px;'>"+escHtml(arc.title)+typeTag+"</div>";
+      }}
+      actsHtml+="</div>";
+    }}
+    var npcHtml="";
+    if(bp.npcs){var ni;for(ni=0;ni<bp.npcs.length;ni++){
+      var n=bp.npcs[ni],roleCol=n.role==="enemy"?"#c04040":n.role==="ally"?"var(--grn)":"var(--t2)";
+      npcHtml+="<div style='display:flex;gap:6px;align-items:baseline;margin-bottom:3px;'><span style='font-size:11px;color:var(--t0);'>"+escHtml(n.name)+"</span><span style='font-size:10px;color:"+roleCol+";'>"+escHtml(n.role||"neutral")+"</span></div>";
+    }}
+    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
+      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(bp.name)+"</span>"
+      +"<button id='bp-prev-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+      +(bp.author?"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>by "+escHtml(bp.author)+"</div>":"")
+      +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(bp.premise||"")+"</div>"
+      +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;'>"
+      +"<div style='font-size:11px;color:var(--t2);'>"+actCount+" acts</div>"
+      +"<div style='font-size:11px;color:var(--t2);'>"+arcCount+" arcs</div>"
+      +"<div style='font-size:11px;color:var(--t2);'>"+npcCount+" NPCs</div>"
+      +"<div style='font-size:11px;color:var(--t2);'>"+locCount+" locations</div>"
+      +"</div>"
+      +(actsHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-acts-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-acts-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Story arcs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-acts-body' style='display:none;margin-top:8px;'>"+actsHtml+"</div></div>":"")
+      +(npcHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-npc-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-npc-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Key NPCs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-npc-body' style='display:none;margin-top:8px;'>"+npcHtml+"</div></div>":"")
+      +"<div style='display:flex;gap:10px;'>"
+      +"<button id='bp-use' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Use this blueprint</button>"
+      +"<button id='bp-back' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Back</button>"
+      +"</div></div>";
+    document.getElementById("bp-prev-x").addEventListener("click",function(){modal.remove();});
+    document.getElementById("bp-back").addEventListener("click",renderList);
+    document.getElementById("bp-use").addEventListener("click",function(){modal.remove();_applyBlueprint(bp);});
+    var actsToggle=document.getElementById("bp-acts-toggle"),npcToggle=document.getElementById("bp-npc-toggle");
+    if(actsToggle)actsToggle.addEventListener("click",function(){var b=document.getElementById("bp-acts-body"),a=document.getElementById("bp-acts-arrow");var open=b.style.display==="none";b.style.display=open?"block":"none";a.style.transform=open?"rotate(0deg)":"rotate(-90deg)";});
+    if(npcToggle)npcToggle.addEventListener("click",function(){var b=document.getElementById("bp-npc-body"),a=document.getElementById("bp-npc-arrow");var open=b.style.display==="none";b.style.display=open?"block":"none";a.style.transform=open?"rotate(0deg)":"rotate(-90deg)";});
+  }
+  document.body.appendChild(modal);
+  renderList();
 }
 function showCharSheet(){
   if(!worldState)return;
@@ -755,9 +828,9 @@ function showCharSheet(){
     +sec("Character"
       ,(c.appear?kv("Appearance",c.appear):"")
       +(c.mark?kv("Distinguishing Mark",c.mark):"")
-      +kv("Trait",c.trait||"—")
-      +kv("Flaw",c.flaw||"—")
-      +kv("Motivation",c.motivation||"—")
+      +(c.trait?kv("Trait",c.trait):"")
+      +(c.flaw?kv("Flaw",c.flaw):"")
+      +(c.motivation?kv("Motivation",c.motivation):"")
       +(c.backstory?kv("Backstory",c.backstory):"")
     )
     +sec("Conditions",condHtml)
@@ -1206,7 +1279,7 @@ function showNpcSheet(name){
     var abilHtml2=sheet.abilities&&sheet.abilities.length?(function(){var h="";for(i=0;i<sheet.abilities.length;i++)h+='<div class="cs-abil"><span class="cs-abil-nm">'+sheet.abilities[i].nm+'</span><span class="cs-abil-ds">'+sheet.abilities[i].ds+'</span></div>';return h;})():'<span class="cs-none">None yet</span>';
     var spellHtml2="";if(sheet.spells&&sheet.spells.length){var spPts2=[];for(i=0;i<sheet.spells.length;i++){var sp3=sheet.spells[i],stg=(sp3.lvl===0?"C":String(sp3.lvl)),nm4=(sp3.nm.indexOf("(")>=0?sp3.nm.slice(0,sp3.nm.indexOf("(")).trim():sp3.nm);var stxt="["+stg+"] "+nm4;spPts2.push(sp3.used?'<span style="color:var(--t2);text-decoration:line-through">'+stxt+'</span>':stxt);}spellHtml2='<div class="cs-v" style="line-height:1.9">'+spPts2.join(", ")+"</div>";}
     var invHtml2=sheet.inventory&&sheet.inventory.length?'<div class="cs-v">'+sheet.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
-    var charKv=(sheet.appear?kv("Appearance",sheet.appear):"")+(sheet.mark?kv("Distinguishing Mark",sheet.mark):"")+kv("Trait",sheet.trait||"—")+kv("Flaw",sheet.flaw||"—")+kv("Motivation",sheet.motivation||"—")+(sheet.backstory?kv("Backstory",sheet.backstory):"");
+    var charKv=(sheet.appear?kv("Appearance",sheet.appear):"")+(sheet.mark?kv("Distinguishing Mark",sheet.mark):"")+(sheet.trait?kv("Trait",sheet.trait):"")+(sheet.flaw?kv("Flaw",sheet.flaw):"")+(sheet.motivation?kv("Motivation",sheet.motivation):"")+(sheet.backstory?kv("Backstory",sheet.backstory):"");
     sheetSections=sec("Attributes",statHtml)+sec("Character",charKv)+sec("Conditions",condHtml2)+sec("Relationships",relHtml2)+sec("Languages",langHtml2)+(sheet.saveModifiers&&sheet.saveModifiers.length?sec("Save Modifiers",saveHtml2):"")+sec("Skills",skillHtml2)+(sheet.storyBeats&&sheet.storyBeats.length?sec("Story Beats",beatsHtml2):"")+sec("Abilities",abilHtml2)+(sheet.spells&&sheet.spells.length?sec("Spells",spellHtml2):"")+sec("Inventory",invHtml2);
   }
 
@@ -1867,7 +1940,7 @@ function _addImportedCompanion(char){
   saveAll();syncUI();
   showToast(char.name+" added as companion.");
   // Introduce companion into the current scene
-  var intro="[Internal — not a player action] "+char.name+" joins the scene. They are a "+(char.subraceNm?char.subraceNm+" ":"")+char.ancestry+" "+char.cls+(char.archetypeNm?" ["+char.archetypeNm+"]":"")+", Level "+char.level+". "+(char.appear?'Appearance: "'+char.appear+(char.mark?" — "+char.mark:"")+'".':"")+" Trait: "+char.trait+". Flaw: "+char.flaw+". Weave their arrival naturally into the current scene.";
+  var intro="[Internal — not a player action] "+char.name+" joins the scene. They are a "+(char.subraceNm?char.subraceNm+" ":"")+char.ancestry+" "+char.cls+(char.archetypeNm?" ["+char.archetypeNm+"]":"")+", Level "+char.level+". "+(char.appear?'Appearance: "'+char.appear+(char.mark?" — "+char.mark:"")+'".':"")+(char.trait?" Trait: "+char.trait+".":"")+(char.flaw?" Flaw: "+char.flaw+".":"")+" Weave their arrival naturally into the current scene.";
   sendAction(intro,{silent:true});
 }
 function importCharacterFile(e){
@@ -2008,9 +2081,9 @@ function showReadOnlyCharSheet(c,opts){
     +sec("Character"
       ,(c.appear?kv("Appearance",c.appear):"")
       +(c.mark?kv("Distinguishing Mark",c.mark):"")
-      +kv("Trait",c.trait||"—")
-      +kv("Flaw",c.flaw||"—")
-      +kv("Motivation",c.motivation||"—")
+      +(c.trait?kv("Trait",c.trait):"")
+      +(c.flaw?kv("Flaw",c.flaw):"")
+      +(c.motivation?kv("Motivation",c.motivation):"")
       +(c.backstory?kv("Backstory",c.backstory):"")
     )
     +sec("Conditions",condHtml)
@@ -2127,7 +2200,7 @@ function wireButtons(){
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});
   document.getElementById("tone-next").addEventListener("click",function(){if(!cs.tone){document.getElementById("s1-warn").textContent="Choose a tone.";return;}if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
   document.getElementById("id-back").addEventListener("click",function(){goStep(1);});
-  document.getElementById("id-next").addEventListener("click",function(){var n=document.getElementById("char-name").value.trim();if(!n){document.getElementById("s2-warn").textContent="Enter a name.";return;}cs.name=n;cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;cs.appear=document.getElementById("char-appear").value.trim();cs.mark=document.getElementById("char-mark").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();document.getElementById("s2-warn").textContent="";goStep(3);});
+  document.getElementById("id-next").addEventListener("click",function(){var n=document.getElementById("char-name").value.trim();if(!n){document.getElementById("s2-warn").textContent="Enter a name.";return;}cs.name=n;cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;document.getElementById("s2-warn").textContent="";goStep(3);});
   document.getElementById("anc-back").addEventListener("click",function(){if(document.getElementById("anc-detail").style.display!=="none")hideAncDetail();else goStep(2);});
   document.getElementById("anc-back-detail").addEventListener("click",hideAncDetail);
   document.getElementById("anc-next").addEventListener("click",function(){if(!cs.ancestry){document.getElementById("s3-warn").textContent="Choose an ancestry.";return;}if(!cs.subrace){document.getElementById("s3-warn").textContent="Choose a subrace.";return;}var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant){document.getElementById("s3-warn").textContent="Choose a "+selH.nm+" lineage.";return;}}if(a&&a.fc>0&&cs.fp.length<a.fc){document.getElementById("s3-warn").textContent="Choose "+a.fc+" stat bonuses.";return;}document.getElementById("s3-warn").textContent="";goStep(4);});
@@ -2136,13 +2209,14 @@ function wireButtons(){
   document.getElementById("sts-back").addEventListener("click",function(){goStep(4);});
   document.getElementById("sts-next").addEventListener("click",function(){if(!cs.rolled&&cs.statMode==="roll"){document.getElementById("s5-warn").textContent="Roll your stats first.";return;}document.getElementById("s5-warn").textContent="";goStep(6);});
   document.getElementById("roll-btn").addEventListener("click",rollAllStats);
-  document.getElementById("per-back").addEventListener("click",function(){goStep(5);});
-  document.getElementById("per-next").addEventListener("click",function(){var t=pval("char-trait","char-trait-c"),f=pval("char-flaw","char-flaw-c"),m=pval("char-mot","char-mot-c");if(!t||!f||!m){document.getElementById("s6-warn").textContent="Fill in all three fields.";return;}document.getElementById("s6-warn").textContent="";goStep(7);});
-  document.getElementById("char-trait").addEventListener("change",function(){document.getElementById("trait-cw").style.display=this.value==="custom"?"block":"none";});
-  document.getElementById("char-flaw").addEventListener("change",function(){document.getElementById("flaw-cw").style.display=this.value==="custom"?"block":"none";});
-  document.getElementById("char-mot").addEventListener("change",function(){document.getElementById("mot-cw").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("char-alignment").addEventListener("change",function(){if(!cs.deityEdited)buildStep6Deity();});
   document.getElementById("char-deity").addEventListener("input",function(){cs.deityEdited=this.value!==getDefaultDeity();});
+  document.getElementById("ft-back").addEventListener("click",function(){goStep(5);});
+  document.getElementById("ft-next").addEventListener("click",function(){cs.appear=document.getElementById("char-appear").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();goStep(7);});
+  document.getElementById("ft-upload").addEventListener("click",function(){document.getElementById("ft-portrait-file").click();});
+  document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
+  document.getElementById("ft-render").addEventListener("click",function(){ftRenderPortrait();});
+  document.getElementById("ft-derive").addEventListener("click",function(){ftDeriveAppearance();});
   document.getElementById("rv-back").addEventListener("click",function(){goStep(6);});
   document.getElementById("rv-go").addEventListener("click",confirmChar);
   document.getElementById("rv-randomise").addEventListener("click",function(){aiRandomiseAll(this);});
@@ -2195,7 +2269,7 @@ function wireButtons(){
   document.getElementById("fm-export").addEventListener("click",exportSave);
   document.getElementById("import-inp").addEventListener("change",importSave);
   document.getElementById("import-step1").addEventListener("change",importSave);
-  document.getElementById("import-blueprint").addEventListener("change",importBlueprint);
+  document.getElementById("open-blueprint-browser").addEventListener("click",showBlueprintBrowser);
   document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
   // fm-narrative button removed (auto-export every 10 turns handles this)
   document.getElementById("fm-devmode").addEventListener("click",function(e){

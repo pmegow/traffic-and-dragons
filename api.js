@@ -128,20 +128,15 @@ function buildSysPrompt(){
   }
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.content;}).join(" ");for(i=0;i<npcNames.length;i++){if(recent.indexOf(npcNames[i])>=0)hotNpcs+=memoryNpcDetail(npcNames[i])+"\n";}}
-  var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+" | Trait: "+c.trait+" | Flaw: "+c.flaw+"\n\n";
+  var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+(c.trait?" | Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+"\n\n";
   var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, and graphic mature themes are fully permitted and encouraged when narratively appropriate. PROFANITY IS FULLY UNLOCKED — strong language and crude words (fuck, shit, etc.) are permitted without restriction; swear freely and naturally wherever the chosen prose voice, a character's mouth, or the heat of the moment calls for it. Do NOT self-censor, do NOT soften word choice, do NOT substitute milder words or censor with symbols. Do not fade to black, time-skip, or cut away to the afterglow (e.g. jumping to 'Later, …') at the moment an intimate scene begins — depict the encounter itself on-screen, not just the lead-up and the morning after. Do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
-  // Prose-inspiration voice (TODO #23) — read live so the picker takes effect next turn.
-  // Profane voices swear only when adultMode is on; otherwise keep the rhythm, clean the words.
-  var proseBlock="";
-  // Per-campaign voice (worldState.proseAuthor) wins; else the device default (global, from PROSE_K).
+  // Prose-inspiration voice (TODO #23) — merged into the STYLE rule so there's one
+  // unified voice directive, not a separate block the model can average away.
+  var _paVc="",_paProfane=false;
   var _paId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_paId&&typeof AUTHORS!=="undefined"){
     var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===_paId){pa=AUTHORS[pj];break;}}
-    if(pa&&pa.vc){
-      proseBlock="*** MANDATORY PROSE VOICE ***\nThis is a HARD stylistic requirement and the single most important rule for your narration. Write EVERY sentence of narration in exactly this voice. This OVERRIDES the generic tone voice above — where they conflict, this voice wins. A reader should recognise this voice from the rhythm, sentence length, and word choice alone. Do not blend it with a neutral GM voice; commit to it fully, every turn.\nVOICE: "+pa.vc;
-      if(pa.profane)proseBlock+=adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity.";
-      proseBlock+="\n\n";
-    }
+    if(pa&&pa.vc){_paVc=pa.vc;_paProfane=!!pa.profane;}
   }
   // Transient control-switch reinforcement — overrides the sessionLog momentum where the
   // OLD protagonist was "you". Set on swap, auto-cleared in sendAction after ~2 turns.
@@ -156,7 +151,7 @@ function buildSysPrompt(){
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
-    +"Trait: "+c.trait+" | Flaw: "+c.flaw+" | Motivation: "+c.motivation+(c.deity?" | Deity: "+c.deity:"")+"\n"
+    +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:""):"")+""+(c.deity?"Deity: "+c.deity+"\n":"")
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +partyBlock
@@ -209,8 +204,7 @@ function buildSysPrompt(){
     +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
     +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n"
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
-    +proseBlock
-    +"STYLE: Write clean, readable prose, then the suggestion line. Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Let the chosen prose voice set the length and rhythm. End EVERY response with a suggested-actions tag on its own line: [ACTIONS:first option|second option|third option] — EXACTLY three options, separated by pipe (|) characters, each a short plain-text action the player could take (no labels, no numbering, no markdown). This tag becomes the player's action buttons and is hidden from the prose; do not also write the options as a sentence. Never show tags in prose. Death is possible.";
+    +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. End EVERY response with a suggested-actions tag on its own line: [ACTIONS:first option|second option|third option] — EXACTLY three options, separated by pipe (|) characters, each a short plain-text action the player could take (no labels, no numbering, no markdown). This tag becomes the player's action buttons and is hidden from the prose; do not also write the options as a sentence. Never show tags in prose. Death is possible.";
 }
 function buildSkeletonBlock(){
   if(!worldState.skeleton)return"";

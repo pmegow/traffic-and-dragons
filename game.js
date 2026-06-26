@@ -296,10 +296,11 @@ async function generateSkeleton(){
   var c=worldState.character,w=worldState.world,t=worldState.tone;
   var prompt="Design a three-act campaign skeleton for this RPG character and setting. Output ONLY valid JSON, no markdown.\n\n"
     +"CHARACTER: "+c.name+", "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+"\n"
-    +"Trait: "+c.trait+" | Flaw: "+c.flaw+" | Motivation: "+c.motivation+(c.deity?" | Deity: "+c.deity:"")+"\n"
+    +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")
+    +(c.deity?"Deity: "+c.deity+"\n":"")
     +(c.backstory?"Backstory: "+c.backstory+"\n":"")
     +"SETTING: "+w.location+", "+w.region+" | Tone: "+(t&&t.name?t.name:"Sword and Sorcery")+"\n\n"
-    +"Generate a campaign with a central conflict that ties to the character's motivation and flaw. The story should feel personal, not generic.\n\n"
+    +"Generate a campaign with a central conflict that ties to the character's backstory and personality. The story should feel personal, not generic.\n\n"
     +"JSON format:\n"
     +'{"premise":"One paragraph: the central conflict driving the campaign",'
     +'"acts":['
@@ -333,7 +334,7 @@ async function beginAdventure(){
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
-    var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Trait: "+c.trait+". Flaw: "+c.flaw+". Wants: "+c.motivation+"."+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with *You could [A]; [B]; or [C].* as always, using semicolons to separate options.";
+    var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with *You could [A]; [B]; or [C].* as always, using semicolons to separate options.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean,resp);
     addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
     logTranscript("gm",parsed.clean);
