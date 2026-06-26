@@ -38,6 +38,27 @@ function startGame(char,toneName,toneVoice){
     generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();showToast("Campaign skeleton failed — playing freeform");if(typeof console!=="undefined")console.warn("[skeleton] "+e.message);beginAdventure();});
   }
 }
+async function generateActions(msgEl){
+  var btnDiv=document.createElement("div");
+  btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
+  var btns=[],i;
+  for(i=0;i<3;i++){var b=document.createElement("button");b.className="qa";b.textContent="…";b.disabled=true;b.style.minWidth="80px";btnDiv.appendChild(b);btns.push(b);}
+  msgEl.appendChild(btnDiv);
+  try{
+    var resp=await callGM("Based on what just happened, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. Output ONLY a valid JSON array of 3 short strings.",200);
+    var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
+    var acts=JSON.parse(cleaned);
+    if(!acts||!acts.length)return;
+    for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
+    worldState.lastActions=acts.slice(0,3);saveCore();
+  }catch(e){for(i=0;i<3;i++)btns[i].parentNode.removeChild(btns[i]);if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
+}
+function buildActionButtons(acts){
+  if(!acts||!acts.length)return"";
+  var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i;
+  for(i=0;i<acts.length;i++){h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}
+  return h+"</div>";
+}
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
 // pool rather than from other campaigns. Async, so checkLegacyCharacter rolls against the cache.
 function loadLegacyLibrary(){
@@ -171,12 +192,13 @@ async function sendAction(override,opts){
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;if(resp.indexOf(_lcn)>=0||(worldState.turn-worldState.pendingLegacy.queuedAt)>=5){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}}
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
-      var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean,resp);
-      addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
-      logTranscript("gm",parsed.clean);
-      if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
+      var clean=cleanTxt(resp),dice=diceTxt(resp);
+      var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+      logTranscript("gm",clean);
+      if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
+      generateActions(narEl);
     }
     syncUI();
   }catch(e){th.remove();var em=addMsg("system","GM error: "+e.message);if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
@@ -199,12 +221,13 @@ async function rerollLast(){
     var resp=await callGM(prevU.content,null,1000); // current voice; no muts, no turn++
     th.remove();
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
-    var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean,resp);
+    var clean=cleanTxt(resp),dice=diceTxt(resp);
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
-    addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
-    if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+    if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     saveAll();
+    generateActions(narEl);
   }catch(e){
     th.remove();sessionLog.push(prevU,prevA); // restore the original exchange on failure
     addMsg("system","Re-roll error: "+e.message);
@@ -335,12 +358,13 @@ async function beginAdventure(){
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
-    var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. End with [ACTIONS:first option|second option|third option] as always — exactly three short plain-text options separated by pipes.";
-    var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp),parsed=parseActions(clean,resp);
-    addMsg("narrator",(dice||"")+"<p>"+parsed.clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+(parsed.btns||""),{replayText:parsed.clean});
-    logTranscript("gm",parsed.clean);
-    if(typeof TTS!=="undefined")TTS.speakResponse(parsed.clean);
+    var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
+    var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp);
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+    logTranscript("gm",clean);
+    if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
+    generateActions(narEl);
     _promptCampaignFolder();
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   busy=false;document.getElementById("sendbtn").disabled=false;
