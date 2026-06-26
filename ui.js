@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){actPart=" | Act "+(i+1)+": "+sk.acts[i].title;break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.114";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.114";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
