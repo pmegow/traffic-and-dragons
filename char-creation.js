@@ -64,14 +64,19 @@ function buildFinishingTouches(){
 }
 function refreshFtPortrait(){
   var prev=document.getElementById("ft-portrait-preview");if(!prev)return;
-  var ph=document.getElementById("ft-portrait-placeholder");
   var derive=document.getElementById("ft-derive");
   if(cs.portrait){
-    prev.innerHTML="<img src='"+cs.portrait+"' style='width:100%;height:100%;object-fit:cover;display:block;'/>";
-    if(ph)ph.style.display="none";
+    prev.innerHTML="<img id='ft-portrait-img' src='"+cs.portrait+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'/>";
     if(derive)derive.style.display="block";
+    var img=document.getElementById("ft-portrait-img");
+    if(img){
+      wirePortraitDrag(img,
+        function(){return cs.portraitOffset||{x:0.5,y:0.5,zoom:1};},
+        function(x,y,zoom){cs.portraitOffset={x:x,y:y,zoom:zoom};}
+      );
+    }
   }else{
-    prev.innerHTML="<span id='ft-portrait-placeholder' style='font-size:11px;color:var(--t2);'>No portrait</span>";
+    prev.innerHTML="<span style='font-size:11px;color:var(--t2);'>No portrait</span>";
     if(derive)derive.style.display="none";
   }
 }
@@ -238,7 +243,7 @@ function confirmChar(){
   var ancLangMap={elf:"Elvish",dwarf:"Dwarvish",gnome:"Gnomish",tiefling:"Infernal",hollow:"Umbral"};
   if(ancLangMap[cs.ancestry])startLangs.push(ancLangMap[cs.ancestry]);
   if(cs.ancestry==="halfblood"&&cs.subrace){var subLangMap={half_elven:"Elvish",half_orcish:"Orcish",half_draconic:"Draconic",half_infernal:"Infernal",half_fey:"Sylvan",half_gnomish:"Gnomish"};if(subLangMap[cs.subrace]&&startLangs.indexOf(subLangMap[cs.subrace])<0)startLangs.push(subLangMap[cs.subrace]);}
-  var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:null,flaw:null,motivation:null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,storyBeats:[],partyMember:true};
+  var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:null,flaw:null,motivation:null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,portraitOffset:cs.portraitOffset||null,storyBeats:[],partyMember:true};
   if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}

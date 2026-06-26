@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.105";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.106";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -2143,57 +2143,114 @@ function showCompanionBrowser(){
   var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
+  var url=(localStorage.getItem("tnd_server_url_v1")||"").replace(/\/$/,"");
+  var connected=!!(tok&&url);
+  var mode=connected?"library":"local";
   function getChar(id,cb){
-    // Active campaign: prefer live WSK state (snapshot may be stale — portrait etc.)
     if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
-    var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-    var url=(localStorage.getItem("tnd_server_url_v1")||"").replace(/\/$/,"");
     if(!url||!tok){return cb("Not available locally.");}
     fetch(url+"/api/campaigns/"+id,{headers:{"Authorization":"Bearer "+tok}})
       .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
       .then(function(d){if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data.");})
       .catch(function(e){cb(e.message);});
   }
-  var meta=getCampMeta().slice().sort(function(a,b){return b.savedAt-a.savedAt;});
-  var rows="";
-  if(!meta.length){
-    rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns found.</div>";
-  }else{
-    for(var i=0;i<meta.length;i++){
+  function isAlreadyAdded(name){for(var j=0;j<pendingCompanions.length;j++){if(pendingCompanions[j].name===name)return true;}return false;}
+  function compRow(name,sub,pickId,pickType){
+    var added=isAlreadyAdded(name);
+    var isPlayer=(cs&&cs.name&&cs.name===name);
+    var full=(pendingCompanions.length>=3&&!added);
+    var dis=added||isPlayer||full;
+    var btnLbl=isPlayer?"You":added?"Added":"Select";
+    return "<div class='cbr-row' style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;"+(dis?"opacity:.45;":"")+"'>"
+      +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
+      +"<div class='cbr-name'>"+escHtml(name)+"</div>"
+      +"<div class='cbr-sub'>"+sub+"</div>"
+      +"</div>"
+      +"<button data-pick-id='"+escHtml(pickId)+"' data-pick-type='"+pickType+"' "+(dis?"disabled":"")+
+      " style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:"+(dis?"var(--bg3)":"var(--acc)")+";color:"+(dis?"var(--t2)":"#000")+";border:none;border-radius:var(--r);cursor:"+(dis?"default":"pointer")+";flex-shrink:0;'>"+btnLbl+"</button>"
+      +"</div>";
+  }
+  function renderLocal(){
+    var list=document.getElementById("comp-list");if(!list)return;
+    var meta=getCampMeta().slice().sort(function(a,b){return b.savedAt-a.savedAt;});
+    if(!meta.length){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns found.</div>";return;}
+    var h="",i;for(i=0;i<meta.length;i++){
       var cm=meta[i];
-      var alreadyAdded=false;for(var j=0;j<pendingCompanions.length;j++){if(pendingCompanions[j].name===cm.charName){alreadyAdded=true;break;}}
-      var isPlayer=(cs&&cs.name&&cs.name===cm.charName);
-      var full=(pendingCompanions.length>=3&&!alreadyAdded);
-      var dis=alreadyAdded||isPlayer||full;
-      var btnLbl=isPlayer?"You":alreadyAdded?"Added":"Select";
-      rows+="<div style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;"+(dis?"opacity:.45;":"")+"'>"
-        +"<div style='flex:1;min-width:0;'>"
-        +"<div style='font-size:14px;color:var(--t0);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(cm.charName)+"</div>"
-        +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
-        +"</div>"
-        +"<button onclick='_compPick(\""+escHtml(cm.id)+"\")' "+(dis?"disabled":"")+
-        " style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:"+(dis?"var(--bg3)":"var(--acc)")+";color:"+(dis?"var(--t2)":"#000")+";border:none;border-radius:var(--r);cursor:"+(dis?"default":"pointer")+";flex-shrink:0;'>"+btnLbl+"</button>"
-        +"</div>";
+      h+=compRow(cm.charName,"Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location),cm.id,"local");
+    }
+    list.innerHTML=h;
+    wirePicks();
+  }
+  function renderLibrary(){
+    var list=document.getElementById("comp-list");if(!list)return;
+    if(!connected){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Not connected to server. Use File &#9656; Dev Mode &#9656; Connect server.</div>";return;}
+    list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading library…</div>";
+    storageAdapter.listCharLibrary(function(err,entries){
+      if(err){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>"+escHtml(String(err))+"</div>";return;}
+      if(!entries||!entries.length){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library.</div>";return;}
+      var h="",i;for(i=0;i<entries.length;i++){
+        var entry=entries[i];
+        h+=compRow(entry.name,"Lv"+(entry.level||1)+" "+escHtml(entry.ancestry||"")+" "+escHtml(entry.cls||""),entry.slug,"library");
+      }
+      list.innerHTML=h;
+      wirePicks();
+    });
+  }
+  function wirePicks(){
+    var btns=modal.querySelectorAll("[data-pick-id]"),bi;
+    for(bi=0;bi<btns.length;bi++){
+      (function(btn){
+        btn.addEventListener("click",function(){
+          var id=btn.getAttribute("data-pick-id");
+          var type=btn.getAttribute("data-pick-type");
+          btn.textContent="Loading…";btn.disabled=true;
+          if(type==="library"){
+            storageAdapter.listCharLibrary(function(err,entries){
+              if(err){showToast("Could not load: "+err);btn.textContent="Select";btn.disabled=false;return;}
+              var found=null,ci;for(ci=0;ci<entries.length;ci++){if(entries[ci].slug===id){found=entries[ci];break;}}
+              if(!found||!found.character){showToast("Character data missing.");btn.textContent="Select";btn.disabled=false;return;}
+              modal.remove();_addPendingCompanion(found.character);
+            });
+          }else{
+            getChar(id,function(err,char){
+              if(err){showToast("Could not load: "+err);btn.textContent="Select";btn.disabled=false;return;}
+              modal.remove();_addPendingCompanion(char);
+            });
+          }
+        });
+      })(btns[bi]);
     }
   }
+  function render(){if(mode==="library")renderLibrary();else renderLocal();}
+  var segS="padding:7px 16px;font-size:12px;font-family:Georgia,serif;cursor:pointer;border:1px solid var(--brd2);";
+  function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"#000":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Add Companion</span>"
     +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-    +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>"+pendingCompanions.length+" / 3 selected</div>"
-    +rows+"</div>";
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>"+pendingCompanions.length+" / 3 selected</div>"
+    +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='comp-list'></div>"
+    +"</div>";
   document.body.appendChild(modal);
   document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
-  window._compPick=function(id){
-    var btn=modal.querySelector("[onclick*='"+id+"']");if(btn){btn.textContent="Loading…";btn.disabled=true;}
-    getChar(id,function(err,char){
-      if(err){showToast("Could not load: "+err);if(btn){btn.textContent="Select";btn.disabled=false;}return;}
-      modal.remove();
-      _addPendingCompanion(char);
-    });
-  };
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  function wireSegs(){
+    var segBtns=document.getElementById("comp-seg").querySelectorAll("button"),sbi;
+    for(sbi=0;sbi<segBtns.length;sbi++){
+      (function(sb){sb.addEventListener("click",function(){
+        mode=sb.getAttribute("data-seg");
+        document.getElementById("comp-seg").innerHTML=segBtn("&#9729; Library","library","left")+segBtn("Local","local","right");
+        wireSegs();
+        render();
+      });})(segBtns[sbi]);
+    }
+  }
+  wireSegs();
+  render();
 }
 function wireButtons(){
   document.getElementById("api-btn").addEventListener("click",submitKey);
