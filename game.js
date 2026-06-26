@@ -35,7 +35,7 @@ function startGame(char,toneName,toneVoice){
     // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
     // (network, parse, bad provider), log it and start anyway — the game works without one.
     var _skMsg=addMsg("thinking","Forging the campaign...");
-    generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();showToast("Campaign skeleton failed — playing freeform");if(typeof console!=="undefined")console.warn("[skeleton] "+e.message);beginAdventure();});
+    generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
   }
 }
 async function generateActions(msgEl){
