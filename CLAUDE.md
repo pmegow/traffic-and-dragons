@@ -331,13 +331,23 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 `character.alignLaw` and `character.alignGood` are integers clamped to [-3, 3]. `alignLabel(law, good)` maps to 9-point grid. GM shifts via `[ALIGNMENT:]` tags.
 
-### 13. Rendered action suggestions (structured tag — #14, v1.90)
+### 13. Rendered action suggestions (decoupled — #14, v1.110)
 
-Every GM response ends with a structured **`[ACTIONS:first|second|third]`** tag (exactly 3 pipe-separated plain-text options, instructed in the STYLE rule). `cleanTxt` strips it like any other tag, so it never shows in prose or TTS. `parseActions(clean, raw)`:
-- **Primary:** reads `[ACTIONS:(.+)]` from the **raw** response (greedy to the last `]`, so an action containing a bracket still parses), splits on `|`, trims, strips any leading `A)`/`[B]`/`C.` label (delimiter-required, so a real word starting with A–C like "Call" is left intact), caps at 3.
-- **Fallback (legacy saves):** if no tag, the old prose-parsing runs on `clean` — three passes (`*You could …*`, drifted `*…;…*`, bare un-asterisked `You could …;…`), splitting on `;\s*(?:or\s+)?` (or `,\s*or\s+|\s+or\s+` with no semicolons), and the matched line is stripped from the displayed prose. Kept only so messages stored before the tag format still render on reload.
+Action suggestions are **fully decoupled from GM prose** (v1.110). The GM writes pure narrative — no `[ACTIONS:]` tag, no `*You could…*` line. The STYLE block explicitly tells the GM NOT to emit action suggestions.
+
+**Flow:** after the GM response renders, `generateActions(msgEl)` in `game.js`:
+1. Creates 3 placeholder `"…"` buttons (disabled) appended to the narrator message element
+2. Fires a lightweight follow-up `callGM` call (200 token budget, `sysOverride` so no full system prompt rebuild) asking for 3 short action options as a JSON array
+3. Parses the response, populates each button's text and `data-action`, enables them
+4. Stores the options in `worldState.lastActions` via `saveCore()` for reload persistence
+5. On failure, silently removes the placeholder buttons
+
+**Reload:** `init()` and `campLoad()` check `worldState.lastActions` first and build buttons via `buildActionButtons(acts)` (returns HTML string). Falls back to `parseActions(clean, raw)` for pre-v1.110 saves that still have the `[ACTIONS:]` tag embedded.
+
+**`parseActions`** (api.js) is retained only for legacy save replay — reads `[ACTIONS:]` tag primary, then `[a|b|c]` without prefix, then the old `*You could…*` prose-parsing. No new responses use it.
+
 - Buttons rendered as `<button class="qa" onclick="sendSuggestedAction(this,event)" data-action="…">`. Tap fills the input (converted to 1st person via `toFirstPerson`, #14a/v1.83); long-press / Ctrl-click sends (#14a/v1.56).
-- This replaced the fragile prose-parsing as the *primary* path — the #17b half of #14. Switching the source from prose to a tag means the model emits one bracket tag (like every other state tag) instead of a markdown sentence the parser had to reverse-engineer.
+- Side benefit: removing `[ACTIONS:]` from the STYLE block freed model attention, noticeably improving prose-voice fidelity.
 
 ### 14. Table Talk mode
 
