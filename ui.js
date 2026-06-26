@@ -216,7 +216,7 @@ function showGame(){
 function showChar(){
   document.getElementById("char-screen").style.display="block";
   document.getElementById("game-screen").style.display="none";
-  cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};rvGoldRolled=false;
+  cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};rvGoldRolled=false;pendingImportChar=null;
   buildDots();buildToneGrid();
 }
 function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";}
@@ -388,7 +388,7 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";txt.textContent="Session: ~"+t+"tk | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.113";}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=1000?"mdot c":t>=800?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){actPart=" | Act "+(i+1)+": "+sk.acts[i].title;break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | v1.114";}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -1381,7 +1381,8 @@ function showCharacterBrowser(initialMode){
   // click a row → full read-only sheet; its Import button drops into the Play-as / companion chooser
   function inspectAndImport(char){
     showReadOnlyCharSheet(char,{onImport:function(){
-      showCharImportPreview(char,function(){_startImportedCampaign(char);},function(){showCharacterBrowser(mode);});
+      var inCreation=document.getElementById("char-screen").style.display!=="none";
+      showCharImportPreview(char,function(){if(inCreation)_importCharToReview(char);else _startImportedCampaign(char);},function(){showCharacterBrowser(mode);});
     }});
   }
 
@@ -1795,6 +1796,18 @@ function _switchPlayerCharacter(name){
 // Campaign setup for an imported character — replaces the old direct startGame() jump
 // that skipped tone, campaign name, and starting location entirely. The character is
 // played as-is (level, gear, abilities untouched); only world choices are asked here.
+function _importCharToReview(char){
+  if(!cs.tone){showToast("Pick a world tone first (Step 1).");return;}
+  var bm=document.getElementById("char-browser-modal");if(bm)bm.remove();
+  var pr=document.getElementById("char-import-preview");if(pr)pr.remove();
+  pendingImportChar=char;
+  cs.name=char.name||"";cs.gender=char.gender||"M";cs.age=char.age||"early twenties";
+  cs.portrait=char.portrait||null;cs.portraitOffset=char.portraitOffset||null;
+  cs.ancestry=char.ancestry||null;cs.cls=char.cls||null;
+  goStep(7);
+  var nm=document.getElementById("char-name");if(nm)nm.value=char.name||"";
+  var cn=document.getElementById("rv-camp-name");if(cn&&!cn.value)cn.value=char.name||"";
+}
 function _startImportedCampaign(char){
   var ex=document.getElementById("import-setup");if(ex)ex.remove();
   // Clone starting-location options from the wizard's step-7 select so the lists never drift.
@@ -1867,8 +1880,9 @@ function importCharacterFile(e){
       if(!char.skills)char.skills=initSkills();if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
       if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];if(char.portrait===undefined)char.portrait=null;
       if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
+      var inCreation2=document.getElementById("char-screen").style.display!=="none";
       showCharImportPreview(char, function(){
-        _startImportedCampaign(char);
+        if(inCreation2)_importCharToReview(char);else _startImportedCampaign(char);
       },showCharacterBrowser);
     }catch(err){showToast("Failed to import: "+err.message);}
   };
@@ -2125,7 +2139,7 @@ function wireButtons(){
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});
   document.getElementById("tone-next").addEventListener("click",function(){if(!cs.tone){document.getElementById("s1-warn").textContent="Choose a tone.";return;}if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
   document.getElementById("id-back").addEventListener("click",function(){goStep(1);});
-  document.getElementById("id-next").addEventListener("click",function(){var n=document.getElementById("char-name").value.trim();if(!n){document.getElementById("s2-warn").textContent="Enter a name.";return;}cs.name=n;cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;document.getElementById("s2-warn").textContent="";goStep(3);});
+  document.getElementById("id-next").addEventListener("click",function(){cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;goStep(3);});
   document.getElementById("anc-back").addEventListener("click",function(){if(document.getElementById("anc-detail").style.display!=="none")hideAncDetail();else goStep(2);});
   document.getElementById("anc-back-detail").addEventListener("click",hideAncDetail);
   document.getElementById("anc-next").addEventListener("click",function(){if(!cs.ancestry){document.getElementById("s3-warn").textContent="Choose an ancestry.";return;}if(!cs.subrace){document.getElementById("s3-warn").textContent="Choose a subrace.";return;}var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant){document.getElementById("s3-warn").textContent="Choose a "+selH.nm+" lineage.";return;}}if(a&&a.fc>0&&cs.fp.length<a.fc){document.getElementById("s3-warn").textContent="Choose "+a.fc+" stat bonuses.";return;}document.getElementById("s3-warn").textContent="";goStep(4);});
@@ -2142,12 +2156,13 @@ function wireButtons(){
   document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
   document.getElementById("ft-render").addEventListener("click",function(){ftRenderPortrait();});
   document.getElementById("ft-derive").addEventListener("click",function(){ftDeriveAppearance();});
-  document.getElementById("rv-back").addEventListener("click",function(){goStep(6);});
+  document.getElementById("rv-back").addEventListener("click",function(){pendingImportChar=null;goStep(6);});
   document.getElementById("rv-go").addEventListener("click",confirmChar);
   document.getElementById("rv-randomise").addEventListener("click",function(){aiRandomiseAll(this);});
   injectSparkleButtons();
   document.getElementById("rv-start-loc").addEventListener("change",function(){document.getElementById("rv-start-loc-custom").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("rv-start-level").addEventListener("change",function(){var b=document.getElementById("rv-go");if(b)b.textContent=parseInt(this.value)>=3?"Assign level perks":"Begin your journey";buildDots();});
+  document.getElementById("char-name").addEventListener("input",function(){cs.name=this.value.trim();buildReview();});
   document.getElementById("state-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});

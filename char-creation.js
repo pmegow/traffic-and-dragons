@@ -145,15 +145,33 @@ async function ftDeriveAppearance(){
   busy=false;
 }
 function buildReview(){
+  var el=document.getElementById("rv-card");if(!el)return;
+  // Imported character path — show as-is summary, no re-roll
+  if(pendingImportChar){
+    var ch=pendingImportChar,nameEl=document.getElementById("char-name");
+    var dispName=nameEl&&nameEl.value.trim()?nameEl.value.trim():ch.name;
+    var init2=(dispName||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+    var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+ch.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
+    var fs2=ch.stats||{};
+    el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName||'<span style="color:var(--t2)">Enter a name above</span>')+'</div>'
+      +'<div class="rv-sub">'+(ch.subraceNm||ch.subrace||ch.ancestry||"")+" "+(ch.cls||"")+" &middot; Lv"+(ch.level||1)+" &middot; "+(ch.gender==="F"?"Female":ch.gender==="NB"?"Non-binary":"Male")+'</div></div></div>'
+      +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+(fs2[s]||"—")+'</div><div class="rm">'+(fs2[s]?smod(fs2[s]):"")+'</div></div>';}).join("")+'</div>'
+      +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+(ch.maxHp||ch.hp||0)+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+(ch.gold||0)+' gp</span></div><div class="rv-row"><span class="rk">Level</span><span class="rv">'+(ch.level||1)+'</span></div><div class="rv-row"><span class="rk">XP</span><span class="rv">'+(ch.xp||0)+'</span></div></div>'
+      +(ch.appear?'<div class="desc-pre">"'+ch.appear+'"</div>':"")
+      +'<div style="font-size:11px;color:var(--t2);margin-top:8px;text-align:center;">Importing at level '+(ch.level||1)+" — no re-roll.</div>";
+    var cnInp2=document.getElementById("rv-camp-name");if(cnInp2&&!cnInp2.value)cnInp2.value=dispName;
+    if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
+    return;
+  }
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP();if(!rvGoldRolled){rvGold=15+droll(10);rvGoldRolled=true;}
-  var init=cs.name.split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+  var dispNm=cs.name||(document.getElementById("char-name")?document.getElementById("char-name").value.trim():"");
+  var init=(dispNm||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
   var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
-  var el=document.getElementById("rv-card");if(!el)return;
   var genderLbl=cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male";
   var avHtml=cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>';
-  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+cs.name+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
+  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm||'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
     +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'
     +(cs.appear?'<div class="desc-pre">"'+cs.appear+'"</div>':"")
@@ -163,7 +181,7 @@ function buildReview(){
   var lvlSel=document.getElementById("rv-start-level"),goBtn=document.getElementById("rv-go");
   if(lvlSel&&goBtn)goBtn.textContent=parseInt(lvlSel.value)>=3?"Assign level perks":"Begin your journey";
   // Pre-fill campaign name with character name if not yet set
-  var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=cs.name;
+  var cnInp=document.getElementById("rv-camp-name");if(cnInp&&!cnInp.value)cnInp.value=dispNm;
   // Blueprint overrides: campaign name and starting location
   var locField=document.getElementById("rv-loc-field"),locFixed=document.getElementById("rv-loc-fixed");
   if(pendingBlueprint){
@@ -215,6 +233,25 @@ function goStep(n){
   if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===6)buildFinishingTouches();if(n===7)buildReview();window.scrollTo(0,0);
 }
 function confirmChar(){
+  var nameEl=document.getElementById("char-name"),enteredName=nameEl?nameEl.value.trim():"";
+  // Imported character path: skip normal build, just apply step-7 fields and start game
+  if(pendingImportChar){
+    var ic=pendingImportChar;pendingImportChar=null;
+    ic.name=enteredName||ic.name;
+    var cn2El=document.getElementById("rv-camp-name"),campNm2=cn2El&&cn2El.value.trim()?cn2El.value.trim():ic.name;
+    var slEl2=document.getElementById("rv-start-loc"),startLoc2=slEl2?slEl2.value:"The Crossroads of Ashenveil";
+    if(startLoc2==="custom"){var clEl2=document.getElementById("rv-start-loc-text");startLoc2=clEl2&&clEl2.value.trim()?clEl2.value.trim():"A place of your choosing";}
+    ic._campName=campNm2;ic._startLoc=startLoc2;
+    snapshotActiveCamp();
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    var nid=newCampaignId();setActiveCampId(nid);
+    worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
+    startGame(ic,getToneNm(),getToneVc());
+    return;
+  }
+  if(!enteredName){showToast("Enter a character name first.");return;}
+  cs.name=enteredName;
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP(),subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";

@@ -105,6 +105,7 @@ var rvGold=20;var rvGoldRolled=false;
 var pendingChar=null,pendingTone="",pendingVoice="",pendingLoc="",pendingBumps=0,currentBump=0;
 var pendingSpellPool={};
 var pendingCompanions=[];
+var pendingImportChar=null;
 var pendingBlueprint=null; // loaded .campaign blueprint; consumed by startGame
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
