@@ -1808,8 +1808,8 @@ function _importCharToReview(char){
   var nm=document.getElementById("char-name");if(nm)nm.value=char.name||"";
   var cn=document.getElementById("rv-camp-name");if(cn&&!cn.value)cn.value=char.name||"";
   var lvlSel=document.getElementById("rv-start-level");if(lvlSel&&char.level)lvlSel.value=char.level;
-  var xpInp=document.getElementById("rv-start-xp");if(xpInp&&char.xp!==undefined)xpInp.value=char.xp;
   if(typeof rvSyncXp==="function")rvSyncXp();
+  var xpInp=document.getElementById("rv-start-xp");if(xpInp&&char.xp!==undefined)xpInp.value=char.xp;
 }
 function _startImportedCampaign(char){
   var ex=document.getElementById("import-setup");if(ex)ex.remove();
