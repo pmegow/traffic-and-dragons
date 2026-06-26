@@ -315,8 +315,8 @@ async function generateSkeleton(){
     +"- Act 2: escalation, alliances, setbacks — the longest act\n"
     +"- Act 3: convergence and climax — the shortest act\n"
     +"- Arcs are waypoints, not scripts — leave room for player agency between them\n"
-    +"- The character's flaw should be a source of tension, not just flavor\n"
-    +"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n"
+    +(c.flaw?"- The character's flaw should be a source of tension, not just flavor\n":"")
+    +(c.motivation?"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n":"- Weave the character's backstory into the central conflict so pursuing the plot IS personal\n")
     +"- Each arc has a type: combat (fights, sieges, hunts), investigation (mysteries, clues, interrogation), exploration (travel, discovery, mapping), or social (politics, alliances, persuasion). Mix types within an act for variety.\n"
     +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
