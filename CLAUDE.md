@@ -500,6 +500,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 
 **Version number:**
-- Current: `v1.39`
-- String is at the end of `updateMemStatus()` in `ui.js`
-- **Bump on every commit that changes game code** — no exceptions. This is how you confirm the right version is deployed.
+- Current: `v1.114`
+- Constant `APP_VERSION` in `globals.js` — consumed by `updateMemStatus()` (session bar) and injected into all three File ▾ menu version labels via `_menus` loop in `wireButtons()`.
+- **Bump `APP_VERSION` on every commit that changes game code** — no exceptions. Also bump `CACHE` in `sw.js` on the same commit. This is how you confirm the right version is deployed.

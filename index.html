@@ -267,6 +267,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   <div style="position:fixed;top:12px;right:12px;z-index:100;">
     <button class="ib" id="api-file-btn" title="Load a saved campaign or configure settings">File &#9660;</button>
     <div id="api-file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
+      <div id="api-fm-version" style="padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);"></div>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Sync state</button>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">World state</button>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Render prompt</button>
@@ -306,6 +307,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px;position:relative;">
     <button class="ib" id="cs-file-btn" title="Load a saved campaign or import a character">File &#9660;</button>
     <div id="cs-file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
+      <div id="cs-fm-version" style="padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);"></div>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Sync state</button>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">World state</button>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Render prompt</button>
@@ -380,6 +382,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <div style="position:relative;">
         <button class="ib" id="file-btn" title="File operations: save, load, export, settings">File &#9660;</button>
         <div id="file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
+          <div id="fm-version" style="padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);"></div>
           <button id="fm-sync-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Sync state</button>
           <button id="fm-state-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">World state</button>
           <button id="fm-render-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Render prompt</button>
