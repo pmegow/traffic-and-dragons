@@ -2157,7 +2157,6 @@ function wireButtons(){
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
   document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();document.getElementById("file-menu").style.display=document.getElementById("file-menu").style.display==="block"?"none":"block";});
   document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";var cfm=document.getElementById("cs-file-menu");if(cfm)cfm.style.display="none";var afm=document.getElementById("api-file-menu");if(afm)afm.style.display="none";});
-  document.getElementById("cs-file-btn").addEventListener("click",function(e){e.stopPropagation();var cfm=document.getElementById("cs-file-menu");cfm.style.display=cfm.style.display==="block"?"none":"block";});
   // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
   var _menus=[{pfx:"fm-",menu:"file-menu",imp:""},{pfx:"cs-fm-",menu:"cs-file-menu",imp:"cs-"},{pfx:"api-fm-",menu:"api-file-menu",imp:"api-"}];
   _menus.forEach(function(m){
