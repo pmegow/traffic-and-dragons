@@ -710,69 +710,23 @@ function showBlueprintBrowser(){
   var ex=document.getElementById("bp-browser-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="bp-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  function renderList(){
-    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
-      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
-      +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-      +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs. Load one before creating your character.</div>"
-      +"<div id='bp-body'></div>"
-      +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
-      +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
-      +"<input type='file' id='bp-file-inp' accept='.campaign' style='display:none;'/> Import from file (.campaign)&hellip;</label></div>"
-      +"</div>";
-    document.getElementById("bp-x").addEventListener("click",function(){modal.remove();});
-    modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-    document.getElementById("bp-file-inp").addEventListener("change",function(ev){
-      var file=ev.target.files[0];if(!file)return;
-      var reader=new FileReader();
-      reader.onload=function(re){
-        try{
-          var bp=JSON.parse(re.target.result);
-          var err=validateBlueprint(bp);
-          if(err){showToast("Invalid blueprint: "+err);return;}
-          // Offer cloud save when connected and this slug isn't already in the list
-          if(storageAdapter.isServerMode()){
-            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){
-              if(!saveErr)showToast("Blueprint saved to your library.");
-            });
-          }
-          showPreview(bp);
-        }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
-      };
-      reader.readAsText(file);ev.target.value="";
-    });
-    var body=document.getElementById("bp-body");
-    if(!body)return;
-    if(!storageAdapter.isServerMode()){
-      body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File ▾ → Admin → Connect) to browse your cloud blueprint library.</div>";
-      return;
-    }
-    body.innerHTML="<div style='font-size:11px;color:var(--t2);padding:16px 0;text-align:center;'>Loading…</div>";
-    storageAdapter.listBlueprintLibrary(function(err,list){
-      if(!body.isConnected)return;
-      if(err||!list){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load library.</div>";return;}
-      if(!list.length){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or import a .campaign file below.</div>";return;}
-      var html="<div style='display:flex;flex-direction:column;gap:8px;'>";
-      var bi;for(bi=0;bi<list.length;bi++){
-        var item=list[bi],bp2=item.blueprint||{};
-        var actCount2=bp2.acts?bp2.acts.length:0,npcCount2=bp2.npcs?bp2.npcs.length:0;
-        html+="<div data-bpidx='"+bi+"' style='padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
-          +"<div style='font-size:13px;color:var(--t0);font-weight:bold;margin-bottom:2px;'>"+escHtml(item.name)+"</div>"
-          +"<div style='font-size:11px;color:var(--t2);'>"+actCount2+" acts &nbsp;·&nbsp; "+npcCount2+" NPCs &nbsp;·&nbsp; saved "+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString():"")+"</div>"
-          +"</div>";
-      }
-      html+="</div>";
-      body.innerHTML=html;
-      Array.prototype.forEach.call(body.querySelectorAll("[data-bpidx]"),function(el){
-        el.addEventListener("click",function(){
-          var idx=parseInt(el.getAttribute("data-bpidx"),10);
-          showPreview(list[idx].blueprint);
-        });
-      });
-    });
-  }
+  var connected=storageAdapter.isServerMode();
+  var mode=connected?"library":"local";
+  var segS="padding:7px 16px;font-size:12px;font-family:Georgia,serif;cursor:pointer;border:1px solid var(--brd2);";
+  function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"#000":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+    +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
+    +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs.</div>"
+    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='bp-body'></div>"
+    +"</div>";
+  document.body.appendChild(modal);
+  document.getElementById("bp-x").addEventListener("click",function(){modal.remove();});
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   function showPreview(bp){
+    var body=document.getElementById("bp-body");if(!body)return;
     var actCount=bp.acts?bp.acts.length:0;
     var arcCount=0;if(bp.acts){var ai;for(ai=0;ai<bp.acts.length;ai++)arcCount+=(bp.acts[ai].arcs?bp.acts[ai].arcs.length:0);}
     var npcCount=bp.npcs?bp.npcs.length:0;
@@ -793,10 +747,7 @@ function showBlueprintBrowser(){
       var n=bp.npcs[ni],roleCol=n.role==="enemy"?"#c04040":n.role==="ally"?"var(--grn)":"var(--t2)";
       npcHtml+="<div style='display:flex;gap:6px;align-items:baseline;margin-bottom:3px;'><span style='font-size:11px;color:var(--t0);'>"+escHtml(n.name)+"</span><span style='font-size:10px;color:"+roleCol+";'>"+escHtml(n.role||"neutral")+"</span></div>";
     }}
-    modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
-      +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>"+escHtml(bp.name)+"</span>"
-      +"<button id='bp-prev-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    body.innerHTML="<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>"+escHtml(bp.name)+"</div>"
       +(bp.author?"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>by "+escHtml(bp.author)+"</div>":"")
       +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(bp.premise||"")+"</div>"
       +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;'>"
@@ -810,16 +761,77 @@ function showBlueprintBrowser(){
       +"<div style='display:flex;gap:10px;'>"
       +"<button id='bp-use' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Use this blueprint</button>"
       +"<button id='bp-back' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Back</button>"
-      +"</div></div>";
-    document.getElementById("bp-prev-x").addEventListener("click",function(){modal.remove();});
-    document.getElementById("bp-back").addEventListener("click",renderList);
+      +"</div>";
+    document.getElementById("bp-back").addEventListener("click",render);
     document.getElementById("bp-use").addEventListener("click",function(){modal.remove();_applyBlueprint(bp);});
     var actsToggle=document.getElementById("bp-acts-toggle"),npcToggle=document.getElementById("bp-npc-toggle");
     if(actsToggle)actsToggle.addEventListener("click",function(){var b=document.getElementById("bp-acts-body"),a=document.getElementById("bp-acts-arrow");var open=b.style.display==="none";b.style.display=open?"block":"none";a.style.transform=open?"rotate(0deg)":"rotate(-90deg)";});
     if(npcToggle)npcToggle.addEventListener("click",function(){var b=document.getElementById("bp-npc-body"),a=document.getElementById("bp-npc-arrow");var open=b.style.display==="none";b.style.display=open?"block":"none";a.style.transform=open?"rotate(0deg)":"rotate(-90deg)";});
   }
-  document.body.appendChild(modal);
-  renderList();
+  function renderLocal(){
+    var body=document.getElementById("bp-body");if(!body)return;
+    body.innerHTML="<div style='text-align:center;padding:16px 0;'>"
+      +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .campaign blueprint file from your device.</div>"
+      +"<label style='display:inline-block;padding:9px 22px;font-size:13px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t1)\"'>"
+      +"<input type='file' id='bp-file-inp' accept='.campaign' style='display:none;'/> Import from file (.campaign)&hellip;</label>"
+      +"</div>";
+    document.getElementById("bp-file-inp").addEventListener("change",function(ev){
+      var file=ev.target.files[0];if(!file)return;
+      var reader=new FileReader();
+      reader.onload=function(re){
+        try{
+          var bp=JSON.parse(re.target.result);
+          var err=validateBlueprint(bp);
+          if(err){showToast("Invalid blueprint: "+err);return;}
+          if(storageAdapter.isServerMode()){
+            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){if(!saveErr)showToast("Blueprint saved to your library.");});
+          }
+          showPreview(bp);
+        }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
+      };
+      reader.readAsText(file);ev.target.value="";
+    });
+  }
+  function renderLibrary(){
+    var body=document.getElementById("bp-body");if(!body)return;
+    if(!connected){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File &#9656; Admin &#9656; Connect) to browse your cloud library.</div>";return;}
+    body.innerHTML="<div style='font-size:11px;color:var(--t2);padding:16px 0;text-align:center;'>Loading…</div>";
+    storageAdapter.listBlueprintLibrary(function(err,list){
+      var body2=document.getElementById("bp-body");if(!body2)return;
+      if(err||!list){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load library.</div>";return;}
+      if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or use the Local tab to import a .campaign file.</div>";return;}
+      var html="<div style='display:flex;flex-direction:column;gap:8px;'>",bi;
+      for(bi=0;bi<list.length;bi++){
+        var item=list[bi],bp2=item.blueprint||{};
+        var actCount2=bp2.acts?bp2.acts.length:0,npcCount2=bp2.npcs?bp2.npcs.length:0;
+        html+="<div data-bpidx='"+bi+"' style='padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
+          +"<div style='font-size:13px;color:var(--t0);font-weight:bold;margin-bottom:2px;'>"+escHtml(item.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);'>"+actCount2+" acts &nbsp;·&nbsp; "+npcCount2+" NPCs &nbsp;·&nbsp; saved "+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString():"")+"</div>"
+          +"</div>";
+      }
+      html+="</div>";
+      body2.innerHTML=html;
+      Array.prototype.forEach.call(body2.querySelectorAll("[data-bpidx]"),function(el){
+        el.addEventListener("click",function(){
+          var idx=parseInt(el.getAttribute("data-bpidx"),10);
+          showPreview(list[idx].blueprint);
+        });
+      });
+    });
+  }
+  function render(){
+    var seg=document.getElementById("bp-seg");
+    if(seg){seg.innerHTML=segBtn("&#9729; Library","library","left")+segBtn("Local","local","right");wireSegs();}
+    if(mode==="library")renderLibrary();else renderLocal();
+  }
+  function wireSegs(){
+    var seg=document.getElementById("bp-seg");if(!seg)return;
+    Array.prototype.forEach.call(seg.querySelectorAll("button"),function(sb){
+      sb.addEventListener("click",function(){mode=sb.getAttribute("data-seg");render();});
+    });
+  }
+  wireSegs();
+  render();
 }
 // ── Shared character-sheet helpers ────────────────────────────────────────────
 function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
