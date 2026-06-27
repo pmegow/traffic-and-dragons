@@ -591,6 +591,84 @@ function exportSave(){
   });
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
+function buildBlueprintFromGame(){
+  // Package the current campaign into a blueprint object suitable for sharing.
+  // Strips per-run state (HP, XP, combat, transcript, the player character).
+  // Acts/arcs statuses are reset so it plays fresh.
+  var sk=worldState.skeleton,acts=[];
+  if(sk&&sk.acts&&sk.acts.length){
+    var i,j;for(i=0;i<sk.acts.length;i++){
+      var a=Object.assign({},sk.acts[i]);a.status="pending";
+      a.arcs=(a.arcs||[]).map(function(arc){return Object.assign({},arc,{status:"pending"});});
+      acts.push(a);
+    }
+  }
+  var npcs=[];
+  (worldState.npcs||[]).forEach(function(n){
+    var mem=memory.npcs&&memory.npcs[n.name];
+    var notes=(mem&&mem.knowledge&&mem.knowledge.length)?mem.knowledge[0]:"";
+    npcs.push({name:n.name,role:n.status||"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+  });
+  var locations=[];
+  if(memory.map&&memory.map.nodes){
+    Object.keys(memory.map.nodes).forEach(function(key){
+      if(key.indexOf("|")>=0)return; // skip sub-locations
+      var node=memory.map.nodes[key];
+      locations.push({name:key,description:node.description||""});
+    });
+  }
+  return {
+    name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
+    premise:    sk&&sk.premise||"",
+    acts:       acts,
+    npcs:       npcs,
+    locations:  locations,
+    rules:      (customRules||[]).slice(),
+    startingRegion:   worldState.world&&worldState.world.region||"",
+    startingLocation: worldState.world&&worldState.world.location||""
+  };
+}
+function exportBlueprint(){
+  if(!worldState||!worldState.character)return;
+  document.getElementById("file-menu").style.display="none";
+  var bp=buildBlueprintFromGame();
+  var ex=document.getElementById("bp-export-modal");if(ex)ex.remove();
+  var connected=storageAdapter.isServerMode();
+  var modal=document.createElement("div");modal.id="bp-export-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
+    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Blueprint name</div>"
+    +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:6px;'/>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Acts: "+(bp.acts.length)+" &nbsp;·&nbsp; NPCs: "+bp.npcs.length+" &nbsp;·&nbsp; Locations: "+bp.locations.length+"</div>"
+    +"<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
+    +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
+    +"<button id='bp-export-dl' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#8595; Download</button>"
+    +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--acc);border:none;border-radius:var(--r);color:#000;font-weight:bold;cursor:pointer;'>&#9729; Save to library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to library</button>")
+    +"</div></div>";
+  document.body.appendChild(modal);
+  function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
+  document.getElementById("bp-export-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("bp-export-dl").addEventListener("click",function(){
+    bp.name=getName();
+    var data=JSON.stringify(bp,null,2);
+    var blob=new Blob([data],{type:"application/json"});
+    var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".campaign";
+    exportToFolder("save",blob,fname);
+    modal.remove();
+  });
+  if(connected){
+    document.getElementById("bp-export-cloud").addEventListener("click",function(){
+      bp.name=getName();
+      var btn=document.getElementById("bp-export-cloud");btn.disabled=true;btn.textContent="Saving…";
+      storageAdapter.saveBlueprintToLibrary(bp,function(err){
+        if(err){showToast("Blueprint save failed: "+err);btn.disabled=false;btn.textContent="☁ Save to library";}
+        else{modal.remove();showToast("Blueprint saved to library.");}
+      });
+    });
+  }
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+}
 function importSave(event){
   var file=event.target.files[0];if(!file)return;var reader=new FileReader();
   reader.onload=function(e){try{var data=JSON.parse(e.target.result);
@@ -653,15 +731,46 @@ function showBlueprintBrowser(){
           var bp=JSON.parse(re.target.result);
           var err=validateBlueprint(bp);
           if(err){showToast("Invalid blueprint: "+err);return;}
+          // Offer cloud save when connected and this slug isn't already in the list
+          if(storageAdapter.isServerMode()){
+            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){
+              if(!saveErr)showToast("Blueprint saved to your library.");
+            });
+          }
           showPreview(bp);
         }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
       };
       reader.readAsText(file);ev.target.value="";
     });
-    // TODO: server-side blueprint list would go here
     var body=document.getElementById("bp-body");
     if(!body)return;
-    body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No server-hosted blueprints yet. Import a .campaign file below.</div>";
+    if(!storageAdapter.isServerMode()){
+      body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File ▾ → Admin → Connect) to browse your cloud blueprint library.</div>";
+      return;
+    }
+    body.innerHTML="<div style='font-size:11px;color:var(--t2);padding:16px 0;text-align:center;'>Loading…</div>";
+    storageAdapter.listBlueprintLibrary(function(err,list){
+      if(!body.isConnected)return;
+      if(err||!list){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load library.</div>";return;}
+      if(!list.length){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or import a .campaign file below.</div>";return;}
+      var html="<div style='display:flex;flex-direction:column;gap:8px;'>";
+      var bi;for(bi=0;bi<list.length;bi++){
+        var item=list[bi],bp2=item.blueprint||{};
+        var actCount2=bp2.acts?bp2.acts.length:0,npcCount2=bp2.npcs?bp2.npcs.length:0;
+        html+="<div data-bpidx='"+bi+"' style='padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
+          +"<div style='font-size:13px;color:var(--t0);font-weight:bold;margin-bottom:2px;'>"+escHtml(item.name)+"</div>"
+          +"<div style='font-size:11px;color:var(--t2);'>"+actCount2+" acts &nbsp;·&nbsp; "+npcCount2+" NPCs &nbsp;·&nbsp; saved "+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString():"")+"</div>"
+          +"</div>";
+      }
+      html+="</div>";
+      body.innerHTML=html;
+      Array.prototype.forEach.call(body.querySelectorAll("[data-bpidx]"),function(el){
+        el.addEventListener("click",function(){
+          var idx=parseInt(el.getAttribute("data-bpidx"),10);
+          showPreview(list[idx].blueprint);
+        });
+      });
+    });
   }
   function showPreview(bp){
     var actCount=bp.acts?bp.acts.length:0;
@@ -2234,6 +2343,7 @@ function wireButtons(){
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
+  document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
   document.getElementById("import-char-btn").addEventListener("click",showCharacterBrowser);
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   // TTS

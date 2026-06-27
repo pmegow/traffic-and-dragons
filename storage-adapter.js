@@ -381,6 +381,38 @@ var storageAdapter = (function() {
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
+  // ── Blueprint library ────────────────────────────────────────────────────
+
+  function listBlueprintLibrary(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/blueprints", {
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  function saveBlueprintToLibrary(bp, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/blueprints", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body: JSON.stringify({ blueprint: bp })
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  function deleteBlueprintFromLibrary(slug, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    fetch(_serverUrl + "/api/blueprints/" + encodeURIComponent(slug), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + _token }
+    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
   function deleteCampaignFromServer(id, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(id), {
@@ -409,6 +441,9 @@ var storageAdapter = (function() {
     listCharLibrary:            listCharLibrary,
     saveCharToLibrary:          saveCharToLibrary,
     deleteCharFromLibrary:      deleteCharFromLibrary,
+    listBlueprintLibrary:       listBlueprintLibrary,
+    saveBlueprintToLibrary:     saveBlueprintToLibrary,
+    deleteBlueprintFromLibrary: deleteBlueprintFromLibrary,
     deleteCampaignFromServer:   deleteCampaignFromServer
   };
 
