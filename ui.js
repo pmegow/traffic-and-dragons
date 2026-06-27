@@ -804,9 +804,12 @@ function showBlueprintBrowser(){
       for(bi=0;bi<list.length;bi++){
         var item=list[bi],bp2=item.blueprint||{};
         var actCount2=bp2.acts?bp2.acts.length:0,npcCount2=bp2.npcs?bp2.npcs.length:0;
-        html+="<div data-bpidx='"+bi+"' style='padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
+        html+="<div style='display:flex;align-items:center;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
+          +"<div data-bpidx='"+bi+"' style='flex:1;padding:10px 12px;cursor:pointer;'>"
           +"<div style='font-size:13px;color:var(--t0);font-weight:bold;margin-bottom:2px;'>"+escHtml(item.name)+"</div>"
           +"<div style='font-size:11px;color:var(--t2);'>"+actCount2+" acts &nbsp;·&nbsp; "+npcCount2+" NPCs &nbsp;·&nbsp; saved "+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString():"")+"</div>"
+          +"</div>"
+          +"<button data-bpdel='"+escHtml(item.slug)+"' data-bpname='"+escHtml(item.name)+"' title='Delete blueprint' style='flex-shrink:0;padding:10px 14px;background:none;border:none;border-left:1px solid var(--brd);color:var(--t2);cursor:pointer;font-size:16px;border-radius:0 var(--r) var(--r) 0;' onmouseover='this.style.color=\"#c04040\";this.style.background=\"rgba(192,64,64,.08)\"' onmouseout='this.style.color=\"var(--t2)\";this.style.background=\"none\"'>&#215;</button>"
           +"</div>";
       }
       html+="</div>";
@@ -815,6 +818,18 @@ function showBlueprintBrowser(){
         el.addEventListener("click",function(){
           var idx=parseInt(el.getAttribute("data-bpidx"),10);
           showPreview(list[idx].blueprint);
+        });
+      });
+      Array.prototype.forEach.call(body2.querySelectorAll("[data-bpdel]"),function(btn){
+        btn.addEventListener("click",function(e){
+          e.stopPropagation();
+          var slug=btn.getAttribute("data-bpdel"),name=btn.getAttribute("data-bpname");
+          if(!confirm("Delete \""+name+"\" from your library?"))return;
+          storageAdapter.deleteBlueprintFromLibrary(slug,function(err){
+            if(err){showToast("Delete failed: "+err);return;}
+            showToast("Blueprint deleted.");
+            renderLibrary();
+          });
         });
       });
     });
@@ -2304,7 +2319,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
