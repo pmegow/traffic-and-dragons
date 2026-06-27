@@ -38,6 +38,9 @@ Things added for development/testing, or that are fine for a hobby build but NOT
 | 19 | In the session info bar, between the token count and the Chapter X text, add in "Act I: Name of the Act", or whatever act is current. | — |  |
 | 20 | Let's move name from the begining of character creation to the end.  It makes more sense to name a thing after it's created than before. | — |  |
 | 21 | once tone is established, importing a character should just to the end of setup, not open another Modal.  This should keep noodling things to 2 places and maintain a familiar flow for the player. | — |  |
+| 22 | need a UI for managing cloud campaigns.  Currently in use campaigns can have a '!' at the front of the line to indicate the campaign is active.  The cloud save list is growing unweildy | — |  |
+| 23 | We need a way to get campaign blueprints to the cloud. | — |  |
+| 24 | **Mobile error reporting** — automatically send an email when a runtime error occurs on mobile (where the console is invisible). Client calls a webhook; webhook sends email to pmegow@gmail.com. Three implementation options: (A) **Google Apps Script** — free, no new accounts, ~20 min setup: create a GAS web app that accepts POST and calls `MailApp.sendEmail()`; (B) **EmailJS** — pure browser JS, 200 free emails/month, ~30 min; (C) **Fly.dev `/api/error` endpoint** — most control, requires server changes + email provider (Resend free tier). Recommendation: Option A. Client side is the same regardless: a debounced `reportError(context, message, detail)` function wired to `window.onerror`, the skeleton catch block, `callGM` error paths, and any other caught errors. Debounce to 1 per 30 s so a cascading failure doesn't flood the inbox. | S | Pending |
 <!-- completed -->
 | # | Task | Effort | Status |
 |---|---|:---:|---|
