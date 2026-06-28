@@ -1,6 +1,7 @@
 {
   "format": "tnd-campaign-v1",
   "name": "Rise of the Runelords",
+  "proseAuthor": "abercrombie",
   "author": "Paizo (adapted for Traffic and Dragons)",
   "tone": "high_fantasy",
   "startingLocation": "Sandpoint",
