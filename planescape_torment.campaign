@@ -1,0 +1,213 @@
+{
+  "name": "Planescape: Torment",
+  "proseAuthor": "poe",
+  "premise": "You are the Nameless One — an immortal amnesiac who wakes on a mortuary slab surrounded by the dead, with no memory of who you are or how many times you have died before. Your scarred body is covered in tattoos left by your own past selves, each a clue to a forgotten life. The City of Doors swallows you whole: Sigil, the Cage, a city floating at the center of the multiverse where belief shapes reality and portals open in doorframes, arches, and the spaces between things. Something essential was taken from you across one of your countless lives — and the trail of that theft winds through all the rest. The question the multiverse keeps asking: What can change the nature of a man?",
+  "acts": [
+    {
+      "title": "The Mortuary",
+      "goal": "Escape the hall of the Dustmen with Morte's help and learn the first clue your past self left behind",
+      "turningPoint": "Morte reveals he has followed you across multiple lives — at your own request — and your back bears a message from a past incarnation you cannot yet read",
+      "parallel": "The Dustmen prepare your body for final processing, believing at last you are truly dead",
+      "arcs": [
+        {"title": "Wake Among the Dead", "objective": "Escape the Mortuary and reach the streets of Sigil", "type": "main", "status": "pending"},
+        {"title": "Messages to the Future", "objective": "Decipher the tattoos covering your body — instructions from a past self", "type": "main", "status": "pending"},
+        {"title": "The Bronze Sphere", "objective": "Find the object Morte has been guarding for you across multiple lifetimes", "type": "main", "status": "pending"}
+      ]
+    },
+    {
+      "title": "The Hive",
+      "goal": "Uncover who you were by finding those who knew your past incarnations in Sigil's lowest ward",
+      "turningPoint": "Pharod reveals he has been selling your repeatedly-returning body to the Dustmen for years and knows where your trail begins",
+      "parallel": "Factions war over philosophy in Sigil's streets while the Lady of Pain watches from nowhere and everywhere",
+      "arcs": [
+        {"title": "Ragpicker's Square", "objective": "Find Pharod, king of the body collectors, and bargain for what he knows of you", "type": "main", "status": "pending"},
+        {"title": "Deionarra's Lament", "objective": "Speak with the ghost of a woman a past incarnation loved and wronged", "type": "companion", "status": "pending"},
+        {"title": "Lothar, Master of Bones", "objective": "Bargain with the collector of famous skulls — he has one of yours", "type": "side", "status": "pending"},
+        {"title": "Finding Dak'kon", "objective": "Recruit the broken githzerai warrior who swore an unbreakable oath to a past you", "type": "companion", "status": "pending"},
+        {"title": "Faction Entanglements", "objective": "Establish your relationship with at least two of Sigil's philosophical factions", "type": "exploration", "status": "pending"}
+      ]
+    },
+    {
+      "title": "The Wards of Sigil",
+      "goal": "Gather your companions and find the key to Ravel Puzzlewell's maze before the Lady of Pain notices your search",
+      "turningPoint": "The Lady of Pain mazes you for drawing her attention — you must survive her labyrinth and understand what that means about the nature of Sigil",
+      "parallel": "Each companion carries a wound your past selves inflicted; each must decide whether the person before them is owed a debt or deserves a reckoning",
+      "arcs": [
+        {"title": "The Brothel for Slaking Intellectual Lusts", "objective": "Meet Fall-from-Grace and learn what no past self thought to write down", "type": "companion", "status": "pending"},
+        {"title": "The Civic Festhall", "objective": "Access the Sensate memory repository where a past incarnation stored something you need", "type": "main", "status": "pending"},
+        {"title": "Ignus the Burning", "objective": "Free the mage who burns eternally and cannot die — a punishment a past you devised", "type": "companion", "status": "pending"},
+        {"title": "Annah of the Planes", "objective": "Earn the trust of the tiefling thief who fears the attachment she already feels", "type": "companion", "status": "pending"},
+        {"title": "The Black-Barbed Maze", "objective": "Survive the Lady of Pain's labyrinth — most who enter never leave", "type": "main", "status": "pending"},
+        {"title": "Finding Ravel's Portal", "objective": "Discover the key that opens the way into Ravel's personal prison", "type": "main", "status": "pending"}
+      ]
+    },
+    {
+      "title": "Ravel's Garden",
+      "goal": "Confront the night hag who made you immortal and learn what price she extracted for the gift",
+      "turningPoint": "Ravel reveals she separated your mortality from your soul at your own past request — and tells you where your mortality went",
+      "parallel": "The Transcendent One becomes aware you are close to the truth and begins to move against you",
+      "arcs": [
+        {"title": "The Black-Barbed Garden", "objective": "Navigate Ravel's maze-garden that exists outside of space and time", "type": "main", "status": "pending"},
+        {"title": "What Can Change the Nature of a Man?", "objective": "Answer Ravel's question — your answer will define who you have become across all your lives", "type": "main", "status": "pending"},
+        {"title": "The Price of Immortality", "objective": "Learn what Ravel took from you and what she did with it afterward", "type": "main", "status": "pending"}
+      ]
+    },
+    {
+      "title": "The Fortress of Regrets",
+      "goal": "Pursue your discarded mortality to the fortress at the edge of oblivion and face what you abandoned long ago",
+      "turningPoint": "The Transcendent One — your own mortality given form and will — refuses to return to you, and you must decide whether to reclaim it by force, persuasion, or sacrifice",
+      "parallel": "Every soul your past selves wronged watches from the walls of the fortress, and your companions must face their own final truths",
+      "arcs": [
+        {"title": "The Pillar of Skulls", "objective": "Bargain with the pillar of damned souls in Baator for passage toward the Fortress", "type": "main", "status": "pending"},
+        {"title": "Curst Gone Wrong", "objective": "Save or doom the purgatorial town of Curst as it slides toward Gehenna", "type": "side", "status": "pending"},
+        {"title": "The Siege of the Fortress", "objective": "Breach the Fortress of Regrets, defended by echoes of your past incarnations", "type": "main", "status": "pending"},
+        {"title": "The Transcendent One", "objective": "Face your discarded mortality — through words, not swords, if wisdom allows", "type": "main", "status": "pending"},
+        {"title": "What Changed You", "objective": "Give the final answer: resolve who you have become across all your lives, and accept the consequence", "type": "main", "status": "pending"}
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Morte",
+      "role": "ally",
+      "notes": "A floating skull with a razor tongue and older loyalty than he admits. Has followed the Nameless One across multiple lives — at his own request. Hides guilt behind sarcasm and deflects sincerity with a joke. Knows more than he says.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Dak'kon",
+      "role": "ally",
+      "notes": "Githzerai warrior-mage bound by an oath to a past incarnation. His blade and will are diminished by years of doubt. He has forgotten how to believe in himself. Teaching him to Remember — in the githzerai sense — may restore him.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Annah-of-the-Planes",
+      "role": "ally",
+      "notes": "Half-fiend tiefling thief raised by Pharod in Ragpicker's Square. Prickly, fierce, and deeply uncomfortable with anything that feels like genuine attachment. She fears what she feels and expresses care through sharpness.",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "Fall-from-Grace",
+      "role": "ally",
+      "notes": "A succubus who chose to feel nothing she did not consciously choose. Runs the Brothel for Slaking Intellectual Lusts — pleasures of the mind, not the body. Serene, deeply intelligent, and genuinely curious about the Nameless One's condition.",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "Ignus",
+      "role": "ally",
+      "notes": "A mage transformed into living fire by a past incarnation's cruelty as punishment for burning a ward of Sigil. Burns eternally, cannot die, experiences only joy and agony in alternation. Speaks in broken ecstatic fragments.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Nordom",
+      "role": "ally",
+      "notes": "A rogue modron — a being of pure cosmic law who has begun, inexplicably, to experience individuality. Deeply literal in speech and profoundly uncertain about what that means. Armed with two crossbows named Morte I and Morte II.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Vhailor",
+      "role": "ally",
+      "notes": "A Mercykiller whose flesh vanished long ago — only his armor remains, animated by absolute conviction in justice. He is Justice made iron. He may turn on the Nameless One if he learns the full weight of his crimes.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Deionarra",
+      "role": "neutral",
+      "notes": "Ghost of a noblewoman who loved a past incarnation who manipulated her to his purposes and did not deserve her. Heartbroken, still faithful, bound to the Mortuary. Her testimony is both forgiveness and condemnation.",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "Pharod",
+      "role": "neutral",
+      "notes": "King of the Collector faction beneath Ragpicker's Square. Has been selling the Nameless One's repeatedly-returning body to the Dustmen for years. Knows the truth of your beginnings. Bargains only in information and has a debt of his own.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "Lothar",
+      "role": "neutral",
+      "notes": "Master of Bones in the Hive, collector of the skulls of the famous dead. Speaks with the authority of someone who has heard the final words of everyone. Has one of your skulls. Will deal, but only fairly and only once.",
+      "pronouns": "he/him"
+    },
+    {
+      "name": "The Lady of Pain",
+      "role": "enemy",
+      "notes": "The silent sovereign of Sigil. Wordless, featureless behind her bladed mask, present everywhere and nowhere. Those who draw her gaze are maized or flayed. She is not a god and does not wish to be worshipped. She has no interest in the Nameless One except as a nuisance.",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "Ravel Puzzlewell",
+      "role": "neutral",
+      "notes": "Ancient night hag imprisoned in her own black-barbed maze. Made the Nameless One immortal because someone she cared about asked her to. Speaks entirely in questions. Is not being evasive — she genuinely thinks in spirals. Loves in ways that are not entirely safe.",
+      "pronouns": "she/her"
+    },
+    {
+      "name": "The Transcendent One",
+      "role": "enemy",
+      "notes": "The Nameless One's discarded mortality, given its own form and will across hundreds of years of separation. Fears dissolution above all things. Has been killing other incarnations to remain free. May be reasoned with, bargained with, or destroyed — each has a cost.",
+      "pronouns": "it/its"
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Mortuary",
+      "description": "The vast hall where the Dustmen tend Sigil's dead. Cold marble corridors, the smell of embalming fluid, zombies shuffling in quiet institutional purpose. The Nameless One's story begins on a slab on an upper floor."
+    },
+    {
+      "name": "Ragpicker's Square",
+      "description": "The meanest corner of the Hive Ward, where those with nothing sort through what others discarded. Pharod's people move in the tunnels below street level. Everything here has been owned before."
+    },
+    {
+      "name": "The Hive Ward",
+      "description": "Sigil's great slum — desperate, teeming, alive in the way only the poorest places are. Factions recruit here. The Dabus repair portals in silence. Bodies end up here eventually."
+    },
+    {
+      "name": "The Civic Festhall",
+      "description": "The Society of Sensation's grand palace, where members record and share experiences directly, mind to mind. A library of memories open to those who can pay in kind. A past incarnation left something here."
+    },
+    {
+      "name": "The Brothel for Slaking Intellectual Lusts",
+      "description": "Fall-from-Grace's establishment in the Clerk's Ward. Nothing carnal — the pleasures here are conversation, perspective, and the company of remarkable minds drawn from across the planes."
+    },
+    {
+      "name": "The Lower Ward",
+      "description": "Industrial heart of Sigil. Forges, portals to the lower planes, and the perpetual smell of brimstone. Ignus burns somewhere in its alleys. Githyanki gangs hold territorial corners."
+    },
+    {
+      "name": "Clerk's Ward",
+      "description": "Sigil's administrative district, where factions maintain offices and the architecture pretends to order. Quieter than the Hive, more dangerous in subtler ways."
+    },
+    {
+      "name": "The Black-Barbed Maze",
+      "description": "The Lady of Pain's private purgatory — a labyrinth of razor-edged corridors outside of Sigil where the mazed wander without hope of exit. The maze she built for Ravel has had centuries to grow strange."
+    },
+    {
+      "name": "Ravel's Garden",
+      "description": "A space outside of space, outside of time. Black thorns in impossible configurations. The night hag has made something that is almost a home, almost a trap, almost a declaration of feeling. Nothing here follows rules Sigil would recognize."
+    },
+    {
+      "name": "Curst",
+      "description": "A purgatorial town on the outskirts of Gehenna where the banished are sent to suffer under the weight of their own guilt. The town is sliding — slowly, inexorably — into the plane below."
+    },
+    {
+      "name": "The Pillar of Skulls",
+      "description": "A pillar of screaming, damned souls rising from the wastes of Baator, each head a repository of knowledge bought at infinite cost. They bargain for a moment's silence. They always know what you need."
+    },
+    {
+      "name": "The Fortress of Regrets",
+      "description": "A fortress at the far edge of the Negative Material Plane, where memory and guilt accumulate into architecture. The Transcendent One's sanctum. Every hall is haunted by past incarnations who walked here before and did not leave."
+    }
+  ],
+  "rules": [
+    "The core question of every scene is: 'What can change the nature of a man?' Return to it explicitly. The player's choices across the campaign should accumulate into an answer.",
+    "Belief shapes reality in the multiverse. If the player states something with genuine conviction, consider letting it become partially true — but truth in Sigil always has a cost.",
+    "The Nameless One has died before. Death is a transition, not a failure. But each resurrection costs something: a memory, a relationship, the trust of someone watching. Track what is lost.",
+    "Factions are worldviews made political. The Dustmen believe all life is undeath in waiting. The Sensates believe experience is everything. The Mercykillers believe justice is absolute. Each faction should push its philosophy onto the player directly.",
+    "Companions are wounds the Nameless One inflicted or debts he incurred. Each has an agenda. Each may refuse to follow if asked to violate their nature. Do not let companions be passive.",
+    "The Lady of Pain does not speak, does not explain, and does not warn twice. Drawing her attention ends scenes immediately. She cannot be fought, persuaded, or bargained with. She is a force of the setting, not a character.",
+    "Ravel Puzzlewell speaks entirely in questions and riddles. She is not being evasive — she thinks in spirals. She cares about the Nameless One in a way that is genuine and not entirely safe.",
+    "The Transcendent One should be foreshadowed long before it appears: in companions' unease, gaps in recovered memories, a sense of being watched from somewhere adjacent to existence.",
+    "Knowledge is the primary currency of Sigil. Spells, faction influence, memories, and true names all have exchange value. Treat information as loot and guard it accordingly.",
+    "The Nameless One's identity should drift visibly with player choices — cold pragmatist, compassionate penitent, or something stranger. Who he is becoming matters as much as what he is doing."
+  ],
+  "startingRegion": "Sigil, the City of Doors",
+  "startingLocation": "The Mortuary"
+}

@@ -619,6 +619,7 @@ function buildBlueprintFromGame(){
   }
   return {
     name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
+    proseAuthor: worldState.proseAuthor!=null?worldState.proseAuthor:"",
     premise:    sk&&sk.premise||"",
     acts:       acts,
     npcs:       npcs,
@@ -636,10 +637,14 @@ function exportBlueprint(){
   var connected=storageAdapter.isServerMode();
   var modal=document.createElement("div");modal.id="bp-export-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  var voiceOpts="",vCur=bp.proseAuthor||"",vi;
+  for(vi=0;vi<AUTHORS.length;vi++){voiceOpts+="<option value='"+AUTHORS[vi].id+"'"+(AUTHORS[vi].id===vCur?" selected":"")+">"+escHtml(AUTHORS[vi].nm)+(AUTHORS[vi].blurb?" — "+escHtml(AUTHORS[vi].blurb):"")+"</option>";}
   modal.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Blueprint name</div>"
-    +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:6px;'/>"
+    +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'/>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Prose voice <span style='opacity:0.6;'>(player can override)</span></div>"
+    +"<select id='bp-export-voice' style='width:100%;padding:9px 12px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'>"+voiceOpts+"</select>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Acts: "+(bp.acts.length)+" &nbsp;·&nbsp; NPCs: "+bp.npcs.length+" &nbsp;·&nbsp; Locations: "+bp.locations.length+"</div>"
     +"<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
     +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
@@ -648,9 +653,10 @@ function exportBlueprint(){
     +"</div></div>";
   document.body.appendChild(modal);
   function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
+  function getVoice(){var s=document.getElementById("bp-export-voice");return s?s.value:"";}
   document.getElementById("bp-export-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("bp-export-dl").addEventListener("click",function(){
-    bp.name=getName();
+    bp.name=getName();bp.proseAuthor=getVoice();
     var data=JSON.stringify(bp,null,2);
     var blob=new Blob([data],{type:"application/json"});
     var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".campaign";
@@ -659,7 +665,7 @@ function exportBlueprint(){
   });
   if(connected){
     document.getElementById("bp-export-cloud").addEventListener("click",function(){
-      bp.name=getName();
+      bp.name=getName();bp.proseAuthor=getVoice();
       var btn=document.getElementById("bp-export-cloud");btn.disabled=true;btn.textContent="Saving…";
       storageAdapter.saveBlueprintToLibrary(bp,function(err){
         if(err){showToast("Blueprint save failed: "+err);btn.disabled=false;btn.textContent="☁ Save to library";}
@@ -731,6 +737,8 @@ function showBlueprintBrowser(){
     var arcCount=0;if(bp.acts){var ai;for(ai=0;ai<bp.acts.length;ai++)arcCount+=(bp.acts[ai].arcs?bp.acts[ai].arcs.length:0);}
     var npcCount=bp.npcs?bp.npcs.length:0;
     var locCount=bp.locations?bp.locations.length:0;
+    var voiceNm="";
+    if(bp.proseAuthor&&typeof AUTHORS!=="undefined"){var vai;for(vai=0;vai<AUTHORS.length;vai++){if(AUTHORS[vai].id===bp.proseAuthor){voiceNm=AUTHORS[vai].nm;break;}}}
     var actsHtml="",ai2,aj;
     if(bp.acts){for(ai2=0;ai2<bp.acts.length;ai2++){
       var act=bp.acts[ai2];
@@ -750,11 +758,12 @@ function showBlueprintBrowser(){
     body.innerHTML="<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>"+escHtml(bp.name)+"</div>"
       +(bp.author?"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>by "+escHtml(bp.author)+"</div>":"")
       +"<div style='font-size:12px;color:var(--t1);margin-bottom:16px;line-height:1.6;'>"+escHtml(bp.premise||"")+"</div>"
-      +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;'>"
+      +"<div style='display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:baseline;'>"
       +"<div style='font-size:11px;color:var(--t2);'>"+actCount+" acts</div>"
       +"<div style='font-size:11px;color:var(--t2);'>"+arcCount+" arcs</div>"
       +"<div style='font-size:11px;color:var(--t2);'>"+npcCount+" NPCs</div>"
       +"<div style='font-size:11px;color:var(--t2);'>"+locCount+" locations</div>"
+      +(voiceNm?"<div style='font-size:11px;color:var(--acc);'>&#9997; "+escHtml(voiceNm)+"</div>":"")
       +"</div>"
       +(actsHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-acts-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-acts-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Story arcs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-acts-body' style='display:none;margin-top:8px;'>"+actsHtml+"</div></div>":"")
       +(npcHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-npc-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-npc-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Key NPCs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-npc-body' style='display:none;margin-top:8px;'>"+npcHtml+"</div></div>":"")

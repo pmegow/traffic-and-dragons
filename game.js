@@ -312,6 +312,8 @@ function applyBlueprint(bp){
   }
   // Region override
   if(bp.startingRegion)worldState.world.region=bp.startingRegion;
+  // Prose voice — author's choice; player can override via Dev Mode
+  if(bp.proseAuthor!=null)worldState.proseAuthor=bp.proseAuthor;
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;
 }
