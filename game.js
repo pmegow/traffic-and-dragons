@@ -313,7 +313,13 @@ function applyBlueprint(bp){
   // Region override
   if(bp.startingRegion)worldState.world.region=bp.startingRegion;
   // Prose voice — author's choice; player can override via Dev Mode
-  if(bp.proseAuthor!=null)worldState.proseAuthor=bp.proseAuthor;
+  if(bp.proseAuthor!=null){
+    worldState.proseAuthor=bp.proseAuthor;
+    if(bp.proseAuthor&&typeof AUTHORS!=="undefined"){
+      var _paFound=false,_pai;for(_pai=0;_pai<AUTHORS.length;_pai++){if(AUTHORS[_pai].id===bp.proseAuthor){_paFound=true;break;}}
+      if(!_paFound)showToast("Blueprint voice \""+bp.proseAuthor+"\" not recognised — using default.");
+    }
+  }
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;
 }
