@@ -187,7 +187,7 @@ function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=
 function showToast(msg){
   var live=document.querySelectorAll(".tnd-toast").length;
   var t=document.createElement("div");t.className="tnd-toast";
-  t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:var(--modal-bg);border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:Georgia,serif;z-index:400;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
+  t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:var(--modal-bg);border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:var(--font);z-index:400;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
   t.title="Tap to dismiss";
   t.textContent=msg;
   var x=document.createElement("span");x.textContent="✕";x.style.cssText="margin-left:10px;opacity:.45;font-size:11px;";t.appendChild(x);
@@ -201,7 +201,7 @@ function showLoadingModal(msg){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:flex;align-items:center;justify-content:center;";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:36px 48px;text-align:center;min-width:220px;'>"
     +"<div style='width:44px;height:44px;border:3px solid var(--bg3);border-top-color:var(--acc);border-radius:50%;animation:lm-spin .75s linear infinite;margin:0 auto 18px;'></div>"
-    +"<div style='font-size:13px;color:var(--t1);font-family:Georgia,serif;'>"+msg+"</div>"
+    +"<div style='font-size:13px;color:var(--t1);font-family:var(--font);'>"+msg+"</div>"
     +"</div>";
   document.body.appendChild(modal);
   return function(){var m=document.getElementById("loading-modal");if(m)m.remove();};
@@ -354,7 +354,7 @@ function updateSpPanel(){
     h+="</div>";
   }
   if(!h)h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No spells</div>";
-  else h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore spells)</button>";
+  else h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore spells)</button>";
   document.getElementById("sp-list").innerHTML=h;
 }
 function updateCombat(){
@@ -398,7 +398,7 @@ function showRulesModal(){
     var h="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Narrative Rules</span><button id='rules-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div><div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>Strictly enforced on every GM response.</div>",i;
     for(i=0;i<DEFAULT_RULES.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;font-size:12px;display:flex;gap:8px;'><span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-top:1px;'>DEFAULT</span><span style='color:var(--t1);'>"+DEFAULT_RULES[i]+"</span></div>";}
     for(i=0;i<customRules.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);margin-bottom:6px;font-size:12px;color:var(--t0);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'><span>"+customRules[i]+"</span><button onclick='removeRule("+i+")' style='background:none;border:none;color:var(--dng);cursor:pointer;font-size:16px;flex-shrink:0;line-height:1;'>&#215;</button></div>";}
-    h+="<div style='display:flex;gap:6px;margin-top:14px;'><input id='rules-new' type='text' placeholder='Add a custom rule...' class='sc-inp' style='flex:1;'/><button id='rules-add' style='padding:7px 14px;font-size:12px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>Add</button></div>";
+    h+="<div style='display:flex;gap:6px;margin-top:14px;'><input id='rules-new' type='text' placeholder='Add a custom rule...' class='sc-inp' style='flex:1;'/><button id='rules-add' style='padding:7px 14px;font-size:12px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>Add</button></div>";
     inner.innerHTML=h;
     document.getElementById("rules-x").addEventListener("click",function(){modal.remove();});
     document.getElementById("rules-add").addEventListener("click",function(){var v=document.getElementById("rules-new").value.trim();if(!v)return;customRules.push(v);saveRules();renderRules();});
@@ -516,7 +516,7 @@ function showSyncModal(){
   function renderSync(){
     var c=worldState.character,w=worldState.world,isUI=(dir==="ui"),ro=isUI?"":"readonly";
     inner.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Sync World State</span><button id='sc-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-      +"<div style='font-size:11px;color:var(--t2);font-family:monospace;background:var(--bg2);padding:6px 10px;border-radius:4px;margin-bottom:14px;'>Lv "+c.level+" | XP "+c.xp+" | HP "+c.hp+"/"+c.maxHp+" | Gold "+c.gold+" | Turn "+worldState.turn+"</div>"
+      +"<div style='font-size:11px;color:var(--t2);font-family:var(--font-mono);background:var(--bg2);padding:6px 10px;border-radius:4px;margin-bottom:14px;'>Lv "+c.level+" | XP "+c.xp+" | HP "+c.hp+"/"+c.maxHp+" | Gold "+c.gold+" | Turn "+worldState.turn+"</div>"
       +"<div style='display:flex;gap:8px;margin-bottom:16px;'><button id='sc-ui' class='sc-dir"+(isUI?" active":"")+"'>UI -> Game</button><button id='sc-gm' class='sc-dir"+(!isUI?" active":"")+"'>Game -> UI</button></div>"
       +"<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;'>"
       +"<div><label class='sc-lbl'>HP</label><input id='sc-hp' type='number' class='sc-inp' value='"+c.hp+"' "+ro+"/></div>"
@@ -528,7 +528,7 @@ function showSyncModal(){
       +"<div><label class='sc-lbl'>Time</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
       +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
-      +(isUI?"<button id='sc-apply' style='width:100%;padding:13px;font-size:15px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>APPLY</button>":"<div style='text-align:center;font-size:12px;color:var(--t2);padding:8px;'>Showing live game state. Switch to UI -> Game to edit.</div>")
+      +(isUI?"<button id='sc-apply' style='width:100%;padding:13px;font-size:15px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>APPLY</button>":"<div style='text-align:center;font-size:12px;color:var(--t2);padding:8px;'>Showing live game state. Switch to UI -> Game to edit.</div>")
       +"<p id='sc-msg' style='font-size:12px;min-height:16px;margin-top:8px;text-align:center;'></p>";
     document.getElementById("sc-x").addEventListener("click",function(){modalDiv.remove();});
     document.getElementById("sc-ui").addEventListener("click",function(){dir="ui";renderSync();});
@@ -575,10 +575,10 @@ function exportSave(){
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>File</div>"
-    +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
+    +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
     +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in your downloads folder.</div>":"")
-    +"<div style='display:flex;gap:10px;'><button id='sc-cancel' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
-    +"<button id='sc-save' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Save</button></div>"
+    +"<div style='display:flex;gap:10px;'><button id='sc-cancel' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
+    +"<button id='sc-save' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Save</button></div>"
     +"</div>";
   document.body.appendChild(modal);
   function getFname(){var el=document.getElementById("sc-fname");return(el&&el.value.trim())||fname;}
@@ -648,14 +648,14 @@ function exportBlueprint(){
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Blueprint name</div>"
-    +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'/>"
+    +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'/>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Prose voice <span style='opacity:0.6;'>(player can override)</span></div>"
-    +"<select id='bp-export-voice' style='width:100%;padding:9px 12px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'>"+voiceOpts+"</select>"
+    +"<select id='bp-export-voice' style='width:100%;padding:9px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'>"+voiceOpts+"</select>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Acts: "+(bp.acts.length)+" &nbsp;·&nbsp; NPCs: "+bp.npcs.length+" &nbsp;·&nbsp; Locations: "+bp.locations.length+"</div>"
     +"<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
-    +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
-    +"<button id='bp-export-dl' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#8595; Download</button>"
-    +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>&#9729; Save to library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to library</button>")
+    +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
+    +"<button id='bp-export-dl' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#8595; Download</button>"
+    +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>&#9729; Save to library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to library</button>")
     +"</div></div>";
   document.body.appendChild(modal);
   function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
@@ -724,7 +724,7 @@ function showBlueprintBrowser(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var connected=storageAdapter.isServerMode();
   var mode=connected?"library":"local";
-  var segS="padding:7px 16px;font-size:12px;font-family:Georgia,serif;cursor:pointer;border:1px solid var(--brd2);";
+  var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
   function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
@@ -774,8 +774,8 @@ function showBlueprintBrowser(){
       +(actsHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-acts-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-acts-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Story arcs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-acts-body' style='display:none;margin-top:8px;'>"+actsHtml+"</div></div>":"")
       +(npcHtml?"<div style='margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--bg2);'><div id='bp-npc-toggle' style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);cursor:pointer;user-select:none;'><span id='bp-npc-arrow' style='display:inline-block;transition:transform .2s;transform:rotate(-90deg);'>&#9662;</span> Key NPCs <span style='font-size:10px;color:var(--t2);font-style:italic;'>(contains spoilers)</span></div><div id='bp-npc-body' style='display:none;margin-top:8px;'>"+npcHtml+"</div></div>":"")
       +"<div style='display:flex;gap:10px;'>"
-      +"<button id='bp-use' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Use this blueprint</button>"
-      +"<button id='bp-back' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Back</button>"
+      +"<button id='bp-use' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Use this blueprint</button>"
+      +"<button id='bp-back' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Back</button>"
       +"</div>";
     document.getElementById("bp-back").addEventListener("click",render);
     document.getElementById("bp-use").addEventListener("click",function(){modal.remove();_applyBlueprint(bp);});
@@ -787,7 +787,7 @@ function showBlueprintBrowser(){
     var body=document.getElementById("bp-body");if(!body)return;
     body.innerHTML="<div style='text-align:center;padding:16px 0;'>"
       +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .blueprint file from your device.</div>"
-      +"<label style='display:inline-block;padding:9px 22px;font-size:13px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t1)\"'>"
+      +"<label style='display:inline-block;padding:9px 22px;font-size:13px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t1)\"'>"
       +"<input type='file' id='bp-file-inp' accept='.blueprint,.campaign' style='display:none;'/> Import from file (.blueprint)&hellip;</label>"
       +"</div>";
     document.getElementById("bp-file-inp").addEventListener("change",function(ev){
@@ -916,7 +916,7 @@ function showCharSheet(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
 
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
@@ -992,8 +992,8 @@ async function showPortraitModal(refreshFn,opts){
 
   var modal=document.createElement("div");modal.id="portrait-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:20px;";
-  var IS="width:100%;padding:9px 12px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:10px;box-sizing:border-box;";
-  var BA="display:block;width:100%;padding:10px 14px;font-size:13px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:left;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;";
+  var IS="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:10px;box-sizing:border-box;";
+  var BA="display:block;width:100%;padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:left;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;";
   function div(lbl){return "<div style='display:flex;align-items:center;gap:8px;margin:14px 0;'><div style='flex:1;height:1px;background:var(--brd);'></div><span style='font-size:11px;color:var(--t2);'>"+lbl+"</span><div style='flex:1;height:1px;background:var(--brd);'></div></div>";}
   function lbl(t){return "<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>"+t+"</div>";}
 
@@ -1006,16 +1006,16 @@ async function showPortraitModal(refreshFn,opts){
     +"</div>"
     // ── Current portrait preview ───────────────────────────────────────────
     +(hasPortrait?"<div style='text-align:center;margin-bottom:8px;'><div style='width:90px;height:135px;border-radius:50%;border:2px solid var(--acc);display:inline-block;overflow:hidden;position:relative;'><img id='pm-preview-img' src='"+getPort()+"' style='width:100%;height:100%;object-fit:cover;display:block;cursor:grab;'></div></div>"
-    +"<div style='text-align:center;margin-bottom:18px;font-size:11px;color:var(--t2);'>drag to reframe &middot; scroll / pinch to zoom &nbsp; <button id='pm-zoom-out' style='font-family:Georgia,serif;font-size:14px;line-height:1;padding:2px 10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>&minus;</button> <button id='pm-zoom-in' style='font-family:Georgia,serif;font-size:14px;line-height:1;padding:2px 9px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>+</button></div>":"")
+    +"<div style='text-align:center;margin-bottom:18px;font-size:11px;color:var(--t2);'>drag to reframe &middot; scroll / pinch to zoom &nbsp; <button id='pm-zoom-out' style='font-family:var(--font);font-size:14px;line-height:1;padding:2px 10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>&minus;</button> <button id='pm-zoom-in' style='font-family:var(--font);font-size:14px;line-height:1;padding:2px 9px;background:var(--bg3);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);cursor:pointer;'>+</button></div>":"")
     // ── 1. Upload / Save / Remove (same row) ──────────────────────────────
     +"<div style='display:flex;gap:6px;margin-bottom:4px;'>"
-    +"<button id='pm-upload' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>&#8593; Upload</button>"
-    +(hasPortrait?"<button id='pm-save-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Download a copy of this image to a file'>&#8595; Download</button>":"")
-    +(hasPortrait?"<button id='pm-remove-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);'>&#10005; Remove</button>":"")
+    +"<button id='pm-upload' style='flex:1;padding:10px 4px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>&#8593; Upload</button>"
+    +(hasPortrait?"<button id='pm-save-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Download a copy of this image to a file'>&#8595; Download</button>":"")
+    +(hasPortrait?"<button id='pm-remove-portrait' style='flex:1;padding:10px 4px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);'>&#10005; Remove</button>":"")
     +"</div>"
     +"<input type='file' id='pm-file' accept='image/*' style='display:none;'>"
     // ── Describe appearance from the image (vision; reverse of Generate) ────
-    +(hasPortrait?"<button id='pm-describe' style='display:block;width:100%;margin-top:6px;padding:9px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Use Claude vision to read this image into the appearance field'>&#128269; Describe appearance from image</button>":"")
+    +(hasPortrait?"<button id='pm-describe' style='display:block;width:100%;margin-top:6px;padding:9px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Use Claude vision to read this image into the appearance field'>&#128269; Describe appearance from image</button>":"")
     // ── 2. Generate from scratch ───────────────────────────────────────────
     +div("or generate from scratch")
     +lbl("Additional details (optional):")
@@ -1060,15 +1060,15 @@ async function showPortraitModal(refreshFn,opts){
     prev.style.cssText="border:1px solid var(--acc);border-radius:var(--r);padding:12px;margin-top:8px;background:var(--bg2);";
     var hd=document.createElement("div");hd.textContent="New image — tap Apply to set it";hd.style.cssText="font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;text-align:center;";
     var img=document.createElement("img");img.src=imgUrl;img.style.cssText="width:100%;max-height:280px;object-fit:contain;border-radius:var(--r);display:block;margin-bottom:10px;";
-    var BS2="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:5px;margin-bottom:6px;";
-    var useBtn=document.createElement("button");useBtn.textContent="✓ Apply";useBtn.style.cssText="display:block;width:100%;padding:12px;font-family:Georgia,serif;font-size:15px;font-weight:bold;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;margin-bottom:8px;";
+    var BS2="padding:8px 12px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:5px;margin-bottom:6px;";
+    var useBtn=document.createElement("button");useBtn.textContent="✓ Apply";useBtn.style.cssText="display:block;width:100%;padding:12px;font-family:var(--font);font-size:15px;font-weight:bold;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;margin-bottom:8px;";
     var editBtn=document.createElement("button");editBtn.textContent="Edit Prompt";editBtn.style.cssText=BS2;
     var discardBtn=document.createElement("button");discardBtn.textContent="Discard";discardBtn.style.cssText=BS2;
     var btnRow=document.createElement("div");if(genPrompt)btnRow.appendChild(editBtn);btnRow.appendChild(discardBtn);
     var editArea=document.createElement("div");editArea.style.cssText="margin-top:8px;display:none;";
     var promptTA=document.createElement("textarea");promptTA.value=genPrompt||"";
-    promptTA.style.cssText="width:100%;height:80px;padding:8px;font-size:12px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;resize:vertical;margin-bottom:6px;";
-    var regenBtn=document.createElement("button");regenBtn.textContent="Regenerate with this prompt";regenBtn.style.cssText="display:block;width:100%;padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;font-weight:bold;";
+    promptTA.style.cssText="width:100%;height:80px;padding:8px;font-size:12px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;resize:vertical;margin-bottom:6px;";
+    var regenBtn=document.createElement("button");regenBtn.textContent="Regenerate with this prompt";regenBtn.style.cssText="display:block;width:100%;padding:8px 12px;font-family:var(--font);font-size:12px;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;font-weight:bold;";
     editArea.appendChild(promptTA);editArea.appendChild(regenBtn);
     prev.appendChild(hd);prev.appendChild(img);prev.appendChild(useBtn);prev.appendChild(btnRow);prev.appendChild(editArea);
     status.appendChild(prev);
@@ -1110,9 +1110,9 @@ async function showPortraitModal(refreshFn,opts){
     if(!desc){status.innerHTML="<span style='font-size:12px;color:var(--red);'>Empty description.</span>";return;}
     var box=document.createElement("div");box.style.cssText="border:1px solid var(--acc);border-radius:var(--r);padding:12px;margin-top:8px;background:var(--bg2);";
     var hd=document.createElement("div");hd.textContent="Appearance read from the portrait";hd.style.cssText="font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;";
-    var p=document.createElement("div");p.textContent=desc;p.style.cssText="font-size:13px;color:var(--t0);line-height:1.5;margin-bottom:10px;font-family:Georgia,serif;";
-    var sec="padding:8px 12px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:6px;";
-    var repl=document.createElement("button");repl.textContent=c.appear?"Replace appearance":"Use as appearance";repl.style.cssText="padding:9px 12px;font-family:Georgia,serif;font-size:12px;font-weight:bold;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;margin-right:6px;";
+    var p=document.createElement("div");p.textContent=desc;p.style.cssText="font-size:13px;color:var(--t0);line-height:1.5;margin-bottom:10px;font-family:var(--font);";
+    var sec="padding:8px 12px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;margin-right:6px;";
+    var repl=document.createElement("button");repl.textContent=c.appear?"Replace appearance":"Use as appearance";repl.style.cssText="padding:9px 12px;font-family:var(--font);font-size:12px;font-weight:bold;background:var(--acc);border:none;color:var(--on-acc);border-radius:var(--r);cursor:pointer;margin-right:6px;";
     var app=document.createElement("button");app.textContent="Append";app.style.cssText=sec;
     var disc=document.createElement("button");disc.textContent="Discard";disc.style.cssText=sec;
     box.appendChild(hd);box.appendChild(p);box.appendChild(repl);if(c.appear)box.appendChild(app);box.appendChild(disc);
@@ -1369,13 +1369,13 @@ function showNpcSheet(name){
   var npcSections=csSec("Status",statusBlock||'<span class="cs-none">No data</span>')+(memBlock?csSec("Profile",memBlock):"")+(evHtml?csSec("History",evHtml):"");
 
   // ── Generate / Regenerate button ──────────────────────────────────────────
-  var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
-  var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:Georgia,serif;border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
+  var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
+  var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
   var modal=document.createElement("div");modal.id="npc-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:Georgia,serif;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
     +"<div class='cs-hero-info'>"+heroInfo+"</div></div>"
     +sheetSections
@@ -1400,8 +1400,8 @@ function showNpcSheet(name){
         +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Switch character?</div>"
         +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>"+escHtml(name)+" will take the lead. "+escHtml(worldState.character.name)+" becomes a companion.</div>"
         +"<div style='display:flex;gap:10px;justify-content:center;'>"
-        +"<button id='sw-ok' style='padding:10px 28px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Switch</button>"
-        +"<button id='sw-cancel' style='padding:10px 20px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+        +"<button id='sw-ok' style='padding:10px 28px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Switch</button>"
+        +"<button id='sw-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
         +"</div></div>";
       document.body.appendChild(confirm);
       document.getElementById("sw-ok").addEventListener("click",function(){confirm.remove();modal.remove();_switchPlayerCharacter(name);});
@@ -1423,8 +1423,8 @@ function showNpcSheet(name){
         +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Part ways with "+escHtml(name)+"?</div>"
         +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>They leave the party and become an ordinary NPC. You can recruit them again later, and a party slot frees up.</div>"
         +"<div style='display:flex;gap:10px;justify-content:center;'>"
-        +"<button id='pw-ok' style='padding:10px 24px;font-size:13px;font-family:Georgia,serif;background:var(--dng);color:var(--on-dng);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Part ways</button>"
-        +"<button id='pw-cancel' style='padding:10px 20px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+        +"<button id='pw-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--dng);color:var(--on-dng);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Part ways</button>"
+        +"<button id='pw-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
         +"</div></div>";
       document.body.appendChild(pc);
       document.getElementById("pw-ok").addEventListener("click",function(){pc.remove();modal.remove();partWaysWithCompanion(name);});
@@ -1508,7 +1508,7 @@ function showCharacterBrowser(initialMode){
   function segBtn(label,m,pos){
     var on=mode===m;
     var side=pos==="left"?"border-radius:var(--r) 0 0 var(--r);border-right:none;":"border-radius:0 var(--r) var(--r) 0;";
-    return "<button class='cbr-seg' data-mode='"+m+"' style='flex:1;font-size:12px;font-family:Georgia,serif;padding:7px 0;border:1px solid "+(on?"var(--acc)":"var(--brd2)")+";background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";cursor:pointer;"+side+"'>"+label+"</button>";
+    return "<button class='cbr-seg' data-mode='"+m+"' style='flex:1;font-size:12px;font-family:var(--font);padding:7px 0;border:1px solid "+(on?"var(--acc)":"var(--brd2)")+";background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";cursor:pointer;"+side+"'>"+label+"</button>";
   }
 
   function shell(bodyHtml){
@@ -1520,7 +1520,7 @@ function showCharacterBrowser(initialMode){
       +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local","local","right")+"</div>"
       +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
-      +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
+      +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
       +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>"
       +"</div>";
     document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
@@ -1655,10 +1655,10 @@ function showCharImportPreview(char, onAccept, onCancel){
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'><span style='color:var(--t1);'>Inventory:</span> "+inv+"</div>"
     +"<div style='display:flex;flex-direction:column;gap:8px;'>"
     +"<div style='display:flex;gap:10px;'>"
-    +"<button id='cip-accept' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Play as "+escHtml(char.name)+"</button>"
-    +"<button id='cip-cancel' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"<button id='cip-accept' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Play as "+escHtml(char.name)+"</button>"
+    +"<button id='cip-cancel' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
     +"</div>"
-    +(worldState?"<button id='cip-companion' style='width:100%;padding:10px;font-size:12px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>+ Add "+escHtml(char.name)+" as companion to current campaign</button>":"")
+    +(worldState?"<button id='cip-companion' style='width:100%;padding:10px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>+ Add "+escHtml(char.name)+" as companion to current campaign</button>":"")
     +"</div></div>";
   document.body.appendChild(modal);
   function doCancel(){modal.remove();if(typeof onCancel==="function")onCancel();}
@@ -1690,7 +1690,7 @@ function _showCampaignPickerModal(){
   var modal=document.createElement("div");modal.id="camp-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var svrConnected=storageAdapter.isServerMode();
-  var svrBtnStyle="padding:3px 10px;font-family:Georgia,serif;font-size:11px;background:none;border:1px solid "+(svrConnected?"var(--acc)":"var(--brd2)")+";border-radius:var(--r);cursor:pointer;color:"+(svrConnected?"var(--acc)":"var(--t2)")+";";
+  var svrBtnStyle="padding:3px 10px;font-family:var(--font);font-size:11px;background:none;border:1px solid "+(svrConnected?"var(--acc)":"var(--brd2)")+";border-radius:var(--r);cursor:pointer;color:"+(svrConnected?"var(--acc)":"var(--t2)")+";";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span>"
@@ -1700,7 +1700,7 @@ function _showCampaignPickerModal(){
     +"</div></div>"
     +"<div id='camp-sync-status' style='display:none;font-size:11px;color:var(--t2);margin-bottom:10px;text-align:center;'></div>"
     +"<div id='camp-list'></div>"
-    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
+    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
     +"</div>";
   document.body.appendChild(modal);
   document.getElementById("camp-x").addEventListener("click",function(){modal.remove();});
@@ -1745,8 +1745,8 @@ function _renderCampList(){
       +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+savedLine+"</div>"
       +"</div>"
       +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
-        :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
-        +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
+        :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
+        +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
       +"</div>";}}
   listEl.innerHTML=rows;
 }
@@ -1839,7 +1839,7 @@ function campStartRename(id){
   var cur=span.textContent;
   var inp=document.createElement("input");
   inp.id="camp-rename-"+id;inp.value=cur;
-  inp.style.cssText="font-size:14px;font-family:Georgia,serif;background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;";
+  inp.style.cssText="font-size:14px;font-family:var(--font);background:var(--bg3);border:1px solid var(--acc);border-radius:4px;color:var(--t0);padding:2px 6px;width:140px;";
   inp.addEventListener("blur",function(){campSaveRename(id);});
   inp.addEventListener("keydown",function(e){if(e.key==="Enter")campSaveRename(id);if(e.key==="Escape")showCampaignPicker();});
   span.parentNode.replaceChild(inp,span);inp.focus();inp.select();
@@ -1894,7 +1894,7 @@ function exportCharacter(){
     rows+="<div onclick='_charExportPick("+ci+")' style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
       +"<div style='flex:1;min-width:0;'><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+chars[ci].name+"</div>"
       +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+chars[ci].label+"</div>"
-      +"<div style='font-size:10px;color:var(--t2);margin-top:3px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+fname+"</div></div>"
+      +"<div style='font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+fname+"</div></div>"
       +"<span style='font-size:18px;color:var(--t2);flex-shrink:0;'>&#8595;</span></div>";
   }
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
@@ -1972,7 +1972,7 @@ function _startImportedCampaign(char){
   var modal=document.createElement("div");modal.id="import-setup";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:410;display:flex;align-items:center;justify-content:center;padding:20px;";
   var lblCss="display:block;font-size:11px;color:var(--t2);margin-bottom:4px;";
-  var inpCss="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:Georgia,serif;font-size:13px;";
+  var inpCss="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:var(--font);font-size:13px;";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>New campaign for "+escHtml(char.name)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:18px;'>Lv"+(char.level||1)+" "+escHtml(((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim())+" — imported as-is</div>"
@@ -1985,8 +1985,8 @@ function _startImportedCampaign(char){
     +"<input id='is-loc-text' type='text' placeholder='Describe your starting place…' style='display:none;"+inpCss+"margin-top:6px;'/>"
     +"<div style='font-size:10px;color:var(--t2);margin:12px 0 16px;'>Companions can be added once in-game: File &gt; Import Character &gt; Add as companion.</div>"
     +"<div style='display:flex;gap:10px;'>"
-    +"<button id='is-go' style='flex:1;padding:11px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Begin your journey</button>"
-    +"<button id='is-cancel' style='padding:11px 18px;font-size:13px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"<button id='is-go' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Begin your journey</button>"
+    +"<button id='is-cancel' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
     +"</div></div>";
   document.body.appendChild(modal);
   document.getElementById("is-cancel").addEventListener("click",function(){modal.remove();});
@@ -2054,9 +2054,9 @@ function _showCharExportOptions(char){
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>Export "+escHtml(char.name)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:20px;'>Lv"+char.level+" "+escHtml((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim()+"</div>"
     +"<div style='display:flex;flex-direction:column;gap:8px;'>"
-    +"<button id='ceo-library' style='padding:11px;font-size:13px;font-family:Georgia,serif;background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"var(--on-acc)":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
-    +"<button id='ceo-file' style='padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>&#8595; Download .char file</button>"
-    +"<button id='ceo-cancel' style='padding:8px;font-size:12px;font-family:Georgia,serif;background:none;border:none;color:var(--t2);cursor:pointer;'>Cancel</button>"
+    +"<button id='ceo-library' style='padding:11px;font-size:13px;font-family:var(--font);background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"var(--on-acc)":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
+    +"<button id='ceo-file' style='padding:10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>&#8595; Download .char file</button>"
+    +"<button id='ceo-cancel' style='padding:8px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t2);cursor:pointer;'>Cancel</button>"
     +"</div></div>";
   document.body.appendChild(modal);
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
@@ -2084,8 +2084,8 @@ function _showCharOverwriteConfirm(char,existing){
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite library entry?</div>"
     +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>Library has <span style='color:var(--t1);'>"+escHtml(existing.name)+" Lv"+existing.level+"</span>. Replace with <span style='color:var(--acc);'>Lv"+char.level+"</span>?</div>"
     +"<div style='display:flex;gap:10px;'>"
-    +"<button id='cow-ok' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Overwrite</button>"
-    +"<button id='cow-cancel' style='flex:1;padding:10px;font-family:Georgia,serif;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"<button id='cow-ok' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Overwrite</button>"
+    +"<button id='cow-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
     +"</div></div>";
   document.body.appendChild(modal);
   document.getElementById("cow-cancel").addEventListener("click",function(){modal.remove();});
@@ -2108,7 +2108,7 @@ function showReadOnlyCharSheet(c,opts){
   var hdr=csHeroHeader(c);
   var modal=document.createElement("div");modal.id="ro-cs-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:420;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
-  var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:Georgia,serif;padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Import</button>":"";
+  var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:var(--font);padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Import</button>":"";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
     +"<div class='cs-hero'>"
@@ -2159,7 +2159,7 @@ function _renderCompanionSlots(){
     h+="</div>";
   }
   if(pendingCompanions.length<max){
-    h+="<button onclick='showCompanionBrowser()' style='font-size:12px;font-family:Georgia,serif;padding:8px 14px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;width:100%;text-align:center;'>+ Add companion…</button>";
+    h+="<button onclick='showCompanionBrowser()' style='font-size:12px;font-family:var(--font);padding:8px 14px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;width:100%;text-align:center;'>+ Add companion…</button>";
   }
   sec.innerHTML=h;
 }
@@ -2206,7 +2206,7 @@ function showCompanionBrowser(){
       +"<div class='cbr-sub'>"+sub+"</div>"
       +"</div>"
       +"<button data-pick-id='"+escHtml(pickId)+"' data-pick-type='"+pickType+"' "+(dis?"disabled":"")+
-      " style='padding:6px 14px;font-size:12px;font-family:Georgia,serif;background:"+(dis?"var(--bg3)":"var(--acc)")+";color:"+(dis?"var(--t2)":"#000")+";border:none;border-radius:var(--r);cursor:"+(dis?"default":"pointer")+";flex-shrink:0;'>"+btnLbl+"</button>"
+      " style='padding:6px 14px;font-size:12px;font-family:var(--font);background:"+(dis?"var(--bg3)":"var(--acc)")+";color:"+(dis?"var(--t2)":"#000")+";border:none;border-radius:var(--r);cursor:"+(dis?"default":"pointer")+";flex-shrink:0;'>"+btnLbl+"</button>"
       +"</div>";
   }
   function renderLocal(){
@@ -2261,7 +2261,7 @@ function showCompanionBrowser(){
     }
   }
   function render(){if(mode==="library")renderLibrary();else renderLocal();}
-  var segS="padding:7px 16px;font-size:12px;font-family:Georgia,serif;cursor:pointer;border:1px solid var(--brd2);";
+  var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
   function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
@@ -2462,8 +2462,8 @@ function showRenderOptionsModal(){
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:400px;width:100%;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 Render Options</span><button id='ro-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>fal.ai API Key</div>"
-    +"<input type='password' id='ro-fal-inp' placeholder='fal_key_...' style='width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:8px;box-sizing:border-box;'/>"
-    +"<div style='display:flex;gap:6px;margin-bottom:22px;'><button id='ro-fal-clear' style='padding:7px 13px;font-family:Georgia,serif;font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button><button id='ro-fal-save' style='flex:1;padding:8px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save Key</button></div>"
+    +"<input type='password' id='ro-fal-inp' placeholder='fal_key_...' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:8px;box-sizing:border-box;'/>"
+    +"<div style='display:flex;gap:6px;margin-bottom:22px;'><button id='ro-fal-clear' style='padding:7px 13px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button><button id='ro-fal-save' style='flex:1;padding:8px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save Key</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Image Model</div>"
     +mhtml
     +"<p id='ro-msg' style='font-size:12px;min-height:16px;margin-top:10px;text-align:center;'></p>"
@@ -2515,12 +2515,12 @@ function showProviderModal(){
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Provider</div>"
     +"<div id='pv-rows'>"+provRows()+"</div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>API Key</div>"
-    +"<input type='password' id='pv-key' style='width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
+    +"<input type='password' id='pv-key' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
-    +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
+    +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
     +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"
     +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
-    +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>"
+    +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>"
     +"</div>";
   document.body.appendChild(modal);
   var keyInp=document.getElementById("pv-key"),modelSel=document.getElementById("pv-model");
@@ -2559,7 +2559,7 @@ function showProseModal(){
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM imitates this author's voice. Takes effect on the next turn — switch any time.</p>"
     +"<div id='pr-rows'>"+rows()+"</div>"
-    +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:Georgia,serif;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>"
+    +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>"
     +"</div>";
   document.body.appendChild(modal);
   function refresh(){Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(r){var s=(r.getAttribute("data-id")===sel);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var nm=r.querySelector("div>div");if(nm)nm.style.color=s?"var(--acc)":"var(--t1)";});}
