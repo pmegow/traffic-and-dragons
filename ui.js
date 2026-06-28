@@ -62,7 +62,7 @@ function buildFilename(type){
   var camp=slug(worldState&&worldState.campName||c.name);
   var char=slug(c.name);
   var base=camp+"_"+char;
-  if(type==="save")     return base+"_t"+turn+".json";
+  if(type==="save")     return base+"_t"+turn+".tnd";
   if(type==="narrative")return base+"_t"+turn+".txt";
   if(type==="character")return base+"_character.char";
   if(type==="render")   return base+"_t"+turn+".jpg";
@@ -575,22 +575,25 @@ function exportSave(){
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>File</div>"
-    +"<div style='font-size:12px;color:var(--t1);font-family:monospace;background:var(--bg2);padding:8px 10px;border-radius:var(--r);margin-bottom:"+(alreadySaved?"12":"20")+"px;word-break:break-all;'>"+fname+"</div>"
+    +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:monospace;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
     +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in your downloads folder.</div>":"")
     +"<div style='display:flex;gap:10px;'><button id='sc-cancel' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
     +"<button id='sc-save' style='flex:1;padding:10px;font-family:Georgia,serif;background:var(--acc);border:none;border-radius:var(--r);color:#000;font-weight:bold;cursor:pointer;'>Save</button></div>"
     +"</div>";
   document.body.appendChild(modal);
-  document.getElementById("sc-cancel").addEventListener("click",function(){modal.remove();});
-  document.getElementById("sc-save").addEventListener("click",function(){
+  function getFname(){var el=document.getElementById("sc-fname");return(el&&el.value.trim())||fname;}
+  function doSave(){
+    var actualFname=getFname();
     modal.remove();
     var data=JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2);
-    var blob=new Blob([data],{type:"application/json"});exportToFolder("save",blob,fname);
-    // Record this filename as saved
-    if(saved.indexOf(fname)<0)saved.push(fname);
+    var blob=new Blob([data],{type:"application/json"});exportToFolder("save",blob,actualFname);
+    if(saved.indexOf(actualFname)<0)saved.push(actualFname);
     if(saved.length>100)saved=saved.slice(-100);
     try{localStorage.setItem("tnd_saved_files_v1",JSON.stringify(saved));}catch(e){}
-  });
+  }
+  document.getElementById("sc-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("sc-save").addEventListener("click",doSave);
+  document.getElementById("sc-fname").addEventListener("keydown",function(e){if(e.key==="Enter")doSave();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
 function buildBlueprintFromGame(){
