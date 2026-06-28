@@ -620,6 +620,7 @@ function buildBlueprintFromGame(){
     });
   }
   return {
+    format:     "tnd-blueprint-v1",
     name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
     proseAuthor: worldState.proseAuthor!=null?worldState.proseAuthor:"",
     premise:    sk&&sk.premise||"",
@@ -661,7 +662,7 @@ function exportBlueprint(){
     bp.name=getName();bp.proseAuthor=getVoice();
     var data=JSON.stringify(bp,null,2);
     var blob=new Blob([data],{type:"application/json"});
-    var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".campaign";
+    var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
     exportToFolder("save",blob,fname);
     modal.remove();
   });
@@ -782,9 +783,9 @@ function showBlueprintBrowser(){
   function renderLocal(){
     var body=document.getElementById("bp-body");if(!body)return;
     body.innerHTML="<div style='text-align:center;padding:16px 0;'>"
-      +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .campaign blueprint file from your device.</div>"
+      +"<div style='font-size:12px;color:var(--t2);margin-bottom:16px;'>Import a .blueprint file from your device.</div>"
       +"<label style='display:inline-block;padding:9px 22px;font-size:13px;font-family:Georgia,serif;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;background:var(--bg2);' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t1)\"'>"
-      +"<input type='file' id='bp-file-inp' accept='.campaign' style='display:none;'/> Import from file (.campaign)&hellip;</label>"
+      +"<input type='file' id='bp-file-inp' accept='.blueprint,.campaign' style='display:none;'/> Import from file (.blueprint)&hellip;</label>"
       +"</div>";
     document.getElementById("bp-file-inp").addEventListener("change",function(ev){
       var file=ev.target.files[0];if(!file)return;
@@ -810,7 +811,7 @@ function showBlueprintBrowser(){
     storageAdapter.listBlueprintLibrary(function(err,list){
       var body2=document.getElementById("bp-body");if(!body2)return;
       if(err||!list){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load library.</div>";return;}
-      if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or use the Local tab to import a .campaign file.</div>";return;}
+      if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or use the Local tab to import a .blueprint file.</div>";return;}
       var html="<div style='display:flex;flex-direction:column;gap:8px;'>",bi;
       for(bi=0;bi<list.length;bi++){
         var item=list[bi],bp2=item.blueprint||{};

@@ -20,7 +20,7 @@ function startGame(char,toneName,toneVoice){
     npcLinkUpsert(char.name,comp.name,"companions");
   }
   pendingCompanions=[];
-  // Apply campaign blueprint if one was loaded (.campaign file)
+  // Apply blueprint if one was loaded (.blueprint file)
   if(pendingBlueprint){
     applyBlueprint(pendingBlueprint);
     pendingBlueprint=null;
@@ -261,10 +261,10 @@ function _attachGMErrorUI(em,retryFn,msg){
   }
 }
 function validateBlueprint(bp){
-  if(!bp||typeof bp!=="object")return"Not a valid campaign file.";
-  if(bp.format!=="tnd-campaign-v1")return"Unrecognised campaign format.";
-  if(!bp.name)return"Campaign file has no name.";
-  if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Campaign file has no premise or acts.";
+  if(!bp||typeof bp!=="object")return"Not a valid blueprint file.";
+  if(bp.format!=="tnd-blueprint-v1"&&bp.format!=="tnd-campaign-v1")return"Unrecognised blueprint format.";
+  if(!bp.name)return"Blueprint has no name.";
+  if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Blueprint has no premise or acts.";
   if(bp.acts){
     var i,j;for(i=0;i<bp.acts.length;i++){
       var a=bp.acts[i];if(!a.title||!a.goal)return"Act "+(i+1)+" is missing a title or goal.";
