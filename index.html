@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="T&amp;D"/>
-<link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <title>Traffic and Dragons</title>
@@ -464,10 +463,13 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <script src="tts.js"></script>
 <script src="stt.js"></script>
 <script>
-if("serviceWorker" in navigator){
-  window.addEventListener("load",function(){
-    navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW registration failed:",e);});
-  });
+if(location.protocol!=="file:"){
+  var _ml=document.createElement("link");_ml.rel="manifest";_ml.href="manifest.json";document.head.appendChild(_ml);
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",function(){
+      navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("SW registration failed:",e);});
+    });
+  }
 }
 </script>
 </body>
