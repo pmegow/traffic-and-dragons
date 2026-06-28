@@ -450,10 +450,12 @@ function updateServerUI(){
 function clearCacheAndReload(){
   closeAllMenus();
   if("serviceWorker" in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      var i=0;function next(){if(i<regs.length){regs[i++].unregister().then(next);}else{location.reload(true);}}
-      next();
-    });
+    navigator.serviceWorker.getRegistrations()
+      .then(function(regs){
+        var i=0;function next(){if(i<regs.length){regs[i++].unregister().then(next);}else{location.reload(true);}}
+        next();
+      })
+      .catch(function(){location.reload(true);}); // file:// origin throws SecurityError — just reload
   }else{location.reload(true);}
 }
 function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});}

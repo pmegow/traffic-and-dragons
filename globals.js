@@ -75,7 +75,7 @@ var PROVIDERS={
     reinforce:TAG_REINFORCE
   }
 };
-var APP_VERSION="v1.120";
+var APP_VERSION="v1.121";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
