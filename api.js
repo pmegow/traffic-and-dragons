@@ -132,12 +132,13 @@ function buildSysPrompt(){
   var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, and graphic mature themes are fully permitted and encouraged when narratively appropriate. PROFANITY IS FULLY UNLOCKED — strong language and crude words (fuck, shit, etc.) are permitted without restriction; swear freely and naturally wherever the chosen prose voice, a character's mouth, or the heat of the moment calls for it. Do NOT self-censor, do NOT soften word choice, do NOT substitute milder words or censor with symbols. Do not fade to black, time-skip, or cut away to the afterglow (e.g. jumping to 'Later, …') at the moment an intimate scene begins — depict the encounter itself on-screen, not just the lead-up and the morning after. Do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
   // Prose-inspiration voice (TODO #23) — merged into the STYLE rule so there's one
   // unified voice directive, not a separate block the model can average away.
-  var _paVc="",_paProfane=false;
+  var _paVc="",_paProfane=false,_paDNA="";
   var _paId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_paId&&typeof AUTHORS!=="undefined"){
     var pa=null,pj;for(pj=0;pj<AUTHORS.length;pj++){if(AUTHORS[pj].id===_paId){pa=AUTHORS[pj];break;}}
-    if(pa&&pa.vc){_paVc=pa.vc;_paProfane=!!pa.profane;}
+    if(pa){if(pa.vc){_paVc=pa.vc;_paProfane=!!pa.profane;}if(pa.contentDNA)_paDNA=pa.contentDNA;}
   }
+  var narrativeDesignBlock=_paDNA?"NARRATIVE DESIGN — these structural principles govern this campaign; they shape what happens and why, not how it is written:\n"+_paDNA+"\n\n":"";
   // Transient control-switch reinforcement — overrides the sessionLog momentum where the
   // OLD protagonist was "you". Set on swap, auto-cleared in sendAction after ~2 turns.
   var switchBlock="";
@@ -148,6 +149,7 @@ function buildSysPrompt(){
   return identity+switchBlock+leftBlock+getRulesBlock()+adultBlock
     +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
     +tb
+    +narrativeDesignBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
