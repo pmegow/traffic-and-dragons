@@ -26,6 +26,8 @@ var TTS = (function() {
   var _queue      = [];
   var _playing    = false;
   var _paused     = false;
+  var _lastSpokenText  = "";
+  var _onDoneCallback  = null;
   var _audioCtx   = null;   // single persistent context, created on first toggle-on
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
   var _sources    = [];     // scheduled AudioBufferSourceNodes
@@ -90,15 +92,20 @@ var TTS = (function() {
 
   function speak(text, voiceId) {
     if (!text || !text.trim()) return;
+    _lastSpokenText = text.trim();
     if (_useNative()) { _queue.push({ text: text.trim(), native: true }); if (!_playing) _drain(); return; }
     voiceId = voiceId || getVoice();
-    if (!voiceId || !getKey()) return;
+    if (!voiceId || !getKey()) {
+      // No Cartesia voice configured — in car mode fall back to native so audio still plays
+      if (typeof carMode !== "undefined" && carMode) { _queue.push({ text: text.trim(), native: true }); if (!_playing) _drain(); }
+      return;
+    }
     _queue.push({ text: text.trim(), voiceId: voiceId });
     if (!_playing) _drain();
   }
 
   function speakResponse(cleanText) {
-    if (!isOn()) return;
+    if (!isOn() && !(typeof carMode !== "undefined" && carMode)) return;
     speak(cleanText.trim());
   }
 
@@ -110,6 +117,7 @@ var TTS = (function() {
       _paused  = false;
       _curNative = false;
       _showBar(false);
+      if (_onDoneCallback) _onDoneCallback();
       return;
     }
     _playing = true;
@@ -555,6 +563,10 @@ var TTS = (function() {
 
   return {
     isOn:              isOn,
+    isPlaying:         function() { return _playing && !_paused; },
+    isPaused:          function() { return _paused; },
+    getLastText:       function() { return _lastSpokenText; },
+    setOnDone:         function(fn) { _onDoneCallback = fn; },
     toggle:            toggle,
     loadSettings:      loadSettings,
     speak:             speak,

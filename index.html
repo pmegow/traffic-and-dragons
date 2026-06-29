@@ -297,6 +297,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Render prompt</button>
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button id="api-fm-campaigns" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--acc);cursor:pointer;text-align:left;font-weight:bold;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">&#128193; Campaigns&hellip;</button>
+      <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">&#128663; Car Mode</button>
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Save Game (local)</button>
       <label style="display:block;padding:8px 14px;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="file" id="api-import-inp" accept=".tnd,.json" style="display:none;"/>Load Game (local)</label>
@@ -339,6 +340,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Render prompt</button>
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button id="cs-fm-campaigns" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--acc);cursor:pointer;text-align:left;font-weight:bold;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">&#128193; Campaigns&hellip;</button>
+      <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">&#128663; Car Mode</button>
       <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
       <button style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);text-align:left;opacity:0.4;cursor:default;pointer-events:none;">Save Game (local)</button>
       <label style="display:block;padding:8px 14px;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="file" id="cs-import-inp" accept=".tnd,.json" style="display:none;"/>Load Game (local)</label>
@@ -416,6 +418,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
           <button id="fm-render-mob" class="fm-mobile-only" style="display:none;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Render prompt</button>
           <div class="fm-mobile-only" style="display:none;border-top:1px solid var(--brd);margin:4px 0;"></div>
           <button id="fm-campaigns" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--acc);cursor:pointer;text-align:left;font-weight:bold;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">&#128193; Campaigns&hellip;</button>
+          <button id="fm-carmode" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">&#128663; Car Mode</button>
           <div style="border-top:1px solid var(--brd);margin:4px 0;"></div>
           <button id="fm-export" style="display:block;width:100%;padding:8px 14px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t1);cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'">Save Game (local)</button>
           <label style="display:block;padding:8px 14px;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='none'"><input type="file" id="import-inp" accept=".tnd,.json" style="display:none;"/>Load Game (local)</label>
@@ -487,6 +490,22 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <script src="ui.js"></script>
 <script src="tts.js"></script>
 <script src="stt.js"></script>
+<div id="car-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg0);flex-direction:column;align-items:center;justify-content:space-between;padding:24px;box-sizing:border-box;user-select:none;">
+  <div style="width:100%;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+    <span id="car-name" style="font-size:20px;font-weight:bold;color:var(--t0);font-family:var(--font);letter-spacing:0.02em;"></span>
+    <button id="car-close-btn" style="background:none;border:1px solid var(--brd2);color:var(--t1);border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&#215;</button>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:16px 0;">
+    <div style="width:180px;height:240px;border-radius:50%;overflow:hidden;border:2px solid var(--acc);background:var(--bg2);display:flex;align-items:center;justify-content:center;position:relative;">
+      <img id="car-portrait-img" style="width:100%;height:100%;object-fit:cover;display:none;"/>
+      <span id="car-portrait-init" style="font-size:64px;color:var(--t2);">&#128100;</span>
+    </div>
+  </div>
+  <div id="car-party" style="display:flex;gap:12px;align-items:center;flex-shrink:0;min-height:40px;"></div>
+  <div id="car-status" style="font-size:14px;color:var(--t1);font-family:var(--font);text-align:center;min-height:20px;padding:8px 0;flex-shrink:0;"></div>
+  <button id="car-tap-btn" style="width:80px;height:80px;border-radius:50%;background:var(--acc);border:none;font-size:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,0.5);margin:8px 0;">&#127908;</button>
+  <div id="car-kb-hints" style="font-size:11px;color:var(--t2);font-family:var(--font-mono);text-align:center;padding:8px 0;flex-shrink:0;">Space=play/pause &nbsp;&nbsp; &#8594;=skip &nbsp;&nbsp; &#8592;=replay &nbsp;&nbsp; Esc=exit</div>
+</div>
 <script>
 if(location.protocol!=="file:"){
   var _ml=document.createElement("link");_ml.rel="manifest";_ml.href="manifest.json";document.head.appendChild(_ml);

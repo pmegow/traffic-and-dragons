@@ -83,7 +83,7 @@ var STT = (function() {
       var el = document.getElementById("userinput");
       // Auto-send: only when enabled, we actually captured speech, the field has
       // text, and the engine isn't mid-turn. Otherwise just leave it for review.
-      if (isAutoSend() && _gotFinal && el && el.value.trim() && typeof busy !== "undefined" && !busy && typeof sendAction === "function") {
+      if ((isAutoSend() || (typeof carMode !== "undefined" && carMode)) && _gotFinal && el && el.value.trim() && typeof busy !== "undefined" && !busy && typeof sendAction === "function") {
         sendAction(null);
       } else if (el) {
         el.focus();
@@ -138,6 +138,7 @@ var STT = (function() {
 
   return {
     isSupported:  isSupported,
+    isListening:  function() { return _listening; },
     toggle:       toggle,
     start:        start,
     stop:         stop,
