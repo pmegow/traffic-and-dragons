@@ -6,8 +6,31 @@ function buildDots(){
   var h="",i;for(i=1;i<=total;i++){h+='<div class="dot '+(i<cs.step?"done":i===cs.step?"active":"")+'"></div>';}
   el.innerHTML=h;
 }
-function buildToneGrid(){var el=document.getElementById("tone-grid");if(!el)return;var h="",i;for(i=0;i<TONES.length;i++){var t=TONES[i];h+='<div class="sc'+(cs.tone===t.id?" sel":"")+'" onclick="pickTone('+i+')"><div class="nm">'+t.nm+'</div><div class="sb">'+t.tl+'</div></div>';}el.innerHTML=h;}
-function pickTone(idx){cs.tone=TONES[idx].id;buildToneGrid();var cw=document.getElementById("tone-cw"),pv=document.getElementById("tone-prev");if(cs.tone==="custom"){if(cw)cw.style.display="block";if(pv)pv.textContent="";}else{if(cw)cw.style.display="none";if(pv)pv.textContent="Magic: "+TONES[idx].mg+" | Violence: "+TONES[idx].vi;}}
+function buildDnaStep(){
+  var ts=document.getElementById("tone-sel"),as=document.getElementById("author-sel");
+  if(!ts||!as)return;
+  if(!ts.options.length){
+    var i;for(i=0;i<TONES.length;i++){var ot=document.createElement("option");ot.value=TONES[i].id;ot.textContent=TONES[i].nm;ts.appendChild(ot);}
+    ts.addEventListener("change",function(){cs.tone=ts.value;var cw=document.getElementById("tone-cw");if(cw)cw.style.display=cs.tone==="custom"?"block":"none";_syncDnaBlurb();});
+  }
+  if(!as.options.length){
+    var j;for(j=0;j<AUTHORS.length;j++){var oa=document.createElement("option");oa.value=AUTHORS[j].id;oa.textContent=AUTHORS[j].nm;as.appendChild(oa);}
+    as.addEventListener("change",function(){cs.author=as.value;_syncDnaBlurb();});
+  }
+  if(!cs.tone)cs.tone="swords";
+  ts.value=cs.tone;
+  as.value=cs.author||"";
+  var cw=document.getElementById("tone-cw");
+  if(cw)cw.style.display=cs.tone==="custom"?"block":"none";
+  _syncDnaBlurb();
+}
+function _syncDnaBlurb(){
+  var pv=document.getElementById("tone-prev");if(!pv)return;
+  var parts=[],ti,ai;
+  if(cs.tone&&cs.tone!=="custom"){for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===cs.tone){parts.push("Magic: "+TONES[ti].mg+" · Violence: "+TONES[ti].vi);break;}}}
+  if(cs.author){for(ai=0;ai<AUTHORS.length;ai++){if(AUTHORS[ai].id===cs.author&&AUTHORS[ai].blurb){parts.push(AUTHORS[ai].nm+": "+AUTHORS[ai].blurb);break;}}}
+  pv.textContent=parts.join(" | ");
+}
 function buildAncGrid(){var el=document.getElementById("anc-grid");if(!el)return;var h="",i;for(i=0;i<ANCS.length;i++){var a=ANCS[i];h+='<div class="sc'+(cs.ancestry===a.id?" sel":"")+'" onclick="pickAnc('+i+')"><div class="nm">'+a.nm+'</div><div class="sb">'+a.bonus+'</div></div>';}el.innerHTML=h;}
 function pickAnc(idx){cs.ancestry=ANCS[idx].id;cs.fp=[];cs.subrace=null;cs.heritageVariant=null;showAncDetail(cs.ancestry);}
 function showAncDetail(ancId){
@@ -228,7 +251,7 @@ function buildStep6Deity(){
 }
 function goStep(n){
   document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;document.getElementById("step"+n).classList.add("active");buildDots();
-  if(n===1)buildToneGrid();
+  if(n===1)buildDnaStep();
   if(n===3){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
   if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===6)buildFinishingTouches();if(n===7)buildReview();window.scrollTo(0,0);
 }
@@ -247,7 +270,7 @@ function confirmChar(){
     var nid=newCampaignId();setActiveCampId(nid);
     worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
-    startGame(ic,getToneNm(),getToneVc());
+    startGame(ic,getToneNm(),getToneVc(),cs.author||"");
     return;
   }
   if(!enteredName){showToast("Enter a character name first.");return;}
@@ -272,8 +295,8 @@ function confirmChar(){
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
   char._campName=campNameVal;
-  if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationArchetype();}
-  else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc());}}
+  if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationArchetype();}
+  else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
 function showCreationArchetype(){
   var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];
@@ -308,7 +331,7 @@ function pickCreationArch(idx){
   var bumpsNeeded=0;for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)bumpsNeeded++;}
   if(bumpsNeeded>0){pendingBumps=bumpsNeeded;currentBump=1;showCreationStatBump();}
   else if(buildPendingSpellPool(c)){showCreationSpellPick();}
-  else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);}
+  else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}
 }
 function buildPendingSpellPool(c){
   var src=SPELLS[c.cls]||(c.archetype?ARCH_SPELLS[c.archetype]:null);

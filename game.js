@@ -1,4 +1,4 @@
-function startGame(char,toneName,toneVoice){
+function startGame(char,toneName,toneVoice,authorId){
   // Ensure all v10 character fields are initialised
   if(!char.gender)char.gender="M";
   if(!char.skills)char.skills=initSkills();
@@ -11,6 +11,7 @@ function startGame(char,toneName,toneVoice){
   if(!char.storyBeats)char.storyBeats=[];
   worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[]};
   delete worldState.character._startLoc;delete worldState.character._campName;
+  if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){

@@ -76,7 +76,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.132";
+var APP_VERSION="v1.133";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -102,9 +102,9 @@ var renderModel="fal-ai/flux/dev";
 var panelCol=false,secCol={quest:false,inv:false,ab:false,sp:false};
 var _qaSuppressUntil=0; // brief window after a long-press fires, to swallow the trailing click on an action button
 var activeChatTab="narrative";
-var cs={tone:null,name:"",gender:"M",age:"early twenties",appear:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,step:1};
+var cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,step:1};
 var rvGold=20;var rvGoldRolled=false;
-var pendingChar=null,pendingTone="",pendingVoice="",pendingLoc="",pendingBumps=0,currentBump=0;
+var pendingChar=null,pendingTone="",pendingVoice="",pendingAuthor="",pendingLoc="",pendingBumps=0,currentBump=0;
 var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingImportChar=null;
