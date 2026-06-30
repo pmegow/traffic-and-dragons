@@ -341,11 +341,12 @@ async function generateSkeleton(){
     +'{"premise":"One paragraph: the central conflict driving the campaign",'
     +'"acts":['
     +'{"title":"Act 1 title","goal":"What must be accomplished","turningPoint":"The event that ends this act and propels into the next","parallel":false,"arcs":['
-    +'{"title":"Arc title","objective":"What the player pursues in this arc","type":"combat or investigation or exploration or social"}]},'
-    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","parallel":true,"arcs":[{"title":"...","objective":"...","type":"..."}]},'
-    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","parallel":false,"arcs":[{"title":"...","objective":"...","type":"..."}]}'
+    +'{"title":"Arc title","objective":"What the player pursues in this arc","type":"combat or investigation or exploration or social"'+(_skelDNA?',"dnaHint":"One vivid sentence: how THIS arc should feel and unfold in the narrative design above — specific to this arc, never generic procedure"':'')+'}]},'
+    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","parallel":true,"arcs":[{"title":"...","objective":"...","type":"..."'+(_skelDNA?',"dnaHint":"..."':'')+'}]},'
+    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","parallel":false,"arcs":[{"title":"...","objective":"...","type":"..."'+(_skelDNA?',"dnaHint":"..."':'')+'}]}'
     +"]}\n\n"
     +"RULES:\n"
+    +(_skelDNA?"- Each arc MUST include a dnaHint: one concrete sentence telling the GM how to run THAT specific arc in the narrative design above. NOT generic procedure — e.g. for an investigation arc, not 'gather clues and interrogate' but how this author would twist it (who the clues implicate, what the truth costs, where the betrayal lies). The dnaHint is what keeps the campaign in voice turn after turn, so make it sharp and specific to the arc's content.\n":"")
     +"- Each act should have 2-4 arcs\n"
     +"- Act 1: establish the world, introduce the threat, end with a revelation or loss\n"
     +"- Act 2: escalation, alliances, setbacks — the longest act\n"

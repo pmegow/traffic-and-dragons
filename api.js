@@ -223,7 +223,7 @@ function buildSkeletonBlock(){
       for(j=0;j<act.arcs.length;j++){
         var arc=act.arcs[j],as=arc.status==="completed"?"DONE":arc.status==="active"?"CURRENT":"upcoming";
         var typeHint=arc.type?" ("+arc.type+")":"";
-        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"]"+typeHint+" — "+arc.objective);
+        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"]"+typeHint+" — "+arc.objective+(arc.status==="active"&&arc.dnaHint?"\n    HOW TO RUN THIS ARC: "+arc.dnaHint:""));
       }
     }
   }
@@ -231,8 +231,10 @@ function buildSkeletonBlock(){
   var activeAct=null;for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){activeAct=sk.acts[i];break;}}
   if(activeAct){
     var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
-    if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order.";
-    if(activeArcs.length===1&&activeArcs[0].type)pacingNote+="\nThe current arc is "+activeArcs[0].type+"-focused. Shape encounters and scenes accordingly: "+(activeArcs[0].type==="investigation"?"clues, interrogation, deduction, piecing together evidence":activeArcs[0].type==="exploration"?"travel, discovery, environmental challenges, mapping unknown territory":activeArcs[0].type==="social"?"politics, alliances, persuasion, betrayal, negotiation":activeArcs[0].type==="combat"?"battles, sieges, hunts, tactical encounters":"varied challenges")+".";
+    if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.";
+    // Generic type-hint only when the active arc has NO dnaHint — otherwise it contradicts the author
+    // sensibility (a generic "investigation → gather clues" line is what flattened campaigns into procedure).
+    if(activeArcs.length===1&&!activeArcs[0].dnaHint&&activeArcs[0].type)pacingNote+="\nThe current arc is "+activeArcs[0].type+"-focused. Shape encounters and scenes accordingly: "+(activeArcs[0].type==="investigation"?"clues, interrogation, deduction, piecing together evidence":activeArcs[0].type==="exploration"?"travel, discovery, environmental challenges, mapping unknown territory":activeArcs[0].type==="social"?"politics, alliances, persuasion, betrayal, negotiation":activeArcs[0].type==="combat"?"battles, sieges, hunts, tactical encounters":"varied challenges")+".";
   }
   lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
