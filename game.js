@@ -311,7 +311,8 @@ function applyBlueprint(bp){
     }
     saveRules();
   }
-  // Region override
+  // Location + region override — blueprint is authoritative; overwrite whatever the wizard set
+  if(bp.startingLocation)worldState.world.location=bp.startingLocation;
   if(bp.startingRegion)worldState.world.region=bp.startingRegion;
   // Prose voice — author's choice; player can override via Dev Mode
   if(bp.proseAuthor!=null){
