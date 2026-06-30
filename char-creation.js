@@ -182,7 +182,7 @@ function buildReview(){
       +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+(ch.maxHp||ch.hp||0)+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+(ch.gold||0)+' gp</span></div><div class="rv-row"><span class="rk">Level</span><span class="rv">'+(ch.level||1)+'</span></div><div class="rv-row"><span class="rk">XP</span><span class="rv">'+(ch.xp||0)+'</span></div></div>'
       +(ch.appear?'<div class="desc-pre">"'+ch.appear+'"</div>':"")
       +'<div style="font-size:11px;color:var(--t2);margin-top:8px;text-align:center;">Importing at level '+(ch.level||1)+" — no re-roll.</div>";
-    var cnInp2=document.getElementById("rv-camp-name");if(cnInp2&&!cnInp2.value)cnInp2.value=dispName;
+    var cnInp2=document.getElementById("rv-camp-name");if(cnInp2){if(pendingBlueprint&&pendingBlueprint.name){var _ibpNms=[dispName];var _ibpci;for(_ibpci=0;_ibpci<pendingCompanions.length;_ibpci++)_ibpNms.push(pendingCompanions[_ibpci].name);cnInp2.value=pendingBlueprint.name+" ("+_ibpNms.join(", ")+")"}else if(!cnInp2.value)cnInp2.value=dispName;}
     if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
     return;
   }
@@ -208,7 +208,7 @@ function buildReview(){
   // Blueprint overrides: campaign name and starting location
   var locField=document.getElementById("rv-loc-field"),locFixed=document.getElementById("rv-loc-fixed");
   if(pendingBlueprint){
-    if(cnInp&&pendingBlueprint.name)cnInp.value=pendingBlueprint.name;
+    if(cnInp&&pendingBlueprint.name){var _bpNms=[dispNm||cs.name];var _bpci;for(_bpci=0;_bpci<pendingCompanions.length;_bpci++)_bpNms.push(pendingCompanions[_bpci].name);cnInp.value=pendingBlueprint.name+(_bpNms[0]?" ("+_bpNms.join(", ")+")":"");}
     var bpLoc=pendingBlueprint.startingLocation;
     if(bpLoc){
       if(locField)locField.style.display="none";
