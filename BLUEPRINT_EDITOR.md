@@ -1,45 +1,66 @@
-# Blueprint Editor — Handoff / Planning Doc
+# Blueprint Designer — Handoff / Planning Doc
 
-**Status:** Requirements drafted, nothing built. This is the pre-implementation handoff.
+**Status:** Requirements drafted, decisions locked, nothing built. Pre-implementation handoff.
 **Reference fixture:** `rise_of_the_runelords.blueprint` (hand-authored, complete example).
-**Related shipped work:** Remedy A (v1.137) — per-arc `dnaHint` anti-drift. See §6.4.
-**Related TODO:** #23 (Blueprint cloud library — partly built), #5 (Campaign Designer — different feature, AI-generated).
+**Related shipped work:** Remedy A (v1.137) — per-arc `dnaHint` anti-drift. See §5.4.
+**Absorbs:** TODO #5 (Campaign Designer / guided AI generation) — now the "Generate" path of this feature.
+**Related TODO:** #23 (Blueprint cloud library — partly built).
+
+> **Naming:** the feature is the **Blueprint Designer** — one surface with three creation modes
+> (manual edit, AI-guided generation, edit-existing). This file keeps its `BLUEPRINT_EDITOR.md`
+> name to preserve the committed reference.
 
 ---
 
 ## 1. Purpose & scope
 
-A UI to **create, edit, and save campaign blueprints** without hand-writing JSON.
+A UI to **create, edit, and save campaign blueprints** — by hand, with AI assistance, or by
+cleaning up an exported game — without touching JSON.
 
 A blueprint is the campaign *authoring package* — skeleton (3-act spine + arcs), seeded NPCs,
 locations, custom rules, and metadata. It is **NOT** a save file: no player character, no HP/XP/gold,
 no combat, no transcript. A blueprint + a fresh character = a new campaign.
 
+### Three creation modes (one shared editor surface)
+1. **Manual** — author every field by hand (empty editor).
+2. **Generate (absorbs TODO #5)** — guided prompts ("What is the central threat?", "What does the
+   protagonist want?", "Who stands in the way?", "How should it end? — or surprise me") feed the LLM,
+   which returns a full blueprint (premise + 3-act/arc skeleton, optionally seed NPCs/locations). The
+   result **drops into the same editor** for review and hand-tuning before save. Reuses the
+   `generateSkeleton()` machinery — same `worldState.skeleton` shape, same `buildSkeletonBlock()`
+   injection. Player provides the *what*; the LLM provides the *how it unfolds*.
+3. **Edit existing** — load a `.blueprint` file, a cloud-library blueprint, or the active game
+   (via `buildBlueprintFromGame()`), then edit.
+
+All three converge on the same editor and the same save paths.
+
 ---
 
-## 2. Current machinery (what already exists — reuse, don't rebuild)
+## 2. Decisions — LOCKED
 
-| Piece | Location | Role |
+| # | Decision | Resolution |
 |---|---|---|
-| `applyBlueprint(bp)` | `game.js:278` | Consumes a blueprint at campaign start — stamps skeleton act/arc status, seeds `worldState.npcs` + `memory.npcs`, seeds `memory.locations` + `memory.map.nodes`, appends `customRules`, sets region + location + `proseAuthor`. |
-| `_applyBlueprint(bp)` | `ui.js:710` | Char-creation-flow entry: sets `pendingBlueprint`, shows banner, jumps to step 2. **HAS A STALE BUG — see §6.2.** |
-| `buildBlueprintFromGame()` | `ui.js:601` | Packages the active campaign into a blueprint (strips run state, resets act/arc status to pending). The editor's "edit from active game" path feeds from this. |
-| `exportBlueprint()` | `ui.js:640` | File menu → download/cloud-save the active game as a blueprint. |
-| `showBlueprintBrowser()` | `ui.js:723` | Local `.blueprint` file import + cloud library tabs. Editor likely launches from here + from the creation flow. |
-| `_showBlueprintExport…` | `ui.js:~650` | Export modal (name + voice + counts). Good UX pattern to mirror. |
-| Server library | `storage-adapter.js:384` | `listBlueprintLibrary` / `saveBlueprintToLibrary` / `deleteBlueprintFromLibrary`. Server table `(user_id, slug, name, blueprint_data, updated_at)`. |
+| **D1** | Canonical schema fields | **Keep `author` (human credit) + `tone`** in the canonical shape. Export-from-game must start emitting both. |
+| **D1b** | Canonical format string | Canonical = **`tnd-blueprint-v1`** (matches feature name + newest producer). Normalizer accepts legacy **`tnd-campaign-v1`** on load. |
+| **D2** | dnaHint authoring | **Do both** — arcs get a hand-editable `dnaHint` field AND a per-blueprint "Generate dnaHints" button that runs the DNA pass against the selected `proseAuthor` (reuses the `generateSkeleton` dnaHint prompt). |
+| **D3** | TODO #5 (Campaign Designer) | **Absorbed** — becomes the Generate mode (§1, mode 2). No longer a separate backlog item. |
+
+### Still open (decide before/at implementation)
+- **O1** Cloud save: overwrite-by-slug vs. always-new-slot. *(Lean: overwrite-by-slug, mirroring the character library.)*
+- **O2** Launch point: extend `showBlueprintBrowser` with "New / Edit / Generate" buttons, a separate
+  File-menu item, or both. *(Lean: buttons in the browser, since it already lists blueprints.)*
 
 ---
 
-## 3. The schema (canonical reference — from the Runelords fixture)
+## 3. The canonical schema (post-D1)
 
 ```jsonc
 {
-  "format": "tnd-campaign-v1",          // SEE §6.1 — two format strings exist in the wild
+  "format": "tnd-blueprint-v1",          // canonical; normalizer also accepts "tnd-campaign-v1"
   "name": "Rise of the Runelords",
+  "author": "Paizo (adapted…)",          // human credit string (free text) — KEPT (D1)
   "proseAuthor": "abercrombie",          // AUTHORS id, or "" — constrained dropdown
-  "author": "Paizo (adapted…)",          // human credit string (free text)
-  "tone": "high_fantasy",                // SEE §6.3 — INVALID id in the fixture; valid: high/gritty/swords/dark/politic/custom
+  "tone": "high",                        // TONES id — KEPT (D1); valid: high/gritty/swords/dark/politic/custom
   "startingLocation": "Sandpoint",
   "startingRegion": "Varisia",
   "premise": "One paragraph…",
@@ -50,15 +71,17 @@ no combat, no transcript. A blueprint + a fresh character = a new campaign.
       "turningPoint": "…",
       "parallel": false,
       "arcs": [
-        { "title": "Festival of Fire", "objective": "…", "type": "combat" }
-        // type ∈ combat | investigation | exploration | social
-        // NOTE: no "dnaHint" in blueprints today — SEE §6.4
+        {
+          "title": "Festival of Fire",
+          "objective": "…",
+          "type": "combat",              // combat | investigation | exploration | social
+          "dnaHint": "…"                 // NEW (D2) — optional; hand-authored or generated
+        }
       ]
     }
   ],
   "npcs": [
     { "name": "Ameiko Kaijitsu", "role": "ally", "pronouns": "she/her", "notes": "…" }
-    // role ∈ ally | enemy | neutral | … (freeform today)
   ],
   "locations": [
     { "name": "Sandpoint", "description": "…" }
@@ -67,40 +90,73 @@ no combat, no transcript. A blueprint + a fresh character = a new campaign.
 }
 ```
 
-**Divergence from export-from-game shape** (`buildBlueprintFromGame`, `ui.js:627`):
-- Emits `format: "tnd-blueprint-v1"` (different string!)
-- Has **no** `author`, **no** `tone`
-- NPC `notes` only captures `memory.npcs[name].knowledge[0]` (lossy)
+**Normalizer must handle** (load-time upgrade to canonical):
+- `format: "tnd-campaign-v1"` → `"tnd-blueprint-v1"`.
+- Missing `author` → `""`. Missing `tone` → best-effort or `""` (see §5.2 migration).
+- Invalid `tone` id (e.g. `"high_fantasy"`) → mapped/blanked (see §5.3).
+- Arcs without `dnaHint` → left absent (falls back to generic type-hint at play time; that's fine).
 
 ---
 
-## 4. Requirements
+## 4. Current machinery (reuse, don't rebuild)
+
+| Piece | Location | Role |
+|---|---|---|
+| `applyBlueprint(bp)` | `game.js:278` | Consumes a blueprint at campaign start — stamps skeleton act/arc status, seeds `worldState.npcs` + `memory.npcs`, seeds `memory.locations` + `memory.map.nodes`, appends `customRules`, sets region + location + `proseAuthor`. |
+| `_applyBlueprint(bp)` | `ui.js:710` | Char-creation-flow entry: sets `pendingBlueprint`, shows banner, jumps to step 2. **HAS A STALE BUG — see §5.2.** |
+| `buildBlueprintFromGame()` | `ui.js:601` | Packages the active campaign into a blueprint (strips run state). **Must add `author` + `tone` per D1.** |
+| `exportBlueprint()` | `ui.js:640` | File menu → download/cloud-save active game as a blueprint. |
+| `showBlueprintBrowser()` | `ui.js:723` | Local `.blueprint` import + cloud library tabs. Likely launch point for the designer (O2). |
+| `generateSkeleton()` | `game.js:328` | 3-act skeleton generator incl. the `dnaHint` request (v1.137). **Reuse for Generate mode + the dnaHint button (D2).** |
+| Server library | `storage-adapter.js:384` | `listBlueprintLibrary` / `saveBlueprintToLibrary` / `deleteBlueprintFromLibrary`. Table `(user_id, slug, name, blueprint_data, updated_at)`. |
+
+---
+
+## 5. Requirements
 
 ### Entry points
 - **R2.1** New blueprint from scratch (empty editor).
-- **R2.2** Edit an existing `.blueprint` file (loaded from device).
-- **R2.3** Edit a blueprint from the cloud library.
-- **R2.4** Edit the active game as a blueprint (feed from `buildBlueprintFromGame()`), review/clean, then save.
+- **R2.2** Generate mode — guided prompts → LLM → editor (absorbs TODO #5).
+- **R2.3** Edit an existing `.blueprint` file.
+- **R2.4** Edit a cloud-library blueprint.
+- **R2.5** Edit the active game as a blueprint (feed from `buildBlueprintFromGame()`), review, save.
 
 ### Fields to manage
-- **Metadata:** `name`, `author` (free text), `proseAuthor` (dropdown), `tone` (dropdown), `startingLocation`, `startingRegion`, `premise` (textarea).
+- **Metadata:** `name`, `author` (free text), `proseAuthor` (dropdown), `tone` (dropdown),
+  `startingLocation`, `startingRegion`, `premise` (textarea).
 - **Acts (1–N):** `title`, `goal`, `turningPoint`, `parallel` (bool). Add / remove / reorder.
-- **Arcs (per act):** `title`, `objective`, `type` (dropdown enum), `dnaHint` (see R6.4). Add / remove / reorder within act.
+- **Arcs (per act):** `title`, `objective`, `type` (dropdown enum), `dnaHint` (textarea, optional).
+  Add / remove / reorder within act.
 - **NPCs:** `name`, `role`, `pronouns`, `notes`. Add / remove / reorder.
 - **Locations:** `name`, `description`. Add / remove / reorder.
 - **Rules:** string list. Add / remove / reorder.
 
+### Generate mode (R-GEN, absorbs TODO #5)
+- **RG.1** Guided prompt form: central conflict/threat, protagonist want, opposition, desired ending
+  (with "surprise me").
+- **RG.2** Feed answers + selected `tone`/`proseAuthor` into the skeleton generator; produce premise +
+  acts/arcs (+ dnaHints when an author is set).
+- **RG.3** Optionally generate seed NPCs + locations from the premise (decide depth — could be v1.1).
+- **RG.4** Result lands in the editor for review/edit — never auto-saves blind.
+
+### dnaHint (R-DNA, D2)
+- **RD.1** Each arc has a hand-editable `dnaHint` textarea.
+- **RD.2** A "Generate dnaHints" action fills empty (or all, with confirm) arc dnaHints from the
+  blueprint's `proseAuthor` using the `generateSkeleton` dnaHint prompt.
+- **RD.3** dnaHint is optional; blank is valid (generic fallback at play time).
+
 ### Validation
-- **R4.1** `tone` constrained to live `TONES` ids; migrate bad legacy values (e.g. `high_fantasy`→`high`) on load.
+- **R4.1** `tone` constrained to live `TONES` ids; migrate bad legacy values on load.
 - **R4.2** `proseAuthor` constrained to `AUTHORS` ids or empty; warn (not block) on unknown.
 - **R4.3** `type` constrained to the arc-type enum.
 - **R4.4** ≥1 act per blueprint, ≥1 arc per act, `name` + `premise` required to save.
 - **R4.5** Inline validation; block save on hard errors, warn on soft.
 
 ### I/O & round-trip
-- **R5.1** Load accepts **both** `tnd-campaign-v1` and `tnd-blueprint-v1`; normalize to one canonical shape.
-- **R5.2** Save to `.blueprint` file (download) + cloud library. Decide overwrite-in-place vs. always-new.
-- **R5.3** Lossless round-trip: load Runelords → save unchanged → schema-equivalent output (don't drop `author`).
+- **R5.1** Load accepts both `tnd-blueprint-v1` and `tnd-campaign-v1`; normalize to canonical.
+- **R5.2** Save to `.blueprint` file (download) + cloud library (O1 decides overwrite vs new).
+- **R5.3** Lossless round-trip: load Runelords → save unchanged → schema-equivalent (keeps `author`,
+  valid `tone`).
 
 ### UX
 - **R7.1** Collapsible act cards with arcs nested inside (the nesting is the hard UI problem).
@@ -112,43 +168,30 @@ no combat, no transcript. A blueprint + a fresh character = a new campaign.
 
 ## 5. Findings / bugs to fix as part of this work
 
-### 6.1 — Canonicalize the schema  *(PREREQUISITE — gates everything)*
-Two format strings for the same artifact (`tnd-campaign-v1` hand-authored vs `tnd-blueprint-v1`
-export-from-game), with divergent fields. Pick ONE canonical schema + version string, write a
-normalizer that upgrades both legacy shapes on load. Do this first.
+### 5.1 — Canonicalize the schema  *(RESOLVED by D1/D1b — implement the normalizer)*
+One canonical shape (`tnd-blueprint-v1`, keeps `author`+`tone`); load-time normalizer upgrades
+`tnd-campaign-v1` and fills/repairs missing fields. Build this first — it gates load + round-trip.
 
-### 6.2 — Stale tone-apply bug
+### 5.2 — Stale tone-apply bug
 `_applyBlueprint()` (`ui.js:712`) targets `#tone-grid .card`, which **no longer exists** since the
 Campaign DNA dropdown swap (v1.133). Blueprint tone has silently not applied since then. The tone
 select is now `#tone-sel` (value = tone id). Fix while in this surface.
 
-### 6.3 — Bad fixture value
+### 5.3 — Bad fixture value
 `rise_of_the_runelords.blueprint` has `"tone": "high_fantasy"` — not a valid `TONES` id
 (valid: `high`). Correct the file, or rely on the R4.1 migrator.
 
-### 6.4 — dnaHint authoring  *(ties to Remedy A, v1.137)*
-Blueprint arcs have **no `dnaHint`**, so a blueprint campaign gets the generic type-hint fallback
-instead of the author-specific anti-drift directive. Decision:
-- **(a)** Let authors hand-write per-arc `dnaHint` in the editor. *(Recommended for v1.)*
-- **(b)** A "generate dnaHints" button that runs the DNA pass against the blueprint's `proseAuthor`.
-  *(Nicety — mirrors the `generateSkeleton` dnaHint request; could reuse that prompt.)*
+### 5.4 — dnaHint authoring  *(RESOLVED by D2 — build both paths)*
+Hand-editable field (RD.1) + generate button (RD.2). Blueprint campaigns previously fell back to the
+generic type-hint (losing Remedy A's anti-drift); this closes that gap.
 
-### 6.5 — Lossy NPC export
-`buildBlueprintFromGame` only pulls `knowledge[0]` into NPC `notes`. If the editor round-trips a
-game-exported blueprint, expect thin NPC notes. Consider richer capture when exporting.
+### 5.5 — Lossy NPC export
+`buildBlueprintFromGame` only pulls `knowledge[0]` into NPC `notes`. Round-tripping a game-exported
+blueprint yields thin NPC notes. Consider richer capture when exporting.
 
 ---
 
-## 7. Out of scope for v1
+## 6. Out of scope for v1
 - Public/community sharing (server table reportedly has room for a `public` flag — leave it).
-- AI full-blueprint generation → that's the Campaign Designer, TODO #5.
 - Editing a blueprint that's already mid-play (blueprints are pre-play artifacts).
-
----
-
-## 8. Open decisions needed before implementation
-1. **§6.1** — the canonical schema + version string. Blocks everything.
-2. **§6.4** — does the editor author dnaHints (a), auto-generate (b), or both?
-3. **R5.2** — cloud save: overwrite-by-slug vs. always-new-slot.
-4. Where the editor launches from — extend `showBlueprintBrowser` with an "Edit / New" button, a
-   separate File-menu item, or both.
+- Module system / alternative-worlds presets (the far end of old TODO #5 — revisit post-v1).
