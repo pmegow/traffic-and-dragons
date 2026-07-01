@@ -2388,8 +2388,17 @@ function _carSyncBtn() {
   else                 { btn.innerHTML = "&#127908;"; if ("mediaSession" in navigator) try { navigator.mediaSession.playbackState = "paused"; } catch(e) {} }
 }
 
+function _carPulse(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove("car-pulse");
+  void el.offsetWidth;
+  el.classList.add("car-pulse");
+}
+
 function _carTap() {
   if (typeof busy !== "undefined" && busy) return;
+  _carPulse("car-tap-btn");
   var ttsPlaying = typeof TTS !== "undefined" && TTS.isPlaying();
   var ttsPaused  = typeof TTS !== "undefined" && TTS.isPaused();
   var sttOn      = typeof STT !== "undefined" && STT.isListening();
@@ -2408,6 +2417,7 @@ function _carTap() {
 
 function _carNext() {
   if (typeof busy !== "undefined" && busy) return;
+  _carPulse("car-next-btn");
   var ttsPlaying = typeof TTS !== "undefined" && TTS.isPlaying();
   if (ttsPlaying) {
     if (typeof TTS !== "undefined") TTS.skip();
@@ -2419,6 +2429,7 @@ function _carNext() {
 
 function _carPrev() {
   if (typeof busy !== "undefined" && busy) return;
+  _carPulse("car-prev-btn");
   var last = typeof TTS !== "undefined" ? TTS.getLastText() : "";
   if (!last) return;
   if (typeof STT !== "undefined") STT.stop();
@@ -2567,6 +2578,8 @@ function wireButtons(){
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
   document.getElementById("car-close-btn").addEventListener("click",hideCarMode);
   document.getElementById("car-tap-btn").addEventListener("click",_carTap);
+  document.getElementById("car-prev-btn").addEventListener("click",_carPrev);
+  document.getElementById("car-next-btn").addEventListener("click",_carNext);
   // TTS
   document.getElementById("tts-btn").addEventListener("click",function(){if(typeof TTS!=="undefined")TTS.toggle();});
   ["fm-tts-settings","cs-fm-tts-settings","api-fm-tts-settings"].forEach(function(id){
