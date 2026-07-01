@@ -87,8 +87,9 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 #topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--brd);background:var(--bg1);flex-shrink:0;flex-wrap:wrap;gap:8px}
 .ib{font-size:11px;padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;font-family:var(--font);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),inset 0 -2px 0 rgba(0,0,0,0.4)}.ib:hover{background:var(--bg3)}.ib:active{box-shadow:inset 0 2px 4px rgba(0,0,0,0.5)}
 #sidebar{position:fixed;top:0;right:-280px;width:280px;height:100vh;background:var(--bg1);border-left:1px solid var(--brd);padding:16px;overflow-y:auto;z-index:100;transition:right .25s}
-#sidebar.open{right:0}#sidebar h3{font-size:13px;color:var(--acc);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em}
-.sb-x{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer}
+#sidebar.open{right:0}#sidebar h3{font-size:13px;color:var(--acc);margin:0;text-transform:uppercase;letter-spacing:.08em}
+.sb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sb-x{background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;padding:0 0 0 8px}
 .sb-sec{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--brd)}.sb-sec:last-child{border-bottom:none}
 .sb-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}.sb-k{color:var(--t2)}.sb-v{color:var(--t0);font-weight:bold;max-width:160px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-party-btn{display:block;width:100%;text-align:left;padding:6px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;font-family:var(--font);font-size:12px;color:var(--t1);margin-bottom:5px;box-sizing:border-box;}.sb-party-btn:hover{border-color:var(--acc);color:var(--t0);}.sb-party-btn.sb-pb-player{background:var(--acc);color:var(--on-acc);border-color:var(--acc);font-size:13px;font-weight:bold;}.sb-party-btn.sb-pb-player:hover{opacity:.9;}
@@ -453,7 +454,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       </div>
     </div>
   </div>
-  <div id="sidebar"><button class="sb-x" id="sb-close">X</button><h3>World State</h3><div id="sb-content"></div></div>
+  <div id="sidebar"><div class="sb-head"><h3>World State</h3><button class="sb-x" id="sb-close">&#215;</button></div><div id="sb-content"></div></div>
   <div id="membar"><div class="mdot" id="memdot"></div><span id="memstatus">Memory: initializing</span></div>
   <div id="cpanel"><div class="ct-h"><span class="ct-t">Combat</span><span class="ct-r" id="ct-round">Round 1</span></div><div class="crow"><span class="cname en" id="en-name">Enemy</span><div class="hbw"><div class="hb eb" id="en-hpbar" style="width:100%"></div></div><span class="hpt" id="en-hpt">--</span><span class="mbdg" id="en-morale"></span></div><div id="en-statblock" style="display:none;font-size:10px;color:var(--t2);padding:2px 0 4px;line-height:1.7;font-family:var(--font);"></div><div class="crow"><span class="cname pl" id="pl-name">You</span><div class="hbw"><div class="hb pb" id="pl-hpbar" style="width:100%"></div></div><span class="hpt" id="pl-hpt">--</span></div></div>
   <div id="story-area">
