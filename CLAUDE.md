@@ -43,7 +43,7 @@ Each file depends only on symbols defined by files earlier in this list.
 | Element | Purpose |
 |---|---|
 | `#api-screen` | API key entry (shown on first load) |
-| `#char-screen` | 7-step character creation wizard — has its own File ▾ menu at top |
+| `#char-screen` | 6-step character creation wizard — has its own File ▾ menu at top |
 | `#game-screen` | Main game interface |
 | `#lineage-popup` | Sub-popup for Half-Blood lineage selection |
 | Dynamic modals | `#creation-arch`, `#creation-bump`, `#creation-spells`, `#arch-modal`, `#sb-modal`, `#rules-modal`, `#sync-modal`, `#cs-modal`, `#camp-modal` — all appended to `<body>` at runtime |
@@ -69,19 +69,18 @@ Each file depends only on symbols defined by files earlier in this list.
 
 ## Key systems
 
-### 1. Character creation wizard (7 steps)
+### 1. Character creation wizard (6 steps)
 
 | Step | Content |
 |---|---|
-| 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom. Bottom of step has "↩ Import existing campaign" file input. |
-| 2 – Identity | Name, **gender** (M/F/NB), age, physical description, distinguishing mark, **backstory** |
-| 3 – Ancestry | 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Tiefling), each with 2–3 subraces; Half-Blood has nested lineage selection |
-| 4 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
-| 5 – Stats | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table) |
-| 6 – Personality | Trait, flaw, motivation (dropdowns with custom override); alignment; auto-suggested deity for Cleric/Paladin/Druid |
-| 7 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) — **party cap is `PARTY_MAX`=4 total** (player + companions): the creation picker, the mid-game import, and the `[PARTY_MEMBER:\|true]` handler all enforce `partyCompanionCap()` (= `PARTY_MAX - playerCount`, 3 today; multiplayer #1 makes playerCount dynamic). `buildSysPrompt` injects a live "PARTY SIZE: N of 3 … FULL" note so the GM doesn't narrate a join it can't make; the `applyMuts` cap is the backstop (keeps the over-cap NPC as a non-party ally). **Manual departure (v1.96):** the NPC sheet has a "Part ways" button → `partWaysWithCompanion()` flips `partyMember` off (NPC kept, slot freed) and sets transient `worldState.recentlyLeft`, which `buildSysPrompt` surfaces as a "PARTY DEPARTURE" note (auto-cleared in `sendAction` after ~2 turns, same pattern as `recentSwitch`) so the GM stops narrating them as present. |
+| 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom, plus prose-voice pick. Bottom of step has "↩ Import existing save" file input and "⚙ Load blueprint". |
+| 2 – Identity | **Merged with Ancestry (v1.141, TODO #25).** Gender (M/F/NB), age, then an Ancestry picker inline below: 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Tiefling), each with 2–3 subraces; Half-Blood has nested lineage selection via `#lineage-popup`. Picking an ancestry swaps the grid (`#anc-grid-wrap`) for a detail view (`#anc-detail`) in place — "← All ancestries" (`anc-back-detail`/`hideAncDetail()`) returns to the grid without leaving the step. Single Back/Next pair (`id-back`/`anc-next`) for the whole step; `anc-next` validates ancestry + subrace + lineage (if applicable) + flex stat picks before advancing. |
+| 3 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
+| 4 – Attributes | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table); stated alignment; auto-suggested deity for Cleric/Paladin/Druid |
+| 5 – Finishing Touches | Physical description, backstory, portrait (upload / render from sheet / derive appearance from portrait) |
+| 6 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) — **party cap is `PARTY_MAX`=4 total** (player + companions): the creation picker, the mid-game import, and the `[PARTY_MEMBER:\|true]` handler all enforce `partyCompanionCap()` (= `PARTY_MAX - playerCount`, 3 today; multiplayer #1 makes playerCount dynamic). `buildSysPrompt` injects a live "PARTY SIZE: N of 3 … FULL" note so the GM doesn't narrate a join it can't make; the `applyMuts` cap is the backstop (keeps the over-cap NPC as a non-party ally). **Manual departure (v1.96):** the NPC sheet has a "Part ways" button → `partWaysWithCompanion()` flips `partyMember` off (NPC kept, slot freed) and sets transient `worldState.recentlyLeft`, which `buildSysPrompt` surfaces as a "PARTY DEPARTURE" note (auto-cleared in `sendAction` after ~2 turns, same pattern as `recentSwitch`) so the GM stops narrating them as present. |
 
-After step 7, if level ≥ 3: archetype picker → stat bump(s) → spell picker → `startGame()`.
+After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker → `startGame()`.
 
 **Step 2 uses `<select id="char-gender">` with options M/F/NB** — pronouns have been removed from the character schema entirely.
 
@@ -462,7 +461,7 @@ Server-side character storage separate from campaigns. Characters are portable s
 
 **Import flow:** `showCharLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Library" button in the Import Character browser.
 
-**"Play as X" flow:** all three import paths (file, campaign browser, library) route through `_startImportedCampaign(char)` in `ui.js` — a campaign-setup modal asking campaign name, world tone, and starting location (options cloned from the wizard's step-7 select) before resetting state and calling `startGame()`. The character is played as-is; companions are added in-game via Import Character → Add as companion (intro instruction sent via `sendAction(intro,{silent:true})` so it never renders as a player message).
+**"Play as X" flow:** all three import paths (file, campaign browser, library) route through `_startImportedCampaign(char)` in `ui.js` — a campaign-setup modal asking campaign name, world tone, and starting location (options cloned from the wizard's Review-step select) before resetting state and calling `startGame()`. The character is played as-is; companions are added in-game via Import Character → Add as companion (intro instruction sent via `sendAction(intro,{silent:true})` so it never renders as a player message).
 
 **Mid-game character swap (v1.38):** `_switchPlayerCharacter(name)` (NPC sheet → "Play as this character") demotes the current PC to a companion NPC and promotes the chosen companion's `charSheet` to `worldState.character`. The POV-handoff problem (GM kept narrating the old PC as "you") is fixed two ways: (1) the handoff message is a forceful out-of-character control directive ("the player now controls X; second-person = X; old PC is now third-person"), sent `{silent:true}`; (2) `worldState.recentSwitch = {to, from, turn}` makes `buildSysPrompt` re-inject a "CONTROL RECENTLY SWITCHED" block that explicitly discounts the sessionLog momentum, auto-cleared in `sendAction` after 2 turns (same transient-marker pattern as `pendingLegacy`). The system-prompt re-injection is the load-bearing part — a single handoff line can't overpower many turns of old-POV conversation history. **Portrait-sync gotcha (root fix v1.45):** the swap re-homes portraits PC↔companion. v1.41 added `markPortraitDirty()` in the swap so the *separate* `/portrait` endpoint re-uploads — necessary but NOT sufficient, because that endpoint is a fire-and-forget request distinct from the main state blob, so the PC's portrait could still lag/desync from the state (new PC loaded the old PC's image on a second device). **v1.45 root fix:** `syncToServer` no longer nulls `character.portrait` — the current PC's portrait now rides **inline in the main state blob**, atomic with the state turn, so it can never be the former PC's. Only NPC avatar `n.portrait` is still stripped to the separate store (campaigns can have many NPCs; companion `charSheet.portrait` already rode in the blob unstripped — that asymmetry was the bug). `markPortraitDirty()` is retained for NPC portraits + the now-redundant PC upload; the load-side `data.portrait` fallback is kept for migrating older blobs that still have a null PC portrait.
 

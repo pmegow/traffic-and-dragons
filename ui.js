@@ -1957,7 +1957,7 @@ function _importCharToReview(char){
   cs.name=char.name||"";cs.gender=char.gender||"M";cs.age=char.age||"early twenties";
   cs.portrait=char.portrait||null;cs.portraitOffset=char.portraitOffset||null;
   cs.ancestry=char.ancestry||null;cs.cls=char.cls||null;
-  goStep(7);
+  goStep(6);
   var nm=document.getElementById("char-name");if(nm)nm.value=char.name||"";
   var cn=document.getElementById("rv-camp-name");if(cn&&!cn.value)cn.value=char.name||"";
   var lvlSel=document.getElementById("rv-start-level");if(lvlSel&&char.level)lvlSel.value=char.level;
@@ -1966,7 +1966,7 @@ function _importCharToReview(char){
 }
 function _startImportedCampaign(char){
   var ex=document.getElementById("import-setup");if(ex)ex.remove();
-  // Clone starting-location options from the wizard's step-7 select so the lists never drift.
+  // Clone starting-location options from the wizard's Review-step select so the lists never drift.
   var locSel=document.getElementById("rv-start-loc"),locOpts="",li;
   if(locSel&&locSel.options.length){for(li=0;li<locSel.options.length;li++){var lo=locSel.options[li];locOpts+='<option value="'+escHtml(lo.value)+'">'+escHtml(lo.textContent)+'</option>';}}
   else locOpts='<option value="The Crossroads of Ashenveil">The Crossroads of Ashenveil</option><option value="custom">Custom…</option>';
@@ -2478,24 +2478,22 @@ function wireButtons(){
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});
   document.getElementById("tone-next").addEventListener("click",function(){if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
   document.getElementById("id-back").addEventListener("click",function(){goStep(1);});
-  document.getElementById("id-next").addEventListener("click",function(){cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;goStep(3);});
-  document.getElementById("anc-back").addEventListener("click",function(){if(document.getElementById("anc-detail").style.display!=="none")hideAncDetail();else goStep(2);});
   document.getElementById("anc-back-detail").addEventListener("click",hideAncDetail);
-  document.getElementById("anc-next").addEventListener("click",function(){if(!cs.ancestry){document.getElementById("s3-warn").textContent="Choose an ancestry.";return;}if(!cs.subrace){document.getElementById("s3-warn").textContent="Choose a subrace.";return;}var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant){document.getElementById("s3-warn").textContent="Choose a "+selH.nm+" lineage.";return;}}if(a&&a.fc>0&&cs.fp.length<a.fc){document.getElementById("s3-warn").textContent="Choose "+a.fc+" stat bonuses.";return;}document.getElementById("s3-warn").textContent="";goStep(4);});
-  document.getElementById("cls-back").addEventListener("click",function(){goStep(3);});
-  document.getElementById("cls-next").addEventListener("click",function(){if(!cs.cls){document.getElementById("s4-warn").textContent="Choose a class.";return;}document.getElementById("s4-warn").textContent="";goStep(5);});
-  document.getElementById("sts-back").addEventListener("click",function(){goStep(4);});
-  document.getElementById("sts-next").addEventListener("click",function(){if(!cs.rolled&&cs.statMode==="roll"){document.getElementById("s5-warn").textContent="Roll your stats first.";return;}document.getElementById("s5-warn").textContent="";goStep(6);});
+  document.getElementById("anc-next").addEventListener("click",function(){cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;if(!cs.ancestry){document.getElementById("s2-warn").textContent="Choose an ancestry.";return;}if(!cs.subrace){document.getElementById("s2-warn").textContent="Choose a subrace.";return;}var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant){document.getElementById("s2-warn").textContent="Choose a "+selH.nm+" lineage.";return;}}if(a&&a.fc>0&&cs.fp.length<a.fc){document.getElementById("s2-warn").textContent="Choose "+a.fc+" stat bonuses.";return;}document.getElementById("s2-warn").textContent="";goStep(3);});
+  document.getElementById("cls-back").addEventListener("click",function(){goStep(2);});
+  document.getElementById("cls-next").addEventListener("click",function(){if(!cs.cls){document.getElementById("s3-warn").textContent="Choose a class.";return;}document.getElementById("s3-warn").textContent="";goStep(4);});
+  document.getElementById("sts-back").addEventListener("click",function(){goStep(3);});
+  document.getElementById("sts-next").addEventListener("click",function(){if(!cs.rolled&&cs.statMode==="roll"){document.getElementById("s4-warn").textContent="Roll your stats first.";return;}document.getElementById("s4-warn").textContent="";goStep(5);});
   document.getElementById("roll-btn").addEventListener("click",rollAllStats);
   document.getElementById("char-alignment").addEventListener("change",function(){if(!cs.deityEdited)buildStep6Deity();});
   document.getElementById("char-deity").addEventListener("input",function(){cs.deityEdited=this.value!==getDefaultDeity();});
-  document.getElementById("ft-back").addEventListener("click",function(){goStep(5);});
-  document.getElementById("ft-next").addEventListener("click",function(){cs.appear=document.getElementById("char-appear").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();goStep(7);});
+  document.getElementById("ft-back").addEventListener("click",function(){goStep(4);});
+  document.getElementById("ft-next").addEventListener("click",function(){cs.appear=document.getElementById("char-appear").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();goStep(6);});
   document.getElementById("ft-upload").addEventListener("click",function(){document.getElementById("ft-portrait-file").click();});
   document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
   document.getElementById("ft-render").addEventListener("click",function(){ftRenderPortrait();});
   document.getElementById("ft-derive").addEventListener("click",function(){ftDeriveAppearance();});
-  document.getElementById("rv-back").addEventListener("click",function(){pendingImportChar=null;goStep(6);});
+  document.getElementById("rv-back").addEventListener("click",function(){pendingImportChar=null;goStep(5);});
   document.getElementById("rv-go").addEventListener("click",confirmChar);
   document.getElementById("rv-randomise").addEventListener("click",function(){aiRandomiseAll(this);});
   injectSparkleButtons();

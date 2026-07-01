@@ -2,7 +2,7 @@ function buildDots(){
   var el=document.getElementById("stepdots");if(!el)return;
   var lvlEl=document.getElementById("rv-start-level");
   var needPerks=lvlEl&&parseInt(lvlEl.value)>=3;
-  var total=needPerks?8:7;
+  var total=needPerks?7:6;
   var h="",i;for(i=1;i<=total;i++){h+='<div class="dot '+(i<cs.step?"done":i===cs.step?"active":"")+'"></div>';}
   el.innerHTML=h;
 }
@@ -252,12 +252,12 @@ function buildStep6Deity(){
 function goStep(n){
   document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;document.getElementById("step"+n).classList.add("active");buildDots();
   if(n===1)buildDnaStep();
-  if(n===3){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
-  if(n===4)buildClsGrid();if(n===5){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===6)buildFinishingTouches();if(n===7)buildReview();window.scrollTo(0,0);
+  if(n===2){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
+  if(n===3)buildClsGrid();if(n===4){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===5)buildFinishingTouches();if(n===6)buildReview();window.scrollTo(0,0);
 }
 function confirmChar(){
   var nameEl=document.getElementById("char-name"),enteredName=nameEl?nameEl.value.trim():"";
-  // Imported character path: skip normal build, just apply step-7 fields and start game
+  // Imported character path: skip normal build, just apply review-step fields and start game
   if(pendingImportChar){
     var ic=pendingImportChar;pendingImportChar=null;
     ic.name=enteredName||ic.name;
