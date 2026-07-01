@@ -2311,8 +2311,6 @@ function showCarMode() {
     else if (e.key === "Escape")     { e.preventDefault(); hideCarMode(); }
   };
   document.addEventListener("keydown", _carKbHandler);
-  var kbh = document.getElementById("car-kb-hints");
-  if (kbh) kbh.style.display = ("ontouchstart" in window) ? "none" : "";
   _carSetStatus("Ready");
   _carSyncBtn();
 }
