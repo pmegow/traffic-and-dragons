@@ -80,6 +80,36 @@ var TTS = (function() {
     if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
   }
 
+  // iOS Safari quirk: speechSynthesis alone doesn't claim the "playback" audio
+  // session category, so native TTS can route nowhere (or be silenced by the
+  // mute switch) over Bluetooth. A silent looping AudioContext buffer, started
+  // inside a user gesture, keeps the page in an active playback session so
+  // native speech inherits correct Bluetooth routing. Used by Car Mode.
+  var _primerSrc = null;
+
+  function primeAudioSession() {
+    var ctx = _ensureCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    if (_primerSrc) return;
+    try {
+      var buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      var gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(0);
+      _primerSrc = src;
+    } catch(e) { console.warn("[tts] primer failed:", e.message); }
+  }
+
+  function stopAudioSessionPrimer() {
+    if (_primerSrc) { try { _primerSrc.stop(); } catch(e) {} _primerSrc = null; }
+  }
+
   function loadSettings() { _syncBtn(); }
 
   function _syncBtn() {
@@ -574,7 +604,9 @@ var TTS = (function() {
     pause:             pause,
     skip:              skip,
     stop:              stop,
-    showSettingsModal: showSettingsModal
+    showSettingsModal: showSettingsModal,
+    primeAudioSession:     primeAudioSession,
+    stopAudioSessionPrimer: stopAudioSessionPrimer
   };
 
 })();

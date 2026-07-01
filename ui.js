@@ -2300,6 +2300,7 @@ function showCarMode() {
   carMode = true;
   ov.style.display = "flex";
   closeAllMenus();
+  if (typeof TTS !== "undefined") TTS.primeAudioSession();
   _carUpdate();
   _carMediaSession();
   if (typeof TTS !== "undefined") TTS.setOnDone(function() { if (carMode) _carAutoMic(); });
@@ -2321,7 +2322,7 @@ function hideCarMode() {
   var ov = document.getElementById("car-overlay");
   if (ov) ov.style.display = "none";
   if (_carKbHandler) { document.removeEventListener("keydown", _carKbHandler); _carKbHandler = null; }
-  if (typeof TTS !== "undefined") TTS.setOnDone(null);
+  if (typeof TTS !== "undefined") { TTS.setOnDone(null); TTS.stopAudioSessionPrimer(); }
   if (typeof STT !== "undefined") STT.stop();
   if ("mediaSession" in navigator) {
     try {
