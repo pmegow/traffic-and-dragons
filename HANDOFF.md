@@ -1,65 +1,77 @@
 # Traffic and Dragons — Session Handoff
 
 **Date:** 2026-06-30
-**Deployed version:** v1.137 (`APP_VERSION` in `globals.js`)
-**SW cache:** `tnd-v3-20260629f` (`sw.js`)
-**Branch:** `master` — **code is pushed** through v1.137 (`06fbe61`). **3 doc-only commits are committed but NOT pushed** (the Blueprint Designer planning docs — `11c6c35`, `c7094c5`, `f53ae54`).
+**Deployed version:** v1.137 (`APP_VERSION` in `globals.js`) — **v1.140 committed locally, NOT deployed** (nothing pushed this session).
+**SW cache:** `tnd-v3-20260630c` (`sw.js`, local — deployed site is still on the pre-session cache tag).
+**Branch:** `master` — **8 commits ahead of `origin/master`, none pushed.** In order: the 4 Blueprint
+Designer doc commits from last session (`11c6c35`…`f16fe2b`), then this session's 4 code commits
+(`146bc47` v1.138 → `7b258f1` v1.139 → `d0afe8a` v1.140 → `dbe4633` playtest harness).
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev` (auto-deploys on push to `master`).
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
-> The next real feature is the **Blueprint Designer** — spec is fully locked in `BLUEPRINT_EDITOR.md`.
+> The next real feature is still the **Blueprint Designer** — spec is fully locked in
+> `BLUEPRINT_EDITOR.md`. Nothing built on it yet; this session was all bug-driven.
 
 ---
 
-## The through-line this session: fighting narrative & content drift
+## This session: three real bugs fixed, plus a reusable playtest harness
 
-The dominant theme was **prose voice and content drifting to mush over a long campaign** (a 35-turn
-Runelords playtest "devolved from the greatest campaign in RPG history into an accounting simulator in
-a beige suit" — flat functional prose about a ledger). We diagnosed it and shipped a stack of fixes.
-
-**Root causes identified:**
-1. **Instructions lose to examples.** The `sessionLog` (the model's own prior prose) is the real
-   gravitational field; a STYLE directive can't overpower N turns of drifted output.
-2. **The skeleton flattened the author DNA at birth and then re-injected *generic procedure* that
-   contradicted it.** `buildSkeletonBlock` emitted "investigation → gather clues, interrogate, piece
-   together evidence" every turn — authoritative, repeated, and pulling toward proceduralism. **That
-   generic type-hint was the smoking gun behind the ledger.**
-
-**What shipped (v1.132 → v1.137):**
+Short session, all reactive — the user reported three concrete bugs from actual play (car Bluetooth,
+an unreachable mobile close button, a stuck combat panel), each fixed and verified live in the
+`preview_*` tools, then closed with a new dev tool for automated regression testing.
 
 | Ver | What | Files |
 |---|---|---|
-| 1.132 | **Author content DNA.** Each `AUTHORS` entry gets a `contentDNA` field (story structure/arc shape/NPC behavior/moral texture — distinct from `vc` prose style). Injected into `generateSkeleton()` at creation AND as a `NARRATIVE DESIGN` block per turn in `buildSysPrompt()`. | `data.js`, `api.js`, `game.js` |
-| 1.133 | **Campaign DNA creation step.** Wizard step 1 renamed "Campaign DNA" — two dropdowns (World Tone + Prose Voice) replacing the tone card-grid. Live blurb shows tone magic/violence + author one-liner. Author threaded through all `startGame()` paths → `worldState.proseAuthor` + device default. | `index.html`, `char-creation.js`, `ui.js`, `game.js` |
-| 1.134 | **Chapter summaries written in the author's voice.** `summarize()` injects the author's `vc` into the `chapterSummary` field so `eventHistory` ("STORY SO FAR") re-injects voice instead of baking in drift. (Partial fix for root cause #1.) | `memory.js` |
-| 1.135 | **Blueprint starting location enforced.** `applyBlueprint()` overrode region but never `world.location` — the wizard default ("Crossroads of Ashenveil") silently won. | `game.js` |
-| 1.136 | **Campaign name format** `Blueprint (Char, Companion)` when a blueprint is loaded — updates live as companions are added. Distinguishes 3 same-named campaigns. | `char-creation.js` |
-| 1.137 | **Remedy A — encode DNA into the skeleton arcs (the big one).** `generateSkeleton()` now requests a per-arc `dnaHint` (one concrete sentence on how to run THAT arc in the author's sensibility) when an author is set. `buildSkeletonBlock()` surfaces the active arc's `dnaHint` as a `HOW TO RUN THIS ARC` line and **SUPPRESSES the generic type-hint when a dnaHint exists** — killing the contradiction. Graceful fallback: no dnaHint (blueprints, old saves, parse-dropped) → generic hint. Verified both paths live. | `game.js`, `api.js` |
+| 1.138 | **Silent native TTS over car Bluetooth (iOS Safari).** Root cause: `speechSynthesis` alone doesn't claim iOS's "playback" audio session category — without an active `AudioContext`, page audio defaults to "ambient," which can route nowhere over Bluetooth and gets silenced by the mute switch. Car Mode never created an `AudioContext` for native-only voice. Fix: `TTS.primeAudioSession()` starts a silent looping `AudioContext` buffer the instant Car Mode is entered (inside the tap gesture, as iOS requires), torn down on exit via `stopAudioSessionPrimer()`. **Not yet road-tested on a real iPhone** — logic verified, audio routing itself can't be confirmed in a browser preview. | `tts.js`, `ui.js`, `globals.js`, `sw.js` |
+| 1.139 | **World State sidebar close button unreachable on mobile.** The `×` was `position:absolute;top:14px;right:14px` pinned to the sidebar's raw top-right corner, landing near/under the phone status bar. Moved into a normal-flow header row (title + `×`, flex space-between) matching every other modal in the app (`.sb-head` class added). Verified in the mobile preview (click closed it cleanly). | `index.html` |
+| 1.140 | **Dead enemies never leaving the combat panel.** `worldState.combat` was only ever cleared by an explicit `[COMBAT_END:]` tag from the GM. If the GM narrated a kill (or an enemy bled out over several turns) without emitting that tag, the corpse stayed in the panel for the rest of the session — reported as "a goblin was left to bleed to death and hung out there indefinitely." Fix: `applyMuts` now auto-clears combat as soon as HP hits 0, unless the same response already closed it explicitly (that path untouched). Verified directly against `applyMuts` in the preview: both the missing-tag case and the explicit-tag case clear correctly. **No retroactive cleanup for already-stuck saves** — user explicitly said not worth building; only new kills benefit. | `api.js`, `globals.js`, `sw.js` |
+| — | **Automated playtest harness** (`dev/playtest-harness.js`, new file, not loaded by `index.html`). Drives N real GM turns against a throwaway character via `preview_eval` — builds a character directly through `startGame()` (skips the 7-step wizard entirely), then loops: wait idle → pick a random live suggested action → `sendAction()` → wait idle → log narration + invariants (hp/gold/xp/combat/sessionTokens). Runs in small batches (5–10 turns) since `preview_eval` has a ~30s tool-side timeout, but the page keeps executing the async batch in the background regardless — just re-poll `window.__pt.log.length`, no progress is lost. Full usage instructions are in the file header, also pointed to from `CLAUDE.md`'s Dev workflow section. | `dev/playtest-harness.js` (new), `CLAUDE.md` |
 
-**Also shipped just before this arc:** v1.131 **Car Mode** — fullscreen audio-first play overlay
-(File ▾ → 🚗 Car Mode): portrait, party HP dots, state-aware tap button, TTS→mic auto-loop, Media
-Session API for steering-wheel buttons, desktop Space/→/←/Esc shortcuts. **Ready to test — needs a
-real Android/Bluetooth road test.**
-
----
-
-## Drift work — what's DONE vs. STILL OPEN
-
-- ✅ **Content drift** (the ledger) — addressed by Remedy A (v1.137). The strong axis.
-- ⚠️ **Voice erosion from sessionLog momentum** — only *partially* addressed (v1.134 styles the
-  summarized history, but the rolling raw `sessionLog` is still un-styled). This is **"Remedy B"** and
-  is NOT built. If a fresh Abercrombie campaign keeps its plot teeth but the *prose* still goes beige,
-  Remedy B is the next lever: **pin a short, non-drifting voice exemplar in the system prompt** (fight
-  examples with examples). The user explicitly rejected "inject synthetic messages into sessionLog"
-  as wall-throwing — do NOT propose that again.
-- ⚠️ **Existing saves don't benefit.** The current Runelords save's skeleton was generated pre-v1.137,
-  so it has no `dnaHint`s and uses the generic fallback. **Remedy A only shows on a FRESH campaign.**
-  Best test: start a new Abercrombie campaign, play past the first summarization cycle (~1200 session
-  tokens), confirm arcs keep their teeth instead of collapsing to errand-running.
+**Live-fire test of the harness:** ran 50 turns against a fresh throwaway character
+("Kettren Voss," Warrior, gritty tone, Abercrombie prose author) to sanity-check both halves:
+- **Invariants:** zero errors across 50 turns. Combat (turns 29–31, Blight Crawler) cleared the
+  panel correctly the turn it ended — confirms the v1.140 fix under real play. `sessionTokens`
+  cycled down every ~4–5 turns (summarization firing on schedule throughout, not just once).
+  HP/gold/XP all stayed sane.
+- **Prose/content-DNA drift (the harder half — this is what the user actually wanted a fast way
+  to check):** compared sampled turns 1–3 against 48–50. Sentence austerity and fragment discipline
+  **held or tightened** by the end rather than degrading (turn 49: `"'Could have broken it,' you
+  say. 'Didn't.'"`). Content DNA (institutional corruption, no clean allies, protagonist complicit
+  in his own setup) also tracked all the way through. **Verdict: Remedy A (v1.137, the skeleton
+  `dnaHint` work) is doing its job** — no sign of the "ledger" collapse from the prior session's
+  diagnosis, at least on a fresh campaign. This was the best-case test (fresh skeleton, has
+  `dnaHint`s); an old pre-v1.137 save is still expected to lack the benefit per last session's note.
+- One soft spot, not a bug: combat/monster-description turns ran longer, more clause-heavy
+  sentences than dialogue scenes (concrete detail, not lyrical, but a genre pull worth knowing about).
 
 ---
 
-## Next feature: Blueprint Designer (spec locked, nothing built)
+## How to invoke the playtest harness next time
+
+Tell me two things: **(1) which campaign** — fresh throwaway (pick an author/tone, or let me choose)
+vs. an existing save (e.g. to A/B an old pre-v1.137 campaign for drift), and **(2) how many turns**.
+Example: *"Run the playtest harness for 30 turns on a fresh Le Guin campaign, tell me if the voice
+holds."* I'll confirm the API-key-in-preview step and cost before actually running it, same as this
+session. Full mechanics are documented in `dev/playtest-harness.js`'s file header.
+
+---
+
+## Drift work — still the state from last session (untouched this session)
+
+- ✅ **Content drift** (the ledger) — addressed by Remedy A (v1.137). **Reinforced by tonight's
+  50-turn test**, which is the first real evidence the fix works end-to-end.
+- ⚠️ **Voice erosion from sessionLog momentum ("Remedy B")** — still NOT built. Tonight's test
+  didn't contradict this being needed eventually (the run was only 50 turns / a handful of
+  summarization cycles), but didn't surface an urgent case for it either. Do NOT propose injecting
+  synthetic messages into `sessionLog` — user explicitly rejected that approach previously.
+- ⚠️ **Existing saves don't benefit from Remedy A** — still true, still untested this session
+  (tonight's harness run used a fresh campaign, the best case). **Good next use of the harness:**
+  run it against the actual old Runelords/Ammut save and see whether drift is visible there,
+  now that there's a fast way to check instead of playing 50 turns by hand.
+
+---
+
+## Next feature: Blueprint Designer (spec locked, nothing built — unchanged from last session)
 
 **Read `BLUEPRINT_EDITOR.md`** — it's a complete, decision-locked handoff. Summary:
 
@@ -83,36 +95,48 @@ real Android/Bluetooth road test.**
 
 | # | Status |
 |---|---|
-| 2 (Car Mode) | Ready to test — v1.131. Needs real-device road test. |
+| 2 (Car Mode) | v1.138 fixed the silent-audio bug found in real testing. Still needs a full real-device road test beyond just the audio-routing fix. |
 | 5 (Campaign Designer) | **ABSORBED** into the Blueprint Designer (Generate mode). |
 | 25 (new) | Merge Ancestry into Identity step — pending. |
 | 26 (new) | Augment Deep Dwarf darkvision — pending (scope TBD). |
 | 27 (new) | Add camouflage to Gnome racial benefits — pending. |
-| Known issue #4 | **"New Game" drops user on the OLD campaign's Review (step 7)** instead of step 1. Suspect `cs`/step-counter not fully reset in `newGame()`/`showChar()`. Reported v1.133, not investigated. |
+| Known issue #4 | **"New Game" drops user on the OLD campaign's Review (step 7)** instead of step 1. Not investigated. |
+| (new) | World State sidebar close button — **fixed, v1.139.** |
+| (new) | Combat panel not clearing on kill without explicit tag — **fixed, v1.140.** |
 
 ---
 
 ## Pending / known "don't get burned"
 
-- **Push the 3 doc commits** if you want them on the remote (they're local-only right now).
-- **`AUDIT_RESULTS.html` shows as staged-deleted** in `git status` — pre-existing, unrelated to this
-  session's work.
+- **Push all 8 pending commits** if you want them live (nothing this session was pushed; user
+  tests locally first per the standing workflow).
+- **`AUDIT_RESULTS.html` shows as staged-deleted** in `git status` — pre-existing, unrelated.
+- **`TODO.md` has an uncommitted local modification** (not from this session — was already
+  modified when this session started; not investigated or touched).
+- **v1.138 (car Bluetooth fix) needs a real iPhone + car test** before considering it fully done —
+  the logic and audio-session priming were verified, but actual Bluetooth audio routing can't be
+  confirmed in a browser preview.
 - `parseActions()` in `api.js` is legacy-only (pre-v1.110 save replay). Harmless.
-- Service worker is **cache-first** — you MUST bump `CACHE` in `sw.js` every code commit or the deploy
-  won't show. When testing on `localhost`, the SW intercepts too; unregister via DevTools or the
-  `sw+caches cleared` + hard-reload trick if files look stale (used it this session in the preview).
-- **Preview gotcha:** `preview_eval` runs against the already-loaded page. After editing a `.js` file,
-  reload (and clear the SW) before re-testing, or you'll test stale in-memory code.
+- Service worker is **cache-first** — bump `CACHE` in `sw.js` every code commit (done this session,
+  three times, once per code-changing commit).
+- **Preview gotcha, reinforced this session:** the preview browser's `localStorage` persists across
+  `preview_start`/`preview_stop` cycles within a conversation (same origin, same profile) — clear
+  stale `tnd_*` keys and reload before trusting `worldState`/screen visibility, especially after
+  ad-hoc `preview_eval` testing left junk state behind (happened this session, had to clean it up
+  before the playtest run).
 
 ---
 
 ## Conventions
 
 - **ES5.1+** — `var`, no arrow/const/let/template-literals. `async/await` only in the API-facing
-  functions. ES5.1 builtins + `Object.assign` are OK.
+  functions. ES5.1 builtins + `Object.assign` are OK. **Enforced by a pre-write hook**
+  (`.claude/hooks/es5-check.js`) — it's a naive regex check and will flag arrow syntax even inside
+  comments (hit this tonight writing `dev/playtest-harness.js`'s docstring).
 - **Always commit; don't push until told.** Pushing to `master` auto-deploys via Cloudflare Pages
   (the user tests locally first to save deploy cycles).
 - **Bump BOTH** `APP_VERSION` (`globals.js`) AND `CACHE` (`sw.js`) on every code-changing commit.
+  Dev-only files not loaded by `index.html` (like `dev/playtest-harness.js`) don't need a bump.
 - **Answer questions before acting** — when the user asks a question, answer it first; they're often
   weighing options, not issuing a directive.
 - **Three file menus** (`fm-`, `cs-fm-`, `api-fm-`) must stay in sync when adding items.
