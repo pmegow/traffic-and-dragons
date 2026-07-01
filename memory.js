@@ -1,16 +1,42 @@
+// Distinctive-name tokens: lowercase, drop parentheticals, then drop honorifics/titles and generic
+// role nouns so only the words that actually identify a person remain. "Sheriff Belor Hemlock" ->
+// [belor,hemlock]; "The Scarred Man" -> [scarred]; "Barkeep (Rusty Dragon)" -> [] (role-only, no
+// distinctive name — deliberately unmergeable so anonymous functionaries never absorb a real NPC).
+var _NPC_STOP={sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
+  brother:1,sister:1,saint:1,st:1,king:1,queen:1,prince:1,princess:1,dame:1,elder:1,dr:1,doctor:1,
+  professor:1,the:1,old:1,young:1,a:1,an:1,man:1,woman:1,girl:1,boy:1,child:1,lad:1,lass:1,
+  stranger:1,guard:1,barkeep:1,keeper:1,innkeeper:1,merchant:1,wife:1,husband:1,soldier:1,priest:1,
+  priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1};
+function npcCoreTokens(name){
+  var s=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s]/g," ");
+  var raw=s.split(/\s+/),out=[],i;
+  for(i=0;i<raw.length;i++){if(raw[i]&&!_NPC_STOP[raw[i]])out.push(raw[i]);}
+  return out;
+}
 function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
   var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
-  // #4: conservative first-name consolidation. If `name` is a single word that is the first name of
-  // EXACTLY ONE existing NPC, treat it as that NPC — the GM often drops "Aldara Perdrath" to "Aldara",
-  // which otherwise spawns a duplicate. The single-candidate guard prevents merging two distinct people
-  // who happen to share a first name (then it stays ambiguous and a separate entry is created).
-  if(name.indexOf(" ")<0){
-    var match=null,cnt=0;
-    for(k in memory.npcs){ if(k.split(" ")[0]===name && k!==name){ match=k; cnt++; if(cnt>1)break; } }
-    if(cnt===1)return match;
+  // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
+  // varies a name across turns — "Morwen" / "Morwen Zethran" / "Morwen (Ammut's wife)", or "Hemlock" /
+  // "Sheriff Belor Hemlock" — which otherwise forks one person into several memory.npcs entries. If the
+  // incoming name's distinctive tokens are a subset (either direction) of EXACTLY ONE existing entry's,
+  // resolve to that entry. The single-candidate guard keeps distinct people who share a token (e.g.
+  // sibling surname "Kaijitsu") separate rather than wrongly merging them.
+  var inCore=npcCoreTokens(name);
+  if(!inCore.length)return name;
+  var match=null,cnt=0;
+  for(k in memory.npcs){
+    if(k===name)continue;
+    var kCore=npcCoreTokens(k);
+    if(!kCore.length)continue;
+    var shortT=inCore.length<=kCore.length?inCore:kCore;
+    var longT=inCore.length<=kCore.length?kCore:inCore;
+    var subset=true,ti;
+    for(ti=0;ti<shortT.length;ti++){if(longT.indexOf(shortT[ti])<0){subset=false;break;}}
+    if(subset){match=k;cnt++;if(cnt>1)break;}
   }
+  if(cnt===1)return match;
   return name;
 }
 
