@@ -498,6 +498,7 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - Use **Table Talk** tab to query the GM out-of-character while debugging.
 - Wipe state: DevTools → Application → Local Storage → delete all `tnd_*` keys, or use **New Game**.
 - **Export save** before testing risky changes.
+- **Automated playtest harness** (`dev/playtest-harness.js`, not loaded by `index.html`) — drives N real GM turns against a throwaway character via `preview_eval`, for (1) smoke-testing invariants (combat panel clears, summarization fires on schedule, no console errors) and (2) collecting a narration corpus to judge prose-voice/content-DNA drift over a long run against a chosen author. Usage instructions are in the file header.
 
 **Version number:**
 - Current: `v1.114`
