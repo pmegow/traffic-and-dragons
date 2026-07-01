@@ -44,11 +44,10 @@ All three converge on the same editor and the same save paths.
 | **D1b** | Canonical format string | Canonical = **`tnd-blueprint-v1`** (matches feature name + newest producer). Normalizer accepts legacy **`tnd-campaign-v1`** on load. |
 | **D2** | dnaHint authoring | **Do both** — arcs get a hand-editable `dnaHint` field AND a per-blueprint "Generate dnaHints" button that runs the DNA pass against the selected `proseAuthor` (reuses the `generateSkeleton` dnaHint prompt). |
 | **D3** | TODO #5 (Campaign Designer) | **Absorbed** — becomes the Generate mode (§1, mode 2). No longer a separate backlog item. |
+| **D4** | Cloud save behavior | **Overwrite-by-slug** (name-slug is the key), mirroring the character library. Re-saving a same-named blueprint replaces it. |
+| **D5** | Launch point | **Stand-alone surface** — the designer is its own first-class destination (own screen + File-menu entry), NOT a tab/button embedded inside `showBlueprintBrowser`. The blueprint browser remains the *pick-to-play* surface; the designer is the *author* surface. They may cross-link (browser → "Edit in Designer") but are distinct. |
 
-### Still open (decide before/at implementation)
-- **O1** Cloud save: overwrite-by-slug vs. always-new-slot. *(Lean: overwrite-by-slug, mirroring the character library.)*
-- **O2** Launch point: extend `showBlueprintBrowser` with "New / Edit / Generate" buttons, a separate
-  File-menu item, or both. *(Lean: buttons in the browser, since it already lists blueprints.)*
+*(All decisions resolved — none open.)*
 
 ---
 
@@ -106,7 +105,7 @@ All three converge on the same editor and the same save paths.
 | `_applyBlueprint(bp)` | `ui.js:710` | Char-creation-flow entry: sets `pendingBlueprint`, shows banner, jumps to step 2. **HAS A STALE BUG — see §5.2.** |
 | `buildBlueprintFromGame()` | `ui.js:601` | Packages the active campaign into a blueprint (strips run state). **Must add `author` + `tone` per D1.** |
 | `exportBlueprint()` | `ui.js:640` | File menu → download/cloud-save active game as a blueprint. |
-| `showBlueprintBrowser()` | `ui.js:723` | Local `.blueprint` import + cloud library tabs. Likely launch point for the designer (O2). |
+| `showBlueprintBrowser()` | `ui.js:723` | Local `.blueprint` import + cloud library tabs — the *pick-to-play* surface. Stays separate from the designer (D5); may cross-link to it ("Edit in Designer"). |
 | `generateSkeleton()` | `game.js:328` | 3-act skeleton generator incl. the `dnaHint` request (v1.137). **Reuse for Generate mode + the dnaHint button (D2).** |
 | Server library | `storage-adapter.js:384` | `listBlueprintLibrary` / `saveBlueprintToLibrary` / `deleteBlueprintFromLibrary`. Table `(user_id, slug, name, blueprint_data, updated_at)`. |
 
@@ -154,7 +153,7 @@ All three converge on the same editor and the same save paths.
 
 ### I/O & round-trip
 - **R5.1** Load accepts both `tnd-blueprint-v1` and `tnd-campaign-v1`; normalize to canonical.
-- **R5.2** Save to `.blueprint` file (download) + cloud library (O1 decides overwrite vs new).
+- **R5.2** Save to `.blueprint` file (download) + cloud library (**overwrite-by-slug**, D4).
 - **R5.3** Lossless round-trip: load Runelords → save unchanged → schema-equivalent (keeps `author`,
   valid `tone`).
 
