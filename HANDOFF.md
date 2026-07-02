@@ -1,71 +1,51 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-01
-**Deployed version:** v1.143 (`APP_VERSION` in `globals.js`).
-**SW cache:** `tnd-v3-20260701b` (`sw.js`).
-**Branch:** `master` — **fully pushed. `origin/master` == local == `1c3bdd2`.** Everything this session
-is live (Cloudflare Pages auto-deploys on push).
+**Date:** 2026-07-01 (second session)
+**Deployed version:** v1.145 (`APP_VERSION` in `globals.js`).
+**SW cache:** `tnd-v3-20260701d` (`sw.js`).
+**Branch:** `master` — **committed, NOT pushed** (v1.144 + v1.145 + audit docs are local only;
+origin is still at `1c3bdd2`/v1.143). Push when the user says so.
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
-> The next real feature is still the **Blueprint Designer** — spec fully locked in
-> `BLUEPRINT_EDITOR.md`. Nothing built on it yet; this session was Car Mode polish, a wizard
-> merge, an audit-driven bug batch, and TODO tooling.
+> This session: a **full-project audit** (30 findings → `AUDIT_FABLE.md`, opens in
+> `todo-viewer.html`), a 24-finding fix batch (v1.144), and a small bug batch (v1.145).
+> The next real feature is still the **Blueprint Designer** (`BLUEPRINT_EDITOR.md`, decision-locked).
 
 ---
 
-## This session's work (all committed + pushed)
+## This session's work (committed, NOT pushed)
 
 | Ver | What | Files |
 |---|---|---|
-| 1.141 | **Car Mode UI overhaul (from a hand sketch).** Notch-safe top padding (matches the main mobile UI's `env(safe-area-inset-top)`), portrait doubled to `min(360px,60vw)` at 3:4, party HP bubbles moved directly under the portrait, and **on-screen prev/play/next transport buttons** added (previously the only way to skip/replay was the car stereo's media-session buttons or desktop arrow keys — unusable on a phone). Buttons **pulse** on trigger from any source (touch/keyboard/media session). Iterated: name size doubled then reverted (long names wrapped ugly), keyboard-hint row removed, and the prev/next **Unicode glyphs swapped for inline SVG** because ⏮/⏭ have asymmetric side-bearing and sat visibly off-center. | `index.html`, `ui.js`, `globals.js`, `sw.js` |
-| 1.142 | **Merged Ancestry into Identity (TODO #25).** Wizard is now **6 steps, not 7** — gender/age selects sit directly above the ancestry grid/detail picker in one "Identity" step. Single Back/Next pair (`id-back`/`anc-next`); `anc-next` validates ancestry+subrace+lineage+flex-stat picks. All downstream steps (Class/Attributes/Finishing Touches/Review) renumbered; every `goStep()` call site, `s#-warn` id, and `buildDots()` total updated. CLAUDE.md wizard table corrected (it had also drifted from two earlier changes). | `index.html`, `char-creation.js`, `ui.js`, `CLAUDE.md`, `globals.js`, `sw.js` |
-| 1.143 | **Four fixes found auditing a real played save** (`Rise_of_the_Runelords__Ammut__Ammut_t54.tnd`, 54 turns — see below). | `memory.js`, `data.js`, `globals.js`, `sw.js` |
-| — | **TODO housekeeping + viewer collapse features** (no version bump — `TODO.md` is data, `todo-viewer.html` is a dev tool not loaded by `index.html`). Removed the stale "v1.50 audit" note; moved "Clear for Release" to the bottom. In `todo-viewer.html`: every `##` section is now collapsible, AND every task item collapses to a one-line headline (lead up to first em/en-dash, else first sentence; status hidden while collapsed). Everything defaults collapsed. Render-only — Export/`buildMd` unaffected, transient `_expanded` flag never leaks to disk. | `TODO.md`, `todo-viewer.html` |
+| — | **AUDIT_FABLE.md** — full audit: inefficiencies, drift (prose-voice + story/state), kruft. 30 findings, TODO.md table format. Statuses updated in place as fixes landed; user moved done rows into `<!-- completed -->` blocks via the viewer. | `AUDIT_FABLE.md` |
+| 1.144 | **24 audit findings fixed.** Highlights: prose author no longer dropped by the spell-pick/stat-bump creation paths (audit #1 — THE voice-evaporation bug); TONE subordinated to VOICE when an author is set (#2); `summarize()` reads near-whole GM turns (was 300 chars, #3), keeps the log on failure w/ 3-strikes raw archive (#5), and routes extractor NPC names through `resolveNpcName` (#6); signed `[XP:+N]` parses (#7); blueprint-seeded locations no longer crash `fileLocation` (#8); reroll/retry keep `worldState.transcript` honest (#9); "Update & Retry" writes `providerKeys[activeProvider]` (#10); `SUMMARIZE_AT`=1200 unifies thresholds (#11); `buildSysPrompt` side-effect-free — name window peeks, cursor advances in `sendAction` (#12, prompt-caching prereq); action buttons get a **sheet digest + latest-scene-only** via new `callGM` 5th arg `opts.noHistory` (#4+#17 — closes TODO Known issue #4); `blankMemory()`/`migrateWorldState()` factories; CLAUDE.md doc-drift pass (#30). | all 10 JS files, `sw.js`, `CLAUDE.md`, `TODO.md`, `AUDIT_FABLE.md` |
+| 1.145 | **Known issue #2 fixed** — `showChar()` reset `cs` but never the DOM: old Review step kept `.active`, stale inputs/selects (incl. `char-gender`/`char-age`, which `anc-next` reads from the DOM) leaked into the next character. Now resets step classes, ancestry sub-view, inputs, blueprint banner, `pendingCompanions`. **Review name dup** ("Wood Elf Elf Warrior") fixed per HANDOFF spec — subrace name replaces ancestry name. **TODO #17** Gnome camouflage (all 3 subraces) + **TODO #18** Deep Dwarf superior darkvision 120ft — new characters only. Verified in preview (dirty-wizard simulation + zero console errors). | `ui.js`, `char-creation.js`, `data.js`, `globals.js`, `sw.js`, `TODO.md` |
 
-### The audit (v1.143) — how it was done + what shipped
-The user exported a 54-turn save; I read `worldState.transcript` + `memory.npcs` via `node` and found four issues:
-1. **NPC identity fragmentation → CODE fix** (`resolveNpcName` in `memory.js`). One person forking into
-   several `memory.npcs` entries ("Morwen"/"Morwen Zethran"/"Morwen (Ammut's wife)"; "Hemlock"/"Sheriff
-   Belor Hemlock"; "Bruthazmus (Bugbear Captain)"). Rewrote resolution to match **distinctive tokens**
-   (parentheticals + honorifics/generic role nouns stripped) as a subset **either direction**, guarded by
-   a **single-candidate check** so distinct people sharing a token (Kaijitsu siblings) never wrongly merge.
-   Chosen over a prompt rule because the existing NPC-naming rule was followed **0/54 turns**. Validated
-   against the save: 29 variants → 18 correct entries, both name orderings, siblings kept separate.
-   **This is the only airtight fix (engine code).**
-2. **Active crises never logged as quests** (rule, `data.js`) — opening goblin siege etc. never got a
-   `[QUEST:]`. New rule: a danger the player is already fighting IS an active quest.
-3. **Player-declared spells granted without a sheet check** (rule, `data.js`) — GM let Ammut cast Detect
-   Magic (not on his sheet) just because the player typed it. New rule: player actions are intent, verify
-   against the sheet.
-4. **Future-event queue leak** (rule, `data.js`) — 30 `[FUTURE_EVENT:]` planted, 0 ever resolved. New rule
-   to emit `[FUTURE_EVENT_RESOLVED:]`.
-
-**Caveat carried forward:** fixes 2–4 are **prompt-only → improve the odds, not guaranteed.** Existing saves
-keep already-forked NPC entries (fix 1 prevents new forking, no retroactive merge — same scoping as the
-v1.140 combat fix). **Best next use of the playtest harness:** a fresh run watching specifically for
-quest-tag firing on the opening crisis and future-event resolution.
+### Deferred from the audit (reasons matter)
+- **#16/#18 — sync payload rework** (debounce `syncToServer`; stop shipping `narrativeHtml` DOM,
+  rebuild replay from `worldState.transcript`). Biggest bandwidth win left. **Needs a 2-device test.**
+- **#19 — DEFAULT_RULES editorial merge** (28 rules → ~18–20). Behavior-affecting; wants its own session
+  with a playtest-harness before/after, then feeds TODO #11 (prompt caching) as the frozen prefix.
+- **#24** `_applyBlueprint` dead `#tone-grid` selector — belongs to the Blueprint Designer build (§5.2).
 
 ---
 
 ## Open threads / "don't get burned"
 
-- **Blueprint Designer is still the next real feature.** `BLUEPRINT_EDITOR.md` is a complete, decision-locked
-  spec. Nothing built. Build order: §5.1 load-time normalizer first. Known bugs to fix in the same surface:
-  §5.2 `_applyBlueprint()` (`ui.js`) still targets the dead `#tone-grid .card` (broken since the v1.133
-  dropdown swap); §5.3 shipped Runelords fixture has invalid `"tone":"high_fantasy"` (valid: `high`);
-  §5.5 `buildBlueprintFromGame` only captures `knowledge[0]` (lossy). Reference: `rise_of_the_runelords.blueprint`.
-- **Spawned background task (not done):** "Fix duplicated subrace+ancestry name on Review step" —
-  `char-creation.js` `buildReview()` ~line 197 concatenates `getSubNm()` + `anc.nm`, producing "Wood Elf
-  Elf Warrior" / "Drow Elf Warrior". Cosmetic. Fix: don't append `anc.nm` when a subrace name is present.
-- **Car Mode still needs a real-device pass:** (a) v1.138 Bluetooth audio-session priming was never
-  road-tested on a real iPhone; (b) the new v1.141 UI's **notch clearance couldn't be confirmed in the
-  browser emulator** (no physical notch) — worth a phone glance. TODO #2 tracks the broader real-device test.
-- **Runelords save file** `Rise_of_the_Runelords__Ammut__Ammut_t54.tnd` sits **untracked** in the repo root —
-  personal save, do NOT commit (matches the "game exports not committed" convention). Fine to delete if it's
-  in the way.
-- **`AUDIT_RESULTS.html` shows staged-deleted** and **`TODO.md` has a trivial 1-line uncommitted change**
-  (a trailing-newline artifact from the viewer's Export) — both pre-existing/benign, left untouched.
+- **NOT PUSHED.** v1.144+v1.145 are local commits only. First act when told to push: `git push`.
+- **Blueprint Designer is still the next real feature.** `BLUEPRINT_EDITOR.md` decision-locked. Build order:
+  §5.1 load-time normalizer first; §5.2 dead `#tone-grid .card` selector; §5.3 Runelords fixture invalid
+  `"tone":"high_fantasy"`; §5.5 `buildBlueprintFromGame` only captures `knowledge[0]` (lossy).
+- **Two stale worktree sessions can be archived:** "Fix duplicated subrace+ancestry name on Review step"
+  (superseded by v1.145) and its worktree `.claude/worktrees/nostalgic-franklin-5aaeba`. The stalled
+  "Fable project audit" scheduled-run session was already archived.
+- **Manual verification worth doing next real play session** (list at the bottom of `AUDIT_FABLE.md`):
+  caster creation keeps the chosen prose voice; blueprint travel doesn't error; action buttons stay
+  sheet-legal; summarize failure shows "will retry" and keeps the log.
+- **Car Mode still needs a real-device pass** (Bluetooth priming, notch clearance). TODO #2/#19.
+- **Runelords save file** `Rise_of_the_Runelords__Ammut__Ammut_t54.tnd` untracked in repo root —
+  personal save, do NOT commit. **`AUDIT_RESULTS.html` staged-deleted** — pre-existing, left untouched.
 
 ---
 
