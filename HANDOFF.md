@@ -3,8 +3,8 @@
 **Date:** 2026-07-01 (second session)
 **Deployed version:** v1.145 (`APP_VERSION` in `globals.js`).
 **SW cache:** `tnd-v3-20260701d` (`sw.js`).
-**Branch:** `master` — **committed, NOT pushed** (v1.144 + v1.145 + audit docs are local only;
-origin is still at `1c3bdd2`/v1.143). Push when the user says so.
+**Branch:** `master` — **fully pushed** (`origin/master` == local == `15055b3`). v1.144 + v1.145 +
+audit docs are live (Cloudflare Pages auto-deploys on push).
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
@@ -14,7 +14,7 @@ origin is still at `1c3bdd2`/v1.143). Push when the user says so.
 
 ---
 
-## This session's work (committed, NOT pushed)
+## This session's work (all committed + pushed)
 
 | Ver | What | Files |
 |---|---|---|
@@ -33,7 +33,6 @@ origin is still at `1c3bdd2`/v1.143). Push when the user says so.
 
 ## Open threads / "don't get burned"
 
-- **NOT PUSHED.** v1.144+v1.145 are local commits only. First act when told to push: `git push`.
 - **Blueprint Designer is still the next real feature.** `BLUEPRINT_EDITOR.md` decision-locked. Build order:
   §5.1 load-time normalizer first; §5.2 dead `#tone-grid .card` selector; §5.3 Runelords fixture invalid
   `"tone":"high_fantasy"`; §5.5 `buildBlueprintFromGame` only captures `knowledge[0]` (lossy).
