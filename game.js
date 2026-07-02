@@ -61,7 +61,11 @@ async function generateActions(msgEl){
     var acts=JSON.parse(cleaned);
     if(!acts||!acts.length)return;
     for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
-    worldState.lastActions=acts.slice(0,3);saveCore();
+    // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,
+    // so a local-only save left the server blob holding the PREVIOUS turn's buttons — device B
+    // rendered stale actions while the text matched. saveAll re-arms the debounce with the
+    // fresh lastActions (one cheap extra POST at most).
+    worldState.lastActions=acts.slice(0,3);saveAll();
   }catch(e){for(i=0;i<3;i++){if(btns[i].parentNode)btns[i].parentNode.removeChild(btns[i]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
 }
 function buildActionButtons(acts){
