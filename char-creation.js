@@ -448,8 +448,7 @@ async function aiRandomiseAll(btn){
     +"\n\nContext:\n"+ctx;
   try{
     var raw=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY a single valid JSON object, no markdown, no commentary.",600);
-    var json=raw.replace(/```[a-z]*\n?/g,"").replace(/```/g,"").trim();
-    var c=JSON.parse(json);
+    var c=JSON.parse(repairModelJson(raw));
     if(c.name&&document.getElementById("char-name"))document.getElementById("char-name").value=c.name;
     if(c.appear&&document.getElementById("char-appear"))document.getElementById("char-appear").value=c.appear;
     if(c.backstory&&document.getElementById("char-backstory"))document.getElementById("char-backstory").value=c.backstory;

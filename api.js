@@ -244,6 +244,22 @@ function buildSkeletonBlock(){
   lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
 }
+// ── Model-output JSON cleanup ────────────────────────────────────────────────
+// Shared by every JSON-expecting call (skeleton, action suggestions, summarize,
+// character randomiser). Extracted from 4 inline copies so test.html exercises the
+// REAL parsing path with known-bad model outputs (TODO #14).
+function stripCodeFences(s){return String(s||"").replace(/```[a-z]*\n?/gi,"").replace(/```/g,"").trim();}
+// Full repair for OBJECT payloads: fences, stray pre/postamble prose, trailing commas,
+// bare control characters (a literal newline inside a JSON string is invalid; the escaped
+// two-char \n is unaffected). NOT for array payloads — the first-{ trim would eat "[".
+function repairModelJson(s){
+  s=stripCodeFences(s);
+  var fi=s.indexOf("{");if(fi>0)s=s.slice(fi);
+  var li=s.lastIndexOf("}");if(li>=0&&li<s.length-1)s=s.slice(0,li+1);
+  s=s.replace(/,\s*([}\]])/g,"$1");
+  s=s.replace(/[\x00-\x1F\x7F]/g," ");
+  return s;
+}
 var _CT_TAGS=/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ARC_COMPLETE|ACT_COMPLETE|ACTIONS):[^\]]+\]/g;
 var _CT_BARE=/\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\]/g;
 var _CT_DASH=/[ \t]*[—–][ \t]*/g;
