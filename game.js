@@ -12,7 +12,7 @@ function startGame(char,toneName,toneVoice,authorId){
   worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[]};
   delete worldState.character._startLoc;delete worldState.character._campName;
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
-  sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+  sessionLog=[];memory=blankMemory();
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
     var comp=pendingCompanions[ci];
@@ -45,14 +45,24 @@ async function generateActions(msgEl){
   var btns=[],i;
   for(i=0;i<3;i++){var b=document.createElement("button");b.className="qa";b.textContent="…";b.disabled=true;b.style.minWidth="80px";btnDiv.appendChild(b);btns.push(b);}
   msgEl.appendChild(btnDiv);
+  var turnAt=worldState.turn; // race guard: a fast next action can land while this call is in flight
   try{
-    var resp=await callGM("Based on what just happened, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. Output ONLY a valid JSON array of 3 short strings.",200);
+    // Send ONLY the latest scene + a sheet digest, not the whole sessionLog (audit #17), and give
+    // the model the character's actual kit so it can't suggest spells the player doesn't have —
+    // the "Cast Magic Missile" button root cause (audit #4 / TODO Known issue #4).
+    var c=worldState.character,sp=[],ab=[],si;
+    if(c.spells){for(si=0;si<c.spells.length;si++){if(!c.spells[si].used)sp.push(c.spells[si].nm.replace(/\s*\(.*\)/,""));}}
+    if(c.abilities){for(si=0;si<c.abilities.length;si++)ab.push(c.abilities[si].nm);}
+    var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above.";
+    var lastGm="";for(si=sessionLog.length-1;si>=0;si--){if(sessionLog[si].role==="assistant"){lastGm=cleanTxt(sessionLog[si].content);break;}}
+    var resp=await callGM("LATEST SCENE:\n"+lastGm.slice(0,2400)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+" Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true});
+    if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
     var acts=JSON.parse(cleaned);
     if(!acts||!acts.length)return;
     for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
     worldState.lastActions=acts.slice(0,3);saveCore();
-  }catch(e){for(i=0;i<3;i++)btns[i].parentNode.removeChild(btns[i]);if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
+  }catch(e){for(i=0;i<3;i++){if(btns[i].parentNode)btns[i].parentNode.removeChild(btns[i]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -179,15 +189,20 @@ async function sendAction(override,opts){
   var isTT=activeChatTab==="tabletalk";
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
   if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+txt:txt);
-  if(!isTT&&!(opts&&opts.silent))logTranscript("player",txt);
+  // Skip the transcript write on a retry of the same action — the failed attempt already
+  // logged it, and a duplicate player line corrupts the story-compiler record (audit #9).
+  var _tl=worldState.transcript;
+  var _isRetryDup=!!(_tl&&_tl.length&&_tl[_tl.length-1].r==="player"&&_tl[_tl.length-1].x===String(txt).trim());
+  if(!isTT&&!(opts&&opts.silent)&&!_isRetryDup)logTranscript("player",txt);
   var th=addMsg("thinking","The world turns...");
   try{
-    if(!isTT&&sessionTokens()>=1000)await summarize();
+    if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
     var resp=await callGM(txt,sys);th.remove();
     if(isTT){addMsg("tabletalk","<em>[GM]</em> "+resp.replace(/\*(.*?)\*/g,"<em>$1</em>"));}
     else{
       worldState.turn++;
+      if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       applyMuts(resp);
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;if(resp.indexOf(_lcn)>=0||(worldState.turn-worldState.pendingLegacy.queuedAt)>=5){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}}
@@ -223,6 +238,11 @@ async function rerollLast(){
     th.remove();
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
     var clean=cleanTxt(resp),dice=diceTxt(resp);
+    // Keep the transcript honest: the re-rolled scene replaces the discarded one, so the
+    // story-compiler record matches what the player actually read (audit #9).
+    if(worldState.transcript&&worldState.transcript.length&&worldState.transcript[worldState.transcript.length-1].r==="gm"){
+      worldState.transcript[worldState.transcript.length-1].x=clean.trim();
+    }
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
     var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
@@ -244,7 +264,11 @@ function _attachGMErrorUI(em,retryFn,msg){
     var kb=document.createElement("button");kb.className="qa";kb.textContent="Update & Retry";
     kb.onclick=function(){
       var k=ki.value.trim();if(!k)return;
-      apiKey=k;try{localStorage.setItem(AKK,k);}catch(x){}
+      // Write the ACTIVE provider's key slot — callGM reads providerKeys[activeProvider] first,
+      // so writing only apiKey/AKK left the stale key winning and retry failing forever (audit #10).
+      apiKey=k;providerKeys[activeProvider]=k;
+      if(typeof saveProviderSettings==="function")saveProviderSettings();
+      try{localStorage.setItem(AKK,k);}catch(x){}
       em.remove();
       busy=false;document.getElementById("sendbtn").disabled=false;
       if(typeof retryFn==="function")retryFn();
@@ -298,7 +322,7 @@ function applyBlueprint(bp){
   if(bp.locations&&bp.locations.length){
     var li;for(li=0;li<bp.locations.length;li++){
       var loc=bp.locations[li];
-      if(!memory.locations[loc.name])memory.locations[loc.name]={visits:0,notes:[]};
+      if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
       if(loc.description)memory.locations[loc.name].notes.push(loc.description);
       if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
@@ -560,7 +584,7 @@ function newGame(){
     snapshotActiveCamp();
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
-    worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+    worldState=null;sessionLog=[];memory=blankMemory();
     pendingCompanions=[];
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     showChar();

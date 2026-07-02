@@ -40,25 +40,31 @@ function resolveNpcName(name){
   return name;
 }
 
-function getNameSuggestions(count){
+// peek=true computes the window WITHOUT advancing memory.nameIdx. buildSysPrompt must use
+// peek — a prompt builder that mutates state burns names on every internal call (sheet sync,
+// re-roll) and makes the prompt unstable for caching (audit #12). The cursor is advanced
+// once per narrative turn in sendAction instead.
+function getNameSuggestions(count,peek){
   var firstNames=[],cats=Object.keys(NAMES),k,i;
   for(k=0;k<cats.length;k++){if(cats[k]==="surnames")continue;for(i=0;i<NAMES[cats[k]].length;i++)firstNames.push(NAMES[cats[k]][i]);}
   var surnames=NAMES.surnames||[];
   if(!firstNames.length)return[];
   if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
-  var result=[],n=count||10;
+  var result=[],n=count||10,idx=memory.nameIdx;
   for(i=0;i<n;i++){
-    var first=firstNames[memory.nameIdx%firstNames.length];
-    var last=surnames.length?surnames[(memory.nameIdx*7+3)%surnames.length]:"";
+    var first=firstNames[idx%firstNames.length];
+    var last=surnames.length?surnames[(idx*7+3)%surnames.length]:"";
     result.push(last?first+" "+last:first);
-    memory.nameIdx++;
+    idx++;
   }
+  if(!peek)memory.nameIdx=idx;
   return result;
 }
 function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"unknown",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8)memory.npcs[name].events.shift();}
 function fileLocation(loc,note,turn){
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
+  if(!memory.locations[loc].visited)memory.locations[loc].visited=[];// blueprint-seeded entries lacked this (audit #8)
   memory.locations[loc].visited.push(turn);
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
@@ -235,22 +241,42 @@ function factionLinkUpsert(facA,facB,rel){
   edges.push({a:facA,b:facB,rel:rel,turn:turn});
 }
 function sessionTokens(){var total=0,i;for(i=0;i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
+var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
-  if(sessionTokens()<1200)return;
+  if(sessionTokens()<SUMMARIZE_AT)return;
   addMsg("system","Filing memories...");
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
     var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}]}\n\nSESSION:\n";
-    var i;for(i=0;i<sessionLog.length;i++)extractPrompt+=sessionLog[i].role+": "+sessionLog[i].content.slice(0,300)+"\n";
+    // GM turns carry the events — send them near-whole (a 1000-token turn is ~4000 chars; the old
+    // 300-char slice fed the extractor only scene openings, silently dropping mid/late-scene events
+    // from long-term memory — audit #3). Player turns are short; trim them lightly.
+    var i;for(i=0;i<sessionLog.length;i++){var _se=sessionLog[i];extractPrompt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
     var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000);
     var cleaned=resp.replace(/```json/g,"").replace(/```/g,"").trim();
     var extracted=JSON.parse(cleaned);
     if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memory.chapters.shift();worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
-    if(extracted.npcUpdates){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu.name){if(!memory.npcs[nu.name])memory.npcs[nu.name]={attitude:"unknown",knowledge:[],events:[]};if(nu.attitude)memory.npcs[nu.name].attitude=nu.attitude;if(nu.knowledgeGained)memory.npcs[nu.name].knowledge.push(nu.knowledgeGained);}}}
+    // Route extractor names through resolveNpcName — the extractor freely returns variants
+    // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
+    if(extracted.npcUpdates){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=nu.attitude;if(nu.knowledgeGained)memory.npcs[nuName].knowledge.push(nu.knowledgeGained);}}}
     if(extracted.loreDiscovered){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
     if(extracted.decisionsMade){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
     if(extracted.futureEvents){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
-    sessionLog=[];saveMem();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
-  }catch(e){worldState.eventHistory.push("[T"+worldState.turn+"] Summarisation failed — "+sessionLog.length+" turns not archived.");sessionLog=[];saveCore();addMsg("system","Memory saved (raw).");}
+    sessionLog=[];_sumFails=0;saveMem();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
+  }catch(e){
+    // Do NOT discard the session log on a transient failure — that permanently erased up to a
+    // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
+    // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
+    _sumFails++;
+    if(_sumFails>=3){
+      var _rawBits=[],_ri;for(_ri=0;_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
+      var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
+      memory.chapters.push({turn:worldState.turn,summary:_rawSum});if(memory.chapters.length>10)memory.chapters.shift();
+      worldState.eventHistory.push("[T"+worldState.turn+"] "+_rawSum);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
+      sessionLog=[];_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
+    }else{
+      addMsg("system","Memory filing failed ("+(e&&e.message?e.message:"unknown")+") — will retry next turn.");
+    }
+  }
 }

@@ -75,7 +75,7 @@ Each file depends only on symbols defined by files earlier in this list.
 |---|---|
 | 1 – Tone | Choose world tone: High Fantasy, Gritty, Sword and Sorcery, Dark Horror, Political Intrigue, or Custom, plus prose-voice pick. Bottom of step has "↩ Import existing save" file input and "⚙ Load blueprint". |
 | 2 – Identity | **Merged with Ancestry (v1.141, TODO #25).** Gender (M/F/NB), age, then an Ancestry picker inline below: 7 ancestries (Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, Tiefling), each with 2–3 subraces; Half-Blood has nested lineage selection via `#lineage-popup`. Picking an ancestry swaps the grid (`#anc-grid-wrap`) for a detail view (`#anc-detail`) in place — "← All ancestries" (`anc-back-detail`/`hideAncDetail()`) returns to the grid without leaving the step. Single Back/Next pair (`id-back`/`anc-next`) for the whole step; `anc-next` validates ancestry + subrace + lineage (if applicable) + flex stat picks before advancing. |
-| 3 – Class | 8 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid) |
+| 3 – Class | 9 classes (Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid, Necromancer) |
 | 4 – Attributes | Roll 4d6 drop-lowest (auto-assigned by `STAT_PRIORITY`) or Point Buy (27 pts, using `PBC` cost table); stated alignment; auto-suggested deity for Cleric/Paladin/Druid |
 | 5 – Finishing Touches | Physical description, backstory, portrait (upload / render from sheet / derive appearance from portrait) |
 | 6 – Review | Full character preview + campaign name + starting location + starting level (1–10) + companion selection (up to 3) — **party cap is `PARTY_MAX`=4 total** (player + companions): the creation picker, the mid-game import, and the `[PARTY_MEMBER:\|true]` handler all enforce `partyCompanionCap()` (= `PARTY_MAX - playerCount`, 3 today; multiplayer #1 makes playerCount dynamic). `buildSysPrompt` injects a live "PARTY SIZE: N of 3 … FULL" note so the GM doesn't narrate a join it can't make; the `applyMuts` cap is the backstop (keeps the over-cap NPC as a non-party ally). **Manual departure (v1.96):** the NPC sheet has a "Part ways" button → `partWaysWithCompanion()` flips `partyMember` off (NPC kept, slot freed) and sets transient `worldState.recentlyLeft`, which `buildSysPrompt` surfaces as a "PARTY DEPARTURE" note (auto-cleared in `sendAction` after ~2 turns, same pattern as `recentSwitch`) so the GM stops narrating them as present. |
@@ -104,7 +104,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `STAT_BUMP_LEVELS` — `[4, 8]` (levels where +2 stat improvement is awarded)
 - `STAT_PRIORITY` — Per-class stat assignment order for rolled stats
 - `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid
-- `DEFAULT_RULES` — 17 hard GM rules always injected into the system prompt (incl. character sheet upkeep, engine-controlled XP/leveling, mandatory NPC registration on direct interaction)
+- `DEFAULT_RULES` — ~28 hard GM rules always injected into the system prompt (incl. character sheet upkeep, engine-controlled XP/leveling, mandatory NPC registration on direct interaction, quest lifecycle, active-crises-are-quests, player-actions-are-intent). Count grows over time — see data.js for truth; an editorial merge pass is queued as AUDIT_FABLE #19.
 - `SPELL_PICK_LIMITS` — Max spells selectable per tier during creation: `{cantrips:2, "1":2, "2":2, "3":1}`
 - `SKILLS` — Array of 36 skill objects `{id, label, cat}` across 8 categories (Physical, Endurance, Wilderness, Knowledge, Craft, Social, Roguish, Perception). Wilderness includes **Tracking** (WIS/INT), which doubles as urban tailing.
 - `SKILL_LEVELS` — `["Unskilled","Familiar","Trained","Proficient","Expert","Master"]`
@@ -164,8 +164,8 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
 
 - **anthropic** — `https://api.anthropic.com/v1/messages`; `x-api-key` + `anthropic-dangerous-direct-browser-access: true`; system as a top-level `system` field; response at `content[0].text`. Default model `claude-sonnet-4-6` — **verify this string is current before starting work each session.**
 - **openai** — `https://api.openai.com/v1/chat/completions`; `Authorization: Bearer`; system carried as a leading `{role:"system"}` message; response at `choices[0].message.content`. Default model `gpt-4o`. (CORS: OpenAI allows direct browser calls, no special header.)
-- **grok** — `https://api.x.ai/v1/chat/completions`; OpenAI-compatible (same body/response), `Authorization: Bearer`. Default `grok-2-latest`.
-- **gemini** — `endpoint` is a **function(model)** (`.../v1beta/models/{model}:generateContent`) since Google embeds the model in the URL; `x-goog-api-key` header; system in `systemInstruction.parts[]`, messages in `contents[]` with role `model` (not `assistant`); response at `candidates[0].content.parts[0].text`. Default `gemini-1.5-pro`. `callGM()` resolves `typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint`.
+- **grok** — `https://api.x.ai/v1/chat/completions`; OpenAI-compatible (same body/response), `Authorization: Bearer`. Default `grok-4.3` (see `PROVIDERS` in globals.js for the current list — old grok-2-*/grok-beta IDs are retired).
+- **gemini** — `endpoint` is a **function(model)** (`.../v1beta/models/{model}:generateContent`) since Google embeds the model in the URL; `x-goog-api-key` header; system in `systemInstruction.parts[]`, messages in `contents[]` with role `model` (not `assistant`); response at `candidates[0].content.parts[0].text`. Default `gemini-3.5-flash` (retired 1.5/2.0 IDs 404 — see `PROVIDERS` in globals.js for the current list). `callGM()` resolves `typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint`.
 - **ollama** — `http://localhost:11434/v1/chat/completions`; OpenAI-compatible. **Mixed-content blocked** from an https origin / unreachable from `file://` — only works when the game is served from localhost. Exploration tier.
 
 Shared `TAG_REINFORCE` constant (globals.js) is assigned to every non-Claude provider's `reinforce` (Claude needs none). Model names in each provider's `models[]` should be verified current; the modal's dropdown is fixed to that list. **All four non-Claude adapters are shape-verified but each still needs a live tag-fidelity test (a money turn) once a key is available — same process that surfaced the gpt-4o gotcha.**
@@ -174,7 +174,7 @@ Shared `TAG_REINFORCE` constant (globals.js) is assigned to every non-Claude pro
 
 **Per-provider prompt reinforcement:** a provider may carry an optional `reinforce` string. `callGM()` appends it to the system prompt for gameplay turns only (`if(!sysOverride&&prov.reinforce)`), never to `summarize()`. **Finding from the v1.32 GPT bring-up:** gpt-4o parses responses and produces valid `summarize()` JSON fine, but treats the state tags as optional — it narrates "you pay 5 gold" without emitting `[GOLD:-5]`, silently desyncing the sheet. `openai.reinforce` is a forceful MANDATORY-TAG-DISCIPLINE block with exact formats + the gold-for-a-room example. Claude needs no reinforcement (its `reinforce` is unset). This is the per-provider tuning the abstraction exists for. Additionally, the `[GOLD:]` and `[HP:]` parsers were loosened to `/\[(GOLD|HP):\s*([+-]?\d+)[^\]]*\]/` shape so a model writing `[GOLD:-5 gp]` (which the prompt's own format hint invites) still parses.
 
-`callGM(msg, sysOverride, maxTok)` is the single API entry point.
+`callGM(msg, sysOverride, maxTok, modelOverride, opts)` is the single API entry point. `opts.noHistory` sends only the given message instead of the full `sessionLog` (used by the action-suggestion call, v1.144).
 - `maxTok` is optional; defaults to `1000`. `summarize()` passes `2000`.
 - Appends `msg` to `sessionLog` for the request body but does not push to `sessionLog` itself.
 
@@ -261,7 +261,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 
 ### 8. Memory / summarization system (in `memory.js`)
 
-`sessionTokens()` estimates the token count of `sessionLog` (sum of `content.length` / 4). When it hits 1000, `summarize()` fires before the next player action.
+`sessionTokens()` estimates the token count of `sessionLog` (sum of `content.length` / 4). When it hits `SUMMARIZE_AT` (globals.js, 1200), `summarize()` fires before the next player action. On failure the log is KEPT and retried next turn; after 3 consecutive failures a raw excerpt is archived as a degraded chapter and the log clears (v1.144).
 
 `summarize()`:
 1. Sends the full session log to the API with a JSON-extraction system prompt (2000 token limit)
@@ -271,7 +271,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 5. Files lore, decisions, and future events
 6. Clears `sessionLog` and saves memory
 
-Memory status shown in `#membar` as `~NNNtk`: green dot (< 800 tokens), amber (800–999), red (≥ 1000).
+Memory status shown in `#membar` as `~NNNtk`: green dot below 80% of `SUMMARIZE_AT`, amber at 80%+, red at/above `SUMMARIZE_AT`.
 
 ### 9. Map data layer (`memory.map`)
 
@@ -381,7 +381,7 @@ Direct editing of HP, max HP, gold, XP, level, location, time, weather, inventor
 `doRender()` calls the **fal.ai** API. Three models selectable via Render Options modal (in Dev Mode):
 - **Flux Dev** — `fal-ai/flux/dev` (text-to-image) / `fal-ai/flux/dev/image-to-image` (img2img, strength 0.6)
 - **Nano Banana 2** — `fal-ai/nano-banana-2` / `fal-ai/nano-banana-2/edit` (img2img via `image_urls`)
-- **Qwen 2512** — `fal-ai/qwen2.5-vl/text-to-image` / `fal-ai/qwen-image-edit/image-to-image` (img2img, strength 0.6)
+- **Qwen Image 2512** — `fal-ai/qwen-image-2512` / `fal-ai/qwen-image-edit/image-to-image` (img2img, strength 0.9 — edit-style model returns near-copies at 0.6)
 
 When `character.portrait` exists, img2img is used automatically (status line shows "Generating scene (portrait-seeded)…"). Falls back to text-to-image if no portrait.
 
@@ -500,6 +500,6 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Automated playtest harness** (`dev/playtest-harness.js`, not loaded by `index.html`) — drives N real GM turns against a throwaway character via `preview_eval`, for (1) smoke-testing invariants (combat panel clears, summarization fires on schedule, no console errors) and (2) collecting a narration corpus to judge prose-voice/content-DNA drift over a long run against a chosen author. Usage instructions are in the file header.
 
 **Version number:**
-- Current: `v1.114`
+- Current: see `APP_VERSION` in `globals.js` — the hardcoded value here kept rotting (it said v1.114 at v1.143).
 - Constant `APP_VERSION` in `globals.js` — consumed by `updateMemStatus()` (session bar) and injected into all three File ▾ menu version labels via `_menus` loop in `wireButtons()`.
 - **Bump `APP_VERSION` on every commit that changes game code** — no exceptions. Also bump `CACHE` in `sw.js` on the same commit. This is how you confirm the right version is deployed.

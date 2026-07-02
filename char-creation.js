@@ -228,9 +228,7 @@ function getDefaultDeity(){
   var anc=cs.ancestry||"",sub=cs.subrace||"",evil=align.indexOf("Evil")>=0;
   if(anc==="elf"&&cls!=="Paladin")return"Corellon, God of Spring and Beauty";
   if(anc==="dwarf")return"Moradin, Soul Forger of the Dwarves";
-  if(anc==="halfling")return"Avandra, Goddess of Change and Luck";
   if(anc==="gnome"&&cls!=="Paladin")return"Ioun, Goddess of Knowledge and Prophecy";
-  if(anc==="dragonborn")return evil?"Tiamat, the Dragon Queen":"Bahamut, the Platinum Dragon";
   if(anc==="halfblood"){
     if(sub==="half_elven"&&!evil)return"Sehanine, Goddess of Moonlight and Illusion";
     if(sub==="half_orcish"&&evil)return"Gruumsh, the One-Eyed Destroyer";
@@ -268,7 +266,7 @@ function confirmChar(){
     snapshotActiveCamp();
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
-    worldState=null;sessionLog=[];memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[]};
+    worldState=null;sessionLog=[];memory=blankMemory();
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     startGame(ic,getToneNm(),getToneVc(),cs.author||"");
     return;
@@ -349,7 +347,7 @@ function showCreationSpellPick(){
   var c=pendingChar;if(!c)return;var ex=document.getElementById("creation-spells");if(ex)ex.remove();
   document.getElementById("char-screen").style.display="none";
   var tiers=["cantrips","1","2","3"].filter(function(t){return pendingSpellPool[t]&&pendingSpellPool[t].length;});
-  if(!tiers.length){c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);return;}
+  if(!tiers.length){c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);return;}
   var wrap=document.createElement("div");wrap.id="creation-spells";wrap.style.cssText="max-width:600px;margin:0 auto;padding:24px 20px;";
   var html="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Character creation</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your spells</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>Select the spells "+c.name+" begins with.</p>";
   tiers.forEach(function(tier){
@@ -392,7 +390,9 @@ function confirmCreationSpells(){
     pendingSpellPool[tier].forEach(function(s){if(s.sel)c.spells.push({nm:s.nm,lvl:lvl,used:false});});
   });
   var wrap=document.getElementById("creation-spells");if(wrap)wrap.remove();
-  c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);
+  // 4th arg matters: a 3-arg call drops the Step-1 prose author and the campaign silently
+  // inherits the device default — audit #1. Same fix in the stat-bump and no-tiers paths.
+  c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);
 }
 function showCreationStatBump(){
   var c=pendingChar;if(!c)return;var ex=document.getElementById("creation-bump");if(ex)ex.remove();
@@ -476,4 +476,4 @@ function injectSparkleButtons(){
   });
 }
 function cbBack(){var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();if(currentBump>1){currentBump--;showCreationStatBump();}else{showCreationArchetype();}}
-function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice);}}
+function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}}

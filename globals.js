@@ -1,5 +1,5 @@
-var API="https://api.anthropic.com/v1/messages";
 var MDL="claude-sonnet-4-6";
+var SUMMARIZE_AT=1200; // session-token threshold: summarize() gate, sendAction trigger, membar colors (amber at 80%)
 // ── LLM provider adapters ─────────────────────────────────────────────────────
 // Each provider is a self-contained object: callGM() picks the active one and
 // calls headers/buildBody/parseResponse. NO if(provider===...) branches anywhere
@@ -76,7 +76,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.143";
+var APP_VERSION="v1.144";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

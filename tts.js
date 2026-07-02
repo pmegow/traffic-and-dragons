@@ -33,6 +33,7 @@ var TTS = (function() {
   var _sources    = [];     // scheduled AudioBufferSourceNodes
   var _abortCtrl  = null;   // AbortController for live fetch
   var _cartesiaError = "";  // last Cartesia failure reason; once set, speech falls back to native
+  var _cartesiaErrorAt = 0; // when it was recorded — auto-retried after 5 min so one transient blip doesn't downgrade the whole session (audit #27)
   var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
   var _curNative     = false;// is the currently-playing queue item using native TTS
 
@@ -49,7 +50,11 @@ var TTS = (function() {
   // The voice to actually speak with: the user's saved pick if present, else the preferred default, else OS default (null).
   function _resolveNativeVoice() { return _findNativeVoice(getNativeVoice()) || _findNativeVoice(NVOICE_DEFAULT) || null; }
   // Cartesia is usable only with a key and no recorded failure. Otherwise speech routes to native.
-  function _cartesiaOk() { return !!getKey() && !_cartesiaError; }
+  // A recorded failure expires after 5 minutes so Cartesia gets retried automatically.
+  function _cartesiaOk() {
+    if (_cartesiaError && Date.now() - _cartesiaErrorAt > 300000) { _cartesiaError = ""; _updateCartErr(); }
+    return !!getKey() && !_cartesiaError;
+  }
   function _useNative()  { return isNative() || !_cartesiaOk(); }
 
   // ── Toggle ─────────────────────────────────────────────────────────────────
@@ -290,7 +295,7 @@ var TTS = (function() {
               if (activeSrcs === 0) onAllDone();
             } else if (evt.type === "error") {
               console.warn("[tts] Cartesia error:", evt.message);
-              _cartesiaError = evt.message || "Cartesia error"; _updateCartErr();
+              _cartesiaError = evt.message || "Cartesia error"; _cartesiaErrorAt = Date.now(); _updateCartErr();
               streamDone = true;
               if (activeSrcs === 0) onAllDone();
             }
@@ -309,7 +314,8 @@ var TTS = (function() {
     .catch(function(e) {
       if (e.name === "AbortError") { _drain(); return; }
       console.warn("[tts]", e.message);
-      _cartesiaError = e.message || "Cartesia unavailable";  // future lines auto-route to native
+      _cartesiaError = e.message || "Cartesia unavailable";  // future lines auto-route to native (retried after 5 min)
+      _cartesiaErrorAt = Date.now();
       _updateCartErr();
       _curNative = true;
       _speakNative(text);                                    // still speak THIS line via native

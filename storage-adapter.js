@@ -141,10 +141,12 @@ var storageAdapter = (function() {
   // ── Log out from server ─────────────────────────────────────────────────
 
   function logoutFromServer(cb) {
-    var url = _serverUrl;
+    var url = _serverUrl, tok = _token;
     setServer(null, null);   // clear local state immediately
     if (!url) { if (cb) cb(); return; }
-    fetch(url + "/auth/logout", { method: "POST" })
+    // Send the token so the server can actually invalidate the session — without the
+    // Authorization header logout was client-side amnesia only (audit #25).
+    fetch(url + "/auth/logout", { method: "POST", headers: tok ? { "Authorization": "Bearer " + tok } : {} })
       .catch(function() {})
       .then(function() { if (cb) cb(); });
   }
@@ -296,10 +298,7 @@ var storageAdapter = (function() {
         var _scid = data.campaignId || (worldState && worldState.campId);
         if (_scid) { if (typeof setActiveCampId === "function") setActiveCampId(_scid); worldState.campId = _scid; }
         sessionLog = data.sessionLog || [];
-        memory     = data.memory || {
-          npcs:{}, locations:{}, quests:{}, lore:[], keyDecisions:[],
-          futureEvents:[], chapters:[], usedNames:[]
-        };
+        memory     = data.memory || blankMemory();
         if (data.portrait && worldState.character && !worldState.character.portrait) {
           worldState.character.portrait = data.portrait;
         }
