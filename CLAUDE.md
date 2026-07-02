@@ -368,7 +368,7 @@ Auto-export narrative fires every 10 turns as a background download (no manual e
 
 ### 16. Campaign management
 
-`showCampaignPicker()` reads `tnd_camps_v1` from localStorage. `saveAll()` calls `storageAdapter.syncToServer()` on every save, pushing state to the server automatically.
+`showCampaignPicker()` reads `tnd_camps_v1` from localStorage. `saveAll()` calls `storageAdapter.syncToServer()` on every save — **debounced (v1.146)**: schedules a trailing 1.5s timer so a turn's multiple saveAll bursts coalesce into ONE `POST /api/state` built from the latest state. `storageAdapter.syncNow()` flushes immediately; wired to `beforeunload` and `visibilitychange(hidden)` so closing/backgrounding can't drop the final turn. The payload no longer carries the story DOM (`narrativeHtml` is sent as `""`) — replay rebuilds from `worldState.transcript`.
 
 After connecting to server, `syncCampaignList()` fetches the server campaign list and merges it into `tnd_camps_v1`, then the campaign picker opens automatically.
 
@@ -424,7 +424,7 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 
 ### 23. Reload behavior
 
-On `init()`, if a saved game is found and `sessionLog` has at least 2 entries, the last player action and last GM response are re-rendered in `#story-narrative`. Suggested action buttons from the last response are live and clickable.
+On `init()`, if a saved game is found, `rebuildNarrativeFromTranscript()` (ui.js, v1.146) repaints the last 20 `worldState.transcript` entries into `#story-narrative` (with an "earlier entries omitted" note when trimmed); the last response's suggested action buttons (`worldState.lastActions`) are live and clickable. The same rebuild serves campaign loads and the server reconcile (`clearFirst=true` there). Fallbacks for pre-transcript saves: last sessionLog exchange, else a "Previously:" chapter recap, else legacy `narrativeHtml` from old server blobs. Dice blocks and system messages are not replayed (the transcript stores story prose only, by design).
 
 ---
 

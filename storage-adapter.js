@@ -180,7 +180,26 @@ var storageAdapter = (function() {
     });
   }
 
+  // Debounced write-through (audit #16). saveAll() fires 2-3x per turn (applyMuts + sendAction +
+  // UI ops), and each used to POST the full state immediately — including the ENTIRE story DOM.
+  // syncToServer() now just schedules; the trailing timer coalesces a turn's bursts into ONE POST
+  // built from the LATEST state at fire time. syncNow() flushes immediately (beforeunload /
+  // page-hide), closing the debounce window on exit.
+  var _syncTimer = null;
+  var SYNC_DEBOUNCE_MS = 1500;
+
   function syncToServer() {
+    if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function() { _syncTimer = null; _syncNow(); }, SYNC_DEBOUNCE_MS);
+  }
+
+  function syncNow() {
+    if (_syncTimer) { clearTimeout(_syncTimer); _syncTimer = null; }
+    _syncNow();
+  }
+
+  function _syncNow() {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
     if (_syncing) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
@@ -197,14 +216,15 @@ var storageAdapter = (function() {
         return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
       })
     });
-    var narrativeHtml = "";
-    try { var _ne = document.getElementById("story-narrative"); if (_ne) narrativeHtml = _ne.innerHTML; } catch(e) {}
+    // narrativeHtml intentionally empty (audit #18): the story pane is rebuilt from
+    // worldState.transcript on load — the DOM copy was the largest payload item and fully
+    // derivable. Field kept (as "") so the server never sees an undefined key.
     var payload = JSON.stringify({
       worldState:    wsStripped,
       sessionLog:    sessionLog,
       memory:        memory,
       campaignId:    campId,
-      narrativeHtml: narrativeHtml
+      narrativeHtml: ""
     });
     fetch(_serverUrl + "/api/state", {
       method:  "POST",
@@ -217,11 +237,11 @@ var storageAdapter = (function() {
         _portraitSyncedOnce = true;
         syncPortrait(campId);
       }
-      if (_pendingSync) syncToServer();
+      if (_pendingSync) _syncNow();
     }).catch(function(e) {
       _syncing = false;
       console.warn("[storage] server sync failed:", e.message);
-      if (_pendingSync) syncToServer();
+      if (_pendingSync) _syncNow();
     });
   }
 
@@ -317,7 +337,11 @@ var storageAdapter = (function() {
           if (typeof initSpells    === "function") initSpells();
         }
         syncUI();
-        if (data.narrativeHtml) {
+        // Rebuild the story pane from the transcript (audit #18) — the canonical narrative
+        // record. Old blobs without a transcript fall back to their stored narrativeHtml.
+        var _rebuilt = false;
+        try { if (typeof rebuildNarrativeFromTranscript === "function") _rebuilt = rebuildNarrativeFromTranscript(20, true); } catch(e) {}
+        if (!_rebuilt && data.narrativeHtml) {
           try {
             var _ne2 = document.getElementById("story-narrative");
             if (_ne2) { _ne2.innerHTML = data.narrativeHtml; _ne2.scrollTop = _ne2.scrollHeight; }
@@ -435,6 +459,7 @@ var storageAdapter = (function() {
     logoutFromServer:      logoutFromServer,
     load:                  load,
     syncToServer:          syncToServer,
+    syncNow:               syncNow,
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
     listCharLibrary:            listCharLibrary,

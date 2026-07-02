@@ -39,8 +39,8 @@ Audit of the full project at v1.143 (2026-07-01). Scope: inefficiencies, drift v
 
 | # | Task | Effort | Status |
 |---|---|:---:|---|
-| 16 | **Every turn POSTs the full state to the server 2–3×, including the entire story DOM.** `saveAll()` → `syncToServer()` fires from `applyMuts` AND sendAction each turn; each POST ships worldState + memory + sessionLog + the complete `#story-narrative` innerHTML (storage-adapter.js), which grows without bound. **Remedy:** debounce syncToServer (one POST per turn); cap or drop narrativeHtml in favor of `worldState.transcript` (see #18). | M | **Deferred** — touches the cross-device sync path; needs a real 2-device test session before shipping |
-| 18 | **The same prose is stored four ways** — transcript (by design), sessionLog (by design), narrativeHtml DOM copy (derivable!), chapter summaries (by design). **Remedy:** rebuild the story pane from `transcript`; stop persisting DOM HTML. | M | **Deferred** — bundle with #16 as one sync-payload rework + 2-device test |
+| 16 | **Every turn POSTs the full state to the server 2–3×, including the entire story DOM.** `saveAll()` → `syncToServer()` fires from `applyMuts` AND sendAction each turn; each POST ships worldState + memory + sessionLog + the complete `#story-narrative` innerHTML (storage-adapter.js), which grows without bound. **Remedy:** debounce syncToServer (one POST per turn); cap or drop narrativeHtml in favor of `worldState.transcript` (see #18). | M | ✅ Done (v1.146) — `syncToServer()` now schedules a trailing 1.5s debounce (a turn's 2–3 saveAll bursts coalesce to ONE POST built from the latest state); `syncNow()` flushes on beforeunload + visibilitychange so exit can't drop the last turn. Preview-verified: 4-call burst → 1 POST; flush immediate, no double-fire. **Needs the 2-device confirm.** |
+| 18 | **The same prose is stored four ways** — transcript (by design), sessionLog (by design), narrativeHtml DOM copy (derivable!), chapter summaries (by design). **Remedy:** rebuild the story pane from `transcript`; stop persisting DOM HTML. | M | ✅ Done (v1.146) — `narrativeHtml` no longer shipped (sent as `""` by both `syncToServer` and `campCloudPushSilent`); new `rebuildNarrativeFromTranscript()` (ui.js) repaints the last 20 transcript entries with an "earlier entries omitted" note + live action buttons, used by `initReplaySession` (reload + campaign load) and the server reconcile. Legacy blobs without a transcript still fall back to their stored narrativeHtml. Reload replay is now richer than before (20 entries vs 1 exchange). **Needs the 2-device confirm.** |
 | 19 | **DEFAULT_RULES has grown to 28 rules (~1.6k words) re-sent every turn**, with heavy overlap (4/5/14, 17/18, 9/10, 25/26). Long lists cost tokens and dilute per-rule compliance. **Remedy:** editorial merge to ~18–20 rules; then freeze as the cacheable prefix for TODO #11. | M | **Deferred** — behavior-affecting prompt surgery; wants its own session + playtest-harness run to compare rule-following before/after |
 | 20 | **`buildSysPrompt` stable/volatile interleave blocks TODO #11 (prompt caching).** Tracking link only. | — | ⚠ Partially resolved (v1.144) — the #12 side-effect blocker is gone; the reorder itself remains with TODO #11 |
 <!-- completed -->
@@ -77,14 +77,18 @@ Audit of the full project at v1.143 (2026-07-01). Scope: inefficiencies, drift v
 
 ---
 
-## What remains after v1.144
+## What remains after v1.146
 
-1. **#16 + #18 — sync payload rework** (debounce + transcript-driven replay). One M-sized task; requires a two-device test to verify cross-device replay and portrait reconcile still work.
-2. **#19 — DEFAULT_RULES editorial merge.** Behavior-affecting; do in its own session with a playtest-harness before/after comparison, then feed directly into TODO #11 (prompt caching) as the frozen cacheable prefix.
-3. **#24** rides with the Blueprint Designer build; **#29** stays until old saves age out.
+1. **#19 — DEFAULT_RULES editorial merge.** Behavior-affecting; do in its own session with a playtest-harness before/after comparison, then feed directly into TODO #11 (prompt caching) as the frozen cacheable prefix.
+2. **#24** rides with the Blueprint Designer build; **#29** stays until old saves age out.
 
-## Suggested verification (v1.144)
+## Suggested verification
 
+**v1.146 (sync rework) — the 2-device check:**
+- Play a turn on desktop while connected → open the phone (or vice versa) → story pane should repaint the recent turns from the transcript, action buttons live, turn number and portraits reconciled.
+- Close the tab within a second of a GM response, reopen → the turn should still have synced (beforeunload flush).
+
+**v1.144 batch:**
 - New caster character with a prose author picked in Step 1 → after spell pick, confirm `worldState.proseAuthor` is set (Dev Mode ▸ Prose inspiration shows "· this campaign").
 - Load the Runelords blueprint, travel to a seeded location → no "GM error", location files normally.
 - Action buttons over several turns → no spells the character doesn't have.

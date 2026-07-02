@@ -505,8 +505,8 @@ function campCloudPushSilent(id,cb){
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
   var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
-  var narrativeHtml=isActive?(function(){try{var e=document.getElementById("story-narrative");if(!e)return"";var msgs=e.querySelectorAll(".msg");if(msgs.length<=10)return e.innerHTML;var frag=document.createElement("div"),i;for(i=msgs.length-10;i<msgs.length;i++)frag.appendChild(msgs[i].cloneNode(true));return frag.innerHTML;}catch(x){return "";}})():"";
-  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id,narrativeHtml:narrativeHtml})})
+  // narrativeHtml no longer shipped (audit #18) — replay rebuilds from worldState.transcript.
+  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id,narrativeHtml:""})})
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
     .then(function(){
       var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
@@ -1835,8 +1835,9 @@ function campCloudPull(id){
       if(id===getActiveCampId()){
         var ok=switchToCampaign(id);
         if(ok){
-          _applyLoadedCampaign();
-          if(data.narrativeHtml){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
+          _applyLoadedCampaign(); // replays from the transcript via initReplaySession
+          // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
+          if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
         }
       }
       var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
@@ -2626,7 +2627,10 @@ function wireButtons(){
     area.addEventListener("pointerleave",clear);
     area.addEventListener("contextmenu",function(e){if(e.target&&e.target.closest&&e.target.closest(".qa"))e.preventDefault();});
   })();
-  window.addEventListener("beforeunload",function(){snapshotActiveCamp();});
+  // Flush the debounced server sync on exit/background so the 1.5s window can't drop the last
+  // turn (best-effort — same fetch guarantees as before, minus the window).
+  window.addEventListener("beforeunload",function(){snapshotActiveCamp();if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();});
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();});
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
   document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);});
@@ -2830,7 +2834,31 @@ function initSettings(){
   if(typeof loadLegacyLibrary==="function")loadLegacyLibrary();
   loadFontSize();updateServerUI();
 }
+// Rebuild the story pane from worldState.transcript — the canonical narrative record (audit #18).
+// Replaces the old narrativeHtml DOM-snapshot round-trip: the transcript survives reloads and
+// device hops complete and ordered, where the DOM copy was truncated and UI-polluted. Renders the
+// last `maxEntries` entries (default 20) with an "earlier turns omitted" note when trimmed.
+// Dice blocks and system messages are not in the transcript by design (story prose only).
+// Returns true if it painted anything. clearFirst wipes the pane before painting (server
+// reconcile, where stale content must be replaced); without it, entries append after whatever
+// header lines the caller already wrote (init/campaign-load "Welcome back" messages).
+function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
+  if(!worldState||!worldState.transcript||!worldState.transcript.length)return false;
+  var story=document.getElementById("story-narrative");if(!story)return false;
+  if(clearFirst)story.innerHTML="";
+  var tr=worldState.transcript,n=maxEntries||20,start=Math.max(0,tr.length-n),i,lastNar=null;
+  if(start>0)addMsg("system","… "+start+" earlier entr"+(start===1?"y":"ies")+" omitted — the full story lives in the transcript.");
+  for(i=start;i<tr.length;i++){var e=tr[i];
+    if(e.r==="player")addMsg("player",e.x);
+    else lastNar=addMsg("narrator","<p>"+e.x.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:e.x});
+  }
+  if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
+  story.scrollTop=story.scrollHeight;
+  return true;
+}
 function initReplaySession(){
+  if(rebuildNarrativeFromTranscript())return; // transcript-based replay (v1.146)
+  // Fallbacks for saves without a transcript (pre-v1.62): last sessionLog exchange, else recap.
   var sll=sessionLog.length;
   if(sll>=2){
     var slu=sessionLog[sll-2],sla=sessionLog[sll-1];
