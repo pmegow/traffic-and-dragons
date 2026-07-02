@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Traffic and Dragons — engine sanity tests</title>
+<title>Traffic and Dragons -- engine sanity test</title>
 <!--
   TODO #14 — manual-run sanity page. No framework, no build, no CI. Open in a browser tab.
   The suites live in dev/engine-tests.js and run against the REAL engine files (same order
@@ -14,7 +14,7 @@
 -->
 <style>
   body{background:#111;color:#ccc;font-family:Georgia,serif;max-width:860px;margin:24px auto;padding:0 16px;}
-  h1{color:#b8935a;font-size:20px;} h2{color:#b8935a;font-size:14px;text-transform:uppercase;letter-spacing:.08em;margin:22px 0 6px;}
+  h1{color:#b8935a;font-size:20px;} h2{color:#b8935a;font-size:14px;margin:22px 0 6px;} /* no uppercase transform — section names are camelCase function names and must stay readable */
   #summary{padding:10px 14px;border-radius:8px;font-size:15px;margin:12px 0;border:1px solid #333;}
   #summary.ok{background:#10240f;border-color:#2c5c28;color:#7fbf78;}
   #summary.bad{background:#2a1010;border-color:#6a2020;color:#e07070;}
@@ -24,7 +24,7 @@
 </style>
 </head>
 <body>
-<h1>Traffic and Dragons — engine sanity tests</h1>
+<h1 id="page-title">Traffic and Dragons -- engine sanity test</h1>
 <div id="summary">Running…</div>
 <div id="out"></div>
 
@@ -40,6 +40,8 @@
 
 <script>
 // Browser reporter — renders each suite/assertion as a red/green row.
+var __pageTitle="Traffic and Dragons "+APP_VERSION+" -- engine sanity test"; // live version from globals.js
+document.getElementById("page-title").textContent=__pageTitle;
 var __pass=0,__fail=0,__out=document.getElementById("out");
 runEngineTests({
   section:function(name){var h=document.createElement("h2");h.textContent=name;__out.appendChild(h);},
@@ -56,7 +58,7 @@ runEngineTests({
 var s=document.getElementById("summary");
 s.textContent=__fail===0?("ALL GREEN — "+__pass+" assertions passed"):(__fail+" FAILED / "+__pass+" passed");
 s.className=__fail===0?"ok":"bad";
-document.title=(__fail===0?"✓ ":"✗ ")+document.title;
+document.title=(__fail===0?"✓ ":"✗ ")+__pageTitle;
 </script>
 </body>
 </html>
