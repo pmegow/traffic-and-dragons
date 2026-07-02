@@ -1,10 +1,9 @@
 # Traffic and Dragons — Session Handoff
 
 **Date:** 2026-07-01 (second session)
-**Deployed version:** v1.145 (`APP_VERSION` in `globals.js`).
-**SW cache:** `tnd-v3-20260701d` (`sw.js`).
-**Branch:** `master` — **fully pushed** (`origin/master` == local == `15055b3`). v1.144 + v1.145 +
-audit docs are live (Cloudflare Pages auto-deploys on push).
+**Deployed version:** v1.147 (`APP_VERSION` in `globals.js`).
+**SW cache:** `tnd-v3-20260701f` (`sw.js`).
+**Branch:** `master` — **fully pushed** (`origin/master` == local == `240a362`). Everything live.
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
@@ -22,11 +21,16 @@ audit docs are live (Cloudflare Pages auto-deploys on push).
 | 1.144 | **24 audit findings fixed.** Highlights: prose author no longer dropped by the spell-pick/stat-bump creation paths (audit #1 — THE voice-evaporation bug); TONE subordinated to VOICE when an author is set (#2); `summarize()` reads near-whole GM turns (was 300 chars, #3), keeps the log on failure w/ 3-strikes raw archive (#5), and routes extractor NPC names through `resolveNpcName` (#6); signed `[XP:+N]` parses (#7); blueprint-seeded locations no longer crash `fileLocation` (#8); reroll/retry keep `worldState.transcript` honest (#9); "Update & Retry" writes `providerKeys[activeProvider]` (#10); `SUMMARIZE_AT`=1200 unifies thresholds (#11); `buildSysPrompt` side-effect-free — name window peeks, cursor advances in `sendAction` (#12, prompt-caching prereq); action buttons get a **sheet digest + latest-scene-only** via new `callGM` 5th arg `opts.noHistory` (#4+#17 — closes TODO Known issue #4); `blankMemory()`/`migrateWorldState()` factories; CLAUDE.md doc-drift pass (#30). | all 10 JS files, `sw.js`, `CLAUDE.md`, `TODO.md`, `AUDIT_FABLE.md` |
 | 1.145 | **Known issue #2 fixed** — `showChar()` reset `cs` but never the DOM: old Review step kept `.active`, stale inputs/selects (incl. `char-gender`/`char-age`, which `anc-next` reads from the DOM) leaked into the next character. Now resets step classes, ancestry sub-view, inputs, blueprint banner, `pendingCompanions`. **Review name dup** ("Wood Elf Elf Warrior") fixed per HANDOFF spec — subrace name replaces ancestry name. **TODO #17** Gnome camouflage (all 3 subraces) + **TODO #18** Deep Dwarf superior darkvision 120ft — new characters only. Verified in preview (dirty-wizard simulation + zero console errors). | `ui.js`, `char-creation.js`, `data.js`, `globals.js`, `sw.js`, `TODO.md` |
 
+### Late-session additions (after the v1.145 handoff was first written)
+| Ver | What |
+|---|---|
+| 1.146 | **Sync payload rework (audit #16/#18).** `syncToServer` = trailing 1.5s debounce (one POST per turn, built from latest state); `syncNow()` flush on beforeunload/visibilitychange; `narrativeHtml` no longer shipped — new `rebuildNarrativeFromTranscript()` repaints the last 20 transcript entries on reload/campaign-load/server-reconcile (legacy blobs fall back). **2-device test passed.** |
+| 1.147 | **Cross-device action buttons.** User's 2-device test caught it: text matched, buttons differed. `generateActions` finishes AFTER the turn's debounced POST and only did `saveCore()` (local) — server kept the previous turn's `lastActions`. Now `saveAll()` re-arms the debounce. Pre-existing bug (saveCore never synced), surfaced by the rework. Verified end-to-end with mocked fetch. |
+
 ### Deferred from the audit (reasons matter)
-- **#16/#18 — sync payload rework** (debounce `syncToServer`; stop shipping `narrativeHtml` DOM,
-  rebuild replay from `worldState.transcript`). Biggest bandwidth win left. **Needs a 2-device test.**
 - **#19 — DEFAULT_RULES editorial merge** (28 rules → ~18–20). Behavior-affecting; wants its own session
   with a playtest-harness before/after, then feeds TODO #11 (prompt caching) as the frozen prefix.
+  **This is the natural next session** — it unlocks prompt caching, the biggest cost lever.
 - **#24** `_applyBlueprint` dead `#tone-grid` selector — belongs to the Blueprint Designer build (§5.2).
 
 ---
