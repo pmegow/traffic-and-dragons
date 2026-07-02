@@ -1,9 +1,15 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-01 (second session)
-**Deployed version:** v1.147 (`APP_VERSION` in `globals.js`).
-**SW cache:** `tnd-v3-20260701f` (`sw.js`).
-**Branch:** `master` — **fully pushed** (`origin/master` == local == `240a362`). Everything live.
+**Date:** 2026-07-02
+**Deployed version:** v1.149 (`APP_VERSION` in `globals.js`).
+**SW cache:** `tnd-v3-20260702b` (`sw.js`).
+**Branch:** `master` — **fully pushed** (`origin/master` == local == `145b491`). Everything live.
+
+> **NEW STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
+> runs `dev/run-tests.js` (55 assertions, headless node, ~1s) and BLOCKS on red. Suites live in
+> `dev/engine-tests.js`, shared with the browser view `test.html` (open in a tab for red/green).
+> Add regression tests there when touching api.js/memory.js/game.js. Hook isn't tracked — after
+> a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`. `--no-verify` = emergencies only.
 **Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
@@ -27,10 +33,21 @@
 | 1.146 | **Sync payload rework (audit #16/#18).** `syncToServer` = trailing 1.5s debounce (one POST per turn, built from latest state); `syncNow()` flush on beforeunload/visibilitychange; `narrativeHtml` no longer shipped — new `rebuildNarrativeFromTranscript()` repaints the last 20 transcript entries on reload/campaign-load/server-reconcile (legacy blobs fall back). **2-device test passed.** |
 | 1.147 | **Cross-device action buttons.** User's 2-device test caught it: text matched, buttons differed. `generateActions` finishes AFTER the turn's debounced POST and only did `saveCore()` (local) — server kept the previous turn's `lastActions`. Now `saveAll()` re-arms the debounce. Pre-existing bug (saveCore never synced), surfaced by the rework. Verified end-to-end with mocked fetch. |
 
-### Deferred from the audit (reasons matter)
-- **#19 — DEFAULT_RULES editorial merge** (28 rules → ~18–20). Behavior-affecting; wants its own session
-  with a playtest-harness before/after, then feeds TODO #11 (prompt caching) as the frozen prefix.
-  **This is the natural next session** — it unlocks prompt caching, the biggest cost lever.
+### Third session (2026-07-02) — audit closed + test gate
+| Ver | What |
+|---|---|
+| 1.148 | **DEFAULT_RULES merged 28→20 (audit #19)** — tuned language concatenated, zero coverage loss (26 load-bearing phrases verified). **Validated with a 12-turn live harness run** (gritty+Abercrombie): quest offered ON the opening scene (baseline: never in 54 turns), NPCs registered w/ pronouns (baseline 0/54), zero name forks, summarize cycled 3× on schedule, voice held. Watch items in AUDIT_FABLE #19: offered quest didn't flip active when combat started; prose 120–190 words/turn. |
+| 1.149 | **test.html + commit gate (TODO #14)** — 55 assertions/6 suites against the REAL engine (JSON repair, helpers, resolveNpcName, cleanTxt/parseActions, 22 applyMuts cases incl. v1.144 regressions, migrateWorldState). Enabler: 4 inline model-JSON cleanups consolidated → `stripCodeFences`/`repairModelJson` (api.js); summarize/randomiser gained skeleton-grade repair. Title shows live APP_VERSION; camelCase headers. |
+| — | **TODO additions from the confidence review:** #21 usage/cost telemetry (callGM discards `usage` — no pricing data exists), #22 sanitization/trust boundary (HARD GATE before #15 public sharing — innerHTML XSS + prompt injection), #23 long-run rules corpus check, Known issue #5 (lossy last-writer-wins sync under concurrency), Clear-for-Release row (Paizo/WotC blueprint fixtures = infringement in a paid product). |
+| — | **Permission cleanup:** `.claude/settings.local.json` allowlist 195 junk literals → 63 broad prefix rules. Sessions here run `acceptEdits`, not bypass — the Settings toggle doesn't retrofit existing sessions; per-session mode selector does. |
+
+**AUDIT_FABLE is CLOSED:** 27/30 done+validated; #24 rides Blueprint Designer, #29 ages out, #20 tracks #11.
+
+### Next session, in order of value
+1. **TODO #11 — prompt caching.** FULLY unblocked: rules frozen (v1.148), buildSysPrompt side-effect-free (v1.144). Work = stable/volatile reorder + two-block `system` array in `PROVIDERS.anthropic.buildBody`. Do **#21 (usage telemetry)** first/with it so the caching win is measured, not estimated.
+2. **Blueprint Designer** (BLUEPRINT_EDITOR.md, decision-locked) — the next real feature.
+
+### Older deferrals
 - **#24** `_applyBlueprint` dead `#tone-grid` selector — belongs to the Blueprint Designer build (§5.2).
 
 ---
