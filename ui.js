@@ -216,7 +216,23 @@ function showGame(){
 function showChar(){
   document.getElementById("char-screen").style.display="block";
   document.getElementById("game-screen").style.display="none";
-  cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,step:1};rvGoldRolled=false;pendingImportChar=null;
+  cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,portraitOffset:null,step:1};rvGoldRolled=false;pendingImportChar=null;
+  // Known issue #2: resetting cs alone left the OLD wizard in the DOM — the previous campaign's
+  // Review step kept .active (so New Game landed on it), and stale input/select values leaked
+  // into the next character (anc-next reads char-gender/char-age straight from the DOM).
+  var _steps=document.querySelectorAll("#char-screen .step"),_si2;
+  for(_si2=0;_si2<_steps.length;_si2++)_steps[_si2].classList.remove("active");
+  var _s1=document.getElementById("step1");if(_s1)_s1.classList.add("active");
+  var _gw=document.getElementById("anc-grid-wrap"),_det=document.getElementById("anc-detail"),_fw=document.getElementById("flex-wrap");
+  if(_gw)_gw.style.display="block";if(_det)_det.style.display="none";if(_fw)_fw.style.display="none";
+  ["char-name","char-appear","char-backstory","char-deity","rv-camp-name"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  var _ge=document.getElementById("char-gender");if(_ge)_ge.value="M";
+  var _ae=document.getElementById("char-age");if(_ae)_ae.value="early twenties";
+  var _lv=document.getElementById("rv-start-level");if(_lv)_lv.value="1";
+  var _xe=document.getElementById("rv-start-xp");if(_xe)_xe.value="0";
+  var _ftp=document.getElementById("ft-portrait-preview");if(_ftp)_ftp.innerHTML="<span style='font-size:11px;color:var(--t2);'>No portrait</span>";
+  pendingBlueprint=null;var _bb=document.getElementById("blueprint-banner");if(_bb)_bb.style.display="none";
+  pendingCompanions=[];
   buildDots();buildDnaStep();
 }
 function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";}

@@ -194,7 +194,7 @@ function buildReview(){
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var genderLbl=cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male";
   var avHtml=cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>';
-  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm||'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm?subnm+" ":"")+(anc?anc.nm:"?")+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
+  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm||'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm||(anc?anc.nm:"?"))+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
     +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'
     +(cs.appear?'<div class="desc-pre">"'+cs.appear+'"</div>':"")
