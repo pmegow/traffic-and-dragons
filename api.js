@@ -477,9 +477,34 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(muts.length)addMsg("system",muts.join(" | "));
   syncUI();saveAll();
 }
+// ── Usage/cost telemetry (TODO #21) ───────────────────────────────────────────
+// Estimated $ for one response's usage, priced from MODEL_PRICING (globals.js) by
+// model-ID prefix. Unknown models (custom overrides, non-Anthropic) return 0.
+function usageCost(u,model){
+  if(!model)return 0;
+  var keys=Object.keys(MODEL_PRICING),p=null,i;
+  for(i=0;i<keys.length;i++){if(model.indexOf(keys[i])===0){p=MODEL_PRICING[keys[i]];break;}}
+  if(!p)return 0;
+  return ((u.in||0)*p.in+(u.out||0)*p.out+(u.cacheRead||0)*p.cacheRead+(u.cacheWrite||0)*p.cacheWrite)/1000000;
+}
+// Accumulate one response's usage onto worldState.usage (total + per-kind bucket).
+// Not persisted here — every calling flow saves shortly after (saveAll/saveCore).
+function recordUsage(u,kind,model){
+  if(!worldState)return;
+  if(!worldState.usage)worldState.usage=blankUsage();
+  var t=worldState.usage;
+  t.in+=u.in||0;t.out+=u.out||0;t.cacheRead+=u.cacheRead||0;t.cacheWrite+=u.cacheWrite||0;t.calls++;
+  t.costUSD+=usageCost(u,model);
+  if(!t.byKind[kind])t.byKind[kind]={in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0};
+  var k=t.byKind[kind];
+  k.in+=u.in||0;k.out+=u.out||0;k.cacheRead+=u.cacheRead||0;k.cacheWrite+=u.cacheWrite||0;k.calls++;
+  k.costUSD+=usageCost(u,model);
+}
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
+  // opts.kind: telemetry bucket for recordUsage; defaults to "turn" for gameplay calls
+  // (no sysOverride) and "other" for utility calls.
   var msgs=(opts&&opts.noHistory)?[{role:"user",content:msg}]:sessionLog.concat([{role:"user",content:msg}]);
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var key=providerKeys[activeProvider]||apiKey||"";
@@ -493,6 +518,8 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw new Error("HTTP "+res.status+(_em?": "+_em:""));}
+  // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){}}
   return prov.parseResponse(data);
 }
 

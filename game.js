@@ -55,7 +55,7 @@ async function generateActions(msgEl){
     if(c.abilities){for(si=0;si<c.abilities.length;si++)ab.push(c.abilities[si].nm);}
     var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above.";
     var lastGm="";for(si=sessionLog.length-1;si>=0;si--){if(sessionLog[si].role==="assistant"){lastGm=cleanTxt(sessionLog[si].content);break;}}
-    var resp=await callGM("LATEST SCENE:\n"+lastGm.slice(0,2400)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+" Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true});
+    var resp=await callGM("LATEST SCENE:\n"+lastGm.slice(0,2400)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+" Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=JSON.parse(stripCodeFences(resp)); // array payload — fences only, no object repair
     if(!acts||!acts.length)return;
@@ -385,7 +385,7 @@ async function generateSkeleton(){
     +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var skelModel=(allowModelUpgrade&&prov.upgradeModel)?prov.upgradeModel:null;
-  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,skelModel);
+  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,skelModel,{kind:"skeleton"});
   var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
   if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
   var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");var isParallel=!!skel.acts[ai].parallel;for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&(isParallel||aj===0))?"active":"pending";}}
@@ -557,7 +557,7 @@ async function syncCharSheet(){
     +"Only emit tags for things that have actually changed or are genuinely missing. "
     +"If nothing needs updating, reply with a single period only.";
   try{
-    var resp=await callGM(auditMsg,null,500);
+    var resp=await callGM(auditMsg,null,500,null,{kind:"sync"});
     applyMuts(resp);
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");

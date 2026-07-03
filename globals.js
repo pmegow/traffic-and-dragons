@@ -9,6 +9,18 @@ var SUMMARIZE_AT=1200; // session-token threshold: summarize() gate, sendAction 
 // changes without emitting them, silently desyncing the sheet. callGM() appends this for
 // gameplay turns only (not summarize). Per-provider tuning the abstraction exists for.
 var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\n- An NPC joins / leaves the party -> [PARTY_MEMBER:name|true] / [PARTY_MEMBER:name|false]\n- Campaign arc completed -> [ARC_COMPLETE:arc title]; act's turning point reached -> [ACT_COMPLETE:act title]\n- Do NOT end your response with suggested actions, a 'You could...' line, or an [ACTIONS:] tag — action suggestions are generated separately by the engine.\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n";
+// Shared usage extractor for OpenAI-compatible providers (openai/grok/ollama).
+// NOTE: OpenAI's prompt_tokens INCLUDES cached tokens; Anthropic's input_tokens EXCLUDES them.
+// We store each provider's raw semantics — the cost math only prices Anthropic models anyway.
+var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;return {in:u.prompt_tokens||0,out:u.completion_tokens||0,cacheRead:(u.prompt_tokens_details&&u.prompt_tokens_details.cached_tokens)||0,cacheWrite:0};};
+// $/MTok — used by usageCost() (api.js) for the Dev Mode running-cost estimate (TODO #21).
+// Anthropic rates verified 2026-07-02; cache write = 1.25x input (5min TTL), cache read = 0.1x input.
+// Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
+var MODEL_PRICING={
+  "claude-opus-4-8":  {in:5.00, out:25.00, cacheWrite:6.25, cacheRead:0.50},
+  "claude-sonnet-4-6":{in:3.00, out:15.00, cacheWrite:3.75, cacheRead:0.30},
+  "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10}
+};
 var PROVIDERS={
   anthropic:{
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
@@ -18,7 +30,9 @@ var PROVIDERS={
     models:["claude-opus-4-8","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,system:sys,messages:msgs};},
-    parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;}
+    parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
+    // Anthropic: input_tokens EXCLUDES cached tokens; cache fields are 0 until prompt caching (#11) lands
+    parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};}
   },
   openai:{
     id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
@@ -31,6 +45,7 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
   },
   grok:{
@@ -43,6 +58,7 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
   },
   gemini:{
@@ -57,6 +73,7 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sys}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
+    parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:u.candidatesTokenCount||0,cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};},
     reinforce:TAG_REINFORCE,
     tokScale:1000 // ceiling not target; Gemini's default is too low, so set it sky-high and let the prose voice control length
   },
@@ -72,11 +89,12 @@ var PROVIDERS={
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+(key||"ollama")};},
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
+    parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
   }
 };
 var carMode=false;
-var APP_VERSION="v1.149";
+var APP_VERSION="v1.150";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

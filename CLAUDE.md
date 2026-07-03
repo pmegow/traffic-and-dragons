@@ -160,7 +160,7 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
 
 ### 5. API usage
 
-**Provider-agnostic since v1.30.** `callGM()` routes through the active provider in the `PROVIDERS` table (`globals.js`). Each provider is a self-contained object — `{id, label, keyHint, endpoint, defaultModel, models[], headers(key), buildBody(msgs,sys,maxTok,model), parseResponse(json)}` — and `callGM()` picks `PROVIDERS[activeProvider]` and calls its methods. **No `if(provider===...)` branches anywhere else.** This same shape is the intended server-side routing table under the subscription model.
+**Provider-agnostic since v1.30.** `callGM()` routes through the active provider in the `PROVIDERS` table (`globals.js`). Each provider is a self-contained object — `{id, label, keyHint, endpoint, defaultModel, models[], headers(key), buildBody(msgs,sys,maxTok,model), parseResponse(json), parseUsage(json)}` — and `callGM()` picks `PROVIDERS[activeProvider]` and calls its methods. **No `if(provider===...)` branches anywhere else.** This same shape is the intended server-side routing table under the subscription model.
 
 - **anthropic** — `https://api.anthropic.com/v1/messages`; `x-api-key` + `anthropic-dangerous-direct-browser-access: true`; system as a top-level `system` field; response at `content[0].text`. Default model `claude-sonnet-4-6` — **verify this string is current before starting work each session.**
 - **openai** — `https://api.openai.com/v1/chat/completions`; `Authorization: Bearer`; system carried as a leading `{role:"system"}` message; response at `choices[0].message.content`. Default model `gpt-4o`. (CORS: OpenAI allows direct browser calls, no special header.)
@@ -174,9 +174,11 @@ Shared `TAG_REINFORCE` constant (globals.js) is assigned to every non-Claude pro
 
 **Per-provider prompt reinforcement:** a provider may carry an optional `reinforce` string. `callGM()` appends it to the system prompt for gameplay turns only (`if(!sysOverride&&prov.reinforce)`), never to `summarize()`. **Finding from the v1.32 GPT bring-up:** gpt-4o parses responses and produces valid `summarize()` JSON fine, but treats the state tags as optional — it narrates "you pay 5 gold" without emitting `[GOLD:-5]`, silently desyncing the sheet. `openai.reinforce` is a forceful MANDATORY-TAG-DISCIPLINE block with exact formats + the gold-for-a-room example. Claude needs no reinforcement (its `reinforce` is unset). This is the per-provider tuning the abstraction exists for. Additionally, the `[GOLD:]` and `[HP:]` parsers were loosened to `/\[(GOLD|HP):\s*([+-]?\d+)[^\]]*\]/` shape so a model writing `[GOLD:-5 gp]` (which the prompt's own format hint invites) still parses.
 
-`callGM(msg, sysOverride, maxTok, modelOverride, opts)` is the single API entry point. `opts.noHistory` sends only the given message instead of the full `sessionLog` (used by the action-suggestion call, v1.144).
+`callGM(msg, sysOverride, maxTok, modelOverride, opts)` is the single API entry point. `opts.noHistory` sends only the given message instead of the full `sessionLog` (used by the action-suggestion call, v1.144). `opts.kind` tags the call for usage telemetry (defaults: `"turn"` when no sysOverride, `"other"` for utility calls).
 - `maxTok` is optional; defaults to `1000`. `summarize()` passes `2000`.
 - Appends `msg` to `sessionLog` for the request body but does not push to `sessionLog` itself.
+
+**Usage/cost telemetry (TODO #21, v1.150):** every provider carries `parseUsage(json)` returning `{in, out, cacheRead, cacheWrite}` (Anthropic: `usage.*` incl. both cache counters — note its `input_tokens` EXCLUDES cached tokens; openai/grok/ollama share `OPENAI_USAGE`, whose `prompt_tokens` INCLUDES cached; Gemini reads `usageMetadata`). `callGM` passes the result to `recordUsage(u, kind, model)` (api.js), which accumulates onto `worldState.usage` — totals + per-kind buckets (`turn`/`actions`/`summarize`/`skeleton`/`sync`/`other`) + `costUSD` priced at record time from `MODEL_PRICING` (globals.js, $/MTok; unknown/non-Anthropic models count tokens but contribute $0). `blankUsage()` lives in state.js; `migrateWorldState` adds the accumulator to old saves. UI: **Dev Mode ▸ 📊 Usage & cost…** (`showUsageModal` in ui.js, all three File menus) — per-kind table with input-per-call averages, estimated cost, and a Reset button for starting a fresh measurement window. The `turn` bucket's In/call average is the before/after metric for prompt caching (#11).
 
 Three callers:
 - `sendAction()` — normal gameplay turns (1000 tokens)
@@ -356,7 +358,7 @@ Implemented as a **tab** (not a checkbox). `activeChatTab` global is `"narrative
 
 Present on both `#game-screen` (in `#topbar`) and `#char-screen` (top-right above step dots).
 
-**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, Render Options…, ✍ Prose inspiration…, 18+ Adult content, Connect/Disconnect server) | New Game
+**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, ✍ Prose inspiration…, 📊 Usage & cost…, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
 
 **Char screen items:** Same full list, but Sync state, World state, Render prompt, Save Game, Export Character, and New Game are greyed out (`opacity:0.4; pointer-events:none`) — no active game yet.
 

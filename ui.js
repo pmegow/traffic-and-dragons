@@ -2533,7 +2533,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
@@ -2748,6 +2748,46 @@ function showProviderModal(){
     if(!apiKey){msg.textContent="No key set for "+PROVIDERS[activeProvider].label+".";msg.style.color="var(--red)";return;}
     msg.textContent="Using "+PROVIDERS[activeProvider].label+" · "+modelSel.value;msg.style.color="var(--grn)";
     setTimeout(function(){var m=document.getElementById("provider-modal");if(m)m.remove();},900);
+  });
+}
+// ── Usage & cost telemetry (TODO #21) ─────────────────────────────────────────
+// Read-only view of worldState.usage (accumulated per campaign by recordUsage in
+// api.js). "turn" is the bucket that prompt caching (#11) will move — compare its
+// avg input/call before and after. Cost is an estimate priced from MODEL_PRICING.
+function showUsageModal(){
+  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  var ex=document.getElementById("usage-modal");if(ex)ex.remove();
+  var u=(worldState&&worldState.usage)||blankUsage();
+  function n(v){return (v||0).toLocaleString();}
+  function row(label,b,bold){
+    var avg=b.calls?Math.round(b.in/b.calls):0;
+    var st="padding:5px 8px;font-size:12px;font-family:var(--font-mono);text-align:right;color:"+(bold?"var(--t0)":"var(--t1)")+";"+(bold?"border-top:1px solid var(--brd2);font-weight:bold;":"");
+    return "<tr><td style='"+st+"text-align:left;font-family:var(--font);'>"+label+"</td>"
+      +"<td style='"+st+"'>"+n(b.calls)+"</td><td style='"+st+"'>"+n(b.in)+"</td><td style='"+st+"'>"+n(avg)+"</td>"
+      +"<td style='"+st+"'>"+n(b.cacheRead)+"</td><td style='"+st+"'>"+n(b.cacheWrite)+"</td><td style='"+st+"'>"+n(b.out)+"</td>"
+      +"<td style='"+st+"'>$"+(b.costUSD||0).toFixed(4)+"</td></tr>";
+  }
+  var order=["turn","actions","summarize","skeleton","sync","other"],rows="",i;
+  var kinds=order.filter(function(k){return u.byKind[k];}).concat(Object.keys(u.byKind).filter(function(k){return order.indexOf(k)<0;}));
+  for(i=0;i<kinds.length;i++)rows+=row(kinds[i],u.byKind[kinds[i]]);
+  if(!kinds.length)rows="<tr><td colspan='8' style='padding:14px;text-align:center;font-size:12px;color:var(--t2);font-style:italic;'>No API calls recorded yet — play a turn.</td></tr>";
+  rows+=row("total",u,true);
+  var hd="padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);text-align:right;";
+  var modal=document.createElement("div");modal.id="usage-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>📊 Usage &amp; Cost</span><button id='us-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<table style='width:100%;border-collapse:collapse;'>"
+    +"<tr><th style='"+hd+"text-align:left;'>Kind</th><th style='"+hd+"'>Calls</th><th style='"+hd+"'>Input</th><th style='"+hd+"'>In/call</th><th style='"+hd+"'>Cache rd</th><th style='"+hd+"'>Cache wr</th><th style='"+hd+"'>Output</th><th style='"+hd+"'>~Cost</th></tr>"
+    +rows+"</table>"
+    +"<p style='font-size:11px;color:var(--t2);margin:12px 0 0;'>Token counts are exact (API-reported). Cost is an estimate for known Anthropic models; other providers count tokens but contribute $0. Cache columns stay 0 until prompt caching ships."+(u.since?" Collecting since "+new Date(u.since).toLocaleDateString()+".":"")+"</p>"
+    +"<button id='us-reset' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Reset counters (start a fresh measurement window)</button>"
+    +"</div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  document.getElementById("us-x").addEventListener("click",function(){modal.remove();});
+  document.getElementById("us-reset").addEventListener("click",function(){
+    if(worldState){worldState.usage=blankUsage();saveCore();}
+    modal.remove();showUsageModal();
   });
 }
 // ── Prose inspiration (TODO #23) ───────────────────────────────────────────────

@@ -126,4 +126,49 @@ function runEngineTests(R){
   });
   t("blankMemory carries the full shape (audit #22)",function(){var m=blankMemory();var need=["npcs","locations","quests","lore","keyDecisions","futureEvents","chapters","usedNames","nameIdx","map","npcGraph"];for(var i=0;i<need.length;i++){if(!(need[i] in m))return "missing "+need[i];}return m.npcGraph.factions?true:"npcGraph incomplete";});
   t("getNameSuggestions peek mode never mutates the cursor",function(){memory=blankMemory();var a=getNameSuggestions(5,true).join("|"),b=getNameSuggestions(5,true).join("|");return a===b&&memory.nameIdx===0?true:"cursor moved: "+memory.nameIdx;});
+  t("migrateWorldState adds a usage accumulator to old saves (TODO #21)",function(){memory=blankMemory();worldState={character:{name:"Old",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"}};migrateWorldState();var u=worldState.usage;return u&&u.calls===0&&u.byKind&&typeof u.costUSD==="number"?true:"usage: "+JSON.stringify(u);});
+
+  // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
+  section("usage telemetry");
+  t("anthropic parseUsage maps all four token fields",function(){
+    var u=PROVIDERS.anthropic.parseUsage({usage:{input_tokens:1200,output_tokens:340,cache_read_input_tokens:5000,cache_creation_input_tokens:800}});
+    return u.in===1200&&u.out===340&&u.cacheRead===5000&&u.cacheWrite===800?true:JSON.stringify(u);
+  });
+  t("anthropic parseUsage: missing usage → null; missing cache fields → 0",function(){
+    if(PROVIDERS.anthropic.parseUsage({content:[]})!==null)return "no-usage should be null";
+    var u=PROVIDERS.anthropic.parseUsage({usage:{input_tokens:10,output_tokens:5}});
+    return u.cacheRead===0&&u.cacheWrite===0?true:JSON.stringify(u);
+  });
+  t("openai-compatible parseUsage maps prompt/completion + cached_tokens",function(){
+    var u=PROVIDERS.openai.parseUsage({usage:{prompt_tokens:900,completion_tokens:120,prompt_tokens_details:{cached_tokens:600}}});
+    return u.in===900&&u.out===120&&u.cacheRead===600&&u.cacheWrite===0?true:JSON.stringify(u);
+  });
+  t("gemini parseUsage maps usageMetadata",function(){
+    var u=PROVIDERS.gemini.parseUsage({usageMetadata:{promptTokenCount:700,candidatesTokenCount:200,cachedContentTokenCount:100}});
+    return u.in===700&&u.out===200&&u.cacheRead===100?true:JSON.stringify(u);
+  });
+  t("recordUsage accumulates totals, calls, and per-kind buckets",function(){
+    makeWorld();
+    recordUsage({in:1000,out:200,cacheRead:0,cacheWrite:0},"turn","claude-sonnet-4-6");
+    recordUsage({in:500,out:100,cacheRead:0,cacheWrite:0},"turn","claude-sonnet-4-6");
+    recordUsage({in:300,out:50,cacheRead:0,cacheWrite:0},"actions","claude-sonnet-4-6");
+    var t2=worldState.usage;
+    if(t2.in!==1800||t2.out!==350||t2.calls!==3)return "totals: "+JSON.stringify(t2);
+    if(!t2.byKind.turn||t2.byKind.turn.calls!==2||t2.byKind.turn.in!==1500)return "turn bucket: "+JSON.stringify(t2.byKind.turn);
+    return t2.byKind.actions&&t2.byKind.actions.in===300?true:"actions bucket missing";
+  });
+  t("usageCost prices Sonnet 4.6 correctly incl. cache rates",function(){
+    // 1M in @$3 + 1M out @$15 + 1M cacheRead @$0.30 + 1M cacheWrite @$3.75 = $22.05
+    var c=usageCost({in:1000000,out:1000000,cacheRead:1000000,cacheWrite:1000000},"claude-sonnet-4-6");
+    return Math.abs(c-22.05)<1e-9?true:"got $"+c;
+  });
+  t("usageCost prefix-matches the dated Haiku ID; unknown model → $0",function(){
+    if(usageCost({in:1000000,out:0,cacheRead:0,cacheWrite:0},"claude-haiku-4-5-20251001")!==1)return "haiku prefix match failed";
+    return usageCost({in:1000000,out:0,cacheRead:0,cacheWrite:0},"gpt-4o")===0?true:"unknown model priced";
+  });
+  t("recordUsage survives a null worldState (pre-game utility calls)",function(){
+    worldState=null;
+    recordUsage({in:100,out:10,cacheRead:0,cacheWrite:0},"other","claude-sonnet-4-6"); // must not throw
+    makeWorld();return true;
+  });
 }
