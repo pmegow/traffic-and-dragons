@@ -340,7 +340,7 @@ function renderPage() {
     + "<button class='tbtn' onclick='pickFile()'>&#128194; Select TODO&hellip;</button>"
     + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
     + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
-    + "<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
+    + "<button class='tbtn' onclick='exportMd()'>Export " + inline(_fileName || "TODO.md") + "</button>"
     + "<button class='tbtn' onclick='location.reload()'>Reset</button>"
     + "</div></div>";
 
