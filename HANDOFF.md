@@ -10,7 +10,9 @@
 > `dev/engine-tests.js`, shared with the browser view `test.html` (open in a tab for red/green).
 > Add regression tests there when touching api.js/memory.js/game.js. Hook isn't tracked — after
 > a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`. `--no-verify` = emergencies only.
-**Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`.
+**Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`. **GitHub Pages DISABLED 2026-07-02** —
+it had been quietly serving a shadow copy at pmegow.github.io/traffic-and-dragons since before the
+Cloudflare move and emailing transient deploy failures. Cloudflare is the ONLY deployment; don't re-enable.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
 > This session: a **full-project audit** (30 findings → `AUDIT_FABLE.md`, opens in
