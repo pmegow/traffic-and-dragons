@@ -148,6 +148,7 @@ var _sections = [];
 var _tasks = [];
 var _dragSrc = null;
 var _fileHandle = null;
+var _fileName = ""; // name of the file being viewed (File System Access API exposes no directory path)
 var _editIdx = -1;
 var _statusColW = 240;
 var _hasEffort = false;
@@ -208,7 +209,10 @@ window.addEventListener("DOMContentLoaded", function() {
 
 // ── File loading ──────────────────────────────────────────────────────────────
 
-document.getElementById("load-btn").addEventListener("click", function() {
+// Shared picker — used by the landing button AND the toolbar "Select TODO" button, so the
+// viewer can switch files after autoload has locked onto the previously opened one
+// (the IndexedDB handle made an AUDIT file sticky across sessions).
+function pickFile() {
   if (window.showOpenFilePicker) {
     window.showOpenFilePicker({types:[{description:"Markdown",accept:{"text/plain":[".md",".txt"]}}]})
       .then(function(handles) {
@@ -224,7 +228,8 @@ document.getElementById("load-btn").addEventListener("click", function() {
     inp.onchange = function(e) { readFile(e.target.files[0]); };
     inp.click();
   }
-});
+}
+document.getElementById("load-btn").addEventListener("click", pickFile);
 
 var dz = document.getElementById("drop-zone");
 dz.addEventListener("dragover", function(e) { e.preventDefault(); dz.classList.add("over"); });
@@ -236,6 +241,7 @@ dz.addEventListener("drop", function(e) {
 });
 
 function readFile(file) {
+  _fileName = file.name || "";
   var r = new FileReader();
   r.onload = function(e) { parse(e.target.result); renderPage(); };
   r.readAsText(file);
@@ -323,11 +329,15 @@ function renderPage() {
   var active = _tasks.filter(function(t) { return !t.completed; });
   var completed = _tasks.filter(function(t) { return t.completed; });
   var html = "<div class='toolbar'>"
+    + "<div>"
+    + (_fileName ? "<div style='font-size:12px;color:var(--acc);margin-bottom:2px;'>&#128196; " + inline(_fileName) + "</div>" : "")
     + "<div style='font-size:12px;color:var(--t2);'>" + active.length + " tasks"
     + (completed.length ? " &middot; " + completed.length + " completed" : "")
     + " &mdash; " + active.filter(isDone).length + " ready to archive</div>"
+    + "</div>"
     + "<div class='toolbar-right'>"
     + "<button class='tbtn accent' onclick='showAddTask()'>&#65291; Add task</button>"
+    + "<button class='tbtn' onclick='pickFile()'>&#128194; Select TODO&hellip;</button>"
     + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
     + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
     + "<button class='tbtn' onclick='exportMd()'>Export TODO.md</button>"
@@ -750,7 +760,7 @@ function exportMd() {
     _fileHandle.createWritable().then(function(writable) {
       return writable.write(out).then(function() { return writable.close(); });
     }).then(function() {
-      showToast("Saved to TODO.md");
+      showToast("Saved to " + (_fileName || "TODO.md"));
     }).catch(function(e) {
       _downloadMd(out);
     });
@@ -762,7 +772,7 @@ function _downloadMd(out) {
   var blob = new Blob([out], {type:"text/plain"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  a.href = url; a.download = "TODO.md"; a.click();
+  a.href = url; a.download = _fileName || "TODO.md"; a.click();
   URL.revokeObjectURL(url);
 }
 function showToast(msg) {
