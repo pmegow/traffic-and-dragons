@@ -149,6 +149,7 @@ var _tasks = [];
 var _dragSrc = null;
 var _fileHandle = null;
 var _fileName = ""; // name of the file being viewed (File System Access API exposes no directory path)
+var _addSec = -1;   // tasks-section idx the add bar targets; set by the per-section add buttons
 var _editIdx = -1;
 var _statusColW = 240;
 var _hasEffort = false;
@@ -336,7 +337,6 @@ function renderPage() {
     + " &mdash; " + active.filter(isDone).length + " ready to archive</div>"
     + "</div>"
     + "<div class='toolbar-right'>"
-    + "<button class='tbtn accent' onclick='showAddTask()'>&#65291; Add task</button>"
     + "<button class='tbtn' onclick='pickFile()'>&#128194; Select TODO&hellip;</button>"
     + "<button class='tbtn' onclick='refresh()'>&#8635; Refresh</button>"
     + "<button class='tbtn' onclick='renumber()'>Renumber</button>"
@@ -346,11 +346,16 @@ function renderPage() {
 
   // Flatten sections into ordered pieces, splitting text sections at their ## headings so each
   // top-level section (heading + all its content up to the next ##) can be wrapped as collapsible.
+  // lastHeading tracks the ## group each task table lands in, so its add button can be
+  // labeled for the section ("Add issue" under Known issues, "Add task" elsewhere).
   var pieces = [];
+  var lastHeading = "";
   for (var s = 0; s < _sections.length; s++) {
     var sec = _sections[s];
     if (sec.type === "tasks") {
-      pieces.push({ type: "html", html: renderTaskTable(sec) + renderCompletedSection(sec) });
+      var addLbl = /issue/i.test(lastHeading) ? "Add issue" : "Add task";
+      var addBtn = "<div style='margin:-6px 0 14px;'><button class='tbtn accent' onclick='showAddTask(" + sec.idx + ",\"" + addLbl + "\")'>&#65291; " + addLbl + "</button></div>";
+      pieces.push({ type: "html", html: renderTaskTable(sec) + addBtn + renderCompletedSection(sec) });
     } else {
       var lines = sec.content.split("\n");
       var buf = [];
@@ -359,6 +364,7 @@ function renderPage() {
         if (hm) {
           if (buf.length) { pieces.push({ type: "html", html: parseMarkdown(buf.join("\n")) }); buf = []; }
           pieces.push({ type: "heading", title: hm[1] });
+          lastHeading = hm[1];
         } else {
           buf.push(lines[li]);
         }
@@ -612,12 +618,13 @@ function wireColResize(handle) {
 
 // ── Add task ──────────────────────────────────────────────────────────────────
 
-function showAddTask() {
+function showAddTask(secIdx, label) {
+  _addSec = (typeof secIdx === "number") ? secIdx : -1;
   var bar = document.getElementById("add-task-bar");
   if (bar) {
     bar.style.display = "flex";
     var inp = document.getElementById("add-task-inp");
-    if (inp) { inp.value = ""; inp.focus(); }
+    if (inp) { inp.value = ""; inp.placeholder = "New " + (/issue/i.test(label || "") ? "issue" : "task") + " description…"; inp.focus(); }
   }
 }
 function hideAddTask() {
@@ -629,11 +636,14 @@ function doAddTask() {
   if (!inp) return;
   var task = inp.value.trim();
   if (!task) return;
-  var firstSec = 0, s;
-  for (s = 0; s < _sections.length; s++) { if (_sections[s].type === "tasks") { firstSec = _sections[s].idx; break; } }
+  var target = _addSec, s;
+  if (target < 0) { // fallback: first tasks section (pre-section-button behavior)
+    for (s = 0; s < _sections.length; s++) { if (_sections[s].type === "tasks") { target = _sections[s].idx; break; } }
+    if (target < 0) target = 0;
+  }
   var n = 0, k;
-  for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === firstSec && !_tasks[k].completed) n++;
-  _tasks.push({num: String(n + 1), task: task, effort: "", status: "", sec: firstSec, completed: false});
+  for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === target && !_tasks[k].completed) n++;
+  _tasks.push({num: String(n + 1), task: task, effort: "", status: "", sec: target, completed: false});
   inp.value = "";
   renderPage();
 }
