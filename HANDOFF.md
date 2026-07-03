@@ -1,23 +1,40 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-02
-**Deployed version:** v1.149 (`APP_VERSION` in `globals.js`).
-**SW cache:** `tnd-v3-20260702b` (`sw.js`).
-**Branch:** `master` — **fully pushed** (`origin/master` == local == `145b491`). Everything live.
+**Date:** 2026-07-03
+**Deployed version:** v1.152 (`APP_VERSION` in `globals.js`) — **live on Cloudflare Pages, verified.**
+**SW cache:** `tnd-v3-20260703b` (`sw.js`).
+**Branch:** `master` — **pushed through `d6e01fa`** (`origin/master` == local HEAD). All game code live.
+**Server:** healthy on Fly (`traffic-and-dragons-server.fly.dev`), restored from snapshot after a host death — see below.
 
-> **NEW STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
-> runs `dev/run-tests.js` (55 assertions, headless node, ~1s) and BLOCKS on red. Suites live in
-> `dev/engine-tests.js`, shared with the browser view `test.html` (open in a tab for red/green).
-> Add regression tests there when touching api.js/memory.js/game.js. Hook isn't tracked — after
-> a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`. `--no-verify` = emergencies only.
-**Host:** **Cloudflare Pages** — `traffic-and-dragons.pages.dev`. **GitHub Pages DISABLED 2026-07-02** —
-it had been quietly serving a shadow copy at pmegow.github.io/traffic-and-dragons since before the
-Cloudflare move and emailing transient deploy failures. Cloudflare is the ONLY deployment; don't re-enable.
+> **STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
+> runs `dev/run-tests.js` (**now 72 assertions**, headless node, ~1s) and BLOCKS on red. Suites live
+> in `dev/engine-tests.js`, shared with the browser view `test.html`. Add regression tests there when
+> touching api.js/memory.js/game.js/**storage-adapter.js**. Hook isn't tracked — after a fresh clone:
+> `cp dev/pre-commit .git/hooks/pre-commit`. `--no-verify` = emergencies only.
+> **Host:** Cloudflare Pages ONLY (`traffic-and-dragons.pages.dev`). GitHub Pages stays disabled.
 
 > Read `CLAUDE.md` first for architecture. This file is just "where we left off."
-> This session: a **full-project audit** (30 findings → `AUDIT_FABLE.md`, opens in
-> `todo-viewer.html`), a 24-finding fix batch (v1.144), and a small bug batch (v1.145).
+> This session: **usage telemetry (v1.150)**, **prompt caching (v1.151, measured −29% turn cost)**,
+> a **dead-Fly-host incident + full recovery** (zero turns lost), **sync hardening (v1.152)**, a
+> **server health monitor**, the **audit playbook**, and todo-viewer polish.
 > The next real feature is still the **Blueprint Designer** (`BLUEPRINT_EDITOR.md`, decision-locked).
+
+---
+
+## ⚠️ Uncommitted working-tree state (user edits — DO NOT blindly commit/revert)
+
+At handoff the working tree has changes the **user** made outside the commit stream:
+- **`TODO.md` modified** — user added 3 new backlog rows via the viewer: *beta-tester setup wizard*,
+  *add Anne Rice to prose inspirations*, *discuss a RAG-based memory system*. **Side effect to know:**
+  the viewer's export clobbered **#25's status back to "Pending"** even though #25 is DONE + deployed +
+  monitor-live (classic todo-viewer stale-load-then-export overwrite). If you re-save TODO from the
+  viewer, re-mark #25 Done, or the truth lives here and in commit `d6e01fa`.
+- **`AUDIT_FABLE.md` moved** → `audits/AUDIT_FABLE_07_01_26.md` (user archived it; the audit is closed).
+- **`AUDIT_RESULTS.html` deleted** (pre-existing stale artifact).
+- **`Rise_of_the_Runelords__Ammut__Ammut_t54.tnd`** still untracked in repo root — **personal save,
+  do NOT commit.** It's the harness fixture for the caching A/B; leave it.
+
+None of this is broken — just don't `git add -A` and sweep it into a code commit.
 
 ---
 
@@ -25,81 +42,109 @@ Cloudflare move and emailing transient deploy failures. Cloudflare is the ONLY d
 
 | Ver | What | Files |
 |---|---|---|
-| — | **AUDIT_FABLE.md** — full audit: inefficiencies, drift (prose-voice + story/state), kruft. 30 findings, TODO.md table format. Statuses updated in place as fixes landed; user moved done rows into `<!-- completed -->` blocks via the viewer. | `AUDIT_FABLE.md` |
-| 1.144 | **24 audit findings fixed.** Highlights: prose author no longer dropped by the spell-pick/stat-bump creation paths (audit #1 — THE voice-evaporation bug); TONE subordinated to VOICE when an author is set (#2); `summarize()` reads near-whole GM turns (was 300 chars, #3), keeps the log on failure w/ 3-strikes raw archive (#5), and routes extractor NPC names through `resolveNpcName` (#6); signed `[XP:+N]` parses (#7); blueprint-seeded locations no longer crash `fileLocation` (#8); reroll/retry keep `worldState.transcript` honest (#9); "Update & Retry" writes `providerKeys[activeProvider]` (#10); `SUMMARIZE_AT`=1200 unifies thresholds (#11); `buildSysPrompt` side-effect-free — name window peeks, cursor advances in `sendAction` (#12, prompt-caching prereq); action buttons get a **sheet digest + latest-scene-only** via new `callGM` 5th arg `opts.noHistory` (#4+#17 — closes TODO Known issue #4); `blankMemory()`/`migrateWorldState()` factories; CLAUDE.md doc-drift pass (#30). | all 10 JS files, `sw.js`, `CLAUDE.md`, `TODO.md`, `AUDIT_FABLE.md` |
-| 1.145 | **Known issue #2 fixed** — `showChar()` reset `cs` but never the DOM: old Review step kept `.active`, stale inputs/selects (incl. `char-gender`/`char-age`, which `anc-next` reads from the DOM) leaked into the next character. Now resets step classes, ancestry sub-view, inputs, blueprint banner, `pendingCompanions`. **Review name dup** ("Wood Elf Elf Warrior") fixed per HANDOFF spec — subrace name replaces ancestry name. **TODO #17** Gnome camouflage (all 3 subraces) + **TODO #18** Deep Dwarf superior darkvision 120ft — new characters only. Verified in preview (dirty-wizard simulation + zero console errors). | `ui.js`, `char-creation.js`, `data.js`, `globals.js`, `sw.js`, `TODO.md` |
+| 1.150 | **Usage/cost telemetry (TODO #21).** Every provider adapter gained `parseUsage()`; `callGM` records API-reported tokens onto `worldState.usage` via `recordUsage()` — totals + per-kind buckets (turn/actions/summarize/skeleton/sync/other) + `costUSD` priced from `MODEL_PRICING` (globals.js, 2026-07 Anthropic rates, cache write 1.25× / read 0.1×). Dev Mode ▸ 📊 Usage & cost… modal (all 3 File menus): per-kind table, In/call averages, Reset for measurement windows. `blankUsage()` in state.js; `migrateWorldState` back-fills old saves. | globals.js, state.js, api.js, ui.js, game.js, memory.js, index.html |
+| 1.151 | **Prompt caching (TODO #11) — closes AUDIT_FABLE #20.** `buildSysPrompt` now returns `{stable, volatile}`: campaign-constant text (rules/role/tone/DNA/**full STATE TAGS block**, ~4,889 tok) first, all per-turn state after, **STYLE kept at the very END** (voice fidelity). `PROVIDERS.anthropic.buildBody` sends a two-block `system` array with `cache_control:{type:"ephemeral"}` on the stable block; other adapters flatten via `sysJoin()`; `sysOverride` strings untouched. Engine test enforces the **byte-identical-stable invariant**. | api.js, globals.js, dev/engine-tests.js, CLAUDE.md, AUDIT_FABLE.md |
+| 1.152 | **Sync hardening (TODO #24).** `_tFetch` (AbortController, 20s) wraps the state POST / portrait PUT / campaign-list GET so a hung request can never wedge `_syncing` again. `syncStatus()` tracks `_lastAckTurn` + consecutive failures; `updateSyncBadge()` (ui.js) shows a **red ☁ "N turns unsynced" / "sync failing"** membar badge; toast at 3 consecutive fails; dedicated **"session expired — reconnect"** on 401. Auto-retry on `online` + app-foreground. `load()` seeds the ACK baseline so an ahead-of-server device shows the gap immediately. storage-adapter.js now loads in the headless suite. | storage-adapter.js, ui.js, globals.js, sw.js, dev/run-tests.js, dev/engine-tests.js |
+| — | **Server health monitor (TODO #25).** `/health` on the Fly server now does a **SQLite read** (corrupt/missing volume → 500, not a lying 200) — deployed + verified. `.github/workflows/server-health.yml`: cron every 15 min, 3 attempts (absorbs Fly cold-start wake), failed run → GitHub emails the workflow author. **Manual run confirmed green.** | traffic-and-dragons-server/index.js (deployed via flyctl), .github/workflows/server-health.yml |
+| — | **AUDIT_PLAYBOOK.md** — the audit PROCESS captured while fresh (find-then-fix phases, finding format, done-requires-evidence, confidence-review-at-the-end, next-audit scope, ~40-version cadence). Docs. | AUDIT_PLAYBOOK.md |
+| — | **todo-viewer polish** — "Select TODO" button (unstick the sticky IndexedDB autoload), current-file name line, per-section Add task / Add issue buttons, Export button labels the loaded file. Dev-only page (no version bump). | todo-viewer.html |
 
-### Late-session additions (after the v1.145 handoff was first written)
-| Ver | What |
-|---|---|
-| 1.146 | **Sync payload rework (audit #16/#18).** `syncToServer` = trailing 1.5s debounce (one POST per turn, built from latest state); `syncNow()` flush on beforeunload/visibilitychange; `narrativeHtml` no longer shipped — new `rebuildNarrativeFromTranscript()` repaints the last 20 transcript entries on reload/campaign-load/server-reconcile (legacy blobs fall back). **2-device test passed.** |
-| 1.147 | **Cross-device action buttons.** User's 2-device test caught it: text matched, buttons differed. `generateActions` finishes AFTER the turn's debounced POST and only did `saveCore()` (local) — server kept the previous turn's `lastActions`. Now `saveAll()` re-arms the debounce. Pre-existing bug (saveCore never synced), surfaced by the rework. Verified end-to-end with mocked fetch. |
+### Measured caching result (the headline number)
+12-turn harness A/B on the **Runelords t54 save**, Sonnet 4.6, identical fresh copies:
+- Stable block = **4,889 tok**; total prompt/turn unchanged (clean A/B).
+- **11/11 cache hits** after the turn-1 cold write (reads = exactly 11 × 4,889).
+- Turn-bucket cost **$0.506 → $0.359 (−28.9%)**; input cost/turn **−32.3%**; all-in batch **−24.9%**.
+- Prose voice spot-checked, held. ≈**3–3.75¢/turn** all-in on a mature save (~$0.75–1.10/player-hour ceiling).
+- Caveat: 5-min cache TTL — idling >5 min between turns pays one re-write (~0.4¢), negligible.
 
-### Third session (2026-07-02) — audit closed + test gate
-| Ver | What |
-|---|---|
-| 1.148 | **DEFAULT_RULES merged 28→20 (audit #19)** — tuned language concatenated, zero coverage loss (26 load-bearing phrases verified). **Validated with a 12-turn live harness run** (gritty+Abercrombie): quest offered ON the opening scene (baseline: never in 54 turns), NPCs registered w/ pronouns (baseline 0/54), zero name forks, summarize cycled 3× on schedule, voice held. Watch items in AUDIT_FABLE #19: offered quest didn't flip active when combat started; prose 120–190 words/turn. |
-| 1.149 | **test.html + commit gate (TODO #14)** — 55 assertions/6 suites against the REAL engine (JSON repair, helpers, resolveNpcName, cleanTxt/parseActions, 22 applyMuts cases incl. v1.144 regressions, migrateWorldState). Enabler: 4 inline model-JSON cleanups consolidated → `stripCodeFences`/`repairModelJson` (api.js); summarize/randomiser gained skeleton-grade repair. Title shows live APP_VERSION; camelCase headers. |
-| — | **TODO additions from the confidence review:** #21 usage/cost telemetry (callGM discards `usage` — no pricing data exists), #22 sanitization/trust boundary (HARD GATE before #15 public sharing — innerHTML XSS + prompt injection), #23 long-run rules corpus check, Known issue #5 (lossy last-writer-wins sync under concurrency), Clear-for-Release row (Paizo/WotC blueprint fixtures = infringement in a paid product). |
-| — | **Permission cleanup:** `.claude/settings.local.json` allowlist 195 junk literals → 63 broad prefix rules. Sessions here run `acceptEdits`, not bypass — the Settings toggle doesn't retrofit existing sessions; per-session mode selector does. |
+**AUDIT_FABLE is fully CLOSED** (28/30 done+validated). The two open rows are open BY DESIGN:
+**#24** (dead `#tone-grid` selector) rides the Blueprint Designer §5.2; **#29** (`parseActions` legacy
+tiers) waits for pre-v1.110 saves to age out. #22 (blankNpc factory) was a considered won't-fix.
 
-**AUDIT_FABLE is CLOSED:** 27/30 done+validated; #24 rides Blueprint Designer, #29 ages out, #20 tracks #11.
+---
 
-### Next session, in order of value
-1. **TODO #11 — prompt caching.** FULLY unblocked: rules frozen (v1.148), buildSysPrompt side-effect-free (v1.144). Work = stable/volatile reorder + two-block `system` array in `PROVIDERS.anthropic.buildBody`. Do **#21 (usage telemetry)** first/with it so the caching win is measured, not estimated.
-2. **Blueprint Designer** (BLUEPRINT_EDITOR.md, decision-locked) — the next real feature.
+## The dead-host incident (2026-07-03) — resolved, but leaves tails
 
-### Older deferrals
-- **#24** `_applyBlueprint` dead `#tone-grid` selector — belongs to the Blueprint Designer build (§5.2).
+A Fly **host died**, taking the machine AND its data volume. Symptoms: every request hung with no
+error; the phone silently accumulated ~20 unsynced turns showing "Connected"; desktop's campaign
+picker flashed "Waking server up" forever. **Recovery performed:** new volume from the 10-hour-old
+snapshot → destroyed the stranded machine → `flyctl deploy --ha=false` (needed 2 retries: one raced
+the destroy, one grabbed the dead volume). Devices re-synced with **zero lost turns** (local is
+source of truth). This incident is what spawned #24/#25 (both now done) and #26 (below).
+
+**Tails still open:**
+- **Dead volume `vol_r7yw0lnl3lejpm1r` (host f0d2) can't be destroyed** while its host is down
+  (Fly API 408s). Retry `flyctl volumes destroy vol_r7yw0lnl3lejpm1r --yes` in a few days, or open
+  a Fly support ticket if it lingers. Harmless meanwhile (ghost-attached to the destroyed machine).
+- **TODO #26 (restore runbook) NOT written yet** — the recovery steps live only in the TODO cell.
+  Codify as `dev/restore-server.md` next server-touch session.
+
+---
+
+## Next session, in order of value
+
+1. **Blueprint Designer** (`BLUEPRINT_EDITOR.md`, decision-locked) — the next real feature. Build order:
+   §5.1 load-time normalizer first; §5.2 dead `#tone-grid .card` selector (closes AUDIT_FABLE #24);
+   §5.3 Runelords fixture invalid `"tone":"high_fantasy"`; §5.5 `buildBlueprintFromGame` lossy `knowledge[0]`.
+   **#22 (content sanitization) is a HARD GATE before its cloud/public-sharing half ever ships.**
+2. **New user backlog items** (added via viewer this session): beta-tester setup wizard; add **Anne Rice**
+   to `AUTHORS` prose voices (data.js — pattern: `{id, nm, blurb, vc, profane?, contentDNA?}`); discuss a
+   **RAG-based memory system** (design conversation, not a build yet).
+3. **TODO #26** restore-runbook doc (small); **destroy the dead Fly volume** once its host recovers.
+4. **Baseline is banked** — the caching win is measured, not estimated. Real-play usage now accrues in
+   the 📊 modal, so a longer corpus is free.
 
 ---
 
 ## Open threads / "don't get burned"
 
-- **Blueprint Designer is still the next real feature.** `BLUEPRINT_EDITOR.md` decision-locked. Build order:
-  §5.1 load-time normalizer first; §5.2 dead `#tone-grid .card` selector; §5.3 Runelords fixture invalid
-  `"tone":"high_fantasy"`; §5.5 `buildBlueprintFromGame` only captures `knowledge[0]` (lossy).
-- **Two stale worktree sessions can be archived:** "Fix duplicated subrace+ancestry name on Review step"
-  (superseded by v1.145) and its worktree `.claude/worktrees/nostalgic-franklin-5aaeba`. The stalled
-  "Fable project audit" scheduled-run session was already archived.
-- **Manual verification worth doing next real play session** (list at the bottom of `AUDIT_FABLE.md`):
-  caster creation keeps the chosen prose voice; blueprint travel doesn't error; action buttons stay
-  sheet-legal; summarize failure shows "will retry" and keeps the log.
+- **Prompt-caching invariant is load-bearing:** anything reading `worldState`/`memory`/`sessionLog` must
+  NEVER leak into `buildSysPrompt`'s **stable** half — one stray per-turn value kills every cache hit.
+  The engine test `stable half is byte-identical…` guards it; keep it green. Switching prose voice / rules
+  / adult-mode is fine — it re-writes the cache once, then warms again (expected).
+- **Sync failure is now VISIBLE** (red ☁ badge, toasts) and self-heals in 20s — but the underlying
+  **last-writer-wins model is unchanged** (Known issue #5). A stale device playing a turn still rolls the
+  server back. The real fix is the server-authoritative turn guard; #24 only made the failure detectable.
+- **Health monitor is armed** — if the server dies, you get a GitHub email within ~15 min. Confirm your
+  GitHub notification settings have **Actions failure emails ON** (checked once, but verify on your side).
+- **Runelords save** in repo root — personal, do NOT commit. **`audits/` + AUDIT file move** are the
+  user's housekeeping; leave as-is.
 - **Car Mode still needs a real-device pass** (Bluetooth priming, notch clearance). TODO #2/#19.
-- **Runelords save file** `Rise_of_the_Runelords__Ammut__Ammut_t54.tnd` untracked in repo root —
-  personal save, do NOT commit. **`AUDIT_RESULTS.html` staged-deleted** — pre-existing, left untouched.
 
 ---
 
 ## Standing gotchas reconfirmed this session
 
-- **SW is cache-first — bump `CACHE` in `sw.js` on EVERY code-changing commit.** Hit stale-cache repeatedly
-  in the preview this session; the fix in-preview is unregister the SW + clear caches, then reload:
-  `navigator.serviceWorker.getRegistrations()→unregister`, `caches.keys()→delete`, `location.reload()`.
-  Note the SW served a **stale `todo-viewer.html` even though it's not in `APP_SHELL`** — clear caches when
-  a dev page looks stale too.
-- **`preview_screenshot` was flaky all session** (repeated 30s timeouts while the page was fully responsive
-  to `preview_eval`). When it hangs, **verify via DOM measurement** (`getBoundingClientRect`, computed
-  styles, class checks) instead — it's more precise anyway for spacing/colors.
-- **Preview `localStorage` persists** across `preview_start`/`stop`; clear stale `tnd_*` keys before trusting
-  `worldState`/screen state.
-- **Model:** confirm `claude-sonnet-4-6` (`MDL` in `globals.js`) is still current before API work.
-- **ES5 only** (`var`, no arrow/const/let/template-literals; `async/await` only in the API-facing functions).
-  A pre-write hook (`.claude/hooks/es5-check.js`) enforces it and flags arrows even inside comments.
+- **SW is cache-first — bump `CACHE` in `sw.js` on EVERY code-changing commit** (and `APP_VERSION` in
+  globals.js). In-preview stale-cache fix: unregister SW + clear caches + reload via `preview_eval`.
+  Dev pages (todo-viewer.html) get cached too — clear when one looks stale.
+- **Port 3000 orphans:** `npx serve` processes outlived their preview servers twice this session and
+  blocked `preview_start`. Fix: `Stop-Process -Id <pid> -Force`, then restart. (Port 3000 is worth
+  keeping so the preview's localStorage/API key survive.)
+- **Preview came up on the API-key screen with empty storage** after a fresh `preview_start` — the key
+  entered in a prior preview window doesn't carry. Ask the user to type it into the visible key screen;
+  never paste a real key into `preview_eval`.
+- **`preview_eval` can time out (30s) on multi-step chains** even when the page is responsive — split into
+  smaller evals (fetch-into-window-global, then process) rather than one big async block.
+- **Model:** `MDL` in globals.js is `claude-sonnet-4-6` (game default) — confirm current before API work.
+  `MODEL_PRICING` (globals.js) rates were verified 2026-07-02; re-verify if Anthropic pricing shifts.
+- **ES5 only** (`var`, no arrow/const/let/template-literals; `async/await` only in the API-facing fns).
+  Pre-write hook `.claude/hooks/es5-check.js` enforces it.
 - **Three file menus** (`fm-`/`cs-fm-`/`api-fm-`) must stay in sync when adding items.
-- **Always commit; don't push until told.** Bump BOTH `APP_VERSION` (`globals.js`) and `CACHE` (`sw.js`) on
-  every commit that changes game code; dev-only files not loaded by `index.html` don't need a bump.
-- **New this session (memory saved):** when I ask the user a question, wait for the *complete* answer before
-  acting — don't race ahead on the first piece of a multi-part reply.
+- **Always commit; don't push until told.** Bump `APP_VERSION` + `CACHE` on every game-code commit;
+  dev-only files (test.html, todo-viewer.html, dev/*, .github/*) don't need a bump.
 
-## Playtest harness (unchanged)
+## Playtest harness (the caching A/B tool)
 
-`dev/playtest-harness.js` (not loaded by `index.html`) drives N real GM turns against a throwaway character
-via `preview_eval`. To invoke: tell me (1) which campaign (fresh throwaway — pick author/tone, or existing
-save) and (2) how many turns. Full mechanics in the file header.
+`dev/playtest-harness.js` (not loaded by index.html) drives N real GM turns via `preview_eval`. This
+session it ran the before/after caching measurement: import a `.tnd` save into preview localStorage,
+Reset the usage counters, run `__ptRunBatch(N)`, read `worldState.usage`. Re-run with the SAME save +
+turn count for any future perf A/B. To invoke: tell me the campaign (fresh throwaway or a `.tnd` save)
+and the turn count. Full mechanics in the file header.
 
 ## Deploy
 
 - **Cloudflare Pages** auto-deploys from `pmegow/traffic-and-dragons` on push to `master` (no build,
-  output = repo root).
-- **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`.
+  output = repo root). Poll `globals.js?nc=<ts>` for the live `APP_VERSION` to confirm.
+- **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`. It is a **separate,
+  UNtracked repo** (no git) — deploy by flyctl, no push. `/health` is monitored by the Actions cron.
