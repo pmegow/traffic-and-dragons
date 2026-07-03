@@ -21,6 +21,10 @@ var MODEL_PRICING={
   "claude-sonnet-4-6":{in:3.00, out:15.00, cacheWrite:3.75, cacheRead:0.30},
   "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10}
 };
+// buildSysPrompt returns {stable, volatile} for gameplay turns (TODO #11 prompt caching);
+// sysOverride callers pass a plain string. Non-Anthropic adapters flatten via sysJoin;
+// the Anthropic adapter keeps the halves separate to place a cache_control breakpoint.
+function sysJoin(sys){return typeof sys==="string"?sys:sys.stable+sys.volatile;}
 var PROVIDERS={
   anthropic:{
     id:"anthropic", label:"Claude (Anthropic)", keyHint:"sk-ant-...",
@@ -29,7 +33,17 @@ var PROVIDERS={
     upgradeModel:"claude-sonnet-4-6",
     models:["claude-opus-4-8","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,system:sys,messages:msgs};},
+    // {stable, volatile} → two system blocks with a cache_control breakpoint after the stable
+    // one: the stable prefix re-reads at 0.1x input price on every turn (writes at 1.25x, 5min
+    // TTL — warm during active play). Plain-string sys (summarize/actions/skeleton overrides)
+    // stays a single uncached block. Min cacheable prefix on Sonnet 4.6 is 2048 tokens — the
+    // stable block clears it (enforced by an engine test); verify live via usage.cache_read_input_tokens.
+    buildBody:function(msgs,sys,maxTok,model){
+      var body={model:model,max_tokens:maxTok,messages:msgs};
+      if(typeof sys==="string")body.system=sys;
+      else body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile}];
+      return body;
+    },
     parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
     // Anthropic: input_tokens EXCLUDES cached tokens; cache fields are 0 until prompt caching (#11) lands
     parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};}
@@ -43,7 +57,7 @@ var PROVIDERS={
     // OpenAI carries the system prompt as the first message, uses Bearer auth,
     // and returns choices[0].message.content. max_tokens works for gpt-4o.
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
@@ -56,7 +70,7 @@ var PROVIDERS={
     upgradeModel:"grok-4.3",
     models:["grok-4.3","grok-4","grok-3","grok-3-mini","grok-code-fast-1"],
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+key};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
@@ -71,7 +85,7 @@ var PROVIDERS={
     upgradeModel:"gemini-2.5-pro",
     models:["gemini-3.5-flash","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"],
     headers:function(key){return {"Content-Type":"application/json","x-goog-api-key":key};},
-    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sys}]},contents:contents,generationConfig:gc};},
+    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:u.candidatesTokenCount||0,cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};},
     reinforce:TAG_REINFORCE,
@@ -87,14 +101,14 @@ var PROVIDERS={
     upgradeModel:"llama3.1:70b",
     models:["llama3.1:70b","qwen2.5:72b","mixtral:8x22b"],
     headers:function(key){return {"Content-Type":"application/json","Authorization":"Bearer "+(key||"ollama")};},
-    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sys}].concat(msgs)};},
+    buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
     reinforce:TAG_REINFORCE
   }
 };
 var carMode=false;
-var APP_VERSION="v1.150";
+var APP_VERSION="v1.151";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

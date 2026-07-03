@@ -171,4 +171,46 @@ function runEngineTests(R){
     recordUsage({in:100,out:10,cacheRead:0,cacheWrite:0},"other","claude-sonnet-4-6"); // must not throw
     makeWorld();return true;
   });
+
+  // ── 8. Prompt-caching stable/volatile split (TODO #11) ───────────────────────
+  section("prompt caching split");
+  t("buildSysPrompt returns {stable, volatile} with the right content in each half",function(){
+    makeWorld();var s=buildSysPrompt();
+    if(typeof s.stable!=="string"||typeof s.volatile!=="string")return "not an object: "+typeof s;
+    if(s.stable.indexOf("STATE TAGS")<0||s.stable.indexOf("NARRATIVE RULES")<0)return "stable missing rules/tags";
+    if(s.volatile.indexOf("STYLE:")<0||s.volatile.indexOf("CHARACTER: Tess")<0)return "volatile missing style/sheet";
+    if(s.stable.indexOf("Tess")>=0)return "player name leaked into stable — cache would key on the character";
+    return s.volatile.lastIndexOf("STYLE:")>s.volatile.lastIndexOf("CHARACTER:")?true:"STYLE not at the end";
+  });
+  t("stable half is byte-identical across per-turn state mutations (the cache invariant)",function(){
+    makeWorld();var a=buildSysPrompt().stable;
+    worldState.turn++;worldState.character.hp-=3;worldState.character.gold+=17;worldState.character.xp+=50;
+    worldState.npcs.push({name:"Newcomer",status:"wary",rel:"stranger"});
+    memory.chapters.push({turn:worldState.turn,summary:"Things happened."});
+    worldState.world.time="midnight";worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    var b=buildSysPrompt().stable;
+    return a===b?true:"stable changed after volatile-state mutations (len "+a.length+" vs "+b.length+")";
+  });
+  t("stable half clears the Sonnet 4.6 min cacheable prefix (~2048 tokens)",function(){
+    makeWorld();var s=buildSysPrompt().stable;
+    // chars/4 is a rough floor for token count; below 8500 chars the block risks silently not caching
+    return s.length>=8500?true:"stable only "+s.length+" chars (~"+Math.round(s.length/4)+" tok) — under the 2048-token cache minimum";
+  });
+  t("anthropic buildBody: object sys → two system blocks, breakpoint on the stable one",function(){
+    var b=PROVIDERS.anthropic.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"claude-sonnet-4-6");
+    if(!Array.isArray(b.system)||b.system.length!==2)return "system: "+JSON.stringify(b.system);
+    if(b.system[0].text!=="S"||!b.system[0].cache_control||b.system[0].cache_control.type!=="ephemeral")return "stable block wrong";
+    return b.system[1].text==="V"&&!b.system[1].cache_control?true:"volatile block wrong";
+  });
+  t("anthropic buildBody: string sys (sysOverride) stays a plain system string",function(){
+    var b=PROVIDERS.anthropic.buildBody([],"plain override",100,"m");
+    return b.system==="plain override"?true:JSON.stringify(b.system);
+  });
+  t("openai-compatible + gemini flatten {stable, volatile} via sysJoin",function(){
+    if(sysJoin("x")!=="x")return "string passthrough broken";
+    var o=PROVIDERS.openai.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gpt-4o");
+    if(o.messages[0].role!=="system"||o.messages[0].content!=="SV")return "openai: "+JSON.stringify(o.messages[0]);
+    var g=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gemini-3.5-flash");
+    return g.systemInstruction.parts[0].text==="SV"?true:"gemini: "+JSON.stringify(g.systemInstruction);
+  });
 }

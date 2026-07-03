@@ -162,7 +162,7 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
 
 **Provider-agnostic since v1.30.** `callGM()` routes through the active provider in the `PROVIDERS` table (`globals.js`). Each provider is a self-contained object — `{id, label, keyHint, endpoint, defaultModel, models[], headers(key), buildBody(msgs,sys,maxTok,model), parseResponse(json), parseUsage(json)}` — and `callGM()` picks `PROVIDERS[activeProvider]` and calls its methods. **No `if(provider===...)` branches anywhere else.** This same shape is the intended server-side routing table under the subscription model.
 
-- **anthropic** — `https://api.anthropic.com/v1/messages`; `x-api-key` + `anthropic-dangerous-direct-browser-access: true`; system as a top-level `system` field; response at `content[0].text`. Default model `claude-sonnet-4-6` — **verify this string is current before starting work each session.**
+- **anthropic** — `https://api.anthropic.com/v1/messages`; `x-api-key` + `anthropic-dangerous-direct-browser-access: true`; system as a top-level `system` field — **a two-block array for gameplay turns since v1.151**: `[{stable + cache_control:ephemeral}, {volatile}]` (prompt caching, TODO #11; see §6), plain string for sysOverride calls; response at `content[0].text`. Default model `claude-sonnet-4-6` — **verify this string is current before starting work each session.**
 - **openai** — `https://api.openai.com/v1/chat/completions`; `Authorization: Bearer`; system carried as a leading `{role:"system"}` message; response at `choices[0].message.content`. Default model `gpt-4o`. (CORS: OpenAI allows direct browser calls, no special header.)
 - **grok** — `https://api.x.ai/v1/chat/completions`; OpenAI-compatible (same body/response), `Authorization: Bearer`. Default `grok-4.3` (see `PROVIDERS` in globals.js for the current list — old grok-2-*/grok-beta IDs are retired).
 - **gemini** — `endpoint` is a **function(model)** (`.../v1beta/models/{model}:generateContent`) since Google embeds the model in the URL; `x-goog-api-key` header; system in `systemInstruction.parts[]`, messages in `contents[]` with role `model` (not `assistant`); response at `candidates[0].content.parts[0].text`. Default `gemini-3.5-flash` (retired 1.5/2.0 IDs 404 — see `PROVIDERS` in globals.js for the current list). `callGM()` resolves `typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint`.
@@ -187,21 +187,26 @@ Three callers:
 
 ### 6. System prompt construction (`buildSysPrompt`)
 
-Assembled fresh on every request from live state:
+Assembled fresh on every request from live state. **Since v1.151 (TODO #11, prompt caching) it returns `{stable, volatile}` instead of one string** — the STABLE half is campaign-constant text (byte-identical turn to turn; an engine test enforces this), the VOLATILE half is all per-turn state. The Anthropic adapter sends them as a two-block `system` array with `cache_control:{type:"ephemeral"}` on the stable block (re-reads at 0.1× input price, 5-min TTL); other providers flatten via `sysJoin()` (globals.js). `sysOverride` callers (summarize/actions/skeleton) still pass plain strings — those stay single uncached blocks. **Anything reading worldState/memory/sessionLog must never leak into the stable half** — one stray turn counter kills every cache hit.
 
-1. Player identity header (repeated at top and bottom)
-2. `getRulesBlock()` — default + custom narrative rules
-3. GM role declaration + tone directive
-4. Character sheet (stats, HP, gold, alignment, abilities, spells, inventory)
+**STABLE half (cached), in order:**
+
+1. `getRulesBlock()` — default + custom narrative rules
+2. Adult-content block (when enabled)
+3. GM role declaration + tone directive + tone-subordination note + narrative-design DNA
+4. MECHANICS/dice format + full STATE TAGS instructions + companion-tag instructions
+
+**VOLATILE half (uncached), in order:**
+
+5. Player identity header + transient switch/departure blocks
+6. Character sheet (stats, HP, gold, alignment, abilities, spells, inventory)
 5. **Conditions, relationships, save modifiers, languages, skills** (v10 additions)
 5b. **PARTY MEMBER SHEETS** (`partyBlock`, v1.75) — for each `npc.partyMember && npc.charSheet` (alive), a rich per-companion block: class/archetype/level, HP, stats, abilities, **spells available** (unused only), inventory. Without this the GM only saw the one-line NPC roster entry and never knew a companion could cast — so companions (even a sorcerer) defaulted to swinging a weapon. The block header instructs the GM to have each companion act in character with their own kit and track resources via `COMPANION_*` tags.
-6. World state (location, time, weather, NPCs, active quests)
-7. `memoryTOC()` — compact summary of known NPCs, visited locations, pending events, recent decisions, chapter summaries
-8. `memoryNpcDetail()` — full detail on NPCs mentioned in the last 6 session messages
-9. Combat state block (if `worldState.combat` is set)
-10. Event history (last 8 compressed chapter summaries)
-11. State tag instructions + dice format instructions (includes all v10 tags + full skill ID list)
-12. Style directive: clean readable prose, no em-dashes, prose-voice-driven length; ends EVERY response with a structured **`[ACTIONS:first|second|third]`** tag (exactly 3 pipe-separated options) that becomes the action buttons — see §13.
+7. World state (location, time, weather, NPCs, active quests) + party sheets + party-size note
+8. `memoryTOC()` — compact summary of known NPCs, visited locations, pending events, recent decisions, chapter summaries
+9. `memoryNpcDetail()` — full detail on NPCs mentioned in the last 6 session messages
+10. Combat state block (if `worldState.combat` is set) + event history (last 8 compressed chapter summaries)
+11. Identity REMINDER + style directive — **STYLE stays at the very END on purpose** (uncached tail): end-of-prompt position is load-bearing for prose-voice fidelity (audit #2). The GM writes pure prose — no `[ACTIONS:]` tag (decoupled, see §13).
 
 **Gender in image prompts:** `doRender()` uses `c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male"` — never uses pronouns.
 

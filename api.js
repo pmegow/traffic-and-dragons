@@ -148,30 +148,21 @@ function buildSysPrompt(){
   // Transient departure marker — set by the "Part ways" button; auto-cleared in sendAction after ~2 turns.
   var leftBlock="";
   if(worldState.recentlyLeft&&worldState.recentlyLeft.length){var _ln=worldState.recentlyLeft.map(function(x){return x.name;}).join(", ");leftBlock="*** PARTY DEPARTURE ***\n"+_ln+" has LEFT the party and is no longer travelling with the player. Do not narrate them as present in the current scene or acting alongside the party; the conversation history above may still show them present, but they have gone. They remain part of the world and may reappear later as an ordinary NPC if the story brings them back.\n\n";}
-  return identity+switchBlock+leftBlock+getRulesBlock()+adultBlock
+  // ── Stable/volatile split (TODO #11 prompt caching) ───────────────────────
+  // STABLE: campaign-constant text only — byte-identical turn to turn, so the Anthropic
+  // adapter can put a cache_control breakpoint after it. Rules, tone, and voice change only
+  // on explicit user edits (one cache invalidation, then warm again). Anything that reads
+  // worldState/memory/sessionLog MUST stay out of this block — a single leaked turn counter
+  // kills every cache hit. VOLATILE: all per-turn state. STYLE stays at the very END of the
+  // volatile block (not in stable) on purpose: end-of-prompt position is load-bearing for
+  // prose-voice fidelity (audit #2) and it's only a few hundred uncached tokens.
+  var stable=getRulesBlock()+adultBlock
     +"You are the Game Master for Traffic and Dragons, a sword and sorcery RPG. Write vivid second-person prose that keeps the player in danger, mystery, and wonder. You drive the adventure forward — push hooks and threats, never wait to be entertained. Mature violence and adult themes are fully permitted. The world state below is absolute truth -- never contradict it.\n\n"
     +tb
     // With a prose author set, TONE and VOICE were two competing style directives the model
     // averaged — the "voice evaporated" mechanism (audit #2). Subordinate tone style explicitly.
     +(_paVc?"NOTE: The TONE above governs CONTENT only (magic prevalence, danger, stakes, moral register). All prose STYLE is governed by the VOICE directive in the STYLE section at the end of this prompt — where they differ on style, the VOICE wins.\n\n":"")
     +narrativeDesignBlock
-    +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
-    +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
-    +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
-    +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:""):"")+""+(c.deity?"Deity: "+c.deity+"\n":"")
-    +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
-    +condStr+relStr+saveStr+langStr+skillStr
-    +partyBlock
-    +partyCapBlock
-    +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
-    +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
-    +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
-  +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
-    +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
-    +legacyBlock
-    +buildNpcGraph()
-    +buildGeoBlock()
-    +cb+hist
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
     +"STATE TAGS (use in responses, never shown to player):\n"
     +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
@@ -196,7 +187,7 @@ function buildSysPrompt(){
     +"[NPC_FACTION:npcName|factionName|role] -- assign an NPC to a faction with their role (e.g. [NPC_FACTION:Zarith|The Black Hand|enforcer]); auto-registers the faction if unknown\n"
     +"[FACTION_REL:faction1|faction2|relationship] -- relationship between two factions (e.g. [FACTION_REL:The Black Hand|City Watch|bitter enemies], [FACTION_REL:Merchant Guild|City Watch|uneasy allies])\n"
     +"[SKILL_SUCCESS:skill_id] -- on a successful skilled action (exact ids: Jumping, Sprinting, Lifting, Grappling, Climbing, Swimming, Distance Running, Riding, Hold Breath, Endure Pain, Tolerate Alcohol/Drugs, Foraging, Cooking, Survival, Animal Handling, Navigation, Tracking, Arcana, Lore, Investigation, Nature, First Aid, Alchemy, Smithing, Handcraft, Persuasion, Deception, Intimidation, Performance, Trading, Stealth, Sleight of Hand, Lockpicking, Gambling, Perception, Insight)\n"
-+"[SKILL_SUCCESS:Tracking] covers both wilderness tracking (following prey or people by physical signs) and urban tailing (shadowing a mark through crowds, alleys, or city streets). Use WIS for reading the environment, INT for anticipating movement patterns.\n"
+    +"[SKILL_SUCCESS:Tracking] covers both wilderness tracking (following prey or people by physical signs) and urban tailing (shadowing a mark through crowds, alleys, or city streets). Use WIS for reading the environment, INT for anticipating movement patterns.\n"
     +"[CONDITION:name|duration] [CONDITION_REMOVED:name] -- duration is descriptive (e.g. 'until antidote', 'saving throw each hour CON DC 15')\n"
     +"[RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] -- entity=NPC or faction; descriptor=Allied/Rival/Wanted/Hunted/Indebted/Marked/Feared/etc.\n"
     +"[SAVE_MOD:source|type|amount] [SAVE_MOD_REMOVED:source] -- type=stat (CON/DEX/etc.) or threat (Poison/Fire/Cold/Lightning/Fear/Charm/Psionic/Holy/Shadow/Disease/Magic/Other); amount=integer\n"
@@ -209,9 +200,28 @@ function buildSysPrompt(){
     +"[COMPANION_CONDITION:Name|condName|duration] [COMPANION_CONDITION_REMOVED:Name|condName]\n"
     +"[COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_RELATIONSHIP_REMOVED:Name|entity]\n"
     +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
-    +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n"
+    +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n";
+  var volatile_=identity+switchBlock+leftBlock
+    +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
+    +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
+    +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
+    +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:""):"")+""+(c.deity?"Deity: "+c.deity+"\n":"")
+    +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
+    +condStr+relStr+saveStr+langStr+skillStr
+    +partyBlock
+    +partyCapBlock
+    +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
+    +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
+    +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
+  +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
+    +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
+    +legacyBlock
+    +buildNpcGraph()
+    +buildGeoBlock()
+    +cb+hist
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible.";
+  return {stable:stable,volatile:volatile_};
 }
 function buildSkeletonBlock(){
   if(!worldState.skeleton)return"";
@@ -509,8 +519,13 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var key=providerKeys[activeProvider]||apiKey||"";
   var model=modelOverride||providerModels[activeProvider]||prov.defaultModel;
+  // Gameplay turns get the {stable, volatile} split from buildSysPrompt (TODO #11);
+  // sysOverride callers still pass a plain string. Adapters accept both shapes.
   var sys=sysOverride||buildSysPrompt();
-  if(!sysOverride&&prov.reinforce)sys+=prov.reinforce; // gameplay turns only; summarize() passes its own sysOverride
+  // gameplay turns only; summarize() passes its own sysOverride. reinforce is a per-provider
+  // CONSTANT, so it belongs in the stable (cacheable) half — appending it to volatile would
+  // work too, but stable keeps OpenAI's automatic prefix caching effective.
+  if(!sysOverride&&prov.reinforce){if(typeof sys==="string")sys+=prov.reinforce;else sys.stable+=prov.reinforce;}
   var _tok=maxTok||1000;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
