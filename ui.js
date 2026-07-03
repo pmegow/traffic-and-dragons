@@ -406,7 +406,21 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | "+APP_VERSION;}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | "+APP_VERSION;updateSyncBadge();}
+// Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags
+// the local turn or syncs are failing. Called from updateMemStatus (every turn) AND directly
+// by the storage adapter on every sync success/failure, so it never waits for a turn to refresh.
+function updateSyncBadge(){
+  var mb=document.getElementById("membar");if(!mb)return;
+  var el=document.getElementById("syncbadge");
+  var st=(typeof storageAdapter!=="undefined"&&storageAdapter.syncStatus)?storageAdapter.syncStatus():null;
+  var show=st&&st.serverMode&&(st.failing||st.unsynced>0);
+  if(!show){if(el)el.style.display="none";return;}
+  if(!el){el=document.createElement("span");el.id="syncbadge";el.style.cssText="margin-left:10px;font-size:11px;color:var(--dng);font-weight:bold;";mb.appendChild(el);}
+  el.style.display="inline";
+  el.textContent="☁ "+(st.unsynced>0?st.unsynced+" turn"+(st.unsynced===1?"":"s")+" unsynced":"sync failing");
+  el.title=st.failing?"Cloud sync is failing ("+st.failCount+" consecutive). Progress is saved on this device and uploads automatically when the server is reachable.":"Turns not yet uploaded to the server.";
+}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";

@@ -153,6 +153,60 @@ var storageAdapter = (function() {
 
   // ── Write-through sync (fire-and-forget) ────────────────────────────────
 
+  // Timed fetch (TODO #24): the 2026-07-03 dead-host incident produced requests that never
+  // resolved — the first one left _syncing=true forever, silently killing every later sync
+  // for the whole session (including the page-hide flush). Abort after SYNC_TIMEOUT_MS so
+  // the catch path ALWAYS runs and _syncing always resets.
+  var SYNC_TIMEOUT_MS = 20000;
+  function _tFetch(url, opts, ms) {
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    if (ctrl) opts.signal = ctrl.signal;
+    var tid = ctrl ? setTimeout(function() { ctrl.abort(); }, ms || SYNC_TIMEOUT_MS) : null;
+    return fetch(url, opts).then(
+      function(r) { if (tid) clearTimeout(tid); return r; },
+      function(e) { if (tid) clearTimeout(tid); throw e; }
+    );
+  }
+
+  // Sync health (TODO #24): every failure used to be a console.warn — invisible on mobile,
+  // while the File menu kept showing "Connected". Track the last server-ACKed turn and
+  // consecutive failures; ui.js renders the red membar badge from syncStatus().
+  var _lastAckTurn = -1;  // highest worldState.turn the server provably holds; -1 = unknown
+  var _failCount   = 0;   // consecutive sync failures
+  var _notified401 = false;
+
+  function _syncOk(turnAt) {
+    _failCount = 0; _notified401 = false;
+    if (turnAt > _lastAckTurn) _lastAckTurn = turnAt;
+    _updateSyncUI();
+  }
+  function _onSyncFail(msg, status) {
+    _failCount++;
+    console.warn("[storage] sync failed (" + _failCount + " consecutive): " + msg);
+    if (typeof showToast === "function") {
+      if (status === 401 && !_notified401) {
+        _notified401 = true;
+        showToast("&#9729; Session expired &mdash; reconnect via Dev Mode &#9656; Connect server");
+      } else if (_failCount === 3) {
+        showToast("&#9729; Sync failing &mdash; progress is saved on this device and uploads automatically when the server is back");
+      }
+    }
+    _updateSyncUI();
+  }
+  function _updateSyncUI() {
+    if (typeof updateSyncBadge === "function") { try { updateSyncBadge(); } catch(e) {} }
+  }
+  function syncStatus() {
+    var t = (typeof worldState !== "undefined" && worldState) ? (worldState.turn || 0) : 0;
+    return {
+      serverMode:  !!_serverUrl,
+      failing:     _failCount > 0,
+      failCount:   _failCount,
+      lastAckTurn: _lastAckTurn,
+      unsynced:    (_serverUrl && _lastAckTurn >= 0) ? Math.max(0, t - _lastAckTurn) : 0
+    };
+  }
+
   function markPortraitDirty() {
     _portraitDirty = true;
     // #3: bump a version counter so a portrait change propagates cross-device even without a turn advance.
@@ -170,11 +224,11 @@ var storageAdapter = (function() {
     });
     if (!portrait && !Object.keys(npcPortraits).length) return;
     _portraitDirty = false;
-    fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
+    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
       method:  "PUT",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
       body:    JSON.stringify({ portrait: portrait, npcPortraits: npcPortraits })
-    }).catch(function(e) {
+    }, SYNC_TIMEOUT_MS).catch(function(e) {
       _portraitDirty = true;
       console.warn("[storage] portrait sync failed:", e.message);
     });
@@ -205,6 +259,7 @@ var storageAdapter = (function() {
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     _syncing     = true;
     _pendingSync = false;
+    var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
     // Keep the CURRENT PC's portrait INLINE in the state blob — it must stay atomic with the
     // state turn. Splitting it into the separate /portrait request (below) let it desync: after a
     // character swap the blob said "PC=X" while the separate store still held the old PC's image,
@@ -226,21 +281,24 @@ var storageAdapter = (function() {
       campaignId:    campId,
       narrativeHtml: ""
     });
-    fetch(_serverUrl + "/api/state", {
+    _tFetch(_serverUrl + "/api/state", {
       method:  "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
       body:    payload
-    }).then(function(r) {
+    }, SYNC_TIMEOUT_MS).then(function(r) {
       _syncing = false;
-      if (!r.ok) { console.warn("[storage] server sync returned", r.status); }
-      else if (_portraitDirty || !_portraitSyncedOnce) {
-        _portraitSyncedOnce = true;
-        syncPortrait(campId);
+      if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); }
+      else {
+        _syncOk(turnAt);
+        if (_portraitDirty || !_portraitSyncedOnce) {
+          _portraitSyncedOnce = true;
+          syncPortrait(campId);
+        }
       }
       if (_pendingSync) _syncNow();
     }).catch(function(e) {
       _syncing = false;
-      console.warn("[storage] server sync failed:", e.message);
+      _onSyncFail(e && e.name === "AbortError" ? "timed out after " + (SYNC_TIMEOUT_MS / 1000) + "s" : ((e && e.message) || "network error"), 0);
       if (_pendingSync) _syncNow();
     });
   }
@@ -251,14 +309,11 @@ var storageAdapter = (function() {
     if (!_serverUrl || !_token) { if (cb) cb(null); return; }
     var _fired = false;
     function done(result) { if (!_fired) { _fired = true; if (cb) cb(result); } }
-    var _tid = setTimeout(function() {
-      console.warn("[storage] campaign list sync timed out");
-      done(null);
-    }, 60000);
-    fetch(_serverUrl + "/api/campaigns", {
+    // _tFetch (20s) replaces the old 60s fallback timer — a dead host held the campaign
+    // picker on "Waking server up, hang tight…" for a full minute before giving up (#24).
+    _tFetch(_serverUrl + "/api/campaigns", {
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) {
-      clearTimeout(_tid);
+    }, SYNC_TIMEOUT_MS).then(function(r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }).then(function(serverList) {
@@ -278,8 +333,7 @@ var storageAdapter = (function() {
       try { localStorage.setItem("tnd_camps_v1", JSON.stringify(merged)); } catch(e) {}
       done(merged);
     }).catch(function(e) {
-      clearTimeout(_tid);
-      console.warn("[storage] campaign list sync failed:", e.message);
+      console.warn("[storage] campaign list sync failed:", (e && e.name === "AbortError") ? "timed out" : e.message);
       done(null);
     });
   }
@@ -309,6 +363,10 @@ var storageAdapter = (function() {
       }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
+      // The server provably holds serverTurn — seed the ACK baseline (#24). If local is
+      // AHEAD (the dead-host scenario), unsynced = localTurn - serverTurn shows immediately.
+      if (serverTurn > _lastAckTurn) _lastAckTurn = serverTurn;
+      _updateSyncUI();
       if (serverTurn > localTurn) {
         var wasFresh = !localOk;
         worldState = data.worldState;
@@ -451,6 +509,18 @@ var storageAdapter = (function() {
   // Auto-connect immediately (runs on script load)
   autoConnect();
 
+  // Self-healing retry (TODO #24): local is the source of truth, so one successful POST
+  // after an outage uploads the complete current state — recovery just needs a trigger.
+  // (The page-hide flush lives in ui.js; these cover network-back and app-foreground.)
+  if (typeof window !== "undefined") {
+    window.addEventListener("online", function() { if (_serverUrl) syncToServer(); });
+  }
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "visible" && _serverUrl && syncStatus().unsynced > 0) syncToServer();
+    });
+  }
+
   return {
     setServer:             setServer,
     isServerMode:          isServerMode,
@@ -460,6 +530,7 @@ var storageAdapter = (function() {
     load:                  load,
     syncToServer:          syncToServer,
     syncNow:               syncNow,
+    syncStatus:            syncStatus,
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
     listCharLibrary:            listCharLibrary,

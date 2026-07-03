@@ -213,4 +213,16 @@ function runEngineTests(R){
     var g=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],{stable:"S",volatile:"V"},100,"gemini-3.5-flash");
     return g.systemInstruction.parts[0].text==="SV"?true:"gemini: "+JSON.stringify(g.systemInstruction);
   });
+
+  // ── 9. Storage adapter sync health (TODO #24) ────────────────────────────────
+  section("sync health");
+  t("syncStatus: safe defaults when not connected to a server",function(){
+    var st=storageAdapter.syncStatus();
+    if(st.serverMode!==false&&st.serverMode!==true)return "serverMode not boolean";
+    if(typeof st.unsynced!=="number"||typeof st.failCount!=="number")return "counters not numeric";
+    return (!st.serverMode&&st.unsynced===0)?true:"local mode should report 0 unsynced (got "+st.unsynced+", serverMode "+st.serverMode+")";
+  });
+  t("adapter exposes the #24 surface (syncStatus + syncNow + syncToServer)",function(){
+    return (typeof storageAdapter.syncStatus==="function"&&typeof storageAdapter.syncNow==="function"&&typeof storageAdapter.syncToServer==="function")?true:"missing API";
+  });
 }
