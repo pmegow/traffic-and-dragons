@@ -358,6 +358,32 @@ function runEngineTests(R){
     delete worldState.ragMemory;
     return b.indexOf("toll road")>=0?true:"input-named outsider lost to party filler: "+b.slice(0,160);
   });
+  t("near-par adjacent turns both survive the proximity dedupe (Q&A spans turns)",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[
+      {t:10,r:"player",x:"Ask Hemlock about the broadsheet"},
+      {t:11,r:"gm",x:"Hemlock explains the broadsheet slowly.",e:{n:["Hemlock"],l:"Sandpoint",q:[]}},
+      {t:12,r:"player",x:"Ask for the broadsheet itself"},
+      {t:12,r:"gm",x:"Hemlock hands over the broadsheet. Kept it because it seemed mad, he says.",e:{n:["Hemlock"],l:"Sandpoint",q:[]}},
+      {t:20,r:"gm",x:"quiet filler",e:{n:[],l:"Coast",q:[]}},
+      {t:24,r:"gm",x:"more filler",e:{n:[],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("GM: why did Hemlock keep the broadsheet?");
+    delete worldState.ragMemory;
+    if(b.indexOf("explains the broadsheet")<0)return "first half missing: "+b.slice(0,160);
+    return b.indexOf("seemed mad")>=0?true:"adjacent near-par half excluded again";
+  });
+  t("duplicate NPC keys collapse to one scan identity (no dupe score inflation)",function(){
+    makeWorld();
+    memory.npcs["Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var names=ragKnownNames();
+    var hem=names.filter(function(n){return n.toks.indexOf("hemlock")>=0;});
+    if(hem.length!==1)return "expected 1 hemlock identity, got "+hem.length;
+    return hem[0].others.length===2?true:"others: "+JSON.stringify(hem[0].others);
+  });
   t("TOC diet: flag-off output is byte-identical after a round trip",function(){
     makeWorld();lastAction="";
     for(var li=0;li<20;li++)memory.lore.push("Fact number "+li+" about distant Elsewhere");

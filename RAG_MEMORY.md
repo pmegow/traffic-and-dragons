@@ -151,6 +151,27 @@ word "meet") — that case leans on `firstEncounter` (already injected) and corr
 the t160 save's Daeris had NO aliases (the Woman-in-Bronze merge never landed), so her
 pre-reveal history was invisible. Reveal-merges matter to retrieval quality.
 
+**Round 2 (same session, v1.163 — the broadsheet quiz).** "Why did Hemlock keep the
+broadsheet?" surfaced four more scoring defects, each verified by forensic replay:
+① **full-key name scanning** — prose says "Hemlock", the key is "Sheriff Belor Hemlock",
+no match: every honorific-keyed NPC was invisible to the index → scan now matches
+`npcCoreTokens` distinctive tokens, word-bounded (`ragHasWord`);
+② **duplicate NPC keys** (Hemlock stored 3×, the known alias-drift disease) tripled entity
+scores → token-subset duplicates collapse to ONE scan identity (`others[]` ride along for
+weight-aliasing old write-time indexes; one score per person per entry);
+③ **hand-tuned stoplists lose to common words** ("keep" matched everywhere) → lexical term
+weight is now **IDF** computed over the eligible entries in the same pass (rare words
+dominate, no stoplist maintenance; entity-name tokens excluded from terms — they already
+score as entities); ties break OLDEST-first (origin scenes beat their echoes);
+④ **the 3-turn proximity dedupe kept eating the answer turn** (Q&A exchanges span adjacent
+turns) → near-par neighbors (≥75% of the picked score) now BOTH serve; only clearly-weaker
+same-scene filler is dropped. Also: party-member scene-weight drops to 0 when the input
+names an entity (directed question ⇒ companions-nearby is noise), stays 1 for ambient turns.
+`ragRetrieve._cands` retains the top-12 scored candidates as a forensics hook.
+After: broadsheet serves the full t134–136 exchange incl. the quote; pin serves t147 top;
+debt serves the ORIGINAL t68–71 revelation (oldest-first working); first-meeting remains
+the documented residual. 4 new engine tests (90 total).
+
 ## 6. Back-out analysis (why this is safe to try)
 
 - **Flag flip** restores today's prompt exactly (decision #4's byte-identity test is the proof).

@@ -143,8 +143,11 @@ function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState&&wor
 var RAG_BUDGET=2400;   // ~600 tokens of excerpt payload per turn, hard cap
 var RAG_RECENT=10;     // skip entries this close to the current turn (already in sessionLog)
 var RAG_MAX=3;         // excerpts per turn
-// Known-NPC scan list (lowercased, with aliases). Names under 3 chars are unscannable
-// (substring false positives) unless an alias qualifies.
+// Known-NPC scan list (lowercased, with aliases AND distinctive name tokens). Full-key
+// substring matching alone missed every honorific-keyed NPC — prose says "Hemlock", the
+// key is "Sheriff Belor Hemlock", no match, entity invisible to the index (the t164
+// broadsheet-quiz failure). Tokens come from npcCoreTokens (the alias system's
+// distinctive-name machinery), matched word-bounded to avoid inside-word false hits.
 function ragKnownNames(){
   var out=[],i,j;
   if(typeof memory==="undefined"||!memory||!memory.npcs)return out;
@@ -152,16 +155,60 @@ function ragKnownNames(){
   for(i=0;i<ks.length;i++){
     var low=ks[i].toLowerCase(),als=[],src=memory.npcs[ks[i]].aliases||[];
     for(j=0;j<src.length;j++){if(src[j]&&String(src[j]).length>=3)als.push(String(src[j]).toLowerCase());}
-    if(low.length>=3||als.length)out.push({nm:ks[i],low:low,als:als});
+    var toks=[],core=npcCoreTokens(ks[i]);
+    for(j=0;j<core.length;j++){if(core[j].length>=3)toks.push(core[j]);}
+    if(low.length>=3||als.length||toks.length)out.push({nm:ks[i],low:low,als:als,toks:toks});
   }
-  return out;
+  // Collapse token-subset duplicates into ONE scan identity — "Hemlock" / "Sheriff Hemlock" /
+  // "Sheriff Belor Hemlock" are the same person stored thrice (alias-drift, known issue #3),
+  // and without this every mention scored 3× the entity weight, drowning the ranking in
+  // dupe inflation (the t164 broadsheet failure). Keep the most token-specific key; distinct
+  // people sharing a surname (disjoint-ish token sets, e.g. the Kaijitsu siblings) survive.
+  var keep=[],i2,j2;
+  for(i2=0;i2<out.length;i2++){out[i2].others=[];out[i2].host=-1;}
+  for(i2=0;i2<out.length;i2++){
+    var a=out[i2];
+    if(!a.toks.length)continue;
+    for(j2=0;j2<out.length;j2++){
+      if(i2===j2)continue;
+      var b=out[j2];
+      if(a.toks.length>b.toks.length)continue;
+      if(a.toks.length===b.toks.length&&i2<j2)continue; // equal sets: earlier key hosts
+      var subset=true,ti;
+      for(ti=0;ti<a.toks.length;ti++){if(b.toks.indexOf(a.toks[ti])<0){subset=false;break;}}
+      if(subset&&(a.host<0||b.toks.length>out[a.host].toks.length))a.host=j2;
+    }
+  }
+  for(i2=0;i2<out.length;i2++){
+    if(out[i2].host<0){keep.push(out[i2]);}
+    else{
+      var h=out[i2].host,guard=0;
+      while(out[h].host>=0&&guard++<10)h=out[h].host;
+      out[h].others.push(out[i2].nm); // duplicate keys ride along for weight aliasing
+    }
+  }
+  return keep;
+}
+// Word-bounded containment: "hemlock" matches "Hemlock's face" but not "hemlocked" prose;
+// prevents short tokens hitting inside unrelated words.
+function ragHasWord(lowText,word){
+  var idx=0;
+  while((idx=lowText.indexOf(word,idx))>=0){
+    var before=idx===0?"":lowText.charAt(idx-1);
+    var after=lowText.charAt(idx+word.length);
+    if(!/[a-z0-9]/.test(before)&&!/[a-z0-9]/.test(after))return true;
+    idx+=word.length;
+  }
+  return false;
 }
 function ragScanNames(lowText,names,addFn){
   var i,j;
   for(i=0;i<names.length;i++){
-    var hit=names[i].low.length>=3&&lowText.indexOf(names[i].low)>=0;
-    for(j=0;!hit&&j<names[i].als.length;j++){if(lowText.indexOf(names[i].als[j])>=0)hit=true;}
-    if(hit)addFn(names[i].nm);
+    var n=names[i];
+    var hit=n.low.length>=3&&lowText.indexOf(n.low)>=0;
+    for(j=0;!hit&&j<n.als.length;j++){if(lowText.indexOf(n.als[j])>=0)hit=true;}
+    for(j=0;!hit&&j<n.toks.length;j++){if(ragHasWord(lowText,n.toks[j]))hit=true;}
+    if(hit)addFn(n.nm);
   }
 }
 // Write-time entity index for a GM transcript entry — {n:[npcs], l:location, q:[quest titles]},
@@ -194,13 +241,14 @@ function ragBackfillEntry(en,names){
 // is noise, not signal (the t160/t162 quiz failure: flat party scores degenerated ranking
 // to pure recency). Deterministic given the same state.
 function ragQueryEntities(inputText){
-  var q={input:{},scene:{},party:{},loc:null,quests:[]},i;
+  var q={input:{},scene:{},party:{},groups:{},loc:null,quests:[]},i;
   if(typeof worldState==="undefined"||!worldState)return q;
   q.loc=worldState.world?worldState.world.location:null;
   var key=worldState.world?(worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location):null;
   for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember){q.scene[worldState.npcs[i].name]=1;q.party[worldState.npcs[i].name]=1;}}
   var names=ragKnownNames();
   for(i=0;i<names.length;i++){
+    if(names[i].others&&names[i].others.length)q.groups[names[i].nm]=names[i].others; // duplicate-key aliases for weight mapping
     var meta=memory.npcs[names[i].nm];
     if(meta&&meta.lastSeenAt&&(meta.lastSeenAt===key||meta.lastSeenAt===q.loc))q.scene[names[i].nm]=1;
   }
@@ -249,38 +297,80 @@ function ragRetrieve(inputText){
   if(!tr||tr.length<6)return "";
   var q=ragQueryEntities(inputText||"");
   var terms=ragQueryTerms(inputText||"");
-  var w={},k;
-  for(k in q.input)w[k]=3;
-  for(k in q.scene){if(!w[k])w[k]=q.party[k]?1:2;} // party members are everywhere — near-zero signal
+  // Entity names already score as entities — their tokens double-dipping as lexical terms
+  // just flattens the ranking ("hemlock" +3 entity AND +2 term on every mention).
+  (function(){
+    var ent={},k,i2,keepT=[];
+    for(k in q.input){var tk=npcCoreTokens(k);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}
+    for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
+    terms=keepT;
+  })();
+  var w={},k,hasInput=false;
+  for(k in q.input){w[k]=3;hasInput=true;}
+  // Party members are in nearly every entry — weak signal at best, and when the input NAMES
+  // someone (a directed question), companions-standing-nearby is pure noise: weight 0.
+  for(k in q.scene){if(!w[k]){var pw=q.party[k]?(hasInput?0:1):2;if(pw)w[k]=pw;}}
+  // Duplicate-key groups share ONE weight: entries indexed at write time may carry any of the
+  // duplicate names ("Hemlock" vs the collapsed "Sheriff Belor Hemlock"); alias them, and zero
+  // out double-counting when an entry lists several names from the same group.
+  var gRoot={};
+  for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
   var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
   var cands=[],names=null,i,j;
+  // Pass 1: backfill missing indexes + per-term document frequency over eligible entries.
+  // IDF makes rare words dominate ("broadsheet": ~4 entries → strong; "keep": everywhere →
+  // ~nothing) without a hand-tuned stoplist — the t164 lesson. Deterministic, no vectors.
+  var elig=[],df=[],N=0;
+  for(j=0;j<terms.length;j++)df.push(0);
   for(i=0;i<tr.length;i++){
-    var en=tr[i];
-    if(en.r!=="gm")continue;
-    if(en.t>worldState.turn-RAG_RECENT)continue;
-    if(!en.e){if(!names)names=ragKnownNames();en.e=ragBackfillEntry(en,names);}
-    var sc=0;
-    for(j=0;j<en.e.n.length;j++){if(w[en.e.n[j]])sc+=w[en.e.n[j]];}
+    var en0=tr[i];
+    if(en0.r!=="gm")continue;
+    if(en0.t>worldState.turn-RAG_RECENT)continue;
+    if(!en0.e){if(!names)names=ragKnownNames();en0.e=ragBackfillEntry(en0,names);}
+    var low0=String(en0.x).toLowerCase();
+    var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
+    var hits0=[];
+    for(j=0;j<terms.length;j++){var h=low0.indexOf(terms[j])>=0||(prev0&&prev0.indexOf(terms[j])>=0);hits0.push(h);if(h)df[j]++;}
+    elig.push({i:i,en:en0,hits:hits0});
+    N++;
+  }
+  // Pass 2: score. Entity/location/quest overlap gates; IDF-weighted term hits rank.
+  for(i=0;i<elig.length;i++){
+    var en=elig[i].en;
+    var sc=0,seenG={};
+    for(j=0;j<en.e.n.length;j++){
+      var enNm=en.e.n[j];
+      if(!w[enNm])continue;
+      var root=gRoot[enNm]||enNm;
+      if(seenG[root])continue; // one score per person, however many duplicate keys an entry carries
+      seenG[root]=1;
+      sc+=w[enNm];
+    }
     if(q.loc&&en.e.l===q.loc)sc+=2;
     for(j=0;j<(en.e.q||[]).length;j++){if(qws[en.e.q[j].toLowerCase()])sc+=1;}
-    // Lexical boost — topical words from the input found in the entry (or its player line)
-    // dominate flat entity scores; +2 per distinct term, capped +6. This is what routes a
-    // "where did I get the pin?" quiz to the scene that actually contains the pin.
-    if(terms.length&&sc>0){
-      var low=String(en.x).toLowerCase();
-      var prev=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
-      var hits=0;
-      for(j=0;j<terms.length&&hits<3;j++){if(low.indexOf(terms[j])>=0||(prev&&prev.indexOf(terms[j])>=0))hits++;}
-      sc+=hits*2;
+    if(sc>0){
+      var lex=0;
+      for(j=0;j<terms.length;j++){if(elig[i].hits[j])lex+=Math.log((N+1)/(df[j]+1));}
+      sc+=Math.min(8,lex*1.5);
     }
-    if(sc>0)cands.push({i:i,t:en.t,sc:sc});
+    if(sc>0)cands.push({i:elig[i].i,t:en.t,sc:sc});
   }
   if(!cands.length)return "";
-  cands.sort(function(a,b){return b.sc-a.sc||b.t-a.t;});
+  // Ties break toward the OLDEST entry — for episodic recall the origin scene (where a thing
+  // was first said/done) beats its later echoes, and the proximity dedupe below then drops
+  // the echoes instead of the origin.
+  cands.sort(function(a,b){return b.sc-a.sc||a.t-b.t;});
+  ragRetrieve._cands=cands.slice(0,12); // introspection hook for forensics/tuning (no runtime cost)
+  // Proximity dedupe: adjacent turns are usually one scene, so don't spend two slots on
+  // filler — BUT a neighbor scoring near-par with the picked entry likely holds the other
+  // half of the answer (Q&A exchanges span turns; the t164 broadsheet quiz), so near-equals
+  // survive and only clearly-weaker neighbors are dropped.
   var picked=[],pi,pj;
   for(pi=0;pi<cands.length&&picked.length<RAG_MAX;pi++){
     var apart=true;
-    for(pj=0;pj<picked.length;pj++){if(Math.abs(picked[pj].t-cands[pi].t)<3){apart=false;break;}}
+    for(pj=0;pj<picked.length;pj++){
+      if(Math.abs(picked[pj].t-cands[pi].t)<3&&cands[pi].sc<picked[pj].sc*0.75){apart=false;break;}
+    }
     if(apart)picked.push(cands[pi]);
   }
   picked.sort(function(a,b){return a.t-b.t;});
