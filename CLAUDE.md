@@ -457,7 +457,7 @@ On `init()`, if a saved game is found, `rebuildNarrativeFromTranscript()` (ui.js
 - **`busy` flag** — global boolean gates all API calls. Always set `busy=false` in both success and error paths.
 - **Scrollbars** — custom styled via `::-webkit-scrollbar` rules: 6px wide, near-black track, dark grey thumb, amber on hover.
 - **No pill/chip borders on non-interactive elements** — use plain text, comma-separation, or `cs-list-row` rows instead. Borders imply clickability.
-- **Three file menus must stay in sync** — `fm-` (game screen), `cs-fm-` (char screen), `api-fm-` (API key screen). When adding items to any menu, mirror to the others.
+- **File menus are GENERATED, not hand-written (v1.159)** — `buildFileMenus()` (ui.js, called first in `wireButtons`) renders all three File menus (`#file-menu`/`#cs-file-menu`/`#api-file-menu`) from ONE spec. To add/move/remove a menu item, edit the spec in `buildFileMenus` — never touch index.html (the mount divs there are empty). Ids keep the `fm-`/`cs-fm-`/`api-fm-` prefixes (import inputs: `""`/`cs-`/`api-`), so all existing id-based wiring works unchanged. Per-surface differences (disabled items on char/API screens, mobile-only quick actions on the game screen) are flags in the spec.
 
 ---
 

@@ -2476,7 +2476,83 @@ function _carMediaSession() {
   } catch(e) {}
 }
 
+// ── File-menu generator (v1.159) ────────────────────────────────────────────
+// ONE spec renders all three File menus (#file-menu / #cs-file-menu / #api-file-menu)
+// at boot. Replaces the hand-synced triplicate HTML — the old "three menus must stay
+// in sync" convention is dead: edit this spec and all three surfaces change together.
+// Emits the EXACT ids the rest of wireButtons has always bound to (fm-/cs-fm-/api-fm-
+// prefixes; import inputs use their own ""/"cs-"/"api-" prefix), so no other wiring
+// changes. Per-surface differences: the char/API screens grey out game-dependent items
+// (no active game yet) and swap the game menu's mobile-only quick actions for
+// always-visible disabled placeholders.
+function buildFileMenus(){
+  function hov(bg){return " onmouseover=\"this.style.background='"+(bg||"var(--bg2)")+"'\" onmouseout=\"this.style.background='none'\"";}
+  function padFor(depth){return depth===2?"7px 30px":depth===1?"7px 22px":"8px 14px";}
+  function baseStyle(depth,color,extra){return "width:100%;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);background:none;border:none;color:"+(color||"var(--t1)")+";text-align:left;"+(extra||"");}
+  // opts: {color, extra, cls, hidden, dim, hovBg}
+  function btn(id,label,depth,opts){
+    opts=opts||{};
+    if(opts.dim)return "<button style='display:block;"+baseStyle(depth,opts.color)+"opacity:0.4;cursor:default;pointer-events:none;'>"+label+"</button>";
+    return "<button id='"+id+"'"+(opts.cls?" class='"+opts.cls+"'":"")+" style='display:"+(opts.hidden?"none":"block")+";"+baseStyle(depth,opts.color,opts.extra)+"cursor:pointer;'"+hov(opts.hovBg)+">"+label+"</button>";
+  }
+  function fileLbl(inpId,label,depth){return "<label style='display:block;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'"+hov()+"><input type='file' id='"+inpId+"' accept='.tnd,.json' style='display:none;'/>"+label+"</label>";}
+  function chk(cbId,label,depth,lblId){return "<label"+(lblId?" id='"+lblId+"'":"")+" style='display:flex;align-items:center;gap:8px;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'"+hov()+"><input type='checkbox' id='"+cbId+"' style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> "+label+"</label>";}
+  function sep(inner){return "<div style='border-top:1px solid var(--brd"+(inner?"2":"")+");margin:4px 0;'></div>";}
+  function drawerBtn(id,label,depth,color){return "<button id='"+id+"' style='display:flex;width:100%;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);background:none;border:none;color:"+(color||"var(--t1)")+";cursor:pointer;text-align:left;justify-content:space-between;align-items:center;box-sizing:border-box;'"+hov()+"><span>"+label+"</span><span id='"+id+"-arrow' style='font-size:10px;transition:transform .15s;'>▶</span></button>";}
+  function drawerBox(id,inner,bg){return "<div id='"+id+"' style='display:none;background:var(--"+bg+");border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:2px 0;'>"+inner+"</div>";}
+  [{mount:"file-menu",p:"fm-",imp:"",game:true},
+   {mount:"cs-file-menu",p:"cs-fm-",imp:"cs-",game:false},
+   {mount:"api-file-menu",p:"api-fm-",imp:"api-",game:false}].forEach(function(sf){
+    var el=document.getElementById(sf.mount);if(!el)return;
+    var p=sf.p,g=sf.game,h="";
+    h+="<div id='"+p+"version' style='padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);'></div>";
+    if(g){
+      h+=btn("fm-sync-mob","Sync state",0,{cls:"fm-mobile-only",hidden:true})
+        +btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})
+        +btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})
+        +"<div class='fm-mobile-only' style='display:none;border-top:1px solid var(--brd);margin:4px 0;'></div>";
+    }else{
+      h+=btn(null,"Sync state",0,{dim:true})+btn(null,"World state",0,{dim:true})+btn(null,"Render prompt",0,{dim:true})+sep();
+    }
+    h+=btn(p+"campaigns","&#128193; Campaigns&hellip;",0,{color:"var(--acc)",extra:"font-weight:bold;"});
+    h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
+    h+=sep();
+    var sl=(g?btn(p+"export","Save Game (local)",1):btn(null,"Save Game (local)",1,{dim:true}))
+      +fileLbl(sf.imp+"import-inp","Load Game (local)",1)
+      +(g?btn(p+"export-char","Export Character",1):btn(null,"Export Character",1,{dim:true}))
+      +btn(sf.imp+"import-char-btn","Import Character",1)
+      +(g?btn(p+"export-bp","Export as Blueprint",1):btn(null,"Export as Blueprint",1,{dim:true}));
+    h+=drawerBtn(p+"saveload","&#128190; Save / Load",0)+drawerBox(p+"saveloadmenu",sl,"bg0");
+    h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
+    h+=sep();
+    var narr=btn(p+"rules","Narrative rules",2)
+      +btn(p+"prose","✍ Prose inspiration&hellip;",2)
+      +chk(p+"adult-cb","18+ Adult content",2,p+"adult-label");
+    var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",1)
+      +drawerBtn(p+"narropts","&#128214; Narrative options",1)+drawerBox(p+"narroptsmenu",narr,"bg1")
+      +btn(p+"llm","🧠 Language Model&hellip;",1)
+      +btn(p+"usage","📊 Usage &amp; cost&hellip;",1)
+      +btn(p+"rag","🗂 Episodic memory&hellip;",1)
+      +btn(p+"fal-key","🖼 Render Options&hellip;",1)
+      +chk(p+"font-lg","Large text",1)
+      +chk(p+"autosend","&#127908; Auto-send voice input",1)
+      +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",1)
+      +"<div style='display:flex;align-items:center;gap:6px;padding:2px 22px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
+      +sep(true)
+      +btn(p+"set-folder","📁 Set campaign folder&hellip;",1)
+      +btn(p+"clear-folder","📁 &times;",1,{hidden:true,color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
+      +btn(p+"server-connect","☁ Connect to server",1)
+      +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",1,{hidden:true})
+      +btn(p+"clearcache","⟳ Clear cache &amp; reload",1,{color:"var(--t2)"});
+    h+=drawerBtn(p+"devmode","⚙ Admin",0,"var(--t2)")+drawerBox(p+"devmenu",dm,"bg0");
+    h+=btn(p+"clearcache-top","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
+    h+=sep();
+    h+=g?btn(p+"newgame","New Game",0,{color:"var(--dng)",hovBg:"var(--dng-faint)"}):btn(null,"New Game",0,{dim:true,color:"var(--dng)"});
+    el.innerHTML=h;
+  });
+}
 function wireButtons(){
+  buildFileMenus(); // all three File menus render from ONE spec before any wiring binds to them
   document.getElementById("api-btn").addEventListener("click",submitKey);
   document.getElementById("api-input").addEventListener("keydown",function(e){if(e.key==="Enter")submitKey();});
   document.getElementById("tone-next").addEventListener("click",function(){if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
