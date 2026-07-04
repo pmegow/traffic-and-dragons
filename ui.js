@@ -634,9 +634,8 @@ function exportSave(){
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
 // buildBlueprintFromGame moved to game.js (v1.156) — pure data logic, now headless-testable.
-// The Blueprint Designer is a fully EXTERNAL page (D5 revised 2026-07-03) — own tab,
-// shares localStorage/data files, never writes game state keys.
-function openBlueprintDesigner(){window.open("blueprint-designer.html","_blank");}
+// The Blueprint Designer is a fully EXTERNAL page (blueprint-designer.html, D5 revised
+// 2026-07-03) with NO File-menu entry by user preference — open it directly.
 function exportBlueprint(){
   if(!worldState||!worldState.character)return;
   document.getElementById("file-menu").style.display="none";
@@ -2521,7 +2520,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["designer",openBlueprintDesigner],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["rag",showRagModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["rag",showRagModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
@@ -2532,9 +2531,11 @@ function wireButtons(){
     [["adult-cb",toggleAdultMode],["font-lg",toggleFontSize]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
-    // Devmode submenu toggle
-    var dm=document.getElementById(m.pfx+"devmode");
-    if(dm)dm.addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById(m.pfx+"devmenu"),arrow=document.getElementById(m.pfx+"devmode-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";arrow.style.transform=open?"":"rotate(90deg)";});
+    // Cascading submenu toggles: Admin, Save/Load, Narrative options (nested in Admin)
+    [["devmode","devmenu"],["saveload","saveloadmenu"],["narropts","narroptsmenu"]].forEach(function(sm){
+      var tg=document.getElementById(m.pfx+sm[0]);
+      if(tg)tg.addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById(m.pfx+sm[1]),arrow=document.getElementById(m.pfx+sm[0]+"-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";if(arrow)arrow.style.transform=open?"":"rotate(90deg)";});
+    });
     // Import inputs (different prefix pattern: "", "cs-", "api-")
     var ii=document.getElementById(m.imp+"import-inp");if(ii)ii.addEventListener("change",importSave);
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);

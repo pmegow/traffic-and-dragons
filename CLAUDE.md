@@ -373,7 +373,7 @@ Implemented as a **tab** (not a checkbox). `activeChatTab` global is `"narrative
 
 Present on both `#game-screen` (in `#topbar`) and `#char-screen` (top-right above step dots).
 
-**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, ✍ Prose inspiration…, 📊 Usage & cost…, 🗂 Episodic memory…, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
+**Game screen items (reorganized v1.158 — cascading drawers):** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Car Mode | **💾 Save / Load ▶** (Save Game, Load Game, Export Character, Import Character, Export as Blueprint) | ☁ Blueprint Library… | **⚙ Admin ▶** (Voice Settings…, **📖 Narrative options ▶** (Narrative rules, ✍ Prose inspiration…, 18+ Adult content), Language Model…, 📊 Usage & cost…, 🗂 Episodic memory…, Render Options…, Large text, Auto-send voice, Legacy characters, campaign folder, Connect/Disconnect server, Clear cache) | Clear cache & reload | New Game. Cascading toggles share one wiring loop in `wireButtons` (`devmode/devmenu`, `saveload/saveloadmenu`, `narropts/narroptsmenu` — narropts nests inside Admin). **The Blueprint Designer has NO menu entry by user preference** — open `blueprint-designer.html` directly.
 
 **Char screen items:** Same full list, but Sync state, World state, Render prompt, Save Game, Export Character, and New Game are greyed out (`opacity:0.4; pointer-events:none`) — no active game yet.
 
