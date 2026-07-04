@@ -226,6 +226,53 @@ function runEngineTests(R){
     return (typeof storageAdapter.syncStatus==="function"&&typeof storageAdapter.syncNow==="function"&&typeof storageAdapter.syncToServer==="function")?true:"missing API";
   });
 
+  // ── 11. Blueprint normalizer + export (Blueprint Designer §5.1/D1/§5.5) ──────
+  section("blueprint normalizer");
+  t("normalizeToneId: valid ids pass through untouched",function(){
+    return normalizeToneId("swords")==="swords"&&normalizeToneId("horror")==="horror"?true:"valid id mangled";
+  });
+  t("normalizeToneId: repairs legacy variants",function(){
+    var w=[["high_fantasy","high"],["High Fantasy","high"],["dark","horror"],["dark_horror","horror"],["political intrigue","politic"],["utter garbage",""],["",""]];
+    for(var i=0;i<w.length;i++){var got=normalizeToneId(w[i][0]);if(got!==w[i][1])return JSON.stringify(w[i][0])+" → "+JSON.stringify(got)+" want "+JSON.stringify(w[i][1]);}
+    return true;
+  });
+  t("normalizeBlueprint: upgrades legacy format, fills author/tone/collections",function(){
+    var bp=normalizeBlueprint({format:"tnd-campaign-v1",name:"Legacy",tone:"high_fantasy",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]});
+    if(bp.format!=="tnd-blueprint-v1")return "format: "+bp.format;
+    if(bp.author!=="")return "author not defaulted";
+    if(bp.tone!=="high")return "tone: "+bp.tone;
+    if(!Array.isArray(bp.npcs)||!Array.isArray(bp.locations)||!Array.isArray(bp.rules))return "collections not defaulted";
+    return validateBlueprint(bp)===null?true:"normalized blueprint fails validate: "+validateBlueprint(bp);
+  });
+  t("normalizeBlueprint: canonical-but-sparse (planescape shape) gains tone/author as empty",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"P",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]});
+    return bp.tone===""&&bp.author===""&&bp.proseAuthor===""?true:JSON.stringify({tone:bp.tone,author:bp.author});
+  });
+  t("normalizeBlueprint is idempotent",function(){
+    var a=normalizeBlueprint({format:"tnd-campaign-v1",name:"X",tone:"high_fantasy",premise:"p"});
+    var one=JSON.stringify(a);
+    return JSON.stringify(normalizeBlueprint(a))===one?true:"second pass changed output";
+  });
+  t("buildBlueprintFromGame: emits canonical format + author + reverse-mapped tone (D1)",function(){
+    makeWorld();worldState.tone={name:"Sword and Sorcery",voice:"x"};
+    worldState.skeleton={premise:"pr",acts:[{title:"A",goal:"g",status:"active",arcs:[{title:"a",objective:"o",status:"active",dnaHint:"hint!"}]}]};
+    var bp=buildBlueprintFromGame();
+    if(bp.format!=="tnd-blueprint-v1")return "format: "+bp.format;
+    if(bp.author!=="")return "author missing";
+    if(bp.tone!=="swords")return "tone: "+JSON.stringify(bp.tone);
+    if(bp.acts[0].status!=="pending"||bp.acts[0].arcs[0].status!=="pending")return "statuses not reset";
+    return bp.acts[0].arcs[0].dnaHint==="hint!"?true:"dnaHint dropped in export";
+  });
+  t("buildBlueprintFromGame: NPC notes carry the full knowledge list (§5.5)",function(){
+    makeWorld();worldState.tone={name:"High Fantasy",voice:""};
+    worldState.npcs=[{name:"Ameiko",status:"ally",rel:"ally",pronouns:"she/her"}];
+    memory.npcs["Ameiko"]={attitude:"ally",knowledge:["Owns the Rusty Dragon","Estranged from her father","Half-sister to Tsuto"],events:[],aliases:[]};
+    var bp=buildBlueprintFromGame();
+    var notes=bp.npcs[0].notes;
+    if(notes.indexOf("Rusty Dragon")<0)return "first fact missing";
+    return notes.indexOf("Half-sister to Tsuto")>=0?true:"later knowledge still dropped: "+notes;
+  });
+
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
   t("logTranscript indexes GM entries at write time (tags + location + quest)",function(){

@@ -1,9 +1,9 @@
 {
-  "format": "tnd-campaign-v1",
+  "format": "tnd-blueprint-v1",
   "name": "Rise of the Runelords",
   "proseAuthor": "abercrombie",
   "author": "Paizo (adapted for Traffic and Dragons)",
-  "tone": "high_fantasy",
+  "tone": "high",
   "startingLocation": "Sandpoint",
   "startingRegion": "Varisia",
   "premise": "An ancient empire of sin-fuelled wizards once ruled Varisia, carving monuments to their decadence across the land. That empire — Thassilon — fell ten thousand years ago, but its Runelords did not truly die. Now, in the quiet coastal town of Sandpoint, an outbreak of goblin raids and a string of grisly murders are pulling at threads that lead deeper and deeper into Thassilonian ruins, where the Runelord of Greed, Karzoug, stirs toward wakefulness. If he rises, the world burns. The only people who can stop him are the unlikely heroes who happened to be in the wrong tavern on the wrong festival day.",

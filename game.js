@@ -303,6 +303,82 @@ function validateBlueprint(bp){
   }
   return null;
 }
+// ── Blueprint Designer §5.1 (D1/D1b) — the load-time normalizer ────────────────
+// One canonical shape: format "tnd-blueprint-v1" with author + tone always present.
+// Accepts the legacy "tnd-campaign-v1" format string, repairs invalid tone ids
+// ("high_fantasy" → "high"), and defaults every collection so the editor and
+// round-trip (R5.3) never meet a missing field. Runs at EVERY blueprint entry
+// point (file import, cloud library, _applyBlueprint choke point). Mutates and
+// returns bp — callers keep their reference.
+function normalizeToneId(t){
+  if(!t)return "";
+  var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===t)return t;}
+  var norm=String(t).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  for(i=0;i<TONES.length;i++){if(TONES[i].id===norm)return TONES[i].id;}
+  for(i=0;i<TONES.length;i++){if(TONES[i].nm.toLowerCase()===norm)return TONES[i].id;}
+  var first=norm.split(" ")[0];
+  for(i=0;i<TONES.length;i++){if(TONES[i].id===first)return TONES[i].id;}
+  for(i=0;i<TONES.length;i++){if(TONES[i].nm.toLowerCase().indexOf(norm)===0)return TONES[i].id;}
+  return "";
+}
+function normalizeBlueprint(bp){
+  if(!bp||typeof bp!=="object")return bp;
+  if(bp.format==="tnd-campaign-v1")bp.format="tnd-blueprint-v1";
+  if(typeof bp.author!=="string")bp.author="";
+  bp.tone=normalizeToneId(bp.tone);
+  if(typeof bp.proseAuthor!=="string")bp.proseAuthor="";
+  if(typeof bp.premise!=="string")bp.premise=bp.premise==null?"":String(bp.premise);
+  if(typeof bp.startingLocation!=="string")bp.startingLocation="";
+  if(typeof bp.startingRegion!=="string")bp.startingRegion="";
+  if(!Array.isArray(bp.acts))bp.acts=[];
+  if(!Array.isArray(bp.npcs))bp.npcs=[];
+  if(!Array.isArray(bp.locations))bp.locations=[];
+  if(!Array.isArray(bp.rules))bp.rules=[];
+  return bp;
+}
+// Moved here from ui.js (v1.156) so the headless suite can exercise it — it's pure
+// data logic. Packages the current campaign into a blueprint (strips per-run state:
+// no character, HP/XP/gold, combat, transcript). Acts/arcs statuses reset to pending.
+// D1: emits author + tone (tone reverse-mapped from worldState.tone.name).
+// §5.5: NPC notes carry the FULL knowledge list (joined, capped), not just knowledge[0].
+function buildBlueprintFromGame(){
+  var sk=worldState.skeleton,acts=[];
+  if(sk&&sk.acts&&sk.acts.length){
+    var i;for(i=0;i<sk.acts.length;i++){
+      var a=Object.assign({},sk.acts[i]);a.status="pending";
+      a.arcs=(a.arcs||[]).map(function(arc){return Object.assign({},arc,{status:"pending"});});
+      acts.push(a);
+    }
+  }
+  var npcs=[];
+  (worldState.npcs||[]).forEach(function(n){
+    var mem=memory.npcs&&memory.npcs[n.name];
+    var notes=(mem&&mem.knowledge&&mem.knowledge.length)?mem.knowledge.join("; ").slice(0,400):"";
+    npcs.push({name:n.name,role:n.status||"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+  });
+  var locations=[];
+  if(memory.map&&memory.map.nodes){
+    Object.keys(memory.map.nodes).forEach(function(key){
+      if(key.indexOf("|")>=0)return; // skip sub-locations
+      var node=memory.map.nodes[key];
+      locations.push({name:key,description:node.description||""});
+    });
+  }
+  return {
+    format:     "tnd-blueprint-v1",
+    name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
+    author:     "",
+    tone:       normalizeToneId(worldState.tone&&worldState.tone.name||""),
+    proseAuthor: worldState.proseAuthor!=null?worldState.proseAuthor:"",
+    premise:    sk&&sk.premise||"",
+    acts:       acts,
+    npcs:       npcs,
+    locations:  locations,
+    rules:      (customRules||[]).slice(),
+    startingRegion:   worldState.world&&worldState.world.region||"",
+    startingLocation: worldState.world&&worldState.world.location||""
+  };
+}
 function applyBlueprint(bp){
   // Skeleton — stamp act/arc status
   if(bp.acts&&bp.acts.length){

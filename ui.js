@@ -633,45 +633,7 @@ function exportSave(){
   document.getElementById("sc-fname").addEventListener("keydown",function(e){if(e.key==="Enter")doSave();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
-function buildBlueprintFromGame(){
-  // Package the current campaign into a blueprint object suitable for sharing.
-  // Strips per-run state (HP, XP, combat, transcript, the player character).
-  // Acts/arcs statuses are reset so it plays fresh.
-  var sk=worldState.skeleton,acts=[];
-  if(sk&&sk.acts&&sk.acts.length){
-    var i,j;for(i=0;i<sk.acts.length;i++){
-      var a=Object.assign({},sk.acts[i]);a.status="pending";
-      a.arcs=(a.arcs||[]).map(function(arc){return Object.assign({},arc,{status:"pending"});});
-      acts.push(a);
-    }
-  }
-  var npcs=[];
-  (worldState.npcs||[]).forEach(function(n){
-    var mem=memory.npcs&&memory.npcs[n.name];
-    var notes=(mem&&mem.knowledge&&mem.knowledge.length)?mem.knowledge[0]:"";
-    npcs.push({name:n.name,role:n.status||"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
-  });
-  var locations=[];
-  if(memory.map&&memory.map.nodes){
-    Object.keys(memory.map.nodes).forEach(function(key){
-      if(key.indexOf("|")>=0)return; // skip sub-locations
-      var node=memory.map.nodes[key];
-      locations.push({name:key,description:node.description||""});
-    });
-  }
-  return {
-    format:     "tnd-blueprint-v1",
-    name:       worldState.campName||worldState.character.name||"Unnamed Campaign",
-    proseAuthor: worldState.proseAuthor!=null?worldState.proseAuthor:"",
-    premise:    sk&&sk.premise||"",
-    acts:       acts,
-    npcs:       npcs,
-    locations:  locations,
-    rules:      (customRules||[]).slice(),
-    startingRegion:   worldState.world&&worldState.world.region||"",
-    startingLocation: worldState.world&&worldState.world.location||""
-  };
-}
+// buildBlueprintFromGame moved to game.js (v1.156) — pure data logic, now headless-testable.
 function exportBlueprint(){
   if(!worldState||!worldState.character)return;
   document.getElementById("file-menu").style.display="none";
@@ -744,8 +706,12 @@ function importSave(event){
   reader.readAsText(file);event.target.value="";
 }
 function _applyBlueprint(bp){
+  bp=normalizeBlueprint(bp); // choke point — every path into the wizard passes here (§5.1)
   pendingBlueprint=bp;
-  if(bp.tone){var ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===bp.tone){cs.tone=TONES[ti].id;var cards=document.querySelectorAll("#tone-grid .card");Array.prototype.forEach.call(cards,function(c2){c2.classList.toggle("sel",c2.getAttribute("data-id")===bp.tone);});break;}}}
+  // §5.2 fix: the tone UI is the #tone-sel dropdown since v1.133 — the old #tone-grid .card
+  // selector matched nothing, so blueprint tone silently never applied. cs.tone is the
+  // load-bearing part; the select + custom-textarea + blurb are the visible echo.
+  if(bp.tone){var ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id===bp.tone){cs.tone=TONES[ti].id;var _ts=document.getElementById("tone-sel");if(_ts){_ts.value=bp.tone;var _cw=document.getElementById("tone-cw");if(_cw)_cw.style.display=bp.tone==="custom"?"block":"none";if(typeof _syncDnaBlurb==="function")_syncDnaBlurb();}break;}}}
   var banner=document.getElementById("blueprint-banner"),nm=document.getElementById("blueprint-name");
   if(banner){banner.style.display="block";nm.textContent=bp.name;}
   showToast("Blueprint loaded: "+bp.name);
@@ -833,7 +799,7 @@ function showBlueprintBrowser(){
       var reader=new FileReader();
       reader.onload=function(re){
         try{
-          var bp=JSON.parse(re.target.result);
+          var bp=normalizeBlueprint(JSON.parse(re.target.result)); // §5.1 — legacy format/tone repaired before validate/preview
           var err=validateBlueprint(bp);
           if(err){showToast("Invalid blueprint: "+err);return;}
           if(storageAdapter.isServerMode()){
@@ -870,7 +836,7 @@ function showBlueprintBrowser(){
       Array.prototype.forEach.call(body2.querySelectorAll("[data-bpidx]"),function(el){
         el.addEventListener("click",function(){
           var idx=parseInt(el.getAttribute("data-bpidx"),10);
-          showPreview(list[idx].blueprint);
+          showPreview(normalizeBlueprint(list[idx].blueprint)); // §5.1 — cloud blobs may predate the canonical schema
         });
       });
       Array.prototype.forEach.call(body2.querySelectorAll("[data-bpdel]"),function(btn){

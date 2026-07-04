@@ -1,6 +1,9 @@
 # Blueprint Designer — Handoff / Planning Doc
 
-**Status:** Requirements drafted, decisions locked, nothing built. Pre-implementation handoff.
+**Status:** Foundation layer BUILT (v1.156, 2026-07-03) — §5.1 normalizer live at every load point,
+§5.2 tone-apply fixed, §5.3 fixture corrected, §5.5 rich NPC export + D1 (`author`+`tone` emitted),
+`buildBlueprintFromGame` moved to game.js (headless-testable; 7 engine tests, 86 total). The editor
+surface (R7), Generate mode (R-GEN), and dnaHint button (RD.2) are NOT built yet — next chunk.
 **Reference fixture:** `rise_of_the_runelords.blueprint` (hand-authored, complete example).
 **Related shipped work:** Remedy A (v1.137) — per-arc `dnaHint` anti-drift. See §5.4.
 **Absorbs:** TODO #5 (Campaign Designer / guided AI generation) — now the "Generate" path of this feature.
@@ -167,26 +170,31 @@ All three converge on the same editor and the same save paths.
 
 ## 5. Findings / bugs to fix as part of this work
 
-### 5.1 — Canonicalize the schema  *(RESOLVED by D1/D1b — implement the normalizer)*
-One canonical shape (`tnd-blueprint-v1`, keeps `author`+`tone`); load-time normalizer upgrades
-`tnd-campaign-v1` and fills/repairs missing fields. Build this first — it gates load + round-trip.
+### 5.1 — Canonicalize the schema  *(✅ DONE v1.156)*
+`normalizeBlueprint(bp)` + `normalizeToneId(t)` in game.js (beside `validateBlueprint`) — upgrades
+`tnd-campaign-v1`, fills `author`/`proseAuthor`/collections, repairs tone ids by matching TONES ids
+AND display names (`high_fantasy`→`high`, `dark`→`horror`). Wired at all three entry points: browser
+file import, cloud-library preview, and the `_applyBlueprint` choke point. Idempotent (engine-tested).
+NOTE: §3's "valid tone" list in this doc said `dark` — the live id is **`horror`**; the normalizer
+maps against the live table, so the doc list is informational only.
 
-### 5.2 — Stale tone-apply bug
-`_applyBlueprint()` (`ui.js:712`) targets `#tone-grid .card`, which **no longer exists** since the
-Campaign DNA dropdown swap (v1.133). Blueprint tone has silently not applied since then. The tone
-select is now `#tone-sel` (value = tone id). Fix while in this surface.
+### 5.2 — Stale tone-apply bug  *(✅ DONE v1.156)*
+`_applyBlueprint` now drives `#tone-sel` (+ `cs.tone`, custom-textarea visibility, DNA blurb) —
+verified live in preview: Runelords fixture load sets the dropdown to High Fantasy. Closes AUDIT_FABLE #24.
 
-### 5.3 — Bad fixture value
-`rise_of_the_runelords.blueprint` has `"tone": "high_fantasy"` — not a valid `TONES` id
-(valid: `high`). Correct the file, or rely on the R4.1 migrator.
+### 5.3 — Bad fixture value  *(✅ DONE v1.156)*
+Fixture corrected (`format` → canonical, `tone` → `"high"`); the R4.1 migrator also handles the
+class for any other file in the wild. `planescape_torment.blueprint` left as-is on purpose — it
+lacks `tone`/`author` and proves the normalizer's fill path against a real file.
 
-### 5.4 — dnaHint authoring  *(RESOLVED by D2 — build both paths)*
+### 5.4 — dnaHint authoring  *(RESOLVED by D2 — build both paths; NOT yet built — editor chunk)*
 Hand-editable field (RD.1) + generate button (RD.2). Blueprint campaigns previously fell back to the
-generic type-hint (losing Remedy A's anti-drift); this closes that gap.
+generic type-hint (losing Remedy A's anti-drift); this closes that gap. Export already round-trips
+`dnaHint` losslessly (engine-tested v1.156).
 
-### 5.5 — Lossy NPC export
-`buildBlueprintFromGame` only pulls `knowledge[0]` into NPC `notes`. Round-tripping a game-exported
-blueprint yields thin NPC notes. Consider richer capture when exporting.
+### 5.5 — Lossy NPC export  *(✅ DONE v1.156)*
+`buildBlueprintFromGame` (now in game.js, headless-testable) joins the FULL `knowledge` list into
+NPC `notes` (capped 400 chars) and emits `author` + reverse-mapped `tone` per D1.
 
 ---
 
