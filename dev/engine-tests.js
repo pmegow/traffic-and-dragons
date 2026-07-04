@@ -489,4 +489,65 @@ function runEngineTests(R){
     retainSessionTail();
     return sessionLog.length===0&&worldState.sessKept===0?true:"len "+sessionLog.length+" marker "+worldState.sessKept;
   });
+
+  // ── 13. futureEvents hygiene (#29) ────────────────────────────────────────────
+  section("futureEvents hygiene (#29)");
+  t("near-duplicate events collapse onto the existing entry, refreshing its age (the 7-Shalelu spam)",function(){
+    makeWorld();
+    fileFutureEvent("soon","","Find Shalelu the hunter in the hinterlands",10);
+    fileFutureEvent("soon","","Party travels north to find Shalelu in the field",20);
+    fileFutureEvent("soon","","Finding Shalelu in the forest north",25);
+    if(memory.futureEvents.length!==1)return "filed "+memory.futureEvents.length+" entries, want 1";
+    if(memory.futureEvents[0].what.indexOf("hunter in the hinterlands")<0)return "original entry replaced";
+    return memory.futureEvents[0].setTurn===25?true:"age not refreshed: "+memory.futureEvents[0].setTurn;
+  });
+  t("same NPC, different business survives the dedupe (Hemlock broadsheet vs mechanism)",function(){
+    makeWorld();
+    fileFutureEvent("soon","","Confront Hemlock about what he knows regarding Thassilon and the broadsheet",10);
+    fileFutureEvent("soon","","Understand what mechanism Hemlock was calculating from the seven-sin taxonomy",12);
+    return memory.futureEvents.length===2?true:"distinct events merged: "+memory.futureEvents.length;
+  });
+  t("expiry sweeps unresolved events older than FUTURE_EXPIRE_TURNS; grandfathers unstamped",function(){
+    makeWorld();worldState.turn=100;
+    memory.futureEvents=[
+      {when:"soon",who:"",what:"ancient stale plan",setTurn:50,resolved:false},
+      {when:"soon",who:"",what:"fresh goal",setTurn:90,resolved:false},
+      {when:"soon",who:"",what:"pre-stamp save entry",resolved:false}
+    ];
+    expireFutureEvents();
+    if(memory.futureEvents.length!==2)return "kept "+memory.futureEvents.length+", want 2";
+    if(memory.futureEvents[0].what!=="fresh goal")return "wrong survivor: "+memory.futureEvents[0].what;
+    return memory.futureEvents[1].setTurn===100?true:"unstamped entry not grandfathered";
+  });
+  t("applySummaryExtract: extractor-echoed resolvedEvents clear pending items",function(){
+    makeWorld();worldState.turn=30;
+    fileFutureEvent("soon","","Find Shalelu the hunter in the hinterlands",10);
+    fileFutureEvent("soon","","The mechanism beneath the glassworks continues its work",12);
+    applySummaryExtract({resolvedEvents:["Find Shalelu the hunter in the hinterlands"]});
+    if(memory.futureEvents.length!==1)return "kept "+memory.futureEvents.length+", want 1";
+    return memory.futureEvents[0].what.indexOf("mechanism")>=0?true:"wrong event resolved";
+  });
+  t("applySummaryExtract: set-and-finished-in-one-window nets out removed (file then resolve)",function(){
+    makeWorld();worldState.turn=30;
+    applySummaryExtract({
+      futureEvents:[{what:"Rescue the miller from the well",when:"tonight"}],
+      resolvedEvents:["Rescue the miller from the well"]
+    });
+    return memory.futureEvents.length===0?true:"same-window event left pending: "+JSON.stringify(memory.futureEvents);
+  });
+  t("applySummaryExtract still files chapters/lore/npcs (refactor didn't drop behavior)",function(){
+    makeWorld();worldState.turn=30;
+    applySummaryExtract({
+      chapterSummary:"A chapter happened.",
+      npcUpdates:[{name:"Bram",attitude:"warm",knowledgeGained:"knows the toll"}],
+      loreDiscovered:["The barrow predates the town"],
+      decisionsMade:["Spared the bandit"],
+      futureEvents:[{what:"Bram expects repayment",when:"midwinter"}]
+    });
+    if(memory.chapters.length!==1||memory.chapters[0].summary!=="A chapter happened.")return "chapter missing";
+    if(!memory.npcs["Bram"]||memory.npcs["Bram"].attitude!=="warm")return "npc update missing";
+    if(memory.lore.indexOf("The barrow predates the town")<0)return "lore missing";
+    if(memory.keyDecisions.length!==1)return "decision missing";
+    return memory.futureEvents.length===1?true:"future event missing";
+  });
 }

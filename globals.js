@@ -3,6 +3,7 @@ var SUMMARIZE_AT=2400; // session-token threshold: summarize() gate, sendAction 
 // Counts only UNEXTRACTED session tokens (past worldState.sessKept — see sessKeptStart, memory.js).
 // Raised 1200→2400 with #28: 1200 was tuned in the 2-3-sentence-cap era; prose-voice GM turns run
 // 1,300-3,100 chars, so 1200 fired every ~2 exchanges in mature campaigns (the amnesia cliff).
+var FUTURE_EXPIRE_TURNS=40; // #29: unresolved futureEvents older than this are swept at summarize time
 var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
@@ -115,7 +116,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.165";
+var APP_VERSION="v1.166";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
