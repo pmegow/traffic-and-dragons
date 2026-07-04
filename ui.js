@@ -2498,8 +2498,11 @@ function buildFileMenus(){
   function fileLbl(inpId,label,depth){return "<label style='display:block;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'"+hov()+"><input type='file' id='"+inpId+"' accept='.tnd,.json' style='display:none;'/>"+label+"</label>";}
   function chk(cbId,label,depth,lblId){return "<label"+(lblId?" id='"+lblId+"'":"")+" style='display:flex;align-items:center;gap:8px;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'"+hov()+"><input type='checkbox' id='"+cbId+"' style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> "+label+"</label>";}
   function sep(inner){return "<div style='border-top:1px solid var(--brd"+(inner?"2":"")+");margin:4px 0;'></div>";}
+  // Drawers render as SIDE FLYOUTS on desktop and inline accordions ≤768px — the
+  // positioning/skin lives on the fm-subwrap/fm-sub CSS classes (index.html), only
+  // the open/closed display state is inline (the JS toggle flips it).
   function drawerBtn(id,label,depth,color){return "<button id='"+id+"' style='display:flex;width:100%;padding:"+padFor(depth)+";font-size:12px;font-family:var(--font);background:none;border:none;color:"+(color||"var(--t1)")+";cursor:pointer;text-align:left;justify-content:space-between;align-items:center;box-sizing:border-box;'"+hov()+"><span>"+label+"</span><span id='"+id+"-arrow' style='font-size:10px;transition:transform .15s;'>▶</span></button>";}
-  function drawerBox(id,inner,bg){return "<div id='"+id+"' style='display:none;background:var(--"+bg+");border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:2px 0;'>"+inner+"</div>";}
+  function drawer(btnId,boxId,label,depth,color,inner){return "<div class='fm-subwrap'>"+drawerBtn(btnId,label,depth,color)+"<div id='"+boxId+"' class='fm-sub' style='display:none;'>"+inner+"</div></div>";}
   [{mount:"file-menu",p:"fm-",imp:"",game:true},
    {mount:"cs-file-menu",p:"cs-fm-",imp:"cs-",game:false},
    {mount:"api-file-menu",p:"api-fm-",imp:"api-",game:false}].forEach(function(sf){
@@ -2517,39 +2520,46 @@ function buildFileMenus(){
     h+=btn(p+"campaigns","&#128193; Campaigns&hellip;",0,{color:"var(--acc)",extra:"font-weight:bold;"});
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     h+=sep();
-    var sl=(g?btn(p+"export","Save Game (local)",1):btn(null,"Save Game (local)",1,{dim:true}))
-      +fileLbl(sf.imp+"import-inp","Load Game (local)",1)
-      +(g?btn(p+"export-char","Export Character",1):btn(null,"Export Character",1,{dim:true}))
-      +btn(sf.imp+"import-char-btn","Import Character",1)
-      +(g?btn(p+"export-bp","Export as Blueprint",1):btn(null,"Export as Blueprint",1,{dim:true}));
-    h+=drawerBtn(p+"saveload","&#128190; Save / Load",0)+drawerBox(p+"saveloadmenu",sl,"bg0");
+    var sl=(g?btn(p+"export","Save Game (local)",0):btn(null,"Save Game (local)",0,{dim:true}))
+      +fileLbl(sf.imp+"import-inp","Load Game (local)",0)
+      +(g?btn(p+"export-char","Export Character",0):btn(null,"Export Character",0,{dim:true}))
+      +btn(sf.imp+"import-char-btn","Import Character",0)
+      +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}));
+    h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
     h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
     h+=sep();
-    var narr=btn(p+"rules","Narrative rules",2)
-      +btn(p+"prose","✍ Prose inspiration&hellip;",2)
-      +chk(p+"adult-cb","18+ Adult content",2,p+"adult-label");
-    var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",1)
-      +drawerBtn(p+"narropts","&#128214; Narrative options",1)+drawerBox(p+"narroptsmenu",narr,"bg1")
-      +btn(p+"llm","🧠 Language Model&hellip;",1)
-      +btn(p+"usage","📊 Usage &amp; cost&hellip;",1)
-      +btn(p+"rag","🗂 Episodic memory&hellip;",1)
-      +btn(p+"fal-key","🖼 Render Options&hellip;",1)
-      +chk(p+"font-lg","Large text",1)
-      +chk(p+"autosend","&#127908; Auto-send voice input",1)
-      +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",1)
-      +"<div style='display:flex;align-items:center;gap:6px;padding:2px 22px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
+    var narr=btn(p+"rules","Narrative rules",0)
+      +btn(p+"prose","✍ Prose inspiration&hellip;",0)
+      +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label");
+    var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)
+      +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
+      +btn(p+"llm","🧠 Language Model&hellip;",0)
+      +btn(p+"usage","📊 Usage &amp; cost&hellip;",0)
+      +btn(p+"rag","🗂 Episodic memory&hellip;",0)
+      +btn(p+"fal-key","🖼 Render Options&hellip;",0)
+      +chk(p+"font-lg","Large text",0)
+      +chk(p+"autosend","&#127908; Auto-send voice input",0)
+      +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
+      +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
       +sep(true)
-      +btn(p+"set-folder","📁 Set campaign folder&hellip;",1)
-      +btn(p+"clear-folder","📁 &times;",1,{hidden:true,color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
-      +btn(p+"server-connect","☁ Connect to server",1)
-      +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",1,{hidden:true})
-      +btn(p+"clearcache","⟳ Clear cache &amp; reload",1,{color:"var(--t2)"});
-    h+=drawerBtn(p+"devmode","⚙ Admin",0,"var(--t2)")+drawerBox(p+"devmenu",dm,"bg0");
+      +btn(p+"set-folder","📁 Set campaign folder&hellip;",0)
+      +btn(p+"clear-folder","📁 &times;",0,{hidden:true,color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
+      +btn(p+"server-connect","☁ Connect to server",0)
+      +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true})
+      +btn(p+"clearcache","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
+    h+=drawer(p+"devmode",p+"devmenu","⚙ Admin",0,"var(--t2)",dm);
     h+=btn(p+"clearcache-top","⟳ Clear cache &amp; reload",0,{color:"var(--t2)"});
     h+=sep();
     h+=g?btn(p+"newgame","New Game",0,{color:"var(--dng)",hovBg:"var(--dng-faint)"}):btn(null,"New Game",0,{dim:true,color:"var(--dng)"});
     el.innerHTML=h;
   });
+}
+// Close every flyout/drawer in a menu and reset its arrows — called when a File menu
+// OPENS, so a flyout left open last time doesn't pop back as a floating panel.
+function resetFileSubmenus(menuEl){
+  if(!menuEl)return;
+  Array.prototype.forEach.call(menuEl.querySelectorAll(".fm-sub"),function(s){s.style.display="none";s.style.left="";s.style.right="";});
+  Array.prototype.forEach.call(menuEl.querySelectorAll("[id$='-arrow']"),function(a){a.style.transform="";});
 }
 function wireButtons(){
   buildFileMenus(); // all three File menus render from ONE spec before any wiring binds to them
@@ -2586,7 +2596,7 @@ function wireButtons(){
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
   document.getElementById("render-btn").addEventListener("click",doRender);
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
-  document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();document.getElementById("file-menu").style.display=document.getElementById("file-menu").style.display==="block"?"none":"block";});
+  document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();var fm=document.getElementById("file-menu");var opening=fm.style.display!=="block";if(opening)resetFileSubmenus(fm);fm.style.display=opening?"block":"none";});
   document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";var cfm=document.getElementById("cs-file-menu");if(cfm)cfm.style.display="none";var afm=document.getElementById("api-file-menu");if(afm)afm.style.display="none";});
   // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
   var _menus=[{pfx:"fm-",menu:"file-menu",imp:""},{pfx:"cs-fm-",menu:"cs-file-menu",imp:"cs-"},{pfx:"api-fm-",menu:"api-file-menu",imp:"api-"}];
@@ -2594,7 +2604,7 @@ function wireButtons(){
     var close=function(){document.getElementById(m.menu).style.display="none";};
     var vd=document.getElementById(m.pfx+"version");if(vd)vd.textContent=APP_VERSION;
     // Toggle button
-    if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
+    if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";});}
     // Items that close the menu then call a function
     [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["rag",showRagModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
@@ -2607,10 +2617,22 @@ function wireButtons(){
     [["adult-cb",toggleAdultMode],["font-lg",toggleFontSize]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
-    // Cascading submenu toggles: Admin, Save/Load, Narrative options (nested in Admin)
+    // Cascading submenu toggles: Admin, Save/Load, Narrative options (nested in Admin).
+    // Desktop flyouts open LEFT by default (.fm-sub CSS); if that would run off the
+    // screen edge (menu not at the right edge), flip the panel to open rightward.
     [["devmode","devmenu"],["saveload","saveloadmenu"],["narropts","narroptsmenu"]].forEach(function(sm){
       var tg=document.getElementById(m.pfx+sm[0]);
-      if(tg)tg.addEventListener("click",function(e){e.stopPropagation();var sub=document.getElementById(m.pfx+sm[1]),arrow=document.getElementById(m.pfx+sm[0]+"-arrow");var open=sub.style.display!=="none";sub.style.display=open?"none":"block";if(arrow)arrow.style.transform=open?"":"rotate(90deg)";});
+      if(tg)tg.addEventListener("click",function(e){
+        e.stopPropagation();
+        var sub=document.getElementById(m.pfx+sm[1]),arrow=document.getElementById(m.pfx+sm[0]+"-arrow");
+        var open=sub.style.display!=="none";
+        if(open){sub.style.display="none";}
+        else{
+          sub.style.left="";sub.style.right="";sub.style.display="block";
+          if(getComputedStyle(sub).position==="absolute"&&sub.getBoundingClientRect().left<0){sub.style.right="auto";sub.style.left="100%";}
+        }
+        if(arrow)arrow.style.transform=open?"":"rotate(90deg)";
+      });
     });
     // Import inputs (different prefix pattern: "", "cs-", "api-")
     var ii=document.getElementById(m.imp+"import-inp");if(ii)ii.addEventListener("change",importSave);
