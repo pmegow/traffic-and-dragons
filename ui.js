@@ -2618,8 +2618,9 @@ function wireButtons(){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
     // Cascading submenu toggles: Admin, Save/Load, Narrative options (nested in Admin).
-    // Desktop flyouts open LEFT by default (.fm-sub CSS); if that would run off the
-    // screen edge (menu not at the right edge), flip the panel to open rightward.
+    // Desktop flyouts pick their side from the PARENT ITEM's position before opening:
+    // whichever side of the screen has more room gets the panel (away from the closest
+    // edge). CSS default is leftward (right:100%); rightward is the inline override.
     [["devmode","devmenu"],["saveload","saveloadmenu"],["narropts","narroptsmenu"]].forEach(function(sm){
       var tg=document.getElementById(m.pfx+sm[0]);
       if(tg)tg.addEventListener("click",function(e){
@@ -2628,8 +2629,10 @@ function wireButtons(){
         var open=sub.style.display!=="none";
         if(open){sub.style.display="none";}
         else{
-          sub.style.left="";sub.style.right="";sub.style.display="block";
-          if(getComputedStyle(sub).position==="absolute"&&sub.getBoundingClientRect().left<0){sub.style.right="auto";sub.style.left="100%";}
+          sub.style.left="";sub.style.right="";
+          var a=tg.getBoundingClientRect();
+          if(window.innerWidth-a.right>a.left){sub.style.right="auto";sub.style.left="100%";}
+          sub.style.display="block";
         }
         if(arrow)arrow.style.transform=open?"":"rotate(90deg)";
       });
