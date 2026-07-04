@@ -130,3 +130,25 @@ past ~turn 50).
 - **Future spice:** legacy characters (5% cross-campaign cameo) retrieving *shared scenes*
   from their original campaign — a returning PC who quotes what you actually said to them
   two campaigns ago.
+
+## 9. Model-tier note — Haiku benefits MORE than Sonnet (2026-07-03)
+
+Relevant to the subscription tier map (free = Haiku, paid = Sonnet/Opus). Both RAG mechanisms
+are worth more to a smaller model:
+
+- **Decongestion is regressive.** Instruction-following under saturated context is where small
+  models degrade first — Sonnet held the rules to ~turn 1300; Haiku would collapse much earlier.
+  The TOC diet + retrieval is plausibly what makes a Haiku free tier viable on long campaigns at all.
+- **Served facts beat found facts.** A strong model can excavate a detail from a bloated TOC;
+  a small model hallucinates a plausible substitute. Retrieval does the finding outside the
+  model; verbatim anchor text also suppresses hallucination. On fact-continuity, Haiku-with-RAG
+  on a mature save may beat Sonnet-without.
+
+Counterweights, both amplified on Haiku: **stale-chunk subordination** ("current state
+overrides") is a soft priority rule small models fumble — expect per-model tuning (fewer
+excerpts, stronger recency bias; same philosophy as per-provider `reinforce`); and **echo
+amplification (#31)** — small models parrot context harder. RAG fixes fact-availability,
+not writing skill: voice/tag-discipline gaps remain whatever the memory does.
+
+**Test plan:** when Phase 1 lands, run the harness matrix {Sonnet, Haiku} × {flag on, off}
+on the mature save — four runs, and the free-tier value of RAG is a measured number.
