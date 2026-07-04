@@ -1,6 +1,12 @@
 # RAG-Based Episodic Memory — Design Doc
 
-**Status:** Design locked 2026-07-03 (TODO #27 discussion). **Build queued AFTER the Blueprint Designer.**
+**Status:** Design locked 2026-07-03 (TODO #27 discussion). **Phase 1 BUILT — v1.154 (2026-07-03),
+user-pulled ahead of the Blueprint Designer.** Verified live on the Runelords t54 save: retrieval +
+TOC diet net −480 chars/turn WITH 1,360 chars of excerpts included (the diet paid for the excerpts,
+§4's cost-neutral target met); stable half byte-identical flag on/off; flag-off volatile
+byte-identical to pre-feature baseline (§6's back-out guarantee, proven not promised). 7 engine
+tests (79 total). Toggle: **Dev Mode ▸ 🗂 Episodic memory…** Phases 0 (baseline analysis) and 2
+(semantic layer, maybe never) unchanged below.
 **Effort:** M (Phase 1). **Kill switch required** — see §6.
 
 ---

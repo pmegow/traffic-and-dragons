@@ -2547,7 +2547,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);mu.style.display=mu.style.display==="block"?"none":"block";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["rag",showRagModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
@@ -2802,6 +2802,34 @@ function showUsageModal(){
   document.getElementById("us-reset").addEventListener("click",function(){
     if(worldState){worldState.usage=blankUsage();saveCore();}
     modal.remove();showUsageModal();
+  });
+}
+// ── RAG episodic memory toggle (#27 Phase 1 — RAG_MEMORY.md) ───────────────────
+// Per-campaign flag on worldState.ragMemory (rides the sync blob, read live each turn —
+// the proseAuthor pattern). Modal is built fresh on open so it always reads live state.
+function showRagModal(){
+  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  var ex=document.getElementById("rag-modal");if(ex)ex.remove();
+  var hasGame=!!(worldState&&worldState.character);
+  var on=!!(worldState&&worldState.ragMemory);
+  var modal=document.createElement("div");modal.id="rag-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:440px;width:100%;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🗂 Episodic Memory (RAG)</span><button id='rag-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 10px;'>The GM recalls verbatim moments from earlier in this campaign when the people, places, or quests involved come up again — exact promises, shared history, callbacks. Also trims long-tail lore from the prompt in mature campaigns.</p>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>Per-campaign and fully reversible — switching it off restores the standard prompt exactly. Takes effect next turn. Young campaigns won't notice it (there is no history to recall yet).</p>"
+    +(hasGame
+      ?"<label style='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);cursor:pointer;font-size:13px;color:var(--t1);'><input type='checkbox' id='rag-cb' style='accent-color:var(--acc);cursor:pointer;width:14px;height:14px;'"+(on?" checked":"")+"/> Enable for this campaign</label>"
+      :"<p style='font-size:12px;color:var(--t2);font-style:italic;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);margin:0;'>Start or load a campaign first — the setting lives on the campaign.</p>")
+    +"</div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  document.getElementById("rag-x").addEventListener("click",function(){modal.remove();});
+  var cb=document.getElementById("rag-cb");
+  if(cb)cb.addEventListener("change",function(){
+    if(cb.checked)worldState.ragMemory=true;
+    else delete worldState.ragMemory; // keep flag-off saves byte-clean of the field
+    if(typeof saveAll==="function")saveAll();
+    showToast(cb.checked?"Episodic memory ON — this campaign":"Episodic memory OFF");
   });
 }
 // ── Prose inspiration (TODO #23) ───────────────────────────────────────────────

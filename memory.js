@@ -132,15 +132,171 @@ function fileFutureEvent(when,who,what,setTurn){
 function resolveFutureEvent(what){var i;
   for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
   for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what.indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
+// ── RAG episodic memory (#27 Phase 1 — see RAG_MEMORY.md) ──────────────────────
+// Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API calls.
+// READ-SIDE ONLY: nothing here changes what gets written to memory/chapters/summaries.
+// The per-campaign flag worldState.ragMemory gates retrieval AND the memoryTOC diet
+// together; flag off must reproduce today's prompt byte-for-byte (engine-tested).
+// Retrieved excerpts are episodic TEXTURE, never current truth — the block framing
+// subordinates them to the state blocks above it (the stale-chunk drift guard).
+function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ragMemory);}
+var RAG_BUDGET=2400;   // ~600 tokens of excerpt payload per turn, hard cap
+var RAG_RECENT=10;     // skip entries this close to the current turn (already in sessionLog)
+var RAG_MAX=3;         // excerpts per turn
+// Known-NPC scan list (lowercased, with aliases). Names under 3 chars are unscannable
+// (substring false positives) unless an alias qualifies.
+function ragKnownNames(){
+  var out=[],i,j;
+  if(typeof memory==="undefined"||!memory||!memory.npcs)return out;
+  var ks=Object.keys(memory.npcs);
+  for(i=0;i<ks.length;i++){
+    var low=ks[i].toLowerCase(),als=[],src=memory.npcs[ks[i]].aliases||[];
+    for(j=0;j<src.length;j++){if(src[j]&&String(src[j]).length>=3)als.push(String(src[j]).toLowerCase());}
+    if(low.length>=3||als.length)out.push({nm:ks[i],low:low,als:als});
+  }
+  return out;
+}
+function ragScanNames(lowText,names,addFn){
+  var i,j;
+  for(i=0;i<names.length;i++){
+    var hit=names[i].low.length>=3&&lowText.indexOf(names[i].low)>=0;
+    for(j=0;!hit&&j<names[i].als.length;j++){if(lowText.indexOf(names[i].als[j])>=0)hit=true;}
+    if(hit)addFn(names[i].nm);
+  }
+}
+// Write-time entity index for a GM transcript entry — {n:[npcs], l:location, q:[quest titles]},
+// parsed from the raw (pre-cleanTxt) response tags plus a known-NPC name scan for untagged
+// mentions. Runs on every GM entry regardless of the flag so the index is ready whenever the
+// flag flips on. Additive fields only — nothing else reads .e (no schema bump, no migration).
+function ragEntitiesFromRaw(raw){
+  raw=String(raw||"");
+  var e={n:[],l:null,q:[]},seen={},i;
+  if(typeof worldState!=="undefined"&&worldState&&worldState.world)e.l=worldState.world.location||null;
+  function addN(nm){nm=resolveNpcName(String(nm).trim());if(nm&&!seen[nm]&&e.n.length<12){seen[nm]=1;e.n.push(nm);}}
+  var tags=raw.match(/\[(?:NPC|NPC_NOTE|PARTY_MEMBER):([^|\]]+)\|/g)||[];
+  for(i=0;i<tags.length;i++){var p=tags[i].match(/\[(?:NPC|NPC_NOTE|PARTY_MEMBER):([^|\]]+)\|/);if(p)addN(p[1]);}
+  ragScanNames(raw.toLowerCase(),ragKnownNames(),addN);
+  var qm=raw.match(/\[QUEST:([^|\]]+)\|/g)||[];
+  for(i=0;i<qm.length;i++){var qp=qm[i].match(/\[QUEST:([^|\]]+)\|/);if(qp&&e.q.indexOf(qp[1].trim())<0)e.q.push(qp[1].trim());}
+  return e;
+}
+// Lazy backfill for pre-Phase-1 entries: tags are long stripped from .x, so this is a
+// known-NPC name scan only (location/quests unrecoverable → stay empty). Idempotent.
+function ragBackfillEntry(en,names){
+  var e={n:[],l:null,q:[]},low=String(en.x||"").toLowerCase();
+  ragScanNames(low,names,function(nm){if(e.n.length<12&&e.n.indexOf(nm)<0)e.n.push(nm);});
+  return e;
+}
+// Query entities for the CURRENT scene: input = NPCs named in the player's pending action
+// (strongest signal), scene = party members + NPCs last seen at the current node, plus the
+// current location and active quest titles. Deterministic given the same state.
+function ragQueryEntities(inputText){
+  var q={input:{},scene:{},loc:null,quests:[]},i;
+  if(typeof worldState==="undefined"||!worldState)return q;
+  q.loc=worldState.world?worldState.world.location:null;
+  var key=worldState.world?(worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location):null;
+  for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember)q.scene[worldState.npcs[i].name]=1;}
+  var names=ragKnownNames();
+  for(i=0;i<names.length;i++){
+    var meta=memory.npcs[names[i].nm];
+    if(meta&&meta.lastSeenAt&&(meta.lastSeenAt===key||meta.lastSeenAt===q.loc))q.scene[names[i].nm]=1;
+  }
+  if(inputText)ragScanNames(String(inputText).toLowerCase(),names,function(nm){q.input[nm]=1;});
+  for(i=0;i<(worldState.questLog||[]).length;i++){if(worldState.questLog[i].status==="active")q.quests.push(worldState.questLog[i].title);}
+  return q;
+}
+// Lowercased scene terms for the TOC lore filter.
+function ragSceneTerms(inputText){
+  var q=ragQueryEntities(inputText),terms=[],k;
+  for(k in q.input){if(k.length>=3&&terms.indexOf(k.toLowerCase())<0)terms.push(k.toLowerCase());}
+  for(k in q.scene){if(k.length>=3&&terms.indexOf(k.toLowerCase())<0)terms.push(k.toLowerCase());}
+  if(q.loc&&q.loc.length>=3)terms.push(q.loc.toLowerCase());
+  return terms;
+}
+function ragTrim(s,max){
+  s=String(s||"");if(s.length<=max)return s;
+  var t=s.slice(0,max);
+  var b=Math.max(t.lastIndexOf(". "),t.lastIndexOf("! "),t.lastIndexOf("? "));
+  if(b>max*0.4)t=t.slice(0,b+1);
+  return t+" …";
+}
+// The retrieval pass — returns the PAST SCENE EXCERPTS block for buildSysPrompt's volatile
+// half, or "" (flag off / young campaign / no hits). Scores indexed GM entries by entity
+// overlap with the current scene, skips the last RAG_RECENT turns (already in sessionLog),
+// picks the top RAG_MAX at least 3 turns apart (adjacent turns are one scene), renders
+// oldest-first within RAG_BUDGET. Only mutation is filling missing .e index fields (lazy
+// backfill — idempotent, so repeated buildSysPrompt calls are safe; no cursor advances
+// here, same discipline as getNameSuggestions peek mode).
+function ragRetrieve(inputText){
+  if(!ragEnabled())return "";
+  var tr=worldState.transcript;
+  if(!tr||tr.length<6)return "";
+  var q=ragQueryEntities(inputText||"");
+  var w={},k;
+  for(k in q.input)w[k]=3;
+  for(k in q.scene){if(!w[k])w[k]=2;}
+  var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
+  var cands=[],names=null,i,j;
+  for(i=0;i<tr.length;i++){
+    var en=tr[i];
+    if(en.r!=="gm")continue;
+    if(en.t>worldState.turn-RAG_RECENT)continue;
+    if(!en.e){if(!names)names=ragKnownNames();en.e=ragBackfillEntry(en,names);}
+    var sc=0;
+    for(j=0;j<en.e.n.length;j++){if(w[en.e.n[j]])sc+=w[en.e.n[j]];}
+    if(q.loc&&en.e.l===q.loc)sc+=2;
+    for(j=0;j<(en.e.q||[]).length;j++){if(qws[en.e.q[j].toLowerCase()])sc+=1;}
+    if(sc>0)cands.push({i:i,t:en.t,sc:sc});
+  }
+  if(!cands.length)return "";
+  cands.sort(function(a,b){return b.sc-a.sc||b.t-a.t;});
+  var picked=[],pi,pj;
+  for(pi=0;pi<cands.length&&picked.length<RAG_MAX;pi++){
+    var apart=true;
+    for(pj=0;pj<picked.length;pj++){if(Math.abs(picked[pj].t-cands[pi].t)<3){apart=false;break;}}
+    if(apart)picked.push(cands[pi]);
+  }
+  picked.sort(function(a,b){return a.t-b.t;});
+  var out=[],used=0;
+  for(pi=0;pi<picked.length;pi++){
+    var g=tr[picked[pi].i];
+    var p=picked[pi].i>0&&tr[picked[pi].i-1].r==="player"?tr[picked[pi].i-1]:null;
+    var block="[Turn "+g.t+(g.e&&g.e.l?" — "+g.e.l:"")+"]"+(p?"\nPlayer: "+ragTrim(p.x,150):"")+"\nGM: "+ragTrim(g.x,700);
+    if(used+block.length>RAG_BUDGET)break;
+    out.push(block);used+=block.length;
+  }
+  if(!out.length)return "";
+  return "PAST SCENE EXCERPTS — verbatim moments from earlier in this campaign, retrieved because they involve the people, places, or quests in the current scene. This is HISTORY (oldest first): attitudes, alliances, locations, and stakes may have CHANGED since — the CURRENT state blocks above are the truth and override anything here. Use these for continuity only: exact wording of promises, shared history, callbacks.\n"+out.join("\n")+"\n\n";
+}
 function memoryTOC(){
   var lines=[],i;
+  // RAG flag ON puts the TOC on a diet (same flag as retrieval — RAG_MEMORY.md §3.4):
+  // lore filtered to scene-relevant + the most recent 8 (cap 12), and the CHAPTER SUMMARIES
+  // section dropped (it duplicates the STORY SO FAR block, which injects the last 8
+  // eventHistory summaries every turn anyway). Flag OFF must produce today's output
+  // byte-for-byte — enforced by an engine test; do not restructure the off-path strings.
+  var _diet=typeof ragEnabled==="function"&&ragEnabled();
   var nk=Object.keys(memory.npcs);if(nk.length)lines.push("KNOWN NPCs: "+nk.join(", "));
   var lk=Object.keys(memory.locations);if(lk.length)lines.push("VISITED: "+lk.join(", "));
   var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);
   if(fe.length){var fs=[];for(i=0;i<fe.length;i++)fs.push(fe[i].what+" ("+fe[i].when+")");lines.push("PENDING EVENTS: "+fs.join("; "));}
-  if(memory.lore.length)lines.push("LORE: "+memory.lore.join("; "));
+  if(memory.lore.length){
+    if(!_diet)lines.push("LORE: "+memory.lore.join("; "));
+    else{
+      var terms=ragSceneTerms(typeof lastAction==="string"&&lastAction?lastAction:"");
+      var kept=[],cut=memory.lore.length-8;
+      for(i=0;i<memory.lore.length;i++){
+        var ll=String(memory.lore[i]).toLowerCase(),hit=(i>=cut),ti;
+        for(ti=0;!hit&&ti<terms.length;ti++){if(ll.indexOf(terms[ti])>=0)hit=true;}
+        if(hit)kept.push(memory.lore[i]);
+      }
+      if(kept.length>12)kept=kept.slice(-12);
+      if(kept.length===memory.lore.length)lines.push("LORE: "+kept.join("; "));
+      else lines.push("LORE (scene-relevant + recent, "+kept.length+" of "+memory.lore.length+"): "+kept.join("; "));
+    }
+  }
   if(memory.keyDecisions.length){var d=memory.keyDecisions.slice(-5),ds=[];for(i=0;i<d.length;i++)ds.push("[T"+d[i].turn+"] "+d[i].desc);lines.push("RECENT DECISIONS: "+ds.join("; "));}
-  if(memory.chapters.length){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
+  if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
 function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+": "+n.attitude],i;if(n.knowledge.length)lines.push("  Knows: "+n.knowledge.join("; "));if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}

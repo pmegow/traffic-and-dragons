@@ -225,4 +225,88 @@ function runEngineTests(R){
   t("adapter exposes the #24 surface (syncStatus + syncNow + syncToServer)",function(){
     return (typeof storageAdapter.syncStatus==="function"&&typeof storageAdapter.syncNow==="function"&&typeof storageAdapter.syncToServer==="function")?true:"missing API";
   });
+
+  // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
+  section("RAG episodic memory");
+  t("logTranscript indexes GM entries at write time (tags + location + quest)",function(){
+    makeWorld();
+    logTranscript("player","I greet the stranger");
+    logTranscript("gm","Bram nods.","Bram nods. [NPC:Bram|wary|ally][QUEST:The Toll|offered|pay up]");
+    var en=worldState.transcript[1];
+    if(!en.e)return "no index on gm entry";
+    if(worldState.transcript[0].e)return "player entry got an index";
+    if(en.e.n.indexOf("Bram")<0)return "npc missing: "+JSON.stringify(en.e.n);
+    if(en.e.l!=="Ashfen")return "location: "+en.e.l;
+    return en.e.q[0]==="The Toll"?true:"quest: "+JSON.stringify(en.e.q);
+  });
+  t("flag off → ragRetrieve returns the empty string",function(){
+    makeWorld();worldState.turn=40;
+    worldState.transcript=[{t:2,r:"player",x:"hi"},{t:3,r:"gm",x:"Bram waves.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:4,r:"gm",x:"a"},{t:5,r:"gm",x:"b"},{t:6,r:"gm",x:"c"},{t:7,r:"gm",x:"d"}];
+    return ragRetrieve("I ask Bram")===""?true:"retrieved with flag off";
+  });
+  t("retrieval finds an old scene by NPC, skips the recent window, frames + budgets",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[
+      {t:2,r:"player",x:"I ask Bram about the toll"},
+      {t:3,r:"gm",x:"Bram promises you safe passage for a year and a day.",e:{n:["Bram"],l:"Greyford",q:[]}},
+      {t:36,r:"player",x:"I wave at Bram"},
+      {t:37,r:"gm",x:"Bram waves back cheerfully from the recent past.",e:{n:["Bram"],l:"Ashfen",q:[]}},
+      {t:38,r:"gm",x:"filler",e:{n:[],l:"Ashfen",q:[]}},
+      {t:39,r:"gm",x:"filler2",e:{n:[],l:"Ashfen",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("I ask Bram to honor his promise");
+    delete worldState.ragMemory;
+    if(b.indexOf("safe passage")<0)return "old scene not retrieved: "+b.slice(0,120);
+    if(b.indexOf("recent past")>=0)return "recent-window entry leaked in";
+    if(b.indexOf("override")<0)return "subordination framing missing";
+    if(b.indexOf("Player: I ask Bram about the toll")<0)return "player half of the turn pair missing";
+    return b.length<3200?true:"over budget: "+b.length;
+  });
+  t("lazy backfill indexes pre-Phase-1 entries by known-NPC name scan",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:["The Grey Blade"]};
+    worldState.transcript=[
+      {t:4,r:"player",x:"I confront the mercenary"},
+      {t:5,r:"gm",x:"Veyra swears she will repay the debt before midwinter."},
+      {t:6,r:"gm",x:"nothing here"},{t:7,r:"gm",x:"nothing"},{t:8,r:"gm",x:"still nothing"},{t:9,r:"gm",x:"quiet"}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("I remind Veyra of her debt");
+    delete worldState.ragMemory;
+    if(!worldState.transcript[1].e||worldState.transcript[1].e.n.indexOf("Veyra")<0)return "backfill missing: "+JSON.stringify(worldState.transcript[1].e);
+    return b.indexOf("repay the debt")>=0?true:"not retrieved: "+b.slice(0,120);
+  });
+  t("TOC diet: flag-off output is byte-identical after a round trip",function(){
+    makeWorld();lastAction="";
+    for(var li=0;li<20;li++)memory.lore.push("Fact number "+li+" about distant Elsewhere");
+    memory.lore.push("Ashfen was built on a barrow");
+    memory.chapters.push({turn:1,summary:"Chapter one happened."});
+    var off1=memoryTOC();
+    worldState.ragMemory=true;var on=memoryTOC();
+    delete worldState.ragMemory;var off2=memoryTOC();
+    if(off1!==off2)return "flag round-trip changed the flag-off TOC";
+    if(on===off1)return "diet did nothing";
+    if(on.indexOf("CHAPTER SUMMARIES")>=0)return "diet kept chapter summaries";
+    if(off1.indexOf("CHAPTER SUMMARIES")<0)return "flag-off lost chapter summaries";
+    if(on.indexOf("Ashfen was built on a barrow")<0)return "scene-relevant lore dropped";
+    return on.indexOf("Fact number 3 ")<0?true:"old irrelevant lore kept";
+  });
+  t("stable half is unaffected by the rag flag (cache invariant)",function(){
+    makeWorld();var a=buildSysPrompt().stable;
+    worldState.ragMemory=true;var b=buildSysPrompt().stable;
+    delete worldState.ragMemory;
+    return a===b?true:"stable changed with the rag flag";
+  });
+  t("rag block lands in the volatile half only, and only with the flag on",function(){
+    makeWorld();worldState.turn=40;lastAction="I ask Bram about his promise";
+    memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[{t:2,r:"player",x:"I ask Bram"},{t:3,r:"gm",x:"Bram promises safe passage.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:6,r:"gm",x:"a"},{t:7,r:"gm",x:"b"},{t:8,r:"gm",x:"c"},{t:9,r:"gm",x:"d"}];
+    var offV=buildSysPrompt().volatile;
+    if(offV.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts present with flag off";
+    worldState.ragMemory=true;
+    var s=buildSysPrompt();
+    delete worldState.ragMemory;lastAction=null;
+    if(s.stable.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts leaked into stable";
+    return s.volatile.indexOf("PAST SCENE EXCERPTS")>=0?true:"excerpts missing from volatile";
+  });
 }

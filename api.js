@@ -106,6 +106,9 @@ function buildSysPrompt(){
   var cb="";if(worldState.combat){var cm=worldState.combat;var cbStats="";if(cm.stats)cbStats=" | STR:"+cm.stats.STR+" DEX:"+cm.stats.DEX+" CON:"+cm.stats.CON+" INT:"+cm.stats.INT+" WIS:"+cm.stats.WIS+" CHA:"+cm.stats.CHA+" CR:"+cm.stats.CR;var cbDmgMod="";if(cm.immune&&cm.immune.length)cbDmgMod+=" | Immune:"+cm.immune.join(",");if(cm.resist&&cm.resist.length)cbDmgMod+=" | Resist:"+cm.resist.join(",");if(cm.vuln&&cm.vuln.length)cbDmgMod+=" | Vuln:"+cm.vuln.join(",");cb="COMBAT ACTIVE:\nEnemy: "+cm.name+" HP:"+cm.hp+"/"+cm.maxHp+" AC:"+cm.ac+" Atk:+"+cm.atk+" Dmg:"+cm.dmg+" Morale:"+cm.morale+" Round:"+cm.round+cbStats+cbDmgMod+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var memToc=memoryTOC();
+  // RAG episodic excerpts (#27 Phase 1) — "" unless worldState.ragMemory is on. VOLATILE
+  // half ONLY: retrieval changes per turn and must never touch the cached stable block.
+  var ragBlock=typeof ragRetrieve==="function"?ragRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
   var legacyBlock="";
   if(worldState.pendingLegacy){
     var _lc=worldState.pendingLegacy;
@@ -215,6 +218,7 @@ function buildSysPrompt(){
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
   +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
+    +ragBlock
     +legacyBlock
     +buildNpcGraph()
     +buildGeoBlock()

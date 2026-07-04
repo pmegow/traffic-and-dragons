@@ -25,7 +25,11 @@ function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapte
 // #12 — append-only campaign transcript: the verbatim prose record for the story compiler (#11) + cross-device
 // completeness. Lives in worldState (rides in the sync blob). Written from the turn sources (sendAction/beginAdventure),
 // NOT addMsg — addMsg re-fires when the last turns are re-rendered on reload, which would double-count.
-function logTranscript(role,text){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];worldState.transcript.push({t:worldState.turn,r:role,x:String(text).trim()});}
+// GM entries also get a write-time entity index (.e) from the RAW response — #27 Phase 1
+// retrieval keys on it. Indexed regardless of the rag flag so the index is ready whenever
+// the flag flips on; callers pass the pre-cleanTxt response as `raw` (falls back to the
+// cleaned text, which still supports the known-NPC name scan).
+function logTranscript(role,text,raw){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text).trim()};if(role==="gm"&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);worldState.transcript.push(_e);}
 // Schema migrations for worldState — fills fields added by later versions. Runs on every
 // load AND on save import (importSave previously skipped these — audit #15). Operates on
 // the global worldState; returns true if anything was modified.

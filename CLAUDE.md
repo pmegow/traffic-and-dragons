@@ -280,6 +280,16 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 
 Memory status shown in `#membar` as `~NNNtk`: green dot below 80% of `SUMMARIZE_AT`, amber at 80%+, red at/above `SUMMARIZE_AT`.
 
+### 8b. RAG episodic memory (v1.154, TODO #27 Phase 1 — see [RAG_MEMORY.md](RAG_MEMORY.md))
+
+Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API calls, **read-side only** (summarize/chapters/caps untouched). **Default OFF**; per-campaign flag `worldState.ragMemory` (rides the sync blob), toggled via **Dev Mode ▸ 🗂 Episodic memory…** (`showRagModal()`, all 3 menus).
+
+- **Index:** `logTranscript(role,text,raw)` stamps every GM transcript entry with `e:{n:[npcs],l:location,q:[quest titles]}` parsed from the RAW response tags + a known-NPC name scan (`ragEntitiesFromRaw`, memory.js). Written regardless of the flag so the index is ready when the flag flips. Pre-Phase-1 entries are lazily backfilled (name-scan only) during retrieval. Additive fields — no schema bump.
+- **Retrieval:** `ragRetrieve(input)` (memory.js) scores GM entries by overlap with the current scene (party + NPCs last seen here + location + active quests) ∪ NPCs named in the player's input (weighted highest); skips the last 10 turns (already in sessionLog); picks ≤3 excerpts ≥3 turns apart within a ~600-token budget; renders oldest-first as turn-pair excerpts under a "PAST SCENE EXCERPTS … the CURRENT state blocks above override anything here" header (the stale-chunk drift guard — excerpts are episodic texture, never current truth).
+- **Injection:** `buildSysPrompt` VOLATILE half only, after ACTIVE NPC DETAILS. Never touches the cached stable block (engine-tested).
+- **TOC diet (same flag):** `memoryTOC` filters LORE to scene-relevant + most-recent-8 (cap 12) and drops the CHAPTER SUMMARIES section (duplicates the STORY SO FAR block). **Flag off must reproduce today's TOC byte-for-byte** — engine-tested; don't restructure the off-path strings.
+- Measured on the Runelords t54 save: the diet more than paid for the excerpts (volatile net −480 chars with a 1,360-char excerpt block included); flag-off volatile byte-identical to the pre-feature prompt.
+
 ### 9. Map data layer (`memory.map`)
 
 Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArrivalFrom:null}`.
@@ -363,7 +373,7 @@ Implemented as a **tab** (not a checkbox). `activeChatTab` global is `"narrative
 
 Present on both `#game-screen` (in `#topbar`) and `#char-screen` (top-right above step dots).
 
-**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, ✍ Prose inspiration…, 📊 Usage & cost…, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
+**Game screen items:** Sync state (mobile), World state (mobile), Render prompt (mobile) | Campaigns… | Save Game | Load Game | Export Character | Import Character | Dev Mode ▶ (Narrative rules, Language Model…, ✍ Prose inspiration…, 📊 Usage & cost…, 🗂 Episodic memory…, Render Options…, 18+ Adult content, Connect/Disconnect server) | New Game
 
 **Char screen items:** Same full list, but Sync state, World state, Render prompt, Save Game, Export Character, and New Game are greyed out (`opacity:0.4; pointer-events:none`) — no active game yet.
 
