@@ -616,6 +616,11 @@ function exportSave(){
   function getFname(){var el=document.getElementById("sc-fname");return(el&&el.value.trim())||fname;}
   function doSave(){
     var actualFname=getFname();
+    // The async server reconcile can REPLACE worldState between modal-open and this click
+    // (stale local state adopted the server blob mid-dialog) — the payload below serializes
+    // the LIVE state, so a prefilled (unedited) filename must be recomputed from it too, or
+    // the file gets the pre-reconcile turn stamp (the t4-name-on-t139-data bug, 2026-07-03).
+    if(actualFname===fname)actualFname=buildFilename("save");
     modal.remove();
     var data=JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2);
     var blob=new Blob([data],{type:"application/json"});exportToFolder("save",blob,actualFname);
