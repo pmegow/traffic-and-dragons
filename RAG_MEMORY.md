@@ -107,6 +107,12 @@ it's an ornament that unscrews. That line IS the back-out guarantee (§7).
 - **Echo amplification (#31):** feeding the GM its own old prose invites metaphor reuse
   ("older than X" retrieved and re-absorbed). Grep the corpus for recurring structures; if it
   fires, mitigation is excerpt count/recency tuning or paraphrased-not-verbatim excerpts.
+- **Retcon pollution (noted 2026-07-04, t160 analysis):** in-prose OOC corrections leave BOTH
+  versions of a scene in the transcript (t153's impossible punch + t154's rewind; t160's false
+  pin recollection) — the episodic index will happily retrieve the superseded version someday.
+  No mitigation built; if it shows up in play, options are a `[RETCON:turn]`-style marker that
+  de-indexes an entry, or down-weighting entries whose successor contains correction language.
+  Related: the engine's ↻ Re-roll already replaces the transcript entry; prose retcons don't.
 - **Stale-chunk drift detection (protocol parked 2026-07-03 — build only if real play shows the
   symptom).** Two mechanical tripwires: ① GM emits `[QUEST:X|offered]` while X is in
   `memory.quests` (archived) = drift, no judgment needed; ② prose names a dead NPC on a turn
