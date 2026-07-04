@@ -8,5 +8,11 @@ Thumbs.db
 # Local backups
 BAK/
 
+# Archived audits (kept locally, not in the repo)
+audits/
+
+# Personal save files
+*.tnd
+
 # Personal Claude Code settings (hooks + launch.json ARE committed)
 .claude/settings.local.json
