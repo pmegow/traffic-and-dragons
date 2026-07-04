@@ -107,6 +107,17 @@ it's an ornament that unscrews. That line IS the back-out guarantee (§7).
 - **Echo amplification (#31):** feeding the GM its own old prose invites metaphor reuse
   ("older than X" retrieved and re-absorbed). Grep the corpus for recurring structures; if it
   fires, mitigation is excerpt count/recency tuning or paraphrased-not-verbatim excerpts.
+- **Stale-chunk drift detection (protocol parked 2026-07-03 — build only if real play shows the
+  symptom).** Two mechanical tripwires: ① GM emits `[QUEST:X|offered]` while X is in
+  `memory.quests` (archived) = drift, no judgment needed; ② prose names a dead NPC on a turn
+  whose excerpt featured them = high-precision candidate. The semantic forms (attitude
+  regression, scene snapback) need a judge pass over per-turn evidence triples (injected
+  excerpt block + response + state digest) — **enabler: the harness must capture the rag block
+  per turn** (e.g. dev-only `window.__lastRagBlock`), which is discarded today. ~30 min build.
+  Escalation dials if confirmed, in order: annotate excerpt NPC names with current truth
+  ("(now: ally)"), filter excerpts featuring dead NPCs, shrink to 2 excerpts / stronger recency
+  bias, kill switch. Subtle tone-coloring is only detectable in aggregate (flag on/off A/B on
+  the same save), not per-turn.
 
 ## 6. Back-out analysis (why this is safe to try)
 
