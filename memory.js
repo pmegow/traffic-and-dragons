@@ -519,7 +519,31 @@ function factionLinkUpsert(facA,facB,rel){
   for(i=0;i<edges.length;i++){if((edges[i].a===facA&&edges[i].b===facB)||(edges[i].a===facB&&edges[i].b===facA)){edges[i].rel=rel;edges[i].turn=turn;return;}}
   edges.push({a:facA,b:facB,rel:rel,turn:turn});
 }
-function sessionTokens(){var total=0,i;for(i=0;i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
+// ── #28 summarize-tail retention ───────────────────────────────────────────────
+// summarize() used to clear sessionLog to ZERO, so in mature campaigns (where it fires every
+// ~2 exchanges) the GM's verbatim window was ~2 turns deep and object-level facts evaporated
+// at every boundary — the GM then confabulated recalls (the t160 pin-grab incident). Now a
+// short tail of the just-summarized exchanges stays in sessionLog as live context, and
+// worldState.sessKept marks how many leading messages a past extraction already covered:
+// sessionTokens() counts only what's PAST the marker (the retained tail can't re-trip
+// SUMMARIZE_AT — no thrash) and summarize() extracts only from the marker on (no exchange
+// is ever filed to memory twice). Extraction richness itself is unchanged (read-side only).
+function sessKeptStart(){
+  var k=(typeof worldState!=="undefined"&&worldState&&worldState.sessKept)||0;
+  return (k>0&&k<=sessionLog.length)?k:0; // stale marker (import/clear/re-roll) fails safe: recount everything
+}
+function retainSessionTail(){
+  var keep=[],tok=0,i=sessionLog.length;
+  while(i>=2&&keep.length/2<SUMMARY_KEEP_EX){
+    var u=sessionLog[i-2],a=sessionLog[i-1];
+    var pairTok=Math.ceil((u.content.length+a.content.length)/4);
+    if(keep.length&&tok+pairTok>SUMMARY_KEEP_TOK)break; // newest pair always kept; older pairs only within budget
+    keep.unshift(u,a);tok+=pairTok;i-=2;
+  }
+  sessionLog=keep;
+  if(typeof worldState!=="undefined"&&worldState)worldState.sessKept=keep.length;
+}
+function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
@@ -531,7 +555,7 @@ async function summarize(){
     // GM turns carry the events — send them near-whole (a 1000-token turn is ~4000 chars; the old
     // 300-char slice fed the extractor only scene openings, silently dropping mid/late-scene events
     // from long-term memory — audit #3). Player turns are short; trim them lightly.
-    var i;for(i=0;i<sessionLog.length;i++){var _se=sessionLog[i];extractPrompt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
+    var i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];extractPrompt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
     var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize"});
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memory.chapters.shift();worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
@@ -541,18 +565,18 @@ async function summarize(){
     if(extracted.loreDiscovered){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
     if(extracted.decisionsMade){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
     if(extracted.futureEvents){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
-    sessionLog=[];_sumFails=0;saveMem();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
+    retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
     // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
     _sumFails++;
     if(_sumFails>=3){
-      var _rawBits=[],_ri;for(_ri=0;_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
+      var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
       memory.chapters.push({turn:worldState.turn,summary:_rawSum});if(memory.chapters.length>10)memory.chapters.shift();
       worldState.eventHistory.push("[T"+worldState.turn+"] "+_rawSum);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
-      sessionLog=[];_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
+      retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
     }else{
       addMsg("system","Memory filing failed ("+(e&&e.message?e.message:"unknown")+") — will retry next turn.");
     }

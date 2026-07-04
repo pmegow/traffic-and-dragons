@@ -435,4 +435,58 @@ function runEngineTests(R){
     if(s.stable.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts leaked into stable";
     return s.volatile.indexOf("PAST SCENE EXCERPTS")>=0?true:"excerpts missing from volatile";
   });
+
+  // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
+  section("summarize-tail retention (#28)");
+  function pair(u,g){sessionLog.push({role:"user",content:u},{role:"assistant",content:g});}
+  var big=new Array(1001).join("x"); // 1000 chars ≈ 250 tok
+  t("retainSessionTail keeps the newest 3 exchanges and sets the marker",function(){
+    makeWorld();
+    pair("a1","g1");pair("a2","g2");pair("a3","g3");pair("a4","g4");pair("a5","g5");
+    retainSessionTail();
+    if(sessionLog.length!==6)return "kept "+sessionLog.length+" messages, want 6";
+    if(sessionLog[0].content!=="a3")return "oldest kept is "+sessionLog[0].content+", want a3";
+    if(sessionLog[5].content!=="g5")return "newest lost";
+    return worldState.sessKept===6?true:"marker "+worldState.sessKept+", want 6";
+  });
+  t("token cap trims older exchanges; the newest survives even alone over budget",function(){
+    makeWorld();
+    var huge=big+big+big+big; // 4000 chars ≈ 1000 tok per message
+    pair(huge,huge);pair(huge,huge);pair(huge,huge); // 2000 tok/pair — 2nd pair would push past SUMMARY_KEEP_TOK
+    retainSessionTail();
+    if(sessionLog.length!==2)return "budget kept "+(sessionLog.length/2)+" pairs, want 1";
+    makeWorld();
+    pair(huge+huge,huge+huge); // one pair ≈ 4000 tok, over budget by itself
+    retainSessionTail();
+    return sessionLog.length===2?true:"huge newest pair was dropped";
+  });
+  t("mature-campaign prose sizes retain 2-3 exchanges (the #28 spec target)",function(){
+    makeWorld();
+    var gm=big+big; // 2000 chars — mid-range t198 GM turn
+    pair("act 1",gm);pair("act 2",gm);pair("act 3",gm);pair("act 4",gm);pair("act 5",gm);
+    retainSessionTail();
+    var kept=sessionLog.length/2;
+    return kept>=2&&kept<=3?true:"kept "+kept+" exchanges at ~500 tok each, want 2-3";
+  });
+  t("retained tail can't re-trip SUMMARIZE_AT: sessionTokens counts only past the marker",function(){
+    makeWorld();
+    pair(big,big);pair(big,big);
+    retainSessionTail();
+    if(sessionTokens()!==0)return "retained tail still counts: "+sessionTokens();
+    pair("new question",big);
+    var want=Math.ceil(("new question".length+big.length)/4);
+    return sessionTokens()===want?true:"new-exchange count "+sessionTokens()+", want "+want;
+  });
+  t("stale marker fails safe: sessKept beyond the log recounts everything",function(){
+    makeWorld();
+    pair("q",big);
+    worldState.sessKept=10; // e.g. log replaced by an import
+    var want=Math.ceil(("q".length+big.length)/4);
+    return sessionTokens()===want?true:"counted "+sessionTokens()+", want "+want;
+  });
+  t("empty log: retention is a no-op, marker zero",function(){
+    makeWorld();
+    retainSessionTail();
+    return sessionLog.length===0&&worldState.sessKept===0?true:"len "+sessionLog.length+" marker "+worldState.sessKept;
+  });
 }

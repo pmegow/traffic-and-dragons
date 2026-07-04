@@ -1,5 +1,12 @@
 var MDL="claude-sonnet-4-6";
-var SUMMARIZE_AT=1200; // session-token threshold: summarize() gate, sendAction trigger, membar colors (amber at 80%)
+var SUMMARIZE_AT=2400; // session-token threshold: summarize() gate, sendAction trigger, membar colors (amber at 80%).
+// Counts only UNEXTRACTED session tokens (past worldState.sessKept — see sessKeptStart, memory.js).
+// Raised 1200→2400 with #28: 1200 was tuned in the 2-3-sentence-cap era; prose-voice GM turns run
+// 1,300-3,100 chars, so 1200 fired every ~2 exchanges in mature campaigns (the amnesia cliff).
+var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
+var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
+// 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
+// chars ≈ 330-780 tok/exchange); 900 kept only 1, under the 2-3 the #28 spec calls for.
 // ── LLM provider adapters ─────────────────────────────────────────────────────
 // Each provider is a self-contained object: callGM() picks the active one and
 // calls headers/buildBody/parseResponse. NO if(provider===...) branches anywhere
@@ -108,7 +115,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.164";
+var APP_VERSION="v1.165";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

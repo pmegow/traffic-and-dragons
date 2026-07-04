@@ -268,15 +268,17 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 
 ### 8. Memory / summarization system (in `memory.js`)
 
-`sessionTokens()` estimates the token count of `sessionLog` (sum of `content.length` / 4). When it hits `SUMMARIZE_AT` (globals.js, 1200), `summarize()` fires before the next player action. On failure the log is KEPT and retried next turn; after 3 consecutive failures a raw excerpt is archived as a degraded chapter and the log clears (v1.144).
+`sessionTokens()` estimates the token count of the **unextracted** part of `sessionLog` (sum of `content.length` / 4, counting only messages past the `worldState.sessKept` marker — see tail retention below). When it hits `SUMMARIZE_AT` (globals.js, 2400 — raised from 1200 with #28; 1200 was tuned in the sentence-cap era and fired every ~2 exchanges under prose-voice response lengths), `summarize()` fires before the next player action. On failure the log is KEPT and retried next turn; after 3 consecutive failures a raw excerpt is archived as a degraded chapter and the log is trimmed to the retained tail (v1.144/v1.165).
 
 `summarize()`:
-1. Sends the full session log to the API with a JSON-extraction system prompt (2000 token limit)
+1. Sends the unextracted session log (from `sessKeptStart()`) to the API with a JSON-extraction system prompt (2000 token limit)
 2. Parses response as `{chapterSummary, npcUpdates[], loreDiscovered[], decisionsMade[], futureEvents[]}`
 3. Pushes chapter summary into `memory.chapters` and `worldState.eventHistory`
 4. Updates NPC attitudes and knowledge in `memory.npcs`
 5. Files lore, decisions, and future events
-6. Clears `sessionLog` and saves memory
+6. Retains a tail of the just-summarized exchanges and saves memory + core
+
+**Summarize-tail retention (#28, v1.165):** `summarize()` used to clear `sessionLog` to zero — in mature campaigns the GM's verbatim window dropped to ~2 turns and it confabulated recalls (the t160 pin-grab incident). Now `retainSessionTail()` keeps the newest exchanges (up to `SUMMARY_KEEP_EX`=3 pairs within `SUMMARY_KEEP_TOK`=1600 tokens; the newest pair always survives) as live context, and `worldState.sessKept` marks how many leading messages were already extracted. `sessionTokens()` counts only past the marker (retained tail can't re-trip the threshold — no thrash) and the extraction prompt slices from the same marker (no exchange is ever filed to memory twice). Stale markers (import/clear) fail safe to zero via `sessKeptStart()`. Retrieval side effect: the RAG dynamic skip window (`skipN`, §8b) keys off `sessionLog.length`, so it automatically covers the deeper live window.
 
 Memory status shown in `#membar` as `~NNNtk`: green dot below 80% of `SUMMARIZE_AT`, amber at 80%+, red at/above `SUMMARIZE_AT`.
 
