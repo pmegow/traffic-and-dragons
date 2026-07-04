@@ -1,9 +1,16 @@
 # Blueprint Designer — Handoff / Planning Doc
 
-**Status:** Foundation layer BUILT (v1.156, 2026-07-03) — §5.1 normalizer live at every load point,
-§5.2 tone-apply fixed, §5.3 fixture corrected, §5.5 rich NPC export + D1 (`author`+`tone` emitted),
-`buildBlueprintFromGame` moved to game.js (headless-testable; 7 engine tests, 86 total). The editor
-surface (R7), Generate mode (R-GEN), and dnaHint button (RD.2) are NOT built yet — next chunk.
+**Status:** Foundation BUILT (v1.156) + **editor surface v1 BUILT (v1.157, 2026-07-03)** as
+`blueprint-designer.html` — a fully EXTERNAL page (D5 revised, see below). Covers: R2.1 (new),
+R2.3 (load `.blueprint`/`.campaign` file → normalized), full field editing incl. nested act/arc
+cards with add/remove/reorder arrows (R7.1/R7.2), NPCs/locations/rules, RD.1 (per-arc dnaHint
+textarea), constrained tone/voice/type dropdowns (R4.1–R4.3), save-blocking validation (R4.4),
+live counts (R7.3), unsaved-changes guard (R7.4), lossless round-trip verified on the Runelords
+fixture (R5.3). App File-menus gained "🧩 Blueprint Designer…" (opens the page). **Remaining
+chunks:** Generate mode (R-GEN), dnaHint generate button (RD.2), cloud-library load/save
+(R2.4/R5.2 cloud half), edit-active-game (R2.5), browser "Edit in Designer" cross-link.
+Foundation: §5.1 normalizer at every load point, §5.2 tone-apply fixed (closes AUDIT_FABLE #24),
+§5.3 fixture corrected, §5.5 rich NPC export + D1; 7 engine tests (86 total).
 **Reference fixture:** `rise_of_the_runelords.blueprint` (hand-authored, complete example).
 **Related shipped work:** Remedy A (v1.137) — per-arc `dnaHint` anti-drift. See §5.4.
 **Absorbs:** TODO #5 (Campaign Designer / guided AI generation) — now the "Generate" path of this feature.
@@ -48,7 +55,7 @@ All three converge on the same editor and the same save paths.
 | **D2** | dnaHint authoring | **Do both** — arcs get a hand-editable `dnaHint` field AND a per-blueprint "Generate dnaHints" button that runs the DNA pass against the selected `proseAuthor` (reuses the `generateSkeleton` dnaHint prompt). |
 | **D3** | TODO #5 (Campaign Designer) | **Absorbed** — becomes the Generate mode (§1, mode 2). No longer a separate backlog item. |
 | **D4** | Cloud save behavior | **Overwrite-by-slug** (name-slug is the key), mirroring the character library. Re-saving a same-named blueprint replaces it. |
-| **D5** | Launch point | **Stand-alone surface** — the designer is its own first-class destination (own screen + File-menu entry), NOT a tab/button embedded inside `showBlueprintBrowser`. The blueprint browser remains the *pick-to-play* surface; the designer is the *author* surface. They may cross-link (browser → "Edit in Designer") but are distinct. |
+| **D5** | Launch point | **REVISED 2026-07-03 (user call): completely EXTERNAL page** — `blueprint-designer.html`, its own file in repo root (the `test.html`/`todo-viewer.html` pattern), NOT a screen inside index.html and NOT embedded in `showBlueprintBrowser`. It loads the REAL engine data/logic via `<script src>` (data.js for TONES/AUTHORS, game.js for `normalizeBlueprint`/`validateBlueprint`, later api.js/storage-adapter.js for Generate mode + cloud library) and shares localStorage by same-origin (server token, provider keys, and read-only access to the active campaign for R2.5). **Hard rule: the designer NEVER writes the game's state keys** (`tnd_core/sess/mem`) — it reads, and it emits `.blueprint` files / library saves only. The app gets a File-menu link that opens the page; the browser may cross-link ("Edit in Designer"). Original in-app-screen wording superseded. |
 
 *(All decisions resolved — none open.)*
 

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueprint Designer — Traffic and Dragons</title>
+<!--
+  Blueprint Designer (BLUEPRINT_EDITOR.md, D5 revised 2026-07-03: fully EXTERNAL page).
+  Loads the REAL engine data/logic via <script src> (the test.html / todo-viewer.html pattern):
+  data.js supplies TONES/AUTHORS, game.js supplies normalizeBlueprint/normalizeToneId/validateBlueprint.
+  Shares localStorage with the app by same-origin (future: cloud library via storage-adapter,
+  Generate mode via api.js). HARD RULE: this page never writes the game's state keys
+  (tnd_core/sess/mem) — it reads engine data and emits .blueprint files only.
+  ES5 only, string-concat HTML, no dependencies — same conventions as the app.
+-->
+<style>
+:root{--bg0:#0f0e0c;--bg1:#171614;--bg2:#1f1d1a;--bg3:#282520;--brd:#2c2a26;--brd2:#3a3733;--t0:#e6e0d4;--t1:#bdb6a8;--t2:#807a6e;--acc:#b8935a;--dng:#c05050;--grn:#6a9a5a;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:14px;}
+#topbar{position:sticky;top:0;z-index:10;background:var(--bg1);border-bottom:1px solid var(--brd2);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+#topbar h1{font-size:16px;color:var(--t0);margin:0;flex:1;min-width:200px;}
+#topbar h1 .ver{font-size:10px;color:var(--t2);font-weight:normal;margin-left:8px;}
+.tbtn{padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;}
+.tbtn:hover{border-color:var(--acc);color:var(--acc);}
+.tbtn.primary{background:var(--acc);border-color:var(--acc);color:#141414;font-weight:bold;}
+.tbtn.primary:hover{color:#000;}
+#statusline{width:100%;font-size:11px;min-height:15px;color:var(--t2);}
+#statusline.err{color:var(--dng);}
+#statusline.ok{color:var(--grn);}
+main{max-width:880px;margin:0 auto;padding:18px 18px 80px;}
+.sect{background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:16px;}
+.sect h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0 0 12px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:3px;}
+input[type=text],select,textarea{width:100%;padding:8px 10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);outline:none;}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--acc);}
+textarea{resize:vertical;min-height:56px;line-height:1.5;}
+.card{background:var(--bg2);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:var(--r);padding:12px;margin-bottom:10px;}
+.card.arc{background:var(--bg1);border-left-color:var(--brd2);margin:8px 0 8px 18px;}
+.cardhead{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.cardhead .cardlbl{flex:1;font-size:11px;color:var(--acc);font-weight:bold;text-transform:uppercase;letter-spacing:.06em;}
+.card.arc .cardhead .cardlbl{color:var(--t2);}
+.mini{padding:3px 9px;font-size:11px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;}
+.mini:hover{border-color:var(--acc);color:var(--acc);}
+.mini.del:hover{border-color:var(--dng);color:var(--dng);}
+.addbtn{padding:7px 14px;font-size:12px;font-family:var(--font);background:none;border:1px dashed var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;width:100%;}
+.addbtn:hover{border-color:var(--acc);color:var(--acc);}
+.fld{margin-bottom:8px;}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t1);cursor:pointer;margin-bottom:8px;}
+.chk input{accent-color:var(--acc);width:14px;height:14px;cursor:pointer;}
+.rowline{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+.rowline .grow{flex:1;}
+#counts{font-size:11px;color:var(--t2);}
+.empty{font-size:12px;color:var(--t2);font-style:italic;padding:6px 0 10px;}
+::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg0);}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
+  <button class="tbtn" id="btn-new">New</button>
+  <button class="tbtn" id="btn-load">Load&hellip;</button>
+  <button class="tbtn primary" id="btn-save">&#8595; Save .blueprint</button>
+  <div id="statusline"></div>
+</div>
+<main id="app"></main>
+<input type="file" id="file-inp" accept=".blueprint,.campaign" style="display:none;">
+
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+<script src="game.js"></script>
+<script>
+var ARC_TYPES=["","combat","investigation","exploration","social"];
+var bp=null,dirty=false;
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function blankArc(){return {title:"",objective:"",type:"",dnaHint:""};}
+function blankAct(){return {title:"",goal:"",turningPoint:"",parallel:false,arcs:[blankArc()]};}
+function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],rules:[]});}
+
+function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
+function markDirty(){if(!dirty){dirty=true;setStatus("Unsaved changes","");}}
+
+// ── Rendering ──────────────────────────────────────────────────────────────────
+function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
+function txt(sec,i,j,k,val,ph){return "<input type='text' data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"' value='"+esc(val)+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+"/>";}
+function ta(sec,i,j,k,val,ph){return "<textarea data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+">"+esc(val)+"</textarea>";}
+function movBtns(op,i,j){
+  return "<button class='mini' data-op='up"+op+"' data-i='"+i+"' data-j='"+j+"' title='Move up'>&#9650;</button>"
+       +"<button class='mini' data-op='down"+op+"' data-i='"+i+"' data-j='"+j+"' title='Move down'>&#9660;</button>"
+       +"<button class='mini del' data-op='del"+op+"' data-i='"+i+"' data-j='"+j+"' title='Remove'>&#215;</button>";
+}
+function render(){
+  var h="",i,j;
+  // Metadata
+  var toneOpts="<option value=''>(none)</option>";for(i=0;i<TONES.length;i++){toneOpts+="<option value='"+TONES[i].id+"'"+(bp.tone===TONES[i].id?" selected":"")+">"+esc(TONES[i].nm)+"</option>";}
+  var voiceOpts="";for(i=0;i<AUTHORS.length;i++){voiceOpts+="<option value='"+AUTHORS[i].id+"'"+(bp.proseAuthor===AUTHORS[i].id?" selected":"")+">"+esc(AUTHORS[i].nm)+"</option>";}
+  h+="<div class='sect'><h2>Blueprint</h2><div class='grid2'>"
+    +fld("Name *",txt("meta",0,0,"name",bp.name,"e.g. Rise of the Runelords"))
+    +fld("Author (credit)",txt("meta",0,0,"author",bp.author,"who made this campaign"))
+    +fld("World tone","<select data-sec='meta' data-i='0' data-j='0' data-k='tone'>"+toneOpts+"</select>")
+    +fld("Prose voice (player can override)","<select data-sec='meta' data-i='0' data-j='0' data-k='proseAuthor'>"+voiceOpts+"</select>")
+    +fld("Starting location",txt("meta",0,0,"startingLocation",bp.startingLocation,"e.g. Sandpoint"))
+    +fld("Starting region",txt("meta",0,0,"startingRegion",bp.startingRegion,"e.g. Varisia"))
+    +"</div>"
+    +fld("Premise *",ta("meta",0,0,"premise",bp.premise,"One paragraph: the world, the threat, why it matters."))
+    +"</div>";
+  // Acts
+  h+="<div class='sect'><h2>Story — Acts &amp; Arcs</h2>";
+  if(!bp.acts.length)h+="<div class='empty'>No acts yet. A blueprint needs at least one.</div>";
+  for(i=0;i<bp.acts.length;i++){
+    var a=bp.acts[i];
+    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>Act "+(i+1)+"</span>"+movBtns("act",i,0)+"</div>"
+      +"<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fld("Goal *",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
+      +fld("Turning point (ends the act)",txt("act",i,0,"turningPoint",a.turningPoint,"the event that closes this act"))
+      +"<label class='chk'><input type='checkbox' data-sec='act' data-i='"+i+"' data-j='0' data-k='parallel'"+(a.parallel?" checked":"")+"/> Parallel act — arcs can be pursued in any order</label>";
+    for(j=0;j<(a.arcs||[]).length;j++){
+      var r=a.arcs[j];
+      var typeOpts="";for(var ti=0;ti<ARC_TYPES.length;ti++){typeOpts+="<option value='"+ARC_TYPES[ti]+"'"+(r.type===ARC_TYPES[ti]?" selected":"")+">"+(ARC_TYPES[ti]||"(unset)")+"</option>";}
+      h+="<div class='card arc'><div class='cardhead'><span class='cardlbl'>Arc "+(i+1)+"."+(j+1)+"</span>"+movBtns("arc",i,j)+"</div>"
+        +"<div class='grid2'>"+fld("Title *",txt("arc",i,j,"title",r.title,""))+fld("Type","<select data-sec='arc' data-i='"+i+"' data-j='"+j+"' data-k='type'>"+typeOpts+"</select>")+"</div>"
+        +fld("Objective *",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
+        +fld("DNA hint (how the GM should RUN this arc — optional)",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"))
+        +"</div>";
+    }
+    h+="<button class='addbtn' data-op='addarc' data-i='"+i+"' data-j='0'>+ Add arc to Act "+(i+1)+"</button></div>";
+  }
+  h+="<button class='addbtn' data-op='addact' data-i='0' data-j='0'>+ Add act</button></div>";
+  // NPCs
+  h+="<div class='sect'><h2>Seeded NPCs</h2>";
+  if(!bp.npcs.length)h+="<div class='empty'>None — the GM will invent everyone.</div>";
+  for(i=0;i<bp.npcs.length;i++){
+    var n=bp.npcs[i];
+    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(n.name||("NPC "+(i+1)))+"</span>"+movBtns("npc",i,0)+"</div>"
+      +"<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
+      +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))+"</div>"
+      +fld("Notes (what the GM knows about them)",ta("npc",i,0,"notes",n.notes,""))
+      +"</div>";
+  }
+  h+="<button class='addbtn' data-op='addnpc' data-i='0' data-j='0'>+ Add NPC</button></div>";
+  // Locations
+  h+="<div class='sect'><h2>Seeded Locations</h2>";
+  if(!bp.locations.length)h+="<div class='empty'>None — locations emerge in play.</div>";
+  for(i=0;i<bp.locations.length;i++){
+    var L=bp.locations[i];
+    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(L.name||("Location "+(i+1)))+"</span>"+movBtns("loc",i,0)+"</div>"
+      +fld("Name *",txt("loc",i,0,"name",L.name,""))
+      +fld("Canonical description",ta("loc",i,0,"description",L.description,"injected as the location's permanent description"))
+      +"</div>";
+  }
+  h+="<button class='addbtn' data-op='addloc' data-i='0' data-j='0'>+ Add location</button></div>";
+  // Rules
+  h+="<div class='sect'><h2>Custom Narrative Rules</h2>";
+  if(!bp.rules.length)h+="<div class='empty'>None — the default rules still apply.</div>";
+  for(i=0;i<bp.rules.length;i++){
+    h+="<div class='rowline'><div class='grow'>"+ta("rule",i,0,"",bp.rules[i],"a hard rule the GM must follow in this campaign")+"</div>"+movBtns("rule",i,0)+"</div>";
+  }
+  h+="<button class='addbtn' data-op='addrule' data-i='0' data-j='0'>+ Add rule</button>"
+    +"<div id='counts' style='margin-top:12px;'></div></div>";
+  document.getElementById("app").innerHTML=h;
+  updateCounts();
+}
+function updateCounts(){
+  var arcs=0,i;for(i=0;i<bp.acts.length;i++)arcs+=(bp.acts[i].arcs||[]).length;
+  var el=document.getElementById("counts");
+  if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.locations.length+" locations · "+bp.rules.length+" rules";
+}
+
+// ── Field binding (delegated) ──────────────────────────────────────────────────
+function onField(e){
+  var t=e.target,sec=t.getAttribute("data-sec");if(!sec)return;
+  var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0,k=t.getAttribute("data-k");
+  var v=t.type==="checkbox"?t.checked:t.value;
+  if(sec==="meta")bp[k]=v;
+  else if(sec==="act"&&bp.acts[i])bp.acts[i][k]=v;
+  else if(sec==="arc"&&bp.acts[i]&&bp.acts[i].arcs[j])bp.acts[i].arcs[j][k]=v;
+  else if(sec==="npc"&&bp.npcs[i])bp.npcs[i][k]=v;
+  else if(sec==="loc"&&bp.locations[i])bp.locations[i][k]=v;
+  else if(sec==="rule"&&i<bp.rules.length)bp.rules[i]=v;
+  markDirty();
+  if(sec==="rule"||k==="name"&&sec!=="meta")return; // card labels refresh on next structural render
+  updateCounts();
+}
+document.addEventListener("input",onField);
+document.addEventListener("change",onField);
+
+// ── Structural ops (delegated) ─────────────────────────────────────────────────
+function move(arr,from,delta){var to=from+delta;if(to<0||to>=arr.length)return;var x=arr.splice(from,1)[0];arr.splice(to,0,x);}
+document.addEventListener("click",function(e){
+  var t=e.target,op=t.getAttribute&&t.getAttribute("data-op");if(!op)return;
+  var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
+  if(op==="addact")bp.acts.push(blankAct());
+  else if(op==="delact"){if(!confirm("Remove Act "+(i+1)+" and its arcs?"))return;bp.acts.splice(i,1);}
+  else if(op==="upact")move(bp.acts,i,-1);
+  else if(op==="downact")move(bp.acts,i,1);
+  else if(op==="addarc")bp.acts[i].arcs.push(blankArc());
+  else if(op==="delarc"){if(bp.acts[i].arcs.length<=1&&!confirm("Every act needs at least one arc — remove anyway?"))return;bp.acts[i].arcs.splice(j,1);}
+  else if(op==="uparc")move(bp.acts[i].arcs,j,-1);
+  else if(op==="downarc")move(bp.acts[i].arcs,j,1);
+  else if(op==="addnpc")bp.npcs.push({name:"",role:"neutral",pronouns:"they/them",notes:""});
+  else if(op==="delnpc")bp.npcs.splice(i,1);
+  else if(op==="upnpc")move(bp.npcs,i,-1);
+  else if(op==="downnpc")move(bp.npcs,i,1);
+  else if(op==="addloc")bp.locations.push({name:"",description:""});
+  else if(op==="delloc")bp.locations.splice(i,1);
+  else if(op==="uploc")move(bp.locations,i,-1);
+  else if(op==="downloc")move(bp.locations,i,1);
+  else if(op==="addrule")bp.rules.push("");
+  else if(op==="delrule")bp.rules.splice(i,1);
+  else if(op==="uprule")move(bp.rules,i,-1);
+  else if(op==="downrule")move(bp.rules,i,1);
+  else return;
+  markDirty();render();
+});
+
+// ── Load / New / Save ──────────────────────────────────────────────────────────
+function loadBlueprintObject(obj){
+  bp=normalizeBlueprint(obj);
+  var err=validateBlueprint(bp);
+  dirty=false;render();
+  setStatus(err?("Loaded with issues — "+err):"Loaded: "+bp.name,err?"err":"ok");
+}
+document.getElementById("btn-new").addEventListener("click",function(){
+  if(dirty&&!confirm("Discard unsaved changes?"))return;
+  bp=blankBp();dirty=false;render();setStatus("New blueprint","");
+});
+document.getElementById("btn-load").addEventListener("click",function(){
+  if(dirty&&!confirm("Discard unsaved changes?"))return;
+  document.getElementById("file-inp").click();
+});
+document.getElementById("file-inp").addEventListener("change",function(ev){
+  var file=ev.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(re){
+    try{loadBlueprintObject(JSON.parse(re.target.result));}
+    catch(err){setStatus("Failed to read file: "+err.message,"err");}
+  };
+  reader.readAsText(file);ev.target.value="";
+});
+function designerValidate(){
+  if(!bp.name||!bp.name.trim())return "Blueprint needs a name.";
+  if(!bp.premise||!bp.premise.trim())return "Blueprint needs a premise.";
+  if(!bp.acts.length)return "Blueprint needs at least one act.";
+  return validateBlueprint(bp); // engine validation: act/arc titles, goals, objectives
+}
+document.getElementById("btn-save").addEventListener("click",function(){
+  var err=designerValidate();
+  if(err){setStatus("Can't save — "+err,"err");return;}
+  var data=JSON.stringify(bp,null,2);
+  var blob=new Blob([data],{type:"application/json"});
+  var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
+  var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+  dirty=false;setStatus("Saved "+fname,"ok");
+});
+window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+document.getElementById("ver").textContent=typeof APP_VERSION!=="undefined"?APP_VERSION:"";
+bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+</script>
+</body>
+</html>
