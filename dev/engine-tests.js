@@ -323,6 +323,41 @@ function runEngineTests(R){
     if(!worldState.transcript[1].e||worldState.transcript[1].e.n.indexOf("Veyra")<0)return "backfill missing: "+JSON.stringify(worldState.transcript[1].e);
     return b.indexOf("repay the debt")>=0?true:"not retrieved: "+b.slice(0,120);
   });
+  t("lexical boost routes a quiz to the topically-matching scene (t162 pin failure)",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Daeris"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.npcs=[{name:"Morwen",status:"ally",rel:"c",partyMember:true},{name:"Daeris",status:"ally",rel:"c",partyMember:true}];
+    // Same entities in every entry (the party problem) — only the words differ.
+    worldState.transcript=[
+      {t:10,r:"player",x:"Grab the clasp pin with mage hand"},
+      {t:11,r:"gm",x:"The clasp pin rises off the altar and lands in your palm. Morwen watches. Daeris is below.",e:{n:["Morwen","Daeris"],l:"Glassworks",q:[]}},
+      {t:13,r:"gm",x:"Morwen and Daeris follow you through the dark passage.",e:{n:["Morwen","Daeris"],l:"Glassworks",q:[]}},
+      {t:16,r:"gm",x:"Daeris sleeps. Morwen keeps watch by the fire.",e:{n:["Morwen","Daeris"],l:"Coast",q:[]}},
+      {t:19,r:"gm",x:"Morwen argues with Daeris about the road ahead.",e:{n:["Morwen","Daeris"],l:"Coast",q:[]}},
+      {t:22,r:"gm",x:"filler with the same faces. Morwen. Daeris.",e:{n:["Morwen","Daeris"],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("GM: where did I get Daeris' clasp pin?");
+    delete worldState.ragMemory;
+    if(b.indexOf("rises off the altar")<0)return "topical scene not retrieved: "+b.slice(0,200);
+    return b.indexOf("[Turn 11")>=0?true:"wrong turn stamp";
+  });
+  t("party members are weak signal; input-named outsiders win",function(){
+    makeWorld();worldState.turn=40;
+    memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.npcs=[{name:"Morwen",status:"ally",rel:"c",partyMember:true}];
+    worldState.transcript=[
+      {t:5,r:"player",x:"talk to the stranger"},
+      {t:6,r:"gm",x:"Bram tells you about the toll road and the debt owed.",e:{n:["Bram"],l:"Greyford",q:[]}},
+      {t:20,r:"gm",x:"Morwen sharpens her blade in silence.",e:{n:["Morwen"],l:"Coast",q:[]}},
+      {t:24,r:"gm",x:"Morwen cooks. Nothing happens.",e:{n:["Morwen"],l:"Coast",q:[]}},
+      {t:28,r:"gm",x:"Morwen hums an old tune.",e:{n:["Morwen"],l:"Coast",q:[]}},
+      {t:29,r:"gm",x:"The fire burns low.",e:{n:[],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("GM: what did Bram say about the toll?");
+    delete worldState.ragMemory;
+    return b.indexOf("toll road")>=0?true:"input-named outsider lost to party filler: "+b.slice(0,160);
+  });
   t("TOC diet: flag-off output is byte-identical after a round trip",function(){
     makeWorld();lastAction="";
     for(var li=0;li<20;li++)memory.lore.push("Fact number "+li+" about distant Elsewhere");

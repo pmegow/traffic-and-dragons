@@ -125,6 +125,32 @@ it's an ornament that unscrews. That line IS the back-out guarantee (§7).
   bias, kill switch. Subtle tone-coloring is only detectable in aggregate (flag on/off A/B on
   the same save), not per-turn.
 
+## 5b. First live failure + fix (2026-07-04, t162 quiz — SCORING REVISED v1.162)
+
+Two Story-window quizzes on the t160 Runelords save failed ("where did I retrieve Daeris' pin?"
+→ GM repeated the t160 confabulated retcon; "where did I meet Daeris?" → invented a Rusty
+Dragon story). Forensic replay against the save showed retrieval FIRED but served the wrong
+excerpts, through a three-link chain:
+
+1. **Party members index on nearly every entry**, so entity-overlap scores were FLAT across
+   the whole Glassworks arc (Morwen+Frizwick+Daeris ≈ +7 everywhere) — ranking degenerated
+   to pure recency.
+2. **The query's topical words carried all the signal and were discarded** — "pin", "clasp",
+   "retrieve" played no part in scoring.
+3. **The 3-turns-apart dedupe then EXCLUDED the true scene** (t147, the altar grab) as a
+   "neighbor" of the higher-recency t149.
+
+**Fix (v1.162), still vector-free and deterministic:** ① lexical query boost — rare input
+words (≥4 chars, stopworded, cap 8) matched against entry + its player line, +2 per distinct
+hit (cap +6), gated on a nonzero entity score so it stays entity-keyed; ② party members
+demoted to weight 1 as scene-presence (input-NAMING an entity still scores 3). Replayed
+against the same save: the pin quiz now serves t147 verbatim. Engine tests cover both.
+
+Residual: "where did I first meet X" can't win on lexical grounds (scenes don't contain the
+word "meet") — that case leans on `firstEncounter` (already injected) and correct aliasing;
+the t160 save's Daeris had NO aliases (the Woman-in-Bronze merge never landed), so her
+pre-reveal history was invisible. Reveal-merges matter to retrieval quality.
+
 ## 6. Back-out analysis (why this is safe to try)
 
 - **Flag flip** restores today's prompt exactly (decision #4's byte-identity test is the proof).

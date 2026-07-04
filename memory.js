@@ -189,13 +189,16 @@ function ragBackfillEntry(en,names){
 }
 // Query entities for the CURRENT scene: input = NPCs named in the player's pending action
 // (strongest signal), scene = party members + NPCs last seen at the current node, plus the
-// current location and active quest titles. Deterministic given the same state.
+// current location and active quest titles. Party members are tracked separately (q.party)
+// so scoring can DEMOTE them — they appear in nearly every indexed entry, so their presence
+// is noise, not signal (the t160/t162 quiz failure: flat party scores degenerated ranking
+// to pure recency). Deterministic given the same state.
 function ragQueryEntities(inputText){
-  var q={input:{},scene:{},loc:null,quests:[]},i;
+  var q={input:{},scene:{},party:{},loc:null,quests:[]},i;
   if(typeof worldState==="undefined"||!worldState)return q;
   q.loc=worldState.world?worldState.world.location:null;
   var key=worldState.world?(worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location):null;
-  for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember)q.scene[worldState.npcs[i].name]=1;}
+  for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember){q.scene[worldState.npcs[i].name]=1;q.party[worldState.npcs[i].name]=1;}}
   var names=ragKnownNames();
   for(i=0;i<names.length;i++){
     var meta=memory.npcs[names[i].nm];
@@ -204,6 +207,19 @@ function ragQueryEntities(inputText){
   if(inputText)ragScanNames(String(inputText).toLowerCase(),names,function(nm){q.input[nm]=1;});
   for(i=0;i<(worldState.questLog||[]).length;i++){if(worldState.questLog[i].status==="active")q.quests.push(worldState.questLog[i].title);}
   return q;
+}
+// Topical terms from the player's input — the signal entity scoring can't see (the t162 pin
+// quiz: "pin"/"clasp"/"retrieve" are what identify the right scene; every Glassworks turn had
+// the same entities). Rare-ish words ≥4 chars, structural stopwords dropped, capped at 8.
+var RAG_STOP={"about":1,"after":1,"again":1,"back":1,"been":1,"before":1,"come":1,"could":1,"did":1,"does":1,"down":1,"from":1,"gets":1,"goes":1,"going":1,"have":1,"here":1,"into":1,"just":1,"know":1,"like":1,"look":1,"make":1,"more":1,"most":1,"much":1,"over":1,"should":1,"some":1,"take":1,"tell":1,"that":1,"them":1,"then":1,"there":1,"they":1,"this":1,"through":1,"want":1,"were":1,"what":1,"when":1,"where":1,"which":1,"while":1,"will":1,"with":1,"would":1,"your":1};
+function ragQueryTerms(inputText){
+  var out=[],seen={},i;
+  var words=String(inputText||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/);
+  for(i=0;i<words.length;i++){
+    var w=words[i];
+    if(w.length>=4&&!RAG_STOP[w]&&!seen[w]){seen[w]=1;out.push(w);if(out.length>=8)break;}
+  }
+  return out;
 }
 // Lowercased scene terms for the TOC lore filter.
 function ragSceneTerms(inputText){
@@ -232,9 +248,10 @@ function ragRetrieve(inputText){
   var tr=worldState.transcript;
   if(!tr||tr.length<6)return "";
   var q=ragQueryEntities(inputText||"");
+  var terms=ragQueryTerms(inputText||"");
   var w={},k;
   for(k in q.input)w[k]=3;
-  for(k in q.scene){if(!w[k])w[k]=2;}
+  for(k in q.scene){if(!w[k])w[k]=q.party[k]?1:2;} // party members are everywhere — near-zero signal
   var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
   var cands=[],names=null,i,j;
   for(i=0;i<tr.length;i++){
@@ -246,6 +263,16 @@ function ragRetrieve(inputText){
     for(j=0;j<en.e.n.length;j++){if(w[en.e.n[j]])sc+=w[en.e.n[j]];}
     if(q.loc&&en.e.l===q.loc)sc+=2;
     for(j=0;j<(en.e.q||[]).length;j++){if(qws[en.e.q[j].toLowerCase()])sc+=1;}
+    // Lexical boost — topical words from the input found in the entry (or its player line)
+    // dominate flat entity scores; +2 per distinct term, capped +6. This is what routes a
+    // "where did I get the pin?" quiz to the scene that actually contains the pin.
+    if(terms.length&&sc>0){
+      var low=String(en.x).toLowerCase();
+      var prev=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
+      var hits=0;
+      for(j=0;j<terms.length&&hits<3;j++){if(low.indexOf(terms[j])>=0||(prev&&prev.indexOf(terms[j])>=0))hits++;}
+      sc+=hits*2;
+    }
     if(sc>0)cands.push({i:i,t:en.t,sc:sc});
   }
   if(!cands.length)return "";
