@@ -291,8 +291,10 @@ function runEngineTests(R){
     worldState.transcript=[{t:2,r:"player",x:"hi"},{t:3,r:"gm",x:"Bram waves.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:4,r:"gm",x:"a"},{t:5,r:"gm",x:"b"},{t:6,r:"gm",x:"c"},{t:7,r:"gm",x:"d"}];
     return ragRetrieve("I ask Bram")===""?true:"retrieved with flag off";
   });
-  t("retrieval finds an old scene by NPC, skips the recent window, frames + budgets",function(){
+  t("retrieval finds an old scene by NPC, skips the sessionLog-covered window, frames + budgets",function(){
     makeWorld();worldState.turn=40;memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    // sessionLog 16 entries (~8 turns) → skip window covers t32+ — t36-39 must not serve.
+    sessionLog=[];for(var si=0;si<16;si++)sessionLog.push({role:si%2?"assistant":"user",content:"x"});
     worldState.transcript=[
       {t:2,r:"player",x:"I ask Bram about the toll"},
       {t:3,r:"gm",x:"Bram promises you safe passage for a year and a day.",e:{n:["Bram"],l:"Greyford",q:[]}},
@@ -303,12 +305,28 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("I ask Bram to honor his promise");
-    delete worldState.ragMemory;
+    delete worldState.ragMemory;sessionLog=[];
     if(b.indexOf("safe passage")<0)return "old scene not retrieved: "+b.slice(0,120);
-    if(b.indexOf("recent past")>=0)return "recent-window entry leaked in";
+    if(b.indexOf("recent past")>=0)return "sessionLog-covered entry leaked in";
     if(b.indexOf("override")<0)return "subordination framing missing";
     if(b.indexOf("Player: I ask Bram about the toll")<0)return "player half of the turn pair missing";
     return b.length<3200?true:"over budget: "+b.length;
+  });
+  t("dead zone closed: shallow sessionLog exposes 4-turn-old scenes (t165 Frizwick failure)",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Frizwick"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"y"}]; // ~1 turn of live context
+    worldState.transcript=[
+      {t:2,r:"player",x:"hello"},
+      {t:3,r:"gm",x:"An uneventful morning.",e:{n:[],l:"Ashfen",q:[]}},
+      {t:35,r:"player",x:"Frizwick, why are you outside?"},
+      {t:36,r:"gm",x:"Perimeter check, Frizwick says flat. Road is too quiet.",e:{n:["Frizwick"],l:"Glassworks",q:[]}},
+      {t:39,r:"gm",x:"You walk west.",e:{n:[],l:"Coast",q:[]}},
+      {t:39,r:"gm",x:"The cottage is cold.",e:{n:[],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("GM: why was Frizwick outside?");
+    delete worldState.ragMemory;sessionLog=[];
+    return b.indexOf("Perimeter check")>=0?true:"4-turn-old scene still in the dead zone: "+b.slice(0,140);
   });
   t("lazy backfill indexes pre-Phase-1 entries by known-NPC name scan",function(){
     makeWorld();worldState.turn=40;memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:["The Grey Blade"]};

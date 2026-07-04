@@ -172,6 +172,27 @@ After: broadsheet serves the full t134–136 exchange incl. the quote; pin serve
 debt serves the ORIGINAL t68–71 revelation (oldest-first working); first-meeting remains
 the documented residual. 4 new engine tests (90 total).
 
+**Round 3 (v1.164 — the Frizwick quiz): the DEAD ZONE.** "Why was Frizwick outside?" (event
+8 turns back) failed because the fixed 10-turn recent-skip assumed sessionLog covers 10 turns
+— false in mature campaigns (summarize fires every ~2 turns, TODO #28), leaving turns ~3–10
+back in NEITHER the live context NOR retrieval. The GM "checked the record" by reading the
+[T157] chapter/decision stamp from the TOC and glossing — confident paraphrase, wrong quote.
+**Fix: the skip window is now DYNAMIC** — `skipN = max(2, ceil(sessionLog.length/2)+1)`,
+i.e. skip exactly what the conversation actually covers. Verified: the t155–157 band becomes
+eligible and the quiz serves the correct scene cluster (t155+t156).
+
+**Known frontier (documented, not chased):** single-turn QUOTE precision. The ranker reliably
+finds the right 2–3-turn scene CLUSTER; whether the specific turn holding the money quote
+makes the cut depends on near-par margins that reshuffle as eligibility shifts turn to turn.
+Hand-tuning thresholds past this point is overfitting — if real play shows cluster-correct
+answers are still unsatisfying, the principled next step is scene-stitching (render a picked
+entry's within-radius near-par neighbors as ONE merged excerpt) or Phase 2 semantics.
+
+**Retcon pollution went live (2026-07-04):** with t160 eligible, the pin query now serves BOTH
+the true t147 altar scene AND the t160 false correction — oldest-first renders truth first and
+the framing subordinates both to current state, but the GM must arbitrate. The `[RETCON:]`
+de-index marker (watch-list) is now the top candidate for the next RAG change.
+
 ## 6. Back-out analysis (why this is safe to try)
 
 - **Flag flip** restores today's prompt exactly (decision #4's byte-identity test is the proof).

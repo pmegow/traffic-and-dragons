@@ -141,7 +141,6 @@ function resolveFutureEvent(what){var i;
 // subordinates them to the state blocks above it (the stale-chunk drift guard).
 function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ragMemory);}
 var RAG_BUDGET=2400;   // ~600 tokens of excerpt payload per turn, hard cap
-var RAG_RECENT=10;     // skip entries this close to the current turn (already in sessionLog)
 var RAG_MAX=3;         // excerpts per turn
 // Known-NPC scan list (lowercased, with aliases AND distinctive name tokens). Full-key
 // substring matching alone missed every honorific-keyed NPC — prose says "Hemlock", the
@@ -316,6 +315,13 @@ function ragRetrieve(inputText){
   var gRoot={};
   for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
   var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
+  // Skip only what the live conversation actually covers. The old fixed 10-turn skip assumed
+  // sessionLog holds ~10 turns — false in mature campaigns, where summarize fires every ~2
+  // turns and left a DEAD ZONE 3–10 turns back: too old for sessionLog, too recent for
+  // retrieval (the t165 Frizwick-quiz failure). Floor of 2 (the current exchange is always
+  // in context); grows with sessionLog depth in young campaigns where the log runs long.
+  var skipN=Math.max(2,Math.ceil(((typeof sessionLog!=="undefined"&&sessionLog)?sessionLog.length:0)/2)+1);
+  var cutT=worldState.turn-skipN;
   var cands=[],names=null,i,j;
   // Pass 1: backfill missing indexes + per-term document frequency over eligible entries.
   // IDF makes rare words dominate ("broadsheet": ~4 entries → strong; "keep": everywhere →
@@ -325,7 +331,7 @@ function ragRetrieve(inputText){
   for(i=0;i<tr.length;i++){
     var en0=tr[i];
     if(en0.r!=="gm")continue;
-    if(en0.t>worldState.turn-RAG_RECENT)continue;
+    if(en0.t>cutT)continue;
     if(!en0.e){if(!names)names=ragKnownNames();en0.e=ragBackfillEntry(en0,names);}
     var low0=String(en0.x).toLowerCase();
     var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
