@@ -107,11 +107,20 @@ it's an ornament that unscrews. That line IS the back-out guarantee (§7).
 - **Echo amplification (#31):** feeding the GM its own old prose invites metaphor reuse
   ("older than X" retrieved and re-absorbed). Grep the corpus for recurring structures; if it
   fires, mitigation is excerpt count/recency tuning or paraphrased-not-verbatim excerpts.
-- **Retcon pollution (noted 2026-07-04, t160 analysis):** in-prose OOC corrections leave BOTH
-  versions of a scene in the transcript (t153's impossible punch + t154's rewind; t160's false
-  pin recollection) — the episodic index will happily retrieve the superseded version someday.
-  No mitigation built; if it shows up in play, options are a `[RETCON:turn]`-style marker that
-  de-indexes an entry, or down-weighting entries whose successor contains correction language.
+- **Retcon pollution (noted 2026-07-04, t160 analysis → BUILT v1.167):** in-prose OOC corrections
+  leave BOTH versions of a scene in the transcript (t153's impossible punch + t154's rewind; t160's
+  false pin recollection) — and by t198 the false correction was serving ALONE (truth displaced).
+  A sibling defect surfaced with it: **quiz-echo displacement** — the t164-167 memory-quiz turns
+  were themselves indexed and outranked the origin scenes they quoted. Mitigation shipped (v1.167),
+  three parts: ① `[RETCON:what]` tag — GM emits on any correction/rewind; `logTranscript` marks the
+  correcting entry + the preceding GM entry `rc:1`, retrieval skips both; ② meta-exchange filter —
+  GM entries whose player half opens with `"GM:"` (the OOC convention; ALL observed polluters had
+  it) are excluded from candidacy and the IDF document set; ③ merge-orphan bridge — write-time
+  `e.n` names deleted by a later `[NPC_MERGE:]` re-resolve via `resolveNpcName` at scoring time
+  (the t198 Hemlock merges had silently orphaned the t134-136 broadsheet origin's index). Verified
+  on t198: pin query serves the true t147 altar scene top-ranked with the t160 falsehood gone;
+  broadsheet serves the t136 origin cluster with the echoes gone. RESIDUAL: untagged prose
+  corrections predating the tag (t35 debt correction) stay indexed — historical, bounded.
   Related: the engine's ↻ Re-roll already replaces the transcript entry; prose retcons don't.
 - **Stale-chunk drift detection (protocol parked 2026-07-03 — build only if real play shows the
   symptom).** Two mechanical tripwires: ① GM emits `[QUEST:X|offered]` while X is in

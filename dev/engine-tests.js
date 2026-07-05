@@ -402,6 +402,64 @@ function runEngineTests(R){
     if(hem.length!==1)return "expected 1 hemlock identity, got "+hem.length;
     return hem[0].others.length===2?true:"others: "+JSON.stringify(hem[0].others);
   });
+  t("meta exchanges ('GM:'-prefixed player turns) are excluded from retrieval (quiz-echo displacement)",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[
+      {t:5,r:"player",x:"Ask Hemlock about the broadsheet"},
+      {t:6,r:"gm",x:"Hemlock kept the broadsheet because it seemed mad. The origin scene.",e:{n:["Hemlock"],l:"Sandpoint",q:[]}},
+      {t:20,r:"player",x:"GM: why did Hemlock keep the broadsheet?"},
+      {t:21,r:"gm",x:"Hemlock kept the broadsheet because of the mechanisms, a confabulated echo.",e:{n:["Hemlock"],l:"Sandpoint",q:[]}},
+      {t:30,r:"gm",x:"filler",e:{n:[],l:"Coast",q:[]}},
+      {t:31,r:"gm",x:"filler2",e:{n:[],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("GM: why did Hemlock keep the broadsheet?");
+    delete worldState.ragMemory;
+    if(b.indexOf("confabulated echo")>=0)return "quiz echo served";
+    return b.indexOf("origin scene")>=0?true:"origin scene not served: "+b.slice(0,160);
+  });
+  t("[RETCON:] marks the correcting entry AND the preceding GM entry; both excluded from retrieval",function(){
+    makeWorld();worldState.turn=40;memory.npcs["Daeris"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    logTranscript("player","I climb down to the platform");
+    logTranscript("gm","You pull the iron pin from the singing platform. Daeris gasps. The true scene.","You pull the iron pin from the singing platform. Daeris gasps. The true scene. [NPC:Daeris|shaken|ally]");
+    logTranscript("player","that's wrong, I used mage hand");
+    logTranscript("gm","You are right. You grabbed Daeris' pin with mage hand from the chain. A false correction.","You are right. You grabbed Daeris' pin with mage hand from the chain. A false correction. [RETCON:pin retrieval corrected]");
+    var tr=worldState.transcript;
+    if(!tr[3].rc)return "correcting entry not marked";
+    if(!tr[1].rc)return "preceding GM entry not marked";
+    // Both marked entries must be invisible to retrieval; pad with servable filler.
+    tr[0].t=5;tr[1].t=6;tr[2].t=8;tr[3].t=8;
+    worldState.transcript=tr.concat([
+      {t:10,r:"player",x:"Ask Daeris about the pin"},
+      {t:11,r:"gm",x:"Daeris turns the iron pin over. Her anchor, she says.",e:{n:["Daeris"],l:"Ashfen",q:[]}},
+      {t:30,r:"gm",x:"filler",e:{n:[],l:"Coast",q:[]}},{t:31,r:"gm",x:"filler2",e:{n:[],l:"Coast",q:[]}}
+    ]);
+    worldState.ragMemory=true;
+    var b=ragRetrieve("where did Daeris' iron pin come from?");
+    delete worldState.ragMemory;
+    if(b.indexOf("false correction")>=0)return "retconned correction served";
+    if(b.indexOf("true scene")>=0)return "superseded predecessor served (marked rc)";
+    return b.indexOf("Her anchor")>=0?true:"clean scene not served: "+b.slice(0,160);
+  });
+  t("write-time index names orphaned by a later NPC_MERGE still score (alias bridge)",function(){
+    makeWorld();worldState.turn=40;
+    // Post-merge state: only the canonical key exists, the old short key rides as an alias —
+    // but this entry was indexed BEFORE the merge, under the deleted key.
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:["Hemlock"]};
+    worldState.transcript=[
+      {t:5,r:"player",x:"Ask about the broadsheet"},
+      {t:6,r:"gm",x:"He kept the broadsheet because it seemed mad. Origin scene.",e:{n:["Hemlock"],l:"Sandpoint",q:[]}},
+      {t:20,r:"gm",x:"filler",e:{n:[],l:"Coast",q:[]}},{t:24,r:"gm",x:"filler2",e:{n:[],l:"Coast",q:[]}},
+      {t:28,r:"gm",x:"filler3",e:{n:[],l:"Coast",q:[]}},{t:29,r:"gm",x:"filler4",e:{n:[],l:"Coast",q:[]}}
+    ];
+    worldState.ragMemory=true;
+    var b=ragRetrieve("why did Hemlock keep the broadsheet?");
+    delete worldState.ragMemory;
+    return b.indexOf("Origin scene")>=0?true:"orphaned index name not resolved: "+b.slice(0,140);
+  });
+  t("cleanTxt strips [RETCON:]",function(){
+    return eq(cleanTxt("You are right. The record stands corrected. [RETCON:pin retrieval]"),"You are right. The record stands corrected.");
+  });
   t("TOC diet: flag-off output is byte-identical after a round trip",function(){
     makeWorld();lastAction="";
     for(var li=0;li<20;li++)memory.lore.push("Fact number "+li+" about distant Elsewhere");

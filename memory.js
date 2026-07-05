@@ -378,21 +378,35 @@ function ragRetrieve(inputText){
     var en0=tr[i];
     if(en0.r!=="gm")continue;
     if(en0.t>cutT)continue;
+    if(en0.rc)continue; // [RETCON:]-marked — superseded or correcting narration, never episodic truth
+    var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
+    // Meta-exchange filter: a player turn opening with "GM:" is an out-of-character question
+    // ABOUT the record (memory quiz, correction), and the response is recall chatter — often
+    // confabulated — not a scene. Left in the index, these echoes outrank the origin scenes
+    // they quote (the t164 broadsheet displacement) and preserve false corrections (the t160
+    // pin-grab). Excluded from candidacy AND from the IDF document set.
+    if(/^\s*gm\s*[:,]/.test(prev0))continue;
     if(!en0.e){if(!names)names=ragKnownNames();en0.e=ragBackfillEntry(en0,names);}
     var low0=String(en0.x).toLowerCase();
-    var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
     var hits0=[];
     for(j=0;j<terms.length;j++){var h=low0.indexOf(terms[j])>=0||(prev0&&prev0.indexOf(terms[j])>=0);hits0.push(h);if(h)df[j]++;}
     elig.push({i:i,en:en0,hits:hits0});
     N++;
   }
   // Pass 2: score. Entity/location/quest overlap gates; IDF-weighted term hits rank.
+  // Write-time index names can be ORPHANED by a later [NPC_MERGE:] — entries stamped
+  // e.n=["Hemlock"] stop matching once that key is deleted from memory.npcs (the t198
+  // broadsheet regression: the origin scene went invisible after the user's Hemlock merges).
+  // resolveNpcName bridges them (the merge registered the duplicate as an alias); memoized —
+  // resolveNpcName scans all NPC keys and a mature transcript re-checks the same few names.
+  var _res={};
+  function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
   for(i=0;i<elig.length;i++){
     var en=elig[i].en;
     var sc=0,seenG={};
     for(j=0;j<en.e.n.length;j++){
       var enNm=en.e.n[j];
-      if(!w[enNm])continue;
+      if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;}
       var root=gRoot[enNm]||enNm;
       if(seenG[root])continue; // one score per person, however many duplicate keys an entry carries
       seenG[root]=1;
