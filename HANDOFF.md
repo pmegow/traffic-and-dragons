@@ -1,103 +1,81 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-04 (the RAG marathon session — ran overnight from 07-03)
-**Deployed version:** v1.164 (`APP_VERSION` in `globals.js`) — **pushed AND live on Cloudflare Pages, deploy-verified.**
-**SW cache:** `tnd-v3-20260704c` (`sw.js`).
-**Branch:** `master` — pushed through `6b80ee2` (`origin/master` == local HEAD). Working tree clean.
-**Server:** healthy on Fly; health-monitor cron re-armed by the push.
+**Date:** 2026-07-05 (late night; covers the 07-04 memory-engine day + the 07-04/05 designer evening)
+**Deployed version:** v1.178 (`APP_VERSION` in `globals.js`) — **pushed; Pages auto-deploy in flight at handoff time** (poll `globals.js?nc=<ts>`).
+**SW cache:** `tnd-v3-20260705d` (`sw.js`).
+**Branch:** `master` — pushed through `a8a9648` (`origin/master` == local HEAD). Working tree clean.
+**Server:** healthy on Fly; `/api/blueprints` routes verified LIVE; dead volume `vol_r7yw0lnl3lejpm1r` finally destroyed (#26 fully closed).
 
 > **STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
-> runs `dev/run-tests.js` (**now 91 assertions**, headless node, ~1s) and BLOCKS on red. Suites live
-> in `dev/engine-tests.js` (shared with test.html). Hook isn't tracked — after a fresh clone:
-> `cp dev/pre-commit .git/hooks/pre-commit`.
+> runs `dev/run-tests.js` (**now 121 assertions**, headless node, ~1s) and BLOCKS on red.
+> Hook isn't tracked — after a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`.
 > **Host:** Cloudflare Pages ONLY. Read `CLAUDE.md` first for architecture; this file is "where we left off."
 
 ---
 
-## FIRST THING NEXT SESSION: TODO #28 — summarize-tail retention (user-committed)
+## ⚠ FIRST THING NEXT SESSION: the OneDrive stale-file incident
 
-The user plays a morning session first (gathering evidence), then we build. The spec, from the
-t160 corpus findings: in mature campaigns `summarize()` fires **every ~2 turns** (prose-voice
-responses are 1,300–3,100 chars; `SUMMARIZE_AT`=1200 tok was tuned in the sentence-cap era) and
-clears `sessionLog` to ZERO — the GM's verbatim window is ~2 turns deep and object-level facts
-evaporate (the pin-grab confabulation, RAG_MEMORY.md §5b). **Fix: after a successful summarize,
-RETAIN the last 2–3 exchanges in sessionLog instead of clearing.** Extraction unchanged (no RAG
-write-side violation). Watch: the retained tail re-counts toward `SUMMARIZE_AT` — make sure the
-loop can't thrash. Engine-testable. Side effect: halves summarize cadence = cost relief.
-Behind it: **#29** (futureEvents auto-expire — 30-cap pegged with long-resolved items injecting
-noise every turn; start with expire-by-`setTurn`-age).
+The v1.177 commit **silently dropped TODO.md rows #35/#36** — an edit landed on a stale
+working file. Code files verified intact (feature greps + 121 green), rows restored from git
+in `a8a9648`. Prime suspect: **OneDrive sync revert** (project lives under OneDrive). This is
+the strongest argument yet for Known issue #1 (move/rename `dnd_rpg` → `traffic-and-dragons`,
+ideally OUT of OneDrive): do it in Explorer BEFORE opening Claude Code, then update paths in
+`.claude/settings.local.json` + `.claude/hooks/stop-check.js`. Until then: after any suspicious
+edit failure, `git diff` before committing.
 
----
+## The two sessions (v1.165 → v1.178, all pushed + deployed)
 
-## This session's work (15 commits, v1.153 → v1.164, all pushed)
-
+### Memory-engine day (07-04, from the t198 save evaluation)
 | Ver | What |
 |---|---|
-| 1.153 | **Anne Rice** prose voice (`AUTHORS`, data.js). Docs: RAG_MEMORY.md design locked; restore runbook (`dev/restore-server.md`); TODO reconcile; `audits/` + `*.tnd` gitignored. |
-| 1.154 | **RAG episodic memory Phase 1 (TODO #27)** — entity-keyed retrieval over the verbatim transcript, read-side only, default OFF, per-campaign flag `worldState.ragMemory`, Dev Mode ▸ 🗂 Episodic memory…; memoryTOC diet behind the same flag (flag-off = byte-identical, engine-tested). See CLAUDE.md §8b + RAG_MEMORY.md. |
-| 1.155 | **Save-filename race fix** — exportSave built the filename at dialog-open but serialized state at click; the async server reconcile could swap worldState in between (the t4-name-on-t139-data incident). Unedited filenames recompute at click time. |
-| 1.156 | **Blueprint Designer foundation** — `normalizeBlueprint`/`normalizeToneId` (game.js) at every load point; §5.2 tone-apply fixed (dead `#tone-grid` selector since v1.133 — closed AUDIT_FABLE #24); Runelords fixture corrected; `buildBlueprintFromGame` → game.js, emits `author`+`tone`, full-knowledge NPC notes. |
-| 1.157 | **Blueprint Designer editor page** — `blueprint-designer.html`, fully EXTERNAL (D5 revised; test.html pattern — loads real engine files, never writes game state keys). Full nested act/arc editing, dnaHint field, validation, lossless round-trip (R5.3 verified). Remaining chunks: Generate mode, dnaHint button, cloud library, edit-active-game. |
-| 1.158 | **File menu reorg** — 💾 Save/Load drawer + 📖 Narrative options drawer (in Admin). **Designer menu entry EXCISED by user preference** — open the page directly. |
-| 1.159 | **File menus generated from ONE spec** — `buildFileMenus()` (ui.js); ~37KB of triplicated HTML deleted from index.html. **Convention: edit the spec, never index.html** (mount divs are empty). |
-| 1.160–161 | **Desktop flyout submenus** — drawers pop out beside the menu; side chosen by measuring the parent item and flying away from the closest screen edge (user's algorithm); ≤768px falls back to the accordion. Also fixed `#hud-btns` left-parking at mid widths. |
-| 1.162–164 | **RAG scoring v2/v3 + dead-zone fix** — four rounds of live-quiz-driven tuning, every defect forensically replayed against the t160 save. See "RAG state" below. |
-| — | Docs/decisions: turn-guard CAS locked (known-issue #5: POST carries `baseTurn`, server 409s when ahead; no per-turn preflight); t160 corpus findings → TODO #28/#29; retcon-pollution watch item; drift-detection protocol parked (RAG_MEMORY §5). Haiku free-tier idea SHELVED by user — don't re-pitch. |
+| 1.165 | **#28 summarize-tail retention** — amnesia cliff killed: `retainSessionTail()` keeps ≤3 exchanges/1600 tok; `worldState.sessKept` marker means retained tail can't re-trip the gate AND is never extracted twice; `SUMMARIZE_AT` 1200→2400 (fires every ~5 mature exchanges). Membar `~NNNtk` now counts UNEXTRACTED tokens only. |
+| 1.166 | **#29 futureEvents hygiene** — `fileFutureEvent` near-dup dedupe (feTokens ≥2 shared + ≥half smaller fingerprint → refresh setTurn), `expireFutureEvents()` at 40 turns, extractor echoes finished items via ANTICIPATED EVENTS list → `resolvedEvents[]`. Filing refactored into sync `applySummaryExtract()` (order: expire→file→resolve). t198's 7 "find Shalelu" dupes → 2. |
+| 1.167 | **RAG retcon de-index + meta filter + merge-orphan bridge** — `[RETCON:]` tag marks correcting entry + predecessor `rc:1`; **"GM:"-prefixed player turns excluded from retrieval + IDF** (killed the t160 false pin correction AND t164-167 quiz echoes); write-time index names orphaned by `[NPC_MERGE:]` re-resolve via memoized `resolveNpcName`. Pin query now serves the TRUE t147 scene. Residual: untagged pre-tag prose corrections (t35). |
+| 1.168/1.171/1.173 | **#32 inventory legibility** (3 rounds) — `invItemHtml()`: names bold, descriptions 80% opacity; splitter = spaced dash \| paren \| comma \| clause lead-ins (with/including/written/…). **Whack-a-mole by design** — user reports new bold-leaks, we add the lead-in. |
+| 1.169 | **Known issue #3 CLOSED** — companion portrait single-home (`charSheet.portrait`; `npcPortrait()` helper for ALL display reads; migration drops dupes; 49KB off t198). Root-caused #6 (Daeris desync) in the same stroke. |
+| 1.170 | **Portrait transport fix** — v1.169 opened an equal-turn transport hole (Frizwick/Morwen missing on mobile, reported live). Collectors read via `npcPortrait()`; `fillPortraitsFromBlob()` runs on EVERY reconcile, fill-only. |
+| 1.171 | **#23 turn labels** ("Turn N" above narrative frames, live + replay) + **Morwen XP-bar lie** root-caused (negative width = invalid CSS = full bar; bars clamp at 0, `migrateWorldState` floors xp to `XP_LEVELS[level-1]` for player + companions). |
+| 1.172 | **#34 companion XP parity** (every `[XP:N]` engine-mirrored to party; `COMPANION_XP` = individual bonus only, supersedes mirror same-response; forward-only, catch-up offered not imposed) + **#20 quest lifecycle teeth** (`buildQuestBlock`: all-objectives-done → quest-specific close-or-extend instruction; standing "active crises ARE quests" line). |
+| — | Docs: TODO #30 filed (usage meter ~⅓ undercount — unpriced model id); #23 corpus check DONE on t198 (97% NPC registration GREEN, naming GREEN, prose steady GREEN; quest lifecycle RED→#20, future-events RED→#29); #26 closed; #8 merged into #10; **#10 spell/item bible = PRIORITY** (Message spell drift; must be GM-authoritative injection, not just tooltips); SQLite architecture decision recorded (stay JSON; FTS5/changesets as separable revisit triggers). Memory rule saved: **update the TODO row in the same commit as every fix.** |
 
-## RAG state (read RAG_MEMORY.md §5b before touching scoring)
+### Designer evening (07-04/05)
+| Ver | What |
+|---|---|
+| 1.174 | **#15 Blueprint cloud library** — AUDIT FOUND ~80% ALREADY BUILT (server table WITH `public` column + 3 routes LIVE on Fly; adapter methods; game-side surfaces). Added the missing piece: Designer **☁ Publish** (upsert by name-slug) + **☁ Library…** (list/Open/delete). Auth via same-origin localStorage (`autoConnect`) — designer never OAuths. REMAINING: browse-public, HARD-GATED on #22 sanitization. |
+| 1.175 | **#35 breakout editors** — ⤢ on Premise/act Goal/Turning point/arc Objective/DNA hint → 55vh resizable modal; same data-attrs = existing delegated binding updates bp live. |
+| 1.176 | **#36 creatures + arc rewards + cyanotype theme** — `creatures[]` schema (designer Bestiary section, monster-manual fields) → `worldState.bestiary` → **BESTIARY block in the STABLE prompt half** (campaign-constant = cached; "reach for these before inventing"); arc `reward` rendered on ACTIVE arc, granted same-response as `[ARC_COMPLETE:]`; designer restyled architectural-blueprint (graph-paper grid, designer-only). |
+| 1.177 | **#37 collapsible everything** — sections + all cards fold; `_c` flags ON data objects (travel with reorders), `stripView()` keeps them out of files/publish; **existing blueprints load fully folded** (scroll + spoilers). |
+| 1.178 | **Act reward** (same as arc reward, milestone scale, tied to `[ACT_COMPLETE:]`, "scene worthy of an act's end") + the #35/#36 row restoration. |
+| — | **`tomb_of_annihilation.blueprint`** authored (repo root): 3 acts/11 arcs/11 NPCs/8 locations/6 creatures/6 rules, tone `swords`, voice `howard`, engine-validated end-to-end. Runelords fixture = shape reference. |
 
-- **Live tuning found 7 defects in one night, all from the user's in-game quizzes:** flat party
-  scores → recency degeneration; topical query words discarded; proximity dedupe eating the answer
-  turn; full-key name scan missing honorific NPCs ("Hemlock" vs key "Sheriff Belor Hemlock");
-  duplicate NPC keys tripling scores; common-word stoplist whack-a-mole (→ IDF); fixed 10-turn
-  recent-skip vs the 2-turn sessionLog (→ dynamic skip; the dead zone).
-- **Current shape:** entity-gated + IDF lexical + party demotion (0 when input names someone) +
-  dupe-collapsed scan identities + near-par neighbors both serve + oldest-first ties + dynamic
-  skip window. `ragRetrieve._cands` = introspection hook.
-- **User's campaign (t~166): flag ON; Hemlock ×3 + Woman-in-Bronze merges EXECUTED** (toast-verified).
-- **Top RAG follow-up: `[RETCON:]` de-index marker** — retcon pollution is LIVE (the pin query
-  serves the true t147 scene AND the t160 false correction). Then: Table Talk lore-oracle
-  (TT uses a bare sysOverride — no memory, no RAG; append `ragRetrieve(input)` to its prompt).
-- **Known residuals (documented, don't chase):** first-meeting-class queries (firstEncounter's
-  job); single-turn quote precision (cluster-correct is the reliable unit; scene-stitching if
-  play demands it).
-- **Forensic replay pattern:** geval engine files like `dev/run-tests.js`, assign the save to
-  worldState/memory/sessionLog, set flag + turn, call `ragRetrieve(question)`, inspect `._cands`.
-  **`Rise_of_the_Runelords__Ammut__Ammut_t160.tnd` (repo root, gitignored) is THE mature-campaign
-  fixture — do not delete.** Treat .tnd exports as frozen fixtures, not saves.
+## READY TO TEST (next play session watch-list)
+1. **Quests:** The Scarred Man (4/4) + The Glassworks (3/3) should CLOSE with rewards early (#20 teeth).
+2. **XP parity:** party HUD numbers move together on every award (#34). Frizwick/Morwen/Daeris XP was floored (bars honest now).
+3. **Portraits:** desktop first then mobile — Frizwick + Morwen should fill in (#6/v1.170 fill pass). Two-device confirm still owed.
+4. **Membar:** counts to 2400 before "Filing memories…" — new normal, not a stuck summarize (#28).
+5. **`[RETCON:]`:** correct the GM mid-story and check it emits the tag.
+6. **Designer:** publish ToA with the real login → check ☁ Blueprint Library in the game cross-device; play a few ToA turns (bestiary + rewards in the prompt).
+7. Turn labels, inventory bold/dim (report new bold-leak phrasings — lead-in list in `invItemHtml`).
 
 ## Next session, in order of value
-
-1. **TODO #28** (summarize-tail) — see top block. Then **#29** (futureEvents hygiene).
-2. **`[RETCON:]` marker** if morning play surfaces stale-retcon answers.
-3. **Blueprint Designer remaining chunks** — Generate mode (reuses `generateSkeleton`), dnaHint
-   button, cloud library in the designer, edit-active-game, browser "Edit in Designer" link.
-4. **Turn-guard CAS build** (server-touch session; small) + retry `flyctl volumes destroy
-   vol_r7yw0lnl3lejpm1r --yes` (was 408ing while its dead host lingered).
-5. **todo-viewer fix-up** — it clobbers statuses on stale-load export and mints duplicate IDs
-   (two #22/#23/#25/#26 in TODO.md). Until fixed, re-verify Done rows after viewer edits.
+1. **#10 spell/item bible — PRIORITY, affecting play** (Message drifted line-of-sight→limitless). GM-authoritative: inject canonical entry on cast/use (quest-block pattern); #8's tooltips read the same data. Consider the bestiary block (v1.176) as the shape template.
+2. **#30 usage meter undercount** (~⅓ of cost silently $0 — identify the unpriced model id, add prefix match + "unpriced calls: N" line). Small.
+3. **#33 action buttons append + input clear ×** (small, from play notes).
+4. **#15 tail:** browse-public endpoint + UI — but **#22 sanitization first** (hard gate).
+5. **Turn-guard CAS** (server-touch session; known issue #5 decision locked).
+6. Blueprint Designer remaining: Generate mode, edit-active-game, browser "Edit in Designer" link.
 
 ## Don't get burned
-
-- **RAG invariants:** stable prompt half must stay byte-identical (cache); flag-off must reproduce
-  the pre-RAG prompt byte-for-byte (engine-tested); retrieval is READ-SIDE ONLY — never weaken
-  `summarize()` extraction; excerpts are episodic texture, never current truth.
-- **File menus are generated** — edit the spec in `buildFileMenus()` (ui.js), never index.html.
-- **Blueprint Designer has NO menu entry on purpose** (user's single-purpose-tools philosophy —
-  one job per surface; prefer new satellite pages over growing index.html).
-- **DOM-id renames:** grep for the id before deleting any element — the tone-grid bug sat
-  invisible for 20+ versions because a remote consumer kept querying a removed element.
-- **PowerShell here-strings with certain content break `git commit -m`** — use `git commit -F <file>`
-  (write the message to the scratchpad). Bit twice this session.
-- **User's play tab is the LOCAL file:// copy** — no SW there, but hard-refresh after engine
-  changes; deployed site now matches anyway. Preview on :3000 has its own localStorage.
-- **ES5 only**; bump `APP_VERSION` + `CACHE` on every game-code commit; **push at session end**
-  (new habit, user-endorsed — everything is flag-gated, and days-long unpushed windows are a
-  single-disk bet).
-- **User preferences on record:** no Haiku pitches; data cleanup only when it gates a measurement
-  (instrument-calibration framing); wait for full answers before acting.
+- **OneDrive can serve you stale files** (see top). `git diff` before commit when anything smells off; the pre-commit test gate does NOT check docs.
+- **RAG invariants:** stable half byte-identical (cache); flag-off = pre-RAG prompt byte-for-byte; retrieval READ-SIDE ONLY; excerpts never current truth. Meta filter keys on the player's literal `"GM:" `prefix convention.
+- **Bestiary lives in the STABLE half** — campaign-constant by design; mid-game bestiary editing = one cache rewrite (fine) but per-turn mutation would kill caching. Engine test guards byte-identity.
+- **Designer `_c` collapse flags are view state** — always route file/publish output through `stripView()`.
+- **companion portraits: ONE home** — `charSheet.portrait` when a sheet exists; ALL display reads via `npcPortrait()` (helpers.js). Never write `npc.portrait` for sheet-carrying NPCs.
+- **`sessionTokens()` counts only past `worldState.sessKept`** — it's the summarize trigger distance, not the window size (RAG skipN uses `sessionLog.length`).
+- **File menus are generated** (`buildFileMenus()` in ui.js); **Designer has NO menu entry on purpose**; ES5 only; bump `APP_VERSION` + `CACHE` every game-code commit; `git commit -F <file>` for tricky messages; **update the TODO row in the same commit** (user rule, in memory).
+- **`Rise_of_the_Runelords__Ammut__Ammut_t198.tnd` (repo root, gitignored) = THE mature-campaign fixture** — pin query truth = t147, broadsheet origin = t134-136. t160.tnd = the pre-fix comparison fixture. Do not delete either.
+- User prefs on record: no Haiku pitches; single-purpose tools/satellite pages; wait for full answers; whack-a-mole is an ACCEPTED maintenance model for the inventory splitter.
 
 ## Deploy
-
 - **Cloudflare Pages** auto-deploys on push to `master`. Poll `globals.js?nc=<ts>` for `APP_VERSION`.
-- **Server:** `cd traffic-and-dragons-server && flyctl deploy --ha=false` (separate untracked repo).
+- **Server:** `cd ..\traffic-and-dragons-server && flyctl deploy --ha=false` (separate repo, SIBLING directory — not inside this one). `/api/blueprints` live since before 07-04.
