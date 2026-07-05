@@ -74,6 +74,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
   <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
   <button class="tbtn" id="btn-new">New</button>
   <button class="tbtn" id="btn-load">Load&hellip;</button>
+  <button class="tbtn" id="btn-ask">&#128172; Ask&hellip;</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
   <button class="tbtn" id="btn-publish">&#9729; Publish</button>
@@ -98,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.15";
+var BP_DESIGNER_VERSION="v0.16";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -287,6 +288,7 @@ function render(){
           +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)
           +(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")
           +(busy?" <span style='font-size:10px;color:var(--t2);text-transform:none;letter-spacing:0;'>applying…</span>":"")+"</span>"
+          +"<button class='mini sq' data-op='revask' data-i='"+i+"' data-j='0' title='Ask about this finding (canon or improv? why? alternatives?)'>&#128172;</button>"
           +(done||busy?"":"<button class='mini sq' data-op='breakout' data-bsec='revfix' data-bk='fix' data-i='"+i+"' data-j='0' data-blabel='Edit fix — "+esc(F.section)+"' title='Edit this fix before applying (trim an OR, sharpen the instruction)'>&#9998;</button>")
           +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
           +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>"
@@ -358,6 +360,7 @@ document.addEventListener("click",function(e){
   if(op==="revsel"){var sf=bp.review&&bp.review.findings[i];if(sf&&!sf.status&&!_applyingAll){if(sf._sel)delete sf._sel;else sf._sel=1;render();}return;}
   if(op==="revdel"){bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
   if(op==="revapplyall"){applyAllFindings();return;}
+  if(op==="revask"){var af=bp.review&&bp.review.findings[i];if(af)openAsk(af);return;}
   if(op==="revdelall"){if(!confirm("Delete the entire review ("+bp.review.findings.length+" finding"+(bp.review.findings.length===1?"":"s")+")? This removes the CBB notes from the blueprint."))return;delete bp.review;markDirty();render();setStatus("Review deleted.","");return;}
   // Collapse toggles — pure view state, no markDirty.
   if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
@@ -622,6 +625,63 @@ async function applyAllFindings(){
   render();
   setStatus("Applied "+ok+" selected fix"+(ok===1?"":"es")+(fail?"; "+fail+" failed and stayed selected":"")+".",fail?"err":"ok");
 }
+
+// ── Consult / Ask (v0.16) ──────────────────────────────────────────────────────
+// A window for TALKING about the blueprint ("is this canon or improv?"). Multi-turn within
+// one modal session, TRANSIENT — consultations never touch bp or the file. Each ask sends
+// the blueprint + the running exchange, so follow-ups have context. Entry points: toolbar
+// 💬 Ask… (general) and 💬 on a finding (seeded with it).
+var _askLog=[]; // [{q,a}] for the current modal session
+function closeAsk(){var m=document.getElementById("ask-modal");if(m)m.remove();_askLog=[];}
+function renderAskLog(){
+  var el=document.getElementById("ask-log");if(!el)return;
+  var h="",i;
+  for(i=0;i<_askLog.length;i++){
+    h+="<div style='margin-bottom:10px;'><div style='color:var(--acc);font-size:12px;margin-bottom:3px;'>You</div><div style='white-space:pre-wrap;'>"+esc(_askLog[i].q)+"</div></div>";
+    h+="<div style='margin-bottom:14px;'><div style='color:var(--grn);font-size:12px;margin-bottom:3px;'>Consultant</div><div style='white-space:pre-wrap;'>"+(_askLog[i].a==null?"<em style='color:var(--t2);'>thinking…</em>":esc(_askLog[i].a))+"</div></div>";
+  }
+  el.innerHTML=h||"<em style='color:var(--t2);'>Ask anything about this blueprint — canon vs invention, design tradeoffs, what the source module actually says.</em>";
+  el.scrollTop=el.scrollHeight;
+}
+function openAsk(seedFinding){
+  if(!llmReady())return;
+  closeAsk();
+  var wrap=document.createElement("div");
+  wrap.id="ask-modal";
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
+  wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;width:min(760px,94vw);height:min(640px,88vh);padding:14px;display:flex;flex-direction:column;gap:10px;'>"
+    +"<div style='display:flex;align-items:center;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>&#128172; Consult — "+esc(bp.name||"untitled")+"</span><button class='mini' id='ask-x'>Close</button></div>"
+    +(seedFinding?"<div style='font-size:12px;color:var(--t2);border-left:3px solid var(--brd2);padding:6px 10px;'>Re: ["+esc(seedFinding.sev)+"] "+esc(seedFinding.section)+" — "+esc(seedFinding.issue)+"</div>":"")
+    +"<div id='ask-log' style='flex:1;overflow-y:auto;font-size:13.5px;line-height:1.6;color:var(--t1);padding:4px 2px;'></div>"
+    +"<div style='display:flex;gap:8px;'><textarea id='ask-inp' style='flex:1;min-height:44px;height:44px;' placeholder='"+(seedFinding?"e.g. Is this fix canon or improv?":"Ask about the blueprint…")+"'></textarea><button class='tbtn primary' id='ask-send'>Ask</button></div></div>";
+  document.body.appendChild(wrap);
+  wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeAsk();});
+  document.getElementById("ask-x").addEventListener("click",closeAsk);
+  var inp=document.getElementById("ask-inp");
+  async function send(){
+    var q=inp.value.trim();if(!q)return;
+    inp.value="";
+    _askLog.push({q:q,a:null});renderAskLog();
+    var btn=document.getElementById("ask-send");if(btn)btn.disabled=true;
+    try{
+      var payload=stripView(bp);delete payload.review;
+      var msg="BLUEPRINT UNDER DISCUSSION:\n"+JSON.stringify(payload,null,1)
+        +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix: "+seedFinding.fix:"");
+      var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
+      msg+="\n\nUSER ASKS: "+q;
+      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint (an adaptation of a published module when the author credit says so). Answer directly and concisely. When the question touches canon: state explicitly what is CANON from the published source versus INVENTED/improvised, and flag anything you are unsure of. You are advising the human author — you cannot edit the blueprint. Plain text only.",1200,null,{noHistory:true,kind:"other"});
+      _askLog[_askLog.length-1].a=resp;
+    }catch(e){_askLog[_askLog.length-1].a="(failed: "+e.message+")";}
+    if(btn)btn.disabled=false;
+    renderAskLog();
+    inp.focus();
+  }
+  document.getElementById("ask-send").addEventListener("click",send);
+  inp.addEventListener("keydown",function(ev){if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();send();}});
+  renderAskLog();
+  inp.focus();
+}
+document.getElementById("btn-ask").addEventListener("click",function(){openAsk(null);});
 
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
 // Publish = upsert to the personal library (server slugs by name — same name overwrites).
