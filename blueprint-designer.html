@@ -38,7 +38,8 @@ main{max-width:880px;margin:0 auto;padding:18px 18px 80px;}
 .cardlbl{cursor:pointer;user-select:none;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
 @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
-label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:3px;}
+label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:3px;min-height:16px;}
+.bo{padding:0 6px;font-size:10px;line-height:14px;height:16px;} /* breakout ⤢ compressed to label-line height so fldB rows match plain fld rows (alignment report 2026-07-05) */
 input[type=text],select,textarea{width:100%;padding:8px 10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);outline:none;}
 input[type=text]:focus,select:focus,textarea:focus{border-color:var(--acc);}
 textarea{resize:vertical;min-height:56px;line-height:1.5;}
@@ -91,7 +92,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.5";
+var BP_DESIGNER_VERSION="v0.6";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -130,7 +131,7 @@ function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inn
 // onField binding updates bp live while typing; Done just syncs the inline control back.
 function fldB(label,sec,i,j,k,short,inner){
   return "<div class='fld'><label style='display:flex;align-items:center;gap:8px;'>"+label
-    +"<button class='mini' data-op='breakout' data-i='"+i+"' data-j='"+j+"' data-bsec='"+sec+"' data-bk='"+k+"' data-blabel='"+esc(short)+"' title='Open large editor' style='margin-left:auto;flex-shrink:0;'>&#10530;</button></label>"+inner+"</div>";
+    +"<button class='mini bo' data-op='breakout' data-i='"+i+"' data-j='"+j+"' data-bsec='"+sec+"' data-bk='"+k+"' data-blabel='"+esc(short)+"' title='Open large editor' style='margin-left:auto;flex-shrink:0;'>&#10530;</button></label>"+inner+"</div>";
 }
 function txt(sec,i,j,k,val,ph){return "<input type='text' data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"' value='"+esc(val)+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+"/>";}
 function ta(sec,i,j,k,val,ph){return "<textarea data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+">"+esc(val)+"</textarea>";}
