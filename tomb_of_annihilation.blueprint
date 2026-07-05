@@ -1,0 +1,201 @@
+{
+  "format": "tnd-blueprint-v1",
+  "name": "Tomb of Annihilation",
+  "proseAuthor": "howard",
+  "author": "Wizards of the Coast (adapted for Traffic and Dragons)",
+  "tone": "swords",
+  "startingLocation": "Port Nyanzaru",
+  "startingRegion": "Chult",
+  "premise": "Across the world, the dead are dying a second death. Everyone ever raised by magic is withering — a wasting sickness no priest can cure — and no soul answers when the resurrection rites are spoken. They call it the death curse, and its source lies somewhere in Chult: a peninsula of emerald jungle, drowned cities, feathered tyrants, and undead that walk in daylight. A dying archmage has hired you to find that source and destroy it. The trail leads up rivers thick with silt and secrets, past the last outposts of civilisation, to a forgotten city of nine broken gods — and beneath it, a tomb built by the greatest necromancer who ever lived, who is very much looking forward to your visit.",
+  "acts": [
+    {
+      "title": "Port of Last Hope",
+      "goal": "Learn what the death curse is, secure backing and a guide in Port Nyanzaru, and strike out into the jungles of Chult toward the curse's source",
+      "turningPoint": "The heroes learn the curse flows from a device called the Soulmonger, hidden deep in the interior — and every clue points to a lost city no map has shown for a hundred years: Omu",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Dying Patron",
+          "objective": "Meet the archmage Syndra Silvane, learn the true nature of the death curse eating her alive, and accept the charge to find and destroy its source",
+          "type": "social"
+        },
+        {
+          "title": "The Merchant Princes",
+          "objective": "Navigate Port Nyanzaru — its dinosaur races, its markets, its seven merchant princes — to win a charter, supplies, and the favour needed to leave the city equipped for the green hell beyond",
+          "type": "social"
+        },
+        {
+          "title": "A Guide into the Green",
+          "objective": "Choose and win over a jungle guide who knows the interior — each with their own secrets and price — and chart a route toward the rumoured heart of the curse",
+          "type": "investigation"
+        },
+        {
+          "title": "The River of Teeth",
+          "objective": "Survive the first true expedition upriver — dinosaurs, disease, flesh-eating undead that hunt by daylight, and the desperate soldiers of Camp Vengeance",
+          "type": "exploration"
+        }
+      ]
+    },
+    {
+      "title": "The Forgotten City",
+      "goal": "Find the lost city of Omu, recover the nine puzzle cubes of its dead trickster gods, and open the way into the tomb beneath it",
+      "turningPoint": "With the shrines plundered and the Fane of the Night Serpent breached, the nine cubes unlock the Tomb of the Nine Gods — but the heroes now know they are not alone in the race: the yuan-ti want the Soulmonger preserved, and the Red Wizards of Thay want it for themselves",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "Wings and Oracles",
+          "objective": "Earn the trust of the aarakocra of Kir Sabal and seek the ageless oracle Saja N'baza at Orolunga, whose riddles hold the safe path to Omu",
+          "type": "social"
+        },
+        {
+          "title": "Omu of the Nine Shrines",
+          "objective": "Explore the drowned ruin of Omu, solve the trials of the nine trickster god shrines to claim their puzzle cubes, and survive the city's tyrant — the King of Feathers",
+          "type": "exploration"
+        },
+        {
+          "title": "The Fane of the Night Serpent",
+          "objective": "Infiltrate the yuan-ti temple beneath Omu, deal with or destroy the fallen paladin Ras Nsi, and take the final puzzle cube from his coils",
+          "type": "combat"
+        },
+        {
+          "title": "The Red Wizards",
+          "objective": "Uncover the Thayan expedition working in the shadows of Omu, and stop Valindra Shadowmantle from reaching the Soulmonger first",
+          "type": "investigation"
+        }
+      ]
+    },
+    {
+      "title": "The Tomb of the Nine Gods",
+      "goal": "Descend the deathtrap tomb of the archlich Acererak, level by level, and destroy the Soulmonger at its heart",
+      "turningPoint": "The Soulmonger is shattered and the death curse broken — but the thing it was feeding, a stillborn god swaddled in stolen souls, wakes hungry, and Acererak himself comes to defend his experiment",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Nine Gods' Gauntlet",
+          "objective": "Survive the tomb's riddles, traps, and the sepulchres of the nine trickster gods — whose restless spirits may possess, hinder, or aid the heroes who bear their cubes",
+          "type": "exploration"
+        },
+        {
+          "title": "The Sewn Sisters",
+          "objective": "Bargain with or destroy the coven of night hags who tend the tomb's lowest works, and learn from them what truly waits in the cradle below",
+          "type": "social"
+        },
+        {
+          "title": "The Soulmonger",
+          "objective": "Reach the heart of the tomb, destroy the Soulmonger, face the atropal it nourishes, and survive Acererak's wrath to see the sun again",
+          "type": "combat"
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Syndra Silvane",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "Human archmage and the expedition's patron. Died once, decades ago, and was raised — so the death curse is consuming her day by day. Grey-skinned, sunken-eyed, running out of time. Bankrolls the heroes and teleports them to Port Nyanzaru. Knows more about Chult's factions than she first admits."
+    },
+    {
+      "name": "Wakanga O'tamu",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "Merchant prince of Port Nyanzaru with the monopoly on magic. Urbane, curious, collector of lore and favours. The friendliest door into the city's politics — and a source of maps, potions, and gossip about the other six princes."
+    },
+    {
+      "name": "Azaka Stormfang",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "Chultan jungle guide — capable, proud, and cheap, because she has her own reason to go inland: a stolen family mask she means to recover from Firefinger. Secretly a weretiger; her secret surfaces under the full moon or in desperate battle."
+    },
+    {
+      "name": "Eku",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "A guide who seems too wise, too kind, and too unkillable for this jungle. In truth a couatl in human form, sworn to protect Chult's innocents. Refuses to guide evil-hearted expeditions. Knows the path to Orolunga and speaks of the oracle with reverence."
+    },
+    {
+      "name": "Artus Cimber",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "notes": "A legend who doesn't look a day over thirty — because he isn't aging. Bearer of the Ring of Winter, hunted by the Zhentarim and Ras Nsi's yuan-ti alike. Searching Chult for his lost wife's people. A powerful wildcard: ally if befriended, catastrophe if betrayed."
+    },
+    {
+      "name": "Dragonbait",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "A saurial paladin — a scaled, crested warrior from another world who speaks only through scent and gesture. Artus Cimber's inseparable companion. Communicates smells: brimstone for anger, roses for approval. Utterly loyal, uncannily good at reading hearts."
+    },
+    {
+      "name": "Saja N'baza",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "The guardian naga oracle of Orolunga, ancient beyond reckoning. Answers questions only in riddles delivered through her spectral handmaidens. Knows the location of Omu and the nature of the Soulmonger — for those patient enough to climb her ziggurat and ask correctly."
+    },
+    {
+      "name": "Ras Nsi",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "Once a paladin of Ubtao who slaughtered thousands to punish Omu's faithlessness; now a yuan-ti anathema-in-waiting ruling the Fane of the Night Serpent beneath the city. Dying slowly, desperate, and holding the ninth puzzle cube. Can be bargained with — his hatred of Acererak's works runs deep — but never trusted."
+    },
+    {
+      "name": "Valindra Shadowmantle",
+      "role": "enemy",
+      "pronouns": "she/her",
+      "notes": "Elven lich of the Red Wizards of Thay, leading a covert Thayan expedition to study and seize the Soulmonger for Szass Tam. Charming, patient, and entirely willing to let the heroes clear the tomb's traps before stepping over their bodies."
+    },
+    {
+      "name": "Withers",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "The tomb's steward — a withered, skeletal functionary who manages Acererak's deathtrap like a bureaucrat manages ledgers. Dispatches tomb dwarves to repair sprung traps and watches the heroes' progress through scrying. Petty, meticulous, hateful."
+    },
+    {
+      "name": "Acererak",
+      "role": "enemy",
+      "pronouns": "he/him",
+      "notes": "The archlich. Builder of deathtrap tombs across a hundred worlds, harvester of souls, author of the death curse. The Tomb of the Nine Gods is his masterpiece and the Soulmonger his experiment — feeding the souls of the raised dead to a stillborn god. He does not fear the heroes; he is entertained by them. Until the Soulmonger cracks."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Port Nyanzaru",
+      "description": "The last great city of Chult — a riot of colour, drums, and commerce ruled by seven merchant princes. Dinosaurs haul cargo through the streets and race for fortunes on festival days. Beyond its walls: harbour forts, a leper colony, and three hundred miles of jungle that eats expeditions whole."
+    },
+    {
+      "name": "Camp Vengeance",
+      "description": "The Order of the Gauntlet's forward camp on the River Soshenstar — a palisade of sharpened logs, sick soldiers, and grim resolve, besieged nightly by undead. Its commander needs supplies and reinforcements far more than pride lets him admit."
+    },
+    {
+      "name": "Firefinger",
+      "description": "A lone spire of red rock rising above the jungle canopy, home to a flock of murderous pterafolk. They keep trophies from every traveller they've dropped from a thousand feet — including a stolen weretiger mask."
+    },
+    {
+      "name": "Kir Sabal",
+      "description": "A monastery carved into a cliff face, reachable only by air or a heart-stopping climb, home to a colony of aarakocra. They shelter the last heirs of Omu's royal line and may gift the worthy the Dance of the Seven Winds."
+    },
+    {
+      "name": "Orolunga",
+      "description": "A ruined ziggurat swallowed by green, its stepped terraces patrolled by spectral handmaidens. At its summit dwells Saja N'baza, the guardian naga who has answered pilgrims' riddles since before Omu fell."
+    },
+    {
+      "name": "Omu",
+      "description": "The forgotten city. Once the jewel of Chult, cursed when its people abandoned their gods — now a drowned ruin in a sunken valley, ruled by a tyrannosaurus the kobolds call the King of Feathers. Nine shrines to nine dead trickster gods hide nine puzzle cubes, and beneath the royal palace coils a temple of serpents."
+    },
+    {
+      "name": "Fane of the Night Serpent",
+      "description": "The yuan-ti stronghold beneath Omu — breeding pits, sacrifice pools, and hissing devotion to Dendar the Night Serpent. Ras Nsi rules here, guarding the final puzzle cube and dreaming of the world's last night."
+    },
+    {
+      "name": "Tomb of the Nine Gods",
+      "description": "Acererak's masterpiece, buried beneath Omu: six levels of traps that reward greed with death, halls that rearrange themselves, and the sepulchres of Omu's nine murdered gods. At its heart hangs the Soulmonger, and beneath it, a cradle no light should ever have touched."
+    }
+  ],
+  "rules": [
+    "This campaign is adapted from Tomb of Annihilation. Stay true to the major plot beats, factions, and NPCs but adapt freely to the player's choices and character.",
+    "The death curse is the campaign's clock — make it felt through people, not mechanics: Syndra visibly worse at each meeting, funerals in Port Nyanzaru, desperate letters from families of the withering. If the player character was ever raised from the dead, the curse touches them personally.",
+    "Chult itself is an antagonist. Heat, torrential rain, insects, disease, quicksand, and things with teeth — travel should never feel free. But the jungle is also gorgeous and alive; wonder and dread in equal measure.",
+    "Port Nyanzaru and the Chultans are vibrant, sophisticated, and proudly independent — never portray them as primitive. Foreign colonial powers lost their grip on Chult; the locals remember why.",
+    "The nine trickster gods each have a personality (I'jin's caprice, Obo'laka's caution, Papazotl's pride...). Let their shrines, cubes, and spirits express character, not just puzzles.",
+    "Acererak's tomb kills fairly: telegraph every trap, reward paranoia and cleverness, and let deaths feel earned, never arbitrary. The tomb is a dialogue between the player and a sadistic genius who wants an audience."
+  ]
+}
