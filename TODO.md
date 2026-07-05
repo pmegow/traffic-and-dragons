@@ -110,6 +110,17 @@
 
 **Today's 80/20:** make the existing alias/resolution layer (`[NPC_ALIAS:]` / `resolveNpcName()` in memory.js) the canonical identity mechanism — rename = register old name as alias of new. Covers #21 with no schema change. Optional low-regret hedge: start stamping an unused `id` on character/NPC nodes at creation so future ID-keyed code has them — but only worth it once #1 is real (otherwise YAGNI).
 
+### JSON dictionary vs. SQLite for game state (2026-07-04)
+**Decision:** Stay on the three JSON object trees (`worldState`/`sessionLog`/`memory`). Do NOT convert storage to SQLite as a standalone project. Explored, not advocated — recorded here for revisitation when the triggers below fire.
+
+**Why staying is right today:** every read site is a synchronous property access (hundreds of touchpoints, ES5, no build step); query-on-read SQLite means async-everywhere and a near-total rewrite, so realistically the in-memory trees would stay and SQLite would be just a persistence mirror — collecting only quota + write-granularity benefits that IndexedDB provides without a ~1MB WASM dependency, cross-origin-isolation headers (OPFS), or breaking the `file://` play tab. The GM never sees the storage format — every drift/memory-quality problem lives in the selection/rendering layer, identical either way. The forensic workflow (node-load a `.tnd`, replay RAG, refile events — the whole 2026-07-04 session) depends on saves being one greppable JSON file.
+
+**The two effects that genuinely tempt (both separable — adopt per-subsystem, never "convert the dictionary"):**
+1. **FTS5 for RAG** — `ragRetrieve`'s hand-rolled IDF is a poor man's BM25; SQLite FTS5 gives real BM25 + indexes over the transcript, same no-API/deterministic character as Phase 1. Likely a better-fitting RAG Phase 2 than embeddings.
+2. **Changeset-based sync** — the server is already SQLite; the session extension produces row-level changesets = the grown-up answer to whole-blob last-writer-wins (Known issue #5) and the multiplayer (#1) prerequisite.
+
+**Revisit triggers:** RAG Phase 2 gets green-lit (→ consider FTS5 for the transcript index only); multiplayer/server-authoritative state starts (→ consider changesets server-side); or localStorage quota actually bites in the wild (→ IndexedDB first, not SQLite).
+
 ### Subscription model (2026-06)
 **Decision:** Traffic and Dragons will ship as a subscription service. Users will not bring their own API keys.
 
