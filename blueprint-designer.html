@@ -91,7 +91,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.4";
+var BP_DESIGNER_VERSION="v0.5";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -108,7 +108,11 @@ function collapseAll(){
   for(i=0;i<bp.locations.length;i++)bp.locations[i]._c=1;
 }
 
-function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+// Delegates to the engine's escHtml (helpers.js) — which, unlike the old local copy, escapes
+// SINGLE quotes. txt()/fldB build single-quoted attributes (value='…'), so an unescaped
+// apostrophe closed the attribute early: "Tsuto's journal" rendered as "Tsuto" and — worse —
+// editing such a field would have written the truncation back into the data (2026-07-05 report).
+function esc(s){return escHtml(s==null?"":s);}
 function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
 function blankAct(){return {title:"",goal:"",turningPoint:"",reward:"",parallel:false,arcs:[blankArc()]};}
 function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
