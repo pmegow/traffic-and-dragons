@@ -88,6 +88,13 @@ function markDirty(){if(!dirty){dirty=true;setStatus("Unsaved changes","");}}
 
 // ── Rendering ──────────────────────────────────────────────────────────────────
 function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
+// Long-form fields get a ⤢ breakout button on the label — opens the large modal editor.
+// The modal textarea carries the SAME data-sec/i/j/k attributes, so the existing delegated
+// onField binding updates bp live while typing; Done just syncs the inline control back.
+function fldB(label,sec,i,j,k,short,inner){
+  return "<div class='fld'><label style='display:flex;align-items:center;gap:8px;'>"+label
+    +"<button class='mini' data-op='breakout' data-i='"+i+"' data-j='"+j+"' data-bsec='"+sec+"' data-bk='"+k+"' data-blabel='"+esc(short)+"' title='Open large editor' style='margin-left:auto;flex-shrink:0;'>&#10530;</button></label>"+inner+"</div>";
+}
 function txt(sec,i,j,k,val,ph){return "<input type='text' data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"' value='"+esc(val)+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+"/>";}
 function ta(sec,i,j,k,val,ph){return "<textarea data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"'"+(ph?" placeholder='"+esc(ph)+"'":"")+">"+esc(val)+"</textarea>";}
 function movBtns(op,i,j){
@@ -108,7 +115,7 @@ function render(){
     +fld("Starting location",txt("meta",0,0,"startingLocation",bp.startingLocation,"e.g. Sandpoint"))
     +fld("Starting region",txt("meta",0,0,"startingRegion",bp.startingRegion,"e.g. Varisia"))
     +"</div>"
-    +fld("Premise *",ta("meta",0,0,"premise",bp.premise,"One paragraph: the world, the threat, why it matters."))
+    +fldB("Premise *","meta",0,0,"premise","Premise",ta("meta",0,0,"premise",bp.premise,"One paragraph: the world, the threat, why it matters."))
     +"</div>";
   // Acts
   h+="<div class='sect'><h2>Story — Acts &amp; Arcs</h2>";
@@ -116,16 +123,16 @@ function render(){
   for(i=0;i<bp.acts.length;i++){
     var a=bp.acts[i];
     h+="<div class='card'><div class='cardhead'><span class='cardlbl'>Act "+(i+1)+"</span>"+movBtns("act",i,0)+"</div>"
-      +"<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fld("Goal *",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
-      +fld("Turning point (ends the act)",txt("act",i,0,"turningPoint",a.turningPoint,"the event that closes this act"))
+      +"<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fldB("Goal *","act",i,0,"goal","Act "+(i+1)+" goal",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
+      +fldB("Turning point (ends the act)","act",i,0,"turningPoint","Act "+(i+1)+" turning point",txt("act",i,0,"turningPoint",a.turningPoint,"the event that closes this act"))
       +"<label class='chk'><input type='checkbox' data-sec='act' data-i='"+i+"' data-j='0' data-k='parallel'"+(a.parallel?" checked":"")+"/> Parallel act — arcs can be pursued in any order</label>";
     for(j=0;j<(a.arcs||[]).length;j++){
       var r=a.arcs[j];
       var typeOpts="";for(var ti=0;ti<ARC_TYPES.length;ti++){typeOpts+="<option value='"+ARC_TYPES[ti]+"'"+(r.type===ARC_TYPES[ti]?" selected":"")+">"+(ARC_TYPES[ti]||"(unset)")+"</option>";}
       h+="<div class='card arc'><div class='cardhead'><span class='cardlbl'>Arc "+(i+1)+"."+(j+1)+"</span>"+movBtns("arc",i,j)+"</div>"
         +"<div class='grid2'>"+fld("Title *",txt("arc",i,j,"title",r.title,""))+fld("Type","<select data-sec='arc' data-i='"+i+"' data-j='"+j+"' data-k='type'>"+typeOpts+"</select>")+"</div>"
-        +fld("Objective *",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
-        +fld("DNA hint (how the GM should RUN this arc — optional)",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"))
+        +fldB("Objective *","arc",i,j,"objective","Arc "+(i+1)+"."+(j+1)+" objective",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
+        +fldB("DNA hint (how the GM should RUN this arc — optional)","arc",i,j,"dnaHint","Arc "+(i+1)+"."+(j+1)+" DNA hint",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"))
         +"</div>";
     }
     h+="<button class='addbtn' data-op='addarc' data-i='"+i+"' data-j='0'>+ Add arc to Act "+(i+1)+"</button></div>";
@@ -194,6 +201,7 @@ function move(arr,from,delta){var to=from+delta;if(to<0||to>=arr.length)return;v
 document.addEventListener("click",function(e){
   var t=e.target,op=t.getAttribute&&t.getAttribute("data-op");if(!op)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
+  if(op==="breakout"){openBreakout(t);return;}
   if(op==="addact")bp.acts.push(blankAct());
   else if(op==="delact"){if(!confirm("Remove Act "+(i+1)+" and its arcs?"))return;bp.acts.splice(i,1);}
   else if(op==="upact")move(bp.acts,i,-1);
@@ -217,6 +225,42 @@ document.addEventListener("click",function(e){
   else return;
   markDirty();render();
 });
+
+// ── Breakout editor — large modal for long-form fields ─────────────────────────
+function bpFieldGet(sec,i,j,k){
+  if(sec==="meta")return bp[k]||"";
+  if(sec==="act")return bp.acts[i]?bp.acts[i][k]||"":"";
+  if(sec==="arc")return bp.acts[i]&&bp.acts[i].arcs[j]?bp.acts[i].arcs[j][k]||"":"";
+  return "";
+}
+function closeBreakout(){var m=document.getElementById("bo-modal");if(m)m.remove();}
+function openBreakout(btn){
+  closeBreakout();
+  var sec=btn.getAttribute("data-bsec"),i=parseInt(btn.getAttribute("data-i"),10)||0,j=parseInt(btn.getAttribute("data-j"),10)||0;
+  var k=btn.getAttribute("data-bk"),label=btn.getAttribute("data-blabel")||k;
+  var wrap=document.createElement("div");
+  wrap.id="bo-modal";
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
+  wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;width:min(900px,94vw);padding:14px;display:flex;flex-direction:column;gap:10px;'>"
+    +"<div style='display:flex;align-items:center;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>"+esc(label)+"</span><button class='mini' id='bo-done'>Done</button></div>"
+    +"<textarea id='bo-ta' data-sec='"+sec+"' data-i='"+i+"' data-j='"+j+"' data-k='"+k+"' style='height:55vh;min-height:180px;resize:vertical;font-size:14px;line-height:1.6;'></textarea>"
+    +"<div style='font-size:10px;color:var(--t2);'>Edits apply live &middot; drag the bottom-right corner to resize &middot; Esc or click outside to close</div></div>";
+  document.body.appendChild(wrap);
+  var taEl=document.getElementById("bo-ta");
+  taEl.value=bpFieldGet(sec,i,j,k); // the shared onField binding takes it from here (same data attrs)
+  taEl.focus();
+  function done(){
+    // Sync the inline control directly instead of render() — a full re-render would dump scroll position.
+    var els=document.querySelectorAll("[data-sec='"+sec+"'][data-i='"+i+"'][data-j='"+j+"'][data-k='"+k+"']"),x;
+    for(x=0;x<els.length;x++){if(els[x]!==taEl)els[x].value=bpFieldGet(sec,i,j,k);}
+    document.removeEventListener("keydown",onEsc);
+    closeBreakout();
+  }
+  function onEsc(ev){if(ev.key==="Escape")done();}
+  document.getElementById("bo-done").addEventListener("click",done);
+  wrap.addEventListener("click",function(ev){if(ev.target===wrap)done();});
+  document.addEventListener("keydown",onEsc);
+}
 
 // ── Load / New / Save ──────────────────────────────────────────────────────────
 function loadBlueprintObject(obj){
