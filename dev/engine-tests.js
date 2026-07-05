@@ -375,6 +375,18 @@ function runEngineTests(R){
     if(b.indexOf("[ACT_COMPLETE:First Act]")<0)return "grant not tied to the completing emission";
     return b.indexOf("a duchy")<0?true:"pending act's reward leaked";
   });
+  t("blueprint review/CBB section is INVISIBLE to the engine but persists in the file (#39)",function(){
+    makeWorld();
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"R",premise:"p",tone:"swords",
+      acts:[{title:"A",goal:"g",turningPoint:"tp",arcs:[{title:"a",objective:"o"}]}],
+      review:{verdict:"CANARY-VERDICT",findings:[{sev:"HIGH",section:"npcs",issue:"CANARY-ISSUE",fix:"CANARY-FIX",status:""}]}});
+    if(validateBlueprint(bp)!==null)return "review broke validation: "+validateBlueprint(bp);
+    applyBlueprint(bp);
+    var s=buildSysPrompt();
+    if((s.stable+s.volatile).indexOf("CANARY")>=0)return "review leaked into the prompt";
+    if(buildSkeletonBlock().indexOf("CANARY")>=0)return "review leaked into the skeleton block";
+    return JSON.stringify(normalizeBlueprint(bp)).indexOf("CANARY-VERDICT")>=0?true:"normalize stripped the review (must persist as the CBB trail)";
+  });
   t("buildBlueprintFromGame round-trips the bestiary",function(){
     makeWorld();worldState.tone={name:"High Fantasy",voice:""};
     worldState.bestiary=[{name:"King of Feathers",kind:"beast",threat:"apex",notes:"tyrannosaurus; swallows foes whole"}];

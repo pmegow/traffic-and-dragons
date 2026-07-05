@@ -95,7 +95,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.7";
+var BP_DESIGNER_VERSION="v0.8";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -263,6 +263,28 @@ function render(){
   h+="<button class='addbtn' data-op='addrule' data-i='0' data-j='0'>+ Add rule</button>";
   }
   h+="<div id='counts' style='margin-top:12px;'></div></div>";
+  // Review — CBB list (v0.8). Ships WITH the blueprint (playtester notes); engine never reads it.
+  if(bp.review&&bp.review.findings&&bp.review.findings.length){
+    var openN=0;for(i=0;i<bp.review.findings.length;i++){if(!bp.review.findings[i].status)openN++;}
+    h+="<div class='sect'>"+secH("review","&#128269; Review — could be better ("+openN+" open of "+bp.review.findings.length+")");
+    if(secOpen.review!==false){
+      if(bp.review.verdict)h+="<div style='font-size:13px;color:var(--t0);font-style:italic;margin-bottom:12px;'>"+esc(bp.review.verdict)+"</div>";
+      for(i=0;i<bp.review.findings.length;i++){
+        var F=bp.review.findings[i],sevCol=F.sev==="HIGH"?"var(--dng)":F.sev==="LOW"?"var(--t2)":"var(--acc)";
+        var done=F.status==="applied",busy=F.status==="applying";
+        h+="<div class='card' style='border-left-color:"+sevCol+";"+(done?"opacity:.55;":"")+"'>"
+          +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)+(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")+"</span>"
+          +(done||busy?"":"<button class='mini' data-op='revapply' data-i='"+i+"' data-j='0' title='Have the AI apply this fix'>&#9889; Apply fix</button>")
+          +(busy?"<span style='font-size:11px;color:var(--t2);'>applying…</span>":"")
+          +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
+          +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>"
+          +"<div style='font-size:13px;margin-top:4px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Fix:</span> "+esc(F.fix)+"</div>"
+          +(F.note?"<div style='font-size:12px;margin-top:6px;color:var(--grn);'>&#10003; "+esc(F.note)+"</div>":"")
+          +"</div>";
+      }
+    }
+    h+="</div>";
+  }
   document.getElementById("app").innerHTML=h;
   updateCounts();
 }
@@ -316,6 +338,8 @@ document.addEventListener("click",function(e){
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
   if(op==="gencreature"){genCreature(t);return;}
+  if(op==="revapply"){applyFinding(i);return;}
+  if(op==="revdel"){bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
   // Collapse toggles — pure view state, no markDirty.
   if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
   if(op==="togcard"){
@@ -467,34 +491,80 @@ async function genCreature(btn){
   var b2=document.querySelector("[data-op='gencreature']");
   if(b2){b2.disabled=false;b2.innerHTML="✨ Generate creature from story";}
 }
-function closeReview(){var m=document.getElementById("rev-modal");if(m)m.remove();}
+// Review v2 (designer v0.8): structured findings written INTO bp.review — a persistent
+// CBB ("could be better") list that ships with the file for playtesters. Invisible to the
+// engine (canary engine test enforces it). Each finding: ✗ dismiss, or ⚡ Apply fix (LLM
+// applies it via bounded section replacement, below). A fresh review replaces the old list.
+// Engine-contract block calibrates the reviewer: it must not flag what the RUNTIME already
+// provides (first live run dinged parallel acts — which buildSkeletonBlock explains per-turn).
+var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of the following; do NOT raise findings about them:\n"
+  +"- parallel:true acts: the engine injects full parallel-play instructions every turn (arcs active simultaneously, player chooses, GM weaves hooks).\n"
+  +"- Arc/act rewards: the engine instructs the GM to grant them in the same response as the completion emission; reward mechanics never need explaining in the blueprint.\n"
+  +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
+  +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
+  +"- Creatures: injected into every prompt as a canonical bestiary; NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
+  +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.";
 document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
+  if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
   var btn=this;btn.disabled=true;setStatus("Submitting the blueprint for review…","");
   try{
-    var msg="Review this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT:\n"+JSON.stringify(stripView(bp),null,1)
+    var payload=stripView(bp);delete payload.review;
+    var msg="Review this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT:\n"+JSON.stringify(payload,null,1)
+      +"\n\n"+ENGINE_CONTRACT
       +"\n\nREVIEW CRITERIA, in priority order:"
       +"\n1. NAME-DROP violations: any person, place, faction, god, or thing referenced in the premise, notes, rules, or descriptions that is NOT defined anywhere in the blueprint. (Real bug class: a rule referenced 'the nine trickster gods' without naming them.)"
       +"\n2. Missing or empty high-value data: acts without concrete turning points, climactic arcs without rewards, NPCs without run-instructions or secrets, locations missing their load-bearing facts."
       +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
       +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
       +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
-      +"\n\nOUTPUT FORMAT (plain text, no markdown):\nVERDICT: <one blunt sentence>\n\nThen numbered findings, worst first, max 12, each on the pattern:\n<n>. [HIGH|MEDIUM|LOW] <section> — <issue> — FIX: <concrete suggestion>\n\nEnd with:\nBEST ADDITIONS: <the 2-3 highest-value things to add, one line each>";
-    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Follow the requested output format exactly. Plain text only.",1400,null,{noHistory:true,kind:"other"});
-    closeReview();
-    var wrap=document.createElement("div");
-    wrap.id="rev-modal";
-    wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:55;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px 16px;";
-    wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;max-width:760px;width:100%;max-height:82vh;overflow-y:auto;padding:16px 20px;'>"
-      +"<div style='display:flex;align-items:center;margin-bottom:10px;'><h2 style='flex:1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;border:none;padding:0;'>&#128269; Blueprint review — "+esc(bp.name||"untitled")+"</h2><button class='mini' id='rev-x'>&#215;</button></div>"
-      +"<div style='white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--t1);'>"+esc(resp)+"</div></div>";
-    document.body.appendChild(wrap);
-    wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeReview();});
-    document.getElementById("rev-x").addEventListener("click",closeReview);
-    setStatus("Review complete.","ok");
+      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, max 12:\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fix\":\"concrete, applyable instruction\"}]}";
+    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape.",1600,null,{noHistory:true,kind:"other"});
+    var rev=JSON.parse(repairModelJson(resp));
+    if(!rev||!rev.findings)throw new Error("model returned no findings object");
+    bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fix:String(f.fix||""),status:""};})};
+    markDirty();render();
+    var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
+    setStatus("Review: "+bp.review.verdict,"ok");
   }catch(e){setStatus("Review failed: "+e.message,"err");}
   btn.disabled=false;
 });
+// Apply one finding — BOUNDED section replacement: the model returns ONLY the top-level
+// sections it changed, complete and in-schema; we merge, normalize, validate, and ROLL BACK
+// wholesale if the result doesn't validate. Applied findings stay (struck) as the CBB trail.
+var BP_SECTIONS=["name","author","tone","proseAuthor","premise","startingLocation","startingRegion","acts","npcs","creatures","locations","rules"];
+async function applyFinding(idx){
+  if(!llmReady())return;
+  var f=bp.review&&bp.review.findings[idx];if(!f||f.status)return;
+  f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
+  try{
+    var payload=stripView(bp);delete payload.review;
+    var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
+      +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+f.fix
+      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.";
+    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
+    var patch=JSON.parse(repairModelJson(resp));
+    var snapshot=JSON.parse(JSON.stringify(bp));
+    var changed=[],k;
+    for(k in patch){if(BP_SECTIONS.indexOf(k)>=0){
+      // Shrink guard: a surgical fix must never EMPTY a section that had content — an empty
+      // acts[] is technically valid (premise-only blueprints exist) but as a "fix" it's a wipe.
+      if(Object.prototype.toString.call(bp[k])==="[object Array]"&&bp[k].length&&(!patch[k]||!patch[k].length)){bp=snapshot;throw new Error("fix tried to empty '"+k+"' — rolled back");}
+      bp[k]=patch[k];changed.push(k);
+    }}
+    if(!changed.length)throw new Error("model returned no recognisable sections");
+    normalizeBlueprint(bp);
+    var err=validateBlueprint(bp);
+    if(err){bp=snapshot;throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");}
+    bp.review.findings[idx].status="applied";
+    if(patch.note)bp.review.findings[idx].note=String(patch.note);
+    markDirty();render();
+    setStatus("Applied ("+changed.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
+  }catch(e){
+    if(bp.review&&bp.review.findings[idx])bp.review.findings[idx].status="";
+    render();setStatus("Apply failed: "+e.message,"err");
+  }
+}
 
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
 // Publish = upsert to the personal library (server slugs by name — same name overwrites).
