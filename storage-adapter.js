@@ -217,10 +217,13 @@ var storageAdapter = (function() {
     if (!_serverUrl || !_token || !campId) return;
     if (typeof worldState === "undefined" || !worldState) return;
     var portrait = worldState.character ? worldState.character.portrait : null;
-    // Collect all NPC portraits
+    // Collect all NPC portraits — via npcPortrait() (v1.170): after the #3 dedupe, companion
+    // portraits live on charSheet only; collecting bare n.portrait dropped them from this store,
+    // which is the ONLY transport when the other device already has the current turn number.
     var npcPortraits = {};
     (worldState.npcs || []).forEach(function(n) {
-      if (n.portrait) npcPortraits[n.name] = n.portrait;
+      var p = (typeof npcPortrait === "function") ? npcPortrait(n) : n.portrait;
+      if (p) npcPortraits[n.name] = p;
     });
     if (!portrait && !Object.keys(npcPortraits).length) return;
     _portraitDirty = false;
@@ -340,6 +343,34 @@ var storageAdapter = (function() {
 
   // ── Load ────────────────────────────────────────────────────────────────
 
+  // v1.170: land blob-borne portraits even at EQUAL turn numbers, fill-only. The #3 dedupe made
+  // charSheet.portrait the companion portrait's single home — it rides the state blob, but the
+  // blob is only ADOPTED when serverTurn > localTurn. A device already at the current turn never
+  // adopted it, and companions no longer travel via the /portrait store unless a portrait edit
+  // bumps PV — so single-home portraits stranded on the device that had them (the Frizwick/
+  // Morwen mobile report, 2026-07-04). Fill-only: never overwrites an image the device already
+  // has, so it can't clobber a newer local edit. Returns true if anything landed.
+  function fillPortraitsFromBlob(sws) {
+    if (!sws || !sws.npcs) return false;
+    if (typeof worldState === "undefined" || !worldState || !worldState.npcs) return false;
+    var changed = false;
+    if (sws.character && sws.character.portrait && worldState.character && !worldState.character.portrait) {
+      worldState.character.portrait = sws.character.portrait;
+      changed = true;
+    }
+    sws.npcs.forEach(function(sn) {
+      var sp = sn && sn.charSheet && sn.charSheet.portrait;
+      if (!sp) return;
+      for (var i = 0; i < worldState.npcs.length; i++) {
+        var ln = worldState.npcs[i];
+        if (ln.name !== sn.name) continue;
+        if (ln.charSheet && !ln.charSheet.portrait && !ln.portrait) { ln.charSheet.portrait = sp; changed = true; }
+        break;
+      }
+    });
+    return changed;
+  }
+
   function load(cb) {
     var localOk = loadState();
 
@@ -427,6 +458,12 @@ var storageAdapter = (function() {
           saveAll();
           if (typeof syncUI === "function") syncUI();
         }
+      }
+      // Fill-only pass runs regardless of the turn/PV gates above (no-op after a full adopt —
+      // worldState IS the blob then). saveCore, not saveAll: nothing here needs re-uploading.
+      if (fillPortraitsFromBlob(data.worldState)) {
+        if (typeof saveCore === "function") saveCore();
+        if (typeof syncUI === "function") syncUI();
       }
       syncCampaignList(null);
     }).catch(function(e) {
@@ -537,6 +574,7 @@ var storageAdapter = (function() {
     syncStatus:            syncStatus,
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
+    fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
     listCharLibrary:            listCharLibrary,
     saveCharToLibrary:          saveCharToLibrary,
     deleteCharFromLibrary:      deleteCharFromLibrary,

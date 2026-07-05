@@ -149,6 +149,26 @@ function runEngineTests(R){
     if(npcPortrait({name:"x"})!==null)return "portrait-less not null";
     return npcPortrait(null)===null?true:"null npc not handled";
   });
+  t("fillPortraitsFromBlob lands blob-borne portraits at equal turn, fill-only (v1.170)",function(){
+    makeWorld();
+    worldState.npcs=[
+      {name:"Friz",partyMember:true,portrait:null,charSheet:{name:"Friz",portrait:null}},
+      {name:"Morwen",partyMember:true,portrait:null,charSheet:{name:"Morwen",portrait:"LOCAL_EDIT"}},
+      {name:"Sheetless",portrait:"HAS_OWN"}
+    ];
+    var blob={character:{name:"Tess",portrait:"PC_IMG"},npcs:[
+      {name:"Friz",charSheet:{portrait:"SERVER_FRIZ"}},
+      {name:"Morwen",charSheet:{portrait:"SERVER_MORWEN"}},
+      {name:"Sheetless",charSheet:null}
+    ]};
+    var changed=storageAdapter.fillPortraitsFromBlob(blob);
+    if(!changed)return "reported no change";
+    if(worldState.npcs[0].charSheet.portrait!=="SERVER_FRIZ")return "missing portrait not filled";
+    if(worldState.npcs[1].charSheet.portrait!=="LOCAL_EDIT")return "local image overwritten";
+    if(worldState.character.portrait!=="PC_IMG")return "player fill-only missed";
+    var again=storageAdapter.fillPortraitsFromBlob(blob);
+    return again===false?true:"second pass not a no-op";
+  });
 
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
   section("usage telemetry");

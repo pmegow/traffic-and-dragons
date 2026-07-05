@@ -535,7 +535,7 @@ function campCloudPushSilent(id,cb){
       var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
       // Also push portrait if this campaign has one
       var portrait=wsObj.character&&wsObj.character.portrait;
-      var npcPortraits={};(wsObj.npcs||[]).forEach(function(n){if(n.portrait)npcPortraits[n.name]=n.portrait;});
+      var npcPortraits={};(wsObj.npcs||[]).forEach(function(n){var p=npcPortrait(n);if(p)npcPortraits[n.name]=p;});
       if(portrait||Object.keys(npcPortraits).length){fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id)+"/portrait",{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({portrait:portrait||null,npcPortraits:npcPortraits})}).catch(function(){});}
       if(cb)cb(true);
     })
