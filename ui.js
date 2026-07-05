@@ -342,12 +342,21 @@ function updatePartyPanel(){
   }
   document.getElementById("party-list").innerHTML=h;
 }
+// #32: inventory entries are plain strings, often "Name — description" or "Name (description)".
+// Bold the NAME segment only (split at the first spaced dash or opening paren) so lists scan;
+// the description stays regular. No separator = the whole entry is the name.
+function invItemHtml(s){
+  s=String(s);
+  var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\()/);
+  if(!m)return "<b>"+escHtml(s)+"</b>";
+  return "<b>"+escHtml(m[1])+"</b>"+escHtml(s.slice(m[1].length));
+}
 function updateInvPanel(){
   if(!worldState)return;var inv=worldState.character.inventory,gold=worldState.character.gold;
   var weps=["sword","blade","axe","bow","staff","crossbow","knife","dagger","spear","mace","hammer","blades"];
   var arm=["armor","chainmail","leather","hide","shield","helm","cloak","mail","scale"];
   document.getElementById("inv-cnt").textContent=inv.length;document.getElementById("inv-gold").textContent=gold+" gp";
-  var h="",i;for(i=0;i<inv.length;i++){var lc=inv[i].toLowerCase(),eq=false,j;for(j=0;j<weps.length;j++){if(lc.indexOf(weps[j])>=0){eq=true;break;}}if(!eq)for(j=0;j<arm.length;j++){if(lc.indexOf(arm[j])>=0){eq=true;break;}}h+='<div class="ii'+(eq?' eq':'')+'" title="'+inv[i]+'">'+inv[i]+'</div>';}
+  var h="",i;for(i=0;i<inv.length;i++){var lc=inv[i].toLowerCase(),eq=false,j;for(j=0;j<weps.length;j++){if(lc.indexOf(weps[j])>=0){eq=true;break;}}if(!eq)for(j=0;j<arm.length;j++){if(lc.indexOf(arm[j])>=0){eq=true;break;}}h+='<div class="ii'+(eq?' eq':'')+'" title="'+escHtml(inv[i])+'">'+invItemHtml(inv[i])+'</div>';}
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }
 function updateAbPanel(hl){
@@ -903,7 +912,9 @@ function csSheetSections(c){
   if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
   var spellHtml="";
   if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+nm2;spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
-  var invHtml=c.inventory&&c.inventory.length?'<div class="cs-v">'+c.inventory.join(", ")+"</div>":'<span class="cs-none">Empty</span>';
+  var invHtml;
+  if(c.inventory&&c.inventory.length){var invParts=[],ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invParts.push(invItemHtml(c.inventory[ivi]));invHtml='<div class="cs-v" style="line-height:1.9">'+invParts.join(", ")+"</div>";}
+  else invHtml='<span class="cs-none">Empty</span>';
   var charKv=(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
   return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
