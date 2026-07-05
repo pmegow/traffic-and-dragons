@@ -95,7 +95,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.10";
+var BP_DESIGNER_VERSION="v0.11";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -509,7 +509,8 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
   +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
   +"- Creatures: injected into every prompt as a canonical bestiary; NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
-  +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.";
+  +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.\n"
+  +"THE SCHEMA IS FIXED. Never propose new fields, sections, or structures — the engine reads exactly the fields that exist, and anything else is dead data it will never deliver to the GM. Express every fix as an edit to EXISTING fields. In particular: an NPC's secrets, behavioral hooks, escalation guidance, and betrayal conditions all belong INSIDE its notes field — notes are delivered verbatim to the GM as that NPC's knowledge base, so 'add a secrets field' is wrong and 'rewrite the notes to include the secret and when it surfaces' is right.";
 document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
@@ -552,7 +553,7 @@ async function applyFinding(idx){
     var payload=stripView(bp);delete payload.review;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
       +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+f.fix
-      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.";
+      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content that a fix asks for goes INTO the existing fields (NPC secrets/hooks into that NPC's notes).";
     var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
     var snapshot=JSON.parse(JSON.stringify(bp));
