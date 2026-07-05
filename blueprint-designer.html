@@ -98,7 +98,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.14";
+var BP_DESIGNER_VERSION="v0.15";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -287,6 +287,7 @@ function render(){
           +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)
           +(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")
           +(busy?" <span style='font-size:10px;color:var(--t2);text-transform:none;letter-spacing:0;'>applying…</span>":"")+"</span>"
+          +(done||busy?"":"<button class='mini sq' data-op='breakout' data-bsec='revfix' data-bk='fix' data-i='"+i+"' data-j='0' data-blabel='Edit fix — "+esc(F.section)+"' title='Edit this fix before applying (trim an OR, sharpen the instruction)'>&#9998;</button>")
           +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
           +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>"
           +(done||busy
@@ -321,7 +322,8 @@ var FIELD_ROOTS={
   arc:function(i,j){return bp.acts[i]&&bp.acts[i].arcs[j];},
   npc:function(i,j){return bp.npcs[i];},
   creature:function(i,j){return bp.creatures[i];},
-  loc:function(i,j){return bp.locations[i];}
+  loc:function(i,j){return bp.locations[i];},
+  revfix:function(i,j){return bp.review&&bp.review.findings[i];} // v0.15: review fixes are editable ("90% there, just need a little goosing")
 };
 function bpFieldGet(sec,i,j,k){
   if(sec==="rule")return i<bp.rules.length?(bp.rules[i]||""):"";
@@ -413,11 +415,13 @@ function openBreakout(btn){
   taEl.value=bpFieldGet(sec,i,j,k); // the shared onField binding takes it from here (same data attrs)
   taEl.focus();
   function done(){
-    // Sync the inline control directly instead of render() — a full re-render would dump scroll position.
-    var els=document.querySelectorAll("[data-sec='"+sec+"'][data-i='"+i+"'][data-j='"+j+"'][data-k='"+k+"']"),x;
-    for(x=0;x<els.length;x++){if(els[x]!==taEl)els[x].value=bpFieldGet(sec,i,j,k);}
     document.removeEventListener("keydown",onEsc);
     closeBreakout();
+    // Review fixes render as text (not bound inputs), so they need a re-render to show the edit;
+    // ordinary fields sync their inline control directly (a full render would dump scroll position).
+    if(sec==="revfix"){render();return;}
+    var els=document.querySelectorAll("[data-sec='"+sec+"'][data-i='"+i+"'][data-j='"+j+"'][data-k='"+k+"']"),x;
+    for(x=0;x<els.length;x++){if(els[x]!==taEl)els[x].value=bpFieldGet(sec,i,j,k);}
   }
   function onEsc(ev){if(ev.key==="Escape")done();}
   document.getElementById("bo-done").addEventListener("click",done);
