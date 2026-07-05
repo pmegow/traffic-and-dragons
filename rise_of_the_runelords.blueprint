@@ -12,27 +12,32 @@
       "title": "The Skinsaw Murders",
       "goal": "Defend Sandpoint from escalating threats and uncover the conspiracy behind the goblin raids and a string of ritual murders",
       "turningPoint": "The heroes discover that the murders and raids are connected to a larger plot involving Thassilonian rune magic, and that someone is harvesting greed-fuelled souls for an ancient ritual",
+      "reward": "Heroes of Sandpoint — the town's lasting devotion, a celebratory feast, Ameiko's standing offer of free lodging at the Rusty Dragon, and a purse of thankful gifts from the townsfolk",
       "parallel": false,
       "arcs": [
         {
           "title": "Festival of Fire",
           "objective": "Survive the goblin assault on Sandpoint during the Swallowtail Festival and earn the town's trust",
-          "type": "combat"
+          "type": "combat",
+          "reward": "The town's gratitude — free room and board at the Rusty Dragon, and the trust that opens every door in Sandpoint"
         },
         {
           "title": "The Glassworks",
           "objective": "Investigate the disappearance of Ameiko Kaijitsu and uncover her father's treachery at the family glassworks",
-          "type": "investigation"
+          "type": "investigation",
+          "reward": "Tsuto's journal — sketches and ravings exposing Nualia's plan at Thistletop (the prop that opens the assault)"
         },
         {
           "title": "Thistletop",
           "objective": "Assault the goblin stronghold of Thistletop and defeat the bugbear warlord Bruthazmus and the aasimar villain Nualia before she completes her transformation",
-          "type": "combat"
+          "type": "combat",
+          "reward": "Nualia's war chest — old Thassilonian gold, and the Sihedron medallion: a seven-pointed amulet, warm to the touch, whose meaning surfaces later"
         },
         {
           "title": "The Skinsaw Man",
           "objective": "Track a serial killer stalking Sandpoint's back streets, following the trail of carved runes and ritual murders to the haunted Foxglove Manor",
-          "type": "investigation"
+          "type": "investigation",
+          "reward": "Foxglove's effects — the deed to Foxglove Manor and letters implicating a Magnimar murder cult (the thread that pulls the story to the city)"
         }
       ]
     },
@@ -40,27 +45,32 @@
       "title": "The Fall of the Runelord",
       "goal": "Race across Varisia to find and destroy the components of Karzoug's return before his agents can complete the ritual",
       "turningPoint": "The heroes learn that Karzoug's soul is anchored in the legendary city of Xin-Shalast, hidden high in the Kodar Mountains, and that only runeforged weapons can harm him",
+      "reward": "The path to Xin-Shalast — Mokmurian's maps assembled and a runeforged edge in hand: everything needed to hunt the Runelord himself, plus the Lord-Mayor's public commendation and reward",
       "parallel": true,
       "arcs": [
         {
           "title": "The Fort and the Dam",
           "objective": "Defend the town of Turtleback Ferry from ogre raids and prevent the collapse of Skull's Crossing dam, which would flood the valley",
-          "type": "combat"
+          "type": "combat",
+          "reward": "The Kreeg hoard — ogre plunder reclaimed from Fort Rannick, and the surviving Black Arrows' sworn debt"
         },
         {
           "title": "Mokmurian's Army",
           "objective": "Infiltrate Jorgenfist, the stone giant fortress, and defeat the stone giant wizard Mokmurian who is raising an army to conquer Varisia",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "Mokmurian's library — the Thassilonian lore cache beneath Jorgenfist: the Runeforge's location and the nature of Karzoug's anathema (required knowledge for Sins of the Saviors)"
         },
         {
           "title": "Sins of the Saviors",
           "objective": "Explore the Runeforge, an ancient Thassilonian weapons laboratory sealed beneath a mountain, and forge a weapon capable of harming Karzoug",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "A runeforged weapon — the party's steel bathed in the Runeforge pools, now anathema to Karzoug's magic (REQUIRED to harm him in Act 3)"
         },
         {
           "title": "The Politics of Magnimar",
           "objective": "Navigate the intrigues of Magnimar's Justice Court to expose Ironbriar's secret murder cult and the corruption reaching into the city's elite",
-          "type": "social"
+          "type": "social",
+          "reward": "The Lord-Mayor's favour — a writ of authority in Magnimar and the posted bounty for Ironbriar's cult, paid in full"
         }
       ]
     },
@@ -68,17 +78,20 @@
       "title": "Spires of Xin-Shalast",
       "goal": "Reach the lost city of Xin-Shalast and destroy Karzoug before he fully returns to the world",
       "turningPoint": "Karzoug is destroyed or the heroes fall, and the last Runelord's grip on Varisia is broken forever",
+      "reward": "Varisia saved — the last Runelord broken: legend status across the Lost Coast, and the pick of Karzoug's treasury, the hoarded wealth of an empire of greed",
       "parallel": false,
       "arcs": [
         {
           "title": "The Road to Xin-Shalast",
           "objective": "Cross the treacherous Kodar Mountains, survive the ancient guardians, and locate the hidden path to the legendary city",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "First sight of the golden city — and the outskirts of Karzoug's hoard: ancient Thassilonian coin beyond any lowland fortune"
         },
         {
           "title": "The Pinnacle of Avarice",
           "objective": "Ascend the Pinnacle of Avarice, confront Karzoug's most powerful servants, and face the Runelord of Greed himself in his seat of power",
-          "type": "combat"
+          "type": "combat",
+          "reward": "The Runelord's hoard — the treasury of the empire of Greed, and the story no bard will ever be allowed to exaggerate"
         }
       ]
     }
@@ -137,6 +150,44 @@
       "role": "enemy",
       "pronouns": "he/him",
       "notes": "The Runelord of Greed, last of the Thassilonian wizard-kings. Stirring from millennia of magical stasis in Xin-Shalast. The campaign's ultimate antagonist — arrogant, brilliant, and utterly without mercy."
+    }
+  ],
+  "creatures": [
+    {
+      "name": "Goblins of the Licktoad tribes",
+      "kind": "humanoid",
+      "threat": "low in numbers",
+      "notes": "Shrieking, fire-obsessed vermin of the Lost Coast brush — they fear horses, dogs, and written words, and sing vicious little songs while they burn things. Cowardly alone, dangerous in swarms, hilarious and horrible in equal measure. They die easily; the question is always what sent them."
+    },
+    {
+      "name": "Sinspawn",
+      "kind": "aberration",
+      "threat": "moderate",
+      "notes": "Thassilon's wrath given meat — hairless, jaw split too wide, born of ancient runewells rather than any womb. They rise wherever Karzoug's old works wake, and their presence is DIAGNOSTIC: sinspawn mean a runewell is active nearby. Ferocious but mindless; they never retreat and never parley."
+    },
+    {
+      "name": "Ghouls of the Whisperwood",
+      "kind": "undead",
+      "threat": "moderate, deadly in packs",
+      "notes": "The Skinsaw taint spreading through the farmlands south of Sandpoint — field hands and whole families turned, hungering and weeping while they hunt. Their paralysing touch makes numbers lethal. Burn the bodies; the fever spreads from every bite left untreated."
+    },
+    {
+      "name": "Kreeg ogres",
+      "kind": "giant",
+      "threat": "deadly",
+      "notes": "Inbred, hook-handed horrors of Hook Mountain — huge, gleeful, and wrong, crafting cruel implements from the bones of what they catch. They respect only pain and bigger monsters. Strong enough to tear a door off a fort; stupid enough to be baited into anything."
+    },
+    {
+      "name": "Stone giants of Jorgenfist",
+      "kind": "giant",
+      "threat": "deadly",
+      "notes": "Proud, grey, and patient — not brutes but a warrior culture led astray under Mokmurian's spell-carved banners. Some serve eagerly; many are conscripts who remember older, quieter ways. They can be reasoned with, shamed, or turned — killing every giant is the failure path."
+    },
+    {
+      "name": "Lamia matriarchs",
+      "kind": "monstrosity",
+      "threat": "deadly",
+      "notes": "Serpent-bodied sorceresses who harvest greed-marked souls for Karzoug — Xanesha beneath Magnimar and Lucrecia at the dam are sisters of this breed. Vain, brilliant, and patient; they fight with charm, illusion, and a Sihedron-marked blade, and they always have an exit prepared."
     }
   ],
   "locations": [

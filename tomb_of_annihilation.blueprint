@@ -12,27 +12,32 @@
       "title": "Port of Last Hope",
       "goal": "Learn what the death curse is, secure backing and a guide in Port Nyanzaru, and strike out into the jungles of Chult toward the curse's source",
       "turningPoint": "The heroes learn the curse flows from a device called the Soulmonger, hidden deep in the interior — and every clue points to a lost city no map has shown for a hundred years: Omu",
+      "reward": "Outfitted for the deep interior — provisioned, chartered, and guided; and Syndra's word arrives: the withering is accelerating, but so are you",
       "parallel": false,
       "arcs": [
         {
           "title": "The Dying Patron",
           "objective": "Meet the archmage Syndra Silvane, learn the true nature of the death curse eating her alive, and accept the charge to find and destroy its source",
-          "type": "social"
+          "type": "social",
+          "reward": "Syndra's advance — a generous outfitting purse, and her promise recorded before witnesses: destroy the source, and name your price"
         },
         {
           "title": "The Merchant Princes",
           "objective": "Navigate Port Nyanzaru — its dinosaur races, its markets, its seven merchant princes — to win a charter, supplies, and the favour needed to leave the city equipped for the green hell beyond",
-          "type": "social"
+          "type": "social",
+          "reward": "A charter of exploration under the princes' seal — and Wakanga's favour: a rare potion from his vault and open access to his map room"
         },
         {
           "title": "A Guide into the Green",
           "objective": "Choose and win over a jungle guide who knows the interior — each with their own secrets and price — and chart a route toward the rumoured heart of the curse",
-          "type": "investigation"
+          "type": "investigation",
+          "reward": "A guide sworn to the expedition — and their private knowledge of the interior: safe camps, dry rivers, and places on no chart"
         },
         {
           "title": "The River of Teeth",
           "objective": "Survive the first true expedition upriver — dinosaurs, disease, flesh-eating undead that hunt by daylight, and the desperate soldiers of Camp Vengeance",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "Camp Vengeance's debt — resupply, canoes, and an escort upriver when it matters most"
         }
       ]
     },
@@ -40,27 +45,32 @@
       "title": "The Forgotten City",
       "goal": "Find the lost city of Omu, recover the nine puzzle cubes of its dead trickster gods, and open the way into the tomb beneath it",
       "turningPoint": "With the shrines plundered and the Fane of the Night Serpent breached, the nine cubes unlock the Tomb of the Nine Gods — but the heroes now know they are not alone in the race: the yuan-ti want the Soulmonger preserved, and the Red Wizards of Thay want it for themselves",
+      "reward": "The Tomb of the Nine Gods stands open — all nine cubes placed, the way below revealed; no one has ever gone deeper and returned to say what waits",
       "parallel": true,
       "arcs": [
         {
           "title": "Wings and Oracles",
           "objective": "Earn the trust of the aarakocra of Kir Sabal and seek the ageless oracle Saja N'baza at Orolunga, whose riddles hold the safe path to Omu",
-          "type": "social"
+          "type": "social",
+          "reward": "The Dance of the Seven Winds — Kir Sabal's gift of limited magical flight — and Saja N'baza's riddle naming the true path to Omu"
         },
         {
           "title": "Omu of the Nine Shrines",
           "objective": "Explore the drowned ruin of Omu, solve the trials of the nine trickster god shrines to claim their puzzle cubes, and survive the city's tyrant — the King of Feathers",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "Eight of the nine puzzle cubes — the trickster gods' keys to the tomb, each shrine leaving its small mark on the bearer"
         },
         {
           "title": "The Fane of the Night Serpent",
           "objective": "Infiltrate the yuan-ti temple beneath Omu, deal with or destroy the fallen paladin Ras Nsi, and take the final puzzle cube from his coils",
-          "type": "combat"
+          "type": "combat",
+          "reward": "The ninth puzzle cube, pried from Ras Nsi's coils — the tomb's lock is complete"
         },
         {
           "title": "The Red Wizards",
           "objective": "Uncover the Thayan expedition working in the shadows of Omu, and stop Valindra Shadowmantle from reaching the Soulmonger first",
-          "type": "investigation"
+          "type": "investigation",
+          "reward": "Valindra's field notes — Thayan research on the Soulmonger's construction: forewarning of the tomb's lowest works (a real edge below)"
         }
       ]
     },
@@ -68,22 +78,26 @@
       "title": "The Tomb of the Nine Gods",
       "goal": "Descend the deathtrap tomb of the archlich Acererak, level by level, and destroy the Soulmonger at its heart",
       "turningPoint": "The Soulmonger is shattered and the death curse broken — but the thing it was feeding, a stillborn god swaddled in stolen souls, wakes hungry, and Acererak himself comes to defend his experiment",
+      "reward": "The curse-breaker's legend — the death curse ended, Chult's eternal gratitude, the wealth of the Tomb of the Nine Gods, and Syndra Silvane's named price honoured in full",
       "parallel": false,
       "arcs": [
         {
           "title": "The Nine Gods' Gauntlet",
           "objective": "Survive the tomb's riddles, traps, and the sepulchres of the nine trickster gods — whose restless spirits may possess, hinder, or aid the heroes who bear their cubes",
-          "type": "exploration"
+          "type": "exploration",
+          "reward": "The favour of the trickster spirits — gods treated with respect lend their gifts against the deeper tomb"
         },
         {
           "title": "The Sewn Sisters",
           "objective": "Bargain with or destroy the coven of night hags who tend the tomb's lowest works, and learn from them what truly waits in the cradle below",
-          "type": "social"
+          "type": "social",
+          "reward": "The hags' bargain honoured — one true answer about the cradle below, and safe passage past their works"
         },
         {
           "title": "The Soulmonger",
           "objective": "Reach the heart of the tomb, destroy the Soulmonger, face the atropal it nourishes, and survive Acererak's wrath to see the sun again",
-          "type": "combat"
+          "type": "combat",
+          "reward": "The death curse broken — every soul the Soulmonger held released, the tomb's hoard, and a world that owes you what it can never repay"
         }
       ]
     }
