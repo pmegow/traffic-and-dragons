@@ -14,15 +14,19 @@
   ES5 only, string-concat HTML, no dependencies — same conventions as the app.
 -->
 <style>
-:root{--bg0:#0f0e0c;--bg1:#171614;--bg2:#1f1d1a;--bg3:#282520;--brd:#2c2a26;--brd2:#3a3733;--t0:#e6e0d4;--t1:#bdb6a8;--t2:#807a6e;--acc:#b8935a;--dng:#c05050;--grn:#6a9a5a;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
+/* Architectural-blueprint theme (2026-07-05, user request): cyanotype blues, light linework,
+   graph-paper grid. Designer-only — the game keeps its amber identity. */
+:root{--bg0:#0a1d33;--bg1:#0e2542;--bg2:#132e50;--bg3:#1a3a63;--brd:#27476e;--brd2:#3a5d8a;--t0:#eaf3fc;--t1:#b9d0e6;--t2:#7595b8;--acc:#8fc1e8;--dng:#e08a8a;--grn:#84c795;--r:6px;--font:"Segoe UI",system-ui,sans-serif;}
 *{box-sizing:border-box;}
-body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:14px;}
+body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:14px;
+  background-image:linear-gradient(rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(rgba(143,193,232,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.045) 1px,transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;}
 #topbar{position:sticky;top:0;z-index:10;background:var(--bg1);border-bottom:1px solid var(--brd2);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 #topbar h1{font-size:16px;color:var(--t0);margin:0;flex:1;min-width:200px;}
 #topbar h1 .ver{font-size:10px;color:var(--t2);font-weight:normal;margin-left:8px;}
 .tbtn{padding:8px 16px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;}
 .tbtn:hover{border-color:var(--acc);color:var(--acc);}
-.tbtn.primary{background:var(--acc);border-color:var(--acc);color:#141414;font-weight:bold;}
+.tbtn.primary{background:var(--acc);border-color:var(--acc);color:#062038;font-weight:bold;}
 .tbtn.primary:hover{color:#000;}
 #statusline{width:100%;font-size:11px;min-height:15px;color:var(--t2);}
 #statusline.err{color:var(--dng);}
@@ -79,9 +83,9 @@ var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function blankArc(){return {title:"",objective:"",type:"",dnaHint:""};}
+function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
 function blankAct(){return {title:"",goal:"",turningPoint:"",parallel:false,arcs:[blankArc()]};}
-function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],rules:[]});}
+function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
 function markDirty(){if(!dirty){dirty=true;setStatus("Unsaved changes","");}}
@@ -132,6 +136,7 @@ function render(){
       h+="<div class='card arc'><div class='cardhead'><span class='cardlbl'>Arc "+(i+1)+"."+(j+1)+"</span>"+movBtns("arc",i,j)+"</div>"
         +"<div class='grid2'>"+fld("Title *",txt("arc",i,j,"title",r.title,""))+fld("Type","<select data-sec='arc' data-i='"+i+"' data-j='"+j+"' data-k='type'>"+typeOpts+"</select>")+"</div>"
         +fldB("Objective *","arc",i,j,"objective","Arc "+(i+1)+"."+(j+1)+" objective",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
+        +fldB("Arc reward (optional)","arc",i,j,"reward","Arc "+(i+1)+"."+(j+1)+" reward",txt("arc",i,j,"reward",r.reward||"","loot, gold, an ability — or the prop a later arc needs; granted when the arc completes"))
         +fldB("DNA hint (how the GM should RUN this arc — optional)","arc",i,j,"dnaHint","Arc "+(i+1)+"."+(j+1)+" DNA hint",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"))
         +"</div>";
     }
@@ -150,6 +155,18 @@ function render(){
       +"</div>";
   }
   h+="<button class='addbtn' data-op='addnpc' data-i='0' data-j='0'>+ Add NPC</button></div>";
+  // Creatures (v1.176 — the campaign bestiary; monster-manual-inspired fields)
+  h+="<div class='sect'><h2>Bestiary — Seeded Creatures</h2>";
+  if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
+  for(i=0;i<bp.creatures.length;i++){
+    var C=bp.creatures[i];
+    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(C.name||("Creature "+(i+1)))+"</span>"+movBtns("creature",i,0)+"</div>"
+      +"<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
+      +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
+      +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"))
+      +"</div>";
+  }
+  h+="<button class='addbtn' data-op='addcreature' data-i='0' data-j='0'>+ Add creature</button></div>";
   // Locations
   h+="<div class='sect'><h2>Seeded Locations</h2>";
   if(!bp.locations.length)h+="<div class='empty'>None — locations emerge in play.</div>";
@@ -175,7 +192,7 @@ function render(){
 function updateCounts(){
   var arcs=0,i;for(i=0;i<bp.acts.length;i++)arcs+=(bp.acts[i].arcs||[]).length;
   var el=document.getElementById("counts");
-  if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.locations.length+" locations · "+bp.rules.length+" rules";
+  if(el)el.textContent=bp.acts.length+" acts · "+arcs+" arcs · "+bp.npcs.length+" NPCs · "+bp.creatures.length+" creatures · "+bp.locations.length+" locations · "+bp.rules.length+" rules";
 }
 
 // ── Field binding (delegated) ──────────────────────────────────────────────────
@@ -187,6 +204,7 @@ function onField(e){
   else if(sec==="act"&&bp.acts[i])bp.acts[i][k]=v;
   else if(sec==="arc"&&bp.acts[i]&&bp.acts[i].arcs[j])bp.acts[i].arcs[j][k]=v;
   else if(sec==="npc"&&bp.npcs[i])bp.npcs[i][k]=v;
+  else if(sec==="creature"&&bp.creatures[i])bp.creatures[i][k]=v;
   else if(sec==="loc"&&bp.locations[i])bp.locations[i][k]=v;
   else if(sec==="rule"&&i<bp.rules.length)bp.rules[i]=v;
   markDirty();
@@ -214,6 +232,10 @@ document.addEventListener("click",function(e){
   else if(op==="delnpc")bp.npcs.splice(i,1);
   else if(op==="upnpc")move(bp.npcs,i,-1);
   else if(op==="downnpc")move(bp.npcs,i,1);
+  else if(op==="addcreature")bp.creatures.push({name:"",kind:"",threat:"",notes:""});
+  else if(op==="delcreature")bp.creatures.splice(i,1);
+  else if(op==="upcreature")move(bp.creatures,i,-1);
+  else if(op==="downcreature")move(bp.creatures,i,1);
   else if(op==="addloc")bp.locations.push({name:"",description:""});
   else if(op==="delloc")bp.locations.splice(i,1);
   else if(op==="uploc")move(bp.locations,i,-1);

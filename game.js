@@ -301,6 +301,7 @@ function validateBlueprint(bp){
       for(j=0;j<a.arcs.length;j++){if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
     }
   }
+  if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){if(!bp.creatures[ci].name)return"Creature "+(ci+1)+" is missing a name.";}}
   return null;
 }
 // ── Blueprint Designer §5.1 (D1/D1b) — the load-time normalizer ────────────────
@@ -334,6 +335,7 @@ function normalizeBlueprint(bp){
   if(!Array.isArray(bp.npcs))bp.npcs=[];
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
+  if(!Array.isArray(bp.creatures))bp.creatures=[]; // v1.176 — campaign bestiary
   return bp;
 }
 // Moved here from ui.js (v1.156) so the headless suite can exercise it — it's pure
@@ -374,6 +376,7 @@ function buildBlueprintFromGame(){
     acts:       acts,
     npcs:       npcs,
     locations:  locations,
+    creatures:  (worldState.bestiary||[]).slice(),
     rules:      (customRules||[]).slice(),
     startingRegion:   worldState.world&&worldState.world.region||"",
     startingLocation: worldState.world&&worldState.world.location||""
@@ -408,6 +411,9 @@ function applyBlueprint(bp){
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
     }
   }
+  // Creatures — campaign bestiary; buildSysPrompt injects it into the STABLE prompt half
+  // (campaign-constant: set once here, never mutated per turn, so it caches).
+  if(bp.creatures&&bp.creatures.length)worldState.bestiary=bp.creatures;
   // Custom rules from the blueprint
   if(bp.rules&&bp.rules.length){
     var ri;for(ri=0;ri<bp.rules.length;ri++){

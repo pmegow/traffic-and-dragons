@@ -328,6 +328,47 @@ function runEngineTests(R){
     if(notes.indexOf("Rusty Dragon")<0)return "first fact missing";
     return notes.indexOf("Half-sister to Tsuto")>=0?true:"later knowledge still dropped: "+notes;
   });
+  t("creatures (v1.176): normalize defaults, validate names, apply seeds worldState.bestiary",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"C",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]});
+    if(!Array.isArray(bp.creatures))return "creatures not defaulted";
+    bp.creatures=[{name:"",kind:"undead",threat:"deadly",notes:"x"}];
+    if(validateBlueprint(bp)===null)return "nameless creature passed validation";
+    bp.creatures=[{name:"Chasm Spawn",kind:"aberration",threat:"deadly",notes:"hunts by soul-scent; hollow where muscle should be"}];
+    if(validateBlueprint(bp)!==null)return "valid creature rejected: "+validateBlueprint(bp);
+    makeWorld();
+    applyBlueprint(bp);
+    if(!worldState.bestiary||worldState.bestiary[0].name!=="Chasm Spawn")return "bestiary not seeded";
+    return true;
+  });
+  t("bestiary renders in the STABLE prompt half, byte-identical across builds",function(){
+    makeWorld();
+    worldState.bestiary=[{name:"Chasm Spawn",kind:"aberration",threat:"deadly",notes:"hunts by soul-scent"}];
+    var s1=buildSysPrompt(),s2=buildSysPrompt();
+    if(s1.stable.indexOf("BESTIARY")<0)return "bestiary missing from stable";
+    if(s1.stable.indexOf("Chasm Spawn (aberration, threat: deadly)")<0)return "creature line malformed";
+    if(s1.stable!==s2.stable)return "stable no longer byte-identical with a bestiary";
+    if(s1.volatile.indexOf("BESTIARY")>=0)return "bestiary leaked into volatile";
+    delete worldState.bestiary;
+    return buildSysPrompt().stable.indexOf("BESTIARY")<0?true:"bestiary block present without creatures";
+  });
+  t("arc reward (v1.176): rendered on the ACTIVE arc with the grant-on-complete instruction",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"First",objective:"o1",status:"active",reward:"the Bone Key — opens the crypt in Act 2"},
+      {title:"Second",objective:"o2",status:"pending",reward:"a pile of gold"}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("ARC REWARD")<0)return "reward instruction missing";
+    if(b.indexOf("the Bone Key")<0)return "active arc's reward text missing";
+    if(b.indexOf("a pile of gold")>=0)return "pending arc's reward leaked (spoiler-budget: active only)";
+    return b.indexOf("[ARC_COMPLETE:First]")>=0?true:"grant not tied to the completing emission";
+  });
+  t("buildBlueprintFromGame round-trips the bestiary",function(){
+    makeWorld();worldState.tone={name:"High Fantasy",voice:""};
+    worldState.bestiary=[{name:"King of Feathers",kind:"beast",threat:"apex",notes:"tyrannosaurus; swallows foes whole"}];
+    var bp=buildBlueprintFromGame();
+    return bp.creatures&&bp.creatures.length===1&&bp.creatures[0].name==="King of Feathers"?true:"creatures not exported";
+  });
 
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");

@@ -156,6 +156,44 @@
       "notes": "The archlich. Builder of deathtrap tombs across a hundred worlds, harvester of souls, author of the death curse. The Tomb of the Nine Gods is his masterpiece and the Soulmonger his experiment — feeding the souls of the raised dead to a stillborn god. He does not fear the heroes; he is entertained by them. Until the Soulmonger cracks."
     }
   ],
+  "creatures": [
+    {
+      "name": "King of Feathers",
+      "kind": "beast",
+      "threat": "apex",
+      "notes": "The tyrannosaurus that rules the ruins of Omu. The kobolds worship it; the yuan-ti avoid it. Swallows prey whole, hunts by movement, and cannot be fought fairly — only fled, tricked, or fed."
+    },
+    {
+      "name": "Daylight dead",
+      "kind": "undead",
+      "threat": "moderate in numbers",
+      "notes": "Chult's zombies and skeletons walk in full sun — the death curse unmoors them from the old rules. They mass along rivers and old battlefields, drawn to noise and firelight. Slow, relentless, and never alone."
+    },
+    {
+      "name": "Zombie tyrannosaurus",
+      "kind": "undead",
+      "threat": "deadly",
+      "notes": "A rotting horror stitched together by necromantic runoff. Vomits crawling zombies from its gullet mid-fight. If one appears, something upstream made it — nothing natural raises a thunder lizard."
+    },
+    {
+      "name": "Pterafolk",
+      "kind": "monstrosity",
+      "threat": "moderate",
+      "notes": "Winged reptilian raiders roosting at Firefinger. They snatch travellers from canoes and drop them from a thousand feet, keeping trophies from every kill. Cowardly on the ground; merciless in the air."
+    },
+    {
+      "name": "Yuan-ti malison",
+      "kind": "monstrosity",
+      "threat": "deadly",
+      "notes": "Serpent-folk of the Fane beneath Omu — snake-armed, snake-headed, or snake-bodied. Cold planners who prefer poison, infiltration, and suggestion to open battle. They want the Soulmonger PRESERVED."
+    },
+    {
+      "name": "Grung",
+      "kind": "beast",
+      "threat": "low",
+      "notes": "Territorial poison frogs the size of halflings, colour-coded by caste. Their skin toxin paralyses; their blowgun ambushes come from the canopy. More nuisance than menace — until the party is poisoned, roped, and being carried to the totem."
+    }
+  ],
   "locations": [
     {
       "name": "Port Nyanzaru",

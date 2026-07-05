@@ -152,6 +152,21 @@ function buildSysPrompt(){
     if(pa){if(pa.vc){_paVc=pa.vc;_paProfane=!!pa.profane;}if(pa.contentDNA)_paDNA=pa.contentDNA;}
   }
   var narrativeDesignBlock=_paDNA?"NARRATIVE DESIGN — these structural principles govern this campaign; they shape what happens and why, not how it is written:\n"+_paDNA+"\n\n":"";
+  // BESTIARY (blueprint creatures, v1.176) — campaign-constant, so it lives in the STABLE half:
+  // worldState.bestiary is set once at blueprint apply and never mutated per turn (a mid-campaign
+  // edit would cost one cache re-write, then warm again). Keeps signature monsters canonical
+  // instead of re-improvised from their names.
+  var bestiaryBlock="";
+  if(worldState.bestiary&&worldState.bestiary.length){
+    var _bls=["BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual:"];
+    var _bi;for(_bi=0;_bi<worldState.bestiary.length;_bi++){
+      var _bc=worldState.bestiary[_bi],_bm=[];
+      if(_bc.kind)_bm.push(_bc.kind);
+      if(_bc.threat)_bm.push("threat: "+_bc.threat);
+      _bls.push("• "+_bc.name+(_bm.length?" ("+_bm.join(", ")+")":"")+(_bc.notes?" — "+_bc.notes:""));
+    }
+    bestiaryBlock=_bls.join("\n")+"\n\n";
+  }
   // Transient control-switch reinforcement — overrides the sessionLog momentum where the
   // OLD protagonist was "you". Set on swap, auto-cleared in sendAction after ~2 turns.
   var switchBlock="";
@@ -174,6 +189,7 @@ function buildSysPrompt(){
     // averaged — the "voice evaporated" mechanism (audit #2). Subordinate tone style explicitly.
     +(_paVc?"NOTE: The TONE above governs CONTENT only (magic prevalence, danger, stakes, moral register). All prose STYLE is governed by the VOICE directive in the STYLE section at the end of this prompt — where they differ on style, the VOICE wins.\n\n":"")
     +narrativeDesignBlock
+    +bestiaryBlock
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
     +"STATE TAGS (use in responses, never shown to player):\n"
     +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
@@ -252,7 +268,11 @@ function buildSkeletonBlock(){
       for(j=0;j<act.arcs.length;j++){
         var arc=act.arcs[j],as=arc.status==="completed"?"DONE":arc.status==="active"?"CURRENT":"upcoming";
         var typeHint=arc.type?" ("+arc.type+")":"";
-        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"]"+typeHint+" — "+arc.objective+(arc.status==="active"&&arc.dnaHint?"\n    HOW TO RUN THIS ARC: "+arc.dnaHint:""));
+        lines.push("  Arc "+(j+1)+": "+arc.title+" ["+as+"]"+typeHint+" — "+arc.objective
+          +(arc.status==="active"&&arc.dnaHint?"\n    HOW TO RUN THIS ARC: "+arc.dnaHint:"")
+          // Arc reward (v1.176): grant travels WITH the [ARC_COMPLETE:] emission — same-response
+          // tags, so completing an arc always pays out (loot, gold, or the prop a later arc needs).
+          +(arc.status==="active"&&arc.reward?"\n    ARC REWARD — when you emit [ARC_COMPLETE:"+arc.title+"], grant this in the SAME response via the matching tags ([ITEM_GAINED:]/[GOLD:]/[XP:]/[ABILITY_GAINED:]): "+arc.reward:""));
       }
     }
   }
