@@ -3,13 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Module → Blueprint — How Tomb of Annihilation Became a .blueprint</title>
+<title>Module → Blueprint — Conversion Instructions &amp; the ToA Case Study</title>
 <!--
-  DOC_Module_to_Blueprint.html — process documentation (2026-07-05).
-  Written at the user's request after the ToA blueprint shipped: a faithful record of how
-  "make a blueprint for Tomb of Annihilation" became tomb_of_annihilation.blueprint, and a
-  reusable recipe for converting any published TTRPG module. Static doc, no JS, satellite
-  page (single-purpose-tools philosophy). Styled to match the Blueprint Designer's cyanotype.
+  DOC_Module_to_Blueprint.html — process documentation + standalone conversion instructions.
+  v2 (2026-07-05): upgraded from process record to instruction set at the user's request.
+  Part I = how the ToA conversion actually happened (the WHY behind every checklist step).
+  Part II = the cold-start reference: schema, budgets, exemplars, validation — enough to
+  convert a module WITHOUT re-deriving the format from the engine. The reference template
+  is tomb_of_annihilation.blueprint (the most complete example: creatures, act+arc rewards,
+  dnaHints); rise_of_the_runelords.blueprint remains as the earlier, simpler fixture.
+  This doc is also the working draft of the Designer's future Generate-mode prompt.
+  Static doc, no JS, satellite page. Styled to match the Blueprint Designer's cyanotype.
 -->
 <style>
 :root{--bg0:#0a1d33;--bg1:#0e2542;--bg2:#132e50;--brd:#27476e;--brd2:#3a5d8a;--t0:#eaf3fc;--t1:#b9d0e6;--t2:#7595b8;--acc:#8fc1e8;--grn:#84c795;--dng:#e08a8a;--font:"Segoe UI",system-ui,sans-serif;}
@@ -17,14 +21,16 @@
 body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:15px;line-height:1.65;
   background-image:linear-gradient(rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.10) 1px,transparent 1px),linear-gradient(rgba(143,193,232,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(143,193,232,.045) 1px,transparent 1px);
   background-size:120px 120px,120px 120px,24px 24px,24px 24px;}
-main{max-width:860px;margin:0 auto;padding:40px 24px 100px;}
+main{max-width:880px;margin:0 auto;padding:40px 24px 100px;}
 h1{font-size:26px;color:var(--t0);margin:0 0 6px;}
 .sub{font-size:13px;color:var(--t2);margin-bottom:36px;}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin:40px 0 12px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+h2.part{font-size:16px;color:var(--t0);border-bottom:2px solid var(--acc);margin-top:56px;}
 h3{font-size:15px;color:var(--t0);margin:22px 0 8px;}
 p{margin:0 0 14px;}
 code{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;font-size:13px;color:var(--acc);}
-pre{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:6px;padding:12px 16px;font-size:13px;overflow-x:auto;color:var(--t1);}
+pre{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:6px;padding:12px 16px;font-size:12.5px;overflow-x:auto;color:var(--t1);line-height:1.5;}
+pre code{background:none;border:none;padding:0;}
 .box{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:8px;padding:14px 18px;margin:16px 0;}
 .box.warn{border-left-color:var(--dng);}
 .box.good{border-left-color:var(--grn);}
@@ -32,113 +38,204 @@ pre{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(
 table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;}
 th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);padding:7px 10px;border-bottom:1px solid var(--brd2);}
 td{padding:7px 10px;border-bottom:1px solid var(--brd);vertical-align:top;}
-td:first-child{color:var(--t0);white-space:nowrap;}
+td:first-child{color:var(--t0);}
 li{margin-bottom:8px;}
 strong{color:var(--t0);}
 em{color:var(--acc);font-style:normal;}
 .check li{list-style:none;position:relative;padding-left:26px;}
 .check li:before{content:"☐";position:absolute;left:0;color:var(--acc);}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;}
+@media(max-width:680px){.pair{grid-template-columns:1fr;}}
+.pair>div{border-radius:8px;padding:12px 14px;font-size:13px;}
+.pair .bad{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--dng);}
+.pair .goodx{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--grn);}
+.pair .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:block;}
+.pair .bad .lbl{color:var(--dng);}
+.pair .goodx .lbl{color:var(--grn);}
 </style>
 </head>
 <body>
 <main>
 
 <h1>Module → Blueprint</h1>
-<div class="sub">How “make a blueprint for Tomb of Annihilation” became <code>tomb_of_annihilation.blueprint</code> — written 2026-07-05, and the reusable recipe for the next module.</div>
+<div class="sub">Conversion instructions + the Tomb of Annihilation case study · v2, 2026-07-05 · <strong>Reference template: <code>tomb_of_annihilation.blueprint</code></strong> (the most complete example — creatures, act &amp; arc rewards, dnaHints). Part I is the story and the why; Part II is everything needed to convert a module cold.</div>
 
 <h2>0 · The one-sentence version</h2>
-<p>A blueprint is not a summary of a module. It is the <strong>minimum set of anchors that keeps the GM canonical</strong> while it improvises everything else — a spine of acts, a cast with secrets, a handful of fixed places, and rules that guard the module's soul. Everything that didn't anchor something got cut.</p>
+<p>A blueprint is not a summary of a module. It is the <strong>minimum set of anchors that keeps the GM canonical</strong> while it improvises everything else — a spine of acts, a cast with secrets, a handful of fixed places, a bestiary, and rules that guard the module's soul. Everything that doesn't anchor something gets cut.</p>
+
+<h2 class="part">PART I — How the ToA conversion actually happened</h2>
 
 <h2>1 · Learn the format from the engine, not from memory</h2>
 <p>First move was <em>not</em> writing content. It was discovering what a blueprint actually is <strong>to the code that consumes it</strong>:</p>
 <ul>
-<li><strong>Read the reference artifact:</strong> <code>rise_of_the_runelords.blueprint</code> — the shipped fixture. It answers every shape question by example: top-level keys, act/arc structure, how NPC notes are voiced, how long a location description runs.</li>
-<li><strong>Read the choke points:</strong> <code>normalizeBlueprint()</code> and <code>validateBlueprint()</code> in game.js are the real spec — what fields get defaulted, what fails validation. <code>applyBlueprint()</code> answers the more important question: <em>what does each section become in-game?</em></li>
-<li><strong>Query the vocabularies live:</strong> tone ids and prose-voice ids aren't guessable — one node command listed <code>TONES</code> (high/gritty/swords/horror/politic/custom) and <code>AUTHORS</code>. Arc types came from the fixture: combat / investigation / exploration / social.</li>
+<li><strong>Read the reference template:</strong> today that is <code>tomb_of_annihilation.blueprint</code> — it exercises the full current schema. (At authoring time the reference was the older, simpler <code>rise_of_the_runelords.blueprint</code>, which is still useful as a minimal example.) A good reference answers every shape question by example: how NPC notes are voiced, how long a location description runs, what an arc objective sounds like.</li>
+<li><strong>Read the choke points:</strong> <code>normalizeBlueprint()</code> and <code>validateBlueprint()</code> in game.js are the enforcement layer. <code>applyBlueprint()</code> answers the more important question: <em>what does each section become in-game?</em></li>
+<li><strong>Query the vocabularies live:</strong> tone ids and prose-voice ids come from <code>TONES</code> and <code>AUTHORS</code> in data.js (Part II lists them, but the code is the truth if they've grown).</li>
 </ul>
-<div class="box"><b>Why this matters:</b> every section of a blueprint has a <em>runtime destiny</em>, and knowing it changes how you write. NPC notes become the GM's private knowledge base (<code>memory.npcs[].knowledge</code>) — so write secrets, not marketing copy. Location descriptions become permanent canonical text injected every time the party is there — so write to constrain drift, not just to evoke. Rules go into the <em>cached stable half of every single prompt</em> — so every rule costs attention on every turn, and must earn it.</div>
+<div class="box"><b>Why this matters:</b> every section has a <em>runtime destiny</em>, and knowing it changes how you write. NPC notes become the GM's private knowledge base — so write secrets, not marketing copy. Location descriptions become permanent canonical text injected every visit — so write to constrain drift, not just to evoke. Creatures and rules ride the <em>cached stable half of every single prompt</em> — always in front of the GM, and each line costs attention on every turn.</div>
 
-<h2>2 · Recall the module and find its load-bearing skeleton</h2>
-<p>Tomb of Annihilation is ~256 pages: a city gazetteer, a hexcrawl the size of a country, two dungeon complexes, and a hundred named NPCs. The blueprint has room for a premise, a handful of acts, and about a dozen cast members. The compression question is: <strong>what is the story of this module when you can only keep the spine?</strong></p>
-<p>ToA's spine is unusually clean — it's already a three-act structure wearing a sandbox costume:</p>
+<h2>2 · Find the module's load-bearing skeleton</h2>
+<p>Tomb of Annihilation is ~256 pages: a city gazetteer, a country-sized hexcrawl, two dungeon complexes, a hundred named NPCs. The compression question: <strong>what is the story of this module when you can only keep the spine?</strong> ToA's spine is a three-act structure wearing a sandbox costume:</p>
 <table>
 <tr><th>Module chunk</th><th>Became</th><th>Reasoning</th></tr>
-<tr><td>Ch. 1 — Port Nyanzaru</td><td>Act 1 · Port of Last Hope</td><td>The setup act: patron, stakes, guide, provisioning. Four arcs = the four things every table actually does there (meet Syndra, navigate the princes, pick a guide, first expedition).</td></tr>
-<tr><td>Ch. 2 — the hexcrawl</td><td>Compressed into ONE arc ("The River of Teeth")</td><td>The engine has no hex grid; the jungle's job in T&amp;D is <em>texture and attrition</em>, which a rule handles better than geography ("Chult itself is an antagonist"). The crawl's destinations that matter (Kir Sabal, Orolunga, Firefinger) survived as locations + arcs instead.</td></tr>
-<tr><td>Ch. 3 — Omu + Ch. 4 — Fane</td><td>Act 2 · The Forgotten City, <code>parallel: true</code></td><td>Omu genuinely is open-order: shrines, the Fane, the Red Wizards can be tackled in any sequence. The <code>parallel</code> flag is the engine's native way to say that — the GM weaves hooks, the player picks.</td></tr>
-<tr><td>Ch. 5 — the Tomb</td><td>Act 3 · The Tomb of the Nine Gods</td><td>Linear descent, so a serial act. Three arcs split it at its natural joints: the trap gauntlet, the Sewn Sisters (the one social beat in the dungeon), the Soulmonger finale.</td></tr>
+<tr><td>Ch. 1 — Port Nyanzaru</td><td>Act 1 · Port of Last Hope</td><td>The setup act: four arcs = the four things every table actually does there (meet the patron, navigate the princes, pick a guide, first expedition).</td></tr>
+<tr><td>Ch. 2 — the hexcrawl</td><td>ONE arc + one rule</td><td>The engine has no hex grid; the jungle's job is <em>texture and attrition</em>, which the "Chult itself is an antagonist" rule delivers every turn. Destinations that matter survived as locations and arcs.</td></tr>
+<tr><td>Ch. 3 Omu + Ch. 4 Fane</td><td>Act 2 · <code>parallel: true</code></td><td>Genuinely open-order content maps to the engine's parallel flag: shrines, Fane, Red Wizards in any sequence — the GM weaves hooks, the player picks.</td></tr>
+<tr><td>Ch. 5 — the Tomb</td><td>Act 3, serial, three arcs</td><td>Linear descent split at its natural joints: trap gauntlet, the Sewn Sisters (the dungeon's one social beat), the Soulmonger finale.</td></tr>
 </table>
-<p><strong>Turning points</strong> got special care because the engine uses them as act-transition triggers (<code>[ACT_COMPLETE:]</code>): each one is written as a concrete, recognisable event ("the nine cubes unlock the tomb — and you now know you're in a race"), not a vibe.</p>
-<div class="box"><b>What got cut, and the cut rule:</b> Fort Beluarian, Nangalore, Hrakhamar, the Aldani, Needle's Bones, dozens of hexes. The rule: <em>an arc must be an objective a player can complete, not a place that exists.</em> Places with no objective became location seeds (if plot-critical), flavour in other entries (Firefinger rode along inside Azaka's notes AND a location), or nothing. The GM re-invents connective tissue better than a blueprint can prescribe it.</div>
+<p><strong>Turning points</strong> are act-transition triggers (<code>[ACT_COMPLETE:]</code>) — each written as a concrete, recognisable event, not a vibe. <strong>Rewards</strong> (act and arc) are granted in the same GM response as the completion emission, so finishing always pays out — including props a later arc needs (ToA's puzzle cubes are literally this pattern).</p>
+<div class="box"><b>The cut rule:</b> <em>an arc must be an objective a player can complete, not a place that exists.</em> Fort Beluarian, Nangalore, Hrakhamar, dozens of hexes — cut. Places with no objective became location seeds (if plot-critical), flavour inside other entries (Firefinger rode along in Azaka's notes), or nothing. The GM re-invents connective tissue better than a blueprint can prescribe it.</div>
 
 <h2>3 · Casting: who earns an NPC slot</h2>
-<p>Selection test — an NPC earned a seed if they hit at least two of three: <strong>plot-load-bearing</strong> (the story breaks without them), <strong>recurring</strong> (multi-act presence), or <strong>carrying a secret that changes play when it surfaces</strong>. That produced 11 from a module with a hundred names.</p>
-<ul>
-<li><strong>Secrets go IN the notes.</strong> The blueprint is a GM-side document — Azaka's entry says weretiger, Eku's says couatl, Artus's says Ring of Winter. The GM needs the secret on turn 1 to foreshadow it; the player discovers it in play. (This is also why the designer got collapsible cards with a “spoiler cover” default — same doc, two audiences.)</li>
-<li><strong>Notes are written as play instructions, not encyclopedia entries.</strong> "Can be bargained with — his hatred of Acererak's works runs deep — but never trusted" tells the GM how to <em>run</em> Ras Nsi, which is worth more than his history.</li>
-<li><strong>The guide choice was preserved as a choice</strong> — both Azaka and Eku seeded, because "pick a guide, each with their own price" is Act 1's best decision point.</li>
-<li><strong>Roles stayed coarse</strong> (ally/enemy/neutral) — Artus Cimber is <em>neutral</em> on purpose: the entry explicitly frames him as a wildcard, and pinning him as ally would flatten the module's best swing character.</li>
-</ul>
+<p>An NPC earned a seed by hitting two of three: <strong>plot-load-bearing</strong>, <strong>recurring</strong>, <strong>carrying a secret that changes play</strong>. That produced 11 from a hundred names. Secrets go IN the notes (the blueprint is a GM-side document — Azaka's entry says weretiger on turn 1 so the GM can foreshadow it). Notes are <em>run instructions</em>, not encyclopedia entries: "can be bargained with — but never trusted" beats a paragraph of history. Choices the module offers stay choices (both guide candidates seeded). Roles stay coarse — Artus Cimber is <em>neutral</em> because pinning the module's best wildcard would flatten him.</p>
 
 <h2>4 · Locations: anchors against drift</h2>
-<p>Eight locations, chosen because each is somewhere the story <em>must</em> pass through, written as canonical descriptions the engine will inject permanently (the <code>[LOCATION_DESC:]</code> mechanism — written once, never overwritten, re-served every visit). Two crafting rules:</p>
-<ul>
-<li><strong>Each description carries one fact the GM must not lose:</strong> Omu's nine shrines and the temple beneath the palace; the Tomb's six levels and "a cradle no light should ever have touched." These are drift-anchors disguised as prose.</li>
-<li><strong>Evocative but bounded</strong> — a description that over-specifies chokes the GM; one that under-specifies lets Port Nyanzaru become a generic fantasy port. The target register: postcard plus load-bearing facts.</li>
-</ul>
+<p>Only must-pass-through places, written as canonical descriptions the engine injects permanently. Each carries one fact the GM must not lose (Omu's nine shrines; the Tomb's "cradle no light should ever have touched"). Register: postcard plus load-bearing facts — over-specify and you choke the GM, under-specify and Port Nyanzaru becomes a generic fantasy port.</p>
 
 <h2>5 · Rules: guard the module's soul, one failure mode each</h2>
-<p>Rules are the most expensive real estate in the format — injected into every prompt, competing for attention with everything else. So each of the six exists to prevent a <em>specific, predictable failure</em>:</p>
+<p>Rules are the most expensive real estate — injected every prompt. Each of ToA's six prevents a specific, predictable failure:</p>
 <table>
 <tr><th>Rule</th><th>Failure it guards against</th></tr>
-<tr><td>"Adapted from ToA — stay true, adapt freely"</td><td>Canon drift in both directions: inventing a different plot, or railroading against the player.</td></tr>
-<tr><td>Death curse as a HUMAN clock</td><td>The engine has no doom-counter mechanic; without this the curse evaporates. With it, urgency arrives through Syndra visibly dying and funerals in port — narrative pressure the GM can actually apply.</td></tr>
-<tr><td>Jungle as antagonist</td><td>The deleted hexcrawl's job, reassigned: travel must cost something even without hexes.</td></tr>
-<tr><td>Chultans vibrant, never primitive</td><td>The genre's colonial cliché — a real risk with a pulp prose voice at the wheel. The rule pins the module's own framing.</td></tr>
-<tr><td>Trickster gods have personalities</td><td>Shrines degenerating into generic puzzle rooms.</td></tr>
-<tr><td>The tomb kills fairly — telegraph everything</td><td>Arbitrary deaths. Acererak works as an author only if the player can lose to their own choices, not to dice noise.</td></tr>
+<tr><td>"Adapted from ToA — stay true, adapt freely"</td><td>Canon drift in both directions.</td></tr>
+<tr><td>Death curse as a HUMAN clock</td><td>No doom-counter mechanic exists; urgency must arrive through Syndra visibly dying and funerals in port.</td></tr>
+<tr><td>Jungle as antagonist</td><td>The deleted hexcrawl's job, reassigned.</td></tr>
+<tr><td>Chultans vibrant, never primitive</td><td>The genre's colonial cliché — a live risk with a pulp voice at the wheel.</td></tr>
+<tr><td>Nine trickster gods, NAMED, with natures</td><td>Shrines degenerating into generic puzzle rooms.</td></tr>
+<tr><td>The tomb kills fairly — telegraph everything</td><td>Arbitrary deaths; Acererak only works if you lose to your own choices.</td></tr>
 </table>
-<div class="box warn"><b>The lesson learned in review (2026-07-05):</b> the trickster-gods rule originally <em>referenced</em> the nine gods without naming them — "(I'jin's caprice, Obo'laka's caution, Papazotl's pride...)". The user caught it: a rule that points at data the document doesn't contain makes the GM improvise exactly the canon the blueprint exists to pin. Fixed by putting the full roster — nine names, animal forms, natures — into the rule itself. <strong>New checklist step: audit every name-drop; a blueprint must contain what it references.</strong> (Known open instance: the six unnamed merchant princes.)</div>
+<div class="box warn"><b>The name-drop lesson (2026-07-05 review):</b> the trickster-gods rule originally referenced "I'jin's caprice, Obo'laka's caution…" without naming all nine anywhere. A rule that points at data the document doesn't contain makes the GM improvise exactly the canon the blueprint exists to pin. Fixed by putting the full roster into the rule. <strong>A blueprint must contain what it references.</strong> (Known open instance: six of the seven merchant princes are unnamed.)</div>
 
-<h2>6 · Tone and voice: mechanical choices, not decoration</h2>
-<p><code>"tone": "swords"</code> — ToA blends pulp adventure with tomb horror, but the dominant register is sword-and-sorcery: physical danger, wonder, hostile wilderness. The tone id gates content-DNA in the prompt, so it had to be one of the six real ids from <code>TONES</code>, not a vibe word.</p>
-<p><code>"proseAuthor": "howard"</code> — Robert E. Howard is the closest voice in <code>AUTHORS</code> to what ToA reads like at the table: lush menace, kinetic action, landscape as a character. The blueprint pins it (like Runelords pins Abercrombie); the player can override in Dev Mode.</p>
+<h2>6 · Validate through the real engine — all the way into the prompt</h2>
+<p>The file is done when the <em>GM's actual prompt</em> contains what the module needs, not when the JSON looks right. The ToA verification ran the real game code headlessly (exact command in Part II §13): parse → normalize is a no-op → validate clean → shape-diff against the reference → <code>applyBlueprint()</code> → <code>buildSysPrompt()</code> and read the BESTIARY block with your own eyes.</p>
 
-<h2>7 · Validate through the real engine, then keep validating</h2>
-<p>The file was never trusted by inspection. Verification ran the actual game code headlessly:</p>
-<pre>node: load globals→data→helpers→state→storage-adapter→memory→api→game
-      bp = JSON.parse(tomb_of_annihilation.blueprint)
-      normalizeBlueprint(bp)      → must be a NO-OP (file already canonical)
-      validateBlueprint(bp)       → null (clean)
-      tone id real? voice id real? arc types ⊆ known set?
-      top-level / act / npc key shapes === Runelords fixture shapes?</pre>
-<p>When the schema grew two days later (creatures, arc + act rewards), verification grew with it — all the way into the prompt: <code>applyBlueprint(bp)</code> → <code>worldState.bestiary</code> seeded → <code>buildSysPrompt()</code> stable half contains the BESTIARY block with correct formatting. The blueprint is done when the <em>GM's actual prompt</em> contains what the module needs, not when the JSON looks right.</p>
+<h2>7 · The schema and the conversion evolve together</h2>
+<p>The first ToA pass had no home for creatures or rewards — both surfaced as designer feedback within a day and became schema features (v1.176/v1.178). Moral: when a module has something important with no schema home, that's a <strong>schema feature request</strong>, not something to cram into a rule.</p>
 
-<h2>8 · What the schema couldn't hold (v1, 2026-07-04) — and then could (v1.176+)</h2>
-<p>The first pass had no home for two module-critical things, and the gap surfaced as designer feedback within a day:</p>
-<ul>
-<li><strong>Creatures.</strong> ToA's monsters are half its identity. v1.176 added <code>creatures[]</code> → the ToA file gained six (King of Feathers, the daylight dead, zombie tyrannosaurus, pterafolk, yuan-ti malisons, grung), each written monster-manual style: what it IS, how it behaves, how it dies. These inject into the stable prompt as a bestiary the GM must stay canonical to.</li>
-<li><strong>Rewards.</strong> Arc rewards (v1.176) and act rewards (v1.178) — completion pays out in the same response as the <code>[ARC_COMPLETE:]/[ACT_COMPLETE:]</code> emission, including props a later arc needs (the puzzle-cube pattern is literally ToA's plot).</li>
-</ul>
-<p>Moral: the module conversion and the schema evolve together. When a module has something important with no schema home, that's a schema feature request, not something to cram into a rule.</p>
+<h2 class="part">PART II — The cold-start reference</h2>
+<p>Everything below is sufficient to convert a module without repo spelunking. When this document and the code disagree, <strong>the code wins</strong> — re-derive per Part I §1.</p>
 
-<h2>9 · The reusable checklist</h2>
+<h2>8 · The schema (tnd-blueprint-v1, as of v1.179)</h2>
+<pre><code>{
+  "format": "tnd-blueprint-v1",            // required, exactly this
+  "name": "Tomb of Annihilation",          // required — also the library slug source
+  "author": "credit line",                  // optional
+  "tone": "swords",                         // one of: high | gritty | swords | horror | politic | custom
+  "proseAuthor": "howard",                  // AUTHORS id or "" (player can override in Dev Mode)
+                                            // ids: gaiman abercrombie dinniman clines leguin howard
+                                            //      cook wells muir abnett rice poe lovecraft
+  "startingLocation": "Port Nyanzaru",      // overrides the wizard's pick
+  "startingRegion": "Chult",
+  "premise": "One paragraph…",              // required (or acts) — becomes skeleton.premise, in every prompt
+
+  "acts": [{                                // ≥1 act; act 1 activates on start
+    "title": "…", "goal": "…",              // both required per act
+    "turningPoint": "…",                    // concrete event — the [ACT_COMPLETE:] trigger
+    "reward": "…",                          // optional; granted WITH [ACT_COMPLETE:], milestone scale
+    "parallel": false,                      // true = all arcs active at once, player picks
+    "arcs": [{                              // ≥1 arc per act
+      "title": "…", "objective": "…",       // both required — objective = completable, never a place
+      "type": "social",                     // "" | combat | investigation | exploration | social
+      "reward": "…",                        // optional; granted WITH [ARC_COMPLETE:]
+      "dnaHint": "…"                        // optional; HOW to run the arc (overrides generic type hint)
+    }]
+  }],
+
+  "npcs": [{                                // seeded into the roster + GM knowledge base
+    "name": "…",                            // required
+    "role": "ally|enemy|neutral",           // free text, these three are conventional
+    "pronouns": "she/her",
+    "notes": "run instructions + SECRETS"   // becomes memory.npcs[name].knowledge — GM-only
+  }],
+
+  "creatures": [{                           // the bestiary → STABLE prompt half, every turn
+    "name": "…",                            // required
+    "kind": "beast|undead|aberration|…",
+    "threat": "low|moderate|deadly|apex or a CR",
+    "notes": "nature, behaviour, tactics, how it dies"
+  }],
+
+  "locations": [{
+    "name": "…",                            // required
+    "description": "…"                      // canonical, injected permanently on every visit
+  }],
+
+  "rules": [ "one hard GM directive per entry" ]   // → customRules → every prompt
+}</code></pre>
+<p><strong>Runtime destinies</strong> (what each section becomes): premise+acts → <code>worldState.skeleton</code> (paced by <code>buildSkeletonBlock</code>); npcs → roster + <code>memory.npcs[].knowledge</code>; creatures → <code>worldState.bestiary</code> → BESTIARY block, stable half; locations → map nodes with permanent descriptions; rules → <code>customRules</code>, every prompt.</p>
+
+<h2>9 · Size budgets</h2>
+<p>Targets, not laws — ToA's actual numbers in parentheses. Overshooting costs prompt attention on every turn of the campaign.</p>
+<table>
+<tr><th>Section</th><th>Budget</th><th>Notes</th></tr>
+<tr><td>Acts</td><td>3 (3)</td><td>More than 4 usually means you're transcribing chapters, not finding the spine.</td></tr>
+<tr><td>Arcs per act</td><td>2–4 (4/4/3)</td><td>Each must be independently completable.</td></tr>
+<tr><td>NPCs</td><td>8–12 (11)</td><td>Two-of-three test: load-bearing / recurring / secret-that-changes-play.</td></tr>
+<tr><td>Creatures</td><td>4–8 (6)</td><td>Signature monsters only — the ones that carry the module's identity.</td></tr>
+<tr><td>Locations</td><td>6–10 (8)</td><td>Must-pass-through places only.</td></tr>
+<tr><td>Rules</td><td>4–6 (6)</td><td>One per predictable failure mode. No lore-dumps as rules.</td></tr>
+<tr><td>Premise</td><td>1 paragraph (~120 words)</td><td>World, threat, why it matters, why the player is involved.</td></tr>
+</table>
+
+<h2>10 · Exemplars — the register each section wants</h2>
+
+<h3>NPC notes: run instructions with the secret included</h3>
+<div class="pair">
+<div class="goodx"><span class="lbl">✓ Like this (Azaka, ToA)</span>"Chultan jungle guide — capable, proud, and cheap, because she has her own reason to go inland: a stolen family mask she means to recover from Firefinger. <b>Secretly a weretiger</b>; her secret surfaces under the full moon or in desperate battle."</div>
+<div class="bad"><span class="lbl">✗ Not this</span>"Azaka Stormfang is a female Chultan human who works as a guide in Port Nyanzaru. Guides in Chult typically charge varying rates. She has a connection to Firefinger and an interesting secret that may be revealed later."</div>
+</div>
+<p>The good one tells the GM how to <em>run</em> her (motive, price, when the secret fires). The bad one hides the secret from the one reader who needs it, and says nothing playable.</p>
+
+<h3>Location descriptions: postcard + load-bearing facts</h3>
+<div class="pair">
+<div class="goodx"><span class="lbl">✓ Like this (Omu, ToA)</span>"The forgotten city… now a drowned ruin in a sunken valley, ruled by a tyrannosaurus the kobolds call the King of Feathers. <b>Nine shrines to nine dead trickster gods hide nine puzzle cubes</b>, and beneath the royal palace coils a temple of serpents."</div>
+<div class="bad"><span class="lbl">✗ Not this</span>"Omu is an ancient ruined city deep in the jungle. It is mysterious and dangerous, full of crumbling buildings and hidden threats. Many have entered; few have returned."</div>
+</div>
+<p>The good one anchors the facts the campaign breaks without (nine shrines, nine cubes, the Fane below). The bad one could be any ruin in any module — it constrains nothing, so the GM will drift.</p>
+
+<h3>Arc objectives: completable, never geographic</h3>
+<div class="pair">
+<div class="goodx"><span class="lbl">✓ Like this</span>"Infiltrate the yuan-ti temple beneath Omu, deal with or destroy the fallen paladin Ras Nsi, and take the final puzzle cube from his coils."</div>
+<div class="bad"><span class="lbl">✗ Not this</span>"The Fane of the Night Serpent" — a place is not an objective; the engine can never emit [ARC_COMPLETE:] against it.</div>
+</div>
+
+<h3>Rules: directive + the data it needs, self-contained</h3>
+<div class="pair">
+<div class="goodx"><span class="lbl">✓ Like this</span>"The death curse is the campaign's clock — make it felt through people, not mechanics: Syndra visibly worse at each meeting, funerals in Port Nyanzaru… If the player character was ever raised from the dead, the curse touches them personally."</div>
+<div class="bad"><span class="lbl">✗ Not this</span>"Remember the death curse is important." — no behaviour specified; or a rule that references named entities ("the nine gods") without naming them — <em>a blueprint must contain what it references</em>.</div>
+</div>
+
+<h3>Creatures: nature, behaviour, how it dies</h3>
+<div class="pair">
+<div class="goodx"><span class="lbl">✓ Like this (King of Feathers)</span>"The tyrannosaurus that rules the ruins of Omu. The kobolds worship it; the yuan-ti avoid it. Swallows prey whole, hunts by movement, and cannot be fought fairly — only fled, tricked, or fed."</div>
+<div class="bad"><span class="lbl">✗ Not this</span>"A big dinosaur that lives in Omu. Very dangerous. High HP and attack." — stats are the engine's job ([COMBAT_START:]/[COMBAT_STATS:]); the blueprint's job is <em>character</em>.</div>
+</div>
+
+<h2>11 · Tone &amp; voice selection</h2>
+<p><strong>Tone</strong> gates content-DNA: <code>high</code> (heroic fantasy) · <code>gritty</code> (low magic, consequences) · <code>swords</code> (pulp sword &amp; sorcery — ToA's pick: physical danger, wonder, hostile wilderness) · <code>horror</code> (dread-forward) · <code>politic</code> (intrigue) · <code>custom</code>. <strong>Voice</strong> pins prose style; pick the author whose table-feel matches the module (ToA → <code>howard</code>; Runelords → <code>abercrombie</code>). The player can override the voice in Dev Mode — pinning it is a recommendation, not a lock.</p>
+
+<h2>12 · The conversion checklist</h2>
 <ul class="check">
-<li>Read the current reference blueprint + <code>normalizeBlueprint</code>/<code>validateBlueprint</code>/<code>applyBlueprint</code> — the code is the spec, and each section's runtime destiny dictates its writing style.</li>
-<li>List valid <code>TONES</code> ids and <code>AUTHORS</code> ids live; pick one of each for the module's register.</li>
-<li>Find the module's act structure (usually 3). Turning points = concrete recognisable events, they drive <code>[ACT_COMPLETE:]</code>.</li>
-<li>Arcs = completable objectives, never places. Flag genuinely open-order acts <code>parallel</code>. Type each arc (combat/investigation/exploration/social).</li>
-<li>Cut ruthlessly: anything that anchors nothing becomes GM improvisation, which is a feature.</li>
-<li>Cast by the two-of-three test (load-bearing / recurring / secret-that-changes-play). Secrets go IN the notes; notes are run-instructions.</li>
-<li>Locations: only must-pass-through places; each description carries its load-bearing facts.</li>
-<li>Creatures: the module's signature monsters, written as nature + behaviour + how it dies.</li>
-<li>Rewards on arcs and acts — especially props later content depends on.</li>
-<li>Rules: one per predictable failure mode, each earning its per-turn prompt cost. No lore-dumps as rules.</li>
-<li><strong>Name-drop audit:</strong> everything a rule, note, or description references by name must be defined somewhere in the document.</li>
-<li>Validate headlessly through the real engine: parse → normalize no-op → validate clean → shape-diff vs the reference fixture → (for prompt-injected sections) applyBlueprint → buildSysPrompt and read what the GM will actually see.</li>
+<li>Read the reference template <code>tomb_of_annihilation.blueprint</code> + Part I §1's choke points if anything looks off — the code is the spec.</li>
+<li>Write the premise: one paragraph — world, threat, stakes, why the player.</li>
+<li>Find the act structure (usually 3). Turning points = concrete recognisable events.</li>
+<li>Arcs = completable objectives, never places. Flag open-order acts <code>parallel</code>. Type each arc. Add <code>dnaHint</code> where the module has a distinctive way the content should FEEL.</li>
+<li>Rewards on arcs and acts — especially props later content depends on; act rewards at milestone scale.</li>
+<li>Cut ruthlessly (budgets §9): anything anchoring nothing becomes GM improvisation, which is a feature.</li>
+<li>Cast by the two-of-three test; secrets IN the notes; notes as run-instructions; preserve the module's real choices as choices.</li>
+<li>Creatures: the signature monsters — nature, behaviour, how it dies. No stats.</li>
+<li>Locations: must-pass-through only; each description carries its load-bearing facts.</li>
+<li>Rules: one per predictable failure mode, self-contained, each earning its per-turn cost.</li>
+<li><strong>Name-drop audit:</strong> everything any rule, note, or description references by name must be defined somewhere in the document.</li>
+<li>Pick tone + voice from the real vocabularies (§11).</li>
+<li>Validate (§13) — through the engine, into the prompt.</li>
 </ul>
 
-<div class="box good"><b>Artifacts:</b> <code>tomb_of_annihilation.blueprint</code> (repo root) · reference fixture <code>rise_of_the_runelords.blueprint</code> · designer <code>blueprint-designer.html</code> (Load → review with everything folded; ☁ Publish to the cloud library) · schema history in TODO #36/#37 and commits <code>3958df8</code> → <code>4b3f52b</code>.</div>
+<h2>13 · Validation — copy-paste</h2>
+<p>From the repo root (swap the filename):</p>
+<pre><code>node -e "var fs=require('fs');['globals.js','data.js','helpers.js','state.js','storage-adapter.js','memory.js','api.js','game.js'].forEach(function(f){(0,eval)(fs.readFileSync(f,'utf8'))});showToast=function(){};saveRules=function(){};var bp=JSON.parse(fs.readFileSync('tomb_of_annihilation.blueprint','utf8'));var before=JSON.stringify(bp);normalizeBlueprint(bp);console.log('canonical (normalize no-op):',JSON.stringify(bp)===before);console.log('validates:',validateBlueprint(bp)===null?'clean':validateBlueprint(bp));console.log('tone ok:',TONES.some(function(t){return t.id===bp.tone}));console.log('voice ok:',bp.proseAuthor===''||AUTHORS.some(function(a){return a.id===bp.proseAuthor}));worldState={character:{name:'T',cls:'Rogue',stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:8,maxHp:8,gold:0,inventory:[],level:1,xp:0,abilities:[],spells:[],languages:[],skills:{},conditions:[],relationships:[],saveModifiers:[],storyBeats:[]},world:{location:'X',region:'Y',time:'t',weather:'w'},npcs:[],questLog:[],eventHistory:[],combat:null,turn:1,transcript:[]};memory={npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],map:{nodes:{},edges:[]}};sessionLog=[];customRules=[];applyBlueprint(bp);var s=buildSysPrompt();console.log('bestiary in stable prompt:',!bp.creatures.length||s.stable.indexOf('BESTIARY')>=0);console.log('premise in skeleton block:',s.volatile.indexOf(bp.premise.slice(0,40))>=0)"</code></pre>
+<p>Expect: <code>canonical: true</code> · <code>validates: clean</code> · both vocab checks true · bestiary + premise visible in the prompt halves. Then load it in <code>blueprint-designer.html</code> (everything arrives folded — review card by card), and ☁ Publish when it's ready.</p>
+
+<div class="box good"><b>Artifacts:</b> reference template <code>tomb_of_annihilation.blueprint</code> · minimal example <code>rise_of_the_runelords.blueprint</code> · editor <code>blueprint-designer.html</code> (breakouts, bestiary, rewards, publish) · schema history: TODO #36/#37, commits <code>3958df8</code> → <code>d45ef3b</code>. This document doubles as the working draft of Generate mode's conversion prompt.</div>
 
 </main>
 </body>
