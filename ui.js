@@ -236,7 +236,9 @@ function showChar(){
   buildDots();buildDnaStep();
 }
 function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";}
-function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;div.innerHTML=html;
+function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
+if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
+div.innerHTML=html;
 if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){TTS.speak(text);};div.appendChild(rb);})(opts.replayText);}
 story.appendChild(div);story.scrollTop=story.scrollHeight;if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
 if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
@@ -347,9 +349,12 @@ function updatePartyPanel(){
 // the description stays regular. No separator = the whole entry is the name.
 function invItemHtml(s){
   s=String(s);
-  var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\()/);
+  // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or " with " —
+  // GM-written entries often carry comma-run descriptions with no dash ("Small river stone,
+  // smooth, kept in her left coat pocket"), which used to render fully bold.
+  var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\(|,\s+|\s+with\s+)/);
   if(!m)return "<b>"+escHtml(s)+"</b>";
-  return "<b>"+escHtml(m[1])+"</b>"+escHtml(s.slice(m[1].length));
+  return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>";
 }
 function updateInvPanel(){
   if(!worldState)return;var inv=worldState.character.inventory,gold=worldState.character.gold;
@@ -887,7 +892,7 @@ function csHeroHeader(c){
   var subnm=c.subraceNm?c.subraceNm+" ":"";
   var clsLine=subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
   var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
-  var xpPct=lvl>=10?100:Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100));
+  var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
 }
 function csSheetSections(c){
@@ -1337,7 +1342,7 @@ function showNpcSheet(name){
     var gLbl=sheet.gender==="F"?"Female":sheet.gender==="NB"?"Non-binary":"Male";
     var clsLine=(sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":"");
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
-    var xpPct=lvl>=10?100:Math.min(100,Math.round(((sheet.xp-prevXP)/Math.max(1,nextXP-prevXP))*100));
+    var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round(((sheet.xp-prevXP)/Math.max(1,nextXP-prevXP))*100)));// same low clamp as the player bar
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
     heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+name+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
@@ -3019,7 +3024,7 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   if(start>0)addMsg("system","… "+start+" earlier entr"+(start===1?"y":"ies")+" omitted — the full story lives in the transcript.");
   for(i=start;i<tr.length;i++){var e=tr[i];
     if(e.r==="player")addMsg("player",e.x);
-    else lastNar=addMsg("narrator","<p>"+e.x.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:e.x});
+    else lastNar=addMsg("narrator","<p>"+e.x.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:e.x,turn:e.t});
   }
   if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
   story.scrollTop=story.scrollHeight;

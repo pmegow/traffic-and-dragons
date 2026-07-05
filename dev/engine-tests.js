@@ -143,6 +143,20 @@ function runEngineTests(R){
     if(n[1].charSheet.portrait!=="OLD_IMG")return "npc-only: not moved into sheet";
     return n[2].portrait==="KEEP_ME"?true:"sheet-less NPC portrait touched";
   });
+  t("xp floor: level-ahead-of-xp sheets are floored to the level threshold (the Morwen full-bar lie)",function(){
+    memory=blankMemory();
+    worldState={character:{name:"P",cls:"Rogue",stats:{},maxHp:8,level:7,xp:21000},world:{location:"X"},
+      npcs:[
+        {name:"Morwen",partyMember:true,charSheet:{name:"Morwen",level:7,xp:21000}},
+        {name:"Fine",partyMember:true,charSheet:{name:"Fine",level:7,xp:25000}},
+        {name:"Fresh",partyMember:true,charSheet:{name:"Fresh",level:1,xp:0}}
+      ]};
+    migrateWorldState();
+    if(worldState.character.xp!==23000)return "player not floored: "+worldState.character.xp;
+    if(worldState.npcs[0].charSheet.xp!==23000)return "companion not floored: "+worldState.npcs[0].charSheet.xp;
+    if(worldState.npcs[1].charSheet.xp!==25000)return "above-floor xp touched";
+    return worldState.npcs[2].charSheet.xp===0?true:"level-1 xp touched";
+  });
   t("npcPortrait reads charSheet first, falls back to npc.portrait, null-safe",function(){
     if(npcPortrait({charSheet:{portrait:"A"},portrait:"B"})!=="A")return "charSheet not preferred";
     if(npcPortrait({charSheet:{portrait:null},portrait:"B"})!=="B")return "pre-migration fallback broken";

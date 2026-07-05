@@ -212,7 +212,7 @@ async function sendAction(override,opts){
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
       var clean=cleanTxt(resp),dice=diceTxt(resp);
-      var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+      var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
       logTranscript("gm",clean,resp);
       if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
@@ -249,7 +249,7 @@ async function rerollLast(){
     }
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     saveAll();
     generateActions(narEl);
@@ -476,7 +476,7 @@ async function beginAdventure(){
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp);
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean});
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
     logTranscript("gm",clean,resp);
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
