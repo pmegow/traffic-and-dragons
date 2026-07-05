@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blueprint Designer — Traffic and Dragons</title>
+<link rel="icon" type="image/svg+xml" href="designer-icon.svg">
+<link rel="apple-touch-icon" href="designer-icon-192.png">
+<meta name="theme-color" content="#0a1d33">
 <!--
   Blueprint Designer (BLUEPRINT_EDITOR.md, D5 revised 2026-07-03: fully EXTERNAL page).
   Loads the REAL engine data/logic via <script src> (the test.html / todo-viewer.html pattern):
@@ -95,7 +98,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.11";
+var BP_DESIGNER_VERSION="v0.12";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),

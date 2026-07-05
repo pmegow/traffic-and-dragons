@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Blueprint Designer icon (designer v0.12) — the game icon's composition, cyanotype'd:
+       same Traffic / & / Dragons lockup, blueprint-blue field, graph-paper grid, dashed
+       technical rules, corner register marks. Palette matches blueprint-designer.html. -->
+  <defs>
+    <linearGradient id="bg-grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8fc1e8" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.10"/>
+    </linearGradient>
+    <pattern id="grid-minor" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#8fc1e8" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <pattern id="grid-major" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M 120 0 L 0 0 0 120" fill="none" stroke="#8fc1e8" stroke-opacity="0.12" stroke-width="1"/>
+    </pattern>
+    <clipPath id="rnd"><rect width="512" height="512" rx="90"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="90" fill="#0a1d33"/>
+  <g clip-path="url(#rnd)">
+    <rect width="512" height="512" fill="url(#grid-minor)"/>
+    <rect width="512" height="512" fill="url(#grid-major)"/>
+    <rect width="512" height="512" fill="url(#bg-grad)"/>
+  </g>
+  <!-- corner register marks (drafting sheet) -->
+  <g stroke="#8fc1e8" stroke-opacity="0.4" stroke-width="2" fill="none">
+    <path d="M 38 58 h 24 M 50 46 v 24"/>
+    <path d="M 450 58 h 24 M 462 46 v 24"/>
+    <path d="M 38 454 h 24 M 50 442 v 24"/>
+    <path d="M 450 454 h 24 M 462 442 v 24"/>
+  </g>
+  <text x="256" y="64" font-family="Georgia,serif" font-size="68" fill="#8fc1e8" text-anchor="middle" dominant-baseline="central" opacity="0.65">Traffic</text>
+  <line x1="80" y1="128" x2="432" y2="128" stroke="#8fc1e8" stroke-width="2" stroke-opacity="0.35" stroke-dasharray="14 8"/>
+  <text x="256" y="256" font-family="Georgia,serif" font-size="210" font-weight="bold" fill="#8fc1e8" text-anchor="middle" dominant-baseline="central">&amp;</text>
+  <line x1="80" y1="384" x2="432" y2="384" stroke="#8fc1e8" stroke-width="2" stroke-opacity="0.35" stroke-dasharray="14 8"/>
+  <text x="256" y="448" font-family="Georgia,serif" font-size="68" fill="#8fc1e8" text-anchor="middle" dominant-baseline="central" opacity="0.65">Dragons</text>
+</svg>
