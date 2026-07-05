@@ -95,7 +95,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.9";
+var BP_DESIGNER_VERSION="v0.10";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -266,15 +266,19 @@ function render(){
   // Review — CBB list (v0.8). Ships WITH the blueprint (playtester notes); engine never reads it.
   if(bp.review&&bp.review.findings&&bp.review.findings.length){
     var openN=0;for(i=0;i<bp.review.findings.length;i++){if(!bp.review.findings[i].status)openN++;}
-    h+="<div class='sect'>"+secH("review","&#128269; Review — could be better ("+openN+" open of "+bp.review.findings.length+")");
-    if(secOpen.review!==false){
+    var revOpen=secOpen.review!==false;
+    h+="<div class='sect'><div style='display:flex;align-items:center;gap:8px;"+(revOpen?"margin-bottom:12px;":"")+"'>"
+      +"<h2 class='"+(revOpen?"open":"")+"' data-op='togsec' data-key='review' style='flex:1;margin:0;'>"+(revOpen?"&#9662;":"&#9656;")+" &#128269; Review — could be better ("+openN+" open of "+bp.review.findings.length+")</h2>"
+      +(_applyingAll?"<span style='font-size:11px;color:var(--t2);'>applying all…</span>":(openN?"<button class='mini' data-op='revapplyall' data-i='0' data-j='0' title='Apply every open fix, top to bottom'>&#9889; Apply all fixes</button>":""))
+      +"<button class='mini sq del' data-op='revdelall' data-i='0' data-j='0' title='Delete the entire review'>&#215;</button></div>";
+    if(revOpen){
       if(bp.review.verdict)h+="<div style='font-size:13px;color:var(--t0);font-style:italic;margin-bottom:12px;'>"+esc(bp.review.verdict)+"</div>";
       for(i=0;i<bp.review.findings.length;i++){
         var F=bp.review.findings[i],sevCol=F.sev==="HIGH"?"var(--dng)":F.sev==="LOW"?"var(--t2)":"var(--acc)";
         var done=F.status==="applied",busy=F.status==="applying";
         h+="<div class='card' style='border-left-color:"+sevCol+";"+(done?"opacity:.55;":"")+"'>"
           +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)+(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")+"</span>"
-          +(done||busy?"":"<button class='mini' data-op='revapply' data-i='"+i+"' data-j='0' title='Have the AI apply this fix'>&#9889; Apply fix</button>")
+          +(done||busy||_applyingAll?"":"<button class='mini' data-op='revapply' data-i='"+i+"' data-j='0' title='Have the AI apply this fix'>&#9889; Apply fix</button>")
           +(busy?"<span style='font-size:11px;color:var(--t2);'>applying…</span>":"")
           +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
           +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>"
@@ -340,6 +344,8 @@ document.addEventListener("click",function(e){
   if(op==="gencreature"){genCreature(t);return;}
   if(op==="revapply"){applyFinding(i);return;}
   if(op==="revdel"){bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
+  if(op==="revapplyall"){applyAllFindings();return;}
+  if(op==="revdelall"){if(!confirm("Delete the entire review ("+bp.review.findings.length+" finding"+(bp.review.findings.length===1?"":"s")+")? This removes the CBB notes from the blueprint."))return;delete bp.review;markDirty();render();setStatus("Review deleted.","");return;}
   // Collapse toggles — pure view state, no markDirty.
   if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
   if(op==="togcard"){
@@ -519,9 +525,11 @@ document.getElementById("btn-review").addEventListener("click",async function(){
       +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
       +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
       +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and fix each ONE tight sentence (the fix must be concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fix\":\"concrete, applyable instruction\"}]}";
-    // 3000-token budget: the first live run truncated mid-array at 1600 (JSON parse error at
-    // ~5300 chars ≈ exactly the old cap). Brevity is enforced in the prompt instead.
-    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",3000,null,{noHistory:true,kind:"other"});
+    // 5000-token ceiling — a circuit breaker against runaway generation, NOT a length governor
+    // (the prompt governs size: max 10 terse findings). The first live run truncated mid-array
+    // at a 1600 cap (JSON parse error at ~5300 chars ≈ exactly 1600 tokens) — for JSON output,
+    // amputation is total loss, so the ceiling sits far above any legitimate response.
+    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",5000,null,{noHistory:true,kind:"other"});
     var rev=JSON.parse(repairModelJson(resp));
     if(!rev||!rev.findings)throw new Error("model returned no findings object");
     bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fix:String(f.fix||""),status:""};})};
@@ -535,6 +543,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
 // sections it changed, complete and in-schema; we merge, normalize, validate, and ROLL BACK
 // wholesale if the result doesn't validate. Applied findings stay (struck) as the CBB trail.
 var BP_SECTIONS=["name","author","tone","proseAuthor","premise","startingLocation","startingRegion","acts","npcs","creatures","locations","rules"];
+var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all button while the batch runs
 async function applyFinding(idx){
   if(!llmReady())return;
   var f=bp.review&&bp.review.findings[idx];if(!f||f.status)return;
@@ -566,6 +575,24 @@ async function applyFinding(idx){
     if(bp.review&&bp.review.findings[idx])bp.review.findings[idx].status="";
     render();setStatus("Apply failed: "+e.message,"err");
   }
+}
+// Apply every open finding, top to bottom, SEQUENTIALLY — each fix is applied to the blueprint
+// the previous fix produced, so they compound instead of clobbering. Failures roll back (per
+// applyFinding's guards), stay open, and the batch continues past them.
+async function applyAllFindings(){
+  if(_applyingAll||!llmReady()||!bp.review)return;
+  _applyingAll=true;render();
+  var ok=0,fail=0,i;
+  try{
+    for(i=0;i<bp.review.findings.length;i++){
+      if(!bp.review||!bp.review.findings[i]||bp.review.findings[i].status)continue;
+      setStatus("Applying fix "+(ok+fail+1)+"…","");
+      await applyFinding(i);
+      if(bp.review&&bp.review.findings[i]&&bp.review.findings[i].status==="applied")ok++;else fail++;
+    }
+  }finally{_applyingAll=false;}
+  render();
+  setStatus("Apply all done: "+ok+" applied"+(fail?", "+fail+" failed and left open":"")+".",fail?"err":"ok");
 }
 
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
