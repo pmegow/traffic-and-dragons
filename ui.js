@@ -349,10 +349,12 @@ function updatePartyPanel(){
 // the description stays regular. No separator = the whole entry is the name.
 function invItemHtml(s){
   s=String(s);
-  // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or " with " —
-  // GM-written entries often carry comma-run descriptions with no dash ("Small river stone,
-  // smooth, kept in her left coat pocket"), which used to render fully bold.
-  var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\(|,\s+|\s+with\s+)/);
+  // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or a
+  // clause lead-in word — GM-written entries carry free-prose descriptions with no dash
+  // ("Small river stone, smooth…", "Folded camp kit including a second ground cloth…",
+  // "Letter of introduction written in a dead contractual script"). The lead-in list is
+  // whack-a-mole by design (2026-07-04 user call: report new escapes as they show up).
+  var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\(|,\s+|\s+(?:with|including|containing|written|engraved|carved|marked|labeled|labelled|covered|wrapped|bearing|holding|filled|etched|inscribed|stamped)\s+)/);
   if(!m)return "<b>"+escHtml(s)+"</b>";
   return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>";
 }
