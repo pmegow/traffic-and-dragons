@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.16";
+var BP_DESIGNER_VERSION="v0.17";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -669,7 +669,7 @@ function openAsk(seedFinding){
         +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix: "+seedFinding.fix:"");
       var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
       msg+="\n\nUSER ASKS: "+q;
-      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint (an adaptation of a published module when the author credit says so). Answer directly and concisely. When the question touches canon: state explicitly what is CANON from the published source versus INVENTED/improvised, and flag anything you are unsure of. You are advising the human author — you cannot edit the blueprint. Plain text only.",1200,null,{noHistory:true,kind:"other"});
+      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint. Answer directly and concisely; you are advising the human author and cannot edit the blueprint. Plain text only.\nWHAT 'CANON' MEANS depends on the blueprint: IF it adapts a published work (the name/author credit will say so), canon = that published source — state explicitly what comes from the source versus what is invented, and flag uncertainty about the source. IF it is ORIGINAL/homebrew, the blueprint itself is the ONLY canon — never invent or imply an outside source; instead classify claims three ways: STATED (literally in the document), CONSISTENT EXTENSION (not stated but fits everything written — flag that accepting it makes it canon), or PURE INVENTION (no anchor in the document; imported genre defaults — call these out loudly).",1200,null,{noHistory:true,kind:"other"});
       _askLog[_askLog.length-1].a=resp;
     }catch(e){_askLog[_askLog.length-1].a="(failed: "+e.message+")";}
     if(btn)btn.disabled=false;
