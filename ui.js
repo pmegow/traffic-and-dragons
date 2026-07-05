@@ -2803,15 +2803,9 @@ function showRenderOptionsModal(){
     });
   });
 }
-function loadProviderSettings(){
-  var p=store.get(PROV_K);if(p&&PROVIDERS[p])activeProvider=p;
-  try{var pk=store.get(PKEYS_K);if(pk)providerKeys=JSON.parse(pk)||{};}catch(e){providerKeys={};}
-  try{var pm=store.get(PMDL_K);if(pm)providerModels=JSON.parse(pm)||{};}catch(e2){providerModels={};}
-  // Migrate the legacy single Anthropic key (AKK) into the provider map
-  var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
-  if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
-  var upg=store.get(UPGRADE_K);allowModelUpgrade=(upg===null||upg===undefined)?true:upg==="true";
-}
+// loadProviderSettings moved to state.js (v1.180) — pure data logic the Blueprint Designer
+// also needs (its LLM features call callGM without loading ui.js). CLAUDE.md already
+// documented it as state-side; the code now matches.
 function saveProviderSettings(){
   store.set(PROV_K,activeProvider);
   store.set(PKEYS_K,JSON.stringify(providerKeys));

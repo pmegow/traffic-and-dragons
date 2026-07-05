@@ -16,6 +16,18 @@ var memory=blankMemory();
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
 // estimate priced at record time from MODEL_PRICING (unknown models contribute $0).
 function blankUsage(){return {in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0,byKind:{},since:Date.now()};}
+// Provider settings loader — moved here from ui.js (v1.180): pure data logic over store +
+// globals, needed by every page that calls the API (game AND the Blueprint Designer's
+// generate/review features, which load the engine chain without ui.js).
+function loadProviderSettings(){
+  var p=store.get(PROV_K);if(p&&PROVIDERS[p])activeProvider=p;
+  try{var pk=store.get(PKEYS_K);if(pk)providerKeys=JSON.parse(pk)||{};}catch(e){providerKeys={};}
+  try{var pm=store.get(PMDL_K);if(pm)providerModels=JSON.parse(pm)||{};}catch(e2){providerModels={};}
+  // Migrate the legacy single Anthropic key (AKK) into the provider map
+  var legacy=store.get(AKK);if(legacy&&!providerKeys.anthropic)providerKeys.anthropic=legacy;
+  if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
+  var upg=store.get(UPGRADE_K);allowModelUpgrade=(upg===null||upg===undefined)?true:upg==="true";
+}
 function saveCore(){try{store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)

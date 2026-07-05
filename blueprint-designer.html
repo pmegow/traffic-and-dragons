@@ -67,6 +67,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
   <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
   <button class="tbtn" id="btn-new">New</button>
   <button class="tbtn" id="btn-load">Load&hellip;</button>
+  <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
   <button class="tbtn" id="btn-publish">&#9729; Publish</button>
   <button class="tbtn primary" id="btn-save">&#8595; Save .blueprint</button>
@@ -75,10 +76,16 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 <main id="app"></main>
 <input type="file" id="file-inp" accept=".blueprint,.campaign" style="display:none;">
 
+<!-- Full engine chain in canonical order (v1.180) — state.js supplies store/keys/loadProviderSettings,
+     storage-adapter the cloud library, api.js callGM/repairModelJson for the generate/review features.
+     HARD RULE unchanged: this page never writes the game's state keys (no loadState/saveCore here). -->
 <script src="globals.js"></script>
 <script src="data.js"></script>
 <script src="helpers.js"></script>
-<script src="storage-adapter.js"></script><!-- cloud library (#15): autoConnect() restores the app's server URL + token from same-origin localStorage; only the blueprint methods are used here -->
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script src="memory.js"></script>
+<script src="api.js"></script>
 <script src="game.js"></script>
 <script>
 var ARC_TYPES=["","combat","investigation","exploration","social"];
@@ -198,6 +205,7 @@ function render(){
   // Creatures (v1.176 — the campaign bestiary; monster-manual-inspired fields)
   h+="<div class='sect'>"+secH("creatures","Bestiary — Seeded Creatures ("+bp.creatures.length+")");
   if(secOpen.creatures!==false){
+  h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creature from story</button>";
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
   for(i=0;i<bp.creatures.length;i++){
     var C=bp.creatures[i];
@@ -292,6 +300,7 @@ document.addEventListener("click",function(e){
   var t=e.target,op=t.getAttribute&&t.getAttribute("data-op");if(!op)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
+  if(op==="gencreature"){genCreature(t);return;}
   // Collapse toggles — pure view state, no markDirty.
   if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
   if(op==="togcard"){
@@ -402,6 +411,76 @@ document.getElementById("btn-save").addEventListener("click",function(){
 });
 window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
 
+// ── LLM features (v1.180): generate creature + review ─────────────────────────
+// Both use callGM with sysOverride + noHistory — one self-contained message, no game
+// state touched, telemetry under kind:"other". API key rides in from the app's provider
+// settings (loadProviderSettings at boot, same-origin localStorage).
+function llmReady(){
+  if(typeof callGM!=="function"){setStatus("Engine API layer not loaded.","err");return false;}
+  if(!(providerKeys[activeProvider]||apiKey)){setStatus("No API key — open the game, set one (Dev Mode ▸ 🧠 Language Model…), then reload this page.","err");return false;}
+  return true;
+}
+// Compact story context — what the model needs to invent IN SERVICE to this campaign,
+// nothing else. Existing creatures included so it complements instead of duplicating.
+function storyContext(){
+  var L=["CAMPAIGN BLUEPRINT:","Name: "+(bp.name||"(unnamed)"),"Tone: "+(bp.tone||"unset"),"Premise: "+(bp.premise||"(none)")],i,j;
+  for(i=0;i<bp.acts.length;i++){var a=bp.acts[i],arcs=[];
+    for(j=0;j<(a.arcs||[]).length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].objective?" ("+a.arcs[j].objective+")":""));
+    L.push("Act "+(i+1)+": "+a.title+" — "+a.goal+(arcs.length?" | Arcs: "+arcs.join("; "):""));}
+  if(bp.locations.length)L.push("Locations: "+bp.locations.map(function(x){return x.name;}).join(", "));
+  if(bp.creatures.length)L.push("Existing bestiary (do NOT duplicate): "+bp.creatures.map(function(c){return c.name+(c.kind?" ("+c.kind+(c.threat?", "+c.threat:"")+")":"");}).join("; "));
+  return L.join("\n");
+}
+async function genCreature(btn){
+  if(!llmReady())return;
+  btn.disabled=true;btn.textContent="Consulting the story…";setStatus("Generating a creature in service to the story…","");
+  try{
+    var msg=storyContext()
+      +"\n\nTASK: Invent exactly ONE new creature for this campaign's bestiary, IN SERVICE to the story above."
+      +"\n- It must plausibly belong to this campaign's regions, factions, tone, and conflicts. Never inject an off-theme creature because it is cool: no named tyrannosaur in a goblin-centric dungeon crawl."
+      +"\n- It may be humble (a rodent of unusual size that plagues the same cellars the plot visits) or unique and mythic (a rodent of mythic proportions) — pick the scale the story most lacks right now, considering the existing bestiary."
+      +"\n- notes = its nature, behaviour, tactics, and weaknesses/how it dies, 2-4 sentences, written as GM guidance. CHARACTER, not stats — the engine handles stats separately."
+      +"\n- kind = one or two words (beast/undead/aberration/construct/monstrosity/...); threat = low/moderate/deadly/apex or a CR."
+      +"\nOutput ONLY this JSON object: {\"name\":\"\",\"kind\":\"\",\"threat\":\"\",\"notes\":\"\"}";
+    var resp=await callGM(msg,"You design bestiary entries for tabletop RPG campaign blueprints. Output ONLY one valid JSON object — no markdown, no prose, no code fences.",500,null,{noHistory:true,kind:"other"});
+    var c=JSON.parse(repairModelJson(resp));
+    if(!c||!c.name)throw new Error("model returned no usable creature");
+    bp.creatures.push({name:String(c.name),kind:String(c.kind||""),threat:String(c.threat||""),notes:String(c.notes||"")});
+    markDirty();render();
+    setStatus("Added “"+c.name+"” to the bestiary — it's yours now: review, edit, or delete freely.","ok");
+  }catch(e){setStatus("Creature generation failed: "+e.message,"err");}
+  var b2=document.querySelector("[data-op='gencreature']");
+  if(b2){b2.disabled=false;b2.innerHTML="✨ Generate creature from story";}
+}
+function closeReview(){var m=document.getElementById("rev-modal");if(m)m.remove();}
+document.getElementById("btn-review").addEventListener("click",async function(){
+  if(!llmReady())return;
+  var btn=this;btn.disabled=true;setStatus("Submitting the blueprint for review…","");
+  try{
+    var msg="Review this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT:\n"+JSON.stringify(stripView(bp),null,1)
+      +"\n\nREVIEW CRITERIA, in priority order:"
+      +"\n1. NAME-DROP violations: any person, place, faction, god, or thing referenced in the premise, notes, rules, or descriptions that is NOT defined anywhere in the blueprint. (Real bug class: a rule referenced 'the nine trickster gods' without naming them.)"
+      +"\n2. Missing or empty high-value data: acts without concrete turning points, climactic arcs without rewards, NPCs without run-instructions or secrets, locations missing their load-bearing facts."
+      +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
+      +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
+      +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
+      +"\n\nOUTPUT FORMAT (plain text, no markdown):\nVERDICT: <one blunt sentence>\n\nThen numbered findings, worst first, max 12, each on the pattern:\n<n>. [HIGH|MEDIUM|LOW] <section> — <issue> — FIX: <concrete suggestion>\n\nEnd with:\nBEST ADDITIONS: <the 2-3 highest-value things to add, one line each>";
+    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Follow the requested output format exactly. Plain text only.",1400,null,{noHistory:true,kind:"other"});
+    closeReview();
+    var wrap=document.createElement("div");
+    wrap.id="rev-modal";
+    wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:55;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px 16px;";
+    wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;max-width:760px;width:100%;max-height:82vh;overflow-y:auto;padding:16px 20px;'>"
+      +"<div style='display:flex;align-items:center;margin-bottom:10px;'><h2 style='flex:1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;border:none;padding:0;'>&#128269; Blueprint review — "+esc(bp.name||"untitled")+"</h2><button class='mini' id='rev-x'>&#215;</button></div>"
+      +"<div style='white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--t1);'>"+esc(resp)+"</div></div>";
+    document.body.appendChild(wrap);
+    wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeReview();});
+    document.getElementById("rev-x").addEventListener("click",closeReview);
+    setStatus("Review complete.","ok");
+  }catch(e){setStatus("Review failed: "+e.message,"err");}
+  btn.disabled=false;
+});
+
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
 // Publish = upsert to the personal library (server slugs by name — same name overwrites).
 // Auth rides in from the APP's login via same-origin localStorage (autoConnect); the designer
@@ -473,6 +552,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
 });
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
+if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
 document.getElementById("ver").textContent=typeof APP_VERSION!=="undefined"?APP_VERSION:"";
 bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
 </script>
