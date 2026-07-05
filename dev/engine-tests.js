@@ -604,6 +604,57 @@ function runEngineTests(R){
     return sessionLog.length===0&&worldState.sessKept===0?true:"len "+sessionLog.length+" marker "+worldState.sessKept;
   });
 
+  // ── Companion XP parity + quest lifecycle teeth (v1.172) ─────────────────────
+  section("companion XP parity / quest teeth (#20)");
+  function partyWorld(){
+    makeWorld();
+    worldState.npcs=[
+      {name:"Lyra",partyMember:true,status:"ally",rel:"c",charSheet:{name:"Lyra",cls:"Sorcerer",level:1,xp:0,hp:8,maxHp:8,stats:{CON:10}}},
+      {name:"Bram",partyMember:true,status:"ally",rel:"c",charSheet:{name:"Bram",cls:"Warrior",level:1,xp:0,hp:12,maxHp:12,stats:{CON:12}}},
+      {name:"Vex",partyMember:false,status:"ally",rel:"a",charSheet:{name:"Vex",cls:"Rogue",level:1,xp:0}}
+    ];
+  }
+  t("[XP:N] mirrors to every party companion (not non-party allies)",function(){
+    partyWorld();
+    applyMuts("You did it. [XP:120]");
+    if(worldState.character.xp!==120)return "player xp "+worldState.character.xp;
+    if(worldState.npcs[0].charSheet.xp!==120)return "Lyra not mirrored: "+worldState.npcs[0].charSheet.xp;
+    if(worldState.npcs[1].charSheet.xp!==120)return "Bram not mirrored";
+    return worldState.npcs[2].charSheet.xp===0?true:"non-party ally received XP";
+  });
+  t("COMPANION_XP in the same response supersedes the mirror for that companion",function(){
+    partyWorld();
+    applyMuts("Lyra's solo kill. [XP:100][COMPANION_XP:Lyra|250]");
+    if(worldState.npcs[0].charSheet.xp!==250)return "Lyra got "+worldState.npcs[0].charSheet.xp+", want 250 (no double award)";
+    return worldState.npcs[1].charSheet.xp===100?true:"Bram mirror lost: "+worldState.npcs[1].charSheet.xp;
+  });
+  t("mirrored XP levels companions up",function(){
+    partyWorld();
+    applyMuts("A mighty deed. [XP:350]");
+    return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 350 xp";
+  });
+  t("quest block: all-objectives-done quest gets the close-or-extend instruction",function(){
+    makeWorld();
+    worldState.questLog=[
+      {title:"Clear the mine",status:"active",desc:"",objectives:[{text:"a",done:true},{text:"b",done:true}]},
+      {title:"Find the heir",status:"active",desc:"",objectives:[{text:"c",done:true},{text:"d",done:false}]}
+    ];
+    var b=buildQuestBlock();
+    if(b.indexOf("ALL OBJECTIVES COMPLETE")<0)return "close instruction missing";
+    if(b.indexOf("[QUEST:Clear the mine|completed]")<0)return "close instruction not quest-specific";
+    if(b.indexOf("[QUEST:Find the heir|completed]")>=0)return "close instruction on an unfinished quest";
+    return b.indexOf("Active crises ARE quests")>=0?true:"crisis reminder missing";
+  });
+  t("quest block: objective-less active quest never gets the close nudge; empty log keeps the crisis line",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Vague errand",status:"active",desc:"",objectives:[]}];
+    var b=buildQuestBlock();
+    if(b.indexOf("ALL OBJECTIVES COMPLETE")>=0)return "nudge fired on objective-less quest";
+    worldState.questLog=[];
+    var b2=buildQuestBlock();
+    return b2.indexOf("Active crises ARE quests")>=0?true:"crisis line missing on empty log";
+  });
+
   // ── 13. futureEvents hygiene (#29) ────────────────────────────────────────────
   section("futureEvents hygiene (#29)");
   t("near-duplicate events collapse onto the existing entry, refreshing its age (the 7-Shalelu spam)",function(){

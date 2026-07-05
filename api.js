@@ -54,15 +54,23 @@ function archiveQuest(title,status){
   }
 }
 // Authoritative active+offered quest block re-injected every turn — the anti-drift anchor.
+// #20 quest-lifecycle teeth (v1.172): the t198 corpus check showed the lifecycle going silent in
+// mature campaigns — 0 [QUEST:] emissions in the indexed window, and quests sitting at 4/4 and 3/3
+// objectives complete but never closed. Two data-driven nudges, both in this per-turn block:
+// ① a quest whose objectives are ALL done gets an explicit close-or-extend instruction (the engine
+// can detect this state deterministically; the GM decides which); ② a standing one-line reminder
+// that unregistered crises/goals must be filed. Volatile half — never touches the cached block.
 function buildQuestBlock(){
-  if(!worldState||!worldState.questLog||!worldState.questLog.length)return "QUESTS: none active.\n\n";
+  var crisisLine="If the party is pursuing a significant threat, goal, or job NOT listed above, register it NOW: [QUEST:title|offered|desc] (or |active if they are already committed). Active crises ARE quests.\n";
+  if(!worldState||!worldState.questLog||!worldState.questLog.length)return "QUESTS: none active.\n"+crisisLine+"\n";
   var active=[],offered=[],i;
   for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.status==="active")active.push(q);else if(q.status==="offered")offered.push(q);}
   var out="";
-  if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";if(aq.objectives&&aq.objectives.length){var oj;for(oj=0;oj<aq.objectives.length;oj++)out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";}}}
+  if(active.length){out+="ACTIVE QUESTS (authoritative — steer toward these; advance objectives via [QUEST_STEP:title|objective|done]):\n";for(i=0;i<active.length;i++){var aq=active[i];out+="• "+aq.title+(aq.desc?" — "+aq.desc:"")+"\n";var allDone=false;if(aq.objectives&&aq.objectives.length){allDone=true;var oj;for(oj=0;oj<aq.objectives.length;oj++){out+="    ["+(aq.objectives[oj].done?"x":" ")+"] "+aq.objectives[oj].text+"\n";if(!aq.objectives[oj].done)allDone=false;}}
+    if(allDone)out+="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished, emit [QUEST:"+aq.title+"|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work remains, add the next objective via [QUEST_STEP:"+aq.title+"|objective].\n";}}
   if(offered.length){out+="OFFERED QUESTS (awaiting player acceptance — do NOT treat as active or advance objectives):\n";for(i=0;i<offered.length;i++){out+="• "+offered[i].title+(offered[i].desc?" — "+offered[i].desc:"")+"\n";}}
   if(!out)out="QUESTS: none active.\n";
-  return out+"\n";
+  return out+crisisLine+"\n";
 }
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
@@ -204,7 +212,8 @@ function buildSysPrompt(){
     +"[COMPANION_CONDITION:Name|condName|duration] [COMPANION_CONDITION_REMOVED:Name|condName]\n"
     +"[COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_RELATIONSHIP_REMOVED:Name|entity]\n"
     +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
-    +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n\n";
+    +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n"
+    +"XP IS SHARED AUTOMATICALLY: every [XP:N] you award is mirrored by the engine to all party members. Use [COMPANION_XP:Name|N] ONLY for a bonus one companion earns alone — never re-emit a shared award with it.\n\n";
   var volatile_=identity+switchBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
@@ -380,7 +389,24 @@ function applyMuts(text){
     if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);muts.push("NPC: "+npName);}
   // Tolerate a leading "+" and trailing junk ([XP:+25 xp]) — same loosening as GOLD/HP (audit #7);
   // an unparsed XP tag is stripped by cleanTxt and the award vanished with no visible symptom.
-  var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();}
+  // Companion XP parity (v1.172): party XP is SHARED — every companion automatically earns what
+  // the player earns. The GM almost never emitted COMPANION_XP on its own (t198: player 37,350 XP,
+  // companions ~23,000 and falling behind until keeping them "doesn't make sense" — user call
+  // 2026-07-04), so the engine mirrors every [XP:N] to all party companions. A [COMPANION_XP:Name|N]
+  // in the SAME response supersedes the mirror for that companion (individual award, no double-count).
+  var _xpSkip=null;
+  function _xpMirror(n){
+    if(_xpSkip===null){_xpSkip=[];var _mt=text.match(/\[COMPANION_XP:([^|]+)\|/g)||[],_mi;for(_mi=0;_mi<_mt.length;_mi++){var _mm=_mt[_mi].match(/\[COMPANION_XP:([^|]+)\|/);if(_mm){var _mcs=findCompanionChar(_mm[1].trim());if(_mcs)_xpSkip.push(_mcs);}}}
+    var _pi2,_shared=0;
+    for(_pi2=0;_pi2<worldState.npcs.length;_pi2++){var _pn2=worldState.npcs[_pi2];
+      if(!_pn2.partyMember||!_pn2.charSheet)continue;
+      if(_xpSkip.indexOf(_pn2.charSheet)>=0)continue;
+      if(typeof _pn2.charSheet.xp!=="number")_pn2.charSheet.xp=0;
+      _pn2.charSheet.xp+=n;_shared++;checkCompanionLevelUp(_pn2.charSheet);
+    }
+    if(_shared)muts.push("party +"+n+" XP");
+  }
+  var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);muts.push("+"+xpm[1]+" XP");checkLevelUp();_xpMirror(parseInt(xpm[1]));}
   // [QUEST:title|status] or [QUEST:title|status|desc]. status: offered|active|completed|failed.
   var quests=text.match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);muts.push("Quest offered: "+qTitle);}else muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;muts.push("Quest "+qTitle+": "+qStat);}if(qStat==="completed"||qStat==="failed")archiveQuest(qTitle,qStat);}
   // [QUEST_STEP:title|objective|done] — add an objective or set its done state

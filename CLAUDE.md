@@ -226,7 +226,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[LOCATION_ITEM:name\|placed]` | Record item left/hidden at current location node; pairs with `[ITEM_LOST:]` |
 | `[LOCATION_ITEM:name\|taken]` | Mark item as taken by NPC/event; player pickup auto-handled by `[ITEM_GAINED:]` |
 | `[NPC:name|status|relation]` | Upsert `worldState.npcs[]` and `memory.npcs{}` |
-| `[XP:N]` | Add XP, trigger `checkLevelUp()` |
+| `[XP:N]` | Add XP, trigger `checkLevelUp()`. **XP parity (v1.172):** automatically mirrored to every party companion's `charSheet` (+ `checkCompanionLevelUp`), EXCEPT companions named in a `[COMPANION_XP:]` tag in the same response (individual award supersedes the mirror — no double count) |
 | `[QUEST:title\|status]` or `[QUEST:title\|status\|desc]` | Upsert `worldState.questLog[]`. status: `offered`/`active`/`completed`/`failed`. `offered` toasts "⚑ Quest opportunity"; `completed`/`failed` archive to `memory.quests` and remove from the live log |
 | `[QUEST_STEP:title\|objective\|done]` | Add an objective to a quest (`done` omitted/false), or mark an existing one complete (`done=true`); matched by objective text |
 | `[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale]` | Set `worldState.combat` |
@@ -261,7 +261,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[COMPANION_CONDITION:Name\|cond\|dur]` / `[COMPANION_CONDITION_REMOVED:Name\|cond]` | Add/remove condition on companion `charSheet` |
 | `[COMPANION_RELATIONSHIP:Name\|entity\|descriptor]` / `[COMPANION_RELATIONSHIP_REMOVED:Name\|entity]` | Upsert/remove relationship on companion `charSheet` |
 | `[COMPANION_ITEM_GAINED:Name\|item]` / `[COMPANION_ITEM_LOST:Name\|item]` | Push/filter companion `charSheet.inventory` |
-| `[COMPANION_XP:Name\|N]` | Add XP to companion `charSheet` |
+| `[COMPANION_XP:Name\|N]` | Add XP to companion `charSheet`. Since v1.172 this is for INDIVIDUAL bonuses only — shared party XP arrives automatically via the `[XP:]` mirror (the GM is told never to re-emit a shared award) |
 | `[COMPANION_ABILITY:Name\|nm\|desc]` | Append ability to companion `charSheet.abilities` (deduplicated) |
 | `[COMPANION_ALIGNMENT:Name\|law+1]` | Shift companion `alignLaw`/`alignGood`, recompute `actualAlignment` |
 
@@ -331,7 +331,7 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 **Lifecycle:** `offered → active → completed/failed`, plus `declined`. The GM creates quests via `[QUEST:title|offered|desc]` (toasts "⚑ Quest opportunity"). An offered quest is NOT a goal — the GM may not steer toward or advance it. The player accepts via the **Quest Journal** (Accept button → `acceptQuest(idx)` sets `active`) or by agreeing in-story (GM emits `[QUEST:title|active]`). Decline → `declineQuest(idx)` archives as `declined`. On `completed`/`failed`, `archiveQuest()` moves the quest to `memory.quests` and removes it from the live log; rewards come via the GM emitting `[XP:]`/`[GOLD:]`/`[ITEM_GAINED:]` in the same response.
 
-**Anti-drift:** `buildQuestBlock()` re-injects the authoritative ACTIVE (with objective checklists) + OFFERED blocks into every system prompt — the GM reads quest state from data each turn rather than from its own compressible memory, same pattern as the character sheet. A DEFAULT_RULES entry forbids inventing/renaming/dropping quests and auto-accepting. `openai.reinforce` includes the quest tags for non-Claude providers.
+**Anti-drift:** `buildQuestBlock()` re-injects the authoritative ACTIVE (with objective checklists) + OFFERED blocks into every system prompt — the GM reads quest state from data each turn rather than from its own compressible memory, same pattern as the character sheet. A DEFAULT_RULES entry forbids inventing/renaming/dropping quests and auto-accepting. **Lifecycle teeth (#20, v1.172):** the t198 corpus check showed the lifecycle going silent in mature campaigns (0 `[QUEST:]` emissions; quests at 4/4 objectives never closed). `buildQuestBlock` now adds ① a quest-specific "⚑ ALL OBJECTIVES COMPLETE — emit `[QUEST:title|completed]` with rewards, or add the next objective" instruction when every objective is done (deterministically detected), and ② a standing one-line "active crises ARE quests — register unlisted goals now" reminder (present even when the log is empty). Both in the volatile half. `openai.reinforce` includes the quest tags for non-Claude providers.
 
 **UI:** world-state sidebar shows quest titles + a `⚑ N opportunities` indicator; clicking opens `showQuestModal()` — Opportunities (Accept/Decline) · Active (☑/☐ objective lists) · History (completed/failed/declined from `memory.quests`).
 
