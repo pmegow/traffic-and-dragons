@@ -33,7 +33,9 @@ body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font
 #statusline.ok{color:var(--grn);}
 main{max-width:880px;margin:0 auto;padding:18px 18px 80px;}
 .sect{background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:16px;}
-.sect h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0 0 12px;}
+.sect h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:0;cursor:pointer;user-select:none;}
+.sect h2.open{margin-bottom:12px;}
+.cardlbl{cursor:pointer;user-select:none;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
 @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
 label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:3px;}
@@ -81,6 +83,19 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 <script>
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
+// Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
+// cards carry a `_c` flag ON the data object so collapse travels with moves/reorders. `_c` is
+// VIEW state only — stripped from Save and Publish output by stripView(). Loading an existing
+// blueprint starts fully collapsed (scroll relief + spoiler cover); New starts open.
+var secOpen={};
+function stripView(obj){return JSON.parse(JSON.stringify(obj,function(kk,vv){return kk&&kk.charAt(0)==="_"?undefined:vv;}));}
+function collapseAll(){
+  var i,j;
+  for(i=0;i<bp.acts.length;i++){bp.acts[i]._c=1;for(j=0;j<(bp.acts[i].arcs||[]).length;j++)bp.acts[i].arcs[j]._c=1;}
+  for(i=0;i<bp.npcs.length;i++)bp.npcs[i]._c=1;
+  for(i=0;i<bp.creatures.length;i++)bp.creatures[i]._c=1;
+  for(i=0;i<bp.locations.length;i++)bp.locations[i]._c=1;
+}
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
@@ -106,12 +121,22 @@ function movBtns(op,i,j){
        +"<button class='mini' data-op='down"+op+"' data-i='"+i+"' data-j='"+j+"' title='Move down'>&#9660;</button>"
        +"<button class='mini del' data-op='del"+op+"' data-i='"+i+"' data-j='"+j+"' title='Remove'>&#215;</button>";
 }
+// Collapsible chrome: section h2s and card labels toggle. Arrow is a text node inside the
+// clickable element so e.target always carries the data-op.
+function secH(key,label){var open=secOpen[key]!==false;return "<h2 class='"+(open?"open":"")+"' data-op='togsec' data-key='"+key+"'>"+(open?"&#9662;":"&#9656;")+" "+label+"</h2>";}
+function cardHead(tsec,i,j,label,summary,btns){
+  return "<div class='cardhead'><span class='cardlbl' data-op='togcard' data-tsec='"+tsec+"' data-i='"+i+"' data-j='"+j+"'>"
+    +((tsec==="act"?bp.acts[i]._c:tsec==="arc"?bp.acts[i].arcs[j]._c:tsec==="npc"?bp.npcs[i]._c:tsec==="creature"?bp.creatures[i]._c:bp.locations[i]._c)?"&#9656;":"&#9662;")
+    +" "+label+(summary?" &mdash; "+esc(summary):"")+"</span>"+btns+"</div>";
+}
 function render(){
   var h="",i,j;
   // Metadata
   var toneOpts="<option value=''>(none)</option>";for(i=0;i<TONES.length;i++){toneOpts+="<option value='"+TONES[i].id+"'"+(bp.tone===TONES[i].id?" selected":"")+">"+esc(TONES[i].nm)+"</option>";}
   var voiceOpts="";for(i=0;i<AUTHORS.length;i++){voiceOpts+="<option value='"+AUTHORS[i].id+"'"+(bp.proseAuthor===AUTHORS[i].id?" selected":"")+">"+esc(AUTHORS[i].nm)+"</option>";}
-  h+="<div class='sect'><h2>Blueprint</h2><div class='grid2'>"
+  h+="<div class='sect'>"+secH("meta","Blueprint"+(bp.name?" — "+esc(bp.name):""));
+  if(secOpen.meta!==false){
+    h+="<div class='grid2'>"
     +fld("Name *",txt("meta",0,0,"name",bp.name,"e.g. Rise of the Runelords"))
     +fld("Author (credit)",txt("meta",0,0,"author",bp.author,"who made this campaign"))
     +fld("World tone","<select data-sec='meta' data-i='0' data-j='0' data-k='tone'>"+toneOpts+"</select>")
@@ -119,73 +144,99 @@ function render(){
     +fld("Starting location",txt("meta",0,0,"startingLocation",bp.startingLocation,"e.g. Sandpoint"))
     +fld("Starting region",txt("meta",0,0,"startingRegion",bp.startingRegion,"e.g. Varisia"))
     +"</div>"
-    +fldB("Premise *","meta",0,0,"premise","Premise",ta("meta",0,0,"premise",bp.premise,"One paragraph: the world, the threat, why it matters."))
-    +"</div>";
+    +fldB("Premise *","meta",0,0,"premise","Premise",ta("meta",0,0,"premise",bp.premise,"One paragraph: the world, the threat, why it matters."));
+  }
+  h+="</div>";
   // Acts
-  h+="<div class='sect'><h2>Story — Acts &amp; Arcs</h2>";
+  h+="<div class='sect'>"+secH("story","Story — Acts &amp; Arcs");
+  if(secOpen.story!==false){
   if(!bp.acts.length)h+="<div class='empty'>No acts yet. A blueprint needs at least one.</div>";
   for(i=0;i<bp.acts.length;i++){
     var a=bp.acts[i];
-    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>Act "+(i+1)+"</span>"+movBtns("act",i,0)+"</div>"
-      +"<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fldB("Goal *","act",i,0,"goal","Act "+(i+1)+" goal",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
+    h+="<div class='card'>"+cardHead("act",i,0,"Act "+(i+1),a.title,movBtns("act",i,0));
+    if(!a._c){
+      h+="<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fldB("Goal *","act",i,0,"goal","Act "+(i+1)+" goal",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
       +fldB("Turning point (ends the act)","act",i,0,"turningPoint","Act "+(i+1)+" turning point",txt("act",i,0,"turningPoint",a.turningPoint,"the event that closes this act"))
       +"<label class='chk'><input type='checkbox' data-sec='act' data-i='"+i+"' data-j='0' data-k='parallel'"+(a.parallel?" checked":"")+"/> Parallel act — arcs can be pursued in any order</label>";
-    for(j=0;j<(a.arcs||[]).length;j++){
-      var r=a.arcs[j];
-      var typeOpts="";for(var ti=0;ti<ARC_TYPES.length;ti++){typeOpts+="<option value='"+ARC_TYPES[ti]+"'"+(r.type===ARC_TYPES[ti]?" selected":"")+">"+(ARC_TYPES[ti]||"(unset)")+"</option>";}
-      h+="<div class='card arc'><div class='cardhead'><span class='cardlbl'>Arc "+(i+1)+"."+(j+1)+"</span>"+movBtns("arc",i,j)+"</div>"
-        +"<div class='grid2'>"+fld("Title *",txt("arc",i,j,"title",r.title,""))+fld("Type","<select data-sec='arc' data-i='"+i+"' data-j='"+j+"' data-k='type'>"+typeOpts+"</select>")+"</div>"
-        +fldB("Objective *","arc",i,j,"objective","Arc "+(i+1)+"."+(j+1)+" objective",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
-        +fldB("Arc reward (optional)","arc",i,j,"reward","Arc "+(i+1)+"."+(j+1)+" reward",txt("arc",i,j,"reward",r.reward||"","loot, gold, an ability — or the prop a later arc needs; granted when the arc completes"))
-        +fldB("DNA hint (how the GM should RUN this arc — optional)","arc",i,j,"dnaHint","Arc "+(i+1)+"."+(j+1)+" DNA hint",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"))
-        +"</div>";
+      for(j=0;j<(a.arcs||[]).length;j++){
+        var r=a.arcs[j];
+        h+="<div class='card arc'>"+cardHead("arc",i,j,"Arc "+(i+1)+"."+(j+1),r.title,movBtns("arc",i,j));
+        if(!r._c){
+          var typeOpts="";for(var ti=0;ti<ARC_TYPES.length;ti++){typeOpts+="<option value='"+ARC_TYPES[ti]+"'"+(r.type===ARC_TYPES[ti]?" selected":"")+">"+(ARC_TYPES[ti]||"(unset)")+"</option>";}
+          h+="<div class='grid2'>"+fld("Title *",txt("arc",i,j,"title",r.title,""))+fld("Type","<select data-sec='arc' data-i='"+i+"' data-j='"+j+"' data-k='type'>"+typeOpts+"</select>")+"</div>"
+          +fldB("Objective *","arc",i,j,"objective","Arc "+(i+1)+"."+(j+1)+" objective",txt("arc",i,j,"objective",r.objective,"what completing this arc means"))
+          +fldB("Arc reward (optional)","arc",i,j,"reward","Arc "+(i+1)+"."+(j+1)+" reward",txt("arc",i,j,"reward",r.reward||"","loot, gold, an ability — or the prop a later arc needs; granted when the arc completes"))
+          +fldB("DNA hint (how the GM should RUN this arc — optional)","arc",i,j,"dnaHint","Arc "+(i+1)+"."+(j+1)+" DNA hint",ta("arc",i,j,"dnaHint",r.dnaHint||"","author-sensibility directive; blank = generic type hint at play time"));
+        }
+        h+="</div>";
+      }
+      h+="<button class='addbtn' data-op='addarc' data-i='"+i+"' data-j='0'>+ Add arc to Act "+(i+1)+"</button>";
     }
-    h+="<button class='addbtn' data-op='addarc' data-i='"+i+"' data-j='0'>+ Add arc to Act "+(i+1)+"</button></div>";
+    h+="</div>";
   }
-  h+="<button class='addbtn' data-op='addact' data-i='0' data-j='0'>+ Add act</button></div>";
+  h+="<button class='addbtn' data-op='addact' data-i='0' data-j='0'>+ Add act</button>";
+  }
+  h+="</div>";
   // NPCs
-  h+="<div class='sect'><h2>Seeded NPCs</h2>";
+  h+="<div class='sect'>"+secH("npcs","Seeded NPCs ("+bp.npcs.length+")");
+  if(secOpen.npcs!==false){
   if(!bp.npcs.length)h+="<div class='empty'>None — the GM will invent everyone.</div>";
   for(i=0;i<bp.npcs.length;i++){
     var n=bp.npcs[i];
-    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(n.name||("NPC "+(i+1)))+"</span>"+movBtns("npc",i,0)+"</div>"
-      +"<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
+    h+="<div class='card'>"+cardHead("npc",i,0,esc(n.name||("NPC "+(i+1))),n.role,movBtns("npc",i,0));
+    if(!n._c){
+      h+="<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
       +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))+"</div>"
-      +fld("Notes (what the GM knows about them)",ta("npc",i,0,"notes",n.notes,""))
-      +"</div>";
+      +fld("Notes (what the GM knows about them)",ta("npc",i,0,"notes",n.notes,""));
+    }
+    h+="</div>";
   }
-  h+="<button class='addbtn' data-op='addnpc' data-i='0' data-j='0'>+ Add NPC</button></div>";
+  h+="<button class='addbtn' data-op='addnpc' data-i='0' data-j='0'>+ Add NPC</button>";
+  }
+  h+="</div>";
   // Creatures (v1.176 — the campaign bestiary; monster-manual-inspired fields)
-  h+="<div class='sect'><h2>Bestiary — Seeded Creatures</h2>";
+  h+="<div class='sect'>"+secH("creatures","Bestiary — Seeded Creatures ("+bp.creatures.length+")");
+  if(secOpen.creatures!==false){
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
   for(i=0;i<bp.creatures.length;i++){
     var C=bp.creatures[i];
-    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(C.name||("Creature "+(i+1)))+"</span>"+movBtns("creature",i,0)+"</div>"
-      +"<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
+    h+="<div class='card'>"+cardHead("creature",i,0,esc(C.name||("Creature "+(i+1))),C.kind,movBtns("creature",i,0));
+    if(!C._c){
+      h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
-      +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"))
-      +"</div>";
+      +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
+    }
+    h+="</div>";
   }
-  h+="<button class='addbtn' data-op='addcreature' data-i='0' data-j='0'>+ Add creature</button></div>";
+  h+="<button class='addbtn' data-op='addcreature' data-i='0' data-j='0'>+ Add creature</button>";
+  }
+  h+="</div>";
   // Locations
-  h+="<div class='sect'><h2>Seeded Locations</h2>";
+  h+="<div class='sect'>"+secH("locs","Seeded Locations ("+bp.locations.length+")");
+  if(secOpen.locs!==false){
   if(!bp.locations.length)h+="<div class='empty'>None — locations emerge in play.</div>";
   for(i=0;i<bp.locations.length;i++){
     var L=bp.locations[i];
-    h+="<div class='card'><div class='cardhead'><span class='cardlbl'>"+esc(L.name||("Location "+(i+1)))+"</span>"+movBtns("loc",i,0)+"</div>"
-      +fld("Name *",txt("loc",i,0,"name",L.name,""))
-      +fld("Canonical description",ta("loc",i,0,"description",L.description,"injected as the location's permanent description"))
-      +"</div>";
+    h+="<div class='card'>"+cardHead("loc",i,0,esc(L.name||("Location "+(i+1))),null,movBtns("loc",i,0));
+    if(!L._c){
+      h+=fld("Name *",txt("loc",i,0,"name",L.name,""))
+      +fld("Canonical description",ta("loc",i,0,"description",L.description,"injected as the location's permanent description"));
+    }
+    h+="</div>";
   }
-  h+="<button class='addbtn' data-op='addloc' data-i='0' data-j='0'>+ Add location</button></div>";
+  h+="<button class='addbtn' data-op='addloc' data-i='0' data-j='0'>+ Add location</button>";
+  }
+  h+="</div>";
   // Rules
-  h+="<div class='sect'><h2>Custom Narrative Rules</h2>";
+  h+="<div class='sect'>"+secH("rules","Custom Narrative Rules ("+bp.rules.length+")");
+  if(secOpen.rules!==false){
   if(!bp.rules.length)h+="<div class='empty'>None — the default rules still apply.</div>";
   for(i=0;i<bp.rules.length;i++){
     h+="<div class='rowline'><div class='grow'>"+ta("rule",i,0,"",bp.rules[i],"a hard rule the GM must follow in this campaign")+"</div>"+movBtns("rule",i,0)+"</div>";
   }
-  h+="<button class='addbtn' data-op='addrule' data-i='0' data-j='0'>+ Add rule</button>"
-    +"<div id='counts' style='margin-top:12px;'></div></div>";
+  h+="<button class='addbtn' data-op='addrule' data-i='0' data-j='0'>+ Add rule</button>";
+  }
+  h+="<div id='counts' style='margin-top:12px;'></div></div>";
   document.getElementById("app").innerHTML=h;
   updateCounts();
 }
@@ -220,6 +271,14 @@ document.addEventListener("click",function(e){
   var t=e.target,op=t.getAttribute&&t.getAttribute("data-op");if(!op)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
+  // Collapse toggles — pure view state, no markDirty.
+  if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
+  if(op==="togcard"){
+    var ts=t.getAttribute("data-tsec");
+    var co=ts==="act"?bp.acts[i]:ts==="arc"?(bp.acts[i]&&bp.acts[i].arcs[j]):ts==="npc"?bp.npcs[i]:ts==="creature"?bp.creatures[i]:bp.locations[i];
+    if(co){co._c=co._c?0:1;render();}
+    return;
+  }
   if(op==="addact")bp.acts.push(blankAct());
   else if(op==="delact"){if(!confirm("Remove Act "+(i+1)+" and its arcs?"))return;bp.acts.splice(i,1);}
   else if(op==="upact")move(bp.acts,i,-1);
@@ -288,6 +347,7 @@ function openBreakout(btn){
 function loadBlueprintObject(obj){
   bp=normalizeBlueprint(obj);
   var err=validateBlueprint(bp);
+  collapseAll(); // existing blueprints open folded — scroll relief + spoiler cover
   dirty=false;render();
   setStatus(err?("Loaded with issues — "+err):"Loaded: "+bp.name,err?"err":"ok");
 }
@@ -317,7 +377,7 @@ function designerValidate(){
 document.getElementById("btn-save").addEventListener("click",function(){
   var err=designerValidate();
   if(err){setStatus("Can't save — "+err,"err");return;}
-  var data=JSON.stringify(bp,null,2);
+  var data=JSON.stringify(stripView(bp),null,2); // _c collapse flags never reach the file
   var blob=new Blob([data],{type:"application/json"});
   var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
@@ -341,7 +401,7 @@ document.getElementById("btn-publish").addEventListener("click",function(){
   var err=designerValidate();
   if(err){setStatus("Can't publish — "+err,"err");return;}
   setStatus("Publishing…","");
-  storageAdapter.saveBlueprintToLibrary(bp,function(e){
+  storageAdapter.saveBlueprintToLibrary(stripView(bp),function(e){
     if(e){setStatus("Publish failed: "+e+(String(e).indexOf("401")>=0?" — session expired; reconnect from the game.":""),"err");return;}
     dirty=false;
     setStatus("Published “"+bp.name+"” to your library (same name republishes over it).","ok");
