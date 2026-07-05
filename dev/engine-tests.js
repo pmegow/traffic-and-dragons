@@ -363,6 +363,18 @@ function runEngineTests(R){
     if(b.indexOf("a pile of gold")>=0)return "pending arc's reward leaked (spoiler-budget: active only)";
     return b.indexOf("[ARC_COMPLETE:First]")>=0?true:"grant not tied to the completing emission";
   });
+  t("act reward (v1.178): rendered on the ACTIVE act, tied to [ACT_COMPLETE:], pending acts stay unspoiled",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[
+      {title:"First Act",goal:"g",turningPoint:"tp",status:"active",reward:"a deed to the Rusty Flagon",arcs:[{title:"a",objective:"o",status:"active"}]},
+      {title:"Second Act",goal:"g2",turningPoint:"tp2",status:"pending",reward:"a duchy",arcs:[{title:"b",objective:"o2",status:"pending"}]}
+    ]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("ACT REWARD")<0)return "act reward instruction missing";
+    if(b.indexOf("deed to the Rusty Flagon")<0)return "active act's reward text missing";
+    if(b.indexOf("[ACT_COMPLETE:First Act]")<0)return "grant not tied to the completing emission";
+    return b.indexOf("a duchy")<0?true:"pending act's reward leaked";
+  });
   t("buildBlueprintFromGame round-trips the bestiary",function(){
     makeWorld();worldState.tone={name:"High Fantasy",voice:""};
     worldState.bestiary=[{name:"King of Feathers",kind:"beast",threat:"apex",notes:"tyrannosaurus; swallows foes whole"}];

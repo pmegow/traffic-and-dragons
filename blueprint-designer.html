@@ -99,7 +99,7 @@ function collapseAll(){
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
-function blankAct(){return {title:"",goal:"",turningPoint:"",parallel:false,arcs:[blankArc()]};}
+function blankAct(){return {title:"",goal:"",turningPoint:"",reward:"",parallel:false,arcs:[blankArc()]};}
 function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
@@ -157,6 +157,7 @@ function render(){
     if(!a._c){
       h+="<div class='grid2'>"+fld("Title *",txt("act",i,0,"title",a.title,""))+fldB("Goal *","act",i,0,"goal","Act "+(i+1)+" goal",txt("act",i,0,"goal",a.goal,"what this act is about"))+"</div>"
       +fldB("Turning point (ends the act)","act",i,0,"turningPoint","Act "+(i+1)+" turning point",txt("act",i,0,"turningPoint",a.turningPoint,"the event that closes this act"))
+      +fldB("Act reward (optional — bigger than an arc's)","act",i,0,"reward","Act "+(i+1)+" reward",txt("act",i,0,"reward",a.reward||"","a milestone grant: magic item, title, stronghold, major gold — or the key to the next act"))
       +"<label class='chk'><input type='checkbox' data-sec='act' data-i='"+i+"' data-j='0' data-k='parallel'"+(a.parallel?" checked":"")+"/> Parallel act — arcs can be pursued in any order</label>";
       for(j=0;j<(a.arcs||[]).length;j++){
         var r=a.arcs[j];

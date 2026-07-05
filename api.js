@@ -265,6 +265,9 @@ function buildSkeletonBlock(){
     lines.push(label+" — Goal: "+act.goal);
     if(act.status==="active"){
       lines.push("  Turning point (end of act): "+act.turningPoint);
+      // Act reward (v1.178): the milestone payout — bigger in scale than an arc's, granted with
+      // the [ACT_COMPLETE:] emission itself so finishing an act always lands like one.
+      if(act.reward)lines.push("  ACT REWARD — when you emit [ACT_COMPLETE:"+act.title+"], grant this in the SAME response via the matching tags ([ITEM_GAINED:]/[GOLD:]/[XP:]/[ABILITY_GAINED:]) and give the grant a scene worthy of an act's end: "+act.reward);
       for(j=0;j<act.arcs.length;j++){
         var arc=act.arcs[j],as=arc.status==="completed"?"DONE":arc.status==="active"?"CURRENT":"upcoming";
         var typeHint=arc.type?" ("+arc.type+")":"";
