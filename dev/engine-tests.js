@@ -127,6 +127,28 @@ function runEngineTests(R){
   t("blankMemory carries the full shape (audit #22)",function(){var m=blankMemory();var need=["npcs","locations","quests","lore","keyDecisions","futureEvents","chapters","usedNames","nameIdx","map","npcGraph"];for(var i=0;i<need.length;i++){if(!(need[i] in m))return "missing "+need[i];}return m.npcGraph.factions?true:"npcGraph incomplete";});
   t("getNameSuggestions peek mode never mutates the cursor",function(){memory=blankMemory();var a=getNameSuggestions(5,true).join("|"),b=getNameSuggestions(5,true).join("|");return a===b&&memory.nameIdx===0?true:"cursor moved: "+memory.nameIdx;});
   t("migrateWorldState adds a usage accumulator to old saves (TODO #21)",function(){memory=blankMemory();worldState={character:{name:"Old",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"}};migrateWorldState();var u=worldState.usage;return u&&u.calls===0&&u.byKind&&typeof u.costUSD==="number"?true:"usage: "+JSON.stringify(u);});
+  t("portrait dedupe (#3): npc.portrait moves into charSheet and the duplicate is dropped",function(){
+    memory=blankMemory();
+    worldState={character:{name:"P",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"},
+      npcs:[
+        {name:"BothSet",partyMember:true,portrait:"NPC_COPY",charSheet:{name:"BothSet",portrait:"SHEET_COPY"}},
+        {name:"NpcOnly",partyMember:true,portrait:"OLD_IMG",charSheet:{name:"NpcOnly",portrait:null}},
+        {name:"Sheetless",portrait:"KEEP_ME"}
+      ]};
+    migrateWorldState();
+    var n=worldState.npcs;
+    if(n[0].portrait!==null)return "both-set: duplicate kept";
+    if(n[0].charSheet.portrait!=="SHEET_COPY")return "both-set: sheet copy overwritten";
+    if(n[1].portrait!==null)return "npc-only: not cleared";
+    if(n[1].charSheet.portrait!=="OLD_IMG")return "npc-only: not moved into sheet";
+    return n[2].portrait==="KEEP_ME"?true:"sheet-less NPC portrait touched";
+  });
+  t("npcPortrait reads charSheet first, falls back to npc.portrait, null-safe",function(){
+    if(npcPortrait({charSheet:{portrait:"A"},portrait:"B"})!=="A")return "charSheet not preferred";
+    if(npcPortrait({charSheet:{portrait:null},portrait:"B"})!=="B")return "pre-migration fallback broken";
+    if(npcPortrait({name:"x"})!==null)return "portrait-less not null";
+    return npcPortrait(null)===null?true:"null npc not handled";
+  });
 
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
   section("usage telemetry");

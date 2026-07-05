@@ -1284,7 +1284,7 @@ async function generateNpcSheet(name,doneCb){
     if(!sheet.saveModifiers)sheet.saveModifiers=[];
     if(!sheet.storyBeats)sheet.storyBeats=[];
     if(!sheet.skills){sheet.skills={};var sk2;for(sk2=0;sk2<SKILLS.length;sk2++)sheet.skills[SKILLS[sk2].id]=0;}
-    sheet.portrait=wsNpc.portrait||null;
+    sheet.portrait=npcPortrait(wsNpc);wsNpc.portrait=null; // #3 dedupe: the sheet is the portrait's single home now
     sheet.partyMember=true;
     // Seed the player↔NPC relationship from live tracking data
     if(!sheet.relationships)sheet.relationships=[];
@@ -1324,7 +1324,7 @@ function showNpcSheet(name){
   var sheet=isParty&&wsNpc&&wsNpc.charSheet?wsNpc.charSheet:null;
 
   var initials=csInitials(name);
-  var portrait=wsNpc&&wsNpc.portrait?wsNpc.portrait:null;
+  var portrait=npcPortrait(wsNpc); // charSheet-first (#3 dedupe) — also fixes companions whose portrait arrived in the blob but not the separate store (known issue #6)
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   var avatarHtml=isParty
@@ -1459,7 +1459,7 @@ function showNpcSheet(name){
     function wireNpcAvatarDrag(){var img=document.getElementById("npc-portrait-img");if(img)wirePortraitDrag(img,npcGetOff,npcSetOff);}
     function refreshNpcAvatar(){
       var av=document.getElementById("npc-avatar-btn");if(!av)return;
-      var port=wsNpc.portrait||null;
+      var port=npcPortrait(wsNpc);
       av.innerHTML=(port?"<img id='npc-portrait-img' src='"+port+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
       wireNpcAvatarDrag();
     }
@@ -1467,8 +1467,8 @@ function showNpcSheet(name){
     // Use charSheet as portrait subject if available — richer prompt
     var npcSubject=sheet||{name:name,gender:"NB",age:"",ancestry:"",cls:"",archetypeNm:null,appear:"",mark:"",inventory:[]};
     var npcPortOpts={
-      getPortrait:function(){return wsNpc.portrait||null;},
-      setPortrait:function(url){wsNpc.portrait=url;if(wsNpc.charSheet)wsNpc.charSheet.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();},
+      getPortrait:function(){return npcPortrait(wsNpc);},
+      setPortrait:function(url){if(wsNpc.charSheet){wsNpc.charSheet.portrait=url;wsNpc.portrait=null;}else wsNpc.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();},
       getOffset:npcGetOff,
       setOffset:npcSetOff,
       subject:npcSubject
@@ -1934,7 +1934,7 @@ function _switchPlayerCharacter(name){
   if(!newChar){showToast(name+" has no character sheet. Generate one first.");return;}
   // Demote current player character to companion NPC
   var oldChar=worldState.character;
-  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(oldChar.gender),portrait:oldChar.portrait||null,charSheet:oldChar};
+  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(oldChar.gender),portrait:null,charSheet:oldChar}; // portrait rides on charSheet only (#3 dedupe)
   // Swap
   worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
   worldState.npcs.push(oldNpc);             // add old char as npc
@@ -2028,7 +2028,7 @@ function _addImportedCompanion(char){
   for(var i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===char.name){showToast(char.name+" is already in this campaign.");return;}}
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
   // Add as party member NPC with full charSheet
-  var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:char.portrait||null,charSheet:char};
+  var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
   if(!memory.npcs[char.name])memory.npcs[char.name]={attitude:"ally",knowledge:[],events:[]};
   memory.npcs[char.name].partyMember=true;

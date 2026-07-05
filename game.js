@@ -16,7 +16,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
     var comp=pendingCompanions[ci];
-    worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:comp.portrait||null,charSheet:comp});
+    worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
     npcLinkUpsert(char.name,comp.name,"companions");
   }

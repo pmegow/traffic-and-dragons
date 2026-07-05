@@ -380,12 +380,13 @@ var storageAdapter = (function() {
         if (data.portrait && worldState.character && !worldState.character.portrait) {
           worldState.character.portrait = data.portrait;
         }
+        // #3 dedupe: restore into the portrait's single home — charSheet when the NPC has one
+        // (don't resurrect the npc.portrait duplicate), npc.portrait for sheet-less NPCs.
         if (data.npcPortraits && worldState.npcs) {
           worldState.npcs.forEach(function(n) {
-            if (!n.portrait && data.npcPortraits[n.name]) {
-              n.portrait = data.npcPortraits[n.name];
-              if (n.charSheet) n.charSheet.portrait = n.portrait;
-            }
+            if (!data.npcPortraits[n.name]) return;
+            if (n.charSheet) { if (!n.charSheet.portrait) n.charSheet.portrait = data.npcPortraits[n.name]; }
+            else if (!n.portrait) n.portrait = data.npcPortraits[n.name];
           });
         }
         saveAll();
@@ -416,7 +417,10 @@ var storageAdapter = (function() {
           if ((spc || data.portrait) && worldState.character) worldState.character.portrait = spc || data.portrait;
           if (data.npcPortraits && worldState.npcs) {
             worldState.npcs.forEach(function(n) {
-              if (data.npcPortraits[n.name]) { n.portrait = data.npcPortraits[n.name]; if (n.charSheet) n.charSheet.portrait = n.portrait; }
+              if (!data.npcPortraits[n.name]) return;
+              // #3 dedupe: single home — server is newer here (PV-gated), so overwrite is intended.
+              if (n.charSheet) { n.charSheet.portrait = data.npcPortraits[n.name]; n.portrait = null; }
+              else n.portrait = data.npcPortraits[n.name];
             });
           }
           worldState.portraitVer = serverPV;

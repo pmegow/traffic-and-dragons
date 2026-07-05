@@ -3,6 +3,11 @@ function smod(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;}
 // Canonical pronouns from a character's gender (M/F/NB). Used to seed companion/NPC pronouns so the
 // GM never has to guess and gender-swap them (defaults to he/him for M or anything unspecified).
 function pronounsForGender(g){return g==="F"?"she/her":g==="NB"?"they/them":"he/him";}
+// Known issue #3 dedupe: an NPC's portrait has ONE canonical home — charSheet.portrait when a
+// sheet exists (rides inline in the sync blob, atomic with state), npc.portrait otherwise
+// (sheet-less NPCs; travels via the separate /portrait store). ALL display reads go through
+// this helper; the npc.portrait fallback also covers pre-dedupe saves before migration runs.
+function npcPortrait(n){if(!n)return null;return (n.charSheet&&n.charSheet.portrait)||n.portrait||null;}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 function r4d6(){var d=[droll(6),droll(6),droll(6),droll(6)];d.sort(function(a,b){return a-b;});return d[1]+d[2]+d[3];}
 function getFin(){
