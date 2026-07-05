@@ -98,7 +98,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.13";
+var BP_DESIGNER_VERSION="v0.14";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -562,17 +562,26 @@ async function applyFinding(idx){
   f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
   try{
     var payload=stripView(bp);delete payload.review;
+    // Completeness contract with the ACTUAL counts — the abstract instruction alone failed live
+    // (model returned 1 act of 3, wiping the rest). Numbers make "complete" checkable by the model.
+    var _arcsTot=0,_ci2;for(_ci2=0;_ci2<bp.acts.length;_ci2++)_arcsTot+=(bp.acts[_ci2].arcs||[]).length;
+    var counts="acts: "+bp.acts.length+" (carrying "+_arcsTot+" arcs total), npcs: "+bp.npcs.length+", creatures: "+bp.creatures.length+", locations: "+bp.locations.length+", rules: "+bp.rules.length;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
       +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+f.fix
-      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content that a fix asks for goes INTO the existing fields (NPC secrets/hooks into that NPC's notes).";
+      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.\nCOMPLETENESS CHECK — if you return a section, it must contain EVERY item, edited and unedited alike. Current sizes: "+counts+". Returning a section with fewer items than these counts is an ERROR and will be rejected (e.g. editing one act still requires returning all "+bp.acts.length+" acts with all their arcs).\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content that a fix asks for goes INTO the existing fields (NPC secrets/hooks into that NPC's notes).";
     var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
     var snapshot=JSON.parse(JSON.stringify(bp));
     var changed=[],k;
     for(k in patch){if(BP_SECTIONS.indexOf(k)>=0){
-      // Shrink guard: a surgical fix must never EMPTY a section that had content — an empty
-      // acts[] is technically valid (premise-only blueprints exist) but as a "fix" it's a wipe.
-      if(Object.prototype.toString.call(bp[k])==="[object Array]"&&bp[k].length&&(!patch[k]||!patch[k].length)){bp=snapshot;throw new Error("fix tried to empty '"+k+"' — rolled back");}
+      // SHRINK GUARD v2 (v0.14 — from a live data loss: 'apply all' deleted Acts 2+3). Patches
+      // are WHOLE-SECTION replacements, and models economize: asked to edit one act, they return
+      // only that act, and the merge nukes the rest. The v0.10 guard only caught EMPTY sections —
+      // 3→1 sailed through. Now ANY array shrink is rejected, top-level and per-act arcs alike.
+      // Deliberate deletions are manual-only (deleting a rule by hand is one click; silently
+      // losing two acts is a catastrophe — the asymmetry decides).
+      if(Object.prototype.toString.call(bp[k])==="[object Array]"&&Object.prototype.toString.call(patch[k])==="[object Array]"&&patch[k].length<bp[k].length){bp=snapshot;throw new Error("fix shrank '"+k+"' from "+bp[k].length+" to "+patch[k].length+" — rejected (fixes must return COMPLETE sections; make deletions manually)");}
+      if(k==="acts"){var _ai;for(_ai=0;_ai<Math.min(bp.acts.length,patch.acts.length);_ai++){var _oa=(bp.acts[_ai].arcs||[]).length,_na=(patch.acts[_ai].arcs||[]).length;if(_na<_oa){bp=snapshot;throw new Error("fix shrank Act "+(_ai+1)+"'s arcs from "+_oa+" to "+_na+" — rejected (return ALL arcs; make deletions manually)");}}}
       bp[k]=patch[k];changed.push(k);
     }}
     if(!changed.length)throw new Error("model returned no recognisable sections");
