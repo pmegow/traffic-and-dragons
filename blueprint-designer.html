@@ -95,7 +95,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.8";
+var BP_DESIGNER_VERSION="v0.9";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -518,8 +518,10 @@ document.getElementById("btn-review").addEventListener("click",async function(){
       +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
       +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
       +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
-      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, max 12:\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fix\":\"concrete, applyable instruction\"}]}";
-    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape.",1600,null,{noHistory:true,kind:"other"});
+      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and fix each ONE tight sentence (the fix must be concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fix\":\"concrete, applyable instruction\"}]}";
+    // 3000-token budget: the first live run truncated mid-array at 1600 (JSON parse error at
+    // ~5300 chars ≈ exactly the old cap). Brevity is enforced in the prompt instead.
+    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",3000,null,{noHistory:true,kind:"other"});
     var rev=JSON.parse(repairModelJson(resp));
     if(!rev||!rev.findings)throw new Error("model returned no findings object");
     bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fix:String(f.fix||""),status:""};})};
