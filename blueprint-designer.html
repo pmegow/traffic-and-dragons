@@ -88,6 +88,10 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 <script src="api.js"></script>
 <script src="game.js"></script>
 <script>
+// Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
+// is its own tool). Bump on every designer change; the engine version rides as a suffix in the
+// header because blueprint schema compatibility tracks the ENGINE, not this page.
+var BP_DESIGNER_VERSION="v0.4";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -110,7 +114,10 @@ function blankAct(){return {title:"",goal:"",turningPoint:"",reward:"",parallel:
 function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
-function markDirty(){if(!dirty){dirty=true;setStatus("Unsaved changes","");}}
+// Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
+// 2026-07-05: it used to replace the name with just "Unsaved changes"). Runs on every edit,
+// so a rename updates the shown name live.
+function markDirty(){dirty=true;setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");}
 
 // ── Rendering ──────────────────────────────────────────────────────────────────
 function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
@@ -553,7 +560,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
-document.getElementById("ver").textContent=typeof APP_VERSION!=="undefined"?APP_VERSION:"";
+document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
 bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
 </script>
 </body>
