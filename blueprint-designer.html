@@ -188,7 +188,7 @@ function render(){
     if(!n._c){
       h+="<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
       +fld("Pronouns",txt("npc",i,0,"pronouns",n.pronouns,"they/them"))+"</div>"
-      +fld("Notes (what the GM knows about them)",ta("npc",i,0,"notes",n.notes,""));
+      +fldB("Notes (what the GM knows about them)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,""));
     }
     h+="</div>";
   }
@@ -221,7 +221,7 @@ function render(){
     h+="<div class='card'>"+cardHead("loc",i,0,esc(L.name||("Location "+(i+1))),null,movBtns("loc",i,0));
     if(!L._c){
       h+=fld("Name *",txt("loc",i,0,"name",L.name,""))
-      +fld("Canonical description",ta("loc",i,0,"description",L.description,"injected as the location's permanent description"));
+      +fldB("Canonical description","loc",i,0,"description","Location: "+(L.name||"description"),ta("loc",i,0,"description",L.description,"injected as the location's permanent description"));
     }
     h+="</div>";
   }
@@ -233,7 +233,9 @@ function render(){
   if(secOpen.rules!==false){
   if(!bp.rules.length)h+="<div class='empty'>None — the default rules still apply.</div>";
   for(i=0;i<bp.rules.length;i++){
-    h+="<div class='rowline'><div class='grow'>"+ta("rule",i,0,"",bp.rules[i],"a hard rule the GM must follow in this campaign")+"</div>"+movBtns("rule",i,0)+"</div>";
+    h+="<div class='rowline'><div class='grow'>"+ta("rule",i,0,"",bp.rules[i],"a hard rule the GM must follow in this campaign")+"</div>"
+      +"<button class='mini' data-op='breakout' data-i='"+i+"' data-j='0' data-bsec='rule' data-bk='' data-blabel='Rule "+(i+1)+"' title='Open large editor'>&#10530;</button>"
+      +movBtns("rule",i,0)+"</div>";
   }
   h+="<button class='addbtn' data-op='addrule' data-i='0' data-j='0'>+ Add rule</button>";
   }
@@ -248,17 +250,35 @@ function updateCounts(){
 }
 
 // ── Field binding (delegated) ──────────────────────────────────────────────────
+// ONE routing table for field access. onField (writes), bpFieldGet (breakout reads), and
+// bpFieldSet all go through it — adding a new section means adding ONE line here, and the
+// breakout works for it automatically. (Born from the bestiary-notes bug, 2026-07-05: the
+// breakout had its own private sec routing that knew meta/act/arc only, so opening a
+// creature's notes read "" and Done synced the emptiness back — duplicated routing, split
+// brains. Rules are an array of strings, not objects, so they stay a special case in get/set.)
+var FIELD_ROOTS={
+  meta:function(i,j){return bp;},
+  act:function(i,j){return bp.acts[i];},
+  arc:function(i,j){return bp.acts[i]&&bp.acts[i].arcs[j];},
+  npc:function(i,j){return bp.npcs[i];},
+  creature:function(i,j){return bp.creatures[i];},
+  loc:function(i,j){return bp.locations[i];}
+};
+function bpFieldGet(sec,i,j,k){
+  if(sec==="rule")return i<bp.rules.length?(bp.rules[i]||""):"";
+  var f=FIELD_ROOTS[sec],o=f&&f(i,j);
+  return o?(o[k]||""):"";
+}
+function bpFieldSet(sec,i,j,k,v){
+  if(sec==="rule"){if(i<bp.rules.length)bp.rules[i]=v;return;}
+  var f=FIELD_ROOTS[sec],o=f&&f(i,j);
+  if(o)o[k]=v;
+}
 function onField(e){
   var t=e.target,sec=t.getAttribute("data-sec");if(!sec)return;
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0,k=t.getAttribute("data-k");
   var v=t.type==="checkbox"?t.checked:t.value;
-  if(sec==="meta")bp[k]=v;
-  else if(sec==="act"&&bp.acts[i])bp.acts[i][k]=v;
-  else if(sec==="arc"&&bp.acts[i]&&bp.acts[i].arcs[j])bp.acts[i].arcs[j][k]=v;
-  else if(sec==="npc"&&bp.npcs[i])bp.npcs[i][k]=v;
-  else if(sec==="creature"&&bp.creatures[i])bp.creatures[i][k]=v;
-  else if(sec==="loc"&&bp.locations[i])bp.locations[i][k]=v;
-  else if(sec==="rule"&&i<bp.rules.length)bp.rules[i]=v;
+  bpFieldSet(sec,i,j,k,v);
   markDirty();
   if(sec==="rule"||k==="name"&&sec!=="meta")return; // card labels refresh on next structural render
   updateCounts();
@@ -309,12 +329,8 @@ document.addEventListener("click",function(e){
 });
 
 // ── Breakout editor — large modal for long-form fields ─────────────────────────
-function bpFieldGet(sec,i,j,k){
-  if(sec==="meta")return bp[k]||"";
-  if(sec==="act")return bp.acts[i]?bp.acts[i][k]||"":"";
-  if(sec==="arc")return bp.acts[i]&&bp.acts[i].arcs[j]?bp.acts[i].arcs[j][k]||"":"";
-  return "";
-}
+// Reads/writes through the shared FIELD_ROOTS routing (see Field binding above) — the modal
+// has NO routing of its own, so every section that renders fields gets a working breakout.
 function closeBreakout(){var m=document.getElementById("bo-modal");if(m)m.remove();}
 function openBreakout(btn){
   closeBreakout();
