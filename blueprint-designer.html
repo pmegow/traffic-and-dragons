@@ -107,7 +107,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.28";
+var BP_DESIGNER_VERSION="v0.29";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -401,10 +401,10 @@ document.addEventListener("click",function(e){
   // _sel = the chosen OPTION INDEX (radio: re-click deselects, picking a sibling replaces).
   // NB: index 0 is falsy — every _sel check must be typeof === "number", never truthiness.
   if(op==="revsel"){var sf=bp.review&&bp.review.findings[i];if(sf&&!sf.status&&!_applyingAll){if(sf._sel===j)delete sf._sel;else sf._sel=j;render();}return;}
-  if(op==="revdel"){bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
+  if(op==="revdel"){if(_applyingAll)return;/* splicing mid-batch shifts indices and corrupts the running applyFinding(idx) — audit 07-06 #2 */bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
   if(op==="revapplyall"){applyAllFindings();return;}
   if(op==="revask"){var af=bp.review&&bp.review.findings[i];if(af)openAsk(af);return;}
-  if(op==="revdelall"){if(!confirm("Delete the entire review ("+bp.review.findings.length+" finding"+(bp.review.findings.length===1?"":"s")+")? This removes the CBB notes from the blueprint."))return;delete bp.review;markDirty();render();setStatus("Review deleted.","");return;}
+  if(op==="revdelall"){if(_applyingAll)return;if(!confirm("Delete the entire review ("+bp.review.findings.length+" finding"+(bp.review.findings.length===1?"":"s")+")? This removes the CBB notes from the blueprint."))return;delete bp.review;markDirty();render();setStatus("Review deleted.","");return;}
   // Collapse toggles — pure view state, no markDirty.
   if(op==="togsec"){var sk2=t.getAttribute("data-key");secOpen[sk2]=(secOpen[sk2]===false);render();return;}
   if(op==="togdone"){secOpen.reviewDone=!secOpen.reviewDone;render();return;}
@@ -614,7 +614,7 @@ async function reviewChunk(payloadJson,chunk){
 function dedupeFindings(list){
   var seen={},out=[],i,k;
   for(i=0;i<list.length;i++){
-    k=list[i].issue.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,140);
+    k=list[i].issue.toLowerCase().replace(/[^a-z0-9]+/g,""); // FULL text — the old .slice(0,140) collapsed distinct findings that shared a long preamble (audit 07-06 #6); only exact-normalized dups fold now
     if(!k||seen[k])continue;seen[k]=1;out.push(list[i]);
   }
   return out;
@@ -726,7 +726,7 @@ function applyPatches(bp,patches){
       }else{
         if(!p.item||typeof p.item!=="object")throw new Error("act patch missing an item object");
         if(tx<0)throw new Error("act patch references unknown act \""+atNm+"\"");
-        if(!p.item.arcs||!p.item.arcs.length)p.item.arcs=bp.acts[tx].arcs; // arcs are patched separately — never drop them
+        p.item.arcs=bp.acts[tx].arcs; // arcs are ONLY edited via the separate 'arcs' section — an act patch ALWAYS keeps the existing arcs (a partial arcs array echoed by the model would else silently drop the rest — audit 07-06 #1)
         bp.acts[tx]=p.item;labels.push("act: "+atNm);
       }
     }else if(sec==="rules"){
@@ -797,17 +797,24 @@ async function applyFinding(idx){
 // blueprint the previous fix produced, so they compound instead of clobbering. Failures roll
 // back (per applyFinding's guards), STAY SELECTED for a retry, and the batch continues.
 // Successful applies clear their selection (status:"applied" takes over as the record).
-// Group key for parallel apply (v0.24): findings that touch the SAME block must run serially (so
-// the 2nd sees the 1st's committed edit — no stale overwrite); different blocks run in parallel.
-// The true target isn't known until the LLM responds, so we derive the key from the finding's
-// section label — the named item if it names one. Cross-cutting/consistency findings can touch
-// ANY block, so they share one key and run LAST, on the settled blueprint.
+// Group key = the blueprint SECTION a finding targets (v0.29). Findings that touch the same block
+// must run serially (so the 2nd sees the 1st's committed edit); different blocks run in parallel.
+// Grouping by section-TYPE instead of a heuristic item-label makes same-item findings ALWAYS share a
+// group — which the old label key couldn't guarantee: two findings on one NPC with divergent labels
+// ("NPCs (Tsuto)" vs "Tsuto Kaijitsu") split into parallel groups and stale-overwrote each other
+// (audit 07-06 #3), and the paren/colon regex over-serialized unrelated act findings (#4). Coarser
+// (parallelism is now cross-section, not per-item) but collision-free; the review's findings already
+// spread across ~6 sections, so it stays about section-way parallel. Consistency touches ANY block,
+// so it shares one key and runs LAST on the settled blueprint.
 function findingTargetKey(f){
   var s=String(f.section||"").toLowerCase();
-  if(/cross-?cut|consisten|cross-?section|name-?drop|contradict/.test(s))return "~consistency~";
-  var m=s.match(/[\(‘’'"]([^\)‘’'"]+)[\)‘’'"]/)||s.match(/:\s*(.+)$/);
-  var id=(m?m[1]:s).replace(/[^a-z0-9]+/g," ").trim();
-  return id||"~misc~";
+  if(/cross-?cut|consisten|cross-?section|name-?drop|contradict/.test(s))return "consistency";
+  if(/\bnpc/.test(s))return "npcs";
+  if(/creature|bestiary|monster/.test(s))return "creatures";
+  if(/location|\bsite\b|\bplace\b/.test(s))return "locations";
+  if(/\brule/.test(s))return "rules";
+  if(/\bact\b|\barc\b|story|turning|climax/.test(s))return "story"; // acts + their nested arcs share one array — serialize together
+  return "misc"; // premise/tone/other top-level strings — safe serial catch-all
 }
 // Parallel apply. applyFinding is atomic (its only await is callGM; the snapshot is taken right
 // before the SYNCHRONOUS merge, so a rollback undoes only that finding's patches and two merges can
@@ -818,7 +825,7 @@ async function applyAllFindings(){
   _applyingAll=true;_batchDeleted={};render(); // fresh deleted-set for the run; accumulates across findings (resurrection guard)
   var sel=[],i;
   for(i=0;i<bp.review.findings.length;i++){var bf=bp.review.findings[i];if(bf&&!bf.status&&typeof bf._sel==="number")sel.push(i);}
-  var groups={},order=[],CONS="~consistency~";
+  var groups={},order=[],CONS="consistency";
   for(i=0;i<sel.length;i++){var key=findingTargetKey(bp.review.findings[sel[i]]);if(!groups[key]){groups[key]=[];order.push(key);}groups[key].push(sel[i]);}
   var total=sel.length,doneCt=0,results=[];
   function tick(){setStatus("Applying "+total+" selected fix"+(total===1?"":"es")+" — "+doneCt+"/"+total+" done…","");}
@@ -831,7 +838,7 @@ async function applyAllFindings(){
       var bf=bp.review.findings[idx];
       if(bf&&bf.status==="applied"){delete bf._sel;results.push({idx:idx,ok:true});}
       else results.push({idx:idx,ok:false,err:err||"unknown error"});
-      doneCt++;tick();render();
+      doneCt++;tick(); // applyFinding already rendered on its success/failure path — no redundant full rebuild here (audit 07-06 #7)
     }
   }
   try{

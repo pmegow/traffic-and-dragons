@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260706a";
+var CACHE = "tnd-v3-20260706b";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -58,7 +58,18 @@ self.addEventListener("fetch", function(e){
   // (it did, all through the v0.2x designer work — every update needed a manual cache clear).
   // Serve it network-first: always fetch fresh when online, fall back to any cached copy offline.
   if(e.request.url.indexOf("blueprint-designer") !== -1){
-    e.respondWith(fetch(e.request).catch(function(){ return caches.match(e.request); }));
+    e.respondWith(
+      fetch(e.request).then(function(response){
+        // OK response: cache a clone (restores offline support) and serve it fresh.
+        if(response && response.ok && response.type === "basic"){
+          var clone = response.clone();
+          caches.open(CACHE).then(function(cache){ cache.put(e.request, clone); });
+          return response;
+        }
+        // Non-OK (502/404/…): prefer a good cached copy over showing the error; else return the error.
+        return caches.match(e.request).then(function(cached){ return cached || response; });
+      }).catch(function(){ return caches.match(e.request); }) // offline / network reject → cache
+    );
     return;
   }
   e.respondWith(
