@@ -134,6 +134,36 @@ function runEngineTests(R){
     makeWorld();applyMuts("[LOCATION: Ashfen]");
     return worldState.world.location==="Ashfen"?true:"not trimmed: "+JSON.stringify(worldState.world.location);
   });
+  // ── format-drift tolerance (audit E17/E29/E30/E10) ──
+  t("COMBAT_START tolerates a multi-word morale (E17)",function(){
+    makeWorld();applyMuts("[COMBAT_START:Dire Wolf|18|13|+4|2d6|fights to the death]");
+    return worldState.combat&&worldState.combat.name==="Dire Wolf"&&worldState.combat.morale.indexOf("death")>=0?true:"combat not started: "+JSON.stringify(worldState.combat);
+  });
+  t("COMBAT_END tolerates a multi-word outcome; ENEMY_HP tolerates trailing text (E17)",function(){
+    makeWorld();applyMuts("[COMBAT_START:Wolf|20|12|+2|d6|low]");
+    applyMuts("[ENEMY_HP:-8 slashing]");
+    if(!worldState.combat||worldState.combat.hp!==12)return "ENEMY_HP not applied: "+(worldState.combat&&worldState.combat.hp);
+    applyMuts("[COMBAT_END:the enemy flees]");
+    return eq(worldState.combat,null);
+  });
+  t("CONDITION_REMOVED matches case-insensitively (E29)",function(){
+    makeWorld();applyMuts("[CONDITION:Poisoned|1 hour]");applyMuts("[CONDITION_REMOVED:poisoned]");
+    return eq(worldState.character.conditions.length,0);
+  });
+  t("SKILL_SUCCESS resolves a lowercased skill id (E29)",function(){
+    makeWorld();applyMuts("[SKILL_SUCCESS:stealth]");
+    return eq(worldState.character.skills["Stealth"],1);
+  });
+  t("QUEST status 'accepted' normalizes to active (E30)",function(){
+    makeWorld();applyMuts("[QUEST:Deliver the seal|offered|carry it north]");applyMuts("[QUEST:Deliver the seal|accepted]");
+    var q=worldState.questLog[0];
+    return q&&q.status==="active"?true:"status: "+(q&&q.status);
+  });
+  t("diceTxt renders every DICE tag, not just the first (E41)",function(){
+    var h=diceTxt("[DICE:Strength check|14|success] and later [DICE:Dexterity check|8|failed]");
+    var n=(h.match(/dice-block/g)||[]).length;
+    return n===2?true:"rendered "+n+" dice block(s), want 2";
+  });
 
   // ── 6. migrateWorldState (save-import battery) ───────────────────────────────
   section("migrateWorldState");
