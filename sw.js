@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260705f";
+var CACHE = "tnd-v3-20260706a";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -53,6 +53,14 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
+  // The Blueprint Designer is a dev utility, NOT part of the cached app shell — and its commits
+  // don't bump CACHE, so the cache-first path below would pin a stale copy of it indefinitely
+  // (it did, all through the v0.2x designer work — every update needed a manual cache clear).
+  // Serve it network-first: always fetch fresh when online, fall back to any cached copy offline.
+  if(e.request.url.indexOf("blueprint-designer") !== -1){
+    e.respondWith(fetch(e.request).catch(function(){ return caches.match(e.request); }));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function(cached){
       if(cached) return cached;
