@@ -522,6 +522,12 @@ See [TODO.md](TODO.md) for the full task list, known issues, and architecture de
 - **Export save** before testing risky changes.
 - **Automated playtest harness** (`dev/playtest-harness.js`, not loaded by `index.html`) — drives N real GM turns against a throwaway character via `preview_eval`, for (1) smoke-testing invariants (combat panel clears, summarization fires on schedule, no console errors) and (2) collecting a narration corpus to judge prose-voice/content-DNA drift over a long run against a chosen author. Usage instructions are in the file header.
 
+**Diagnosis & verification discipline** (learned the hard way — the v0.27→v0.28 textarea saga, three passes to find one CSS root cause):
+- **Verify the FAILURE condition, not a benign case.** A check that can't fail proves nothing. For "3 lines, no partial" the test input is a field that *overflows*; for a parser, the malformed input; for a cap, the over-limit case. Pick the input that would break it — long/empty/boundary/the exact thing reported — and exercise that.
+- **For visual/layout work, the screenshot is ground truth; measurements (`getComputedStyle`, `clientHeight`) are a proxy.** When the number and the render disagree, believe the render and go find *why the number lied* (v0.28: the box the spec measures ≠ the box the scroll paints). Don't let a passing metric override the eye.
+- **"Measures fixed but reported still broken" → reproduce before you explain.** Treat that gap as the clue, not noise. Never let "cache/environment" be the first explanation for a divergence you haven't reproduced under the user's exact conditions (it was a real recurring gremlin here, which is exactly what made the wrong answer feel right). A user's "confirm it visually" is usually correct — honor it.
+- This is the same lesson as **test-first on engine changes**: writing the failing assertion first forces you to define and exercise the break before shipping. Caveat: headless `dev/run-tests.js` can't see CSS layout, so for **visual** bugs the "test-first" equivalent is a scripted `preview_eval` that sets up the edge/overflow case AND screenshots it — not just reads a computed style.
+
 **Version number:**
 - Current: see `APP_VERSION` in `globals.js` — the hardcoded value here kept rotting (it said v1.114 at v1.143).
 - Constant `APP_VERSION` in `globals.js` — consumed by `updateMemStatus()` (session bar) and injected into all three File ▾ menu version labels via `_menus` loop in `wireButtons()`.
