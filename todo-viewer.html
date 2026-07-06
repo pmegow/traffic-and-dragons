@@ -255,10 +255,21 @@ function refresh() {
 
 // ── Parse TODO.md ─────────────────────────────────────────────────────────────
 
+// Split a markdown table row into cells. A `|` splits ONLY when it is (a) not escaped as \| and
+// (b) not inside a backtick code span — audit rows carry tag examples like `[COMPANION_HP:Hemlock|-8]`
+// whose raw pipes would otherwise explode the row into extra columns (the E16 bleed, 07-06).
+// Character walk instead of regex: ES5-safe (no lookbehind) and code-span state needs tracking anyway.
 function splitCells(line) {
-  return line.split(/(?<!\\)\|/).map(function(c) {
-    return c.replace(/\\\|/g, "|").trim();
-  });
+  var cells = [], cur = "", inCode = false, i, ch;
+  for (i = 0; i < line.length; i++) {
+    ch = line.charAt(i);
+    if (ch === "\\" && line.charAt(i + 1) === "|") { cur += "|"; i++; continue; }
+    if (ch === "`") { inCode = !inCode; cur += ch; continue; }
+    if (ch === "|" && !inCode) { cells.push(cur.trim()); cur = ""; continue; }
+    cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
 }
 function escCell(s) { return String(s).replace(/\|/g, "\\|"); }
 
@@ -442,16 +453,24 @@ function isLow(t) {
 // sentence, else a clamped prefix. Keeps markdown (bold/code) so inline() renders it like the full text.
 function taskHeadline(md) {
   var s = String(md || "").replace(/\s+/g, " ").trim();
-  var seps = [" — ", " – "], best = -1, si, idx;
+  var seps = [" — ", " – "], best = -1, si, idx, h = null;
   for (si = 0; si < seps.length; si++) {
     idx = s.indexOf(seps[si]);
     if (idx > 0 && idx <= 140 && (best < 0 || idx < best)) best = idx;
   }
-  if (best > 0) return s.slice(0, best).trim();
-  var m = s.match(/^(.{0,140}?[.!?])(\s|$)/);
-  if (m) return m[1].trim();
-  if (s.length > 100) return s.slice(0, 100).trim() + "…";
-  return s;
+  if (best > 0) h = s.slice(0, best).trim();
+  else {
+    var m = s.match(/^(.{0,140}?[.!?])(\s|$)/);
+    if (m) h = m[1].trim();
+    else if (s.length > 100) h = s.slice(0, 100).trim() + "…";
+    else h = s;
+  }
+  // The cut can land INSIDE a bold/code span (audit titles put the em-dash mid-bold), leaving a
+  // dangling ** or ` that inline() then renders literally (the E16 "**" artifact, 07-06). Close
+  // any odd-count delimiter — code first so a doubly-dangling `**`code ends properly nested.
+  if (((h.match(/`/g) || []).length) % 2) h += "`";
+  if (((h.match(/\*\*/g) || []).length) % 2) h += "**";
+  return h;
 }
 function toggleTaskExpand(i) {
   _tasks[i]._expanded = !_tasks[i]._expanded;
@@ -808,7 +827,7 @@ function parseMarkdown(md) {
     if (/^# /.test(trimmed))   { closeList(); closeTable(); out += "<h1>" + inline(trimmed.slice(2)) + "</h1>"; continue; }
     if (/^---+$/.test(trimmed)) { closeList(); closeTable(); out += "<hr>"; continue; }
     if (/^\|/.test(trimmed)) {
-      var cells = trimmed.split("|").slice(1,-1).map(function(c) { return c.trim(); });
+      var cells = splitCells(trimmed).slice(1,-1); // shared code-span-aware splitter — a raw split("|") broke on pipes inside backticks
       if (cells.every(function(c) { return /^[-: ]+$/.test(c); })) { continue; }
       if (!inTable) { inTable=true; out += "<table><thead><tr>" + cells.map(function(c) { return "<th>" + inline(c) + "</th>"; }).join("") + "</tr></thead><tbody>"; continue; }
       out += "<tr>" + cells.map(function(c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>";
@@ -827,7 +846,7 @@ function parseMarkdown(md) {
 function inline(s) {
   s = s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   s = s.replace(/`([^`]+)`/g,"<code>$1</code>");
-  s = s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  s = s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>"); // non-greedy, not [^*]+ — bold spans containing a bare * (e.g. "COMPANION_* tag") failed to close and rendered literal ** (E15/E16, 07-06)
   s = s.replace(/\*([^*]+)\*/g,"<em>$1</em>");
   s = s.replace(/✅/g,"<span style='color:var(--grn)'>✅</span>");
   return s;
