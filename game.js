@@ -9,6 +9,11 @@ function startGame(char,toneName,toneVoice,authorId){
   if(char.portrait===undefined)char.portrait=null;
   if(!char.backstory)char.backstory="";
   if(!char.storyBeats)char.storyBeats=[];
+  // Mint a campaign id if none is active (audit E13): the normal wizard path never called
+  // setActiveCampId, so a first-ever campaign had campId null for its whole first session —
+  // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
+  // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
+  if(!getActiveCampId())setActiveCampId(newCampaignId());
   worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[]};
   delete worldState.character._startLoc;delete worldState.character._campName;
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}

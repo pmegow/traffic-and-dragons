@@ -129,12 +129,26 @@ function snapshotActiveCamp(){
 }
 function switchToCampaign(id){
   snapshotActiveCamp();
+  // Capture the live keys + active id so a failed load can roll back (audit E35). Without this,
+  // when loadState() fails on a corrupt target slot, the active id and live keys are already
+  // repointed while the worldState/memory globals still hold the OLD campaign — the next saveAll
+  // then writes campaign A's state under campaign B's id, locally AND on the server.
+  var prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY),prevId=getActiveCampId();
   var ws=store.get("tnd_camp_"+id+"_ws"),sl=store.get("tnd_camp_"+id+"_sl"),mem=store.get("tnd_camp_"+id+"_mem");
   if(ws)store.set(WSK,ws);else store.del(WSK);
   if(sl)store.set(SLK,sl);else store.del(SLK);
   if(mem)store.set(MEM_KEY,mem);else store.del(MEM_KEY);
   setActiveCampId(id);
-  return loadState();
+  var ok=loadState();
+  if(!ok){
+    if(prevWs)store.set(WSK,prevWs);else store.del(WSK);
+    if(prevSl)store.set(SLK,prevSl);else store.del(SLK);
+    if(prevMem)store.set(MEM_KEY,prevMem);else store.del(MEM_KEY);
+    setActiveCampId(prevId);
+    loadState(); // restore the previous campaign into the globals
+    if(typeof showToast==="function")showToast("Couldn't load that campaign — its save looks corrupted.");
+  }
+  return ok;
 }
 function deleteCampaign(id){
   store.del("tnd_camp_"+id+"_ws");store.del("tnd_camp_"+id+"_sl");store.del("tnd_camp_"+id+"_mem");

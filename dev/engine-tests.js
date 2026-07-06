@@ -233,6 +233,18 @@ function runEngineTests(R){
     return (savedSL.length===1&&savedSL[0].content==="INCOMING")?true:"saveCore persisted "+JSON.stringify(savedSL)+" — the stale log clobbered SLK";
   });
 
+  t("switchToCampaign rolls back to the current campaign when the target slot is corrupt (E35)",function(){
+    makeWorld(); // current campaign "A" (character Tess)
+    setActiveCampId("A");worldState.campId="A";
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+    store.set("tnd_camp_B_ws","{not valid json");store.set("tnd_camp_B_sl","[]");store.set("tnd_camp_B_mem","{}"); // corrupt target
+    var ok=switchToCampaign("B");
+    var rolledBack=(ok===false)&&getActiveCampId()==="A"&&worldState&&worldState.character&&worldState.character.name==="Tess";
+    store.del("tnd_camp_B_ws");store.del("tnd_camp_B_sl");store.del("tnd_camp_B_mem");
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);setActiveCampId(null);
+    return rolledBack?true:"ok="+ok+" active="+getActiveCampId()+" char="+(worldState&&worldState.character?worldState.character.name:"none");
+  });
+
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
   section("usage telemetry");
   t("anthropic parseUsage maps all four token fields",function(){
