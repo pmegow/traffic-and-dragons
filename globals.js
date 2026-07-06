@@ -116,7 +116,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.183";
+var APP_VERSION="v1.184";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -145,6 +145,10 @@ var activeChatTab="narrative";
 var cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,step:1};
 var rvGold=20;var rvGoldRolled=false;
 var pendingChar=null,pendingTone="",pendingVoice="",pendingAuthor="",pendingLoc="",pendingBumps=0,currentBump=0;
+// Perk-flow (creation level>=3) undo state (audit E2): a snapshot of the character taken when the
+// archetype/bump flow is entered, so Back navigation can revert cleanly instead of double-applying.
+var pendingPerkBase=null; // {stats:{...}, abilLen:N} captured before the first archetype pick
+var _cbApplied=[];        // picks confirmed per creation stat-bump, so Back can revert the last one
 var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingImportChar=null;

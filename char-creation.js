@@ -292,8 +292,17 @@ function confirmChar(){
   if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
+  // Level-band class features for a high-level start (audit E38). Previously these were added
+  // ONLY in pickCreationArch (the level>=3 archetype path), so a level-2 start never received its
+  // level-2 feature (Action Surge, Cunning Action, …) — and checkLevelUp only backfills features
+  // for levels crossed AFTER creation, so the slot stayed permanently empty. Grant them here for
+  // every startLvl>1 (level 1 has no features); pickCreationArch no longer adds them, so no double.
+  if(startLvl>1){var _cf=CLASS_FEATURES[cs.cls]||{},_cfi;for(_cfi=2;_cfi<=startLvl;_cfi++){if(_cf[_cfi])char.abilities.push({nm:"Lv"+_cfi,ds:_cf[_cfi],gained:0});}}
   char._campName=campNameVal;
-  if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationArchetype();}
+  if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;
+    // Snapshot for perk-flow Back (E2): stats + abilities length before any archetype/bump is applied.
+    pendingPerkBase={stats:Object.assign({},char.stats),abilLen:char.abilities.length};_cbApplied=[];
+    showCreationArchetype();}
   else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
 function showCreationArchetype(){
@@ -320,12 +329,22 @@ function confirmCreationArch(){
   if(window._selectedArchIdx<0){var w=document.getElementById("arch-warn");if(w)w.textContent="Choose an archetype first.";return;}
   pickCreationArch(window._selectedArchIdx);
 }
+// Restore the character to its pre-perk-flow snapshot (audit E2) — used by every Back path so
+// re-picking an archetype or re-confirming a bump can't stack duplicate abilities or double stats.
+function restorePerkBase(){
+  if(!pendingPerkBase||!pendingChar)return;
+  pendingChar.stats=Object.assign({},pendingPerkBase.stats);
+  pendingChar.abilities=pendingChar.abilities.slice(0,pendingPerkBase.abilLen);
+}
 function pickCreationArch(idx){
   var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;
+  // Idempotent (E2): reset to the snapshot first, so re-entering the archetype screen (via Back)
+  // and picking again — the same OR a different archetype — never leaves a stale archetype ability
+  // or previously-applied stat bumps behind. Features were granted once in confirmChar (E38).
+  restorePerkBase();_cbApplied=[];
   c.archetype=archs[idx].id;c.archetypeNm=archs[idx].nm;
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:archs[idx].nm,ds:archs[idx].desc,gained:0});
-  var features=CLASS_FEATURES[c.cls]||{},i;for(i=2;i<=c.level;i++){if(features[i])c.abilities.push({nm:"Lv"+i,ds:features[i],gained:0});}
-  var wrap=document.getElementById("creation-arch");if(wrap)wrap.remove();
+  var wrap=document.getElementById("creation-arch"),i;if(wrap)wrap.remove();
   var bumpsNeeded=0;for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)bumpsNeeded++;}
   if(bumpsNeeded>0){pendingBumps=bumpsNeeded;currentBump=1;showCreationStatBump();}
   else if(buildPendingSpellPool(c)){showCreationSpellPick();}
@@ -474,5 +493,14 @@ function injectSparkleButtons(){
     lbl.appendChild(btn);
   });
 }
-function cbBack(){var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();if(currentBump>1){currentBump--;showCreationStatBump();}else{showCreationArchetype();}}
-function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}}
+function cbBack(){
+  var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();
+  if(currentBump>1){
+    // Revert the previously-confirmed bump so re-confirming it applies cleanly (E2 — was a silent double).
+    var last=_cbApplied.pop(),c=pendingChar,pi;if(last&&c)for(pi=0;pi<last.length;pi++)c.stats[last[pi].s]-=last[pi].v;
+    currentBump--;showCreationStatBump();
+  }else{
+    restorePerkBase();_cbApplied=[];showCreationArchetype(); // back past bump 1 → clean archetype re-pick
+  }
+}
+function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;_cbApplied.push(picks.slice());/* record for Back-revert (E2) */var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}}
