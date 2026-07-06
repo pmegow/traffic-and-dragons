@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.22";
+var BP_DESIGNER_VERSION="v0.23";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -295,10 +295,12 @@ function render(){
         h+="<div class='card' style='border-left-color:"+sevCol+";"+(done?"opacity:.55;":"")+"'>"
           +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)
           +(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")
-          +(busy?" <span style='font-size:10px;color:var(--t2);text-transform:none;letter-spacing:0;'>applying…</span>":"")+"</span>"
+          +(busy?" <span style='font-size:10px;color:var(--t2);text-transform:none;letter-spacing:0;'>applying…</span>":"")
+          +((!done&&!busy&&F._err)?" <span style='color:var(--dng);font-size:9px;border:1px solid var(--dng);border-radius:3px;padding:0 4px;vertical-align:middle;'>FAILED</span>":"")+"</span>"
           +"<button class='mini sq' data-op='revask' data-i='"+i+"' data-j='0' title='Ask about this finding (canon or improv? why? alternatives?)'>&#128172;</button>"
           +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
           +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>";
+        if(!done&&!busy&&F._err)h+="<div style='font-size:12px;margin-top:6px;color:var(--dng);'>&#9888; Last apply failed: "+esc(F._err)+" <span style='color:var(--t2);'>— see the browser console for the full log.</span></div>";
         if(done||busy){
           var ch=typeof F.chosen==="number"?F.chosen:0;
           h+="<div style='font-size:13px;margin-top:4px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Fix:</span> "+esc(F.fixes[ch]||"")+"</div>";
@@ -627,46 +629,93 @@ document.getElementById("btn-review").addEventListener("click",async function(){
 // wholesale if the result doesn't validate. Applied findings stay (struck) as the CBB trail.
 var BP_SECTIONS=["name","author","tone","proseAuthor","premise","startingLocation","startingRegion","acts","npcs","creatures","locations","rules"];
 var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all button while the batch runs
+// ITEM-LEVEL patch merge (v0.23). The old apply asked the model to return WHOLE sections complete;
+// on a big blueprint (ToA: 11 NPCs / 11 arcs) that response blew past the 3000-token output ceiling
+// and truncated mid-JSON → every apply died on "Expected ',' or ']'". Now the model returns ONLY the
+// items it changed, matched into place by identity (name for npcs/locations/creatures, title for
+// acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
+// or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
+var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
+var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,premise:1,startingLocation:1,startingRegion:1}; // top-level strings
+function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
+function _findByTitle(arr,t){var i;t=String(t||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].title||"").toLowerCase()===t)return i;}return -1;}
+function applyPatches(bp,patches){
+  var labels=[],i,p,sec;
+  for(i=0;i<patches.length;i++){
+    p=patches[i];if(!p||!p.section)throw new Error("a patch is missing its section");
+    sec=String(p.section);
+    if(_PATCH_BYNAME[sec]){
+      if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
+      var nm=String(p.name||p.item.name||"");if(!nm)throw new Error(sec+" patch missing a name");
+      var ai=_findByName(bp[sec],nm);
+      if(ai>=0)bp[sec][ai]=p.item;else bp[sec].push(p.item);
+      labels.push(sec+": "+nm+(ai>=0?"":" (new)"));
+    }else if(sec==="arcs"){
+      if(!p.item||typeof p.item!=="object")throw new Error("arc patch missing an item object");
+      var actNm=String(p.act||""),arcNm=String(p.name||p.item.title||"");
+      if(!actNm||!arcNm)throw new Error("arc patch needs both an act title and an arc name");
+      var ax=_findByTitle(bp.acts,actNm);if(ax<0)throw new Error("arc patch references unknown act \""+actNm+"\"");
+      if(!bp.acts[ax].arcs)bp.acts[ax].arcs=[];
+      var rx=_findByTitle(bp.acts[ax].arcs,arcNm);
+      if(rx>=0)bp.acts[ax].arcs[rx]=p.item;else bp.acts[ax].arcs.push(p.item);
+      labels.push("arc: "+arcNm+(rx>=0?"":" (new)"));
+    }else if(sec==="acts"){
+      if(!p.item||typeof p.item!=="object")throw new Error("act patch missing an item object");
+      var atNm=String(p.name||p.item.title||"");if(!atNm)throw new Error("act patch missing a name");
+      var tx=_findByTitle(bp.acts,atNm);if(tx<0)throw new Error("act patch references unknown act \""+atNm+"\"");
+      // arcs are patched separately — never let an act patch drop them
+      if(!p.item.arcs||!p.item.arcs.length)p.item.arcs=bp.acts[tx].arcs;
+      bp.acts[tx]=p.item;labels.push("act: "+atNm);
+    }else if(sec==="rules"){
+      var rt=(typeof p.item==="string")?p.item:String((p.item&&p.item.text)||"");
+      if(!rt)throw new Error("rule patch missing text");
+      var match=String(p.name||p.match||""),rj,ri=-1;
+      if(match){for(rj=0;rj<bp.rules.length;rj++){if(String(bp.rules[rj]||"").toLowerCase().indexOf(match.toLowerCase())>=0){ri=rj;break;}}}
+      if(ri>=0){bp.rules[ri]=rt;labels.push("rule: edited");}else{bp.rules.push(rt);labels.push("rule: added");}
+    }else if(_PATCH_TOP[sec]){
+      bp[sec]=(typeof p.item==="string")?p.item:String(p.item||"");labels.push(sec);
+    }else throw new Error("patch targets unknown section \""+sec+"\"");
+  }
+  if(!labels.length)throw new Error("no patches applied");
+  return labels;
+}
 async function applyFinding(idx){
   if(!llmReady())return;
   var f=bp.review&&bp.review.findings[idx];if(!f||f.status)return;
   var chosenIdx=typeof f._sel==="number"?f._sel:0,fixText=f.fixes[chosenIdx]||"";
+  delete f._err; // fresh attempt — clear any prior failure stamp
   f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
+  var snapshot=null;
   try{
     var payload=stripView(bp);delete payload.review;
-    // Completeness contract with the ACTUAL counts — the abstract instruction alone failed live
-    // (model returned 1 act of 3, wiping the rest). Numbers make "complete" checkable by the model.
-    var _arcsTot=0,_ci2;for(_ci2=0;_ci2<bp.acts.length;_ci2++)_arcsTot+=(bp.acts[_ci2].arcs||[]).length;
-    var counts="acts: "+bp.acts.length+" (carrying "+_arcsTot+" arcs total), npcs: "+bp.npcs.length+", creatures: "+bp.creatures.length+", locations: "+bp.locations.length+", rules: "+bp.rules.length;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
       +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+fixText
-      +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.\nCOMPLETENESS CHECK — if you return a section, it must contain EVERY item, edited and unedited alike. Current sizes: "+counts+". Returning a section with fewer items than these counts is an ERROR and will be rejected (e.g. editing one act still requires returning all "+bp.acts.length+" acts with all their arcs).\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content that a fix asks for goes INTO the existing fields (NPC secrets/hooks into that NPC's notes).";
-    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
+      +"\n\nReturn ONLY the individual ITEMS you changed — NEVER whole sections — as this JSON object:"
+      +"\n{\"patches\":[ ...one entry per changed item... ],\"note\":\"one line on what changed\"}"
+      +"\nEach patch carries the WHOLE updated item, complete and in the existing schema:"
+      +"\n- an NPC / location / creature: {\"section\":\"npcs\"|\"locations\"|\"creatures\",\"name\":\"<its name>\",\"item\":{ ...full object... }}"
+      +"\n- an arc: {\"section\":\"arcs\",\"act\":\"<the act's title>\",\"name\":\"<the arc's title>\",\"item\":{ ...full arc... }}"
+      +"\n- an act's own fields (goal/turningPoint/reward — NOT its arcs): {\"section\":\"acts\",\"name\":\"<act title>\",\"item\":{ ...full act... }}"
+      +"\n- a rule: {\"section\":\"rules\",\"name\":\"<a unique phrase from the rule to edit, or omit to add a new one>\",\"item\":\"<full rule text>\"}"
+      +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
+      +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
+      +"\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content a fix asks for goes INTO the existing fields (an NPC's secrets/hooks into that NPC's notes).";
+    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
-    var snapshot=JSON.parse(JSON.stringify(bp));
-    var changed=[],k;
-    for(k in patch){if(BP_SECTIONS.indexOf(k)>=0){
-      // SHRINK GUARD v2 (v0.14 — from a live data loss: 'apply all' deleted Acts 2+3). Patches
-      // are WHOLE-SECTION replacements, and models economize: asked to edit one act, they return
-      // only that act, and the merge nukes the rest. The v0.10 guard only caught EMPTY sections —
-      // 3→1 sailed through. Now ANY array shrink is rejected, top-level and per-act arcs alike.
-      // Deliberate deletions are manual-only (deleting a rule by hand is one click; silently
-      // losing two acts is a catastrophe — the asymmetry decides).
-      if(Object.prototype.toString.call(bp[k])==="[object Array]"&&Object.prototype.toString.call(patch[k])==="[object Array]"&&patch[k].length<bp[k].length){bp=snapshot;throw new Error("fix shrank '"+k+"' from "+bp[k].length+" to "+patch[k].length+" — rejected (fixes must return COMPLETE sections; make deletions manually)");}
-      if(k==="acts"){var _ai;for(_ai=0;_ai<Math.min(bp.acts.length,patch.acts.length);_ai++){var _oa=(bp.acts[_ai].arcs||[]).length,_na=(patch.acts[_ai].arcs||[]).length;if(_na<_oa){bp=snapshot;throw new Error("fix shrank Act "+(_ai+1)+"'s arcs from "+_oa+" to "+_na+" — rejected (return ALL arcs; make deletions manually)");}}}
-      bp[k]=patch[k];changed.push(k);
-    }}
-    if(!changed.length)throw new Error("model returned no recognisable sections");
+    if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
+    snapshot=JSON.parse(JSON.stringify(bp));
+    var applied=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
     normalizeBlueprint(bp);
     var err=validateBlueprint(bp);
-    if(err){bp=snapshot;throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");}
+    if(err)throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");
     bp.review.findings[idx].status="applied";
     bp.review.findings[idx].chosen=chosenIdx; // which option ran — part of the CBB trail (ships in the file)
     if(patch.note)bp.review.findings[idx].note=String(patch.note);
     markDirty();render();
-    setStatus("Applied ("+changed.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
+    setStatus("Applied ("+applied.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
   }catch(e){
-    if(bp.review&&bp.review.findings[idx])bp.review.findings[idx].status="";
+    if(snapshot)bp=snapshot; // undo any partial in-place merge
+    if(bp.review&&bp.review.findings[idx]){bp.review.findings[idx].status="";bp.review.findings[idx]._err=e.message;}
     render();setStatus("Apply failed: "+e.message,"err");
     return e.message; // hand the reason back so a batch run can surface it (single-apply callers ignore it)
   }
