@@ -216,6 +216,9 @@ function sendSuggestedAction(btn,ev){
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
+  // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
+  // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
+  if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}
   var isTT=activeChatTab==="tabletalk";
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
   if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11) */

@@ -35,7 +35,12 @@ function wirePortraitDrag(img,getOff,setOff){
   if(img.complete&&img.naturalWidth)reapply(); else img.addEventListener("load",reapply);
   function overflow(){var o=normPortraitOff(getOff()),natW=img.naturalWidth||400,natH=img.naturalHeight||600,cW=p.offsetWidth||90,cH=p.offsetHeight||135;var s=Math.max(cW/natW,cH/natH)*o.zoom;return {x:Math.max(1,natW*s-cW),y:Math.max(1,natH*s-cH)};}
   function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=normPortraitOff(getOff());sox=o.x;soy=o.y;liveX=o.x;liveY=o.y;img.style.cursor="grabbing";}
-  function onMove(cx,cy){if(!dragging)return;moved=true;var ov=overflow(),o=normPortraitOff(getOff());liveX=Math.min(1,Math.max(0,sox-(cx-sx)/ov.x));liveY=Math.min(1,Math.max(0,soy-(cy-sy)/ov.y));applyPortraitTransform(img,{x:liveX,y:liveY,zoom:o.zoom});}
+  function onMove(cx,cy){if(!dragging)return;moved=true;var ov=overflow(),o=normPortraitOff(getOff());
+    // An axis with no real pannable overflow (~1px, floored by overflow()) divides pixel jitter by ~1
+    // and slams the offset to an extreme (audit E87) — only pan an axis that actually has slack.
+    liveX=ov.x>2?Math.min(1,Math.max(0,sox-(cx-sx)/ov.x)):o.x;
+    liveY=ov.y>2?Math.min(1,Math.max(0,soy-(cy-sy)/ov.y)):o.y;
+    applyPortraitTransform(img,{x:liveX,y:liveY,zoom:o.zoom});}
   function onUp(){if(!dragging)return;dragging=false;img.style.cursor="grab";if(moved)setOff(liveX,liveY,normPortraitOff(getOff()).zoom);}
   function applyZoom(factor){var o=normPortraitOff(getOff());var z=Math.min(4,Math.max(1,o.zoom*factor));applyPortraitTransform(img,{x:o.x,y:o.y,zoom:z});setOff(o.x,o.y,z);}
   function tdist(e){var a=e.touches[0],b=e.touches[1],dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
@@ -1313,6 +1318,11 @@ async function generateNpcSheet(name,doneCb){
     if(!sheet.skills){sheet.skills={};var sk2;for(sk2=0;sk2<SKILLS.length;sk2++)sheet.skills[SKILLS[sk2].id]=0;}
     sheet.portrait=npcPortrait(wsNpc);wsNpc.portrait=null; // #3 dedupe: the sheet is the portrait's single home now
     sheet.partyMember=true;
+    // Preserve earned progression on a REGENERATE (audit E59): the generation prompt uses a
+    // level-1/xp-0/hp-20 template, so regenerating an advanced companion would silently reset them.
+    // Carry the existing sheet's level/xp/hp/maxHp over the freshly-generated (default) values.
+    var _prior=wsNpc.charSheet;
+    if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;}
     // Seed the player↔NPC relationship from live tracking data
     if(!sheet.relationships)sheet.relationships=[];
     if(worldState&&worldState.character){
@@ -1481,7 +1491,7 @@ function showNpcSheet(name){
     // Offset is stored per-companion (mirrored onto charSheet so it survives a swap-to-PC).
     // Without dedicated get/setOffset the portrait modal would fall back to the PLAYER's
     // offset — editing a companion's framing would silently rewrite the player's.
-    function npcGetOff(){return wsNpc.portraitOffset||{x:0.5,y:0.5,zoom:1};}
+    function npcGetOff(){return wsNpc.portraitOffset||(wsNpc.charSheet&&wsNpc.charSheet.portraitOffset)||{x:0.5,y:0.5,zoom:1};}/* fall back to the sheet's framing so a swapped-out PC keeps it (audit E60) */
     function npcSetOff(x,y,zoom){wsNpc.portraitOffset={x:x,y:y,zoom:zoom};if(wsNpc.charSheet)wsNpc.charSheet.portraitOffset=wsNpc.portraitOffset;saveAll();}
     function wireNpcAvatarDrag(){var img=document.getElementById("npc-portrait-img");if(img)wirePortraitDrag(img,npcGetOff,npcSetOff);}
     function refreshNpcAvatar(){
@@ -1969,7 +1979,7 @@ function _switchPlayerCharacter(name){
   if(!newChar){showToast(name+" has no character sheet. Generate one first.");return;}
   // Demote current player character to companion NPC
   var oldChar=worldState.character;
-  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(oldChar.gender),portrait:null,charSheet:oldChar}; // portrait rides on charSheet only (#3 dedupe)
+  var oldNpc={name:oldChar.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(oldChar.gender),portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar}; // portrait rides on charSheet only (#3 dedupe); carry the framing (audit E60)
   // Swap
   worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
   worldState.npcs.push(oldNpc);             // add old char as npc
