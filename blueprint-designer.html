@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.20";
+var BP_DESIGNER_VERSION="v0.21";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -230,7 +230,7 @@ function render(){
   }
   h+="</div>";
   // Creatures (v1.176 — the campaign bestiary; monster-manual-inspired fields)
-  h+="<div class='sect'>"+secH("creatures","Bestiary — Seeded Creatures ("+bp.creatures.length+")");
+  h+="<div class='sect'>"+secH("creatures","Seeded Creatures ("+bp.creatures.length+")");
   if(secOpen.creatures!==false){
   h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creature from story</button>";
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
@@ -635,6 +635,7 @@ async function applyFinding(idx){
   }catch(e){
     if(bp.review&&bp.review.findings[idx])bp.review.findings[idx].status="";
     render();setStatus("Apply failed: "+e.message,"err");
+    return e.message; // hand the reason back so a batch run can surface it (single-apply callers ignore it)
   }
 }
 // Apply the SELECTED findings, top to bottom, SEQUENTIALLY — each fix is applied to the
@@ -644,19 +645,25 @@ async function applyFinding(idx){
 async function applyAllFindings(){
   if(_applyingAll||!llmReady()||!bp.review)return;
   _applyingAll=true;render();
-  var ok=0,fail=0,i;
+  var ok=0,fail=0,fails=[],i;
   try{
     for(i=0;i<bp.review.findings.length;i++){
       var bf=bp.review&&bp.review.findings[i];
       if(!bf||bf.status||typeof bf._sel!=="number")continue; // typeof, not truthiness — option 0 is a valid selection
       setStatus("Applying selected fix "+(ok+fail+1)+"…","");
-      await applyFinding(i);
+      var errMsg=await applyFinding(i);
       bf=bp.review&&bp.review.findings[i];
-      if(bf&&bf.status==="applied"){ok++;delete bf._sel;}else fail++;
+      if(bf&&bf.status==="applied"){ok++;delete bf._sel;}
+      else{fail++;fails.push((bf&&bf.section?bf.section+": ":"")+(errMsg||"unknown error"));}
     }
   }finally{_applyingAll=false;}
   render();
-  setStatus("Applied "+ok+" selected fix"+(ok===1?"":"es")+(fail?"; "+fail+" failed and stayed selected":"")+".",fail?"err":"ok");
+  // Surface WHY — don't swallow it. The per-finding "Apply failed: …" status is overwritten by
+  // this summary, so log every reason to the console and fold the first into the summary line.
+  if(fails.length&&typeof console!=="undefined"&&console.warn){for(var fi=0;fi<fails.length;fi++)console.warn("[apply] "+fails[fi]);}
+  var sum="Applied "+ok+" selected fix"+(ok===1?"":"es");
+  if(fail)sum+="; "+fail+" failed and stayed selected — "+fails[0].slice(0,140);
+  setStatus(sum+".",fail?"err":"ok");
 }
 
 // ── Consult / Ask (v0.16) ──────────────────────────────────────────────────────
