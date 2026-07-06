@@ -48,7 +48,11 @@ label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em
 .sq{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;padding:0;font-size:11px;line-height:1;flex-shrink:0;}
 input[type=text],select,textarea{width:100%;padding:8px 10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);outline:none;}
 input[type=text]:focus,select:focus,textarea:focus{border-color:var(--acc);}
-textarea{resize:vertical;min-height:56px;line-height:1.5;}
+/* Exactly 3 lines by default, no partial 4th peeking: integer line-height (20px) × 3 + 8px padding
+   top/bottom + 1px border top/bottom = 78px (border-box). overflow-y:scroll keeps the (styled 6px)
+   scrollbar always visible so every field reads the same whether it overflows or not. Breakout
+   modal + ask input set their own height inline, so they're unaffected. */
+textarea{resize:vertical;line-height:20px;height:78px;min-height:78px;overflow-y:scroll;}
 .card{background:var(--bg2);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:var(--r);padding:12px;margin-bottom:10px;}
 .card.arc{background:var(--bg1);border-left-color:var(--brd2);margin:8px 0 8px 18px;}
 .cardhead{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -99,7 +103,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.26";
+var BP_DESIGNER_VERSION="v0.27";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
