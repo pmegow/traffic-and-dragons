@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.19";
+var BP_DESIGNER_VERSION="v0.20";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -566,7 +566,13 @@ document.getElementById("btn-review").addEventListener("click",async function(){
       +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
       +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
       +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
-      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}\nfixes[] usually holds ONE entry. NEVER write 'OR' inside a fix — when genuinely distinct approaches exist, emit each as its OWN entry in fixes[] (max 3) so the author can choose between them.";
+      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}"
+      // Hard constraints LAST — end-of-prompt position is load-bearing (the game's own audit #2
+      // lesson; the v0.19 live run violated both mid-prompt versions of these in one finding).
+      +"\n\nCONSTRAINT CHECK — verify EVERY finding against these before you output; violations make the finding worthless:"
+      +"\n1. NO NEW FIELDS OR SECTIONS, EVER. The schema is fixed; the engine ignores anything else. WRONG: \"add a 'godIndex' field / new top-level section\". RIGHT: \"embed the god-to-shrine mapping into the Omu location description\" or \"extend the trickster-gods rule with the mapping\". Every fix edits EXISTING fields only."
+      +"\n2. NO ALTERNATIVES INSIDE A FIX. If the words 'or', 'alternatively', or 'either' would appear in a fix, STOP — split it into separate fixes[] entries (max 3, usually 1) so the author can choose."
+      +"\n3. Each fix is one sentence, self-contained, applyable as written.";
     // 5000-token ceiling — a circuit breaker against runaway generation, NOT a length governor
     // (the prompt governs size: max 10 terse findings). The first live run truncated mid-array
     // at a 1600 cap (JSON parse error at ~5300 chars ≈ exactly 1600 tokens) — for JSON output,
