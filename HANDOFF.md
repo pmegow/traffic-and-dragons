@@ -1,10 +1,44 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-05 (late night; covers the 07-04 memory-engine day + the 07-04/05 designer evening)
-**Deployed version:** v1.178 (`APP_VERSION` in `globals.js`) — **pushed; Pages auto-deploy in flight at handoff time** (poll `globals.js?nc=<ts>`).
-**SW cache:** `tnd-v3-20260705d` (`sw.js`).
-**Branch:** `master` — pushed through `a8a9648` (`origin/master` == local HEAD). Working tree clean.
-**Server:** healthy on Fly; `/api/blueprints` routes verified LIVE; dead volume `vol_r7yw0lnl3lejpm1r` finally destroyed (#26 fully closed).
+**Date:** 2026-07-06 (morning/midday — the designer-hardening + audit day)
+**Deployed version:** engine **v1.182** / designer **v0.29** — pushed through `4c0318d` (`origin/master` == local HEAD at handoff).
+**SW cache:** `tnd-v3-20260706b` (`sw.js`).
+**Working tree:** the two `.blueprint` files (Runelords + ToA) carry UNCOMMITTED campaign-data changes from today's designer fix-applying — a parallel terminal session may commit them; coordinate before touching.
+**Server:** healthy on Fly (unchanged today).
+
+---
+
+## ⚡ NEXT TASK (queued deliberately): WHOLE-ENGINE AUDIT → FIX BATCH ("bug stomp")
+
+The user wants a full-engine bug hunt in a FRESH session, then the fixes ("it's not the bug
+hunt I need Fable for, it's the bug stomp that happens after"). Plan of record:
+1. **Hunt:** fan out independent max-effort reviewer agents across the engine subsystems —
+   `api.js` (tags/applyMuts/buildSysPrompt/caching split), `memory.js` (summarize/RAG/futureEvents),
+   `state.js` (persistence/migrations), `game.js` (turn loop/levels/legacy), `ui.js` (modals/sheets),
+   `storage-adapter.js` (sync/portraits/reconcile), `helpers.js`+`globals.js`+`char-creation.js`.
+   Recall mode; verify survivors against code by hand; only real, triggerable defects.
+2. **Write `audits/AUDIT_FABLE_07_06_engine.md`** (audits/ is GITIGNORED — local by design) in the
+   established format: bold title → mechanism w/ file:line → **Remedy** → Effort → Status Pending.
+   Model on `audits/AUDIT_FABLE_07_06_26.md` (today's designer audit — 7 findings, all fixed same day).
+3. **Stomp:** fix in severity order, engine tests green per commit (pre-commit gate), version-bump
+   discipline (APP_VERSION + CACHE every game-code commit), update audit statuses + TODO rows in the
+   same commits. Verify FAILURE conditions, not benign cases (user CLAUDE.md + repo CLAUDE.md rule).
+4. `claude ultrareview` (cloud whole-branch review) was UNAVAILABLE today — optional retry, but it's
+   diff-based and the engine is fully committed, so the agent fan-out is the real instrument.
+
+## The 07-06 session (v1.179→v1.182 engine, v0.21→v0.29 designer, all pushed)
+
+| What | Detail |
+|---|---|
+| Designer v0.21–v0.28 | Apply-failure reasons surfaced (v0.21); **chunked review** — one pass per section, no 10-cap (v0.22); **item-level apply** — killed the JSON-truncation mass failures, per-card FAILED stamp (v0.23); **parallel apply** with per-target grouping + collapsible Completed (v0.24); **parallel review** + live verdict count (v0.25); **item deletion** + no-resurrect `_batchDeleted` guard + 8000-token apply ceiling (v0.26); field textareas true-3-lines (v0.27 wrong fix → **v0.28 real root cause: vertical padding shifts the scroll viewport off line multiples** — zero v-padding, `.bpf` class). |
+| SW | Designer served **network-first** (v1.181) — designer-only commits don't bump CACHE, so cache-first pinned stale copies (the recurring "still broken" gremlin). Hardened in v1.182 (cache OK responses, fall back to cache on 502/404). |
+| **Local 3-agent audit** (`audits/AUDIT_FABLE_07_06_26.md`, gitignored) | 7 verified findings on the designer arc; **ALL FIXED same session** (`4c0318d`): act-patch arc data loss; revdel mid-batch index corruption; findingTargetKey → section-type grouping (kills same-item parallel stale-overwrite); SW fallback; dedupe full-text key; redundant render. Residual accepted: bare-name section labels → `misc` group. |
+| Meta | `CLAUDE.md` gained **Diagnosis & verification discipline** (verify the FAILURE condition; screenshot is ground truth; reproduce before blaming cache). **User-level `~/.claude/CLAUDE.md` created** — portable practices (diagnosis, abstraction-over-conditionals, commits, collaboration). `claude` CLI now installed globally (npm). Legacy full-sheet #18 + Character-Library/Import-browser UX shipped earlier in the arc (v1.65–v1.72 numbering per session log). |
+
+---
+<!-- ——— PRIOR HANDOFF (2026-07-05) BELOW — still-valid watch-lists and rules ——— -->
+
+**Prior deployed marker:** v1.178, `a8a9648`, SW `tnd-v3-20260705d`.
 
 > **STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
 > runs `dev/run-tests.js` (**now 121 assertions**, headless node, ~1s) and BLOCKS on red.
