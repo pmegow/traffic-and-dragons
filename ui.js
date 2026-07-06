@@ -513,13 +513,19 @@ function connectToServer(){
     if(err){showToast("Server login failed.");return;}
     updateServerUI();
     showToast("&#9729; Connected as "+info.username);
-    // Push all local campaigns to server so every device sees the full list
     snapshotActiveCamp();
-    var meta=getCampMeta();
-    if(!meta.length){showCampaignPicker();return;}
-    var remaining=meta.length;
-    function onPushed(){if(--remaining<=0)showCampaignPicker();}
-    for(var i=0;i<meta.length;i++){campCloudPushSilent(meta[i].id,onPushed);}
+    // Fetch the server list FIRST, then push only LOCAL-ONLY campaigns (audit E33). The old blind
+    // push of every local campaign could overwrite a NEWER server copy with a stale local snapshot;
+    // campaigns already on the server are left for the normal per-campaign reconcile (which pulls
+    // the newer side). On a failed list fetch, skip the push — we can't tell what's fresh.
+    storageAdapter.syncCampaignList(function(result){
+      if(!result){showCampaignPicker();return;}
+      var meta=getCampMeta().filter(function(c){return !c.onServer;});
+      if(!meta.length){showCampaignPicker();return;}
+      var remaining=meta.length;
+      function onPushed(){if(--remaining<=0)showCampaignPicker();}
+      for(var i=0;i<meta.length;i++){campCloudPushSilent(meta[i].id,onPushed);}
+    });
   });
 }
 function campCloudPushSilent(id,cb){

@@ -93,6 +93,9 @@ function loadState(){
     // on a page load, the outgoing campaign's log on a switch), it clobbers the incoming campaign's
     // SLK on disk with the wrong log. Setting it first — and to [] when there is no SLK — keeps the
     // persisted pair consistent with the worldState being loaded.
+    // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
+    // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
+    if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
     sessionLog=sl?JSON.parse(sl):[];
     if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}
     if(mm){memory=JSON.parse(mm);healMemory();}

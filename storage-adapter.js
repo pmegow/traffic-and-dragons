@@ -185,6 +185,15 @@ var storageAdapter = (function() {
   var _failCount   = 0;   // consecutive sync failures
   var _notified401 = false;
 
+  // Reset the per-campaign sync bookkeeping on a campaign switch (audit E32). These are module
+  // globals: after switching FROM a higher-turn campaign, _lastAckTurn stayed high so
+  // syncStatus().unsynced pinned at 0 (killing the #24 foreground self-heal), and switching the
+  // other way showed a false "N turns unsynced" badge. Called from loadState (init + every switch).
+  function resetSyncState() {
+    _lastAckTurn = -1; _failCount = 0; _notified401 = false; _portraitSyncedOnce = false;
+    _updateSyncUI();
+  }
+
   function _syncOk(turnAt) {
     _failCount = 0; _notified401 = false;
     if (turnAt > _lastAckTurn) _lastAckTurn = turnAt;
@@ -608,6 +617,7 @@ var storageAdapter = (function() {
     syncToServer:          syncToServer,
     syncNow:               syncNow,
     syncStatus:            syncStatus,
+    resetSyncState:        resetSyncState,
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
