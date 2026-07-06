@@ -184,6 +184,55 @@ function runEngineTests(R){
     return again===false?true:"second pass not a no-op";
   });
 
+  // ── store fallback coherence (audit E5/E6) ───────────────────────────────────
+  section("store quota fallback (E5/E6)");
+  t("quota-failed set rethrows (so saveCore can toast) AND get serves _m, not stale disk",function(){
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    var backing={"tnd_test_q":"STALE_DISK"};
+    global.localStorage={
+      getItem:function(k){return (k in backing)?backing[k]:null;},
+      setItem:function(){var e=new Error("quota");e.name="QuotaExceededError";throw e;},
+      removeItem:function(k){delete backing[k];}
+    };
+    var threw=false;
+    try{store.set("tnd_test_q","FRESH");}catch(e){threw=true;}
+    var got=store.get("tnd_test_q");
+    if(had)global.localStorage=real;else delete global.localStorage;
+    delete _m["tnd_test_q"];delete _mKeys["tnd_test_q"]; // clean module state
+    if(!threw)return "quota set did not rethrow (saveCore's 'storage full' toast stays dead code)";
+    return got==="FRESH"?true:"get returned "+JSON.stringify(got)+" — stale disk shadowed the _m fallback";
+  });
+  t("privacy-mode denial (non-quota) stays silent and round-trips via _m",function(){
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    global.localStorage={
+      getItem:function(){var e=new Error("denied");e.name="SecurityError";throw e;},
+      setItem:function(){var e=new Error("denied");e.name="SecurityError";throw e;},
+      removeItem:function(){}
+    };
+    var threw=false;
+    try{store.set("tnd_test_p","V");}catch(e){threw=true;}
+    var got=store.get("tnd_test_p");
+    if(had)global.localStorage=real;else delete global.localStorage;
+    delete _m["tnd_test_p"];delete _mKeys["tnd_test_p"];
+    if(threw)return "privacy-mode denial should NOT throw (silent fallback intended)";
+    return got==="V"?true:"round-trip via _m failed: "+JSON.stringify(got);
+  });
+
+  t("loadState: a migrate-triggered save persists the LOADED session log, not the stale global (E36)",function(){
+    var savedSL=null,realSave=saveCore;
+    saveCore=function(){savedSL=sessionLog.slice();}; // capture what would hit disk during the migrate
+    // worldState missing v10 arrays → migrateWorldState returns true → saveCore fires mid-load.
+    var wsMissing={ver:10,character:{name:"X",cls:"Warrior",level:3,xp:900,stats:{CON:10}},world:{location:"Y"},turn:1};
+    store.set(WSK,JSON.stringify(wsMissing));
+    store.set(SLK,JSON.stringify([{role:"user",content:"INCOMING"}]));
+    store.del(MEM_KEY);
+    sessionLog=[{role:"user",content:"STALE_PREVIOUS"}]; // the outgoing campaign's global, still resident
+    loadState();
+    saveCore=realSave;store.del(WSK);store.del(SLK);
+    if(!savedSL)return "migrate did not trigger saveCore — adjust the test's un-migrated worldState";
+    return (savedSL.length===1&&savedSL[0].content==="INCOMING")?true:"saveCore persisted "+JSON.stringify(savedSL)+" — the stale log clobbered SLK";
+  });
+
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
   section("usage telemetry");
   t("anthropic parseUsage maps all four token fields",function(){

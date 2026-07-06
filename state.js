@@ -1,9 +1,17 @@
 var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";
-var _m={};
+var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
+var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
-  get:function(k){try{return localStorage.getItem(k);}catch(e){return _m[k]||null;}},
-  set:function(k,v){try{localStorage.setItem(k,v);}catch(e){_m[k]=v;}},
-  del:function(k){try{localStorage.removeItem(k);}catch(e){delete _m[k];}}
+  get:function(k){if(_mKeys[k])return (k in _m)?_m[k]:null;try{return localStorage.getItem(k);}catch(e){return (k in _m)?_m[k]:null;}},
+  set:function(k,v){try{localStorage.setItem(k,v);if(_mKeys[k]){delete _mKeys[k];delete _m[k];}}catch(e){
+    // Keep the value in memory so this session doesn't lose data, and mark the key so get() serves it
+    // instead of the STALE on-disk copy (audit E6 — a failed set no longer silently returns old data).
+    // A quota overflow is RETHROWN so saveCore/saveMem can surface it to the user (audit E5 — the
+    // "storage full" toast was previously unreachable); a privacy-mode denial stays a silent fallback.
+    _m[k]=v;_mKeys[k]=1;
+    if(e&&(e.name==="QuotaExceededError"||e.name==="NS_ERROR_DOM_QUOTA_REACHED"||e.code===22||e.code===1014))throw e;
+  }},
+  del:function(k){try{localStorage.removeItem(k);}catch(e){}delete _m[k];delete _mKeys[k];}
 };
 var worldState=null;
 var sessionLog=[];
@@ -80,8 +88,13 @@ function migrateWorldState(){
 }
 function loadState(){
   try{var ws=store.get(WSK),sl=store.get(SLK),mm=store.get(MEM_KEY);
+    // Parse the session log BEFORE the migrate/saveCore below (audit E36): saveCore writes BOTH
+    // WSK and SLK, so if a migration fires while sessionLog still holds the PREVIOUS value (empty
+    // on a page load, the outgoing campaign's log on a switch), it clobbers the incoming campaign's
+    // SLK on disk with the wrong log. Setting it first — and to [] when there is no SLK — keeps the
+    // persisted pair consistent with the worldState being loaded.
+    sessionLog=sl?JSON.parse(sl):[];
     if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}
-    if(sl)sessionLog=JSON.parse(sl);
     if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
     if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
     if(!memory.npcGraph.factions)memory.npcGraph.factions={};
