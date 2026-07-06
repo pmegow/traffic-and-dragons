@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260706x";
+var CACHE = "tnd-v3-20260706y";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -53,11 +53,11 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
-  // The Blueprint Designer is a dev utility, NOT part of the cached app shell — and its commits
-  // don't bump CACHE, so the cache-first path below would pin a stale copy of it indefinitely
-  // (it did, all through the v0.2x designer work — every update needed a manual cache clear).
-  // Serve it network-first: always fetch fresh when online, fall back to any cached copy offline.
-  if(e.request.url.indexOf("blueprint-designer") !== -1){
+  // Dev-utility satellite pages are NOT part of the cached app shell — their commits don't bump
+  // CACHE, so the cache-first path below would pin stale copies indefinitely (it did: the designer
+  // all through the v0.2x work, then the todo-viewer on 07-06 — every update needed a manual cache
+  // clear). Serve them network-first: always fetch fresh when online, cached copy only as fallback.
+  if(/blueprint-designer|todo-viewer/.test(e.request.url)){
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.
