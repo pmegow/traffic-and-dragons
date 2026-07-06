@@ -109,6 +109,31 @@ function runEngineTests(R){
   t("SAVE_MOD upserts by source; REMOVED filters",function(){makeWorld();applyMuts("[SAVE_MOD:Ward|Fear|2]");applyMuts("[SAVE_MOD:Ward|Fear|3]");if(worldState.character.saveModifiers.length!==1)return "dup";if(worldState.character.saveModifiers[0].amount!==3)return "not updated";applyMuts("[SAVE_MOD_REMOVED:Ward]");return eq(worldState.character.saveModifiers.length,0);});
   t("RELATIONSHIP upsert + REMOVED resolve through aliases",function(){makeWorld();applyMuts("[NPC:Veyra|calm|ally][NPC_ALIAS:Veyra|The Grey Blade]");applyMuts("[RELATIONSHIP:The Grey Blade|Sworn ally]");if(!worldState.character.relationships.length||worldState.character.relationships[0].entity!=="Veyra")return "not resolved: "+JSON.stringify(worldState.character.relationships);applyMuts("[RELATIONSHIP_REMOVED:The Grey Blade]");return eq(worldState.character.relationships.length,0);});
   t("SPELL_USED matches base name through the racial parenthetical",function(){makeWorld();applyMuts("[SPELL_USED:Faerie Fire]");return eq(worldState.character.spells[0].used,true);});
+  // ── tag capture bounding (audit E8/E18/E42/E52) ──
+  t("QUEST_STEP 2-field form doesn't over-capture across a later tag (E8)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Hunt|active|kill the beast][QUEST_STEP:Hunt|Track the beast into the fens] The trail is fresh. [DICE:Survival check|14|success]");
+    var o=worldState.questLog[0].objectives;
+    if(o.length!==1)return "objectives: "+o.length;
+    return o[0].text==="Track the beast into the fens"?true:"objective over-captured: "+JSON.stringify(o[0].text);
+  });
+  t("a pipeless [QUEST:] doesn't stitch through prose into a later tag (E18)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Save the town] and then [NPC:Bram|wary|neutral] appears.");
+    // Malformed QUEST (no status pipe) must NOT create a quest titled with the stitched prose.
+    var badTitle=worldState.questLog.filter(function(q){return q.title.indexOf("town")>=0&&q.title.length>20;});
+    if(badTitle.length)return "stitched garbage quest: "+JSON.stringify(badTitle[0].title);
+    return worldState.npcs.some(function(n){return n.name==="Bram";})?true:"the following NPC tag was eaten by the stitch";
+  });
+  t("[NPC:name|status] two-field form registers (E42)",function(){
+    makeWorld();applyMuts("[NPC:Talia|nervous]");
+    var n=worldState.npcs.filter(function(x){return x.name==="Talia";})[0];
+    return n&&n.status==="nervous"?true:"2-field NPC dropped: "+JSON.stringify(n);
+  });
+  t("[LOCATION:] with a leading space is trimmed, not forked (E52)",function(){
+    makeWorld();applyMuts("[LOCATION: Ashfen]");
+    return worldState.world.location==="Ashfen"?true:"not trimmed: "+JSON.stringify(worldState.world.location);
+  });
 
   // ── 6. migrateWorldState (save-import battery) ───────────────────────────────
   section("migrateWorldState");
