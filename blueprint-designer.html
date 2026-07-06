@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.17";
+var BP_DESIGNER_VERSION="v0.18";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -108,6 +108,14 @@ var bp=null,dirty=false;
 // blueprint starts fully collapsed (scroll relief + spoiler cover); New starts open.
 var secOpen={};
 function stripView(obj){return JSON.parse(JSON.stringify(obj,function(kk,vv){return kk&&kk.charAt(0)==="_"?undefined:vv;}));}
+// File output = stripView + a designerVersion provenance stamp right after "format" (v0.18,
+// user request). Always re-stamped to the CURRENT version at write time (a loaded file's old
+// stamp is skipped in the copy loop, not carried forward). The engine ignores the field.
+function fileOut(){
+  var o=stripView(bp),out={format:o.format,designerVersion:BP_DESIGNER_VERSION},k;
+  for(k in o){if(k!=="format"&&k!=="designerVersion")out[k]=o[k];}
+  return out;
+}
 function collapseAll(){
   var i,j;
   for(i=0;i<bp.acts.length;i++){bp.acts[i]._c=1;for(j=0;j<(bp.acts[i].arcs||[]).length;j++)bp.acts[i].arcs[j]._c=1;}
@@ -466,7 +474,7 @@ function designerValidate(){
 document.getElementById("btn-save").addEventListener("click",function(){
   var err=designerValidate();
   if(err){setStatus("Can't save — "+err,"err");return;}
-  var data=JSON.stringify(stripView(bp),null,2); // _c collapse flags never reach the file
+  var data=JSON.stringify(fileOut(),null,2); // stripView + designerVersion stamp
   var blob=new Blob([data],{type:"application/json"});
   var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
@@ -699,7 +707,7 @@ document.getElementById("btn-publish").addEventListener("click",function(){
   var err=designerValidate();
   if(err){setStatus("Can't publish — "+err,"err");return;}
   setStatus("Publishing…","");
-  storageAdapter.saveBlueprintToLibrary(stripView(bp),function(e){
+  storageAdapter.saveBlueprintToLibrary(fileOut(),function(e){
     if(e){setStatus("Publish failed: "+e+(String(e).indexOf("401")>=0?" — session expired; reconnect from the game.":""),"err");return;}
     dirty=false;
     setStatus("Published “"+bp.name+"” to your library (same name republishes over it).","ok");
