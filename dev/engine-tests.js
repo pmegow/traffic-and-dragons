@@ -58,6 +58,13 @@ function runEngineTests(R){
   t("toFirstPerson: reflexive",function(){return eq(toFirstPerson("Defend yourself"),"Defend myself");});
   t("toFirstPerson: object you after verb",function(){return eq(toFirstPerson("Let the guard follow you"),"Let the guard follow me");});
   t("pronounsForGender",function(){return eq(pronounsForGender("F"),"she/her")===true&&eq(pronounsForGender("NB"),"they/them")===true?eq(pronounsForGender("M"),"he/him"):"NB/F wrong";});
+  t("escProse escapes markup but keeps *em* and paragraph breaks (E11)",function(){
+    var h=escProse("<img src=x onerror=alert(1)> and *bold* text\n\nnext para");
+    if(h.indexOf("<img")>=0)return "raw <img leaked into story DOM: "+h;
+    if(h.indexOf("&lt;img")<0)return "markup not escaped";
+    if(h.indexOf("<em>bold</em>")<0)return "emphasis transform lost";
+    return h.indexOf("</p><p>")>=0?true:"paragraph break lost";
+  });
   t("inventory stacking: case+plural stack to x2",function(){var inv=["Travel ration"];addInventoryItem(inv,"travel rations");return eq(inv.length,1)===true?eq(inv[0],"Travel ration x2"):"did not stack: "+JSON.stringify(inv);});
   t("inventory stacking: parenthetical qualifiers stay separate",function(){var inv=["Sword (rusty)"];addInventoryItem(inv,"Sword (enchanted)");return eq(inv.length,2);});
   t("inventory removal: decrements and drops suffix at 1",function(){var inv=["Arrow x2"];removeInventoryItem(inv,"Arrow");if(inv[0]!=="Arrow")return "want bare Arrow got "+inv[0];removeInventoryItem(inv,"arrow");return eq(inv.length,0);});

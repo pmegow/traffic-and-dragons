@@ -368,7 +368,7 @@ function updateInvPanel(){
 }
 function updateAbPanel(hl){
   if(!worldState)return;var abs=worldState.character.abilities||[];document.getElementById("ab-cnt").textContent=abs.length;
-  var h="",i;for(i=0;i<abs.length;i++){h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+'"><span class="an">'+abs[i].nm+'</span><span class="ad">'+abs[i].ds+'</span></div>';}
+  var h="",i;for(i=0;i<abs.length;i++){h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+'"><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
   document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
 function updateSpPanel(){
@@ -3035,8 +3035,8 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   var tr=worldState.transcript,n=maxEntries||20,start=Math.max(0,tr.length-n),i,lastNar=null;
   if(start>0)addMsg("system","… "+start+" earlier entr"+(start===1?"y":"ies")+" omitted — the full story lives in the transcript.");
   for(i=start;i<tr.length;i++){var e=tr[i];
-    if(e.r==="player")addMsg("player",e.x);
-    else lastNar=addMsg("narrator","<p>"+e.x.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:e.x,turn:e.t});
+    if(e.r==="player")addMsg("player",escHtml(e.x));
+    else lastNar=addMsg("narrator","<p>"+escProse(e.x)+"</p>",{replayText:e.x,turn:e.t});/* transcript is model/user text — escape on replay (audit E11) */
   }
   if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
   story.scrollTop=story.scrollHeight;
@@ -3048,11 +3048,11 @@ function initReplaySession(){
   var sll=sessionLog.length;
   if(sll>=2){
     var slu=sessionLog[sll-2],sla=sessionLog[sll-1];
-    if(slu&&slu.role==="user")addMsg("player",slu.content);
+    if(slu&&slu.role==="user")addMsg("player",escHtml(slu.content));
     if(sla&&sla.role==="assistant"){
       var slc=cleanTxt(sla.content),sld=diceTxt(sla.content);
       var _rab=worldState.lastActions?buildActionButtons(worldState.lastActions):parseActions(slc,sla.content).btns||"";
-      addMsg("narrator",(sld||"")+"<p>"+slc.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>"+_rab);
+      addMsg("narrator",(sld||"")+"<p>"+escProse(slc)+"</p>"+_rab);/* escape on replay (audit E11) */
     }
   }else{
     var wbSrc=memory&&memory.chapters&&memory.chapters.length?memory.chapters[memory.chapters.length-1].summary:null;

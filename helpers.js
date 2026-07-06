@@ -1,4 +1,9 @@
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+// Render model/user prose as SAFE story-DOM HTML (audit E11): escape FIRST, then apply the intentional
+// *emphasis* and blank-line-to-paragraph transforms — so markup in GM output or player input can't
+// inject a <script>/<img onerror> into the narrative (the API key lives in localStorage). The `*` and
+// `\n` survive escHtml, so the two formatting passes still work. Callers wrap in <p> where needed.
+function escProse(t){return escHtml(String(t||"")).replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>");}
 function smod(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;}
 // Canonical pronouns from a character's gender (M/F/NB). Used to seed companion/NPC pronouns so the
 // GM never has to guess and gender-swap them (defaults to he/him for M or anything unspecified).

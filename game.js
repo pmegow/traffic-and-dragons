@@ -75,7 +75,7 @@ async function generateActions(msgEl){
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
   var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i;
-  for(i=0;i<acts.length;i++){h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+acts[i].replace(/"/g,"&quot;")+'">'+acts[i]+'</button>';}
+  for(i=0;i<acts.length;i++){var _ea=escHtml(acts[i]);h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}/* escape model-authored action text (audit E81) */
   return h+"</div>";
 }
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)
@@ -218,7 +218,7 @@ async function sendAction(override,opts){
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   var isTT=activeChatTab==="tabletalk";
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
-  if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+txt:txt);
+  if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11) */
   // Skip the transcript write on a retry of the same action — the failed attempt already
   // logged it, and a duplicate player line corrupts the story-compiler record (audit #9).
   var _tl=worldState.transcript;
@@ -229,7 +229,7 @@ async function sendAction(override,opts){
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
     var resp=await callGM(txt,sys);th.remove();
-    if(isTT){addMsg("tabletalk","<em>[GM]</em> "+resp.replace(/\*(.*?)\*/g,"<em>$1</em>"));}
+    if(isTT){addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(resp)+"</p>");}/* escape GM table-talk output (audit E11) */
     else{
       worldState.turn++;
       if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
@@ -239,7 +239,7 @@ async function sendAction(override,opts){
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
       var clean=cleanTxt(resp),dice=diceTxt(resp);
-      var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
+      var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
       logTranscript("gm",clean,resp);
       if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
@@ -276,7 +276,7 @@ async function rerollLast(){
     }
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     saveAll();
     generateActions(narEl);
@@ -509,7 +509,7 @@ async function beginAdventure(){
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
     var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp);
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+clean.replace(/\*(.*?)\*/g,"<em>$1</em>").replace(/\n\n/g,"</p><p>")+"</p>",{replayText:clean,turn:worldState.turn});
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
     logTranscript("gm",clean,resp);
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
