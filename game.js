@@ -31,6 +31,12 @@ function startGame(char,toneName,toneVoice,authorId){
     applyBlueprint(pendingBlueprint);
     pendingBlueprint=null;
   }
+  // Seed a map node for the STARTING location (audit E15) — nodes are otherwise created only on
+  // travel, so first-visit [LOCATION_DESC/SIZE/ITEM] and NPC last-seen stamps at the opening
+  // location were silently dropped (fileLocationDesc/etc. early-return with no node).
+  if(memory.map&&worldState.world&&worldState.world.location&&!memory.map.nodes[worldState.world.location]){
+    memory.map.nodes[worldState.world.location]={firstVisit:0,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+  }
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
@@ -179,7 +185,10 @@ function showArchetypeModal(){
 function pickArchetype(idx){
   var c=worldState.character,archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;var arch=archs[idx];c.archetype=arch.id;c.archetypeNm=arch.nm;
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:arch.nm,ds:arch.desc,gained:worldState.turn});
-  var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src&&(!c.spells||!c.spells.length)){if(!c.spells)c.spells=[];var i;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}if(src[1]){for(i=0;i<src[1].length;i++)c.spells.push({nm:src[1][i],lvl:1,used:false});}}
+  // Grant the archetype/class spell list even if the character already owns RACIAL spells (audit E21):
+  // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
+  // Trickster, leaving them with no AT spells. Append what's missing (dedupe by name).
+  var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src){if(!c.spells)c.spells=[];var i,_have={};for(i=0;i<c.spells.length;i++)_have[c.spells[i].nm]=1;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)if(!_have[src.cantrips[i]])c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}if(src[1]){for(i=0;i<src[1].length;i++)if(!_have[src[1][i]])c.spells.push({nm:src[1][i],lvl:1,used:false});}}
   var m=document.getElementById("arch-modal");if(m)m.remove();addMsg("system","Archetype: "+arch.nm);updateAbPanel(true);initSpells();syncUI();saveAll();
   maybeShowLevelBump(); // a jump that crossed both 3 and 4/8 owes a stat bump next (E1)
 }
@@ -362,6 +371,9 @@ function normalizeBlueprint(bp){
   if(typeof bp.startingLocation!=="string")bp.startingLocation="";
   if(typeof bp.startingRegion!=="string")bp.startingRegion="";
   if(!Array.isArray(bp.acts))bp.acts=[];
+  // Every act needs an arcs array (audit E19) — applyBlueprint iterates act.arcs unconditionally,
+  // and the cloud-library path skips validateBlueprint, so a missing arcs crashed startGame.
+  for(var _ai=0;_ai<bp.acts.length;_ai++){if(bp.acts[_ai]&&!Array.isArray(bp.acts[_ai].arcs))bp.acts[_ai].arcs=[];}
   if(!Array.isArray(bp.npcs))bp.npcs=[];
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
@@ -419,6 +431,7 @@ function applyBlueprint(bp){
     for(i=0;i<skel.acts.length;i++){
       skel.acts[i].status=i===0?"active":"pending";
       var isP=!!skel.acts[i].parallel;
+      if(!skel.acts[i].arcs)skel.acts[i].arcs=[]; // defensive — a raw blueprint bypassing normalizeBlueprint (audit E19)
       for(j=0;j<skel.acts[i].arcs.length;j++){skel.acts[i].arcs[j].status=(i===0&&(isP||j===0))?"active":"pending";}
     }
     worldState.skeleton=skel;
@@ -454,10 +467,13 @@ function applyBlueprint(bp){
   // Location + region override — blueprint is authoritative; overwrite whatever the wizard set
   if(bp.startingLocation)worldState.world.location=bp.startingLocation;
   if(bp.startingRegion)worldState.world.region=bp.startingRegion;
-  // Prose voice — author's choice; player can override via Dev Mode
-  if(bp.proseAuthor!=null){
+  // Prose voice — author's choice; player can override via Dev Mode. Only a NON-EMPTY blueprint
+  // voice overrides (audit E20): normalizeBlueprint coerces an unset voice to "", and applyBlueprint
+  // runs AFTER startGame set worldState.proseAuthor from the wizard pick, so a blank "" would clobber
+  // the player's Step-1 choice with the house default.
+  if(bp.proseAuthor){
     worldState.proseAuthor=bp.proseAuthor;
-    if(bp.proseAuthor&&typeof AUTHORS!=="undefined"){
+    if(typeof AUTHORS!=="undefined"){
       var _paFound=false,_pai;for(_pai=0;_pai<AUTHORS.length;_pai++){if(AUTHORS[_pai].id===bp.proseAuthor){_paFound=true;break;}}
       if(!_paFound)showToast("Blueprint voice \""+bp.proseAuthor+"\" not recognised — using default.");
     }

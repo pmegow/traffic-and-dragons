@@ -956,6 +956,16 @@ function runEngineTests(R){
     });
     return memory.futureEvents.length===0?true:"same-window event left pending: "+JSON.stringify(memory.futureEvents);
   });
+  // ── blueprint apply hardening (audit E19/E20) ──
+  t("normalizeBlueprint defaults each act's arcs so applyBlueprint can't crash (E19)",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",acts:[{title:"A1",goal:"g"}]});
+    return Array.isArray(bp.acts[0].arcs)?true:"arcs not defaulted";
+  });
+  t("applyBlueprint keeps the wizard voice when the blueprint voice is empty (E20)",function(){
+    makeWorld();worldState.proseAuthor="howard";
+    applyBlueprint({proseAuthor:"",acts:[],npcs:[],locations:[],rules:[]});
+    return worldState.proseAuthor==="howard"?true:"wizard voice clobbered: "+JSON.stringify(worldState.proseAuthor);
+  });
   // ── memory robustness (audit E43/E44/E45/E46/E50/E51) ──
   t("applySummaryExtract ignores non-array extractor fields (E43)",function(){
     makeWorld();worldState.turn=10;var loreBefore=memory.lore.length,decBefore=memory.keyDecisions.length;
