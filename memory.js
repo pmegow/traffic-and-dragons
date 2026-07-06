@@ -85,7 +85,7 @@ function fileSubLocation(name,turn){
   var parent=worldState&&worldState.world?worldState.world.location:null;if(!parent)return;
   var key=parent+"|"+name;
   if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};
-  memory.map.nodes[key].visits++;
+  memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
 }
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;

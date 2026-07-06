@@ -97,7 +97,7 @@ var PROVIDERS={
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:u.candidatesTokenCount||0,cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};},
     reinforce:TAG_REINFORCE,
-    tokScale:1000 // ceiling not target; Gemini's default is too low, so set it sky-high and let the prose voice control length
+    tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   },
   ollama:{
     // Local OpenAI-compatible server. NOTE: http://localhost is blocked as mixed
@@ -116,7 +116,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.205";
+var APP_VERSION="v1.206";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

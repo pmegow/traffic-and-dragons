@@ -466,7 +466,7 @@ function _csContext(){
   var tone=cs.tone?TONES.filter(function(t){return t.id===cs.tone;})[0]:null;
   if(tone)ctx+="World tone: "+tone.nm+(tone.vc?" — "+tone.vc:"")+"\n";
   var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
-  if(anc)ctx+="Ancestry: "+(cs.subraceNm||anc.nm)+"\n";
+  if(anc)ctx+="Ancestry: "+(getSubNm()||anc.nm)+"\n";/* cs.subraceNm is never set — use getSubNm() so subrace/lineage reaches the AI-assist context (audit E58) */
   var cls=cs.cls?CLSS.filter(function(c){return c.id===cs.cls;})[0]:null;
   if(cls)ctx+="Class: "+cls.id+"\n";
   if(cs.name)ctx+="Name: "+cs.name+"\n";
@@ -486,7 +486,7 @@ async function aiSuggestField(fieldId,fieldLabel,btn){
   try{
     var result=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY the requested content, nothing else.",300);
     if(el)el.value=result.trim();
-  }catch(e){}
+  }catch(e){if(typeof showToast==="function")showToast("Suggest failed: "+(e&&e.message?e.message:"unknown error"));}/* was a silent empty catch (audit E37) */
   if(btn){btn.classList.remove("spinning");btn.disabled=false;}
 }
 async function aiRandomiseAll(btn){
