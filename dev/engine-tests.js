@@ -698,6 +698,22 @@ function runEngineTests(R){
     applyMuts("A mighty deed. [XP:350]");
     return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 350 xp";
   });
+
+  // ── checkLevelUp multi-level jump (audit E1) ──────────────────────────────────
+  section("checkLevelUp multi-level jump (E1)");
+  t("a single big XP award loops HP and features across every level crossed",function(){
+    makeWorld(); // Warrior, CON 14 (+2 mod), hd 12 → per-level +9 HP; maxHp starts 14
+    // Jump level 1 → 5 in one award (6500 XP = level 5). Player path must match the
+    // companion path: 4 levels of HP (not 1), and BOTH Lv2 + Lv5 features (not just Lv5).
+    applyMuts("Ages pass in an instant. [XP:6500]");
+    var c=worldState.character;
+    if(c.level!==5)return "level "+c.level+" want 5";
+    if(c.maxHp!==14+9*4)return "maxHp "+c.maxHp+" want "+(14+36)+" (9/level x4)";
+    if(c.hp!==14+9*4)return "hp "+c.hp+" want "+(14+36);
+    var has=function(nm){for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===nm)return true;return false;};
+    if(!has("Lv2"))return "Lv2 feature (Action Surge) skipped by the jump";
+    return has("Lv5")?true:"Lv5 feature (Extra Attack) missing";
+  });
   t("quest block: all-objectives-done quest gets the close-or-extend instruction",function(){
     makeWorld();
     worldState.questLog=[

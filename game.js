@@ -116,15 +116,36 @@ function checkLegacyCharacter(){
   saveCore();
   if(typeof showToast==="function")showToast("☠ A familiar face approaches...");
 }
+// audit E1: a single big [XP:] can cross several levels at once (an act reward, or a
+// low-level char handed a large award). The old one-shot form granted HP once, only the
+// TOP level's feature, and fired at most one modal — so a 1→10 jump skipped Lv2-9 features,
+// most HP, and the archetype. Loop per level like checkCompanionLevelUp already does, then
+// queue the modals owed across the whole span (archetype first, then each stat bump).
+var _levelBumpsOwed=0; // stat bumps owed from a multi-level jump; drained by sbConfirm
 function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
-  var oldLvl=c.level;c.level=newLvl;var i,cls=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===c.cls){cls=CLSS[i];break;}}
-  var hpGain=cls?Math.ceil(cls.hd/2)+1+Math.floor((c.stats.CON-10)/2):3;hpGain=Math.max(1,hpGain);c.maxHp+=hpGain;c.hp+=hpGain;
-  addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+hpGain+" (now "+c.maxHp+")");
-  var features=CLASS_FEATURES[c.cls]||{};if(features[newLvl]){if(!c.abilities)c.abilities=[];c.abilities.push({nm:"Lv"+newLvl,ds:features[newLvl],gained:worldState.turn});addMsg("narrator","<p><em>"+features[newLvl]+"</em></p>");updateAbPanel(true);}
-  if(newLvl===3&&!c.archetype)showArchetypeModal();
-  else if(STAT_BUMP_LEVELS.indexOf(newLvl)>=0)showStatBumpModal();
+  var oldLvl=c.level,i,cls=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===c.cls){cls=CLSS[i];break;}}
+  if(!c.abilities)c.abilities=[];
+  var totalHp=0,bumpsOwed=0,newFeatures=[];
+  while(c.level<newLvl){
+    c.level++;
+    var conMod=c.stats&&typeof c.stats.CON==="number"?Math.floor((c.stats.CON-10)/2):0;
+    var hpGain=cls?Math.ceil(cls.hd/2)+1+conMod:3;hpGain=Math.max(1,hpGain);
+    c.maxHp+=hpGain;c.hp+=hpGain;totalHp+=hpGain;
+    var features=CLASS_FEATURES[c.cls]||{};
+    if(features[c.level]){c.abilities.push({nm:"Lv"+c.level,ds:features[c.level],gained:worldState.turn});newFeatures.push(features[c.level]);}
+    if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
+  }
+  addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+totalHp+" (now "+c.maxHp+")");
+  for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
+  if(newFeatures.length)updateAbPanel(true);
+  _levelBumpsOwed+=bumpsOwed;
+  if(oldLvl<3&&newLvl>=3&&!c.archetype)showArchetypeModal(); // archetype first; pickArchetype then drains the bump queue
+  else maybeShowLevelBump();
 }
+// Show the next owed stat-bump modal, if any. Called after the archetype pick and after each
+// bump confirm so a jump that crosses both level 4 and 8 presents both, one at a time.
+function maybeShowLevelBump(){if(_levelBumpsOwed>0)showStatBumpModal();}
 function checkCompanionLevelUp(cs){
   // Companion auto-level: HP + class features only. No archetype/stat-bump modals —
   // companions level silently; the GM narrates growth if it matters.
@@ -155,6 +176,7 @@ function pickArchetype(idx){
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:arch.nm,ds:arch.desc,gained:worldState.turn});
   var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src&&(!c.spells||!c.spells.length)){if(!c.spells)c.spells=[];var i;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}if(src[1]){for(i=0;i<src[1].length;i++)c.spells.push({nm:src[1][i],lvl:1,used:false});}}
   var m=document.getElementById("arch-modal");if(m)m.remove();addMsg("system","Archetype: "+arch.nm);updateAbPanel(true);initSpells();syncUI();saveAll();
+  maybeShowLevelBump(); // a jump that crossed both 3 and 4/8 owes a stat bump next (E1)
 }
 function showStatBumpModal(){
   var c=worldState.character;var ex=document.getElementById("sb-modal");if(ex)ex.remove();
@@ -174,7 +196,7 @@ function sbPick(s,v,btn){
   picks.push({s:s,v:v});_sbPicks=picks;document.getElementById("sb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("sb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("sb-cur-"+s).style.color="var(--acc)";
 }
 function sbBack(){var m=document.getElementById("sb-modal");if(m)m.remove();}
-function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));syncUI();saveAll();}
+function sbConfirm(){var picks=_sbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("sb-warn").textContent="Must spend +2.";return;}var c=worldState.character;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;var m=document.getElementById("sb-modal");if(m)m.remove();addMsg("system","Stats: "+picks.map(function(p){return p.s+"+"+p.v;}).join(", "));if(_levelBumpsOwed>0)_levelBumpsOwed--;syncUI();saveAll();maybeShowLevelBump();/* drain the multi-level bump queue (E1) */}
 // A plain tap POPULATES the input (editable) so the player can tweak/combine before sending.
 // Ctrl/Cmd-click (desktop) or a long-press (mobile, handled in wireButtons) EXECUTES immediately.
 function sendSuggestedAction(btn,ev){
