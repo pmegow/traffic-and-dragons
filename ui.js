@@ -535,7 +535,7 @@ function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(fu
 
 function connectToServer(){
   storageAdapter.loginWithServer(TND_SERVER_URL,function(err,info){
-    if(err){showToast("Server login failed.");return;}
+    if(err){showToast(typeof err==="string"?err:"Server login failed.");return;}// surface the real reason (audit E75)
     updateServerUI();
     showToast("&#9729; Connected as "+info.username);
     snapshotActiveCamp();
@@ -565,7 +565,10 @@ function campCloudPushSilent(id,cb){
   var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
   var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
-  var wsStripped=Object.assign({},wsObj,{character:Object.assign({},wsObj.character,{portrait:null}),npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
+  // Keep the PC portrait INLINE (audit E27 — matches the v1.45 fix / the main _syncNow path): it must
+  // ride atomic with the state so a device pulling this campaign doesn't get a portrait-less PC. Only
+  // NPC avatar portraits are stripped to the separate /portrait store.
+  var wsStripped=Object.assign({},wsObj,{npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
   // narrativeHtml no longer shipped (audit #18) — replay rebuilds from worldState.transcript.
   fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id,narrativeHtml:""})})
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
@@ -1927,6 +1930,9 @@ function campSaveRename(id){
     // Patch the stored worldState for this campaign
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set("tnd_camp_"+id+"_ws",JSON.stringify(ws));}catch(e){}}
+    // Push the rename to the server (audit E80) — otherwise the next syncCampaignList merge (server
+    // wins on conflict) reverts the local name back to the server's old one.
+    if(storageAdapter.isServerMode()&&typeof campCloudPushSilent==="function")campCloudPushSilent(id,null);
   }
   showCampaignPicker();
 }

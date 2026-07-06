@@ -79,6 +79,8 @@ var storageAdapter = (function() {
       "tnd-auth",
       "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
     );
+    // A blocked popup returns null (audit E75) — report it instead of failing silently.
+    if (!_popup) { if (typeof _popupCb === "function") { _popupCb("Popup blocked — allow popups for this site and try again."); _popupCb = null; } return; }
 
     // Listen for postMessage from /auth/done (works on https origins)
     // AND poll /auth/ticket/:ticket as fallback for file:// origins
@@ -128,7 +130,7 @@ var storageAdapter = (function() {
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(d) { if (d && d.sessionId) onAuth(d.sessionId, d.username, d.avatarUrl); else if (_popupCb) { _popupCb("Login cancelled"); _popupCb = null; } })
             .catch(function() { if (_popupCb) { _popupCb("Login failed"); _popupCb = null; } });
-        }
+        } else if (_popupCb) { _popupCb("Login cancelled"); _popupCb = null; }/* closed with no ticket — was a silent no-op (audit E75) */
       }
     }, 500);
 

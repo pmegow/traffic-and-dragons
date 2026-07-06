@@ -963,6 +963,19 @@ function runEngineTests(R){
     restSpells();
     return worldState.character.spells[0].used===false&&worldState.npcs[0].charSheet.spells[0].used===false?true:"companion spell not restored";
   });
+  t("migrateWorldState heals a missing maxHp before hp (E71)",function(){
+    makeWorld();delete worldState.character.maxHp;worldState.character.hp=12;
+    migrateWorldState();
+    return (typeof worldState.character.maxHp==="number"&&worldState.character.maxHp>0)?true:"maxHp not healed: "+worldState.character.maxHp;
+  });
+  t("loadState keeps a good worldState when the memory key is corrupt (E73)",function(){
+    makeWorld();
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,"{bad json");
+    var ok=loadState();
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    if(!ok)return "returned false despite a good worldState";
+    return (worldState&&worldState.character&&worldState.character.name==="Tess")?true:"good worldState discarded on corrupt memory";
+  });
   // ── blueprint apply hardening (audit E19/E20) ──
   t("normalizeBlueprint defaults each act's arcs so applyBlueprint can't crash (E19)",function(){
     var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",acts:[{title:"A1",goal:"g"}]});

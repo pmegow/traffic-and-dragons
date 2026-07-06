@@ -63,6 +63,7 @@ function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
   if(typeof c.level!=="number"||isNaN(c.level)){c.level=1;_mig=true;}if(typeof c.xp!=="number"||isNaN(c.xp)){c.xp=0;_mig=true;}
+  if(typeof c.maxHp!=="number"||isNaN(c.maxHp)){c.maxHp=(typeof c.hp==="number"&&!isNaN(c.hp)&&c.hp>0)?c.hp:8;_mig=true;}// heal maxHp FIRST (audit E71) — else a NaN maxHp drives hp to NaN on the next [HP:] tag, every load
   if(typeof c.hp!=="number"||isNaN(c.hp)){c.hp=c.maxHp||8;_mig=true;}if(typeof c.gold!=="number"||isNaN(c.gold)){c.gold=0;_mig=true;}
   if(!c.abilities){c.abilities=[];_mig=true;}if(!c.spells){c.spells=[];_mig=true;}
   for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0&&c.spells[si].used){c.spells[si].used=false;_mig=true;}}// cantrips never expend
@@ -87,21 +88,19 @@ function migrateWorldState(){
   return _mig;
 }
 function loadState(){
-  try{var ws=store.get(WSK),sl=store.get(SLK),mm=store.get(MEM_KEY);
-    // Parse the session log BEFORE the migrate/saveCore below (audit E36): saveCore writes BOTH
-    // WSK and SLK, so if a migration fires while sessionLog still holds the PREVIOUS value (empty
-    // on a page load, the outgoing campaign's log on a switch), it clobbers the incoming campaign's
-    // SLK on disk with the wrong log. Setting it first — and to [] when there is no SLK — keeps the
-    // persisted pair consistent with the worldState being loaded.
-    // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
-    // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
-    if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
-    if(typeof _sumFails!=="undefined")_sumFails=0; // don't carry a summarize failure streak across campaigns (audit E49)
-    sessionLog=sl?JSON.parse(sl):[];
-    if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}
-    if(mm){memory=JSON.parse(mm);healMemory();}
-    else memory=blankMemory();
-    return !!ws;}catch(e){return false;}
+  var ws,sl,mm;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
+  // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
+  // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
+  if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
+  if(typeof _sumFails!=="undefined")_sumFails=0; // don't carry a summarize failure streak across campaigns (audit E49)
+  // Parse each key in its OWN try/catch (audit E73): a corrupt memory/session key must NOT discard a
+  // good worldState (the old single try returned false with worldState still assigned, so the wizard
+  // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
+  // migrate-save persists the loaded log, not the stale global.
+  try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
+  try{if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
+  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
+  return !!ws&&!!worldState;
 }
 // Fill the shape defaults an older/foreign memory blob may be missing. Extracted from loadState so
 // the server-adopt path can run the same heals (audit E14) — importSave already got migrateWorldState
@@ -121,7 +120,10 @@ function healMemory(){
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";
-function getCampMeta(){try{var r=store.get(CAMP_META_K);return r?JSON.parse(r):[]}catch(e){return[];}}
+function getCampMeta(){var r=store.get(CAMP_META_K);if(!r)return[];try{return JSON.parse(r);}catch(e){
+  // Back up the corrupt list before callers overwrite it (audit E72) — the next updateCampMeta would
+  // persist a [] wipe, unlisting every other campaign; the raw copy keeps them recoverable.
+  try{store.set("tnd_camps_v1_corrupt",r);}catch(x){}if(typeof console!=="undefined")console.warn("[camps] campaign list corrupt — backed up to tnd_camps_v1_corrupt");return[];}}
 function setCampMeta(arr){store.set(CAMP_META_K,JSON.stringify(arr));}
 function getActiveCampId(){return store.get(ACTIVE_CAMP_K)||null;}
 function setActiveCampId(id){if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);}
