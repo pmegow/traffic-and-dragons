@@ -185,6 +185,10 @@ function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=
 // Toasts stay until acknowledged (tap to dismiss) — important "cheers" (quest opportunity, legacy
 // arrival, level-up) shouldn't vanish before they're seen.
 function showToast(msg){
+  // Decode the HTML entities several call sites pass (audit E40) — showToast renders via textContent,
+  // so "&#9729;"/"&mdash;" would show literally. Numeric refs + a couple of named ones; toast strings
+  // are developer constants, so this is a safe decode (not model/user input).
+  msg=String(msg==null?"":msg).replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(parseInt(n,10));}).replace(/&mdash;/g,"—").replace(/&ndash;/g,"–").replace(/&amp;/g,"&");
   var live=document.querySelectorAll(".tnd-toast").length;
   var t=document.createElement("div");t.className="tnd-toast";
   t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:var(--modal-bg);border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:var(--font);z-index:400;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
@@ -235,12 +239,15 @@ function showChar(){
   pendingCompanions=[];
   buildDots();buildDnaStep();
 }
-function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";}
+function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";if(tab==="narrative"){var _nnb=tn.querySelector(".tab-narr-badge");if(_nnb)_nnb.className="tab-badge tab-narr-badge";}/* clear the story badge on switch-in (E68) */}
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
 if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
 div.innerHTML=html;
 if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){TTS.speak(text);};div.appendChild(rb);})(opts.replayText);}
 story.appendChild(div);story.scrollTop=story.scrollHeight;if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
+// Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
+// the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
+if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}
 if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
 return div;}
 function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}}
@@ -336,13 +343,16 @@ function updatePartyPanel(){
     m=npcs[i];sheet=m.charSheet||null;
     hp=sheet?sheet.hp:null;maxHp=sheet?sheet.maxHp:null;
     cls=sheet?(sheet.cls||""):(m.role||"");
-    h+="<div onclick='showNpcSheet(\""+escHtml(m.name)+"\")' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
+    // data-npc + delegated wiring below (audit E69) — an inline onclick with the name in a JS string
+    // literal breaks when the name contains a double quote (escHtml's &quot; decodes back to ").
+    h+="<div class='party-row' data-npc='"+escHtml(m.name)+"' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
       +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+"</div>"
       +(cls?"<div style='font-size:10px;color:var(--t2);'>"+escHtml(cls)+"</div>":"")
       +(hp!==null?"<div style='font-size:10px;color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</div>":"")
       +"</div>";
   }
-  document.getElementById("party-list").innerHTML=h;
+  var _pl=document.getElementById("party-list");_pl.innerHTML=h;
+  Array.prototype.forEach.call(_pl.querySelectorAll(".party-row[data-npc]"),function(r){r.addEventListener("click",function(){showNpcSheet(r.getAttribute("data-npc"));});});
 }
 // #32: inventory entries are plain strings, often "Name — description" or "Name (description)".
 // Bold the NAME segment only (split at the first spaced dash or opening paren) so lists scan;
@@ -1926,14 +1936,16 @@ function exportCharacter(){
   var ex=document.getElementById("char-export-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="char-export-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  // Same slug as _doExportChar so the previewed filename matches what's actually written, and
+  // escHtml the names/labels which are model-derived (audit E70).
+  var slug=function(s){return(s||"unknown").replace(/[^a-zA-Z0-9_\-]/g,"_");};
   var rows="",ci;for(ci=0;ci<chars.length;ci++){
-    var slug=function(s){return(s||"unknown").replace(/\s+/g,"_");};
     var camp=slug(worldState.campName||worldState.character.name);
     var fname=camp+"_"+slug(chars[ci].name)+"_character.char";
     rows+="<div onclick='_charExportPick("+ci+")' style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd)\"'>"
-      +"<div style='flex:1;min-width:0;'><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+chars[ci].name+"</div>"
-      +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+chars[ci].label+"</div>"
-      +"<div style='font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+fname+"</div></div>"
+      +"<div style='flex:1;min-width:0;'><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+escHtml(chars[ci].name)+"</div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(chars[ci].label)+"</div>"
+      +"<div style='font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(fname)+"</div></div>"
       +"<span style='font-size:18px;color:var(--t2);flex-shrink:0;'>&#8595;</span></div>";
   }
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
@@ -2676,7 +2688,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg","fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
+  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg","fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb","fm-autosend","cs-fm-autosend","api-fm-autosend"].forEach(function(id){/* autosend added so toggling it doesn't close the File menu (audit E67) */
     var el=document.getElementById(id);if(!el)return;
     var lbl=el.closest("label")||el.parentElement;
     if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -2709,7 +2721,7 @@ function wireButtons(){
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
   document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
-  document.getElementById("import-char-btn").addEventListener("click",showCharacterBrowser);
+  // (import-char-btn is already wired in the shared _menus loop above — audit E66 removed the duplicate here)
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
   document.getElementById("car-close-btn").addEventListener("click",hideCarMode);
