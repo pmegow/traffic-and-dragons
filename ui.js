@@ -1007,7 +1007,7 @@ async function showPortraitModal(refreshFn,opts){
   var ex=document.getElementById("portrait-modal");if(ex)ex.remove();
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
-  var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();};
+  var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;storageAdapter.markPortraitDirty();saveAll();};/* mark dirty on removal too so it propagates (E28) */
   var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};};
   var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;
@@ -1485,7 +1485,7 @@ function showNpcSheet(name){
     var npcSubject=sheet||{name:name,gender:"NB",age:"",ancestry:"",cls:"",archetypeNm:null,appear:"",mark:"",inventory:[]};
     var npcPortOpts={
       getPortrait:function(){return npcPortrait(wsNpc);},
-      setPortrait:function(url){if(wsNpc.charSheet){wsNpc.charSheet.portrait=url;wsNpc.portrait=null;}else wsNpc.portrait=url;if(url)storageAdapter.markPortraitDirty();saveAll();},
+      setPortrait:function(url){if(wsNpc.charSheet){wsNpc.charSheet.portrait=url;wsNpc.portrait=null;}else wsNpc.portrait=url;storageAdapter.markPortraitDirty();saveAll();},/* mark dirty on removal too (E28) */
       getOffset:npcGetOff,
       setOffset:npcSetOff,
       subject:npcSubject

@@ -183,6 +183,13 @@ function runEngineTests(R){
     var again=storageAdapter.fillPortraitsFromBlob(blob);
     return again===false?true:"second pass not a no-op";
   });
+  t("fillPortraitsFromBlob never fills the PC portrait from a DIFFERENT character (E79)",function(){
+    makeWorld();worldState.character.portrait=null;
+    storageAdapter.fillPortraitsFromBlob({character:{name:"SomeoneElse",portrait:"WRONG_FACE"},npcs:[]});
+    if(worldState.character.portrait)return "filled the wrong character's portrait: "+worldState.character.portrait;
+    storageAdapter.fillPortraitsFromBlob({character:{name:"Tess",portrait:"RIGHT_FACE"},npcs:[]}); // same name DOES fill
+    return worldState.character.portrait==="RIGHT_FACE"?true:"same-name fill failed: "+worldState.character.portrait;
+  });
 
   // ── store fallback coherence (audit E5/E6) ───────────────────────────────────
   section("store quota fallback (E5/E6)");

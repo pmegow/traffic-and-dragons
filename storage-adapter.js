@@ -381,7 +381,11 @@ var storageAdapter = (function() {
     if (!sws || !sws.npcs) return false;
     if (typeof worldState === "undefined" || !worldState || !worldState.npcs) return false;
     var changed = false;
-    if (sws.character && sws.character.portrait && worldState.character && !worldState.character.portrait) {
+    // Only fill the PC portrait from a blob for the SAME character (audit E79) — after a mid-game
+    // character swap or a cross-campaign GET, the blob's PC may be a different person, and filling
+    // its portrait onto the current PC would land the wrong face.
+    if (sws.character && sws.character.portrait && worldState.character && !worldState.character.portrait
+        && sws.character.name === worldState.character.name) {
       worldState.character.portrait = sws.character.portrait;
       changed = true;
     }
@@ -486,8 +490,11 @@ var storageAdapter = (function() {
         var serverPV = data.worldState.portraitVer || 0;
         var localPV  = worldState.portraitVer || 0;
         if (serverPV > localPV) {
-          var spc = data.worldState.character && data.worldState.character.portrait;
-          if ((spc || data.portrait) && worldState.character) worldState.character.portrait = spc || data.portrait;
+          // PV-newer + same character: the inline blob PC portrait is authoritative — apply it
+          // INCLUDING null so a removal on another device clears it here (audit E28), without
+          // resurrecting from the stale separate /portrait store. Different char → leave it alone (E79).
+          var _pvSameChar = data.worldState.character && worldState.character && data.worldState.character.name === worldState.character.name;
+          if (worldState.character && _pvSameChar) worldState.character.portrait = (data.worldState.character.portrait) || null;
           if (data.npcPortraits && worldState.npcs) {
             worldState.npcs.forEach(function(n) {
               if (!data.npcPortraits[n.name]) return;
