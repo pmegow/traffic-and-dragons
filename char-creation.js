@@ -58,7 +58,12 @@ function hideAncDetail(){var gw=document.getElementById("anc-grid-wrap"),det=doc
 function buildFlexPick(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||a.fc===0)return;var lim=a.fc,lbl=document.getElementById("flex-lbl");if(lbl)lbl.textContent="Choose "+lim+" stat"+(lim>1?"s":"")+" for +1 ("+cs.fp.length+"/"+lim+"):";var fg=document.getElementById("flex-grid");if(!fg)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],isSel=cs.fp.indexOf(s)>=0,isFull=!isSel&&cs.fp.length>=lim;h+='<div class="fp'+(isSel?" sel":"")+(isFull?" dis":"")+'" onclick="pickFlex(\''+s+'\')">'+s+'</div>';}fg.innerHTML=h;}
 function pickFlex(s){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a)return;var idx=cs.fp.indexOf(s);if(idx>=0)cs.fp.splice(idx,1);else if(cs.fp.length<a.fc)cs.fp.push(s);buildFlexPick();buildStatGrid();}
 function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i;for(i=0;i<CLSS.length;i++){var c=CLSS[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
-function pickCls(idx){cs.cls=CLSS[idx].id;buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[CLSS[idx].id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
+function pickCls(idx){cs.cls=CLSS[idx].id;
+  // Re-map already-rolled stats onto the new class's STAT_PRIORITY (audit E57) — keeps the rolled
+  // numbers (no re-roll fishing) but re-prioritizes them, so switching class after rolling can't
+  // leave a Sorcerer with INT as a dump stat. Point-buy mode (cs.rolled false) is untouched.
+  if(cs.rolled){var _vals=STATS.map(function(s){return cs.bs[s];}).sort(function(a,b){return b-a;});var _prio=STAT_PRIORITY[cs.cls]||STATS,_vi;for(_vi=0;_vi<_prio.length;_vi++)cs.bs[_prio[_vi]]=_vals[_vi];}
+  buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[CLSS[idx].id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
 function buildStatGrid(){var fs=getFin();var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}var bst=[];if(a){if(a.fc>0)bst=cs.fp.slice();else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++)bst.push(keys[i]);}}var has=cs.rolled||cs.statMode==="pb";var el=document.getElementById("stat-grid");if(!el)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],base=cs.bs[s],fin=fs[s],bon=fin-base,ib=bst.indexOf(s)>=0;h+='<div class="sbox'+(ib?" bst":"")+'"><div class="sn">'+s+'</div><div class="sv">'+(has?base:"--")+'</div><div class="sf">'+(has&&bon>0?fin+" (+"+bon+")":"&nbsp;")+'</div><div class="sm">'+(has?smod(fin):"")+'</div></div>';}el.innerHTML=h;}
 function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=STAT_PRIORITY[cs.cls]||STATS;for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
 function setStatMode(m){cs.statMode=m;cs.rolled=false;if(m==="pb"){var i;for(i=0;i<STATS.length;i++)cs.bs[STATS[i]]=8;}document.getElementById("mode-roll").className=m==="roll"?"active":"";document.getElementById("mode-pb").className=m==="pb"?"active":"";document.getElementById("roll-sec").style.display=m==="roll"?"block":"none";document.getElementById("pb-sec").style.display=m==="pb"?"block":"none";if(m==="pb")buildPBCtrls();buildStatGrid();}
@@ -71,7 +76,10 @@ function rvSyncXp(){
   if(!lvlEl||!xpEl)return;
   var lvl=parseInt(lvlEl.value)||1;
   var floor=XP_LEVELS[lvl-1]||0;
-  xpEl.value=floor;
+  // Preserve an in-band typed value instead of always resetting to the floor (audit E56) — this
+  // fires on every name keystroke via buildReview, which used to wipe a tester's XP override.
+  var cap=lvl<10?XP_LEVELS[lvl]-1:Infinity,cur=parseInt(xpEl.value);
+  xpEl.value=(!isNaN(cur)&&cur>=floor&&cur<=cap)?cur:floor;
   xpEl.min=floor;
   if(hintEl)hintEl.textContent="Floor for level "+lvl+": "+floor+" XP"+(lvl<10?" | Next level at: "+XP_LEVELS[lvl]+" XP":"");
   var goBtn=document.getElementById("rv-go");
@@ -281,7 +289,11 @@ function confirmChar(){
   var fs=getFin(),hp=getMHP(),subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var slEl=document.getElementById("rv-start-level"),startLvl=slEl?parseInt(slEl.value)||1:1;
-  var xpEl=document.getElementById("rv-start-xp"),startXp=xpEl?Math.max(parseInt(xpEl.value)||0,XP_LEVELS[startLvl-1]||0):XP_LEVELS[startLvl-1]||0;
+  // Clamp the starting-XP override into the level's band [floor, next-1] (audit E56) — an unclamped
+  // value at/above the next threshold made the first in-play [XP:] jump multiple levels (now safe
+  // via E1's loop, but the character should still start inside its own band).
+  var xpEl=document.getElementById("rv-start-xp"),_xpFloor=XP_LEVELS[startLvl-1]||0,_xpCap=startLvl<10?XP_LEVELS[startLvl]-1:Infinity;
+  var startXp=xpEl?Math.min(Math.max(parseInt(xpEl.value)||0,_xpFloor),_xpCap):_xpFloor;
   var startLoc;
   if(pendingBlueprint&&pendingBlueprint.startingLocation){startLoc=pendingBlueprint.startingLocation;}
   else{var locEl=document.getElementById("rv-start-loc");startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}}
@@ -293,7 +305,8 @@ function confirmChar(){
   if(ancLangMap[cs.ancestry])startLangs.push(ancLangMap[cs.ancestry]);
   if(cs.ancestry==="halfblood"&&cs.subrace){var subLangMap={half_elven:"Elvish",half_orcish:"Orcish",half_draconic:"Draconic",half_infernal:"Infernal",half_fey:"Sylvan",half_gnomish:"Gnomish"};if(subLangMap[cs.subrace]&&startLangs.indexOf(subLangMap[cs.subrace])<0)startLangs.push(subLangMap[cs.subrace]);}
   var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:null,flaw:null,motivation:null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,portraitOffset:cs.portraitOffset||null,storyBeats:[],partyMember:true};
-  if(startLvl>1){char.level=startLvl;char.xp=startXp;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
+  char.xp=startXp; // apply the (clamped) starting XP at level 1 too — was silently dropped (audit E56)
+  if(startLvl>1){char.level=startLvl;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
   // Level-band class features for a high-level start (audit E38). Previously these were added
@@ -304,8 +317,9 @@ function confirmChar(){
   if(startLvl>1){var _cf=CLASS_FEATURES[cs.cls]||{},_cfi;for(_cfi=2;_cfi<=startLvl;_cfi++){if(_cf[_cfi])char.abilities.push({nm:"Lv"+_cfi,ds:_cf[_cfi],gained:0});}}
   char._campName=campNameVal;
   if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;
-    // Snapshot for perk-flow Back (E2): stats + abilities length before any archetype/bump is applied.
-    pendingPerkBase={stats:Object.assign({},char.stats),abilLen:char.abilities.length};_cbApplied=[];
+    // Snapshot for perk-flow Back (E2) + revert-safe CON→HP (E55): stats, abilities length, and the
+    // pre-bump HP/CON-mod, so HP can be recomputed from base on every apply/revert.
+    pendingPerkBase={stats:Object.assign({},char.stats),abilLen:char.abilities.length,maxHp:char.maxHp,hp:char.hp,conMod:Math.floor((char.stats.CON-10)/2)};_cbApplied=[];
     showCreationArchetype();}
   else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
@@ -339,6 +353,18 @@ function restorePerkBase(){
   if(!pendingPerkBase||!pendingChar)return;
   pendingChar.stats=Object.assign({},pendingPerkBase.stats);
   pendingChar.abilities=pendingChar.abilities.slice(0,pendingPerkBase.abilLen);
+  syncPerkHp();
+}
+// Recompute max/current HP from the pre-bump snapshot + the CURRENT CON modifier (audit E55).
+// A creation stat bump that raises CON's modifier retroactively adds HP for every level the
+// character starts with (CON mod is in level 1's HP and each per-level roll); the old flow rolled
+// HP with pre-bump CON and never revisited it, so a +2 CON bump on a high-level start added no HP.
+// Computed from base, so it is idempotent and correct under any sequence of applies and Back-reverts.
+function syncPerkHp(){
+  if(!pendingPerkBase||!pendingChar)return;
+  var c=pendingChar,cm=Math.floor(((c.stats.CON||10)-10)/2);
+  var d=(cm-pendingPerkBase.conMod)*(c.level||1);
+  c.maxHp=pendingPerkBase.maxHp+d;c.hp=pendingPerkBase.hp+d;
 }
 function pickCreationArch(idx){
   var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;
@@ -502,9 +528,9 @@ function cbBack(){
   if(currentBump>1){
     // Revert the previously-confirmed bump so re-confirming it applies cleanly (E2 — was a silent double).
     var last=_cbApplied.pop(),c=pendingChar,pi;if(last&&c)for(pi=0;pi<last.length;pi++)c.stats[last[pi].s]-=last[pi].v;
-    currentBump--;showCreationStatBump();
+    syncPerkHp();currentBump--;showCreationStatBump();
   }else{
     restorePerkBase();_cbApplied=[];showCreationArchetype(); // back past bump 1 → clean archetype re-pick
   }
 }
-function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;_cbApplied.push(picks.slice());/* record for Back-revert (E2) */var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}}
+function cbConfirm(){var picks=window._cbPicks||[];var total=0,pi;for(pi=0;pi<picks.length;pi++)total+=picks[pi].v;if(total!==2){document.getElementById("cb-warn").textContent="Must spend exactly +2.";return;}var c=pendingChar;for(pi=0;pi<picks.length;pi++)c.stats[picks[pi].s]+=picks[pi].v;_cbApplied.push(picks.slice());syncPerkHp();/* record for Back-revert (E2) + retroactive CON HP (E55) */var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();currentBump++;if(currentBump<=pendingBumps){showCreationStatBump();}else if(buildPendingSpellPool(c)){showCreationSpellPick();}else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}}
