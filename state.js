@@ -126,6 +126,10 @@ function snapshotActiveCamp(){
   if(sl)store.set("tnd_camp_"+id+"_sl",sl);
   if(mem)store.set("tnd_camp_"+id+"_mem",mem);
   updateCampMeta();
+  // Flush the debounced server sync before leaving this campaign (audit E74): snapshotActiveCamp is
+  // the "about to switch/wipe" signal, and switchToCampaign/campNew/newGame/import never flushed —
+  // so the outgoing campaign's final turn(s) could sit unsent in the 1.5s debounce window.
+  if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();
 }
 function switchToCampaign(id){
   snapshotActiveCamp();

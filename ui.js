@@ -711,6 +711,10 @@ function importSave(event){
     if(!Array.isArray(ws.questLog))ws.questLog=[];
     if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
     if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
+    // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
+    // used to overwrite worldState + the active campaign id without preserving the current campaign,
+    // silently destroying its in-session progress since the last snapshot.
+    snapshotActiveCamp();
     worldState=ws;
     // Resolve campaign slot: reuse the file's own campId if present, else current active, else mint new
     var _cid=ws.campId;
@@ -1836,9 +1840,15 @@ function campCloudPull(id){
       // Update meta savedAt
       var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
       showToast("☁ Pulled from server.");
-      // If active campaign, reload and restore narrative
+      // If active campaign, reload and restore narrative. Write the pulled blob straight into the
+      // LIVE keys and loadState — NOT switchToCampaign, whose snapshotActiveCamp would overwrite the
+      // just-pulled slot with the STALE live state before reading it back, silently discarding the
+      // pull while the toast claimed success (audit E3).
       if(id===getActiveCampId()){
-        var ok=switchToCampaign(id);
+        store.set(WSK,JSON.stringify(data.worldState));
+        store.set(SLK,JSON.stringify(data.sessionLog||[]));
+        store.set(MEM_KEY,JSON.stringify(data.memory||{}));
+        var ok=loadState();
         if(ok){
           _applyLoadedCampaign(); // replays from the transcript via initReplaySession
           // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
