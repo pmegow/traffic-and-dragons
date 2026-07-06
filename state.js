@@ -95,13 +95,25 @@ function loadState(){
     // persisted pair consistent with the worldState being loaded.
     sessionLog=sl?JSON.parse(sl):[];
     if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}
-    if(mm){memory=JSON.parse(mm);if(!memory.futureEvents)memory.futureEvents=[];if(!memory.usedNames)memory.usedNames=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.edges)memory.map.edges=[];if(!memory.map.nodes)memory.map.nodes={};if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
-    if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
-    if(!memory.npcGraph.factions)memory.npcGraph.factions={};
-    if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
-    if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};}
+    if(mm){memory=JSON.parse(mm);healMemory();}
     else memory=blankMemory();
     return !!ws;}catch(e){return false;}
+}
+// Fill the shape defaults an older/foreign memory blob may be missing. Extracted from loadState so
+// the server-adopt path can run the same heals (audit E14) — importSave already got migrateWorldState
+// (audit #15), but the server reconcile adopted un-migrated, un-healed blobs. Operates on the global.
+function healMemory(){
+  if(!memory)memory=blankMemory();
+  if(!memory.futureEvents)memory.futureEvents=[];
+  if(!memory.usedNames)memory.usedNames=[];
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map.edges)memory.map.edges=[];
+  if(!memory.map.nodes)memory.map.nodes={};
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
+  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
+  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";

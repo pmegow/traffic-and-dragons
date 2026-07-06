@@ -245,6 +245,15 @@ function runEngineTests(R){
     return rolledBack?true:"ok="+ok+" active="+getActiveCampId()+" char="+(worldState&&worldState.character?worldState.character.name:"none");
   });
 
+  t("healMemory fills shape defaults on an old/foreign blob (E14 server-adopt path)",function(){
+    memory={npcs:{},locations:{}}; // minimal blob missing map/npcGraph/futureEvents/nameIdx/...
+    healMemory();
+    if(!memory.map||!memory.map.nodes||!memory.map.edges)return "map not healed";
+    if(!memory.npcGraph||!memory.npcGraph.factions||!memory.npcGraph.npcFactions||!memory.npcGraph.factionEdges)return "npcGraph not healed";
+    if(!Array.isArray(memory.futureEvents)||!Array.isArray(memory.usedNames))return "arrays not healed";
+    return typeof memory.nameIdx==="number"?true:"nameIdx not healed";
+  });
+
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
   section("usage telemetry");
   t("anthropic parseUsage maps all four token fields",function(){

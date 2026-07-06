@@ -66,6 +66,10 @@ var storageAdapter = (function() {
 
     serverUrl = serverUrl.replace(/\/$/, "");
     _popupCb  = onSuccess || null;
+    // Origin to accept postMessage auth from (audit E7) — the /auth/done page is served from the
+    // server, so a genuine message carries this origin. Anything else is a forged token-fixation
+    // attempt and is ignored. (file:// openers get a "null" origin and use the ticket-poll fallback.)
+    var _authOrigin = (function(){ try { return new URL(serverUrl).origin; } catch(e) { return null; } })();
 
     var w = 600, h = 700;
     var left = Math.round(screen.width  / 2 - w / 2);
@@ -94,6 +98,10 @@ var storageAdapter = (function() {
     }
 
     function onMsg(e) {
+      // Reject messages from any origin but the server (audit E7). Without this, any window with a
+      // handle to this tab could post a forged {type:"tnd-auth", sessionId} and fixate the session
+      // token, so campaign data would sync to the attacker's account.
+      if (_authOrigin && e.origin !== _authOrigin) return;
       if (!e.data || e.data.type !== "tnd-auth") return;
       var ticket = e.data.ticket;
       if (ticket) {
@@ -392,13 +400,21 @@ var storageAdapter = (function() {
         syncCampaignList(null);
         return;
       }
+      // Campaign-identity guard (audit E4): GET /api/state returns the user's most-recent state for
+      // ANY campaign. If a DIFFERENT campaign is active locally, adopting this blob would silently
+      // switch campaigns and stomp the active one. Reconcile only the SAME campaign; a fresh device
+      // (no local active campaign / no server campId) still adopts, which is the intended first load.
+      var _localActive = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+      var _serverCamp  = data.campaignId || data.worldState.campId || null;
+      if (_localActive && _serverCamp && _serverCamp !== _localActive) { syncCampaignList(null); return; }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
       // The server provably holds serverTurn — seed the ACK baseline (#24). If local is
       // AHEAD (the dead-host scenario), unsynced = localTurn - serverTurn shows immediately.
       if (serverTurn > _lastAckTurn) _lastAckTurn = serverTurn;
       _updateSyncUI();
-      if (serverTurn > localTurn) {
+      // Don't swap worldState out from under an in-flight turn (audit E4) — skip the adopt if busy.
+      if (serverTurn > localTurn && !(typeof busy !== "undefined" && busy)) {
         var wasFresh = !localOk;
         worldState = data.worldState;
         // Restore the authoritative campaign ID from the server before saveAll()
@@ -408,6 +424,10 @@ var storageAdapter = (function() {
         if (_scid) { if (typeof setActiveCampId === "function") setActiveCampId(_scid); worldState.campId = _scid; }
         sessionLog = data.sessionLog || [];
         memory     = data.memory || blankMemory();
+        // Adopted an un-migrated, un-healed server blob (audit E14) — run the same battery loadState
+        // and importSave (audit #15) do, so old-schema fields don't run all session and re-sync.
+        if (typeof migrateWorldState === "function") migrateWorldState();
+        if (typeof healMemory === "function") healMemory();
         if (data.portrait && worldState.character && !worldState.character.portrait) {
           worldState.character.portrait = data.portrait;
         }
