@@ -153,10 +153,12 @@ var storageAdapter = (function() {
     setServer(null, null);   // clear local state immediately
     if (!url) { if (cb) cb(); return; }
     // Send the token so the server can actually invalidate the session — without the
-    // Authorization header logout was client-side amnesia only (audit #25).
-    fetch(url + "/auth/logout", { method: "POST", headers: tok ? { "Authorization": "Bearer " + tok } : {} })
-      .catch(function() {})
-      .then(function() { if (cb) cb(); });
+    // Authorization header logout was client-side amnesia only (audit #25). Timed + status-checked
+    // (audit E78): a failed server-side invalidation is reported to the caller instead of a clean
+    // logout, so the user knows the token may still be live until it expires on its own.
+    _tFetch(url + "/auth/logout", { method: "POST", headers: tok ? { "Authorization": "Bearer " + tok } : {} }, SYNC_TIMEOUT_MS)
+      .then(function(r) { if (cb) cb(r && r.ok ? null : "Server session may still be active — it will expire on its own."); })
+      .catch(function() { if (cb) cb("Couldn't reach the server to end the session — it will expire on its own."); });
   }
 
   // ── Write-through sync (fire-and-forget) ────────────────────────────────
@@ -259,17 +261,20 @@ var storageAdapter = (function() {
     _syncTimer = setTimeout(function() { _syncTimer = null; _syncNow(); }, SYNC_DEBOUNCE_MS);
   }
 
-  function syncNow() {
+  // beacon=true is the page-unload / page-hide flush (audit E34): a plain fetch is abandoned by the
+  // browser on unload AND the _syncing-in-flight guard would drop it, so the final turn could vanish
+  // despite the documented guarantee. keepalive survives unload and — unlike navigator.sendBeacon —
+  // can carry the Authorization header the server requires.
+  function syncNow(beacon) {
     if (_syncTimer) { clearTimeout(_syncTimer); _syncTimer = null; }
-    _syncNow();
+    _syncNow(beacon);
   }
 
-  function _syncNow() {
+  function _syncNow(beacon) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
-    if (_syncing) { _pendingSync = true; return; }
+    if (_syncing && !beacon) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
-    _syncing     = true;
-    _pendingSync = false;
+    if (!beacon) { _syncing = true; _pendingSync = false; }
     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
     // Keep the CURRENT PC's portrait INLINE in the state blob — it must stay atomic with the
     // state turn. Splitting it into the separate /portrait request (below) let it desync: after a
@@ -292,6 +297,11 @@ var storageAdapter = (function() {
       campaignId:    campId,
       narrativeHtml: ""
     });
+    if (beacon) {
+      // Fire-and-forget keepalive POST — no _syncing bookkeeping, no retry (the page is going away).
+      try { fetch(_serverUrl + "/api/state", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+_token }, body:payload, keepalive:true }); } catch(e) {}
+      return;
+    }
     _tFetch(_serverUrl + "/api/state", {
       method:  "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
@@ -390,10 +400,13 @@ var storageAdapter = (function() {
     // Paint from local cache instantly, then reconcile with server.
     cb(localOk);
 
-    fetch(_serverUrl + "/api/state", {
+    // Timed (audit E76): the reconcile GET had no timeout and its failure was only console.warn'd —
+    // a dead host or expired token left the user silently reading stale local state while believing
+    // they were synced. _tFetch bounds it; the catch surfaces the failure through the sync badge.
+    _tFetch(_serverUrl + "/api/state", {
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
+    }, SYNC_TIMEOUT_MS).then(function(r) {
+      if (!r.ok) { var _e = new Error("HTTP " + r.status); _e.status = r.status; throw _e; }
       return r.json();
     }).then(function(data) {
       if (!data || !data.worldState) {
@@ -487,7 +500,9 @@ var storageAdapter = (function() {
       }
       syncCampaignList(null);
     }).catch(function(e) {
-      console.warn("[storage] server load failed:", e.message);
+      // Surface the reconcile failure through the sync badge instead of a silent console.warn
+      // (audit E76) — the user is reading local state and should know it isn't confirmed synced.
+      _onSyncFail(e && e.name === "AbortError" ? "reconcile timed out" : ((e && e.message) || "load failed"), e && e.status);
     });
   }
 
@@ -495,30 +510,31 @@ var storageAdapter = (function() {
 
   function listCharLibrary(cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/characters", {
+    // _tFetch (audit E77): a dead/waking host used to hang these modals for minutes — the #24 mode.
+    _tFetch(_serverUrl + "/api/characters", {
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
   function saveCharToLibrary(char, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/characters", {
+    _tFetch(_serverUrl + "/api/characters", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
       body: JSON.stringify({ character: char })
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
   function deleteCharFromLibrary(slug, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/characters/" + encodeURIComponent(slug), {
+    _tFetch(_serverUrl + "/api/characters/" + encodeURIComponent(slug), {
       method: "DELETE",
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
@@ -527,40 +543,40 @@ var storageAdapter = (function() {
 
   function listBlueprintLibrary(cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/blueprints", {
+    _tFetch(_serverUrl + "/api/blueprints", {
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
   function saveBlueprintToLibrary(bp, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/blueprints", {
+    _tFetch(_serverUrl + "/api/blueprints", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
       body: JSON.stringify({ blueprint: bp })
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
   function deleteBlueprintFromLibrary(slug, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/blueprints/" + encodeURIComponent(slug), {
+    _tFetch(_serverUrl + "/api/blueprints/" + encodeURIComponent(slug), {
       method: "DELETE",
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
   function deleteCampaignFromServer(id, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    fetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(id), {
+    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(id), {
       method: "DELETE",
       headers: { "Authorization": "Bearer " + _token }
-    }).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(d) { if (cb) cb(null, d); })
       .catch(function(e) { console.warn("[storage] campaign delete failed:", e.message); if (cb) cb(e.message); });
   }

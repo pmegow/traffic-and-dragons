@@ -2747,8 +2747,8 @@ function wireButtons(){
   })();
   // Flush the debounced server sync on exit/background so the 1.5s window can't drop the last
   // turn (best-effort — same fetch guarantees as before, minus the window).
-  window.addEventListener("beforeunload",function(){snapshotActiveCamp();if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();});
-  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();});
+  window.addEventListener("beforeunload",function(){snapshotActiveCamp();if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* keepalive flush — plain fetch is abandoned on unload (E34) */});
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* page-hide can precede unload on mobile — keepalive (E34) */});
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
   document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);});
