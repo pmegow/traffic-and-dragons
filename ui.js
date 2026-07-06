@@ -27,14 +27,25 @@ function applyPortraitTransform(img,off){
 }
 // Wires drag-to-pan + wheel/pinch-to-zoom on a portrait <img>.
 // getOff() -> {x,y,zoom}; setOff(x,y,zoom) persists on change. Exposes img._zoomBy(factor).
+// Shared document-level drag dispatch (audit E61): wirePortraitDrag used to add a NEW mousemove +
+// mouseup listener to `document` on every call — and it's called on every sheet open AND every
+// drag-end/zoom refresh, so the listeners accumulated unbounded. Wire the pair ONCE and route to
+// whichever image is currently being dragged.
+var _pdActive=null,_pdDocWired=false;
+function _pdEnsureDoc(){
+  if(_pdDocWired)return;_pdDocWired=true;
+  document.addEventListener("mousemove",function(e){if(_pdActive)_pdActive.m(e.clientX,e.clientY);});
+  document.addEventListener("mouseup",function(){if(_pdActive){var a=_pdActive;_pdActive=null;a.u();}});
+}
 function wirePortraitDrag(img,getOff,setOff){
+  _pdEnsureDoc();
   var dragging=false,sx,sy,sox,soy,moved,liveX,liveY,pinchStart=0,pinchZoom=1;
   var p=img.parentNode;if(p){if(!p.style.position)p.style.position="relative";p.style.overflow="hidden";}
   img.style.cursor="grab";img.style.touchAction="none";
   function reapply(){applyPortraitTransform(img,getOff());}
   if(img.complete&&img.naturalWidth)reapply(); else img.addEventListener("load",reapply);
   function overflow(){var o=normPortraitOff(getOff()),natW=img.naturalWidth||400,natH=img.naturalHeight||600,cW=p.offsetWidth||90,cH=p.offsetHeight||135;var s=Math.max(cW/natW,cH/natH)*o.zoom;return {x:Math.max(1,natW*s-cW),y:Math.max(1,natH*s-cH)};}
-  function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=normPortraitOff(getOff());sox=o.x;soy=o.y;liveX=o.x;liveY=o.y;img.style.cursor="grabbing";}
+  function onDown(cx,cy){dragging=true;moved=false;sx=cx;sy=cy;var o=normPortraitOff(getOff());sox=o.x;soy=o.y;liveX=o.x;liveY=o.y;img.style.cursor="grabbing";_pdActive={m:onMove,u:onUp};/* this image is now the active drag (E61) */}
   function onMove(cx,cy){if(!dragging)return;moved=true;var ov=overflow(),o=normPortraitOff(getOff());
     // An axis with no real pannable overflow (~1px, floored by overflow()) divides pixel jitter by ~1
     // and slams the offset to an extreme (audit E87) — only pan an axis that actually has slack.
@@ -45,8 +56,7 @@ function wirePortraitDrag(img,getOff,setOff){
   function applyZoom(factor){var o=normPortraitOff(getOff());var z=Math.min(4,Math.max(1,o.zoom*factor));applyPortraitTransform(img,{x:o.x,y:o.y,zoom:z});setOff(o.x,o.y,z);}
   function tdist(e){var a=e.touches[0],b=e.touches[1],dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
   img.addEventListener("mousedown",function(e){e.preventDefault();e.stopPropagation();onDown(e.clientX,e.clientY);});
-  document.addEventListener("mousemove",function(e){onMove(e.clientX,e.clientY);});
-  document.addEventListener("mouseup",function(){onUp();});
+  // (document mousemove/mouseup are wired once by _pdEnsureDoc and dispatched via _pdActive — audit E61)
   img.addEventListener("wheel",function(e){e.preventDefault();applyZoom(e.deltaY<0?1.1:0.9);},{passive:false});
   img.addEventListener("touchstart",function(e){if(e.touches.length===2){pinchStart=tdist(e);pinchZoom=normPortraitOff(getOff()).zoom;dragging=false;}else{var t=e.touches[0];onDown(t.clientX,t.clientY);}},{passive:true});
   img.addEventListener("touchmove",function(e){e.preventDefault();if(e.touches.length===2&&pinchStart){var z=Math.min(4,Math.max(1,pinchZoom*tdist(e)/pinchStart)),o=normPortraitOff(getOff());applyPortraitTransform(img,{x:o.x,y:o.y,zoom:z});setOff(o.x,o.y,z);}else if(e.touches.length===1){var t=e.touches[0];onMove(t.clientX,t.clientY);}},{passive:false});
@@ -2854,6 +2864,10 @@ function showProviderModal(){
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
   var ex=document.getElementById("provider-modal");if(ex)ex.remove();
   var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
+  // Stage key edits locally and commit only on Save (audit E88) — the old row-click wrote the typed
+  // key straight into the LIVE providerKeys, so editing one provider's key then switching + cancelling
+  // left the change applied for the rest of the session.
+  var _pvStaged={};(function(){var _k=Object.keys(providerKeys),_i;for(_i=0;_i<_k.length;_i++)_pvStaged[_k[_i]]=providerKeys[_k[_i]];})();
   var modal=document.createElement("div");modal.id="provider-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
   function provRows(){var ids=Object.keys(PROVIDERS),h="",i;for(i=0;i<ids.length;i++){var p=PROVIDERS[ids[i]],sel=(ids[i]===selProv);h+="<div class='pv-row' data-id='"+ids[i]+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"+"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;'></div>"+"<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span></div>";}return h;}
   function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,o="",i;for(i=0;i<p.models.length;i++){o+="<option value='"+p.models[i]+"'"+(p.models[i]===cur?" selected":"")+">"+p.models[i]+"</option>";}return o;}
@@ -2872,14 +2886,16 @@ function showProviderModal(){
   document.body.appendChild(modal);
   var keyInp=document.getElementById("pv-key"),modelSel=document.getElementById("pv-model");
   function refreshSel(){
-    keyInp.value=providerKeys[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
+    keyInp.value=_pvStaged[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
     var rows=modal.querySelectorAll(".pv-row");Array.prototype.forEach.call(rows,function(r){var s=(r.getAttribute("data-id")===selProv);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";});
   }
-  Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){if(keyInp.value.trim())providerKeys[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
+  Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){_pvStaged[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
   refreshSel();
   document.getElementById("pv-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("pv-save").addEventListener("click",function(){
-    var k=keyInp.value.trim();if(k)providerKeys[selProv]=k;else delete providerKeys[selProv];
+    _pvStaged[selProv]=keyInp.value.trim();
+    // Commit the staged keys into the live map now (E88) — this is the only place providerKeys is mutated.
+    Object.keys(_pvStaged).forEach(function(pid){if(_pvStaged[pid])providerKeys[pid]=_pvStaged[pid];else delete providerKeys[pid];});
     providerModels[selProv]=modelSel.value;activeProvider=selProv;apiKey=providerKeys[activeProvider]||"";
     allowModelUpgrade=document.getElementById("pv-upgrade").checked;
     if(activeProvider==="anthropic"&&apiKey)store.set(AKK,apiKey);
