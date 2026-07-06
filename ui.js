@@ -597,7 +597,7 @@ function showSyncModal(){
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
       if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=10)c2.level=lvl2;if(loc2)w2.location=loc2;if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
-      if(inv2.length>0)c2.inventory=inv2;syncUI();saveAll();renderSync();
+      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */syncUI();saveAll();renderSync();
       var msg=document.getElementById("sc-msg");if(msg){msg.textContent="Applied.";msg.style.color="var(--grn)";}
     });}
   }
@@ -1354,7 +1354,7 @@ function showNpcSheet(name){
     var gLbl=sheet.gender==="F"?"Female":sheet.gender==="NB"?"Non-binary":"Male";
     var clsLine=(sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":"");
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
-    var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round(((sheet.xp-prevXP)/Math.max(1,nextXP-prevXP))*100)));// same low clamp as the player bar
+    var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
     heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+name+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
@@ -2979,8 +2979,8 @@ function showQuestModal(){
         +"<div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+escHtml(q.title)+"</div>"
         +(q.desc?"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>"+escHtml(q.desc)+"</div>":"")+objList(q)
         +"<div style='display:flex;gap:8px;margin-top:10px;'>"
-        +"<button class='qa' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;' onclick='acceptQuest("+i+")'>Accept</button>"
-        +"<button class='qa' onclick='declineQuest("+i+")'>Decline</button></div></div>";
+        +"<button class='qa' data-qacc='"+escHtml(q.title)+"' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Accept</button>"
+        +"<button class='qa' data-qdec='"+escHtml(q.title)+"'>Decline</button></div></div>";
     }else if(q.status==="active"){
       activeHtml+="<div style='border-bottom:1px solid var(--brd);padding:10px 0;'>"
         +"<div style='font-size:14px;color:var(--t0);'>"+escHtml(q.title)+"</div>"
@@ -2999,19 +2999,21 @@ function showQuestModal(){
   document.body.appendChild(modal);
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   document.getElementById("qm-x").addEventListener("click",function(){modal.remove();});
+  // Wire by TITLE, not render-time index (audit E24): applyMuts can splice the questLog while the
+  // modal is open (a completed quest archives), and an index baked into onclick would then hit the
+  // wrong quest — declineQuest could even archive a still-active quest.
+  Array.prototype.forEach.call(modal.querySelectorAll("[data-qacc]"),function(b){b.addEventListener("click",function(){acceptQuest(b.getAttribute("data-qacc"));});});
+  Array.prototype.forEach.call(modal.querySelectorAll("[data-qdec]"),function(b){b.addEventListener("click",function(){declineQuest(b.getAttribute("data-qdec"));});});
 }
-function acceptQuest(idx){
-  if(!worldState||!worldState.questLog||!worldState.questLog[idx])return;
-  worldState.questLog[idx].status="active";saveAll();syncUI();
-  if(typeof showToast==="function")showToast("Quest accepted: "+worldState.questLog[idx].title);
+// Resolve by title + offered status (audit E24) so a shifted index can't accept/decline the wrong quest.
+function acceptQuest(title){
+  if(!worldState||!worldState.questLog)return;
+  var i;for(i=0;i<worldState.questLog.length;i++){if(worldState.questLog[i].title===title&&worldState.questLog[i].status==="offered"){worldState.questLog[i].status="active";saveAll();syncUI();if(typeof showToast==="function")showToast("Quest accepted: "+title);break;}}
   showQuestModal();
 }
-function declineQuest(idx){
-  if(!worldState||!worldState.questLog||!worldState.questLog[idx])return;
-  var q=worldState.questLog[idx];if(!memory.quests)memory.quests={};
-  memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};
-  worldState.questLog.splice(idx,1);saveAll();syncUI();
-  if(typeof showToast==="function")showToast("Quest declined: "+q.title);
+function declineQuest(title){
+  if(!worldState||!worldState.questLog)return;
+  var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.title===title&&q.status==="offered"){if(!memory.quests)memory.quests={};memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};worldState.questLog.splice(i,1);saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+title);break;}}
   showQuestModal();
 }
 function submitKey(){var k=document.getElementById("api-input").value.trim();if(!k){document.getElementById("api-warn").textContent="Enter an API key.";return;}apiKey=k;providerKeys[activeProvider]=k;store.set(AKK,k);saveProviderSettings();var falEl=document.getElementById("fal-input");var fk=falEl?falEl.value.trim():"";if(fk){falKey=fk;store.set(FAL_KEY_K,fk);}document.getElementById("api-screen").style.display="none";init();}
