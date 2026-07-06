@@ -164,6 +164,42 @@ function runEngineTests(R){
     var n=(h.match(/dice-block/g)||[]).length;
     return n===2?true:"rendered "+n+" dice block(s), want 2";
   });
+  // ── ordering + companion/merge (audit E9/E16/E10/E31) ──
+  t("first-visit SUBLOCATION desc files to the sub-node, not the parent (E9)",function(){
+    makeWorld();
+    memory.map.nodes["Ashfen"]={firstVisit:5,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    applyMuts("[SUBLOCATION:The Rusty Flagon][LOCATION_DESC:A smoky common room thick with pipe smoke.]");
+    if(memory.map.nodes["Ashfen"].description)return "parent poisoned with sub desc: "+memory.map.nodes["Ashfen"].description;
+    var sub=memory.map.nodes["Ashfen|The Rusty Flagon"];
+    return sub&&sub.description&&sub.description.indexOf("common room")>=0?true:"sub desc missing: "+JSON.stringify(sub&&sub.description);
+  });
+  t("findCompanionChar resolves an alias/short name (E16)",function(){
+    makeWorld();
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.npcs=[{name:"Sheriff Belor Hemlock",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Sheriff Belor Hemlock",hp:10,maxHp:10}}];
+    applyMuts("[COMPANION_HP:Hemlock|-4]"); // short form
+    return worldState.npcs[0].charSheet.hp===6?true:"companion by alias not resolved: "+worldState.npcs[0].charSheet.hp;
+  });
+  t("NPC_MERGE grafts the dupe's charSheet/partyMember onto canonical (E10)",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Hemlock",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Hemlock",cls:"Warrior",level:2,hp:15,maxHp:15}}];
+    memory.npcs["Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_MERGE:Sheriff Belor Hemlock|Hemlock]");
+    if(worldState.npcs.filter(function(n){return n.name==="Hemlock";}).length)return "dupe still in roster";
+    var canon=worldState.npcs.filter(function(n){return n.name==="Sheriff Belor Hemlock";})[0];
+    if(!canon)return "canonical missing from roster (companion silently dropped)";
+    return canon.partyMember&&canon.charSheet&&canon.charSheet.level===2?true:"charSheet/partyMember not grafted: "+JSON.stringify(canon);
+  });
+  t("NPC_MERGE re-keys npcGraph edges from the dupe (E31)",function(){
+    makeWorld();
+    memory.npcs["Hemlock"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    memory.npcGraph.edges=[{a:"Hemlock",b:"Zarith",rel:"employer",turn:3}];
+    applyMuts("[NPC_MERGE:Sheriff Belor Hemlock|Hemlock]");
+    var e=memory.npcGraph.edges[0];
+    return e&&e.a==="Sheriff Belor Hemlock"&&e.b==="Zarith"?true:"edge not re-keyed: "+JSON.stringify(e);
+  });
 
   // ── 6. migrateWorldState (save-import battery) ───────────────────────────────
   section("migrateWorldState");
