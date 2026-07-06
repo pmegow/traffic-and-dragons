@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.18";
+var BP_DESIGNER_VERSION="v0.19";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -280,31 +280,42 @@ function render(){
   // ⚡ applies the selected set. Selection rides as _sel (view state — stripped from files).
   if(bp.review&&bp.review.findings&&bp.review.findings.length){
     var openN=0,selN=0;
-    for(i=0;i<bp.review.findings.length;i++){var _f=bp.review.findings[i];if(!_f.status){openN++;if(_f._sel)selN++;}}
+    for(i=0;i<bp.review.findings.length;i++){var _f=bp.review.findings[i];if(!_f.status){openN++;if(typeof _f._sel==="number")selN++;}}
     var revOpen=secOpen.review!==false;
     h+="<div class='sect'><div style='display:flex;align-items:center;gap:8px;"+(revOpen?"margin-bottom:4px;":"")+"'>"
       +"<h2 class='"+(revOpen?"open":"")+"' data-op='togsec' data-key='review' style='flex:1;margin:0;'>"+(revOpen?"&#9662;":"&#9656;")+" &#128269; Review — could be better ("+openN+" open of "+bp.review.findings.length+")</h2>"
       +(_applyingAll?"<span style='font-size:11px;color:var(--t2);'>applying…</span>":(selN?"<button class='mini' data-op='revapplyall' data-i='0' data-j='0' title='Apply the selected fixes, top to bottom'>&#9889; Apply selected ("+selN+")</button>":""))
       +"<button class='mini sq del' data-op='revdelall' data-i='0' data-j='0' title='Delete the entire review'>&#215;</button></div>";
     if(revOpen){
-      h+="<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Select fixes to implement — click a fix to select it, &#9889; applies the selected set, &#215; dismisses a finding.</div>";
+      h+="<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Select fixes to implement — click a fix to select it (findings with multiple options: pick ONE), &#9889; applies the selected set, &#215; dismisses a finding.</div>";
       if(bp.review.verdict)h+="<div style='font-size:13px;color:var(--t0);font-style:italic;margin-bottom:12px;'>"+esc(bp.review.verdict)+"</div>";
       for(i=0;i<bp.review.findings.length;i++){
         var F=bp.review.findings[i],sevCol=F.sev==="HIGH"?"var(--dng)":F.sev==="LOW"?"var(--t2)":"var(--acc)";
-        var done=F.status==="applied",busy=F.status==="applying",seld=!!F._sel&&!done;
+        var done=F.status==="applied",busy=F.status==="applying";
         h+="<div class='card' style='border-left-color:"+sevCol+";"+(done?"opacity:.55;":"")+"'>"
           +"<div class='cardhead'><span class='cardlbl' style='color:"+sevCol+";cursor:default;'>["+esc(F.sev)+"] "+esc(F.section)
           +(done?" <span style='color:var(--grn);font-size:9px;border:1px solid var(--grn);border-radius:3px;padding:0 4px;vertical-align:middle;'>APPLIED</span>":"")
           +(busy?" <span style='font-size:10px;color:var(--t2);text-transform:none;letter-spacing:0;'>applying…</span>":"")+"</span>"
           +"<button class='mini sq' data-op='revask' data-i='"+i+"' data-j='0' title='Ask about this finding (canon or improv? why? alternatives?)'>&#128172;</button>"
-          +(done||busy?"":"<button class='mini sq' data-op='breakout' data-bsec='revfix' data-bk='fix' data-i='"+i+"' data-j='0' data-blabel='Edit fix — "+esc(F.section)+"' title='Edit this fix before applying (trim an OR, sharpen the instruction)'>&#9998;</button>")
           +"<button class='mini sq del' data-op='revdel' data-i='"+i+"' data-j='0' title='Dismiss this finding'>&#215;</button></div>"
-          +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>"
-          +(done||busy
-            ?"<div style='font-size:13px;margin-top:4px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Fix:</span> "+esc(F.fix)+"</div>"
-            :"<div data-op='revsel' data-i='"+i+"' data-j='0' style='font-size:13px;margin-top:6px;padding:7px 10px;border-radius:var(--r);cursor:pointer;border:1px solid "+(seld?"var(--grn)":"var(--brd)")+";"+(seld?"background:rgba(132,199,149,.08);":"")+"' title='"+(seld?"Selected — click to deselect":"Click to select this fix for implementation")+"'>"
-              +"<span style='pointer-events:none;color:"+(seld?"var(--grn)":"var(--t2)")+";'>"+(seld?"&#9745;":"&#9744;")+" Fix:</span><span style='pointer-events:none;'> "+esc(F.fix)+"</span></div>")
-          +(F.note?"<div style='font-size:12px;margin-top:6px;color:var(--grn);'>&#10003; "+esc(F.note)+"</div>":"")
+          +"<div style='font-size:13px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Issue:</span> "+esc(F.issue)+"</div>";
+        if(done||busy){
+          var ch=typeof F.chosen==="number"?F.chosen:0;
+          h+="<div style='font-size:13px;margin-top:4px;"+(done?"text-decoration:line-through;":"")+"'><span style='color:var(--t2);'>Fix:</span> "+esc(F.fixes[ch]||"")+"</div>";
+        }else{
+          // One row per option (v0.19): OR-fixes arrive as separate entries — RADIO semantics,
+          // selecting one deselects its siblings (_sel = chosen option index). Each option has
+          // its own ✎ (breakout routes k = option index into fixes[]).
+          var multi=F.fixes.length>1,oi;
+          for(oi=0;oi<F.fixes.length;oi++){
+            var isSel=F._sel===oi;
+            h+="<div data-op='revsel' data-i='"+i+"' data-j='"+oi+"' style='font-size:13px;margin-top:6px;padding:7px 10px;border-radius:var(--r);cursor:pointer;display:flex;align-items:flex-start;gap:8px;border:1px solid "+(isSel?"var(--grn)":"var(--brd)")+";"+(isSel?"background:rgba(132,199,149,.08);":"")+"' title='"+(isSel?"Selected — click to deselect":(multi?"Click to choose this option (only one can run)":"Click to select this fix for implementation"))+"'>"
+              +"<span style='pointer-events:none;flex:1;'><span style='color:"+(isSel?"var(--grn)":"var(--t2)")+";'>"+(isSel?"&#9745;":"&#9744;")+" "+(multi?"Option "+(oi+1)+":":"Fix:")+"</span> "+esc(F.fixes[oi])+"</span>"
+              +"<button class='mini sq' data-op='breakout' data-bsec='revfix' data-bk='"+oi+"' data-i='"+i+"' data-j='0' data-blabel='Edit "+(multi?"option "+(oi+1):"fix")+" — "+esc(F.section)+"' title='Edit before applying'>&#9998;</button>"
+              +"</div>";
+          }
+        }
+        h+=(F.note?"<div style='font-size:12px;margin-top:6px;color:var(--grn);'>&#10003; "+esc(F.note)+"</div>":"")
           +"</div>";
       }
     }
@@ -333,7 +344,7 @@ var FIELD_ROOTS={
   npc:function(i,j){return bp.npcs[i];},
   creature:function(i,j){return bp.creatures[i];},
   loc:function(i,j){return bp.locations[i];},
-  revfix:function(i,j){return bp.review&&bp.review.findings[i];} // v0.15: review fixes are editable ("90% there, just need a little goosing")
+  revfix:function(i,j){var f=bp.review&&bp.review.findings[i];return f&&f.fixes;} // v0.15/v0.19: review fixes are editable; k = option index into fixes[]
 };
 function bpFieldGet(sec,i,j,k){
   if(sec==="rule")return i<bp.rules.length?(bp.rules[i]||""):"";
@@ -365,7 +376,9 @@ document.addEventListener("click",function(e){
   if(op==="breakout"){openBreakout(t);return;}
   if(op==="gencreature"){genCreature(t);return;}
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
-  if(op==="revsel"){var sf=bp.review&&bp.review.findings[i];if(sf&&!sf.status&&!_applyingAll){if(sf._sel)delete sf._sel;else sf._sel=1;render();}return;}
+  // _sel = the chosen OPTION INDEX (radio: re-click deselects, picking a sibling replaces).
+  // NB: index 0 is falsy — every _sel check must be typeof === "number", never truthiness.
+  if(op==="revsel"){var sf=bp.review&&bp.review.findings[i];if(sf&&!sf.status&&!_applyingAll){if(sf._sel===j)delete sf._sel;else sf._sel=j;render();}return;}
   if(op==="revdel"){bp.review.findings.splice(i,1);if(!bp.review.findings.length)delete bp.review;markDirty();render();return;}
   if(op==="revapplyall"){applyAllFindings();return;}
   if(op==="revask"){var af=bp.review&&bp.review.findings[i];if(af)openAsk(af);return;}
@@ -443,6 +456,8 @@ function openBreakout(btn){
 // ── Load / New / Save ──────────────────────────────────────────────────────────
 function loadBlueprintObject(obj){
   bp=normalizeBlueprint(obj);
+  // Legacy review shape (pre-v0.19): findings carried a single `fix` string — lift into fixes[].
+  if(bp.review&&bp.review.findings){bp.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
   var err=validateBlueprint(bp);
   collapseAll(); // existing blueprints open folded — scroll relief + spoiler cover
   dirty=false;render();
@@ -551,7 +566,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
       +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
       +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
       +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
-      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and fix each ONE tight sentence (the fix must be concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fix\":\"concrete, applyable instruction\"}]}";
+      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}\nfixes[] usually holds ONE entry. NEVER write 'OR' inside a fix — when genuinely distinct approaches exist, emit each as its OWN entry in fixes[] (max 3) so the author can choose between them.";
     // 5000-token ceiling — a circuit breaker against runaway generation, NOT a length governor
     // (the prompt governs size: max 10 terse findings). The first live run truncated mid-array
     // at a 1600 cap (JSON parse error at ~5300 chars ≈ exactly 1600 tokens) — for JSON output,
@@ -559,7 +574,9 @@ document.getElementById("btn-review").addEventListener("click",async function(){
     var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",5000,null,{noHistory:true,kind:"other"});
     var rev=JSON.parse(repairModelJson(resp));
     if(!rev||!rev.findings)throw new Error("model returned no findings object");
-    bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fix:String(f.fix||""),status:""};})};
+    bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){
+      var fx=f.fixes&&f.fixes.length?f.fixes.map(String):(f.fix?[String(f.fix)]:[""]);
+      return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fixes:fx,status:""};})};
     markDirty();render();
     var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
     setStatus("Review: "+bp.review.verdict,"ok");
@@ -574,6 +591,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 async function applyFinding(idx){
   if(!llmReady())return;
   var f=bp.review&&bp.review.findings[idx];if(!f||f.status)return;
+  var chosenIdx=typeof f._sel==="number"?f._sel:0,fixText=f.fixes[chosenIdx]||"";
   f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
   try{
     var payload=stripView(bp);delete payload.review;
@@ -582,7 +600,7 @@ async function applyFinding(idx){
     var _arcsTot=0,_ci2;for(_ci2=0;_ci2<bp.acts.length;_ci2++)_arcsTot+=(bp.acts[_ci2].arcs||[]).length;
     var counts="acts: "+bp.acts.length+" (carrying "+_arcsTot+" arcs total), npcs: "+bp.npcs.length+", creatures: "+bp.creatures.length+", locations: "+bp.locations.length+", rules: "+bp.rules.length;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
-      +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+f.fix
+      +"\n\nAPPLY THIS REVIEW FINDING:\nSection: "+f.section+"\nIssue: "+f.issue+"\nFix to apply: "+fixText
       +"\n\nApply the fix. Output ONLY a JSON object containing:\n- the top-level blueprint sections you CHANGED (any of: "+BP_SECTIONS.join(", ")+"), each COMPLETE in the same schema as the input (whole array/string, not a diff)\n- a \"note\" field: one line stating what you changed\nDo NOT include unchanged sections. Preserve everything unrelated to the fix exactly as it was.\nCOMPLETENESS CHECK — if you return a section, it must contain EVERY item, edited and unedited alike. Current sizes: "+counts+". Returning a section with fewer items than these counts is an ERROR and will be rejected (e.g. editing one act still requires returning all "+bp.acts.length+" acts with all their arcs).\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content that a fix asks for goes INTO the existing fields (NPC secrets/hooks into that NPC's notes).";
     var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
@@ -604,6 +622,7 @@ async function applyFinding(idx){
     var err=validateBlueprint(bp);
     if(err){bp=snapshot;throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");}
     bp.review.findings[idx].status="applied";
+    bp.review.findings[idx].chosen=chosenIdx; // which option ran — part of the CBB trail (ships in the file)
     if(patch.note)bp.review.findings[idx].note=String(patch.note);
     markDirty();render();
     setStatus("Applied ("+changed.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
@@ -623,7 +642,7 @@ async function applyAllFindings(){
   try{
     for(i=0;i<bp.review.findings.length;i++){
       var bf=bp.review&&bp.review.findings[i];
-      if(!bf||bf.status||!bf._sel)continue;
+      if(!bf||bf.status||typeof bf._sel!=="number")continue; // typeof, not truthiness — option 0 is a valid selection
       setStatus("Applying selected fix "+(ok+fail+1)+"…","");
       await applyFinding(i);
       bf=bp.review&&bp.review.findings[i];
@@ -674,7 +693,7 @@ function openAsk(seedFinding){
     try{
       var payload=stripView(bp);delete payload.review;
       var msg="BLUEPRINT UNDER DISCUSSION:\n"+JSON.stringify(payload,null,1)
-        +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix: "+seedFinding.fix:"");
+        +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix option(s): "+(seedFinding.fixes||[seedFinding.fix||""]).join(" | "):"");
       var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
       msg+="\n\nUSER ASKS: "+q;
       var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint. Answer directly and concisely; you are advising the human author and cannot edit the blueprint. Plain text only.\nWHAT 'CANON' MEANS depends on the blueprint: IF it adapts a published work (the name/author credit will say so), canon = that published source — state explicitly what comes from the source versus what is invented, and flag uncertainty about the source. IF it is ORIGINAL/homebrew, the blueprint itself is the ONLY canon — never invent or imply an outside source; instead classify claims three ways: STATED (literally in the document), CONSISTENT EXTENSION (not stated but fits everything written — flag that accepting it makes it canon), or PURE INVENTION (no anchor in the document; imported genre defaults — call these out loudly).",1200,null,{noHistory:true,kind:"other"});
