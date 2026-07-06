@@ -1350,6 +1350,7 @@ async function generateNpcSheet(name,doneCb){
 // transient worldState.recentlyLeft marker so buildSysPrompt tells the GM they've left — without
 // it the GM keeps narrating them as present. Auto-cleared in sendAction after ~2 turns.
 function partWaysWithCompanion(name){
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   if(!worldState||!worldState.npcs)return;
   var n=(typeof resolveNpcName==="function")?resolveNpcName(name):name,idx=-1,i;
   for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===n){idx=i;break;}}
@@ -1823,6 +1824,7 @@ function _applyLoadedCampaign(){
   if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
 }
 function campLoad(id){
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
   // Check if local data exists for this campaign
   var hasLocal=!!(store.get("tnd_camp_"+id+"_ws"));
@@ -1929,6 +1931,7 @@ function campSaveRename(id){
   showCampaignPicker();
 }
 function campNew(){
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
   snapshotActiveCamp();
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
@@ -1981,6 +1984,7 @@ function _charExportPick(idx){
   var c=window._charExportList&&window._charExportList[idx];if(c)_doExportChar(c.name,c.sheet);
 }
 function _switchPlayerCharacter(name){
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23 — a mid-flight swap mis-targets the response's tags and drops the handoff message
   // Find the NPC and their charSheet
   var npcIdx=-1,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){npcIdx=i;break;}}
   if(npcIdx<0){showToast("Companion not found.");return;}
@@ -2034,6 +2038,8 @@ function _importCharToReview(char){
   var xpInp=document.getElementById("rv-start-xp");if(xpInp&&char.xp!==undefined)xpInp.value=char.xp;
 }
 function _startImportedCampaign(char){
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
+  pendingBlueprint=null; // a stale wizard blueprint would otherwise apply to this import + override its location (audit E86)
   var ex=document.getElementById("import-setup");if(ex)ex.remove();
   // Clone starting-location options from the wizard's Review-step select so the lists never drift.
   var locSel=document.getElementById("rv-start-loc"),locOpts="",li;

@@ -17,7 +17,7 @@ function startGame(char,toneName,toneVoice,authorId){
   worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[]};
   delete worldState.character._startLoc;delete worldState.character._campName;
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
-  sessionLog=[];memory=blankMemory();
+  sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
     var comp=pendingCompanions[ci];
@@ -40,6 +40,10 @@ function startGame(char,toneName,toneVoice,authorId){
   saveAll();showGame();syncUI();initAbilities();initSpells();
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
   if(typeof initCampaignFolderForGame==="function")initCampaignFolderForGame();
+  // Busy-gate the whole startup (audit E22): skeleton generation is async and the game screen is
+  // already shown with a live input, so without this a typed action could interleave with the
+  // skeleton call and beginAdventure. beginAdventure clears busy when the opening scene lands.
+  busy=true;var _sbtn=document.getElementById("sendbtn");if(_sbtn)_sbtn.disabled=true;
   if(worldState.skeleton){
     // Blueprint provided a skeleton — skip generation, go straight to the adventure
     beginAdventure();
@@ -56,7 +60,9 @@ async function generateActions(msgEl){
   var btns=[],i;
   for(i=0;i<3;i++){var b=document.createElement("button");b.className="qa";b.textContent="…";b.disabled=true;b.style.minWidth="80px";btnDiv.appendChild(b);btns.push(b);}
   msgEl.appendChild(btnDiv);
+  worldState.lastActions=null; // clear now (audit E26) — if this call fails, reload won't re-attach the PREVIOUS turn's buttons to the newest narration
   var turnAt=worldState.turn; // race guard: a fast next action can land while this call is in flight
+  function _cleanup(){for(var _c=0;_c<3;_c++){if(btns[_c].parentNode)btns[_c].parentNode.removeChild(btns[_c]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
   try{
     // Send ONLY the latest scene + a sheet digest, not the whole sessionLog (audit #17), and give
     // the model the character's actual kit so it can't suggest spells the player doesn't have —
@@ -69,14 +75,14 @@ async function generateActions(msgEl){
     var resp=await callGM("LATEST SCENE:\n"+lastGm.slice(0,2400)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+" Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=JSON.parse(stripCodeFences(resp)); // array payload — fences only, no object repair
-    if(!acts||!acts.length)return;
+    if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
     for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
     // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,
     // so a local-only save left the server blob holding the PREVIOUS turn's buttons — device B
     // rendered stale actions while the text matched. saveAll re-arms the debounce with the
     // fresh lastActions (one cheap extra POST at most).
     worldState.lastActions=acts.slice(0,3);saveAll();
-  }catch(e){for(i=0;i<3;i++){if(btns[i].parentNode)btns[i].parentNode.removeChild(btns[i]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
+  }catch(e){_cleanup();}
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -237,6 +243,7 @@ async function sendAction(override,opts){
   var _isRetryDup=!!(_tl&&_tl.length&&_tl[_tl.length-1].r==="player"&&_tl[_tl.length-1].x===String(txt).trim());
   if(!isTT&&!(opts&&opts.silent)&&!_isRetryDup)logTranscript("player",txt);
   var th=addMsg("thinking","The world turns...");
+  var _committed=false; // true once applyMuts has mutated state — a Retry after that would double-apply (audit E82)
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
@@ -246,8 +253,11 @@ async function sendAction(override,opts){
       worldState.turn++;
       if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
-      applyMuts(resp);
-      if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;if(resp.indexOf(_lcn)>=0||(worldState.turn-worldState.pendingLegacy.queuedAt)>=5){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}}
+      applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
+      if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
+        if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
+        else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
+      }
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
       var clean=cleanTxt(resp),dice=diceTxt(resp);
@@ -259,7 +269,10 @@ async function sendAction(override,opts){
       generateActions(narEl);
     }
     syncUI();
-  }catch(e){th.remove();var em=addMsg("system","GM error: "+e.message);if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+  }catch(e){th.remove();
+    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);}/* no Retry — the mutation already landed (E82) */
+    else{var em=addMsg("system","GM error: "+e.message);if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+  }
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
 }
 function retryLast(){if(lastAction)sendAction(lastAction);}
@@ -653,6 +666,8 @@ async function doRender(){
 function restSpells(){
   if(!worldState||!worldState.character.spells)return;
   var i;for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}
+  // Also restore party companions' expended spells (audit E84) — a rest is party-wide.
+  var pj,ps;for(pj=0;pj<(worldState.npcs||[]).length;pj++){var _pn=worldState.npcs[pj];if(_pn.partyMember&&_pn.charSheet&&_pn.charSheet.spells){for(ps=0;ps<_pn.charSheet.spells.length;ps++){if(_pn.charSheet.spells[ps].lvl>0)_pn.charSheet.spells[ps].used=false;}}}
   updateSpPanel();saveCore();showToast("Spell slots restored.");
 }
 function initAbilities(){
@@ -698,6 +713,7 @@ async function syncCharSheet(){
   busy=false;
 }
 function newGame(){
+  if(busy){if(typeof showToast==="function")showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.createElement("div");modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;";
   modal.innerHTML='<div style="background:#181818;border:1px solid #6a2020;border-radius:10px;padding:28px 24px;max-width:340px;width:90%;text-align:center;"><p style="font-size:16px;color:var(--t0);margin-bottom:8px;">Start a new campaign?</p><p style="font-size:13px;color:var(--t2);margin-bottom:24px;">Your current playthrough will be saved and can be resumed from Campaigns.</p><div style="display:flex;gap:10px;"><button id="ng-cancel" style="flex:1;padding:10px;font-family:var(--font);background:#222;border:1px solid #444;border-radius:6px;color:var(--t1);cursor:pointer;">Cancel</button><button id="ng-go" style="flex:1;padding:10px;font-family:var(--font);background:#6a2020;border:1px solid #8b2a2a;border-radius:6px;color:var(--t0);cursor:pointer;font-weight:bold;">New game</button></div></div>';
   document.body.appendChild(modal);

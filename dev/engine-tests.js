@@ -956,6 +956,13 @@ function runEngineTests(R){
     });
     return memory.futureEvents.length===0?true:"same-window event left pending: "+JSON.stringify(memory.futureEvents);
   });
+  t("restSpells restores party companions' expended spells too (E84)",function(){
+    makeWorld();
+    worldState.character.spells=[{nm:"Fireball",lvl:3,used:true},{nm:"Light",lvl:0,used:false}];
+    worldState.npcs=[{name:"Lyra",partyMember:true,charSheet:{spells:[{nm:"Shield",lvl:1,used:true}]}}];
+    restSpells();
+    return worldState.character.spells[0].used===false&&worldState.npcs[0].charSheet.spells[0].used===false?true:"companion spell not restored";
+  });
   // ── blueprint apply hardening (audit E19/E20) ──
   t("normalizeBlueprint defaults each act's arcs so applyBlueprint can't crash (E19)",function(){
     var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"X",acts:[{title:"A1",goal:"g"}]});
