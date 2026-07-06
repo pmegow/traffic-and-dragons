@@ -60,7 +60,7 @@ function getNameSuggestions(count,peek){
   if(!peek)memory.nameIdx=idx;
   return result;
 }
-function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"unknown",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8)memory.npcs[name].events.shift();}
+function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"unknown",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8)memory.npcs[name].events=memory.npcs[name].events.slice(-8);/* slice, not a single shift, so an NPC_MERGE overfill actually shrinks back to the cap (audit E50) */}
 function fileLocation(loc,note,turn){
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
@@ -152,7 +152,7 @@ function expireFutureEvents(){
   memory.futureEvents=kept;
 }
 function fileFutureEvent(when,who,what,setTurn){
-  if(!what)return;
+  if(what==null)return;what=String(what);if(!what)return;/* coerce a non-string what so feTokens/indexOf don't throw later (audit E44) */
   var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
   // Near-duplicate dedupe (#29): the extractor re-mints pending goals in fresh words every cycle —
   // the t198 save held SEVEN "find Shalelu" variants. If the new event shares ≥2 significant tokens
@@ -176,8 +176,9 @@ function fileFutureEvent(when,who,what,setTurn){
   if(memory.futureEvents.length>30)memory.futureEvents=memory.futureEvents.slice(-30);
 }
 function resolveFutureEvent(what){var i;
-  for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
-  for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what.indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
+  what=String(what==null?"":what);if(!what.trim())return;// empty/whitespace needle would substring-match (and delete) the oldest event (audit E45)
+  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what)===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
+  for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what).indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
 // ── RAG episodic memory (#27 Phase 1 — see RAG_MEMORY.md) ──────────────────────
 // Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API calls.
 // READ-SIDE ONLY: nothing here changes what gets written to memory/chapters/summaries.
@@ -608,19 +609,23 @@ function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
 function applySummaryExtract(extracted){
   var i;
-  if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memory.chapters.shift();worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
+  // Array-guard every list field (audit E43) — a string value from the extractor would otherwise
+  // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
   // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
-  if(extracted.npcUpdates){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=nu.attitude;if(nu.knowledgeGained)memory.npcs[nuName].knowledge.push(nu.knowledgeGained);}}}
-  if(extracted.loreDiscovered){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
-  if(extracted.decisionsMade){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
+  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=nu.attitude;if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);if(_kg.length>12)_kg.shift();}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
+  if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
+  if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #29 order matters: sweep stale → file new → resolve LAST. Resolving last means an event the
   // extractor lists in BOTH futureEvents and resolvedEvents (set and finished inside one window)
   // nets out removed — the near-dup filing collapses it onto the existing entry, then resolve
   // deletes it. Resolve-first would delete then re-file it as fresh pending.
   expireFutureEvents();
-  if(extracted.futureEvents){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
-  if(extracted.resolvedEvents){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(String(extracted.resolvedEvents[i]));}
+  if(Array.isArray(extracted.futureEvents)){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe&&fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
+  if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
+  // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
+  // when summarize retries the same window.
+  if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memory.chapters.shift();worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
 }
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
@@ -640,7 +645,7 @@ async function summarize(){
     // 300-char slice fed the extractor only scene openings, silently dropping mid/late-scene events
     // from long-term memory — audit #3). Player turns are short; trim them lightly.
     var i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];extractPrompt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
-    var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize"});
+    var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     applySummaryExtract(extracted);
     retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");

@@ -956,6 +956,48 @@ function runEngineTests(R){
     });
     return memory.futureEvents.length===0?true:"same-window event left pending: "+JSON.stringify(memory.futureEvents);
   });
+  // ── memory robustness (audit E43/E44/E45/E46/E50/E51) ──
+  t("applySummaryExtract ignores non-array extractor fields (E43)",function(){
+    makeWorld();worldState.turn=10;var loreBefore=memory.lore.length,decBefore=memory.keyDecisions.length;
+    applySummaryExtract({loreDiscovered:"a single string not an array",decisionsMade:"also a string",resolvedEvents:"str",npcUpdates:"nope",futureEvents:"nope"});
+    if(memory.lore.length!==loreBefore)return "string iterated into lore: "+JSON.stringify(memory.lore.slice(-3));
+    return memory.keyDecisions.length===decBefore?true:"string iterated into decisions";
+  });
+  t("fileFutureEvent coerces a non-string what; resolveFutureEvent tolerates it (E44)",function(){
+    makeWorld();
+    fileFutureEvent("soon","",{unexpected:"object"},5); // must not throw
+    resolveFutureEvent("does not exist");                // must not throw on the coerced entry
+    return true;
+  });
+  t("resolveFutureEvent('') does not delete the oldest pending event (E45)",function(){
+    makeWorld();fileFutureEvent("soon","","first event",5);fileFutureEvent("soon","","second event",6);
+    resolveFutureEvent("");resolveFutureEvent("   ");
+    return memory.futureEvents.length===2?true:"empty needle deleted an event: "+memory.futureEvents.length;
+  });
+  t("applySummaryExtract files the chapter (E46 reorder didn't drop it)",function(){
+    makeWorld();worldState.turn=10;
+    applySummaryExtract({chapterSummary:"A chapter.",npcUpdates:[{name:"Bram",attitude:"warm"}]});
+    return memory.chapters.length===1&&memory.chapters[0].summary==="A chapter."&&memory.npcs["Bram"]?true:"chapter/npc not filed";
+  });
+  t("fileNpcEvent caps events at 8 even after an overfill (E50)",function(){
+    makeWorld();memory.npcs["X"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var k=0;k<12;k++)memory.npcs["X"].events.push({turn:k,note:"e"+k});
+    fileNpcEvent("X","new note",13);
+    return memory.npcs["X"].events.length<=8?true:"events not capped: "+memory.npcs["X"].events.length;
+  });
+  t("[NPC_LINK:...|player|...] links to the PC name, not a phantom 'player' (E48)",function(){
+    makeWorld(); // character.name = "Tess"
+    applyMuts("[NPC_LINK:Borin|player|old debt]");
+    var edges=memory.npcGraph.edges;
+    if(edges.filter(function(e){return e.a==="player"||e.b==="player";}).length)return "phantom 'player' node created";
+    return edges.filter(function(e){return e.a==="Tess"||e.b==="Tess";}).length===1?true:"link not to PC: "+JSON.stringify(edges);
+  });
+  t("applySummaryExtract dedupes NPC knowledge (E51)",function(){
+    makeWorld();worldState.turn=10;
+    applySummaryExtract({npcUpdates:[{name:"Bram",knowledgeGained:"knows the toll"}]});
+    applySummaryExtract({npcUpdates:[{name:"Bram",knowledgeGained:"knows the toll"}]});
+    return memory.npcs["Bram"].knowledge.filter(function(k){return k==="knows the toll";}).length===1?true:"duplicated knowledge";
+  });
   t("applySummaryExtract still files chapters/lore/npcs (refactor didn't drop behavior)",function(){
     makeWorld();worldState.turn=30;
     applySummaryExtract({

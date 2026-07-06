@@ -96,6 +96,7 @@ function loadState(){
     // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
     // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
     if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
+    if(typeof _sumFails!=="undefined")_sumFails=0; // don't carry a summarize failure streak across campaigns (audit E49)
     sessionLog=sl?JSON.parse(sl):[];
     if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}
     if(mm){memory=JSON.parse(mm);healMemory();}
