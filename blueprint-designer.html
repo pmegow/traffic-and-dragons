@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.21";
+var BP_DESIGNER_VERSION="v0.22";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -552,40 +552,73 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Creatures: injected into every prompt as a canonical bestiary; NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
   +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.\n"
   +"THE SCHEMA IS FIXED. Never propose new fields, sections, or structures — the engine reads exactly the fields that exist, and anything else is dead data it will never deliver to the GM. Express every fix as an edit to EXISTING fields. In particular: an NPC's secrets, behavioral hooks, escalation guidance, and betrayal conditions all belong INSIDE its notes field — notes are delivered verbatim to the GM as that NPC's knowledge base, so 'add a secrets field' is wrong and 'rewrite the notes to include the secret and when it surfaces' is right.";
+// ── Chunked review (v0.22) ──────────────────────────────────────────────────────
+// One LLM pass per blueprint area instead of a single "MAX 10 findings" pass. The old
+// global cap silently truncated coverage on large blueprints (ToA: 11 arcs / 11 NPCs /
+// 8 locations …) — real issues past the tenth were dropped worst-first. Each chunk sees the
+// FULL blueprint (so cross-references are checkable) but reports ONLY its focus area, with a
+// generous per-chunk safety valve; findings merge, sort worst-first, and de-dupe into one review.
+// Utility, not a hot path — a handful of extra calls per review is fine.
+var REVIEW_CONSTRAINTS=
+  "\n\nCONSTRAINT CHECK — verify EVERY finding against these before you output; violations make the finding worthless:"
+  +"\n1. NO NEW FIELDS OR SECTIONS, EVER. The schema is fixed; the engine ignores anything else. WRONG: \"add a 'godIndex' field / new top-level section\". RIGHT: \"embed the god-to-shrine mapping into the Omu location description\" or \"extend the trickster-gods rule with the mapping\". Every fix edits EXISTING fields only."
+  +"\n2. NO ALTERNATIVES INSIDE A FIX. If the words 'or', 'alternatively', or 'either' would appear in a fix, STOP — split it into separate fixes[] entries (max 3, usually 1) so the author can choose."
+  +"\n3. Each fix is one sentence, self-contained, applyable as written.";
+var REVIEW_CHUNKS=[
+  {key:"story",label:"Story (acts & arcs)",focus:"the acts and their arcs: acts without concrete turning points, climactic arcs missing rewards, and arcs that are PLACES rather than completable objectives (the engine can never complete a place)."},
+  {key:"npcs",label:"NPCs",focus:"the NPCs: any NPC without run-instructions or secrets, unnamed leaders of named factions, missing motivations, or contradictions with the story."},
+  {key:"locations",label:"Locations",focus:"the locations: missing load-bearing facts, empty or vague descriptions, and sublocations referenced but never defined."},
+  {key:"creatures",label:"Creatures",focus:"the creatures: incomplete entries (missing kind/threat/notes), creatures the story leans on but that are absent here, and role/stat gaps a GM would have to invent."},
+  {key:"rules",label:"Rules",focus:"the custom rules: rules that are vague, are lore-dumps rather than directives, or reference data the document does not contain."},
+  {key:"consistency",label:"Cross-cutting consistency",focus:"CROSS-SECTION issues ONLY: NAME-DROP violations (any person, place, faction, god, or thing referenced in the premise, notes, rules, or descriptions that is NOT defined anywhere in the blueprint), contradictions between sections, and tone/voice mismatch. Do NOT repeat per-section completeness issues — those are covered separately."}
+];
+async function reviewChunk(payloadJson,chunk){
+  var msg="Review ONE aspect of this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT (full, for cross-reference):\n"+payloadJson
+    +"\n\n"+ENGINE_CONTRACT
+    +"\n\nFOCUS — report findings ONLY about "+chunk.focus
+    +"\nReport EVERY genuine issue in your focus area, worst-first; do NOT stop at an arbitrary number (hard cap 12 as a circuit breaker). If the focus area is clean, return an empty findings array — do NOT invent issues to fill space."
+    +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}"
+    +REVIEW_CONSTRAINTS; // constraints LAST — end-of-prompt position is load-bearing (audit #2)
+  var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",4000,null,{noHistory:true,kind:"other"});
+  var r=JSON.parse(repairModelJson(resp));
+  if(!r||!r.findings)return [];
+  return r.findings.map(function(f){
+    var fx=f.fixes&&f.fixes.length?f.fixes.map(String):(f.fix?[String(f.fix)]:[""]);
+    return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||chunk.label),issue:String(f.issue||""),fixes:fx,status:""};
+  }).filter(function(f){return f.issue;});
+}
+// The consistency pass can restate a section pass's finding; key the de-dupe on the issue text.
+function dedupeFindings(list){
+  var seen={},out=[],i,k;
+  for(i=0;i<list.length;i++){
+    k=list[i].issue.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,140);
+    if(!k||seen[k])continue;seen[k]=1;out.push(list[i]);
+  }
+  return out;
+}
 document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
-  var btn=this;btn.disabled=true;setStatus("Submitting the blueprint for review…","");
+  var btn=this;btn.disabled=true;
   try{
     var payload=stripView(bp);delete payload.review;
-    var msg="Review this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT:\n"+JSON.stringify(payload,null,1)
-      +"\n\n"+ENGINE_CONTRACT
-      +"\n\nREVIEW CRITERIA, in priority order:"
-      +"\n1. NAME-DROP violations: any person, place, faction, god, or thing referenced in the premise, notes, rules, or descriptions that is NOT defined anywhere in the blueprint. (Real bug class: a rule referenced 'the nine trickster gods' without naming them.)"
-      +"\n2. Missing or empty high-value data: acts without concrete turning points, climactic arcs without rewards, NPCs without run-instructions or secrets, locations missing their load-bearing facts."
-      +"\n3. Arcs that are PLACES rather than completable objectives (the engine can never complete those)."
-      +"\n4. Rules that are vague, are lore-dumps rather than directives, or reference data the document doesn't contain."
-      +"\n5. Drift risks: anything important a GM would have to invent — unnamed leaders of named factions, unexplained props, contradictions between sections, tone/voice mismatch."
-      +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), findings worst-first, MAX 10 findings, issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"verdict\":\"one blunt sentence\",\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}"
-      // Hard constraints LAST — end-of-prompt position is load-bearing (the game's own audit #2
-      // lesson; the v0.19 live run violated both mid-prompt versions of these in one finding).
-      +"\n\nCONSTRAINT CHECK — verify EVERY finding against these before you output; violations make the finding worthless:"
-      +"\n1. NO NEW FIELDS OR SECTIONS, EVER. The schema is fixed; the engine ignores anything else. WRONG: \"add a 'godIndex' field / new top-level section\". RIGHT: \"embed the god-to-shrine mapping into the Omu location description\" or \"extend the trickster-gods rule with the mapping\". Every fix edits EXISTING fields only."
-      +"\n2. NO ALTERNATIVES INSIDE A FIX. If the words 'or', 'alternatively', or 'either' would appear in a fix, STOP — split it into separate fixes[] entries (max 3, usually 1) so the author can choose."
-      +"\n3. Each fix is one sentence, self-contained, applyable as written.";
-    // 5000-token ceiling — a circuit breaker against runaway generation, NOT a length governor
-    // (the prompt governs size: max 10 terse findings). The first live run truncated mid-array
-    // at a 1600 cap (JSON parse error at ~5300 chars ≈ exactly 1600 tokens) — for JSON output,
-    // amputation is total loss, so the ceiling sits far above any legitimate response.
-    var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",5000,null,{noHistory:true,kind:"other"});
-    var rev=JSON.parse(repairModelJson(resp));
-    if(!rev||!rev.findings)throw new Error("model returned no findings object");
-    bp.review={verdict:String(rev.verdict||""),findings:rev.findings.map(function(f){
-      var fx=f.fixes&&f.fixes.length?f.fixes.map(String):(f.fix?[String(f.fix)]:[""]);
-      return {sev:String(f.sev||"MED").toUpperCase(),section:String(f.section||""),issue:String(f.issue||""),fixes:fx,status:""};})};
+    var payloadJson=JSON.stringify(payload,null,1);
+    var all=[],failed=0,i;
+    for(i=0;i<REVIEW_CHUNKS.length;i++){
+      setStatus("Reviewing "+REVIEW_CHUNKS[i].label+"… ("+(i+1)+"/"+REVIEW_CHUNKS.length+")","");
+      try{all=all.concat(await reviewChunk(payloadJson,REVIEW_CHUNKS[i]));}
+      catch(e){failed++;if(typeof console!=="undefined"&&console.warn)console.warn("[review] "+REVIEW_CHUNKS[i].key+" failed: "+e.message);}
+    }
+    if(failed===REVIEW_CHUNKS.length)throw new Error("every section review failed — check the model / key");
+    var order={HIGH:0,MED:1,LOW:2};
+    all.sort(function(a,b){return (order[a.sev]==null?1:order[a.sev])-(order[b.sev]==null?1:order[b.sev]);});
+    all=dedupeFindings(all);
+    var highs=all.filter(function(f){return f.sev==="HIGH";}).length;
+    var verdict=all.length+" finding"+(all.length===1?"":"s")+" ("+highs+" high) across "+(REVIEW_CHUNKS.length-failed)+" section review"+((REVIEW_CHUNKS.length-failed)===1?"":"s")+(failed?" — "+failed+" review(s) failed":"");
+    bp.review={verdict:verdict,findings:all};
     markDirty();render();
     var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
-    setStatus("Review: "+bp.review.verdict,"ok");
+    setStatus("Review: "+verdict,failed?"err":"ok");
   }catch(e){setStatus("Review failed: "+e.message,"err");}
   btn.disabled=false;
 });
