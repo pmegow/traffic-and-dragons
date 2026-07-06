@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.24";
+var BP_DESIGNER_VERSION="v0.25";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -319,7 +319,7 @@ function render(){
       +"<button class='mini sq del' data-op='revdelall' data-i='0' data-j='0' title='Delete the entire review'>&#215;</button></div>";
     if(revOpen){
       h+="<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Select fixes to implement — click a fix to select it (findings with multiple options: pick ONE), &#9889; applies the selected set, &#215; dismisses a finding.</div>";
-      if(bp.review.verdict)h+="<div style='font-size:13px;color:var(--t0);font-style:italic;margin-bottom:12px;'>"+esc(bp.review.verdict)+"</div>";
+      var _rv=reviewVerdict();if(_rv)h+="<div style='font-size:13px;color:var(--t0);font-style:italic;margin-bottom:12px;'>"+esc(_rv)+"</div>";
       // Open findings render inline; completed (applied) ones tuck into a collapsed "Completed"
       // section (v0.24) so the working list stays focused, like the TODO's done section.
       var openIdx=[],doneIdx=[];
@@ -611,6 +611,17 @@ function dedupeFindings(list){
   }
   return out;
 }
+// Live verdict — recomputed from the CURRENT findings so it and the header count never drift as
+// findings are dismissed or applied (v0.25). Old saved reviews (frozen verdict, no sections) still
+// render fine: the count comes from findings, the "across N sections" suffix just omits.
+function reviewVerdict(){
+  if(!bp.review||!bp.review.findings)return "";
+  var fs=bp.review.findings,hi=0,i;for(i=0;i<fs.length;i++)if(fs[i].sev==="HIGH")hi++;
+  var s=fs.length+" finding"+(fs.length===1?"":"s")+" ("+hi+" high)";
+  if(bp.review.sections)s+=" across "+bp.review.sections+" section review"+(bp.review.sections===1?"":"s");
+  if(bp.review.failedSections)s+=" — "+bp.review.failedSections+" review(s) failed";
+  return s;
+}
 document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
@@ -618,22 +629,28 @@ document.getElementById("btn-review").addEventListener("click",async function(){
   try{
     var payload=stripView(bp);delete payload.review;
     var payloadJson=JSON.stringify(payload,null,1);
+    // Chunks are READ-ONLY (each just reads the blueprint and returns findings — no bp mutation),
+    // so they run fully concurrently: no grouping, no ordering, no race. Bounded by the slowest
+    // section, not their sum (v0.25).
+    var doneCt=0;setStatus("Reviewing "+REVIEW_CHUNKS.length+" sections in parallel…","");
+    var settled=await Promise.all(REVIEW_CHUNKS.map(function(chunk){
+      return reviewChunk(payloadJson,chunk).then(
+        function(fs){doneCt++;setStatus("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…","");return fs;},
+        function(e){doneCt++;setStatus("Reviewed "+doneCt+"/"+REVIEW_CHUNKS.length+" sections…","");if(typeof console!=="undefined"&&console.warn)console.warn("[review] "+chunk.key+" failed: "+e.message);return null;}
+      );
+    }));
     var all=[],failed=0,i;
-    for(i=0;i<REVIEW_CHUNKS.length;i++){
-      setStatus("Reviewing "+REVIEW_CHUNKS[i].label+"… ("+(i+1)+"/"+REVIEW_CHUNKS.length+")","");
-      try{all=all.concat(await reviewChunk(payloadJson,REVIEW_CHUNKS[i]));}
-      catch(e){failed++;if(typeof console!=="undefined"&&console.warn)console.warn("[review] "+REVIEW_CHUNKS[i].key+" failed: "+e.message);}
-    }
+    for(i=0;i<settled.length;i++){if(settled[i])all=all.concat(settled[i]);else failed++;}
     if(failed===REVIEW_CHUNKS.length)throw new Error("every section review failed — check the model / key");
     var order={HIGH:0,MED:1,LOW:2};
     all.sort(function(a,b){return (order[a.sev]==null?1:order[a.sev])-(order[b.sev]==null?1:order[b.sev]);});
     all=dedupeFindings(all);
-    var highs=all.filter(function(f){return f.sev==="HIGH";}).length;
-    var verdict=all.length+" finding"+(all.length===1?"":"s")+" ("+highs+" high) across "+(REVIEW_CHUNKS.length-failed)+" section review"+((REVIEW_CHUNKS.length-failed)===1?"":"s")+(failed?" — "+failed+" review(s) failed":"");
-    bp.review={verdict:verdict,findings:all};
+    // Store the section counts, not a frozen verdict string — reviewVerdict() recomputes the count
+    // LIVE from the current findings so header and verdict never drift as findings are dismissed.
+    bp.review={findings:all,sections:REVIEW_CHUNKS.length-failed,failedSections:failed};
     markDirty();render();
     var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
-    setStatus("Review: "+verdict,failed?"err":"ok");
+    setStatus("Review: "+reviewVerdict(),failed?"err":"ok");
   }catch(e){setStatus("Review failed: "+e.message,"err");}
   btn.disabled=false;
 });
