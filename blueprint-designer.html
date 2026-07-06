@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.25";
+var BP_DESIGNER_VERSION="v0.26";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -669,51 +669,82 @@ var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed b
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,premise:1,startingLocation:1,startingRegion:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
 function _findByTitle(arr,t){var i;t=String(t||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].title||"").toLowerCase()===t)return i;}return -1;}
+// Items removed during the CURRENT apply run (section|name). An edit that misses one of these is a
+// RESURRECTION attempt (a delete already removed it) — skip it, don't re-append. Committed only when
+// a finding succeeds (see applyFinding); reset per run. Preserves genuine "add new" (miss + not
+// deleted → append) while making delete + same-item edit commute safely, in any order (v0.26).
+var _batchDeleted={};
+function _delKey(sec,nm){return sec+"|"+String(nm||"").toLowerCase();}
+// Returns {labels, deleted:[keys]}. Deletions are single-item and targeted — they can never wipe a
+// section, which is why they're safe to automate (the old whole-section-shrink hazard is gone).
 function applyPatches(bp,patches){
-  var labels=[],i,p,sec;
+  var labels=[],deleted=[],i,p,sec,isDel;
   for(i=0;i<patches.length;i++){
     p=patches[i];if(!p||!p.section)throw new Error("a patch is missing its section");
-    sec=String(p.section);
+    sec=String(p.section);isDel=!!(p.delete||p.remove);
     if(_PATCH_BYNAME[sec]){
-      if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
-      var nm=String(p.name||p.item.name||"");if(!nm)throw new Error(sec+" patch missing a name");
+      var nm=String(p.name||(p.item&&p.item.name)||"");if(!nm)throw new Error(sec+" patch missing a name");
       var ai=_findByName(bp[sec],nm);
-      if(ai>=0)bp[sec][ai]=p.item;else bp[sec].push(p.item);
-      labels.push(sec+": "+nm+(ai>=0?"":" (new)"));
+      if(isDel){
+        if(ai>=0){bp[sec].splice(ai,1);deleted.push(_delKey(sec,nm));labels.push(sec+": removed "+nm);}
+        else labels.push(sec+": "+nm+" already absent");
+      }else{
+        if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
+        if(ai>=0){bp[sec][ai]=p.item;labels.push(sec+": "+nm);}
+        else if(_batchDeleted[_delKey(sec,nm)])labels.push(sec+": skipped "+nm+" (removed earlier this run)");
+        else{bp[sec].push(p.item);labels.push(sec+": "+nm+" (new)");}
+      }
     }else if(sec==="arcs"){
-      if(!p.item||typeof p.item!=="object")throw new Error("arc patch missing an item object");
-      var actNm=String(p.act||""),arcNm=String(p.name||p.item.title||"");
+      var actNm=String(p.act||""),arcNm=String(p.name||(p.item&&p.item.title)||"");
       if(!actNm||!arcNm)throw new Error("arc patch needs both an act title and an arc name");
       var ax=_findByTitle(bp.acts,actNm);if(ax<0)throw new Error("arc patch references unknown act \""+actNm+"\"");
       if(!bp.acts[ax].arcs)bp.acts[ax].arcs=[];
-      var rx=_findByTitle(bp.acts[ax].arcs,arcNm);
-      if(rx>=0)bp.acts[ax].arcs[rx]=p.item;else bp.acts[ax].arcs.push(p.item);
-      labels.push("arc: "+arcNm+(rx>=0?"":" (new)"));
+      var rx=_findByTitle(bp.acts[ax].arcs,arcNm),aKey=_delKey("arc",actNm+"|"+arcNm);
+      if(isDel){
+        if(rx>=0){bp.acts[ax].arcs.splice(rx,1);deleted.push(aKey);labels.push("arc: removed "+arcNm);}
+        else labels.push("arc: "+arcNm+" already absent");
+      }else{
+        if(!p.item||typeof p.item!=="object")throw new Error("arc patch missing an item object");
+        if(rx>=0){bp.acts[ax].arcs[rx]=p.item;labels.push("arc: "+arcNm);}
+        else if(_batchDeleted[aKey])labels.push("arc: skipped "+arcNm+" (removed earlier this run)");
+        else{bp.acts[ax].arcs.push(p.item);labels.push("arc: "+arcNm+" (new)");}
+      }
     }else if(sec==="acts"){
-      if(!p.item||typeof p.item!=="object")throw new Error("act patch missing an item object");
-      var atNm=String(p.name||p.item.title||"");if(!atNm)throw new Error("act patch missing a name");
-      var tx=_findByTitle(bp.acts,atNm);if(tx<0)throw new Error("act patch references unknown act \""+atNm+"\"");
-      // arcs are patched separately — never let an act patch drop them
-      if(!p.item.arcs||!p.item.arcs.length)p.item.arcs=bp.acts[tx].arcs;
-      bp.acts[tx]=p.item;labels.push("act: "+atNm);
+      var atNm=String(p.name||(p.item&&p.item.title)||"");if(!atNm)throw new Error("act patch missing a name");
+      var tx=_findByTitle(bp.acts,atNm);
+      if(isDel){
+        if(tx>=0){bp.acts.splice(tx,1);deleted.push(_delKey("act",atNm));labels.push("act: removed "+atNm);}
+        else labels.push("act: "+atNm+" already absent");
+      }else{
+        if(!p.item||typeof p.item!=="object")throw new Error("act patch missing an item object");
+        if(tx<0)throw new Error("act patch references unknown act \""+atNm+"\"");
+        if(!p.item.arcs||!p.item.arcs.length)p.item.arcs=bp.acts[tx].arcs; // arcs are patched separately — never drop them
+        bp.acts[tx]=p.item;labels.push("act: "+atNm);
+      }
     }else if(sec==="rules"){
-      var rt=(typeof p.item==="string")?p.item:String((p.item&&p.item.text)||"");
-      if(!rt)throw new Error("rule patch missing text");
       var match=String(p.name||p.match||""),rj,ri=-1;
       if(match){for(rj=0;rj<bp.rules.length;rj++){if(String(bp.rules[rj]||"").toLowerCase().indexOf(match.toLowerCase())>=0){ri=rj;break;}}}
-      if(ri>=0){bp.rules[ri]=rt;labels.push("rule: edited");}else{bp.rules.push(rt);labels.push("rule: added");}
+      if(isDel){
+        if(ri>=0){bp.rules.splice(ri,1);labels.push("rule: removed");}
+        else labels.push("rule: none matched to remove");
+      }else{
+        var rt=(typeof p.item==="string")?p.item:String((p.item&&p.item.text)||"");
+        if(!rt)throw new Error("rule patch missing text");
+        if(ri>=0){bp.rules[ri]=rt;labels.push("rule: edited");}else{bp.rules.push(rt);labels.push("rule: added");}
+      }
     }else if(_PATCH_TOP[sec]){
       bp[sec]=(typeof p.item==="string")?p.item:String(p.item||"");labels.push(sec);
     }else throw new Error("patch targets unknown section \""+sec+"\"");
   }
   if(!labels.length)throw new Error("no patches applied");
-  return labels;
+  return {labels:labels,deleted:deleted};
 }
 async function applyFinding(idx){
   if(!llmReady())return;
   var f=bp.review&&bp.review.findings[idx];if(!f||f.status)return;
   var chosenIdx=typeof f._sel==="number"?f._sel:0,fixText=f.fixes[chosenIdx]||"";
   delete f._err; // fresh attempt — clear any prior failure stamp
+  if(!_applyingAll)_batchDeleted={}; // standalone apply gets a clean deleted-set; a batch keeps its own (reset in applyAllFindings) so deletes accumulate across findings
   f.status="applying";render();setStatus("Applying fix: "+f.issue.slice(0,60)+"…","");
   var snapshot=null;
   try{
@@ -728,21 +759,25 @@ async function applyFinding(idx){
       +"\n- an act's own fields (goal/turningPoint/reward — NOT its arcs): {\"section\":\"acts\",\"name\":\"<act title>\",\"item\":{ ...full act... }}"
       +"\n- a rule: {\"section\":\"rules\",\"name\":\"<a unique phrase from the rule to edit, or omit to add a new one>\",\"item\":\"<full rule text>\"}"
       +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
+      +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
       +"\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content a fix asks for goes INTO the existing fields (an NPC's secrets/hooks into that NPC's notes).";
-    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",3000,null,{noHistory:true,kind:"other"});
+    // 8000-token ceiling (v0.26, up from 3000): item-level responses are small, but a legit multi-item
+    // fix (e.g. "add three hag NPCs with notes") can still be ~3k tokens and truncate at the old cap.
+    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",8000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
-    var applied=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
+    var res=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
     normalizeBlueprint(bp);
     var err=validateBlueprint(bp);
     if(err)throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");
+    var di;for(di=0;di<res.deleted.length;di++)_batchDeleted[res.deleted[di]]=1; // commit deletions only now (survived validation) so later findings won't resurrect them
     bp.review.findings[idx].status="applied";
     bp.review.findings[idx].chosen=chosenIdx; // which option ran — part of the CBB trail (ships in the file)
     if(patch.note)bp.review.findings[idx].note=String(patch.note);
     markDirty();render();
-    setStatus("Applied ("+applied.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
+    setStatus("Applied ("+res.labels.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
   }catch(e){
     if(snapshot)bp=snapshot; // undo any partial in-place merge
     if(bp.review&&bp.review.findings[idx]){bp.review.findings[idx].status="";bp.review.findings[idx]._err=e.message;}
@@ -772,7 +807,7 @@ function findingTargetKey(f){
 // serial. Failures roll back and STAY SELECTED; the batch continues.
 async function applyAllFindings(){
   if(_applyingAll||!llmReady()||!bp.review)return;
-  _applyingAll=true;render();
+  _applyingAll=true;_batchDeleted={};render(); // fresh deleted-set for the run; accumulates across findings (resurrection guard)
   var sel=[],i;
   for(i=0;i<bp.review.findings.length;i++){var bf=bp.review.findings[i];if(bf&&!bf.status&&typeof bf._sel==="number")sel.push(i);}
   var groups={},order=[],CONS="~consistency~";
