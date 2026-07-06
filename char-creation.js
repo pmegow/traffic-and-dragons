@@ -243,8 +243,12 @@ function buildStep6Deity(){
   var wrap=document.getElementById("deity-wrap");if(!wrap)return;
   var isDeity=DEITY_CENTRIC.indexOf(cs.cls)>=0;
   wrap.style.display=isDeity?"block":"none";
-  if(!isDeity)return;
   var inp=document.getElementById("char-deity");
+  if(!isDeity){
+    // Clear a deity auto-filled during an earlier Cleric/Paladin/Druid visit (audit E39) — otherwise
+    // the hidden value survives a class switch and confirmChar stores it on a non-deity character.
+    if(inp)inp.value="";cs.deityEdited=false;return;
+  }
   if(inp&&!cs.deityEdited){inp.value=getDefaultDeity();}
 }
 function goStep(n){
@@ -282,7 +286,7 @@ function confirmChar(){
   if(pendingBlueprint&&pendingBlueprint.startingLocation){startLoc=pendingBlueprint.startingLocation;}
   else{var locEl=document.getElementById("rv-start-loc");startLoc=locEl?locEl.value:"The Crossroads of Ashenveil";if(startLoc==="custom"){var custLocEl=document.getElementById("rv-start-loc-text");startLoc=custLocEl&&custLocEl.value.trim()?custLocEl.value.trim():"A place of your choosing";}}
   var cnEl=document.getElementById("rv-camp-name"),campNameVal=cnEl&&cnEl.value.trim()?cnEl.value.trim():null;
-  var deityEl=document.getElementById("char-deity");var charDeity=deityEl&&deityEl.value.trim()?deityEl.value.trim():null;
+  var deityEl=document.getElementById("char-deity");var charDeity=(DEITY_CENTRIC.indexOf(cs.cls)>=0&&deityEl&&deityEl.value.trim())?deityEl.value.trim():null;/* gate: only deity classes carry a deity (audit E39) */
   // Derive starting languages from ancestry and subrace
   var startLangs=["Common"];
   var ancLangMap={elf:"Elvish",dwarf:"Dwarvish",gnome:"Gnomish",tiefling:"Infernal",hollow:"Umbral"};
