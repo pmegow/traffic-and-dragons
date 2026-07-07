@@ -223,6 +223,8 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[LOCATION_DESC:text]` | Store canonical description for current location (written once on first visit, never overwritten) |
 | `[SUBLOCATION:name]` | Enter a named area within the current world location; sets `world.sublocation` |
 | `[SUBLOCATION_LEAVE]` | Exit sub-location; clears `world.sublocation` |
+| `[TIME:value]` | Set `world.time` (free text, e.g. "dawn", "late night"). The world clock has no engine advancement — this tag and the Sync modal are the only writers (audit R2) |
+| `[WEATHER:value]` | Set `world.weather` (free text, e.g. "heavy rain") |
 | `[LOCATION_ITEM:name\|placed]` | Record item left/hidden at current location node; pairs with `[ITEM_LOST:]` |
 | `[LOCATION_ITEM:name\|taken]` | Mark item as taken by NPC/event; player pickup auto-handled by `[ITEM_GAINED:]` |
 | `[NPC:name|status|relation]` | Upsert `worldState.npcs[]` and `memory.npcs{}` |
