@@ -1825,6 +1825,7 @@ function _applyLoadedCampaign(){
   addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
   initReplaySession(); // shared with init() — was a near-identical inline copy (audit #26)
   if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
+  if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
 }
 function campLoad(id){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
@@ -3124,6 +3125,7 @@ function initState(saved){
     addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
     initReplaySession();
     if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
+    if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
   }else{
     showChar();
   }

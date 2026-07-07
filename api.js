@@ -265,6 +265,7 @@ function buildSysPrompt(){
     +"[COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_RELATIONSHIP_REMOVED:Name|entity]\n"
     +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
     +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n"
+    +"THE MOMENT an NPC agrees to travel with the party — even conditionally or provisionally — you MUST emit [PARTY_MEMBER:name|true] in that same response; never narrate a joining without the tag.\n"
     +"XP IS SHARED AUTOMATICALLY: every [XP:N] you award is mirrored by the engine to all party members. Use [COMPANION_XP:Name|N] ONLY for a bonus one companion earns alone — never re-emit a shared award with it.\n\n";
   var volatile_=identity+switchBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
@@ -395,7 +396,17 @@ function findCompanionChar(name){
   var raw=name.trim().toLowerCase();
   var canon=(typeof resolveNpcName==="function")?resolveNpcName(name.trim()).toLowerCase():raw;
   var i;for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npc.partyMember&&npc.charSheet){var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc.charSheet;}}
+  // Backstop (audit P2 remedy b): the name DOES match a party member, but they have no charSheet —
+  // the COMPANION_* update is about to be dropped. Make that loud instead of silent (no-silent-failures);
+  // dedupe once per name per response (map cleared at the top of applyMuts).
+  for(i=0;i<worldState.npcs.length;i++){var np2=worldState.npcs[i];if(np2.partyMember&&!np2.charSheet){var nn2=np2.name.toLowerCase();if(nn2===raw||nn2===canon){warnSheetlessCompanion(np2.name);break;}}}
   return null;
+}
+var _sheetlessWarned={};
+function warnSheetlessCompanion(name){
+  if(_sheetlessWarned[name])return;_sheetlessWarned[name]=1;
+  if(typeof console!=="undefined")console.warn("[companion] "+name+" is a party member without a character sheet — COMPANION_* update dropped");
+  if(typeof showToast==="function")showToast("⚠ "+name+" has no character sheet yet — companion update dropped.");
 }
 // True for a pronoun pair like "he/him", "she/her", "they/them" (incl. common neopronouns).
 // Whitelisted tokens so real relations like "ally/foe" don't false-positive.
@@ -425,6 +436,7 @@ function removeInventoryItem(inv,name){var t=_invNorm(name),i;
 }
 function applyMuts(text){
   var muts=[],turn=worldState.turn;
+  _sheetlessWarned={};// per-response dedupe window for the sheet-less companion warning (audit P2)
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
   var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);muts.push(dg>0?"+"+dg+" gp":dg+" gp");}
   var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;for(igqi=0;igqi<igq.n;igqi++)addInventoryItem(worldState.character.inventory,igq.base);muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:""));autoTakeLocationItem(igq.base);}/* P14: "Rope x3" → 3 × Rope */
@@ -548,7 +560,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       if(typeof showToast==="function")showToast("Party full (max "+PARTY_MAX+") — "+pmName+" can't join until someone leaves.");
       muts.push("Party full: "+pmName+" not added");continue;
     }
-    if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null,aliases:[]});}if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],aliases:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
+    if(pmFoundIdx>=0){worldState.npcs[pmFoundIdx].partyMember=pmVal;}else{worldState.npcs.push({name:pmName,status:"unknown",rel:"unknown",met:turn,partyMember:pmVal,portrait:null,aliases:[]});pmFoundIdx=worldState.npcs.length-1;}
+    // Narrative-path joins arrive sheet-less (audit P2): flag for async sheet generation after the
+    // turn settles (applyMuts is synchronous — no API call here; game.js processPendingCompanionSheets
+    // picks the flag up, same fire-after-render pattern as generateActions). Cleared on attach/departure.
+    if(pmVal&&!worldState.npcs[pmFoundIdx].charSheet)worldState.npcs[pmFoundIdx].sheetPending=true;
+    else if(!pmVal)delete worldState.npcs[pmFoundIdx].sheetPending;
+    if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],aliases:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=feGet();muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}
   // Skills
   var skSuccs=text.match(/\[SKILL_SUCCESS:([^\]]+)\]/g)||[];var sski;for(sski=0;sski<skSuccs.length;sski++){var sskp=skSuccs[sski].match(/\[SKILL_SUCCESS:([^\]]+)\]/);if(!sskp)continue;var sskid=sskp[1].trim();if(!worldState.character.skills)worldState.character.skills=initSkills();
     // Resolve a case-drifted id ("stealth" -> "Stealth") against SKILLS so a lowercased tag isn't a silent no-op (audit E29).

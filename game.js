@@ -181,6 +181,144 @@ function checkCompanionLevelUp(cs){
   addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
   showToast((cs.name||"Companion")+" reached level "+newLvl+"!");
 }
+// ── Companion sheet generation (audit P2) ─────────────────────────────────────
+// A narrative-path recruit ([PARTY_MEMBER:name|true] on a GM-invented NPC) used to join with NO
+// charSheet: the PARTY MEMBER SHEETS block never rendered them, every COMPANION_* tag no-oped
+// through findCompanionChar, and the [XP:] mirror skipped them. applyMuts flags such joins
+// (npc.sheetPending); processPendingCompanionSheets — fired after the turn settles, same
+// fire-after-render pattern as generateActions — asks the model for a sheet. The prompt build and
+// the parse/attach are pure functions so the engine tests exercise them without network, and a
+// deterministic stub guarantees a party member is NEVER left sheet-less (no-silent-failures).
+function _compNpcByName(name){if(!worldState||!worldState.npcs)return null;var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}return null;}
+function buildCompanionSheetPrompt(npcName){
+  var npc=_compNpcByName(npcName)||{};
+  var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
+  var c=worldState.character;
+  var known="Status: "+(npc.status||mem.attitude||"unknown")+" | Relation to the player: "+(npc.rel||"unknown")+(npc.pronouns?" | Pronouns: "+npc.pronouns:"")+"\n";
+  if(mem.firstEncounter)known+="First met: "+mem.firstEncounter+"\n";
+  var kn=(mem.knowledge||[]).join("; ");if(kn.length>3000)kn=kn.slice(0,3000)+"…";
+  if(kn)known+="Known facts: "+kn+"\n";
+  var ev=(mem.events||[]).slice(-8).join("; ");if(ev.length>1500)ev=ev.slice(0,1500)+"…";
+  if(ev)known+="Recent events: "+ev+"\n";
+  var clsIds=[],i;for(i=0;i<CLSS.length;i++)clsIds.push(CLSS[i].id);
+  var msg="Create a character sheet for "+npcName+", an NPC who has just joined the party as a companion.\n\n"
+    +"WHAT IS KNOWN ABOUT "+npcName+":\n"+known+"\n"
+    +"The player character is "+c.name+", a level "+c.level+" "+c.cls+". "+npcName+"'s level MUST be exactly "+c.level+".\n"
+    +"Pick cls from exactly this list: "+clsIds.join(", ")+" — whichever best fits who "+npcName+" is.\n\n"
+    +"Output ONLY a JSON object with exactly these fields (no extra fields, no prose, no markdown):\n"
+    +'{"name":'+JSON.stringify(npcName)+',"gender":"M or F or NB","age":"apparent age","appear":"one-line physical description","cls":"one class from the list","level":'+c.level+',"stats":{"STR":12,"DEX":12,"CON":12,"INT":12,"WIS":12,"CHA":12},"maxHp":12,"gold":10,"inventory":["3-6 items fitting the class"],"abilities":[{"nm":"ability name","ds":"one-line description"}],"spells":[{"nm":"spell name","lvl":1}],"trait":"one line","flaw":"one line","motivation":"one line"}\n'
+    +"Stats: 8-16, weighted toward the class's prime stat. maxHp: appropriate for the class hit die and level. spells: [] unless the class is a caster (Sorcerer, Cleric, Druid, Necromancer, Ranger, Paladin — cantrips are lvl 0). abilities: 1-3 signature class abilities.";
+  return {msg:msg,sys:"You generate companion character sheets for a sword & sorcery RPG. Output ONLY one valid JSON object. No prose, no markdown, no backticks."};
+}
+// Deterministic class guess from what the story already established about the NPC (rel/status/knowledge).
+function guessCompanionClass(text){
+  var t=(text||"").toLowerCase();
+  var map=[[/necromancer|death.?mage/,"Necromancer"],[/sorcer|wizard|mage|arcanist|witch|warlock/,"Sorcerer"],[/cleric|priest|healer|acolyte|chaplain/,"Cleric"],[/druid|shaman/,"Druid"],[/paladin|knight|templar/,"Paladin"],[/berserk|barbarian/,"Berserker"],[/ranger|hunter|tracker|scout|archer/,"Ranger"],[/rogue|thief|assassin|smuggler|spy|burglar|cutpurse/,"Rogue"]],i;
+  for(i=0;i<map.length;i++){if(map[i][0].test(t))return map[i][1];}
+  return "Warrior";
+}
+// Class-baseline HP: level 1 = hit die + CON mod, then the same per-level gain the level-up
+// systems use (ceil(hd/2)+1+CON mod, min 1) — keeps generated companions on the engine's curve.
+function companionBaselineHp(clsId,level,conMod){
+  var cls=null,i;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===clsId){cls=CLSS[i];break;}}
+  var hd=cls?cls.hd:10,hp=Math.max(1,hd+conMod),l;
+  for(l=2;l<=level;l++)hp+=Math.max(1,Math.ceil(hd/2)+1+conMod);
+  return hp;
+}
+// Minimal but fully valid v10 companion sheet — the fallback when generation fails, and the
+// guaranteed-shape base that normalizeCompanionSheet overlays model output onto.
+function buildCompanionSheetStub(npcName){
+  var npc=_compNpcByName(npcName)||{};
+  var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
+  var lvl=(worldState&&worldState.character&&worldState.character.level)||1;
+  var cls=guessCompanionClass((npc.rel||"")+" "+(npc.status||"")+" "+((mem.knowledge||[]).join(" ")));
+  var gender=npc.pronouns==="she/her"?"F":npc.pronouns==="they/them"?"NB":"M";
+  var hp=companionBaselineHp(cls,lvl,0);
+  return {name:npcName,gender:gender,age:"adult",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:null,subraceNm:null,heritageVariant:null,
+    cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,gold:0,inventory:[],level:lvl,xp:XP_LEVELS[lvl-1]||0,
+    abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:null,
+    trait:null,flaw:null,motivation:null,languages:[{name:"Common",broken:false}],skills:initSkills(),conditions:[],relationships:[],saveModifiers:[],
+    portrait:null,storyBeats:[],partyMember:true};
+}
+// Overlay validated model fields onto the stub base. Level is engine-owned (always the player's
+// current level, XP seeded at the band floor so the shared [XP:] mirror levels the companion in
+// step from here). HP is accepted only within [half, double] of the class baseline — outside that
+// band the number is confabulated and the baseline wins.
+function normalizeCompanionSheet(raw,npcName){
+  if(!raw||typeof raw!=="object")return null;
+  var s=buildCompanionSheetStub(npcName),i;
+  if(raw.gender==="M"||raw.gender==="F"||raw.gender==="NB")s.gender=raw.gender;
+  var strF=["age","appear","trait","flaw","motivation"];
+  for(i=0;i<strF.length;i++){if(typeof raw[strF[i]]==="string"&&raw[strF[i]])s[strF[i]]=raw[strF[i]];}
+  if(typeof raw.cls==="string"){for(i=0;i<CLSS.length;i++){if(CLSS[i].id.toLowerCase()===raw.cls.trim().toLowerCase()){s.cls=CLSS[i].id;break;}}}
+  if(raw.stats&&typeof raw.stats==="object"){var ks=["STR","DEX","CON","INT","WIS","CHA"];for(i=0;i<ks.length;i++){var v=parseInt(raw.stats[ks[i]]);if(!isNaN(v))s.stats[ks[i]]=Math.max(3,Math.min(20,v));}}
+  if(typeof raw.gold==="number"&&raw.gold>=0)s.gold=Math.min(10000,Math.floor(raw.gold));
+  if(raw.inventory&&raw.inventory.length){s.inventory=[];for(i=0;i<raw.inventory.length&&s.inventory.length<12;i++){if(typeof raw.inventory[i]==="string")s.inventory.push(raw.inventory[i]);}}
+  if(raw.abilities&&raw.abilities.length){s.abilities=[];for(i=0;i<raw.abilities.length&&s.abilities.length<6;i++){var ab=raw.abilities[i];if(ab&&typeof ab.nm==="string")s.abilities.push({nm:ab.nm,ds:typeof ab.ds==="string"?ab.ds:"",gained:worldState?worldState.turn:0});}}
+  if(raw.spells&&raw.spells.length){s.spells=[];for(i=0;i<raw.spells.length&&s.spells.length<10;i++){var sp=raw.spells[i];if(sp&&typeof sp.nm==="string")s.spells.push({nm:sp.nm,lvl:parseInt(sp.lvl)||0,used:false});}}
+  s.level=(worldState&&worldState.character&&worldState.character.level)||1;
+  s.xp=XP_LEVELS[s.level-1]||0;
+  var conMod=Math.floor((s.stats.CON-10)/2);
+  var base=companionBaselineHp(s.cls,s.level,conMod);
+  var mhp=parseInt(raw.maxHp);
+  s.maxHp=(!isNaN(mhp)&&mhp>=Math.ceil(base/2)&&mhp<=base*2)?mhp:base;
+  s.hp=s.maxHp;
+  return s;
+}
+function parseCompanionSheet(resp,npcName){
+  try{return normalizeCompanionSheet(JSON.parse(repairModelJson(resp)),npcName);}
+  catch(e){return null;}
+}
+// Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.
+function attachCompanionSheet(npcName,sheet){
+  var npc=_compNpcByName(npcName);
+  if(!npc||npc.charSheet)return null;
+  npc.charSheet=sheet;delete npc.sheetPending;
+  if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
+  return npc;
+}
+var _sheetGenInFlight={};
+async function generateCompanionSheet(npcName){
+  var npc=_compNpcByName(npcName);
+  if(!npc||npc.charSheet||_sheetGenInFlight[npcName])return;
+  _sheetGenInFlight[npcName]=1;
+  var sheet=null,failReason=null;
+  try{
+    var p=buildCompanionSheetPrompt(npcName);
+    var resp=await callGM(p.msg,p.sys,600,null,{noHistory:true,kind:"other"});
+    sheet=parseCompanionSheet(resp,npcName);
+    if(!sheet)failReason="model returned invalid JSON";
+  }catch(e){failReason=(e&&e.message)||"request failed";}
+  delete _sheetGenInFlight[npcName];
+  if(!sheet)sheet=buildCompanionSheetStub(npcName);// a party member must NEVER stay sheet-less
+  if(!attachCompanionSheet(npcName,sheet))return;// npc vanished or got a sheet meanwhile
+  saveAll();
+  if(failReason){
+    if(typeof console!=="undefined")console.warn("[companion sheet] "+npcName+": generation failed ("+failReason+") — deterministic stub used");
+    if(typeof showToast==="function")showToast("⚠ "+npcName+"'s sheet generation failed ("+failReason+") — stub sheet used.",6000);
+  }else if(typeof showToast==="function")showToast(npcName+"'s sheet drawn up.");
+}
+// Post-turn hook (called after the narration renders, like generateActions): kick generation for
+// every flagged sheet-less party member. Fire-and-forget; attach + saveAll happen on completion.
+function processPendingCompanionSheets(){
+  if(!worldState||!worldState.npcs)return;
+  var i;for(i=0;i<worldState.npcs.length;i++){
+    var n=worldState.npcs[i];
+    if(n.partyMember&&n.sheetPending&&!n.charSheet)generateCompanionSheet(n.name);
+  }
+}
+// Lazy migration for existing saves (called from initState/_applyLoadedCampaign): flag any
+// sheet-less living party member, then kick generation unless a turn is in flight — the flags
+// persist, so the next turn's post-render hook picks them up.
+function migratePendingCompanionSheets(){
+  if(!worldState||!worldState.npcs)return;
+  var found=false,i;
+  for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];
+    if(n.partyMember&&!n.charSheet&&!/dead/i.test(n.status||"")){n.sheetPending=true;found=true;}}
+  if(!found)return;
+  if(typeof busy!=="undefined"&&busy)return;
+  processPendingCompanionSheets();
+}
 function showArchetypeModal(){
   var c=worldState.character,archs=ARCHETYPES[c.cls]||[];var ex=document.getElementById("arch-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="arch-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;";
@@ -275,6 +413,7 @@ async function sendAction(override,opts){
       sessionLog.push({role:"user",content:apiTxt},{role:"assistant",content:resp});/* apiTxt so the API history stays consistent with what the GM actually answered (P3 note included) */
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
       generateActions(narEl);
+      processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
     }
     syncUI();
   }catch(e){th.remove();
@@ -598,6 +737,7 @@ async function beginAdventure(){
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
     sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
     generateActions(narEl);
+    processPendingCompanionSheets();// a join can land in the opening scene too (audit P2)
     _promptCampaignFolder();
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   busy=false;document.getElementById("sendbtn").disabled=false;

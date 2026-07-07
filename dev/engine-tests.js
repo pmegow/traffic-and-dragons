@@ -208,6 +208,94 @@ function runEngineTests(R){
     return e&&e.a==="Sheriff Belor Hemlock"&&e.b==="Zarith"?true:"edge not re-keyed: "+JSON.stringify(e);
   });
 
+  // ── 5b. Companion sheet generation (audit P2) ────────────────────────────────
+  section("companion sheets (audit P2)");
+  t("PARTY_MEMBER join without a sheet sets sheetPending",function(){
+    makeWorld();applyMuts("[NPC:Ekene|wary|guide][PARTY_MEMBER:Ekene|true]");
+    var n=worldState.npcs.filter(function(x){return x.name==="Ekene";})[0];
+    return n&&n.partyMember===true&&n.sheetPending===true?true:"flag not set: "+JSON.stringify(n);
+  });
+  t("PARTY_MEMBER join with an existing charSheet does NOT flag",function(){
+    makeWorld();worldState.npcs=[{name:"Lyra",status:"ally",rel:"companion",partyMember:false,charSheet:{name:"Lyra",hp:10,maxHp:10}}];
+    applyMuts("[PARTY_MEMBER:Lyra|true]");
+    return worldState.npcs[0].sheetPending?"flagged despite existing sheet":true;
+  });
+  t("PARTY_MEMBER|false clears a stale pending flag",function(){
+    makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
+    applyMuts("[PARTY_MEMBER:Ekene|false]");
+    return worldState.npcs[0].sheetPending?"flag survived departure":true;
+  });
+  t("buildCompanionSheetStub: valid v10 shape at the player's level",function(){
+    makeWorld();worldState.character.level=4;
+    worldState.npcs=[{name:"Ekene",status:"ally",rel:"wandering hunter",partyMember:true,sheetPending:true,pronouns:"she/her"}];
+    var s=buildCompanionSheetStub("Ekene");
+    if(s.level!==4)return "level "+s.level+" want 4";
+    if(s.cls!=="Ranger")return "class guess: "+s.cls+" want Ranger (from 'hunter')";
+    if(s.gender!=="F")return "gender from pronouns: "+s.gender;
+    if(s.hp!==s.maxHp||s.hp<1)return "hp insane: "+s.hp+"/"+s.maxHp;
+    if(s.xp!==XP_LEVELS[3])return "xp not seeded at band floor: "+s.xp;
+    if(Object.keys(s.skills).length!==SKILLS.length)return "skills map incomplete";
+    var arrs=["inventory","abilities","spells","conditions","relationships","saveModifiers","languages","storyBeats"],i;
+    for(i=0;i<arrs.length;i++){if(!s[arrs[i]]||typeof s[arrs[i]].length!=="number")return arrs[i]+" missing";}
+    return s.partyMember===true?true:"partyMember not set";
+  });
+  t("stub hp follows the class hit-die formula",function(){
+    makeWorld();worldState.character.level=4;
+    worldState.npcs=[{name:"Ekene",status:"ally",rel:"hunter",partyMember:true}];
+    var s=buildCompanionSheetStub("Ekene"); // Ranger hd 10, conMod 0: 10 + 3*(5+1) = 28
+    return s.maxHp===28?true:"maxHp "+s.maxHp+" want 28";
+  });
+  t("normalizeCompanionSheet: level forced to player, insane hp clamped, cls case-healed",function(){
+    makeWorld();worldState.character.level=3;
+    worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
+    var s=normalizeCompanionSheet({name:"Ekene",cls:"warrior",level:9,maxHp:999,stats:{STR:14,DEX:12,CON:14,INT:99,WIS:10,CHA:10}},"Ekene");
+    if(s.level!==3)return "level not forced: "+s.level;
+    if(s.cls!=="Warrior")return "cls not healed: "+s.cls;
+    if(s.stats.INT!==20)return "stat not clamped: "+s.stats.INT;
+    var want=companionBaselineHp("Warrior",3,2); // conMod from CON 14
+    return s.maxHp===want&&s.hp===want?true:"hp not clamped to baseline: "+s.maxHp+" want "+want;
+  });
+  t("parseCompanionSheet survives fenced JSON; returns null on garbage",function(){
+    makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true}];
+    var s=parseCompanionSheet("```json\n{\"name\":\"Ekene\",\"cls\":\"Rogue\",\"gender\":\"F\",\"maxHp\":8,\"stats\":{\"STR\":10,\"DEX\":15,\"CON\":10,\"INT\":12,\"WIS\":10,\"CHA\":12}}\n```","Ekene");
+    if(!s||s.cls!=="Rogue"||s.gender!=="F")return "fenced sheet not parsed: "+JSON.stringify(s&&{cls:s.cls,gender:s.gender});
+    return parseCompanionSheet("I am sorry, I cannot do that.","Ekene")===null?true:"garbage did not return null";
+  });
+  t("buildCompanionSheetPrompt includes player level+class and truncates knowledge",function(){
+    makeWorld();worldState.character.level=5;
+    worldState.npcs=[{name:"Ekene",status:"steady",rel:"guide",partyMember:true}];
+    var big="";while(big.length<5000)big+="Ekene grew up on the marsh roads. ";
+    memory.npcs["Ekene"]={attitude:"warm",knowledge:[big],events:["saved the party at the ford"],aliases:[]};
+    var p=buildCompanionSheetPrompt("Ekene");
+    if(p.msg.indexOf("level 5 Warrior")<0)return "player level/class missing";
+    if(p.msg.indexOf("MUST be exactly 5")<0)return "level demand missing";
+    if(p.msg.indexOf(big)>=0)return "knowledge not truncated";
+    return p.msg.indexOf("saved the party at the ford")>=0?true:"events missing";
+  });
+  t("COMPANION_HP on a sheet-less party member warns instead of silently dropping",function(){
+    makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
+    applyMuts("[COMPANION_HP:Ekene|-4]");
+    return __toasts.join(" ").indexOf("no character sheet")>=0?true:"no warning toast: "+JSON.stringify(__toasts);
+  });
+  t("attachCompanionSheet clears the flag and makes findCompanionChar resolve",function(){
+    makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
+    memory.npcs["Ekene"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    attachCompanionSheet("Ekene",buildCompanionSheetStub("Ekene"));
+    var n=worldState.npcs[0];
+    if(!n.charSheet)return "sheet not attached";
+    if(n.sheetPending)return "pending flag not cleared";
+    if(!findCompanionChar("Ekene"))return "findCompanionChar still misses";
+    applyMuts("[COMPANION_HP:Ekene|-3]");
+    return n.charSheet.hp===n.charSheet.maxHp-3?true:"COMPANION_HP still no-ops: "+n.charSheet.hp;
+  });
+  t("XP mirror reaches a companion once the sheet is attached",function(){
+    makeWorld();worldState.npcs=[{name:"Ekene",status:"ally",rel:"guide",partyMember:true,sheetPending:true}];
+    attachCompanionSheet("Ekene",buildCompanionSheetStub("Ekene"));
+    var before=worldState.npcs[0].charSheet.xp;
+    applyMuts("[XP:50]");
+    return worldState.npcs[0].charSheet.xp===before+50?true:"mirror missed: "+worldState.npcs[0].charSheet.xp;
+  });
+
   // ── 6. migrateWorldState (save-import battery) ───────────────────────────────
   section("migrateWorldState");
   t("fills every v10 field on a bare old save",function(){
