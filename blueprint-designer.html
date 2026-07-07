@@ -107,9 +107,19 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.30";
+var BP_DESIGNER_VERSION="v0.31";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
+// ── Draft persistence (v0.31) ─────────────────────────────────────────────────
+// Reload NEVER clears the editor — that's what New is for (user rule, 07-06). Every mutation
+// autosaves the RAW working state (not stripView: review selections, FAILED stamps, and collapse
+// flags all survive) to localStorage, debounced; boot restores it silently. New clears it.
+var DRAFT_K="bpd_draft_v1",_draftT=null;
+function saveDraft(){
+  if(_draftT)clearTimeout(_draftT);
+  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,at:Date.now()}));}catch(e){/* quota — draft is a convenience, never block editing */}},400);
+}
+function clearDraft(){if(_draftT){clearTimeout(_draftT);_draftT=null;}try{localStorage.removeItem(DRAFT_K);}catch(e){}}
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
 // cards carry a `_c` flag ON the data object so collapse travels with moves/reorders. `_c` is
 // VIEW state only — stripped from Save and Publish output by stripView(). Loading an existing
@@ -145,7 +155,7 @@ function setStatus(msg,cls){var el=document.getElementById("statusline");el.text
 // Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
 // 2026-07-05: it used to replace the name with just "Unsaved changes"). Runs on every edit,
 // so a rename updates the shown name live.
-function markDirty(){dirty=true;setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");}
+function markDirty(){dirty=true;setStatus((bp&&bp.name?bp.name:"Untitled blueprint")+" — unsaved changes","");saveDraft();}
 
 // ── Rendering ──────────────────────────────────────────────────────────────────
 function fld(label,inner){return "<div class='fld'><label>"+label+"</label>"+inner+"</div>";}
@@ -203,6 +213,7 @@ function cardHead(tsec,i,j,label,summary,btns){
     +" "+label+(summary?" &mdash; "+esc(summary):"")+"</span>"+btns+"</div>";
 }
 function render(){
+  saveDraft(); // every interaction rerenders, so this keeps the draft mirroring the screen — including view-only state (collapse flags, fix selections) that never calls markDirty. Debounced, so bursts cost one write.
   var h="",i,j;
   // Metadata
   var toneOpts="<option value=''>(none)</option>";for(i=0;i<TONES.length;i++){toneOpts+="<option value='"+TONES[i].id+"'"+(bp.tone===TONES[i].id?" selected":"")+">"+esc(TONES[i].nm)+"</option>";}
@@ -488,7 +499,7 @@ function loadBlueprintObject(obj){
 }
 document.getElementById("btn-new").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
-  bp=blankBp();dirty=false;render();setStatus("New blueprint","");
+  bp=blankBp();dirty=false;clearDraft();render();setStatus("New blueprint","");
 });
 document.getElementById("btn-load").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
@@ -996,7 +1007,14 @@ document.getElementById("btn-library").addEventListener("click",function(){
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
 document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
-bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+// Boot: restore the working draft if one exists — reload continues where you were (New = blank).
+var _draft=null;try{_draft=JSON.parse(localStorage.getItem(DRAFT_K)||"null");}catch(e){}
+if(_draft&&_draft.bp&&_draft.bp.format){
+  bp=normalizeBlueprint(_draft.bp);dirty=!!_draft.dirty;render();
+  setStatus((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");
+}else{
+  bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+}
 </script>
 </body>
 </html>
