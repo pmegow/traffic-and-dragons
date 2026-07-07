@@ -273,11 +273,33 @@ function splitCells(line) {
 }
 function escCell(s) { return String(s).replace(/\|/g, "\\|"); }
 
+// Rejoin table rows that were written WRAPPED across physical lines (invalid GFM, but generated
+// audits do it — AUDIT_PLAYTHRU's P2 opened "| P2 | **…** " and terminated "| M | open |" five
+// lines later, killing the table scan so every later row fell through to the doc renderer).
+// Deterministic rule, no heuristics: every real row in this format ENDS with "|", so a line that
+// OPENS a row without that terminator is wrapped — absorb lines (blank ones included) until the
+// one that ends with "|" completes it. Runs before BOTH parsers.
+function joinWrappedRows(lines) {
+  var out = [], cur = null, i, ln;
+  for (i = 0; i < lines.length; i++) {
+    ln = lines[i];
+    if (cur !== null) {
+      cur += " " + ln.trim();
+      if (/\|\s*$/.test(ln)) { out.push(cur); cur = null; }
+      continue;
+    }
+    if (/^\s*\|/.test(ln) && !/\|\s*$/.test(ln)) { cur = ln; continue; }
+    out.push(ln);
+  }
+  if (cur !== null) out.push(cur); // unterminated at EOF — emit what we have rather than eat it
+  return out;
+}
+
 function parse(md) {
   _sections = [];
   _tasks = [];
   _hasEffort = false;
-  var lines = md.split("\n");
+  var lines = joinWrappedRows(md.split("\n"));
   var i = 0;
   while (i < lines.length) {
     var line = lines[i];
@@ -815,7 +837,7 @@ function showToast(msg) {
 // ── Markdown renderer ─────────────────────────────────────────────────────────
 
 function parseMarkdown(md) {
-  var lines = md.split("\n");
+  var lines = joinWrappedRows(md.split("\n"));
   var out = "";
   var inTable=false, inUl=false, inOl=false;
   function closeList() { if (inUl) { out += "</ul>"; inUl=false; } if (inOl) { out += "</ol>"; inOl=false; } }
