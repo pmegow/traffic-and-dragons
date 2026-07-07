@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic and Dragons — Beta Tester Guide</title>
+<style>
+  :root{--bg0:#0d0d0d;--bg1:#141210;--bg2:#1a1815;--brd:#2a2620;--brd2:#3a342a;--acc:#b8935a;--t0:#e8e0d0;--t1:#b8b0a0;--t2:#807868;--grn:#4a9060;--red:#c05040;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--t0);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.7;padding:32px 20px 80px;}
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{color:var(--acc);font-size:30px;margin-bottom:6px;letter-spacing:.5px;}
+  .subtitle{color:var(--t2);font-style:italic;margin-bottom:36px;font-size:15px;}
+  h2{color:var(--acc);font-size:20px;margin:44px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--brd2);}
+  h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:#000;border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
+  h3{color:var(--t0);font-size:16px;margin:22px 0 8px;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px 24px;}
+  li{margin-bottom:8px;}
+  a{color:var(--acc);}
+  code{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;font-family:Consolas,Menlo,monospace;font-size:13.5px;color:var(--t0);}
+  .card{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:8px;padding:16px 18px;margin:16px 0;}
+  .card.opt{border-left-color:var(--brd2);}
+  .card .tag{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);display:block;margin-bottom:6px;}
+  .card.opt .tag{color:var(--t2);}
+  .tip{background:var(--bg1);border:1px solid var(--brd);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--t1);}
+  .tip b{color:var(--t0);}
+  .tip .ico{margin-right:8px;}
+  .warn{border-left:3px solid var(--red);}
+  .money{border-left:3px solid var(--grn);}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;}
+  th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
+  td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
+  td:first-child{color:var(--t0);white-space:nowrap;}
+  .kbd{display:inline-block;background:var(--bg2);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:Consolas,Menlo,monospace;}
+  .toc{background:var(--bg1);border:1px solid var(--brd);border-radius:8px;padding:16px 20px;margin:0 0 8px;}
+  .toc ol{margin:6px 0 0 22px;}
+  .toc li{margin-bottom:4px;}
+  .urlbox{background:var(--bg2);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
+  .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
+  .shots figure{flex:1;min-width:240px;max-width:330px;margin:0;}
+  .shotwrap{position:relative;}
+  .shots img{width:100%;display:block;border:1px solid var(--brd2);border-radius:16px;}
+  .shots figcaption{font-size:13px;color:var(--t2);margin-top:10px;line-height:1.55;text-align:center;font-style:italic;}
+  /* Chips center via flex, NOT line-height: the 2px border eats the content box, and Georgia's
+     old-style numerals (3/4/5/9 descend) sat visibly low — Arial has lining figures. */
+  .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:#000;font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid #0d0d0d;box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);}
+  .mkh{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:#000;font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;margin-right:9px;vertical-align:middle;}
+  hr{border:none;border-top:1px solid var(--brd);margin:36px 0;}
+  .footer{color:var(--t2);font-size:13px;font-style:italic;margin-top:48px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>⚔ Traffic and Dragons</h1>
+<div class="subtitle">Beta Tester Setup Guide — from zero to your first adventure in about 15 minutes.</div>
+
+<div class="toc">
+  <b>What's ahead</b>
+  <ol>
+    <li>What Traffic and Dragons is (30 seconds)</li>
+    <li>Create your Anthropic account &amp; API key <em>(required)</em></li>
+    <li>Optional accounts — images, cloud sync, voice</li>
+    <li>Open the game &amp; enter your key</li>
+    <li>Put it on your home screen like an app</li>
+    <li>Create your character</li>
+    <li>Start your campaign &amp; how to play</li>
+    <li>About the UI — a tour of the screen</li>
+    <li>About the File menu</li>
+    <li>If something looks broken</li>
+  </ol>
+</div>
+
+<h2><span class="stepnum">1</span>What this is</h2>
+<p>Traffic and Dragons is a sword &amp; sorcery role-playing game that runs entirely in your browser. You create a character, and an AI Game Master narrates a living adventure around you — tracking your health, gold, inventory, quests, and the people you meet, across sessions. There's nothing to install and no account <em>for the game itself</em>; the one thing you must bring is an <b>Anthropic API key</b>, which is what powers the Game Master's brain.</p>
+<div class="tip"><span class="ico">🗝</span><b>Why a key?</b> During the beta you "bring your own" AI. The key is yours, the usage is billed to you directly by Anthropic (pennies per turn — details below), and the game never sees or stores it anywhere except your own device.</div>
+
+<h2><span class="stepnum">2</span>Create your Anthropic account &amp; API key <em style="font-size:14px;color:var(--red);">(required)</em></h2>
+<ol>
+  <li>Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> and click <b>Sign up</b>. You can use an email address or a Google account.</li>
+  <li>Verify your email if asked, and complete the short onboarding.</li>
+  <li><b>Add credits:</b> open <b>Settings → Billing</b> (or the "Get API access" prompt) and purchase credits. The minimum (usually <b>$5</b>) is plenty to start.</li>
+  <li><b>Create your key:</b> go to <b>Settings → API Keys → Create Key</b>. Name it anything (e.g. <code>traffic-and-dragons</code>) and click create.</li>
+  <li><b>Copy the key immediately</b> — it starts with <code>sk-ant-</code> and is shown only once. Paste it somewhere safe (a password manager is ideal). If you lose it, no drama: just delete it and create a new one.</li>
+</ol>
+<div class="tip money"><span class="ico">💰</span><b>What does it cost?</b> A typical game turn costs a few cents. A $5 credit purchase generally covers many hours of play. You can watch your exact usage anytime in the game under <b>File ▾ → Admin → Usage &amp; cost</b>, and Anthropic's console shows your remaining balance.</div>
+<div class="tip warn"><span class="ico">⚠</span><b>Keep the key private.</b> Anyone who has it can spend your credits. Don't share screenshots of it, and don't paste it anywhere except the game's key screen.</div>
+
+<h2><span class="stepnum">3</span>Optional accounts — nice, not necessary</h2>
+<p>The game works fully with just the Anthropic key. These add extras — you can skip all of them today and add them later:</p>
+
+<div class="card opt">
+  <span class="tag">Optional — scene &amp; portrait images</span>
+  <b>fal.ai</b> — powers the <b>Render</b> button (paints the current scene) and AI character portraits.
+  <ol>
+    <li>Go to <a href="https://fal.ai" target="_blank" rel="noopener">fal.ai</a> → Sign up (Google/GitHub works).</li>
+    <li>Open your dashboard → <b>Keys</b> → create a key (starts with a long token).</li>
+    <li>Paste it into the game's opening screen in the <b>fal.ai key</b> box (or later, under File ▾ → Render Options).</li>
+  </ol>
+  New accounts typically include free credits — enough to try it properly.
+</div>
+
+<div class="card opt">
+  <span class="tag">Optional — cloud sync &amp; cross-device play</span>
+  <b>GitHub</b> — lets the game back your campaigns up to the cloud so you can continue the same adventure on your phone, tablet, and desktop.
+  <ol>
+    <li>If you don't have one: <a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a> (free).</li>
+    <li>In the game: <b>File ▾ → Connect server</b> → a GitHub login window opens → authorize.</li>
+    <li>That's it — saves sync automatically from then on.</li>
+  </ol>
+  Without this, your game still saves — just locally to each device.
+</div>
+
+<div class="card opt">
+  <span class="tag">Optional — voice narration</span>
+  <b>Nothing to sign up for.</b> Tap the 🔈 speaker button in the game and it reads the story aloud using your device's built-in voice. (A premium voice service can be plugged in under File ▾ → Voice Settings, but the built-in voice needs no account.)
+</div>
+
+<h2><span class="stepnum">4</span>Open the game &amp; enter your key</h2>
+<div class="urlbox">🌐 <b>https://traffic-and-dragons.pages.dev</b><br><span style="font-size:12px;color:var(--t2);">(TODO: confirm final URL before publishing this guide)</span></div>
+<ol>
+  <li>Open the link above in <b>Chrome</b> (Android/desktop) or <b>Safari</b> (iPhone/iPad). Other modern browsers work too.</li>
+  <li>You'll land on the key screen. Paste your <code>sk-ant-...</code> key into the big box.</li>
+  <li>Optionally paste your fal.ai key in the second box.</li>
+  <li>Press <b>Enter the world</b>.</li>
+</ol>
+<p>Your keys are stored only in your browser on that device — never on our servers. You'll need to paste the key once per device you play on.</p>
+
+<h2><span class="stepnum">5</span>Put it on your home screen</h2>
+<p>The game is a proper web app — installed to your home screen it opens fullscreen with its own icon, like any native app.</p>
+<h3>📱 iPhone / iPad (Safari)</h3>
+<ol>
+  <li>Open the game in <b>Safari</b> (this only works from Safari).</li>
+  <li>Tap the <b>Share</b> button — the square with the arrow pointing up, center-bottom of the screen.</li>
+  <li>Scroll down the share sheet and tap <b>Add to Home Screen</b>.</li>
+  <li>Tap <b>Add</b> (top-right). The T&amp;D icon appears on your home screen — launch it from there from now on.</li>
+</ol>
+<h3>🤖 Android (Chrome)</h3>
+<ol>
+  <li>Open the game in <b>Chrome</b>.</li>
+  <li>Tap the <b>⋮</b> menu (top-right).</li>
+  <li>Tap <b>Add to Home screen</b> (on some phones: <b>Install app</b>).</li>
+  <li>Confirm. Launch from the new icon from now on.</li>
+</ol>
+<h3>🖥 Desktop (Chrome / Edge)</h3>
+<ol>
+  <li>Look for the <b>install icon</b> (a little monitor with a down-arrow) at the right end of the address bar.</li>
+  <li>Click it → <b>Install</b>. The game gets its own window and an entry in your Start menu / dock.</li>
+</ol>
+
+<h2><span class="stepnum">6</span>Create your character</h2>
+<p>First launch drops you into a six-step character builder. There are no wrong answers — lean into whatever sounds fun:</p>
+<table>
+  <tr><th>Step</th><th>What you're choosing</th></tr>
+  <tr><td>1 · Tone</td><td>The flavor of the whole world — High Fantasy, Gritty, Sword &amp; Sorcery, Dark Horror, Political Intrigue, or write your own. This shapes how the Game Master narrates everything.</td></tr>
+  <tr><td>2 · Identity</td><td>Gender, age, and your ancestry — Human, Elf, Dwarf, Gnome, Half-Blood, Hollow-Born, or Tiefling, each with sub-lineages and their own stat flavor.</td></tr>
+  <tr><td>3 · Class</td><td>Your profession: Warrior, Rogue, Sorcerer, Ranger, Berserker, Paladin, Cleric, Druid, or Necromancer.</td></tr>
+  <tr><td>4 · Attributes</td><td>Your six ability scores. <b>Roll</b> (fate decides, auto-arranged sensibly) or <b>Point Buy</b> (you budget 27 points). Plus your moral alignment.</td></tr>
+  <tr><td>5 · Finishing touches</td><td>Appearance, backstory, and a portrait — upload a picture, or (with a fal.ai key) generate one from your character sheet.</td></tr>
+  <tr><td>6 · Review</td><td>Name your campaign, pick a starting location and level (1 is the classic experience), optionally add companions, and confirm.</td></tr>
+</table>
+<div class="tip"><span class="ico">💡</span><b>Don't overthink the backstory.</b> A sentence or two is plenty — the Game Master weaves whatever you give it into the story, and the interesting stuff happens in play anyway.</div>
+
+<h2><span class="stepnum">7</span>Start your campaign &amp; how to play</h2>
+<p>Hit confirm and the Game Master opens your story with your first scene. From there:</p>
+<ul>
+  <li><b>Type what you do</b> in the box at the bottom — plain English, first person. <em>"I ask the innkeeper about the missing caravan."</em> <em>"I draw my sword."</em> <em>"I search the body."</em> Anything. The world reacts.</li>
+  <li><b>Suggested actions</b> appear as buttons after each scene. Tap one to drop it into the input box (edit it if you like), then send. Long-press (or Ctrl-click) to fire it instantly.</li>
+  <li><b>The dice are real.</b> When you attempt something chancy, the GM rolls and shows you the result — success and failure both push the story somewhere.</li>
+  <li><b>Sheet</b> (top bar) shows your full character — health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
+  <li><b>Quests</b> arrive as ⚑ opportunities. Open the quest journal from the sidebar to accept, decline, and track objectives. Nothing is forced on you.</li>
+  <li><b>Table Talk</b> (tab next to Story) lets you talk to the Game Master <em>out of character</em> — ask rules questions, request a recap, or nudge the tone, without your character saying a word.</li>
+  <li><b>Rest</b> (top bar) recovers your spent spells when the story allows a breather.</li>
+  <li><b>It remembers.</b> People you meet, places you visit, promises you make — the game files them into long-term memory and the world stays consistent across sessions. Just close the app when you're done; you'll resume exactly where you left off.</li>
+</ul>
+<div class="tip"><span class="ico">🎭</span><b>Play it like improv, not like a menu.</b> The best sessions come from trying things no button suggests — bribe the guard, adopt the wolf, burn the letter unread. The Game Master keeps up.</div>
+
+<h2><span class="stepnum">8</span>About the UI — a tour of the screen</h2>
+<p>Two views of the same moment (phone layout — desktop shows a few extra buttons in the top bar). The numbers match the sections below:</p>
+<div class="shots">
+  <figure>
+    <div class="shotwrap">
+      <img src="beta-ui-story.png" alt="The story view: top bar with character vitals, memory bar, a turn label, a d20 perception check result, the Game Master's narration, voice playback controls, and the input row with Story and Table Talk tabs." loading="lazy">
+      <span class="callout" style="left:0;top:6.5%;">1</span>
+      <span class="callout" style="left:0;top:13.5%;">2</span>
+      <span class="callout" style="left:82%;top:26%;">3</span>
+      <span class="callout" style="left:94%;top:29%;">4</span>
+      <span class="callout" style="left:68%;top:82.5%;">5</span>
+      <span class="callout" style="left:0;top:90%;">6</span>
+    </div>
+    <figcaption>The story view — the quick-reference panel is the slim rail at ④, collapsed.</figcaption>
+  </figure>
+  <figure>
+    <div class="shotwrap">
+      <img src="beta-ui-panel.png" alt="The same screen with the right panel expanded, showing the party list with health bars, and the Quests, Inventory, Abilities and Spells drawers." loading="lazy">
+      <span class="callout" style="left:65.5%;top:30%;">4</span>
+    </div>
+    <figcaption>The same panel ④ expanded — party health at a glance; Quests, Inventory, Abilities, and Spells one tap away.</figcaption>
+  </figure>
+</div>
+
+<h3><span class="mkh">1</span>The top bar (your HUD)</h3>
+<p>Your vital signs at a glance — name, class &amp; level, <b style="color:#e06060;">HP</b>, <b style="color:#c0a040;">gold</b>, alignment, and where you are. When companions travel with you, a party row appears beneath it with each member's health bar. The buttons along the top:</p>
+<table>
+  <tr><th>Button</th><th>What it does</th></tr>
+  <tr><td>Sheet</td><td>Your full character sheet — stats, portrait, abilities, spells, inventory, skills, relationships, story beats. Everything the game knows about you.</td></tr>
+  <tr><td>Sync</td><td>The "fix it yourself" hatch: directly edit HP, gold, inventory, time, weather and more — handy if the story and the numbers ever disagree.</td></tr>
+  <tr><td>World State</td><td>Slides out a panel with your location, time, weather, everyone you've met, and your quest journal.</td></tr>
+  <tr><td>Render</td><td>Paints the current scene as an image (needs the optional fal.ai key).</td></tr>
+  <tr><td>↻ Re-roll</td><td>Re-narrates the last scene in a different telling — same events, fresh prose, no turn spent.</td></tr>
+  <tr><td>🔈</td><td>Toggles voice narration on and off.</td></tr>
+  <tr><td>File ▾</td><td>Everything else — see the next section.</td></tr>
+</table>
+<p style="font-size:14px;color:var(--t2);">On phones, some of these tuck into the File ▾ menu to save space.</p>
+
+<h3><span class="mkh">2</span>The memory bar</h3>
+<p>The thin strip under the top bar — <em>Session tokens · Chapters · NPCs · Turn</em> — is the Game Master's memory ticker. As you play, the game periodically pauses a moment to "file memories," compressing recent events into long-term memory. That pause is normal and it's why the GM still remembers the innkeeper's debt forty turns later.</p>
+
+<h3><span class="mkh">3</span>The story area</h3>
+<p>The main scroll — the Game Master's narration, your actions, and dice results, with a turn number over each scene. Under the latest scene you'll find the <b>suggested action buttons</b>. When a fight starts, a <b>combat tracker</b> — the enemy's health bar, armor, and round counter — appears automatically at the top of this area, and vanishes when the dust settles.</p>
+
+<h3><span class="mkh">4</span>The quick-reference panel</h3>
+<p>The right edge of the screen. Collapsed, it's a slim rail of tabs (<em>Pty · Qst · Inv · Ab · Sp</em>); tap to expand it into full drawers — your <b>Party</b> with everyone's health bars, plus <b>Quests</b>, <b>Inventory</b>, <b>Abilities</b>, and <b>Spells</b>. Everything you'd flip to your character sheet for mid-scene, one tap away.</p>
+
+<h3><span class="mkh">5</span>The voice strip</h3>
+<p>Appears while narration is being read aloud — <b>▶</b> replays the scene, <b>⏭</b> skips ahead, and <em>Speaking…</em> tells you the narrator's mid-sentence. (Toggle narration itself with the 🔈 button in the top bar.)</p>
+
+<h3><span class="mkh">6</span>The input row</h3>
+<p>The text box where you say what you do, the <b>🎤 mic</b> for dictating instead of typing, and <b>Send</b>. Above it, two tabs: <b>Story</b> (the adventure) and <b>Table Talk</b> (out-of-character chat with the GM — a blue dot marks unread replies on the inactive tab).</p>
+
+<h2><span class="stepnum">9</span>About the File menu</h2>
+<p><b>File ▾</b> is home to everything that isn't moment-to-moment play. The headliners:</p>
+<table>
+  <tr><th>Item</th><th>What it does</th></tr>
+  <tr><td>📁 Campaigns…</td><td>Your saved adventures. Run several at once, switch between them, pull one down from the cloud onto a new device.</td></tr>
+  <tr><td>🚗 Car Mode</td><td>Hands-free play: it reads the scene aloud, listens for your spoken action, and keeps the loop going. Passenger-seat approved.</td></tr>
+  <tr><td>💾 Save / Load ▶</td><td><b>Save/Load Game (local)</b> — file-based backups of the whole campaign. <b>Export Character</b> — save your hero as a portable <code>.char</code> file or to your cloud library. <b>Import Character</b> — bring a hero in: play as them in a new campaign, or add them to the current party as a companion. <b>Export as Blueprint</b> — distill your campaign into a reusable template others can play.</td></tr>
+  <tr><td>☁ Blueprint Library…</td><td>Cloud-stored campaign templates — pre-built adventures you can open and start playing immediately.</td></tr>
+  <tr><td>⚙ Admin ▶</td><td>The settings drawer — details below.</td></tr>
+  <tr><td>⟳ Clear cache &amp; reload</td><td>The universal un-sticker. If the game ever looks stale or weird, this is the button.</td></tr>
+  <tr><td>New Game</td><td>Start a fresh character and campaign. Your current one stays safe under Campaigns.</td></tr>
+</table>
+
+<h3>Inside ⚙ Admin</h3>
+<table>
+  <tr><th>Item</th><th>What it does</th></tr>
+  <tr><td>🔊 Voice Settings…</td><td>Pick the narration voice; plug in a premium voice key if you have one (built-in voice works without).</td></tr>
+  <tr><td>📖 Narrative options ▶</td><td><b>Narrative rules</b> — house rules the GM must always follow ("no spiders," "my dog is immortal"). <b>✍ Prose inspiration</b> — have the narration channel a favorite author's style. <b>18+ Adult content</b> — opt into mature language and themes; off by default.</td></tr>
+  <tr><td>🧠 Language Model…</td><td>Swap which AI powers the GM (Claude by default; other providers supported if you bring their keys).</td></tr>
+  <tr><td>📊 Usage &amp; cost…</td><td>Your token meter — exactly what this campaign has spent, per activity, in dollars.</td></tr>
+  <tr><td>🗂 Episodic memory…</td><td>Experimental deeper recall — lets the GM re-read exact past scenes, not just summaries.</td></tr>
+  <tr><td>🖼 Render Options…</td><td>Choose the image model the Render button uses.</td></tr>
+  <tr><td>Toggles &amp; tools</td><td><b>Large text</b>, <b>🎤 Auto-send voice input</b> (spoken actions send themselves), <b>☠ Legacy characters</b> (heroes from your past campaigns may wander in as NPCs), <b>📁 Set campaign folder</b> (desktop: organized export folders), <b>☁ Connect to server</b> (the GitHub cloud-sync login from step 3).</td></tr>
+</table>
+<div class="tip"><span class="ico">📱</span>On phones, the File menu also picks up a few quick actions (Sync state, World state, Render prompt) that live as top-bar buttons on desktop. The same menu is available on the character-creation screen, with game-only items greyed out until you're playing.</div>
+
+<h2><span class="stepnum">10</span>If something looks broken</h2>
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>Page looks stale or misbehaves after an update</td><td><b>File ▾ → Clear cache &amp; reload.</b> This is the universal fix — try it first. (Or a hard refresh: <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">R</span> on desktop.)</td></tr>
+  <tr><td>"Invalid API key" or the GM won't respond</td><td>Re-check the key was pasted completely (starts <code>sk-ant-</code>), and that your Anthropic account has credits remaining.</td></tr>
+  <tr><td>Images won't render</td><td>The fal.ai key is missing or out of credits — check File ▾ → Render Options.</td></tr>
+  <tr><td>Campaign didn't follow you to another device</td><td>Cloud sync needs the GitHub connection on <em>both</em> devices — File ▾ → Connect server on each.</td></tr>
+  <tr><td>Something else / it ate your character</td><td>Tell us! That's exactly what the beta is for. Note what you did, what you expected, and what happened instead — a screenshot helps enormously.</td></tr>
+</table>
+
+<hr>
+<p class="footer">Traffic and Dragons · closed beta · thank you for playing — every bug you hit makes the game better. ⚔</p>
+
+</div>
+</body>
+</html>
