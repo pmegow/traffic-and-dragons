@@ -437,6 +437,29 @@ function buildBlueprintFromGame(){
     startingLocation: worldState.world&&worldState.world.location||""
   };
 }
+// P8 (audit): blueprint authors sometimes paste full mechanical stat blocks into NPC bios
+// ("HUMAN FORM STATISTICS: AC 14 (leather armour), 52 HP. Actions: Shortbow…"). Stored
+// verbatim as memory.npcs knowledge, that text re-injects (13KB for Azaka) into the
+// volatile prompt whenever the NPC is mentioned, while worldState.bestiary is the intended
+// single home for creature mechanics. Conservative split: only when a clear mechanical
+// marker — an ALL-CAPS "…STATISTICS:" header, or a line carrying both "AC N" and "N HP" —
+// appears AFTER a meaningful narrative lead-in (≥40 chars). Ambiguous bios are left
+// intact: a mangled bio is worse than a fat one. Returns {bio, stats} or null (no split).
+function splitNpcStatBlock(text){
+  if(!text)return null;
+  var s=String(text),idx=-1;
+  var m=/[A-Z][A-Z'()\/,\- ]*STATISTICS\s*:/.exec(s);
+  if(m)idx=m.index;
+  var m2=/(^|\n)[^\n]*\bAC\s*\d+[^\n]*\b\d+\s*HP\b/.exec(s);
+  if(m2){var i2=m2.index+m2[1].length;if(idx<0||i2<idx)idx=i2;}
+  var m3=/(^|\n)[^\n]*\b\d+\s*HP\b[^\n]*\bAC\s*\d+/.exec(s);
+  if(m3){var i3=m3.index+m3[1].length;if(idx<0||i3<idx)idx=i3;}
+  if(idx<40)return null; // no marker, or no meaningful narrative before it — leave the bio intact
+  var bio=s.slice(0,idx).replace(/\s+$/,"");
+  var stats=s.slice(idx).replace(/^\s+/,"");
+  if(!bio||!stats)return null;
+  return {bio:bio,stats:stats};
+}
 function applyBlueprint(bp){
   // Skeleton — stamp act/arc status
   if(bp.acts&&bp.acts.length){
@@ -457,12 +480,16 @@ function applyBlueprint(bp){
       memory.npcs[n.name]={attitude:n.role||"neutral",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }
   }
-  // Locations — seed into memory.locations and memory.map
+  // Locations — seed memory.locations (metadata only) + memory.map. The map node
+  // description is the SINGLE home for the blueprint text (audit P7): it used to be
+  // pushed into locations[].notes as well — byte-identical, ~43KB duplicated per ToA
+  // campaign, riding every sync POST. Nothing reads locations[].notes for injection
+  // (GEOGRAPHY/buildGeoBlock reads the node description); notes stay reserved for
+  // runtime [LOCATION:] event notes via fileLocation.
   if(bp.locations&&bp.locations.length){
     var li;for(li=0;li<bp.locations.length;li++){
       var loc=bp.locations[li];
       if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
-      if(loc.description)memory.locations[loc.name].notes.push(loc.description);
       if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]={firstVisit:null,visits:0,description:loc.description||null,parent:null,npcs:[],items:[]};
     }
@@ -470,6 +497,23 @@ function applyBlueprint(bp){
   // Creatures — campaign bestiary; buildSysPrompt injects it into the STABLE prompt half
   // (campaign-constant: set once here, never mutated per turn, so it caches).
   if(bp.creatures&&bp.creatures.length)worldState.bestiary=bp.creatures;
+  // P8: split mechanical stat blocks out of blueprint NPC bios — narrative stays as
+  // memory knowledge, mechanics join the bestiary (single home, STABLE half so it caches).
+  // Runs AFTER the creatures seed so an author-provided bestiary entry wins: if the name
+  // already exists there, the bio is left whole rather than losing the stat text.
+  if(bp.npcs&&bp.npcs.length){
+    var si;for(si=0;si<bp.npcs.length;si++){
+      var sn=bp.npcs[si];if(!sn.notes)continue;
+      var sp=splitNpcStatBlock(sn.notes);if(!sp)continue;
+      var dup=false,sj;
+      if(worldState.bestiary){for(sj=0;sj<worldState.bestiary.length;sj++){if(String(worldState.bestiary[sj].name).toLowerCase()===String(sn.name).toLowerCase()){dup=true;break;}}}
+      if(dup)continue;
+      if(!worldState.bestiary)worldState.bestiary=[];
+      worldState.bestiary.push({name:sn.name,kind:"npc",threat:"",notes:sp.stats});
+      var mn=memory.npcs[sn.name];
+      if(mn&&mn.knowledge){var ki=mn.knowledge.indexOf(sn.notes);if(ki>=0)mn.knowledge[ki]=sp.bio;}
+    }
+  }
   // Custom rules from the blueprint
   if(bp.rules&&bp.rules.length){
     var ri;for(ri=0;ri<bp.rules.length;ri++){

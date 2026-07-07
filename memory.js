@@ -461,7 +461,20 @@ function memoryTOC(){
   // byte-for-byte — enforced by an engine test; do not restructure the off-path strings.
   var _diet=typeof ragEnabled==="function"&&ragEnabled();
   var nk=Object.keys(memory.npcs);if(nk.length)lines.push("KNOWN NPCs: "+nk.join(", "));
-  var lk=Object.keys(memory.locations);if(lk.length)lines.push("VISITED: "+lk.join(", "));
+  // P9 (audit): blueprint import pre-files every location, so a flat "VISITED:" line told
+  // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
+  // on the map node's visit count; entries with NO node data are legacy saves — keep them
+  // VISITED so old campaigns don't change behavior. Intentional change to BOTH rag paths.
+  var lk=Object.keys(memory.locations);
+  if(lk.length){
+    var _vis=[],_known=[],_vk;
+    for(_vk=0;_vk<lk.length;_vk++){
+      var _vn=memory.map&&memory.map.nodes?memory.map.nodes[lk[_vk]]:null;
+      if(_vn&&!(_vn.visits>0))_known.push(lk[_vk]);else _vis.push(lk[_vk]);
+    }
+    if(_vis.length)lines.push("VISITED: "+_vis.join(", "));
+    if(_known.length)lines.push("KNOWN OF (not yet visited): "+_known.join(", "));
+  }
   var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);
   if(fe.length){var fs=[];for(i=0;i<fe.length;i++)fs.push(fe[i].what+" ("+fe[i].when+")");lines.push("PENDING EVENTS: "+fs.join("; "));}
   if(memory.lore.length){
@@ -483,7 +496,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+": "+n.attitude],i;if(n.knowledge.length)lines.push("  Knows: "+n.knowledge.join("; "));if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+": "+n.attitude],i;if(n.knowledge.length){var _kn=n.knowledge.join("; ");if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;

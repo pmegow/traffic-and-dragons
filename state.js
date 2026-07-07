@@ -117,6 +117,20 @@ function healMemory(){
   if(!memory.npcGraph.factions)memory.npcGraph.factions={};
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
   if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
+  // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
+  // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
+  // (~43KB duplicated per ToA campaign, riding every sync POST). The node description
+  // is the single home now; drop any note identical to it so existing saves shed the
+  // dead weight on load. Runtime event notes (never equal to the canonical text) survive.
+  if(memory.locations){
+    var _hk=Object.keys(memory.locations),_hi;
+    for(_hi=0;_hi<_hk.length;_hi++){
+      var _he=memory.locations[_hk[_hi]],_hn=memory.map.nodes[_hk[_hi]];
+      if(_he&&_he.notes&&_he.notes.length&&_hn&&_hn.description){
+        var _hj;for(_hj=_he.notes.length-1;_hj>=0;_hj--){if(_he.notes[_hj]===_hn.description)_he.notes.splice(_hj,1);}
+      }
+    }
+  }
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";

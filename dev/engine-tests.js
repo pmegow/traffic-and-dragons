@@ -569,6 +569,91 @@ function runEngineTests(R){
     return bp.creatures&&bp.creatures.length===1&&bp.creatures[0].name==="King of Feathers"?true:"creatures not exported";
   });
 
+  // ── 9b. Blueprint import hygiene (audit P7/P8/P9) ────────────────────────────
+  section("blueprint import hygiene (P7/P8/P9)");
+  t("P7: blueprint location text is single-homed on the map node",function(){
+    makeWorld();
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      locations:[{name:"Omu",description:"A ruined city swallowed by jungle."}]}));
+    if(!memory.map.nodes["Omu"]||memory.map.nodes["Omu"].description!=="A ruined city swallowed by jungle.")return "map node description missing";
+    if(!memory.locations["Omu"])return "locations metadata entry missing";
+    return memory.locations["Omu"].notes.length===0?true:"description duplicated into locations notes: "+JSON.stringify(memory.locations["Omu"].notes);
+  });
+  t("P7: healMemory drops a pre-fix duplicated location note, keeps real event notes",function(){
+    makeWorld();
+    memory.locations["Omu"]={visited:[],notes:["A ruined city swallowed by jungle.","the party burned the east gate"]};
+    memory.map.nodes["Omu"]={firstVisit:null,visits:0,description:"A ruined city swallowed by jungle.",parent:null,npcs:[],items:[]};
+    healMemory();
+    var notes=memory.locations["Omu"].notes;
+    return notes.length===1&&notes[0]==="the party burned the east gate"?true:"notes after heal: "+JSON.stringify(notes);
+  });
+  t("P8: NPC bio with a STATISTICS block splits — narrative stays, mechanics go to bestiary",function(){
+    makeWorld();
+    var bio="Azaka is a weretiger guide who wants her mask back. She distrusts outsiders but honors debts.\nHUMAN FORM STATISTICS: AC 14 (leather armour), 52 HP. Actions: Shortbow (attack +5, 1d6+3 piercing).";
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      npcs:[{name:"Azaka",role:"ally",notes:bio}]}));
+    var k=memory.npcs["Azaka"].knowledge[0];
+    if(k.indexOf("STATISTICS")>=0)return "stat block left in knowledge";
+    if(k.indexOf("wants her mask back")<0)return "narrative mangled: "+k;
+    var b=(worldState.bestiary||[]).filter(function(x){return x.name==="Azaka";})[0];
+    if(!b)return "no bestiary entry created";
+    return b.notes.indexOf("AC 14")>=0&&b.notes.indexOf("Shortbow")>=0?true:"mechanics missing from bestiary: "+b.notes;
+  });
+  t("P8: bare AC/HP line (no STATISTICS header) also splits",function(){
+    makeWorld();
+    var bio="A river pirate captain feared along the Soshenstar; she keeps her crew loyal with shares and fear.\nAC 12, 33 HP. Actions: Scimitar +4, 1d6+2 slashing.";
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      npcs:[{name:"Zara",role:"enemy",notes:bio}]}));
+    var k=memory.npcs["Zara"].knowledge[0];
+    if(k.indexOf("AC 12")>=0)return "stat line left in knowledge: "+k;
+    var b=(worldState.bestiary||[]).filter(function(x){return x.name==="Zara";})[0];
+    return b&&b.notes.indexOf("AC 12")>=0?true:"mechanics not moved to bestiary";
+  });
+  t("P8: ambiguous bio is left intact (no markers / marker without narrative lead-in)",function(){
+    makeWorld();
+    var plain="A grizzled captain of the harbour guard. Statistics bore him; he trusts his gut and his axe.";
+    var allStats="STATISTICS: AC 12, 9 HP. Actions: club +2.";
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      npcs:[{name:"Captain",role:"neutral",notes:plain},{name:"Guard",role:"neutral",notes:allStats}]}));
+    if(memory.npcs["Captain"].knowledge[0]!==plain)return "prose bio was mangled: "+memory.npcs["Captain"].knowledge[0];
+    if(memory.npcs["Guard"].knowledge[0]!==allStats)return "all-stats bio (no lead-in) was split: "+memory.npcs["Guard"].knowledge[0];
+    return (worldState.bestiary||[]).length===0?true:"bestiary entry created from an ambiguous bio";
+  });
+  t("P8: author-provided bestiary entry wins — same-name NPC bio stays whole",function(){
+    makeWorld();
+    var bio="Azaka is a weretiger guide who wants her mask back and hates the yuan-ti with a cold patience.\nHUMAN FORM STATISTICS: AC 14, 52 HP.";
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      npcs:[{name:"Azaka",role:"ally",notes:bio}],
+      creatures:[{name:"Azaka",kind:"weretiger",threat:"deadly",notes:"canonical entry"}]}));
+    if(worldState.bestiary.length!==1)return "duplicate bestiary entry: "+worldState.bestiary.length;
+    if(worldState.bestiary[0].notes!=="canonical entry")return "author entry overwritten";
+    return memory.npcs["Azaka"].knowledge[0]===bio?true:"bio split despite existing bestiary entry (stats would be lost)";
+  });
+  t("P8: memoryNpcDetail caps injected knowledge at ~2000 chars with a marker",function(){
+    makeWorld();
+    var huge=new Array(200).join("A very long remembered fact about this NPC. ");// ~8.7KB
+    memory.npcs["Verbose"]={attitude:"ally",knowledge:[huge],events:[],aliases:[]};
+    var d=memoryNpcDetail("Verbose");
+    if(d.length>2300)return "detail not capped: "+d.length+" chars";
+    if(d.indexOf("…[truncated]")<0)return "truncation marker missing";
+    memory.npcs["Terse"]={attitude:"ally",knowledge:["knows the tides"],events:[],aliases:[]};
+    return memoryNpcDetail("Terse").indexOf("…[truncated]")<0?true:"short knowledge got a truncation marker";
+  });
+  t("P9: unvisited blueprint locations render as KNOWN OF, visited + legacy stay VISITED",function(){
+    makeWorld();
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
+      locations:[{name:"Port Nyanzaru",description:"harbour city"},{name:"Omu",description:"ruined city"}]}));
+    applyMuts("[LOCATION:Port Nyanzaru]"); // actually travel there → node.visits 1
+    memory.locations["Legacy Town"]={visited:[3],notes:[]}; // pre-map save shape: no map node
+    var toc=memoryTOC(),tl=toc.split("\n"),visLine="",knownLine="",i;
+    for(i=0;i<tl.length;i++){if(tl[i].indexOf("VISITED: ")===0)visLine=tl[i];if(tl[i].indexOf("KNOWN OF (not yet visited): ")===0)knownLine=tl[i];}
+    if(!visLine)return "VISITED line missing";
+    if(visLine.indexOf("Port Nyanzaru")<0)return "actually-visited location not under VISITED: "+visLine;
+    if(visLine.indexOf("Legacy Town")<0)return "legacy no-node location dropped from VISITED: "+visLine;
+    if(visLine.indexOf("Omu")>=0)return "unvisited blueprint location still lies under VISITED: "+visLine;
+    return knownLine.indexOf("Omu")>=0?true:"unvisited location missing from KNOWN OF: "+knownLine;
+  });
+
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
   t("logTranscript indexes GM entries at write time (tags + location + quest)",function(){
