@@ -107,7 +107,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.29";
+var BP_DESIGNER_VERSION="v0.30";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
@@ -770,9 +770,11 @@ async function applyFinding(idx){
       +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
       +"\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content a fix asks for goes INTO the existing fields (an NPC's secrets/hooks into that NPC's notes).";
-    // 8000-token ceiling (v0.26, up from 3000): item-level responses are small, but a legit multi-item
-    // fix (e.g. "add three hag NPCs with notes") can still be ~3k tokens and truncate at the old cap.
-    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",8000,null,{noHistory:true,kind:"other"});
+    // 16000-token ceiling (v0.30, was 8000 in v0.26, 3000 before that): a live single-arc fix still
+    // clipped at ~8.2k tokens (32,903 chars). The ceiling is a circuit breaker, not a length governor
+    // — for JSON, amputation is total loss, so it sits far above any sane response. WHY responses
+    // ever balloon that big is diagnosed via the raw-response console dump in the catch below.
+    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",16000,null,{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
@@ -788,9 +790,18 @@ async function applyFinding(idx){
     setStatus("Applied ("+res.labels.join(", ")+")"+(patch.note?" — "+patch.note:""),"ok");
   }catch(e){
     if(snapshot)bp=snapshot; // undo any partial in-place merge
-    if(bp.review&&bp.review.findings[idx]){bp.review.findings[idx].status="";bp.review.findings[idx]._err=e.message;}
-    render();setStatus("Apply failed: "+e.message,"err");
-    return e.message; // hand the reason back so a batch run can surface it (single-apply callers ignore it)
+    var emsg=e.message;
+    // JSON died — keep the EVIDENCE (v0.30). Before this, the raw response was discarded on a parse
+    // error, so "Expected ',' or ']' at position N" was undiagnosable: clipped at the ceiling, or the
+    // model rambling 32KB for a one-item fix? The full raw response now goes to the console, and an
+    // unterminated body (no closing brace) is named as ceiling truncation rather than malformed JSON.
+    if(e instanceof SyntaxError&&typeof resp==="string"){
+      if(typeof console!=="undefined"&&console.warn)console.warn("[apply] unparseable model response ("+resp.length+" chars) for \""+f.section+"\":",resp);
+      emsg=(/\}\s*$/.test(resp)?"model returned malformed JSON":"model response TRUNCATED at the output ceiling")+" ("+resp.length+" chars — full raw response in the console). "+emsg;
+    }
+    if(bp.review&&bp.review.findings[idx]){bp.review.findings[idx].status="";bp.review.findings[idx]._err=emsg;}
+    render();setStatus("Apply failed: "+emsg,"err");
+    return emsg; // hand the reason back so a batch run can surface it (single-apply callers ignore it)
   }
 }
 // Apply the SELECTED findings, top to bottom, SEQUENTIALLY — each fix is applied to the
