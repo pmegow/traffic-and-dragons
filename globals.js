@@ -6,6 +6,7 @@ var SUMMARIZE_AT=2400; // session-token threshold: summarize() gate, sendAction 
 var FUTURE_EXPIRE_TURNS=40; // #29: unresolved futureEvents older than this are swept at summarize time
 var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
+var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
 // chars ≈ 330-780 tok/exchange); 900 kept only 1, under the 2-3 the #28 spec calls for.
 // ── LLM provider adapters ─────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.208";
+var APP_VERSION="v1.209";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

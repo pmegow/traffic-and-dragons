@@ -247,7 +247,15 @@ async function sendAction(override,opts){
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
-    var resp=await callGM(txt,sys);th.remove();
+    // P3 quest escalation: when an active quest has sat all-objectives-done for
+    // QUEST_ESCALATE_TURNS+ turns (see buildQuestEscalation, api.js), prepend a bracketed
+    // engine note to the OUTGOING API message. apiTxt is what callGM sends and what
+    // sessionLog stores (sessionLog IS the API history); the displayed chat line and the
+    // worldState.transcript player entry above already captured the clean txt, and
+    // lastAction/retry keep the clean txt too, so the note never reaches the player.
+    var apiTxt=txt;
+    if(!isTT&&!(opts&&opts.silent)){var _qesc=buildQuestEscalation();if(_qesc)apiTxt=_qesc+"\n\n"+txt;}
+    var resp=await callGM(apiTxt,sys);th.remove();
     if(isTT){addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(resp)+"</p>");}/* escape GM table-talk output (audit E11) */
     else{
       worldState.turn++;
@@ -264,7 +272,7 @@ async function sendAction(override,opts){
       var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
       logTranscript("gm",clean,resp);
       if(typeof TTS!=="undefined")TTS.speakResponse(clean);
-      sessionLog.push({role:"user",content:txt},{role:"assistant",content:resp});
+      sessionLog.push({role:"user",content:apiTxt},{role:"assistant",content:resp});/* apiTxt so the API history stays consistent with what the GM actually answered (P3 note included) */
       saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
       generateActions(narEl);
     }

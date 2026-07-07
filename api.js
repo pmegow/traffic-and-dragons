@@ -72,6 +72,41 @@ function buildQuestBlock(){
   if(!out)out="QUESTS: none active.\n";
   return out+crisisLine+"\n";
 }
+// P3 quest-lifecycle escalation, STAMP side (audit P3): runs at the end of every applyMuts pass.
+// Each active quest whose objectives are ALL done gets q.allDoneSince = the turn the state was
+// first seen; recomputed every response, so adding an unfinished objective or changing status
+// clears the stamp. sendAction reads the stamps via buildQuestEscalation() below.
+function stampQuestCompletion(){
+  if(!worldState||!worldState.questLog)return;
+  var i,j;
+  for(i=0;i<worldState.questLog.length;i++){
+    var q=worldState.questLog[i];
+    var all=q.status==="active"&&!!(q.objectives&&q.objectives.length);
+    if(all){for(j=0;j<q.objectives.length;j++){if(!q.objectives[j].done){all=false;break;}}}
+    if(all){if(q.allDoneSince==null)q.allDoneSince=worldState.turn;}
+    else if(q.allDoneSince!=null)delete q.allDoneSince;
+  }
+}
+// P3 escalation, READ side: the "⚑ ALL OBJECTIVES COMPLETE" line in buildQuestBlock is a
+// mid-system-prompt instruction and the 75-turn diagnostic run showed the GM ignoring it for
+// ~35 turns (zero quests ever completed; XP starved). The user-message channel outranks
+// mid-prompt lines, so once a quest has sat all-objectives-done for QUEST_ESCALATE_TURNS+
+// turns, sendAction prepends this bracketed engine note to the OUTGOING API message. Only the
+// API/sessionLog copy carries it — the displayed chat line and the worldState.transcript player
+// entry keep the player's clean prose. One note per turn (the stalest quest); silent while
+// worldState.combat is set so a fight is never derailed.
+function buildQuestEscalation(){
+  if(!worldState||!worldState.questLog||worldState.combat)return"";
+  var pick=null,stale=0,i;
+  for(i=0;i<worldState.questLog.length;i++){
+    var q=worldState.questLog[i];
+    if(q.status!=="active"||q.allDoneSince==null)continue;
+    var n=worldState.turn-q.allDoneSince;
+    if(n>=QUEST_ESCALATE_TURNS&&n>stale){stale=n;pick=q;}
+  }
+  if(!pick)return"";
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:"+pick.title+"|<objective>].]";
+}
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
@@ -193,6 +228,7 @@ function buildSysPrompt(){
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
     +"STATE TAGS (use in responses, never shown to player):\n"
     +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
+    +"ITEM TAG FORMAT: emit the tag once per item with the bare item name -- never bake quantities into the name (no 'Torch x3'); to grant three torches, emit [ITEM_GAINED:Torch] three times.\n"
     +"[NPC:name|status|relation] -- status=current mood/condition, relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
     +"[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten\n"
     +"[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n"
@@ -220,7 +256,7 @@ function buildSysPrompt(){
     +"[RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] -- entity=NPC or faction; descriptor=Allied/Rival/Wanted/Hunted/Indebted/Marked/Feared/etc.\n"
     +"[SAVE_MOD:source|type|amount] [SAVE_MOD_REMOVED:source] -- type=stat (CON/DEX/etc.) or threat (Poison/Fire/Cold/Lightning/Fear/Charm/Psionic/Holy/Shadow/Disease/Magic/Other); amount=integer\n"
     +"[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n"
-    +"[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only\n"
+    +"[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only. Concrete triggers, one beat per such moment: a companion joins or leaves the party, an oath or bargain is struck, a major revelation lands, first blood is drawn in a significant conflict, a quest completes\n"
     +"[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n"
     +"[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n"
     +"COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n"
@@ -373,6 +409,12 @@ function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\
 function _invNorm(s){return (s||"").replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/\s+/g," ").trim().replace(/s$/,"");}
 function _invCount(s){var m=(s||"").match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
 function _invBase(s){return (s||"").replace(/\s*x\d+\s*$/i,"").trim();}
+// P14: a quantity baked into an item TAG ("Rope x3") means N of the base item, not one item
+// literally named "Rope x3" — without this, gaining "Rope x3" onto an existing "Rope" stack
+// stepped the count to x2 instead of x4, and losing "Rope x2" removed only one. The x must be
+// a separate token (whitespace before, single digit 2-9 after) so names that merely end in x
+// ("Potion of Hex") are never mangled.
+function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([2-9])$/i);return m?{base:m[1],n:parseInt(m[2],10)}:{base:(name||"").trim(),n:1};}
 function addInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);
@@ -385,8 +427,8 @@ function applyMuts(text){
   var muts=[],turn=worldState.turn;
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
   var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);muts.push(dg>0?"+"+dg+" gp":dg+" gp");}
-  var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;addInventoryItem(worldState.character.inventory,igm[1]);muts.push("+"+igm[1]);autoTakeLocationItem(igm[1]);}
-  var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;removeInventoryItem(worldState.character.inventory,ilm[1]);muts.push("-"+ilm[1]);}
+  var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;for(igqi=0;igqi<igq.n;igqi++)addInventoryItem(worldState.character.inventory,igq.base);muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:""));autoTakeLocationItem(igq.base);}/* P14: "Rope x3" → 3 × Rope */
+  var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi;for(ilqi=0;ilqi<ilq.n;ilqi++)removeInventoryItem(worldState.character.inventory,ilq.base);muts.push("-"+ilq.base+(ilq.n>1?" x"+ilq.n:""));}/* P14: "Rope x2" removes up to 2 copies */
   // fileLocation reads worldState.world.location as the PREVIOUS node to record a travel edge, so it
   // must run BEFORE we overwrite it — otherwise prev===dest and no edge is ever recorded (was the bug).
   var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=loc[1].trim();/* trim so a leading space doesn't fork the map node (audit E52) */fileLocation(_lname,"",turn);worldState.world.location=_lname;worldState.world.sublocation=null;muts.push("-> "+_lname);}
@@ -571,6 +613,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var cRrTags=text.match(/\[COMPANION_RELATIONSHIP_REMOVED:([^|\]]+)\|([^\]]+)\]/g)||[];var cRri;for(cRri=0;cRri<cRrTags.length;cRri++){var cRrp=cRrTags[cRri].match(/\[COMPANION_RELATIONSHIP_REMOVED:([^|\]]+)\|([^\]]+)\]/);if(!cRrp)continue;var cRrCs=findCompanionChar(cRrp[1]);if(!cRrCs||!cRrCs.relationships)continue;var cRrNm=resolveNpcName(cRrp[2].trim());cRrCs.relationships=cRrCs.relationships.filter(function(x){return x.entity!==cRrNm;});muts.push(cRrp[1].trim()+": rel removed "+cRrNm);bondToast(cRrp[1].trim(),cRrNm,null,"ended");}
   var cAbTags=text.match(/\[COMPANION_ABILITY:([^|\]]+)\|([^|]+)\|([^\]]+)\]/g)||[];var cAbi;for(cAbi=0;cAbi<cAbTags.length;cAbi++){var cAbp=cAbTags[cAbi].match(/\[COMPANION_ABILITY:([^|\]]+)\|([^|]+)\|([^\]]+)\]/);if(!cAbp)continue;var cAbCs=findCompanionChar(cAbp[1]);if(!cAbCs)continue;if(!cAbCs.abilities)cAbCs.abilities=[];var cAnm=cAbp[2].trim(),cAalready=false,cAbj;for(cAbj=0;cAbj<cAbCs.abilities.length;cAbj++){if(cAbCs.abilities[cAbj].nm===cAnm){cAalready=true;break;}}if(!cAalready){cAbCs.abilities.push({nm:cAnm,ds:cAbp[3].trim(),gained:turn});muts.push(cAbp[1].trim()+": ability "+cAnm);}}
   var cAlTags=text.match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/gi)||[];var cAli;for(cAli=0;cAli<cAlTags.length;cAli++){var cAlp=cAlTags[cAli].match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/i);if(!cAlp)continue;var cAlCs=findCompanionChar(cAlp[1]);if(!cAlCs)continue;if(!cAlCs.alignLaw)cAlCs.alignLaw=0;if(!cAlCs.alignGood)cAlCs.alignGood=0;if(cAlp[2].toLowerCase()==="law")cAlCs.alignLaw=Math.max(-3,Math.min(3,cAlCs.alignLaw+parseInt(cAlp[3])));else cAlCs.alignGood=Math.max(-3,Math.min(3,cAlCs.alignGood+parseInt(cAlp[3])));var cNewAl=alignLabel(cAlCs.alignLaw,cAlCs.alignGood);if(cNewAl!==cAlCs.actualAlignment){muts.push(cAlp[1].trim()+": align "+cNewAl);cAlCs.actualAlignment=cNewAl;}}
+  stampQuestCompletion();/* P3: stamp/clear allDoneSince on every mutation pass, after all quest tags landed */
   if(muts.length)addMsg("system",escHtml(muts.join(" | ")));/* mut labels carry model-derived names (audit E11) */
   syncUI();saveAll();
 }

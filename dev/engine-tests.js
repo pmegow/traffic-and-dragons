@@ -996,6 +996,76 @@ function runEngineTests(R){
     return b2.indexOf("Active crises ARE quests")>=0?true:"crisis line missing on empty log";
   });
 
+  // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────
+  section("GM-compliance teeth (P3/P14)");
+  t("allDoneSince stamps when objectives complete, stays sticky, clears on a new objective",function(){
+    makeWorld();worldState.turn=10;
+    applyMuts("[QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Track the wolf|false]");
+    var q=worldState.questLog[0];
+    if(q.allDoneSince!=null)return "stamped with an open objective";
+    worldState.turn=12;applyMuts("[QUEST_STEP:Hunt|Track the wolf|true]");
+    if(q.allDoneSince!==12)return "not stamped at completion: "+q.allDoneSince;
+    worldState.turn=14;applyMuts("no tags this turn");
+    if(q.allDoneSince!==12)return "stamp not sticky across turns: "+q.allDoneSince;
+    applyMuts("[QUEST_STEP:Hunt|Skin the wolf|false]");
+    return q.allDoneSince==null?true:"stamp not cleared by a new objective";
+  });
+  t("allDoneSince clears when the quest leaves active status",function(){
+    makeWorld();worldState.turn=10;
+    worldState.questLog=[{title:"Hunt",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:8}];
+    applyMuts("[QUEST:Hunt|failed]");
+    // failed → archived out of the live log entirely; nothing left to escalate on
+    return worldState.questLog.length===0?true:"quest not archived: "+JSON.stringify(worldState.questLog);
+  });
+  t("buildQuestEscalation: fires only at >=3 stale turns and picks the stalest quest",function(){
+    makeWorld();worldState.turn=20;
+    worldState.questLog=[
+      {title:"Fresh",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:17},
+      {title:"Old",status:"active",desc:"",objectives:[{text:"b",done:true}],allDoneSince:14},
+      {title:"Oldest",status:"active",desc:"",objectives:[{text:"c",done:true}],allDoneSince:10}
+    ];
+    var n=buildQuestEscalation();
+    if(n.indexOf("Quest 'Oldest'")<0)return "did not pick the stalest: "+n;
+    if(n.indexOf("[QUEST:Oldest|completed]")<0)return "missing close instruction: "+n;
+    if(n.indexOf("[QUEST_STEP:Oldest|")<0)return "missing extend instruction: "+n;
+    if(n.indexOf("ENGINE NOTE")<0)return "not marked as an engine note";
+    worldState.questLog=[{title:"Fresh",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:18}];
+    return buildQuestEscalation()===""?true:"fired at only 2 stale turns";
+  });
+  t("buildQuestEscalation: silent during combat, resumes after",function(){
+    makeWorld();worldState.turn=20;
+    worldState.questLog=[{title:"Stuck",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:10}];
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    if(buildQuestEscalation()!=="")return "escalated mid-combat";
+    worldState.combat=null;
+    return buildQuestEscalation().indexOf("Stuck")>=0?true:"did not resume after combat";
+  });
+  t("ITEM_GAINED 'Rope x3' stores quantity 3 of 'Rope' (P14)",function(){
+    makeWorld();applyMuts("[ITEM_GAINED:Rope x3]");
+    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    if(f.length!==1)return "entries: "+JSON.stringify(worldState.character.inventory);
+    return _invBase(f[0])==="Rope"&&_invCount(f[0])===3?true:"stored as: "+f[0];
+  });
+  t("ITEM_GAINED 'Rope x3' onto an existing Rope yields 4, not 2 (the xN-as-name bug)",function(){
+    makeWorld();worldState.character.inventory.push("Rope");
+    applyMuts("[ITEM_GAINED:Rope x3]");
+    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    return f.length===1&&f[0]==="Rope x4"?true:"got "+JSON.stringify(f);
+  });
+  t("ITEM_LOST 'Rope x2' removes two copies (P14)",function(){
+    makeWorld();worldState.character.inventory.push("Rope x3");
+    applyMuts("[ITEM_LOST:Rope x2]");
+    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    if(!(f.length===1&&f[0]==="Rope"))return "got "+JSON.stringify(f);
+    applyMuts("[ITEM_LOST:Rope x2]"); // over-remove: takes the last one, no crash, no negatives
+    return worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";}).length===0?true:"over-remove left residue";
+  });
+  t("names where x is not a separate quantity token are left intact ('Potion of Hex')",function(){
+    makeWorld();applyMuts("[ITEM_GAINED:Potion of Hex][ITEM_GAINED:Elixir of Styx]");
+    if(worldState.character.inventory.indexOf("Potion of Hex")<0)return "Potion of Hex mangled: "+JSON.stringify(worldState.character.inventory);
+    return worldState.character.inventory.indexOf("Elixir of Styx")>=0?true:"Elixir of Styx mangled: "+JSON.stringify(worldState.character.inventory);
+  });
+
   // ── 13. futureEvents hygiene (#29) ────────────────────────────────────────────
   section("futureEvents hygiene (#29)");
   t("near-duplicate events collapse onto the existing entry, refreshing its age (the 7-Shalelu spam)",function(){
