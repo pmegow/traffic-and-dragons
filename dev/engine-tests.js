@@ -1206,6 +1206,21 @@ function runEngineTests(R){
     restSpells();
     return worldState.character.spells[0].used===false&&worldState.npcs[0].charSheet.spells[0].used===false?true:"companion spell not restored";
   });
+  t("[REST:long] tag restores expended spell slots party-wide (P10 tail)",function(){
+    makeWorld();
+    worldState.character.spells=[{nm:"Hunter's Mark (d6 bonus)",lvl:1,used:true},{nm:"Light",lvl:0,used:false}];
+    worldState.npcs=[{name:"Ekene",partyMember:true,charSheet:{spells:[{nm:"Cure Wounds",lvl:1,used:true}]}}];
+    applyMuts("They sleep the night through. [REST:long]");
+    if(worldState.character.spells[0].used!==false)return "player 1/day spell not restored on [REST:long]";
+    if(worldState.character.spells[1].used!==false)return "cantrip flag disturbed";
+    return worldState.npcs[0].charSheet.spells[0].used===false?true:"companion spell not restored on [REST:long]";
+  });
+  t("[REST:short] does not restore slots (only long rest resets)",function(){
+    makeWorld();
+    worldState.character.spells=[{nm:"Hunter's Mark",lvl:1,used:true}];
+    applyMuts("A brief breather. [REST:short]");
+    return worldState.character.spells[0].used===true?true:"short rest wrongly restored a 1/day slot";
+  });
   t("migrateWorldState heals a missing maxHp before hp (E71)",function(){
     makeWorld();delete worldState.character.maxHp;worldState.character.hp=12;
     migrateWorldState();
