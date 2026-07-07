@@ -85,6 +85,10 @@ function migrateWorldState(){
   function _xpFloor(ch){if(!ch||typeof ch.level!=="number")return;var fl=XP_LEVELS[ch.level-1]||0;if(typeof ch.xp!=="number"||ch.xp<fl){ch.xp=fl;_mig=true;}}
   _xpFloor(worldState.character);
   for(_pn=0;_pn<worldState.npcs.length;_pn++){if(worldState.npcs[_pn]&&worldState.npcs[_pn].charSheet)_xpFloor(worldState.npcs[_pn].charSheet);}
+  // P6 retro-clamp: pre-v1.211 saves carry sentence-length NPC statuses that ride the roster every
+  // turn until the GM next re-emits the tag. clampNpcMood lives in memory.js (loaded after state.js
+  // but present by the time this runs on load); guard for the edge where it isn't.
+  if(typeof clampNpcMood==="function"){for(_pn=0;_pn<worldState.npcs.length;_pn++){var _cn=worldState.npcs[_pn];if(_cn&&_cn.status){var _cs=clampNpcMood(_cn.status);if(_cs!==_cn.status){_cn.status=_cs;_mig=true;}}}}
   return _mig;
 }
 function loadState(){
@@ -121,6 +125,8 @@ function healMemory(){
   if(!memory.archive.lore)memory.archive.lore=[];
   if(!memory.archive.decisions)memory.archive.decisions=[];
   if(!memory.archive.chapters)memory.archive.chapters=[];
+  // P6 retro-clamp: sentence-length attitudes from pre-v1.211 extractor runs (memoryNpcDetail injects them).
+  if(typeof clampNpcMood==="function"&&memory.npcs){var _ank=Object.keys(memory.npcs),_ai2;for(_ai2=0;_ai2<_ank.length;_ai2++){var _an=memory.npcs[_ank[_ai2]];if(_an&&_an.attitude)_an.attitude=clampNpcMood(_an.attitude);}}
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
   // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
   // (~43KB duplicated per ToA campaign, riding every sync POST). The node description

@@ -1332,6 +1332,14 @@ function runEngineTests(R){
     if(memory.archive.chapters.length!==1)return "evicted chapter not archived";
     return eq(memory.archive.chapters[0].summary,"chapter 0","oldest chapter:");
   });
+  t("migrateWorldState retro-clamps a long stored NPC status; healMemory clamps stored attitudes (P6)",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Zephyr",status:"exhausted but precise, has given the party everything she knows tonight",rel:"ally",met:5,partyMember:false});
+    memory.npcs["Zephyr"]={attitude:"Committed and direct, speaking with a healer's flat authority rather than supplication",knowledge:[],events:[],aliases:[]};
+    migrateWorldState();healMemory();
+    if(worldState.npcs[0].status.length>49)return "worldState status not retro-clamped: "+worldState.npcs[0].status.length;
+    return memory.npcs["Zephyr"].attitude.length<=49?true:"memory attitude not retro-clamped: "+memory.npcs["Zephyr"].attitude.length;
+  });
   t("healMemory adds the archive to pre-P12 saves; memArchive self-heals (P12)",function(){
     memory={npcs:{},locations:{}}; // legacy blob, no archive
     healMemory();
