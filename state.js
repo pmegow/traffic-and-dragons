@@ -18,7 +18,7 @@ var sessionLog=[];
 // Single source of truth for the empty-memory shape (audit #22). Every reset path
 // (new game, new campaign, import) must use this — the old inline literals drifted
 // (most omitted map/npcGraph/nameIdx and leaned on lazy guards to self-heal).
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}}};}
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[]}};}/* archive: P12 eviction compaction — storage-only, never injected */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -117,6 +117,10 @@ function healMemory(){
   if(!memory.npcGraph.factions)memory.npcGraph.factions={};
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
   if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
+  if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};/* P12: pre-archive saves */
+  if(!memory.archive.lore)memory.archive.lore=[];
+  if(!memory.archive.decisions)memory.archive.decisions=[];
+  if(!memory.archive.chapters)memory.archive.chapters=[];
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
   // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
   // (~43KB duplicated per ToA campaign, riding every sync POST). The node description

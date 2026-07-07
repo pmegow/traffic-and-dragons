@@ -229,7 +229,7 @@ function buildSysPrompt(){
     +"STATE TAGS (use in responses, never shown to player):\n"
     +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
     +"ITEM TAG FORMAT: emit the tag once per item with the bare item name -- never bake quantities into the name (no 'Torch x3'); to grant three torches, emit [ITEM_GAINED:Torch] three times.\n"
-    +"[NPC:name|status|relation] -- status=current mood/condition, relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
+    +"[NPC:name|status|relation] -- status=current mood/condition in 2-4 WORDS (a label like 'wary, bargaining' -- never a sentence; scene detail belongs in prose or [NPC_NOTE:]), relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
     +"[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten\n"
     +"[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n"
     +"[SUBLOCATION:name] -- player enters a named area within current world location (e.g. tavern common room, thieves' guild hall)\n"
@@ -485,7 +485,7 @@ function applyMuts(text){
   // name+status groups are bounded by ] ([^|\]]+) so a 2-field tag immediately followed by another
   // tag (e.g. [NPC_PRONOUN:]) can't be stitched into one over-captured match (the Lorcan corruption).
   var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());/* 3rd (relation) field optional — 2-field [NPC:name|status] no longer dropped (audit E42) */
-    var npStatus=(np[2]||"").trim(),npRel=(np[3]||"").trim(),npPron="";
+    var npStatus=clampNpcMood((np[2]||"").trim()),npRel=clampNpcMood((np[3]||"").trim()),npPron="";/* P6: roster labels, not paragraphs */
     // The GM sometimes writes a pronoun where status/relation belongs — route it to pronouns, never store it as the relation.
     if(isPronounStr(npRel)){npPron=npRel;npRel="";}
     if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}

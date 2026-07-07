@@ -118,8 +118,28 @@ function mapNpcLocation(name){
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
   if(memory.npcs[name])memory.npcs[name].lastSeenAt=key;
 }
-function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memory.lore.shift();}
-function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memory.keyDecisions.shift();}
+// P6: NPC status/attitude are roster labels re-injected every turn — the GM (and the summarize
+// extractor) drift into sentence-length prose there ("exhausted but precise, has given Varek
+// everything she knows"), which is token waste and format rot. Clamp to a short mood at every
+// write boundary; word-boundary cut so the kept part stays readable. Cosmetic normalization,
+// so console.warn (not a toast) is the visibility.
+var NPC_MOOD_MAX=48;
+function clampNpcMood(s){
+  if(!s)return s;s=String(s).trim();
+  if(s.length<=NPC_MOOD_MAX)return s;
+  var cut=s.lastIndexOf(" ",NPC_MOOD_MAX-1);if(cut<20)cut=NPC_MOOD_MAX-1;
+  var out=s.slice(0,cut).replace(/[,;:\s]+$/,"")+"…";
+  if(typeof console!=="undefined")console.warn("[npc] mood clamped: \""+s.slice(0,60)+(s.length>60?"…":"")+"\" -> \""+out+"\"");
+  return out;
+}
+// P12: the 30-caps on lore/keyDecisions (and the 10-cap on chapters) used to DELETE the oldest
+// entry on overflow — at t75 of the diagnostic run turns 1-25 had already rolled off. Eviction now
+// compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
+// bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
+// #40, RAG) can mine the archive.
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];return memory.archive;}
+function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
+function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
 // and memoryTOC injected ALL unresolved ones into every prompt (a save reached 469). Now: dedupe by
 // `what`, drop resolved on resolve, and cap to the most-recent 30 (same discipline as lore/decisions).
@@ -626,7 +646,7 @@ function applySummaryExtract(extracted){
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
   // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
-  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=nu.attitude;if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);if(_kg.length>12)_kg.shift();}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
+  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);if(_kg.length>12)_kg.shift();}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #29 order matters: sweep stale → file new → resolve LAST. Resolving last means an event the
@@ -638,7 +658,7 @@ function applySummaryExtract(extracted){
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
-  if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memory.chapters.shift();worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
+  if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
 }
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
@@ -647,7 +667,7 @@ async function summarize(){
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
-    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"]}\n";
+    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"]}\n";
     // #29 ③: the extractor reads the session anyway — hand it the pending list and let it echo back
     // what the session shows is finished. EXACT text echo, so resolveFutureEvent's exact/substring
     // match lands without fuzzy matching. The GM itself rarely emits [FUTURE_EVENT_RESOLVED:].
@@ -670,7 +690,7 @@ async function summarize(){
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
-      memory.chapters.push({turn:worldState.turn,summary:_rawSum});if(memory.chapters.length>10)memory.chapters.shift();
+      memory.chapters.push({turn:worldState.turn,summary:_rawSum});if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());
       worldState.eventHistory.push("[T"+worldState.turn+"] "+_rawSum);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
       retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
     }else{

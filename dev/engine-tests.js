@@ -1286,4 +1286,58 @@ function runEngineTests(R){
     if(memory.keyDecisions.length!==1)return "decision missing";
     return memory.futureEvents.length===1?true:"future event missing";
   });
+
+  // ── NPC mood clamp + eviction archive (audit P6/P12) ──
+  section("mood clamp + eviction archive (P6/P12)");
+  t("clampNpcMood leaves short labels untouched (P6)",function(){
+    return eq(clampNpcMood("wary, bargaining"),"wary, bargaining");
+  });
+  t("clampNpcMood cuts sentence-length prose at a word boundary (P6)",function(){
+    var long="exhausted but precise, has given Varek everything she knows";
+    var out=clampNpcMood(long);
+    if(out.length>49)return "not clamped: "+out.length+" chars";
+    if(out.slice(-1)!=="…")return "no ellipsis: "+out;
+    return out.indexOf("exhausted but precise")===0?true:"lost the head of the label: "+out;
+  });
+  t("[NPC:] tag with prose status stores the clamped label (P6)",function(){
+    makeWorld();
+    applyMuts("[NPC:Zephyr|exhausted but precise, has given the party everything she knows tonight|ally]");
+    var n=worldState.npcs.filter(function(x){return x.name==="Zephyr";})[0];
+    if(!n)return "npc not filed";
+    return n.status.length<=49?true:"status not clamped: "+n.status;
+  });
+  t("extractor attitude prose is clamped on write (P6)",function(){
+    makeWorld();worldState.turn=10;
+    applySummaryExtract({npcUpdates:[{name:"Ekene",attitude:"Committed and direct, speaking with a healer's flat authority rather than supplication"}]});
+    return memory.npcs["Ekene"].attitude.length<=49?true:"attitude not clamped: "+memory.npcs["Ekene"].attitude;
+  });
+  t("fileLore eviction compacts into memory.archive.lore, not the void (P12)",function(){
+    makeWorld();
+    for(var i=0;i<31;i++)fileLore("lore fact "+i);
+    if(memory.lore.length!==30)return "live cap broken: "+memory.lore.length;
+    if(memory.archive.lore.length!==1)return "evicted lore not archived: "+memory.archive.lore.length;
+    return eq(memory.archive.lore[0],"lore fact 0","oldest should archive first:");
+  });
+  t("fileDecision eviction compacts into memory.archive.decisions (P12)",function(){
+    makeWorld();
+    for(var i=0;i<31;i++)fileDecision(i,"decision "+i);
+    if(memory.keyDecisions.length!==30)return "live cap broken";
+    if(memory.archive.decisions.length!==1)return "evicted decision not archived";
+    return eq(memory.archive.decisions[0].desc,"decision 0","oldest decision:");
+  });
+  t("chapter eviction compacts into memory.archive.chapters (P12)",function(){
+    makeWorld();
+    for(var i=0;i<11;i++){worldState.turn=i*7;applySummaryExtract({chapterSummary:"chapter "+i});}
+    if(memory.chapters.length!==10)return "live chapter cap broken: "+memory.chapters.length;
+    if(memory.archive.chapters.length!==1)return "evicted chapter not archived";
+    return eq(memory.archive.chapters[0].summary,"chapter 0","oldest chapter:");
+  });
+  t("healMemory adds the archive to pre-P12 saves; memArchive self-heals (P12)",function(){
+    memory={npcs:{},locations:{}}; // legacy blob, no archive
+    healMemory();
+    if(!memory.archive||!memory.archive.lore)return "healMemory did not add archive";
+    memory=blankMemory();delete memory.archive; // worst case: something stripped it at runtime
+    fileLore("x");for(var i=0;i<30;i++)fileLore("filler "+i);
+    return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
+  });
 }
