@@ -243,6 +243,7 @@ function buildSysPrompt(){
     +"CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n"
     +"[ALIGNMENT:law+1] [ALIGNMENT:good-1] (use on morally significant choices only)\n"
     +"[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n"
+    +"[SPELL_DEF:Name|range=X|targets=Y|duration=Z|effect=...|cost=slot|tier=1|magical=yes] -- ONLY when a spell is cast that is NOT already in the CANONICAL SPELL RULES list (one you invented or a homebrew): define its canon ONCE so the engine pins it and it can never drift. '=' per field, '|' between fields; keep effect free of '|' and ']'. Recorded once, re-injected forever -- do not redefine a spell already listed.\n"
     +"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again; narrate HP recovery with [HP:+N] as usual\n"
     +"[FUTURE_EVENT_RESOLVED:what] (when a pending future event occurs)\n"
     +"[LORE:fact] [DECISION:description] [FUTURE_EVENT:what|when] [NPC_NOTE:name|note] [NPC_PRONOUN:name|she/her]\n"
@@ -376,7 +377,7 @@ function repairModelJson(s){
   s=s.replace(/[\x00-\x1F\x7F]/g," ");
   return s;
 }
-var _CT_TAGS=/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|TIME|WEATHER|REST|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ARC_COMPLETE|ACT_COMPLETE|ACTIONS|RETCON):[^\]]+\]/g;
+var _CT_TAGS=/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SPELL_DEF|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|TIME|WEATHER|REST|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ARC_COMPLETE|ACT_COMPLETE|ACTIONS|RETCON):[^\]]+\]/g;
 var _CT_BARE=/\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\]/g;
 var _CT_DASH=/[ \t]*[—–][ \t]*/g;
 var _CT_NL=/\n{3,}/g;
@@ -577,6 +578,21 @@ function applyMuts(text){
   var alms=text.match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/gi)||[];var ali;for(ali=0;ali<alms.length;ali++){var ap=alms[ali].match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/i);if(ap){if(!worldState.character.alignLaw)worldState.character.alignLaw=0;if(!worldState.character.alignGood)worldState.character.alignGood=0;if(ap[1].toLowerCase()==="law")worldState.character.alignLaw=Math.max(-3,Math.min(3,worldState.character.alignLaw+parseInt(ap[2])));else worldState.character.alignGood=Math.max(-3,Math.min(3,worldState.character.alignGood+parseInt(ap[2])));var newAl=alignLabel(worldState.character.alignLaw,worldState.character.alignGood);if(newAl!==worldState.character.actualAlignment){muts.push("Align: "+newAl);worldState.character.actualAlignment=newAl;}}}
   var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;// cantrips never expend
 var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){sp.used=true;muts.push("Spell used: "+sp.nm);break;}}}}
+  // SPELL_DEF (TODO #10) — the GM canonizes an INVENTED or homebrew spell (one not in the
+  // CANONICAL SPELL RULES list) ONCE into the per-campaign overlay worldState.spellBible, which
+  // spellBibleLookup already prefers over the static base. Write-once (LOCATION_DESC pattern) so a
+  // spell cannot re-drift via redefinition. Format: [SPELL_DEF:Name|range=X|targets=Y|duration=Z|
+  // effect=...|cost=slot|tier=1|save=...|magical=yes] — '=' per field, '|' between fields.
+  var spellDefs=text.match(/\[SPELL_DEF:([^\]]+)\]/g)||[];var sdi;for(sdi=0;sdi<spellDefs.length;sdi++){
+    var sdm=spellDefs[sdi].match(/\[SPELL_DEF:([^\]]+)\]/);if(!sdm)continue;
+    var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof spellBaseName!=="function")continue;
+    var sdKey=spellBaseName(sdName);if(!worldState.spellBible)worldState.spellBible={};
+    if(worldState.spellBible[sdKey])continue;// write-once: first definition wins, never overwritten
+    var sdEntry={kind:"spell",tier:0,cost:"at-will",isMagical:true,range:"",targets:"",duration:"",effect:""},sdp;
+    for(sdp=1;sdp<sdParts.length;sdp++){var kv=sdParts[sdp].split("=");if(kv.length<2)continue;var kk=kv[0].trim().toLowerCase(),vv=kv.slice(1).join("=").trim();
+      if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier")sdEntry.tier=parseInt(vv)||0;else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}
+    worldState.spellBible[sdKey]=sdEntry;muts.push("Spell canon defined: "+sdName);
+  }
   // [REST:long] — the party completes a full rest. restSpells() restores expended (non-cantrip)
   // slots party-wide (audit P10 tail): the P10 rule tells the GM a used 1/day spell can't be recast
   // before a rest, but until this tag the ONLY thing that reset slots was the Rest button — so a
