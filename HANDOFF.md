@@ -1,115 +1,80 @@
 # Traffic and Dragons — Session Handoff
 
-**Date:** 2026-07-06 (morning/midday — the designer-hardening + audit day)
-**Deployed version:** engine **v1.182** / designer **v0.29** — pushed through `4c0318d` (`origin/master` == local HEAD at handoff).
-**SW cache:** `tnd-v3-20260706b` (`sw.js`).
-**Working tree:** the two `.blueprint` files (Runelords + ToA) carry UNCOMMITTED campaign-data changes from today's designer fix-applying — a parallel terminal session may commit them; coordinate before touching.
-**Server:** healthy on Fly (unchanged today).
+**Date:** 2026-07-08 (the capability_bible build day)
+**Deployed version:** engine **v1.224** — pushed through `383da15` (`origin/master` == local HEAD).
+**SW cache:** `tnd-v3-20260708b` (`sw.js`).
+**Working tree:** only the two `.blueprint` files (Runelords + ToA) carry UNCOMMITTED changes — pre-existing, the user's, not this session's. Leave them; don't sweep into a commit.
+**Server:** healthy on Fly (untouched this session).
+**Overnight:** the user is running a **playtest while they sleep**. This handoff is for the session that audits it.
 
 ---
 
-## ⚡ NEXT TASK (queued deliberately): WHOLE-ENGINE AUDIT → FIX BATCH ("bug stomp")
+## ⚡ NEXT TASK: AUDIT THE OVERNIGHT PLAYTEST — the bible "MONEY TEST"
 
-The user wants a full-engine bug hunt in a FRESH session, then the fixes ("it's not the bug
-hunt I need Fable for, it's the bug stomp that happens after"). Plan of record:
-1. **Hunt:** fan out independent max-effort reviewer agents across the engine subsystems —
-   `api.js` (tags/applyMuts/buildSysPrompt/caching split), `memory.js` (summarize/RAG/futureEvents),
-   `state.js` (persistence/migrations), `game.js` (turn loop/levels/legacy), `ui.js` (modals/sheets),
-   `storage-adapter.js` (sync/portraits/reconcile), `helpers.js`+`globals.js`+`char-creation.js`.
-   Recall mode; verify survivors against code by hand; only real, triggerable defects.
-2. **Write `audits/AUDIT_FABLE_07_06_engine.md`** (audits/ is GITIGNORED — local by design) in the
-   established format: bold title → mechanism w/ file:line → **Remedy** → Effort → Status Pending.
-   Model on `audits/AUDIT_FABLE_07_06_26.md` (today's designer audit — 7 findings, all fixed same day).
-3. **Stomp:** fix in severity order, engine tests green per commit (pre-commit gate), version-bump
-   discipline (APP_VERSION + CACHE every game-code commit), update audit statuses + TODO rows in the
-   same commits. Verify FAILURE conditions, not benign cases (user CLAUDE.md + repo CLAUDE.md rule).
-4. `claude ultrareview` (cloud whole-branch review) was UNAVAILABLE today — optional retry, but it's
-   diff-based and the engine is fully committed, so the agent fan-out is the real instrument.
+This session built the whole `capability_bible` anti-drift system (v1.218–v1.224). Every turn, the GM prompt now carries CANONICAL rules for the player's known spells/abilities (`buildSpellBibleBlock` + `buildAbilityBibleBlock`, VOLATILE half). **The machinery is proven and unit-tested; what is NOT proven is whether the model HONORS the fixed bounds under real play.** That is the money test the overnight run exists to answer.
 
-## The 07-06 session (v1.179→v1.182 engine, v0.21→v0.29 designer, all pushed)
+### Get the data
+1. **If the preview browser is still open** from the overnight run: the harness corpus is live at `window.__pt.log` (turn/action/narration) and `window.__pt.errors`. Pull it via `preview_eval` before anything reloads it away.
+2. **Extract the save** regardless (source of truth): in the page, `saveAll(); window.__b64=btoa(unescape(encodeURIComponent(JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2))))` then `window.__b64` — an oversized `preview_eval` result **auto-saves to a tool-results file**; read it, strip the wrapping quotes, `Buffer.from(b64,"base64").toString("utf8")` → write `playtest_v1.224.tnd`. (This is exactly how the v1.214 save was captured — one whole-blob eval, not chunks.)
 
-| What | Detail |
-|---|---|
-| Designer v0.21–v0.28 | Apply-failure reasons surfaced (v0.21); **chunked review** — one pass per section, no 10-cap (v0.22); **item-level apply** — killed the JSON-truncation mass failures, per-card FAILED stamp (v0.23); **parallel apply** with per-target grouping + collapsible Completed (v0.24); **parallel review** + live verdict count (v0.25); **item deletion** + no-resurrect `_batchDeleted` guard + 8000-token apply ceiling (v0.26); field textareas true-3-lines (v0.27 wrong fix → **v0.28 real root cause: vertical padding shifts the scroll viewport off line multiples** — zero v-padding, `.bpf` class). |
-| SW | Designer served **network-first** (v1.181) — designer-only commits don't bump CACHE, so cache-first pinned stale copies (the recurring "still broken" gremlin). Hardened in v1.182 (cache OK responses, fall back to cache on 502/404). |
-| **Local 3-agent audit** (`audits/AUDIT_FABLE_07_06_26.md`, gitignored) | 7 verified findings on the designer arc; **ALL FIXED same session** (`4c0318d`): act-patch arc data loss; revdel mid-batch index corruption; findingTargetKey → section-type grouping (kills same-item parallel stale-overwrite); SW fallback; dedupe full-text key; redundant render. Residual accepted: bare-name section labels → `misc` group. |
-| Meta | `CLAUDE.md` gained **Diagnosis & verification discipline** (verify the FAILURE condition; screenshot is ground truth; reproduce before blaming cache). **User-level `~/.claude/CLAUDE.md` created** — portable practices (diagnosis, abstraction-over-conditionals, commits, collaboration). `claude` CLI now installed globally (npm). Legacy full-sheet #18 + Character-Library/Import-browser UX shipped earlier in the arc (v1.65–v1.72 numbering per session log). |
+### What to check — bible compliance FIRST
+Grep the narration corpus / transcript against `capability_bible.js` and look for **drift** (the whole point):
+- **Range/targets/duration honored?** e.g. Message stays ≤120ft (the original drift), Hunter's Mark stays ONE target (exclusive), Fireball's radius/save intact. Any spell narrated outside its canon = a finding, and it means injection isn't enough (next step would be per-provider reinforcement, like the openai tag-discipline block).
+- **`[SPELL_DEF:]`** — did the GM invent a spell not in the bible and canonize it write-once into `worldState.capabilityBible`? (Check the save's `capabilityBible` overlay.)
+- **`[SPELL_USED:]`** slot expenditure + **`[REST:long]`** restore (P10/R1).
+- **NOTE:** the money test is only real if the character CASTS. The current local save (Kael) is a **Ranger** (Hunter's Mark + a few spells). If the run used a random harness character, confirm it actually casts; a **Sorcerer/Cleric** exercises the drift-prone spells far better — recommend that for any re-run.
 
----
-<!-- ——— PRIOR HANDOFF (2026-07-05) BELOW — still-valid watch-lists and rules ——— -->
+### Then the regression invariants (all shipped this arc — confirm they held live)
+- **F2 (v1.216):** combat clears on a `[LOCATION:]` world-move — grep for stale `worldState.combat` persisting across a travel. (Console prints `[combat] auto-cleared stale combat …`.)
+- **F3 (v1.216):** an act with all arcs `completed` gets the `[ACT_COMPLETE:]` nudge and actually advances.
+- **v1.215:** NO raw tags in displayed prose (`[TIME:]`/`[WEATHER:]`/`[REST:]` were leaking pre-v1.215 — should be clean now).
+- From the v1.214 audits (still the live behaviour): quest lifecycle CLOSES with rewards (P3), story beats fire (P11), `[LOCATION]`/`[SUBLOCATION]` movement upkeep (P4), `[TIME:]`/`[WEATHER:]` advance (R2), companion auto-sheets (P2). Zero console errors.
 
-**Prior deployed marker:** v1.178, `a8a9648`, SW `tnd-v3-20260705d`.
-
-> **STANDING RULE: every commit is gated on the engine test suite.** `.git/hooks/pre-commit`
-> runs `dev/run-tests.js` (**now 121 assertions**, headless node, ~1s) and BLOCKS on red.
-> Hook isn't tracked — after a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`.
-> **Host:** Cloudflare Pages ONLY. Read `CLAUDE.md` first for architecture; this file is "where we left off."
+### Write it up
+Use the established audit format (bold finding → mechanism w/ file:line → **Remedy** → Effort → Status) — model on **`AUDIT_playthrough_v1.214.md`** (this repo, earned explicit praise: direct answers table up top, regression scorecard vs the prior run, honest "what this can't claim"). Name it `AUDIT_playtest_v1.224.md`. `.tnd` saves are gitignored (local only); the audit `.md` is committable.
 
 ---
 
-## ⚠ FIRST THING NEXT SESSION: the OneDrive stale-file incident
+## This session (v1.216 → v1.224, all pushed)
 
-The v1.177 commit **silently dropped TODO.md rows #35/#36** — an edit landed on a stale
-working file. Code files verified intact (feature greps + 121 green), rows restored from git
-in `a8a9648`. Prime suspect: **OneDrive sync revert** (project lives under OneDrive). This is
-the strongest argument yet for Known issue #1 (move/rename `dnd_rpg` → `traffic-and-dragons`,
-ideally OUT of OneDrive): do it in Explorer BEFORE opening Claude Code, then update paths in
-`.claude/settings.local.json` + `.claude/hooks/stop-check.js`. Until then: after any suspicious
-edit failure, `git diff` before committing.
-
-## The two sessions (v1.165 → v1.178, all pushed + deployed)
-
-### Memory-engine day (07-04, from the t198 save evaluation)
 | Ver | What |
 |---|---|
-| 1.165 | **#28 summarize-tail retention** — amnesia cliff killed: `retainSessionTail()` keeps ≤3 exchanges/1600 tok; `worldState.sessKept` marker means retained tail can't re-trip the gate AND is never extracted twice; `SUMMARIZE_AT` 1200→2400 (fires every ~5 mature exchanges). Membar `~NNNtk` now counts UNEXTRACTED tokens only. |
-| 1.166 | **#29 futureEvents hygiene** — `fileFutureEvent` near-dup dedupe (feTokens ≥2 shared + ≥half smaller fingerprint → refresh setTurn), `expireFutureEvents()` at 40 turns, extractor echoes finished items via ANTICIPATED EVENTS list → `resolvedEvents[]`. Filing refactored into sync `applySummaryExtract()` (order: expire→file→resolve). t198's 7 "find Shalelu" dupes → 2. |
-| 1.167 | **RAG retcon de-index + meta filter + merge-orphan bridge** — `[RETCON:]` tag marks correcting entry + predecessor `rc:1`; **"GM:"-prefixed player turns excluded from retrieval + IDF** (killed the t160 false pin correction AND t164-167 quiz echoes); write-time index names orphaned by `[NPC_MERGE:]` re-resolve via memoized `resolveNpcName`. Pin query now serves the TRUE t147 scene. Residual: untagged pre-tag prose corrections (t35). |
-| 1.168/1.171/1.173 | **#32 inventory legibility** (3 rounds) — `invItemHtml()`: names bold, descriptions 80% opacity; splitter = spaced dash \| paren \| comma \| clause lead-ins (with/including/written/…). **Whack-a-mole by design** — user reports new bold-leaks, we add the lead-in. |
-| 1.169 | **Known issue #3 CLOSED** — companion portrait single-home (`charSheet.portrait`; `npcPortrait()` helper for ALL display reads; migration drops dupes; 49KB off t198). Root-caused #6 (Daeris desync) in the same stroke. |
-| 1.170 | **Portrait transport fix** — v1.169 opened an equal-turn transport hole (Frizwick/Morwen missing on mobile, reported live). Collectors read via `npcPortrait()`; `fillPortraitsFromBlob()` runs on EVERY reconcile, fill-only. |
-| 1.171 | **#23 turn labels** ("Turn N" above narrative frames, live + replay) + **Morwen XP-bar lie** root-caused (negative width = invalid CSS = full bar; bars clamp at 0, `migrateWorldState` floors xp to `XP_LEVELS[level-1]` for player + companions). |
-| 1.172 | **#34 companion XP parity** (every `[XP:N]` engine-mirrored to party; `COMPANION_XP` = individual bonus only, supersedes mirror same-response; forward-only, catch-up offered not imposed) + **#20 quest lifecycle teeth** (`buildQuestBlock`: all-objectives-done → quest-specific close-or-extend instruction; standing "active crises ARE quests" line). |
-| — | Docs: TODO #30 filed (usage meter ~⅓ undercount — unpriced model id); #23 corpus check DONE on t198 (97% NPC registration GREEN, naming GREEN, prose steady GREEN; quest lifecycle RED→#20, future-events RED→#29); #26 closed; #8 merged into #10; **#10 spell/item bible = PRIORITY** (Message spell drift; must be GM-authoritative injection, not just tooltips); SQLite architecture decision recorded (stay JSON; FTS5/changesets as separable revisit triggers). Memory rule saved: **update the TODO row in the same commit as every fix.** |
+| 1.216 | **F2** stale-combat clear on `[LOCATION:]` world-move (+ `[COMBAT_END:fled/truce/disengaged]` prompt nudge) · **F3** all-arcs-done → `[ACT_COMPLETE:]` nudge in the skeleton block. From the v1.214 ToA playthrough audit. |
+| 1.217 | **`character_library` rename** — the bare `library` was ambiguous (character vs blueprint). `Char`→`Character` on the identifiers, UI labels qualified per-domain. Server contract untouched (`/api/characters`). Deferred: the generic `mode==="library"` cloud-source toggle (a `"cloud"` rename is the clean fix if it ever bugs). |
+| 1.218 | **`spell_bible.js`** + live anti-drift injection (option A: preventive, every turn, known spells). Base-name keyed; `spellBibleLookup` w/ emergent overlay hook. |
+| 1.219 | **`[SPELL_DEF:]`** write-once tag — GM canonizes an invented spell into `worldState.capabilityBible` (lookup prefers overlay). |
+| 1.220 | **`ability_bible.js`** — abilities folded in; `capabilityLookup` resolves an ability-that-is-a-spell (Hunter's Mark) to its spell canon, no dup. |
+| 1.221 | **Player click-card** (`showCapabilityCard`) + **`bible_study.html`** viewer — one shared pure renderer `bibleCardHTML` (helpers.js), two hosts. |
+| 1.222 | **MERGED** `spell_bible`+`ability_bible` → **one `capability_bible.js`** (`CAPABILITY_BIBLE`, kind-tagged). User call: spells & abilities have no intrinsic difference, `kind` is cosmetic. Entities (item/creature/profession) stay separate `*_bible` files. |
+| 1.223 | **`category`** LIST (traditions: `arcane/divine/primal/necromantic/martial`) on every entry — the gate to limit an enemy caster (a cleric → `capabilitiesByCategory("divine")`). Turn Undead = `["divine","necromantic"]`. Rendered as card chips. `[SPELL_DEF:]` takes `category=a,b`. |
+| 1.224 | **Fixed attribute set** — every entry carries all of cost/range/targets/duration/save/damage, `"N/A"` where inapplicable. Cards always show 6 uniform rows; `capBibleLine()` injects one LABELED COMPLETE line so the GM can query any attribute and never get empty (the Death-Sight-duration problem). |
 
-### Designer evening (07-04/05)
-| Ver | What |
-|---|---|
-| 1.174 | **#15 Blueprint cloud library** — AUDIT FOUND ~80% ALREADY BUILT (server table WITH `public` column + 3 routes LIVE on Fly; adapter methods; game-side surfaces). Added the missing piece: Designer **☁ Publish** (upsert by name-slug) + **☁ Library…** (list/Open/delete). Auth via same-origin localStorage (`autoConnect`) — designer never OAuths. REMAINING: browse-public, HARD-GATED on #22 sanitization. |
-| 1.175 | **#35 breakout editors** — ⤢ on Premise/act Goal/Turning point/arc Objective/DNA hint → 55vh resizable modal; same data-attrs = existing delegated binding updates bp live. |
-| 1.176 | **#36 creatures + arc rewards + cyanotype theme** — `creatures[]` schema (designer Bestiary section, monster-manual fields) → `worldState.bestiary` → **BESTIARY block in the STABLE prompt half** (campaign-constant = cached; "reach for these before inventing"); arc `reward` rendered on ACTIVE arc, granted same-response as `[ARC_COMPLETE:]`; designer restyled architectural-blueprint (graph-paper grid, designer-only). |
-| 1.177 | **#37 collapsible everything** — sections + all cards fold; `_c` flags ON data objects (travel with reorders), `stripView()` keeps them out of files/publish; **existing blueprints load fully folded** (scroll + spoilers). |
-| 1.178 | **Act reward** (same as arc reward, milestone scale, tied to `[ACT_COMPLETE:]`, "scene worthy of an act's end") + the #35/#36 row restoration. |
-| — | **`tomb_of_annihilation.blueprint`** authored (repo root): 3 acts/11 arcs/11 NPCs/8 locations/6 creatures/6 rules, tone `swords`, voice `howard`, engine-validated end-to-end. Runelords fixture = shape reference. |
+**Key files:** `capability_bible.js` (the registry + `capBaseName`/`capabilityLookup`/`capabilitiesByCategory`); `api.js` (`buildSpellBibleBlock`/`buildAbilityBibleBlock`/`capBibleLine`, `[SPELL_DEF:]` in applyMuts, F2 in the `[LOCATION:]` handler, F3 in `buildSkeletonBlock`); `helpers.js` (`bibleCardHTML`); `ui.js` (`showCapabilityCard`); `bible_study.html` (satellite viewer, NOT in the SW shell). Full design + roadmap in **TODO #10**.
 
-## READY TO TEST (next play session watch-list)
-1. **Quests:** The Scarred Man (4/4) + The Glassworks (3/3) should CLOSE with rewards early (#20 teeth).
-2. **XP parity:** party HUD numbers move together on every award (#34). Frizwick/Morwen/Daeris XP was floored (bars honest now).
-3. **Portraits:** desktop first then mobile — Frizwick + Morwen should fill in (#6/v1.170 fill pass). Two-device confirm still owed.
-4. **Membar:** counts to 2400 before "Filing memories…" — new normal, not a stuck summarize (#28).
-5. **`[RETCON:]`:** correct the GM mid-story and check it emits the tag.
-6. **Designer:** publish ToA with the real login → check ☁ Blueprint Library in the game cross-device; play a few ToA turns (bestiary + rewards in the prompt).
-7. Turn labels, inventory bold/dim (report new bold-leak phrasings — lead-in list in `invItemHtml`).
+---
 
-## Next session, in order of value
-1. **#10 spell/item bible — PRIORITY, affecting play** (Message drifted line-of-sight→limitless). GM-authoritative: inject canonical entry on cast/use (quest-block pattern); #8's tooltips read the same data. Consider the bestiary block (v1.176) as the shape template.
-2. **#30 usage meter undercount** (~⅓ of cost silently $0 — identify the unpriced model id, add prefix match + "unpriced calls: N" line). Small.
-3. **#33 action buttons append + input clear ×** (small, from play notes).
-4. **#15 tail:** browse-public endpoint + UI — but **#22 sanitization first** (hard gate).
-5. **Turn-guard CAS** (server-touch session; known issue #5 decision locked).
-6. Blueprint Designer remaining: Generate mode, edit-active-game, browser "Edit in Designer" link.
+## Next in value (after the audit)
+1. **Whatever the money test surfaces.** If the GM ignores bible bounds → per-provider reinforcement / a stronger STYLE line, not more data.
+2. **Enemy-caster consumer** — wire `capabilitiesByCategory` into a GM prompt block / enemy statblock so a rolled caster actually draws from its tradition. The data + gate function are ready; nothing consumes them for enemies yet. (TODO #10.)
+3. **Bible remaining:** companion spell canon (their spells live on `charSheet.spells`); `item_bible` + `[ITEM_DEF:]`; `creature_bible` (must ABSORB `worldState.bestiary`, not become a 2nd monster home); full-coverage authoring (starter sets only, 42 entries). Eventual editor deferred until blueprint-bundled bibles create demand.
+4. **Open, unanswered:** reclassify Arcane Bolt (and the sorcerer at-will "abilities") `kind:"ability"`→`"spell"`? The user never called it — left as-is. One-line change. (`category:["arcane"]` regardless, since category is a separate axis.)
+5. **Older backlog:** #30 usage-meter undercount (~⅓ silently $0 — find the unpriced model id, prefix-match); #33 action buttons append + input clear ×.
 
-## Don't get burned
-- **OneDrive can serve you stale files** (see top). `git diff` before commit when anything smells off; the pre-commit test gate does NOT check docs.
-- **RAG invariants:** stable half byte-identical (cache); flag-off = pre-RAG prompt byte-for-byte; retrieval READ-SIDE ONLY; excerpts never current truth. Meta filter keys on the player's literal `"GM:" `prefix convention.
-- **Bestiary lives in the STABLE half** — campaign-constant by design; mid-game bestiary editing = one cache rewrite (fine) but per-turn mutation would kill caching. Engine test guards byte-identity.
-- **Designer `_c` collapse flags are view state** — always route file/publish output through `stripView()`.
-- **companion portraits: ONE home** — `charSheet.portrait` when a sheet exists; ALL display reads via `npcPortrait()` (helpers.js). Never write `npc.portrait` for sheet-carrying NPCs.
-- **`sessionTokens()` counts only past `worldState.sessKept`** — it's the summarize trigger distance, not the window size (RAG skipN uses `sessionLog.length`).
-- **File menus are generated** (`buildFileMenus()` in ui.js); **Designer has NO menu entry on purpose**; ES5 only; bump `APP_VERSION` + `CACHE` every game-code commit; `git commit -F <file>` for tricky messages; **update the TODO row in the same commit** (user rule, in memory).
-- **`Rise_of_the_Runelords__Ammut__Ammut_t198.tnd` (repo root, gitignored) = THE mature-campaign fixture** — pin query truth = t147, broadsheet origin = t134-136. t160.tnd = the pre-fix comparison fixture. Do not delete either.
-- User prefs on record: no Haiku pitches; single-purpose tools/satellite pages; wait for full answers; whack-a-mole is an ACCEPTED maintenance model for the inventory splitter.
+---
+
+## Standing rules / don't get burned
+- **Every commit is gated on the test suite** — `.git/hooks/pre-commit` runs `dev/run-tests.js` (**now 233 assertions**, headless node, ~1s) and BLOCKS on red. Hook isn't tracked — after a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`.
+- **ES5 only** (`var`, no arrows/template-literals/`const`); **bump `APP_VERSION` (globals.js) + `CACHE` (sw.js) on every game-code commit**; **update the TODO row in the same commit as the fix** (user rule).
+- **Bible canon is VOLATILE-half only** (`buildSpell/AbilityBibleBlock` read `worldState.character.spells/abilities` live). Never let it leak into the STABLE (cached) half — an engine test canaries this. `capabilityLookup` is THE lookup: overlay (`worldState.capabilityBible`) wins over `CAPABILITY_BIBLE`; keyed by **base name** (parenthetical stripped, lowercased) so it overlays the `SPELLS`/`ABILS` strings and `[SPELL_USED:]` matcher with no refactor.
+- **Preview loads stale by default** — the SW serves cache-first. To load a new version in the preview: unregister service workers + `caches.delete` all + reload (I did this every verify this session). A `CACHE` bump alone isn't enough for the *already-open* page.
+- **OneDrive can serve stale files** — project lives under OneDrive; `git diff` before committing if anything smells off (the v1.177 dropped-TODO-rows incident). The test gate does NOT check docs.
+- **Save extraction gotcha:** an oversized `preview_eval` return auto-saves to a tool-results file (path in the error) — use the whole-blob base64 round-trip, don't hand-copy chunks (a chunk I hand-copied truncated once).
+- **Memory holds live feedback norms** (auto-loaded): a question is not an action; don't begin work while a flagged question is unanswered ("proceed" ≠ resolving an open fork); Clarity above Brevity in naming; end update replies with the version line. Honor them.
+- **File menus are generated** (`buildFileMenus()` in ui.js); Blueprint Designer + `bible_study.html` are **satellite pages, no menu entry**, NOT in the SW app shell; the designer versions separately (`BP_DESIGNER_VERSION`).
+- **Read `CLAUDE.md` first** for architecture — this file is only "where we left off."
 
 ## Deploy
-- **Cloudflare Pages** auto-deploys on push to `master`. Poll `globals.js?nc=<ts>` for `APP_VERSION`.
-- **Server:** `cd ..\traffic-and-dragons-server && flyctl deploy --ha=false` (separate repo, SIBLING directory — not inside this one). `/api/blueprints` live since before 07-04.
+- **Cloudflare Pages** auto-deploys on push to `master` (static, output = repo root). Poll `globals.js?nc=<ts>` for `APP_VERSION`.
+- **Server:** `cd ..\traffic-and-dragons-server && flyctl deploy --ha=false` (separate SIBLING repo).
+
+<!-- Prior handoffs (07-04/05/06: memory-engine day, designer arc, whole-engine audit) are in git history if needed. -->
