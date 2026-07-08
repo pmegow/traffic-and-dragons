@@ -341,6 +341,13 @@ function buildSkeletonBlock(){
   lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
 }
+// capBibleLine (TODO #10) — one canonical capability line for the injection: LABELED and COMPLETE
+// (every attribute, "N/A" where inapplicable) so the GM can query any of a spell/ability's bounds
+// and never come up empty (the Death-Sight-has-no-duration problem). Shared by both injection blocks.
+function capBibleLine(nm,e){
+  function f(v){return v||"N/A";}
+  return "- "+nm+" — cost: "+f(e.cost)+" | range: "+f(e.range)+" | targets: "+f(e.targets)+" | duration: "+f(e.duration)+" | save: "+f(e.save)+" | damage: "+f(e.dice)+". "+f(e.effect);
+}
 // buildSpellBibleBlock (TODO #10) — the anti-drift injection. Re-feeds the CANONICAL rules for
 // every spell the player currently knows, every turn, so the GM narrates from fixed bounds instead
 // of re-improvising a spell's range/targets/duration from its name (the Message-went-limitless
@@ -356,8 +363,7 @@ function buildSpellBibleBlock(){
     var e=capabilityLookup(sp.nm);if(!e)continue;
     var key=capBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
-    var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
-    lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
+    lines.push(capBibleLine(nm,e));
   }
   if(!lines.length)return"";
   return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, and honor these over any remembered version when the spell is cast):\n"+lines.join("\n")+"\n\n";
@@ -376,8 +382,7 @@ function buildAbilityBibleBlock(){
     var e=capabilityLookup(ab.nm);if(!e)continue;
     var key=capBaseName(ab.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(ab.nm).replace(/\s*\(.*\)/,"").trim();
-    var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
-    lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
+    lines.push(capBibleLine(nm,e));
   }
   if(!lines.length)return"";
   return "CANONICAL ABILITY RULES (authoritative — these bounds are FIXED; honor them over any remembered version when the ability is used):\n"+lines.join("\n")+"\n\n";
