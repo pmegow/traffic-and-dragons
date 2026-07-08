@@ -954,14 +954,27 @@ function csSheetSections(c){
   var beatsHtml="";
   if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
   var abilHtml="";
-  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){abilHtml+='<div class="cs-abil"><span class="cs-abil-nm">'+c.abilities[i].nm+'</span><span class="cs-abil-ds">'+c.abilities[i].ds+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
+  if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){var _abN=c.abilities[i].nm,_abCanon=(typeof capabilityLookup==="function")&&capabilityLookup(_abN);var _abNm=_abCanon?'<span class="cs-abil-nm cs-cap" data-cap="'+escHtml(_abN)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+escHtml(_abN)+'</span>':'<span class="cs-abil-nm">'+escHtml(_abN)+'</span>';abilHtml+='<div class="cs-abil">'+_abNm+'<span class="cs-abil-ds">'+escHtml(c.abilities[i].ds||"")+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
   var spellHtml="";
-  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+nm2;spParts.push(sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
+  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
   if(c.inventory&&c.inventory.length){var invParts=[],ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invParts.push(invItemHtml(c.inventory[ivi]));invHtml='<div class="cs-v" style="line-height:1.9">'+invParts.join(", ")+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';
   var charKv=(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
   return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
+}
+// showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
+// the SHARED bibleCardHTML (same render as the bible_study.html viewer). Wired onto clickable spell
+// and ability names in the character sheet (data-cap).
+function showCapabilityCard(name){
+  var e=(typeof capabilityLookup==="function")?capabilityLookup(name):null;
+  var ex=document.getElementById("cap-card-modal");if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id="cap-card-modal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML="<div style='background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;'>"+bibleCardHTML(name,e)+"<button id='cap-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button></div>";
+  document.body.appendChild(modal);
+  modal.addEventListener("click",function(ev){if(ev.target===modal)modal.remove();});
+  var x=document.getElementById("cap-card-x");if(x)x.onclick=function(){modal.remove();};
 }
 function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
 

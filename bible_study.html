@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bible Study — capability reference</title>
+<!--
+  bible_study.html (TODO #10) — the read-only viewer for the *_bible registries. Satellite page
+  (open directly, like blueprint-designer.html; NOT in the SW app shell). It loads the bible data
+  files + helpers and renders every spell/ability through the SAME bibleCardHTML the in-game
+  click-card uses — one render, two hosts.
+-->
+<style>
+  :root{--acc:#b8935a;--bg:#141414;--bg2:#1c1c1c;--bg3:#2a2a2a;--t0:#f0f0f0;--t1:#cccccc;--t2:#8a8a8a;--brd:#333333;--modal-bg:#181818;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px;}
+  h1{color:var(--acc);font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--t2);font-size:12px;margin-bottom:18px;}
+  #q{width:100%;max-width:440px;padding:9px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;color:var(--t0);font-size:13px;margin-bottom:8px;outline:none;}
+  #q:focus{border-color:var(--acc);}
+  h2{color:var(--t0);font-size:13px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--brd);padding-bottom:6px;margin:26px 0 12px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .card{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;transition:border-color .12s;}
+  .card:hover{border-color:var(--acc);}
+  .empty{color:var(--t2);font-style:italic;padding:24px 0;}
+</style>
+</head>
+<body>
+<h1>Bible Study</h1>
+<div class="sub">Canonical capability reference &mdash; the same cards the game shows when you click a spell or ability. Read-only.</div>
+<input id="q" placeholder="Filter by name or text&hellip;" autocomplete="off">
+<div id="out"></div>
+
+<script src="spell_bible.js"></script>
+<script src="ability_bible.js"></script>
+<script src="helpers.js"></script>
+<script>
+  function titleCase(k){var small={of:1,the:1,to:1,in:1,a:1,and:1,on:1};return String(k).replace(/\b[\w']+/g,function(w,i){return (i>0&&small[w])?w:w.charAt(0).toUpperCase()+w.slice(1);});}
+  function collect(){var out=[];function add(reg){if(typeof reg==="undefined")return;for(var k in reg)out.push({key:k,name:titleCase(k),e:reg[k]});}add(typeof SPELL_BIBLE!=="undefined"?SPELL_BIBLE:undefined);add(typeof ABILITY_BIBLE!=="undefined"?ABILITY_BIBLE:undefined);return out;}
+  function byTierName(a,b){return (a.e.tier||0)-(b.e.tier||0)||(a.name<b.name?-1:1);}
+  function byName(a,b){return a.name<b.name?-1:1;}
+  function section(title,items){if(!items.length)return"";var h='<h2>'+title+' ('+items.length+')</h2><div class="grid">';for(var i=0;i<items.length;i++)h+='<div class="card">'+bibleCardHTML(items[i].name,items[i].e)+'</div>';return h+'</div>';}
+  function render(q){
+    q=(q||"").toLowerCase().trim();
+    var all=collect().filter(function(x){return !q||x.key.indexOf(q)>=0||String(x.e.effect||"").toLowerCase().indexOf(q)>=0;});
+    var spells=all.filter(function(x){return x.e.kind!=="ability";}).sort(byTierName);
+    var abils=all.filter(function(x){return x.e.kind==="ability";}).sort(byName);
+    var html=section("Spells",spells)+section("Abilities",abils);
+    document.getElementById("out").innerHTML=html||'<div class="empty">No matches.</div>';
+  }
+  document.getElementById("q").addEventListener("input",function(){render(this.value);});
+  render("");
+</script>
+</body>
+</html>

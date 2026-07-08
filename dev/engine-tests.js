@@ -92,6 +92,10 @@ function runEngineTests(R){
   t("capabilityLookup falls back to ability_bible for a pure ability",function(){var e=capabilityLookup("Trackless Step");return e&&e.kind==="ability"?true:"trackless step not resolved as ability";});
   t("buildAbilityBibleBlock renders canon for known abilities, skips unknowns",function(){makeWorld();worldState.character.abilities=[{nm:"Power Strike",ds:"x"},{nm:"Totally Fake Ability",ds:"y"}];var b=buildAbilityBibleBlock();if(b.indexOf("CANONICAL ABILITY RULES")<0)return "header missing";if(b.indexOf("Totally Fake Ability")>=0)return "unknown ability leaked";return b.indexOf("- Power Strike")>=0?true:"power strike canon missing";});
   t("ability canon lands in VOLATILE, never stable",function(){makeWorld();worldState.character.abilities=[{nm:"Power Strike",ds:"x"}];var s=buildSysPrompt();if(s.stable.indexOf("CANONICAL ABILITY RULES")>=0)return "ability canon leaked into stable";return s.volatile.indexOf("CANONICAL ABILITY RULES")>=0?true:"ability canon missing from volatile";});
+  t("bibleCardHTML (shared render) shows name, fields, and the magical badge",function(){var h=bibleCardHTML("Message",spellBibleLookup("message"));return h.indexOf("Message")>=0&&h.indexOf("magical")>=0&&h.indexOf("120ft")>=0?true:"card missing bits";});
+  t("bibleCardHTML marks a mundane ability as mundane, not magical",function(){var h=bibleCardHTML("Power Strike",abilityBibleLookup("power strike"));return h.indexOf("mundane")>=0&&h.indexOf("&#10022; magical")<0?true:"mundane badge wrong";});
+  t("bibleCardHTML handles a null entry gracefully",function(){return bibleCardHTML("Unknown",null).indexOf("No canonical entry")>=0?true:"null card not handled";});
+  t("bibleCardHTML escapes an apostrophe name (no attr break)",function(){var h=bibleCardHTML("Hunter's Mark",capabilityLookup("Hunter's Mark"));return h.indexOf("Hunter&#39;s Mark")>=0?true:"apostrophe not escaped";});
 
   // ── 3. NPC name resolution (the v1.143 anti-fork engine) ─────────────────────
   section("resolveNpcName");

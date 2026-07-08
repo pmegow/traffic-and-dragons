@@ -52,3 +52,26 @@ function toFirstPerson(s){
     .replace(/\byou\b/gi,"I"); // remaining "you" = subject
   return out.replace(/^([a-z])/,function(m){return m.toUpperCase();});
 }
+// bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
+// HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
+// (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
+// function — one render, two hosts. CSS vars carry app-theme fallbacks so it looks right in either.
+function bibleCardHTML(name,e){
+  if(!e)return '<div style="padding:20px 24px;color:var(--t2,#999);font-size:13px;">No canonical entry yet for <b>'+escHtml(name)+'</b>.</div>';
+  var base=String(name||"").replace(/\s*\(.*\)/,"").trim();
+  var kindLabel=e.kind==="ability"?"Ability":"Spell";
+  var tierLabel=(e.tier===0||e.tier==null)?(e.kind==="ability"?"":"Cantrip"):("Tier "+e.tier);
+  var chip="display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;";
+  var badges='<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t1,#ccc);">'+kindLabel+(tierLabel?" &middot; "+tierLabel:"")+'</span>';
+  badges+= e.isMagical
+    ? '<span style="'+chip+'background:rgba(150,90,180,.25);color:#c99be0;">&#10022; magical</span>'
+    : '<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t2,#999);">mundane</span>';
+  function row(k,v){return v?'<tr><td style="padding:3px 10px 3px 0;color:var(--t2,#999);white-space:nowrap;vertical-align:top;">'+k+'</td><td style="padding:3px 0;color:var(--t1,#ddd);">'+escHtml(v)+'</td></tr>':"";}
+  var rows=row("Cost",e.cost)+row("Range",e.range)+row("Targets",e.targets)+row("Duration",e.duration)+row("Save",e.save)+row("Damage",e.dice);
+  return '<div style="padding:22px 24px;">'
+    +'<div style="font-size:18px;font-weight:bold;color:var(--t0,#f0f0f0);margin-bottom:8px;">'+escHtml(base)+'</div>'
+    +'<div style="margin-bottom:14px;">'+badges+'</div>'
+    +(rows?'<table style="border-collapse:collapse;font-size:12px;margin-bottom:14px;">'+rows+'</table>':'')
+    +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+escHtml(e.effect||"")+'</div>'
+    +'</div>';
+}
