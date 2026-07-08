@@ -219,7 +219,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[HP:+/-X]` | Adjust `character.hp`, clamped to `[0, maxHp]` |
 | `[GOLD:+/-X]` | Adjust `character.gold` |
 | `[ITEM_GAINED:name]` / `[ITEM_LOST:name]` | Push/filter `character.inventory` |
-| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map` |
+| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map`. **Also clears stale `worldState.combat` on a world-location change** (v1.216, audit F2) — the party traveled away, so any unclosed fight is over; skipped if the same response opens a fresh `[COMBAT_START:]` |
 | `[LOCATION_DESC:text]` | Store canonical description for current location (written once on first visit, never overwritten) |
 | `[SUBLOCATION:name]` | Enter a named area within the current world location; sets `world.sublocation` |
 | `[SUBLOCATION_LEAVE]` | Exit sub-location; clears `world.sublocation` |

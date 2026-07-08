@@ -106,6 +106,8 @@ function runEngineTests(R){
   t("active quest: QUEST_STEP adds + completes objectives",function(){makeWorld();applyMuts("[QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Track the wolf|false]");applyMuts("[QUEST_STEP:Hunt|Track the wolf|true]");var o=worldState.questLog[0].objectives;return eq(o.length,1)===true?(o[0].done===true?true:"not done"):"objs: "+o.length;});
   t("quest status 'complete' normalizes and archives",function(){makeWorld();applyMuts("[QUEST:Hunt|active|d]");applyMuts("[QUEST:Hunt|complete]");return eq(worldState.questLog.length,0,"live log")===true?(memory.quests["Hunt"]&&memory.quests["Hunt"].status==="completed"?true:"archive: "+JSON.stringify(memory.quests)):"still live";});
   t("combat auto-clears at 0 enemy HP (v1.140 net)",function(){makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");applyMuts("[ENEMY_HP:-9]");return eq(worldState.combat,null);});
+  t("F2: a world-location change clears stale combat (enemy fled, no COMBAT_END)",function(){makeWorld();applyMuts("[COMBAT_START:Pterafolk|14|13|+4|2d6|low]");if(!worldState.combat)return "combat did not start";applyMuts("We flee downriver. [LOCATION:Tiryki River]");return eq(worldState.combat,null);});
+  t("F2: location change does NOT clear when the same response opens a fresh fight",function(){makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");applyMuts("[LOCATION:Dark Wood][COMBAT_START:Bear|20|13|+5|2d8|high]");return worldState.combat&&worldState.combat.name==="Bear"?true:"expected the new Bear fight, got "+JSON.stringify(worldState.combat);});
   t("condition add, duration update, remove",function(){makeWorld();applyMuts("[CONDITION:Bleeding|1 hour]");applyMuts("[CONDITION:Bleeding|until bandaged]");if(worldState.character.conditions.length!==1)return "dup condition";if(worldState.character.conditions[0].duration!=="until bandaged")return "duration not updated";applyMuts("[CONDITION_REMOVED:Bleeding]");return eq(worldState.character.conditions.length,0);});
   t("SKILL_SUCCESS increments a known skill only",function(){makeWorld();applyMuts("[SKILL_SUCCESS:Climbing][SKILL_SUCCESS:Made Up Skill]");return eq(worldState.character.skills["Climbing"],1)===true?eq(worldState.character.skills["Made Up Skill"],undefined,"unknown skill"):"climb "+worldState.character.skills["Climbing"];});
   t("PARTY_MEMBER cap blocks a 4th companion",function(){makeWorld();worldState.npcs=[{name:"A",status:"ally",rel:"c",partyMember:true},{name:"B",status:"ally",rel:"c",partyMember:true},{name:"C",status:"ally",rel:"c",partyMember:true}];applyMuts("[PARTY_MEMBER:Newbie|true]");var n=worldState.npcs.filter(function(x){return x.name==="Newbie";})[0];return n&&n.partyMember===false&&__toasts.join(" ").indexOf("Party full")>=0?true:"cap failed: "+JSON.stringify(n);});
@@ -638,6 +640,25 @@ function runEngineTests(R){
     if(b.indexOf("deed to the Rusty Flagon")<0)return "active act's reward text missing";
     if(b.indexOf("[ACT_COMPLETE:First Act]")<0)return "grant not tied to the completing emission";
     return b.indexOf("a duchy")<0?true:"pending act's reward leaked";
+  });
+  t("F3: all-arcs-complete active act gets the [ACT_COMPLETE:] close nudge",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[
+      {title:"Port of Last Hope",goal:"g",turningPoint:"tp",status:"active",arcs:[
+        {title:"a1",objective:"o",status:"completed"},{title:"a2",objective:"o",status:"completed"}
+      ]},
+      {title:"Next Act",goal:"g2",turningPoint:"tp2",status:"pending",arcs:[{title:"b",objective:"o2",status:"pending"}]}
+    ]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("ALL ARCS COMPLETE")<0)return "close-the-act nudge missing";
+    return b.indexOf("[ACT_COMPLETE:Port of Last Hope]")>=0?true:"nudge did not name the [ACT_COMPLETE:] emission";
+  });
+  t("F3: nudge is ABSENT while any arc of the active act is still open",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"a1",objective:"o",status:"completed"},{title:"a2",objective:"o",status:"active"}
+    ]}]};
+    return buildSkeletonBlock().indexOf("ALL ARCS COMPLETE")<0?true:"nudge fired with an arc still active";
   });
   t("blueprint review/CBB section is INVISIBLE to the engine but persists in the file (#39)",function(){
     makeWorld();

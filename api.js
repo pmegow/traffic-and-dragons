@@ -240,6 +240,7 @@ function buildSysPrompt(){
     +"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] [ENEMY_HP:-X] [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n"
     +"[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N] -- always emit alongside COMBAT_START; use official D&D stats\n"
     +"[COMBAT_IMMUNE:fire,poison] [COMBAT_RESIST:cold,lightning] [COMBAT_VULN:thunder] -- omit entirely if none; comma-separated damage types only\n"
+    +"CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n"
     +"[ALIGNMENT:law+1] [ALIGNMENT:good-1] (use on morally significant choices only)\n"
     +"[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n"
     +"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again; narrate HP recovery with [HP:+N] as usual\n"
@@ -322,6 +323,12 @@ function buildSkeletonBlock(){
   var pacingNote="PACING: Drive scenes toward the CURRENT arc's objective. When the objective is met, emit [ARC_COMPLETE:title]. When the act's turning point occurs, emit [ACT_COMPLETE:title]. Do not stall — if a scene has run 4+ turns without advancing the arc, push toward a transition or resolution.";
   var activeAct=null;for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){activeAct=sk.acts[i];break;}}
   if(activeAct){
+    // F3 (audit playthrough v1.214): an act can sit "active" with EVERY arc already completed,
+    // because [ACT_COMPLETE:] is a separate GM emission the model neglects (the act lagged 4 turns
+    // after its last arc closed). Deterministically detect the all-arcs-done state and prepend a
+    // strong close-the-act nudge, mirroring the quest ALL-OBJECTIVES-COMPLETE teeth (#20).
+    var _allArcsDone=activeAct.arcs.length>0;for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status!=="completed"){_allArcsDone=false;break;}}
+    if(_allArcsDone)pacingNote="⚑ ALL ARCS COMPLETE for the current act (\""+activeAct.title+"\") — its story is finished. Emit [ACT_COMPLETE:"+activeAct.title+"] at the next natural beat to advance the campaign"+(activeAct.reward?", granting the ACT REWARD in that same response":"")+".\n"+pacingNote;
     var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
     if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.";
     // Generic type-hint only when the active arc has NO dnaHint — otherwise it contradicts the author
@@ -446,7 +453,13 @@ function applyMuts(text){
   var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi;for(ilqi=0;ilqi<ilq.n;ilqi++)removeInventoryItem(worldState.character.inventory,ilq.base);muts.push("-"+ilq.base+(ilq.n>1?" x"+ilq.n:""));}/* P14: "Rope x2" removes up to 2 copies */
   // fileLocation reads worldState.world.location as the PREVIOUS node to record a travel edge, so it
   // must run BEFORE we overwrite it — otherwise prev===dest and no edge is ever recorded (was the bug).
-  var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=loc[1].trim();/* trim so a leading space doesn't fork the map node (audit E52) */fileLocation(_lname,"",turn);worldState.world.location=_lname;worldState.world.sublocation=null;muts.push("-> "+_lname);}
+  var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=loc[1].trim();/* trim so a leading space doesn't fork the map node (audit E52) */var _prevLoc=worldState.world.location;fileLocation(_lname,"",turn);worldState.world.location=_lname;worldState.world.sublocation=null;muts.push("-> "+_lname);
+    // F2 (audit playthrough v1.214): a WORLD-location change means any active fight is over — the
+    // party has traveled away. The GM often narrates a foe fleeing / breaking off / a truce without
+    // emitting [COMBAT_END:], so worldState.combat (and the combat panel) went stale for ~13 turns.
+    // The kill-safety-net below only catches 0-HP corpses, not disengagement. Clear it here, unless
+    // this same response opens a fresh fight (COMBAT_START below overwrites it anyway).
+    if(worldState.combat&&_lname!==_prevLoc&&!/\[COMBAT_START:/.test(text)){var _staleFoe=worldState.combat.name;worldState.combat=null;muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}
   // SUBLOCATION / SUBLOCATION_LEAVE run BEFORE LOCATION_DESC/LOCATION_SIZE (audit E9): a first-visit
   // sub-location described in the same response would otherwise file its desc/size to the PARENT node
   // (world.sublocation not yet set) — write-once, so permanently poisoning the parent or losing the
