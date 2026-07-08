@@ -69,6 +69,19 @@ function runEngineTests(R){
   t("inventory stacking: parenthetical qualifiers stay separate",function(){var inv=["Sword (rusty)"];addInventoryItem(inv,"Sword (enchanted)");return eq(inv.length,2);});
   t("inventory removal: decrements and drops suffix at 1",function(){var inv=["Arrow x2"];removeInventoryItem(inv,"Arrow");if(inv[0]!=="Arrow")return "want bare Arrow got "+inv[0];removeInventoryItem(inv,"arrow");return eq(inv.length,0);});
 
+  section("spell_bible (TODO #10)");
+  t("spellBaseName strips the display parenthetical and lowercases",function(){return eq(spellBaseName("Fire Bolt (d10 fire, 120ft)"),"fire bolt");});
+  t("lookup resolves a full SPELLS display string to its canonical entry",function(){var e=spellBibleLookup("Fire Bolt (d10 fire, 120ft)");return e&&e.range==="120ft"&&e.tier===0?true:"got "+JSON.stringify(e);});
+  t("lookup is case-insensitive on the bare name",function(){var e=spellBibleLookup("MESSAGE");return e&&e.range==="120ft"?true:"message not resolved: "+JSON.stringify(e);});
+  t("Message canon pins the range (the drift case)",function(){var e=spellBibleLookup("message");return e&&e.range==="120ft"&&/does not reach beyond 120ft/i.test(e.effect)?true:"drift guard missing: "+JSON.stringify(e&&e.effect);});
+  t("Hunter's Mark canon states the one-at-a-time exclusivity (P10)",function(){var e=spellBibleLookup("Hunter's Mark (d6 bonus damage, track target)");return e&&/exclusive/i.test(e.effect)&&/only one/i.test(e.effect)?true:"exclusivity note missing";});
+  t("unknown spell returns null",function(){return eq(spellBibleLookup("Bogus Nonexistent Cantrip"),null);});
+  t("every entry carries the required structural fields (kind/tier/cost/isMagical)",function(){var bad=[];for(var k in SPELL_BIBLE){var e=SPELL_BIBLE[k];if(e.kind!=="spell"||typeof e.tier!=="number"||!e.cost||typeof e.isMagical!=="boolean"||!e.range||!e.effect)bad.push(k);}return bad.length?"malformed entries: "+bad.join(", "):true;});
+  t("emergent overlay (worldState.spellBible) wins over the static base",function(){makeWorld();worldState.spellBible={"message":{kind:"spell",tier:0,cost:"at-will",isMagical:true,range:"1 mile",targets:"1 creature",duration:"1 round",effect:"campaign-custom sending stone"}};var e=spellBibleLookup("Message (whisper 120ft, target replies)");return e&&e.range==="1 mile"?true:"overlay did not win: "+JSON.stringify(e);});
+  t("buildSpellBibleBlock renders canon for known spells, skips unknowns/dupes",function(){makeWorld();worldState.character.spells=[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false},{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false},{nm:"Totally Made Up Spell",lvl:1,used:false}];var b=buildSpellBibleBlock();if(b.indexOf("CANONICAL SPELL RULES")<0)return "header missing";if(b.indexOf("Totally Made Up Spell")>=0)return "unknown spell leaked in";return (b.split("- Fire Bolt").length-1)===1?true:"expected one Fire Bolt line (dedupe), got "+(b.split("- Fire Bolt").length-1);});
+  t("buildSpellBibleBlock is empty for a non-caster (no known spells)",function(){makeWorld();worldState.character.spells=[];return eq(buildSpellBibleBlock(),"");});
+  t("spell canon lands in the VOLATILE half, never the cached stable half",function(){makeWorld();worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];var s=buildSysPrompt();if(s.stable.indexOf("CANONICAL SPELL RULES")>=0)return "spell canon leaked into stable — kills the cache";return s.volatile.indexOf("CANONICAL SPELL RULES")>=0?true:"canon missing from volatile";});
+
   // ── 3. NPC name resolution (the v1.143 anti-fork engine) ─────────────────────
   section("resolveNpcName");
   t("parenthetical variant resolves to canonical",function(){memory=blankMemory();memory.npcs["Morwen Zethran"]={attitude:"ally",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Morwen (Ammut's wife)"),"Morwen Zethran");});

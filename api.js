@@ -278,6 +278,7 @@ function buildSysPrompt(){
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")+(c.deity?"Deity: "+c.deity+"\n":"")/* trailing \n so "Motivation:" doesn't glue to the next line (audit E54) */
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
+    +buildSpellBibleBlock()
     +partyBlock
     +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
@@ -337,6 +338,27 @@ function buildSkeletonBlock(){
   }
   lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
+}
+// buildSpellBibleBlock (TODO #10) — the anti-drift injection. Re-feeds the CANONICAL rules for
+// every spell the player currently knows, every turn, so the GM narrates from fixed bounds instead
+// of re-improvising a spell's range/targets/duration from its name (the Message-went-limitless
+// drift). Same re-inject-from-data pattern as the quest block / char sheet / [LOCATION_DESC:].
+// VOLATILE half only (reads worldState.character.spells live). Bounded by known spells, so cheap.
+// Player-only for now; companion spell canon is a follow-up (their spells live on charSheet.spells).
+function buildSpellBibleBlock(){
+  var c=worldState&&worldState.character;
+  if(!c||!c.spells||!c.spells.length||typeof spellBibleLookup!=="function")return"";
+  var seen={},lines=[],i;
+  for(i=0;i<c.spells.length;i++){
+    var sp=c.spells[i];if(!sp||!sp.nm)continue;
+    var e=spellBibleLookup(sp.nm);if(!e)continue;
+    var key=spellBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
+    var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
+    var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
+    lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
+  }
+  if(!lines.length)return"";
+  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, and honor these over any remembered version when the spell is cast):\n"+lines.join("\n")+"\n\n";
 }
 // ── Model-output JSON cleanup ────────────────────────────────────────────────
 // Shared by every JSON-expecting call (skeleton, action suggestions, summarize,
