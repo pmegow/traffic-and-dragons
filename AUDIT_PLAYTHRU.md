@@ -57,3 +57,26 @@ Symptom: Ekene is `partyMember:true` with no `charSheet` — verified live: the 
 | R2 | **World time never advances.** `world.time` stayed "dusk" across a full night's camp + dawn departure (t78→t80). No state tag updates time/weather — only the Sync modal does. The GM narrates time passing but can't record it, so GEOGRAPHY/prompt always says "dusk". | ✅ v1.214 — `[TIME:]` / `[WEATHER:]` tags added to `applyMuts` (write free-text `world.time`/`world.weather`, same shape the Sync modal edits); documented in the STATE TAGS block; the MOVEMENT UPKEEP rule now names time-skip (camp/travel/rest ⇒ `[TIME:]`) as upkeep so the tag doesn't repeat P4's silence. 1 regression test (suite green). Live compliance pending a post-fix harness run |
 | R3 | **Wilderness camp drew no `[SUBLOCATION:]`.** The P4 rule fired perfectly for `[LOCATION:]` but the GM treated an unnamed jungle clearing as pure narrative. Borderline — forcing sublocations on ephemeral camps could clutter the map graph. | accepted (won't-fix unless camps need to be revisitable nodes) |
 | R4 | **Quest-escalation note-injection path is unit-verified only.** In live play the GM kept legitimately advancing the quest (adding objectives) before the 3-turn stale threshold, so the engine note never fired. The mechanism is correct and tested; it just hasn't been *observed* triggering because the healthy path pre-empts it. | monitor — a quest that genuinely stalls (all objectives done, no narrative reason to advance) would exercise it |
+
+---
+
+## Synopsis — story-goal lifecycle at t75 (goals expressed / accomplished / rewarded)
+
+Read from the save state itself (`diagnostic_playthru.tnd` at t75). **This is the pre-fix baseline (engine v1.207)** — before the v1.209 P3/P11 teeth — so it *demonstrates* the bugs those versions target; it is not current-engine behaviour. Char at t75: Varek Thorn, L2 Ranger, 330 XP, 121 gp, still in Port Nyanzaru.
+
+**Did any quests resolve properly? — No.** Zero quests reached `completed`/`failed`; `memory.quests` is empty (nothing ever archived). Both registered quests are still `active`:
+- **The Dying Patron** — its sole objective ("Learn the Soulmonger's location") is checked done, the ⚑ ALL-OBJECTIVES-COMPLETE condition is met, yet the quest was never closed. A live, in-this-save reproduction of **P3**.
+- **The Merchant Princes** — 1 of 2 objectives done (Wakanga's charter secured; two more signatures needed). Genuinely in progress.
+
+**Did arcs complete, and were rewards given? — One arc completed; no reward flowed.** Skeleton shows ACT 1 arc **"The Dying Patron" → `completed`** (the GM *did* emit `[ARC_COMPLETE:]`; the engine correctly advanced to "The Merchant Princes" → `active`, with "A Guide into the Green"/"The River of Teeth" pending). But the reward pathway never fired — the **only** reward event in 75 turns was Syndra's opening advance coin (story beat t5). XP (330 → L2) accrued from action/combat sprinkling, decoupled from goals — the audit's XP-starvation, confirmed.
+
+**New observation — arc↔quest desync (not previously called out).** The same story thread has a *completed arc* and an *open quest* at once: `[ARC_COMPLETE:The Dying Patron]` fired while `[QUEST:The Dying Patron|completed]` never did. Arc lifecycle worked; quest lifecycle didn't — they moved independently. Candidate fix: couple `[ARC_COMPLETE:]` to nudge/close the matching quest, or have the ALL-OBJECTIVES-COMPLETE escalation catch a done-but-open quest whose arc has already closed. *(Filed for follow-up.)*
+
+**Did Act 1 complete? — No.** ACT 1 "Port of Last Hope" is still `active`, 1 of 4 arcs done. The party never left Port Nyanzaru in 75 turns.
+
+**Player experience:**
+- **Expressed — strong.** The through-goal (find & destroy the Soulmonger) landed cleanly at t5 with a story beat + advance coin. Sub-goals emerged organically and were tracked as objectives (charter signatures, locating the Soulmonger); the futureEvents list shows healthy forward-hook seeding (Naja/Kwayothé signatures, the Aldani Basin crossing, Ijek's watchers turning active).
+- **Accomplished — real, but invisible.** The player genuinely achieved a lot (learned the Soulmonger is in Omu, secured Wakanga's charter, extracted Zephyr's two-year concealment, mapped and broke Ijek's spy relay, captured Brackstone, ran down "the principal") — but almost none of it was *recorded as completion*: objectives ticked, quests never closed, and only **1 story beat** logged in 75 turns (**P11**).
+- **Rewarded — barely.** One coin at the outset; XP untied to goals; not a single quest reward, item reward, or arc payoff on the sheet. Seventy-five turns of competent, on-goal play produced almost no visible progression.
+
+**Through-line:** the *narrative* engine performed well (goals expressed, pursued, accomplished in prose); the *bookkeeping* that converts accomplishment into visible closure/reward mostly didn't fire. This save is the compounded picture of **P3 + P11 + XP-starvation** — an arc marked done, its twin quest still open, its objective checked, and nothing on the sheet to show for it. What it can't tell us: whether v1.209 actually makes quests *close and pay out* in a fresh long run — that needs a post-fix harness playthrough to confirm.
