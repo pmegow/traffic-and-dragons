@@ -1,10 +1,9 @@
-var CACHE = "tnd-v3-20260707p";
+var CACHE = "tnd-v3-20260707q";
 var APP_SHELL = [
   "/",
   "/globals.js",
   "/data.js",
-  "/spell_bible.js",
-  "/ability_bible.js",
+  "/capability_bible.js",
   "/helpers.js",
   "/state.js",
   "/storage-adapter.js",

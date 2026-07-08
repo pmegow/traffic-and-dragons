@@ -349,12 +349,12 @@ function buildSkeletonBlock(){
 // Player-only for now; companion spell canon is a follow-up (their spells live on charSheet.spells).
 function buildSpellBibleBlock(){
   var c=worldState&&worldState.character;
-  if(!c||!c.spells||!c.spells.length||typeof spellBibleLookup!=="function")return"";
+  if(!c||!c.spells||!c.spells.length||typeof capabilityLookup!=="function")return"";
   var seen={},lines=[],i;
   for(i=0;i<c.spells.length;i++){
     var sp=c.spells[i];if(!sp||!sp.nm)continue;
-    var e=spellBibleLookup(sp.nm);if(!e)continue;
-    var key=spellBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
+    var e=capabilityLookup(sp.nm);if(!e)continue;
+    var key=capBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
     var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
     lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
@@ -374,7 +374,7 @@ function buildAbilityBibleBlock(){
   for(i=0;i<c.abilities.length;i++){
     var ab=c.abilities[i];if(!ab||!ab.nm)continue;
     var e=capabilityLookup(ab.nm);if(!e)continue;
-    var key=spellBaseName(ab.nm);if(seen[key])continue;seen[key]=1;
+    var key=capBaseName(ab.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(ab.nm).replace(/\s*\(.*\)/,"").trim();
     var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
     lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
@@ -600,19 +600,19 @@ function applyMuts(text){
   var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;// cantrips never expend
 var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){sp.used=true;muts.push("Spell used: "+sp.nm);break;}}}}
   // SPELL_DEF (TODO #10) — the GM canonizes an INVENTED or homebrew spell (one not in the
-  // CANONICAL SPELL RULES list) ONCE into the per-campaign overlay worldState.spellBible, which
-  // spellBibleLookup already prefers over the static base. Write-once (LOCATION_DESC pattern) so a
+  // CANONICAL SPELL RULES list) ONCE into the per-campaign overlay worldState.capabilityBible, which
+  // capabilityLookup already prefers over the static base. Write-once (LOCATION_DESC pattern) so a
   // spell cannot re-drift via redefinition. Format: [SPELL_DEF:Name|range=X|targets=Y|duration=Z|
   // effect=...|cost=slot|tier=1|save=...|magical=yes] — '=' per field, '|' between fields.
   var spellDefs=text.match(/\[SPELL_DEF:([^\]]+)\]/g)||[];var sdi;for(sdi=0;sdi<spellDefs.length;sdi++){
     var sdm=spellDefs[sdi].match(/\[SPELL_DEF:([^\]]+)\]/);if(!sdm)continue;
-    var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof spellBaseName!=="function")continue;
-    var sdKey=spellBaseName(sdName);if(!worldState.spellBible)worldState.spellBible={};
-    if(worldState.spellBible[sdKey])continue;// write-once: first definition wins, never overwritten
+    var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof capBaseName!=="function")continue;
+    var sdKey=capBaseName(sdName);if(!worldState.capabilityBible)worldState.capabilityBible={};
+    if(worldState.capabilityBible[sdKey])continue;// write-once: first definition wins, never overwritten
     var sdEntry={kind:"spell",tier:0,cost:"at-will",isMagical:true,range:"",targets:"",duration:"",effect:""},sdp;
     for(sdp=1;sdp<sdParts.length;sdp++){var kv=sdParts[sdp].split("=");if(kv.length<2)continue;var kk=kv[0].trim().toLowerCase(),vv=kv.slice(1).join("=").trim();
       if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier")sdEntry.tier=parseInt(vv)||0;else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}
-    worldState.spellBible[sdKey]=sdEntry;muts.push("Spell canon defined: "+sdName);
+    worldState.capabilityBible[sdKey]=sdEntry;muts.push("Spell canon defined: "+sdName);
   }
   // [REST:long] — the party completes a full rest. restSpells() restores expended (non-cantrip)
   // slots party-wide (audit P10 tail): the P10 rule tells the GM a used 1/day spell can't be recast
