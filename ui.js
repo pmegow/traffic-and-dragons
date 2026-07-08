@@ -706,7 +706,7 @@ function exportBlueprint(){
     +"<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
     +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
     +"<button id='bp-export-dl' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#8595; Download</button>"
-    +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>&#9729; Save to library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to library</button>")
+    +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>&#9729; Save to blueprint library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to blueprint library</button>")
     +"</div></div>";
   document.body.appendChild(modal);
   function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
@@ -725,8 +725,8 @@ function exportBlueprint(){
       bp.name=getName();bp.proseAuthor=getVoice();
       var btn=document.getElementById("bp-export-cloud");btn.disabled=true;btn.textContent="Saving…";
       storageAdapter.saveBlueprintToLibrary(bp,function(err){
-        if(err){showToast("Blueprint save failed: "+err);btn.disabled=false;btn.textContent="☁ Save to library";}
-        else{modal.remove();showToast("Blueprint saved to library.");}
+        if(err){showToast("Blueprint save failed: "+err);btn.disabled=false;btn.textContent="☁ Save to blueprint library";}
+        else{modal.remove();showToast("Blueprint saved to the blueprint library.");}
       });
     });
   }
@@ -791,7 +791,7 @@ function showBlueprintBrowser(){
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
     +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs.</div>"
-    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Blueprint Library","library","left")+segBtn("Local","local","right")+"</div>"
     +"<div id='bp-body'></div>"
     +"</div>";
   document.body.appendChild(modal);
@@ -859,7 +859,7 @@ function showBlueprintBrowser(){
           var err=validateBlueprint(bp);
           if(err){showToast("Invalid blueprint: "+err);return;}
           if(storageAdapter.isServerMode()){
-            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){if(!saveErr)showToast("Blueprint saved to your library.");});
+            storageAdapter.saveBlueprintToLibrary(bp,function(saveErr){if(!saveErr)showToast("Blueprint saved to your blueprint library.");});
           }
           showPreview(bp);
         }catch(err2){showToast("Failed to read blueprint: "+err2.message);}
@@ -869,11 +869,11 @@ function showBlueprintBrowser(){
   }
   function renderLibrary(){
     var body=document.getElementById("bp-body");if(!body)return;
-    if(!connected){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File &#9656; Admin &#9656; Connect) to browse your cloud library.</div>";return;}
+    if(!connected){body.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Connect to server (File &#9656; Admin &#9656; Connect) to browse your blueprint library.</div>";return;}
     body.innerHTML="<div style='font-size:11px;color:var(--t2);padding:16px 0;text-align:center;'>Loading…</div>";
     storageAdapter.listBlueprintLibrary(function(err,list){
       var body2=document.getElementById("bp-body");if(!body2)return;
-      if(err||!list){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load library.</div>";return;}
+      if(err||!list){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>Could not load blueprint library.</div>";return;}
       if(!list.length){body2.innerHTML="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:16px 0;text-align:center;'>No blueprints saved yet. Export one from an active game or use the Local tab to import a .blueprint file.</div>";return;}
       var html="<div style='display:flex;flex-direction:column;gap:8px;'>",bi;
       for(bi=0;bi<list.length;bi++){
@@ -899,7 +899,7 @@ function showBlueprintBrowser(){
         btn.addEventListener("click",function(e){
           e.stopPropagation();
           var slug=btn.getAttribute("data-bpdel"),name=btn.getAttribute("data-bpname");
-          if(!confirm("Delete \""+name+"\" from your library?"))return;
+          if(!confirm("Delete \""+name+"\" from your blueprint library?"))return;
           storageAdapter.deleteBlueprintFromLibrary(slug,function(err){
             if(err){showToast("Delete failed: "+err);return;}
             showToast("Blueprint deleted.");
@@ -911,7 +911,7 @@ function showBlueprintBrowser(){
   }
   function render(){
     var seg=document.getElementById("bp-seg");
-    if(seg){seg.innerHTML=segBtn("&#9729; Library","library","left")+segBtn("Local","local","right");wireSegs();}
+    if(seg){seg.innerHTML=segBtn("&#9729; Blueprint Library","library","left")+segBtn("Local","local","right");wireSegs();}
     if(mode==="library")renderLibrary();else renderLocal();
   }
   function wireSegs(){
@@ -1585,7 +1585,7 @@ function showCharacterBrowser(initialMode){
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
       +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
       +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>"+(mode==="library"?"Campaign-agnostic character snapshots. Click to inspect, then import.":"Characters from your saved campaigns. Click to inspect, then import.")+"</div>"
-      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local","local","right")+"</div>"
+      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Character Library","library","left")+segBtn("<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local","local","right")+"</div>"
       +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
@@ -1624,16 +1624,16 @@ function showCharacterBrowser(initialMode){
   }
 
   function renderLibrary(){
-    shell("<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading library&hellip;</div>");
+    shell("<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading character library&hellip;</div>");
     if(!storageAdapter.isServerMode()){
       var b0=document.getElementById("cbr-body");if(b0)b0.innerHTML="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Connect to the server to access the character library.</div>";
       return;
     }
-    storageAdapter.listCharLibrary(function(err,list){
+    storageAdapter.listCharacterLibrary(function(err,list){
       if(document.getElementById("char-browser-modal")!==modal||mode!=="library")return; // stale callback
       var body=document.getElementById("cbr-body");if(!body)return;
-      if(err){body.innerHTML="<div style='padding:24px;text-align:center;color:var(--hp);font-size:12px;'>Could not load library: "+escHtml(String(err))+"</div>";return;}
-      if(!list||!list.length){body.innerHTML="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library yet.<br>Export a character from the character sheet to add one.</div>";return;}
+      if(err){body.innerHTML="<div style='padding:24px;text-align:center;color:var(--hp);font-size:12px;'>Could not load character library: "+escHtml(String(err))+"</div>";return;}
+      if(!list||!list.length){body.innerHTML="<div style='padding:24px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in the character library yet.<br>Export a character from the character sheet to add one.</div>";return;}
       var rows="";
       for(var i=0;i<list.length;i++){
         var entry=list[i],ch=entry.character||{};
@@ -1642,7 +1642,7 @@ function showCharacterBrowser(initialMode){
           +"<div class='cbr-name'>"+escHtml(entry.name)+"</div>"
           +"<div class='cbr-sub'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
           +"</div>"
-          +"<button onclick='event.stopPropagation();_cbDelLib(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from library'>&#215;</button>";
+          +"<button onclick='event.stopPropagation();_cbDelLib(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from the character library'>&#215;</button>";
         rows+=rowHtml("onclick='_cbPickLib(\""+escHtml(entry.slug)+"\")'",inner);
       }
       body.innerHTML=rows;
@@ -1658,7 +1658,7 @@ function showCharacterBrowser(initialMode){
     });
   };
   window._cbPickLib=function(slug){
-    storageAdapter.listCharLibrary(function(err,list){
+    storageAdapter.listCharacterLibrary(function(err,list){
       if(err){showToast("Error: "+err);return;}
       var entry=null;for(var i=0;i<list.length;i++){if(list[i].slug===slug){entry=list[i];break;}}
       if(!entry){showToast("Character not found.");return;}
@@ -1673,9 +1673,9 @@ function showCharacterBrowser(initialMode){
   };
   window._cbDelLib=function(slug,name){
     if(!confirm("Remove "+name+" from the character library?"))return;
-    storageAdapter.deleteCharFromLibrary(slug,function(err){
+    storageAdapter.deleteCharacterFromLibrary(slug,function(err){
       if(err){showToast("Delete failed: "+err);return;}
-      showToast(name+" removed from library.");
+      showToast(name+" removed from the character library.");
       if(mode==="library")render();
     });
   };
@@ -2138,7 +2138,7 @@ function _showCharExportOptions(char){
     +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>Export "+escHtml(char.name)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:20px;'>Lv"+char.level+" "+escHtml((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim()+"</div>"
     +"<div style='display:flex;flex-direction:column;gap:8px;'>"
-    +"<button id='ceo-library' style='padding:11px;font-size:13px;font-family:var(--font);background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"var(--on-acc)":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
+    +"<button id='ceo-character-library' style='padding:11px;font-size:13px;font-family:var(--font);background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"var(--on-acc)":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
     +"<button id='ceo-file' style='padding:10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>&#8595; Download .char file</button>"
     +"<button id='ceo-cancel' style='padding:8px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t2);cursor:pointer;'>Cancel</button>"
     +"</div></div>";
@@ -2146,16 +2146,16 @@ function _showCharExportOptions(char){
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   document.getElementById("ceo-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("ceo-file").addEventListener("click",function(){modal.remove();_doExportChar(char.name,char);showToast("Character downloaded.");});
-  var libBtn=document.getElementById("ceo-library");
+  var libBtn=document.getElementById("ceo-character-library");
   if(!connected){libBtn.addEventListener("click",function(){showToast("Connect to server to use the character library.");});return;}
   libBtn.addEventListener("click",function(){
     libBtn.textContent="Checking…";libBtn.disabled=true;
-    storageAdapter.listCharLibrary(function(err,list){
-      if(err){modal.remove();showToast("Library error: "+err);return;}
+    storageAdapter.listCharacterLibrary(function(err,list){
+      if(err){modal.remove();showToast("Character library error: "+err);return;}
       var slug=_charLibSlug(char.name),existing=null;
       for(var i=0;i<list.length;i++){if(list[i].slug===slug){existing=list[i];break;}}
       if(existing){modal.remove();_showCharOverwriteConfirm(char,existing);}
-      else{storageAdapter.saveCharToLibrary(char,function(err2){modal.remove();if(err2)showToast("Save failed: "+err2);else showToast("&#9729; "+char.name+" saved to library.");});}
+      else{storageAdapter.saveCharacterToLibrary(char,function(err2){modal.remove();if(err2)showToast("Save failed: "+err2);else showToast("&#9729; "+char.name+" saved to the character library.");});}
     });
   });
 }
@@ -2165,8 +2165,8 @@ function _showCharOverwriteConfirm(char,existing){
   var modal=document.createElement("div");modal.id="char-overwrite-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:360px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite library entry?</div>"
-    +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>Library has <span style='color:var(--t1);'>"+escHtml(existing.name)+" Lv"+existing.level+"</span>. Replace with <span style='color:var(--acc);'>Lv"+char.level+"</span>?</div>"
+    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite character library entry?</div>"
+    +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>Character library has <span style='color:var(--t1);'>"+escHtml(existing.name)+" Lv"+existing.level+"</span>. Replace with <span style='color:var(--acc);'>Lv"+char.level+"</span>?</div>"
     +"<div style='display:flex;gap:10px;'>"
     +"<button id='cow-ok' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Overwrite</button>"
     +"<button id='cow-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
@@ -2175,12 +2175,12 @@ function _showCharOverwriteConfirm(char,existing){
   document.getElementById("cow-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("cow-ok").addEventListener("click",function(){
     var btn=document.getElementById("cow-ok");btn.textContent="Saving…";btn.disabled=true;
-    storageAdapter.saveCharToLibrary(char,function(err){modal.remove();if(err)showToast("Save failed: "+err);else showToast("&#9729; "+char.name+" updated in library.");});
+    storageAdapter.saveCharacterToLibrary(char,function(err){modal.remove();if(err)showToast("Save failed: "+err);else showToast("&#9729; "+char.name+" updated in the character library.");});
   });
 }
 
 // The standalone Character Library is now the Library tab of the unified Import Character browser.
-function showCharLibrary(){showCharacterBrowser("library");}
+function showCharacterLibrary(){showCharacterBrowser("library");}
 // Read-only character-sheet viewer — renders any character object (e.g. a library snapshot)
 // using the same cs-* styling as showCharSheet, with none of the live-game editing wiring.
 // opts.onImport, if supplied, adds an Import button to the header.
@@ -2194,7 +2194,7 @@ function showReadOnlyCharSheet(c,opts){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:420;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
   var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:var(--font);padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Import</button>":"";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Character library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
     +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
@@ -2307,10 +2307,10 @@ function showCompanionBrowser(){
   function renderLibrary(){
     var list=document.getElementById("comp-list");if(!list)return;
     if(!connected){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Not connected to server. Use File &#9656; Dev Mode &#9656; Connect server.</div>";return;}
-    list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading library…</div>";
-    storageAdapter.listCharLibrary(function(err,entries){
+    list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>Loading character library…</div>";
+    storageAdapter.listCharacterLibrary(function(err,entries){
       if(err){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>"+escHtml(String(err))+"</div>";return;}
-      if(!entries||!entries.length){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in library.</div>";return;}
+      if(!entries||!entries.length){list.innerHTML="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No characters in the character library.</div>";return;}
       var h="",i;for(i=0;i<entries.length;i++){
         var entry=entries[i];
         h+=compRow(entry.name,"Lv"+(entry.level||1)+" "+escHtml(entry.ancestry||"")+" "+escHtml(entry.cls||""),entry.slug,"library");
@@ -2328,7 +2328,7 @@ function showCompanionBrowser(){
           var type=btn.getAttribute("data-pick-type");
           btn.textContent="Loading…";btn.disabled=true;
           if(type==="library"){
-            storageAdapter.listCharLibrary(function(err,entries){
+            storageAdapter.listCharacterLibrary(function(err,entries){
               if(err){showToast("Could not load: "+err);btn.textContent="Select";btn.disabled=false;return;}
               var found=null,ci;for(ci=0;ci<entries.length;ci++){if(entries[ci].slug===id){found=entries[ci];break;}}
               if(!found||!found.character){showToast("Character data missing.");btn.textContent="Select";btn.disabled=false;return;}
@@ -2352,7 +2352,7 @@ function showCompanionBrowser(){
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Add Companion</span>"
     +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>"+pendingCompanions.length+" / 3 selected</div>"
-    +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Character Library","library","left")+segBtn("Local","local","right")+"</div>"
     +"<div id='comp-list'></div>"
     +"</div>";
   document.body.appendChild(modal);
@@ -2363,7 +2363,7 @@ function showCompanionBrowser(){
     for(sbi=0;sbi<segBtns.length;sbi++){
       (function(sb){sb.addEventListener("click",function(){
         mode=sb.getAttribute("data-seg");
-        document.getElementById("comp-seg").innerHTML=segBtn("&#9729; Library","library","left")+segBtn("Local","local","right");
+        document.getElementById("comp-seg").innerHTML=segBtn("&#9729; Character Library","library","left")+segBtn("Local","local","right");
         wireSegs();
         render();
       });})(segBtns[sbi]);

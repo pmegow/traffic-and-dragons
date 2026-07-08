@@ -94,9 +94,9 @@ function buildActionButtons(acts){
 // pool rather than from other campaigns. Async, so checkLegacyCharacter rolls against the cache.
 function loadLegacyLibrary(){
   if(!legacyCharsOn||legacyLibLoading)return;
-  if(typeof storageAdapter==="undefined"||!storageAdapter.listCharLibrary)return;
+  if(typeof storageAdapter==="undefined"||!storageAdapter.listCharacterLibrary)return;
   legacyLibLoading=true;
-  storageAdapter.listCharLibrary(function(err,list){
+  storageAdapter.listCharacterLibrary(function(err,list){
     legacyLibLoading=false;
     if(!err&&list&&typeof list.length==="number")legacyLibCache=list;
   });

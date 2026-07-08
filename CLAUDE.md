@@ -21,12 +21,12 @@ All logic has been extracted from the HTML into separate JS files.
 | `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
 | `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. |
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
-| `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharLibrary`, `saveCharToLibrary`, `deleteCharFromLibrary` |
+| `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharacterLibrary`, `saveCharacterToLibrary`, `deleteCharacterFromLibrary` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
 | `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `findCompanionChar`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
 | `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame`, `syncCharSheet`, `checkLegacyCharacter`, `checkCompanionLevelUp` |
-| `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots` |
+| `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharacterLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots` |
 
 ### Script load order
 
@@ -480,11 +480,11 @@ Server-side character storage separate from campaigns. Characters are portable s
 - `POST /api/characters` — upsert by name slug; body: `{character}`
 - `DELETE /api/characters/:slug` — remove from library
 
-**Client methods on `storageAdapter`:** `listCharLibrary(cb)`, `saveCharToLibrary(char, cb)`, `deleteCharFromLibrary(slug, cb)`
+**Client methods on `storageAdapter`:** `listCharacterLibrary(cb)`, `saveCharacterToLibrary(char, cb)`, `deleteCharacterFromLibrary(slug, cb)`
 
 **Export flow:** "Export Character" button (char sheet + companion sheets) opens `_showCharExportOptions(char)` — offers "☁ Save to library" (grayed if not connected) and "⬇ Download .char file". If saving and character already exists in library at a different level, `_showCharOverwriteConfirm` asks before overwriting.
 
-**Import flow:** `showCharLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Library" button in the Import Character browser.
+**Import flow:** `showCharacterLibrary()` browser modal — lists saved characters with portrait, Import (→ `showCharImportPreview`) and × delete buttons. Accessible via the "☁ Character Library" button in the Import Character browser.
 
 **"Play as X" flow:** all three import paths (file, campaign browser, library) route through `_startImportedCampaign(char)` in `ui.js` — a campaign-setup modal asking campaign name, world tone, and starting location (options cloned from the wizard's Review-step select) before resetting state and calling `startGame()`. The character is played as-is; companions are added in-game via Import Character → Add as companion (intro instruction sent via `sendAction(intro,{silent:true})` so it never renders as a player message).
 

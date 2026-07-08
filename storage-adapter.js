@@ -526,7 +526,7 @@ var storageAdapter = (function() {
 
   // ── Character library ────────────────────────────────────────────────────
 
-  function listCharLibrary(cb) {
+  function listCharacterLibrary(cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     // _tFetch (audit E77): a dead/waking host used to hang these modals for minutes — the #24 mode.
     _tFetch(_serverUrl + "/api/characters", {
@@ -536,7 +536,7 @@ var storageAdapter = (function() {
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
-  function saveCharToLibrary(char, cb) {
+  function saveCharacterToLibrary(char, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     _tFetch(_serverUrl + "/api/characters", {
       method: "POST",
@@ -547,7 +547,7 @@ var storageAdapter = (function() {
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
-  function deleteCharFromLibrary(slug, cb) {
+  function deleteCharacterFromLibrary(slug, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
     _tFetch(_serverUrl + "/api/characters/" + encodeURIComponent(slug), {
       method: "DELETE",
@@ -630,9 +630,9 @@ var storageAdapter = (function() {
     syncCampaignList:      syncCampaignList,
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
-    listCharLibrary:            listCharLibrary,
-    saveCharToLibrary:          saveCharToLibrary,
-    deleteCharFromLibrary:      deleteCharFromLibrary,
+    listCharacterLibrary:            listCharacterLibrary,
+    saveCharacterToLibrary:          saveCharacterToLibrary,
+    deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     listBlueprintLibrary:       listBlueprintLibrary,
     saveBlueprintToLibrary:     saveBlueprintToLibrary,
     deleteBlueprintFromLibrary: deleteBlueprintFromLibrary,
