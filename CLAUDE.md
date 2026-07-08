@@ -19,7 +19,8 @@ All logic has been extracted from the HTML into separate JS files.
 | `index.html` | **Active host** | CSS, HTML scaffolding, 10 `<script src>` tags, no inline JS |
 | `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS`, `pendingCompanions` |
 | `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
-| `spell_bible.js` | ✅ Active | The `spell_bible` (TODO #10) — `SPELL_BIBLE` canonical spell reference keyed by base name (parenthetical stripped, lowercased) + `spellBaseName()` / `spellBibleLookup()` (emergent `worldState.spellBible` overlay wins over the static base). Unified capability schema `{kind, tier, cost, isMagical, range, targets, duration, effect, dice?, save?}`. Anti-drift: `buildSpellBibleBlock()` (api.js) re-injects canon for the player's known spells every turn |
+| `spell_bible.js` | ✅ Active | The `spell_bible` (TODO #10) — `SPELL_BIBLE` canonical spell reference keyed by base name (parenthetical stripped, lowercased) + `spellBaseName()` / `spellBibleLookup()` (emergent `worldState.spellBible` overlay wins over the static base). Unified capability schema `{kind, tier, cost, isMagical, range, targets, duration, effect, dice?, save?}`. Anti-drift: `buildSpellBibleBlock()` (api.js) re-injects canon for the player's known spells every turn. GM-invented spells canonized write-once via `[SPELL_DEF:]` into the overlay (v1.219) |
+| `ability_bible.js` | ✅ Active | The `ability_bible` (TODO #10) — `ABILITY_BIBLE` (class abilities, same capability schema, `kind:"ability"`); abilities that are ALSO spells (Sacred Flame, Hunter's Mark…) are NOT duplicated — they stay in `spell_bible`. `abilityBibleLookup()` + **`capabilityLookup()`** (the ONE lookup the card + cross-kind injection call: overlay/spell_bible first, then ability_bible). `buildAbilityBibleBlock()` (api.js) re-injects ability canon every turn |
 | `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. |
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
 | `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharacterLibrary`, `saveCharacterToLibrary`, `deleteCharacterFromLibrary` |
@@ -32,7 +33,7 @@ All logic has been extracted from the HTML into separate JS files.
 ### Script load order
 
 ```
-globals.js → data.js → spell_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js → tts.js
+globals.js → data.js → spell_bible.js → ability_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js → tts.js
 ```
 
 Each file depends only on symbols defined by files earlier in this list.

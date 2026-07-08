@@ -280,6 +280,7 @@ function buildSysPrompt(){
     +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +buildSpellBibleBlock()
+    +buildAbilityBibleBlock()
     +partyBlock
     +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
@@ -360,6 +361,26 @@ function buildSpellBibleBlock(){
   }
   if(!lines.length)return"";
   return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, and honor these over any remembered version when the spell is cast):\n"+lines.join("\n")+"\n\n";
+}
+// buildAbilityBibleBlock (TODO #10) — the ability half of the anti-drift injection. Re-feeds canon
+// for the player's class abilities every turn via capabilityLookup (which resolves an ability that
+// is really a spell — Sacred Flame, Hunter's Mark — through spell_bible, so its canon is never
+// duplicated or contradicted). VOLATILE half; bounded by known abilities. Abilities not yet in the
+// bible (later class features / archetype grants) simply don't render — partial coverage is fine.
+function buildAbilityBibleBlock(){
+  var c=worldState&&worldState.character;
+  if(!c||!c.abilities||!c.abilities.length||typeof capabilityLookup!=="function")return"";
+  var seen={},lines=[],i;
+  for(i=0;i<c.abilities.length;i++){
+    var ab=c.abilities[i];if(!ab||!ab.nm)continue;
+    var e=capabilityLookup(ab.nm);if(!e)continue;
+    var key=spellBaseName(ab.nm);if(seen[key])continue;seen[key]=1;
+    var nm=String(ab.nm).replace(/\s*\(.*\)/,"").trim();
+    var bits=[e.cost,e.range,e.targets,e.duration];if(e.save)bits.push("save: "+e.save);
+    lines.push("- "+nm+" ["+bits.filter(Boolean).join(" | ")+"]: "+e.effect);
+  }
+  if(!lines.length)return"";
+  return "CANONICAL ABILITY RULES (authoritative — these bounds are FIXED; honor them over any remembered version when the ability is used):\n"+lines.join("\n")+"\n\n";
 }
 // ── Model-output JSON cleanup ────────────────────────────────────────────────
 // Shared by every JSON-expecting call (skeleton, action suggestions, summarize,

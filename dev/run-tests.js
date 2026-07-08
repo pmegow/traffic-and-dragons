@@ -6,7 +6,7 @@
 var fs=require("fs");
 var path=require("path");
 var root=path.join(__dirname,"..");
-var files=["globals.js","data.js","spell_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","api.js","game.js"];
+var files=["globals.js","data.js","spell_bible.js","ability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","api.js","game.js"];
 var geval=eval; // indirect eval → runs in global scope, so the engine's `var`s become globals
 for(var i=0;i<files.length;i++){
   try{geval(fs.readFileSync(path.join(root,files[i]),"utf8"));}
