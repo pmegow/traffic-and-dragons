@@ -35,7 +35,9 @@ function runEngineTests(R){
         trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
         conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],partyMember:true},
       world:{location:"Ashfen",region:"The Reach",time:"dusk",weather:"rain",threat:"low",sublocation:null},
-      npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[]};
+      npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[],ragMemory:false};
+    // RAG defaults ON in production (v1.230); tests pin it OFF here for a deterministic baseline and
+    // opt in explicitly. The default-on semantics are covered by their own unit test below.
   }
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
@@ -833,6 +835,13 @@ function runEngineTests(R){
 
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
+  t("RAG defaults ON when the flag is unset (v1.230) — every existing save + new campaign, no migration",function(){
+    makeWorld();delete worldState.ragMemory; // simulate a save that never touched the flag
+    if(!ragEnabled())return "unset flag should read ON";
+    worldState.ragMemory=false; if(ragEnabled())return "explicit false should disable";
+    worldState.ragMemory=true;  if(!ragEnabled())return "explicit true should enable";
+    return true;
+  });
   t("logTranscript indexes GM entries at write time (tags + location + quest)",function(){
     makeWorld();
     logTranscript("player","I greet the stranger");
@@ -863,7 +872,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("I ask Bram to honor his promise");
-    delete worldState.ragMemory;sessionLog=[];
+    worldState.ragMemory=false;sessionLog=[];
     if(b.indexOf("safe passage")<0)return "old scene not retrieved: "+b.slice(0,120);
     if(b.indexOf("recent past")>=0)return "sessionLog-covered entry leaked in";
     if(b.indexOf("override")<0)return "subordination framing missing";
@@ -883,7 +892,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("GM: why was Frizwick outside?");
-    delete worldState.ragMemory;sessionLog=[];
+    worldState.ragMemory=false;sessionLog=[];
     return b.indexOf("Perimeter check")>=0?true:"4-turn-old scene still in the dead zone: "+b.slice(0,140);
   });
   t("lazy backfill indexes pre-Phase-1 entries by known-NPC name scan",function(){
@@ -895,7 +904,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("I remind Veyra of her debt");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     if(!worldState.transcript[1].e||worldState.transcript[1].e.n.indexOf("Veyra")<0)return "backfill missing: "+JSON.stringify(worldState.transcript[1].e);
     return b.indexOf("repay the debt")>=0?true:"not retrieved: "+b.slice(0,120);
   });
@@ -913,7 +922,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("GM: where did I get Daeris' clasp pin?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     if(b.indexOf("rises off the altar")<0)return "topical scene not retrieved: "+b.slice(0,200);
     return b.indexOf("[Turn 11")>=0?true:"wrong turn stamp";
   });
@@ -931,7 +940,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("GM: what did Bram say about the toll?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     return b.indexOf("toll road")>=0?true:"input-named outsider lost to party filler: "+b.slice(0,160);
   });
   t("near-par adjacent turns both survive the proximity dedupe (Q&A spans turns)",function(){
@@ -946,7 +955,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("GM: why did Hemlock keep the broadsheet?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     if(b.indexOf("explains the broadsheet")<0)return "first half missing: "+b.slice(0,160);
     return b.indexOf("seemed mad")>=0?true:"adjacent near-par half excluded again";
   });
@@ -972,7 +981,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("GM: why did Hemlock keep the broadsheet?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     if(b.indexOf("confabulated echo")>=0)return "quiz echo served";
     return b.indexOf("origin scene")>=0?true:"origin scene not served: "+b.slice(0,160);
   });
@@ -994,7 +1003,7 @@ function runEngineTests(R){
     ]);
     worldState.ragMemory=true;
     var b=ragRetrieve("where did Daeris' iron pin come from?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     if(b.indexOf("false correction")>=0)return "retconned correction served";
     if(b.indexOf("true scene")>=0)return "superseded predecessor served (marked rc)";
     return b.indexOf("Her anchor")>=0?true:"clean scene not served: "+b.slice(0,160);
@@ -1012,7 +1021,7 @@ function runEngineTests(R){
     ];
     worldState.ragMemory=true;
     var b=ragRetrieve("why did Hemlock keep the broadsheet?");
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     return b.indexOf("Origin scene")>=0?true:"orphaned index name not resolved: "+b.slice(0,140);
   });
   t("cleanTxt strips [RETCON:]",function(){
@@ -1025,7 +1034,7 @@ function runEngineTests(R){
     memory.chapters.push({turn:1,summary:"Chapter one happened."});
     var off1=memoryTOC();
     worldState.ragMemory=true;var on=memoryTOC();
-    delete worldState.ragMemory;var off2=memoryTOC();
+    worldState.ragMemory=false;var off2=memoryTOC();
     if(off1!==off2)return "flag round-trip changed the flag-off TOC";
     if(on===off1)return "diet did nothing";
     if(on.indexOf("CHAPTER SUMMARIES")>=0)return "diet kept chapter summaries";
@@ -1036,7 +1045,7 @@ function runEngineTests(R){
   t("stable half is unaffected by the rag flag (cache invariant)",function(){
     makeWorld();var a=buildSysPrompt().stable;
     worldState.ragMemory=true;var b=buildSysPrompt().stable;
-    delete worldState.ragMemory;
+    worldState.ragMemory=false;
     return a===b?true:"stable changed with the rag flag";
   });
   t("rag block lands in the volatile half only, and only with the flag on",function(){
@@ -1047,7 +1056,7 @@ function runEngineTests(R){
     if(offV.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts present with flag off";
     worldState.ragMemory=true;
     var s=buildSysPrompt();
-    delete worldState.ragMemory;lastAction=null;
+    worldState.ragMemory=false;lastAction=null;
     if(s.stable.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts leaked into stable";
     return s.volatile.indexOf("PAST SCENE EXCERPTS")>=0?true:"excerpts missing from volatile";
   });

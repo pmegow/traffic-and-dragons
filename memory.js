@@ -202,11 +202,15 @@ function resolveFutureEvent(what){var i;
 // ── RAG episodic memory (#27 Phase 1 — see RAG_MEMORY.md) ──────────────────────
 // Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API calls.
 // READ-SIDE ONLY: nothing here changes what gets written to memory/chapters/summaries.
-// The per-campaign flag worldState.ragMemory gates retrieval AND the memoryTOC diet
-// together; flag off must reproduce today's prompt byte-for-byte (engine-tested).
-// Retrieved excerpts are episodic TEXTURE, never current truth — the block framing
+// The per-campaign flag worldState.ragMemory gates retrieval AND the memoryTOC diet together.
+// DEFAULT ON since v1.230 (validated on the t308 mature save — RAG is what keeps a long campaign
+// coherent through NPC-key fragmentation and the cap-30 memory window; see AUDIT_t308.md). Semantics:
+// ON unless EXPLICITLY disabled — `undefined` (every existing save + every new campaign) reads ON with
+// zero migration; only a deliberate `ragMemory===false` (the Dev Mode off-switch) turns it off. The
+// explicit-OFF path must still reproduce the pre-RAG prompt byte-for-byte (engine-tested — the regression
+// guard survives). Retrieved excerpts are episodic TEXTURE, never current truth — the block framing
 // subordinates them to the state blocks above it (the stale-chunk drift guard).
-function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.ragMemory);}
+function ragEnabled(){return !!(typeof worldState!=="undefined"&&worldState)&&worldState.ragMemory!==false;}
 var RAG_BUDGET=2400;   // ~600 tokens of excerpt payload per turn, hard cap
 var RAG_MAX=3;         // excerpts per turn
 // Known-NPC scan list (lowercased, with aliases AND distinctive name tokens). Full-key
