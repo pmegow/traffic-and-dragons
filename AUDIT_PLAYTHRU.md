@@ -2,7 +2,7 @@
 
 **Run:** 2026-07-06 · engine v1.207 · fresh campaign "Diagnostic Playthru" · blueprint **Tomb of Annihilation** loaded from the cloud library · Varek Thorn (human Southron Ranger, rolled stats, level 1 start) created through the full wizard UI · Ekene recruited to the party in-story (t16–t21) · 75 GM turns driven by `dev/playtest-harness.js` (random suggested-action selection) · Claude Sonnet, Howard prose voice, tone "swords".
 
-**Artifacts:** [diagnostic_playthru.tnd](../diagnostic_playthru.tnd) (full save at t75), harness corpus (74 logged turns) in the session scratchpad (`harness_corpus.json`).
+**Artifacts:** [diagnostic_playthru.tnd](diagnostic_playthru.tnd) (full save at t75), harness corpus (74 logged turns) in the session scratchpad (`harness_corpus.json`).
 
 **Cost:** $4.65 total — 76 turn calls (avg ~11.5k uncached input + 25.7k cache-read/call — caching healthy), 76 action calls, 11 summarize calls.
 
