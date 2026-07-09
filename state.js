@@ -36,7 +36,30 @@ function loadProviderSettings(){
   if(providerKeys[activeProvider])apiKey=providerKeys[activeProvider];
   var upg=store.get(UPGRADE_K);allowModelUpgrade=(upg===null||upg===undefined)?true:upg==="true";
 }
-function saveCore(){try{store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
+// Transcript compression (Known issue #3, v1.227): the append-only transcript is the dominant,
+// ever-growing part of a mature save (54% of a t308 blob). We store it LZ-compressed INSIDE the
+// localStorage blob — worldState.transcript -> {__lz:"..."} — halving the on-disk core (626K->283K chars
+// on t308). The in-memory state, .tnd exports, and the server sync all keep the plain array; only the
+// localStorage boundary compresses. parseWorldState is TOLERANT: it inflates a compressed transcript OR
+// passes a plain array straight through (server blob / .tnd import / legacy pre-v1.227 saves). Degrades
+// safely to plain JSON if compress.js (LZ) didn't load.
+function serializeWorldState(ws){
+  ws=(ws===undefined)?worldState:ws;
+  if(ws&&ws.transcript&&ws.transcript.length&&typeof LZ!=="undefined"&&LZ.compressToUTF16){
+    var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
+    snap.transcript={__lz:LZ.compressToUTF16(JSON.stringify(ws.transcript))};
+    return JSON.stringify(snap);
+  }
+  return JSON.stringify(ws);
+}
+function parseWorldState(str){
+  var o=JSON.parse(str);
+  if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz&&typeof LZ!=="undefined"&&LZ.decompressFromUTF16){
+    try{o.transcript=JSON.parse(LZ.decompressFromUTF16(o.transcript.__lz));}catch(e){o.transcript=[];if(typeof console!=="undefined")console.error("[save] transcript inflate failed — starting with empty transcript",e);}
+  }
+  return o;
+}
+function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
 // into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
@@ -102,7 +125,7 @@ function loadState(){
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
-  try{if(ws){worldState=JSON.parse(ws);if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
+  try{if(ws){worldState=parseWorldState(ws);if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
   try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
   return !!ws&&!!worldState;
 }

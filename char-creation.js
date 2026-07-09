@@ -307,7 +307,28 @@ function confirmChar(){
   var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,gold:rvGold,inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:0,alignGood:0,deity:charDeity,trait:null,flaw:null,motivation:null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,portraitOffset:cs.portraitOffset||null,storyBeats:[],partyMember:true};
   char.xp=startXp; // apply the (clamped) starting XP at level 1 too — was silently dropped (audit E56)
   if(startLvl>1){char.level=startLvl;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
-  if(anc&&anc.subraces&&cs.subrace){var rsj,rsab=null;for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;var rdesc=rsab.desc;var rspells=rsab.racial_spells||[];if(cs.heritageVariant&&rsab.lineages){var rlk;for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){rdesc=rsab.lineages[rlk].desc;if(rsab.lineages[rlk].racial_spells)rspells=rsab.lineages[rlk].racial_spells;break;}}}char.abilities.push({nm:rlbl,ds:rdesc,gained:0});var rsi;for(rsi=0;rsi<rspells.length;rsi++){char.spells.push({nm:rspells[rsi].nm,lvl:rspells[rsi].lvl,used:false,racial:true});}}}
+  // Racial capabilities — single-sourced in the capability bible (TODO #10). Resolve racial_caps from
+  // ancestry, then the chosen subrace, then its lineage, against capabilityLookup: bible spells land in
+  // char.spells (racial:true), bible abilities in char.abilities (ds pulled from the bible effect). A bare
+  // string is a passive/at-will grant; {cap,use} adds a recharge to the display name. The subrace/lineage
+  // still contributes ONE flavor "[Racial] X" identity ability. Mechanics live ONLY in the bible now.
+  if(anc){
+    var rsab=null,_lineage=null,rsj,rlk,_ci;
+    if(anc.subraces&&cs.subrace){for(rsj=0;rsj<anc.subraces.length;rsj++){if(anc.subraces[rsj].id===cs.subrace){rsab=anc.subraces[rsj];break;}}}
+    if(rsab&&cs.heritageVariant&&rsab.lineages){for(rlk=0;rlk<rsab.lineages.length;rlk++){if(rsab.lineages[rlk].id===cs.heritageVariant){_lineage=rsab.lineages[rlk];break;}}}
+    if(rsab){var rlbl=cs.ancestry==="halfblood"?"[Racial] One parent trait":"[Racial] "+rsab.nm;char.abilities.push({nm:rlbl,ds:(_lineage?_lineage.desc:rsab.desc)||"",gained:0});}
+    var _caps=[].concat(anc.racial_caps||[],(rsab&&rsab.racial_caps)||[],(_lineage&&_lineage.racial_caps)||[]),_seenCap={};
+    // A broader innate sense supersedes the narrower one on the same character (Superior Darkvision > Darkvision).
+    var _hasSuperior=false;for(_ci=0;_ci<_caps.length;_ci++){if(capBaseName(typeof _caps[_ci]==="string"?_caps[_ci]:_caps[_ci].cap)==="superior darkvision")_hasSuperior=true;}
+    for(_ci=0;_ci<_caps.length;_ci++){
+      var _it=typeof _caps[_ci]==="string"?{cap:_caps[_ci]}:_caps[_ci],_key=capBaseName(_it.cap);
+      if(_seenCap[_key]||(_hasSuperior&&_key==="darkvision"))continue;_seenCap[_key]=1;
+      var _e=(typeof capabilityLookup==="function")?capabilityLookup(_it.cap):null;if(!_e)continue;// unknown cap — the coverage-guard test blocks this shipping
+      var _nm=_it.cap+((_it.use&&_it.use!=="passive"&&_it.use!=="at-will")?" ("+_it.use+")":"");
+      if(_e.kind==="spell")char.spells.push({nm:_nm,lvl:_e.tier||0,used:false,racial:true});
+      else char.abilities.push({nm:_nm,ds:_e.effect||"",gained:0,racial:true});
+    }
+  }
   var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
   // Level-band class features for a high-level start (audit E38). Previously these were added
   // ONLY in pickCreationArch (the level>=3 archetype path), so a level-2 start never received its

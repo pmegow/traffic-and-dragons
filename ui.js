@@ -1861,7 +1861,7 @@ function campLoad(id){
     .then(function(data){
       if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
       // Write into the campaign slot then switch to it
-      store.set("tnd_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
       store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
       store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
       var ok=switchToCampaign(id);
@@ -1889,7 +1889,7 @@ function campCloudPull(id){
     .then(function(data){
       if(!data||!data.worldState){showToast("Not found on server.");return;}
       data.worldState.campId=id;
-      store.set("tnd_camp_"+id+"_ws",JSON.stringify(data.worldState));
+      store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
       store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
       store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
       // Update meta savedAt
@@ -1900,7 +1900,7 @@ function campCloudPull(id){
       // just-pulled slot with the STALE live state before reading it back, silently discarding the
       // pull while the toast claimed success (audit E3).
       if(id===getActiveCampId()){
-        store.set(WSK,JSON.stringify(data.worldState));
+        store.set(WSK,serializeWorldState(data.worldState));
         store.set(SLK,JSON.stringify(data.sessionLog||[]));
         store.set(MEM_KEY,JSON.stringify(data.memory||{}));
         var ok=loadState();

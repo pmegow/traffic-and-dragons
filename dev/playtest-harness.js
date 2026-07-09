@@ -60,6 +60,11 @@
 //    toward generic/flat prose, with concrete before/after quotes.
 //
 // Notes:
+// - DURABLE BY DEFAULT: the corpus (log + raw GM responses + errors) is persisted to
+//   localStorage['tnd_pt_corpus_v1'] after every turn and every GM response, and recovered on install.
+//   A closed/reopened/crashed window loses at most the single in-flight turn — a run is ALWAYS
+//   auditable after the fact. Recover a prior run: window.__ptLoad(). Wipe before a fresh run:
+//   window.__ptClear(). Raw-tag capture is baked in (no separate monkeypatch needed).
 // - This file is intentionally NOT referenced by index.html — it's dev-only, pasted into the
 //   console / preview_eval on demand, so it never ships to players or affects APP_VERSION/CACHE.
 // - Actions are picked randomly from the live `.qa` buttons each turn (same as a real player
@@ -68,7 +73,25 @@
 //   good A/B: the fresh campaign is the best case for Remedy A (see HANDOFF.md).
 
 (function(){
-  window.__pt = { log: [], errors: [] };
+  var PT_KEY="tnd_pt_corpus_v1";
+  // DURABILITY (a test run must ALWAYS be auditable — its evidence must survive the tab). The corpus
+  // is persisted to localStorage after every turn AND every GM response, and recovered on install, so a
+  // closed/reopened/crashed window can never cost more than the single in-flight turn. Recover a prior
+  // run's corpus any time with __ptLoad(); wipe it with __ptClear().
+  function load(){try{var s=localStorage.getItem(PT_KEY);if(s){var o=JSON.parse(s);if(o&&o.log)return o;}}catch(e){}return {log:[],errors:[],raw:[]};}
+  window.__pt = load(); if(!window.__pt.raw)window.__pt.raw=[];
+  function persist(){ // on quota, shed oldest raw first — the turn log is the audit spine, raw is the tag detail
+    try{ localStorage.setItem(PT_KEY, JSON.stringify(window.__pt)); }
+    catch(e){ try{ window.__pt.raw=window.__pt.raw.slice(-40); localStorage.setItem(PT_KEY, JSON.stringify(window.__pt)); }catch(e2){} }
+  }
+  window.__ptSave=persist; window.__ptLoad=load;
+  window.__ptClear=function(){window.__pt={log:[],errors:[],raw:[]};try{localStorage.removeItem(PT_KEY);}catch(e){}return "cleared";};
+  // Bake in raw-GM-response capture (the tag-level audit source: [SPELL_USED:]/[COMBAT_*:]/[QUEST:]…) so
+  // EVERY run records it by default — wrap logTranscript once, idempotently, and persist on each capture.
+  if(!window.__ptRawPatched && typeof logTranscript==="function"){
+    window.__ptRawPatched=true; var _lt=logTranscript;
+    window.logTranscript=function(role,text,raw){ try{ if(role==="gm"){ window.__pt.raw.push({turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:null, raw:String(raw||text)}); persist(); } }catch(e){} return _lt.apply(this,arguments); };
+  }
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
   function isBusy(){return typeof busy!=="undefined" && busy;}
   async function waitIdle(maxMs){var start=Date.now();while(isBusy() && Date.now()-start<maxMs) await sleep(300);}
@@ -108,11 +131,13 @@
           combat: worldState.combat ? {name: worldState.combat.name, hp: worldState.combat.hp} : null,
           sessionTokensApprox: (typeof sessionTokens==="function") ? sessionTokens() : null
         });
+        persist(); // durable after EVERY turn
       }catch(e){
         window.__pt.errors.push({turn: worldState.turn, message: e && e.message});
+        persist();
       }
     }
     return {count: window.__pt.log.length, turn: worldState.turn, errors: window.__pt.errors.length};
   };
-  return "harness installed";
+  return "harness installed (durable: corpus persists to localStorage['"+PT_KEY+"'] every turn + every GM response; recover with __ptLoad())";
 })();

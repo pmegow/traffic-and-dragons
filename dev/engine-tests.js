@@ -89,9 +89,12 @@ function runEngineTests(R){
   t("capability_bible: arcane ability is isMagical:true",function(){var e=capabilityLookup("Arcane Bolt");return e&&e.isMagical===true?true:"arcane bolt not magical";});
   t("CAPABILITY_BIBLE holds both kinds (spells + abilities merged, v1.222)",function(){var sp=0,ab=0;for(var k in CAPABILITY_BIBLE){if(CAPABILITY_BIBLE[k].kind==="spell")sp++;else if(CAPABILITY_BIBLE[k].kind==="ability")ab++;}return sp>=15&&ab>=15?true:"unexpected split sp="+sp+" ab="+ab;});
   t("full spell coverage — every SPELLS/ARCH_SPELLS entry has a bible key (v1.225)",function(){function base(s){return String(s).replace(/\s*\(.*\)/,"").toLowerCase().trim();}var miss=[];function scan(SRC){for(var cls in SRC)for(var t in SRC[cls])SRC[cls][t].forEach(function(s){var b=base(s);if(!CAPABILITY_BIBLE[b])miss.push(b);});}scan(SPELLS);scan(ARCH_SPELLS);return miss.length?"uncovered ("+miss.length+"): "+miss.slice(0,8).join(", "):true;});
-  t("every entry has a non-empty category list drawn from the tradition vocabulary (v1.223)",function(){var vocab={arcane:1,divine:1,primal:1,necromantic:1,martial:1},bad=[];for(var k in CAPABILITY_BIBLE){var c=CAPABILITY_BIBLE[k].category;if(!c||!c.length||c.some(function(x){return !vocab[x];}))bad.push(k);}return bad.length?"bad category: "+bad.join(", "):true;});
+  t("every entry has a non-empty category list drawn from the tradition vocabulary (v1.223; +racial v1.226)",function(){var vocab={arcane:1,divine:1,primal:1,necromantic:1,martial:1,racial:1},bad=[];for(var k in CAPABILITY_BIBLE){var c=CAPABILITY_BIBLE[k].category;if(!c||!c.length||c.some(function(x){return !vocab[x];}))bad.push(k);}return bad.length?"bad category: "+bad.join(", "):true;});
   t("Turn Undead is both divine and necromantic (multi-tradition)",function(){var c=capabilityLookup("turn undead").category;return c.indexOf("divine")>=0&&c.indexOf("necromantic")>=0?true:"got "+JSON.stringify(c);});
   t("capabilitiesByCategory('divine') gates the cleric menu (incl Turn Undead, excl martial)",function(){var d=capabilitiesByCategory("divine").map(function(x){return x.name;});return d.indexOf("turn undead")>=0&&d.indexOf("sacred flame")>=0&&d.indexOf("power strike")<0?true:"divine menu wrong: "+d.join(", ");});
+  t("racial coverage — every ANCS racial_caps key resolves in the bible (single-source guard, v1.226)",function(){function base(s){return String(s).replace(/\s*\(.*\)/,"").toLowerCase().trim();}var miss=[];function chk(list){if(!list)return;list.forEach(function(it){var nm=typeof it==="string"?it:it.cap;if(!CAPABILITY_BIBLE[base(nm)])miss.push(nm);});}ANCS.forEach(function(a){chk(a.racial_caps);(a.subraces||[]).forEach(function(s){chk(s.racial_caps);(s.lineages||[]).forEach(function(l){chk(l.racial_caps);});});});return miss.length?"racial_caps with no bible entry: "+miss.join(", "):true;});
+  t("racial category is drawn by no caster tradition (heritage stays out of enemy caster menus, v1.226)",function(){var rac=capabilitiesByCategory("racial").map(function(x){return x.name;}),arc=capabilitiesByCategory("arcane").map(function(x){return x.name;}),div=capabilitiesByCategory("divine").map(function(x){return x.name;});return rac.indexOf("darkvision")>=0&&arc.indexOf("darkvision")<0&&div.indexOf("darkvision")<0?true:"darkvision leaked into a tradition menu";});
+  t("a racial cap resolves to its bible canon (Superior Darkvision 120ft; Camouflage is an ability, v1.226)",function(){var sd=capabilityLookup("Superior Darkvision"),cam=capabilityLookup("Camouflage");return sd&&sd.range==="120ft"&&cam&&cam.kind==="ability"?true:"bad: "+JSON.stringify([sd&&sd.range,cam&&cam.kind]);});
   t("[SPELL_DEF:] parses a comma-separated category into the overlay",function(){makeWorld();applyMuts("[SPELL_DEF:Grave Bolt|effect=a bolt of grave-cold|category=arcane,necromantic]");var e=capabilityLookup("Grave Bolt");return e&&e.category.length===2&&e.category.indexOf("necromantic")>=0?true:"bad category parse: "+JSON.stringify(e&&e.category);});
   t("bibleCardHTML renders the category chips",function(){var h=bibleCardHTML("Turn Undead",capabilityLookup("turn undead"));return h.indexOf(">divine<")>=0&&h.indexOf(">necromantic<")>=0?true:"category chips missing";});
   t("every entry carries the full fixed attribute set (cost/range/targets/duration/save/dice, v1.224)",function(){var need=["cost","range","targets","duration","save","dice"],bad=[];for(var k in CAPABILITY_BIBLE){var e=CAPABILITY_BIBLE[k];need.forEach(function(f){if(e[f]==null||e[f]==="")bad.push(k+"."+f);});}return bad.length?"missing/empty: "+bad.slice(0,6).join(", "):true;});
@@ -485,6 +488,33 @@ function runEngineTests(R){
     if(!memory.npcGraph||!memory.npcGraph.factions||!memory.npcGraph.npcFactions||!memory.npcGraph.factionEdges)return "npcGraph not healed";
     if(!Array.isArray(memory.futureEvents)||!Array.isArray(memory.usedNames))return "arrays not healed";
     return typeof memory.nameIdx==="number"?true:"nameIdx not healed";
+  });
+
+  // ── Transcript compression (Known issue #3, v1.227) ──────────────────────────
+  section("transcript compression (Known issue #3)");
+  t("LZ round-trips ascii + unicode/emoji/em-dash exactly",function(){
+    var s="Vyrindra — the drow — cast Faerie Fire 🔥 at 120ft. café résumé "+new Array(200).join("repeat ");
+    return LZ.decompressFromUTF16(LZ.compressToUTF16(s))===s?true:"LZ round-trip mismatch";
+  });
+  t("serializeWorldState compresses the transcript to {__lz} and shrinks the blob",function(){
+    makeWorld();worldState.transcript=[];for(var i=0;i<200;i++)worldState.transcript.push({t:i,r:i%2?"gm":"pc",x:"The party moves through the ashen ruins, torches guttering, and something watches from the dark. Turn "+i});
+    var blob=serializeWorldState(),probe=JSON.parse(blob);
+    if(!(probe.transcript&&probe.transcript.__lz))return "transcript not compressed to {__lz}";
+    return blob.length<JSON.stringify(worldState).length?true:"compressed blob not smaller than plain";
+  });
+  t("parseWorldState inflates a compressed transcript back to the exact array",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"alpha",e:{n:["Vyra"],l:"Sandpoint"}},{t:2,r:"pc",x:"beta — with an em dash"}];
+    var before=JSON.stringify(worldState.transcript),round=parseWorldState(serializeWorldState());
+    return JSON.stringify(round.transcript)===before?true:"transcript not preserved: "+JSON.stringify(round.transcript);
+  });
+  t("parseWorldState is tolerant of a plain-array (uncompressed) blob — server/export/legacy",function(){
+    var o=parseWorldState(JSON.stringify({character:{name:"Kael"},transcript:[{t:1,r:"gm",x:"legacy entry"}]}));
+    return (o.transcript instanceof Array)&&o.transcript.length===1&&o.transcript[0].x==="legacy entry"?true:"plain-array not passed through";
+  });
+  t("top-level character stays readable in a compressed blob (picker/preview sites unaffected)",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"scene"}];worldState.character.name="Ammut";
+    var probe=JSON.parse(serializeWorldState());
+    return probe.character&&probe.character.name==="Ammut"?true:"character not readable at top level";
   });
 
   // ── 7. Usage/cost telemetry (TODO #21) ───────────────────────────────────────
