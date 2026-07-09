@@ -729,6 +729,40 @@ function runEngineTests(R){
     ]}]};
     return buildSkeletonBlock().indexOf("ALL ARCS COMPLETE")<0?true:"nudge fired with an arc still active";
   });
+  section("arc steering — blueprint fidelity + act pacing (#23/#43, v1.231)");
+  t("blueprint-fidelity line appears ONLY when worldState.blueprintName is set",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"active"}]}]};
+    if(buildSkeletonBlock().indexOf("AUTHORED CAMPAIGN")>=0)return "authored line leaked into a non-blueprint campaign";
+    worldState.blueprintName="Rise of the Runelords";
+    var b=buildSkeletonBlock();
+    return b.indexOf("AUTHORED CAMPAIGN")>=0&&b.indexOf("Rise of the Runelords")>=0&&b.indexOf("COLOR those beats")>=0?true:"authored-campaign fidelity line missing/incomplete";
+  });
+  t("act pacing nudge fires only once the active act exceeds ACT_TURN_BUDGET (+ carries the anti-over-rail guard)",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"The Long Act",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"active"}]}]};
+    worldState.actStartTurn=0;worldState.turn=5;
+    if(buildSkeletonBlock().indexOf("soft target")>=0)return "pacing nudge fired early (act only 5 turns in)";
+    worldState.turn=ACT_TURN_BUDGET+50;
+    var b=buildSkeletonBlock();
+    if(b.indexOf("has run "+(ACT_TURN_BUDGET+50)+" turns")<0)return "pacing nudge missing when over budget";
+    return /do NOT skip an active crisis/i.test(b)?true:"anti-over-rail guard missing from pacing nudge";
+  });
+  t("pacing measures from actStartTurn, not turn 0 — a young act deep in the campaign is NOT over budget",function(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"Act Two",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"active"}]}]};
+    worldState.turn=ACT_TURN_BUDGET+120;worldState.actStartTurn=ACT_TURN_BUDGET+100; // this act only 20 turns old
+    return buildSkeletonBlock().indexOf("soft target")<0?true:"nudge fired on a young act (measured from turn 0, not actStartTurn)";
+  });
+  t("[ACT_COMPLETE:] resets actStartTurn to the current turn (the new act's pacing clock)",function(){
+    makeWorld();worldState.turn=137;
+    worldState.skeleton={premise:"p",acts:[
+      {title:"A1",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"completed"}]},
+      {title:"A2",goal:"g2",turningPoint:"tp2",status:"pending",arcs:[{title:"b",objective:"o2",status:"pending"}]}
+    ]};
+    applyMuts("[ACT_COMPLETE:A1]");
+    return worldState.skeleton.acts[1].status==="active"&&worldState.actStartTurn===137?true:"actStartTurn not reset on act advance (got "+worldState.actStartTurn+")";
+  });
   t("blueprint review/CBB section is INVISIBLE to the engine but persists in the file (#39)",function(){
     makeWorld();
     var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"R",premise:"p",tone:"swords",

@@ -301,6 +301,11 @@ function buildSkeletonBlock(){
   if(!worldState.skeleton)return"";
   var sk=worldState.skeleton,lines=[],i,j;
   lines.push("CAMPAIGN SKELETON — this is the overarching narrative structure. Every scene, quest, and encounter should serve this story. Do not invent unrelated side-plots that pull away from the current arc.");
+  // #23/#43 blueprint fidelity: when the player deliberately loaded an AUTHORED adventure, the acts/arcs
+  // below are the load-bearing spine — the failure mode (v1.224 audit) was backstory-driven personalization
+  // supplanting the authored plot (an emergent notation-seal subplot displacing the Skinsaw arcs). Steer
+  // toward the authored beats; personalize the TELLING, don't replace the STORY.
+  if(worldState.blueprintName)lines.push("AUTHORED CAMPAIGN — this is \""+worldState.blueprintName+"\", a pre-written adventure the player deliberately chose. The acts and arcs below are its AUTHORED SPINE, not loose suggestions: steer scenes toward the CURRENT arc's objective and advance through the authored beats. Use the character's backstory, flaw, and personality to COLOR those beats — never to replace them with an unrelated emergent subplot. The player picked this story to live it; deliver it.");
   lines.push("Premise: "+sk.premise);
   for(i=0;i<sk.acts.length;i++){
     var act=sk.acts[i],label="Act "+(i+1)+": "+act.title;
@@ -332,6 +337,12 @@ function buildSkeletonBlock(){
     // strong close-the-act nudge, mirroring the quest ALL-OBJECTIVES-COMPLETE teeth (#20).
     var _allArcsDone=activeAct.arcs.length>0;for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status!=="completed"){_allArcsDone=false;break;}}
     if(_allArcsDone)pacingNote="⚑ ALL ARCS COMPLETE for the current act (\""+activeAct.title+"\") — its story is finished. Emit [ACT_COMPLETE:"+activeAct.title+"] at the next natural beat to advance the campaign"+(activeAct.reward?", granting the ACT REWARD in that same response":"")+".\n"+pacingNote;
+    // #23/#43 act pacing budget: a soft nudge once the ACTIVE act has run past ACT_TURN_BUDGET turns
+    // (the t308 save sat 308 turns in Act 1; the scene-level "4+ turns" rule never catches an act-scale
+    // stall). Skipped when all arcs are done — the close nudge above already owns that. The parenthetical is
+    // the anti-over-rail guard: steer toward the ending, never teleport past an active crisis or cut a scene.
+    var _actTurns=worldState.turn-(worldState.actStartTurn||0);
+    if(!_allArcsDone&&_actTurns>ACT_TURN_BUDGET)pacingNote="⚑ PACING — the current act (\""+activeAct.title+"\") has run "+_actTurns+" turns (soft target ~"+ACT_TURN_BUDGET+" per act). Bring the ACTIVE arc to a decisive resolution and move toward the act's turning point; stop opening unrelated detours. (Advance toward the ending — do NOT skip an active crisis or cut a scene mid-stakes; steer, don't teleport.)\n"+pacingNote;
     var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
     if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.";
     // Generic type-hint only when the active arc has NO dnaHint — otherwise it contradicts the author
@@ -704,6 +715,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       muts.push("Act complete: "+_sk2.acts[_si2].title);
       if(_si2+1<_sk2.acts.length){
         _sk2.acts[_si2+1].status="active";
+        worldState.actStartTurn=worldState.turn; // #23/#43: reset the per-act pacing clock as the new act begins
         var _fa=_sk2.acts[_si2+1].arcs,_isP=!!_sk2.acts[_si2+1].parallel;
         if(_fa&&_fa.length){for(var _fj=0;_fj<_fa.length;_fj++){if(_isP||_fj===0)_fa[_fj].status="active";}}
         muts.push("New act: "+_sk2.acts[_si2+1].title);
