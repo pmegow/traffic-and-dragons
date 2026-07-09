@@ -411,7 +411,7 @@ async function sendAction(override,opts){
       logTranscript("gm",clean,resp);
       if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       sessionLog.push({role:"user",content:apiTxt},{role:"assistant",content:resp});/* apiTxt so the API history stays consistent with what the GM actually answered (P3 note included) */
-      saveAll();if(worldState.turn>0&&worldState.turn%10===0&&!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))exportNarrative();
+      saveAll();
       generateActions(narEl);
       processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
     }

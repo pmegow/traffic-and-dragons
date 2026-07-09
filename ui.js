@@ -631,18 +631,10 @@ function showSyncModal(){
   }
   renderSync();
 }
-function exportNarrative(){
-  if(!worldState)return;var lines=["TRAFFIC AND DRAGONS -- SESSION LOG","Character: "+worldState.character.name+" | "+worldState.character.cls+" Lv"+worldState.character.level,"Turn: "+worldState.turn,"","===="];
-  var story=document.getElementById("story-narrative"),msgs=story.querySelectorAll(".msg"),i;
-  // Extract prose only — strip the suggested-action buttons (.qa) and the 🔊 replay button
-  // (.tts-replay). They're UI affordances, not narrative; the chosen action already appears as
-  // the next "> player" line. Render the cleaned clone offscreen so innerText keeps line breaks.
-  var holder=document.createElement("div");holder.style.cssText="position:absolute;left:-9999px;top:0;width:600px;";document.body.appendChild(holder);
-  function msgText(m){holder.innerHTML=m.innerHTML;var rm=holder.querySelectorAll(".qa,.tts-replay"),k;for(k=0;k<rm.length;k++)rm[k].parentNode.removeChild(rm[k]);return (holder.innerText||holder.textContent||"").trim();}
-  for(i=0;i<msgs.length;i++){var m=msgs[i];if(m.classList.contains("narrator")){lines.push(msgText(m));lines.push("");}else if(m.classList.contains("player")){lines.push("> "+msgText(m));lines.push("");}else if(m.classList.contains("system")){lines.push("[ "+msgText(m)+" ]");}}
-  document.body.removeChild(holder);
-  var fname=buildFilename("narrative");var blob=new Blob([lines.join("\n")],{type:"text/plain"});exportToFolder("narrative",blob,fname);
-}
+// exportNarrative removed v1.228 — the scattered every-10-turns desktop .txt downloads were the OLD,
+// pre-transcript durability hack (desktop-only, DOM-snapshot, per-device). worldState.transcript is now
+// the complete, ordered, cross-device narrative record (rides in the sync blob) and the memento/story
+// compiler (#5) reads from it, so these downloads were vestigial clutter.
 function exportSave(){
   if(!worldState)return;
   document.getElementById("file-menu").style.display="none";

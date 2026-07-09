@@ -393,7 +393,7 @@ Both menus share the same underlying functions. `updateServerUI()`, `loadAdultMo
 
 **File naming:** `buildFilename(type)` in `ui.js` — format `[campName]_[charName]_t[turn].[ext]`. `worldState.campName` is set once at campaign creation and never changes.
 
-Auto-export narrative fires every 10 turns as a background download (no manual export button).
+(Auto-export narrative was removed v1.228 — the every-10-turns desktop `.txt` download was a pre-transcript durability hack; `worldState.transcript` is now the complete cross-device narrative record and the memento/story compiler #5 reads from it.)
 
 ### 16. Campaign management
 
