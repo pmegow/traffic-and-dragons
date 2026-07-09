@@ -78,7 +78,7 @@ function buildFilename(type){
   var char=slug(c.name);
   var base=camp+"_"+char;
   if(type==="save")     return base+"_t"+turn+".tnd";
-  if(type==="narrative")return base+"_t"+turn+".txt";
+  if(type==="narrative")return base+"_t"+turn+".html";
   if(type==="character")return base+"_character.char";
   if(type==="render")   return base+"_t"+turn+".jpg";
   if(type==="portrait") return base+"_portrait.png";
@@ -631,10 +631,60 @@ function showSyncModal(){
   }
   renderSync();
 }
-// exportNarrative removed v1.228 — the scattered every-10-turns desktop .txt downloads were the OLD,
-// pre-transcript durability hack (desktop-only, DOM-snapshot, per-device). worldState.transcript is now
-// the complete, ordered, cross-device narrative record (rides in the sync blob) and the memento/story
-// compiler (#5) reads from it, so these downloads were vestigial clutter.
+// Export Narrative (v1.229) — an on-demand, self-contained HTML keepsake of the whole story. Reads
+// worldState.transcript (the COMPLETE, ordered, cross-device record — NOT the DOM, which the old removed
+// exportNarrative scraped and which only holds the last ~20 repainted entries after a reload). A v0 of the
+// memento / story compiler (#5, "standalone HTML first"). buildNarrativeHtml is a pure ws->string function
+// so it's inspectable; exportNarrativeHtml wraps it in a Blob and routes through the folder/downloads path.
+function buildNarrativeHtml(ws){
+  var esc=(typeof escHtml==="function")?escHtml:function(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");};
+  var c=(ws&&ws.character)||{name:"Unknown"};
+  var tr=(ws&&ws.transcript)||[];
+  var camp=(ws&&ws.campName)||c.name||"A Chronicle";
+  var who=(c.subraceNm?c.subraceNm+" ":"")+(c.ancestry||"")+" "+(c.cls||"")+(c.level?", Level "+c.level:"");
+  var body="",lastTurn=null,i,k;
+  for(i=0;i<tr.length;i++){
+    var e=tr[i];if(!e||e.x==null||e.x==="")continue;
+    if(e.t!=null&&e.t!==lastTurn){body+="<div class='turn'>Turn "+esc(String(e.t))+"</div>";lastTurn=e.t;}
+    if(e.r==="player"){
+      body+="<p class='act'>"+esc(e.x)+"</p>";
+    }else{
+      var paras=String(e.x).split(/\n{2,}|\n/),pj="";
+      for(k=0;k<paras.length;k++){if(paras[k].trim())pj+="<p>"+esc(paras[k].trim())+"</p>";}
+      body+="<div class='gm'>"+(pj||"<p>"+esc(e.x)+"</p>")+"</div>";
+    }
+  }
+  var when="";try{when=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});}catch(ex){}
+  var ver=(typeof APP_VERSION!=="undefined")?APP_VERSION:"";
+  var css=":root{--ink:#2b2620;--dim:#8a7f6d;--acc:#b8935a;--bg:#f7f1e6;--line:#e3d8c4;}"
+    +"*{box-sizing:border-box;}html,body{margin:0;}"
+    +"body{background:var(--bg);color:var(--ink);font:17px/1.72 Georgia,'Iowan Old Style','Times New Roman',serif;}"
+    +".wrap{max-width:720px;margin:0 auto;padding:56px 24px 96px;}"
+    +"header{text-align:center;border-bottom:2px solid var(--acc);padding-bottom:26px;margin-bottom:36px;}"
+    +"header h1{font-size:30px;line-height:1.25;margin:0 0 10px;font-weight:700;}"
+    +"header .who{font-size:15px;color:var(--dim);font-style:italic;margin:0 0 12px;}"
+    +"header .meta{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.16em;}"
+    +".turn{text-align:center;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.22em;margin:34px 0 12px;}"
+    +".gm p{margin:0 0 16px;}"
+    +".act{margin:20px 0;padding:2px 0 2px 18px;border-left:3px solid var(--acc);color:#5c5140;font-style:italic;}"
+    +".act::before{content:'\\276F   ';color:var(--acc);font-style:normal;}"
+    +"footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--dim);}"
+    +"@media print{body{background:#fff;}.wrap{padding:0 0 24px;}}";
+  return "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+    +"<meta name='viewport' content='width=device-width,initial-scale=1'>"
+    +"<title>"+esc(camp)+" — a Traffic and Dragons chronicle</title><style>"+css+"</style></head><body><div class='wrap'>"
+    +"<header><h1>"+esc(camp)+"</h1><div class='who'>"+esc(who.trim())+"</div>"
+    +"<div class='meta'>Turns 0&ndash;"+esc(String((ws&&ws.turn)||0))+" &middot; "+tr.length+" passages</div></header>"
+    +"<main>"+(body||"<p style='text-align:center;color:var(--dim)'>No narrative recorded yet.</p>")+"</main>"
+    +"<footer>Chronicled by Traffic and Dragons"+(when?" &middot; "+esc(when):"")+(ver?" &middot; "+esc(ver):"")+"</footer>"
+    +"</div></body></html>";
+}
+function exportNarrativeHtml(){
+  if(!worldState){if(typeof showToast==="function")showToast("No campaign loaded.");return;}
+  if(typeof closeAllMenus==="function")closeAllMenus();else{var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";}
+  var blob=new Blob([buildNarrativeHtml(worldState)],{type:"text/html"});
+  exportToFolder("narrative",blob,buildFilename("narrative"));
+}
 function exportSave(){
   if(!worldState)return;
   document.getElementById("file-menu").style.display="none";
@@ -2608,7 +2658,8 @@ function buildFileMenus(){
       +fileLbl(sf.imp+"import-inp","Load Game (local)",0)
       +(g?btn(p+"export-char","Export Character",0):btn(null,"Export Character",0,{dim:true}))
       +btn(sf.imp+"import-char-btn","Import Character",0)
-      +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}));
+      +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}))
+      +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}));
     h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
     h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
     h+=sep();
@@ -2759,6 +2810,7 @@ function wireButtons(){
   document.getElementById("fm-render-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";doRender();});
   document.getElementById("fm-export-char").addEventListener("click",exportCharacter);
   document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
+  document.getElementById("fm-export-narr").addEventListener("click",exportNarrativeHtml);
   // (import-char-btn is already wired in the shared _menus loop above — audit E66 removed the duplicate here)
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
