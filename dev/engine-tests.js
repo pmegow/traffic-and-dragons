@@ -1737,6 +1737,12 @@ function runEngineTests(R){
     if(s.volatile!==vol)return "volatile perturbed";
     return s.volatile.lastIndexOf("STYLE:")>s.volatile.lastIndexOf("REMINDER")?true:"STYLE no longer ends the volatile half";
   });
+  t("Haiku block pins all three discipline items (HP, location, spell canon — t361)",function(){
+    var b=ANTHROPIC_HAIKU_REINFORCE;
+    if(b.indexOf("HP RECOVERY")<0)return "item 1 missing";
+    if(b.indexOf("LOCATION")<0)return "item 2 missing";
+    return b.indexOf("SPELL CANON")>=0&&/hard physics/.test(b)?true:"item 3 (spell canon) missing";
+  });
   t("every provider resolves to a string (function shape breaks nobody)",function(){
     var ks=Object.keys(PROVIDERS),i;
     for(i=0;i<ks.length;i++){if(typeof resolveReinforce(PROVIDERS[ks[i]],PROVIDERS[ks[i]].defaultModel)!=="string")return ks[i]+" resolved to non-string";}

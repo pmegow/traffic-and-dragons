@@ -29,7 +29,7 @@ var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these b
 // have, and attention is the scarce resource on the free tier). Appended to the STABLE half
 // by callGM — constant per model id, so cache-safe; resolveReinforce (api.js) returns "" for
 // Sonnet/Opus, keeping their prompt BYTE-IDENTICAL to today (zero cache invalidation).
-var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — two tags this model tends to forget ===\n1. HP RECOVERY: whenever ANY character regains hit points for ANY reason — healing magic, a potion, first aid, a night's rest, natural recovery — emit [HP:+N] (player) or [COMPANION_HP:Name|+N] (party member) in the SAME response. If the sheet above shows 0 HP but you are narrating that character up and moving, the sheet is WRONG until you emit the recovery tag. Never leave a healed character at 0 HP on the sheet.\n2. LOCATION: whenever the party travels to a different named place, emit [LOCATION:name] in that response. Entering a distinct area inside it (a tavern, a chamber, a cave) emits [SUBLOCATION:name]; leaving it emits [SUBLOCATION_LEAVE]. Narrated travel without the tag strands the world state at the old location.\n";
+var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — rules this model tends to bend ===\n1. HP RECOVERY: whenever ANY character regains hit points for ANY reason — healing magic, a potion, first aid, a night's rest, natural recovery — emit [HP:+N] (player) or [COMPANION_HP:Name|+N] (party member) in the SAME response. If the sheet above shows 0 HP but you are narrating that character up and moving, the sheet is WRONG until you emit the recovery tag. Never leave a healed character at 0 HP on the sheet.\n2. LOCATION: whenever the party travels to a different named place, emit [LOCATION:name] in that response. Entering a distinct area inside it (a tavern, a chamber, a cave) emits [SUBLOCATION:name]; leaving it emits [SUBLOCATION_LEAVE]. Narrated travel without the tag strands the world state at the old location.\n3. SPELL CANON: the CANONICAL SPELL RULES block is hard physics. No spell ever reaches beyond its listed range, affects more than its listed targets, or lasts past its listed duration — no matter the circumstances, the stakes, or how it seemed to work before. If an attempted cast exceeds its canon, the spell simply FAILS: narrate the failure and offer what the canon actually allows.\n";/* item 3 added v1.248 — the t361 Haiku incident (Message conversation at three miles) */
 // Shared usage extractor for OpenAI-compatible providers (openai/grok/ollama).
 // NOTE: OpenAI's prompt_tokens INCLUDES cached tokens; Anthropic's input_tokens EXCLUDES them.
 // We store each provider's raw semantics — the cost math only prices Anthropic models anyway.
@@ -136,7 +136,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.247";
+var APP_VERSION="v1.248";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
