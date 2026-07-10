@@ -18,17 +18,25 @@ Rows below marked **⛨** are on the drift surface and carry the policy (their T
 
 ---
 
-## The recommendation (session plan)
+## The recommendation (session plan — reordered 2026-07-09: spine + lanes, playtest-gated blocks)
 
 The reviews converge on one keystone: **the tag engine.** `applyMuts` is simultaneously the biggest reliability risk (233 lines, ~55 hand-written sequential parsers, ordering constraints documented only in comments), the biggest violation of the project's own dispatch-table principle, and the architectural blocker for server authority under the subscription model. The tag vocabulary lives in three places that drift silently (parsers · `cleanTxt` strip regexes · STATE TAGS prompt docs) — a live phantom tag (UA2) proves the failure mode.
 
-- **Session A — UA1, the tag-table rebuild** (Fable ⛨): design the descriptor schema together first; ship the table alongside the old parsers; diff-test both paths on real saved transcripts; cut over. Auto-derives `cleanTxt` + the prompt docs; makes UA25/UA26/UA27 additive instead of surgery.
-- **Session B — UA33, `SERVER_ARCHITECTURE.md`** (Fable): survey the real server first (it has never been audited — UA32), then design the gateway / billing / auth / **state authority** layers. The authority decision shapes UA1's eventual home and UA19's sync rewrite. Drift-neutral (pure design).
-- **Session C — the fragility batch** (Fable ⛨ per policy — most rows sit on the drift surface): CAS turn guard (Known issue #5, decision locked) + UA3/UA4/UA5/UA6 (+ UA11, the one non-⛨ rider).
-- **Session D — odds & ends** (Sonnet/Any): UA7, UA8, UA13 (with #30), UA20, UA22, UA34 — none on the drift surface.
-- **The ui.js track** (Sonnet execution after A): UA17 decomposition (Fable draws the seam map — a 20-min byproduct of this review), UA21 dedup cluster, #22 via UA18's sink list. Drift-neutral (display-side only).
-- **The play checklist** (user at the table, any model riding along): UA35 spell-bible money test, UA36 RAG A/B, UA37 device/car validations.
-- **After:** Core Memory (#40, Fable ⛨ — resolves UA14) and the free-tier batch (UA25–UA28, now Fable ⛨ per policy) on top of the new table.
+**Structure: one serial SPINE for drift-surface work, overlap LANES for everything drift-neutral.** Cadence rule (user call 2026-07-09): spine blocks are **separated by playtests, not run back-to-back** — for drift-surface work the playtest IS the policy's "checked thoroughly after" (engine tests prove the injection is sent; only live turns prove the model obeys), and one-block-per-playtest keeps a regression's suspect list at exactly one block. Lanes don't need playtest gates (preview-verified, no drift contact) and may run continuously alongside.
+
+**THE SPINE (serial, Fable ⛨, playtest after every block):**
+1. **Session C — instrumentation & hardening FIRST** (moved from third: its tripwires protect everything after). CAS turn guard (Known issue #5, decision locked) + UA5 (stable-purity hash guard + cache-ratio display — the alarm that catches a session-A mistake) + UA3 (transcript loud-fail) + UA4 (`sessKept` marker) + UA6 (mid-turn save window) + UA11 riding along. → **Playtest 1:** validates C's guards live; doubles as **UA35, the spell-bible money test** (fresh wizard-built catalog caster).
+2. **Session A — UA1, the tag-table rebuild, shipped in SHADOW MODE**: design the descriptor schema together first (pre-review presented before any code); the table runs alongside the old parsers diffing mutations turn-by-turn, not yet authoritative. Auto-derives `cleanTxt` + the prompt docs; makes UA25/UA26/UA27 additive instead of surgery. → **The SOAK:** every real play session generates shadow-diff corpus (play is load-bearing, not optional); UA36's RAG A/B can ride here. **Cut over only after the diff log stays clean across sessions** → post-cutover playtest.
+3. **Post-A additive batch** — UA25 (companion spells) + UA26 (multi-enemy combat) + UA28 (Haiku nudges, now safe behind UA5's tripwire). → **Playtest:** companion casting + multi-foe combat + Haiku window exercised live.
+4. **Core Memory #40** (resolves UA14's write-only archive). → **Playtest:** defining-moments injection observed on a mature save.
+
+**THE LANES (drift-neutral, run parallel to the spine, no playtest gate):**
+- **Session B — UA33 `SERVER_ARCHITECTURE.md`** (Fable, pure design, zero code contact): survey the never-audited server first (UA32), then gateway / billing / auth / **state authority**. Slots naturally into A's soak window. Gates only the sync rewrite (UA19) and #44 — neither on the spine.
+- **Session D — odds & ends** (Sonnet/Any): UA7, UA8, UA13 (with #30), UA20, UA22, UA34. Hand to cheaper sessions anytime.
+- **The ui.js track** (Sonnet execution): UA17 decomposition (Fable draws the seam map — a 20-min byproduct of this review), UA21 dedup cluster, #22 via UA18's sink list. Courtesy rule: don't land the split the same week as A's cutover commit — keep the diffs reviewable.
+- **The play checklist** (UA35–37) rides the spine's playtests — each between-block session retires validation debt while gating the next block.
+
+**Hard sequencing rules (the only true serial constraints):** C before A · UA5 before UA28 · A before UA25/26/27 · B before any sync rewrite / #44.
 
 **Do not spend Fable on** (and the policy does NOT bite): #30/UA13 usage pricing, UA17's decomposition *execution*, #22/UA18's mechanical escaping, UA20/UA22/UA34, and the money tests (those need play sessions, not horsepower). *(Note: UA25/26/28/29 were originally in this list — the drift policy moved them to Fable; their difficulty didn't change, their blast radius did.)*
 
