@@ -502,7 +502,7 @@ var storageAdapter = (function() {
         // Rebuild the story pane from the transcript (audit #18) — the canonical narrative
         // record. Old blobs without a transcript fall back to their stored narrativeHtml.
         var _rebuilt = false;
-        try { if (typeof rebuildNarrativeFromTranscript === "function") _rebuilt = rebuildNarrativeFromTranscript(20, true); } catch(e) {}
+        try { if (typeof rebuildNarrativeFromTranscript === "function") _rebuilt = rebuildNarrativeFromTranscript(20, true); } catch(e) { console.warn("[storage] story rebuild after server adopt THREW — pane may show stale content until reload:", e && e.message); }
         if (!_rebuilt && data.narrativeHtml) {
           try {
             var _ne2 = document.getElementById("story-narrative");

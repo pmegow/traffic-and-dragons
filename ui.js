@@ -569,7 +569,11 @@ function campCloudPushSilent(id,cb){
   if(!ws){if(cb)cb(false);return;}
   var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   var serverUrl=storageAdapter.getServerUrl();
-  var wsObj;try{wsObj=JSON.parse(ws);}catch(e){if(cb)cb(false);return;}
+  // v1.240: parseWorldState, NOT bare JSON.parse — since v1.227 the stored save carries the
+  // transcript LZ-compressed ({__lz:…}). Shipping that raw poisoned the server blob: every
+  // device that adopted it silently failed the story rebuild until UA3's tolerant inflate
+  // self-healed it on the NEXT load (observed live 2026-07-10, the Ammut F5 incident).
+  var wsObj;try{wsObj=parseWorldState(ws);}catch(e){if(cb)cb(false);return;}
   // Keep the PC portrait INLINE (audit E27 — matches the v1.45 fix / the main _syncNow path): it must
   // ride atomic with the state so a device pulling this campaign doesn't get a portrait-less PC. Only
   // NPC avatar portraits are stripped to the separate /portrait store.
@@ -3182,7 +3186,13 @@ function initSettings(){
 // reconcile, where stale content must be replaced); without it, entries append after whatever
 // header lines the caller already wrote (init/campaign-load "Welcome back" messages).
 function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
-  if(!worldState||!worldState.transcript||!worldState.transcript.length)return false;
+  if(!worldState||!worldState.transcript)return false;
+  // v1.240 (no-silent-failures): a NON-ARRAY transcript (the {__lz:…} compressed shape leaking
+  // in-memory — the poisoned-blob class UA3 guards at the localStorage boundary) used to fall
+  // through the .length check SILENTLY, leaving stale story content under fresh state (the
+  // Ammut F5 incident). Shout and bail; the next loadState self-heals via parseWorldState.
+  if(!(worldState.transcript instanceof Array)){console.warn("[replay] worldState.transcript is not an array ("+(worldState.transcript.__lz?"compressed {__lz} blob":"unknown shape")+") — story pane NOT rebuilt; a reload will self-heal via parseWorldState");if(typeof showToast==="function")showToast("⚠ Story pane could not rebuild — reload to fix.");return false;}
+  if(!worldState.transcript.length)return false;
   var story=document.getElementById("story-narrative");if(!story)return false;
   if(clearFirst)story.innerHTML="";
   var tr=worldState.transcript,n=maxEntries||20,start=Math.max(0,tr.length-n),i,lastNar=null;
