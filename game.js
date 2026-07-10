@@ -410,11 +410,16 @@ async function sendAction(override,opts){
       if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
       if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
       var clean=cleanTxt(resp),dice=diceTxt(resp);
-      var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
+      // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
+      // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
+      // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
+      // narration lost. With history+state saved first, a display throw leaves them
+      // consistent and reload REPLAYS the missed narration from the transcript.
       logTranscript("gm",clean,resp);
-      if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       sessionLog.push({role:"user",content:apiTxt},{role:"assistant",content:resp});/* apiTxt so the API history stays consistent with what the GM actually answered (P3 note included) */
       saveAll();
+      var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
+      if(typeof TTS!=="undefined")TTS.speakResponse(clean);
       generateActions(narEl);
       processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
     }
@@ -436,6 +441,10 @@ async function rerollLast(){
   var n=sessionLog.length;
   if(n<2||sessionLog[n-1].role!=="assistant"||sessionLog[n-2].role!=="user"){if(typeof showToast==="function")showToast("Nothing to re-roll yet.");return;}
   busy=true;document.getElementById("sendbtn").disabled=true;
+  // UA4 note: the pop-push below is marker-safe — both the success path (push swapped pair)
+  // and the failure path (restore originals) leave sessionLog.length unchanged, so the
+  // sessKept extraction marker (#28) stays valid. Pinned by an engine test; if this ever
+  // stops being net-neutral, adjust worldState.sessKept alongside.
   var prevA=sessionLog.pop(),prevU=sessionLog.pop(); // context is now just before the last action
   var th=addMsg("thinking","Re-rolling the scene...");
   try{

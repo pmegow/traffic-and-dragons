@@ -1541,6 +1541,20 @@ function runEngineTests(R){
     return v==="FIRST"?true:"overwritten: "+v;
   });
 
+  section("re-roll marker safety (UA4 pin)");
+  t("re-roll's pop-push pattern keeps the sessKept marker valid on both paths",function(){
+    makeWorld();
+    sessionLog=[{role:"user",content:"a"},{role:"assistant",content:"b"},{role:"user",content:"c"},{role:"assistant",content:"d"}];
+    worldState.sessKept=2; // first pair already extracted
+    // success path (rerollLast): pop the last exchange, push the swapped pair
+    var pa=sessionLog.pop(),pu=sessionLog.pop();
+    sessionLog.push({role:"user",content:pu.content},{role:"assistant",content:"re-rolled"});
+    if(sessKeptStart()!==2)return "marker invalidated on success path: "+sessKeptStart();
+    // failure path: pop, then restore the originals
+    pa=sessionLog.pop();pu=sessionLog.pop();sessionLog.push(pu,pa);
+    return sessKeptStart()===2?true:"marker invalidated on failure path: "+sessKeptStart();
+  });
+
   section("img2imgStrength (#42)");
   function __rm(id){var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===id)return RENDER_MODELS[i];}return null;}
   t("model default when no override",function(){
