@@ -271,7 +271,11 @@ function splitCells(line) {
   cells.push(cur.trim());
   return cells;
 }
-function escCell(s) { return String(s).replace(/\|/g, "\\|"); }
+// Newlines MUST become <br> — a raw newline inside a cell splits the row across physical lines
+// (invalid GFM). joinWrappedRows() re-absorbs those on OUR next load, which masked the corruption
+// for every other reader (GitHub, Claude edits) until an external edit stranded the tail lines
+// (the 2026-07-09 #24 break). The edit textarea is where multi-line text gets in.
+function escCell(s) { return String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>"); }
 
 // Rejoin table rows that were written WRAPPED across physical lines (invalid GFM, but generated
 // audits do it — AUDIT_PLAYTHRU's P2 opened "| P2 | **…** " and terminated "| M | open |" five

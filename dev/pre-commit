@@ -1,8 +1,13 @@
 #!/bin/sh
-# Traffic and Dragons — pre-commit gate: every commit runs the test.html suites headlessly.
+# Traffic and Dragons — pre-commit gate: TODO.md table lint + the test.html suites headlessly.
 # This is the TRACKED copy; git only executes it from .git/hooks/. After a fresh clone, reinstall:
 #   cp dev/pre-commit .git/hooks/pre-commit
 # Bypassing (git commit --no-verify) is for emergencies only — a red suite means a real regression.
+node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" || {
+  echo "" >&2
+  echo "Commit blocked: TODO.md table integrity failed — a cell newline or stray edit broke a table (findings above)." >&2
+  exit 1
+}
 node "$(git rev-parse --show-toplevel)/dev/run-tests.js" || {
   echo "" >&2
   echo "Commit blocked: engine tests failed. Open test.html in a browser for the red/green view." >&2
