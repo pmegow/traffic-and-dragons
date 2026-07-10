@@ -123,12 +123,15 @@ function buildSysPrompt(){
       if(/\bdead\b/i.test(pmN.status||""))continue;
       var pcs=pmN.charSheet;
       var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++)pa2.push(pcs.abilities[pai].nm);if(pa2.length)pAb=pa2.join(", ");}
-      var pSp="none";if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){if(!pcs.spells[psi].used)ps2.push(pcs.spells[psi].nm);}if(ps2.length)pSp=ps2.join(", ");}
+      // Playtest-F1 (v1.239): name expended spells EXPLICITLY instead of omitting them — the bible
+      // block still injects an omitted spell's canon, so omission read as "available" to the GM
+      // (the t31/t35 Charm Person incident). Absence communicates nothing; a stated clause is iron.
+      var pSp="none",pSpUsed=[];if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){if(!pcs.spells[psi].used)ps2.push(pcs.spells[psi].nm);else pSpUsed.push(pcs.spells[psi].nm);}if(ps2.length)pSp=ps2.join(", ");}
       var pSt=pcs.stats?("STR "+pcs.stats.STR+" DEX "+pcs.stats.DEX+" CON "+pcs.stats.CON+" INT "+pcs.stats.INT+" WIS "+pcs.stats.WIS+" CHA "+pcs.stats.CHA):"";
       var pInv=(pcs.inventory&&pcs.inventory.length)?pcs.inventory.join(", "):"none";
       var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+"\n";
       if(pSt)line+="  Stats: "+pSt+"\n";
-      line+="  Abilities: "+pAb+"\n  Spells available: "+pSp+"\n  Inventory: "+pInv;
+      line+="  Abilities: "+pAb+"\n  Spells available: "+pSp+(pSpUsed.length?"\n  Spells EXPENDED (cannot cast until a long rest): "+pSpUsed.join(", "):"")+"\n  Inventory: "+pInv;
       pmArr.push(line);
     }
     if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags):\n"+pmArr.join("\n")+"\n\n";
@@ -138,7 +141,8 @@ function buildSysPrompt(){
   var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")+"\n\n";
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
-  var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
+  // Playtest-F1 (v1.239): expended spells are NAMED, not omitted — see the companion-block note above.
+  var spstr="none",spUsed=[];if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);else spUsed.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
   var nextXP=c.level<10?XP_LEVELS[c.level]:"max";
   var genderDisplay=c.gender==="F"?"female":c.gender==="NB"?"non-binary":"male";
   var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(function(x){return x.name+(x.duration?" ("+x.duration+")":"");}).join(", ")+"\n";}
@@ -277,7 +281,7 @@ function buildSysPrompt(){
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")+(c.deity?"Deity: "+c.deity+"\n":"")/* trailing \n so "Motivation:" doesn't glue to the next line (audit E54) */
-    +"Abilities: "+abilstr+"\nSpells available: "+spstr+"\nInventory: "+c.inventory.join(", ")+"\n"
+    +"Abilities: "+abilstr+"\nSpells available: "+spstr+(spUsed.length?"\nSpells EXPENDED (cannot cast until a long rest — never treat these as castable): "+spUsed.join(", "):"")+"\nInventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +buildSpellBibleBlock()
     +buildAbilityBibleBlock()
@@ -374,10 +378,15 @@ function buildSpellBibleBlock(){
     var e=capabilityLookup(sp.nm);if(!e)continue;
     var key=capBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
+    // Playtest-F1 (v1.239): the expended state must live HERE, in the block the GM provably
+    // consults at cast time (the money test showed 8 unprompted range holds from these lines,
+    // while a sheet-side "expended" clause alone was ignored — the GM cast a spent slot anyway).
+    // Slot state is as canonical as range: the marker leads the line.
+    if(sp.lvl>0&&sp.used)nm="[EXPENDED — slot already spent; this spell CANNOT be cast again until a long rest] "+nm;
     lines.push(capBibleLine(nm,e));
   }
   if(!lines.length)return"";
-  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, and honor these over any remembered version when the spell is cast):\n"+lines.join("\n")+"\n\n";
+  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]):\n"+lines.join("\n")+"\n\n";
 }
 // buildAbilityBibleBlock (TODO #10) — the ability half of the anti-drift injection. Re-feeds canon
 // for the player's class abilities every turn via capabilityLookup (which resolves an ability that

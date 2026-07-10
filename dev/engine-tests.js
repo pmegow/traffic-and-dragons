@@ -1541,6 +1541,35 @@ function runEngineTests(R){
     return v==="FIRST"?true:"overwritten: "+v;
   });
 
+  section("expended spells named on the sheet (playtest-F1, v1.239)");
+  t("player sheet names expended spells; clause absent when none are used",function(){
+    makeWorld();
+    worldState.character.spells=[{nm:"Charm Person (charmed 1 hour)",lvl:1,used:true},{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    var v=buildSysPrompt().volatile;
+    if(!/Spells EXPENDED[^\n]*Charm Person/.test(v))return "expended clause missing";
+    if(!/Spells available:[^\n]*Message/.test(v))return "available list broken";
+    worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    v=buildSysPrompt().volatile;
+    return v.indexOf("Spells EXPENDED")<0?true:"clause present with nothing expended";
+  });
+  t("bible block leads an expended spell's canon line with the [EXPENDED] marker",function(){
+    makeWorld();
+    worldState.character.spells=[{nm:"Charm Person (charmed 1 hour)",lvl:1,used:true},{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    var b=buildSpellBibleBlock();
+    if(!/\[EXPENDED[^\]]*\] Charm Person/.test(b))return "marker missing from expended spell's line";
+    if(/\[EXPENDED[^\]]*\] Message/.test(b))return "marker leaked onto an unexpended cantrip";
+    if(b.indexOf("REFUSE any cast")<0)return "header refusal instruction missing";
+    worldState.character.spells[0].used=false;
+    return /\[EXPENDED[^\]]*\] Charm Person/.test(buildSpellBibleBlock())?"marker persists after rest":true;
+  });
+  t("companion sheet names expended spells too",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:14,CHA:10},abilities:[],inventory:[],spells:[{nm:"Cure Wounds (d8+WIS heal)",lvl:1,used:true},{nm:"Bless (allies +d4)",lvl:1,used:false}]}});
+    var v=buildSysPrompt().volatile;
+    if(!/Spells EXPENDED[^\n]*Cure Wounds/.test(v))return "companion expended clause missing";
+    return /Spells available:[^\n]*Bless/.test(v)?true:"companion available list broken";
+  });
+
   section("stable-purity tripwire (UA5)");
   t("mid-campaign stable change warns; identical stable stays quiet; campaign switch resets",function(){
     makeWorld();worldState.campId="c_ua5";
