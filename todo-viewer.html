@@ -103,6 +103,15 @@
     .eff-M{color:var(--t1);}
     .eff-L{color:var(--acc);}
     .eff-XL{color:#c87a4a;}
+    /* Tier column (which model the task needs — Fable/Opus/Sonnet/Any) */
+    th.tier-th{width:62px;text-align:center;}
+    td.tier-td{width:62px;text-align:center;}
+    .tier{font-size:11px;font-weight:bold;letter-spacing:.03em;}
+    .tier-none{color:var(--t2);font-weight:normal;}
+    .tier-FABLE{color:#c87a4a;}
+    .tier-OPUS{color:var(--acc);}
+    .tier-SONNET{color:var(--t1);}
+    .tier-ANY{color:var(--t2);}
     /* Collapsible top-level (##) sections */
     .sec-wrap{margin:22px 0 0;}
     .sec-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;border-bottom:1px solid var(--brd);padding-bottom:6px;margin-bottom:10px;}
@@ -309,17 +318,19 @@ function parse(md) {
     var line = lines[i];
     if (/^\|\s*#\s*\|/.test(line)) {
       var hdr = splitCells(line).slice(1,-1).map(function(c) { return c.toLowerCase(); });
-      var ciNum = -1, ciTask = -1, ciEffort = -1, ciStatus = -1, hc;
+      var ciNum = -1, ciTask = -1, ciEffort = -1, ciTier = -1, ciStatus = -1, hc;
       for (hc = 0; hc < hdr.length; hc++) {
         if (hdr[hc] === "#") ciNum = hc;
         else if (hdr[hc] === "task") ciTask = hc;
         else if (hdr[hc] === "effort") ciEffort = hc;
+        else if (hdr[hc] === "tier") ciTier = hc;
         else if (hdr[hc] === "status") ciStatus = hc;
       }
       if (ciNum < 0) ciNum = 0;
       if (ciTask < 0) ciTask = 1;
       if (ciStatus < 0) ciStatus = (ciEffort >= 0 ? 3 : 2);
       var secHasEffort = (ciEffort >= 0);
+      var secHasTier = (ciTier >= 0);
       if (secHasEffort) _hasEffort = true;
       var secIdx = _sections.length;
       i += 2; // skip header and separator
@@ -339,6 +350,7 @@ function parse(md) {
             num: cells[ciNum] || "",
             task: cells[ciTask] || "",
             effort: ciEffort >= 0 ? (cells[ciEffort] || "") : "",
+            tier: ciTier >= 0 ? (cells[ciTier] || "") : "",
             status: cells[ciStatus] || "",
             raw: lines[i],
             sec: secIdx,
@@ -349,7 +361,7 @@ function parse(md) {
       }
       // skip closing comment if present
       if (i < lines.length && /^<!--\s*\/completed\s*-->/.test(lines[i].trim())) i++;
-      _sections.push({type:"tasks", idx:secIdx, hasEffort:secHasEffort});
+      _sections.push({type:"tasks", idx:secIdx, hasEffort:secHasEffort, hasTier:secHasTier});
     } else {
       var textLines = [];
       while (i < lines.length && !/^\|\s*#\s*\|/.test(lines[i])) {
@@ -466,6 +478,11 @@ function effortBadge(e) {
   var key = e.toUpperCase().replace(/[^A-Z]/g, "");
   return "<span class='eff eff-" + key + "'>" + e + "</span>";
 }
+function tierBadge(t) {
+  if (!t || t === "—" || t === "-") return "<span class='tier tier-none'>—</span>";
+  var key = t.toUpperCase().replace(/[^A-Z]/g, "");
+  return "<span class='tier tier-" + key + "'>" + t + "</span>";
+}
 function isDone(t) {
   return /✅/.test(t.task) || /✅/.test(t.status) || /\bDone\b/.test(t.status);
 }
@@ -504,10 +521,11 @@ function toggleTaskExpand(i) {
 }
 
 function renderTaskTable(sec) {
-  var hasEff = sec.hasEffort;
+  var hasEff = sec.hasEffort, hasTier = sec.hasTier;
   var h = "<table class='task-table'>"
     + "<thead><tr><th style='width:22px;'></th><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
+    + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
     + "<th class='resizable' style='width:"+_statusColW+"px;'>Status<div class='col-resize-handle'></div></th><th class='comp-th' style='width:22px;'></th><th class='del-th' style='width:22px;'></th></tr></thead>"
     + "<tbody class='tt-body' data-sec='"+sec.idx+"'>";
   for (var i = 0; i < _tasks.length; i++) {
@@ -541,6 +559,7 @@ function renderTaskTable(sec) {
       + "<td class='num-cell'>" + inline(t.num) + "</td>"
       + taskCell
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
+      + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
       + "<td class='status-td " + sCls + "'>" + (expanded ? inline(t.status) : "") + "</td>"
       + "<td class='comp-cell'><button class='row-act-btn' title='Move to Completed' onclick='completeTask(" + i + ")'>C</button></td>"
       + "<td class='del-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + i + ")'>&#215;</button></td>"
@@ -557,7 +576,7 @@ function renderCompletedSection(sec) {
   }
   if (!compTasks.length) return "";
   var isOpen = !!_compOpen[sec.idx];
-  var hasEff = sec.hasEffort;
+  var hasEff = sec.hasEffort, hasTier = sec.hasTier;
   var h = "<div class='completed-wrap'>"
     + "<div class='completed-toggle' onclick='toggleCompletedSection(" + sec.idx + ")'>"
     + "<span class='completed-arr" + (isOpen ? " open" : "") + "'>&#9654;</span>"
@@ -568,6 +587,7 @@ function renderCompletedSection(sec) {
     + "<table class='task-table'>"
     + "<thead><tr><th style='width:22px;'></th><th style='width:36px;'>#</th><th class='task-th'>Task</th>"
     + (hasEff ? "<th class='effort-th'>Effort</th>" : "")
+    + (hasTier ? "<th class='tier-th'>Tier</th>" : "")
     + "<th class='resizable' style='width:"+_statusColW+"px;'>Status</th><th style='width:22px;'></th><th style='width:22px;'></th></tr></thead>"
     + "<tbody>";
   for (var j = 0; j < compTasks.length; j++) {
@@ -583,6 +603,7 @@ function renderCompletedSection(sec) {
         + "<span class='task-arr" + (cExpanded ? " open" : "") + "' onclick='toggleTaskExpand(" + gi + ")' title='Expand / collapse'>&#9654;</span>"
         + cBody + "</div></td>"
       + (hasEff ? "<td class='effort-td'>" + effortBadge(t.effort) + "</td>" : "")
+      + (hasTier ? "<td class='tier-td'>" + tierBadge(t.tier) + "</td>" : "")
       + "<td class='status-td status sdone'>" + (cExpanded ? inline(t.status) : "") + "</td>"
       + "<td class='act-cell'><button class='row-act-btn restore' title='Restore to active' onclick='restoreTask(" + gi + ")'>&#8617;</button></td>"
       + "<td class='act-cell'><button class='row-act-btn del' title='Delete task' onclick='deleteTask(" + gi + ")'>&#215;</button></td>"
@@ -688,7 +709,7 @@ function doAddTask() {
   }
   var n = 0, k;
   for (k = 0; k < _tasks.length; k++) if (_tasks[k].sec === target && !_tasks[k].completed) n++;
-  _tasks.push({num: String(n + 1), task: task, effort: "", status: "", sec: target, completed: false});
+  _tasks.push({num: String(n + 1), task: task, effort: "", tier: "", status: "", sec: target, completed: false});
   inp.value = "";
   renderPage();
 }
@@ -772,18 +793,22 @@ function buildMd() {
       var active = _tasks.filter(function(t) { return t.sec === sec.idx && !t.completed; });
       var completed = _tasks.filter(function(t) { return t.sec === sec.idx && t.completed; });
       if (sec.hasEffort) {
-        out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
-        for (var i = 0; i < active.length; i++) {
-          var t = active[i];
-          out += "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.effort || "—") + " | " + escCell(t.status) + " |\n";
-        }
+        // Tier-aware round trip: a table parsed WITH a Tier column must export it back
+        // (an unaware export silently deletes the column — the stale-load clobber class).
+        var hasTier = sec.hasTier;
+        var hdrMd = hasTier ? "| # | Task | Effort | Tier | Status |\n|---|---|:---:|:---:|---|\n"
+                            : "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
+        var rowMd = function (t) {
+          return "| " + escCell(t.num) + " | " + escCell(t.task) + " | " + escCell(t.effort || "—")
+            + (hasTier ? " | " + escCell(t.tier || "—") : "")
+            + " | " + escCell(t.status) + " |\n";
+        };
+        out += hdrMd;
+        for (var i = 0; i < active.length; i++) out += rowMd(active[i]);
         if (completed.length) {
           out += "<!-- completed -->\n";
-          out += "| # | Task | Effort | Status |\n|---|---|:---:|---|\n";
-          for (var j = 0; j < completed.length; j++) {
-            var ct = completed[j];
-            out += "| " + escCell(ct.num) + " | " + escCell(ct.task) + " | " + escCell(ct.effort || "—") + " | " + escCell(ct.status) + " |\n";
-          }
+          out += hdrMd;
+          for (var j = 0; j < completed.length; j++) out += rowMd(completed[j]);
           out += "<!-- /completed -->\n";
         }
       } else {
