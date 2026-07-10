@@ -369,6 +369,73 @@ function sendSuggestedAction(btn,ev){
   inp.value=cur+fp;inp.focus();
   try{inp.setSelectionRange(inp.value.length,inp.value.length);}catch(e){}
 }
+// ── Core Memory (#40): permanent, always-injected defining moments ─────────────────────────
+// ENGINE-DETECTED, never GM-judged: a snapshot-diff wrapped around applyMuts at the TURN call
+// sites (sendAction + beginAdventure). Deliberately NOT inside applyMuts or tag_table:
+//   • zero parser contact — nothing to implement twice pre-cutover, survives the UA1 cutover
+//     unchanged, and invisible to the shadow diff (which clones state at applyMuts ENTRY);
+//   • syncCharSheet's audit-prompt applyMuts is naturally excluded (a sheet CORRECTION
+//     crossing the HP threshold is bookkeeping, not a story moment);
+//   • rerollLast keeps mutations (it never re-runs applyMuts), so a moment filed from the
+//     original response remains mechanically true even after the prose is re-rolled — no purge.
+// Party-shared v1 (user call 2026-07-06): ONE worldState.coreMemories[] list, injected as the
+// DEFINING MOMENTS block (api.js, volatile half). Empty list renders nothing — byte-identical
+// prompt for saves with no moments yet.
+function coreMemorySnapshot(){
+  if(!worldState||!worldState.character)return null;
+  var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,rels:{},party:{}},i;
+  var rl=c.relationships||[];for(i=0;i<rl.length;i++){if(rl[i]&&rl[i].entity)snap.rels[rl[i].entity]=rl[i].descriptor;}
+  var ns=worldState.npcs||[];for(i=0;i<ns.length;i++){var n=ns[i];
+    if(n&&n.partyMember)snap.party[n.name]={dead:/\bdead\b/i.test(n.status||""),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null};}
+  return snap;
+}
+function fileCoreMemory(kind,who,text){
+  if(!worldState)return;
+  if(!worldState.coreMemories)worldState.coreMemories=[];
+  var cm=worldState.coreMemories,i;
+  for(i=0;i<cm.length;i++){if(cm[i].turn===worldState.turn&&cm[i].kind===kind&&cm[i].who===who)return;}// one moment per event per turn
+  cm.push({text:text,turn:worldState.turn,kind:kind,who:who});
+  var cap=(typeof CORE_MEMORY_CAP!=="undefined")?CORE_MEMORY_CAP:25;
+  if(cm.length>cap){
+    // Evict the oldest near-death first (the repetitive class); preserve it in memory.archive
+    // rather than deleting — "never forget" degrades to "cold storage", not to loss.
+    var ev=-1;for(i=0;i<cm.length;i++){if(cm[i].kind==="near-death"){ev=i;break;}}
+    if(ev<0)ev=0;
+    var out=cm.splice(ev,1)[0];
+    if(typeof memory!=="undefined"&&memory&&memory.archive){if(!memory.archive.coreMemories)memory.archive.coreMemories=[];memory.archive.coreMemories.push(out);}
+    console.warn("[core-memory] over cap ("+cap+") — evicted to archive: \""+out.text+"\". A chronically full list means the #40 triggers fire too easily.");
+  }
+  if(typeof showToast==="function")showToast("★ Defining moment: "+text);
+}
+function detectCoreMoments(pre){
+  if(!pre||!worldState||!worldState.character)return;
+  var c=worldState.character,w=worldState.world||{},i;
+  var here=w.location?(" at "+(w.sublocation?w.sublocation+", "+w.location:w.location)):"";
+  var foe=(worldState.combat&&worldState.combat.name)?" fighting "+worldState.combat.name:"";
+  function cross(preHp,preMax,postHp,postMax,who){
+    if(typeof preHp!=="number"||typeof postHp!=="number")return;
+    var mx=(typeof postMax==="number"&&postMax>0)?postMax:preMax;
+    if(typeof mx!=="number"||mx<=0)return;
+    var th=Math.max(1,Math.floor(mx*0.1));// crossing semantics = free hysteresis: hovering low files once
+    if(preHp>th&&postHp<=th)fileCoreMemory("near-death",who,who+" was nearly slain"+foe+here+" ("+Math.max(0,postHp)+"/"+mx+" HP).");
+  }
+  cross(pre.hp,pre.maxHp,c.hp,c.maxHp,c.name);
+  var seen={},ns=worldState.npcs||[];
+  for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember)continue;seen[n.name]=1;
+    var p=pre.party[n.name];
+    if(!p){fileCoreMemory("party",n.name,n.name+" joined the party"+here+".");continue;}
+    if(!p.dead&&/\bdead\b/i.test(n.status||"")){fileCoreMemory("death",n.name,n.name+" died"+foe+here+".");continue;}
+    if(n.charSheet)cross(p.hp,p.maxHp,n.charSheet.hp,n.charSheet.maxHp,n.name);
+  }
+  var preNames=Object.keys(pre.party);
+  for(i=0;i<preNames.length;i++){if(!seen[preNames[i]])fileCoreMemory("party",preNames[i],preNames[i]+" parted ways with the party"+here+".");}
+  var rl=c.relationships||[];
+  for(i=0;i<rl.length;i++){var r=rl[i];
+    if(!r||!r.descriptor||!r.entity)continue;
+    if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(r.descriptor)&&pre.rels[r.entity]!==r.descriptor)
+      fileCoreMemory("bond",r.entity,"The bond with "+r.entity+" became \""+r.descriptor+"\".");
+  }
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -402,7 +469,9 @@ async function sendAction(override,opts){
       worldState.turn++;
       if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
+      var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
       applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
+      detectCoreMoments(_cmPre);/* #40: AFTER applyMuts (and its shadow run) — see the block comment above sendAction */
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
         if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
         else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
@@ -743,7 +812,8 @@ async function beginAdventure(){
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
-    var resp=await callGM(intro);th.remove();applyMuts(resp);var clean=cleanTxt(resp),dice=diceTxt(resp);
+    var _cmPre=coreMemorySnapshot();/* #40 */
+    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
     logTranscript("gm",clean,resp);
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);
@@ -906,7 +976,7 @@ async function syncCharSheet(){
     +"If nothing needs updating, reply with a single period only.";
   try{
     var resp=await callGM(auditMsg,null,500,null,{kind:"sync"});
-    applyMuts(resp);
+    applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");
     var ex=document.getElementById("cs-modal");if(ex)ex.remove();

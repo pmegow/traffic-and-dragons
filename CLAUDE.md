@@ -301,6 +301,10 @@ Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API
 - **TOC diet (same flag):** `memoryTOC` filters LORE to scene-relevant + most-recent-8 (cap 12) and drops the CHAPTER SUMMARIES section (duplicates the STORY SO FAR block). **Flag off must reproduce today's TOC byte-for-byte** — engine-tested; don't restructure the off-path strings.
 - Measured on the Runelords t54 save: the diet more than paid for the excerpts (volatile net −480 chars with a 1,360-char excerpt block included); flag-off volatile byte-identical to the pre-feature prompt.
 
+### 8c. Core Memory (#40, v1.243) — the permanent tier
+
+Party-shared `worldState.coreMemories[]` (`{text, turn, kind, who}`, one sentence each): defining moments the GM must never forget, injected every turn as the **DEFINING MOMENTS** block (volatile half, just before REMINDER/STYLE; empty list renders nothing — pre-#40 saves get a byte-identical prompt). Written ONLY by **engine-detected triggers** — `coreMemorySnapshot()`/`detectCoreMoments()` (game.js) snapshot-diff around `applyMuts` at the turn call sites (`sendAction`/`beginAdventure`; `syncCharSheet` deliberately excluded, and the wrapper never touches the parsers or the UA1 shadow diff). Triggers: HP crossing below max(1, ⌊10% maxHp⌋) for player + companions (crossing = natural hysteresis); companion join/leave; party-member death; weighty `[RELATIONSHIP:]` descriptors (`WEIGHTY_REL_RE`, globals.js). Cap `CORE_MEMORY_CAP`=25 — overflow evicts oldest near-death to `memory.archive.coreMemories` with a loud warn. Toast (`★ Defining moment`) on every file; read-only "Defining Moments" section on the player char sheet. The optional `[CORE_MEMORY:]` GM tag is deferred to post-cutover (enrichment only, never the foundation); per-companion attribution is Phase 2.
+
 ### 9. Map data layer (`memory.map`)
 
 Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArrivalFrom:null}`.

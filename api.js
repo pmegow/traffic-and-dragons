@@ -38,6 +38,16 @@ function buildGeoBlock(){
   return"GEOGRAPHY (strict continuity — never contradict):\n"+lines.join("\n")+"\n\n";
 }
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
+// #40 Core Memory: the permanent tier — always injected (VOLATILE half: the list grows during
+// play), never compressed, never evicted by the churn caps. Written ONLY by the engine-detected
+// triggers (detectCoreMoments, game.js). Renders NOTHING when empty, so pre-#40 saves and fresh
+// campaigns produce a byte-identical prompt — the natural off-state, no flag needed.
+function buildCoreMemoryBlock(){
+  if(!worldState||!worldState.coreMemories||!worldState.coreMemories.length)return"";
+  var cm=worldState.coreMemories,L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships:"],i;
+  for(i=0;i<cm.length;i++)L.push("- (turn "+cm[i].turn+") "+cm[i].text);
+  return L.join("\n")+"\n\n";
+}
 function saveRules(){try{store.set(RLK,JSON.stringify(customRules));}catch(e){console.warn("[rules] save failed — custom rules NOT persisted:",e.message);if(typeof showToast==="function")showToast("⚠ Custom rules could not be saved.");}}
 function loadRules(){try{var r=store.get(RLK);if(r)customRules=JSON.parse(r);}catch(e){console.warn("[rules] load failed — playing with default rules only:",e.message);}}
 // Move a quest out of the live log into the long-term archive (memory.quests).
@@ -255,6 +265,7 @@ function buildSysPrompt(){
     +buildNpcGraph()
     +buildGeoBlock()
     +cb+hist
+    +buildCoreMemoryBlock()
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible.";
   return {stable:stable,volatile:volatile_};

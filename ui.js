@@ -1004,6 +1004,10 @@ function csSheetSections(c){
   if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}saveHtml+="</div>";}
   var beatsHtml="";
   if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
+  // #40 Core Memory — party-shared, so it lives on worldState (not the character); shown on the
+  // PLAYER sheet only (companion sheets reuse this builder with a different c).
+  var cmHtml="",_cmList=(worldState&&worldState.character===c&&worldState.coreMemories)?worldState.coreMemories:[];
+  if(_cmList.length){for(i=_cmList.length-1;i>=0;i--)cmHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+_cmList[i].turn+'</span>'+escHtml(_cmList[i].text)+'</div>';}
   var abilHtml="";
   if(c.abilities&&c.abilities.length){for(i=0;i<c.abilities.length;i++){var _abN=c.abilities[i].nm,_abCanon=(typeof capabilityLookup==="function")&&capabilityLookup(_abN);var _abNm=_abCanon?'<span class="cs-abil-nm cs-cap" data-cap="'+escHtml(_abN)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+escHtml(_abN)+'</span>':'<span class="cs-abil-nm">'+escHtml(_abN)+'</span>';abilHtml+='<div class="cs-abil">'+_abNm+'<span class="cs-abil-ds">'+escHtml(c.abilities[i].ds||"")+'</span></div>';}}else abilHtml='<span class="cs-none">None yet</span>';
   var spellHtml="";
@@ -1012,7 +1016,7 @@ function csSheetSections(c){
   if(c.inventory&&c.inventory.length){var invParts=[],ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invParts.push(invItemHtml(c.inventory[ivi]));invHtml='<div class="cs-v" style="line-height:1.9">'+invParts.join(", ")+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';
   var charKv=(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
-  return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
+  return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
 // showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
 // the SHARED bibleCardHTML (same render as the bible_study.html viewer). Wired onto clickable spell

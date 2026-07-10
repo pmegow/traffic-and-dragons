@@ -18,7 +18,7 @@ var sessionLog=[];
 // Single source of truth for the empty-memory shape (audit #22). Every reset path
 // (new game, new campaign, import) must use this — the old inline literals drifted
 // (most omitted map/npcGraph/nameIdx and leaned on lazy guards to self-heal).
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[]}};}/* archive: P12 eviction compaction — storage-only, never injected */
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -133,6 +133,7 @@ function migrateWorldState(){
   for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0&&c.spells[si].used){c.spells[si].used=false;_mig=true;}}// cantrips never expend
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
+  if(!worldState.coreMemories){worldState.coreMemories=[];_mig=true;}/* #40 Core Memory — party-shared defining moments */
   // Known issue #3 dedupe: companion portraits were stored 2× (npc.portrait + charSheet.portrait,
   // ~22-52KB each). charSheet.portrait is now the single home for any NPC with a sheet — move a
   // lone npc.portrait in, then drop the duplicate. Display reads go through npcPortrait() (helpers).
@@ -189,6 +190,7 @@ function healMemory(){
   if(!memory.archive.lore)memory.archive.lore=[];
   if(!memory.archive.decisions)memory.archive.decisions=[];
   if(!memory.archive.chapters)memory.archive.chapters=[];
+  if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
   // P6 retro-clamp: sentence-length attitudes from pre-v1.211 extractor runs (memoryNpcDetail injects them).
   if(typeof clampNpcMood==="function"&&memory.npcs){var _ank=Object.keys(memory.npcs),_ai2;for(_ai2=0;_ai2<_ank.length;_ai2++){var _an=memory.npcs[_ank[_ai2]];if(_an&&_an.attitude)_an.attitude=clampNpcMood(_an.attitude);}}
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
