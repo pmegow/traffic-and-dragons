@@ -45,72 +45,72 @@
 
 <h2 id="browser">Browser &amp; plumbing</h2>
 <dl>
-  <div class="term"><dt>DOM <span class="full">Document Object Model</span></dt><dd>The live map of everything on the page. Change the DOM and the screen changes; "repaint the DOM" just means redraw what you see.</dd></div>
-  <div class="term"><dt>SW <span class="full">Service Worker</span></dt><dd>A background helper that keeps a copy of the app so it opens instantly and works offline. We bump its version so it refreshes each release.</dd></div>
-  <div class="term"><dt>localStorage</dt><dd>A small (~5MB) box in your browser where the game stashes saves and settings as text. Fill it and saving fails — the "storage full" toast.</dd></div>
-  <div class="term"><dt>IndexedDB</dt><dd>A much bigger browser box (hundreds of MB) we can move into if localStorage runs out of room.</dd></div>
-  <div class="term"><dt>cache-first</dt><dd>The app shows its saved copy first (instant), only checking the network for a new version. Fast — but needs a version bump to refresh.</dd></div>
-  <div class="term"><dt>cache-busting</dt><dd>Adding a random tag to a web address so the browser grabs the real newest file instead of an old saved one.</dd></div>
-  <div class="term"><dt>CORS <span class="full">Cross-Origin Resource Sharing</span></dt><dd>The browser's rule about which outside servers a page may call. It blocks the call unless that server says "you're welcome here."</dd></div>
-  <div class="term"><dt>OAuth</dt><dd>Logging in through GitHub without handing us your password — GitHub vouches for you and gives us a temporary token.</dd></div>
-  <div class="term"><dt>IIFE <span class="full">Immediately-Invoked Function Expression</span></dt><dd>A blob of code wrapped so it runs once, right away, and keeps its guts private. How the playtest tool installs itself.</dd></div>
-  <div class="term"><dt>ES5</dt><dd>The old, super-compatible flavour of JavaScript we stick to so the game runs anywhere with zero build step. No modern shortcuts allowed.</dd></div>
   <div class="term"><dt>base64</dt><dd>A way to write any data as plain letters and numbers, so a whole save can be copied through a text-only channel and rebuilt.</dd></div>
+  <div class="term"><dt>cache-busting</dt><dd>Adding a random tag to a web address so the browser grabs the real newest file instead of an old saved one.</dd></div>
+  <div class="term"><dt>cache-first</dt><dd>The app shows its saved copy first (instant), only checking the network for a new version. Fast — but needs a version bump to refresh.</dd></div>
+  <div class="term"><dt>CORS <span class="full">Cross-Origin Resource Sharing</span></dt><dd>The browser's rule about which outside servers a page may call. It blocks the call unless that server says "you're welcome here."</dd></div>
+  <div class="term"><dt>DOM <span class="full">Document Object Model</span></dt><dd>The live map of everything on the page. Change the DOM and the screen changes; "repaint the DOM" just means redraw what you see.</dd></div>
+  <div class="term"><dt>ES5</dt><dd>The old, super-compatible flavour of JavaScript we stick to so the game runs anywhere with zero build step. No modern shortcuts allowed.</dd></div>
+  <div class="term"><dt>IIFE <span class="full">Immediately-Invoked Function Expression</span></dt><dd>A blob of code wrapped so it runs once, right away, and keeps its guts private. How the playtest tool installs itself.</dd></div>
+  <div class="term"><dt>IndexedDB</dt><dd>A much bigger browser box (hundreds of MB) we can move into if localStorage runs out of room.</dd></div>
+  <div class="term"><dt>localStorage</dt><dd>A small (~5MB) box in your browser where the game stashes saves and settings as text. Fill it and saving fails — the "storage full" toast.</dd></div>
   <div class="term"><dt>LZ <span class="full">LZ-string</span></dt><dd>Our built-in zip: squeezes the story log ~5× smaller before storing, so long campaigns don't blow the storage limit.</dd></div>
+  <div class="term"><dt>OAuth</dt><dd>Logging in through GitHub without handing us your password — GitHub vouches for you and gives us a temporary token.</dd></div>
+  <div class="term"><dt>SW <span class="full">Service Worker</span></dt><dd>A background helper that keeps a copy of the app so it opens instantly and works offline. We bump its version so it refreshes each release.</dd></div>
 </dl>
 
 <h2 id="ai">AI &amp; the prompt</h2>
 <dl>
+  <div class="term"><dt>ELI10 <span class="full">Explain Like I'm 10</span></dt><dd>Describe what a thing does in plain words, no jargon. What this whole page is doing.</dd></div>
   <div class="term"><dt>GM <span class="full">Game Master</span></dt><dd>The AI playing narrator and referee. It writes the story <em>and</em> hides bookkeeping codes in its reply for the engine to read.</dd></div>
-  <div class="term"><dt>token</dt><dd>The chunk the AI counts words in (~¾ of a word). Everything is billed and size-limited in tokens.</dd></div>
   <div class="term"><dt>MTok <span class="full">million tokens</span></dt><dd>The unit model prices are quoted in — e.g. Haiku costs $1 per million tokens read in, $5 per million written out.</dd></div>
   <div class="term"><dt>prompt caching</dt><dd>Paying full price once for the unchanging part of our instructions, then ~10% each turn after. Big savings — the reason we split the prompt.</dd></div>
+  <div class="term"><dt>RAG <span class="full">Retrieval-Augmented Generation</span></dt><dd>When old people or places come up, we dig the exact past scene out of the full log and show the AI — so it "remembers" turn-150 events at turn-300.</dd></div>
   <div class="term"><dt>stable / volatile</dt><dd>The two halves of the AI's instructions: STABLE never changes (cached cheap), VOLATILE is this turn's live state. Leaking state into stable kills the discount.</dd></div>
   <div class="term"><dt>state tags</dt><dd>Hidden codes like <code>[HP:-5]</code> the GM sprinkles into its reply. The engine reads them to update your sheet, then strips them from view.</dd></div>
-  <div class="term"><dt>RAG <span class="full">Retrieval-Augmented Generation</span></dt><dd>When old people or places come up, we dig the exact past scene out of the full log and show the AI — so it "remembers" turn-150 events at turn-300.</dd></div>
-  <div class="term"><dt>ELI10 <span class="full">Explain Like I'm 10</span></dt><dd>Describe what a thing does in plain words, no jargon. What this whole page is doing.</dd></div>
+  <div class="term"><dt>token</dt><dd>The chunk the AI counts words in (~¾ of a word). Everything is billed and size-limited in tokens.</dd></div>
 </dl>
 
 <h2 id="jargon">Words we coined (project jargon)</h2>
 <dl>
-  <div class="term"><dt>drift</dt><dd>The core enemy: the AI slowly reinventing a fact or rule over many turns — a spell's range creeping up, a character's backstory quietly mutating.</dd></div>
-  <div class="term"><dt>thrash</dt><dd>A system spinning uselessly — like the memory summarizer firing every two turns and never getting ahead. A sign something's tuned wrong.</dd></div>
-  <div class="term"><dt>the bible <span class="full">capability_bible</span></dt><dd>One master list of what every spell and ability actually does, fed to the AI each turn so it can't rule them differently every time. Anti-drift.</dd></div>
-  <div class="term"><dt>anti-drift injection</dt><dd>Re-feeding the AI the true current facts (quests, sheet, spell rules) every single turn, so it reads from data instead of its faulty memory.</dd></div>
-  <div class="term"><dt>skeleton</dt><dd>The campaign's 3-act outline — acts made of arcs — that the story follows. From a blueprint, or auto-generated at the start.</dd></div>
   <div class="term"><dt>act / arc</dt><dd>Act = a big chapter of the campaign; arc = a step inside it. Finishing one flips a status flag and advances the story.</dd></div>
-  <div class="term"><dt>dnaHint</dt><dd>A one-line "how to run this bit" note that keeps each arc in the author's voice instead of drifting into generic procedure.</dd></div>
+  <div class="term"><dt>anti-drift injection</dt><dd>Re-feeding the AI the true current facts (quests, sheet, spell rules) every single turn, so it reads from data instead of its faulty memory.</dd></div>
   <div class="term"><dt>blueprint</dt><dd>A pre-made campaign kit — outline, NPCs, places, rules — minus any character. Load it and play someone else's adventure with your own hero.</dd></div>
-  <div class="term"><dt>spine</dt><dd>The authored main plot of a loaded adventure. "Stay on the spine" = tell that story, don't wander off into a made-up side-plot.</dd></div>
-  <div class="term"><dt>teeth</dt><dd>A rule the ENGINE enforces itself so we don't trust the AI to remember — e.g. "all objectives done → nudge it to close the quest."</dd></div>
+  <div class="term"><dt>corpus</dt><dd>The pile of raw turns collected from a playtest run — the evidence we grep through to judge quality and hunt drift.</dd></div>
+  <div class="term"><dt>dnaHint</dt><dd>A one-line "how to run this bit" note that keeps each arc in the author's voice instead of drifting into generic procedure.</dd></div>
+  <div class="term"><dt>drift</dt><dd>The core enemy: the AI slowly reinventing a fact or rule over many turns — a spell's range creeping up, a character's backstory quietly mutating.</dd></div>
+  <div class="term"><dt>fold</dt><dd>Weaving a player's action into the following narration so a story reads smoothly, instead of "I do X." then "X happens."</dd></div>
+  <div class="term"><dt>harness</dt><dd>A script that auto-plays the game for many turns (real AI calls) so we can stress-test and gather a corpus without hand-clicking.</dd></div>
+  <div class="term"><dt>money test</dt><dd>The real question a feature exists to answer, tested under pressure — e.g. "does the AI actually obey the spell bible mid-fight?"</dd></div>
   <div class="term"><dt>nudge</dt><dd>A soft line slipped into the AI's instructions to push it toward doing something (close the act, stay on plot) without hard-forcing it.</dd></div>
   <div class="term"><dt>over-rail</dt><dd>Steering the story so hard the player's choices stop mattering. The thing our pacing nudges are deliberately careful NOT to do.</dd></div>
-  <div class="term"><dt>money test</dt><dd>The real question a feature exists to answer, tested under pressure — e.g. "does the AI actually obey the spell bible mid-fight?"</dd></div>
   <div class="term"><dt>palimpsest</dt><dd>Something written over so many times old and new layers mix — like a 300-turn save built across many engine versions, part current, part fossil.</dd></div>
-  <div class="term"><dt>fold</dt><dd>Weaving a player's action into the following narration so a story reads smoothly, instead of "I do X." then "X happens."</dd></div>
-  <div class="term"><dt>corpus</dt><dd>The pile of raw turns collected from a playtest run — the evidence we grep through to judge quality and hunt drift.</dd></div>
-  <div class="term"><dt>harness</dt><dd>A script that auto-plays the game for many turns (real AI calls) so we can stress-test and gather a corpus without hand-clicking.</dd></div>
-  <div class="term"><dt>soak</dt><dd>Letting new code run quietly alongside the old during real play, comparing results every turn until enough clean evidence accumulates to trust it.</dd></div>
-  <div class="term"><dt>shadow mode</dt><dd>Running replacement code on a throwaway copy of the data while the old code stays in charge — differences get logged, players see nothing.</dd></div>
-  <div class="term"><dt>tail retention</dt><dd>After summarizing, keeping the last few exchanges word-for-word so the AI doesn't suddenly "forget" what just happened.</dd></div>
   <div class="term"><dt>satellite page</dt><dd>A standalone HTML page opened on its own (the Blueprint Designer, this glossary) — NOT part of the cached main app.</dd></div>
+  <div class="term"><dt>shadow mode</dt><dd>Running replacement code on a throwaway copy of the data while the old code stays in charge — differences get logged, players see nothing.</dd></div>
+  <div class="term"><dt>skeleton</dt><dd>The campaign's 3-act outline — acts made of arcs — that the story follows. From a blueprint, or auto-generated at the start.</dd></div>
+  <div class="term"><dt>soak</dt><dd>Letting new code run quietly alongside the old during real play, comparing results every turn until enough clean evidence accumulates to trust it.</dd></div>
+  <div class="term"><dt>spine</dt><dd>The authored main plot of a loaded adventure. "Stay on the spine" = tell that story, don't wander off into a made-up side-plot.</dd></div>
+  <div class="term"><dt>tail retention</dt><dd>After summarizing, keeping the last few exchanges word-for-word so the AI doesn't suddenly "forget" what just happened.</dd></div>
+  <div class="term"><dt>teeth</dt><dd>A rule the ENGINE enforces itself so we don't trust the AI to remember — e.g. "all objectives done → nudge it to close the quest."</dd></div>
+  <div class="term"><dt>the bible <span class="full">capability_bible</span></dt><dd>One master list of what every spell and ability actually does, fed to the AI each turn so it can't rule them differently every time. Anti-drift.</dd></div>
+  <div class="term"><dt>thrash</dt><dd>A system spinning uselessly — like the memory summarizer firing every two turns and never getting ahead. A sign something's tuned wrong.</dd></div>
 </dl>
 
 <h2 id="state">Save &amp; state</h2>
 <dl>
-  <div class="term"><dt>worldState</dt><dd>The one big live object holding everything about the current game: your character, the world, NPCs, quests, combat, and the turn counter.</dd></div>
-  <div class="term"><dt>sessionLog</dt><dd>The recent back-and-forth actually sent to the AI this session. Trimmed down whenever the memory summarizer runs.</dd></div>
-  <div class="term"><dt>memory</dt><dd>Long-term notes the game keeps between sessions: what NPCs know, places visited, lore, big decisions, chapter summaries.</dd></div>
-  <div class="term"><dt>transcript</dt><dd>The complete, in-order log of every narrated turn. The source for reloading the story, RAG recall, and the keepsake export.</dd></div>
   <div class="term"><dt>.tnd</dt><dd>A save file — your whole campaign as one JSON blob you can export, back up, and reload.</dd></div>
+  <div class="term"><dt>memory</dt><dd>Long-term notes the game keeps between sessions: what NPCs know, places visited, lore, big decisions, chapter summaries.</dd></div>
+  <div class="term"><dt>sessionLog</dt><dd>The recent back-and-forth actually sent to the AI this session. Trimmed down whenever the memory summarizer runs.</dd></div>
   <div class="term"><dt>summarize</dt><dd>When the recent log gets long, the AI compresses it into a "chapter" and files the facts, so the game remembers without re-sending everything.</dd></div>
+  <div class="term"><dt>transcript</dt><dd>The complete, in-order log of every narrated turn. The source for reloading the story, RAG recall, and the keepsake export.</dd></div>
+  <div class="term"><dt>worldState</dt><dd>The one big live object holding everything about the current game: your character, the world, NPCs, quests, combat, and the turn counter.</dd></div>
 </dl>
 
 <h2 id="chars">Characters</h2>
 <dl>
-  <div class="term"><dt>PC <span class="full">Player Character</span></dt><dd>The character you control — the "you" the story is told to.</dd></div>
-  <div class="term"><dt>NPC <span class="full">Non-Player Character</span></dt><dd>Everyone else the AI runs — allies, enemies, shopkeepers, the villain.</dd></div>
   <div class="term"><dt>companion / charSheet</dt><dd>An NPC travelling with you who has a full character sheet (their <code>charSheet</code>) and levels up alongside your hero.</dd></div>
+  <div class="term"><dt>NPC <span class="full">Non-Player Character</span></dt><dd>Everyone else the AI runs — allies, enemies, shopkeepers, the villain.</dd></div>
+  <div class="term"><dt>PC <span class="full">Player Character</span></dt><dd>The character you control — the "you" the story is told to.</dd></div>
   <div class="term"><dt>racial_caps</dt><dd>A race's abilities pointed at the shared bible instead of re-written on the race — so "what Darkvision does" lives in exactly one place.</dd></div>
 </dl>
 
