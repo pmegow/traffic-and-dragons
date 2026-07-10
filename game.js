@@ -362,9 +362,12 @@ function sendSuggestedAction(btn,ev){
   if(Date.now()<_qaSuppressUntil){_qaSuppressUntil=0;return;} // a long-press already executed this; swallow the trailing click
   if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}
   var inp=document.getElementById("userinput");if(!inp)return;
-  var fp=toFirstPerson(action);
-  inp.value=fp;inp.focus();
-  try{inp.setSelectionRange(fp.length,fp.length);}catch(e){}
+  // APPEND to whatever's already typed (#33) — the player may have started a partial thought
+  // before tapping a suggestion; replacing would eat it. The × button clears in one tap.
+  var fp=toFirstPerson(action),cur=inp.value;
+  if(cur&&!/\s$/.test(cur))cur+=" ";
+  inp.value=cur+fp;inp.focus();
+  try{inp.setSelectionRange(inp.value.length,inp.value.length);}catch(e){}
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");

@@ -2728,6 +2728,8 @@ function wireButtons(){
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});
   document.getElementById("userinput").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey)sendAction(null);});
+  // × clear (#33) — visibility is pure CSS (:placeholder-shown), so programmatic clears (send, Car Mode mic) hide it for free
+  document.getElementById("input-clear").addEventListener("click",function(){var inp=document.getElementById("userinput");inp.value="";inp.focus();});
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
   document.getElementById("render-btn").addEventListener("click",doRender);
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
