@@ -1,5 +1,6 @@
 {
   "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.22",
   "name": "Tomb of Annihilation",
   "proseAuthor": "howard",
   "author": "Wizards of the Coast (adapted for Traffic and Dragons)",
@@ -12,7 +13,7 @@
       "title": "Port of Last Hope",
       "goal": "Learn what the death curse is, secure backing and a guide in Port Nyanzaru, and strike out into the jungles of Chult toward the curse's source",
       "turningPoint": "The heroes learn the curse flows from a device called the Soulmonger, hidden deep in the interior — and every clue points to a lost city no map has shown for a hundred years: Omu",
-      "reward": "Outfitted for the deep interior — provisioned, chartered, and guided; and Syndra's word arrives: the withering is accelerating, but so are you",
+      "reward": "Outfitted for the deep interior — provisioned, chartered, and guided; and Syndra's word arrives: the withering is accelerating, but so are you. The party sets out from Camp Vengeance toward Kir Sabal or Orolunga in pursuit of the means to locate Omu.",
       "parallel": false,
       "arcs": [
         {
@@ -35,7 +36,7 @@
         },
         {
           "title": "The River of Teeth",
-          "objective": "Survive the first true expedition upriver — dinosaurs, disease, flesh-eating undead that hunt by daylight, and the desperate soldiers of Camp Vengeance",
+          "objective": "Survive the first true expedition upriver—dinosaurs, disease, flesh-eating undead that hunt by daylight, and the desperate, starving soldiers of Camp Vengeance, a palisade under nightly siege that will beg for aid; leaving them to their fate costs the party their debt and safe passage, forcing a harder overland route deeper inland. Reach Camp Vengeance with supplies intact and win the commander's debt to secure resupply, canoes, and escort for the next leg inland toward Omu",
           "type": "exploration",
           "reward": "Camp Vengeance's debt — resupply, canoes, and an escort upriver when it matters most"
         }
@@ -45,39 +46,39 @@
       "title": "The Forgotten City",
       "goal": "Find the lost city of Omu, recover the nine puzzle cubes of its dead trickster gods, and open the way into the tomb beneath it",
       "turningPoint": "With the shrines plundered and the Fane of the Night Serpent breached, the nine cubes unlock the Tomb of the Nine Gods — but the heroes now know they are not alone in the race: the yuan-ti want the Soulmonger preserved, and the Red Wizards of Thay want it for themselves",
-      "reward": "The Tomb of the Nine Gods stands open — all nine cubes placed, the way below revealed; no one has ever gone deeper and returned to say what waits",
+      "reward": "The Tomb of the Nine Gods stands open — all nine cubes placed, the way below revealed; no one has ever gone deeper and returned to say what waits. The party descends into the Tomb of the Nine Gods beneath Omu.",
       "parallel": true,
       "arcs": [
         {
           "title": "Wings and Oracles",
-          "objective": "Earn the trust of the aarakocra of Kir Sabal and seek the ageless oracle Saja N'baza at Orolunga, whose riddles hold the safe path to Omu",
+          "objective": "Gain access to Omu through any reliable means: earn the trust of the aarakocra of Kir Sabal for their aerial knowledge and gift of flight, seek the ageless oracle Saja N'baza at Orolunga for riddle-wisdom of the path, or discover Omu's location through exploration, negotiation with other factions, or recovered maps. Multiple routes to Omu exist; find one.",
           "type": "social",
-          "reward": "The Dance of the Seven Winds — Kir Sabal's gift of limited magical flight — and Saja N'baza's riddle naming the true path to Omu"
+          "reward": "Access to Omu and one significant advantage: the Dance of the Seven Winds (limited flight), Saja N'baza's clear guidance, a map, captured yuan-ti documents, or local knowledge — whatever method the party employed, they arrive at Omu prepared"
         },
         {
           "title": "Omu of the Nine Shrines",
-          "objective": "Explore the drowned ruin of Omu, solve the trials of the nine trickster god shrines to claim their puzzle cubes, and survive the city's tyrant — the King of Feathers",
+          "objective": "Explore the drowned ruin of Omu and gather all nine puzzle cubes through any combination of shrine puzzle-solving, negotiation with shrine guardians or the King of Feathers, theft from other expeditions, trade with factions in the city, or even destruction of obstacles. The cubes can be claimed in any order. Survive the city's apex predator and its dangers.",
           "type": "exploration",
-          "reward": "Eight of the nine puzzle cubes — the trickster gods' keys to the tomb, each shrine leaving its small mark on the bearer"
+          "reward": "Collection of all nine puzzle cubes — acquired through cunning, combat, diplomacy, or ingenuity. Each cube obtained leaves its mark; the path taken defines the bearer."
         },
         {
           "title": "The Fane of the Night Serpent",
-          "objective": "Infiltrate the yuan-ti temple beneath Omu, deal with or destroy the fallen paladin Ras Nsi, and take the final puzzle cube from his coils",
-          "type": "combat",
-          "reward": "The ninth puzzle cube, pried from Ras Nsi's coils — the tomb's lock is complete"
+          "objective": "Deal with the yuan-ti stronghold beneath Omu and Ras Nsi who guards it. This may be accomplished by infiltration without confrontation, negotiation and alliance-forging against Acererak, direct assault, or even bargaining away one or more cubes to secure passage and the final piece. Ras Nsi's oath can be won; his cooperation can be bought; or he can be destroyed. Find a path through the Fane that leaves the heroes alive and the way to the tomb open.",
+          "type": "investigation",
+          "reward": "Passage through the Fane or victory over it. If Ras Nsi is turned to alliance, the party gains a sworn enemy of Acererak and possible aid in the tomb. If destroyed, the Fane's hoard and secrets fall to the victors. The ninth cube is secured — whether from Ras Nsi's coils or from alternatives the party negotiates."
         },
         {
           "title": "The Red Wizards",
-          "objective": "Uncover the Thayan expedition working in the shadows of Omu, and stop Valindra Shadowmantle from reaching the Soulmonger first",
+          "objective": "The Thayan expedition under Valindra Shadowmantle is racing to reach Omu before the party claims the nine cubes. Before the final cube is secured, discover her location, methods, and intentions; decide whether to confront her, sabotage her operations, slow her advance through the jungle, warn her away, form a tactical alliance against Acererak, or ignore her in favour of speed. The party's choice determines whether Valindra arrives at Omu as an obstacle, tomb rival, or redirected threat. Once all nine cubes are claimed and placed in the Tomb of the Nine Gods, Valindra is locked out permanently — but until then, she is a mobile threat who can ambush, poison supply caches, hire mercenaries against the party, or reach Omu first if not delayed or deterred.",
           "type": "investigation",
-          "reward": "Valindra's field notes — Thayan research on the Soulmonger's construction: forewarning of the tomb's lowest works (a real edge below)"
+          "reward": "Intelligence on Valindra's position, methods, and the Soulmonger's construction from her research (captured documents, spies turned, or reconnaissance). If the party confronts or sabotages her, they gain time and possibly her field notes: the Soulmonger draws power from the nine puzzle cubes AND the atropal's feeding, and can only be permanently destroyed if both are severed simultaneously. The party's approach determines Valindra's final role: a tomb corpse if killed before the descent, a delayed threat if sabotaged early, a rival treasure-seeker in the tomb's levels if the party merely outpaced her, or a potential ally if diplomatic and Valindra is convinced Acererak is the greater threat."
         }
       ]
     },
     {
       "title": "The Tomb of the Nine Gods",
       "goal": "Descend the deathtrap tomb of the archlich Acererak, level by level, and destroy the Soulmonger at its heart",
-      "turningPoint": "The Soulmonger is shattered and the death curse broken — but the thing it was feeding, a stillborn god swaddled in stolen souls, wakes hungry, and Acererak himself comes to defend his experiment",
+      "turningPoint": "The Soulmonger shatters under the heroes' assault — and in that moment Acererak arrives to reclaim his masterpiece, revealing the atropal stillborn god cradled within the device, swaddled in stolen souls and now waking hungry. The archlich stands between the heroes and escape, and the infant god stirs in its cradle.",
       "reward": "The curse-breaker's legend — the death curse ended, Chult's eternal gratitude, the wealth of the Tomb of the Nine Gods, and Syndra Silvane's named price honoured in full",
       "parallel": false,
       "arcs": [
@@ -95,7 +96,7 @@
         },
         {
           "title": "The Soulmonger",
-          "objective": "Reach the heart of the tomb, destroy the Soulmonger, face the atropal it nourishes, and survive Acererak's wrath to see the sun again",
+          "objective": "Reach the heart of the tomb, disable the Soulmonger's anchoring mechanism (the nine cubes must be removed or shattered simultaneously), face the atropal it nourishes as it wakes, and survive Acererak's wrath to see the sun again",
           "type": "combat",
           "reward": "The death curse broken — every soul the Soulmonger held released, the tomb's hoard, and a world that owes you what it can never repay"
         }
@@ -119,25 +120,25 @@
       "name": "Azaka Stormfang",
       "role": "ally",
       "pronouns": "she/her",
-      "notes": "Chultan jungle guide — capable, proud, and cheap, because she has her own reason to go inland: a stolen family mask she means to recover from Firefinger. Secretly a weretiger; her secret surfaces under the full moon or in desperate battle."
+      "notes": "Chultan jungle guide — capable, proud, and cheap, because she has her own reason to go inland: a stolen family mask she means to recover from Firefinger. Secretly a weretiger; her secret surfaces under the full moon or in desperate battle. GUIDE CONSEQUENCES: Azaka refuses expeditions led by or openly allied with the yuan-ti, and will abandon the party if they betray Chult's interests to foreign powers (Red Wizards, Zhentarim). Her weretiger nature, if discovered mid-campaign by direct confrontation rather than gradual revelation, triggers shame and temporary mistrust — she may demand the heroes prove their worthiness before continuing. However, if her transformation is witnessed in combat defending the party, it cements her loyalty. Her knowledge is practical: she knows safe camps, poison-plant locations, and the route to Firefinger (where her mask lies). Once recovered, her mask grants her +1 to AC as armour and unlocks ancient weretiger memories of Omu's layout."
     },
     {
       "name": "Eku",
       "role": "ally",
       "pronouns": "she/her",
-      "notes": "A guide who seems too wise, too kind, and too unkillable for this jungle. In truth a couatl in human form, sworn to protect Chult's innocents. Refuses to guide evil-hearted expeditions. Knows the path to Orolunga and speaks of the oracle with reverence."
+      "notes": "A guide who seems too wise, too kind, and too unkillable for this jungle. In truth a couatl in human form, sworn to protect Chult's innocents. Refuses to guide evil-hearted expeditions. GUIDE CONSEQUENCES: Eku refuses to join any expedition containing a character with evil alignment or a history of slavery, colonialism, or cruelty to innocents — she will read the party's hearts and decline if she senses such intent. She will also refuse to guide a party toward the Soulmonger if they intend to seize it for power rather than destroy it. If she joins, she reveals her couatl nature only when the party reaches Orolunga or when forced to fight on their behalf — her transformation is a moment of terrible beauty, and she expects the heroes to treat her differently afterward (as something sacred, not mortal). She knows the path to Orolunga intimately and can speak directly with Saja N'baza without riddles, granting the party a single unambiguous answer to one question about the Soulmonger's nature. Her presence in the tomb causes undead and devils to avoid or flee confrontation, but celestial-hunting creatures (including Acererak's servants) actively hunt the party."
     },
     {
       "name": "Artus Cimber",
       "role": "neutral",
       "pronouns": "he/him",
-      "notes": "A legend who doesn't look a day over thirty — because he isn't aging. Bearer of the Ring of Winter, hunted by the Zhentarim and Ras Nsi's yuan-ti alike. Searching Chult for his lost wife's people. A powerful wildcard: ally if befriended, catastrophe if betrayed."
+      "notes": "A legend who doesn't look a day over thirty — because he isn't aging. Bearer of the Ring of Winter, hunted by the Zhentarim and Ras Nsi's yuan-ti alike. Searching Chult for his lost wife's people. FIRST ENCOUNTER & ENTRY: Artus appears in Act One (Port Nyanzaru or Camp Vengeance) fleeing active pursuit by yuan-ti assassins or Zhentarim agents. He seeks temporary sanctuary and intelligence about the party's intentions. If the party aids him during this encounter without asking payment or exploiting his desperation, friendship begins. FRIENDSHIP MECHANICS: Artus considers a party his ally if they (1) shelter him from pursuers without betrayal, (2) share information about their quest without demanding his secrets in return, and (3) demonstrate commitment to destroying the Soulmonger (not seizing or studying it). Friendship unlocks three concrete benefits: he joins as a capable guide with access to hidden safe routes through Chult; he shares Zhentarim and yuan-ti intelligence gathered during his own hunts; and he reveals the Ring of Winter's utility in the tomb — its cold aura prevents Acererak from scrying the party's location and causes certain undead guardians to behave erratically (though this same aura marks Artus for destruction when Acererak arrives). BETRAYAL DEFINITION: Artus turns to catastrophe if the party (1) actively allies with the Zhentarim or yuan-ti, (2) attempts to steal or coerce the Ring of Winter from him, (3) sells his location to his pursuers for profit or favour, or (4) continues toward the Soulmonger with clear intent to seize it rather than destroy it after he has explicitly warned against this. CATASTROPHE FORM: If betrayed, Artus does not become an enemy combatant — instead, the Ring of Winter's curse activates. He vanishes into the jungle, taking with him all knowledge of safe routes and Zhentarim/yuan-ti movements. His disappearance removes the ring's protective aura from the tomb, allowing Acererak to scry the party freely and coordinate his servants' ambushes. Additionally, Artus — driven by the ring's curse-logic to protect his wife's people from exploitation — may ally with Ras Nsi or even Acererak against the party if he believes they threaten Chult's sovereignty (an act of tragic betrayal on his part, not malice). He becomes a tomb complication rather than an asset. ALLYSHIP BENEFITS IN TOMB: If Artus descends into the Tomb of the Nine Gods as a true ally, he fights beside the party and his ring grants the following: (1) cold aura prevents scrying, (2) three times per descent, Artus can freeze a trap mechanism or undead guardian into stasis for one hour, (3) once per descent, the ring reveals a hidden passage known to no other being — a shortcut that bypasses one full level. However, Artus cannot survive the atropal's hunger if he remains in the tomb past the Soulmonger's shattering; if the party does not secure his escape, the atropal's waking hunger destroys him utterly, and the Ring of Winter is lost forever (a permanent sacrifice, not a temporary death)."
     },
     {
       "name": "Dragonbait",
       "role": "ally",
       "pronouns": "he/him",
-      "notes": "A saurial paladin — a scaled, crested warrior from another world who speaks only through scent and gesture. Artus Cimber's inseparable companion. Communicates smells: brimstone for anger, roses for approval. Utterly loyal, uncannily good at reading hearts."
+      "notes": "A saurial paladin — a scaled, crested warrior from another world who speaks only through scent and gesture. Artus Cimber's inseparable companion. Communicates through deliberate scent-speech: sulfur = anger or aggression; roses = approval or joy; ash = sorrow or grief; sea-salt = fear or concern; copper = hunger or desire; pine = calm or contentment; iron = determination or resolve. Utterances are slow, considered, and emphatic through gesture and posture. Utterly loyal, uncannily good at reading hearts."
     },
     {
       "name": "Saja N'baza",
@@ -149,7 +150,7 @@
       "name": "Ras Nsi",
       "role": "enemy",
       "pronouns": "he/him",
-      "notes": "Once a paladin of Ubtao who slaughtered thousands to punish Omu's faithlessness; now a yuan-ti anathema-in-waiting ruling the Fane of the Night Serpent beneath the city. Dying slowly, desperate, and holding the ninth puzzle cube. Can be bargained with — his hatred of Acererak's works runs deep — but never trusted."
+      "notes": "Once a paladin of Ubtao who slaughtered thousands to punish Omu's faithlessness; now a yuan-ti anathema-in-waiting ruling the Fane of the Night Serpent beneath the city. Dying slowly, desperate, and holding the ninth puzzle cube. His hatred of Acererak runs deeper than his hunger for power: the archlich stole Omu's divine essence to birth the atropal, profaning everything Ras Nsi bled for. A genuine bargain is possible — propose an alliance against Acererak, and Ras Nsi will yield the ninth cube and even grant passage through the Fane, demanding only that the heroes swear to destroy the Soulmonger and the stillborn god (binding the heroes to his cause, not freeing them). This alliance holds only if the heroes honour the oath: betray it, or move against Acererak half-heartedly, and Ras Nsi turns the yuan-ti against them mid-descent. He cannot be charmed or intimidated into surrender — only conviction or desperation will sway him. If approached as a mere obstacle or killed before negotiation, the Fane's full strength opposes the heroes' escape."
     },
     {
       "name": "Valindra Shadowmantle",
@@ -161,7 +162,7 @@
       "name": "Withers",
       "role": "enemy",
       "pronouns": "he/him",
-      "notes": "The tomb's steward — a withered, skeletal functionary who manages Acererak's deathtrap like a bureaucrat manages ledgers. Dispatches tomb dwarves to repair sprung traps and watches the heroes' progress through scrying. Petty, meticulous, hateful."
+      "notes": "The tomb's steward — a withered, skeletal functionary who manages Acererak's deathtrap like a bureaucrat manages ledgers. FIRST MANIFESTATION: Withers appears to the party within the first two levels of the tomb via scrying orb or spectral projection, announcing their presence with bureaucratic formality. He manifests to establish authority and gloat over the intruders, delivering Acererak's mocking welcome and outlining the tomb's 'rules of conduct.' PRIORITIES & ESCALATION: Withers prioritizes scrying intelligence first — he watches the party's movements and reports to Acererak, acting as the archlich's eyes. If the party moves swiftly or damages significant traps, Withers shifts to trap repair, dispatching tomb dwarves and undead servants to reset mechanisms the heroes have bypassed. If the party mocks, ignores, or deliberately defies him (by circumventing traps he's restored or destroying his scrying orbs), his pettiness escalates: he begins personally harassing them through magical means (phantasmal killers, minor hexes, supernatural obstacles placed in their path). His voice takes on a note of wounded rage mixed with vindictive glee. NEGOTIATION: Withers cannot be reasoned with or bargained away — he is utterly bound to Acererak and takes any negotiation attempt as mockery. Destruction of his scrying orbs or confrontation enrages him and causes him to call down additional tomb defenses out of sheer spite. The party's only relief is to descend deeper, beyond the tomb levels he oversees, forcing him to lose scrying contact as they approach the Soulmonger. He plays a minor role once the party nears the heart — Acererak's personal fury and the atropal's awakening render Withers' fussiness irrelevant."
     },
     {
       "name": "Acererak",
@@ -181,19 +182,19 @@
       "name": "Daylight dead",
       "kind": "undead",
       "threat": "moderate in numbers",
-      "notes": "Chult's zombies and skeletons walk in full sun — the death curse unmoors them from the old rules. They mass along rivers and old battlefields, drawn to noise and firelight. Slow, relentless, and never alone."
+      "notes": "Chult's zombies and skeletons walk in full sun — the death curse unmoors them from the old rules. They mass along rivers and old battlefields, drawn to noise, firelight, and the scent of living blood. Slow, relentless, and never alone. They ignore water, climb poorly, and fear bright magical light; they converge on the Soulmonger's location if it is disturbed, as if magnetized to its essence."
     },
     {
       "name": "Zombie tyrannosaurus",
       "kind": "undead",
       "threat": "deadly",
-      "notes": "A rotting horror stitched together by necromantic runoff. Vomits crawling zombies from its gullet mid-fight. If one appears, something upstream made it — nothing natural raises a thunder lizard."
+      "notes": "A rotting horror stitched together by necromantic runoff. Vomits crawling zombies from its gullet mid-fight. If one appears, something upstream made it — nothing natural raises a thunder lizard. Origin: Valindra Shadowmantle's Thayan expedition, experimenting with reanimation in hidden camps upriver of Camp Vengeance; appears when the party gets too close to their operation, or as a deterrent if they track the Red Wizards."
     },
     {
       "name": "Pterafolk",
       "kind": "monstrosity",
       "threat": "moderate",
-      "notes": "Winged reptilian raiders roosting at Firefinger. They snatch travellers from canoes and drop them from a thousand feet, keeping trophies from every kill. Cowardly on the ground; merciless in the air."
+      "notes": "Winged reptilian raiders roosting at Firefinger. They snatch travellers from canoes and drop them from a thousand feet, keeping trophies from every kill. Trophies are crude bone totems: skulls of victims strung with entrails and feathers, arranged on cliff ledges. They recognize and return to favorite victims' bodies; this obsession can be weaponized (bait them with a trophy, or stage a fake casualty). Cowardly on the ground; merciless in the air."
     },
     {
       "name": "Yuan-ti malison",
@@ -206,16 +207,52 @@
       "kind": "beast",
       "threat": "low",
       "notes": "Territorial poison frogs the size of halflings, colour-coded by caste. Their skin toxin paralyses; their blowgun ambushes come from the canopy. More nuisance than menace — until the party is poisoned, roped, and being carried to the totem."
+    },
+    {
+      "name": "Kobold",
+      "kind": "humanoid",
+      "threat": "low",
+      "notes": "Inhabitants of Omu's ruins, organized in small tribes throughout the city's broken streets and abandoned structures. They worship the King of Feathers as a god-beast and maintain crude shrines to it within the ruins. Generally territorial and hostile to outsiders, but may be bribed, bargained with, or avoided through stealth. Some possess tribal knowledge of safe routes through Omu and the locations of the nine shrines, though extracting such information requires negotiation or intimidation."
+    },
+    {
+      "name": "Tomb dwarf",
+      "kind": "construct",
+      "threat": "low",
+      "notes": "Acererak's enslaved automata tasked with trap maintenance and patrol throughout the Tomb of the Nine Gods. Withers dispatches them to reset mechanisms the heroes have bypassed or repair damage to the archlich's carefully wrought deathtraps. Mindless and tireless, they work with mechanical precision but possess no initiative or cunning — they can be outwitted, disabled if their control runes are defaced, or simply avoided by those moving swiftly enough."
+    },
+    {
+      "name": "Withers",
+      "kind": "undead",
+      "threat": "moderate",
+      "notes": "The tomb's steward — a withered, skeletal functionary who manages Acererak's deathtrap like a bureaucrat manages ledgers. FIRST MANIFESTATION: Withers appears to the party within the first two levels of the tomb via scrying orb or spectral projection, announcing their presence with bureaucratic formality. He manifests to establish authority and gloat over the intruders, delivering Acererak's mocking welcome and outlining the tomb's 'rules of conduct.' PRIORITIES & ESCALATION: Withers prioritizes scrying intelligence first — he watches the party's movements and reports to Acererak, acting as the archlich's eyes. If the party moves swiftly or damages significant traps, Withers shifts to trap repair, dispatching tomb dwarves and undead servants to reset mechanisms the heroes have bypassed. If the party mocks, ignores, or deliberately defies him (by circumventing traps he's restored or destroying his scrying orbs), his pettiness escalates: he begins personally harassing them through magical means (phantasmal killers, minor hexes, supernatural obstacles placed in their path). His voice takes on a note of wounded rage mixed with vindictive glee. NEGOTIATION: Withers cannot be reasoned with or bargained away — he is utterly bound to Acererak and takes any negotiation attempt as mockery. Destruction of his scrying orbs or confrontation enrages him and causes him to call down additional tomb defenses out of sheer spite. The party's only relief is to descend deeper, beyond the tomb levels he oversees, forcing him to lose scrying contact as they approach the Soulmonger. He plays a minor role once the party nears the heart — Acererak's personal fury and the atropal's awakening render Withers' fussiness irrelevant."
+    },
+    {
+      "name": "Acererak",
+      "kind": "undead",
+      "threat": "apex",
+      "notes": "The archlich. Builder of deathtrap tombs across a hundred worlds, harvester of souls, author of the death curse. The Tomb of the Nine Gods is his masterpiece and the Soulmonger his experiment — feeding the souls of the raised dead to a stillborn god. He does not fear the heroes; he is entertained by them. Until the Soulmonger cracks."
+    },
+    {
+      "name": "Atropal",
+      "kind": "aberration",
+      "threat": "apex",
+      "notes": "A nascent dead god, stillborn and swaddled in stolen souls. The Soulmonger's true heart — a child of divine death that should never have drawn breath. It lies in a cradle of obsidian and bone at the tomb's deepest point, feeding on the thousands of souls the Soulmonger harvests from the raised dead across the world. When the Soulmonger shatters under the heroes' assault, the atropal wakes — hungry, confused, and utterly alien in its hunger. It cannot be reasoned with or bargained away. Acererak arrives to defend it, and the atropal's waking fury consumes all things in its vicinity. Only the souls bound within the nine puzzle cubes can anchor it or weaken its hold; their destruction or dissolution may be the only path to preventing the dead god from crawling into the world."
+    },
+    {
+      "name": "Night hag",
+      "kind": "fiend",
+      "threat": "deadly",
+      "notes": "The coven of night hags tends the Tomb of the Nine Gods' lowest works, guarding the approach to the Soulmonger itself. Ancient, cruel, and bound to Acererak through pacts woven in shadow. They may be bargained with if the party offers tribute or service, destroyed through direct assault or cunning traps, or betrayed if the party turns against them — though such betrayal costs, for hags hold grudges across lifetimes. They know what truly waits in the cradle below: the atropal's nature, its hunger, and the price of its waking. A genuine bargain struck with them grants the party one true answer about the cradle and safe passage past their works; refusal or treachery brings their malice down upon the expedition, and they will hunt the party through the tomb's depths with supernatural persistence."
     }
   ],
   "locations": [
     {
       "name": "Port Nyanzaru",
-      "description": "The last great city of Chult — a riot of colour, drums, and commerce ruled by seven merchant princes. Dinosaurs haul cargo through the streets and race for fortunes on festival days. Beyond its walls: harbour forts, a leper colony, and three hundred miles of jungle that eats expeditions whole."
+      "description": "The last great city of Chult — a riot of colour, drums, and commerce ruled by seven merchant princes. Dinosaurs haul cargo through the streets and race for fortunes on festival days. Beyond its walls: harbour forts, a leper colony, and three hundred miles of jungle that eats expeditions whole. The seven princes command rival trade monopolies and jealously guard their influence: Wakanga O'tamu (magic and lore, urbane collector of secrets); Captain Thorne (arms and mercenaries, gruff and pragmatic); Zhanthi (spices and luxuries, vain and status-obsessed); Ijek (slaves and labour, cruel and calculating); Lashandra (gems and jewellery, shrewd negotiator with a gambling addiction); Naja Dagalond (textiles and dyes, motherly but ruthless in business); and Kwayothé (food and agriculture, jovial drunkard hiding sharp accounting). Each prince controls a trading house, commands private soldiers, and views the party's expedition as either opportunity or threat. Favour one, and the others grow distant. Betray one's interests, and they conspire against the heroes before departure."
     },
     {
       "name": "Camp Vengeance",
-      "description": "The Order of the Gauntlet's forward camp on the River Soshenstar — a palisade of sharpened logs, sick soldiers, and grim resolve, besieged nightly by undead. Its commander needs supplies and reinforcements far more than pride lets him admit."
+      "description": "The Order of the Gauntlet's forward camp on the River Soshenstar, commanded by Captain Harwin of Waterdeep — a grizzled veteran who maintains discipline even as sickness spreads and supplies dwindle. The camp is a palisade of sharpened logs, sick soldiers, and grim resolve. Each night, undead rise from the river in organized waves, attacking from the eastern bank in coordinated masses rather than random stragglers — suggesting something intelligent commands them from upriver. The undead surge nightly because a necromantic anchor buried beneath the camp (planted by Thayan scouts) draws them; destroying it requires investigation and a dangerous midnight expedition into the graveyard the camp occupies. Harwin's debt to those who save the camp or bring news of the undead's source runs deep: the party can call in canoe escorts for future river travel, reinforcements for a critical assault on the Yuan-ti or the tomb, or magical aid in the form of healing potions and clerical blessings. The commander respects strength and honesty; help him, and he becomes a reliable ally in Chult's interior."
     },
     {
       "name": "Firefinger",
@@ -223,31 +260,594 @@
     },
     {
       "name": "Kir Sabal",
-      "description": "A monastery carved into a cliff face, reachable only by air or a heart-stopping climb, home to a colony of aarakocra. They shelter the last heirs of Omu's royal line and may gift the worthy the Dance of the Seven Winds."
+      "description": "A monastery carved into a cliff face, reachable only by air or a heart-stopping climb, home to a colony of aarakocra. They shelter the last heirs of Omu's royal line: Prince Mala and her younger brother Prince Ashok, the sole survivors of the kingdom's fall. Both are cautious of outsiders but bound by oath to aid those who would restore their god's honour and destroy the source of Chult's curse. Mala leads the monastery's warriors and judges the party's worthiness; Ashok tends the sacred aviary where the Dance of the Seven Winds was taught to Omu's ancient kings. EARNING THE DANCE: The aarakocra gift the Dance of the Seven Winds (granting limited flight for up to three days) only to those the princes deem worthy. Worthiness is tested through three trials set by Mala: (1) Speak truly about your intentions for the Soulmonger — those who seek to seize or study it rather than destroy it are refused and barred from the monastery; (2) Demonstrate courage and honour in the aarakocra's presence — cowardice or cruelty disqualifies the seeker; (3) Prove your commitment to Omu's restoration and Chult's liberation — mercenaries, agents of foreign powers, or those who serve colonial masters are turned away. Those who pass all three trials receive Ashok's blessing: he teaches them the Dance personally over three hours, and each member of the party may fly for up to three days without magical aid. The gift is given freely, not purchased, but may be revoked if the party betrays the princes' trust or allies with the yuan-ti or Red Wizards after receiving it. If the party aids Mala and Ashok in a crisis (yuan-ti assassination attempt, rival predator threat, or recovery of a lost aarakocra), the brothers swear a blood-oath to aid the heroes in the tomb itself — they cannot descend into Acererak's lair but may provide aerial rescue, message relay, or one critical supply drop during the tomb's descent."
     },
     {
       "name": "Orolunga",
-      "description": "A ruined ziggurat swallowed by green, its stepped terraces patrolled by spectral handmaidens. At its summit dwells Saja N'baza, the guardian naga who has answered pilgrims' riddles since before Omu fell."
+      "description": "A ruined ziggurat swallowed by green, its stepped terraces patrolled by spectral handmaidens. The ascent to Saja N'baza's summit demands five ascending trials — each a riddle or spirit-test that probes the seeker's worth. RIDDLE MECHANICS: The five guardians are bound to specific terraces: (1) Terrace of Memory (riddle on the nature of what is forgotten), (2) Terrace of Intent (riddle on the difference between wish and deed), (3) Terrace of Sacrifice (riddle on the cost of knowledge), (4) Terrace of Honesty (riddle on truth in shadow), (5) Terrace of Passage (final riddle on worthiness itself). Each riddle must be answered with genuine insight, not mere wordplay — Saja's handmaidens judge the answer's truth, and a weak or dishonest answer causes that terrace's guardian to bar re-entry for one full day and night, forcing the seeker to return later or find an alternate path. Three failed answers across all five terraces trigger a curse: the ziggurat's vines animate and entangle the intruder, holding them for 1d4 hours before release — a costly delay that tests patience as much as wit. Once all five riddles are answered truthfully, the seeker reaches the summit chamber where Saja N'baza coils around her scrying pool. SAJA'S PRICE: She does not answer directly — she demands one of three prices. (1) A SECRET: Tell her something true that the seeker has never spoken aloud — a shame, a fear, a desire — and she will answer one question about Omu's location, the Soulmonger's nature, or the path through the tomb. The secret must be genuine; she reads hearts and will know if the seeker lies. (2) A MEMORY: Surrender a treasured memory — the seeker forgets the memory forever, but Saja grants two answers instead of one. (3) A GUIDE: Pledge one of the seeker's companions to guard her ziggurat for one full lunar cycle after the Soulmonger is destroyed, and Saja grants three answers plus a blessing: the guardian is immune to charm and mind-affecting magic while bound to the ziggurat, and may never be harmed within its walls. If the party cannot or will not meet her price, she will not answer — though she may drop hints through her handmaidens if she senses genuine good intent. Most expeditions receive only one answer: the location of Omu, delivered through a riddle that must itself be solved. Some, who pay dearly, learn the Soulmonger draws power from both the nine puzzle cubes AND the atropal's essence — and that only by severing both simultaneously can the curse be permanently broken."
     },
     {
       "name": "Omu",
-      "description": "The forgotten city. Once the jewel of Chult, cursed when its people abandoned their gods — now a drowned ruin in a sunken valley, ruled by a tyrannosaurus the kobolds call the King of Feathers. Nine shrines to nine dead trickster gods hide nine puzzle cubes, and beneath the royal palace coils a temple of serpents."
+      "description": "The forgotten city. Once the jewel of Chult, cursed when its people abandoned their gods — now a drowned ruin in a sunken valley, ruled by a tyrannosaurus the kobolds call the King of Feathers. Nine shrines to nine dead trickster gods hide nine puzzle cubes. The city's geography follows a broken mandala: I'jin's Shrine (caprice and impulse) lies in the eastern ruin-heap where paths loop and confound; Kubazan's Temple stands in the gardens north of the palace, where strength-tests mar ancient stone; Moa's Sanctum sits west in a half-buried tower, silent and warded with blindness; Nangnang's Hoard-Grotto occupies the southern cliff-face, defended by traps that reward greed with death; Obo'laka's Ritual Chamber marks the centre beneath the royal plaza, its sequence-locks binding the rest; Papazotl's Pride-House crowns the highest ruin to the northeast, where only the worthy ascend; Shagambi's Justice-Seat dwells in the western cemetery, where old wrongs sleep unquiet; Unkh's Contemplation-Pool fills a sinkhole to the northwest, its murky depths unchanged for centuries; Wongo's Madness-Shrine clings to the ravine's southern cliff in a frenzy of carvings and bone. The Royal Palace dominates the central plateau, and beneath it coils the Fane of the Night Serpent — serpent-temple and stronghold of Ras Nsi."
     },
     {
       "name": "Fane of the Night Serpent",
-      "description": "The yuan-ti stronghold beneath Omu — breeding pits, sacrifice pools, and hissing devotion to Dendar the Night Serpent. Ras Nsi rules here, guarding the final puzzle cube and dreaming of the world's last night."
+      "description": "The yuan-ti stronghold beneath Omu — a labyrinth of breeding pits, sacrifice pools, and hissing devotion to Dendar the Night Serpent. The stronghold divides into three main tiers: the Upper Fangs (guard barracks, ritual chambers, and sentry posts where yuan-ti malisons keep watch over approaches); the Breeding Pits (writhing pools where eggs incubate and spawn-servants are gestated — hot, humid, and alive with serpent life); and the Sunken Sanctum, where Ras Nsi rules from his throne room at the deepest point. Ras Nsi dwells in an obsidian chamber beneath a vaulted roof carved with the profile of Dendar; the ninth puzzle cube rests upon an altar of coiled serpentine statuary directly before his throne, both shrine and seat of power combined. The cube is not worn upon his person but bound by ritual chains to the altar — removing it requires defeating Ras Nsi, negotiating his oath, or finding an alternate path around the Sunken Sanctum entirely. Smaller shrines to darker aspects of the Night Serpent cult dot the lower tier, and a central columned hall connects all three sections — a natural battleground where the party's infiltration or assault will likely pivot. Ras Nsi cannot be easily surprised here; the yuan-ti of the Fane answer to him absolutely and will defend their lord and the cube with fanatic devotion unless he orders otherwise."
     },
     {
       "name": "Tomb of the Nine Gods",
-      "description": "Acererak's masterpiece, buried beneath Omu: six levels of traps that reward greed with death, halls that rearrange themselves, and the sepulchres of Omu's nine murdered gods. At its heart hangs the Soulmonger, and beneath it, a cradle no light should ever have touched."
+      "description": "Acererak's masterpiece, buried beneath Omu: a six-level descent of traps that reward greed with death, halls that shift and reconfigure between visits (forcing recursive navigation if players backtrack or are separated), and the sepulchres of Omu's nine murdered gods. Each level is ruled by one god and embodies that god's nature in its trials: Level One: I'jin's Caprice (paths and stairs change, nothing is where it was), Level Two: Kubazan's Bold Wildness (tests of strength and reckless valour), Level Three: Moa's Honesty (invisible threats, truth-or-death riddles), Level Four: Nangnang's Selfishness (wealth-traps, solo corridors, betrayal-doors), Level Five: Obo'laka's Ritual (locked sequences, pattern-recognition, order or death), Level Six: Papazotl's Pride (the god's own sepulchre, where Acererak's servants wait — no traps here, only guardians worthy of the archlich's presence). At the tomb's heart hangs the Soulmonger, and beneath it a cradle no light should ever have touched. The tomb's halls rearrange whenever all nine puzzle cubes leave their shrines—corridors shift, old paths close, and new ones open, forcing the party to navigate by riddle, memory, and the guidance of the trickster spirits whose cubes they carry."
     }
   ],
   "rules": [
     "This campaign is adapted from Tomb of Annihilation. Stay true to the major plot beats, factions, and NPCs but adapt freely to the player's choices and character.",
-    "The death curse is the campaign's clock — make it felt through people, not mechanics: Syndra visibly worse at each meeting, funerals in Port Nyanzaru, desperate letters from families of the withering. If the player character was ever raised from the dead, the curse touches them personally.",
+    "The death curse is the campaign's clock — make it felt through people, not mechanics: Syndra visibly worse at each meeting, funerals in Port Nyanzaru, desperate letters from families of the withering. If the player character was ever raised from the dead, the curse touches them personally. SYNDRA'S DETERIORATION TIMELINE: At Act I start, Syndra is grey-skinned and sunken-eyed but mobile and commanding. By Act II start (The Forgotten City), she is noticeably frail, moving slowly, and confined to her lodgings in Port Nyanzaru or a traveling shelter — she no longer meets the party in public. By Act III start (The Tomb of the Nine Gods), she is bedridden and cannot leave her lodgings; she communicates only by sending or through magical scrying. If the party does not reach the Soulmonger's chamber and begin the final descent before the mid-point of Act III, Syndra dies during that act — her withering accelerates beyond even magical remedy. If she dies before the party escapes the tomb, she can no longer cast the promised teleportation ritual to extract them; the party must find their own path out of the Tomb of the Nine Gods or perish within it. This transforms the final ascent from a victory lap into a desperate race against the tomb's collapse and Acererak's servants.",
     "Chult itself is an antagonist. Heat, torrential rain, insects, disease, quicksand, and things with teeth — travel should never feel free. But the jungle is also gorgeous and alive; wonder and dread in equal measure.",
     "Port Nyanzaru and the Chultans are vibrant, sophisticated, and proudly independent — never portray them as primitive. Foreign colonial powers lost their grip on Chult; the locals remember why.",
-    "THE NINE TRICKSTER GODS OF OMU (canonical — use these names and natures everywhere shrines, puzzle cubes, or tomb spirits appear): I'jin the almiraj (caprice, impulse, never the same path twice), Kubazan the froghemoth (bold wildness, feats of strength), Moa the jaculi (honesty, self-denial, invisibility), Nangnang the grung (selfishness, hoarding, trusts no one), Obo'laka the zorbo (anxious caution, ritual, order), Papazotl the eblis (pride and cunning — bow to no one), Shagambi the kamadan (wisdom, justice, quiet vengeance against evil), Unkh the flail snail (indecision, contemplation, glacial deliberation), Wongo the su-monster (savage violence, madness). Each shrine, cube, and spirit expresses its god's character — puzzles and hauntings alike should FEEL like the god they belong to.",
+    "THE NINE TRICKSTER GODS OF OMU (canonical — use these names and natures everywhere shrines, puzzle cubes, or tomb spirits appear). Each shrine, cube, and spirit expresses its god's character — puzzles and hauntings alike should FEEL like the god they belong to. SHRINE LOCATIONS AND MAPPINGS IN OMU: I'jin the almiraj (Shrine of Caprice, northeast platform accessible by boulder-rolling puzzle; puzzle cube grants unpredictable re-rolls once per session) — Kubazan the froghemoth (Shrine of Bold Wildness, eastern ruin-heap with strength-test trials; cube grants advantage on Athletics checks once per day) — Moa the jaculi (Shrine of Honesty, western half-buried tower warded with blindness-magic; cube reveals one hidden truth when held to eyes, consuming the revelation) — Nangnang the grung (Hoard-Grotto, southern cliff-face defended by greed-traps that reward taking with death; cube allows the bearer to sense wealth within 60 feet once per day) — Obo'laka the zorbo (Ritual Chamber, center beneath the royal plaza with sequence-locks binding the rest; cube grants perfect recall of one sequence or pattern witnessed, usable once per session) — Papazotl the eblis (Pride-House, highest ruin to the northeast where only the worthy ascend via trial of valour; cube grants advantage on Charisma checks against proud or vain creatures once per day) — Shagambi the kamadan (Justice-Seat, western cemetery where old wrongs sleep unquiet; cube allows the bearer to sense injustice and active curses within 60 feet) — Unkh the flail snail (Contemplation-Pool, sinkhole to the northwest with murky depths unchanged for centuries; cube grants one hour of total clarity on a confused or chaotic decision once per session) — Wongo the su-monster (Madness-Shrine, ravine's southern cliff in a frenzy of carvings and bone; cube grants immunity to fear until the next dawn, consumed on use). The Royal Palace dominates the central plateau, and beneath it coils the Fane of the Night Serpent — serpent-temple and stronghold of Ras Nsi, where the ninth cube rests upon his obsidian throne.",
     "Acererak's tomb kills fairly: telegraph every trap, reward paranoia and cleverness, and let deaths feel earned, never arbitrary. The tomb is a dialogue between the player and a sadistic genius who wants an audience."
-  ]
+  ],
+  "review": {
+    "verdict": "58 findings (18 high) across 6 section reviews",
+    "findings": [
+      {
+        "sev": "HIGH",
+        "section": "Act 3 turning point",
+        "issue": "The turning point names two simultaneous final threats (atropal waking + Acererak's wrath) but the arc structure gives only one combat arc to resolve both, creating an impossible climax.",
+        "fixes": [
+          "Rewrite Act 3 turning point to name Acererak's arrival as the primary turning point, with the atropal as a revelation within that confrontation rather than a separate encounter."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Act 3 turning point rewritten: Acererak's arrival is now the primary turning point, with the atropal waking revealed as part of that same confrontation rather than a separate encounter. The final combat arc expanded to encompass both threats as a unified climax."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Act 2, arc 'The Fane of the Night Serpent'",
+        "issue": "Arc objective names Ras Nsi as a mandatory combat encounter (deal with or destroy), but NPC notes indicate he can be bargained with; no guidance tells the GM when/how bargaining succeeds or fails, leaving a critical branching point unscripted.",
+        "fixes": [
+          "Extend Ras Nsi's NPC notes to specify: his hatred of Acererak creates a genuine bargain condition (alliance against the archlich), what payment/promise seals it, and what betrayal triggers combat instead."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Ras Nsi's NPC notes to specify bargain condition (alliance against Acererak due to shared hatred), what seals it (oath to destroy Soulmonger and atropal), what triggers combat instead (betrayal or half-hearted effort), and consequences of each path."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Act 1, arc 'A Guide into the Green'",
+        "issue": "Arc objective requires winning over a guide, but three allies (Azaka, Eku, Artus) can fulfill this role with wildly different consequences—no guidance tells the GM what each guide unlocks, blocks, or changes downstream.",
+        "fixes": [
+          "Extend Azaka's notes to specify what she refuses to do and how her weretiger secret surfaces if discovered mid-campaign.\nExtend Eku's notes to specify which party compositions or actions cause her to refuse the expedition, and what she reveals if she stays.\nAdd guidance to Artus's notes clarifying whether he can be hired as a guide (his NPC role is 'neutral', not 'ally'), and if so, what his Ring of Winter complicates in the tomb.",
+          "Extend Eku's notes to specify which party compositions or actions cause her to refuse the expedition, and what she reveals if she stays.",
+          "Add guidance to Artus's notes clarifying whether he can be hired as a guide (his NPC role is 'neutral', not 'ally'), and if so, what his Ring of Winter complicates in the tomb."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Azaka's notes with guide consequences (yuan-ti refusal, betrayal triggers, weretiger discovery mechanics, practical knowledge unlocks). Extended Eku's notes with alignment/intent refusal conditions, couatl revelation timing, oracle access, and tomb mechanics. Added Artus hiring potential and Ring of Winter tomb complications (scry-blocking, erratic undead, archlich priority targeting, atropal vulnerability)."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Act 2 structure",
+        "issue": "Act 2 is marked parallel:true, but its arcs have a rigid sequence (Wings and Oracles → Omu → Fane → Red Wizards) that assumes the party visits Omu, solves shrines, then descends—contradicting parallel-play contract and leaving no room for the engine to inject genuine simultaneity.",
+        "fixes": [
+          "Rewrite each Act 2 arc's objective to be independently completable without assuming prior arcs have resolved: e.g., 'Wings and Oracles' should reward *any* reliable path to Omu, not just Saja's riddle; 'Omu of the Nine Shrines' should allow the party to gather cubes in any order and through negotiation or theft as well as shrine puzzles."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote Act 2 arc objectives to support true parallel play: each arc is now independently completable without assuming prior arcs have resolved. Wings and Oracles now rewards any reliable path to Omu, not just Saja's riddle; Omu of the Nine Shrines allows gathering cubes in any order through puzzles, negotiation, or theft; Fane of the Night Serpent permits multiple approaches including alliance-forging; Red Wizards treated as a standalone investigation unlinked to shrine sequence."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs",
+        "issue": "Withers has no run instructions, escalation, or behavioral hooks — the GM will improvise his threat level and role inconsistently across the tomb.",
+        "fixes": [
+          "Extend Withers' notes to include: when he first manifests to the party, what he prioritizes (trap repair vs. party interception vs. scrying intelligence), how his pettiness escalates if they mock or ignore him, and whether he can be negotiated with or only opposed."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Withers' notes with first manifestation trigger, priority hierarchy (scrying > trap repair > harassment), escalation mechanics tied to party mockery/defiance, explicit refusal to negotiate, and role limitation as tomb descends."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs",
+        "issue": "Ras Nsi's notes say he 'can be bargained with' but give no conditions, price, or how the bargain surfaces — the GM will improvise mutually incompatible terms across the campaign.",
+        "fixes": [
+          "Extend Ras Nsi's notes to specify what he wants (e.g., freedom from the curse, Acererak's destruction, delayed death), what he will trade for it, which party actions trigger his willingness to parley vs. which guarantee hostility, and what betrayal looks like."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs",
+        "issue": "Valindra Shadowmantle's strategy is 'let heroes clear traps then step over bodies' — but no trigger for when she intervenes, what she negotiates over, or how her Thayan research becomes available to the party is specified.",
+        "fixes": [
+          "Extend Valindra's notes to clarify when she reveals herself vs. remains hidden, what circumstances force her to act directly, whether the heroes can steal or negotiate for her field notes, and what happens if she reaches the Soulmonger first."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "HIGH",
+        "section": "locations",
+        "issue": "Tomb of the Nine Gods description omits critical load-bearing facts: the six levels' thematic organization, which god corresponds to which level, trap philosophy, and what 'rearranges itself' means mechanically.",
+        "fixes": [
+          "Extend the Tomb of the Nine Gods description to name each of the six levels by their presiding god (e.g., 'Level One: I'jin's Caprice'), state that each level's traps embody that god's nature per the rules, and clarify whether level order is fixed or players must navigate recursively."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Tomb of the Nine Gods location description to name all six levels by their presiding gods, state that each level's traps embody that god's nature, and clarify that halls reconfigure between visits, forcing recursive navigation for separated or backtracking parties."
+      },
+      {
+        "sev": "HIGH",
+        "section": "locations",
+        "issue": "Fane of the Night Serpent description lacks guidance on layout, guard strength, Ras Nsi's location within it, and how the ninth puzzle cube is positioned relative to him.",
+        "fixes": [
+          "Extend the Fane description to specify Ras Nsi's throne room or chamber, indicate whether the cube is on his person or in a shrine, and hint at sublocation types (breeding pits, sacrifice pools, barracks) so the GM can improvise encounters with internal coherence."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Fane of the Night Serpent description to specify Ras Nsi's throne room in the Sunken Sanctum, locate the ninth cube on the altar before his throne, and detail the three-tier layout (Upper Fangs barracks, Breeding Pits, Sunken Sanctum) to enable coherent GM improvisation of encounters."
+      },
+      {
+        "sev": "HIGH",
+        "section": "locations",
+        "issue": "Omu description lists nine shrines to nine gods but does not map which god's shrine is where geographically, leaving the GM to invent the city layout during play.",
+        "fixes": [
+          "Extend the Omu description to include a sketch or cardinal list placing each of the nine shrines (e.g., 'I'jin's Shrine lies in the eastern ruin-heap, Kubazan's in the temple-gardens to the north') so shrine discovery follows a coherent geography, not pure improvisation."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Omu description to include cardinal placement of all nine shrines (I'jin east, Kubazan north, Moa west, Nangnang south, Obo'laka centre, Papazotl northeast, Shagambi west-cemetery, Unkh northwest, Wongo south-ravine), eliminating pure improvisation during play."
+      },
+      {
+        "sev": "HIGH",
+        "section": "creatures",
+        "issue": "Withers has no kind or threat level assigned, breaking the creature template.",
+        "fixes": [
+          "Set Withers' kind to 'undead' and threat to 'moderate' (he is a steward, not a solo apex threat)."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added kind='undead' and threat='moderate' to Withers creature entry to complete the creature template."
+      },
+      {
+        "sev": "HIGH",
+        "section": "creatures",
+        "issue": "Acererak has no kind or threat level assigned, breaking the creature template.",
+        "fixes": [
+          "Set Acererak's kind to 'undead' and threat to 'apex' (he is the final boss and archlich)."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added kind and threat level to Acererak: kind='undead', threat='apex' (final boss, archlich)."
+      },
+      {
+        "sev": "HIGH",
+        "section": "rules",
+        "issue": "The nine trickster gods rule lists canonical names but omits which god corresponds to which shrine in Omu, forcing the GM to improvise the shrine-to-god mapping.",
+        "fixes": [
+          "Extend the trickster gods rule with a shrine roster: 'Shrine locations in Omu (each contains one puzzle cube): [north] I'jin's Shrine of Caprice, [east] Kubazan's Shrine of Wildness, [south] Moa's Shrine of Honesty, [west] Nangnang's Shrine of Selfishness, [center] Obo'laka's Shrine of Caution, [temple-upper] Papazotl's Shrine of Pride, [temple-mid] Shagambi's Shrine of Justice, [temple-lower] Unkh's Shrine of Indecision, [fane-deepmost] Wongo's Shrine of Savagery.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended the nine trickster gods rule with a shrine roster mapping each god and their shrine location in Omu to prevent GM improvisation of shrine-to-god assignment."
+      },
+      {
+        "sev": "HIGH",
+        "section": "arcs (Act III, The Soulmonger)",
+        "issue": "The objective states 'destroy the Soulmonger' but provides no mechanical or narrative hint about what breaks it, how it is defended, or what failure looks like; the GM must improvise its destruction entirely.",
+        "fixes": [
+          "Rewrite the objective to: 'Reach the heart of the tomb, disable the Soulmonger's anchoring mechanism (the nine cubes must be removed or shattered simultaneously), face the atropal it nourishes as it wakes, and survive Acererak's wrath to see the sun again.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote The Soulmonger arc objective to specify the mechanical means of destruction (nine cubes must be removed or shattered simultaneously) and added the atropal awakening as narrative context for the final confrontation."
+      },
+      {
+        "sev": "HIGH",
+        "section": "arcs (Act II, The Red Wizards)",
+        "issue": "The reward promises 'Valindra's field notes — Thayan research on the Soulmonger's construction' but does not specify what mechanical or tactical information those notes contain, leaving the GM to improvise their value.",
+        "fixes": [
+          "Extend the reward text to: 'Valindra's field notes — Thayan research revealing the Soulmonger's construction: it draws power from the nine puzzle cubes and the atropal's feeding, and can only be permanently destroyed if both are severed simultaneously.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended reward text in Act II's 'The Red Wizards' arc to specify that Valindra's field notes reveal the Soulmonger draws power from both the nine puzzle cubes and the atropal's feeding, and can only be permanently destroyed if both are severed simultaneously."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs",
+        "issue": "Artus Cimber is referenced in the premise ('a legend who doesn't look a day over thirty') and Dragonbait's notes mention him as inseparable, but neither NPC has a defined role in any arc or location — their mechanical place in the campaign is absent.",
+        "fixes": [
+          "Add to Artus Cimber's notes: 'First encounter: Port Nyanzaru or Camp Vengeance, fleeing yuan-ti or Zhentarim pursuit; offers alliance if the party proves trustworthy (refuses to aid evil expeditions). Can guide toward the Ring of Winter's hidden vault in the tomb's lower works if befriended deeply — a wildcard reward for exceptional roleplay.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added first encounter details and hidden vault guide hook to Artus Cimber's notes, establishing his mechanical role across Port Nyanzaru, Camp Vengeance, and the tomb's lower works as a reward for exceptional roleplay."
+      },
+      {
+        "sev": "HIGH",
+        "section": "rules",
+        "issue": "The nine trickster gods are named and characterized in rules but the shrine-to-god mapping is completely absent — the GM cannot run Omu's nine shrines without inventing which god lives where.",
+        "fixes": [
+          "Append to the trickster-gods rule: 'SHRINE LOCATIONS IN OMU (use these assignments everywhere): I'jin's shrine lies north among the toppled merchant houses; Kubazan's shrine marks the battle-scarred southern plaza; Moa's shrine hides in the drowned temple quarter, underwater access only; Nangnang's shrine sits in a guarded grung totem warren; Obo'laka's shrine anchors the ritual precinct with obsidian carvings; Papazotl's shrine crowns the highest intact tower; Shagambi's shrine rests in a lion-haunted garden; Unkh's shrine sprawls across the slowest, most maze-like courtyard; Wongo's shrine dominates the beast-pit arena where the King of Feathers hunts.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "HIGH",
+        "section": "creatures + locations",
+        "issue": "Zombie tyrannosaurus is described as necromantic runoff 'from upstream' but no source location or faction necromancy is defined anywhere in the blueprint — the GM has no origin to point to.",
+        "fixes": [
+          "Add to Zombie tyrannosaurus notes: 'Origin: Valindra Shadowmantle's Thayan expedition, experimenting with reanimation in hidden camps upriver of Camp Vengeance; appears when the party gets too close to their operation, or as a deterrent if they track the Red Wizards.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added origin and faction context to Zombie tyrannosaurus: Valindra Shadowmantle's Thayan reanimation experiments upriver, explaining necromantic source and encounter triggers."
+      },
+      {
+        "sev": "MED",
+        "section": "Act 1, arc 'The River of Teeth'",
+        "issue": "Arc objective lists specific encounters (dinosaurs, disease, undead, soldiers) but does not state what completing the arc means—reaching Camp Vengeance? Surviving to the next location? No concrete win condition.",
+        "fixes": [
+          "Rewrite arc objective to state a concrete completion trigger, e.g.: 'Survive upriver travel and reach Camp Vengeance with enough supplies to leverage its commander's support for the next leg.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote 'The River of Teeth' arc objective to state concrete completion trigger: reaching Camp Vengeance with supplies intact and securing the commander's debt to enable the next expedition leg."
+      },
+      {
+        "sev": "MED",
+        "section": "Act 1, arc 'The Merchant Princes'",
+        "issue": "Arc objective requires winning favor of 'seven merchant princes' but only Wakanga O'tamu is named; no guidance tells the GM what each prince wants, which can be ignored, or which favor unlocks what resource downstream.",
+        "fixes": [
+          "Extend Wakanga's NPC notes to name the other six princes, sketch their rivalries/interests, and clarify which favor the party must actually secure versus which are optional."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "Act 2, arc 'The Red Wizards'",
+        "issue": "Arc objective is to 'stop Valindra Shadowmantle from reaching the Soulmonger first', but the Fane arc's reward is that the party now has all nine cubes and access to the tomb—the Red Wizards are already locked out, making this arc moot or retroactive.",
+        "fixes": [
+          "Rewrite arc objective to specify when Valindra's threat is active (before the ninth cube is claimed? during tomb descent?) and what 'stopping her' means mechanically—delay, betrayal, alliance, or destruction."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote Act 2 'Red Wizards' arc objective and reward to specify that Valindra is a threat only before the ninth cube is claimed; defined mechanical stops (sabotage, delay, confrontation, alliance) and clarified her status changes based on party actions before descent, eliminating retroactive mootness."
+      },
+      {
+        "sev": "MED",
+        "section": "Rules, trickster gods list",
+        "issue": "The canonical trickster gods list has no grid linking god names to the shrines in Omu's geography, leaving the GM to improvise which god shrine is where and what puzzle/spirit each one manifests.",
+        "fixes": [
+          "Extend the trickster gods rule to include a mapping of god → shrine location (e.g., 'I'jin's Shrine: northeast platform, accessible by boulder-rolling puzzle; reward: the caprice cube grants unpredictable re-rolls once per session')."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended the trickster gods rule with complete shrine-location mappings, linking each god name to its Omu location, puzzle mechanics, and cube reward powers to eliminate GM improvisation gaps."
+      },
+      {
+        "sev": "MED",
+        "section": "Act 3, arc 'The Sewn Sisters'",
+        "issue": "Arc objective names a bargain with night hags as an option but gives no terms, prices, or deceptions they might deploy—the GM must improvise the entire negotiation from scratch.",
+        "fixes": [
+          "Add a new NPC entry for the Sewn Sisters collective (or extend creature notes) specifying: what they want in exchange for safe passage, what lie they tell about the cradle below, and what triggers them to fight instead of bargain."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Acererak's notes call him 'entertained by' the heroes until the Soulmonger cracks — but give no behavioral difference between entertainment-phase and defense-phase, no clues he drops, and no mechanical shift in his opposition.",
+        "fixes": [
+          "Extend Acererak's notes to specify how his demeanor and tactics shift once the Soulmonger is damaged, whether he taunts the party with information to prolong the encounter, and what he does if he predicts his defeat."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Artus Cimber is marked 'neutral' with wildcard potential ('ally if befriended, catastrophe if betrayed') but the blueprint never defines what friendship or betrayal look like or when he appears.",
+        "fixes": [
+          "Extend Artus' notes to specify when and where he enters the campaign, what action (or lack of action by the party) counts as betrayal, what his catastrophe-form does, and what allyship concretely grants the party."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Artus Cimber's notes to specify first encounter location/timing, explicit friendship mechanics (3 actions that build trust), concrete betrayal triggers (4 conditions), catastrophe consequences (vanishing, curse-driven potential alliance against party), and allyship tomb benefits (scrying prevention, freeze ability, hidden passage reveal, atropal vulnerability)."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Dragonbait communicates only through scent and gesture — no guide to what specific scents mean beyond 'brimstone for anger, roses for approval', leaving the GM to invent meanings mid-session.",
+        "fixes": [
+          "Extend Dragonbait's notes to add a short scent-to-emotion mapping (e.g., sulfur = anger, roses = approval, ash = sorrow, sea-salt = fear, copper = hunger) so scent-speech stays consistent."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Dragonbait's scent-to-emotion mapping with seven specific scents (sulfur, roses, ash, sea-salt, copper, pine, iron) to provide GM consistency for this unique communication method."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Saja N'baza answers only in riddles through spectral handmaidens — but no example riddles, answer-acceptance criteria, or consequence for wrong guesses is specified.",
+        "fixes": [
+          "Extend Saja N'baza's notes to include at least one example riddle-and-answer pair about Omu's location or the Soulmonger, and clarify whether failed guesses cost resources, time, or lives."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Azaka Stormfang's weretiger secret 'surfaces under full moon or desperate battle' — but no detail on how the transformation affects party trust, whether she loses control, or if she can be persuaded to reveal it earlier.",
+        "fixes": [
+          "Extend Azaka's notes to specify whether her transformation is violent or controlled, how it impacts her guide role, what triggers the party's discovery of it if the moon doesn't rise, and whether she can be trusted with the secret."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Eku refuses to guide 'evil-hearted expeditions' — but no objective standard for determining evil-heartedness is given, leaving the GM to judge alignment arbitrarily.",
+        "fixes": [
+          "Extend Eku's notes to specify concrete actions or character backgrounds that disqualify a party (e.g., slavery, murder of innocents, service to dark powers) so the judgment is consistent."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Port Nyanzaru description names seven merchant princes as rulers but provides only one NPC (Wakanga) and no guidance on the other six's domains, rivalry, or how they should react to party actions.",
+        "fixes": [
+          "Extend the Port Nyanzaru description to name the six other princes, assign each a trade monopoly (spices, arms, slaves, etc.) and one-sentence personality hook so the GM can roleplay faction pressure without improvising their entire identities."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Port Nyanzaru description with names, trade monopolies, and personality hooks for all seven merchant princes (Wakanga, Thorne, Zhanthi, Ijek, Lashandra, Naja Dagalond, Kwayothé) to enable GM roleplay of faction pressure without improvisation."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Camp Vengeance description omits the commander's name, the exact nature of the nightly undead siege (organized or random?), and what reinforcement or supply debt the party can leverage later.",
+        "fixes": [
+          "Extend the Camp Vengeance description to name the Order of the Gauntlet commander (e.g., 'Captain Harwin of Waterdeep'), specify whether undead arrive in waves, from a direction, or via summoning, and hint at one concrete way the party can call in the camp's debt (canoe escort, soldier reinforcement, magical aid)."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Camp Vengeance description to include Commander Captain Harwin of Waterdeep, specified organized nighttime undead waves attacking from the eastern river bank, and outlined concrete leverage points (canoe escorts, reinforcements, magical aid) for calling in the camp's debt."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Orolunga description states Saja N'baza answers riddles but does not specify how many riddles, what happens if answered wrong, or how the ziggurat's challenges gate access to her summit.",
+        "fixes": [
+          "Extend the Orolunga description to indicate the ziggurat has 3–5 ascending riddle-challenges or spirit tests, hint at consequences for failure (spectral handmaidens bar re-entry, a timer runs, a trap activates), and state what Saja demands in exchange for her true answer about Omu's location."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Orolunga location description to specify five ascending riddle-challenges, consequences for failure (terrace re-entry barred for one day, three failures trigger entangling curse), and Saja N'baza's three price options (secret, memory, or companion pledge) for receiving answers about Omu's location, Soulmonger's nature, or tomb passage."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Kir Sabal description mentions the monastery houses Omu's royal heirs and can gift the Dance of the Seven Winds but does not specify who the heirs are, what they want, or under what conditions they grant the gift.",
+        "fixes": [
+          "Extend the Kir Sabal description to name or characterize at least one royal heir NPC, state their goal or condition for alliance, and clarify whether the Dance is given, earned through trial, or purchased with a boon."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Kir Sabal description to name the royal heirs (Prince Mala and Prince Ashok), specify their leadership roles and conditions for alliance, and clarify the Dance of the Seven Winds is earned through three worthiness trials judged by the princes rather than freely gifted or purchased."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Firefinger description omits how many pterafolk roost there, where the stolen mask is hidden within the spire, and what guards it beyond the pterafolk themselves.",
+        "fixes": [
+          "Extend the Firefinger description to estimate the pterafolk flock size (e.g., 'a dozen or more'), place the weretiger mask in a named roost or alcove, and hint at one internal hazard (ledge collapse, territorial alpha, trophy-booby-trap) beyond mere combat."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "Tomb dwarves are mentioned in Withers' notes as dispatched to repair traps, but do not exist in the creatures list.",
+        "fixes": [
+          "Add a 'Tomb dwarf' creature entry with kind 'construct', threat 'low', and notes explaining they are Acererak's enslaved automata tasked with trap maintenance and patrol."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added 'Tomb dwarf' creature entry (construct, low threat) to creatures list, referenced in Withers' notes as Acererak's enslaved automata tasked with trap maintenance and patrol."
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "The atropal (the stillborn god the Soulmonger feeds) is mentioned in Act 3's turningPoint but has no creature entry.",
+        "fixes": [
+          "Add an 'Atropal' creature entry with kind 'aberration', threat 'apex', and notes explaining it is a nascent dead god swaddled in stolen souls, waking when the Soulmonger shatters."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added Atropal creature entry (aberration, apex threat) to match Act 3 turningPoint narrative where it awakens when Soulmonger shatters."
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "Night hags are a major obstacle in Act 3 ('The Sewn Sisters' arc) but lack a creature entry.",
+        "fixes": [
+          "Add a 'Night hag' creature entry with kind 'fiend', threat 'deadly', and notes that they tend the tomb's lowest works and can be bargained with, betrayed, or destroyed."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added Night hag creature entry (kind: fiend, threat: deadly) to creatures array to support 'The Sewn Sisters' arc in Act 3; placed at end of list to maintain count integrity."
+      },
+      {
+        "sev": "MED",
+        "section": "creatures (Daylight dead)",
+        "issue": "The notes describe their behavior but omit what draws them, what repels them, or how they interact with the death curse—the GM cannot predict how these creatures will escalate or respond to player actions.",
+        "fixes": [
+          "Extend the notes to: 'Drawn by noise, firelight, and the scent of living blood—the death curse has unmoored them from night-bound behavior, making them a constant threat on travel and camp. They ignore water, climb poorly, and fear bright magical light; they converge on the Soulmonger's location if it is disturbed, as if magnetized.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Daylight dead notes to specify draws (noise, firelight, living blood), repellents (water avoidance, poor climbing, fear of bright magical light), and interaction with death curse mechanics (convergence on Soulmonger location if disturbed)."
+      },
+      {
+        "sev": "MED",
+        "section": "rules (death curse clock)",
+        "issue": "The rule instructs the GM to make the curse felt through people but does not specify when Syndra becomes too weak to fulfill her patron role or what happens if she dies before the tomb opens.",
+        "fixes": [
+          "Extend the death curse rule with: 'Syndra's deterioration is visible at every meeting: at Act II start she is frail but mobile; by Act III start she cannot leave her lodgings; if the Soulmonger is not destroyed before the final tomb descent begins, she dies during it, removing the escape teleport and forcing the party to find their own way out.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended death curse rule with Syndra's deterioration timeline (Act I mobile → Act II bedridden → Act III death if Soulmonger not reached), removing escape teleport if she dies and forcing party to escape the tomb independently."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs (Artus Cimber)",
+        "issue": "The notes mark him as 'neutral' and a 'powerful wildcard' but do not explain what event or condition moves him to ally or enemy, leaving his role improvised.",
+        "fixes": [
+          "Rewrite the notes to: 'A legend who does not age, bearer of the Ring of Winter, hunted by Zhentarim and Ras Nsi's yuan-ti. If the party betrays him, aids his hunters, or desecrates Chult's sacred sites, he becomes a deadly obstacle; if befriended and helped to find his lost wife's people, he enters the tomb as a powerful ally and guards the party's retreat.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "npcs (Ras Nsi)",
+        "issue": "The notes state he 'can be bargained with' but provide no bargain hook, price, or condition that would move him from enemy to neutral, forcing improvisation of a crucial negotiation pivot.",
+        "fixes": [
+          "Extend the notes to: 'He despises Acererak's experiment and the Soulmonger's existence; he will trade the ninth puzzle cube and fane passage for a binding oath to destroy the Soulmonger AND to grant his spirit peace afterward (slaying him honorably, not trapping him, and speaking his true name at his death). Betraying this oath earns his wraith as a permanent tomb enemy.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "locations (Tomb of the Nine Gods)",
+        "issue": "The description mentions 'halls that rearrange themselves' but provides no rule or pattern for how they rearrange, what triggers it, or how the party navigates it, leaving the GM to invent the mechanic mid-play.",
+        "fixes": [
+          "Extend the description to: 'At its heart hangs the Soulmonger, and beneath it a cradle no light should ever have touched. The tomb's halls rearrange whenever all nine puzzle cubes leave their shrines—corridors shift, old paths close, and new ones open, forcing the party to navigate by riddle, memory, and the guidance of the trickster spirits whose cubes they carry.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Tomb of the Nine Gods location description to specify the mechanic and trigger for hall rearrangement, replacing vague 'shift and reconfigure' language with explicit rules: the rearrangement occurs when all nine cubes are removed from Omu's shrines, and navigation is guided by riddle, memory, and trickster spirit guidance."
+      },
+      {
+        "sev": "MED",
+        "section": "arcs (Act I, The River of Teeth)",
+        "issue": "The objective mentions 'desperate soldiers of Camp Vengeance' but does not specify what condition they are in (morale, supplies, threat level) or what happens if the party refuses to aid them.",
+        "fixes": [
+          "Extend the objective to: 'Survive the first true expedition upriver—dinosaurs, disease, flesh-eating undead that hunt by daylight, and the desperate, starving soldiers of Camp Vengeance, a palisade under nightly siege that will beg for aid; leaving them to their fate costs the party their debt and safe passage, forcing a harder overland route deeper inland.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Act I arc 'The River of Teeth' objective to specify Camp Vengeance's condition (desperate, starving, under nightly siege) and consequences of refusing aid (loss of debt and safe passage, forced overland route)."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Withers is described as the tomb's steward and trap-manager but has no clear victory condition, dialogue hooks, or escalation path — he is a named antagonist with no arc.",
+        "fixes": [
+          "Add to Withers' notes: 'Encountered repeatedly as the party descends: first as scrying presence (awareness they are watched), then in person on level 3 attempting to 'repair' party-triggered traps mid-exploration, finally in combat on level 5 when he realizes the Soulmonger is threatened — his loyalty to Acererak is absolute but his contempt for the heroes makes him underestimate them once.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Camp Vengeance is introduced as besieged by undead nightly but no detail explains what attracts or sends those undead — the GM cannot stage realistic threat escalation.",
+        "fixes": [
+          "Add to Camp Vengeance description: 'The undead surge nightly because a necromantic anchor buried beneath the camp (planted by Thayan scouts) draws them; destroying it requires investigation and a dangerous midnight expedition into the graveyard the camp occupies.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added necromantic anchor under Camp Vengeance as source of nightly undead surges, enabling GM threat escalation and investigation-based solution."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs",
+        "issue": "Ras Nsi is described as 'dying slowly' and 'desperate' but no medical detail, timeline, or consequence of his death is specified — the GM cannot play his desperation realistically or use his condition as a pressure point.",
+        "fixes": [
+          "Add to Ras Nsi's notes: 'Transformation curse: Acererak promised him godhood by degrees, but the process is agonizing and incomplete — each day he loses sensation, control, and clarity; he has weeks left before the transformation finishes and he becomes a mindless serpent god-thing. This makes him both willing to bargain (kill Acererak, stop the curse) and dangerous (cornered desperation, fear of permanent loss).'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "Pterafolk are described as keeping 'trophies' but no detail on what form trophies take or how they might be bait — a GM cannot improvise their behaviour beyond 'drop people.'",
+        "fixes": [
+          "Add to Pterafolk notes: 'Trophies are crude bone totems: skulls of victims strung with entrails and feathers, arranged on cliff ledges. They recognize and return to favorite victims' bodies; this obsession can be weaponized (bait them with a trophy, or stage a fake casualty).'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Pterafolk notes expanded with trophy description (bone totems made from victim skulls, entrails, and feathers) and behavioral mechanics (recognize favorite victims, can be baited or distracted with trophies or fake casualties)."
+      },
+      {
+        "sev": "MED",
+        "section": "arcs (Act II turningPoint)",
+        "issue": "The turningPoint says 'the yuan-ti want the Soulmonger preserved' but no yuan-ti motivation or endgame beyond that desire is stated — the GM cannot script an encounter where yuan-ti negotiate or escalate.",
+        "fixes": [
+          "Add to Ras Nsi's notes: 'Yuan-ti goal: preserve the Soulmonger and let it feed Dendar the Night Serpent to waking; they view Acererak's control of it as heresy and will betray him to the party if it means stopping the archlich from destroying his experiment.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "Locations",
+        "issue": "Locations are keyed by name but the blueprint never specifies which location is reached at the end of each arc, forcing the engine to guess or the GM to improvise the journey between arcs.",
+        "fixes": [
+          "Extend Act 1 arc rewards to name the departure location for the next arc (e.g., 'Reward: …and the party sets out from Camp Vengeance for Kir Sabal')."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Act 1 and Act 2 reward statements to specify departure locations for the next arc: Act 1 now departs from Camp Vengeance toward Kir Sabal/Orolunga; Act 2 now departs into the Tomb of the Nine Gods beneath Omu."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs",
+        "issue": "Wakanga O'tamu is described as a source of 'gossip about the other six princes' but his notes give no sample gossip, faction tensions, or how he uses gossip to guide party choices.",
+        "fixes": [
+          "Extend Wakanga's notes to include one or two concrete rumors about the other princes' secret stakes in the expedition (e.g., rival factions, personal debts, forbidden knowledge sought)."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "locations",
+        "issue": "Port Nyanzaru description mentions 'harbour forts' and 'a leper colony' but provides no names, functions, or when the party might interact with them.",
+        "fixes": [
+          "Extend the Port Nyanzaru description to name one harbour fort (e.g., 'Fort Nallepoles') and state one concrete reason a party might visit it (customs checkpoint, deserter recruitment, rival faction stronghold) and clarify the leper colony's role in the social landscape (quarantine, curse victim refuge, hidden faction base)."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "creatures",
+        "issue": "Kobolds are implicit in the Omu location (they worship the King of Feathers) and the Tomb description but have no entry.",
+        "fixes": [
+          "Add a 'Kobold' creature entry with kind 'humanoid', threat 'low', and notes that they inhabit Omu's ruins as worshippers of the King of Feathers."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added Kobold creature entry (humanoid, low threat) to represent the ruin-dwellers of Omu who worship the King of Feathers, fulfilling implicit references in locations and creature descriptions."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs (Eku)",
+        "issue": "The notes state she 'refuses to guide evil-hearted expeditions' but do not specify what acts or declarations trigger that refusal or how the party recovers her as a guide if they fail her test.",
+        "fixes": [
+          "Extend the notes to: 'A couatl in human form, sworn to protect Chult's innocents. She refuses to guide expeditions that involve slavery, slaughter of innocents, or desecration of sacred sites—if the party commits such acts before hiring her, she vanishes; if they commit them during the expedition, she abandons them at Orolunga and the path to it becomes hostile.'"
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "locations",
+        "issue": "Firefinger is described as holding a 'stolen weretiger mask' but Azaka Stormfang's weretiger nature is listed as a secret that 'surfaces under full moon or desperate battle' — no hint connects the mask to the secret or how its recovery triggers transformation.",
+        "fixes": [
+          "Add to Azaka Stormfang's notes: 'The mask stolen at Firefinger is her family's ritual mask; recovering it is her true reason for guiding the expedition inland. Wearing or touching the mask in her presence forces her transformation and binds her to the party as oath-sworn ally; before recovery, she hides this connection and leads toward Firefinger only if the party insists.'"
+        ],
+        "status": ""
+      }
+    ]
+  }
 }

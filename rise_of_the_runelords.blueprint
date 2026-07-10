@@ -50,7 +50,7 @@
       "arcs": [
         {
           "title": "The Fort and the Dam",
-          "objective": "Defend the town of Turtleback Ferry from ogre raids and prevent the collapse of Skull's Crossing dam, which would flood the valley",
+          "objective": "Defend the town of Turtleback Ferry from ogre raids and prevent the Kreeg ogres and the lamia matriarch Lucrecia from triggering Skull's Crossing dam's collapse. Success saves the valley from catastrophic flooding and hundreds of lives; failure allows the dam to burst, killing hundreds and permanently darkening the campaign's tone.",
           "type": "combat",
           "reward": "The Kreeg hoard — ogre plunder reclaimed from Fort Rannick, and the surviving Black Arrows' sworn debt"
         },
@@ -62,7 +62,7 @@
         },
         {
           "title": "Sins of the Saviors",
-          "objective": "Explore the Runeforge, an ancient Thassilonian weapons laboratory sealed beneath a mountain, and forge a weapon capable of harming Karzoug",
+          "objective": "Explore the Runeforge, an ancient Thassilonian weapons laboratory sealed beneath a mountain, and forge a weapon capable of harming Karzoug. The Runeforge pools can inscribe weapons with rune-magic that pierces Karzoug's immortal essence; without a runeforged weapon, he cannot be permanently killed. This critical knowledge must come from Mokmurian's library to drive urgency — the heroes cannot face the Runelord without such a blade.",
           "type": "exploration",
           "reward": "A runeforged weapon — the party's steel bathed in the Runeforge pools, now anathema to Karzoug's magic (REQUIRED to harm him in Act 3)"
         },
@@ -89,7 +89,7 @@
         },
         {
           "title": "The Pinnacle of Avarice",
-          "objective": "Ascend the Pinnacle of Avarice, confront Karzoug's most powerful servants, and face the Runelord of Greed himself in his seat of power",
+          "objective": "Ascend the Pinnacle of Avarice and confront Karzoug in his true form. Only runeforged weapons can harm him; the heroes must destroy his soul-anchor to prevent his return and achieve permanent victory. Failure means the Runelord's resurrection and the empire's conquest of Varisia.",
           "type": "combat",
           "reward": "The Runelord's hoard — the treasury of the empire of Greed, and the story no bard will ever be allowed to exaggerate"
         }
@@ -101,13 +101,13 @@
       "name": "Ameiko Kaijitsu",
       "role": "ally",
       "pronouns": "she/her",
-      "notes": "Half-Tian innkeeper of the Rusty Dragon in Sandpoint. Former adventurer, sharp-tongued and warm-hearted. Estranged from her noble family. A key ally and potential romantic interest."
+      "notes": "Half-Tian innkeeper of the Rusty Dragon in Sandpoint. Former adventurer, sharp-tongued and warm-hearted. Estranged from her noble family. A key ally and potential romantic interest. She commits fully to the party once they prove themselves through action in Sandpoint; her loyalty deepens if romanced. She becomes a safe house and intelligence source in Magnimar, using family connections to gather information about the murder cults and Ironbriar's network. Her family secrets — ties to Thassilonian nobility and fragments of lore hidden in the Kaijitsu archives — may unlock crucial knowledge about the Sihedron and Karzoug's servants if the party asks the right questions or helps her reconcile with her estranged father."
     },
     {
       "name": "Shalelu Andosana",
       "role": "ally",
       "pronouns": "she/her",
-      "notes": "Elven ranger and unofficial guardian of the hinterlands around Sandpoint. Hunts goblins, distrusts civilisation, deeply loyal once trust is earned."
+      "notes": "Elven ranger and unofficial guardian of the hinterlands around Sandpoint. Hunts goblins, distrusts civilisation, deeply loyal once trust is earned. She actively hunts Karzoug's agents in the Lost Coast brush and beyond, sharing intelligence about lamia movements and sinspawn activity. As the campaign progresses, she becomes the party's wilderness guide through the Kodar Mountains and beyond, essential to reaching Xin-Shalast. Her loyalty is tested if the party chooses to negotiate with or spare stone giants at Jorgenfist — she believes all of Mokmurian's army must fall, and may question the party's commitment to stopping Karzoug if they show mercy to his minions."
     },
     {
       "name": "Sheriff Belor Hemlock",
@@ -125,7 +125,7 @@
       "name": "Nualia Tobyn",
       "role": "enemy",
       "pronouns": "she/her",
-      "notes": "Aasimar antipaladin, believed dead in the fire that destroyed the old chapel. Actually alive and consumed by rage — she plans to offer Sandpoint to Lamashtu and transform herself into a demon. The Act 1 villain."
+      "notes": "Aasimar antipaladin, believed dead in the fire that destroyed the old chapel. Actually alive and consumed by rage — she seeks to become a demonic abomination through ritual sacrifice at the runewell beneath Thistletop, thereby claiming power to conquer Sandpoint as an offering to Lamashtu. The heroes learn of this plot from Tsuto's journal (acquired at the Glassworks). If Nualia reaches the runewell uninterrupted, the ritual completes automatically, transforming her into a demon and triggering the final battle. The Act 1 villain."
     },
     {
       "name": "Tsuto Kaijitsu",
@@ -137,7 +137,7 @@
       "name": "Aldern Foxglove",
       "role": "enemy",
       "pronouns": "he/him",
-      "notes": "Magnimarian noble who seems charming and grateful after the heroes save him during the festival. Secretly becoming the Skinsaw Man — a ghoul serial killer driven by obsessive love and Thassilonian corruption."
+      "notes": "Magnimarian noble who seems charming and grateful after the heroes save him during the festival. Corrupted by a Sihedron-marked blade and tainted by exposure to Thassilonian greed magic, he descends into obsessive madness. He murders to carve the seven-pointed Sihedron rune into his victims' chests, harvesting their greed-marked souls to fuel Karzoug's awakening. The heroes can confront him at Foxglove Manor before full transformation completes — an opportunity to turn him, break his corruption, or hunt him as the monster he is becoming. If left unchecked, he becomes a powerful ghoul servant, the Skinsaw Man. His transformation is the thread connecting Act 1's murders to Act 2's larger conspiracy."
     },
     {
       "name": "Mokmurian",
@@ -187,7 +187,7 @@
       "name": "Lamia matriarchs",
       "kind": "monstrosity",
       "threat": "deadly",
-      "notes": "Serpent-bodied sorceresses who harvest greed-marked souls for Karzoug — Xanesha beneath Magnimar and Lucrecia at the dam are sisters of this breed. Vain, brilliant, and patient; they fight with charm, illusion, and a Sihedron-marked blade, and they always have an exit prepared."
+      "notes": "Serpent-bodied sorceresses who harvest greed-marked souls for Karzoug's awakening. Xanesha operates in Magnimar's sewers and the Justice Court, weaving political corruption into her net. Lucrecia guards the dam at Skull's Crossing, orchestrating the ogre raids from behind. Both carry Sihedron-marked blades and always maintain prepared escape routes — they are patient hunters who feed Karzoug's ritual slowly rather than risk direct confrontation."
     }
   ],
   "locations": [
@@ -213,12 +213,98 @@
     },
     {
       "name": "Xin-Shalast",
-      "description": "The lost capital of Thassilon's realm of greed, hidden high in the Kodar Mountains above the snowline. A city of impossible golden spires, guarded by ancient magic and populated by the remnants of Karzoug's servitors."
+      "description": "The lost capital of Thassilon's realm of greed, hidden high in the Kodar Mountains above the snowline. A city of impossible golden spires, protected by wards keyed to Thassilonian rune magic. Its remaining servitors include stone constructs, corrupted stone giants, and lamia cults devoted to Karzoug's return. At its heart rises the Pinnacle of Avarice, Karzoug's throne and the anchor of his phylactery — the seat from which the Runelord of Greed will reclaim the world if he wakes."
     }
   ],
   "rules": [
     "This campaign is adapted from Paizo's Rise of the Runelords. Stay true to the major plot beats and NPCs but adapt freely to the player's choices and character.",
     "Sandpoint should feel like a real community — name shopkeepers, reference town events, make the player care about the place before threatening it.",
-    "Thassilonian magic is keyed to the seven deadly sins. Karzoug's domain is Greed. Rune magic should feel ancient, alien, and dangerous — not just another spell school."
-  ]
+    "Thassilonian magic is keyed to the seven deadly sins. Karzoug's domain is Greed. Rune magic should feel ancient, alien, and dangerous — not just another spell school. Thassilonian runes corrupt those who touch them with obsession and compulsive theft-urges; greed-runes in particular cloud judgment and breed paranoia. Rune magic always requires sacrifice — blood, sanity, or soul-debt — and leaves visible scarring on those who channel it. The Sihedron's presence should always feel watched and hungry, as if the symbol itself draws attention from something vast and patient in the dark.",
+    "The Sihedron is a seven-pointed star — the symbol of Thassilonian greed and the anchor of Karzoug's awakening. Ancient souls are bound to it; the medallion recovered at Thistletop and the Sihedron-marked blades carried by Karzoug's servants (lamia matriarchs, high servants) are mystical anchors that channel stolen greed-marked souls into the ritual of his return. Destroying these anchors weakens his resurrection. The heroes must identify and shatter them to slow or stop his awakening."
+  ],
+  "review": {
+    "verdict": "Moderate gaps and one critical NAME-DROP: the blueprint references Lamashtu, the Sihedron, and greed-marked souls without defining them, creating improvisation traps; several arcs lack concrete completion objectives; and NPC secrets/betrayals are buried or missing.",
+    "findings": [
+      {
+        "sev": "HIGH",
+        "section": "npcs: Nualia Tobyn",
+        "issue": "Notes reference her transformation plan and Lamashtu without defining what either entails or how the heroes recognize the ritual is active.",
+        "fix": "Rewrite notes to include: Nualia seeks to become a demonic abomination via ritual sacrifice at the runewell beneath Thistletop; the heroes learn this from Tsuto's journal; ritual completion triggers automatically if she reaches the runewell uninterrupted.",
+        "status": "applied",
+        "note": "Rewrote Nualia Tobyn's notes to specify her demonic transformation ritual at the runewell beneath Thistletop, clarify that Tsuto's journal reveals this plot, and state that uninterrupted runewell access triggers automatic ritual completion."
+      },
+      {
+        "sev": "HIGH",
+        "section": "creatures: Lamia matriarchs",
+        "issue": "Notes reference Xanesha and Lucrecia without defining where they are encountered, what they want, or how they are defeated.",
+        "fix": "Rewrite notes to specify: Xanesha operates in Magnimar's sewers and Justice Court intrigue; Lucrecia guards the dam at Skull's Crossing; both harvest greed-marked souls for Karzoug's awakening; both carry Sihedron blades and have prepared escape routes.",
+        "status": "applied",
+        "note": "Rewrote Lamia matriarchs notes to specify Xanesha's location (Magnimar sewers/Justice Court) and role (political intrigue), Lucrecia's location (Skull's Crossing dam) and role (ogre raid orchestration), their shared purpose (harvesting greed-marked souls for Karzoug), their equipment (Sihedron blades), and their tactical doctrine (escape routes, patient strategy)."
+      },
+      {
+        "sev": "HIGH",
+        "section": "premise and acts",
+        "issue": "The Sihedron is named as a plot object (medallion, blade, souls marked by it) but never defined—what it is, why it matters, what it does.",
+        "fix": "Add to rules or inject into NPC notes: Sihedron = seven-pointed star, symbol of Thassilonian greed, ancient souls tied to it fuel Karzoug's awakening; the medallion at Thistletop and blades in hands of servants are anchors; destroying them weakens his return.",
+        "status": "applied",
+        "note": "Added Sihedron definition and mechanics to rules: seven-pointed star symbol, soul-binding function, anchor mechanics (medallion, blades), and destruction consequence. Clarifies its role as both a symbol and functional plot device."
+      },
+      {
+        "sev": "HIGH",
+        "section": "acts: The Fort and the Dam",
+        "issue": "Arc objective says 'prevent collapse of Skull's Crossing dam' but gives no condition for success—does the dam collapse if they fail, and what happens then?",
+        "fix": "Rewrite arc objective to specify: prevent the Kreeg ogres and Lucrecia from triggering the dam's collapse; if they succeed, the dam holds and the valley is saved; if they fail, the flood kills hundreds and the campaign's tone shifts permanently.",
+        "status": "applied",
+        "note": "Rewrote 'The Fort and the Dam' arc objective to specify success/failure conditions: dam collapse is now an explicit failure condition that permanently darkens campaign tone, clarifying stakes and consequences."
+      },
+      {
+        "sev": "HIGH",
+        "section": "acts: Sins of the Saviors",
+        "issue": "Arc objective references 'Karzoug's anathema' as essential knowledge but does not explain what anathema means or how it is used.",
+        "fix": "Rewrite arc objective to include: the Runeforge pools can forge weapons that pierce Karzoug's immortal essence; without a runeforged weapon, he cannot be permanently killed; this knowledge must come from Mokmurian's library to drive urgency.",
+        "status": "applied",
+        "note": "Rewrote Sins of the Saviors arc objective to explain that runeforged weapons pierce Karzoug's immortal essence and are permanently required to kill him, with the knowledge sourced from Mokmurian's library to drive narrative urgency."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Aldern Foxglove",
+        "issue": "Notes state he is becoming the Skinsaw Man but do not explain the transformation mechanics, the obsession that drives him, or when the heroes can intervene.",
+        "fix": "Rewrite notes to include: Foxglove is corrupted by a Sihedron-marked blade and tainted by exposure to Thassilonian greed magic; he murders to carve the Sihedron into victims' chests; the heroes can encounter him at Foxglove Manor before full transformation (confrontation or turning point) or hunt him as a monster.",
+        "status": "applied",
+        "note": "Expanded Aldern Foxglove's notes to explain transformation mechanics (Sihedron-marked blade and greed magic corruption), obsession mechanics (carving Sihedron into victims' chests to harvest souls), intervention windows (confrontation at Foxglove Manor before full transformation), and narrative significance (connection between Act 1 murders and Act 2 conspiracy)."
+      },
+      {
+        "sev": "MED",
+        "section": "locations: Xin-Shalast",
+        "issue": "Description says 'guarded by ancient magic and populated by remnants of Karzoug's servitors' but names neither the guardians nor the servitors.",
+        "fix": "Expand description to include: city is protected by wards keyed to Thassilonian rune magic; servitors include stone constructs, corrupted giants, and lamia cults; the Pinnacle of Avarice at its heart is Karzoug's throne and phylactery anchor.",
+        "status": "applied",
+        "note": "Expanded Xin-Shalast description to name specific guardians (wards keyed to rune magic, stone constructs, corrupted giants, lamia cults) and identify the Pinnacle of Avarice as Karzoug's throne and phylactery anchor."
+      },
+      {
+        "sev": "MED",
+        "section": "acts: Spires of Xin-Shalast",
+        "issue": "Second arc 'The Pinnacle of Avarice' objective is vague—does the hero victory require Karzoug's death, his imprisonment, or destruction of his anchor?",
+        "fix": "Rewrite objective to specify: heroes must ascend the Pinnacle, confront Karzoug in his true form (only vulnerable to runeforged weapons), and destroy his soul-anchor to prevent his return; victory = permanent death and the empire's final fall.",
+        "status": "applied",
+        "note": "Rewrote 'The Pinnacle of Avarice' objective to specify victory condition: heroes must ascend the Pinnacle, confront Karzoug in his true form (vulnerable only to runeforged weapons), and destroy his soul-anchor to achieve permanent death and prevent his return; failure stakes now explicit."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Ameiko Kaijitsu and Shalelu Andosana",
+        "issue": "Notes identify them as allies but do not explain how they escalate their involvement, when they betray or leave, or what their personal stake in the campaign is beyond loyalty.",
+        "fix": "Expand Ameiko's notes to include: she is a potential romantic hook and commits fully once the party proves itself; she may serve as a safe house or intelligence source in Magnimar; she has family secrets tied to Thassilonian lore. Expand Shalelu's to include: she hunts Karzoug's agents in the hinterlands and becomes the party's wilderness guide; her loyalty is tested if the party sides with stone giants.",
+        "status": "applied",
+        "note": "Expanded Ameiko Kaijitsu's notes to detail escalating involvement, romance hook, Magnimar safe house role, and Thassilonian family secrets. Expanded Shalelu Andosana's notes to include active agent role hunting Karzoug's servants, wilderness guide function, and loyalty test regarding stone giant disposition."
+      },
+      {
+        "sev": "MED",
+        "section": "rules",
+        "issue": "Third rule states 'Rune magic should feel ancient, alien, and dangerous' but provides no mechanical or narrative guidance for how the GM should present it.",
+        "fix": "Rewrite rule to specify: Thassilonian runes are keyed to the seven sins; Karzoug's greed-runes corrupt those who touch them with obsession and theft-urges; rune magic should require sacrifice or cause visible scarring; the Sihedron's presence should always feel watched and hungry.",
+        "status": "applied",
+        "note": "Rewrote third rule to provide mechanical and narrative guidance for presenting Thassilonian rune magic: specified corruption mechanics (obsession, theft-urges, judgment-clouding), sacrifice requirements (blood, sanity, soul-debt), visible scarring, and the Sihedron's omnipresent hungry watching."
+      }
+    ]
+  }
 }
