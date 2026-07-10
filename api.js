@@ -38,8 +38,8 @@ function buildGeoBlock(){
   return"GEOGRAPHY (strict continuity — never contradict):\n"+lines.join("\n")+"\n\n";
 }
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
-function saveRules(){try{store.set(RLK,JSON.stringify(customRules));}catch(e){}}
-function loadRules(){try{var r=store.get(RLK);if(r)customRules=JSON.parse(r);}catch(e){}}
+function saveRules(){try{store.set(RLK,JSON.stringify(customRules));}catch(e){console.warn("[rules] save failed — custom rules NOT persisted:",e.message);if(typeof showToast==="function")showToast("⚠ Custom rules could not be saved.");}}
+function loadRules(){try{var r=store.get(RLK);if(r)customRules=JSON.parse(r);}catch(e){console.warn("[rules] load failed — playing with default rules only:",e.message);}}
 // Move a quest out of the live log into the long-term archive (memory.quests).
 function archiveQuest(title,status){
   if(!worldState||!worldState.questLog)return;
@@ -802,7 +802,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw new Error("HTTP "+res.status+(_em?": "+_em:""));}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
-  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){}}
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
   return prov.parseResponse(data);
 }
 

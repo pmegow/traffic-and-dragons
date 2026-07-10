@@ -82,7 +82,7 @@ async function generateActions(msgEl){
     // rendered stale actions while the text matched. saveAll re-arms the debounce with the
     // fresh lastActions (one cheap extra POST at most).
     worldState.lastActions=acts.slice(0,3);saveAll();
-  }catch(e){_cleanup();}
+  }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);_cleanup();}
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -267,7 +267,7 @@ function normalizeCompanionSheet(raw,npcName){
 }
 function parseCompanionSheet(resp,npcName){
   try{return normalizeCompanionSheet(JSON.parse(repairModelJson(resp)),npcName);}
-  catch(e){return null;}
+  catch(e){console.warn("[companion] sheet JSON unparseable for "+npcName+" — stub fallback will be used:",e.message);return null;}
 }
 // Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.
 function attachCompanionSheet(npcName,sheet){
