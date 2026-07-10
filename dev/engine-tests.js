@@ -1496,6 +1496,51 @@ function runEngineTests(R){
     return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
   });
 
+  section("transcript rescue (UA3)");
+  t("corrupt __lz preserves a rescue blob and yields an empty array (no silent loss, no throw)",function(){
+    makeWorld();
+    var _rk=TRANSCRIPT_RESCUE_K+"c_ua3a";store.del(_rk);
+    var o=parseWorldState(JSON.stringify({campId:"c_ua3a",character:{name:"K"},transcript:{__lz:"@@corrupt@@"}}));
+    if(!(o.transcript instanceof Array)||o.transcript.length)return "transcript not emptied cleanly";
+    var v=store.get(_rk);store.del(_rk);
+    return v==="@@corrupt@@"?true:"rescue not written";
+  });
+  t("LZ absent: {__lz} no longer poisons the transcript as a non-array; rescue preserved",function(){
+    var _LZ=LZ;LZ=undefined;
+    var _rk=TRANSCRIPT_RESCUE_K+"c_ua3b";store.del(_rk);
+    var good=_LZ.compressToUTF16(JSON.stringify([{t:1,r:"gm",x:"old"}]));
+    var o=parseWorldState(JSON.stringify({campId:"c_ua3b",transcript:{__lz:good}}));
+    LZ=_LZ;
+    var v=store.get(_rk);store.del(_rk);
+    if(!(o.transcript instanceof Array))return "transcript still a poisoned {__lz} object";
+    return v===good?true:"rescue not written";
+  });
+  t("restoreTranscriptRescue prepends rescued entries before post-loss ones and clears the key",function(){
+    makeWorld();worldState.campId="c_ua3c";
+    var _rk=TRANSCRIPT_RESCUE_K+"c_ua3c";
+    store.set(_rk,LZ.compressToUTF16(JSON.stringify([{t:1,r:"gm",x:"lost one"},{t:2,r:"gm",x:"lost two"}])));
+    worldState.transcript=[{t:3,r:"gm",x:"fresh"}];
+    if(!restoreTranscriptRescue())return "restore declined";
+    if(worldState.transcript.length!==3)return "wrong length "+worldState.transcript.length;
+    if(worldState.transcript[0].x!=="lost one"||worldState.transcript[2].x!=="fresh")return "order wrong";
+    return store.get(_rk)?"rescue key not cleared":true;
+  });
+  t("restore overlap-guard: an unharmed stored blob (full duplicate) prepends nothing",function(){
+    makeWorld();worldState.campId="c_ua3d";
+    var entries=[{t:1,r:"gm",x:"same one"},{t:2,r:"gm",x:"same two"}];
+    var _rk=TRANSCRIPT_RESCUE_K+"c_ua3d";
+    store.set(_rk,LZ.compressToUTF16(JSON.stringify(entries)));
+    worldState.transcript=JSON.parse(JSON.stringify(entries));
+    restoreTranscriptRescue();
+    return worldState.transcript.length===2?true:"entries duplicated: "+worldState.transcript.length;
+  });
+  t("an existing rescue is never overwritten by a later failure (oldest = longest record wins)",function(){
+    var _rk=TRANSCRIPT_RESCUE_K+"c_ua3e";store.set(_rk,"FIRST");
+    parseWorldState(JSON.stringify({campId:"c_ua3e",transcript:{__lz:"@@bad@@"}}));
+    var v=store.get(_rk);store.del(_rk);
+    return v==="FIRST"?true:"overwritten: "+v;
+  });
+
   section("img2imgStrength (#42)");
   function __rm(id){var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===id)return RENDER_MODELS[i];}return null;}
   t("model default when no override",function(){

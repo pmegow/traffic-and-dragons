@@ -1,4 +1,4 @@
-var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";
+var WSK="tnd_core_v10";var SLK="tnd_sess_v10";var MEM_KEY="tnd_mem_v10";var AKK="tnd_ak_v1";var RLK="tnd_rules_v9";var ADK="tnd_adult_v1";var PROSE_K="tnd_prose_v1";var FAL_KEY_K="tnd_fal_k_v1";var RENDER_MDL_K="tnd_render_mdl_v1";var RENDER_STR_K="tnd_render_str_v1";var TRANSCRIPT_RESCUE_K="tnd_transcript_rescue_v1_";/* + campId (UA3) */var PROV_K="tnd_provider_v1";var PKEYS_K="tnd_provider_keys_v1";var PMDL_K="tnd_provider_models_v1";var UPGRADE_K="tnd_model_upgrade_v1";
 var _m={};      // in-memory fallback for keys localStorage can't persist (privacy mode OR quota)
 var _mKeys={};  // keys whose authoritative value lives in _m — get() must prefer it over a stale disk copy
 var store={
@@ -54,10 +54,51 @@ function serializeWorldState(ws){
 }
 function parseWorldState(str){
   var o=JSON.parse(str);
-  if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz&&typeof LZ!=="undefined"&&LZ.decompressFromUTF16){
-    try{o.transcript=JSON.parse(LZ.decompressFromUTF16(o.transcript.__lz));}catch(e){o.transcript=[];if(typeof console!=="undefined")console.error("[save] transcript inflate failed — starting with empty transcript",e);}
+  if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz){
+    var _lzBlob=o.transcript.__lz,_ok=false;
+    if(typeof LZ!=="undefined"&&LZ.decompressFromUTF16){
+      try{var _inf=JSON.parse(LZ.decompressFromUTF16(_lzBlob));if(_inf instanceof Array){o.transcript=_inf;_ok=true;}}catch(e){}
+    }
+    if(!_ok){
+      // NO-SILENT-FAILURES (UA3): the verbatim story record could not be read — compress.js absent
+      // (script-order/SW-cache skew) or a corrupt blob. Two hazards: an un-inflated {__lz} object
+      // poisons every transcript consumer (push throws mid-turn), and an empty [] gets PERSISTED
+      // over the stored blob by the next saveCore (incl. the migrate-save right after load) —
+      // permanent loss. So: preserve the compressed original under a per-campaign rescue key
+      // (restoreTranscriptRescue re-inflates + prepends on a later healthy load), start empty,
+      // and shout. Keep the OLDEST rescue if one already exists — it holds the longest record.
+      var _rk=TRANSCRIPT_RESCUE_K+(o.campId||"default");
+      try{if(!store.get(_rk))store.set(_rk,_lzBlob);}catch(e2){}
+      o.transcript=[];
+      console.error("[save] transcript inflate FAILED — compressed original preserved under "+_rk);
+      if(typeof showToast==="function")showToast("⚠ Story record could not be read — a backup was preserved and will auto-recover on a healthy reload.");
+    }
   }
   return o;
+}
+// UA3 recovery: re-inflate a rescued transcript once LZ is healthy again and PREPEND it (rescued
+// entries strictly predate the loss). Overlap-guard: if the current transcript's first entry
+// appears inside the rescue (the stored blob was never overwritten — e.g. the failed session
+// closed without saving), only the part BEFORE the overlap is prepended (full-duplicate → nothing).
+// Runs in loadState BEFORE the migrate-save so a healthy load persists the RESTORED record.
+function restoreTranscriptRescue(){
+  if(!worldState)return false;
+  var _rk=TRANSCRIPT_RESCUE_K+(worldState.campId||"default");
+  var lz=store.get(_rk);
+  if(!lz)return false;
+  if(typeof LZ==="undefined"||!LZ.decompressFromUTF16)return false; // still unhealthy — keep the rescue
+  try{
+    var old=JSON.parse(LZ.decompressFromUTF16(lz));
+    if(!(old instanceof Array))throw new Error("rescue is not an array");
+    if(!worldState.transcript)worldState.transcript=[];
+    var cur=worldState.transcript,cut=old.length,i;
+    if(cur.length){for(i=0;i<old.length;i++){if(old[i].t===cur[0].t&&old[i].r===cur[0].r&&old[i].x===cur[0].x){cut=i;break;}}}
+    worldState.transcript=old.slice(0,cut).concat(cur);
+    store.del(_rk);
+    console.log("[save] transcript rescue restored — "+cut+" entries prepended");
+    if(typeof showToast==="function"&&cut>0)showToast("✓ Story record recovered ("+cut+" entries).");
+    return true;
+  }catch(e){console.error("[save] transcript rescue re-inflate failed — keeping the rescue blob",e);return false;}
 }
 function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
@@ -125,7 +166,7 @@ function loadState(){
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
-  try{if(ws){worldState=parseWorldState(ws);if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
+  try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE the migrate-save — a healthy load must persist the restored record, and a migrate-save must never persist a just-emptied one over a recoverable blob */if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
   try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
   return !!ws&&!!worldState;
 }
