@@ -447,7 +447,14 @@ function updateCombat(){
     sb2.style.display=sbh?"block":"none";
   }
 }
-function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | "+APP_VERSION;updateSyncBadge();}
+// Compact model label for the session bar: drop the vendor prefix and a trailing date stamp
+// ("claude-haiku-4-5-20251001" → "haiku-4-5"); non-Claude ids (gpt-4o, grok-4.3) pass through.
+function activeModelLabel(){
+  var prov=(typeof PROVIDERS!=="undefined"&&PROVIDERS[activeProvider])||null;if(!prov)return"";
+  var m=(typeof providerModels!=="undefined"&&providerModels[activeProvider])||prov.defaultModel||"";
+  return String(m).replace(/^claude-/,"").replace(/-20\d{6}$/,"");
+}
+function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}var mdl=activeModelLabel();txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();}
 // Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags
 // the local turn or syncs are failing. Called from updateMemStatus (every turn) AND directly
 // by the storage adapter on every sync success/failure, so it never waits for a turn to refresh.
