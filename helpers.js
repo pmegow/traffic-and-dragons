@@ -13,6 +13,14 @@ function pronounsForGender(g){return g==="F"?"she/her":g==="NB"?"they/them":"he/
 // (sheet-less NPCs; travels via the separate /portrait store). ALL display reads go through
 // this helper; the npc.portrait fallback also covers pre-dedupe saves before migration runs.
 function npcPortrait(n){if(!n)return null;return (n.charSheet&&n.charSheet.portrait)||n.portrait||null;}
+// Effective img2img strength for a render model (#42): the user's per-model override from Render
+// Options when set, else the model's declared default. null when the model's img2img has no
+// strength knob (edit-style APIs like nano-banana) — callers hide the control / omit the param.
+function img2imgStrength(cfg){
+  if(!cfg||!cfg.img2img||typeof cfg.img2img.strength!=="number")return null;
+  var o=renderStrength[cfg.id];
+  return typeof o==="number"?o:cfg.img2img.strength;
+}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 function r4d6(){var d=[droll(6),droll(6),droll(6),droll(6)];d.sort(function(a,b){return a-b;});return d[1]+d[2]+d[3];}
 function getFin(){

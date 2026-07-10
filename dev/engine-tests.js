@@ -1495,4 +1495,29 @@ function runEngineTests(R){
     fileLore("x");for(var i=0;i<30;i++)fileLore("filler "+i);
     return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
   });
+
+  section("img2imgStrength (#42)");
+  function __rm(id){var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===id)return RENDER_MODELS[i];}return null;}
+  t("model default when no override",function(){
+    renderStrength={};
+    return eq(img2imgStrength(__rm("fal-ai/flux/dev")),0.6);
+  });
+  t("per-model user override wins",function(){
+    renderStrength={"fal-ai/flux/dev":0.35};
+    var r=eq(img2imgStrength(__rm("fal-ai/flux/dev")),0.35);
+    renderStrength={};return r;
+  });
+  t("override on one model doesn't leak to another",function(){
+    renderStrength={"fal-ai/flux/dev":0.35};
+    var r=eq(img2imgStrength(__rm("fal-ai/qwen-image-2512")),0.9);
+    renderStrength={};return r;
+  });
+  t("null for a model with no strength knob (nano-banana edit)",function(){
+    renderStrength={};
+    return eq(img2imgStrength(__rm("fal-ai/nano-banana-2")),null);
+  });
+  t("strength flows into the img2img request body",function(){
+    var b=__rm("fal-ai/flux/dev").img2img.body("a scene","data:img",0.45);
+    return eq(b.strength,0.45);
+  });
 }

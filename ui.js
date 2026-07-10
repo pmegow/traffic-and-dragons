@@ -2880,7 +2880,10 @@ function wireButtons(){
   document.getElementById("psh-sp").addEventListener("click",function(){secCol.sp=!secCol.sp;document.getElementById("pss-sp").classList.toggle("col",secCol.sp);});
 }
 function loadFalKey(){var fk=store.get(FAL_KEY_K);if(fk){falKey=fk;var fi=document.getElementById("fal-input");if(fi)fi.value=fk;}}
-function loadRenderModel(){var m=store.get(RENDER_MDL_K);if(m)renderModel=m;}
+function loadRenderModel(){
+  var m=store.get(RENDER_MDL_K);if(m)renderModel=m;
+  try{var s=store.get(RENDER_STR_K);if(s)renderStrength=JSON.parse(s)||{};}catch(e){renderStrength={};}
+}
 function showRenderOptionsModal(){
   document.getElementById("file-menu").style.display="none";
   var ex=document.getElementById("render-opts-modal");if(ex)ex.remove();
@@ -2901,6 +2904,16 @@ function showRenderOptionsModal(){
     +"<div style='display:flex;gap:6px;margin-bottom:22px;'><button id='ro-fal-clear' style='padding:7px 13px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button><button id='ro-fal-save' style='flex:1;padding:8px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save Key</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Image Model</div>"
     +mhtml
+    +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Portrait influence (img2img strength)</div>"
+    +"<div id='ro-str-wrap'>"
+    +"<div style='display:flex;align-items:center;gap:10px;'>"
+    +"<input type='range' id='ro-str' min='0.2' max='0.95' step='0.05' style='flex:1;accent-color:var(--acc);'/>"
+    +"<span id='ro-str-val' style='font-size:13px;color:var(--acc);font-family:var(--font-mono);min-width:34px;text-align:right;'></span>"
+    +"<button id='ro-str-reset' title='Reset to this model&#39;s default' style='padding:4px 9px;font-size:13px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>&#8634;</button>"
+    +"</div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:6px 0 0;'>Higher follows the scene prompt more; lower stays closer to your portrait. Applies when a portrait seeds the scene render.</p>"
+    +"</div>"
+    +"<p id='ro-str-na' style='display:none;font-size:11px;color:var(--t2);font-style:italic;margin:0;'>This model's img2img has no strength control.</p>"
     +"<p id='ro-msg' style='font-size:12px;min-height:16px;margin-top:10px;text-align:center;'></p>"
     +"</div>";
   document.body.appendChild(modal);
@@ -2908,6 +2921,26 @@ function showRenderOptionsModal(){
   document.getElementById("ro-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("ro-fal-save").addEventListener("click",function(){var v=inp.value.trim();if(v){falKey=v;store.set(FAL_KEY_K,v);var msg=document.getElementById("ro-msg");msg.textContent="Key saved.";msg.style.color="var(--grn)";}else{document.getElementById("ro-msg").textContent="Enter a key.";}});
   document.getElementById("ro-fal-clear").addEventListener("click",function(){falKey="";store.del(FAL_KEY_K);inp.value="";var msg=document.getElementById("ro-msg");msg.textContent="Key cleared.";msg.style.color="var(--t2)";});
+  // Strength slider (#42) — shows the SELECTED model's effective strength (override or default);
+  // hidden for models whose img2img API has no strength knob (nano-banana edit).
+  function _roStrSync(){
+    var cfg=null,ci;for(ci=0;ci<RENDER_MODELS.length;ci++){if(RENDER_MODELS[ci].id===renderModel){cfg=RENDER_MODELS[ci];break;}}
+    var wrap=document.getElementById("ro-str-wrap"),na=document.getElementById("ro-str-na"),s=img2imgStrength(cfg);
+    if(s===null){wrap.style.display="none";na.style.display="block";return;}
+    wrap.style.display="block";na.style.display="none";
+    document.getElementById("ro-str").value=s;
+    document.getElementById("ro-str-val").textContent=s.toFixed(2);
+  }
+  document.getElementById("ro-str").addEventListener("input",function(){
+    var v=parseFloat(this.value);
+    document.getElementById("ro-str-val").textContent=v.toFixed(2);
+    renderStrength[renderModel]=v;store.set(RENDER_STR_K,JSON.stringify(renderStrength));
+  });
+  document.getElementById("ro-str-reset").addEventListener("click",function(){
+    delete renderStrength[renderModel];store.set(RENDER_STR_K,JSON.stringify(renderStrength));_roStrSync();
+    var msg=document.getElementById("ro-msg");msg.textContent="Strength reset to model default.";msg.style.color="var(--t2)";
+  });
+  _roStrSync();
   // Model rows — update in place on click
   var rows=modal.querySelectorAll(".ro-row");
   Array.prototype.forEach.call(rows,function(row){
@@ -2920,6 +2953,7 @@ function showRenderOptionsModal(){
         var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";
       });
       var mdlName=renderModel.split("/").pop();var msg=document.getElementById("ro-msg");if(msg){msg.textContent="Model: "+mdlName;msg.style.color="var(--grn)";}
+      _roStrSync();
     });
   });
 }

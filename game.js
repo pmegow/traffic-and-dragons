@@ -834,7 +834,7 @@ async function doRender(){
         var usingI2I=!!(portrait&&mdlCfg.img2img);
         if(usingI2I)imgStatus.textContent="Generating scene (portrait-seeded)…";
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
-        var falBody=usingI2I?mdlCfg.img2img.body(resp,portrait):mdlCfg.body(resp);
+        var falBody=usingI2I?mdlCfg.img2img.body(resp,portrait,img2imgStrength(mdlCfg)):mdlCfg.body(resp);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();

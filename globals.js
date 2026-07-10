@@ -118,29 +118,33 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.232";
+var APP_VERSION="v1.233";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
 var customRules=[];
 var apiKey="",falKey="",busy=false,lastAction=null;
 var RENDER_MODELS=[
+  // img2img.strength is the model's DEFAULT — the effective value goes through img2imgStrength()
+  // (helpers.js, #42), which lets a per-model user override from Render Options win. Models whose
+  // edit-style API has no strength knob (nano-banana) simply omit the field; the slider hides.
   {id:"fal-ai/flux/dev",       label:"Flux [Dev]",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,num_images:1};},
-   img2img:{endpoint:"fal-ai/flux/dev/image-to-image",
-            body:function(p,imgUrl){return {prompt:p,image_url:imgUrl,strength:0.6,num_inference_steps:28,num_images:1};}}},
+   img2img:{endpoint:"fal-ai/flux/dev/image-to-image",strength:0.6,
+            body:function(p,imgUrl,s){return {prompt:p,image_url:imgUrl,strength:s,num_inference_steps:28,num_images:1};}}},
   {id:"fal-ai/nano-banana-2",  label:"Nano Banana 2",
    body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1K",num_images:1};},
    img2img:{endpoint:"fal-ai/nano-banana-2/edit",
             body:function(p,imgUrl){return {prompt:p,image_urls:[imgUrl],aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
-   img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",
+   img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",strength:0.9,
             // qwen-image-edit is edit-style: it preserves the input image unless strength is high.
             // At 0.6 it returned near-copies of the portrait instead of the scene prompt.
-            body:function(p,imgUrl){return {prompt:p,image_url:imgUrl,strength:0.9,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
+            body:function(p,imgUrl,s){return {prompt:p,image_url:imgUrl,strength:s,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
 ];
 var renderModel="fal-ai/flux/dev";
+var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95} (#42); persisted under RENDER_STR_K
 var panelCol=false,secCol={quest:false,inv:false,ab:false,sp:false};
 var _qaSuppressUntil=0; // brief window after a long-press fires, to swallow the trailing click on an action button
 var activeChatTab="narrative";
