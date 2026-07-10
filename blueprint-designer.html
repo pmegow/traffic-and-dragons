@@ -31,6 +31,9 @@ body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font
 .tbtn:hover{border-color:var(--acc);color:var(--acc);}
 .tbtn.primary{background:var(--acc);border-color:var(--acc);color:#062038;font-weight:bold;}
 .tbtn.primary:hover{color:#000;}
+/* Topbar LLM picker (v0.32) — which model Review/Apply/Ask/Generate use. Overrides the global
+   select{width:100%} so it sits inline with the buttons. */
+#llm-sel{width:auto;max-width:230px;padding:7px 8px;font-size:12px;}
 #statusline{width:100%;font-size:11px;min-height:15px;color:var(--t2);}
 #statusline.err{color:var(--dng);}
 #statusline.ok{color:var(--grn);}
@@ -82,6 +85,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
   <button class="tbtn" id="btn-new">New</button>
   <button class="tbtn" id="btn-load">Load&hellip;</button>
+  <select id="llm-sel" title="LLM used by Review, Apply fix, Ask, and Generate"></select>
   <button class="tbtn" id="btn-ask">&#128172; Ask&hellip;</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
@@ -107,7 +111,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.31";
+var BP_DESIGNER_VERSION="v0.32";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -540,6 +544,55 @@ function llmReady(){
   if(!(providerKeys[activeProvider]||apiKey)){setStatus("No API key — open the game, set one (Dev Mode ▸ 🧠 Language Model…), then reload this page.","err");return false;}
   return true;
 }
+// ── LLM picker (v0.32) ─────────────────────────────────────────────────────────
+// Topbar dropdown showing WHICH model the designer's LLM features (Review / Apply fix /
+// Ask / Generate) use. Choices = every model of every provider that has a key on this
+// device (keys ride in via loadProviderSettings, same as llmReady). The pick is persisted
+// DESIGNER-SIDE (bpd_llm_v1) and only flips the in-memory activeProvider for this page's
+// calls — the GAME's stored provider settings are never written (hard rule: this page
+// never writes the game's state keys).
+var LLM_PICK_K="bpd_llm_v1";
+function llmChoices(){
+  var out=[],ids=Object.keys(PROVIDERS),i,j;
+  for(i=0;i<ids.length;i++){
+    var id=ids[i],p=PROVIDERS[id];
+    if(!(providerKeys[id]||(id==="anthropic"&&apiKey)))continue; // same key test as llmReady
+    // The app's per-provider model override leads (it may be a custom id not in models[]).
+    var seen={},ms=[].concat(providerModels[id]?[providerModels[id]]:[],p.models||[]);
+    for(j=0;j<ms.length;j++){if(!seen[ms[j]]){seen[ms[j]]=1;out.push({provider:id,label:p.label||id,model:ms[j]});}}
+  }
+  return out;
+}
+// The model string every designer callGM passes as its override — null falls back to the
+// active provider's default, which only happens when no key is set (llmReady blocks first).
+function designerModel(){
+  var s=document.getElementById("llm-sel");
+  return (s&&s.value)?s.value.split("|")[1]:null;
+}
+function wireLlmSelect(){
+  var s=document.getElementById("llm-sel"),ch=llmChoices(),i,h="",byProv={},order=[];
+  if(!ch.length){s.innerHTML="<option value=''>LLM: no API key</option>";s.disabled=true;return;}
+  for(i=0;i<ch.length;i++){var c=ch[i];if(!byProv[c.provider]){byProv[c.provider]=[];order.push(c.provider);}byProv[c.provider].push(c);}
+  for(i=0;i<order.length;i++){
+    var g=byProv[order[i]],j;h+="<optgroup label='"+esc(g[0].label)+"'>";
+    for(j=0;j<g.length;j++)h+="<option value='"+esc(g[j].provider+"|"+g[j].model)+"'>"+esc(g[j].model)+"</option>";
+    h+="</optgroup>";
+  }
+  s.innerHTML=h;
+  // Restore the persisted pick if its provider still has a key; else default to the app's
+  // current provider+model (what the calls would have used before this dropdown existed).
+  var want="";try{want=localStorage.getItem(LLM_PICK_K)||"";}catch(e){}
+  var valid=false;for(i=0;i<ch.length;i++)if(ch[i].provider+"|"+ch[i].model===want){valid=true;break;}
+  if(!valid)want=activeProvider+"|"+(providerModels[activeProvider]||(PROVIDERS[activeProvider]||{}).defaultModel||"");
+  for(i=0;i<ch.length;i++)if(ch[i].provider+"|"+ch[i].model===want){s.value=want;break;}
+  if(!s.value)s.value=ch[0].provider+"|"+ch[0].model;
+  activeProvider=s.value.split("|")[0]; // in-memory only — keys/endpoint must match the picked model
+  s.addEventListener("change",function(){
+    activeProvider=s.value.split("|")[0];
+    try{localStorage.setItem(LLM_PICK_K,s.value);}catch(e){}
+    setStatus("Designer LLM: "+s.value.split("|")[1]+" ("+((PROVIDERS[activeProvider]||{}).label||activeProvider)+")","");
+  });
+}
 // Compact story context — what the model needs to invent IN SERVICE to this campaign,
 // nothing else. Existing creatures included so it complements instead of duplicating.
 function storyContext(){
@@ -562,7 +615,7 @@ async function genCreature(btn){
       +"\n- notes = its nature, behaviour, tactics, and weaknesses/how it dies, 2-4 sentences, written as GM guidance. CHARACTER, not stats — the engine handles stats separately."
       +"\n- kind = one or two words (beast/undead/aberration/construct/monstrosity/...); threat = low/moderate/deadly/apex or a CR."
       +"\nOutput ONLY this JSON object: {\"name\":\"\",\"kind\":\"\",\"threat\":\"\",\"notes\":\"\"}";
-    var resp=await callGM(msg,"You design bestiary entries for tabletop RPG campaign blueprints. Output ONLY one valid JSON object — no markdown, no prose, no code fences.",500,null,{noHistory:true,kind:"other"});
+    var resp=await callGM(msg,"You design bestiary entries for tabletop RPG campaign blueprints. Output ONLY one valid JSON object — no markdown, no prose, no code fences.",500,designerModel(),{noHistory:true,kind:"other"});
     var c=JSON.parse(repairModelJson(resp));
     if(!c||!c.name)throw new Error("model returned no usable creature");
     bp.creatures.push({name:String(c.name),kind:String(c.kind||""),threat:String(c.threat||""),notes:String(c.notes||"")});
@@ -597,7 +650,11 @@ var REVIEW_CONSTRAINTS=
   "\n\nCONSTRAINT CHECK — verify EVERY finding against these before you output; violations make the finding worthless:"
   +"\n1. NO NEW FIELDS OR SECTIONS, EVER. The schema is fixed; the engine ignores anything else. WRONG: \"add a 'godIndex' field / new top-level section\". RIGHT: \"embed the god-to-shrine mapping into the Omu location description\" or \"extend the trickster-gods rule with the mapping\". Every fix edits EXISTING fields only."
   +"\n2. NO ALTERNATIVES INSIDE A FIX. If the words 'or', 'alternatively', or 'either' would appear in a fix, STOP — split it into separate fixes[] entries (max 3, usually 1) so the author can choose."
-  +"\n3. Each fix is one sentence, self-contained, applyable as written.";
+  +"\n3. Each fix is one sentence, self-contained, applyable as written."
+  // Convergence rules (v0.32): the review loop must CLOSE, not churn. The observed failure mode
+  // is a fix that itself becomes the next review's finding — usually a fresh name-drop.
+  +"\n4. NO NEW HOLES. A fix must never create the NEXT review's finding. Any person, place, faction, god, item, or event a fix introduces must ALREADY be defined in the blueprint — or the fix must explicitly say to define it fully in its home section as part of the same edit. A fix that name-drops something undefined is worse than no fix."
+  +"\n5. CLOSE THE ISSUE COMPLETELY. Applying the fix as written must make the issue disappear on a re-review — a fix that merely narrows the gap, or that contradicts an unedited section, guarantees churn. Prefer a fix that resolves the issue with what the blueprint already contains over one that adds new material.";
 var REVIEW_CHUNKS=[
   {key:"story",label:"Story (acts & arcs)",focus:"the acts and their arcs: acts without concrete turning points, climactic arcs missing rewards, and arcs that are PLACES rather than completable objectives (the engine can never complete a place)."},
   {key:"npcs",label:"NPCs",focus:"the NPCs: any NPC without run-instructions or secrets, unnamed leaders of named factions, missing motivations, or contradictions with the story."},
@@ -607,13 +664,14 @@ var REVIEW_CHUNKS=[
   {key:"consistency",label:"Cross-cutting consistency",focus:"CROSS-SECTION issues ONLY: NAME-DROP violations (any person, place, faction, god, or thing referenced in the premise, notes, rules, or descriptions that is NOT defined anywhere in the blueprint), contradictions between sections, and tone/voice mismatch. Do NOT repeat per-section completeness issues — those are covered separately."}
 ];
 async function reviewChunk(payloadJson,chunk){
-  var msg="Review ONE aspect of this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign.\n\nBLUEPRINT (full, for cross-reference):\n"+payloadJson
+  var msg="Review ONE aspect of this TTRPG campaign blueprint. It is consumed by an AI Game Master: every gap you find is a gap the GM will fill by IMPROVISING — which causes canon drift over a long campaign."
+    +"\nThis review is one round of an ITERATIVE loop: the author applies your fixes and re-reviews. The loop must CONVERGE — applying all fixes should leave your focus area clean on the next pass, never seed new findings.\n\nBLUEPRINT (full, for cross-reference):\n"+payloadJson
     +"\n\n"+ENGINE_CONTRACT
     +"\n\nFOCUS — report findings ONLY about "+chunk.focus
     +"\nReport EVERY genuine issue in your focus area, worst-first; do NOT stop at an arbitrary number (hard cap 12 as a circuit breaker). If the focus area is clean, return an empty findings array — do NOT invent issues to fill space."
     +"\n\nOutput ONLY this JSON (no markdown, no prose outside it), issue and each fix ONE tight sentence (concrete enough to apply, not an essay):\n{\"findings\":[{\"sev\":\"HIGH|MED|LOW\",\"section\":\"which part of the blueprint\",\"issue\":\"what is wrong\",\"fixes\":[\"concrete applyable instruction\"]}]}"
     +REVIEW_CONSTRAINTS; // constraints LAST — end-of-prompt position is load-bearing (audit #2)
-  var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",4000,null,{noHistory:true,kind:"other"});
+  var resp=await callGM(msg,"You are a meticulous, blunt reviewer of TTRPG campaign blueprints. Output ONLY valid JSON in the requested shape. Keep every finding terse.",4000,designerModel(),{noHistory:true,kind:"other"});
   var r=JSON.parse(repairModelJson(resp));
   if(!r||!r.findings)return [];
   return r.findings.map(function(f){
@@ -780,12 +838,15 @@ async function applyFinding(idx){
       +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
       +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
-      +"\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content a fix asks for goes INTO the existing fields (an NPC's secrets/hooks into that NPC's notes).";
+      +"\nTHE SCHEMA IS FIXED: use exactly the field names the input uses — never invent new fields (no 'secrets', 'hooks', etc.). Content a fix asks for goes INTO the existing fields (an NPC's secrets/hooks into that NPC's notes)."
+      // No-new-holes clause (v0.32): an applied fix that name-drops an undefined entity or
+      // contradicts an unedited section just becomes the NEXT review's finding — churn.
+      +"\nNO NEW HOLES: this blueprint is a CLOSED WORLD. Every person, place, faction, god, item, or event your patched text mentions must either already be defined in the blueprint or be fully defined by another patch in THIS same response — never name-drop something you leave undefined. Do not contradict sections you are not editing. The result must survive a fresh review of this issue with zero new findings.";
     // 16000-token ceiling (v0.30, was 8000 in v0.26, 3000 before that): a live single-arc fix still
     // clipped at ~8.2k tokens (32,903 chars). The ceiling is a circuit breaker, not a length governor
     // — for JSON, amputation is total loss, so it sits far above any sane response. WHY responses
     // ever balloon that big is diagnosed via the raw-response console dump in the catch below.
-    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",16000,null,{noHistory:true,kind:"other"});
+    var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",16000,designerModel(),{noHistory:true,kind:"other"});
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
@@ -920,7 +981,7 @@ function openAsk(seedFinding){
         +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix option(s): "+(seedFinding.fixes||[seedFinding.fix||""]).join(" | "):"");
       var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
       msg+="\n\nUSER ASKS: "+q;
-      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint. Answer directly and concisely; you are advising the human author and cannot edit the blueprint. Plain text only.\nWHAT 'CANON' MEANS depends on the blueprint: IF it adapts a published work (the name/author credit will say so), canon = that published source — state explicitly what comes from the source versus what is invented, and flag uncertainty about the source. IF it is ORIGINAL/homebrew, the blueprint itself is the ONLY canon — never invent or imply an outside source; instead classify claims three ways: STATED (literally in the document), CONSISTENT EXTENSION (not stated but fits everything written — flag that accepting it makes it canon), or PURE INVENTION (no anchor in the document; imported genre defaults — call these out loudly).",1200,null,{noHistory:true,kind:"other"});
+      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint. Answer directly and concisely; you are advising the human author and cannot edit the blueprint. Plain text only.\nWHAT 'CANON' MEANS depends on the blueprint: IF it adapts a published work (the name/author credit will say so), canon = that published source — state explicitly what comes from the source versus what is invented, and flag uncertainty about the source. IF it is ORIGINAL/homebrew, the blueprint itself is the ONLY canon — never invent or imply an outside source; instead classify claims three ways: STATED (literally in the document), CONSISTENT EXTENSION (not stated but fits everything written — flag that accepting it makes it canon), or PURE INVENTION (no anchor in the document; imported genre defaults — call these out loudly).",1200,designerModel(),{noHistory:true,kind:"other"});
       _askLog[_askLog.length-1].a=resp;
     }catch(e){_askLog[_askLog.length-1].a="(failed: "+e.message+")";}
     if(btn)btn.disabled=false;
@@ -1006,6 +1067,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
+wireLlmSelect(); // after loadProviderSettings — the choices come from the loaded keys/overrides
 document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
 // Boot: restore the working draft if one exists — reload continues where you were (New = blank).
 var _draft=null;try{_draft=JSON.parse(localStorage.getItem(DRAFT_K)||"null");}catch(e){}
