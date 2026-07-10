@@ -24,7 +24,8 @@ All logic has been extracted from the HTML into separate JS files.
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
 | `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharacterLibrary`, `saveCharacterToLibrary`, `deleteCharacterFromLibrary` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
-| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts`, `findCompanionChar`, `cleanTxt`, `diceTxt`, `parseActions`, `buildGeoBlock` |
+| `tag_table.js` | ✅ Active (UA1, v1.241) | ⛨ **THE tag registry** — one ordered table (`TAG_TABLE`, ~57 handlers in the exact legacy `applyMuts` order) from which three formerly hand-synced surfaces DERIVE: `applyMutsTable()` (the future parser), `buildCtTags()`/`buildCtBare()` (cleanTxt's strip regexes), and `buildStateTagsDoc()` (the STATE TAGS prompt block — byte-identical to the money-tested text, frozen by engine tests). **SHADOW MODE:** old `applyMuts` stays authoritative; every response also runs the table against cloned state (`__tagShadowRun`) and any mutation diff logs loudly + persists to `tnd_tagdiff_v1` (`__tagShadowDiff`); unknown tags warn (`__tagUnknownScan`). Kill switch `TAG_SHADOW` (globals.js). Cutover = a later commit gated on the real-play soak; adding a tag then = one table entry (parse+strip+docs land together, phantom class impossible — coverage guards in the test suite). `TAG_NO_HANDLER` documents the deliberate parse-less names (DICE/ACTIONS/RETCON + the UA2 ENEMY_SURRENDERS phantom pending a decision). Replay tool: `dev/diff-replay.js <corpus.json>`. |
+| `api.js` | ✅ Extracted | `callGM`, `buildSysPrompt`, `getRulesBlock`, `applyMuts` (authoritative parser + UA1 shadow hooks), `findCompanionChar`, `cleanTxt` (regexes derived from tag_table), `diceTxt`, `parseActions`, `buildGeoBlock` |
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
 | `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame`, `syncCharSheet`, `checkLegacyCharacter`, `checkCompanionLevelUp` |
 | `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharacterLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots`, `showCapabilityCard` (TODO #10 spell/ability click-card; clickable names in the char sheet) |
@@ -33,7 +34,7 @@ All logic has been extracted from the HTML into separate JS files.
 ### Script load order
 
 ```
-globals.js → data.js → capability_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → api.js → char-creation.js → game.js → ui.js → tts.js
+globals.js → data.js → capability_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → tag_table.js → api.js → char-creation.js → game.js → ui.js → tts.js
 ```
 
 Each file depends only on symbols defined by files earlier in this list.
