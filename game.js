@@ -54,6 +54,29 @@ function startGame(char,toneName,toneVoice,authorId){
     generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
   }
 }
+// UA38 ②③ + UA39 ①: the suggestion call was scene-starved — head-sliced prose, no geography,
+// spell NAMES without canon — so it invented a lockable exit (t333) and recommended a cross-town
+// Message, a 120ft cantrip (t355). A tapped suggestion becomes player INTENT the GM then tends
+// to oblige, so a hallucinating side model is a drift injection vector. Three pure, engine-tested
+// helpers close the gaps: canon-annotated spell list, canonical location line, scene TAIL slice.
+function suggestionSpellList(c){
+  var sp=[],si;
+  if(c&&c.spells){for(si=0;si<c.spells.length;si++){if(c.spells[si].used)continue;
+    var nm=c.spells[si].nm.replace(/\s*\(.*\)/,""),line=nm;
+    var canon=(typeof capabilityLookup==="function")&&capabilityLookup(nm);
+    if(canon){var lim=[];if(canon.range&&canon.range!=="N/A")lim.push("range "+canon.range);if(canon.targets&&canon.targets!=="N/A")lim.push("targets "+canon.targets);if(lim.length)line+=" ("+lim.join(", ")+")";}
+    sp.push(line);}}
+  return sp;
+}
+function suggestionGeoLine(){
+  if(!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return"";
+  var w=worldState.world,key=w.sublocation?w.location+"|"+w.sublocation:w.location;
+  var node=memory.map.nodes[key]||memory.map.nodes[w.location];
+  return(node&&node.description)?("THE CURRENT LOCATION (canonical): "+node.description):"";
+}
+// Keep the END of the latest GM message — prose-voice responses regularly exceed 2,400 chars and
+// the tactical present lives at the tail; the old head-slice could cut the scene's ending away.
+function suggestionSceneTail(txt){txt=String(txt||"");return txt.length>2400?txt.slice(-2400):txt;}
 async function generateActions(msgEl){
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
@@ -66,13 +89,15 @@ async function generateActions(msgEl){
   try{
     // Send ONLY the latest scene + a sheet digest, not the whole sessionLog (audit #17), and give
     // the model the character's actual kit so it can't suggest spells the player doesn't have —
-    // the "Cast Magic Missile" button root cause (audit #4 / TODO Known issue #4).
-    var c=worldState.character,sp=[],ab=[],si;
-    if(c.spells){for(si=0;si<c.spells.length;si++){if(!c.spells[si].used)sp.push(c.spells[si].nm.replace(/\s*\(.*\)/,""));}}
+    // the "Cast Magic Missile" button root cause (audit #4 / TODO Known issue #4). UA38/UA39:
+    // spells carry their canon limits, the canonical location desc rides along, and the scene is
+    // TAIL-sliced — see the suggestion* helpers above for the incident history.
+    var c=worldState.character,sp=suggestionSpellList(c),ab=[],si;
     if(c.abilities){for(si=0;si<c.abilities.length;si++)ab.push(c.abilities[si].nm);}
-    var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above.";
+    var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above, and never suggest a cast that exceeds a spell's listed range or targets (a target in another building, street, or distant room is beyond a short-range spell).";
+    var geoLine=suggestionGeoLine();
     var lastGm="";for(si=sessionLog.length-1;si>=0;si--){if(sessionLog[si].role==="assistant"){lastGm=cleanTxt(sessionLog[si].content);break;}}
-    var resp=await callGM("LATEST SCENE:\n"+lastGm.slice(0,2400)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+" Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true,kind:"actions"});
+    var resp=await callGM("LATEST SCENE:\n"+suggestionSceneTail(lastGm)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+(geoLine?" "+geoLine:"")+" Suggest only actions involving people, objects, and exits explicitly present in the LATEST SCENE or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned. Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=JSON.parse(stripCodeFences(resp)); // array payload — fences only, no object repair
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */

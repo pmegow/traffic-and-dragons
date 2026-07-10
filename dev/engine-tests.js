@@ -1832,4 +1832,41 @@ function runEngineTests(R){
     migrateWorldState();
     return eq(worldState.coreMemories.length,1,"second migrate clobbered data");
   });
+
+  // ── Suggestion grounding (UA38 ②③ + UA39 ①) ─────────────────────────────────
+  section("suggestion grounding (UA38/UA39)");
+  t("spell list carries canon limits — Message annotated with its 120ft range (the t355 class)",function(){
+    makeWorld();worldState.character.spells=[{nm:"Message",lvl:0,used:false}];
+    var sp=suggestionSpellList(worldState.character);
+    return /^Message \(range 120/.test(sp[0])?true:"no canon annotation: "+JSON.stringify(sp);
+  });
+  t("used spells excluded; racial parenthetical stripped before lookup",function(){
+    makeWorld();// Faerie Fire (racial, 1/day) unused + a spent slot
+    worldState.character.spells.push({nm:"Charm Person",lvl:1,used:true});
+    var sp=suggestionSpellList(worldState.character);
+    if(sp.length!==1)return "used spell leaked: "+JSON.stringify(sp);
+    return sp[0].indexOf("Faerie Fire")===0&&sp[0].indexOf("(racial")<0?true:"parenthetical not stripped: "+sp[0];
+  });
+  t("unknown spell (no bible canon) stays a bare name",function(){
+    makeWorld();worldState.character.spells=[{nm:"Homebrew Zap",lvl:1,used:false}];
+    return eq(suggestionSpellList(worldState.character)[0],"Homebrew Zap");
+  });
+  t("geo line serves the sublocation node's desc over the world node's",function(){
+    makeWorld();
+    memory.map.nodes["Ashfen"]={description:"A grey town."};
+    memory.map.nodes["Ashfen|The Flagon"]={description:"A smoky common room with one door to the street."};
+    worldState.world.sublocation="The Flagon";
+    if(suggestionGeoLine().indexOf("smoky common room")<0)return "subloc desc not served";
+    worldState.world.sublocation=null;
+    if(suggestionGeoLine().indexOf("grey town")<0)return "world desc not served";
+    memory.map.nodes={};
+    return eq(suggestionGeoLine(),"","no-desc should be empty");
+  });
+  t("scene slice keeps the TAIL — the ending survives an over-length message (UA38 ③)",function(){
+    var head="THE-BEGINNING ",body=new Array(3000).join("x"),tail=" THE-ENDING";
+    var out=suggestionSceneTail(head+body+tail);
+    if(out.length!==2400)return "wrong length: "+out.length;
+    if(out.indexOf("THE-ENDING")<0)return "ending lost — still head-slicing";
+    return out.indexOf("THE-BEGINNING")<0?true:"beginning retained on an over-length message?";
+  });
 }
