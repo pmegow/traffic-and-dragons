@@ -1962,6 +1962,16 @@ function runEngineTests(R){
     if(v.indexOf("Conditions: Unconscious (until awakened; since t155)")<0)return "companion conditions still invisible";
     return v.indexOf("[COMPANION_CONDITION_REMOVED:Name|condition] NOW")>=0?true:"header instruction missing";
   });
+  t("#47: migration adds aliases[] to player AND companion sheets, idempotent",function(){
+    makeWorld();delete worldState.character.aliases;
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:38,maxHp:38}}];
+    if(!migrateWorldState())return "migration reported no change";
+    if(!(worldState.character.aliases instanceof Array))return "player aliases not added";
+    if(!(worldState.npcs[0].charSheet.aliases instanceof Array))return "companion sheet aliases not added";
+    worldState.character.aliases.push("Butcher of Ashfen");
+    migrateWorldState();
+    return eq(worldState.character.aliases.length,1,"second migrate clobbered epithets");
+  });
   t("condition-less party sheet adds NO Conditions line; stable half untouched by #46",function(){
     makeWorld();
     worldState.npcs=[{name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,hp:20,maxHp:20,conditions:[]}}];

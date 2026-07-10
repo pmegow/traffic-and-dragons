@@ -1024,7 +1024,9 @@ function csSheetSections(c){
   var invHtml;
   if(c.inventory&&c.inventory.length){var invParts=[],ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invParts.push(invItemHtml(c.inventory[ivi]));invHtml='<div class="cs-v" style="line-height:1.9">'+invParts.join(", ")+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';
-  var charKv=(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
+  // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
+  // swaps — "Player today is NPC tomorrow is Player again; the sheets stay sympatico" (user).
+  var charKv=(c.aliases&&c.aliases.length?csKv("Also known as",c.aliases.map(escHtml).join(", ")):"")+(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
   return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
 // showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
@@ -1499,6 +1501,12 @@ function showNpcSheet(name){
   // ── NPC sections (always shown) ───────────────────────────────────────────
   var statusBlock="";
   if(wsNpc){statusBlock+=csKv("Status",wsNpc.status||"—");if(wsNpc.pronouns)statusBlock+=csKv("Pronouns",wsNpc.pronouns);}
+  // #47: identity aliases (memory — the resolution spine, e.g. a merged "Woman in Bronze")
+  // + schema epithets (charSheet.aliases), deduped. The merge machinery's work, made visible.
+  var _aka=[],_ak;
+  if(memNpc&&memNpc.aliases){for(_ak=0;_ak<memNpc.aliases.length;_ak++)_aka.push(memNpc.aliases[_ak]);}
+  if(sheet&&sheet.aliases){for(_ak=0;_ak<sheet.aliases.length;_ak++){if(_aka.indexOf(sheet.aliases[_ak])<0)_aka.push(sheet.aliases[_ak]);}}
+  if(_aka.length)statusBlock+=csKv("Also known as",_aka.map(escHtml).join(", "));
   var pcRel=null;var pcRels=worldState&&worldState.character&&worldState.character.relationships?worldState.character.relationships:[];
   for(var pri=0;pri<pcRels.length;pri++){if(pcRels[pri].entity===name){pcRel=pcRels[pri].descriptor;break;}}
   var relDisplay=pcRel||(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown"?wsNpc.rel:null);

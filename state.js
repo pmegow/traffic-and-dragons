@@ -135,10 +135,12 @@ function migrateWorldState(){
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
   if(!worldState.coreMemories){worldState.coreMemories=[];_mig=true;}/* #40 Core Memory — party-shared defining moments */
+  if(!c.aliases){c.aliases=[];_mig=true;}/* #47 epithets — schema field so titles survive PC↔NPC swaps */
   // Known issue #3 dedupe: companion portraits were stored 2× (npc.portrait + charSheet.portrait,
   // ~22-52KB each). charSheet.portrait is now the single home for any NPC with a sheet — move a
   // lone npc.portrait in, then drop the duplicate. Display reads go through npcPortrait() (helpers).
   var _pn;for(_pn=0;_pn<worldState.npcs.length;_pn++){var _pnp=worldState.npcs[_pn];
+    if(_pnp&&_pnp.charSheet&&!_pnp.charSheet.aliases){_pnp.charSheet.aliases=[];_mig=true;}/* #47 — sheets stay sympatico across swaps */
     if(_pnp&&_pnp.charSheet&&_pnp.portrait){
       if(!_pnp.charSheet.portrait)_pnp.charSheet.portrait=_pnp.portrait;
       _pnp.portrait=null;_mig=true;
