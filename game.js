@@ -1032,7 +1032,11 @@ async function syncCharSheet(){
     +"Only emit tags for things that have actually changed or are genuinely missing. "
     +"If nothing needs updating, reply with a single period only.";
   try{
-    var resp=await callGM(auditMsg,null,500,null,{kind:"sync"});
+    // v1.250 (user decree: "syncSheet fights drift. Always fight drift."): the audit RESULT
+    // mutates sheets through applyMuts — a sloppy audit WRITES wrong state — so this call
+    // escalates to the provider's upgradeModel like the skeleton and suggestions do. The
+    // Daeris test showed Haiku ignores even the targeted cleanup instructions.
+    var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");
