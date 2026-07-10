@@ -119,7 +119,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.240";
+var APP_VERSION="v1.241";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -146,6 +146,9 @@ var RENDER_MODELS=[
 ];
 var renderModel="fal-ai/flux/dev";
 var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95} (#42); persisted under RENDER_STR_K
+// UA1 shadow soak: run every GM response through the tag TABLE against cloned state and diff
+// against the authoritative old parser. Kill switch — flip false if the soak misbehaves in play.
+var TAG_SHADOW=true;
 var panelCol=false,secCol={quest:false,inv:false,ab:false,sp:false};
 var _qaSuppressUntil=0; // brief window after a long-press fires, to swallow the trailing click on an action button
 var activeChatTab="narrative";

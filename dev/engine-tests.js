@@ -1496,6 +1496,92 @@ function runEngineTests(R){
     return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
   });
 
+  // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary parity ═══
+  // NOTE: with TAG_SHADOW on, EVERY applyMuts call in the suites above already ran the table
+  // against cloned state and diffed — the zero-diff gate at the very end of this file is the
+  // aggregate parity assertion over the whole suite. The battery below adds the rare tags.
+  section("tag table (UA1): derivations + coverage");
+  function __djb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
+  t("derived cleanTxt strip regex is byte-identical to the pre-refactor literal (frozen)",function(){
+    // Frozen from the v1.240 literals (verified against git HEAD during the refactor). A registry
+    // edit that changes stripping MUST consciously update these numbers.
+    if(__djb2(_CT_TAGS.source)!==1892048388||_CT_TAGS.source.length!==840)return "_CT_TAGS diverged from the frozen literal";
+    return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
+  });
+  t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
+    var d=buildStateTagsDoc();
+    return (__djb2(d)===1563084037&&d.length===8237)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+  });
+  t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
+    var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
+    var stripped={};for(i=0;i<TAG_STRIP_NAMES.length;i++)stripped[TAG_STRIP_NAMES[i]]=1;for(i=0;i<TAG_STRIP_BARE.length;i++)stripped[TAG_STRIP_BARE[i]]=1;
+    var exempt={};for(i=0;i<TAG_NO_HANDLER.length;i++)exempt[TAG_NO_HANDLER[i]]=1;
+    for(var t2 in have){if(t2==="SUBLOCATION_LEAVE")continue;if(!stripped[t2])return "handler "+t2+" is NOT stripped (would leak to the player)";}
+    if(!stripped["SUBLOCATION_LEAVE"])return "bare tag SUBLOCATION_LEAVE not stripped";
+    for(var s2 in stripped){if(!have[s2]&&!exempt[s2])return "stripped tag "+s2+" has NO handler and NO documented exemption (the phantom class)";}
+    return true;
+  });
+
+  section("tag table (UA1): full-vocabulary parity battery");
+  t("parity A: fresh-world mega-response (core + world + npc + combat-open tags)",function(){
+    makeWorld();var d0=__tagDiffCount;
+    applyMuts("The road bends east.\n[HP:-3][GOLD:+10][ITEM_GAINED:Torch][ITEM_GAINED:Torch][ITEM_GAINED:Rope x3][ITEM_LOST:Travel ration][XP:50]"
+      +"[LOCATION:Duskmere][LOCATION_DESC:A drowned town on stilts.][LOCATION_SIZE:small|10][SUBLOCATION:The Eel's Rest][LOCATION_ITEM:Rusted key|placed]"
+      +"[TIME:midnight][WEATHER:fog]"
+      +"[NPC:Borin Stonehand|gruff, wary|acquaintance][NPC:Mira|she/her][NPC_PRONOUN:Borin Stonehand|he/him][NPC_ALIAS:Borin Stonehand|The Smith]"
+      +"[LORE:Duskmere floods every spring tide.][DECISION:Spared the smuggler.][FUTURE_EVENT:The spring tide arrives|three days]"
+      +"[NPC_NOTE:Borin Stonehand|Sold the party a lantern.][SKILL_SUCCESS:stealth][CONDITION:Chilled|until warmed][RELATIONSHIP:Borin Stonehand|Indebted]"
+      +"[SAVE_MOD:Blessing of the Eel|Cold|2][LANGUAGE:Marsh-cant|broken][STORY_BEAT:First sight of the drowned town.][ABILITY_GAINED:Mudwalk|Move over marsh without sinking.]"
+      +"[QUEST:The Drowned Bell|offered|Raise the bell from the deep.][QUEST:Eel Debts|active][QUEST_STEP:Eel Debts|Meet Borin at the forge|true]"
+      +"[ALIGNMENT:good+1][SPELL_USED:Faerie Fire][SPELL_DEF:Marsh Light|range=60ft|targets=one point|duration=10 min|effect=A bobbing witch-light|cost=at-will|magical=yes]"
+      +"[COMBAT_START:Marsh Wight|18|13|+4|d8+2|fights until dawn][COMBAT_STATS:STR:14|DEX:12|CON:16|INT:6|WIS:10|CHA:8|CR:2][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold, necrotic][COMBAT_VULN:fire][ENEMY_HP:-5 slashing][COMBAT_ROUND:2]");
+    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on mega-response — see console";
+    if(worldState.character.hp!==11||worldState.character.gold!==35)return "sanity: core muts wrong";
+    return worldState.combat&&worldState.combat.hp===13?true:"sanity: combat state wrong";
+  });
+  t("parity B: closures, removals, merge, factions, rest, party join",function(){
+    var d0=__tagDiffCount; // CONTINUES the parity-A world (combat live, condition/rel/save/lang set)
+    applyMuts("It ends at the water line.\n[COMBAT_END:fled][SUBLOCATION_LEAVE][CONDITION_REMOVED:Chilled][RELATIONSHIP_REMOVED:Borin Stonehand]"
+      +"[SAVE_MOD_REMOVED:Blessing of the Eel][FUTURE_EVENT_RESOLVED:The spring tide arrives][NPC_FORGET:Borin Stonehand|lantern]"
+      +"[QUEST:Eel Debts|completed][REST:long][NPC:Old Borin|weathered|ally][NPC_MERGE:Borin Stonehand|Old Borin]"
+      +"[NPC_LINK:Borin Stonehand|player|reluctant respect][FACTION:Tidewardens|keepers of the flood-bells][NPC_FACTION:Borin Stonehand|Tidewardens|bellsmith]"
+      +"[FACTION_REL:Tidewardens|Salt Guild|old rivals][PARTY_MEMBER:Borin Stonehand|true]");
+    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on closures/merge — see console";
+    if(worldState.combat!==null)return "sanity: combat not closed";
+    var b=null,i;for(i=0;i<worldState.npcs.length;i++)if(worldState.npcs[i].name==="Borin Stonehand")b=worldState.npcs[i];
+    return b&&b.partyMember?true:"sanity: merge/join wrong";
+  });
+  t("parity C: companion tags + shared-XP mirror + COMPANION_XP supersede",function(){
+    makeWorld();var d0=__tagDiffCount;
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:12,maxHp:12,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+    worldState.npcs.push({name:"Bram",status:"dour",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:16,maxHp:16,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+    applyMuts("[COMPANION_HP:Lyra|-4][COMPANION_ITEM_GAINED:Lyra|Silver censer][COMPANION_ITEM_LOST:Bram|Shield]"
+      +"[COMPANION_CONDITION:Bram|Poisoned|until dawn][COMPANION_CONDITION_REMOVED:Bram|Poisoned]"
+      +"[COMPANION_RELATIONSHIP:Lyra|Borin|Suspicious][COMPANION_RELATIONSHIP_REMOVED:Lyra|Borin]"
+      +"[COMPANION_ABILITY:Bram|Shield Wall|Adjacent allies gain +1 AC.][COMPANION_ALIGNMENT:Lyra|good+1]"
+      +"[XP:100][COMPANION_XP:Lyra|50]");
+    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on companion tags — see console";
+    var lyra=worldState.npcs[0].charSheet,bram=worldState.npcs[1].charSheet;
+    if(lyra.hp!==8||lyra.xp!==450)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+")";
+    return bram.xp===500?true:"sanity: Bram mirror wrong ("+bram.xp+")";
+  });
+  t("parity D: skeleton arc + act advancement",function(){
+    makeWorld();var d0=__tagDiffCount;
+    worldState.skeleton={premise:"x",acts:[
+      {title:"Act One",status:"active",parallel:false,arcs:[{title:"First Arc",status:"active"},{title:"Second Arc",status:"pending"}]},
+      {title:"Act Two",status:"pending",parallel:true,arcs:[{title:"Left Path",status:"pending"},{title:"Right Path",status:"pending"}]}]};
+    applyMuts("[ARC_COMPLETE:First Arc]");
+    applyMuts("[ARC_COMPLETE:Second Arc][ACT_COMPLETE:Act One]");
+    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on skeleton tags — see console";
+    var sk=worldState.skeleton;
+    if(sk.acts[0].status!=="completed"||sk.acts[1].status!=="active")return "sanity: act advance wrong";
+    return (sk.acts[1].arcs[0].status==="active"&&sk.acts[1].arcs[1].status==="active")?true:"sanity: parallel arcs not activated";
+  });
+  t("ZERO shadow diffs across the ENTIRE suite (every applyMuts above ran the table in parallel)",function(){
+    if(typeof __tagParityRuns==="undefined"||__tagParityRuns<20)return "shadow barely ran ("+__tagParityRuns+" runs) — TAG_SHADOW wiring broken?";
+    return __tagDiffCount===0?true:__tagDiffCount+" diff(s) across "+__tagParityRuns+" parity runs — see console [tag-shadow] lines";
+  });
+
   section("transcript rescue (UA3)");
   t("corrupt __lz preserves a rescue blob and yields an empty array (no silent loss, no throw)",function(){
     makeWorld();

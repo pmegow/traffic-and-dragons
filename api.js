@@ -230,52 +230,10 @@ function buildSysPrompt(){
     +narrativeDesignBlock
     +bestiaryBlock
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
-    +"STATE TAGS (use in responses, never shown to player):\n"
-    +"[HP:+/-X] [GOLD:+/-X gp -- ALWAYS in gold pieces; 10sp=1gp, 100cp=1gp; convert before tagging] [ITEM_GAINED:name] [ITEM_LOST:name] [LOCATION:name] [XP:N]\n"
-    +"ITEM TAG FORMAT: emit the tag once per item with the bare item name -- never bake quantities into the name (no 'Torch x3'); to grant three torches, emit [ITEM_GAINED:Torch] three times.\n"
-    +"[NPC:name|status|relation] -- status=current mood/condition in 2-4 WORDS (a label like 'wary, bargaining' -- never a sentence; scene detail belongs in prose or [NPC_NOTE:]), relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n"
-    +"[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten\n"
-    +"[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n"
-    +"[SUBLOCATION:name] -- player enters a named area within current world location (e.g. tavern common room, thieves' guild hall)\n"
-    +"[SUBLOCATION_LEAVE] -- player exits the sub-location back to the parent world location\n"
-    +"[TIME:time of day] -- update whenever time meaningfully advances (e.g. [TIME:dawn], [TIME:late night]); the world clock does NOT move on its own, so a night's camp, a long journey, or a rest all need this tag or the prompt keeps reporting the old time\n"
-    +"[WEATHER:description] -- update when the weather changes (e.g. [WEATHER:heavy rain], [WEATHER:clear and cold])\n"
-    +"[LOCATION_ITEM:name|placed] -- item left or hidden here (pair with [ITEM_LOST:]); [LOCATION_ITEM:name|taken] -- item removed by NPC/event (player pickup auto-handled by [ITEM_GAINED:])\n"
-    +"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] [ENEMY_HP:-X] [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n"
-    +"[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N] -- always emit alongside COMBAT_START; use official D&D stats\n"
-    +"[COMBAT_IMMUNE:fire,poison] [COMBAT_RESIST:cold,lightning] [COMBAT_VULN:thunder] -- omit entirely if none; comma-separated damage types only\n"
-    +"CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n"
-    +"[ALIGNMENT:law+1] [ALIGNMENT:good-1] (use on morally significant choices only)\n"
-    +"[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n"
-    +"[SPELL_DEF:Name|range=X|targets=Y|duration=Z|effect=...|cost=slot|tier=1|category=arcane,divine|magical=yes] -- ONLY when a spell is cast that is NOT already in the CANONICAL SPELL RULES list (one you invented or a homebrew): define its canon ONCE so the engine pins it and it can never drift. '=' per field, '|' between fields; category is a comma-separated tradition list (arcane/divine/primal/necromantic/martial); keep effect free of '|' and ']'. Recorded once, re-injected forever -- do not redefine a spell already listed.\n"
-    +"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again; narrate HP recovery with [HP:+N] as usual\n"
-    +"[FUTURE_EVENT_RESOLVED:what] (when a pending future event occurs)\n"
-    +"[LORE:fact] [DECISION:description] [FUTURE_EVENT:what|when] [NPC_NOTE:name|note] [NPC_PRONOUN:name|she/her]\n"
-    +"[NPC_FORGET:name|person or event] -- erase one specific memory from an NPC (emit when the Oubliate spell is cast and the WIS save fails); the engine scrubs that fact from what the NPC knows so it cannot resurface\n"
-    +"[RETCON:what was corrected] -- emit whenever you correct, rewind, or retract something you previously narrated (including after an out-of-character correction from the player); the engine de-indexes the superseded narration from episodic memory so the wrong version can never resurface as truth\n"
-    +"[NPC_ALIAS:canonical_name|alias] -- when an NPC is given a new name or title; links alias to canonical; prevents duplicate entries; emit alongside the NPC tag that introduces the alias\n"
-    +"[NPC_MERGE:canonical_name|duplicate_name] -- when two NPC entries turn out to be the same person; absorbs events/knowledge from duplicate into canonical and removes duplicate\n"
-    +"[NPC_LINK:name1|name2|relationship] -- relationship between two named characters (NPC↔NPC or NPC↔player); emit when establishing or changing how two characters relate (e.g. [NPC_LINK:Zarith|Guard Captain|employer/employee], [NPC_LINK:Borin|player|old debt]); updates existing link if already set\n"
-    +"[FACTION:name|desc] -- register or update a faction, guild, order, or organisation (e.g. [FACTION:The Black Hand|criminal thieves guild controlling the docks]); use on first mention\n"
-    +"[NPC_FACTION:npcName|factionName|role] -- assign an NPC to a faction with their role (e.g. [NPC_FACTION:Zarith|The Black Hand|enforcer]); auto-registers the faction if unknown\n"
-    +"[FACTION_REL:faction1|faction2|relationship] -- relationship between two factions (e.g. [FACTION_REL:The Black Hand|City Watch|bitter enemies], [FACTION_REL:Merchant Guild|City Watch|uneasy allies])\n"
-    +"[SKILL_SUCCESS:skill_id] -- on a successful skilled action (exact ids: Jumping, Sprinting, Lifting, Grappling, Climbing, Swimming, Distance Running, Riding, Hold Breath, Endure Pain, Tolerate Alcohol/Drugs, Foraging, Cooking, Survival, Animal Handling, Navigation, Tracking, Arcana, Lore, Investigation, Nature, First Aid, Alchemy, Smithing, Handcraft, Persuasion, Deception, Intimidation, Performance, Trading, Stealth, Sleight of Hand, Lockpicking, Gambling, Perception, Insight)\n"
-    +"[SKILL_SUCCESS:Tracking] covers both wilderness tracking (following prey or people by physical signs) and urban tailing (shadowing a mark through crowds, alleys, or city streets). Use WIS for reading the environment, INT for anticipating movement patterns.\n"
-    +"[CONDITION:name|duration] [CONDITION_REMOVED:name] -- duration is descriptive (e.g. 'until antidote', 'saving throw each hour CON DC 15')\n"
-    +"[RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] -- entity=NPC or faction; descriptor=Allied/Rival/Wanted/Hunted/Indebted/Marked/Feared/etc.\n"
-    +"[SAVE_MOD:source|type|amount] [SAVE_MOD_REMOVED:source] -- type=stat (CON/DEX/etc.) or threat (Poison/Fire/Cold/Lightning/Fear/Charm/Psionic/Holy/Shadow/Disease/Magic/Other); amount=integer\n"
-    +"[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n"
-    +"[STORY_BEAT:one sentence] -- major narrative milestone; use sparingly for truly significant moments only. Concrete triggers, one beat per such moment: a companion joins or leaves the party, an oath or bargain is struck, a major revelation lands, first blood is drawn in a significant conflict, a quest completes\n"
-    +"[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n"
-    +"[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n"
-    +"COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n"
-    +"[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n"
-    +"[COMPANION_CONDITION:Name|condName|duration] [COMPANION_CONDITION_REMOVED:Name|condName]\n"
-    +"[COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_RELATIONSHIP_REMOVED:Name|entity]\n"
-    +"[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n"
-    +"Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n"
-    +"THE MOMENT an NPC agrees to travel with the party — even conditionally or provisionally — you MUST emit [PARTY_MEMBER:name|true] in that same response; never narrate a joining without the tag.\n"
-    +"XP IS SHARED AUTOMATICALLY: every [XP:N] you award is mirrored by the engine to all party members. Use [COMPANION_XP:Name|N] ONLY for a bonus one companion earns alone — never re-emit a shared award with it.\n\n";
+    // UA1: the STATE TAGS block is DERIVED from the tag table (tag_table.js) — byte-identical
+    // to the battle-tested hand-written text (frozen by an engine test + a pre/post stable-half
+    // capture). Doc wording changes are separate deliberate commits, never bundled with mechanics.
+    +buildStateTagsDoc();
   var volatile_=identity+switchBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
@@ -423,8 +381,12 @@ function repairModelJson(s){
   s=s.replace(/[\x00-\x1F\x7F]/g," ");
   return s;
 }
-var _CT_TAGS=/\[(HP|GOLD|ITEM_GAINED|ITEM_LOST|LOCATION|NPC|XP|QUEST_STEP|QUEST|DICE|COMBAT_START|COMBAT_END|COMBAT_ROUND|ENEMY_HP|ENEMY_SURRENDERS|ABILITY_GAINED|ALIGNMENT|LORE|DECISION|FUTURE_EVENT_RESOLVED|FUTURE_EVENT|NPC_NOTE|NPC_FORGET|NPC_PRONOUN|SPELL_USED|SPELL_DEF|SKILL_SUCCESS|CONDITION|CONDITION_REMOVED|RELATIONSHIP|RELATIONSHIP_REMOVED|SAVE_MOD|SAVE_MOD_REMOVED|LANGUAGE|STORY_BEAT|PARTY_MEMBER|COMBAT_STATS|COMBAT_IMMUNE|COMBAT_RESIST|COMBAT_VULN|LOCATION_DESC|LOCATION_SIZE|SUBLOCATION|TIME|WEATHER|REST|LOCATION_ITEM|NPC_ALIAS|NPC_MERGE|NPC_LINK|FACTION|NPC_FACTION|FACTION_REL|COMPANION_HP|COMPANION_ITEM_GAINED|COMPANION_ITEM_LOST|COMPANION_XP|COMPANION_CONDITION|COMPANION_CONDITION_REMOVED|COMPANION_RELATIONSHIP|COMPANION_RELATIONSHIP_REMOVED|COMPANION_ABILITY|COMPANION_ALIGNMENT|ARC_COMPLETE|ACT_COMPLETE|ACTIONS|RETCON):[^\]]+\]/g;
-var _CT_BARE=/\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\]/g;
+// UA1: the strip regexes are DERIVED from the tag table's strip registry (tag_table.js) — one
+// source of truth for what gets parsed, stripped, and documented. An engine test freezes the
+// derived .source against the pre-refactor literal, so any registry edit that would change
+// stripping is a deliberate, test-visible act.
+var _CT_TAGS=buildCtTags();
+var _CT_BARE=buildCtBare();
 var _CT_DASH=/[ \t]*[—–][ \t]*/g;
 var _CT_NL=/\n{3,}/g;
 function cleanTxt(t){
@@ -514,6 +476,10 @@ function removeInventoryItem(inv,name){var t=_invNorm(name),i;
   return false;
 }
 function applyMuts(text){
+  // UA1 SHADOW: run the tag TABLE against deep-cloned state FIRST (both parsers see the same
+  // pre-state), then this old parser runs authoritatively; __tagShadowDiff at the tail compares
+  // end states and shouts on any difference. Cutover to applyMutsTable is a later, gated commit.
+  var _shadow=(typeof TAG_SHADOW!=="undefined"&&TAG_SHADOW&&typeof __tagShadowRun==="function"&&worldState)?__tagShadowRun(text):null;
   var muts=[],turn=worldState.turn;
   _sheetlessWarned={};// per-response dedupe window for the sheet-less companion warning (audit P2)
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
@@ -744,6 +710,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   var cAbTags=text.match(/\[COMPANION_ABILITY:([^|\]]+)\|([^|]+)\|([^\]]+)\]/g)||[];var cAbi;for(cAbi=0;cAbi<cAbTags.length;cAbi++){var cAbp=cAbTags[cAbi].match(/\[COMPANION_ABILITY:([^|\]]+)\|([^|]+)\|([^\]]+)\]/);if(!cAbp)continue;var cAbCs=findCompanionChar(cAbp[1]);if(!cAbCs)continue;if(!cAbCs.abilities)cAbCs.abilities=[];var cAnm=cAbp[2].trim(),cAalready=false,cAbj;for(cAbj=0;cAbj<cAbCs.abilities.length;cAbj++){if(cAbCs.abilities[cAbj].nm===cAnm){cAalready=true;break;}}if(!cAalready){cAbCs.abilities.push({nm:cAnm,ds:cAbp[3].trim(),gained:turn});muts.push(cAbp[1].trim()+": ability "+cAnm);}}
   var cAlTags=text.match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/gi)||[];var cAli;for(cAli=0;cAli<cAlTags.length;cAli++){var cAlp=cAlTags[cAli].match(/\[COMPANION_ALIGNMENT:([^|\]]+)\|(law|good)([+-]\d+)\]/i);if(!cAlp)continue;var cAlCs=findCompanionChar(cAlp[1]);if(!cAlCs)continue;if(!cAlCs.alignLaw)cAlCs.alignLaw=0;if(!cAlCs.alignGood)cAlCs.alignGood=0;if(cAlp[2].toLowerCase()==="law")cAlCs.alignLaw=Math.max(-3,Math.min(3,cAlCs.alignLaw+parseInt(cAlp[3])));else cAlCs.alignGood=Math.max(-3,Math.min(3,cAlCs.alignGood+parseInt(cAlp[3])));var cNewAl=alignLabel(cAlCs.alignLaw,cAlCs.alignGood);if(cNewAl!==cAlCs.actualAlignment){muts.push(cAlp[1].trim()+": align "+cNewAl);cAlCs.actualAlignment=cNewAl;}}
   stampQuestCompletion();/* P3: stamp/clear allDoneSince on every mutation pass, after all quest tags landed */
+  if(_shadow){__tagShadowDiff(_shadow);__tagUnknownScan(text);}/* UA1 soak: parity check + vocabulary-gap detector */
   if(muts.length)addMsg("system",escHtml(muts.join(" | ")));/* mut labels carry model-derived names (audit E11) */
   syncUI();saveAll();
 }
