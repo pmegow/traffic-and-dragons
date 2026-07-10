@@ -186,13 +186,25 @@ var storageAdapter = (function() {
   var _lastAckTurn = -1;  // highest worldState.turn the server provably holds; -1 = unknown
   var _failCount   = 0;   // consecutive sync failures
   var _notified401 = false;
+  var _conflict    = null; // CAS 409 (Known issue #5): {serverTurn} — another device is ahead; auto-sync pauses until reload/switch
 
   // Reset the per-campaign sync bookkeeping on a campaign switch (audit E32). These are module
   // globals: after switching FROM a higher-turn campaign, _lastAckTurn stayed high so
   // syncStatus().unsynced pinned at 0 (killing the #24 foreground self-heal), and switching the
   // other way showed a false "N turns unsynced" badge. Called from loadState (init + every switch).
   function resetSyncState() {
-    _lastAckTurn = -1; _failCount = 0; _notified401 = false; _portraitSyncedOnce = false;
+    _lastAckTurn = -1; _failCount = 0; _notified401 = false; _portraitSyncedOnce = false; _conflict = null;
+    _updateSyncUI();
+  }
+  // CAS conflict (Known issue #5): the server refused this write because another device's state
+  // is ahead. LOUD + sticky: auto-sync pauses (a retry loop would just hammer 409s and tempt a
+  // clobber) until reload/campaign-load re-reconciles — load() adopts the newer server state,
+  // resetSyncState clears the flag, sync resumes. Local progress stays safe on this device.
+  function _onConflict(serverTurn) {
+    var localTurn = (typeof worldState !== "undefined" && worldState && worldState.turn) || 0;
+    _conflict = { serverTurn: serverTurn };
+    console.warn("[storage] sync CONFLICT (409): server holds turn " + serverTurn + ", this device last saw " + _lastAckTurn + " (local turn " + localTurn + "). Sync paused.");
+    if (typeof showToast === "function") showToast("&#9729; Another device is ahead (turn " + (serverTurn != null ? serverTurn : "?") + "). Sync paused &mdash; reload to adopt it, or export this save first.");
     _updateSyncUI();
   }
 
@@ -224,6 +236,7 @@ var storageAdapter = (function() {
       failing:     _failCount > 0,
       failCount:   _failCount,
       lastAckTurn: _lastAckTurn,
+      conflict:    _conflict,
       unsynced:    (_serverUrl && _lastAckTurn >= 0) ? Math.max(0, t - _lastAckTurn) : 0
     };
   }
@@ -283,6 +296,7 @@ var storageAdapter = (function() {
 
   function _syncNow(beacon) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
+    if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     if (!beacon) { _syncing = true; _pendingSync = false; }
@@ -306,7 +320,11 @@ var storageAdapter = (function() {
       sessionLog:    sessionLog,
       memory:        memory,
       campaignId:    campId,
-      narrativeHtml: ""
+      narrativeHtml: "",
+      // CAS turn guard (Known issue #5): the server turn this device last saw. The server 409s
+      // if its stored turn is AHEAD (another device wrote since) instead of letting this blob
+      // clobber it. -1 = never seen server state — also correctly refused against existing data.
+      baseTurn:      _lastAckTurn
     });
     if (beacon) {
       // Fire-and-forget keepalive POST — no _syncing bookkeeping, no retry (the page is going away).
@@ -319,7 +337,8 @@ var storageAdapter = (function() {
       body:    payload
     }, SYNC_TIMEOUT_MS).then(function(r) {
       _syncing = false;
-      if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); }
+      if (r.status === 409) { r.json().then(function(d){ _onConflict(d && d.serverTurn); }).catch(function(){ _onConflict(null); }); }
+      else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); }
       else {
         _syncOk(turnAt);
         if (_portraitDirty || !_portraitSyncedOnce) {
@@ -440,6 +459,11 @@ var storageAdapter = (function() {
       // The server provably holds serverTurn — seed the ACK baseline (#24). If local is
       // AHEAD (the dead-host scenario), unsynced = localTurn - serverTurn shows immediately.
       if (serverTurn > _lastAckTurn) _lastAckTurn = serverTurn;
+      // CAS re-arm (Known issue #5): this device has now SEEN the server's current state, so a
+      // standing 409 pause is stale — clear it. If local is ahead (dead-host recovery), the next
+      // POST carries baseTurn=serverTurn and passes; without this, a pre-reconcile 409 (ack was
+      // -1) would wedge sync forever on the very device whose upload should win.
+      if (_conflict) { _conflict = null; if (typeof worldState !== "undefined" && worldState && (worldState.turn||0) > serverTurn) syncToServer(); }
       _updateSyncUI();
       // Don't swap worldState out from under an in-flight turn (audit E4) — skip the adopt if busy.
       if (serverTurn > localTurn && !(typeof busy !== "undefined" && busy)) {

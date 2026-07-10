@@ -455,10 +455,15 @@ function updateSyncBadge(){
   var mb=document.getElementById("membar");if(!mb)return;
   var el=document.getElementById("syncbadge");
   var st=(typeof storageAdapter!=="undefined"&&storageAdapter.syncStatus)?storageAdapter.syncStatus():null;
-  var show=st&&st.serverMode&&(st.failing||st.unsynced>0);
+  var show=st&&st.serverMode&&(st.failing||st.unsynced>0||st.conflict);
   if(!show){if(el)el.style.display="none";return;}
   if(!el){el=document.createElement("span");el.id="syncbadge";el.style.cssText="margin-left:10px;font-size:11px;color:var(--dng);font-weight:bold;";mb.appendChild(el);}
   el.style.display="inline";
+  if(st.conflict){/* CAS 409 (Known issue #5) — sticky pause, distinct from ordinary failures */
+    el.textContent="☁ conflict — sync paused";
+    el.title="Another device holds newer state (turn "+(st.conflict.serverTurn!=null?st.conflict.serverTurn:"?")+"). Auto-sync is paused so nothing gets overwritten. Reload to adopt the newer state, or export this save first.";
+    return;
+  }
   el.textContent="☁ "+(st.unsynced>0?st.unsynced+" turn"+(st.unsynced===1?"":"s")+" unsynced":"sync failing");
   el.title=st.failing?"Cloud sync is failing ("+st.failCount+" consecutive). Progress is saved on this device and uploads automatically when the server is reachable.":"Turns not yet uploaded to the server.";
 }
