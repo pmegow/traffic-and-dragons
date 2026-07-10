@@ -3042,7 +3042,8 @@ function showUsageModal(){
     +"<table style='width:100%;min-width:500px;border-collapse:collapse;'>"
     +"<tr><th style='"+hd+"text-align:left;'>Kind</th><th style='"+hd+"'>Calls</th><th style='"+hd+"'>Input</th><th style='"+hd+"'>In/call</th><th style='"+hd+"'>Cache rd</th><th style='"+hd+"'>Cache wr</th><th style='"+hd+"'>Output</th><th style='"+hd+"'>~Cost</th></tr>"
     +rows+"</table></div>"
-    +"<p style='font-size:11px;color:var(--t2);margin:12px 0 0;'>Token counts are exact (API-reported). Cost is an estimate for known Anthropic models; other providers count tokens but contribute $0. Cache columns stay 0 until prompt caching ships."+(u.since?" Collecting since "+new Date(u.since).toLocaleDateString()+".":"")+"</p>"
+    +(function(){var tb=u.byKind&&u.byKind.turn;if(!tb||!(tb.in+tb.cacheRead))return "";var pct=Math.round(100*tb.cacheRead/(tb.in+tb.cacheRead));var col=pct>=50?"var(--grn)":pct>0?"var(--acc)":"var(--dng)";return "<p style='font-size:11px;margin:12px 0 0;color:"+col+";'>Prompt-cache health: <b>"+pct+"%</b> of turn input served from cache"+(pct===0?" — the cache is DEAD (stable-half purity leak, see console)":pct<50?" — low; long idle gaps between turns, or a purity leak":"")+".</p>";})()
+    +"<p style='font-size:11px;color:var(--t2);margin:12px 0 0;'>Token counts are exact (API-reported). Cost is an estimate for known Anthropic models; other providers count tokens but contribute $0."+(u.since?" Collecting since "+new Date(u.since).toLocaleDateString()+".":"")+"</p>"
     +"<button id='us-reset' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Reset counters (start a fresh measurement window)</button>"
     +"</div>";
   document.body.appendChild(modal);

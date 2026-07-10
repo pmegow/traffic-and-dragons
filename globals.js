@@ -55,7 +55,8 @@ var PROVIDERS={
       return body;
     },
     parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
-    // Anthropic: input_tokens EXCLUDES cached tokens; cache fields are 0 until prompt caching (#11) lands
+    // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
+    // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
     parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};}
   },
   openai:{
@@ -118,7 +119,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.235";
+var APP_VERSION="v1.236";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

@@ -1541,6 +1541,24 @@ function runEngineTests(R){
     return v==="FIRST"?true:"overwritten: "+v;
   });
 
+  section("stable-purity tripwire (UA5)");
+  t("mid-campaign stable change warns; identical stable stays quiet; campaign switch resets",function(){
+    makeWorld();worldState.campId="c_ua5";
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    _stableHash=null;_stableHashCamp=null;_stableWarned=true; // toast path exercised in preview
+    _checkStablePurity("STABLE A");
+    _checkStablePurity("STABLE A");
+    var afterSame=warns.length;
+    _checkStablePurity("STABLE B");
+    var afterChange=warns.length;
+    worldState.campId="c_ua5_other"; // first call on a new campaign must NOT warn
+    _checkStablePurity("STABLE C");
+    console.warn=_w;
+    if(afterSame!==0)return "warned on identical stable";
+    if(afterChange!==1)return "no warn on changed stable";
+    return warns.length===1?true:"warned across campaign switch";
+  });
+
   section("re-roll marker safety (UA4 pin)");
   t("re-roll's pop-push pattern keeps the sessKept marker valid on both paths",function(){
     makeWorld();

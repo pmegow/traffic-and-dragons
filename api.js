@@ -761,6 +761,18 @@ function recordUsage(u,kind,model){
   k.in+=u.in||0;k.out+=u.out||0;k.cacheRead+=u.cacheRead||0;k.cacheWrite+=u.cacheWrite||0;k.calls++;
   k.costUSD+=usageCost(u,model);
 }
+// UA5: djb2 hash + per-campaign memo for the stable-purity tripwire above. console.warn on
+// every mid-campaign change (each one is a full cache re-write); toast once per session.
+var _stableHash=null,_stableHashCamp=null,_stableWarned=false;
+function _stableHashOf(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
+function _checkStablePurity(stable){
+  var h=_stableHashOf(stable),cid=(typeof worldState!=="undefined"&&worldState&&worldState.campId)||null;
+  if(_stableHash!==null&&_stableHashCamp===cid&&h!==_stableHash){
+    console.warn("[cache] STABLE prompt half changed mid-campaign — prompt cache resets (1.25x write). Expected only after editing rules/adult content/tone or switching provider/model; anything else is a purity leak feeding per-turn state into the cached block (UA5).");
+    if(typeof showToast==="function"&&!_stableWarned){_stableWarned=true;showToast("ⓘ Stable prompt changed — cache reset (fine if you just edited rules).");}
+  }
+  _stableHash=h;_stableHashCamp=cid;
+}
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
@@ -777,6 +789,11 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // CONSTANT, so it belongs in the stable (cacheable) half — appending it to volatile would
   // work too, but stable keeps OpenAI's automatic prefix caching effective.
   if(!sysOverride&&prov.reinforce){if(typeof sys==="string")sys+=prov.reinforce;else sys.stable+=prov.reinforce;}
+  // UA5 tripwire: the stable half must be byte-identical turn-over-turn within a campaign or
+  // every cache hit dies SILENTLY (pure cost regression, no functional symptom). Legit changes
+  // exist (rules/adult/tone edits, provider/model switch) — so warn loudly, never block.
+  // Hashed AFTER the reinforce append so what's checked is exactly what's sent.
+  if(!sysOverride&&sys&&typeof sys!=="string")_checkStablePurity(sys.stable);
   var _tok=maxTok||1000;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
