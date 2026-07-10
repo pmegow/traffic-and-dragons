@@ -781,7 +781,8 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // provider+model (UA28: resolveReinforce handles the model-conditional shape), so it belongs
   // in the stable (cacheable) half — appending it to volatile would work too, but stable keeps
   // OpenAI's automatic prefix caching effective and never displaces STYLE from the volatile end.
-  if(!sysOverride){var _rf=resolveReinforce(prov,model);if(_rf){if(typeof sys==="string")sys+=_rf;else sys.stable+=_rf;}}
+  if(!sysOverride){var _rf=resolveReinforce(prov,model);if(_rf){if(typeof sys==="string")sys+=_rf;else sys.stable+=_rf;}
+    _lastTurnModel=model;/* #45: gameplay turns only — logTranscript stamps this onto the GM entry */}
   // UA5 tripwire: the stable half must be byte-identical turn-over-turn within a campaign or
   // every cache hit dies SILENTLY (pure cost regression, no functional symptom). Legit changes
   // exist (rules/adult/tone edits, provider/model switch) — so warn loudly, never block.

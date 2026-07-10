@@ -136,10 +136,15 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.245";
+var APP_VERSION="v1.246";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
+// Per-turn model attribution (#45): the model id callGM resolved for the LAST GAMEPLAY call
+// (sysOverride calls — summarize/actions/skeleton/TT — never touch it). logTranscript stamps it
+// onto GM entries as the additive `m:` field so every narration is attributable to the model
+// that wrote it (Haiku-vs-Sonnet quality analysis, incident forensics, future per-model billing).
+var _lastTurnModel=null;
 var customRules=[];
 var apiKey="",falKey="",busy=false,lastAction=null;
 var RENDER_MODELS=[

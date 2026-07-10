@@ -118,6 +118,7 @@ function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapte
 // GM entry (the likely superseded narration) so ragRetrieve never serves either as episodic
 // truth. `rc` rides at the top level of the entry — additive, invisible to everything but retrieval.
 function logTranscript(role,text,raw){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text).trim()};if(role==="gm"&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
+  if(role==="gm"&&typeof _lastTurnModel!=="undefined"&&_lastTurnModel)_e.m=_lastTurnModel;/* #45: attribute the narration to the model that wrote it (additive, like .e) */
   if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}}
   worldState.transcript.push(_e);}
 // Schema migrations for worldState — fills fields added by later versions. Runs on every

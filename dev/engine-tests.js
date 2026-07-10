@@ -1869,4 +1869,36 @@ function runEngineTests(R){
     if(out.indexOf("THE-ENDING")<0)return "ending lost — still head-slicing";
     return out.indexOf("THE-BEGINNING")<0?true:"beginning retained on an over-length message?";
   });
+
+  // ── Per-turn model attribution (#45) ─────────────────────────────────────────
+  section("model stamp (#45)");
+  t("GM entry stamped with the turn's model; player entry never stamped",function(){
+    makeWorld();_lastTurnModel="claude-haiku-4-5-20251001";
+    logTranscript("player","I open the door.");
+    logTranscript("gm","The door opens.","The door opens.");
+    var tr=worldState.transcript;
+    if(tr[0].m)return "player entry stamped";
+    if(tr[1].m!=="claude-haiku-4-5-20251001")return "gm entry not stamped: "+JSON.stringify(tr[1]);
+    _lastTurnModel=null;return true;
+  });
+  t("no model known (pre-turn / old session) → entry shape identical to pre-#45",function(){
+    makeWorld();_lastTurnModel=null;
+    logTranscript("gm","A scene.","A scene.");
+    return "m" in worldState.transcript[0]?"m present when unknown":true;
+  });
+  t("RETCON marking still lands on stamped entries",function(){
+    makeWorld();_lastTurnModel="claude-sonnet-4-6";
+    logTranscript("gm","Wrong version.","Wrong version.");
+    logTranscript("gm","Corrected. [RETCON:fixed]","Corrected. [RETCON:fixed]");
+    var tr=worldState.transcript;
+    _lastTurnModel=null;
+    return tr[0].rc===1&&tr[1].rc===1&&tr[1].m==="claude-sonnet-4-6"?true:"rc/m interaction broke: "+JSON.stringify(tr);
+  });
+  t("model stamp survives the LZ serialize/parse round-trip",function(){
+    makeWorld();_lastTurnModel="claude-haiku-4-5-20251001";
+    logTranscript("gm","Stamped scene.","Stamped scene.");
+    _lastTurnModel=null;
+    var back=parseWorldState(serializeWorldState(worldState));
+    return back.transcript[0].m==="claude-haiku-4-5-20251001"?true:"stamp lost in round-trip";
+  });
 }
