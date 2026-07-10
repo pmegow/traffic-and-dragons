@@ -19,6 +19,15 @@ var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this 
 // changes without emitting them, silently desyncing the sheet. callGM() appends this for
 // gameplay turns only (not summarize). Per-provider tuning the abstraction exists for.
 var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these brackets, NOT your prose ===\nEvery mechanical change you narrate MUST include its state tag in the SAME response, or the engine will not apply it and the player's sheet silently desyncs. If the prose says it happened, the tag MUST be present.\n- Money changes hands -> [GOLD:-5] or [GOLD:+10] (signed integer only)\n- Damage or healing -> [HP:-8] or [HP:+5]\n- Item bought / found / given / taken / lost -> [ITEM_GAINED:name] or [ITEM_LOST:name]\n- A named NPC appears or is interacted with -> [NPC:name|status|relation]\n- Travel to a new place -> [LOCATION:name]\n- XP earned -> [XP:25]\n- Quest offered / accepted / advanced / finished -> [QUEST:title|offered|desc] / [QUEST:title|active] / [QUEST_STEP:title|objective|true] / [QUEST:title|completed]\n- An NPC joins / leaves the party -> [PARTY_MEMBER:name|true] / [PARTY_MEMBER:name|false]\n- Campaign arc completed -> [ARC_COMPLETE:arc title]; act's turning point reached -> [ACT_COMPLETE:act title]\n- Do NOT end your response with suggested actions, a 'You could...' line, or an [ACTIONS:] tag — action suggestions are generated separately by the engine.\nExample: paying 5 gold for a room MUST contain [GOLD:-5]. Never narrate spending or earning gold without the matching [GOLD:] tag. Tags are invisible to the player; emit them inline, never announce them.\n";
+// UA28: weak-model (Haiku) nudges. Haiku HONORS the tag contract (0 turn errors across the
+// 150-turn AUDIT_HAIKU window) — its failure is UNDER-EMISSION of exactly two tag families:
+// HP recovery (H1 — the sheet sat at 0 HP for 31% of turns after healing was narrated) and
+// location changes (H3). So this block targets those two and nothing else: it is deliberately
+// NOT the full TAG_REINFORCE (that block cures narrate-without-tagging, which Haiku doesn't
+// have, and attention is the scarce resource on the free tier). Appended to the STABLE half
+// by callGM — constant per model id, so cache-safe; resolveReinforce (api.js) returns "" for
+// Sonnet/Opus, keeping their prompt BYTE-IDENTICAL to today (zero cache invalidation).
+var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — two tags this model tends to forget ===\n1. HP RECOVERY: whenever ANY character regains hit points for ANY reason — healing magic, a potion, first aid, a night's rest, natural recovery — emit [HP:+N] (player) or [COMPANION_HP:Name|+N] (party member) in the SAME response. If the sheet above shows 0 HP but you are narrating that character up and moving, the sheet is WRONG until you emit the recovery tag. Never leave a healed character at 0 HP on the sheet.\n2. LOCATION: whenever the party travels to a different named place, emit [LOCATION:name] in that response. Entering a distinct area inside it (a tavern, a chamber, a cave) emits [SUBLOCATION:name]; leaving it emits [SUBLOCATION_LEAVE]. Narrated travel without the tag strands the world state at the old location.\n";
 // Shared usage extractor for OpenAI-compatible providers (openai/grok/ollama).
 // NOTE: OpenAI's prompt_tokens INCLUDES cached tokens; Anthropic's input_tokens EXCLUDES them.
 // We store each provider's raw semantics — the cost math only prices Anthropic models anyway.
@@ -57,7 +66,13 @@ var PROVIDERS={
     parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
     // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
     // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
-    parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};}
+    parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};},
+    // UA28: model-CONDITIONAL reinforce — the only function-shaped one (others are string
+    // constants). Haiku gets the two-tag under-emission block; every other Claude gets ""
+    // (byte-identical prompt — Sonnet needs no reinforcement, validated at v1.32 and re-money-
+    // tested at v1.238). Pure function of the model id, so the stable half stays constant
+    // within a campaign; a mid-campaign model switch is an expected one-time UA5 purity warn.
+    reinforce:function(model){return /haiku/i.test(model||"")?ANTHROPIC_HAIKU_REINFORCE:"";}
   },
   openai:{
     id:"openai", label:"ChatGPT (OpenAI)", keyHint:"sk-...",
@@ -119,7 +134,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.241";
+var APP_VERSION="v1.242";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

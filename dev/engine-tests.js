@@ -1712,4 +1712,34 @@ function runEngineTests(R){
     var b=__rm("fal-ai/flux/dev").img2img.body("a scene","data:img",0.45);
     return eq(b.strength,0.45);
   });
+
+  // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────
+  section("resolveReinforce (UA28)");
+  t("Sonnet and Opus resolve to EMPTY — the money-tested prompt is untouched",function(){
+    if(resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-4-6")!=="")return "sonnet got a reinforce block";
+    return eq(resolveReinforce(PROVIDERS.anthropic,"claude-opus-4-8"),"");
+  });
+  t("Haiku ids (incl. dated) resolve to the nudge block",function(){
+    var a=resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001");
+    if(a!==ANTHROPIC_HAIKU_REINFORCE)return "dated haiku id missed";
+    return eq(resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5"),ANTHROPIC_HAIKU_REINFORCE);
+  });
+  t("Sonnet stable half is BYTE-IDENTICAL after the reinforce append (cache invariant)",function(){
+    makeWorld();var s=buildSysPrompt(),before=s.stable;
+    s.stable+=resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-4-6");
+    return s.stable===before?true:"stable half changed for Sonnet — every existing campaign's cache would invalidate";
+  });
+  t("Haiku block lands at the stable TAIL; volatile untouched; STYLE still ends volatile",function(){
+    makeWorld();var s=buildSysPrompt(),vol=s.volatile;
+    s.stable+=resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001");
+    if(s.stable.indexOf("STATE DISCIPLINE")<0)return "block missing from stable";
+    if(s.stable.slice(-ANTHROPIC_HAIKU_REINFORCE.length)!==ANTHROPIC_HAIKU_REINFORCE)return "block not at the stable tail";
+    if(s.volatile!==vol)return "volatile perturbed";
+    return s.volatile.lastIndexOf("STYLE:")>s.volatile.lastIndexOf("REMINDER")?true:"STYLE no longer ends the volatile half";
+  });
+  t("every provider resolves to a string (function shape breaks nobody)",function(){
+    var ks=Object.keys(PROVIDERS),i;
+    for(i=0;i<ks.length;i++){if(typeof resolveReinforce(PROVIDERS[ks[i]],PROVIDERS[ks[i]].defaultModel)!=="string")return ks[i]+" resolved to non-string";}
+    return eq(resolveReinforce(PROVIDERS.openai,"gpt-4o"),TAG_REINFORCE,"openai keeps TAG_REINFORCE");
+  });
 }

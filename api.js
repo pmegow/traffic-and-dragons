@@ -749,6 +749,11 @@ function _checkStablePurity(stable){
   }
   _stableHash=h;_stableHashCamp=cid;
 }
+// UA28: a provider's reinforce may be a string CONSTANT (non-Claude tag discipline) or a
+// FUNCTION of the model id (Anthropic — Haiku nudges, "" for Sonnet/Opus). Extracted so the
+// engine tests exercise the exact resolution callGM sends — a byte-identity test on the
+// Sonnet path is the guard against the block ever leaking onto the money-tested prompt.
+function resolveReinforce(prov,model){var r=prov&&prov.reinforce;if(typeof r==="function")r=r(model);return r||"";}
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
@@ -761,10 +766,11 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // Gameplay turns get the {stable, volatile} split from buildSysPrompt (TODO #11);
   // sysOverride callers still pass a plain string. Adapters accept both shapes.
   var sys=sysOverride||buildSysPrompt();
-  // gameplay turns only; summarize() passes its own sysOverride. reinforce is a per-provider
-  // CONSTANT, so it belongs in the stable (cacheable) half — appending it to volatile would
-  // work too, but stable keeps OpenAI's automatic prefix caching effective.
-  if(!sysOverride&&prov.reinforce){if(typeof sys==="string")sys+=prov.reinforce;else sys.stable+=prov.reinforce;}
+  // gameplay turns only; summarize() passes its own sysOverride. reinforce is constant per
+  // provider+model (UA28: resolveReinforce handles the model-conditional shape), so it belongs
+  // in the stable (cacheable) half — appending it to volatile would work too, but stable keeps
+  // OpenAI's automatic prefix caching effective and never displaces STYLE from the volatile end.
+  if(!sysOverride){var _rf=resolveReinforce(prov,model);if(_rf){if(typeof sys==="string")sys+=_rf;else sys.stable+=_rf;}}
   // UA5 tripwire: the stable half must be byte-identical turn-over-turn within a campaign or
   // every cache hit dies SILENTLY (pure cost regression, no functional symptom). Legit changes
   // exist (rules/adult/tone edits, provider/model switch) — so warn loudly, never block.
