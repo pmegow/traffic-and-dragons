@@ -54,6 +54,13 @@ function startGame(char,toneName,toneVoice,authorId){
     generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
   }
 }
+// Model escalation for engine utility calls (skeleton since v1.2xx, suggestions since v1.249):
+// the "Allow model upgrade for complex tasks" toggle gates it; every provider declares its own
+// upgradeModel. Null = use the session model.
+function upgradeModelFor(){
+  var prov=(typeof PROVIDERS!=="undefined"&&PROVIDERS[activeProvider])||null;
+  return(prov&&typeof allowModelUpgrade!=="undefined"&&allowModelUpgrade&&prov.upgradeModel)?prov.upgradeModel:null;
+}
 // UA38 ②③ + UA39 ①: the suggestion call was scene-starved — head-sliced prose, no geography,
 // spell NAMES without canon — so it invented a lockable exit (t333) and recommended a cross-town
 // Message, a 120ft cantrip (t355). A tapped suggestion becomes player INTENT the GM then tends
@@ -97,7 +104,12 @@ async function generateActions(msgEl){
     var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above, and never suggest a cast that exceeds a spell's listed range or targets (a target in another building, street, or distant room is beyond a short-range spell).";
     var geoLine=suggestionGeoLine();
     var lastGm="";for(si=sessionLog.length-1;si>=0;si--){if(sessionLog[si].role==="assistant"){lastGm=cleanTxt(sessionLog[si].content);break;}}
-    var resp=await callGM("LATEST SCENE:\n"+suggestionSceneTail(lastGm)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+(geoLine?" "+geoLine:"")+" Suggest only actions involving people, objects, and exits explicitly present in the LATEST SCENE or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned. Output ONLY a valid JSON array of 3 short strings.",200,null,{noHistory:true,kind:"actions"});
+    // UA39 t371 (the ghost ship): the v1.245 fences bind Sonnet but NOT Haiku — a weak model
+    // ignores instructions in a 200-token utility call. Suggestions become player INTENT, so
+    // they're the last place to economize: escalate to the provider's upgradeModel (~1k input
+    // tokens, ≈$0.002/turn on Sonnet) regardless of the gameplay model. Toggle-gated like the
+    // skeleton escalation.
+    var resp=await callGM("LATEST SCENE:\n"+suggestionSceneTail(lastGm)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+(geoLine?" "+geoLine:"")+" Suggest only actions involving people, objects, and exits explicitly present in the LATEST SCENE or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned. Output ONLY a valid JSON array of 3 short strings.",200,upgradeModelFor(),{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=JSON.parse(stripCodeFences(resp)); // array payload — fences only, no object repair
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
@@ -844,9 +856,7 @@ async function generateSkeleton(){
     +(c.motivation?"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n":"- Weave the character's backstory into the central conflict so pursuing the plot IS personal\n")
     +"- Each arc has a type: combat (fights, sieges, hunts), investigation (mysteries, clues, interrogation), exploration (travel, discovery, mapping), or social (politics, alliances, persuasion). Mix types within an act for variety.\n"
     +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
-  var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
-  var skelModel=(allowModelUpgrade&&prov.upgradeModel)?prov.upgradeModel:null;
-  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,skelModel,{kind:"skeleton"});
+  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
   var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
   if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
   var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");var isParallel=!!skel.acts[ai].parallel;for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&(isParallel||aj===0))?"active":"pending";}}

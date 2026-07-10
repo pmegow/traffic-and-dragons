@@ -1868,6 +1868,17 @@ function runEngineTests(R){
     memory.map.nodes={};
     return eq(suggestionGeoLine(),"","no-desc should be empty");
   });
+  t("upgradeModelFor: escalates per provider, honors the toggle (UA39 t371)",function(){
+    var savedUp=allowModelUpgrade,savedProv=activeProvider;
+    allowModelUpgrade=true;activeProvider="anthropic";
+    if(upgradeModelFor()!=="claude-sonnet-4-6")return "anthropic escalation wrong: "+upgradeModelFor();
+    activeProvider="openai";
+    if(upgradeModelFor()!==PROVIDERS.openai.upgradeModel)return "provider-specific upgrade not used";
+    allowModelUpgrade=false;
+    var off=upgradeModelFor();
+    allowModelUpgrade=savedUp;activeProvider=savedProv;
+    return off===null?true:"toggle OFF still escalated: "+off;
+  });
   t("scene slice keeps the TAIL — the ending survives an over-length message (UA38 ③)",function(){
     var head="THE-BEGINNING ",body=new Array(3000).join("x"),tail=" THE-ENDING";
     var out=suggestionSceneTail(head+body+tail);
