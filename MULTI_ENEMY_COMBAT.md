@@ -1,10 +1,10 @@
 # Multi-enemy combat — design (UA26)
 
-**Status: DESIGN ONLY (2026-07-10).** Build is gated on the tag-table cutover (UA1) — every change
-below lands as `tag_table.js` entries/edits, not `applyMuts` surgery. ⛨ Drift surface (combat tags
-in the stable-half docs, combat block in the volatile half, `migrateWorldState`); the standing
-policy applies: this doc is the pre-review's design half, the implementation commit gets its own
-guard checklist. Four decision points for the user are marked **▶ DECISION** below.
+**Status: DESIGN RATIFIED (2026-07-10) — all four decisions made by the user (§7).** Build is
+gated on the tag-table cutover (UA1) — every change below lands as `tag_table.js` entries/edits,
+not `applyMuts` surgery. ⛨ Drift surface (combat tags in the stable-half docs, combat block in
+the volatile half, `migrateWorldState`); the standing policy applies: this doc is the pre-review's
+design half, the implementation commit gets its own guard checklist.
 
 ---
 
@@ -27,6 +27,7 @@ they already emit rather than teaching them a new dialect.
 ```
 worldState.combat = {
   round: N,
+  engaged: "name"|null,   // engagement pointer: the foe the player last damaged (any ENEMY_HP form)
   foes: [ { name, hp, maxHp, ac, atk, dmg, morale,
             stats?, cr?, immune?, resist?, vuln?,
             down?: "slain"|"fled"|"surrendered" } ]
@@ -36,8 +37,12 @@ worldState.combat = {
 - One encounter, N foes. `round` stays encounter-level (unchanged semantics).
 - A foe at `hp<=0` is marked `down:"slain"` (kept in the array for the panel strike-through and
   the GM's context), not spliced.
+- **`engaged` (user call 2026-07-10):** set to the foe's name every time ANY `[ENEMY_HP:]` applies
+  damage to it — a deterministic proxy for "who the player is currently fighting". Cleared when
+  that foe goes down.
 - **Auto-clear generalizes (v1.140 net):** combat clears when EVERY foe is down — the single-foe
-  behavior is the N=1 case, so existing tests keep their meaning.
+  behavior is the N=1 case, so existing tests keep their meaning. A close where any foe is
+  `surrendered` clears with outcome "surrender" (equivalent to `[COMBAT_END:truce]`).
 - The v1.216 F2 stale-combat clear on `[LOCATION:]` change is unchanged (clears the whole
   encounter; skipped when the same response opens a fresh fight).
 
@@ -60,18 +65,20 @@ tested against a real exported save with live combat, per the UA10 discipline.
 | Tag | Today | New semantics |
 |---|---|---|
 | `[COMBAT_START:name\|hp\|ac\|atk\|dmg\|morale]` | Overwrites | No combat → starts encounter with foe #1. **Combat active → ADDS a foe** (the H2 fix). Duplicate name while that foe is alive → ignored + console.warn (re-emission, not a new foe). |
-| `[ENEMY_HP:-X]` (bare) | Sole target | 1 living foe → that foe. **>1 living → first living foe + console.warn("ambiguous bare ENEMY_HP with N foes — use [ENEMY_HP:Name\|-X]")** — the mutation still lands (narrated damage must not vanish), the warn is the loud half. |
-| `[ENEMY_HP:Name\|-X]` (named) | DROPPED | Targets by name — exact, then case-insensitive contains (both directions, same spirit as `findCompanionChar`). No match → console.warn, no mutation. |
+| `[ENEMY_HP:-X]` (bare) | Sole target | 1 living foe → that foe. **>1 living → the ENGAGED foe** (`combat.engaged`, the foe the player last damaged) **if it's alive; else first living foe + console.warn("ambiguous bare ENEMY_HP — use [ENEMY_HP:Name\|-X]")** — the mutation always lands (narrated damage must not vanish); the warn fires only on the true-ambiguity fallback (user call 2026-07-10). |
+| `[ENEMY_HP:Name\|-X]` (named) | DROPPED | Targets by name — exact, then case-insensitive contains (both directions, same spirit as `findCompanionChar`). No match → console.warn, no mutation. Sets `combat.engaged`. |
+| `[ENEMY_SURRENDERS]` (bare) / `[ENEMY_SURRENDERS:Name]` | UA2 phantom (stripped, inert) | **IMPLEMENTED (user call 2026-07-10 — surrender is a real beat, especially for communicative NPCs).** Named form marks that foe `down:"surrendered"`; bare form surrenders ALL living foes. All-down → encounter closes with outcome "surrender". A surrendered foe survives the fight — the doc line reminds the GM to register a surrendered speaking NPC with `[NPC:name\|status\|relation]` so it enters the world properly. Resolves UA2 as *implement*, not delete. |
 | `[COMBAT_STATS:…]`, `[COMBAT_IMMUNE/RESIST/VULN:…]` | Sets on the one foe | Applies to the **most recently added foe** (docs already say "alongside COMBAT_START", so adjacency is the natural rule). |
 | `[COMBAT_END:outcome]` | Clears | Unchanged — closes the WHOLE encounter regardless of foe states. |
 | `[COMBAT_ROUND:N]` | Sets round | Unchanged (encounter-level). |
 
 **Doc-line changes (stable half, `TAG_DOC_LINES`):** the `COMBAT_START` line gains
 "(emitting it during an active fight adds a SECOND enemy to the same encounter)"; the `ENEMY_HP`
-line gains the named form with "use the named form whenever more than one enemy is up". The F2
-`[SPELL_USED:]` clarification and F4's DICE note (AUDIT_playtest_v1238) ride the same edit —
-**one stable-half invalidation for the whole batch**, ideally shared with UA25's and UA38-①'s
-doc lines.
+line gains the named form with "use the named form whenever more than one enemy is up"; a new
+`ENEMY_SURRENDERS` line documents the (formerly phantom) tag with the register-the-survivor
+reminder. The F2 `[SPELL_USED:]` clarification and F4's DICE note (AUDIT_playtest_v1238) ride
+the same edit — **one stable-half invalidation for the whole batch**, ideally shared with UA25's
+and UA38-①'s doc lines.
 
 ## 4. Prompt changes & size guard
 
@@ -95,34 +102,35 @@ doc lines.
 ## 6. Deliberately out of scope
 
 - **Engine initiative / turn order** — the GM narrates order; the engine tracks state, not
-  choreography. Adding initiative rails combat pacing and bloats the tag vocabulary. (▶ DECISION 1
-  ratifies this.)
+  choreography. Adding initiative rails combat pacing and bloats the tag vocabulary.
+  (Ratified by decision 1.)
 - **Per-foe XP** — awards stay GM-emitted `[XP:]`/`[COMPANION_XP:]`, unchanged.
 - **Foe-vs-foe / ally-NPC combatants** — companions already live in party sheets; neutral
   third parties stay prose.
 
-## 7. ▶ DECISIONS for the user
+## 7. ✅ DECISIONS — ratified by the user 2026-07-10
 
-1. **Initiative:** recommend NONE (prose-owned order, engine tracks HP only). Alternative: a
-   display-only initiative list the GM can set — deferred unless play shows order confusion.
-2. **Bare `[ENEMY_HP:-X]` with >1 living foe:** recommend "first living foe + loud warn"
-   (damage never vanishes). Alternative: drop + warn (stricter, but a dropped mutation is the
-   exact silent-desync class we kill elsewhere).
-3. **`[ENEMY_SURRENDERS]` (UA2 phantom):** recommend DELETE from the strip lists at cutover —
-   surrender is `[COMBAT_END:truce]` (already documented) or a per-foe narrative beat; a
-   dedicated tag duplicates vocabulary. Alternative: implement as `[ENEMY_SURRENDERS:name]` →
-   `down:"surrendered"` now that multi-foe gives it real semantics — costs a doc line + handler.
-4. **Foe cap:** recommend soft cap 8 in the handler (9th `COMBAT_START` ignored + warn) — a
-   runaway-model guard, not a game rule.
+1. **Initiative: NONE.** Order stays with the GM's narration ("potentially more interesting") —
+   the engine tracks HP only.
+2. **Bare `[ENEMY_HP:-X]` with >1 living foe: the ENGAGED foe first** — whoever the player is
+   currently fighting (deterministic proxy: `combat.engaged`, the foe the player last damaged);
+   falls back to first living foe + loud warn only when no engagement exists yet.
+3. **`[ENEMY_SURRENDERS]`: IMPLEMENT, don't delete** — surrender is a real combat outcome,
+   particularly for a communicative NPC. Named + bare forms per §3; the doc line reminds the GM
+   to register a surrendered speaker as an NPC. This resolves UA2 as *implement*.
+4. **Foe cap: 8** ("two per char slot") — the 9th `COMBAT_START` in one encounter is ignored
+   with a loud warn; a runaway-model guard, not a game rule.
 
 ## 8. Test & validation plan
 
 - **Engine tests:** add-foe on active-combat `COMBAT_START`; duplicate-name re-emission ignored;
-  named `ENEMY_HP` exact + contains + no-match warn; bare `ENEMY_HP` single-foe and multi-foe
-  (with warn assertion); all-foes-down auto-clear; one-down-one-up does NOT clear; `COMBAT_END`
-  clears mid-encounter; F2 location-change clear with 2 foes; `COMBAT_STATS`/`IMMUNE` bind to the
-  most recent foe; migration wraps a flat legacy combat object idempotently; stable-half golden
-  updated + byte-identity test green.
+  named `ENEMY_HP` exact + contains + no-match warn + sets `engaged`; bare `ENEMY_HP` single-foe,
+  engaged-foe routing with 2+ living, engaged-foe-down fallback to first living (with warn
+  assertion); `ENEMY_SURRENDERS` named marks one foe, bare marks all living, all-surrendered
+  auto-closes as "surrender"; all-foes-down auto-clear; one-down-one-up does NOT clear;
+  `COMBAT_END` clears mid-encounter; F2 location-change clear with 2 foes; 9th foe ignored +
+  warn (cap 8); `COMBAT_STATS`/`IMMUNE` bind to the most recent foe; migration wraps a flat
+  legacy combat object idempotently; stable-half golden updated + byte-identity test green.
 - **Corpus replay (the money evidence):** the Haiku corpus's 18 lost `COMBAT_START`s and 12
   dropped named `ENEMY_HP`s are a ready-made validation set — replay via `dev/diff-replay.js`
   and assert the new handlers now CAPTURE what the old parser lost (expected-diff mode: here the
