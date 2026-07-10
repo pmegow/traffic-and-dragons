@@ -1002,7 +1002,9 @@ function csSheetSections(c){
   if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}  }
   var skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
   var condHtml;
-  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++)condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+c.conditions[i].name+'</span><span class="cs-dim"> — '+c.conditions[i].duration+'</span></div>';condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
+  // #46: conditions carry effect · turn it landed · why (turn engine-stamped since v1.247;
+  // cause arrives with the Phase-B tag extension). Older conditions lack both — render plain.
+  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(_cd.duration);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+_cd.name+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
   var relHtml;
   if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
   var langHtml,langParts=[];

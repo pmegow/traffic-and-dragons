@@ -38,6 +38,15 @@ function buildGeoBlock(){
   return"GEOGRAPHY (strict continuity — never contradict):\n"+lines.join("\n")+"\n\n";
 }
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
+// #46: one condition, one injected phrase — "Unconscious (until awakened; since t155; from
+// Reaper Spider attack)". The age is what lets the GM judge staleness; cause lands in Phase B.
+function condInjectFmt(x){
+  var meta=[];
+  if(x.duration)meta.push(x.duration);
+  if(x.turn)meta.push("since t"+x.turn);
+  if(x.cause)meta.push("from "+x.cause);
+  return x.name+(meta.length?" ("+meta.join("; ")+")":"");
+}
 // #40 Core Memory: the permanent tier — always injected (VOLATILE half: the list grows during
 // play), never compressed, never evicted by the churn caps. Written ONLY by the engine-detected
 // triggers (detectCoreMoments, game.js). Renders NOTHING when empty, so pre-#40 saves and fresh
@@ -142,9 +151,13 @@ function buildSysPrompt(){
       var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+"\n";
       if(pSt)line+="  Stats: "+pSt+"\n";
       line+="  Abilities: "+pAb+"\n  Spells available: "+pSp+(pSpUsed.length?"\n  Spells EXPENDED (cannot cast until a long rest): "+pSpUsed.join(", "):"")+"\n  Inventory: "+pInv;
+      // #46: companion conditions were WRITTEN by [COMPANION_CONDITION:] but never injected —
+      // a write-path with no read-path, so they silently rotted (Daeris, Unconscious for ~200
+      // turns while narrated awake). Inject with age so stale state is visible and self-corrects.
+      if(pcs.conditions&&pcs.conditions.length)line+="\n  Conditions: "+pcs.conditions.map(condInjectFmt).join(", ");
       pmArr.push(line);
     }
-    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags):\n"+pmArr.join("\n")+"\n\n";
+    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW):\n"+pmArr.join("\n")+"\n\n";
   }
   // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
   var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();
@@ -155,7 +168,11 @@ function buildSysPrompt(){
   var spstr="none",spUsed=[];if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);else spUsed.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
   var nextXP=c.level<10?XP_LEVELS[c.level]:"max";
   var genderDisplay=c.gender==="F"?"female":c.gender==="NB"?"non-binary":"male";
-  var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(function(x){return x.name+(x.duration?" ("+x.duration+")":"");}).join(", ")+"\n";}
+  // #46: injected conditions carry their AGE (engine-stamped turn) + cause when known, and each
+  // afflicted sheet gets a cleanup instruction. Root cause of the Daeris incident (t359): a
+  // condition the GM can't SEE (or can't see is 200 turns old) is never honored and never
+  // removed — visibility + age is what makes stale state self-correcting.
+  var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(condInjectFmt).join(", ")+" — if a condition no longer matches the fiction, emit [CONDITION_REMOVED:name] NOW\n";}
   var relStr="";if(c.relationships&&c.relationships.length){relStr="Relationships: "+c.relationships.map(function(x){return x.entity+" ("+x.descriptor+")";}).join(", ")+"\n";}
   var saveStr="";if(c.saveModifiers&&c.saveModifiers.length){saveStr="Save modifiers: "+c.saveModifiers.map(function(x){var v=x.amount>=0?"+"+x.amount:""+x.amount;return v+" vs "+x.type+" ["+x.source+"]";}).join(", ")+"\n";}
   var langStr="";if(c.languages&&c.languages.length){langStr="Languages: "+c.languages.map(function(x){return x.name+(x.broken?" (broken)":"");}).join(", ")+"\n";}

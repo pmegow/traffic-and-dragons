@@ -461,6 +461,27 @@ function detectCoreMoments(pre){
       fileCoreMemory("bond",r.entity,"The bond with "+r.entity+" became \""+r.descriptor+"\".");
   }
 }
+// ── Condition turn-stamps (#46, Phase A) ────────────────────────────────────────────────────
+// Same snapshot-diff pattern as Core Memory above, same rationale: zero parser contact (the
+// running tag-table soak stays pristine; the stamp moves into the handlers at cutover and this
+// post-pass retires). A condition present after applyMuts but not before gets .turn stamped —
+// duration updates keep the ORIGINAL stamp (the affliction's onset, not its latest mention).
+// syncCharSheet is excluded on purpose: an audit-filed correction has no honest onset turn.
+function conditionSnapshot(){
+  if(!worldState||!worldState.character)return null;
+  function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
+  var snap={player:names(worldState.character.conditions),party:{}},i;
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(n&&n.partyMember&&n.charSheet)snap.party[n.name]=names(n.charSheet.conditions);}
+  return snap;
+}
+function stampNewConditions(pre){
+  if(!pre||!worldState||!worldState.character)return;
+  function stamp(list,had){var i;for(i=0;i<(list||[]).length;i++){if(!had[list[i].name]&&!list[i].turn)list[i].turn=worldState.turn;}}
+  stamp(worldState.character.conditions,pre.player);
+  var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(n&&n.partyMember&&n.charSheet)stamp(n.charSheet.conditions,pre.party[n.name]||{});}
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -495,8 +516,9 @@ async function sendAction(override,opts){
       if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
+      var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
       applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
-      detectCoreMoments(_cmPre);/* #40: AFTER applyMuts (and its shadow run) — see the block comment above sendAction */
+      detectCoreMoments(_cmPre);stampNewConditions(_cnPre);/* #40/#46: AFTER applyMuts (and its shadow run) */
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
         if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
         else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
@@ -837,8 +859,8 @@ async function beginAdventure(){
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
-    var _cmPre=coreMemorySnapshot();/* #40 */
-    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
+    var _cmPre=coreMemorySnapshot(),_cnPre=conditionSnapshot();/* #40/#46 */
+    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);stampNewConditions(_cnPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
     logTranscript("gm",clean,resp);
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);

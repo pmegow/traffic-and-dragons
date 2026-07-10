@@ -1901,4 +1901,56 @@ function runEngineTests(R){
     var back=parseWorldState(serializeWorldState(worldState));
     return back.transcript[0].m==="claude-haiku-4-5-20251001"?true:"stamp lost in round-trip";
   });
+
+  // ── Condition turn-stamps + injection (#46 Phase A) ──────────────────────────
+  section("condition stamps (#46)");
+  function __cnTurn(muts){var pre=conditionSnapshot();applyMuts(muts);stampNewConditions(pre);}
+  t("new condition gets the turn stamp",function(){
+    makeWorld();worldState.turn=42;
+    __cnTurn("[CONDITION:Poisoned|CON save each hour]");
+    return eq(worldState.character.conditions[0].turn,42);
+  });
+  t("duration update does NOT re-stamp — the onset turn survives",function(){
+    makeWorld();worldState.turn=42;
+    __cnTurn("[CONDITION:Poisoned|1 hour]");
+    worldState.turn=50;__cnTurn("[CONDITION:Poisoned|until antidote]");
+    var cd=worldState.character.conditions[0];
+    return cd.duration==="until antidote"&&cd.turn===42?true:"onset lost: "+JSON.stringify(cd);
+  });
+  t("removed then re-applied gets a FRESH stamp",function(){
+    makeWorld();worldState.turn=42;
+    __cnTurn("[CONDITION:Bleeding|until bandaged]");
+    worldState.turn=44;__cnTurn("[CONDITION_REMOVED:Bleeding]");
+    worldState.turn=48;__cnTurn("[CONDITION:Bleeding|until bandaged]");
+    return eq(worldState.character.conditions[0].turn,48);
+  });
+  t("companion condition stamped via the party snapshot (the Daeris class)",function(){
+    makeWorld();worldState.turn=155;
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:38,maxHp:38,conditions:[]}}];
+    __cnTurn("[COMPANION_CONDITION:Daeris|Unconscious|until awakened]");
+    return eq(worldState.npcs[0].charSheet.conditions[0].turn,155);
+  });
+  t("player condStr injects age + cleanup instruction; legacy unstamped renders plain",function(){
+    makeWorld();
+    worldState.character.conditions=[{name:"Unconscious",duration:"until awakened",turn:155},{name:"Old Curse",duration:"lingering"}];
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Unconscious (until awakened; since t155)")<0)return "age missing from injection";
+    if(v.indexOf("Old Curse (lingering)")<0)return "legacy condition mangled: no plain render";
+    return v.indexOf("emit [CONDITION_REMOVED:name] NOW")>=0?true:"cleanup instruction missing";
+  });
+  t("party sheet injects companion conditions with age + REMOVED instruction in the header",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",cls:"Cleric",level:7,hp:38,maxHp:38,conditions:[{name:"Unconscious",duration:"until awakened",turn:155}]}}];
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Conditions: Unconscious (until awakened; since t155)")<0)return "companion conditions still invisible";
+    return v.indexOf("[COMPANION_CONDITION_REMOVED:Name|condition] NOW")>=0?true:"header instruction missing";
+  });
+  t("condition-less party sheet adds NO Conditions line; stable half untouched by #46",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,hp:20,maxHp:20,conditions:[]}}];
+    var s=buildSysPrompt();
+    if(s.volatile.indexOf("Bram")<0)return "party sheet missing";
+    if(/Bram[\s\S]{0,400}?Conditions:/.test(s.volatile.slice(s.volatile.indexOf("PARTY MEMBER"))))return "empty Conditions line rendered";
+    return s.stable.indexOf("since t")<0?true:"#46 leaked into the stable half";
+  });
 }
