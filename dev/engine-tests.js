@@ -1773,6 +1773,63 @@ function runEngineTests(R){
     return n&&n.size==="small"&&n.travelMins===5?true:"node: "+JSON.stringify(n);
   });
 
+  // ── UA42: quest-reopen guard (F3) + completion/failed toast ──────────────────
+  section("quest-reopen guard + close toast (UA42)");
+  t("archived-completed title cannot be resurrected by a bare active upsert (the F3 repro)",function(){
+    // THE Playtest-2 failure input: 'Chapel in the Mud' completed t7, silently re-created by
+    // [QUEST:title|active] at t9 and t60 — archived AND live at once, rewards payable twice.
+    makeWorld();
+    applyMuts("[QUEST:Chapel in the Mud|active|Clear the chapel.]");
+    applyMuts("[QUEST:Chapel in the Mud|completed]");
+    if(worldState.questLog.length!==0)return "quest not archived on completion";
+    var R=applyMuts("[QUEST:Chapel in the Mud|active]");
+    var live=worldState.questLog.filter(function(q){return q.title==="Chapel in the Mud";});
+    if(live.length)return "F3: archived quest resurrected into the live log";
+    if(!memory.quests["Chapel in the Mud"]||memory.quests["Chapel in the Mud"].status!=="completed")return "archive entry damaged";
+    return R.muts.join(" ").indexOf("not reopened")>=0?true:"blocked reopen left no visible muts line";
+  });
+  t("archived-failed title equally blocked; blocked even as |offered (decision ①)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Lost Cause|active]");
+    applyMuts("[QUEST:Lost Cause|failed]");
+    applyMuts("[QUEST:Lost Cause|active]");
+    if(worldState.questLog.length)return "failed-archived quest resurrected";
+    applyMuts("[QUEST:Lost Cause|offered]");
+    return worldState.questLog.length===0?true:"archived title re-created via |offered";
+  });
+  t("a LIVE quest's status upsert still works (guard only fires on the create path)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Ongoing|active|Keep going.]");
+    applyMuts("[QUEST:Ongoing|completed]");
+    return memory.quests["Ongoing"]&&memory.quests["Ongoing"].status==="completed"&&worldState.questLog.length===0?true:"live upsert broken";
+  });
+  t("an unarchived new title still creates normally (guard must not overmatch)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Old One|completed]");// creates then archives in one pass
+    applyMuts("[QUEST:Brand New|active|Fresh business.]");
+    return worldState.questLog.length===1&&worldState.questLog[0].title==="Brand New"?true:"new title blocked or lost";
+  });
+  t("completion toast fires and names same-response rewards (negative gold is NOT a reward)",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[QUEST:Bell Job|active]");
+    applyMuts("[QUEST:Bell Job|completed][XP:200][GOLD:+50][ITEM_GAINED:Ring]");
+    var hit=__toasts.filter(function(m){return m.indexOf("✓ Quest completed: Bell Job")>=0;});
+    if(hit.length!==1)return "completion toast missing/duplicated: "+JSON.stringify(__toasts);
+    if(hit[0].indexOf("+200 XP")<0||hit[0].indexOf("+50 gp")<0||hit[0].indexOf("1 item")<0)return "rewards missing from toast: "+hit[0];
+    __toasts.length=0;
+    applyMuts("[QUEST:Toll Job|active]");
+    applyMuts("[QUEST:Toll Job|completed][GOLD:-5]");
+    var h2=__toasts.filter(function(m){return m.indexOf("✓ Quest completed: Toll Job")>=0;});
+    return h2.length===1&&h2[0].indexOf("gp")<0?true:"negative gold counted as a reward: "+JSON.stringify(h2);
+  });
+  t("failed toast fires without rewards",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[QUEST:Doomed|active]");
+    applyMuts("[QUEST:Doomed|failed]");
+    var hit=__toasts.filter(function(m){return m.indexOf("✗ Quest failed: Doomed")>=0;});
+    return hit.length===1?true:"failed toast wrong: "+JSON.stringify(__toasts);
+  });
+
   // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────
   section("resolveReinforce (UA28)");
   t("Sonnet and Opus resolve to EMPTY — the money-tested prompt is untouched",function(){
