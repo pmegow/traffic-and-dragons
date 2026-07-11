@@ -4,10 +4,11 @@
 // silent in both directions (the [ENEMY_SURRENDERS] phantom); here it is structurally impossible —
 // coverage guards in dev/engine-tests.js fail the commit instead.
 //
-// SHADOW MODE (this commit): applyMuts (api.js) remains the AUTHORITATIVE parser. Every response
-// is ALSO run through applyMutsTable against deep-cloned state, and any mutation difference is
-// logged loudly + persisted (localStorage tnd_tagdiff_v1). Cutover to the table is a separate
-// later commit, gated on a clean diff log across harness corpora AND real play sessions.
+// SOLE PARSER since v1.261: applyMuts (api.js) is a thin veneer over applyMutsTable below. The
+// legacy hand-written parser and the shadow/parity machinery that validated this table against
+// it (shadow mode v1.241 → cutover v1.258 → reverse soak → deletion v1.261) are GONE. Retained
+// tripwires: __tagUnknownScan (vocabulary gaps), __tagNoCombatWarns (UA27), and the engine-test
+// coverage guards + frozen strip/doc hashes.
 //
 // ORDER IS LOAD-BEARING. TAG_TABLE array order = the exact current applyMuts execution order:
 // LOCATION before LOCATION_DESC (travel edge needs the previous node), SUBLOCATION before
@@ -19,9 +20,9 @@
 //   R.turn   — worldState.turn frozen at entry
 //   R.feGet()    — lazy first-encounter snippet (computed once per response)
 //   R._xpMirror(n) — party XP mirror with the COMPANION_XP supersede scan
-// Handlers reference worldState/memory/helpers as GLOBALS, exactly like the originals — this is
-// what lets shadow mode run them against clones by swapping the globals, and what makes cutover
-// a body-swap instead of a refactor.
+// Handlers reference worldState/memory/helpers as GLOBALS, exactly like the originals did —
+// this is what let shadow mode run them against clones by swapping the globals during the
+// UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
 var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_PRONOUN","SPELL_USED","SPELL_DEF","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","PARTY_MEMBER","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","WEATHER","REST","LOCATION_ITEM","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ACT_COMPLETE","ACTIONS","RETCON"];
@@ -272,89 +273,10 @@ function applyMutsTable(text){
   syncUI();saveAll();
   return R;
 }
-
-// ── Shadow mode: run the table against CLONES by swapping the state globals + stubbing UI ───────
-function __tagCloneWS(ws){var t=ws.transcript;ws.transcript=null;var c;try{c=JSON.parse(JSON.stringify(ws));}finally{ws.transcript=t;}c.transcript=[];return c;}
-function __tagShadowRun(text,fn){
-  // fn (v1.258 cutover): which parser to run on the clones. Defaults to the table (the pre-cutover
-  // arrangement); the post-cutover dispatcher passes applyMutsLegacy for the REVERSE shadow.
-  var realWS=worldState,realMem=memory;
-  // Save every UI/persistence surface the handlers (or their callees — checkLevelUp,
-  // checkCompanionLevelUp, archiveQuest…) can reach, then make them inert for the clone run.
-  // checkLegacyCharacter is stubbed because it rolls Math.random — the one non-deterministic
-  // callee; its live-side effects (pendingLegacy/legacyCharsUsed) are diff-skipped below.
-  var sToast=typeof showToast!=="undefined"?showToast:undefined,
-      sMsg=typeof addMsg!=="undefined"?addMsg:undefined,
-      sSync=typeof syncUI!=="undefined"?syncUI:undefined,
-      sAll=typeof saveAll!=="undefined"?saveAll:undefined,
-      sCore=typeof saveCore!=="undefined"?saveCore:undefined,
-      sMem=typeof saveMem!=="undefined"?saveMem:undefined,
-      sMeta=typeof updateCampMeta!=="undefined"?updateCampMeta:undefined,
-      sBond=typeof bondToast!=="undefined"?bondToast:undefined,
-      sArch=typeof showArchetypeModal!=="undefined"?showArchetypeModal:undefined,
-      sBump=typeof showStatBumpModal!=="undefined"?showStatBumpModal:undefined,
-      sLeg=typeof checkLegacyCharacter!=="undefined"?checkLegacyCharacter:undefined,
-      sBumps=typeof _levelBumpsOwed!=="undefined"?_levelBumpsOwed:null;
-  var elStub={appendChild:function(){},remove:function(){},style:{},textContent:"",innerHTML:""};
-  showToast=function(){};addMsg=function(){return elStub;};syncUI=function(){};saveAll=function(){};
-  saveCore=function(){};saveMem=function(){};updateCampMeta=function(){};bondToast=function(){};
-  showArchetypeModal=function(){};showStatBumpModal=function(){};checkLegacyCharacter=function(){};
-  worldState=__tagCloneWS(realWS);memory=JSON.parse(JSON.stringify(realMem));
-  var out={err:null,R:null};
-  try{out.R=(fn||applyMutsTable)(text);}catch(e){out.err=e;}
-  out.ws=worldState;out.mem=memory;
-  worldState=realWS;memory=realMem;
-  if(sToast!==undefined)showToast=sToast;if(sMsg!==undefined)addMsg=sMsg;if(sSync!==undefined)syncUI=sSync;
-  if(sAll!==undefined)saveAll=sAll;if(sCore!==undefined)saveCore=sCore;if(sMem!==undefined)saveMem=sMem;
-  if(sMeta!==undefined)updateCampMeta=sMeta;if(sBond!==undefined)bondToast=sBond;
-  if(sArch!==undefined)showArchetypeModal=sArch;if(sBump!==undefined)showStatBumpModal=sBump;
-  if(sLeg!==undefined)checkLegacyCharacter=sLeg;
-  if(sBumps!==null)_levelBumpsOwed=sBumps;
-  return out;
-}
-// Deep structural diff. Skips functions; treats missing-vs-undefined as equal; path-prefix skips
-// cover the fields applyMuts never owns or that are non-deterministic by design:
-//   ws.transcript (not cloned) · ws.pendingLegacy / ws.legacyCharsUsed (checkLegacyCharacter rolls
-//   Math.random live but is stubbed in shadow) · ws.usage (telemetry) · ws.lastActions (async).
-var __TAG_DIFF_SKIP=["ws.transcript","ws.pendingLegacy","ws.legacyCharsUsed","ws.usage","ws.lastActions"];
-function __tagDeepDiff(a,b,path,out){
-  if(out.length>=50)return;
-  for(var k=0;k<__TAG_DIFF_SKIP.length;k++){if(path===__TAG_DIFF_SKIP[k])return;}
-  if(a===b)return;
-  var ta=typeof a,tb=typeof b;
-  if(ta==="function"||tb==="function")return;
-  if(a===null||b===null||ta!=="object"||tb!=="object"){
-    if(!(a===undefined&&b===undefined))out.push(path+": "+JSON.stringify(a)+" ≠ "+JSON.stringify(b));
-    return;
-  }
-  var keys={},k2;for(k2 in a)keys[k2]=1;for(k2 in b)keys[k2]=1;
-  for(k2 in keys)__tagDeepDiff(a[k2],b[k2],path+"."+k2,out);
-}
-// Called from applyMuts (old parser) AFTER its mutations: compares the shadow clone's end state
-// against the real end state. Zero diffs = parity. LOUD on any difference (no-silent-failures)
-// and durable: a ring buffer persists to localStorage so a soak survives closed tabs.
-var __tagShadowToastShown=false;
-var __tagParityRuns=0,__tagDiffCount=0; // module globals — readable from the page or node alike
+// (v1.261: the shadow/parity machinery that lived here — __tagCloneWS, __tagShadowRun,
+// __tagDeepDiff, __tagShadowDiff and their counters — was deleted with the legacy parser.
+// The two surviving counters/tripwires below are independent of it.)
 var __tagNoCombatWarns=0; // UA27: count of combat-tag-without-combat warns (testable, page-inspectable)
-function __tagShadowDiff(sh){
-  __tagParityRuns++;
-  var diffs=[];
-  if(sh.err)diffs.push("SHADOW PARSER THREW: "+(sh.err&&sh.err.message));/* direction-neutral since the v1.258 cutover: the shadow is the table pre-cutover, the legacy parser after */
-  if(sh.R&&sh.R.errors&&sh.R.errors.length)diffs.push("handler errors: "+sh.R.errors.join("; "));
-  __tagDeepDiff(sh.ws,worldState,"ws",diffs);
-  __tagDeepDiff(sh.mem,memory,"mem",diffs);
-  if(!diffs.length)return;
-  __tagDiffCount++;
-  console.warn("[tag-shadow] MUTATION DIFF (authoritative vs shadow parser) — "+diffs.length+" path(s):");
-  for(var i=0;i<Math.min(diffs.length,10);i++)console.warn("  ✗ "+diffs[i]);
-  try{
-    var log=JSON.parse((typeof store!=="undefined"?store.get("tnd_tagdiff_v1"):null)||"[]");
-    log.push({t:Date.now(),turn:worldState.turn,camp:worldState.campId||null,diffs:diffs.slice(0,10)});
-    if(log.length>25)log=log.slice(-25);
-    if(typeof store!=="undefined")store.set("tnd_tagdiff_v1",JSON.stringify(log));
-  }catch(e){}
-  if(!__tagShadowToastShown&&typeof showToast==="function"){__tagShadowToastShown=true;showToast("⚠ tag-shadow diff detected — see console (soak evidence recorded)");}
-}
 // Unknown-tag detector: any [NAME:...] whose NAME isn't in the strip registry is either a GM
 // invention or a vocabulary gap — both worth a loud line (the phantom-tag class, inverted).
 var __TAG_KNOWN=null;

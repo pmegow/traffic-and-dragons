@@ -1,20 +1,24 @@
-// diff-replay.js — UA1 corpus replay (DEV TOOL). Replays a harness corpus's RAW GM responses
-// through applyMuts with TAG_SHADOW on: every response runs the old parser (authoritative) AND
-// the tag table (on cloned state), diffing end states. Zero diffs across a real-model corpus is
-// the evidence the shadow-mode commit stands on.  Usage: node dev/diff-replay.js <corpus.json>
+// diff-replay.js — corpus SMOKE-REPLAY (DEV TOOL). Replays a harness corpus's RAW GM responses
+// through applyMuts (the tag table — the only parser since v1.261) and fails on any throw or
+// per-handler error (R.errors). Serializes the end state to <corpus>.endstate.json so replay
+// results are byte-comparable across engine versions: an item that deliberately changes mutation
+// behavior must enumerate exactly which turns' diffs it expects (HANDOFF_batch_v1260.md, shared
+// verification kit); anything unexplained is a defect.
+// History: this file was the UA1 dual-parser parity replayer (shadow v1.241 → cutover v1.258);
+// the legacy parser it diffed against was deleted at v1.261 after the soak finished clean.
+// Usage: node dev/diff-replay.js <corpus.json>
 var fs = require("fs"), path = require("path");
 var root = path.join(__dirname, "..");
 var geval = eval;
 ["globals.js","compress.js","data.js","capability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","tag_table.js","api.js","game.js"].forEach(function(f){geval(fs.readFileSync(path.join(root,f),"utf8"));});
 
-TAG_SHADOW=true;/*force*/ // dev parity replays always run both parsers, whatever production defaults to
 // UI stubs (same shape as the engine-test harness)
 var elStub={appendChild:function(){},remove:function(){},style:{},textContent:"",innerHTML:""};
 addMsg=function(){return elStub;};showToast=function(){};syncUI=function(){};
 saveAll=function(){};saveCore=function(){};saveMem=function(){};updateCampMeta=function(){};
 bondToast=function(){};showArchetypeModal=function(){};showStatBumpModal=function(){};
 updateAbPanel=function(){};updateSpPanel=function(){};updateInvPanel=function(){};/* REST handler reaches these live (found replaying the tagsoak corpus at v1.257) */
-checkLegacyCharacter=function(){}; // random — stubbed on BOTH sides for a deterministic replay
+checkLegacyCharacter=function(){}; // random — stubbed for a deterministic replay
 if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){},syncNow:function(){}};
 
 var corpusPath = process.argv[2] || "dev/corpus_playtest_v1238.json";
@@ -40,18 +44,22 @@ worldState = { ver:10, campId:"replay", campName:"Replay", legacyCharsUsed:[], p
   npcs:[], questLog:[], eventHistory:[], combat:null, turn:0, transcript:[], ragMemory:false };
 
 var raws = corpus.raw || [];
-console.log("Replaying " + raws.length + " raw GM responses with shadow parity active…");
-var perTurn = [];
+console.log("Smoke-replaying " + raws.length + " raw GM responses through the table parser…");
+var errTurns = [];
 for (var i = 0; i < raws.length; i++) {
-  var before = __tagDiffCount;
   worldState.turn = raws[i].turn || (i + 1); // sendAction increments BEFORE applyMuts
-  try { applyMuts(raws[i].raw); }
-  catch (e) { console.error("  turn " + raws[i].turn + ": applyMuts THREW: " + e.message); }
-  if (__tagDiffCount !== before) perTurn.push(raws[i].turn);
+  try {
+    var R = applyMuts(raws[i].raw);
+    if (R && R.errors && R.errors.length) errTurns.push(raws[i].turn + ": " + R.errors.join("; "));
+  } catch (e) { errTurns.push(raws[i].turn + ": THREW " + e.message); }
 }
-console.log("── replay complete ──");
-console.log("parity runs: " + __tagParityRuns + " | diffs: " + __tagDiffCount + (perTurn.length ? " (turns: " + perTurn.join(", ") + ")" : ""));
+console.log("── smoke-replay complete ── handler errors: " + errTurns.length);
+for (var j = 0; j < errTurns.length; j++) console.log("  ✗ " + errTurns[j]);
 console.log("end-state sanity: hp " + worldState.character.hp + "/" + worldState.character.maxHp
   + " | xp " + worldState.character.xp + " | quests archived " + Object.keys(memory.quests || {}).length
   + " | npcs " + worldState.npcs.length + " | spells " + worldState.character.spells.map(function(s){return s.nm.split(" (")[0]+":"+(s.used?"USED":"ok");}).join(", "));
-process.exit(__tagDiffCount === 0 ? 0 : 1);
+// End-state serialization — the byte-identity evidence for cross-version comparisons (item 0 ⑥).
+fs.writeFileSync(path.join(root, corpusPath + ".endstate.json"),
+  JSON.stringify({ ws: worldState, mem: memory }), "utf8");
+console.log("end state -> " + corpusPath + ".endstate.json");
+process.exit(errTurns.length === 0 ? 0 : 1);

@@ -10,7 +10,8 @@ function runEngineTests(R){
   var section=R.section,t=R.t;
 
   // ── UI + persistence stubs (reassign the engine's globals; DOM-free) ─────────
-  TAG_SHADOW=true; // v1.260: production retired the per-turn reverse shadow; the TEST SUITE always runs both parsers — parity stays a tested invariant for as long as legacy exists
+  // (v1.261: the legacy parser and its TAG_SHADOW parity harness are DELETED — the table is the
+  // only parser; the converted parity battery below is the full-vocabulary behavior spec now.)
   var __toasts=[];
   function __stubEl(){return {appendChild:function(){},style:{},remove:function(){},textContent:"",innerHTML:"",className:""};}
   addMsg=function(){return __stubEl();};
@@ -1497,10 +1498,10 @@ function runEngineTests(R){
     return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
   });
 
-  // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary parity ═══
-  // NOTE: with TAG_SHADOW on, EVERY applyMuts call in the suites above already ran the table
-  // against cloned state and diffed — the zero-diff gate at the very end of this file is the
-  // aggregate parity assertion over the whole suite. The battery below adds the rare tags.
+  // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary battery ═══
+  // Since v1.261 (legacy parser deleted) the converted parity battery below IS the vocabulary
+  // behavior spec: every end-state assertion was proven byte-identical to the legacy parser
+  // across 159 parity runs + ~160 real turns before the cross-check was retired.
   section("tag table (UA1): derivations + coverage");
   function __djb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
   t("derived cleanTxt strip regex is byte-identical to the pre-refactor literal (frozen)",function(){
@@ -1523,9 +1524,9 @@ function runEngineTests(R){
     return true;
   });
 
-  section("tag table (UA1): full-vocabulary parity battery");
-  t("parity A: fresh-world mega-response (core + world + npc + combat-open tags)",function(){
-    makeWorld();var d0=__tagDiffCount;
+  section("tag table (UA1): full-vocabulary behavior battery (converted parity battery)");
+  t("battery A: fresh-world mega-response (core + world + npc + combat-open tags)",function(){
+    makeWorld();
     applyMuts("The road bends east.\n[HP:-3][GOLD:+10][ITEM_GAINED:Torch][ITEM_GAINED:Torch][ITEM_GAINED:Rope x3][ITEM_LOST:Travel ration][XP:50]"
       +"[LOCATION:Duskmere][LOCATION_DESC:A drowned town on stilts.][LOCATION_SIZE:small|10][SUBLOCATION:The Eel's Rest][LOCATION_ITEM:Rusted key|placed]"
       +"[TIME:midnight][WEATHER:fog]"
@@ -1536,24 +1537,22 @@ function runEngineTests(R){
       +"[QUEST:The Drowned Bell|offered|Raise the bell from the deep.][QUEST:Eel Debts|active][QUEST_STEP:Eel Debts|Meet Borin at the forge|true]"
       +"[ALIGNMENT:good+1][SPELL_USED:Faerie Fire][SPELL_DEF:Marsh Light|range=60ft|targets=one point|duration=10 min|effect=A bobbing witch-light|cost=at-will|magical=yes]"
       +"[COMBAT_START:Marsh Wight|18|13|+4|d8+2|fights until dawn][COMBAT_STATS:STR:14|DEX:12|CON:16|INT:6|WIS:10|CHA:8|CR:2][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold, necrotic][COMBAT_VULN:fire][ENEMY_HP:-5 slashing][COMBAT_ROUND:2]");
-    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on mega-response — see console";
     if(worldState.character.hp!==11||worldState.character.gold!==35)return "sanity: core muts wrong";
     return worldState.combat&&worldState.combat.hp===13?true:"sanity: combat state wrong";
   });
-  t("parity B: closures, removals, merge, factions, rest, party join",function(){
-    var d0=__tagDiffCount; // CONTINUES the parity-A world (combat live, condition/rel/save/lang set)
+  t("battery B: closures, removals, merge, factions, rest, party join",function(){
+    // CONTINUES the battery-A world (combat live, condition/rel/save/lang set)
     applyMuts("It ends at the water line.\n[COMBAT_END:fled][SUBLOCATION_LEAVE][CONDITION_REMOVED:Chilled][RELATIONSHIP_REMOVED:Borin Stonehand]"
       +"[SAVE_MOD_REMOVED:Blessing of the Eel][FUTURE_EVENT_RESOLVED:The spring tide arrives][NPC_FORGET:Borin Stonehand|lantern]"
       +"[QUEST:Eel Debts|completed][REST:long][NPC:Old Borin|weathered|ally][NPC_MERGE:Borin Stonehand|Old Borin]"
       +"[NPC_LINK:Borin Stonehand|player|reluctant respect][FACTION:Tidewardens|keepers of the flood-bells][NPC_FACTION:Borin Stonehand|Tidewardens|bellsmith]"
       +"[FACTION_REL:Tidewardens|Salt Guild|old rivals][PARTY_MEMBER:Borin Stonehand|true]");
-    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on closures/merge — see console";
     if(worldState.combat!==null)return "sanity: combat not closed";
     var b=null,i;for(i=0;i<worldState.npcs.length;i++)if(worldState.npcs[i].name==="Borin Stonehand")b=worldState.npcs[i];
     return b&&b.partyMember?true:"sanity: merge/join wrong";
   });
-  t("parity C: companion tags + shared-XP mirror + COMPANION_XP supersede",function(){
-    makeWorld();var d0=__tagDiffCount;
+  t("battery C: companion tags + shared-XP mirror + COMPANION_XP supersede",function(){
+    makeWorld();
     worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:12,maxHp:12,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
     worldState.npcs.push({name:"Bram",status:"dour",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:16,maxHp:16,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
     applyMuts("[COMPANION_HP:Lyra|-4][COMPANION_ITEM_GAINED:Lyra|Silver censer][COMPANION_ITEM_LOST:Bram|Shield]"
@@ -1561,26 +1560,20 @@ function runEngineTests(R){
       +"[COMPANION_RELATIONSHIP:Lyra|Borin|Suspicious][COMPANION_RELATIONSHIP_REMOVED:Lyra|Borin]"
       +"[COMPANION_ABILITY:Bram|Shield Wall|Adjacent allies gain +1 AC.][COMPANION_ALIGNMENT:Lyra|good+1]"
       +"[XP:100][COMPANION_XP:Lyra|50]");
-    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on companion tags — see console";
     var lyra=worldState.npcs[0].charSheet,bram=worldState.npcs[1].charSheet;
     if(lyra.hp!==8||lyra.xp!==450)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+")";
     return bram.xp===500?true:"sanity: Bram mirror wrong ("+bram.xp+")";
   });
-  t("parity D: skeleton arc + act advancement",function(){
-    makeWorld();var d0=__tagDiffCount;
+  t("battery D: skeleton arc + act advancement",function(){
+    makeWorld();
     worldState.skeleton={premise:"x",acts:[
       {title:"Act One",status:"active",parallel:false,arcs:[{title:"First Arc",status:"active"},{title:"Second Arc",status:"pending"}]},
       {title:"Act Two",status:"pending",parallel:true,arcs:[{title:"Left Path",status:"pending"},{title:"Right Path",status:"pending"}]}]};
     applyMuts("[ARC_COMPLETE:First Arc]");
     applyMuts("[ARC_COMPLETE:Second Arc][ACT_COMPLETE:Act One]");
-    if(__tagDiffCount!==d0)return (__tagDiffCount-d0)+" shadow diff(s) on skeleton tags — see console";
     var sk=worldState.skeleton;
     if(sk.acts[0].status!=="completed"||sk.acts[1].status!=="active")return "sanity: act advance wrong";
     return (sk.acts[1].arcs[0].status==="active"&&sk.acts[1].arcs[1].status==="active")?true:"sanity: parallel arcs not activated";
-  });
-  t("ZERO shadow diffs across the ENTIRE suite (every applyMuts above ran the table in parallel)",function(){
-    if(typeof __tagParityRuns==="undefined"||__tagParityRuns<20)return "shadow barely ran ("+__tagParityRuns+" runs) — TAG_SHADOW wiring broken?";
-    return __tagDiffCount===0?true:__tagDiffCount+" diff(s) across "+__tagParityRuns+" parity runs — see console [tag-shadow] lines";
   });
 
   section("transcript rescue (UA3)");
@@ -1714,34 +1707,45 @@ function runEngineTests(R){
     return eq(b.strength,0.45);
   });
 
-  // ── UA1 CUTOVER (v1.258): table authoritative, legacy as reverse shadow ──────
-  section("tag-authority cutover (UA1)");
-  t("authority defaults to TABLE; dispatcher mutates via the table with the reverse shadow armed",function(){
-    if(TAG_AUTHORITY!=="table")return "default authority is "+TAG_AUTHORITY;
-    makeWorld();var p0=__tagParityRuns,d0=__tagDiffCount;
-    applyMuts("[GOLD:+10][HP:-3]");
-    if(worldState.character.gold!==35)return "gold not applied: "+worldState.character.gold;
-    if(worldState.character.hp!==11)return "hp not applied: "+worldState.character.hp;
-    if(__tagParityRuns!==p0+1)return "reverse shadow did not run";
-    return __tagDiffCount===d0?true:"reverse shadow DIFFED on a simple burst";
+  // ── UA1 LEGACY RETIREMENT (v1.261): the table IS the parser; legacy fully deleted ──
+  section("legacy retirement (UA1 closing)");
+  t("legacy parser fully retired — no symbols remain",function(){
+    // Failure condition: a partial deletion leaving a half-wired parser or a dead flag someone
+    // could flip expecting a rollback that no longer exists (rollback is now `git revert`).
+    if(typeof applyMutsLegacy!=="undefined")return "applyMutsLegacy still defined";
+    if(typeof TAG_AUTHORITY!=="undefined")return "TAG_AUTHORITY flag still defined";
+    if(typeof TAG_SHADOW!=="undefined")return "TAG_SHADOW flag still defined";
+    if(typeof __tagShadowRun!=="undefined")return "__tagShadowRun still defined";
+    if(typeof __tagShadowDiff!=="undefined")return "__tagShadowDiff still defined";
+    if(typeof __tagCloneWS!=="undefined")return "__tagCloneWS still defined";
+    if(typeof __tagDeepDiff!=="undefined")return "__tagDeepDiff still defined";
+    return true;
   });
-  t("rollback path: TAG_AUTHORITY='legacy' restores the pre-cutover arrangement",function(){
-    TAG_AUTHORITY="legacy";
-    makeWorld();var p0=__tagParityRuns,d0=__tagDiffCount;
-    applyMuts("[GOLD:+10][NPC:Bram|wary|neutral]");
-    var ok=worldState.character.gold===35&&worldState.npcs.length===1;
-    var parity=(__tagParityRuns===p0+1)&&(__tagDiffCount===d0);
-    TAG_AUTHORITY="table";
-    if(!ok)return "legacy authority did not mutate";
-    return parity?true:"table shadow did not run cleanly under legacy authority";
+  t("unknown-tag scan fires on every applyMuts call (un-gated from the dead shadow branch)",function(){
+    // Failure condition: the scan's only call sites were inside the shadow-gated dispatcher
+    // branches — with TAG_SHADOW=false (v1.260) it went DARK in production. The veneer must
+    // call it unconditionally.
+    makeWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("prose [TOTALLY_FAKE_TAG:x] more prose");}finally{console.warn=_w;}
+    var hits=warns.filter(function(m){return m.indexOf("TOTALLY_FAKE_TAG")>=0;});
+    return hits.length===1?true:"expected exactly 1 unknown-tag warn, got "+hits.length+" ("+warns.join(" / ")+")";
   });
-  t("cutover burst: complex multi-tag response under table authority, zero reverse diffs",function(){
-    makeWorld();var d0=__tagDiffCount;
+  t("handler isolation survives the veneer rewrite (one throwing handler doesn't abort the parse)",function(){
+    makeWorld();
+    worldState.questLog=null; // QUEST handler will throw on .length — the malformed-state injection
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var R;try{R=applyMuts("[QUEST:Broken|active][GOLD:+7]");}finally{console.warn=_w;worldState.questLog=[];}
+    if(worldState.character.gold!==32)return "GOLD after the throwing handler did not apply: "+worldState.character.gold;
+    return R&&R.errors&&R.errors.length===1?true:"R.errors wrong: "+JSON.stringify(R&&R.errors);
+  });
+  t("post-retirement burst: complex multi-tag response mutates correctly through the veneer",function(){
+    makeWorld();
     applyMuts("The fight turns. [COMBAT_START:Wolf|9|12|+2|d6|low][COMBAT_STATS:STR:12|DEX:14|CON:11|INT:3|WIS:12|CHA:6|CR:1]");
     applyMuts("[ENEMY_HP:-9] It drops. [XP:50][ITEM_GAINED:Wolf pelt][QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Kill the wolf|true][LOCATION:Greyford][CONDITION:Winded|1 hour]");
     if(worldState.combat!==null)return "combat not auto-cleared";
     if(worldState.world.location!=="Greyford")return "location not applied";
-    return __tagDiffCount===d0?true:"reverse shadow diffed on the burst";
+    return worldState.character.xp===50?true:"xp not applied";
   });
 
   // ── UA27 no-combat warn + UA9 currentNodeKey (v1.259) ────────────────────────
