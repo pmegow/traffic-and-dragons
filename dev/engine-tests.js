@@ -1918,6 +1918,14 @@ function runEngineTests(R){
     var back=parseWorldState(serializeWorldState(worldState));
     return back.transcript[0].m==="claude-haiku-4-5-20251001"?true:"stamp lost in round-trip";
   });
+  t("#45b: gm entries carry the engine version; player entries don't",function(){
+    makeWorld();
+    logTranscript("player","I look around.");
+    logTranscript("gm","You see things.","You see things.");
+    var tr=worldState.transcript;
+    if(tr[0].v)return "player entry versioned";
+    return tr[1].v===APP_VERSION?true:"gm entry version wrong: "+tr[1].v;
+  });
 
   // ── Condition turn-stamps + injection (#46 Phase A) ──────────────────────────
   section("condition stamps (#46)");
