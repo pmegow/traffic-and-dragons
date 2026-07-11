@@ -12,6 +12,7 @@ var elStub={appendChild:function(){},remove:function(){},style:{},textContent:""
 addMsg=function(){return elStub;};showToast=function(){};syncUI=function(){};
 saveAll=function(){};saveCore=function(){};saveMem=function(){};updateCampMeta=function(){};
 bondToast=function(){};showArchetypeModal=function(){};showStatBumpModal=function(){};
+updateAbPanel=function(){};updateSpPanel=function(){};updateInvPanel=function(){};/* REST handler reaches these live (found replaying the tagsoak corpus at v1.257) */
 checkLegacyCharacter=function(){}; // random — stubbed on BOTH sides for a deterministic replay
 if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){},syncNow:function(){}};
 
