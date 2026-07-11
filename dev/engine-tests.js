@@ -1504,15 +1504,18 @@ function runEngineTests(R){
   // across 159 parity runs + ~160 real turns before the cross-check was retired.
   section("tag table (UA1): derivations + coverage");
   function __djb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
-  t("derived cleanTxt strip regex is byte-identical to the pre-refactor literal (frozen)",function(){
-    // Frozen from the v1.240 literals (verified against git HEAD during the refactor). A registry
-    // edit that changes stripping MUST consciously update these numbers.
-    if(__djb2(_CT_TAGS.source)!==1892048388||_CT_TAGS.source.length!==840)return "_CT_TAGS diverged from the frozen literal";
+  t("derived cleanTxt strip regex is byte-identical to the frozen literal",function(){
+    // Frozen v1.240; updated v1.263 (UA25: +COMPANION_SPELL_USED strip entry — golden diffed by
+    // eye in the same commit). A registry edit that changes stripping MUST consciously update
+    // these numbers.
+    if(__djb2(_CT_TAGS.source)!==318408531||_CT_TAGS.source.length!==861)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
+    // Frozen v1.241; updated v1.263 (UA25: +1 COMPANION_SPELL_USED doc line — golden regenerated
+    // and diffed by eye in the same commit).
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1563084037&&d.length===8237)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-579654468&&d.length===8414)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1828,6 +1831,68 @@ function runEngineTests(R){
     applyMuts("[QUEST:Doomed|failed]");
     var hit=__toasts.filter(function(m){return m.indexOf("✗ Quest failed: Doomed")>=0;});
     return hit.length===1?true:"failed toast wrong: "+JSON.stringify(__toasts);
+  });
+
+  // ── UA25: companion spell tracking + companion canon injection ───────────────
+  section("companion spells (UA25)");
+  function __casterParty(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:12,maxHp:12,xp:400,stats:{},abilities:[],inventory:[],
+      spells:[{nm:"Bless (allies +d4)",lvl:1,used:false},{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+    worldState.npcs.push({name:"Bram",status:"dour",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Paladin",level:2,hp:16,maxHp:16,xp:400,stats:{},abilities:[],inventory:[],
+      spells:[{nm:"Bless (allies +d4)",lvl:1,used:false}],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+  }
+  t("COMPANION_SPELL_USED marks the named companion's spell; same-named spells elsewhere untouched",function(){
+    __casterParty();
+    worldState.character.spells.push({nm:"Bless (allies +d4)",lvl:1,used:false});
+    applyMuts("[COMPANION_SPELL_USED:Lyra|Bless]");
+    var lyra=worldState.npcs[0].charSheet,bram=worldState.npcs[1].charSheet;
+    if(lyra.spells[0].used!==true)return "Lyra's Bless not marked used";
+    if(bram.spells[0].used)return "Bram's identical Bless wrongly marked";
+    var pc=worldState.character.spells.filter(function(s){return s.nm.indexOf("Bless")===0;})[0];
+    return pc.used?"the PLAYER's Bless wrongly marked":true;
+  });
+  t("COMPANION_SPELL_USED on a cantrip is a no-op (mirrors the player rule)",function(){
+    __casterParty();
+    applyMuts("[COMPANION_SPELL_USED:Lyra|Message]");
+    return worldState.npcs[0].charSheet.spells[1].used?"cantrip expended":true;
+  });
+  t("no matching companion / no matching spell = warned no-op",function(){
+    __casterParty();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[COMPANION_SPELL_USED:Nobody|Bless][COMPANION_SPELL_USED:Lyra|Fireball]");}finally{console.warn=_w;}
+    if(worldState.npcs[0].charSheet.spells[0].used)return "phantom cast mutated Lyra";
+    return warns.length>=2?true:"expected 2 warns (unknown companion + unknown spell), got "+warns.length+": "+warns.join(" / ");
+  });
+  t("[REST:long] restores a companion slot spent via the new tag (E84 pinned)",function(){
+    __casterParty();
+    applyMuts("[COMPANION_SPELL_USED:Lyra|Bless]");
+    if(worldState.npcs[0].charSheet.spells[0].used!==true)return "setup failed";
+    applyMuts("[REST:long]");
+    return worldState.npcs[0].charSheet.spells[0].used===false?true:"slot not restored by rest";
+  });
+  t("companion spell canon renders in VOLATILE, never stable",function(){
+    __casterParty();
+    var s=buildSysPrompt();
+    if(s.volatile.indexOf("CANONICAL COMPANION SPELL RULES")<0)return "companion canon missing from volatile";
+    return s.stable.indexOf("CANONICAL COMPANION SPELL RULES")<0?true:"leaked into the stable half";
+  });
+  t("companion canon dedupes against the player's block (one Message line total)",function(){
+    __casterParty();
+    worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    var both=buildSpellBibleBlock()+buildCompanionSpellBibleBlock();
+    var n=(both.match(/^- Message /gm)||[]).length;
+    return n===1?true:"expected exactly 1 Message canon line across both blocks, got "+n;
+  });
+  t("non-caster party renders no companion canon block (byte-neutral for sword-only parties)",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Bram",status:"dour",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:16,maxHp:16,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    return buildCompanionSpellBibleBlock()===""?true:"non-empty block for a spell-less party";
+  });
+  t("a dead companion's spells inject no canon",function(){
+    __casterParty();
+    worldState.npcs[0].status="dead";worldState.npcs[1].charSheet.spells=[];
+    return buildCompanionSpellBibleBlock()===""?true:"dead companion still injecting canon";
   });
 
   // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────

@@ -316,6 +316,7 @@ function buildSysPrompt(){
     +condStr+relStr+saveStr+langStr+skillStr
     +buildSpellBibleBlock()
     +buildAbilityBibleBlock()
+    +buildCompanionSpellBibleBlock()
     +partyBlock
     +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
@@ -400,7 +401,8 @@ function capBibleLine(nm,e){
 // of re-improvising a spell's range/targets/duration from its name (the Message-went-limitless
 // drift). Same re-inject-from-data pattern as the quest block / char sheet / [LOCATION_DESC:].
 // VOLATILE half only (reads worldState.character.spells live). Bounded by known spells, so cheap.
-// Player-only for now; companion spell canon is a follow-up (their spells live on charSheet.spells).
+// Companion spell canon: buildCompanionSpellBibleBlock below (UA25, v1.263 — closed the v1.224
+// B1(b) gap where charSheet.spells got no re-injection and companions cast from vibes).
 function buildSpellBibleBlock(){
   var c=worldState&&worldState.character;
   if(!c||!c.spells||!c.spells.length||typeof capabilityLookup!=="function")return"";
@@ -419,6 +421,28 @@ function buildSpellBibleBlock(){
   }
   if(!lines.length)return"";
   return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]):\n"+lines.join("\n")+"\n\n";
+}
+// UA25: the companion half of the #10 anti-drift injection. ONE canon line per spell across the
+// whole party: bounds are identical for every caster, so spells the player's own block already
+// covers are not repeated. Slot state is per-owner and stays on the party sheet (Spells
+// available / EXPENDED lines) — this block is pure canon, deliberately without the player
+// block's [EXPENDED] markers. VOLATILE half only (reads charSheets live).
+function buildCompanionSpellBibleBlock(){
+  if(!worldState||!worldState.npcs||!worldState.npcs.length||typeof capabilityLookup!=="function")return"";
+  var seen={},i,c=worldState.character;
+  if(c&&c.spells){for(i=0;i<c.spells.length;i++){if(c.spells[i]&&c.spells[i].nm)seen[capBaseName(c.spells[i].nm)]=1;}}
+  var lines=[],pj,ps;
+  for(pj=0;pj<worldState.npcs.length;pj++){var n=worldState.npcs[pj];
+    if(!n.partyMember||!n.charSheet||!n.charSheet.spells)continue;
+    if(/\bdead\b/i.test(n.status||""))continue;
+    for(ps=0;ps<n.charSheet.spells.length;ps++){var sp=n.charSheet.spells[ps];
+      if(!sp||!sp.nm)continue;
+      var key=capBaseName(sp.nm);if(seen[key])continue;
+      var e=capabilityLookup(sp.nm);if(!e)continue;
+      seen[key]=1;
+      lines.push(capBibleLine(String(sp.nm).replace(/\s*\(.*\)/,"").trim(),e));}}
+  if(!lines.length)return"";
+  return "CANONICAL COMPANION SPELL RULES (authoritative for PARTY MEMBERS' spells — the same fixed-bounds discipline as the player's list above; each companion's expended slots are listed on their party sheet; mark a companion's leveled cast with [COMPANION_SPELL_USED:Name|spell]):\n"+lines.join("\n")+"\n\n";
 }
 // buildAbilityBibleBlock (TODO #10) — the ability half of the anti-drift injection. Re-feeds canon
 // for the player's class abilities every turn via capabilityLookup (which resolves an ability that
