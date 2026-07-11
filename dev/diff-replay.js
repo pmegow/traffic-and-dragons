@@ -7,6 +7,7 @@ var root = path.join(__dirname, "..");
 var geval = eval;
 ["globals.js","compress.js","data.js","capability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","tag_table.js","api.js","game.js"].forEach(function(f){geval(fs.readFileSync(path.join(root,f),"utf8"));});
 
+TAG_SHADOW=true;/*force*/ // dev parity replays always run both parsers, whatever production defaults to
 // UI stubs (same shape as the engine-test harness)
 var elStub={appendChild:function(){},remove:function(){},style:{},textContent:"",innerHTML:""};
 addMsg=function(){return elStub;};showToast=function(){};syncUI=function(){};

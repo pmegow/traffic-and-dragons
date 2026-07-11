@@ -10,6 +10,7 @@ function runEngineTests(R){
   var section=R.section,t=R.t;
 
   // ── UI + persistence stubs (reassign the engine's globals; DOM-free) ─────────
+  TAG_SHADOW=true; // v1.260: production retired the per-turn reverse shadow; the TEST SUITE always runs both parsers — parity stays a tested invariant for as long as legacy exists
   var __toasts=[];
   function __stubEl(){return {appendChild:function(){},style:{},remove:function(){},textContent:"",innerHTML:"",className:""};}
   addMsg=function(){return __stubEl();};

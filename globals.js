@@ -138,7 +138,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.259";
+var APP_VERSION="v1.260";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -172,7 +172,7 @@ var renderModel="fal-ai/flux/dev";
 var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95} (#42); persisted under RENDER_STR_K
 // UA1 shadow soak: run every GM response through the tag TABLE against cloned state and diff
 // against the authoritative old parser. Kill switch — flip false if the soak misbehaves in play.
-var TAG_SHADOW=true;
+var TAG_SHADOW=false; // v1.260: production reverse-shadow RETIRED (soak passed: 160+ scripted parity runs, 49 real v1.258 turns, zero diffs ever). Legacy parser + shadow machinery retained for dev replay tooling and the TAG_AUTHORITY rollback; batch table edits would diff against frozen legacy by DESIGN, so the per-turn tripwire ends here. Flip true to re-arm.
 // ⛨ UA1 cutover (v1.258): which parser's mutations COUNT. "table" = tag_table.js authoritative
 // with the legacy parser as reverse shadow; "legacy" = the pre-cutover arrangement — the ONE-LINE
 // ROLLBACK. Both retired together with the legacy parser after the reverse soak stays clean.
