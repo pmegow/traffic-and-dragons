@@ -1955,6 +1955,17 @@ function runEngineTests(R){
     __cnTurn("[COMPANION_CONDITION:Daeris|Unconscious|until awakened]");
     return eq(worldState.npcs[0].charSheet.conditions[0].turn,155);
   });
+  t("condition add and removal both TOAST (v1.256 — the Daeris 'no toast' note)",function(){
+    makeWorld();worldState.turn=42;__toasts.length=0;
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:38,maxHp:38,conditions:[{name:"Unconscious",duration:"until awakened"}]}}];
+    __cnTurn("[CONDITION:Bloodied Nose|until treated][COMPANION_CONDITION_REMOVED:Daeris|Unconscious]");
+    var all=__toasts.join(" | ");
+    if(all.indexOf("Condition: Tess — Bloodied Nose")<0)return "add toast missing: "+all;
+    if(all.indexOf("Condition lifted: Daeris — Unconscious")<0)return "removal toast missing: "+all;
+    __toasts.length=0;
+    __cnTurn("no tags this turn");
+    return __toasts.length===0?true:"toasted with no change: "+__toasts.join(" | ");
+  });
   t("player condStr injects age + cleanup instruction; legacy unstamped renders plain",function(){
     makeWorld();
     worldState.character.conditions=[{name:"Unconscious",duration:"until awakened",turn:155},{name:"Old Curse",duration:"lingering"}];

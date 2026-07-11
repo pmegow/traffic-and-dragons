@@ -489,10 +489,23 @@ function conditionSnapshot(){
 }
 function stampNewConditions(pre){
   if(!pre||!worldState||!worldState.character)return;
-  function stamp(list,had){var i;for(i=0;i<(list||[]).length;i++){if(!had[list[i].name]&&!list[i].turn)list[i].turn=worldState.turn;}}
-  stamp(worldState.character.conditions,pre.player);
+  // Stamps new conditions with their onset turn AND toasts every change in both directions —
+  // condition add/removal previously had zero UI feedback (v1.256, from the Daeris audit test:
+  // "yay that it's done... no toast"). Toasting HERE instead of inside the tag handlers keeps
+  // both parsers untouched (no pre-cutover double-implementation, no shadow-soak noise).
+  function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
+  function diff(who,list,had){
+    var i,now=names(list);
+    for(i=0;i<(list||[]).length;i++){if(!had[list[i].name]){
+      if(!list[i].turn)list[i].turn=worldState.turn;
+      if(typeof showToast==="function")showToast("⚠ Condition: "+who+" — "+list[i].name+(list[i].duration?" ("+list[i].duration+")":""));
+    }}
+    var hk=Object.keys(had);
+    for(i=0;i<hk.length;i++){if(!now[hk[i]]&&typeof showToast==="function")showToast("✓ Condition lifted: "+who+" — "+hk[i]);}
+  }
+  diff(worldState.character.name,worldState.character.conditions,pre.player);
   var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember&&n.charSheet)stamp(n.charSheet.conditions,pre.party[n.name]||{});}
+    if(n&&n.partyMember&&n.charSheet)diff(n.name,n.charSheet.conditions,pre.party[n.name]||{});}
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
