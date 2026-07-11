@@ -998,7 +998,26 @@ function csHeroHeader(c){
   var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
 }
-function csSheetSections(c){
+// #50 QOL: drop an inventory item from a live sheet. owner ""=player, else companion name.
+// Native confirm guards the misclick; the drop is a player edit (like the Sync modal), saved
+// and synced immediately, and the sheet re-renders in place.
+function dropInvItem(owner,idx,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  idx=parseInt(idx,10);if(isNaN(idx)||!worldState)return;
+  var inv=null,i;
+  if(owner===""){inv=worldState.character&&worldState.character.inventory;}
+  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){inv=n.charSheet.inventory;break;}}}
+  if(!inv||idx<0||idx>=inv.length)return;
+  var nm=inv[idx];
+  if(!window.confirm('Drop "'+nm+'"?'))return;
+  inv.splice(idx,1);saveAll();
+  if(typeof showToast==="function")showToast("Dropped: "+nm);
+  if(owner===""){var ex=document.getElementById("cs-modal");if(ex){ex.remove();showCharSheet();}if(typeof updateInvPanel==="function")updateInvPanel();}
+  else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
+}
+// invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
+// get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
+function csSheetSections(c,invOwner){
   var i;
   var statHtml="<div class='cs-stat-grid'>";
   for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
@@ -1027,7 +1046,13 @@ function csSheetSections(c){
   var spellHtml="";
   if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
-  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run) */var invRows="",ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invRows+='<div class="cs-list-row">'+invItemHtml(c.inventory[ivi])+'</div>';invHtml='<div class="cs-list">'+invRows+"</div>";}
+  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a drop × */
+    var invRows="",ivi,_canDrop=(invOwner!==undefined);
+    for(ivi=0;ivi<c.inventory.length;ivi++){
+      var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+ivi+'" onclick="dropInvItem(this.dataset.own,this.dataset.idx,event)" title="Drop this item" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
+      invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>'+invItemHtml(c.inventory[ivi])+'</span>'+_dropBtn+'</div>';
+    }
+    invHtml='<div class="cs-list">'+invRows+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
   // swaps — "Player today is NPC tomorrow is Player again; the sheets stay sympatico" (user).
@@ -1084,7 +1109,7 @@ function showCharSheet(){
     +"</div>"
     +"</div></div>"
 
-    +csSheetSections(c)
+    +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the drop × (#50) */
 
     +"</div>";
 
@@ -1499,7 +1524,7 @@ function showNpcSheet(name){
     var sheetRels=sheet.relationships?sheet.relationships.slice():[];
     if(worldState&&worldState.character){var pcn2=worldState.character.name,hasPC2=false,rki2;for(rki2=0;rki2<sheetRels.length;rki2++){if(sheetRels[rki2].entity===pcn2){hasPC2=true;break;}}if(!hasPC2&&wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown")sheetRels.push({entity:pcn2,descriptor:wsNpc.rel});}
     sheet.relationships=sheetRels;
-    sheetSections=csSheetSections(sheet);
+    sheetSections=csSheetSections(sheet,name);/* live companion sheet — drop × routes to this NPC (#50) */
     sheet.relationships=origRels;
   }
 
