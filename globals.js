@@ -9,6 +9,8 @@ var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a 
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
 var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
+var CONDITION_AUDIT_TURNS=12;    // #46 audit teeth: a party condition this many turns old (or unstamped/legacy) makes buildConditionAudit fire
+var CONDITION_AUDIT_COOLDOWN=12; // #46: at most one condition audit per this many turns — a kept condition gets re-audited next window, not nagged every turn
 var WEIGHTY_REL_RE=/(married|wed(ded)?|betrothed|lover|betray|sworn|oath|blood[- ]?(bound|brother|sister)|nemesis|widow|avenged)/i; // #40: relationship descriptors weighty enough to file as a defining moment
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
 // chars ≈ 330-780 tok/exchange); 900 kept only 1, under the 2-3 the #28 spec calls for.
@@ -136,7 +138,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.254";
+var APP_VERSION="v1.255";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

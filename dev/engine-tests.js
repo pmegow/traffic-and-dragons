@@ -1970,6 +1970,44 @@ function runEngineTests(R){
     if(v.indexOf("Conditions: Unconscious (until awakened; since t155)")<0)return "companion conditions still invisible";
     return v.indexOf("[COMPANION_CONDITION_REMOVED:Name|condition] NOW")>=0?true:"header instruction missing";
   });
+  // ── Condition audit + engine-notes registry (#46 teeth, v1.255) ──────────────
+  section("condition audit / buildEngineNotes");
+  t("audit fires on an old stamped condition, lists player+companion with correct REMOVED forms",function(){
+    makeWorld();worldState.turn=200;
+    worldState.character.conditions=[{name:"Bloodied Nose",duration:"until treated",turn:150}];
+    worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",conditions:[{name:"Unconscious",duration:"until awakened"}]}}];
+    var n=buildConditionAudit();
+    if(n.indexOf("Bloodied Nose")<0||n.indexOf("50 turns ago")<0)return "player line wrong: "+n;
+    if(n.indexOf("long-standing, onset unknown")<0)return "legacy unstamped line wrong";
+    if(n.indexOf("COMPANION_CONDITION_REMOVED:Daeris|Unconscious")<0)return "companion REMOVED form missing";
+    return n.indexOf("CONDITION_REMOVED:Bloodied Nose")>=0?true:"player REMOVED form missing";
+  });
+  t("no fire when all conditions are young; no fire mid-combat; cooldown suppresses re-fire",function(){
+    makeWorld();worldState.turn=200;
+    worldState.character.conditions=[{name:"Winded",duration:"brief",turn:195}];
+    if(buildConditionAudit()!=="")return "fired on a 5-turn-old condition";
+    worldState.character.conditions=[{name:"Cursed",duration:"until lifted",turn:100}];
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    if(buildConditionAudit()!=="")return "fired mid-combat";
+    worldState.combat=null;
+    if(buildConditionAudit()==="")return "did not fire when due";
+    if(buildConditionAudit()!=="")return "cooldown ignored — re-fired immediately";
+    worldState.turn+=CONDITION_AUDIT_COOLDOWN;
+    return buildConditionAudit()!==""?true:"did not re-fire after the cooldown window";
+  });
+  t("buildEngineNotes composes quest escalation + condition audit, quest first",function(){
+    makeWorld();worldState.turn=200;
+    worldState.questLog=[{title:"Stuck Quest",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:190}];
+    worldState.character.conditions=[{name:"Cursed",duration:"until lifted",turn:100}];
+    var n=buildEngineNotes();
+    if(n.indexOf("Stuck Quest")<0)return "quest note missing";
+    if(n.indexOf("CONDITION AUDIT")<0)return "condition note missing";
+    return n.indexOf("Stuck Quest")<n.indexOf("CONDITION AUDIT")?true:"registry order wrong";
+  });
+  t("buildEngineNotes empty when nothing fires (the common turn)",function(){
+    makeWorld();worldState.turn=200;
+    return eq(buildEngineNotes(),"");
+  });
   t("#47: migration adds aliases[] to player AND companion sheets, idempotent",function(){
     makeWorld();delete worldState.character.aliases;
     worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:38,maxHp:38}}];

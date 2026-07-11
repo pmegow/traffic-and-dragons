@@ -126,6 +126,38 @@ function buildQuestEscalation(){
   if(!pick)return"";
   return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:"+pick.title+"|<objective>].]";
 }
+// #46 audit teeth (v1.255): the standing "emit REMOVED now" instruction on the sheets is
+// passive and got ignored (the Daeris test); this is the POINTED version — same engine-detects/
+// GM-decides shape as buildQuestEscalation, its own function so condition issues stay traceable
+// (user call 2026-07-10: no function pollution). Fires when any party condition has sat for
+// CONDITION_AUDIT_TURNS+ (unstamped legacy conditions count as infinitely old), at most once
+// per CONDITION_AUDIT_COOLDOWN turns (worldState.lastConditionAudit, written on fire).
+function buildConditionAudit(){
+  if(!worldState||!worldState.character||worldState.combat)return"";/* mid-fight conditions are ACTIVE business, not staleness */
+  if(worldState.turn-(worldState.lastConditionAudit||0)<CONDITION_AUDIT_COOLDOWN)return"";
+  var lines=[],due=false;
+  function scan(who,list,companion){
+    var i;for(i=0;i<(list||[]).length;i++){var cd=list[i];
+      var age=cd.turn?(worldState.turn-cd.turn):null;
+      if(age===null||age>=CONDITION_AUDIT_TURNS)due=true;
+      lines.push("- "+who+": "+cd.name+(cd.duration?" ("+cd.duration+")":"")+(age===null?" — long-standing, onset unknown":" — since t"+cd.turn+", "+age+" turns ago")+(companion?" [companion — use COMPANION_CONDITION_REMOVED:"+who+"|"+cd.name+"]":" [player — use CONDITION_REMOVED:"+cd.name+"]"));
+    }
+  }
+  scan(worldState.character.name,worldState.character.conditions,false);
+  var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))scan(n.name,n.charSheet.conditions,true);}
+  if(!lines.length||!due)return"";
+  worldState.lastConditionAudit=worldState.turn;
+  return"[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n"+lines.join("\n")+"]";
+}
+// The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
+// orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
+// next engine nag = adding a list entry, not editing sendAction.
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit];
+function buildEngineNotes(){
+  var out=[],i;
+  for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}
+  return out.join("\n\n");
+}
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";

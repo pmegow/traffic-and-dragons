@@ -520,7 +520,7 @@ async function sendAction(override,opts){
     // worldState.transcript player entry above already captured the clean txt, and
     // lastAction/retry keep the clean txt too, so the note never reaches the player.
     var apiTxt=txt;
-    if(!isTT&&!(opts&&opts.silent)){var _qesc=buildQuestEscalation();if(_qesc)apiTxt=_qesc+"\n\n"+txt;}
+    if(!isTT&&!(opts&&opts.silent)){var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
     var resp=await callGM(apiTxt,sys);th.remove();
     if(isTT){addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(resp)+"</p>");}/* escape GM table-talk output (audit E11) */
     else{
