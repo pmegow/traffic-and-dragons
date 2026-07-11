@@ -77,8 +77,8 @@ function suggestionSpellList(c){
 }
 function suggestionGeoLine(){
   if(!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return"";
-  var w=worldState.world,key=w.sublocation?w.location+"|"+w.sublocation:w.location;
-  var node=memory.map.nodes[key]||memory.map.nodes[w.location];
+  var key=currentNodeKey();/* UA9 */
+  var node=memory.map.nodes[key]||memory.map.nodes[worldState.world.location];
   return(node&&node.description)?("THE CURRENT LOCATION (canonical): "+node.description):"";
 }
 // Keep the END of the latest GM message — prose-voice responses regularly exceed 2,400 chars and

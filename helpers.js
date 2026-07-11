@@ -41,6 +41,15 @@ function getLvl(xp){var i,l=1;for(i=1;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i
 function alignLabel(law,good){var l=law>=2?"Lawful":law<=-2?"Chaotic":"Neutral";var g=good>=2?"Good":good<=-2?"Evil":"Neutral";if(l==="Neutral"&&g==="Neutral")return"True Neutral";if(l==="Neutral")return"Neutral "+g;if(g==="Neutral")return l+" Neutral";return l+" "+g;}
 function skillLevel(successes){var i;for(i=SKILL_THRESHOLDS.length-1;i>=0;i--){if(successes>=SKILL_THRESHOLDS[i])return i+1;}return 0;}
 function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
+// UA9: THE map-node key for the current position — the geography canon's keying scheme
+// ([LOCATION_DESC:] write-once storage, GEOGRAPHY block reads). World locations key by name,
+// sub-locations by "Location|SubLocation". Was hand-computed at ~8 call sites; every copy was
+// a divergence risk on the canon's own keys. Null when no world is loaded.
+function currentNodeKey(){
+  var w=(typeof worldState!=="undefined"&&worldState)?worldState.world:null;
+  if(!w)return null;
+  return w.sublocation?w.location+"|"+w.sublocation:w.location;
+}
 // Party cap helpers (PARTY_MAX total = players + companions). playerCount is 1 today; multiplayer (#1) will make it dynamic.
 function partyCompanionCap(){return PARTY_MAX-1;}
 function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember&&!/\bdead\b/i.test(worldState.npcs[i].status||""))n++;}return n;}

@@ -1743,6 +1743,31 @@ function runEngineTests(R){
     return __tagDiffCount===d0?true:"reverse shadow diffed on the burst";
   });
 
+  // ── UA27 no-combat warn + UA9 currentNodeKey (v1.259) ────────────────────────
+  section("UA27 / UA9 (cutover follow-ups)");
+  t("UA27: combat tag with NO combat warns loudly and stays a no-op",function(){
+    makeWorld();var w0=__tagNoCombatWarns;
+    applyMuts("[ENEMY_HP:-5][COMBAT_ROUND:3]");
+    if(__tagNoCombatWarns!==w0+2)return "expected 2 warns, got "+(__tagNoCombatWarns-w0);
+    if(worldState.combat!==null)return "combat materialized from nothing";
+    var w1=__tagNoCombatWarns;
+    applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low][COMBAT_STATS:STR:12|DEX:14|CON:11|INT:3|WIS:12|CHA:6|CR:1][ENEMY_HP:-3]");
+    return __tagNoCombatWarns===w1?true:"warned during a LIVE fight (same-response START not honored in order)";
+  });
+  t("UA9: currentNodeKey — world, sublocation, and no-world shapes",function(){
+    makeWorld();
+    if(currentNodeKey()!=="Ashfen")return "world key: "+currentNodeKey();
+    worldState.world.sublocation="The Flagon";
+    if(currentNodeKey()!=="Ashfen|The Flagon")return "subloc key: "+currentNodeKey();
+    var sv=worldState;worldState=null;var r=currentNodeKey();worldState=sv;
+    return r===null?true:"no-world should be null: "+r;
+  });
+  t("UA9: LOCATION_SIZE still lands on the keyed node through the helper (parity-guarded)",function(){
+    makeWorld();applyMuts("[SUBLOCATION:The Flagon][LOCATION_DESC:A smoky room.][LOCATION_SIZE:small|5]");
+    var n=memory.map.nodes["Ashfen|The Flagon"];
+    return n&&n.size==="small"&&n.travelMins===5?true:"node: "+JSON.stringify(n);
+  });
+
   // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────
   section("resolveReinforce (UA28)");
   t("Sonnet and Opus resolve to EMPTY — the money-tested prompt is untouched",function(){

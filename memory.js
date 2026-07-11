@@ -89,13 +89,13 @@ function fileSubLocation(name,turn){
 }
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;
-  var key=worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location;
+  var key=currentNodeKey();/* UA9 */
   if(!memory.map.nodes[key])return;
   if(!memory.map.nodes[key].description)memory.map.nodes[key].description=desc;
 }
 function fileLocationItem(name,action,turn){
   if(!memory.map||!worldState||!worldState.world)return;
-  var key=worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location;
+  var key=currentNodeKey();/* UA9 */
   if(!memory.map.nodes[key])return;
   var items=memory.map.nodes[key].items,idx=-1,i;
   for(i=0;i<items.length;i++){if(items[i].name.toLowerCase()===name.toLowerCase()){idx=i;break;}}
@@ -106,14 +106,14 @@ function fileLocationItem(name,action,turn){
 }
 function autoTakeLocationItem(itemName){
   if(!memory.map||!worldState||!worldState.world)return;
-  var key=worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location;
+  var key=currentNodeKey();/* UA9 */
   var node=memory.map.nodes[key];if(!node)return;
   var i;for(i=0;i<node.items.length;i++){if(node.items[i].name.toLowerCase()===itemName.toLowerCase()&&!node.items[i].taken){node.items[i].taken=true;return;}}
 }
 function mapNpcLocation(name){
   if(!memory.map||!worldState||!worldState.world)return;
   name=resolveNpcName(name);
-  var key=worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location;
+  var key=currentNodeKey();/* UA9 */
   if(!memory.map.nodes[key])return;
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
   if(memory.npcs[name])memory.npcs[name].lastSeenAt=key;
@@ -314,7 +314,7 @@ function ragQueryEntities(inputText){
   var q={input:{},scene:{},party:{},groups:{},loc:null,quests:[]},i;
   if(typeof worldState==="undefined"||!worldState)return q;
   q.loc=worldState.world?worldState.world.location:null;
-  var key=worldState.world?(worldState.world.sublocation?worldState.world.location+"|"+worldState.world.sublocation:worldState.world.location):null;
+  var key=currentNodeKey();/* UA9 */
   for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember){q.scene[worldState.npcs[i].name]=1;q.party[worldState.npcs[i].name]=1;}}
   var names=ragKnownNames();
   for(i=0;i<names.length;i++){
