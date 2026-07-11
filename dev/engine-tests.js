@@ -1713,6 +1713,36 @@ function runEngineTests(R){
     return eq(b.strength,0.45);
   });
 
+  // ── UA1 CUTOVER (v1.258): table authoritative, legacy as reverse shadow ──────
+  section("tag-authority cutover (UA1)");
+  t("authority defaults to TABLE; dispatcher mutates via the table with the reverse shadow armed",function(){
+    if(TAG_AUTHORITY!=="table")return "default authority is "+TAG_AUTHORITY;
+    makeWorld();var p0=__tagParityRuns,d0=__tagDiffCount;
+    applyMuts("[GOLD:+10][HP:-3]");
+    if(worldState.character.gold!==35)return "gold not applied: "+worldState.character.gold;
+    if(worldState.character.hp!==11)return "hp not applied: "+worldState.character.hp;
+    if(__tagParityRuns!==p0+1)return "reverse shadow did not run";
+    return __tagDiffCount===d0?true:"reverse shadow DIFFED on a simple burst";
+  });
+  t("rollback path: TAG_AUTHORITY='legacy' restores the pre-cutover arrangement",function(){
+    TAG_AUTHORITY="legacy";
+    makeWorld();var p0=__tagParityRuns,d0=__tagDiffCount;
+    applyMuts("[GOLD:+10][NPC:Bram|wary|neutral]");
+    var ok=worldState.character.gold===35&&worldState.npcs.length===1;
+    var parity=(__tagParityRuns===p0+1)&&(__tagDiffCount===d0);
+    TAG_AUTHORITY="table";
+    if(!ok)return "legacy authority did not mutate";
+    return parity?true:"table shadow did not run cleanly under legacy authority";
+  });
+  t("cutover burst: complex multi-tag response under table authority, zero reverse diffs",function(){
+    makeWorld();var d0=__tagDiffCount;
+    applyMuts("The fight turns. [COMBAT_START:Wolf|9|12|+2|d6|low][COMBAT_STATS:STR:12|DEX:14|CON:11|INT:3|WIS:12|CHA:6|CR:1]");
+    applyMuts("[ENEMY_HP:-9] It drops. [XP:50][ITEM_GAINED:Wolf pelt][QUEST:Hunt|active|kill the wolf][QUEST_STEP:Hunt|Kill the wolf|true][LOCATION:Greyford][CONDITION:Winded|1 hour]");
+    if(worldState.combat!==null)return "combat not auto-cleared";
+    if(worldState.world.location!=="Greyford")return "location not applied";
+    return __tagDiffCount===d0?true:"reverse shadow diffed on the burst";
+  });
+
   // ── UA28: model-conditional reinforce (Haiku nudges) ─────────────────────────
   section("resolveReinforce (UA28)");
   t("Sonnet and Opus resolve to EMPTY — the money-tested prompt is untouched",function(){

@@ -267,7 +267,9 @@ function applyMutsTable(text){
 
 // ── Shadow mode: run the table against CLONES by swapping the state globals + stubbing UI ───────
 function __tagCloneWS(ws){var t=ws.transcript;ws.transcript=null;var c;try{c=JSON.parse(JSON.stringify(ws));}finally{ws.transcript=t;}c.transcript=[];return c;}
-function __tagShadowRun(text){
+function __tagShadowRun(text,fn){
+  // fn (v1.258 cutover): which parser to run on the clones. Defaults to the table (the pre-cutover
+  // arrangement); the post-cutover dispatcher passes applyMutsLegacy for the REVERSE shadow.
   var realWS=worldState,realMem=memory;
   // Save every UI/persistence surface the handlers (or their callees — checkLevelUp,
   // checkCompanionLevelUp, archiveQuest…) can reach, then make them inert for the clone run.
@@ -291,7 +293,7 @@ function __tagShadowRun(text){
   showArchetypeModal=function(){};showStatBumpModal=function(){};checkLegacyCharacter=function(){};
   worldState=__tagCloneWS(realWS);memory=JSON.parse(JSON.stringify(realMem));
   var out={err:null,R:null};
-  try{out.R=applyMutsTable(text);}catch(e){out.err=e;}
+  try{out.R=(fn||applyMutsTable)(text);}catch(e){out.err=e;}
   out.ws=worldState;out.mem=memory;
   worldState=realWS;memory=realMem;
   if(sToast!==undefined)showToast=sToast;if(sMsg!==undefined)addMsg=sMsg;if(sSync!==undefined)syncUI=sSync;
@@ -328,13 +330,13 @@ var __tagParityRuns=0,__tagDiffCount=0; // module globals — readable from the 
 function __tagShadowDiff(sh){
   __tagParityRuns++;
   var diffs=[];
-  if(sh.err)diffs.push("TABLE THREW: "+(sh.err&&sh.err.message));
+  if(sh.err)diffs.push("SHADOW PARSER THREW: "+(sh.err&&sh.err.message));/* direction-neutral since the v1.258 cutover: the shadow is the table pre-cutover, the legacy parser after */
   if(sh.R&&sh.R.errors&&sh.R.errors.length)diffs.push("handler errors: "+sh.R.errors.join("; "));
   __tagDeepDiff(sh.ws,worldState,"ws",diffs);
   __tagDeepDiff(sh.mem,memory,"mem",diffs);
   if(!diffs.length)return;
   __tagDiffCount++;
-  console.warn("[tag-shadow] MUTATION DIFF (old parser vs table) — "+diffs.length+" path(s):");
+  console.warn("[tag-shadow] MUTATION DIFF (authoritative vs shadow parser) — "+diffs.length+" path(s):");
   for(var i=0;i<Math.min(diffs.length,10);i++)console.warn("  ✗ "+diffs[i]);
   try{
     var log=JSON.parse((typeof store!=="undefined"?store.get("tnd_tagdiff_v1"):null)||"[]");

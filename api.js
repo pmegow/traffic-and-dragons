@@ -549,11 +549,26 @@ function removeInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){var n=_invCount(inv[i])-1;if(n<=0)inv.splice(i,1);else if(n===1)inv[i]=_invBase(inv[i]);else inv[i]=_invBase(inv[i])+" x"+n;return true;}}
   return false;
 }
+// ⛨ CUTOVER (UA1, v1.258 — pre-review approved 2026-07-10): the TABLE is now the authoritative
+// parser; the legacy parser below runs on as the REVERSE SHADOW — identical clone-run/diff/toast/
+// persist tripwires with the roles swapped, so nothing loses its alarm during the post-cutover
+// soak. ROLLBACK IS ONE LINE: TAG_AUTHORITY="legacy" (globals.js) restores the pre-cutover
+// arrangement exactly; proven parity means saves never care which parser wrote them. Deleting the
+// legacy parser is a LATER commit, gated on the reverse soak staying clean across real sessions.
 function applyMuts(text){
-  // UA1 SHADOW: run the tag TABLE against deep-cloned state FIRST (both parsers see the same
-  // pre-state), then this old parser runs authoritatively; __tagShadowDiff at the tail compares
-  // end states and shouts on any difference. Cutover to applyMutsTable is a later, gated commit.
-  var _shadow=(typeof TAG_SHADOW!=="undefined"&&TAG_SHADOW&&typeof __tagShadowRun==="function"&&worldState)?__tagShadowRun(text):null;
+  if(typeof TAG_AUTHORITY!=="undefined"&&TAG_AUTHORITY==="table"&&typeof applyMutsTable==="function"){
+    var _sh=(typeof TAG_SHADOW!=="undefined"&&TAG_SHADOW&&typeof __tagShadowRun==="function"&&worldState)?__tagShadowRun(text,applyMutsLegacy):null;
+    var R=applyMutsTable(text);
+    if(_sh){__tagShadowDiff(_sh);__tagUnknownScan(text);}
+    return R;
+  }
+  return applyMutsLegacy(text);
+}
+function applyMutsLegacy(text){
+  // Pre-cutover authoritative parser, retained as the reverse shadow (and the TAG_AUTHORITY
+  // rollback target). Its internal table-shadow hook below only arms when LEGACY is authoritative —
+  // under table authority this whole function runs on clones and must not nest another clone run.
+  var _shadow=(typeof TAG_SHADOW!=="undefined"&&TAG_SHADOW&&(typeof TAG_AUTHORITY==="undefined"||TAG_AUTHORITY!=="table")&&typeof __tagShadowRun==="function"&&worldState)?__tagShadowRun(text):null;
   var muts=[],turn=worldState.turn;
   _sheetlessWarned={};// per-response dedupe window for the sheet-less companion warning (audit P2)
   var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
