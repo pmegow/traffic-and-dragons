@@ -44,6 +44,7 @@ function condInjectFmt(x){
   var meta=[];
   if(x.duration)meta.push(x.duration);
   if(x.turn)meta.push("since t"+x.turn);
+  if(x.until!=null)meta.push("expires ~t"+x.until);/* v1.257: the GM sees the remaining clock */
   if(x.cause)meta.push("from "+x.cause);
   return x.name+(meta.length?" ("+meta.join("; ")+")":"");
 }
@@ -133,19 +134,32 @@ function buildQuestEscalation(){
 // CONDITION_AUDIT_TURNS+ (unstamped legacy conditions count as infinitely old), at most once
 // per CONDITION_AUDIT_COOLDOWN turns (worldState.lastConditionAudit, written on fire).
 function buildConditionAudit(){
-  if(!worldState||!worldState.character||worldState.combat)return"";/* mid-fight conditions are ACTIVE business, not staleness */
-  if(worldState.turn-(worldState.lastConditionAudit||0)<CONDITION_AUDIT_COOLDOWN)return"";
-  var lines=[],due=false;
+  if(!worldState||!worldState.character)return"";
+  var lines=[],due=false,expired=false;
   function scan(who,list,companion){
     var i;for(i=0;i<(list||[]).length;i++){var cd=list[i];
       var age=cd.turn?(worldState.turn-cd.turn):null;
+      var exp=(cd.until!=null&&cd.until<=worldState.turn);/* v1.257: a scheduled expiry (parsed from "N turns/rounds") */
+      if(exp)expired=true;
       if(age===null||age>=CONDITION_AUDIT_TURNS)due=true;
-      lines.push("- "+who+": "+cd.name+(cd.duration?" ("+cd.duration+")":"")+(age===null?" — long-standing, onset unknown":" — since t"+cd.turn+", "+age+" turns ago")+(companion?" [companion — use COMPANION_CONDITION_REMOVED:"+who+"|"+cd.name+"]":" [player — use CONDITION_REMOVED:"+cd.name+"]"));
+      lines.push("- "+who+": "+cd.name+(cd.duration?" ("+cd.duration+")":"")+(exp?" — its DECLARED DURATION HAS NOW ELAPSED (due t"+cd.until+")":(age===null?" — long-standing, onset unknown":" — since t"+cd.turn+", "+age+" turns ago"))+(companion?" [companion — use COMPANION_CONDITION_REMOVED:"+who+"|"+cd.name+"]":" [player — use CONDITION_REMOVED:"+cd.name+"]"));
     }
   }
   scan(worldState.character.name,worldState.character.conditions,false);
   var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))scan(n.name,n.charSheet.conditions,true);}
-  if(!lines.length||!due)return"";
+  if(!lines.length)return"";
+  // Expiry audits are APPOINTMENTS: they fire through combat (a 3-round stun ending mid-fight is
+  // the whole point) and through the cooldown. Staleness audits keep the original gates.
+  if(!expired){
+    if(worldState.combat)return"";/* mid-fight conditions are ACTIVE business, not staleness */
+    if(worldState.turn-(worldState.lastConditionAudit||0)<CONDITION_AUDIT_COOLDOWN)return"";
+    if(!due)return"";
+  }
+  // Consume fired appointments — one audit per declaration; if the GM keeps the condition,
+  // staleness governs from here (no every-turn re-fire on a reaffirmed condition).
+  function consume(list){var j;for(j=0;j<(list||[]).length;j++){if(list[j].until!=null&&list[j].until<=worldState.turn)delete list[j].until;}}
+  consume(worldState.character.conditions);
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n2=worldState.npcs[i];if(n2&&n2.partyMember&&n2.charSheet)consume(n2.charSheet.conditions);}
   worldState.lastConditionAudit=worldState.turn;
   return"[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n"+lines.join("\n")+"]";
 }

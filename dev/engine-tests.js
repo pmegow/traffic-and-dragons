@@ -2019,6 +2019,53 @@ function runEngineTests(R){
     makeWorld();worldState.turn=200;
     return eq(buildEngineNotes(),"");
   });
+  t("v1.257: 'N turns/rounds' durations schedule until; free-text durations don't",function(){
+    makeWorld();worldState.turn=100;
+    __cnTurn("[CONDITION:Stunned|3 rounds][CONDITION:Cursed|until lifted][CONDITION:Slowed|stunned for 2 turns]");
+    var c=worldState.character.conditions;
+    if(c[0].until!==103)return "3 rounds → "+c[0].until;
+    if("until" in c[1])return "free text scheduled: "+c[1].until;
+    return c[2].until===102?true:"2 turns → "+c[2].until;
+  });
+  t("v1.257: the staggered scenario — Frizwick +3, Ammut +5; neither appointment lost",function(){
+    makeWorld();worldState.turn=100;worldState.lastConditionAudit=100;/* cooldown ACTIVE — expiry must fire through it */
+    worldState.npcs=[
+      {name:"Frizwick",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Frizwick",conditions:[{name:"Stunned",duration:"3 rounds",turn:100,until:103}]}},
+      {name:"Ammut2",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Ammut2",conditions:[{name:"Stunned",duration:"5 rounds",turn:100,until:105}]}}];
+    worldState.turn=103;
+    var n1=buildConditionAudit();
+    if(n1.indexOf("Frizwick")<0||n1.indexOf("DECLARED DURATION HAS NOW ELAPSED")<0)return "t103 did not flag Frizwick: "+n1;
+    if(n1.indexOf("Ammut2: Stunned")>=0&&n1.indexOf("Ammut2: Stunned (5 rounds) — its DECLARED")>=0)return "Ammut flagged expired 2 turns early";
+    worldState.npcs[0].charSheet.conditions=[];/* GM unstuns Frizwick */
+    worldState.turn=104;
+    if(buildConditionAudit()!=="")return "t104 fired with nothing due (Ammut's appointment leaked early?)";
+    worldState.turn=105;
+    var n2=buildConditionAudit();
+    return n2.indexOf("Ammut2")>=0&&n2.indexOf("ELAPSED")>=0?true:"t105 lost Ammut's appointment: "+n2;
+  });
+  t("v1.257: expiry fires mid-combat; consumed appointment doesn't re-fire next turn",function(){
+    makeWorld();worldState.turn=100;
+    worldState.character.conditions=[{name:"Stunned",duration:"2 rounds",turn:100,until:102}];
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    worldState.turn=102;
+    if(buildConditionAudit()==="")return "expiry silent mid-combat";
+    if("until" in worldState.character.conditions[0])return "appointment not consumed";
+    worldState.turn=103;
+    return buildConditionAudit()===""?true:"re-fired every turn on a kept condition";
+  });
+  t("v1.257: early organic removal takes its appointment with it (no phantom audit)",function(){
+    makeWorld();worldState.turn=100;
+    worldState.character.conditions=[{name:"Stunned",duration:"3 rounds",turn:100,until:103}];
+    __cnTurn("[CONDITION_REMOVED:Stunned]");/* GM clears it at 101, organically */
+    worldState.turn=103;
+    return buildConditionAudit()===""?true:"phantom audit for a removed condition";
+  });
+  t("v1.257: injection shows the remaining clock (expires ~tN)",function(){
+    makeWorld();
+    worldState.character.conditions=[{name:"Stunned",duration:"3 rounds",turn:100,until:103}];
+    var v=buildSysPrompt().volatile;
+    return v.indexOf("Stunned (3 rounds; since t100; expires ~t103)")>=0?true:"clock missing from injection";
+  });
   t("#47: migration adds aliases[] to player AND companion sheets, idempotent",function(){
     makeWorld();delete worldState.character.aliases;
     worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:38,maxHp:38}}];

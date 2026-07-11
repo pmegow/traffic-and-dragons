@@ -498,6 +498,11 @@ function stampNewConditions(pre){
     var i,now=names(list);
     for(i=0;i<(list||[]).length;i++){if(!had[list[i].name]){
       if(!list[i].turn)list[i].turn=worldState.turn;
+      // v1.257: a strict "N turns/rounds" duration schedules its own audit — the expiry lives ON
+      // the condition (derive, don't duplicate: no side schedule to desync; an early removal takes
+      // its appointment with it). Free-text durations (hours, "until awakened") don't parse and
+      // fall to the 12-turn staleness rule; a misparse costs one early audit, never a mutation.
+      if(!list[i].until&&list[i].duration){var _dm=String(list[i].duration).match(/(\d+)\s*(?:turn|round)s?\b/i);if(_dm)list[i].until=worldState.turn+parseInt(_dm[1],10);}
       if(typeof showToast==="function")showToast("⚠ Condition: "+who+" — "+list[i].name+(list[i].duration?" ("+list[i].duration+")":""));
     }}
     var hk=Object.keys(had);

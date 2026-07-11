@@ -1028,7 +1028,7 @@ function csSheetSections(c,invOwner){
   var condHtml;
   // #46: conditions carry effect · turn it landed · why (turn engine-stamped since v1.247;
   // cause arrives with the Phase-B tag extension). Older conditions lack both — render plain.
-  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(_cd.duration);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+_cd.name+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
+  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(_cd.duration);if(_cd.until!=null)_cdm.push("expires ~t"+_cd.until);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+_cd.name+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
   var relHtml;
   if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
   var langHtml,langParts=[];
