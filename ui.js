@@ -374,14 +374,19 @@ function updatePartyPanel(){
 // the description stays regular. No separator = the whole entry is the name.
 function invItemHtml(s){
   s=String(s);
+  // #50(b): render stacked quantities as "Blasting charge (4)" instead of the stored "x4"
+  // suffix — DISPLAY transform only; the stored format and the stacking parsers are untouched.
+  var _qty=null,_qm=s.match(/^(.*?)\s+x(\d+)\s*$/);
+  if(_qm){s=_qm[1];_qty=_qm[2];}
+  var _qh=_qty?"<span style='opacity:.7'> ("+_qty+")</span>":"";
   // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or a
   // clause lead-in word — GM-written entries carry free-prose descriptions with no dash
   // ("Small river stone, smooth…", "Folded camp kit including a second ground cloth…",
   // "Letter of introduction written in a dead contractual script"). The lead-in list is
   // whack-a-mole by design (2026-07-04 user call: report new escapes as they show up).
   var m=s.match(/^(.*?)(\s+[—–-]\s+|\s*\(|,\s+|\s+(?:with|including|containing|written|engraved|carved|marked|labeled|labelled|covered|wrapped|bearing|holding|filled|etched|inscribed|stamped)\s+)/);
-  if(!m)return "<b>"+escHtml(s)+"</b>";
-  return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>";
+  if(!m)return "<b>"+escHtml(s)+"</b>"+_qh;
+  return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>"+_qh;
 }
 function updateInvPanel(){
   if(!worldState)return;var inv=worldState.character.inventory,gold=worldState.character.gold;
@@ -1022,7 +1027,7 @@ function csSheetSections(c){
   var spellHtml="";
   if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=sp2.used?'<span style="color:var(--t2);text-decoration:line-through">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}spellHtml='<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
-  if(c.inventory&&c.inventory.length){var invParts=[],ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invParts.push(invItemHtml(c.inventory[ivi]));invHtml='<div class="cs-v" style="line-height:1.9">'+invParts.join(", ")+"</div>";}
+  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run) */var invRows="",ivi;for(ivi=0;ivi<c.inventory.length;ivi++)invRows+='<div class="cs-list-row">'+invItemHtml(c.inventory[ivi])+'</div>';invHtml='<div class="cs-list">'+invRows+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
   // swaps — "Player today is NPC tomorrow is Player again; the sheets stay sympatico" (user).
@@ -2757,7 +2762,12 @@ function wireButtons(){
   document.getElementById("state-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});
-  document.getElementById("userinput").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey)sendAction(null);});
+  // #49 phase 1: on-screen keyboards fat-finger Enter mid-thought and each accidental send is a
+  // real turn — on mobile (same ≤768px breakpoint as the menu fallback) ONLY the Send button
+  // submits. Desktop keeps Enter-sends. Phase 2 (true multiline = textarea swap) is TODO #49.
+  // Width 0 (hidden/prerendered tab) must FAIL OPEN to desktop behavior — a swallowed desktop
+  // Enter reads as "game broken"; a fat-finger send is merely annoying.
+  document.getElementById("userinput").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){var _w=window.innerWidth||document.documentElement.clientWidth||9999;if(_w>0&&_w<=768){e.preventDefault();return;}sendAction(null);}});
   // × clear (#33) — visibility is pure CSS (:placeholder-shown), so programmatic clears (send, Car Mode mic) hide it for free
   document.getElementById("input-clear").addEventListener("click",function(){var inp=document.getElementById("userinput");inp.value="";inp.focus();});
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
