@@ -1519,9 +1519,9 @@ function runEngineTests(R){
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
-    // (UA38-① exits-as-canon clause). Golden regenerated and diffed by eye in each commit.
+    // (UA38-① exits clause), v1.266 (UA39-② range-physics rule). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1487465166&&d.length===9092)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===391768592&&d.length===9505)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1847,6 +1847,18 @@ function runEngineTests(R){
     var d=buildStateTagsDoc();
     if(d.indexOf("ALWAYS name every visible exit")<0)return "exits clause missing";
     return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
+  });
+
+  // ── UA39-②: GM-side distance grounding (the range-judgment rule) ─────────────
+  section("distance grounding (UA39-②)");
+  t("distance-grounding rule present in the STATE TAGS doc",function(){
+    var d=buildStateTagsDoc();
+    return d.indexOf("SPELL RANGES ARE PHYSICS")>=0?true:"rule missing from the doc block";
+  });
+  t("rule lands in the STABLE half only",function(){
+    makeWorld();var s=buildSysPrompt();
+    if(s.stable.indexOf("SPELL RANGES ARE PHYSICS")<0)return "rule missing from stable";
+    return s.volatile.indexOf("SPELL RANGES ARE PHYSICS")<0?true:"rule duplicated into volatile";
   });
 
   // ── UA26 + UA2: multi-enemy combat + ENEMY_SURRENDERS (MULTI_ENEMY_COMBAT §8) ──
