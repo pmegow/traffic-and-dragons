@@ -2158,7 +2158,7 @@ function _switchPlayerCharacter(name){
   // Swap
   worldState.npcs.splice(npcIdx,1);         // remove new char from npcs
   worldState.npcs.push(oldNpc);             // add old char as npc
-  newChar.portraitOffset=newChar.portraitOffset||{x:0.5,y:0.5,zoom:1};
+  newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing (npcGetOff's E60 fallback, mirrored) — else a promotion silently resets it to center */
   worldState.character=newChar;
   // Mark the switch so buildSysPrompt re-injects a forceful POV-reassignment block for
   // the next couple of turns — the sessionLog is full of the OLD character as "you", and a
