@@ -6,8 +6,12 @@ function buildGeoBlock(){
   var subKey=w.sublocation?wKey+"|"+w.sublocation:null;
   var subNode=subKey?memory.map.nodes[subKey]:null;
   var activeNode=subNode||wNode;
-  // Location header
-  var locLine="World: "+w.location+(w.sublocation?" | Sub-location: "+w.sublocation:"");
+  // Location header. P3-F3 (v1.275): the header carries its own correction teeth — the v1.271
+  // playtest traveled two days to a burned waystation while this line still said "Marrowgate"
+  // and the GM never flinched (TIME/WEATHER emitted diligently, LOCATION never). Volatile half,
+  // zero cache cost.
+  var locLine="World: "+w.location+(w.sublocation?" | Sub-location: "+w.sublocation:"")
+    +" — if the scene is NO LONGER here, emit [LOCATION:name] NOW; every line below describes the old place";
   lines.push(locLine);
   // Canonical descriptions
   if(wNode&&wNode.description)lines.push("Location desc: "+wNode.description);

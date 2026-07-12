@@ -1036,27 +1036,55 @@ function initSpells(){
     if(src){if(!c.spells)c.spells=[];var i,sl,maxSlot=c.level>=5?3:c.level>=3?2:1;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}for(sl=1;sl<=maxSlot;sl++){if(src[sl]){for(i=0;i<src[sl].length;i++)c.spells.push({nm:src[sl][i],lvl:sl,used:false});}}}}
   updateSpPanel();
 }
+// #50a (v1.274, user-ratified "allow both directions, loud"): the sync audit may now emit item
+// CORRECTIONS — the missed-consumption class (4 blasting charges surviving their own detonation)
+// and the missed-pickup class (the P3-F4 oilcloth bundle) were permanently unrepairable under the
+// old blanket prohibition. Anti-double-spend is prompt-side (correct DISCREPANCIES only — the
+// sheet shown to the GM is current truth) + the loud engine-side trail: syncCharSheet diffs every
+// inventory around applyMuts and toasts each correction, so a wrong one is visible and revertable
+// via the Sync modal. XP/HP/GOLD stay forbidden — the audit has no discrepancy basis for those.
+function buildSheetSyncPrompt(companions){
+  var compLine=companions.length?"Party members to also audit: "+companions.join(", ")+". For each use COMPANION_ prefixed tags: [COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_CONDITION:Name|cond|dur] [COMPANION_CONDITION_REMOVED:Name|cond] [COMPANION_ALIGNMENT:Name|law+1] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item].":"";
+  return "[GM SHEET SYNC — internal, not a player action] Audit ALL character sheets against events in this session. "
+    +"Emit ONLY state tags — zero prose, zero narration, zero 'You could' line. "
+    +"For the player — allowed tags: [RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] [CONDITION:name|duration] [CONDITION_REMOVED:name] "
+    +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1) [ITEM_GAINED:name] [ITEM_LOST:name]. "
+    +compLine+" "
+    +"ITEM tags are DISCREPANCY CORRECTIONS ONLY: compare each sheet against the story — emit [ITEM_LOST:] for a consumable the story shows spent but the sheet still lists, [ITEM_GAINED:] for an item the story shows acquired but the sheet is missing. NEVER re-emit a consumption or acquisition the sheet already reflects — the sheet you were shown IS current truth, and a re-emission corrupts it. "
+    +"Do NOT emit XP, HP, or GOLD tags — those are tracked turn-by-turn. "
+    +"Only emit tags for things that have actually changed or are genuinely missing. "
+    +"If nothing needs updating, reply with a single period only.";
+}
+// Pure inventory diff for the loud correction trail (engine-tested): human-readable lines for
+// items added/removed between two snapshots. Order-insensitive, count-aware.
+function invDiffLines(before,after){
+  function tally(list){var m={},i;for(i=0;i<(list||[]).length;i++){m[list[i]]=(m[list[i]]||0)+1;}return m;}
+  var b=tally(before),a=tally(after),out=[],k;
+  for(k in a){if((a[k]||0)>(b[k]||0))out.push("+"+k+((a[k]-(b[k]||0))>1?" x"+(a[k]-(b[k]||0)):""));}
+  for(k in b){if((b[k]||0)>(a[k]||0))out.push("−"+k+((b[k]-(a[k]||0))>1?" x"+(b[k]-(a[k]||0)):""));}
+  return out;
+}
 async function syncCharSheet(){
   if(busy||!worldState)return;
   busy=true;
   if(typeof showToast==="function")showToast("Syncing sheet…");
   var companions=[];var pi;for(pi=0;pi<worldState.npcs.length;pi++){if(worldState.npcs[pi].partyMember&&worldState.npcs[pi].charSheet)companions.push(worldState.npcs[pi].name);}
-  var compLine=companions.length?"Party members to also audit: "+companions.join(", ")+". For each use COMPANION_ prefixed tags: [COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_CONDITION:Name|cond|dur] [COMPANION_CONDITION_REMOVED:Name|cond] [COMPANION_ALIGNMENT:Name|law+1].":"";
-  var auditMsg="[GM SHEET SYNC — internal, not a player action] Audit ALL character sheets against events in this session. "
-    +"Emit ONLY state tags — zero prose, zero narration, zero 'You could' line. "
-    +"For the player — allowed tags: [RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] [CONDITION:name|duration] [CONDITION_REMOVED:name] "
-    +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1). "
-    +compLine+" "
-    +"Do NOT emit XP, HP, GOLD, ITEM_GAINED, or ITEM_LOST tags — those are tracked turn-by-turn. "
-    +"Only emit tags for things that have actually changed or are genuinely missing. "
-    +"If nothing needs updating, reply with a single period only.";
+  var auditMsg=buildSheetSyncPrompt(companions);
   try{
     // v1.250 (user decree: "syncSheet fights drift. Always fight drift."): the audit RESULT
     // mutates sheets through applyMuts — a sloppy audit WRITES wrong state — so this call
     // escalates to the provider's upgradeModel like the skeleton and suggestions do. The
     // Daeris test showed Haiku ignores even the targeted cleanup instructions.
     var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
+    // #50a loud trail: snapshot every inventory, diff after applyMuts, toast each correction.
+    var invBefore={player:(worldState.character.inventory||[]).slice()};
+    var ci;for(ci=0;ci<worldState.npcs.length;ci++){var cn=worldState.npcs[ci];if(cn.partyMember&&cn.charSheet)invBefore[cn.name]=(cn.charSheet.inventory||[]).slice();}
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
+    var who;for(who in invBefore){
+      var nowInv=who==="player"?worldState.character.inventory:(function(){var i2;for(i2=0;i2<worldState.npcs.length;i2++){if(worldState.npcs[i2].name===who&&worldState.npcs[i2].charSheet)return worldState.npcs[i2].charSheet.inventory;}return [];})();
+      var dl=invDiffLines(invBefore[who],nowInv),di;
+      for(di=0;di<dl.length;di++){if(typeof showToast==="function")showToast("Sync correction ("+(who==="player"?worldState.character.name:who)+"): "+dl[di]);}
+    }
     saveAll();
     if(typeof showToast==="function")showToast("Sheet synced.");
     var ex=document.getElementById("cs-modal");if(ex)ex.remove();

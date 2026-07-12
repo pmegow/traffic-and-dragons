@@ -1521,9 +1521,10 @@ function runEngineTests(R){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
     // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
-    // lines), v1.273 (P3-F2 rewards-paid-exactly-once line). Golden diffed by eye each time.
+    // lines), v1.273 (P3-F2 rewards-paid-exactly-once line), v1.275 (#51 gold-economy trio +
+    // P3-F3 travel rule). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-898843245&&d.length===10617)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===161747921&&d.length===11520)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1887,6 +1888,49 @@ function runEngineTests(R){
     var sp=buildSysPrompt();
     if(sp.stable.indexOf("REWARDS ARE PAID EXACTLY ONCE")<0)return "rule missing from the stable half";
     return sp.volatile.indexOf("REWARDS ARE PAID EXACTLY ONCE")<0?true:"rule leaked into the volatile half";
+  });
+
+  // ── #51 gold economy + P3-F3 travel rule (v1.275 stable bundle) + #50a sync items (v1.274) ──
+  section("gold economy + travel rule + sync-audit items (#51/P3-F3/#50a)");
+  t("#51: all three gold-economy doc lines present, STABLE half only",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("GOLD IS PHYSICS TOO")<0)return "spend-side rule missing";
+    if(d.indexOf("QUEST GOLD")<0)return "quest-gold guideline missing";
+    if(d.indexOf("LOOT SELLS")<0)return "loot-sell rule missing";
+    makeWorld();
+    var sp=buildSysPrompt();
+    if(sp.stable.indexOf("GOLD IS PHYSICS TOO")<0)return "gold rules missing from stable half";
+    return sp.volatile.indexOf("GOLD IS PHYSICS TOO")<0?true:"gold rules leaked into the volatile half";
+  });
+  t("P3-F3: travel-moves-the-map doc line present (stable) AND the GEOGRAPHY header carries the correction teeth (volatile)",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("TRAVEL MOVES THE MAP")<0)return "travel doc line missing";
+    makeWorld();
+    if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    var g=buildGeoBlock();
+    if(g.indexOf("if the scene is NO LONGER here")<0)return "geo header teeth missing: "+g.split("\n")[0];
+    var sp=buildSysPrompt();
+    if(sp.volatile.indexOf("if the scene is NO LONGER here")<0)return "geo teeth missing from volatile half";
+    return sp.stable.indexOf("if the scene is NO LONGER here")<0?true:"geo teeth leaked into the STABLE half (cache killer)";
+  });
+  t("#50a: sync-audit prompt allows item DISCREPANCY corrections both directions, still forbids XP/HP/GOLD",function(){
+    var p=buildSheetSyncPrompt(["Celeste"]);
+    if(p.indexOf("[ITEM_GAINED:name]")<0||p.indexOf("[ITEM_LOST:name]")<0)return "player item tags not allowed";
+    if(p.indexOf("[COMPANION_ITEM_GAINED:Name|item]")<0)return "companion item tags not allowed";
+    if(p.indexOf("DISCREPANCY CORRECTIONS ONLY")<0)return "anti-double-spend instruction missing";
+    if(p.indexOf("Do NOT emit XP, HP, or GOLD")<0)return "XP/HP/GOLD prohibition lost";
+    if(/Do NOT emit[^.]*ITEM/.test(p))return "old item prohibition still present";
+    return buildSheetSyncPrompt([]).indexOf("COMPANION_ITEM_GAINED")<0?true:"companion tag line leaked into the no-companion prompt";
+  });
+  t("#50a: invDiffLines — adds, removes, counts, and no-change all correct",function(){
+    var d1=invDiffLines(["Rope","Torch","Torch"],["Rope","Torch","Torch","Flask"]);
+    if(d1.length!==1||d1[0]!=="+Flask")return "single add wrong: "+JSON.stringify(d1);
+    var d2=invDiffLines(["Rope","Torch","Torch"],["Rope"]);
+    if(d2.length!==1||d2[0]!=="−Torch x2")return "count-aware remove wrong: "+JSON.stringify(d2);
+    var d3=invDiffLines(["Rope","Torch"],["Torch","Rope"]);
+    if(d3.length!==0)return "reorder produced phantom diff: "+JSON.stringify(d3);
+    var d4=invDiffLines([],[]);
+    return d4.length===0?true:"empty diff wrong";
   });
 
   // ── UA38-①: exits-as-canon in the LOCATION_DESC doc line ─────────────────────
