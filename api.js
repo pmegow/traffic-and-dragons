@@ -565,19 +565,20 @@ function parseActions(clean,raw){
   return{clean:clean,btns:btns};
 }
 function bondToast(owner,entity,desc,kind){var p=owner?owner+" bond":"Bond";if(kind==="ended")showToast(p+" ended: "+entity);else showToast(p+(kind==="updated"?" updated":"")+": "+entity+" -- "+desc);}
-function findCompanionChar(name){
+function findCompanionNpc(name){
   if(!worldState||!worldState.npcs)return null;
   // Resolve aliases / short forms (audit E16) — a COMPANION_* tag addressed as "Hemlock" must reach
   // the companion registered as "Sheriff Belor Hemlock", the same way NPC/PARTY_MEMBER tags do.
   var raw=name.trim().toLowerCase();
   var canon=(typeof resolveNpcName==="function")?resolveNpcName(name.trim()).toLowerCase():raw;
-  var i;for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npc.partyMember&&npc.charSheet){var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc.charSheet;}}
+  var i;for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npc.partyMember&&npc.charSheet){var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc;}}
   // Backstop (audit P2 remedy b): the name DOES match a party member, but they have no charSheet —
   // the COMPANION_* update is about to be dropped. Make that loud instead of silent (no-silent-failures);
   // dedupe once per name per response (map cleared at the top of applyMuts).
   for(i=0;i<worldState.npcs.length;i++){var np2=worldState.npcs[i];if(np2.partyMember&&!np2.charSheet){var nn2=np2.name.toLowerCase();if(nn2===raw||nn2===canon){warnSheetlessCompanion(np2.name);break;}}}
   return null;
 }
+function findCompanionChar(name){var _fcn=findCompanionNpc(name);return _fcn?_fcn.charSheet:null;}
 var _sheetlessWarned={};
 function warnSheetlessCompanion(name){
   if(_sheetlessWarned[name])return;_sheetlessWarned[name]=1;

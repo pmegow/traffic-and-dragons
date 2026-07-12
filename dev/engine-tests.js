@@ -1188,6 +1188,20 @@ function runEngineTests(R){
     applyMuts("A mighty deed. [XP:350]");
     return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 350 xp";
   });
+  t("UA7: XP-mirror skip list survives a mid-parse sheet clone (name-keyed, not object identity)",function(){
+    partyWorld();
+    // Simulate a FUTURE sheet-regeneration path: any checkCompanionLevelUp call (fires inside
+    // the mirror loop for Bram) replaces LYRA's charSheet object with a data-identical clone.
+    // Object-identity keying then misses Lyra on the SECOND [XP:] mirror and double-awards her
+    // on top of her individual COMPANION_XP grant.
+    var _origCCLU=checkCompanionLevelUp;
+    try{
+      checkCompanionLevelUp=function(cs){var l=worldState.npcs[0];if(l.charSheet)l.charSheet=JSON.parse(JSON.stringify(l.charSheet));return _origCCLU(cs);};
+      applyMuts("Two skirmishes. [XP:60][XP:40][COMPANION_XP:Lyra|50]");
+    }finally{checkCompanionLevelUp=_origCCLU;}
+    if(worldState.npcs[0].charSheet.xp!==50)return "Lyra double-awarded: "+worldState.npcs[0].charSheet.xp+" (want 50: individual only, skipped by both mirrors)";
+    return worldState.npcs[1].charSheet.xp===100?true:"Bram shared XP wrong: "+worldState.npcs[1].charSheet.xp;
+  });
 
   // ── checkLevelUp multi-level jump (audit E1) ──────────────────────────────────
   section("checkLevelUp multi-level jump (E1)");

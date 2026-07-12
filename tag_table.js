@@ -499,11 +499,15 @@ function applyMutsTable(text){
   R.feGet=function(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim().slice(0,280);var fb=Math.max(ft.lastIndexOf(". "),ft.lastIndexOf("! "),ft.lastIndexOf("? "));if(fb>60)ft=ft.slice(0,fb+1);feSnip=ft;}return feSnip;};
   var _xpSkip=null;
   R._xpMirror=function(n){
-    if(_xpSkip===null){_xpSkip=[];var _mt=text.match(/\[COMPANION_XP:([^|\]]+)\|/g)||[],_mi;for(_mi=0;_mi<_mt.length;_mi++){var _mm=_mt[_mi].match(/\[COMPANION_XP:([^|\]]+)\|/);if(_mm){var _mcs=findCompanionChar(_mm[1].trim());if(_mcs)_xpSkip.push(_mcs);}}}
+    // UA7: the skip list is keyed by canonical NPC NAME, not charSheet object identity — the
+    // list outlives one mirror call ([XP:] can repeat) and checkCompanionLevelUp runs in
+    // between; any path that regenerates a sheet object would silently break identity keying
+    // and double-award the individually-paid companion.
+    if(_xpSkip===null){_xpSkip=[];var _mt=text.match(/\[COMPANION_XP:([^|\]]+)\|/g)||[],_mi;for(_mi=0;_mi<_mt.length;_mi++){var _mm=_mt[_mi].match(/\[COMPANION_XP:([^|\]]+)\|/);if(_mm){var _mn=findCompanionNpc(_mm[1].trim());if(_mn)_xpSkip.push(_mn.name.toLowerCase());}}}
     var _pi2,_shared=0;
     for(_pi2=0;_pi2<worldState.npcs.length;_pi2++){var _pn2=worldState.npcs[_pi2];
       if(!_pn2.partyMember||!_pn2.charSheet)continue;
-      if(_xpSkip.indexOf(_pn2.charSheet)>=0)continue;
+      if(_xpSkip.indexOf(_pn2.name.toLowerCase())>=0)continue;
       if(typeof _pn2.charSheet.xp!=="number")_pn2.charSheet.xp=0;
       _pn2.charSheet.xp+=n;_shared++;checkCompanionLevelUp(_pn2.charSheet);
     }
