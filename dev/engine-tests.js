@@ -139,6 +139,8 @@ function runEngineTests(R){
   // ── 5. applyMuts — the state-tag engine ──────────────────────────────────────
   section("applyMuts");
   t("HP clamps to [0,maxHp]",function(){makeWorld();applyMuts("[HP:-99]");if(worldState.character.hp!==0)return "floor failed: "+worldState.character.hp;applyMuts("[HP:+99]");return eq(worldState.character.hp,14,"ceiling");});
+  t("UA8: [HP:] heals a NaN hp that escaped migration (no permanent NaN)",function(){makeWorld();worldState.character.hp=NaN;applyMuts("[HP:-3]");return eq(worldState.character.hp,11);});
+  t("UA8: [HP:] heals a NaN maxHp FIRST, then clamps (E71 order)",function(){makeWorld();worldState.character.maxHp=NaN;worldState.character.hp=10;applyMuts("[HP:+5]");if(worldState.character.maxHp!==10)return "maxHp not healed to positive hp: "+worldState.character.maxHp;return eq(worldState.character.hp,10,"clamp to healed maxHp");});
   t("GOLD parses '-5 gp' variant and floors at 0",function(){makeWorld();applyMuts("[GOLD:-5 gp]");if(worldState.character.gold!==20)return "got "+worldState.character.gold;applyMuts("[GOLD:-999]");return eq(worldState.character.gold,0,"floor");});
   t("signed [XP:+25] parses (v1.144 regression)",function(){makeWorld();applyMuts("[XP:+25]");return eq(worldState.character.xp,25);});
   t("XP level-up applies HP gain",function(){makeWorld();applyMuts("[XP:400]");return eq(worldState.character.level,2)===true?(worldState.character.maxHp>14?true:"maxHp not raised"):"level "+worldState.character.level;});

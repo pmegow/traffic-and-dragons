@@ -150,7 +150,14 @@ function combatAttrFoe(starts,idx){
 }
 function combatDmgList(s){return s.split(",").map(function(x){return x.trim();}).filter(function(x){return x&&x.toLowerCase()!=="none";});}
 var TAG_TABLE=[
-{t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}}},
+{t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];if(!hpTags.length)return;
+  // UA8: a save that escaped migration can carry non-finite hp/maxHp — the clamp math below
+  // would then poison hp to NaN permanently. Heal with migrateWorldState's exact semantics
+  // (maxHp FIRST — audit E71), loudly.
+  var hpc=worldState.character;
+  if(typeof hpc.maxHp!=="number"||!isFinite(hpc.maxHp)){console.warn("[tags] non-finite maxHp ("+hpc.maxHp+") healed before [HP:] apply (UA8)");hpc.maxHp=(typeof hpc.hp==="number"&&isFinite(hpc.hp)&&hpc.hp>0)?hpc.hp:8;}
+  if(typeof hpc.hp!=="number"||!isFinite(hpc.hp)){console.warn("[tags] non-finite hp ("+hpc.hp+") healed before [HP:] apply (UA8)");hpc.hp=hpc.maxHp||8;}
+  var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}}},
 {t:"GOLD",apply:function(text,R){var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);R.muts.push(dg>0?"+"+dg+" gp":dg+" gp");}}},
 {t:"ITEM_GAINED",apply:function(text,R){var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;for(igqi=0;igqi<igq.n;igqi++)addInventoryItem(worldState.character.inventory,igq.base);R.muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:""));autoTakeLocationItem(igq.base);}}},
 {t:"ITEM_LOST",apply:function(text,R){var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi;for(ilqi=0;ilqi<ilq.n;ilqi++)removeInventoryItem(worldState.character.inventory,ilq.base);R.muts.push("-"+ilq.base+(ilq.n>1?" x"+ilq.n:""));}}},
