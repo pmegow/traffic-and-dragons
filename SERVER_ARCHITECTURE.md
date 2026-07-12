@@ -1,9 +1,15 @@
 # Server architecture — design (UA33, opening with the UA32 survey)
 
-**Status: DESIGN DRAFT (2026-07-11) — decision points marked ▶ DECISION throughout and collected
-in §8.** Pure design, zero code contact (session B of the UberAudit plan). This document gates the
-sync rewrite (UA19) and the curated catalog's commercial hook (#44); nothing on the spine waits on
-it. Everything in the Clear-for-Release table's "Client-side / BYO API keys" row hangs off §3.
+**Status: ✅ RATIFIED (2026-07-11, all §8 decisions walked with the user one-by-one — outcomes
+recorded in the §8 table).** Headline outcomes: own private server repo · streaming deferred ·
+billing provider DEFERRED to build time (shape identical either way) · **NO FREE TIER at launch**
+(paid-only; BYO-key remains the manual try-out path — supersedes this doc's free-tier sketches in
+§3.5/§4.2, which are retained as the design for IF one is added later) · paid price/cap set at
+build time · hard stop + top-up packs · data-free-forever on lapse · Google login next, magic-link
+later, never passwords · **state authority = staged path C** (7a launch doesn't wait · 7b BYO-key
+mode survives indefinitely · 7c shadow-parse starts early). UA19 closes as absorbed into §6
+Phase 2 per §6.3. The §9 build order stands with one edit: step 3's "free-tier allowance live"
+drops out (no free tier).
 
 Sources read for this draft: the live server code (`traffic-and-dragons-server/index.js` + `db.js`
 + `Dockerfile`/`fly.toml`), `storage-adapter.js` (client sync + CAS), `tag_table.js` (the
@@ -509,13 +515,13 @@ decree — this document is the map, not the pre-review.
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| 1 | Server repo home | own private repo / monorepo subdir | **Own private repo now**; revisit at §6 Phase 1 when engine-sharing is real (§2) |
-| 2 | Streaming in the LLM proxy | ship now / defer | **Defer** — client is non-streaming, tags need whole-text parsing, additive later (§3.3) |
-| 3 | Billing provider | Stripe direct / merchant-of-record (Paddle, Lemon Squeezy) | **Lean MoR** for the tax-liability shape, same asymmetry logic that scrapped community sharing; Stripe acceptable if preferred, with Stripe Tax on from day one (§4.1) |
-| 4 | Tier shape | a) free = one-time ~80 Sonnet turns vs monthly drip · b) Standard price/cap (~$10 / ~250) · c) overage = hard stop + top-up packs vs metered | **One-time 80 · $10/250 as the opening hypothesis · hard stop + packs**; re-fit all numbers from `usage_events` after a month of real data (§4.2) |
-| 5 | Lapse behavior | lock / read-only / data-free-forever + turns stop | **Data (sync/export/libraries) free forever; turns stop after 3-day grace; loud, specific client message** (§4.3) |
-| 6 | Login breadth | GitHub only / +Google / +magic-link | **Add Google** (audience fit), magic-link later, **never passwords** (§5.2) |
-| 7 | State authority | A dumb store / B big-bang authoritative / **C staged** | **C**: gateway-only launch (7a: don't wait), server shadow-parse early (7c), authoritative turn endpoint after the soak, multiplayer on top; local/BYO-key mode survives indefinitely (7b) (§6) |
+| 1 | Server repo home | own private repo / monorepo subdir | **Own private repo now**; revisit at §6 Phase 1 when engine-sharing is real (§2)  **2026-07-11: Ratified: own private repo.** |
+| 2 | Streaming in the LLM proxy | ship now / defer | **Defer** — client is non-streaming, tags need whole-text parsing, additive later (§3.3)  **2026-07-11: Ratified: defer.** |
+| 3 | Billing provider | Stripe direct / merchant-of-record (Paddle, Lemon Squeezy) | **Lean MoR** for the tax-liability shape, same asymmetry logic that scrapped community sharing; Stripe acceptable if preferred, with Stripe Tax on from day one (§4.1)  **2026-07-11: Deferred to build time (user call - shape identical either way; the MoR-vs-Stripe leaning stays open).** |
+| 4 | Tier shape | a) free = one-time ~80 Sonnet turns vs monthly drip · b) Standard price/cap (~$10 / ~250) · c) overage = hard stop + top-up packs vs metered | **One-time 80 · $10/250 as the opening hypothesis · hard stop + packs**; re-fit all numbers from `usage_events` after a month of real data (§4.2)  **2026-07-11: Ratified with amendments: NO free tier at launch (user call, supersedes 4a); price/cap set at build time (4b deferred); overage = hard stop + top-up packs (4c as recommended).** |
+| 5 | Lapse behavior | lock / read-only / data-free-forever + turns stop | **Data (sync/export/libraries) free forever; turns stop after 3-day grace; loud, specific client message** (§4.3)  **2026-07-11: Ratified: data free forever, turns stop after 3-day grace, loud specific message.** |
+| 6 | Login breadth | GitHub only / +Google / +magic-link | **Add Google** (audience fit), magic-link later, **never passwords** (§5.2)  **2026-07-11: Ratified: Google next, magic-link later, never passwords.** |
+| 7 | State authority | A dumb store / B big-bang authoritative / **C staged** | **C**: gateway-only launch (7a: don't wait), server shadow-parse early (7c), authoritative turn endpoint after the soak, multiplayer on top; local/BYO-key mode survives indefinitely (7b) (§6)  **2026-07-11: Ratified: staged path C - 7a launch on Phase 0, 7b BYO-key mode survives indefinitely, 7c shadow-parse early.** |
 
 Not decisions but commitments this doc makes if ratified: §2's hardening list happens first and
 unconditionally; UA19 closes as absorbed into §6 Phase 2; the free tier is Sonnet-capped per the

@@ -455,7 +455,7 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 **Server:** `https://traffic-and-dragons-server.fly.dev`
 **Auth:** GitHub OAuth popup → server postMessages `{type:"tnd-auth", sessionId, username}` back to opener → token stored in `tnd_server_tok_v1`.
 **CORS:** Server uses `origin: function() { return "*"; }` to handle `null` origin from `file://` pages.
-**Endpoints:** `GET /auth/github`, `GET /auth/github/callback`, `GET /auth/me`, `POST /auth/logout`, `GET /api/campaigns`, `GET /api/campaigns/:id`, `POST /api/state`, `GET /api/state`, `GET /api/messages`
+**Endpoints:** ~18 routes — full enumeration in [SERVER_ARCHITECTURE.md](SERVER_ARCHITECTURE.md) §1.2 (auth: `/auth/github` + callback + `/auth/done` + one-shot `/auth/ticket/:ticket` + `/auth/me` + logout; state: `GET/POST /api/state` (POST carries the CAS turn guard), `GET/DELETE /api/campaigns[/:id]`, `PUT /api/campaigns/:id/portrait`; libraries: `/api/characters`, `/api/blueprints`; `GET /health`). Auth flow is TICKET-based: the popup postMessages a one-shot ticket (or the opener polls it on file://), and the sessionId comes from the claim endpoint.
 **Deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
 
 ### 23. Reload behavior
