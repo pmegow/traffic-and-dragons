@@ -163,10 +163,35 @@ function buildConditionAudit(){
   worldState.lastConditionAudit=worldState.turn;
   return"[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n"+lines.join("\n")+"]";
 }
+// UA41: relationship reciprocity — the Morwen class (t455): the GM files player-centric
+// [RELATIONSHIP:] at the moment and never the mirror [COMPANION_RELATIONSHIP:], so marriages
+// sat one-directional for 150+ turns. Deterministic detect / GM decides, same shape as
+// buildQuestEscalation. Backstop sizing (Playtest-2 evidence: explicit bond scenes reciprocate
+// unprompted): fires ONCE per (entity, descriptor) pair, ever; silent mid-combat. The pair is
+// marked consumed at BUILD time — a failed/retried turn burns the nudge; accepted for a
+// backstop (the alternative couples the note builder to the parse cycle for marginal gain).
+function buildReciprocityNudge(){
+  if(!worldState||!worldState.character||worldState.combat)return"";
+  var c=worldState.character,rl=c.relationships||[],i,j;
+  for(i=0;i<rl.length;i++){var r=rl[i];
+    if(!r||!r.entity||!r.descriptor)continue;
+    if(typeof WEIGHTY_REL_RE==="undefined"||!WEIGHTY_REL_RE.test(r.descriptor))continue;
+    var cs=findCompanionChar(r.entity);if(!cs)continue;/* party members with sheets only */
+    var key=r.entity+"|"+r.descriptor;
+    if(worldState.reciprocityNudged&&worldState.reciprocityNudged[key])continue;
+    var mirrored=false,cr=cs.relationships||[];
+    for(j=0;j<cr.length;j++){if(cr[j].entity&&cr[j].entity.toLowerCase()===c.name.toLowerCase()){mirrored=true;break;}}
+    if(mirrored)continue;
+    if(!worldState.reciprocityNudged)worldState.reciprocityNudged={};
+    worldState.reciprocityNudged[key]=worldState.turn;
+    return "[ENGINE NOTE — RELATIONSHIP RECIPROCITY (not a player action): the player's sheet records "+r.entity+" as \""+r.descriptor+"\", but "+r.entity+"'s own sheet has NO relationship entry for "+c.name+". If the fiction agrees the bond is mutual, emit [COMPANION_RELATIONSHIP:"+r.entity+"|"+c.name+"|<their descriptor for "+c.name+">] in this response; if it is genuinely one-sided, leave it as is.]";
+  }
+  return"";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

@@ -1851,6 +1851,60 @@ function runEngineTests(R){
     return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
   });
 
+  // ── UA41: relationship reciprocity nudge (the Morwen class) ──────────────────
+  section("reciprocity nudge (UA41)");
+  function __morwenWorld(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Morwen",cls:"Druid",level:3,hp:14,maxHp:14,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife"}];
+  }
+  t("fires on a weighty unmirrored player→companion relationship (the Morwen failure, reconstructed)",function(){
+    __morwenWorld();
+    var n=buildReciprocityNudge();
+    if(!n)return "nudge did not fire";
+    if(n.indexOf("Morwen")<0||n.indexOf("Wife")<0)return "note missing names: "+n;
+    return n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|")>=0?true:"exact mirror-tag form missing: "+n;
+  });
+  t("does NOT fire when the mirror exists (any descriptor counts as reciprocation)",function(){
+    __morwenWorld();
+    worldState.npcs[0].charSheet.relationships=[{entity:"Tess",descriptor:"Travel companion"}];
+    return buildReciprocityNudge()===""?true:"fired despite an existing mirror";
+  });
+  t("does NOT fire for a non-weighty descriptor",function(){
+    __morwenWorld();
+    worldState.character.relationships=[{entity:"Morwen",descriptor:"Allied"}];
+    return buildReciprocityNudge()===""?true:"fired on a non-weighty bond";
+  });
+  t("does NOT fire for a weighty bond with a NON-party entity",function(){
+    __morwenWorld();
+    worldState.character.relationships=[{entity:"The Crimson Hand",descriptor:"Sworn enemy"}];
+    return buildReciprocityNudge()===""?true:"fired on a non-companion entity";
+  });
+  t("once per (entity,descriptor) pair, ever; a NEW weighty descriptor re-arms",function(){
+    __morwenWorld();
+    if(!buildReciprocityNudge())return "first call did not fire";
+    if(buildReciprocityNudge()!=="")return "second call re-fired the same pair";
+    worldState.character.relationships=[{entity:"Morwen",descriptor:"Betrayed sworn oath"}];
+    return buildReciprocityNudge()!==""?true:"new weighty descriptor did not re-arm";
+  });
+  t("silent mid-combat, and the pair is NOT consumed (mark only writes when a note returns)",function(){
+    __morwenWorld();
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5,ac:10,atk:1,dmg:"d4",morale:"low"}]};
+    if(buildReciprocityNudge()!=="")return "fired mid-combat";
+    if(worldState.reciprocityNudged&&worldState.reciprocityNudged["Morwen|Wife"])return "pair consumed by the silent path";
+    worldState.combat=null;
+    return buildReciprocityNudge()!==""?true:"did not fire after combat ended";
+  });
+  t("buildEngineNotes stacks it with an active condition audit (registry order stable)",function(){
+    __morwenWorld();
+    worldState.character.conditions=[{name:"Poisoned",duration:"until antidote",turn:1}];
+    worldState.turn=99;worldState.lastConditionAudit=0;
+    var notes=buildEngineNotes();
+    if(notes.indexOf("CONDITION AUDIT")<0)return "condition audit missing";
+    if(notes.indexOf("RELATIONSHIP RECIPROCITY")<0)return "reciprocity note missing";
+    return notes.indexOf("CONDITION AUDIT")<notes.indexOf("RELATIONSHIP RECIPROCITY")?true:"registry order changed";
+  });
+
   // ── #50a: item consumption + provenance doc lines ────────────────────────────
   section("item consumption + provenance (#50a)");
   t("consumption + provenance doc lines present",function(){
