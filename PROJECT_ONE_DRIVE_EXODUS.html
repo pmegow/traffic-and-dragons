@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project OneDrive Exodus — runbook</title>
+<style>
+  :root { --acc:#b8935a; --bg:#141414; --panel:#1c1c1c; --txt:#d8d2c8; --dim:#8a857c; --ok:#7fb069; --warn:#d9a04a; --danger:#c96a5a; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--txt); font:16px/1.55 Georgia, "Times New Roman", serif; margin:0; padding:2rem 1rem 4rem; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { color:var(--acc); font-size:1.7rem; border-bottom:1px solid var(--acc); padding-bottom:.4rem; }
+  h2 { color:var(--acc); font-size:1.2rem; margin-top:2.2rem; }
+  h2 .ph { color:var(--dim); font-size:.85rem; font-weight:normal; margin-left:.5rem; }
+  .meta { color:var(--dim); font-size:.9rem; }
+  .why { background:var(--panel); border-left:3px solid var(--acc); padding:.7rem 1rem; margin:1rem 0; font-size:.95rem; }
+  .warn { border-left-color:var(--danger); }
+  .warn b:first-child { color:var(--danger); }
+  .opt { border-left-color:var(--dim); }
+  ol.steps { padding-left:1.4rem; }
+  ol.steps > li { margin:.9rem 0; }
+  label.chk { cursor:pointer; display:block; }
+  label.chk input { margin-right:.55rem; accent-color:var(--acc); transform:scale(1.15); }
+  label.chk.done { color:var(--dim); text-decoration:line-through; }
+  label.chk.done code, label.chk.done pre { text-decoration:none; }
+  pre { background:#0e0e0e; border:1px solid #2c2c2c; border-radius:6px; padding:.7rem .9rem; overflow-x:auto; font:13px/1.5 Consolas, "Courier New", monospace; color:#c9d1a8; position:relative; margin:.5rem 0; text-decoration:none; }
+  code { background:#0e0e0e; border:1px solid #2c2c2c; border-radius:4px; padding:0 .3rem; font:13px Consolas, "Courier New", monospace; color:#c9d1a8; }
+  pre .cp { position:absolute; top:.35rem; right:.4rem; background:#242424; color:var(--dim); border:1px solid #333; border-radius:4px; font:11px sans-serif; padding:.15rem .5rem; cursor:pointer; }
+  pre .cp:hover { color:var(--acc); border-color:var(--acc); }
+  .lbl { display:block; color:var(--dim); font:11px sans-serif; text-transform:uppercase; letter-spacing:.06em; margin-top:.6rem; }
+  .progress { position:sticky; top:0; background:var(--bg); padding:.5rem 0; border-bottom:1px solid #2a2a2a; font-size:.9rem; color:var(--dim); z-index:5; }
+  .progress b { color:var(--acc); }
+  a { color:var(--acc); }
+  hr { border:none; border-top:1px solid #2a2a2a; margin:2.5rem 0; }
+  .tag { font:11px sans-serif; text-transform:uppercase; letter-spacing:.05em; border:1px solid; border-radius:4px; padding:.05rem .4rem; margin-left:.5rem; vertical-align:2px; }
+  .tag.user { color:var(--warn); border-color:var(--warn); }
+  .tag.claude { color:var(--ok); border-color:var(--ok); }
+  .tag.optional { color:var(--dim); border-color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>⛨ Project OneDrive Exodus</h1>
+<p class="meta">Runbook written 2026-07-11 · execute morning of 2026-07-12 · checkbox state persists in this browser (localStorage)</p>
+<div class="progress" id="prog">Progress: <b>0 / 0</b></div>
+
+<div class="why">
+<b>Why:</b> the server's <code>.env</code> (GitHub OAuth client secret) and the dev database
+(<code>ashen.db*</code>) live inside the OneDrive-synced tree, i.e. replicated to Microsoft's
+cloud (SERVER_ARCHITECTURE.md §2 item 3). The 2026-07-12 rotation made the <em>old</em> secret
+worthless — but rotation step 5 then wrote the <b>new</b> secret into the same OneDrive-synced
+<code>.env</code>, so it has synced too. The fix is: move the folder out of OneDrive, <b>then</b>
+rotate once more so every copy OneDrive ever held is dead. The code itself is safe regardless —
+it lives in the private GitHub repo now.
+</div>
+
+<h2>Phase 0 — Prep <span class="ph">~2 min</span></h2>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p0a">Close every Claude Code session, editor window, and terminal that has either project folder open (a process holding a file open makes the move fail or half-complete).</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p0b">Make sure no local server is running (<code>node index.js</code> would hold <code>ashen.db</code> open).</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p0c">Pause OneDrive sync: system-tray cloud icon → gear → <b>Pause syncing → 2 hours</b>. This prevents OneDrive from racing the move and manufacturing conflict copies.</label></li>
+</ol>
+
+<h2>Phase 1 — Move the server folder out of OneDrive <span class="ph">~2 min</span></h2>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p1a">Create the new non-synced home and move the folder (PowerShell, or drag in Explorer — same thing):</label>
+<span class="lbl">📋 PowerShell</span>
+<pre>New-Item -ItemType Directory -Force "C:\Users\hannu\Projects"
+Move-Item "C:\Users\hannu\OneDrive\Documents\Projects\traffic-and-dragons-server" "C:\Users\hannu\Projects\traffic-and-dragons-server"</pre>
+  </li>
+  <li><label class="chk"><input type="checkbox" data-k="p1b">Verify git survived the move (it will — the repo is self-contained):</label>
+<span class="lbl">📋 PowerShell</span>
+<pre>cd "C:\Users\hannu\Projects\traffic-and-dragons-server"
+git status
+git remote -v</pre>
+Expect: <code>working tree clean</code>, remote <code>pmegow/traffic-and-dragons-server</code>.
+  </li>
+  <li><label class="chk"><input type="checkbox" data-k="p1c">Confirm <code>.env</code> and <code>ashen.db</code>/<code>-shm</code>/<code>-wal</code> came along and are gone from the old location (the old path should not exist at all).</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p1d">Resume OneDrive sync (tray icon → Resume). OneDrive will now register the folder as <b>deleted</b> and move its cloud copy to the OneDrive recycle bin — that's expected; Phase 3 purges it.</label></li>
+</ol>
+
+<h2>Phase 2 — Rotate the OAuth secret once more <span class="ph">~5 min, zero downtime</span></h2>
+<div class="why warn">
+<b>Don't skip this.</b> The current live secret sat in the OneDrive-synced <code>.env</code> from
+the moment of yesterday's rotation until this move. This second rotation is what makes the exodus
+actually mean something. Full detail lives in the server repo's <code>ROTATION.md</code>; the
+condensed steps:
+</div>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p2a">github.com → avatar → <b>Settings → Developer settings → OAuth Apps</b> → the app whose callback is <code>https://traffic-and-dragons-server.fly.dev/auth/github/callback</code> → <b>Generate a new client secret</b>. Copy it immediately (shown once). Do <b>not</b> delete the old one yet — GitHub allows two live secrets, which is what makes this zero-downtime.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p2b">Set it on Fly (restarts the machine, ~30s):</label>
+<span class="lbl">📋 PowerShell — paste the new secret in place of &lt;NEW_SECRET&gt;</span>
+<pre>flyctl secrets set GITHUB_CLIENT_SECRET=&lt;NEW_SECRET&gt; -a traffic-and-dragons-server</pre>
+  </li>
+  <li><label class="chk"><input type="checkbox" data-k="p2c">Verify login works: open the deployed game → File ▸ Connect server → complete the OAuth popup.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p2d">Back on the GitHub OAuth-app page: <b>delete the OLD secret</b>. Every copy OneDrive ever held is now worthless.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p2e">Update the local <code>.env</code> at the NEW path (<code>C:\Users\hannu\Projects\traffic-and-dragons-server\.env</code>) with the new secret — needed only for local dev runs. It is now outside OneDrive, where it stays.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p2f">Update <code>ROTATION.md</code>'s header line to "rotated 2026-07-12 ×2 (post-OneDrive-exodus)" — next session can commit it.</label></li>
+</ol>
+
+<h2>Phase 3 — Purge the OneDrive cloud residue <span class="ph">~3 min</span></h2>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p3a">Go to <a href="https://onedrive.live.com" target="_blank">onedrive.live.com</a> → <b>Recycle bin</b> → find the <code>traffic-and-dragons-server</code> folder (it landed there when sync resumed) → <b>Delete</b> (permanent). Empty the whole bin if nothing else in it matters.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p3b">Sanity-check version history is moot: with the secret rotated (Phase 2), any <code>.env</code> version OneDrive retains is dead anyway. This step is hygiene, not security.</label></li>
+</ol>
+
+<h2>Phase 4 — Doc updates in the game repo <span class="ph">hand to Claude</span> <span class="tag claude">Claude task</span></h2>
+<div class="why">These reference the old sibling path and go stale the moment the folder moves.
+Paste this into the next Claude Code session (in the game repo):</div>
+<span class="lbl">📋 Prompt for next session</span>
+<pre>The server folder moved out of OneDrive to C:\Users\hannu\Projects\traffic-and-dragons-server
+(PROJECT_ONE_DRIVE_EXODUS.html Phase 4). Update the stale path references: CLAUDE.md §22's
+deploy line + the "sibling of the game repo" description, SERVER_ARCHITECTURE.md §1.1 Location
+row and §2 item 3 (mark the OneDrive move DONE), and commit ROTATION.md in the server repo
+with the second-rotation note. Doc-only — no APP_VERSION bump.</pre>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p4a">Prompt handed to a Claude session and the commits landed.</label></li>
+</ol>
+
+<h2>Phase 5 — Final verification <span class="ph">~2 min</span></h2>
+<ol class="steps">
+  <li><label class="chk"><input type="checkbox" data-k="p5a">Health check:</label>
+<span class="lbl">📋 PowerShell</span>
+<pre>curl.exe -s https://traffic-and-dragons-server.fly.dev/health</pre>
+Expect <code>{"status":"ok", ...}</code>.
+  </li>
+  <li><label class="chk"><input type="checkbox" data-k="p5b">One real sync round-trip from the deployed game (login → load a campaign → play or save a turn). This also closes the outstanding verification from the 2026-07-12 hardening deploy.</label></li>
+  <li><label class="chk"><input type="checkbox" data-k="p5c">Optional local-dev smoke test from the new path: <code>npm run dev</code> in the moved folder, confirm it boots against the local <code>ashen.db</code>.</label></li>
+</ol>
+
+<hr>
+
+<h2>Appendix — the game repo <span class="tag optional">optional, separate decision</span></h2>
+<div class="why opt">
+The game repo (<code>dnd_rpg</code>) is also under OneDrive, but its situation is different:
+it holds <b>no secrets</b> (API keys live in browser localStorage, never in the repo) and it's
+pushed to GitHub at every checkpoint — OneDrive is merely redundant, not dangerous. No security
+need to move it. If you want to move it anyway, bundle it with <b>Known issue #1</b> (the
+pending <code>dnd_rpg → traffic-and-dragons</code> folder rename) and mind the gotchas:
+<ul>
+  <li>Do it in Explorer <b>before</b> opening Claude Code, then update the hardcoded paths in <code>.claude/settings.local.json</code> and <code>.claude/hooks/stop-check.js</code> as the first act of the next session (that's the Known-issue-#1 procedure).</li>
+  <li><b>Claude Code keys its per-project data (session history, memory directory) to the folder path.</b> A moved/renamed folder starts a fresh project profile — the memory index under the old path won't follow automatically and would need to be copied to the new path's project directory.</li>
+</ul>
+</div>
+
+<p class="meta">This file is deliberately <b>not committed</b> — the game repo root is served
+publicly by Cloudflare Pages, and this is a one-morning throwaway. Delete it when done.</p>
+
+</main>
+<script>
+(function(){
+  var KEY = "pod_exodus_v1";
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) {}
+  var boxes = document.querySelectorAll("input[type=checkbox][data-k]");
+  function refresh(){
+    var done = 0;
+    for (var i=0; i<boxes.length; i++){
+      var b = boxes[i];
+      b.parentNode.className = "chk" + (b.checked ? " done" : "");
+      if (b.checked) done++;
+    }
+    document.getElementById("prog").innerHTML = "Progress: <b>" + done + " / " + boxes.length + "</b>" + (done===boxes.length ? " — exodus complete ⛨" : "");
+  }
+  for (var i=0; i<boxes.length; i++){
+    var b = boxes[i];
+    if (saved[b.getAttribute("data-k")]) b.checked = true;
+    b.onchange = function(){
+      saved[this.getAttribute("data-k")] = this.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {}
+      refresh();
+    };
+  }
+  var pres = document.querySelectorAll("pre");
+  for (var j=0; j<pres.length; j++){
+    (function(pre){
+      var btn = document.createElement("button");
+      btn.className = "cp"; btn.textContent = "copy";
+      btn.onclick = function(ev){
+        ev.preventDefault(); ev.stopPropagation();
+        var txt = pre.textContent.replace(/copy$/,"").trim();
+        if (navigator.clipboard) navigator.clipboard.writeText(txt);
+        btn.textContent = "copied"; setTimeout(function(){ btn.textContent = "copy"; }, 1200);
+      };
+      pre.appendChild(btn);
+    })(pres[j]);
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
