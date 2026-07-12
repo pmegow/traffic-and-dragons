@@ -422,35 +422,52 @@ function updateSpPanel(){
   document.getElementById("sp-list").innerHTML=h;
 }
 function updateCombat(){
+  // UA26 multi-foe panel (MULTI_ENEMY_COMBAT §5): one compact row per foe, living first; down
+  // foes struck through + dimmed, no bar; cap 4 rows + "+N more" (mobile #cpanel is shallow).
+  // The statblock renders for the ENGAGED foe (else the first living foe that has stats).
+  // Names/morale/immunities are model-authored — escHtml every sink.
   if(!worldState||!worldState.combat)return;
   var cm=worldState.combat,pc=worldState.character;
   document.getElementById("ct-round").textContent="Round "+cm.round;
-  document.getElementById("en-name").textContent=cm.name;
-  document.getElementById("en-hpt").textContent=cm.hp+"/"+cm.maxHp;
-  document.getElementById("en-hpbar").style.width=Math.max(0,Math.round((cm.hp/cm.maxHp)*100))+"%";
-  document.getElementById("en-morale").textContent=cm.morale;
+  var rows=document.getElementById("en-rows");
+  if(rows){
+    var foes=cm.foes||[],living=[],downs=[],fi;
+    for(fi=0;fi<foes.length;fi++){if(!foes[fi].down&&foes[fi].hp>0)living.push(foes[fi]);else downs.push(foes[fi]);}
+    var ordered=living.concat(downs),h="",sbFoe=null;
+    for(fi=0;fi<ordered.length&&fi<4;fi++){var f=ordered[fi];
+      if(!f.down&&f.hp>0){
+        var pct=Math.max(0,Math.round((f.hp/(f.maxHp||f.hp||1))*100));
+        h+="<div class='crow'><span class='cname en'"+(cm.engaged===f.name?" title='engaged'":"")+">"+(cm.engaged===f.name?"◆ ":"")+escHtml(f.name)+"</span><div class='hbw'><div class='hb eb' style='width:"+pct+"%'></div></div><span class='hpt'>"+f.hp+"/"+f.maxHp+"</span>"+(f.morale?"<span class='mbdg'>"+escHtml(f.morale)+"</span>":"")+"</div>";
+        if(!sbFoe&&f.stats&&cm.engaged===f.name)sbFoe=f;
+      }else{
+        h+="<div class='crow' style='opacity:.45'><span class='cname en' style='text-decoration:line-through'>"+escHtml(f.name)+"</span><span class='hpt' style='width:auto'>"+escHtml(f.down||"slain")+"</span></div>";
+      }
+    }
+    if(ordered.length>4)h+="<div style='font-size:10px;color:var(--t2);margin-bottom:4px;'>+"+(ordered.length-4)+" more</div>";
+    if(!sbFoe){for(fi=0;fi<living.length;fi++){if(living[fi].stats){sbFoe=living[fi];break;}}}
+    if(sbFoe){
+      var sbh="";
+      var sm2=function(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;};
+      if(sbFoe.stats){
+        sbh+=(living.length>1?"<span style='color:var(--t1);'>"+escHtml(sbFoe.name)+":</span> ":"")
+            +"STR "+sbFoe.stats.STR+"("+sm2(sbFoe.stats.STR)+") "
+            +"DEX "+sbFoe.stats.DEX+"("+sm2(sbFoe.stats.DEX)+") "
+            +"CON "+sbFoe.stats.CON+"("+sm2(sbFoe.stats.CON)+") "
+            +"INT "+sbFoe.stats.INT+"("+sm2(sbFoe.stats.INT)+") "
+            +"WIS "+sbFoe.stats.WIS+"("+sm2(sbFoe.stats.WIS)+") "
+            +"CHA "+sbFoe.stats.CHA+"("+sm2(sbFoe.stats.CHA)+") "
+            +"<span style='color:var(--acc);'>CR "+sbFoe.stats.CR+"</span>";
+      }
+      if(sbFoe.immune&&sbFoe.immune.length)sbh+="<span style='color:var(--hp);margin-left:8px;'>Immune: "+escHtml(sbFoe.immune.join(", "))+"</span>";
+      if(sbFoe.resist&&sbFoe.resist.length)sbh+="<span style='color:var(--t2);margin-left:8px;'>Resist: "+escHtml(sbFoe.resist.join(", "))+"</span>";
+      if(sbFoe.vuln&&sbFoe.vuln.length)sbh+="<span style='color:var(--acc);margin-left:8px;'>Vuln: "+escHtml(sbFoe.vuln.join(", "))+"</span>";
+      if(sbh)h+="<div style='font-size:10px;color:var(--t2);padding:2px 0 4px;line-height:1.7;font-family:var(--font);'>"+sbh+"</div>";
+    }
+    rows.innerHTML=h;
+  }
   document.getElementById("pl-name").textContent=pc.name;
   document.getElementById("pl-hpt").textContent=pc.hp+"/"+pc.maxHp;
   document.getElementById("pl-hpbar").style.width=Math.max(0,Math.round((pc.hp/pc.maxHp)*100))+"%";
-  var sb2=document.getElementById("en-statblock");
-  if(sb2){
-    var sbh="";
-    if(cm.stats){
-      var sm2=function(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;};
-      sbh+="STR "+cm.stats.STR+"("+sm2(cm.stats.STR)+") "
-          +"DEX "+cm.stats.DEX+"("+sm2(cm.stats.DEX)+") "
-          +"CON "+cm.stats.CON+"("+sm2(cm.stats.CON)+") "
-          +"INT "+cm.stats.INT+"("+sm2(cm.stats.INT)+") "
-          +"WIS "+cm.stats.WIS+"("+sm2(cm.stats.WIS)+") "
-          +"CHA "+cm.stats.CHA+"("+sm2(cm.stats.CHA)+") "
-          +"<span style='color:var(--acc);'>CR "+cm.stats.CR+"</span>";
-    }
-    if(cm.immune&&cm.immune.length)sbh+="<span style='color:var(--hp);margin-left:8px;'>Immune: "+cm.immune.join(", ")+"</span>";
-    if(cm.resist&&cm.resist.length)sbh+="<span style='color:var(--t2);margin-left:8px;'>Resist: "+cm.resist.join(", ")+"</span>";
-    if(cm.vuln&&cm.vuln.length)sbh+="<span style='color:var(--acc);margin-left:8px;'>Vuln: "+cm.vuln.join(", ")+"</span>";
-    sb2.innerHTML=sbh;
-    sb2.style.display=sbh?"block":"none";
-  }
 }
 // Compact model label for the session bar: drop the vendor prefix and a trailing date stamp
 // ("claude-haiku-4-5-20251001" → "haiku-4-5"); non-Claude ids (gpt-4o, grok-4.3) pass through.

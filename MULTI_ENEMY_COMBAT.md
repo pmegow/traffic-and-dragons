@@ -1,10 +1,14 @@
 # Multi-enemy combat — design (UA26)
 
-**Status: DESIGN RATIFIED (2026-07-10) — all four decisions made by the user (§7).** Build is
-gated on the tag-table cutover (UA1) — every change below lands as `tag_table.js` entries/edits,
-not `applyMuts` surgery. ⛨ Drift surface (combat tags in the stable-half docs, combat block in
-the volatile half, `migrateWorldState`); the standing policy applies: this doc is the pre-review's
-design half, the implementation commit gets its own guard checklist.
+**Status: ✅ SHIPPED (v1.264, 2026-07-11 — HANDOFF_batch_v1260.md item 2).** All handlers,
+migration, prompt block, and panel landed per this design; 15 engine tests transcribe §8
+(353 total green). One executor deviation, flagged and pinned by test: the F2 same-response
+exemption now CLEARS the old encounter silently instead of skipping the clear — under
+add-a-foe semantics, skipping would have leaked the departed location's foes into the fresh
+fight (preserves v1.216's observable behavior exactly). The Haiku corpus replay (§8) was not
+runnable — that corpus lives in `tnd_pt_corpus_v1` localStorage on the original device, not in
+dev/; the engine battery pins the H2 shapes and the post-batch playtest steers a 3-foe fight
+live. Original design text follows.
 
 ---
 

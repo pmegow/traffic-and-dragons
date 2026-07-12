@@ -448,7 +448,8 @@ function detectCoreMoments(pre){
   if(!pre||!worldState||!worldState.character)return;
   var c=worldState.character,w=worldState.world||{},i;
   var here=w.location?(" at "+(w.sublocation?w.sublocation+", "+w.location:w.location)):"";
-  var foe=(worldState.combat&&worldState.combat.name)?" fighting "+worldState.combat.name:"";
+  var foe="";/* UA26: foes[] shape — name the engaged foe, else the first tracked one */
+  if(worldState.combat&&worldState.combat.foes&&worldState.combat.foes.length)foe=" fighting "+(worldState.combat.engaged||worldState.combat.foes[0].name);
   function cross(preHp,preMax,postHp,postMax,who){
     if(typeof preHp!=="number"||typeof postHp!=="number")return;
     var mx=(typeof postMax==="number"&&postMax>0)?postMax:preMax;

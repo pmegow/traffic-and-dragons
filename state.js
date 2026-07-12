@@ -137,6 +137,9 @@ function migrateWorldState(){
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
   if(!worldState.coreMemories){worldState.coreMemories=[];_mig=true;}/* #40 Core Memory — party-shared defining moments */
   if(!c.aliases){c.aliases=[];_mig=true;}/* #47 epithets — schema field so titles survive PC↔NPC swaps */
+  // UA26 multi-foe combat (v1.264): wrap a flat legacy in-flight combat object into the foes[]
+  // shape. Idempotent — .foes presence short-circuits, so a re-run can never double-wrap.
+  if(worldState.combat&&!worldState.combat.foes){var _oc=worldState.combat;worldState.combat={round:_oc.round||1,engaged:null,foes:[_oc]};_mig=true;}
   // Known issue #3 dedupe: companion portraits were stored 2× (npc.portrait + charSheet.portrait,
   // ~22-52KB each). charSheet.portrait is now the single home for any NPC with a sheet — move a
   // lone npc.portrait in, then drop the duplicate. Display reads go through npcPortrait() (helpers).

@@ -151,7 +151,12 @@ function runEngineTests(R){
   t("quest status 'complete' normalizes and archives",function(){makeWorld();applyMuts("[QUEST:Hunt|active|d]");applyMuts("[QUEST:Hunt|complete]");return eq(worldState.questLog.length,0,"live log")===true?(memory.quests["Hunt"]&&memory.quests["Hunt"].status==="completed"?true:"archive: "+JSON.stringify(memory.quests)):"still live";});
   t("combat auto-clears at 0 enemy HP (v1.140 net)",function(){makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");applyMuts("[ENEMY_HP:-9]");return eq(worldState.combat,null);});
   t("F2: a world-location change clears stale combat (enemy fled, no COMBAT_END)",function(){makeWorld();applyMuts("[COMBAT_START:Pterafolk|14|13|+4|2d6|low]");if(!worldState.combat)return "combat did not start";applyMuts("We flee downriver. [LOCATION:Tiryki River]");return eq(worldState.combat,null);});
-  t("F2: location change does NOT clear when the same response opens a fresh fight",function(){makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");applyMuts("[LOCATION:Dark Wood][COMBAT_START:Bear|20|13|+5|2d8|high]");return worldState.combat&&worldState.combat.name==="Bear"?true:"expected the new Bear fight, got "+JSON.stringify(worldState.combat);});
+  t("F2: location change + same-response COMBAT_START = a FRESH fight (old foes never leak in)",function(){makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");applyMuts("[LOCATION:Dark Wood][COMBAT_START:Bear|20|13|+5|2d8|high]");
+    // UA26 note: under add-a-foe semantics the old exemption (skip the clear, START overwrites)
+    // would have merged the left-behind Wolf into the Bear fight — the clear now runs on every
+    // real move, silently when a fresh fight opens. Same observable as v1.216: only the Bear.
+    if(!worldState.combat||worldState.combat.foes.length!==1)return "expected exactly the new Bear fight, got "+JSON.stringify(worldState.combat);
+    return worldState.combat.foes[0].name==="Bear"?true:"wrong foe: "+worldState.combat.foes[0].name;});
   t("condition add, duration update, remove",function(){makeWorld();applyMuts("[CONDITION:Bleeding|1 hour]");applyMuts("[CONDITION:Bleeding|until bandaged]");if(worldState.character.conditions.length!==1)return "dup condition";if(worldState.character.conditions[0].duration!=="until bandaged")return "duration not updated";applyMuts("[CONDITION_REMOVED:Bleeding]");return eq(worldState.character.conditions.length,0);});
   t("SKILL_SUCCESS increments a known skill only",function(){makeWorld();applyMuts("[SKILL_SUCCESS:Climbing][SKILL_SUCCESS:Made Up Skill]");return eq(worldState.character.skills["Climbing"],1)===true?eq(worldState.character.skills["Made Up Skill"],undefined,"unknown skill"):"climb "+worldState.character.skills["Climbing"];});
   t("PARTY_MEMBER cap blocks a 4th companion",function(){makeWorld();worldState.npcs=[{name:"A",status:"ally",rel:"c",partyMember:true},{name:"B",status:"ally",rel:"c",partyMember:true},{name:"C",status:"ally",rel:"c",partyMember:true}];applyMuts("[PARTY_MEMBER:Newbie|true]");var n=worldState.npcs.filter(function(x){return x.name==="Newbie";})[0];return n&&n.partyMember===false&&__toasts.join(" ").indexOf("Party full")>=0?true:"cap failed: "+JSON.stringify(n);});
@@ -191,12 +196,13 @@ function runEngineTests(R){
   // ── format-drift tolerance (audit E17/E29/E30/E10) ──
   t("COMBAT_START tolerates a multi-word morale (E17)",function(){
     makeWorld();applyMuts("[COMBAT_START:Dire Wolf|18|13|+4|2d6|fights to the death]");
-    return worldState.combat&&worldState.combat.name==="Dire Wolf"&&worldState.combat.morale.indexOf("death")>=0?true:"combat not started: "+JSON.stringify(worldState.combat);
+    var f0=worldState.combat&&worldState.combat.foes[0];
+    return f0&&f0.name==="Dire Wolf"&&f0.morale.indexOf("death")>=0?true:"combat not started: "+JSON.stringify(worldState.combat);
   });
   t("COMBAT_END tolerates a multi-word outcome; ENEMY_HP tolerates trailing text (E17)",function(){
     makeWorld();applyMuts("[COMBAT_START:Wolf|20|12|+2|d6|low]");
     applyMuts("[ENEMY_HP:-8 slashing]");
-    if(!worldState.combat||worldState.combat.hp!==12)return "ENEMY_HP not applied: "+(worldState.combat&&worldState.combat.hp);
+    if(!worldState.combat||worldState.combat.foes[0].hp!==12)return "ENEMY_HP not applied: "+(worldState.combat&&worldState.combat.foes[0].hp);
     applyMuts("[COMBAT_END:the enemy flees]");
     return eq(worldState.combat,null);
   });
@@ -1512,10 +1518,11 @@ function runEngineTests(R){
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
-    // Frozen v1.241; updated v1.263 (UA25: +1 COMPANION_SPELL_USED doc line — golden regenerated
-    // and diffed by eye in the same commit).
+    // Frozen v1.241; updated v1.263 (UA25 doc line) and v1.264 (UA26: COMBAT_START add-a-foe +
+    // named ENEMY_HP clauses, +1 ENEMY_SURRENDERS line — golden regenerated and diffed by eye
+    // in the same commit).
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-579654468&&d.length===8414)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===1327562603&&d.length===8951)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1541,7 +1548,7 @@ function runEngineTests(R){
       +"[ALIGNMENT:good+1][SPELL_USED:Faerie Fire][SPELL_DEF:Marsh Light|range=60ft|targets=one point|duration=10 min|effect=A bobbing witch-light|cost=at-will|magical=yes]"
       +"[COMBAT_START:Marsh Wight|18|13|+4|d8+2|fights until dawn][COMBAT_STATS:STR:14|DEX:12|CON:16|INT:6|WIS:10|CHA:8|CR:2][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold, necrotic][COMBAT_VULN:fire][ENEMY_HP:-5 slashing][COMBAT_ROUND:2]");
     if(worldState.character.hp!==11||worldState.character.gold!==35)return "sanity: core muts wrong";
-    return worldState.combat&&worldState.combat.hp===13?true:"sanity: combat state wrong";
+    return worldState.combat&&worldState.combat.foes[0].hp===13?true:"sanity: combat state wrong";
   });
   t("battery B: closures, removals, merge, factions, rest, party join",function(){
     // CONTINUES the battery-A world (combat live, condition/rel/save/lang set)
@@ -1831,6 +1838,140 @@ function runEngineTests(R){
     applyMuts("[QUEST:Doomed|failed]");
     var hit=__toasts.filter(function(m){return m.indexOf("✗ Quest failed: Doomed")>=0;});
     return hit.length===1?true:"failed toast wrong: "+JSON.stringify(__toasts);
+  });
+
+  // ── UA26 + UA2: multi-enemy combat + ENEMY_SURRENDERS (MULTI_ENEMY_COMBAT §8) ──
+  section("multi-enemy combat (UA26+UA2)");
+  function __twoFoes(){
+    makeWorld();
+    applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");
+    applyMuts("[COMBAT_START:Grukk|10|12|+2|d6|low]");
+  }
+  t("COMBAT_START during active combat ADDS a foe (the H2 fix); first foe untouched",function(){
+    __twoFoes();
+    var f=worldState.combat.foes;
+    if(f.length!==2)return "expected 2 foes, got "+f.length;
+    return f[0].name==="Kresh"&&f[0].hp===12&&f[1].name==="Grukk"?true:"foes wrong: "+JSON.stringify(f);
+  });
+  t("duplicate living-foe COMBAT_START ignored + warn; 9th foe ignored + warn (cap 8)",function(){
+    makeWorld();var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");
+      applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");
+      if(worldState.combat.foes.length!==1)return "duplicate added a foe";
+      for(var i=2;i<=9;i++)applyMuts("[COMBAT_START:Goblin "+i+"|5|11|+1|d4|low]");
+    }finally{console.warn=_w;}
+    if(worldState.combat.foes.length!==8)return "cap failed: "+worldState.combat.foes.length+" foes";
+    var dupWarn=warns.filter(function(m){return m.indexOf("duplicate COMBAT_START")>=0;}).length;
+    var capWarn=warns.filter(function(m){return m.indexOf("foe cap")>=0;}).length;
+    return dupWarn===1&&capWarn===1?true:"warns wrong (dup "+dupWarn+", cap "+capWarn+")";
+  });
+  t("named ENEMY_HP: exact match mutates + sets engaged; case-insensitive contains works both directions",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-4]");
+    if(worldState.combat.foes[1].hp!==6)return "exact match failed";
+    if(worldState.combat.engaged!=="Grukk")return "engaged not set: "+worldState.combat.engaged;
+    applyMuts("[ENEMY_HP:kresh the tall|-2]"); // tag name CONTAINS foe name
+    if(worldState.combat.foes[0].hp!==10)return "contains (tag⊃foe) failed";
+    applyMuts("[ENEMY_HP:gru|-1]"); // foe name contains tag name
+    return worldState.combat.foes[1].hp===5?true:"contains (foe⊃tag) failed";
+  });
+  t("named ENEMY_HP no-match warns and mutates NOTHING (the drop class, now loud)",function(){
+    __twoFoes();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ENEMY_HP:Ogre|-5]");}finally{console.warn=_w;}
+    if(worldState.combat.foes[0].hp!==12||worldState.combat.foes[1].hp!==10)return "phantom target mutated a foe";
+    return warns.filter(function(m){return m.indexOf("not found")>=0;}).length===1?true:"no warn fired";
+  });
+  t("bare ENEMY_HP: single living foe → that foe (the N=1 legacy case)",function(){
+    makeWorld();applyMuts("[COMBAT_START:Wolf|9|12|+2|d6|low]");
+    applyMuts("[ENEMY_HP:-3]");
+    return worldState.combat.foes[0].hp===6?true:"single-foe routing broken";
+  });
+  t("bare ENEMY_HP with 2+ living → the ENGAGED foe; engaged-down → first living + warn (damage never vanishes)",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-1]"); // engage Grukk
+    applyMuts("[ENEMY_HP:-2]");       // bare → engaged Grukk
+    if(worldState.combat.foes[1].hp!==7)return "bare did not route to engaged: "+JSON.stringify(worldState.combat.foes);
+    applyMuts("[ENEMY_HP:Grukk|-7]"); // Grukk down → engaged cleared
+    if(worldState.combat.foes[1].down!=="slain")return "0-HP foe not marked slain";
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ENEMY_HP:-2]");}finally{console.warn=_w;} // ambiguity gone (1 living) — routes to Kresh, no warn needed
+    if(worldState.combat.foes[0].hp!==10)return "damage after engaged-down vanished";
+    // true ambiguity: 2 living, no engagement
+    makeWorld();applyMuts("[COMBAT_START:A|5|10|+1|d4|low]");applyMuts("[COMBAT_START:B|5|10|+1|d4|low]");
+    warns=[];_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ENEMY_HP:-2]");}finally{console.warn=_w;}
+    if(worldState.combat.foes[0].hp!==3)return "ambiguous bare did not land on first living";
+    return warns.filter(function(m){return m.indexOf("ambiguous bare ENEMY_HP")>=0;}).length===1?true:"ambiguity warn missing";
+  });
+  t("multiple ENEMY_HP tags in one response all apply (g-loop — deliberate change pinned)",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Kresh|-3][ENEMY_HP:Grukk|-4]");
+    return worldState.combat.foes[0].hp===9&&worldState.combat.foes[1].hp===6?true:"one of two tags dropped: "+JSON.stringify(worldState.combat.foes);
+  });
+  t("foe at 0 HP marks down:'slain', stays in foes[] (not spliced); one-down-one-up does NOT close",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-10]");
+    if(worldState.combat===null)return "closed with a foe still up";
+    var f=worldState.combat.foes;
+    return f.length===2&&f[1].down==="slain"?true:"down foe wrong: "+JSON.stringify(f);
+  });
+  t("all-foes-slain auto-closes as victory",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-10]");
+    var R=applyMuts("[ENEMY_HP:Kresh|-12]");
+    if(worldState.combat!==null)return "not closed";
+    return R.muts.join(" ").indexOf("victory")>=0?true:"outcome not victory: "+R.muts.join(" | ");
+  });
+  t("ENEMY_SURRENDERS:Name marks one foe; bare marks all living; all-surrendered closes as 'surrender'",function(){
+    __twoFoes();
+    var R1=applyMuts("[ENEMY_SURRENDERS:Grukk] \"Mercy!\" he cries.");
+    if(worldState.combat===null)return "closed with Kresh still up";
+    if(worldState.combat.foes[1].down!=="surrendered")return "named surrender failed";
+    if(R1.muts.join(" ").indexOf("Grukk surrenders")<0)return "muts line missing";
+    var R2=applyMuts("[ENEMY_SURRENDERS]");
+    if(worldState.combat!==null)return "all-surrendered did not close";
+    return R2.muts.join(" ").indexOf("surrender")>=0?true:"outcome not surrender: "+R2.muts.join(" | ");
+  });
+  t("COMBAT_END closes mid-encounter regardless of foe states",function(){
+    __twoFoes();
+    applyMuts("[COMBAT_END:fled]");
+    return worldState.combat===null?true:"not closed";
+  });
+  t("F2 location-change clears a 2-foe encounter (whole encounter, with warn)",function(){
+    __twoFoes();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[LOCATION:Elsewhere]");}finally{console.warn=_w;}
+    if(worldState.combat!==null)return "encounter survived the move";
+    return warns.filter(function(m){return m.indexOf("Kresh, Grukk")>=0;}).length===1?true:"stale warn should name both foes: "+warns.join(" / ");
+  });
+  t("COMBAT_STATS / COMBAT_IMMUNE bind to the MOST RECENTLY ADDED foe",function(){
+    __twoFoes();
+    applyMuts("[COMBAT_START:Shaman|8|11|+1|d4|craven][COMBAT_STATS:STR:8|DEX:12|CON:10|INT:14|WIS:15|CHA:13|CR:1][COMBAT_IMMUNE:poison]");
+    var f=worldState.combat.foes;
+    if(f.length!==3)return "third foe not added";
+    if(!f[2].stats||f[2].stats.INT!==14)return "stats missed the new foe";
+    if(f[0].stats||f[1].stats)return "stats leaked onto an earlier foe";
+    return f[2].immune&&f[2].immune[0]==="poison"?true:"immune missed the new foe";
+  });
+  t("migrateWorldState wraps a flat legacy combat object; idempotent on re-run",function(){
+    makeWorld();
+    worldState.combat={name:"Old Wolf",hp:7,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:3};
+    migrateWorldState();
+    var cm=worldState.combat;
+    if(!cm.foes||cm.foes.length!==1||cm.foes[0].name!=="Old Wolf"||cm.foes[0].hp!==7)return "wrap wrong: "+JSON.stringify(cm);
+    if(cm.round!==3)return "round not carried";
+    migrateWorldState();
+    return worldState.combat.foes.length===1&&!worldState.combat.foes[0].foes?true:"double-wrap on re-run";
+  });
+  t("combat block in the volatile half renders every living foe + the down summary",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-10]");
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Enemy: Kresh")<0)return "living foe missing from prompt";
+    if(v.indexOf("Grukk (slain)")<0)return "down summary missing";
+    return v.indexOf("use [ENEMY_HP:Name|-X]")>=0?true:"multi-foe addressing hint missing";
   });
 
   // ── UA25: companion spell tracking + companion canon injection ───────────────

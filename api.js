@@ -223,7 +223,15 @@ function buildSysPrompt(){
   var saveStr="";if(c.saveModifiers&&c.saveModifiers.length){saveStr="Save modifiers: "+c.saveModifiers.map(function(x){var v=x.amount>=0?"+"+x.amount:""+x.amount;return v+" vs "+x.type+" ["+x.source+"]";}).join(", ")+"\n";}
   var langStr="";if(c.languages&&c.languages.length){langStr="Languages: "+c.languages.map(function(x){return x.name+(x.broken?" (broken)":"");}).join(", ")+"\n";}
   var skillStr="";if(c.skills){var nzSkills=[],nzKeys=Object.keys(c.skills);for(var nzk=0;nzk<nzKeys.length;nzk++){if(c.skills[nzKeys[nzk]]>0)nzSkills.push(nzKeys[nzk]+": "+SKILL_LEVELS[skillLevel(c.skills[nzKeys[nzk]])]);}if(nzSkills.length)skillStr="Skills (earned): "+nzSkills.join(", ")+"\n";}
-  var cb="";if(worldState.combat){var cm=worldState.combat;var cbStats="";if(cm.stats)cbStats=" | STR:"+cm.stats.STR+" DEX:"+cm.stats.DEX+" CON:"+cm.stats.CON+" INT:"+cm.stats.INT+" WIS:"+cm.stats.WIS+" CHA:"+cm.stats.CHA+" CR:"+cm.stats.CR;var cbDmgMod="";if(cm.immune&&cm.immune.length)cbDmgMod+=" | Immune:"+cm.immune.join(",");if(cm.resist&&cm.resist.length)cbDmgMod+=" | Resist:"+cm.resist.join(",");if(cm.vuln&&cm.vuln.length)cbDmgMod+=" | Vuln:"+cm.vuln.join(",");cb="COMBAT ACTIVE:\nEnemy: "+cm.name+" HP:"+cm.hp+"/"+cm.maxHp+" AC:"+cm.ac+" Atk:+"+cm.atk+" Dmg:"+cm.dmg+" Morale:"+cm.morale+" Round:"+cm.round+cbStats+cbDmgMod+"\n\n";}
+  // UA26: one line per LIVING foe; down foes summarized once so the GM narrates the aftermath
+  // without re-fighting them. combat.engaged marks who the player is actively fighting.
+  var cb="";if(worldState.combat){var cm=worldState.combat;var cbLines=[],cbDown=[],cfi,cfs=cm.foes||[];
+    for(cfi=0;cfi<cfs.length;cfi++){var cf=cfs[cfi];
+      if(cf.down||cf.hp<=0){cbDown.push(cf.name+" ("+(cf.down||"slain")+")");continue;}
+      var cbStats="";if(cf.stats)cbStats=" | STR:"+cf.stats.STR+" DEX:"+cf.stats.DEX+" CON:"+cf.stats.CON+" INT:"+cf.stats.INT+" WIS:"+cf.stats.WIS+" CHA:"+cf.stats.CHA+" CR:"+cf.stats.CR;
+      var cbDmgMod="";if(cf.immune&&cf.immune.length)cbDmgMod+=" | Immune:"+cf.immune.join(",");if(cf.resist&&cf.resist.length)cbDmgMod+=" | Resist:"+cf.resist.join(",");if(cf.vuln&&cf.vuln.length)cbDmgMod+=" | Vuln:"+cf.vuln.join(",");
+      cbLines.push("Enemy: "+cf.name+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod);}
+    cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var memToc=memoryTOC();
   // RAG episodic excerpts (#27 Phase 1) — "" unless worldState.ragMemory is on. VOLATILE

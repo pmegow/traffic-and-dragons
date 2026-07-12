@@ -128,7 +128,7 @@
           maxHp: worldState.character.maxHp,
           gold: worldState.character.gold,
           xp: worldState.character.xp,
-          combat: worldState.combat ? {name: worldState.combat.name, hp: worldState.combat.hp} : null,
+          combat: worldState.combat ? {engaged: worldState.combat.engaged||null, foes: (worldState.combat.foes||[]).map(function(f){return {name:f.name, hp:f.hp, down:f.down||null};})} : null,/* UA26 foes[] shape */
           sessionTokensApprox: (typeof sessionTokens==="function") ? sessionTokens() : null
         });
         persist(); // durable after EVERY turn

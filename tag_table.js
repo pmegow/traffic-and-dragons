@@ -30,10 +30,9 @@ var TAG_STRIP_BARE=["ENEMY_SURRENDERS","SUBLOCATION_LEAVE"];
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
 // RETCON: consumed at logTranscript time (RAG de-index), not a state mutation.
-// ENEMY_SURRENDERS: ⚠ UA2 PHANTOM — stripped but inert since inception; decision pending
-// (implement a surrender mutation or delete from the strip lists). Kept here so the coverage
-// guard documents it instead of letting it hide.
-var TAG_NO_HANDLER=["DICE","ACTIONS","RETCON","ENEMY_SURRENDERS"];
+// (ENEMY_SURRENDERS graduated OUT of this list at v1.264 — the UA2 phantom is now a real
+// handler, implemented with multi-enemy combat per MULTI_ENEMY_COMBAT.md §3.)
+var TAG_NO_HANDLER=["DICE","ACTIONS","RETCON"];
 function buildCtTags(){return new RegExp("\\[("+TAG_STRIP_NAMES.join("|")+"):[^\\]]+\\]","g");}
 function buildCtBare(){return new RegExp("\\[("+TAG_STRIP_BARE.join("|")+")\\]","g");}
 
@@ -53,10 +52,11 @@ var TAG_DOC_LINES=[
 "[TIME:time of day] -- update whenever time meaningfully advances (e.g. [TIME:dawn], [TIME:late night]); the world clock does NOT move on its own, so a night's camp, a long journey, or a rest all need this tag or the prompt keeps reporting the old time\n",
 "[WEATHER:description] -- update when the weather changes (e.g. [WEATHER:heavy rain], [WEATHER:clear and cold])\n",
 "[LOCATION_ITEM:name|placed] -- item left or hidden here (pair with [ITEM_LOST:]); [LOCATION_ITEM:name|taken] -- item removed by NPC/event (player pickup auto-handled by [ITEM_GAINED:])\n",
-"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] [ENEMY_HP:-X] [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
+"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] -- emitting it DURING an active fight adds ANOTHER enemy to the same encounter (one tag per distinct foe; a faceless group can be one pooled entry like 'Goblin pack'). [ENEMY_HP:-X] or [ENEMY_HP:Name|-X] -- use the named form whenever more than one enemy is up. [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
 "[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N] -- always emit alongside COMBAT_START; use official D&D stats\n",
 "[COMBAT_IMMUNE:fire,poison] [COMBAT_RESIST:cold,lightning] [COMBAT_VULN:thunder] -- omit entirely if none; comma-separated damage types only\n",
 "CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n",
+"[ENEMY_SURRENDERS] (all remaining enemies yield) or [ENEMY_SURRENDERS:Name] (one enemy yields) -- the fight ends for that foe but they LIVE; when a surrendered foe is a speaking character, register them with [NPC:name|status|relation] in the same response so they enter the world properly\n",
 "[ALIGNMENT:law+1] [ALIGNMENT:good-1] (use on morally significant choices only)\n",
 "[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n",
 "[SPELL_DEF:Name|range=X|targets=Y|duration=Z|effect=...|cost=slot|tier=1|category=arcane,divine|magical=yes] -- ONLY when a spell is cast that is NOT already in the CANONICAL SPELL RULES list (one you invented or a homebrew): define its canon ONCE so the engine pins it and it can never drift. '=' per field, '|' between fields; category is a comma-separated tradition list (arcane/divine/primal/necromantic/martial); keep effect free of '|' and ']'. Recorded once, re-injected forever -- do not redefine a spell already listed.\n",
@@ -94,13 +94,35 @@ function buildStateTagsDoc(){return TAG_DOC_LINES.join("");}
 
 // ── THE TABLE — ordered handler registry. Bodies are 1:1 transcriptions of the applyMuts blocks
 // (only `muts`→R.muts, `turn`→R.turn, `feGet`→R.feGet, `_xpMirror`→R._xpMirror renamed). ──────────
+// ── UA26 multi-foe combat helpers (shape: worldState.combat={round,engaged,foes:[...]}) ────────
+// A foe at hp<=0 or with .down set is out of the fight but stays in foes[] (panel strike-through
+// + GM aftermath context). combat.engaged = the foe the player last damaged (deterministic
+// "who am I fighting" proxy — ratified decision 2, MULTI_ENEMY_COMBAT.md §7).
+function combatLivingFoes(){var out=[],i,f=(worldState.combat&&worldState.combat.foes)||[];
+  for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0)out.push(f[i]);}return out;}
+function combatFoeByName(nm){
+  var f=(worldState.combat&&worldState.combat.foes)||[],i,t=String(nm||"").toLowerCase().trim();
+  for(i=0;i<f.length;i++){if(f[i].name.toLowerCase()===t)return f[i];}
+  for(i=0;i<f.length;i++){var fn=f[i].name.toLowerCase();if(fn.indexOf(t)>=0||t.indexOf(fn)>=0)return f[i];}
+  return null;
+}
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}}},
 {t:"GOLD",apply:function(text,R){var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);R.muts.push(dg>0?"+"+dg+" gp":dg+" gp");}}},
 {t:"ITEM_GAINED",apply:function(text,R){var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[];var igi;for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;for(igqi=0;igqi<igq.n;igqi++)addInventoryItem(worldState.character.inventory,igq.base);R.muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:""));autoTakeLocationItem(igq.base);}}},
 {t:"ITEM_LOST",apply:function(text,R){var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili;for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi;for(ilqi=0;ilqi<ilq.n;ilqi++)removeInventoryItem(worldState.character.inventory,ilq.base);R.muts.push("-"+ilq.base+(ilq.n>1?" x"+ilq.n:""));}}},
 {t:"LOCATION",apply:function(text,R){var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=loc[1].trim();var _prevLoc=worldState.world.location;fileLocation(_lname,"",R.turn);worldState.world.location=_lname;worldState.world.sublocation=null;R.muts.push("-> "+_lname);
-  if(worldState.combat&&_lname!==_prevLoc&&!/\[COMBAT_START:/.test(text)){var _staleFoe=worldState.combat.name;worldState.combat=null;R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}},
+  // F2 (v1.216) generalized for multi-foe (v1.264): a WORLD-location change means the whole
+  // encounter is over — the party traveled away. The old exemption relied on COMBAT_START
+  // OVERWRITING; under add-a-foe semantics skipping the clear would leak the old location's
+  // foes into the new fight, so the clear now runs UNCONDITIONALLY on a real move — silently
+  // (no stale-warn, no muts line) when the same response opens a fresh fight, since the new
+  // COMBAT_START immediately rebuilds the tracker (preserves v1.216's observable behavior).
+  if(worldState.combat&&_lname!==_prevLoc){
+    var _freshFight=/\[COMBAT_START:/.test(text);
+    var _staleFoe=(worldState.combat.foes||[]).map(function(f){return f.name;}).join(", ")||"?";
+    worldState.combat=null;
+    if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}},
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),R.turn);R.muts.push("Sub: "+sloctag[1].trim());}}},
 {t:"SUBLOCATION_LEAVE",apply:function(text,R){if(/\[SUBLOCATION_LEAVE\]/.test(text)){worldState.world.sublocation=null;R.muts.push("Left sub-location");}}},
 {t:"TIME",apply:function(text,R){var timeTag=text.match(/\[TIME:([^\]]+)\]/);if(timeTag){worldState.world.time=timeTag[1].trim();R.muts.push("Time: "+timeTag[1].trim());}}},
@@ -155,15 +177,80 @@ var TAG_TABLE=[
     if(typeof showToast==="function")showToast((qStat==="completed"?"✓ Quest completed: ":"✗ Quest failed: ")+qTitle+(_rw.length?" — "+_rw.join(", "):""));
     archiveQuest(qTitle,qStat);}}}},
 {t:"QUEST_STEP",apply:function(text,R){var qsteps=text.match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/g)||[];var qsi;for(qsi=0;qsi<qsteps.length;qsi++){var qsp=qsteps[qsi].match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/);if(!qsp)continue;var qsTitle=qsp[1].trim(),qsObj=qsp[2].trim(),qsDone=/^(true|done|1|yes|x)$/i.test((qsp[3]||"").trim());var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq)continue;if(qsq.status==="offered")continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;ofound=true;break;}}if(!ofound)qsq.objectives.push({text:qsObj,done:qsDone});R.muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj);}}},
-{t:"COMBAT_START",apply:function(text,R){var cs2=text.match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(cs2){worldState.combat={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim(),round:1};R.muts.push("Combat: "+cs2[1].trim());}}},
-{t:"COMBAT_STATS",nc:1,apply:function(text,R){var cstats=text.match(/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/);if(cstats&&worldState.combat){worldState.combat.stats={STR:+cstats[1],DEX:+cstats[2],CON:+cstats[3],INT:+cstats[4],WIS:+cstats[5],CHA:+cstats[6],CR:cstats[7]};}}},
-{t:"COMBAT_IMMUNE",nc:1,apply:function(text,R){var cimm=text.match(/\[COMBAT_IMMUNE:([^\]]+)\]/);if(cimm&&worldState.combat){worldState.combat.immune=cimm[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
-{t:"COMBAT_RESIST",nc:1,apply:function(text,R){var cresist=text.match(/\[COMBAT_RESIST:([^\]]+)\]/);if(cresist&&worldState.combat){worldState.combat.resist=cresist[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
-{t:"COMBAT_VULN",nc:1,apply:function(text,R){var cvuln=text.match(/\[COMBAT_VULN:([^\]]+)\]/);if(cvuln&&worldState.combat){worldState.combat.vuln=cvuln[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
-{t:"ENEMY_HP",nc:1,apply:function(text,R){var ehp=text.match(/\[ENEMY_HP:\s*([+-]?\d+)[^\]]*\]/);if(ehp&&worldState.combat){worldState.combat.hp=Math.max(0,worldState.combat.hp+parseInt(ehp[1]));}}},
+// UA26: multi-match g-loop (legacy matched only the FIRST tag — the H2 class: 18/150 Haiku turns
+// emitted a second COMBAT_START during a fight and it was silently lost). No combat → start the
+// encounter; combat active → ADD a foe; duplicate living name → re-emission, ignored + warn;
+// 9th foe → runaway-model guard (cap 8, ratified decision 4).
+{t:"COMBAT_START",apply:function(text,R){
+  var csTags=text.match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/g)||[];var csi;
+  for(csi=0;csi<csTags.length;csi++){
+    var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;
+    var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
+    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe]};R.muts.push("Combat: "+foe.name);continue;}
+    var dup=null,di,fl=worldState.combat.foes;
+    for(di=0;di<fl.length;di++){if(fl[di].name.toLowerCase()===foe.name.toLowerCase()&&!fl[di].down&&fl[di].hp>0){dup=fl[di];break;}}
+    if(dup){console.warn("[combat] duplicate COMBAT_START for living foe '"+foe.name+"' ignored (re-emission)");continue;}
+    if(fl.length>=8){console.warn("[combat] foe cap (8) reached — COMBAT_START '"+foe.name+"' ignored (runaway-model guard)");continue;}
+    fl.push(foe);R.muts.push("Combat +foe: "+foe.name);
+  }}},
+// COMBAT_STATS / IMMUNE / RESIST / VULN bind to the MOST RECENTLY ADDED foe — the docs say
+// "emit alongside COMBAT_START", so adjacency is the natural rule (MULTI_ENEMY_COMBAT §3).
+{t:"COMBAT_STATS",nc:1,apply:function(text,R){var cstats=text.match(/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/);if(cstats&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].stats={STR:+cstats[1],DEX:+cstats[2],CON:+cstats[3],INT:+cstats[4],WIS:+cstats[5],CHA:+cstats[6],CR:cstats[7]};}}},
+{t:"COMBAT_IMMUNE",nc:1,apply:function(text,R){var cimm=text.match(/\[COMBAT_IMMUNE:([^\]]+)\]/);if(cimm&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].immune=cimm[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
+{t:"COMBAT_RESIST",nc:1,apply:function(text,R){var cresist=text.match(/\[COMBAT_RESIST:([^\]]+)\]/);if(cresist&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].resist=cresist[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
+{t:"COMBAT_VULN",nc:1,apply:function(text,R){var cvuln=text.match(/\[COMBAT_VULN:([^\]]+)\]/);if(cvuln&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].vuln=cvuln[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
+// UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
+// [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the
+// single living foe, else the ENGAGED foe, else first-living + warn — the mutation always lands
+// (narrated damage must not vanish; ratified decision 2). Any damage sets combat.engaged.
+{t:"ENEMY_HP",nc:1,apply:function(text,R){
+  var eTags=text.match(/\[ENEMY_HP:[^\]]+\]/g)||[];var ei;
+  for(ei=0;ei<eTags.length;ei++){
+    if(!worldState.combat)break;
+    var named=eTags[ei].match(/\[ENEMY_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);
+    var bare=named?null:eTags[ei].match(/\[ENEMY_HP:\s*([+-]?\d+)[^\]]*\]/);
+    var foe=null,dv=0;
+    if(named){dv=parseInt(named[2]);foe=combatFoeByName(named[1]);
+      if(!foe){console.warn("[combat] named ENEMY_HP target not found: "+named[1].trim()+" — no mutation");continue;}}
+    else if(bare){dv=parseInt(bare[1]);
+      var living=combatLivingFoes();if(!living.length)continue;
+      if(living.length===1)foe=living[0];
+      else{var eng=worldState.combat.engaged?combatFoeByName(worldState.combat.engaged):null;
+        if(eng&&!eng.down&&eng.hp>0)foe=eng;
+        else{foe=living[0];console.warn("[combat] ambiguous bare ENEMY_HP with "+living.length+" foes up — routed to "+foe.name+"; use [ENEMY_HP:Name|-X]");}}}
+    else continue;
+    foe.hp=Math.max(0,foe.hp+dv);
+    worldState.combat.engaged=foe.name;
+    if(foe.hp<=0){foe.down="slain";worldState.combat.engaged=null;}
+  }}},
+// UA2 resolved as IMPLEMENT (user call 2026-07-10): the former phantom becomes a real beat.
+// Sits between ENEMY_HP and COMBAT_ROUND so COMBAT_END's all-down close sees surrender state
+// emitted in the same response. Named form yields one foe; bare form yields all living.
+{t:"ENEMY_SURRENDERS",nc:1,apply:function(text,R){
+  if(!worldState.combat)return;
+  var nT=text.match(/\[ENEMY_SURRENDERS:([^\]]+)\]/g)||[];var si;
+  for(si=0;si<nT.length;si++){var sm=nT[si].match(/\[ENEMY_SURRENDERS:([^\]]+)\]/);if(!sm)continue;
+    var sfoe=combatFoeByName(sm[1]);
+    if(!sfoe){console.warn("[combat] ENEMY_SURRENDERS target not found: "+sm[1].trim());continue;}
+    if(!sfoe.down&&sfoe.hp>0){sfoe.down="surrendered";R.muts.push(sfoe.name+" surrenders");
+      if(worldState.combat.engaged===sfoe.name)worldState.combat.engaged=null;}}
+  if(/\[ENEMY_SURRENDERS\]/.test(text)){var lv=combatLivingFoes(),li;
+    for(li=0;li<lv.length;li++){lv[li].down="surrendered";R.muts.push(lv[li].name+" surrenders");}
+    worldState.combat.engaged=null;}}},
 {t:"COMBAT_ROUND",nc:1,apply:function(text,R){var cr=text.match(/\[COMBAT_ROUND:(\d+)\]/);if(cr&&worldState.combat)worldState.combat.round=parseInt(cr[1]);}},
-{t:"COMBAT_END",nc:1,apply:function(text,R){var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);if(ce){worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());}
-  else if(worldState.combat&&worldState.combat.hp<=0){var deadName=worldState.combat.name;worldState.combat=null;R.muts.push("Combat: victory ("+deadName+")");}}},
+// Explicit COMBAT_END closes the WHOLE encounter regardless of foe states. Without the tag, the
+// single-foe kill safety net generalizes: ALL foes down auto-closes — any surrendered foe among
+// them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
+{t:"COMBAT_END",nc:1,apply:function(text,R){
+  var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
+  if(ce){worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+  if(!worldState.combat)return;
+  var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
+  for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
+    if(f[i].down==="surrendered")surr=true;names.push(f[i].name);}
+  if(anyUp||!f.length)return;
+  worldState.combat=null;
+  R.muts.push(surr?"Combat: surrender ("+names.join(", ")+")":"Combat: victory ("+names.join(", ")+")");}},
 {t:"ABILITY_GAINED",apply:function(text,R){var abs=text.match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[];var abi;for(abi=0;abi<abs.length;abi++){var abp=abs[abi].match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!abp)continue;if(!worldState.character.abilities)worldState.character.abilities=[];var already=false,abj;for(abj=0;abj<worldState.character.abilities.length;abj++){if(worldState.character.abilities[abj].nm===abp[1]){already=true;break;}}if(!already){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
 {t:"ALIGNMENT",apply:function(text,R){var alms=text.match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/gi)||[];var ali;for(ali=0;ali<alms.length;ali++){var ap=alms[ali].match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/i);if(ap){if(!worldState.character.alignLaw)worldState.character.alignLaw=0;if(!worldState.character.alignGood)worldState.character.alignGood=0;if(ap[1].toLowerCase()==="law")worldState.character.alignLaw=Math.max(-3,Math.min(3,worldState.character.alignLaw+parseInt(ap[2])));else worldState.character.alignGood=Math.max(-3,Math.min(3,worldState.character.alignGood+parseInt(ap[2])));var newAl=alignLabel(worldState.character.alignLaw,worldState.character.alignGood);if(newAl!==worldState.character.actualAlignment){R.muts.push("Align: "+newAl);worldState.character.actualAlignment=newAl;}}}}},
 {t:"SPELL_USED",apply:function(text,R){var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;
