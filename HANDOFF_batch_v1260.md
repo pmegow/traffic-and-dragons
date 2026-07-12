@@ -1149,3 +1149,9 @@ later turns) — consistent with the one-note-per-turn spirit of the quest escal
    reopen when re-baited); the t355 Message bait; a quiet weighty bond (reciprocity nudge).
    Corpus persisted, audit written (test-runs-always-audit), one AUDIT_playtest_v12xx.md in the
    established format.
+   **✅ DONE (2026-07-11): [AUDIT_playtest_v1271.md](AUDIT_playtest_v1271.md)** — 29 turns, $1.18.
+   7/8 scenarios validated live (the #46 `cause` field got no organic condition trigger — carried).
+   Two new findings gate follow-up work: **P3-F1** UA26 stats mis-binding on multi-foe
+   single-response emissions (Med-High, drift surface) and **P3-F2** the quest-reopen guard
+   passing re-emitted rewards through (double payment). Batch closes with those carried as
+   new work items.
