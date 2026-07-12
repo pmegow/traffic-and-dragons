@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App vs Browser — Traffic and Dragons</title>
+<style>
+  :root{
+    --bg:#101010; --panel:#181818; --panel2:#1f1c16;
+    --acc:#b8935a; --txt:#d8d2c8; --dim:#8a8478;
+    --good:#7aa86a; --bad:#c06a5a; --warn:#c9a24b;
+    --border:#2c2c2c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:Georgia,'Times New Roman',serif;
+    line-height:1.65; padding:32px 16px 80px;
+  }
+  .wrap{max-width:860px; margin:0 auto;}
+  header{border-bottom:1px solid var(--acc); padding-bottom:18px; margin-bottom:28px;}
+  h1{font-size:1.9em; color:var(--acc); font-weight:normal; letter-spacing:.5px;}
+  .subtitle{color:var(--dim); font-style:italic; margin-top:6px; font-size:.95em;}
+  .meta{color:var(--dim); font-size:.8em; margin-top:10px; font-family:Consolas,monospace;}
+  h2{
+    color:var(--acc); font-size:1.35em; font-weight:normal;
+    margin:36px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  h3{color:var(--txt); font-size:1.05em; margin:22px 0 8px;}
+  p{margin:0 0 12px;}
+  strong{color:#efe8da;}
+  em{color:var(--dim);}
+  .verdict{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:16px 20px; margin:14px 0 22px;
+  }
+  .verdict .vlabel{
+    font-family:Consolas,monospace; font-size:.72em; letter-spacing:2px;
+    text-transform:uppercase; color:var(--acc); display:block; margin-bottom:6px;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 22px; margin:14px 0;
+  }
+  .cols{display:flex; gap:14px; flex-wrap:wrap; margin:14px 0;}
+  .col{
+    flex:1; min-width:280px; background:var(--panel);
+    border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  }
+  .col h4{
+    font-family:Consolas,monospace; font-size:.75em; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:10px; font-weight:normal;
+  }
+  .col.today h4{color:var(--good);}
+  .col.native h4{color:var(--warn);}
+  ul{margin:0 0 12px 20px;}
+  li{margin-bottom:7px;}
+  .lean{
+    font-family:Consolas,monospace; font-size:.78em; letter-spacing:1px;
+    padding:2px 10px; border-radius:12px; border:1px solid;
+  }
+  .lean.browser{color:var(--good); border-color:var(--good);}
+  .lean.wash{color:var(--warn); border-color:var(--warn);}
+  .lean.appfail{color:var(--bad); border-color:var(--bad);}
+  .lean-row{display:flex; align-items:center; gap:12px; margin:4px 0 14px;}
+  .lean-row .dim{color:var(--dim); font-size:.85em;}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92em;}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{
+    color:var(--acc); font-family:Consolas,monospace; font-size:.78em;
+    letter-spacing:1.5px; text-transform:uppercase; font-weight:normal;
+  }
+  td:first-child{color:#efe8da; white-space:nowrap;}
+  .num{font-family:Consolas,monospace; color:var(--warn); white-space:nowrap;}
+  .path{
+    border-left:3px solid var(--acc); padding:4px 0 4px 18px; margin:18px 0;
+  }
+  .path.dead{border-left-color:var(--bad);}
+  .path h3{margin-top:0;}
+  ol{margin:0 0 12px 22px;}
+  ol li{margin-bottom:9px;}
+  .tag{
+    font-family:Consolas,monospace; font-size:.75em; color:var(--dim);
+  }
+  .bottom{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:20px 24px; margin-top:34px;
+  }
+  .bottom h2{margin-top:0; border-bottom:none;}
+  footer{
+    margin-top:40px; padding-top:14px; border-top:1px solid var(--border);
+    color:var(--dim); font-size:.8em; font-family:Consolas,monospace;
+  }
+  @media (max-width:600px){
+    body{padding:20px 10px 60px;}
+    h1{font-size:1.5em;}
+    td:first-child{white-space:normal;}
+  }
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:#0a0a0a;}
+  ::-webkit-scrollbar-thumb{background:#333;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>⚔ App Store vs Browser</h1>
+  <div class="subtitle">An honest assessment of Traffic and Dragons as a native iOS/Android app versus what it is today</div>
+  <div class="meta">Written 2026-07-12 · grounded in: ~10K lines of dependency-free JS · BYOK (players bring their own Anthropic key) · free static hosting on Cloudflare Pages · optional Fly.dev sync server · multiple shipped versions per day</div>
+</header>
+
+<h2>1 · Security</h2>
+<div class="lean-row"><span class="lean wash">ROUGHLY A WASH, LEANING WORSE AS AN APP</span></div>
+
+<div class="cols">
+  <div class="col today">
+    <h4>Today (browser)</h4>
+    <ul>
+      <li>API key sits in plaintext in localStorage and calls Anthropic directly via the <span class="tag">anthropic-dangerous-direct-browser-access</span> header — the header name is honest.</li>
+      <li>In practice the exposure is small: no third-party scripts, no shared user content, no server holding anything valuable.</li>
+      <li>The key is the <em>user's own key</em> — a leak costs the user their own money, not yours.</li>
+      <li>Threat model is basically "someone with physical access to your device."</li>
+    </ul>
+  </div>
+  <div class="col native">
+    <h4>As a native app</h4>
+    <ul>
+      <li>Keychain / Keystore for key storage — genuinely better per-device.</li>
+      <li><strong>But you almost certainly can't ship BYOK to consumers through the App Store.</strong> Apple reviewers regularly reject "paste your own API key to make the app work" apps as incomplete / against IAP rules.</li>
+      <li>A store app effectively forces a proxy server holding <em>your</em> Anthropic key — with accounts, metering, and abuse prevention.</li>
+      <li>That flips the security posture: today there is almost nothing worth attacking; as a store app there is a server whose compromise burns your money at API rates.</li>
+    </ul>
+  </div>
+</div>
+<div class="verdict"><span class="vlabel">Verdict</span>Native is more secure per-device; the business model it forces is a much larger attack surface. Net: roughly a wash, leaning worse.</div>
+
+<h2>2 · Profitability</h2>
+<div class="lean-row"><span class="lean browser">BROWSER WINS — DECISIVELY</span></div>
+
+<p><strong>Blunt version: today this earns $0 and costs ~$0. As a store app it would earn approximately $0 and cost real money.</strong></p>
+
+<table>
+  <tr><th>Factor</th><th>Reality</th></tr>
+  <tr>
+    <td>Token cost per turn</td>
+    <td>Measured audits show <span class="num">~$0.32 / 8 turns</span> (≈4¢/turn with prompt caching). An engaged player running a 300-turn campaign costs <span class="num">$10–15+</span> in tokens — on your dime under a store model.</td>
+  </tr>
+  <tr>
+    <td>Store economics</td>
+    <td>Subscription must be priced above your heaviest user's burn, minus Apple's <span class="num">15–30%</span> cut, plus the <span class="num">$99/yr</span> developer fee, plus server costs. This is the AI Dungeon unit-economics problem, at hobby scale, without their audience.</td>
+  </tr>
+  <tr>
+    <td>Market size</td>
+    <td>Real but tiny: solo AI-narrated text-RPG enthusiasts. App Store discoverability for a niche text game with no marketing budget is effectively zero organic installs.</td>
+  </tr>
+  <tr>
+    <td>Current model</td>
+    <td>Free game, players pay Anthropic directly — the <strong>only</strong> configuration where this project is financially self-sustaining.</td>
+  </tr>
+</table>
+<div class="verdict"><span class="vlabel">Verdict</span>Converting to an app doesn't create a business; it creates a billing obligation.</div>
+
+<h2>3 · Maintenance</h2>
+<div class="lean-row"><span class="lean browser">BROWSER WINS — THE STARKEST DIFFERENCE</span></div>
+
+<div class="cols">
+  <div class="col today">
+    <h4>Today (browser)</h4>
+    <ul>
+      <li>Edit file → bump <span class="tag">APP_VERSION</span> → push → live on Cloudflare in seconds.</li>
+      <li>v1.27x and climbing, with nightly batch playtest runs.</li>
+      <li>That cadence <em>is</em> the development methodology — the whole anti-drift stack was built through rapid ship-test-audit loops.</li>
+    </ul>
+  </div>
+  <div class="col native">
+    <h4>As a native app</h4>
+    <ul>
+      <li>Every release goes through review — hours to days on iOS, less on Android but never zero — on <strong>two platforms</strong>.</li>
+      <li>Xcode/SDK churn and annual OS-compatibility work.</li>
+      <li>The server (billing + proxy) becomes mandatory, load-bearing infrastructure instead of optional sync.</li>
+      <li><strong>The nightly-iteration workflow dies on day one.</strong></li>
+    </ul>
+  </div>
+</div>
+<div class="verdict"><span class="vlabel">Verdict</span>For a solo maintainer, this is the difference between a project that stays alive and one that stalls.</div>
+
+<h2>4 · CarPlay — the uncomfortable truth</h2>
+<div class="lean-row"><span class="lean appfail">DEAD END — NATIVE DOESN'T GET YOU THERE</span></div>
+
+<div class="card">
+  <p><strong>Going native does not get you CarPlay.</strong> CarPlay apps require entitlements Apple grants per-app, only in approved categories: audio, messaging, navigation, EV charging, and a few others. <strong>Interactive games are not an approvable CarPlay category, period.</strong> A voice-driven RPG would have to masquerade as an "audio app," and the entitlement review would catch it.</p>
+  <p>Android Auto is barely better — its games category is parked-only, on select head units.</p>
+  <p>Meanwhile, the existing <strong>Car Mode</strong> (phone browser + TTS + voice input, audio over Bluetooth to the car) already delivers the actual experience — hands-free narrated play in the car — without needing anyone's permission. It's not on the head-unit screen, but for a game you shouldn't be looking at while driving, that's arguably correct.</p>
+  <p><em>If CarPlay was a motivation for the app conversion, it's a dead end.</em></p>
+</div>
+
+<h2>5 · What a full conversion would take</h2>
+
+<div class="path">
+  <h3>Path A — Capacitor wrapper (the only sane one)</h3>
+  <p>The zero-dependency ES5 codebase is unusually easy to wrap:</p>
+  <ol>
+    <li><strong>Wrap + build pipeline</strong> — Capacitor shell, iOS + Android projects, icons/splash. <span class="num">~1 week</span>. The no-build-step architecture survives intact.</li>
+    <li><strong>Storage migration</strong> — localStorage → Capacitor Preferences/SQLite. Ironically this <em>deletes</em> problems: the quota ceiling that forced transcript compression (v1.227) vanishes. <span class="num">~1 week</span> including migration of existing saves.</li>
+    <li><strong>Key storage</strong> — Keychain/Keystore plugin. <span class="num">Days</span>.</li>
+    <li><strong>Native TTS/STT</strong> — replace Web Speech with Capacitor plugins (better voices, background audio for Car Mode). <span class="num">~1 week</span>.</li>
+    <li><strong>The real project: the proxy/subscription server</strong> — store distribution to strangers rules out BYOK, so: accounts, Anthropic proxy with your key, per-user metering and hard caps, IAP receipt validation (StoreKit 2 + Google Play Billing), abuse handling. <span class="num">1–2 months</span> — and it's the part that never stops needing maintenance.</li>
+    <li><strong>Store overhead</strong> — privacy policy, review compliance (AI-generated-content policies apply; the 18+ adult-content toggle needs age-gating or removal for review), screenshots, review cycles. <span class="num">~2 weeks</span> and recurring friction.</li>
+  </ol>
+  <table>
+    <tr><th>Scope</th><th>Estimate</th><th>Notes</th></tr>
+    <tr>
+      <td>Hobby wrapper</td>
+      <td class="num">2–4 weeks part-time</td>
+      <td>Keep BYOK, distribute via TestFlight / sideloaded APK to yourself and friends. Viable — no review fight, no server.</td>
+    </tr>
+    <tr>
+      <td>Commercial store product</td>
+      <td class="num">3–6 months</td>
+      <td>Plus permanent server/billing costs and the 15–30% platform cut.</td>
+    </tr>
+  </table>
+</div>
+
+<div class="path dead">
+  <h3>Path B — full native rewrite (Swift/Kotlin or Flutter)</h3>
+  <p><span class="num">4–6+ months</span> to reimplement 10K lines of battle-tested state/memory/tag machinery — by the project's own drift-protection decree the riskiest possible move — for zero user-facing gain over Path A. <strong>Don't.</strong></p>
+</div>
+
+<div class="bottom">
+  <h2>Bottom line</h2>
+  <p><strong>The browser version isn't the compromise — it's the correct architecture for what this is.</strong> BYOK is the only viable economics, instant deploy is the only viable dev cadence for a solo project iterating this fast, and CarPlay is unobtainable regardless of platform.</p>
+  <p>The one conversion that makes sense is the cheap one: a Capacitor wrapper distributed <em>outside</em> the store (TestFlight/sideload) purely for native storage, better TTS, and a home-screen app feel — keeping BYOK and the current server exactly as they are.</p>
+  <p>The full commercial store conversion only makes sense if the goal changes from <em>"build my ideal RPG"</em> to <em>"run a small AI subscription business"</em> — and those are very different projects.</p>
+</div>
+
+<footer>Traffic and Dragons · app_vs_browser.html · standalone doc page (not in the SW app shell) · 2026-07-12</footer>
+
+</div>
+</body>
+</html>
