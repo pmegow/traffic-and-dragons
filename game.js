@@ -1083,6 +1083,7 @@ function buildSheetSyncPrompt(companions){
     +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1) [ITEM_GAINED:name] [ITEM_LOST:name]. "
     +compLine+" "
     +"ITEM tags are DISCREPANCY CORRECTIONS ONLY: compare each sheet against the story — emit [ITEM_LOST:] for a consumable the story shows spent but the sheet still lists, [ITEM_GAINED:] for an item the story shows acquired but the sheet is missing. NEVER re-emit a consumption or acquisition the sheet already reflects — the sheet you were shown IS current truth, and a re-emission corrupts it. "
+    +"Close a quest ONLY if this session's events unambiguously show it finished — never on inference or partial progress; a legitimate close carries its rewards as normal. "/* P4-F1 resolution (user: keep) — sync closes pay like any close, this line guards the hallucinated-close edge */
     +"Do NOT emit XP, HP, or GOLD tags — those are tracked turn-by-turn. "
     +"Only emit tags for things that have actually changed or are genuinely missing. "
     +"If nothing needs updating, reply with a single period only.";

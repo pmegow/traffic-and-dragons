@@ -1522,9 +1522,10 @@ function runEngineTests(R){
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
     // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
     // lines), v1.273 (P3-F2 rewards-paid-exactly-once line), v1.275 (#51 gold-economy trio +
-    // P3-F3 travel rule). Golden diffed by eye each time.
+    // P3-F3 travel rule), v1.276 (#47 epithet policy rewrite + P3-F4 TAKING IS TAGGED line).
+    // Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===161747921&&d.length===11520)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===927092364&&d.length===12000)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1946,6 +1947,24 @@ function runEngineTests(R){
     makeWorld();
     var p=buildCompanionSheetPrompt("Anyone");
     return p.msg.indexOf("def is REQUIRED on every spell")>=0&&p.msg.indexOf('"def"')>=0?true:"def requirement missing from the sheet prompt";
+  });
+  t("#47 policy (2026-07-12): epithet doc line forbids self-titling and names the reject path",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("NEVER emit one because the player asks for, invents, or declares a title")<0)return "self-titling prohibition missing";
+    return d.indexOf("the player may reject a granted epithet")>=0?true:"reject-path mention missing";
+  });
+  t("P3-F4: TAKING IS TAGGED acquisition line present, STABLE half only",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("TAKING IS TAGGED")<0)return "acquisition line missing";
+    makeWorld();
+    var sp=buildSysPrompt();
+    if(sp.stable.indexOf("TAKING IS TAGGED")<0)return "line missing from stable half";
+    return sp.volatile.indexOf("TAKING IS TAGGED")<0?true:"line leaked into the volatile half";
+  });
+  t("P4-F1 (keep): sync prompt carries the unambiguous-close guard and keeps rewards legitimate",function(){
+    var p=buildSheetSyncPrompt([]);
+    if(p.indexOf("Close a quest ONLY if this session's events unambiguously show it finished")<0)return "close guard missing";
+    return p.indexOf("a legitimate close carries its rewards as normal")>=0?true:"rewards-as-normal clause missing";
   });
   t("#50a: invDiffLines — adds, removes, counts, and no-change all correct",function(){
     var d1=invDiffLines(["Rope","Torch","Torch"],["Rope","Torch","Torch","Flask"]);

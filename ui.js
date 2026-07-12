@@ -1032,6 +1032,22 @@ function dropInvItem(owner,idx,ev){
   if(owner===""){var ex=document.getElementById("cs-modal");if(ex){ex.remove();showCharSheet();}if(typeof updateInvPanel==="function")updateInvPanel();}
   else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
 }
+// #47 policy (user ruling 2026-07-12): epithets are GM-granted only, but the PLAYER may reject
+// one — the × beside each "Also known as" entry on live sheets. Same owner-routing as dropInvItem.
+function rejectEpithet(owner,idx,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  idx=parseInt(idx,10);if(isNaN(idx)||!worldState)return;
+  var al=null,i;
+  if(owner===""){al=worldState.character&&worldState.character.aliases;}
+  else{for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.name===owner&&n.charSheet){al=n.charSheet.aliases;break;}}}
+  if(!al||idx<0||idx>=al.length)return;
+  var nm=al[idx];
+  if(!window.confirm('Reject the epithet "'+nm+'"? The GM will stop using it.'))return;
+  al.splice(idx,1);saveAll();
+  if(typeof showToast==="function")showToast("Epithet rejected: "+nm);
+  if(owner===""){var ex=document.getElementById("cs-modal");if(ex){ex.remove();showCharSheet();}}
+  else{var ex2=document.getElementById("npc-modal");if(ex2){ex2.remove();showNpcSheet(owner);}}
+}
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
 // get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
 function csSheetSections(c,invOwner){
@@ -1073,7 +1089,13 @@ function csSheetSections(c,invOwner){
   else invHtml='<span class="cs-none">Empty</span>';
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
   // swaps — "Player today is NPC tomorrow is Player again; the sheets stay sympatico" (user).
-  var charKv=(c.aliases&&c.aliases.length?csKv("Also known as",c.aliases.map(escHtml).join(", ")):"")+(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
+  var akaHtml="";
+  if(c.aliases&&c.aliases.length){var _akaParts=[],aki,_canRej=(invOwner!==undefined);
+    for(aki=0;aki<c.aliases.length;aki++){
+      var _rejBtn=_canRej?'<button class="epi-x" data-own="'+escHtml(invOwner)+'" data-idx="'+aki+'" onclick="rejectEpithet(this.dataset.own,this.dataset.idx,event)" title="Reject this epithet" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;line-height:1;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
+      _akaParts.push('<span style="white-space:nowrap">'+escHtml(c.aliases[aki])+_rejBtn+'</span>');}
+    akaHtml=csKv("Also known as",_akaParts.join(", "));}
+  var charKv=akaHtml+(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
   return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
 // showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
