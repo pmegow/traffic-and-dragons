@@ -1922,6 +1922,31 @@ function runEngineTests(R){
     if(/Do NOT emit[^.]*ITEM/.test(p))return "old item prohibition still present";
     return buildSheetSyncPrompt([]).indexOf("COMPANION_ITEM_GAINED")<0?true:"companion tag line leaked into the no-companion prompt";
   });
+  t("#48③: spellDefTag builds a well-formed SPELL_DEF with class-derived category; ] in values cannot self-terminate the tag",function(){
+    var tg=spellDefTag({nm:"Command",lvl:1,def:{tier:1,cost:"1 slot",range:"60ft",targets:"1 creature",duration:"1 round",save:"WIS negates",dice:"N/A",effect:"One-word command] obeyed"}},"Cleric");
+    if(!tg||tg.indexOf("[SPELL_DEF:Command|")!==0)return "tag head wrong: "+tg;
+    if(tg.indexOf("category=divine")<0)return "class tradition missing";
+    if(tg.indexOf("range=60ft")<0||tg.indexOf("save=WIS negates")<0)return "fields missing: "+tg;
+    if((tg.match(/\]/g)||[]).length!==1)return "stray ] survived — tag would self-terminate: "+tg;
+    return spellDefTag({nm:"X",lvl:1},"Cleric")===null?true:"def-less spell produced a tag";
+  });
+  t("#48③: canonizeCompanionSpellDefs — off-catalog def lands in the overlay via the ONE writer; on-catalog pick untouched",function(){
+    makeWorld();worldState.capabilityBible={};
+    var resp=JSON.stringify({spells:[
+      {nm:"Zone of Silence",lvl:2,def:{tier:2,cost:"1 slot",range:"30ft",targets:"20ft sphere",duration:"10 min",save:"N/A",dice:"N/A",effect:"No sound within the sphere"}},
+      {nm:"Fireball",lvl:3,def:{tier:3,cost:"1 slot",range:"999ft",targets:"everyone",duration:"instant",save:"DEX half",dice:"8d6",effect:"a WRONG redefinition that must not land"}}]});
+    var n=(function(){var _w=console.warn;console.warn=function(){};try{return canonizeCompanionSpellDefs(resp,"Cleric","Testa");}finally{console.warn=_w;}})();
+    if(n!==1)return "expected exactly 1 canonization, got "+n;
+    var e=worldState.capabilityBible[capBaseName("Zone of Silence")];
+    if(!e||e.range!=="30ft"||e.category[0]!=="divine")return "overlay entry wrong: "+JSON.stringify(e);
+    if(worldState.capabilityBible[capBaseName("Fireball")])return "on-catalog Fireball was overlaid — base canon must win";
+    return canonizeCompanionSpellDefs("not json","Cleric","Testa")===0?true:"garbage response should canonize nothing";
+  });
+  t("#48③: sheet prompt requires a def per spell",function(){
+    makeWorld();
+    var p=buildCompanionSheetPrompt("Anyone");
+    return p.msg.indexOf("def is REQUIRED on every spell")>=0&&p.msg.indexOf('"def"')>=0?true:"def requirement missing from the sheet prompt";
+  });
   t("#50a: invDiffLines — adds, removes, counts, and no-change all correct",function(){
     var d1=invDiffLines(["Rope","Torch","Torch"],["Rope","Torch","Torch","Flask"]);
     if(d1.length!==1||d1[0]!=="+Flask")return "single add wrong: "+JSON.stringify(d1);

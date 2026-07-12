@@ -243,8 +243,8 @@ function buildCompanionSheetPrompt(npcName){
     +"The player character is "+c.name+", a level "+c.level+" "+c.cls+". "+npcName+"'s level MUST be exactly "+c.level+".\n"
     +"Pick cls from exactly this list: "+clsIds.join(", ")+" — whichever best fits who "+npcName+" is.\n\n"
     +"Output ONLY a JSON object with exactly these fields (no extra fields, no prose, no markdown):\n"
-    +'{"name":'+JSON.stringify(npcName)+',"gender":"M or F or NB","age":"apparent age","appear":"one-line physical description","cls":"one class from the list","level":'+c.level+',"stats":{"STR":12,"DEX":12,"CON":12,"INT":12,"WIS":12,"CHA":12},"maxHp":12,"gold":10,"inventory":["3-6 items fitting the class"],"abilities":[{"nm":"ability name","ds":"one-line description"}],"spells":[{"nm":"spell name","lvl":1}],"trait":"one line","flaw":"one line","motivation":"one line"}\n'
-    +"Stats: 8-16, weighted toward the class's prime stat. maxHp: appropriate for the class hit die and level. spells: [] unless the class is a caster (Sorcerer, Cleric, Druid, Necromancer, Ranger, Paladin — cantrips are lvl 0). abilities: 1-3 signature class abilities.";
+    +'{"name":'+JSON.stringify(npcName)+',"gender":"M or F or NB","age":"apparent age","appear":"one-line physical description","cls":"one class from the list","level":'+c.level+',"stats":{"STR":12,"DEX":12,"CON":12,"INT":12,"WIS":12,"CHA":12},"maxHp":12,"gold":10,"inventory":["3-6 items fitting the class"],"abilities":[{"nm":"ability name","ds":"one-line description"}],"spells":[{"nm":"spell name","lvl":1,"def":{"tier":1,"cost":"1 slot or at-will","range":"60ft","targets":"1 creature","duration":"instant","save":"WIS negates or N/A","dice":"3d6 or N/A","effect":"one concise line"}}],"trait":"one line","flaw":"one line","motivation":"one line"}\n'
+    +"Stats: 8-16, weighted toward the class's prime stat. maxHp: appropriate for the class hit die and level. spells: [] unless the class is a caster (Sorcerer, Cleric, Druid, Necromancer, Ranger, Paladin — cantrips are lvl 0). abilities: 1-3 signature class abilities. def is REQUIRED on every spell — it becomes the table's binding canon for that spell (fixed numbers, no vague wording).";
   return {msg:msg,sys:"You generate companion character sheets for a sword & sorcery RPG. Output ONLY one valid JSON object. No prose, no markdown, no backticks."};
 }
 // Deterministic class guess from what the story already established about the NPC (rel/status/knowledge).
@@ -306,6 +306,37 @@ function parseCompanionSheet(resp,npcName){
   try{return normalizeCompanionSheet(JSON.parse(repairModelJson(resp)),npcName);}
   catch(e){console.warn("[companion] sheet JSON unparseable for "+npcName+" — stub fallback will be used:",e.message);return null;}
 }
+// #48③ (v1.275): sheet generation self-defines its off-catalog picks. The generator must ship a
+// `def` with every spell; any pick that doesn't already resolve through capabilityLookup gets its
+// def converted to a [SPELL_DEF:] tag and routed through applyMuts — ONE writer (the handler's
+// write-once overlay), never a second path into worldState.capabilityBible. Category derives from
+// the class deterministically so a rolled enemy caster's tradition menu stays correct.
+var COMPANION_CLS_TRADITION={"Cleric":"divine","Paladin":"divine","Druid":"primal","Ranger":"primal","Sorcerer":"arcane","Necromancer":"necromantic"};
+function spellDefTag(sp,cls){
+  if(!sp||typeof sp.nm!=="string"||!sp.def||typeof sp.def!=="object")return null;
+  var d=sp.def,parts=["[SPELL_DEF:"+sp.nm];
+  parts.push("tier="+(parseInt(d.tier)||parseInt(sp.lvl)||0));
+  if(d.cost)parts.push("cost="+d.cost);
+  if(d.range)parts.push("range="+d.range);
+  if(d.targets)parts.push("targets="+d.targets);
+  if(d.duration)parts.push("duration="+d.duration);
+  if(d.save)parts.push("save="+d.save);
+  if(d.dice)parts.push("dice="+d.dice);
+  if(d.effect)parts.push("effect="+d.effect);
+  var trad=COMPANION_CLS_TRADITION[cls];if(trad)parts.push("category="+trad);
+  return parts.join("|").replace(/\]/g,"")+"]";/* strip stray ] from model values so the tag can't self-terminate early */
+}
+function canonizeCompanionSpellDefs(resp,cls,npcName){
+  var raw;try{raw=JSON.parse(repairModelJson(resp));}catch(e){return 0;}
+  if(!raw||!raw.spells||!raw.spells.length)return 0;
+  var tags=[],i;
+  for(i=0;i<raw.spells.length;i++){var sp=raw.spells[i];
+    if(!sp||typeof sp.nm!=="string")continue;
+    if(typeof capabilityLookup==="function"&&capabilityLookup(sp.nm))continue;/* on-catalog or already-overlaid — base canon wins */
+    var tg=spellDefTag(sp,cls);if(tg)tags.push(tg);}
+  if(tags.length){applyMuts(tags.join(""));console.warn("[companion sheet] "+npcName+": canonized "+tags.length+" off-catalog spell def(s) via SPELL_DEF (#48③)");}
+  return tags.length;
+}
 // Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.
 function attachCompanionSheet(npcName,sheet){
   var npc=_compNpcByName(npcName);
@@ -322,9 +353,10 @@ async function generateCompanionSheet(npcName){
   var sheet=null,failReason=null;
   try{
     var p=buildCompanionSheetPrompt(npcName);
-    var resp=await callGM(p.msg,p.sys,600,null,{noHistory:true,kind:"other"});
+    var resp=await callGM(p.msg,p.sys,1000,null,{noHistory:true,kind:"other"});/* 600→1000 (v1.275): per-spell defs (#48③) need the headroom */
     sheet=parseCompanionSheet(resp,npcName);
     if(!sheet)failReason="model returned invalid JSON";
+    if(sheet)canonizeCompanionSpellDefs(resp,sheet.cls,npcName);/* #48③: off-catalog picks self-define before first cast */
   }catch(e){failReason=(e&&e.message)||"request failed";}
   delete _sheetGenInFlight[npcName];
   if(!sheet)sheet=buildCompanionSheetStub(npcName);// a party member must NEVER stay sheet-less
