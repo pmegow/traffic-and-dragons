@@ -540,9 +540,11 @@ function runEngineTests(R){
     var u=PROVIDERS.anthropic.parseUsage({usage:{input_tokens:10,output_tokens:5}});
     return u.cacheRead===0&&u.cacheWrite===0?true:JSON.stringify(u);
   });
-  t("openai-compatible parseUsage maps prompt/completion + cached_tokens",function(){
+  t("openai-compatible parseUsage maps prompt/completion + cached_tokens (UA13: in EXCLUDES cached)",function(){
+    // UA13 (v1.280): prompt_tokens INCLUDES cached on OpenAI; we normalize to Anthropic units
+    // at parse time — in = uncached input, so in + cacheRead = the full prompt.
     var u=PROVIDERS.openai.parseUsage({usage:{prompt_tokens:900,completion_tokens:120,prompt_tokens_details:{cached_tokens:600}}});
-    return u.in===900&&u.out===120&&u.cacheRead===600&&u.cacheWrite===0?true:JSON.stringify(u);
+    return u.in===300&&u.out===120&&u.cacheRead===600&&u.cacheWrite===0?true:JSON.stringify(u);
   });
   t("gemini parseUsage maps usageMetadata",function(){
     var u=PROVIDERS.gemini.parseUsage({usageMetadata:{promptTokenCount:700,candidatesTokenCount:200,cachedContentTokenCount:100}});
@@ -571,6 +573,28 @@ function runEngineTests(R){
     worldState=null;
     recordUsage({in:100,out:10,cacheRead:0,cacheWrite:0},"other","claude-sonnet-4-6"); // must not throw
     makeWorld();return true;
+  });
+  t("#30: recordUsage counts an UNPRICED call (total + per-kind) instead of silent $0",function(){
+    makeWorld();
+    recordUsage({in:1000,out:100,cacheRead:0,cacheWrite:0},"turn","some-retired-model-id");
+    var u=worldState.usage;
+    if(u.unpriced!==1)return "unpriced total: "+u.unpriced;
+    if(!u.byKind.turn||u.byKind.turn.unpriced!==1)return "per-kind unpriced: "+JSON.stringify(u.byKind.turn);
+    recordUsage({in:500,out:50,cacheRead:0,cacheWrite:0},"turn","claude-sonnet-4-6");
+    return u.unpriced===1&&u.byKind.turn.unpriced===1?true:"a PRICED call incremented unpriced";
+  });
+  t("#30: unpriced counter heals onto a pre-#30 usage accumulator",function(){
+    makeWorld();
+    worldState.usage={in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0,byKind:{turn:{in:1,out:1,cacheRead:0,cacheWrite:0,calls:1,costUSD:0}}};
+    recordUsage({in:10,out:5,cacheRead:0,cacheWrite:0},"turn","mystery-model");
+    return worldState.usage.unpriced===1&&worldState.usage.byKind.turn.unpriced===1?true:"heal failed: "+worldState.usage.unpriced;
+  });
+  t("UA13: OPENAI_USAGE normalizes prompt_tokens to UNCACHED input (Anthropic unit semantics)",function(){
+    var u=OPENAI_USAGE({usage:{prompt_tokens:1000,completion_tokens:200,prompt_tokens_details:{cached_tokens:400}}});
+    if(u.in!==600)return "in should EXCLUDE cached tokens: "+u.in;
+    if(u.cacheRead!==400||u.out!==200)return "cacheRead/out wrong: "+JSON.stringify(u);
+    var u2=OPENAI_USAGE({usage:{prompt_tokens:1000,completion_tokens:200}});
+    return u2.in===1000&&u2.cacheRead===0?true:"no-cache-details case broken: "+JSON.stringify(u2);
   });
 
   // ── 8. Prompt-caching stable/volatile split (TODO #11) ───────────────────────

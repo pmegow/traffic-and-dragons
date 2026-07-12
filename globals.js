@@ -33,9 +33,10 @@ var TAG_REINFORCE="\n\n=== MANDATORY TAG DISCIPLINE — the engine reads these b
 // Sonnet/Opus, keeping their prompt BYTE-IDENTICAL to today (zero cache invalidation).
 var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — rules this model tends to bend ===\n1. HP RECOVERY: whenever ANY character regains hit points for ANY reason — healing magic, a potion, first aid, a night's rest, natural recovery — emit [HP:+N] (player) or [COMPANION_HP:Name|+N] (party member) in the SAME response. If the sheet above shows 0 HP but you are narrating that character up and moving, the sheet is WRONG until you emit the recovery tag. Never leave a healed character at 0 HP on the sheet.\n2. LOCATION: whenever the party travels to a different named place, emit [LOCATION:name] in that response. Entering a distinct area inside it (a tavern, a chamber, a cave) emits [SUBLOCATION:name]; leaving it emits [SUBLOCATION_LEAVE]. Narrated travel without the tag strands the world state at the old location.\n3. SPELL CANON: the CANONICAL SPELL RULES block is hard physics. No spell ever reaches beyond its listed range, affects more than its listed targets, or lasts past its listed duration — no matter the circumstances, the stakes, or how it seemed to work before. If an attempted cast exceeds its canon, the spell simply FAILS: narrate the failure and offer what the canon actually allows.\n";/* item 3 added v1.248 — the t361 Haiku incident (Message conversation at three miles) */
 // Shared usage extractor for OpenAI-compatible providers (openai/grok/ollama).
-// NOTE: OpenAI's prompt_tokens INCLUDES cached tokens; Anthropic's input_tokens EXCLUDES them.
-// We store each provider's raw semantics — the cost math only prices Anthropic models anyway.
-var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;return {in:u.prompt_tokens||0,out:u.completion_tokens||0,cacheRead:(u.prompt_tokens_details&&u.prompt_tokens_details.cached_tokens)||0,cacheWrite:0};};
+// UA13 (v1.280): normalized to ANTHROPIC unit semantics — `in` is UNCACHED input only.
+// OpenAI's raw prompt_tokens INCLUDES cached tokens, so we subtract cached_tokens here;
+// cross-provider totals in worldState.usage are now the same unit (in + cacheRead = full prompt).
+var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;var _cached=(u.prompt_tokens_details&&u.prompt_tokens_details.cached_tokens)||0;return {in:Math.max(0,(u.prompt_tokens||0)-_cached),out:u.completion_tokens||0,cacheRead:_cached,cacheWrite:0};};
 // $/MTok — used by usageCost() (api.js) for the Dev Mode running-cost estimate (TODO #21).
 // Anthropic rates verified 2026-07-02; cache write = 1.25x input (5min TTL), cache read = 0.1x input.
 // Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
@@ -138,7 +139,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.279";
+var APP_VERSION="v1.280";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

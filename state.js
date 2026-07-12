@@ -23,7 +23,7 @@ var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
 // estimate priced at record time from MODEL_PRICING (unknown models contribute $0).
-function blankUsage(){return {in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0,byKind:{},since:Date.now()};}
+function blankUsage(){return {in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0,unpriced:0,byKind:{},since:Date.now()};}/* unpriced (#30, v1.280): calls whose model id missed MODEL_PRICING — counted, $0 priced */
 // Provider settings loader — moved here from ui.js (v1.180): pure data logic over store +
 // globals, needed by every page that calls the API (game AND the Blueprint Designer's
 // generate/review features, which load the engine chain without ui.js).

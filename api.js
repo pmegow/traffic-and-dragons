@@ -640,12 +640,25 @@ function recordUsage(u,kind,model){
   if(!worldState.usage)worldState.usage=blankUsage();
   var t=worldState.usage;
   t.in+=u.in||0;t.out+=u.out||0;t.cacheRead+=u.cacheRead||0;t.cacheWrite+=u.cacheWrite||0;t.calls++;
-  t.costUSD+=usageCost(u,model);
+  var _cost=usageCost(u,model);
+  t.costUSD+=_cost;
   if(!t.byKind[kind])t.byKind[kind]={in:0,out:0,cacheRead:0,cacheWrite:0,calls:0,costUSD:0};
   var k=t.byKind[kind];
   k.in+=u.in||0;k.out+=u.out||0;k.cacheRead+=u.cacheRead||0;k.cacheWrite+=u.cacheWrite||0;k.calls++;
-  k.costUSD+=usageCost(u,model);
+  k.costUSD+=_cost;
+  // #30 (v1.280): a call that carries tokens but prices at $0 means its model id missed
+  // MODEL_PRICING — the exact silent-undercount class from the t198 evaluation (~1/3 of the
+  // window's calls priced $0). Count it visibly (total + per-kind, healing pre-#30
+  // accumulators) and warn once per model id per session so the id can be added.
+  if(_cost===0&&((u.in||0)+(u.out||0)+(u.cacheRead||0)+(u.cacheWrite||0))>0){
+    if(typeof t.unpriced!=="number")t.unpriced=0;
+    if(typeof k.unpriced!=="number")k.unpriced=0;
+    t.unpriced++;k.unpriced++;
+    var _mid=model||"(no model id)";
+    if(!_unpricedWarned[_mid]){_unpricedWarned[_mid]=1;console.warn("[usage] no MODEL_PRICING entry matches '"+_mid+"' — tokens counted, $0 priced; the cost figures UNDERCOUNT real spend until this id is added (#30)");}
+  }
 }
+var _unpricedWarned={};
 // UA5: djb2 hash + per-campaign memo for the stable-purity tripwire above. console.warn on
 // every mid-campaign change (each one is a full cache re-write); toast once per session.
 var _stableHash=null,_stableHashCamp=null,_stableWarned=false;
