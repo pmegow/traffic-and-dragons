@@ -16,3 +16,4 @@ audits/
 
 # Personal Claude Code settings (hooks + launch.json ARE committed)
 .claude/settings.local.json
+dev/*.endstate.json
