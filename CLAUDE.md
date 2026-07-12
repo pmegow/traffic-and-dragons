@@ -506,7 +506,7 @@ Server-side character storage separate from campaigns. Characters are portable s
 
 ## Known issues
 
-- **Relationships not populating on NPC sheets** — noticed, not investigated
+- **Relationships not populating on NPC sheets** — ✅ RESOLVED (diagnosed 2026-07-12). Root cause: the sheet's Relationships section reads `charSheet.relationships[]`, which only `[COMPANION_RELATIONSHIP:]` writes — and the GM filed player-centric `[RELATIONSHIP:]` almost exclusively (the UA41 finding: half the graph never got written). Fixed twice over: ① display-time merge in `showNpcSheet` (same 2026-06-03 commit that filed this row) guarantees at least the player↔NPC bond renders from `wsNpc.rel`; ② UA41's reciprocity nudge (v1.270) + organic Sonnet mirroring (live-validated in the v1.271 playtest) now writes the data for weighty bonds. Companion↔companion bonds still only appear when the GM files them — by design, nudged when weighty.
 - **Local folder rename pending** — `dnd_rpg` → `traffic-and-dragons` (do in Explorer before opening Claude Code; then update hardcoded paths in `.claude/settings.local.json` and `.claude/hooks/stop-check.js`)
 - **"↩ Import existing campaign" on tone step** — redundant with File menu; consider removing
 
