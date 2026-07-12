@@ -1148,6 +1148,21 @@ function runEngineTests(R){
     if(s.stable.indexOf("PAST SCENE EXCERPTS")>=0)return "excerpts leaked into stable";
     return s.volatile.indexOf("PAST SCENE EXCERPTS")>=0?true:"excerpts missing from volatile";
   });
+  t("UA36 enabler: __lastRagBlock captures exactly the injected block; flag off resets it",function(){
+    makeWorld();worldState.turn=40;lastAction="I ask Bram about his promise";
+    memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[{t:2,r:"player",x:"I ask Bram"},{t:3,r:"gm",x:"Bram promises safe passage.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:6,r:"gm",x:"a"},{t:7,r:"gm",x:"b"},{t:8,r:"gm",x:"c"},{t:9,r:"gm",x:"d"}];
+    worldState.ragMemory=true;
+    var s=buildSysPrompt();
+    var cap=__lastRagBlock;
+    if(!cap||cap.indexOf("safe passage")<0)return "capture missing/empty: "+String(cap).slice(0,80);
+    if(s.volatile.indexOf(cap)<0)return "capture is not the literal injected block";
+    worldState.ragMemory=false;
+    buildSysPrompt();
+    var off=__lastRagBlock;
+    worldState.ragMemory=false;lastAction=null;
+    return off===""?true:"flag-off build did not reset the capture: "+String(off).slice(0,60);
+  });
 
   // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
   section("summarize-tail retention (#28)");

@@ -1,3 +1,4 @@
+var __lastRagBlock="";/* UA36 harness enabler — the RAG block buildSysPrompt last injected ("" when the flag is off); capture-only */
 function buildGeoBlock(){
   if(!memory.map||!worldState||!worldState.world)return"";
   var w=worldState.world,lines=[],i;
@@ -266,6 +267,7 @@ function buildSysPrompt(){
   // RAG episodic excerpts (#27 Phase 1) — "" unless worldState.ragMemory is on. VOLATILE
   // half ONLY: retrieval changes per turn and must never touch the cached stable block.
   var ragBlock=typeof ragRetrieve==="function"?ragRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
+  __lastRagBlock=ragBlock;/* UA36 harness enabler — capture-ONLY side channel (window.__lastRagBlock in the browser) for the RAG A/B; the engine never reads it back */
   var legacyBlock="";
   if(worldState.pendingLegacy){
     var _lc=worldState.pendingLegacy;
