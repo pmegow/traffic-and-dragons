@@ -120,6 +120,80 @@ function runEngineTests(R){
   t("shared-surname siblings do NOT merge",function(){memory=blankMemory();memory.npcs["Ameiko Kaijitsu"]={attitude:"ally",knowledge:[],events:[],aliases:[]};memory.npcs["Tsuto Kaijitsu"]={attitude:"enemy",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Kaijitsu"),"Kaijitsu");});
   t("role-only names are unmergeable",function(){memory=blankMemory();memory.npcs["Barkeep (Rusty Dragon)"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("The Innkeeper"),"The Innkeeper");});
   t("registered alias wins before token matching",function(){memory=blankMemory();memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:["The Grey Blade"]};return eq(resolveNpcName("The Grey Blade"),"Veyra");});
+  // ── UA12: the T1–T10 pins from RESOLVE_NPC_INVARIANTS.md §5 (behavior pins, no code change) ──
+  t("UA12-T1: mid-campaign token-share demotes auto-resolve (E1/I9)",function(){
+    memory=blankMemory();memory.npcs["Aldara Perdrath"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    if(resolveNpcName("Aldara")!=="Aldara Perdrath")return "single-candidate resolve broken";
+    memory.npcs["Aldara Voss"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    return eq(resolveNpcName("Aldara"),"Aldara");
+  });
+  t("UA12-T2: long incoming resolves to short existing key (E2 reverse direction)",function(){
+    memory=blankMemory();memory.npcs["Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    return eq(resolveNpcName("Sheriff Belor Hemlock"),"Hemlock");
+  });
+  t("UA12-T3: an existing fork is NOT self-healed (E3 — why UA29 exists)",function(){
+    memory=blankMemory();
+    memory.npcs["Aldara"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Aldara Perdrath"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Aldara of Perdrath"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    if(resolveNpcName("Aldara")!=="Aldara")return "exact-key short-circuit broken";
+    return eq(resolveNpcName("Perdrath"),"Perdrath");
+  });
+  t("UA12-T4: alias scan is case-sensitive (E5 pinned quirk)",function(){
+    memory=blankMemory();memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:["The Grey Blade"]};
+    return eq(resolveNpcName("the grey blade"),"the grey blade");
+  });
+  t("UA12-T5: tokenizer quirks pinned (E6 — punctuation splits, no length filter)",function(){
+    if(JSON.stringify(npcCoreTokens("Hemlock's"))!==JSON.stringify(["hemlock","s"]))return "Hemlock's tokens: "+JSON.stringify(npcCoreTokens("Hemlock's"));
+    if(JSON.stringify(npcCoreTokens("Aldara of Perdrath"))!==JSON.stringify(["aldara","of","perdrath"]))return "of-name tokens: "+JSON.stringify(npcCoreTokens("Aldara of Perdrath"));
+    memory=blankMemory();memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    return eq(resolveNpcName("Hemlock's"),"Hemlock's");
+  });
+  t("UA12-T6: stopword stack strips to the distinctive core (I6)",function(){
+    return JSON.stringify(npcCoreTokens("The Old Sheriff Belor Hemlock"))===JSON.stringify(["belor","hemlock"])?true:JSON.stringify(npcCoreTokens("The Old Sheriff Belor Hemlock"));
+  });
+  t("UA12-T7: resolver is pure and deterministic (I7/I8)",function(){
+    memory=blankMemory();
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:["The Sheriff"]};
+    memory.npcs["Ameiko Kaijitsu"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Tsuto Kaijitsu"]={attitude:"enemy",knowledge:[],events:[],aliases:[]};
+    var s0=JSON.stringify(memory.npcs),names=["Hemlock","Kaijitsu","The Sheriff","Nobody New","Barkeep"];
+    var p1=names.map(resolveNpcName),p2=names.map(resolveNpcName);
+    if(JSON.stringify(p1)!==JSON.stringify(p2))return "non-deterministic: "+JSON.stringify([p1,p2]);
+    return JSON.stringify(memory.npcs)===s0?true:"resolver MUTATED memory.npcs";
+  });
+  t("UA12-T8: NPC_MERGE leaves the RAG bridge intact (the t198 merge-orphan class)",function(){
+    makeWorld();worldState.turn=40;
+    memory.npcs["Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    worldState.transcript=[
+      {t:2,r:"player",x:"I ask Hemlock about the broadsheet"},
+      {t:3,r:"gm",x:"Hemlock admits the broadsheet came from the glassworks.",e:{n:["Hemlock"],l:"Ashfen",q:[]}},
+      {t:6,r:"gm",x:"a"},{t:7,r:"gm",x:"b"},{t:8,r:"gm",x:"c"},{t:9,r:"gm",x:"d"}];
+    applyMuts("[NPC_MERGE:Sheriff Belor Hemlock|Hemlock]");
+    if(memory.npcs["Hemlock"])return "duplicate key not absorbed";
+    if((memory.npcs["Sheriff Belor Hemlock"].aliases||[]).indexOf("Hemlock")<0)return "alias bridge missing";
+    if(resolveNpcName("Hemlock")!=="Sheriff Belor Hemlock")return "post-merge resolve broken";
+    worldState.ragMemory=true;
+    var b=ragRetrieve("ask Hemlock about the broadsheet");
+    worldState.ragMemory=false;
+    return b.indexOf("glassworks")>=0?true:"orphaned write-time stamp no longer retrieved: "+b.slice(0,100);
+  });
+  t("UA12-T9: merge never duplicates an alias across keys + chains flatten (I10/E7)",function(){
+    makeWorld();
+    memory.npcs["A"]={attitude:"ally",knowledge:[],events:[],aliases:["x"]};
+    memory.npcs["B"]={attitude:"ally",knowledge:[],events:[],aliases:["x","y"]};
+    applyMuts("[NPC_MERGE:A|B]");
+    var holders=0;Object.keys(memory.npcs).forEach(function(k){if((memory.npcs[k].aliases||[]).indexOf("x")>=0)holders++;});
+    if(holders!==1)return "alias 'x' held by "+holders+" keys";
+    if(resolveNpcName("y")!=="A")return "chained alias did not flatten: "+resolveNpcName("y");
+    return resolveNpcName("B")==="A"?true:"merged key not aliased";
+  });
+  t("UA12-T10: empty-core incoming vs empty-core keys (I3/I1)",function(){
+    memory=blankMemory();memory.npcs["Barkeep (Rusty Dragon)"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
+    if(resolveNpcName("The Guard")!=="The Guard")return "empty-core incoming mismerged";
+    return eq(resolveNpcName("Barkeep (Rusty Dragon)"),"Barkeep (Rusty Dragon)");
+  });
 
   // ── 4. cleanTxt / diceTxt / parseActions ─────────────────────────────────────
   section("cleanTxt / diceTxt / parseActions");
