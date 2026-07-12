@@ -236,12 +236,20 @@ var TAG_TABLE=[
       // detection fires only when that fails: same-response rewards MATCHING the archived paid
       // record = near-certain double pay. Loud (toast + warn), deliberately never a mutation —
       // reversal would fight table order and the XP mirror/level-up side effects.
-      if(_arch.paid){var _dx=text.match(/\[XP:\s*\+?(\d+)/),_dg=text.match(/\[GOLD:\s*\+?(\d+)/),_hits=[];
-        if(_dx&&_arch.paid.xp&&parseInt(_dx[1])===_arch.paid.xp)_hits.push("+"+_arch.paid.xp+" XP");
-        if(_dg&&_arch.paid.gold&&parseInt(_dg[1])===_arch.paid.gold)_hits.push("+"+_arch.paid.gold+" gp");
+      // v1.277 widening (live t10 evasion, Playtest 5): the GM re-completed with a DIFFERENT
+      // XP value than the paid record — value-matching alone let it through silently. ANY
+      // same-response reward on a blocked completed-re-emission now warns; matching amounts
+      // keep the stronger paid-TWICE wording. Still warn-only by design.
+      if(_arch.paid){var _dx=text.match(/\[XP:\s*\+?(\d+)/),_dg=text.match(/\[GOLD:\s*\+?(\d+)/),_hits=[],_any=[];
+        if(_dx){_any.push("+"+_dx[1]+" XP");if(_arch.paid.xp&&parseInt(_dx[1])===_arch.paid.xp)_hits.push("+"+_arch.paid.xp+" XP");}
+        if(_dg){_any.push("+"+_dg[1]+" gp");if(_arch.paid.gold&&parseInt(_dg[1])===_arch.paid.gold)_hits.push("+"+_arch.paid.gold+" gp");}
         if(_hits.length){
           console.warn("[quest] blocked re-completion of '"+qTitle+"' re-emitted its paid rewards ("+_hits.join(", ")+") — possible double payment");
-          if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_hits.join(", ")+" may have been paid TWICE (rewards re-emitted with a blocked re-completion) — the Sync modal can correct");}}
+          if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_hits.join(", ")+" may have been paid TWICE (rewards re-emitted with a blocked re-completion) — the Sync modal can correct");}
+        else if(_any.length){
+          var _orig=[];if(_arch.paid.xp)_orig.push("+"+_arch.paid.xp+" XP");if(_arch.paid.gold)_orig.push("+"+_arch.paid.gold+" gp");
+          console.warn("[quest] blocked re-creation of '"+qTitle+"' arrived with rewards ("+_any.join(", ")+"; original close paid "+(_orig.join(", ")||"nothing")+") — possible re-pay with different amounts");
+          if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_any.join(", ")+" arrived with a blocked re-completion (original close paid "+(_orig.join(", ")||"nothing")+") — check the sheet; Sync can correct");}}
       continue;}}
   if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){

@@ -1870,17 +1870,22 @@ function runEngineTests(R){
     // order + the XP mirror); the doc line is the prevention, this is the loud backstop
     return worldState.character.xp===xpBefore+50&&worldState.character.gold===goldBefore+10?true:"expected warn-only behavior (xp Δ"+(worldState.character.xp-xpBefore)+", gold Δ"+(worldState.character.gold-goldBefore)+")";
   });
-  t("P3-F2: blocked re-emission with NON-matching rewards stays quiet (no false alarm); pre-v1.273 archives (no paid record) never trigger",function(){
+  t("P3-F2 (v1.277 widening): NON-matching rewards on a blocked re-emission warn with the amounts-differ wording (the live t10 evasion)",function(){
     makeWorld();__toasts.length=0;
     applyMuts("[QUEST:Hunt|active]");
     applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
-    var _w=console.warn;console.warn=function(){};
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
     try{applyMuts("[QUEST:Hunt|active][XP:25]");}finally{console.warn=_w;}
-    if(__toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;}).length)return "false alarm on non-matching rewards";
+    if(__toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;}).length)return "mismatch wrongly used the paid-TWICE wording";
+    var soft=__toasts.filter(function(m){return m.indexOf("arrived with a blocked re-completion")>=0;});
+    if(soft.length!==1)return "amounts-differ toast missing: "+JSON.stringify(__toasts);
+    if(soft[0].indexOf("+25 XP")<0||soft[0].indexOf("original close paid")<0)return "toast lacks the amounts: "+soft[0];
+    if(warns.filter(function(m){return m.indexOf("different amounts")>=0;}).length!==1)return "amounts-differ warn missing";
+    __toasts.length=0;
     delete memory.quests["Hunt"].paid; // simulate a pre-v1.273 archive
     console.warn=function(){};
     try{applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");}finally{console.warn=_w;}
-    return __toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;}).length===0?true:"legacy archive without paid record triggered";
+    return __toasts.filter(function(m){return m.indexOf("blocked re-completion")>=0||m.indexOf("paid TWICE")>=0;}).length===0?true:"legacy archive without paid record triggered";
   });
   t("P3-F2: rewards-paid-once doc line present, STABLE half only",function(){
     var d=buildStateTagsDoc();
@@ -1919,6 +1924,7 @@ function runEngineTests(R){
     if(p.indexOf("[ITEM_GAINED:name]")<0||p.indexOf("[ITEM_LOST:name]")<0)return "player item tags not allowed";
     if(p.indexOf("[COMPANION_ITEM_GAINED:Name|item]")<0)return "companion item tags not allowed";
     if(p.indexOf("DISCREPANCY CORRECTIONS ONLY")<0)return "anti-double-spend instruction missing";
+    if(p.indexOf("repair it")<0)return "the v1.277 repair-duty sharpening missing (two live declines — the old wording over-taught sheet-trust)";
     if(p.indexOf("Do NOT emit XP, HP, or GOLD")<0)return "XP/HP/GOLD prohibition lost";
     if(/Do NOT emit[^.]*ITEM/.test(p))return "old item prohibition still present";
     return buildSheetSyncPrompt([]).indexOf("COMPANION_ITEM_GAINED")<0?true:"companion tag line leaked into the no-companion prompt";

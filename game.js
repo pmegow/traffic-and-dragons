@@ -1082,7 +1082,7 @@ function buildSheetSyncPrompt(companions){
     +"For the player — allowed tags: [RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] [CONDITION:name|duration] [CONDITION_REMOVED:name] "
     +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1) [ITEM_GAINED:name] [ITEM_LOST:name]. "
     +compLine+" "
-    +"ITEM tags are DISCREPANCY CORRECTIONS ONLY: compare each sheet against the story — emit [ITEM_LOST:] for a consumable the story shows spent but the sheet still lists, [ITEM_GAINED:] for an item the story shows acquired but the sheet is missing. NEVER re-emit a consumption or acquisition the sheet already reflects — the sheet you were shown IS current truth, and a re-emission corrupts it. "
+    +"ITEM tags are DISCREPANCY CORRECTIONS ONLY, and finding item discrepancies is a core duty of this audit: go item by item — emit [ITEM_LOST:] for anything the story shows spent, sold, or taken that the sheet still lists, and [ITEM_GAINED:] for anything the story clearly shows acquired that is MISSING from the sheet (a story-established item absent from the sheet is exactly the error you exist to repair — repair it). The prohibition runs ONE way only: never re-emit a gain or loss the sheet ALREADY reflects, because that double-applies it. "
     +"Close a quest ONLY if this session's events unambiguously show it finished — never on inference or partial progress; a legitimate close carries its rewards as normal. "/* P4-F1 resolution (user: keep) — sync closes pay like any close, this line guards the hallucinated-close edge */
     +"Do NOT emit XP, HP, or GOLD tags — those are tracked turn-by-turn. "
     +"Only emit tags for things that have actually changed or are genuinely missing. "
