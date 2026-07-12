@@ -109,6 +109,40 @@ function combatFoeByName(nm){
   for(i=0;i<f.length;i++){var fn=f[i].name.toLowerCase();if(fn.indexOf(t)>=0||t.indexOf(fn)>=0)return f[i];}
   return null;
 }
+// P3-F1 (v1.272): positional adjacency binding for the combat attribute tags. The doc rule is
+// "emit COMBAT_STATS/IMMUNE/RESIST/VULN alongside COMBAT_START", so each attribute tag binds to
+// the foe whose [COMBAT_START:] most recently PRECEDES it in the response text. The old code
+// bound the FIRST attribute tag in the response to the LAST-added foe — right only when a
+// response adds exactly one foe; the v1.271-playtest t10 ambush (2 foes + 2 stats in one
+// response) put foe #1's statline on foe #2 and silently dropped the rest.
+// COMBAT_ATTR_FALLBACK governs an attribute tag with NO preceding COMBAT_START in its response
+// (a lone mid-fight stats correction — never yet observed live):
+//   "engaged"    — mirror bare-ENEMY_HP addressing: single living foe, else the engaged foe,
+//                  else first living + warn (ONE addressing model across all combat tags).
+//   "last-added" — the pre-v1.272 behavior (last foe in the array, living or not).
+// Deliberately a one-line flip; engine tests pin BOTH settings so changing it is a safe edit.
+var COMBAT_ATTR_FALLBACK="engaged";
+function combatStartPositions(text){
+  var re=/\[COMBAT_START:([^|\]]+)\|/g,m,out=[];
+  while((m=re.exec(text)))out.push({idx:m.index,name:m[1].trim()});
+  return out;
+}
+function combatAttrFoe(starts,idx){
+  if(!worldState.combat||!worldState.combat.foes.length)return null;
+  var i,name=null;
+  for(i=0;i<starts.length;i++){if(starts[i].idx<idx)name=starts[i].name;else break;}
+  if(name){var f=combatFoeByName(name);if(f)return f;}
+  var fl=worldState.combat.foes;
+  if(COMBAT_ATTR_FALLBACK==="engaged"){
+    var living=combatLivingFoes();
+    if(living.length===1)return living[0];
+    var eng=worldState.combat.engaged?combatFoeByName(worldState.combat.engaged):null;
+    if(eng&&!eng.down&&eng.hp>0)return eng;
+    if(living.length){console.warn("[combat] ambiguous combat-attribute tag with "+living.length+" foes up and none engaged — routed to "+living[0].name);return living[0];}
+  }
+  return fl[fl.length-1];
+}
+function combatDmgList(s){return s.split(",").map(function(x){return x.trim();}).filter(function(x){return x&&x.toLowerCase()!=="none";});}
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}}},
 {t:"GOLD",apply:function(text,R){var goldTags=text.match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/g)||[];var gli;for(gli=0;gli<goldTags.length;gli++){var glm=goldTags[gli].match(/\[GOLD:\s*([+-]?\d+)[^\]]*\]/);if(!glm)continue;var dg=parseInt(glm[1]);worldState.character.gold=Math.max(0,worldState.character.gold+dg);R.muts.push(dg>0?"+"+dg+" gp":dg+" gp");}}},
@@ -218,12 +252,30 @@ var TAG_TABLE=[
     if(fl.length>=8){console.warn("[combat] foe cap (8) reached — COMBAT_START '"+foe.name+"' ignored (runaway-model guard)");continue;}
     fl.push(foe);R.muts.push("Combat +foe: "+foe.name);
   }}},
-// COMBAT_STATS / IMMUNE / RESIST / VULN bind to the MOST RECENTLY ADDED foe — the docs say
-// "emit alongside COMBAT_START", so adjacency is the natural rule (MULTI_ENEMY_COMBAT §3).
-{t:"COMBAT_STATS",nc:1,apply:function(text,R){var cstats=text.match(/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/);if(cstats&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].stats={STR:+cstats[1],DEX:+cstats[2],CON:+cstats[3],INT:+cstats[4],WIS:+cstats[5],CHA:+cstats[6],CR:cstats[7]};}}},
-{t:"COMBAT_IMMUNE",nc:1,apply:function(text,R){var cimm=text.match(/\[COMBAT_IMMUNE:([^\]]+)\]/);if(cimm&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].immune=cimm[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
-{t:"COMBAT_RESIST",nc:1,apply:function(text,R){var cresist=text.match(/\[COMBAT_RESIST:([^\]]+)\]/);if(cresist&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].resist=cresist[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
-{t:"COMBAT_VULN",nc:1,apply:function(text,R){var cvuln=text.match(/\[COMBAT_VULN:([^\]]+)\]/);if(cvuln&&worldState.combat&&worldState.combat.foes.length){worldState.combat.foes[worldState.combat.foes.length-1].vuln=cvuln[1].split(",").map(function(s){return s.trim();}).filter(function(s){return s&&s.toLowerCase()!=="none";});}}},
+// COMBAT_STATS / IMMUNE / RESIST / VULN bind by POSITIONAL ADJACENCY — each occurrence goes to
+// the foe whose COMBAT_START precedes it in the text (P3-F1 fix, v1.272; see combatAttrFoe for
+// the no-preceding-start fallback policy). g-loops: every occurrence lands (MULTI_ENEMY_COMBAT §3).
+{t:"COMBAT_STATS",nc:1,apply:function(text,R){
+  if(!worldState.combat||!worldState.combat.foes.length)return;
+  var starts=combatStartPositions(text);
+  var re=/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/g,m;
+  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;
+    foe.stats={STR:+m[1],DEX:+m[2],CON:+m[3],INT:+m[4],WIS:+m[5],CHA:+m[6],CR:m[7]};}}},
+{t:"COMBAT_IMMUNE",nc:1,apply:function(text,R){
+  if(!worldState.combat||!worldState.combat.foes.length)return;
+  var starts=combatStartPositions(text);
+  var re=/\[COMBAT_IMMUNE:([^\]]+)\]/g,m;
+  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.immune=combatDmgList(m[1]);}}},
+{t:"COMBAT_RESIST",nc:1,apply:function(text,R){
+  if(!worldState.combat||!worldState.combat.foes.length)return;
+  var starts=combatStartPositions(text);
+  var re=/\[COMBAT_RESIST:([^\]]+)\]/g,m;
+  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.resist=combatDmgList(m[1]);}}},
+{t:"COMBAT_VULN",nc:1,apply:function(text,R){
+  if(!worldState.combat||!worldState.combat.foes.length)return;
+  var starts=combatStartPositions(text);
+  var re=/\[COMBAT_VULN:([^\]]+)\]/g,m;
+  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.vuln=combatDmgList(m[1]);}}},
 // UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
 // [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the
 // single living foe, else the ENGAGED foe, else first-living + warn — the mutation always lands

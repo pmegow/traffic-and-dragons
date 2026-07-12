@@ -2120,7 +2120,7 @@ function runEngineTests(R){
     if(worldState.combat!==null)return "encounter survived the move";
     return warns.filter(function(m){return m.indexOf("Kresh, Grukk")>=0;}).length===1?true:"stale warn should name both foes: "+warns.join(" / ");
   });
-  t("COMBAT_STATS / COMBAT_IMMUNE bind to the MOST RECENTLY ADDED foe",function(){
+  t("COMBAT_STATS / COMBAT_IMMUNE bind to the ADJACENT (preceding) COMBAT_START's foe",function(){
     __twoFoes();
     applyMuts("[COMBAT_START:Shaman|8|11|+1|d4|craven][COMBAT_STATS:STR:8|DEX:12|CON:10|INT:14|WIS:15|CHA:13|CR:1][COMBAT_IMMUNE:poison]");
     var f=worldState.combat.foes;
@@ -2128,6 +2128,61 @@ function runEngineTests(R){
     if(!f[2].stats||f[2].stats.INT!==14)return "stats missed the new foe";
     if(f[0].stats||f[1].stats)return "stats leaked onto an earlier foe";
     return f[2].immune&&f[2].immune[0]==="poison"?true:"immune missed the new foe";
+  });
+  // ── P3-F1 (v1.272): positional adjacency binding — the multi-foe-single-response class the
+  // v1.271 playtest caught live at t10 (foe #1's stats landed on foe #N, the rest dropped) ──
+  t("P3-F1: multi-foe single response — EACH foe gets ITS OWN stats + attributes (the t10 class)",function(){
+    makeWorld();
+    applyMuts("[COMBAT_START:Alpha|10|10|+1|d4|5][COMBAT_STATS:STR:18|DEX:8|CON:18|INT:8|WIS:8|CHA:8|CR:3][COMBAT_RESIST:cold]"
+      +"[COMBAT_START:Beta|12|12|+2|d6|5][COMBAT_STATS:STR:6|DEX:16|CON:6|INT:16|WIS:16|CHA:16|CR:0.5][COMBAT_IMMUNE:poison][COMBAT_VULN:fire]");
+    var f=worldState.combat.foes;
+    if(!f[0].stats||f[0].stats.STR!==18)return "Alpha lost his stats: "+JSON.stringify(f[0].stats);
+    if(!f[1].stats||f[1].stats.STR!==6)return "Beta got wrong stats: "+JSON.stringify(f[1].stats);
+    if(!f[0].resist||f[0].resist[0]!=="cold")return "Alpha's resist misbound";
+    if(f[0].immune||f[0].vuln)return "Beta's attributes leaked onto Alpha";
+    return f[1].immune&&f[1].immune[0]==="poison"&&f[1].vuln&&f[1].vuln[0]==="fire"?true:"Beta's attributes lost";
+  });
+  t("P3-F1: the exact t10 live shape replays with correct per-foe CR",function(){
+    makeWorld();
+    applyMuts("[COMBAT_START:Lantern Holder|14|13|+4|1d6|7][COMBAT_STATS:STR:13|DEX:11|CON:12|INT:10|WIS:10|CHA:10|CR:0.25]"
+      +"[COMBAT_START:Club Thugs|40|11|+3|1d4|6][COMBAT_STATS:STR:12|DEX:10|CON:11|INT:9|WIS:9|CHA:8|CR:0.125][COMBAT_ROUND:1]");
+    var f=worldState.combat.foes;
+    if(!f[0].stats||f[0].stats.CR!=="0.25")return "Lantern Holder CR wrong: "+(f[0].stats&&f[0].stats.CR);
+    return f[1].stats&&f[1].stats.CR==="0.125"?true:"Club Thugs CR wrong: "+(f[1].stats&&f[1].stats.CR);
+  });
+  t("P3-F1: lone attribute tag (no COMBAT_START in response) routes to the ENGAGED foe (fallback='engaged')",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-1]"); // engage Grukk
+    applyMuts("[COMBAT_STATS:STR:9|DEX:9|CON:9|INT:9|WIS:9|CHA:9|CR:1]");
+    var f=worldState.combat.foes;
+    if(f[0].stats)return "stats leaked onto unengaged Kresh";
+    return f[1].stats&&f[1].stats.STR===9?true:"engaged routing failed: "+JSON.stringify(f[1].stats);
+  });
+  t("P3-F1: lone attribute tag, nobody engaged, 2+ living → first living + warn (loud, never silent)",function(){
+    __twoFoes();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[COMBAT_IMMUNE:fire]");}finally{console.warn=_w;}
+    var f=worldState.combat.foes;
+    if(!f[0].immune||f[0].immune[0]!=="fire")return "first-living fallback failed";
+    return warns.filter(function(m){return m.indexOf("ambiguous combat-attribute")>=0;}).length===1?true:"ambiguity warn missing";
+  });
+  t("P3-F1: COMBAT_ATTR_FALLBACK='last-added' flips the lone-tag fallback to the pre-v1.272 behavior",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Kresh|-1]"); // engage Kresh (foe 0) — must be IGNORED in last-added mode
+    var _fb=COMBAT_ATTR_FALLBACK;COMBAT_ATTR_FALLBACK="last-added";
+    try{applyMuts("[COMBAT_STATS:STR:7|DEX:7|CON:7|INT:7|WIS:7|CHA:7|CR:1]");}finally{COMBAT_ATTR_FALLBACK=_fb;}
+    var f=worldState.combat.foes;
+    if(f[0].stats)return "last-added mode routed to the engaged foe";
+    return f[1].stats&&f[1].stats.STR===7?true:"last-added fallback failed";
+  });
+  t("P3-F1: re-emitted COMBAT_START for a living foe (dup ignored) still routes its trailing stats to that foe",function(){
+    __twoFoes();
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high][COMBAT_STATS:STR:15|DEX:10|CON:13|INT:7|WIS:11|CHA:9|CR:1]");}finally{console.warn=_w;}
+    var f=worldState.combat.foes;
+    if(f.length!==2)return "dup added a foe";
+    if(f[1].stats)return "stats leaked onto Grukk (the old last-added bug)";
+    return f[0].stats&&f[0].stats.STR===15?true:"stats missed the re-emitted foe";
   });
   t("migrateWorldState wraps a flat legacy combat object; idempotent on re-run",function(){
     makeWorld();
