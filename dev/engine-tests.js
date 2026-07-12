@@ -1518,11 +1518,10 @@ function runEngineTests(R){
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
-    // Frozen v1.241; updated v1.263 (UA25 doc line) and v1.264 (UA26: COMBAT_START add-a-foe +
-    // named ENEMY_HP clauses, +1 ENEMY_SURRENDERS line — golden regenerated and diffed by eye
-    // in the same commit).
+    // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
+    // (UA38-① exits-as-canon clause). Golden regenerated and diffed by eye in each commit.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1327562603&&d.length===8951)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-1487465166&&d.length===9092)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1838,6 +1837,16 @@ function runEngineTests(R){
     applyMuts("[QUEST:Doomed|failed]");
     var hit=__toasts.filter(function(m){return m.indexOf("✗ Quest failed: Doomed")>=0;});
     return hit.length===1?true:"failed toast wrong: "+JSON.stringify(__toasts);
+  });
+
+  // ── UA38-①: exits-as-canon in the LOCATION_DESC doc line ─────────────────────
+  section("exits-as-canon (UA38-①)");
+  t("LOCATION_DESC doc line carries the exits-are-canon clause",function(){
+    // The doc block is one big join — a deleted array element has no other symptom; this pins
+    // the clause against a silent drop in a later doc-line refactor.
+    var d=buildStateTagsDoc();
+    if(d.indexOf("ALWAYS name every visible exit")<0)return "exits clause missing";
+    return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
   });
 
   // ── UA26 + UA2: multi-enemy combat + ENEMY_SURRENDERS (MULTI_ENEMY_COMBAT §8) ──
