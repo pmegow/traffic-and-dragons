@@ -1519,9 +1519,10 @@ function runEngineTests(R){
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
-    // (UA38-① exits clause), v1.266 (UA39-② range-physics rule). Golden diffed by eye each time.
+    // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
+    // both CONDITION lines). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===391768592&&d.length===9505)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-100986557&&d.length===9626)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1847,6 +1848,51 @@ function runEngineTests(R){
     var d=buildStateTagsDoc();
     if(d.indexOf("ALWAYS name every visible exit")<0)return "exits clause missing";
     return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
+  });
+
+  // ── #46 Phase B: the condition cause field ───────────────────────────────────
+  section("condition cause (#46-B)");
+  t("CONDITION 2-arg (legacy form) still parses — no cause, no error",function(){
+    // THE backward-compat failure condition: old saves replay old-format responses; a regex
+    // mistake here breaks every historical condition tag.
+    makeWorld();
+    applyMuts("[CONDITION:Poisoned|saving throw each hour CON DC 15]");
+    var c=worldState.character.conditions[0];
+    if(!c||c.name!=="Poisoned")return "2-arg form broken: "+JSON.stringify(worldState.character.conditions);
+    if(c.duration!=="saving throw each hour CON DC 15")return "duration mangled: "+c.duration;
+    return c.cause===undefined?true:"phantom cause on 2-arg form: "+c.cause;
+  });
+  t("CONDITION 3-arg stores cause; condInjectFmt renders 'from …'",function(){
+    makeWorld();
+    applyMuts("[CONDITION:Poisoned|until antidote|Reaper Spider bite]");
+    var c=worldState.character.conditions[0];
+    if(!c||c.cause!=="Reaper Spider bite")return "cause not stored: "+JSON.stringify(c);
+    if(c.duration!=="until antidote")return "duration polluted: "+c.duration;
+    return condInjectFmt(c).indexOf("from Reaper Spider bite")>=0?true:"render missing cause: "+condInjectFmt(c);
+  });
+  t("cause is first-writer-wins; duration still updates on re-emission",function(){
+    makeWorld();
+    applyMuts("[CONDITION:Cursed|1 day|the idol's touch]");
+    applyMuts("[CONDITION:Cursed|until dispelled|something else entirely]");
+    var c=worldState.character.conditions[0];
+    if(c.duration!=="until dispelled")return "duration not updated";
+    return c.cause==="the idol's touch"?true:"re-emission rewrote provenance: "+c.cause;
+  });
+  t("COMPANION_CONDITION 4-arg files cause on the charSheet; 3-arg legacy form still parses",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    applyMuts("[COMPANION_CONDITION:Lyra|Poisoned|until dawn|swamp gas]");
+    var cc=worldState.npcs[0].charSheet.conditions[0];
+    if(!cc||cc.cause!=="swamp gas"||cc.duration!=="until dawn")return "4-arg failed: "+JSON.stringify(cc);
+    applyMuts("[COMPANION_CONDITION:Lyra|Chilled|until warmed]");
+    var c2=worldState.npcs[0].charSheet.conditions[1];
+    return c2&&c2.name==="Chilled"&&c2.duration==="until warmed"&&c2.cause===undefined?true:"3-arg legacy form broken: "+JSON.stringify(c2);
+  });
+  t("cause survives into the party-sheet injection (the write-path-with-no-read-path class, inverted)",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    applyMuts("[COMPANION_CONDITION:Lyra|Poisoned|until dawn|swamp gas]");
+    return buildSysPrompt().volatile.indexOf("from swamp gas")>=0?true:"companion cause not injected";
   });
 
   // ── UA39-②: GM-side distance grounding (the range-judgment rule) ─────────────
