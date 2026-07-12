@@ -47,6 +47,7 @@ var TAG_DOC_LINES=[
 "CONSUMABLES ARE SPENT: the moment a consumable is used -- a potion drunk, a charge detonated, ammunition fired, a scroll read -- emit [ITEM_LOST:name] in that SAME response; narrated consumption without the tag leaves a ghost item on the sheet forever\n",
 "ITEM NAMES CARRY PROVENANCE: name items so their origin stays recoverable ('Vial of basilisk blood', 'Signet ring (from Sheriff Hemlock)') -- never a bare noun like 'blood'; the name is the ONLY thing the sheet keeps, so where or whom it came from must live in it\n",
 "[NPC:name|status|relation] -- status=current mood/condition in 2-4 WORDS (a label like 'wary, bargaining' -- never a sentence; scene detail belongs in prose or [NPC_NOTE:]), relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n",
+"REWARDS ARE PAID EXACTLY ONCE, when a quest first closes: if you correct or re-state an already-completed or failed quest (e.g. alongside a [RETCON:]), NEVER re-emit its [XP:]/[GOLD:]/[ITEM_GAINED:] -- they are already banked and a re-emission pays the player twice\n",
 "[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten. ALWAYS name every visible exit and where each leads -- exits are canon: a way in or out that the description never mentioned does not exist\n",
 "[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n",
 "[SUBLOCATION:name] -- player enters a named area within current world location (e.g. tavern common room, thieves' guild hall)\n",
@@ -224,6 +225,18 @@ var TAG_TABLE=[
     if(_arch&&(_arch.status==="completed"||_arch.status==="failed")){
       console.warn("[quest] blocked re-creation of archived quest '"+qTitle+"' ("+_arch.status+") — a follow-up needs a NEW title");
       R.muts.push("Quest '"+qTitle+"' already "+_arch.status+" — not reopened");
+      // P3-F2 backstop (v1.273): the guard swallows the quest tag, but XP/GOLD ride separate
+      // handlers that already RAN (table order) — a re-completion's rewards apply twice (live
+      // t16, Playtest 3). Primary defense is the REWARDS-ARE-PAID-EXACTLY-ONCE doc line; this
+      // detection fires only when that fails: same-response rewards MATCHING the archived paid
+      // record = near-certain double pay. Loud (toast + warn), deliberately never a mutation —
+      // reversal would fight table order and the XP mirror/level-up side effects.
+      if(_arch.paid){var _dx=text.match(/\[XP:\s*\+?(\d+)/),_dg=text.match(/\[GOLD:\s*\+?(\d+)/),_hits=[];
+        if(_dx&&_arch.paid.xp&&parseInt(_dx[1])===_arch.paid.xp)_hits.push("+"+_arch.paid.xp+" XP");
+        if(_dg&&_arch.paid.gold&&parseInt(_dg[1])===_arch.paid.gold)_hits.push("+"+_arch.paid.gold+" gp");
+        if(_hits.length){
+          console.warn("[quest] blocked re-completion of '"+qTitle+"' re-emitted its paid rewards ("+_hits.join(", ")+") — possible double payment");
+          if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_hits.join(", ")+" may have been paid TWICE (rewards re-emitted with a blocked re-completion) — the Sync modal can correct");}}
       continue;}}
   if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){
@@ -234,7 +247,11 @@ var TAG_TABLE=[
     var _rg=text.match(/\[GOLD:\s*\+?(\d+)/);if(_rg)_rw.push("+"+_rg[1]+" gp");/* \+?(\d+) cannot match a minus — deductions never read as rewards */
     var _ri=(text.match(/\[ITEM_GAINED:[^\]]+\]/g)||[]).length;if(_ri)_rw.push(_ri+" item"+(_ri>1?"s":""));
     if(typeof showToast==="function")showToast((qStat==="completed"?"✓ Quest completed: ":"✗ Quest failed: ")+qTitle+(_rw.length?" — "+_rw.join(", "):""));
-    archiveQuest(qTitle,qStat);}}}},
+    archiveQuest(qTitle,qStat);
+    // P3-F2: record what this close paid (reusing the UA42 parse above) so the reopen guard
+    // can recognize a reward re-emission later. Case-insensitive key scan mirrors the guard's.
+    if(_rx||_rg){var _pk=Object.keys(memory.quests||{}),_pi;for(_pi=0;_pi<_pk.length;_pi++){
+      if(_pk[_pi].toLowerCase()===qTitle.toLowerCase()){memory.quests[_pk[_pi]].paid={xp:_rx?parseInt(_rx[1]):0,gold:_rg?parseInt(_rg[1]):0};break;}}}}}}},
 {t:"QUEST_STEP",apply:function(text,R){var qsteps=text.match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/g)||[];var qsi;for(qsi=0;qsi<qsteps.length;qsi++){var qsp=qsteps[qsi].match(/\[QUEST_STEP:([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]/);if(!qsp)continue;var qsTitle=qsp[1].trim(),qsObj=qsp[2].trim(),qsDone=/^(true|done|1|yes|x)$/i.test((qsp[3]||"").trim());var qsq=null,qk;for(qk=0;qk<worldState.questLog.length;qk++){if(worldState.questLog[qk].title.toLowerCase()===qsTitle.toLowerCase()){qsq=worldState.questLog[qk];break;}}if(!qsq)continue;if(qsq.status==="offered")continue;if(!qsq.objectives)qsq.objectives=[];var ofound=false,oj2;for(oj2=0;oj2<qsq.objectives.length;oj2++){if(qsq.objectives[oj2].text.toLowerCase()===qsObj.toLowerCase()){qsq.objectives[oj2].done=qsDone;ofound=true;break;}}if(!ofound)qsq.objectives.push({text:qsObj,done:qsDone});R.muts.push(qsTitle+(qsDone?" ✓ ":" + ")+qsObj);}}},
 // UA26: multi-match g-loop (legacy matched only the FIRST tag — the H2 class: 18/150 Haiku turns
 // emitted a second COMBAT_START during a fight and it was silently lost). No combat → start the

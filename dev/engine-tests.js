@@ -1521,9 +1521,9 @@ function runEngineTests(R){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
     // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
-    // lines). Golden diffed by eye each time.
+    // lines), v1.273 (P3-F2 rewards-paid-exactly-once line). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===385028796&&d.length===10351)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-898843245&&d.length===10617)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1839,6 +1839,54 @@ function runEngineTests(R){
     applyMuts("[QUEST:Doomed|failed]");
     var hit=__toasts.filter(function(m){return m.indexOf("✗ Quest failed: Doomed")>=0;});
     return hit.length===1?true:"failed toast wrong: "+JSON.stringify(__toasts);
+  });
+
+  // ── P3-F2 (v1.273): reopen-guard reward backstop — the t16 double-payment class ──
+  section("reopen-guard reward backstop (P3-F2)");
+  t("P3-F2: a close records its paid rewards on the archive entry (reward-less close records nothing)",function(){
+    makeWorld();
+    applyMuts("[QUEST:Hunt|active]");
+    applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
+    var p=memory.quests["Hunt"]&&memory.quests["Hunt"].paid;
+    if(!p||p.xp!==50||p.gold!==10)return "paid record wrong: "+JSON.stringify(p);
+    applyMuts("[QUEST:Dry Job|active]");
+    applyMuts("[QUEST:Dry Job|failed]");
+    return memory.quests["Dry Job"]&&!memory.quests["Dry Job"].paid?true:"reward-less close grew a paid record";
+  });
+  t("P3-F2: blocked re-completion re-emitting the PAID rewards → double-payment toast + warn (the live t16 shape)",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[QUEST:Hunt|active]");
+    applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
+    var xpBefore=worldState.character.xp,goldBefore=worldState.character.gold;
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[RETCON:completed too early][QUEST:Hunt|completed][XP:50][GOLD:+10]");}finally{console.warn=_w;}
+    if(warns.filter(function(m){return m.indexOf("possible double payment")>=0;}).length!==1)return "double-pay warn missing: "+warns.join(" / ");
+    var toast=__toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;});
+    if(toast.length!==1)return "double-pay toast missing: "+JSON.stringify(__toasts);
+    if(toast[0].indexOf("+50 XP")<0||toast[0].indexOf("+10 gp")<0)return "toast doesn't name the amounts: "+toast[0];
+    // detection is deliberately warn-only — the rewards DID apply (reversal would fight table
+    // order + the XP mirror); the doc line is the prevention, this is the loud backstop
+    return worldState.character.xp===xpBefore+50&&worldState.character.gold===goldBefore+10?true:"expected warn-only behavior (xp Δ"+(worldState.character.xp-xpBefore)+", gold Δ"+(worldState.character.gold-goldBefore)+")";
+  });
+  t("P3-F2: blocked re-emission with NON-matching rewards stays quiet (no false alarm); pre-v1.273 archives (no paid record) never trigger",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[QUEST:Hunt|active]");
+    applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");
+    var _w=console.warn;console.warn=function(){};
+    try{applyMuts("[QUEST:Hunt|active][XP:25]");}finally{console.warn=_w;}
+    if(__toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;}).length)return "false alarm on non-matching rewards";
+    delete memory.quests["Hunt"].paid; // simulate a pre-v1.273 archive
+    console.warn=function(){};
+    try{applyMuts("[QUEST:Hunt|completed][XP:50][GOLD:+10]");}finally{console.warn=_w;}
+    return __toasts.filter(function(m){return m.indexOf("paid TWICE")>=0;}).length===0?true:"legacy archive without paid record triggered";
+  });
+  t("P3-F2: rewards-paid-once doc line present, STABLE half only",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("REWARDS ARE PAID EXACTLY ONCE")<0)return "doc line missing from STATE TAGS";
+    makeWorld();
+    var sp=buildSysPrompt();
+    if(sp.stable.indexOf("REWARDS ARE PAID EXACTLY ONCE")<0)return "rule missing from the stable half";
+    return sp.volatile.indexOf("REWARDS ARE PAID EXACTLY ONCE")<0?true:"rule leaked into the volatile half";
   });
 
   // ── UA38-①: exits-as-canon in the LOCATION_DESC doc line ─────────────────────
