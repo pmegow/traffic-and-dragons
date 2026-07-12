@@ -456,7 +456,7 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 **Auth:** GitHub OAuth popup → server postMessages `{type:"tnd-auth", sessionId, username}` back to opener → token stored in `tnd_server_tok_v1`.
 **CORS:** Server uses `origin: function() { return "*"; }` to handle `null` origin from `file://` pages.
 **Endpoints:** ~18 routes — full enumeration in [SERVER_ARCHITECTURE.md](SERVER_ARCHITECTURE.md) §1.2 (auth: `/auth/github` + callback + `/auth/done` + one-shot `/auth/ticket/:ticket` + `/auth/me` + logout; state: `GET/POST /api/state` (POST carries the CAS turn guard), `GET/DELETE /api/campaigns[/:id]`, `PUT /api/campaigns/:id/portrait`; libraries: `/api/characters`, `/api/blueprints`; `GET /health`). Auth flow is TICKET-based: the popup postMessages a one-shot ticket (or the opener polls it on file://), and the sessionId comes from the claim endpoint.
-**Deploy:** `cd traffic-and-dragons-server && flyctl deploy --ha=false`
+**Deploy:** `cd C:\Users\hannu\Projects\traffic-and-dragons-server && flyctl deploy --ha=false` — the server repo lives OUTSIDE the OneDrive-synced tree (moved 2026-07-12, PROJECT_ONE_DRIVE_EXODUS.html Phase 4); it is NOT a sibling of the game repo anymore
 
 ### 23. Reload behavior
 
