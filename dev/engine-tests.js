@@ -1520,9 +1520,10 @@ function runEngineTests(R){
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
-    // both CONDITION lines), v1.268 (#47 epithet clause on NPC_ALIAS). Golden diffed each time.
+    // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
+    // lines). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===636348372&&d.length===9835)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===385028796&&d.length===10351)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1848,6 +1849,14 @@ function runEngineTests(R){
     var d=buildStateTagsDoc();
     if(d.indexOf("ALWAYS name every visible exit")<0)return "exits clause missing";
     return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
+  });
+
+  // ── #50a: item consumption + provenance doc lines ────────────────────────────
+  section("item consumption + provenance (#50a)");
+  t("consumption + provenance doc lines present",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("CONSUMABLES ARE SPENT")<0)return "consumption line missing";
+    return d.indexOf("ITEM NAMES CARRY PROVENANCE")>=0?true:"provenance line missing";
   });
 
   // ── #47 write path: epithets via player-routed NPC_ALIAS ────────────────────
