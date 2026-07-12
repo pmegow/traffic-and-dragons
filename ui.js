@@ -413,8 +413,8 @@ function updateSpPanel(){
     nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
     h+="<div class='sp-item"+(sp.used?" used":"")+"'>";
-    h+="<span class='sp-nm'>["+tag+"] "+nm+"</span>";
-    if(ds||sp.used)h+="<span class='sp-ds'>"+(ds||"")+(sp.used?" -- expended":"")+"</span>";
+    h+="<span class='sp-nm'>["+tag+"] "+escHtml(nm)+"</span>";/* GM-grantable spell names (#22/UA18) */
+    if(ds||sp.used)h+="<span class='sp-ds'>"+escHtml(ds||"")+(sp.used?" -- expended":"")+"</span>";
     h+="</div>";
   }
   if(!h)h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No spells</div>";
@@ -838,7 +838,7 @@ function importSave(event){
     sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
     var mm=data.memory||{};
     memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:mm.archive?{lore:mm.archive.lore||[],decisions:mm.archive.decisions||[],chapters:mm.archive.chapters||[]}:{lore:[],decisions:[],chapters:[]}};/* archive survives export/import (P12) */
-    saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
+    saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
 function _applyBlueprint(bp){
@@ -1010,7 +1010,7 @@ function csInitials(name){return(name||"?").split(" ").map(function(w){return w[
 function csHeroHeader(c){
   var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
   var subnm=c.subraceNm?c.subraceNm+" ":"";
-  var clsLine=subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
+  var clsLine=escHtml(subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":""));/* companion sheets are model-generated (#22/UA18) */
   var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
   var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
@@ -1061,15 +1061,15 @@ function csSheetSections(c,invOwner){
   var condHtml;
   // #46: conditions carry effect · turn it landed · why (turn engine-stamped since v1.247;
   // cause arrives with the Phase-B tag extension). Older conditions lack both — render plain.
-  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(_cd.duration);if(_cd.until!=null)_cdm.push("expires ~t"+_cd.until);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+_cd.name+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';
+  if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(escHtml(_cd.duration));if(_cd.until!=null)_cdm.push("expires ~t"+_cd.until);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+escHtml(_cd.name)+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';/* GM-tag text (#22/UA18) */
   var relHtml;
-  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+c.relationships[i].entity+'</span><span class="cs-dim"> — '+c.relationships[i].descriptor+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';
+  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+escHtml(c.relationships[i].entity)+'</span><span class="cs-dim"> — '+escHtml(c.relationships[i].descriptor)+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';/* GM-tag text (#22/UA18) */
   var langHtml,langParts=[];
-  if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:var(--warn)">'+lang.name+' (broken)</span>':lang.name);}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
+  if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:var(--warn)">'+escHtml(lang.name)+' (broken)</span>':escHtml(lang.name));}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
   var saveHtml="";
-  if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+sm.type+'</span><span class="cs-dim"> ['+sm.source+']</span></div>';}saveHtml+="</div>";}
+  if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+escHtml(sm.type)+'</span><span class="cs-dim"> ['+escHtml(sm.source)+']</span></div>';}saveHtml+="</div>";}
   var beatsHtml="";
-  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+c.storyBeats[i].text+'</div>';}
+  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+escHtml(c.storyBeats[i].text)+'</div>';}/* GM-tag text (#22/UA18) */
   // #40 Core Memory — party-shared, so it lives on worldState (not the character); shown on the
   // PLAYER sheet only (companion sheets reuse this builder with a different c).
   var cmHtml="",_cmList=(worldState&&worldState.character===c&&worldState.coreMemories)?worldState.coreMemories:[];
@@ -1095,7 +1095,7 @@ function csSheetSections(c,invOwner){
       var _rejBtn=_canRej?'<button class="epi-x" data-own="'+escHtml(invOwner)+'" data-idx="'+aki+'" onclick="rejectEpithet(this.dataset.own,this.dataset.idx,event)" title="Reject this epithet" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;line-height:1;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
       _akaParts.push('<span style="white-space:nowrap">'+escHtml(c.aliases[aki])+_rejBtn+'</span>');}
     akaHtml=csKv("Also known as",_akaParts.join(", "));}
-  var charKv=akaHtml+(c.appear?csKv("Appearance",c.appear):"")+(c.mark?csKv("Distinguishing Mark",c.mark):"")+(c.trait?csKv("Trait",c.trait):"")+(c.flaw?csKv("Flaw",c.flaw):"")+(c.motivation?csKv("Motivation",c.motivation):"")+(c.backstory?csKv("Backstory",c.backstory):"");
+  var charKv=akaHtml+(c.appear?csKv("Appearance",escHtml(c.appear)):"")+(c.mark?csKv("Distinguishing Mark",escHtml(c.mark)):"")+(c.trait?csKv("Trait",escHtml(c.trait)):"")+(c.flaw?csKv("Flaw",escHtml(c.flaw)):"")+(c.motivation?csKv("Motivation",escHtml(c.motivation)):"")+(c.backstory?csKv("Backstory",escHtml(c.backstory)):"");/* user/model-authored prose (#22/UA18) */
   return csSec("Attributes",statHtml)+csSec("Character",charKv)+csSec("Conditions",condHtml)+csSec("Relationships",relHtml)+csSec("Languages",langHtml)+(c.saveModifiers&&c.saveModifiers.length?csSec("Save Modifiers",saveHtml):"")+csSec("Skills",skillHtml)+(cmHtml?csSec("Defining Moments",cmHtml):"")+(c.storyBeats&&c.storyBeats.length?csSec("Story Beats",beatsHtml):"")+csSec("Abilities",abilHtml)+(c.spells&&c.spells.length?csSec("Spells",spellHtml):"")+csSec("Inventory",invHtml);
 }
 // showCapabilityCard (TODO #10) — the player-facing click-card. Renders a spell/ability's canon via
@@ -1130,12 +1130,12 @@ function showCharSheet(){
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+c.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    +"<div class='cs-avatar' id='cs-avatar-btn' title='Drag to reframe · Click to edit'>"+(c.portrait?"<img id='cs-portrait-img' src='"+c.portrait+"' alt='"+escHtml(c.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
-    +"<div class='cs-hero-name'>"+c.name+"</div>"
+    +"<div class='cs-hero-name'>"+escHtml(c.name)+"</div>"
     +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
-    +"<div class='cs-hero-sub'>"+hdr.genderLbl+" · "+c.age+(c.deity?" · "+c.deity:"")+"</div>"
+    +"<div class='cs-hero-sub'>"+hdr.genderLbl+" · "+escHtml(c.age)+(c.deity?" · "+escHtml(c.deity):"")+"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+c.hp+"/"+c.maxHp+" HP</span>"
@@ -1163,7 +1163,7 @@ function showCharSheet(){
   function refreshAvatar(){
     var av=document.getElementById("cs-avatar-btn");if(!av)return;
     var c2=worldState.character;
-    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+c2.name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+    av.innerHTML=(c2.portrait?"<img id='cs-portrait-img' src='"+c2.portrait+"' alt='"+escHtml(c2.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
     wireAvatarDrag();
   }
   function wireAvatarDrag(){
@@ -1527,20 +1527,20 @@ function showNpcSheet(name){
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   var avatarHtml=isParty
-    ?"<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
+    ?"<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+portrait+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>"
     :"<div class='cs-avatar' style='font-size:16px;cursor:default;'>"+initials+"</div>";
 
   // ── Hero info block ───────────────────────────────────────────────────────
   var heroInfo;
   if(sheet){
     var gLbl=sheet.gender==="F"?"Female":sheet.gender==="NB"?"Non-binary":"Male";
-    var clsLine=(sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":"");
+    var clsLine=escHtml((sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":""));/* model-generated sheet fields (#22/UA18) */
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
     var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
-    heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+name+"</span>"+playBtn+"</div>"
+    heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
-      +"<div class='cs-hero-sub'>"+gLbl+" · "+(sheet.age||"?")+(sheet.deity?" · "+sheet.deity:"")+"</div>"
+      +"<div class='cs-hero-sub'>"+gLbl+" · "+escHtml(sheet.age||"?")+(sheet.deity?" · "+escHtml(sheet.deity):"")+"</div>"
       +"<div style='margin-top:8px;font-size:13px;'>"
       +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+(sheet.hp||0)+"/"+(sheet.maxHp||0)+" HP</span>"
@@ -1550,7 +1550,7 @@ function showNpcSheet(name){
       +"<span>"+(lvl<10?"Next: "+nextXP+" XP":"Max level")+"</span></div>"
       +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpPct+"%;'></div></div></div>";
   }else{
-    heroInfo="<div class='cs-hero-name'>"+name+"</div>"
+    heroInfo="<div class='cs-hero-name'>"+escHtml(name)+"</div>"/* model-invented NPC name (#22/UA18) */
       +(isParty?"<div class='cs-hero-cls'>Party Member</div>":"<div class='cs-hero-cls'>NPC</div>")
       +(wsNpc&&wsNpc.met?"<div class='cs-hero-sub'>First met: turn "+wsNpc.met+"</div>":"");
   }
@@ -1569,7 +1569,7 @@ function showNpcSheet(name){
 
   // ── NPC sections (always shown) ───────────────────────────────────────────
   var statusBlock="";
-  if(wsNpc){statusBlock+=csKv("Status",wsNpc.status||"—");if(wsNpc.pronouns)statusBlock+=csKv("Pronouns",wsNpc.pronouns);}
+  if(wsNpc){statusBlock+=csKv("Status",escHtml(wsNpc.status||"—"));if(wsNpc.pronouns)statusBlock+=csKv("Pronouns",escHtml(wsNpc.pronouns));}/* model-authored (#22/UA18) */
   // #47: identity aliases (memory — the resolution spine, e.g. a merged "Woman in Bronze")
   // + schema epithets (charSheet.aliases), deduped. The merge machinery's work, made visible.
   var _aka=[],_ak;
@@ -1579,15 +1579,15 @@ function showNpcSheet(name){
   var pcRel=null;var pcRels=worldState&&worldState.character&&worldState.character.relationships?worldState.character.relationships:[];
   for(var pri=0;pri<pcRels.length;pri++){if(pcRels[pri].entity===name){pcRel=pcRels[pri].descriptor;break;}}
   var relDisplay=pcRel||(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown"?wsNpc.rel:null);
-  if(relDisplay)statusBlock+=csKv("Relationship",relDisplay);
+  if(relDisplay)statusBlock+=csKv("Relationship",escHtml(relDisplay));
   var nfEntries=memory&&memory.npcGraph&&memory.npcGraph.npcFactions?memory.npcGraph.npcFactions[name]||[]:[];
-  if(nfEntries.length)statusBlock+=csKv("Factions",nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", "));
+  if(nfEntries.length)statusBlock+=csKv("Factions",escHtml(nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")));
   var npcLinks2="";if(memory&&memory.npcGraph&&memory.npcGraph.edges){var nlEdges=memory.npcGraph.edges;for(var nle=0;nle<nlEdges.length;nle++){var e2=nlEdges[nle];if(e2.a===name)npcLinks2+=(npcLinks2?", ":"")+e2.b+" ("+e2.rel+")";else if(e2.b===name)npcLinks2+=(npcLinks2?", ":"")+e2.a+" ("+e2.rel+")";}}
-  if(npcLinks2)statusBlock+=csKv("Links",npcLinks2);
+  if(npcLinks2)statusBlock+=csKv("Links",escHtml(npcLinks2));
   var memBlock="";
-  if(memNpc){if(memNpc.attitude)memBlock+=csKv("Attitude",memNpc.attitude);if(memNpc.knowledge&&memNpc.knowledge.length)memBlock+=csKv("Knows",memNpc.knowledge.join("; "));}
+  if(memNpc){if(memNpc.attitude)memBlock+=csKv("Attitude",escHtml(memNpc.attitude));if(memNpc.knowledge&&memNpc.knowledge.length)memBlock+=csKv("Knows",escHtml(memNpc.knowledge.join("; ")));}/* model-authored memory (#22/UA18) */
   var evHtml="";
-  if(memNpc&&memNpc.events&&memNpc.events.length){for(i=memNpc.events.length-1;i>=0;i--)evHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+memNpc.events[i].turn+'</span>'+memNpc.events[i].note+'</div>';}
+  if(memNpc&&memNpc.events&&memNpc.events.length){for(i=memNpc.events.length-1;i>=0;i--)evHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+memNpc.events[i].turn+'</span>'+escHtml(memNpc.events[i].note)+'</div>';}
   var npcSections=csSec("Status",statusBlock||'<span class="cs-none">No data</span>')+(memBlock?csSec("Profile",memBlock):"")+(evHtml?csSec("History",evHtml):"");
 
   // ── Generate / Regenerate button ──────────────────────────────────────────
@@ -1665,7 +1665,7 @@ function showNpcSheet(name){
     function refreshNpcAvatar(){
       var av=document.getElementById("npc-avatar-btn");if(!av)return;
       var port=npcPortrait(wsNpc);
-      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+port+"' alt='"+name+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+port+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
       wireNpcAvatarDrag();
     }
     wireNpcAvatarDrag(); // apply saved offset on initial render
@@ -2351,10 +2351,10 @@ function showReadOnlyCharSheet(c,opts){
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Character library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
-    +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
+    +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+escHtml(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
     +"</div>"
     +"<div class='cs-hero-info'>"
-    +"<div class='cs-hero-name'>"+(c.name||"—")+"</div>"
+    +"<div class='cs-hero-name'>"+escHtml(c.name||"—")+"</div>"
     +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
     +"<div class='cs-hero-sub'>"+hdr.genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"

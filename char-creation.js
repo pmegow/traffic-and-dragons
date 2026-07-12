@@ -184,11 +184,11 @@ function buildReview(){
     var init2=(dispName||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
     var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+ch.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
     var fs2=ch.stats||{};
-    el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName||'<span style="color:var(--t2)">Enter a name above</span>')+'</div>'
+    el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName?escHtml(dispName):'<span style="color:var(--t2)">Enter a name above</span>')+'</div>'/* imported-file name (#22/UA18) */
       +'<div class="rv-sub">'+(ch.subraceNm||ch.subrace||ch.ancestry||"")+" "+(ch.cls||"")+" &middot; Lv"+(ch.level||1)+" &middot; "+(ch.gender==="F"?"Female":ch.gender==="NB"?"Non-binary":"Male")+'</div></div></div>'
       +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+(fs2[s]||"—")+'</div><div class="rm">'+(fs2[s]?smod(fs2[s]):"")+'</div></div>';}).join("")+'</div>'
       +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+(ch.maxHp||ch.hp||0)+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+(ch.gold||0)+' gp</span></div><div class="rv-row"><span class="rk">Level</span><span class="rv">'+(ch.level||1)+'</span></div><div class="rv-row"><span class="rk">XP</span><span class="rv">'+(ch.xp||0)+'</span></div></div>'
-      +(ch.appear?'<div class="desc-pre">"'+ch.appear+'"</div>':"")
+      +(ch.appear?'<div class="desc-pre">"'+escHtml(ch.appear)+'"</div>':"")
       +'<div style="font-size:11px;color:var(--t2);margin-top:8px;text-align:center;">Importing at level '+(ch.level||1)+" — no re-roll.</div>";
     var cnInp2=document.getElementById("rv-camp-name");if(cnInp2){if(pendingBlueprint&&pendingBlueprint.name){var _ibpNms=[dispName];var _ibpci;for(_ibpci=0;_ibpci<pendingCompanions.length;_ibpci++)_ibpNms.push(pendingCompanions[_ibpci].name);cnInp2.value=pendingBlueprint.name+" ("+_ibpNms.join(", ")+")"}else if(!cnInp2.value)cnInp2.value=dispName;}
     if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
@@ -202,10 +202,10 @@ function buildReview(){
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var genderLbl=cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male";
   var avHtml=cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>';
-  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm||'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm||(anc?anc.nm:"?"))+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'
+  el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm?escHtml(dispNm):'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm||(anc?anc.nm:"?"))+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'/* user-typed name (#22/UA18) */
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
     +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+hp+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+rvGold+' gp</span></div><div class="rv-row"><span class="rk">Prime</span><span class="rv">'+(cls?cls.prime:"?")+'</span></div><div class="rv-row"><span class="rk">Hit die</span><span class="rv">'+(cls?"d"+cls.hd:"?")+'</span></div></div>'
-    +(cs.appear?'<div class="desc-pre">"'+cs.appear+'"</div>':"")
+    +(cs.appear?'<div class="desc-pre">"'+escHtml(cs.appear)+'"</div>':"")
     +'<div class="rv-row"><span class="rk">Alignment</span><span class="rv" style="font-weight:normal;">'+statedAlign+'</span></div>'
     +(DEITY_CENTRIC.indexOf(cs.cls)>=0&&document.getElementById("char-deity")&&document.getElementById("char-deity").value.trim()?'<div class="rv-row"><span class="rk">Deity</span><span class="rv" style="font-weight:normal;">'+document.getElementById("char-deity").value.trim()+'</span></div>':"")
     +'<div><div class="rk" style="margin-bottom:6px;">Starting gear</div><div class="tags">'+(cls?cls.gear:"").split(", ").map(function(g){return'<span class="tag">'+g+'</span>';}).join("")+'</div></div>';
