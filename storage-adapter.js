@@ -356,6 +356,31 @@ var storageAdapter = (function() {
 
   // ── Campaign list sync ──────────────────────────────────────────────────────
 
+  // UA20 (v1.283): pure merge, extracted for engine tests. Server wins on id conflicts;
+  // entries the server has NEVER tracked (no onServer flag — offline/unsynced campaigns)
+  // are kept; entries the server ONCE listed (onServer:true) but no longer does were
+  // deleted on another device — PRUNE the list row (loudly), else deletions resurrect
+  // forever. Only the picker row goes: local snapshots/state keys are never touched here.
+  function mergeCampaignLists(local, serverList) {
+    var merged = local.slice(), i, j, found;
+    for (i = 0; i < serverList.length; i++) {
+      serverList[i].onServer = true;
+      found = false;
+      for (j = 0; j < merged.length; j++) {
+        if (merged[j].id === serverList[i].id) { merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); found = true; break; }
+      }
+      if (!found) merged.push(serverList[i]);
+    }
+    var kept = [], pruned = [];
+    for (j = 0; j < merged.length; j++) {
+      var m = merged[j], onSrv = false;
+      for (i = 0; i < serverList.length; i++) { if (serverList[i].id === m.id) { onSrv = true; break; } }
+      if (m.onServer && !onSrv) pruned.push(m.id); else kept.push(m);
+    }
+    if (pruned.length) console.warn("[storage] campaign list: pruned " + pruned.length + " entr" + (pruned.length === 1 ? "y" : "ies") + " deleted on another device (UA20): " + pruned.join(", "));
+    return kept;
+  }
+
   function syncCampaignList(cb) {
     if (!_serverUrl || !_token) { if (cb) cb(null); return; }
     var _fired = false;
@@ -369,18 +394,9 @@ var storageAdapter = (function() {
       return r.json();
     }).then(function(serverList) {
       if (!Array.isArray(serverList)) { done(null); return; }
-      // Merge server list into local: server wins on ID conflicts, local-only kept
       var local = [];
       try { var raw = localStorage.getItem("tnd_camps_v1"); if (raw) local = JSON.parse(raw); } catch(e) {}
-      var merged = local.slice(), i, j, found;
-      for (i = 0; i < serverList.length; i++) {
-        serverList[i].onServer = true;
-        found = false;
-        for (j = 0; j < merged.length; j++) {
-          if (merged[j].id === serverList[i].id) { merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); found = true; break; }
-        }
-        if (!found) merged.push(serverList[i]);
-      }
+      var merged = mergeCampaignLists(local, serverList);
       try { localStorage.setItem("tnd_camps_v1", JSON.stringify(merged)); } catch(e) {}
       done(merged);
     }).catch(function(e) {
@@ -652,6 +668,7 @@ var storageAdapter = (function() {
     syncStatus:            syncStatus,
     resetSyncState:        resetSyncState,
     syncCampaignList:      syncCampaignList,
+    mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
     listCharacterLibrary:            listCharacterLibrary,

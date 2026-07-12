@@ -432,6 +432,26 @@ function runEngineTests(R){
     return worldState.character.portrait==="RIGHT_FACE"?true:"same-name fill failed: "+worldState.character.portrait;
   });
 
+  // ── UA20: campaign-list merge — deletions propagate ──────────────────────────
+  section("campaign-list merge (UA20)");
+  t("UA20: server wins on id conflicts; genuinely local-only entries kept",function(){
+    var merged=storageAdapter.mergeCampaignLists(
+      [{id:"a",name:"Old A"},{id:"local",name:"Offline camp"}],
+      [{id:"a",name:"New A"},{id:"b",name:"B"}]);
+    var byId={};merged.forEach(function(c){byId[c.id]=c;});
+    if(byId.a.name!=="New A")return "server did not win on id: "+byId.a.name;
+    if(!byId.a.onServer||!byId.b)return "server entries not flagged/merged";
+    return byId.local&&!byId.local.onServer?true:"local-only entry lost";
+  });
+  t("UA20: an entry the server ONCE tracked but no longer lists is PRUNED (deleted elsewhere)",function(){
+    var merged=storageAdapter.mergeCampaignLists(
+      [{id:"dead",name:"Deleted on other device",onServer:true},{id:"live",name:"Live",onServer:true},{id:"local",name:"Offline camp"}],
+      [{id:"live",name:"Live"}]);
+    var ids=merged.map(function(c){return c.id;});
+    if(ids.indexOf("dead")>=0)return "deleted campaign resurrected: "+ids.join(",");
+    return ids.indexOf("live")>=0&&ids.indexOf("local")>=0?true:"kept set wrong: "+ids.join(",");
+  });
+
   // ── store fallback coherence (audit E5/E6) ───────────────────────────────────
   section("store quota fallback (E5/E6)");
   t("quota-failed set rethrows (so saveCore can toast) AND get serves _m, not stale disk",function(){
