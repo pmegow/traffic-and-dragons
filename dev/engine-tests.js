@@ -1520,9 +1520,9 @@ function runEngineTests(R){
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
-    // both CONDITION lines). Golden diffed by eye each time.
+    // both CONDITION lines), v1.268 (#47 epithet clause on NPC_ALIAS). Golden diffed each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-100986557&&d.length===9626)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===636348372&&d.length===9835)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -1848,6 +1848,50 @@ function runEngineTests(R){
     var d=buildStateTagsDoc();
     if(d.indexOf("ALWAYS name every visible exit")<0)return "exits clause missing";
     return d.indexOf("does not exist")>=0?true:"canon-fence sentence missing";
+  });
+
+  // ── #47 write path: epithets via player-routed NPC_ALIAS ────────────────────
+  section("epithets (#47 write path)");
+  t("player-name NPC_ALIAS routes to character.aliases and creates NO memory.npcs entry",function(){
+    // THE identity leak: the legacy handler unconditionally creates memory.npcs[canonical] —
+    // a naive addition that checks AFTER the create ships the exact bug the design rejected.
+    makeWorld();__toasts.length=0;
+    applyMuts("[NPC_ALIAS:Tess|Wolf of Ashfen]");
+    if(worldState.character.aliases.indexOf("Wolf of Ashfen")<0)return "epithet not filed on the sheet";
+    if(memory.npcs["Tess"]!==undefined)return "IDENTITY LEAK: memory.npcs entry created for the player";
+    if(worldState.npcs.filter(function(n){return n.name==="Tess";}).length)return "worldState.npcs ghost entry";
+    return __toasts.join(" ").indexOf("Epithet earned")>=0?true:"no epithet toast";
+  });
+  t("literal 'player' routes the same way",function(){
+    makeWorld();
+    applyMuts("[NPC_ALIAS:player|The Unbroken]");
+    if(worldState.character.aliases.indexOf("The Unbroken")<0)return "literal player form not routed";
+    return memory.npcs["player"]===undefined?true:"memory entry for literal 'player'";
+  });
+  t("epithet dedupe: same tag twice → one entry, one toast",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[NPC_ALIAS:Tess|Wolf of Ashfen]");
+    applyMuts("[NPC_ALIAS:Tess|Wolf of Ashfen]");
+    if(worldState.character.aliases.length!==1)return "duplicated: "+JSON.stringify(worldState.character.aliases);
+    return __toasts.filter(function(m){return m.indexOf("Epithet")>=0;}).length===1?true:"toast count wrong";
+  });
+  t("party-member NPC_ALIAS lands on BOTH charSheet.aliases and memory aliases (resolution unbroken)",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    memory.npcs["Lyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_ALIAS:Lyra|The Dawnkeeper]");
+    if(!worldState.npcs[0].charSheet.aliases||worldState.npcs[0].charSheet.aliases.indexOf("The Dawnkeeper")<0)return "sheet epithet missing";
+    if(memory.npcs["Lyra"].aliases.indexOf("The Dawnkeeper")<0)return "memory alias missing (resolution broken)";
+    applyMuts("[NPC_NOTE:The Dawnkeeper|Blessed the caravan.]");
+    return memory.npcs["Lyra"].events.length===1?true:"follow-up via the alias did not resolve";
+  });
+  t("ordinary NPC path unchanged (legacy worldState/memory shape)",function(){
+    makeWorld();
+    applyMuts("[NPC:Borin|gruff|ally]");
+    applyMuts("[NPC_ALIAS:Borin|The Smith]");
+    if(memory.npcs["Borin"].aliases.indexOf("The Smith")<0)return "memory alias missing";
+    var ws=worldState.npcs.filter(function(n){return n.name==="Borin";})[0];
+    return ws&&ws.aliases&&ws.aliases.indexOf("The Smith")>=0?true:"worldState alias missing";
   });
 
   // ── #46 Phase B: the condition cause field ───────────────────────────────────

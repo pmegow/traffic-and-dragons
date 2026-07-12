@@ -1,5 +1,6 @@
 # Auto-exported narrative files
 *.txt
+!dev/golden_stable_PRE.txt
 
 # OS junk
 .DS_Store
