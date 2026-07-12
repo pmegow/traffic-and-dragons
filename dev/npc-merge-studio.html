@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPC Merge Studio — UA29</title>
+<!--
+  npc-merge-studio.html — point-and-click host for the UA29 NPC dupe-merge surgery.
+  Satellite page (open directly, like blueprint-designer.html / bible_study.html; NOT in
+  the SW app shell). DEV TOOL — versions with the engine, no APP_VERSION/CACHE bump.
+
+  Load an exported .tnd, review the proposed merge groups (evidence per key), tick what
+  to merge — ambiguous groups (the two-Aldaras hazard) start unselected and make YOU
+  choose the canonical — then Apply runs the SAME surgery + mandatory verification as
+  the CLI (dev/npc-merge-tool.js) via the shared dev/npc-merge-core.js, and hands you a
+  NEW .tnd as a download. Your original file is never modified (the browser physically
+  cannot write to it). Spec: RESOLVE_NPC_INVARIANTS.md §7 + Fable_UberAudit.md UA29.
+
+  Loads the REAL engine files (globals→…→tag_table) so the resolver, tokenizer, RAG
+  probe, and NPC_MERGE handler are the shipping implementations — zero copied logic.
+  Optional ?url=path query param fetches a same-origin .tnd instead of the file picker.
+-->
+<style>
+  :root{--acc:#b8935a;--bg:#141414;--bg2:#1c1c1c;--bg3:#242424;--t0:#f0f0f0;--t1:#cccccc;--t2:#8a8a8a;--brd:#333;--ok:#7dba6a;--warnc:#d9a441;--bad:#d96a5a;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px 24px 110px;}
+  h1{color:var(--acc);font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--t2);font-size:12px;margin-bottom:18px;max-width:760px;line-height:1.5;}
+  h2{color:var(--t0);font-size:13px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--brd);padding-bottom:6px;margin:28px 0 12px;}
+  #drop{border:1px dashed var(--brd);border-radius:12px;padding:34px;text-align:center;color:var(--t2);cursor:pointer;max-width:560px;transition:border-color .15s;}
+  #drop:hover,#drop.over{border-color:var(--acc);color:var(--t1);}
+  #drop input{display:none;}
+  #summary{font-size:13px;color:var(--t1);margin:14px 0 4px;}
+  #summary b{color:var(--acc);font-weight:600;}
+  .card{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:14px;max-width:860px;}
+  .card.amb{border-color:var(--warnc);}
+  .gtitle{font-size:13px;color:var(--t0);margin-bottom:8px;}
+  .gtitle .tagp{color:var(--ok);font-size:11px;letter-spacing:.05em;}
+  .gtitle .taga{color:var(--warnc);font-size:11px;letter-spacing:.05em;}
+  .hz{color:var(--warnc);font-size:12px;margin:2px 0 6px;}
+  .mrow{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px solid var(--brd);}
+  .mrow:first-of-type{border-top:none;}
+  .mrow label.pick{display:flex;gap:4px;align-items:center;font-size:10px;color:var(--t2);flex:0 0 auto;margin-top:2px;white-space:nowrap;}
+  .mrow input{accent-color:var(--acc);cursor:pointer;}
+  .mname{font-size:13px;color:var(--t0);}
+  .mname.canon{color:var(--acc);font-weight:600;}
+  .mstats{font-size:11px;color:var(--t2);margin-top:2px;}
+  .mstats .flag{color:var(--warnc);}
+  details{margin-top:4px;font-size:12px;}
+  details summary{cursor:pointer;color:var(--t2);font-size:11px;outline:none;}
+  details summary:hover{color:var(--acc);}
+  .evline{color:var(--t1);margin:3px 0 0 12px;line-height:1.45;}
+  .evline b{color:var(--t2);font-weight:500;}
+  .logline{font-size:12px;font-family:Consolas,monospace;padding:1px 0;line-height:1.5;}
+  .l-ok{color:var(--ok);} .l-note{color:var(--t2);} .l-warn{color:var(--warnc);} .l-fatal{color:var(--bad);font-weight:600;} .l-info{color:var(--t1);}
+  #bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:1px solid var(--brd);padding:12px 24px;display:none;align-items:center;gap:16px;z-index:50;}
+  #barcount{font-size:13px;color:var(--t0);flex:1;}
+  button.big{background:var(--acc);color:#141414;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;}
+  button.big:disabled{opacity:.35;cursor:default;}
+  button.ghost{background:none;color:var(--t1);border:1px solid var(--brd);border-radius:8px;padding:9px 16px;font-size:12px;cursor:pointer;}
+  button.ghost:hover{border-color:var(--acc);color:var(--acc);}
+  #overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 16px;}
+  #obox{background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:720px;width:100%;padding:20px 24px;}
+  #obox h3{color:var(--acc);font-size:15px;margin:0 0 10px;}
+  .planline{font-size:13px;color:var(--t1);padding:3px 0;}
+  .planline b{color:var(--acc);font-weight:600;}
+  select{background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;padding:6px 8px;font-size:12px;max-width:280px;}
+  .custrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px;color:var(--t2);}
+  .empty{color:var(--t2);font-style:italic;font-size:13px;}
+  .dl{background:var(--ok);color:#141414;}
+</style>
+</head>
+<body>
+<h1>NPC Merge Studio</h1>
+<div class="sub">One-time repair for NPC entries forked across several memory keys (UA29). Load an exported <b>.tnd</b>, review the evidence,
+tick the merges you agree with, and download the repaired save as a <b>new file</b> — your original is never modified. Ambiguous groups
+(distinct people sharing a name-token) start unselected: you pick the canonical and what it absorbs, or leave them alone.
+Everything runs locally in this page with the real game engine; nothing is uploaded.</div>
+
+<div id="drop">
+  <input type="file" id="fin" accept=".tnd,.json">
+  <div style="font-size:14px;">Drop a .tnd here, or click to choose</div>
+  <div style="font-size:11px;margin-top:6px;">exported via File ▸ 💾 Save / Load ▸ Save Game</div>
+</div>
+<div id="summary"></div>
+<div id="main" style="display:none;">
+  <h2>Proposed merges</h2>
+  <div id="groups"></div>
+  <h2>Custom merge</h2>
+  <div class="sub" style="margin-bottom:8px;">For pairs the proposal engine can't see (no shared name token). Same rules apply: the dupe's key is deleted and becomes an alias of the canonical.</div>
+  <div class="custrow">
+    <span>Merge</span><select id="cust-dupe"></select><span>into</span><select id="cust-canon"></select>
+    <button class="ghost" id="cust-add">Add</button>
+  </div>
+  <div id="cust-list"></div>
+  <h2>Residue &amp; health</h2>
+  <details><summary>Residue scan — sites the live merge handler misses (informational)</summary><div id="residue" style="margin-top:8px;"></div></details>
+  <details><summary>Data health — alias invariants (I10)</summary><div id="health" style="margin-top:8px;"></div></details>
+</div>
+
+<div id="results" style="display:none;">
+  <h2 id="rtitle">Apply log</h2>
+  <div id="rlog"></div>
+</div>
+
+<div id="bar">
+  <div id="barcount"></div>
+  <button class="ghost" id="startover">Start over</button>
+  <button class="big" id="applybtn" disabled>Review &amp; apply…</button>
+</div>
+
+<div id="overlay"><div id="obox">
+  <h3 id="otitle">Confirm merge plan</h3>
+  <div id="oplan"></div>
+  <div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;">
+    <button class="ghost" id="ocancel">Cancel</button>
+    <button class="big" id="oconfirm">Apply now</button>
+  </div>
+</div></div>
+
+<script src="../globals.js"></script>
+<script src="../compress.js"></script>
+<script src="../data.js"></script>
+<script src="../capability_bible.js"></script>
+<script src="../helpers.js"></script>
+<script src="../state.js"></script>
+<script src="../storage-adapter.js"></script>
+<script src="../memory.js"></script>
+<script src="../tag_table.js"></script>
+<script src="npc-merge-core.js"></script>
+<script>
+var tnd=null,fileName="",built=null,customMerges=[],applied=false;
+// &#39; included because names land in single-quoted HTML attributes ("Morwen (Ammut's wife)")
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+function el(id){return document.getElementById(id);}
+
+// ── load ──
+function loadTnd(text,name){
+  var data;
+  try{data=JSON.parse(text);}catch(e){alert("Not valid JSON: "+e.message);return;}
+  if(!data||!data.worldState||!data.memory){alert("Not a .tnd save — missing worldState/memory.");return;}
+  if(!data.worldState.character){alert("Save has no character — refusing to operate on it.");return;}
+  if(data.worldState.transcript&&data.worldState.transcript.__lz){
+    try{data.worldState.transcript=JSON.parse(LZ.decompressFromUTF16(data.worldState.transcript.__lz));}
+    catch(e){alert("Could not inflate compressed transcript: "+e.message);return;}
+  }
+  if(!data.worldState.npcs)data.worldState.npcs=[];
+  if(!data.memory.npcs)data.memory.npcs={};
+  tnd=data;fileName=name||"save.tnd";applied=false;customMerges=[];
+  // rebind the engine globals at the loaded save (state.js declared them as vars)
+  worldState=tnd.worldState;memory=tnd.memory;sessionLog=tnd.sessionLog||[];
+  el("summary").innerHTML="<b>"+esc(worldState.campName||"(unnamed campaign)")+"</b> — turn "+(worldState.turn||0)+
+    ", player "+esc(nmcPlayerName()||"?")+" · "+Object.keys(memory.npcs).length+" NPC memory keys · "+
+    (worldState.transcript||[]).length+" transcript entries · <span style='color:var(--t2)'>"+esc(fileName)+"</span>";
+  analyze();
+}
+el("fin").addEventListener("change",function(){
+  var f=this.files[0];if(!f)return;
+  var r=new FileReader();r.onload=function(){loadTnd(r.result,f.name);};r.readAsText(f);
+});
+el("drop").addEventListener("click",function(){el("fin").click();});
+el("drop").addEventListener("dragover",function(e){e.preventDefault();this.classList.add("over");});
+el("drop").addEventListener("dragleave",function(){this.classList.remove("over");});
+el("drop").addEventListener("drop",function(e){
+  e.preventDefault();this.classList.remove("over");
+  var f=e.dataTransfer.files[0];if(!f)return;
+  var r=new FileReader();r.onload=function(){loadTnd(r.result,f.name);};r.readAsText(f);
+});
+(function(){ // optional ?url= same-origin loader
+  var m=location.search.match(/[?&]url=([^&]+)/);
+  if(!m)return;
+  var u=decodeURIComponent(m[1]);
+  fetch(u).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(function(t){loadTnd(t,u.split("/").pop());})
+    .catch(function(e){alert("Could not fetch "+u+": "+e.message);});
+})();
+
+// ── render ──
+function logHtml(target){
+  return function(level,text){
+    var d=document.createElement("div");
+    d.className="logline l-"+level;
+    var sym=level==="ok"?"✓ ":level==="note"?"~ ":level==="warn"?"⚠ ":level==="fatal"?"✗ ":"";
+    d.textContent=sym+text;
+    target.appendChild(d);
+  };
+}
+function evidenceHtml(k){
+  var ev=nmcKeyEvidence(k),h="",i;
+  h+="<div class='evline'><b>tokens</b> ["+esc(ev.tokens.join(", "))+"]"+(ev.aliases.length?" · <b>aliases</b> "+esc(ev.aliases.join(", ")):"")+"</div>";
+  if(ev.firstEncounter)h+="<div class='evline'><b>first met</b> “"+esc(nmcTrim(ev.firstEncounter,200))+"”</div>";
+  for(i=0;i<ev.knowledge.length&&i<5;i++)h+="<div class='evline'><b>knows</b> "+esc(nmcTrim(ev.knowledge[i],160))+"</div>";
+  if(ev.knowledge.length>5)h+="<div class='evline'><b>…</b> +"+(ev.knowledge.length-5)+" more knowledge entries</div>";
+  var evs=ev.events.slice(-3);
+  for(i=0;i<evs.length;i++)h+="<div class='evline'><b>event t"+esc(evs[i].turn!=null?evs[i].turn:"?")+"</b> "+esc(nmcTrim(evs[i].note,160))+"</div>";
+  return h;
+}
+function statsHtml(k){
+  var ev=nmcKeyEvidence(k),bits=[];
+  bits.push(ev.knowledge.length+" knowledge · "+ev.events.length+" events · "+ev.stamps+" transcript stamps");
+  if(ev.attitude)bits.push("attitude: "+esc(nmcTrim(ev.attitude,50)));
+  if(ev.lastSeenAt)bits.push("last seen: "+esc(ev.lastSeenAt));
+  if(ev.roster){
+    var r=[];
+    if(ev.roster.partyMember)r.push("<span class='flag'>★ party member</span>");
+    if(ev.roster.charSheet)r.push("<span class='flag'>★ char sheet (Lv"+esc(ev.roster.charSheet.level||"?")+" "+esc(ev.roster.charSheet.cls||"?")+")</span>");
+    if(ev.roster.pronouns)r.push(esc(ev.roster.pronouns));
+    if(r.length)bits.push(r.join(" · "));
+  }
+  return bits.join(" · ");
+}
+function analyze(){
+  built=nmcBuildGroups();
+  var gDiv=el("groups");gDiv.innerHTML="";
+  if(!built.groups.length)gDiv.innerHTML="<div class='empty'>No fork groups found — no token-subset or alias-claim links between NPC memory keys. You can still add a custom merge below.</div>";
+  var i,j;
+  for(i=0;i<built.groups.length;i++){
+    var g=built.groups[i];
+    var card=document.createElement("div");
+    card.className="card"+(g.ambiguous?" amb":"");
+    card.setAttribute("data-g",i);
+    var h="";
+    if(g.ambiguous)
+      h+="<div class='gtitle'><span class='taga'>⚠ AMBIGUOUS</span> — "+g.maximal.length+" distinct identities share tokens ("+esc(g.maximal.join(" / "))+"). These may be DIFFERENT people. Nothing is preselected — pick a canonical and what it absorbs only if you're sure, or leave it alone.</div>";
+    else
+      h+="<div class='gtitle'><span class='tagp'>PROPOSED</span> — merge into <b style='color:var(--acc)'>"+esc(g.canonical)+"</b></div>";
+    var hz=nmcGroupHazards(g);
+    for(j=0;j<hz.length;j++)h+="<div class='hz'>⚠ "+esc(hz[j])+"</div>";
+    for(j=0;j<g.members.length;j++){
+      var m=g.members[j];
+      var isCanon=!g.ambiguous&&m===g.canonical;
+      h+="<div class='mrow'>"+
+        "<label class='pick'><input type='radio' name='canon-"+i+"' value='"+esc(m)+"'"+(isCanon?" checked":"")+"> canonical</label>"+
+        "<label class='pick'><input type='checkbox' class='absorb' data-g='"+i+"' value='"+esc(m)+"'"+(!g.ambiguous&&!isCanon?" checked":"")+(isCanon?" disabled":"")+"> merge</label>"+
+        "<div style='flex:1;'><div class='mname"+(isCanon?" canon":"")+"'>"+esc(m)+"</div>"+
+        "<div class='mstats'>"+statsHtml(m)+"</div>"+
+        "<details><summary>evidence</summary>"+evidenceHtml(m)+"</details></div></div>";
+    }
+    card.innerHTML=h;
+    gDiv.appendChild(card);
+  }
+  gDiv.addEventListener("change",onPickChange);
+  // custom-merge selects
+  var keys=Object.keys(memory.npcs).sort(),opts="",k;
+  for(k=0;k<keys.length;k++)opts+="<option value='"+esc(keys[k])+"'>"+esc(keys[k])+"</option>";
+  el("cust-dupe").innerHTML=opts;el("cust-canon").innerHTML=opts;
+  // residue + health
+  el("residue").innerHTML="";nmcResidueScan(logHtml(el("residue")));
+  el("health").innerHTML="";nmcHealthScan(built,logHtml(el("health")));
+  el("main").style.display="block";
+  el("bar").style.display="flex";
+  el("drop").style.display="none";
+  updateBar();
+}
+function onPickChange(e){
+  // a member picked as canonical can't also be absorbed; re-enable others
+  var t=e.target;
+  if(t.type==="radio"){
+    var gi=t.name.split("-")[1];
+    var boxes=document.querySelectorAll(".absorb[data-g='"+gi+"']"),i;
+    for(i=0;i<boxes.length;i++){
+      if(boxes[i].value===t.value){boxes[i].checked=false;boxes[i].disabled=true;}
+      else boxes[i].disabled=false;
+    }
+    var rows=t.closest(".card").querySelectorAll(".mname"),j;
+    for(j=0;j<rows.length;j++)rows[j].className="mname"+(rows[j].textContent===t.value?" canon":"");
+  }
+  updateBar();
+}
+function currentPlan(){
+  var plan=[],i,j;
+  for(i=0;i<built.groups.length;i++){
+    var radios=document.getElementsByName("canon-"+i),canon=null;
+    for(j=0;j<radios.length;j++){if(radios[j].checked)canon=radios[j].value;}
+    var boxes=document.querySelectorAll(".absorb[data-g='"+i+"']"),dupes=[];
+    for(j=0;j<boxes.length;j++){if(boxes[j].checked&&boxes[j].value!==canon)dupes.push(boxes[j].value);}
+    if(dupes.length&&canon)plan.push({canonical:canon,dupes:dupes});
+    else if(dupes.length&&!canon)plan.push({canonical:null,dupes:dupes}); // caught by validation
+  }
+  for(i=0;i<customMerges.length;i++)plan.push({canonical:customMerges[i].canonical,dupes:customMerges[i].dupes.slice()});
+  return plan;
+}
+function updateBar(){
+  var plan=currentPlan(),n=0,i;
+  for(i=0;i<plan.length;i++)n+=plan[i].dupes.length;
+  el("barcount").textContent=applied?"Merges applied — download your new .tnd above, or start over.":
+    (n?n+" merge"+(n>1?"s":"")+" selected across "+plan.length+" group"+(plan.length>1?"s":""):"Nothing selected — tick the merges you agree with.");
+  el("applybtn").disabled=applied||!n;
+}
+// custom merges
+el("cust-add").addEventListener("click",function(){
+  var d=el("cust-dupe").value,c=el("cust-canon").value;
+  if(!d||!c)return;
+  if(d===c){alert("Canonical and dupe are the same key.");return;}
+  customMerges.push({canonical:c,dupes:[d]});
+  renderCustom();updateBar();
+});
+function renderCustom(){
+  var h="",i;
+  for(i=0;i<customMerges.length;i++)
+    h+="<div class='planline'>“"+esc(customMerges[i].dupes[0])+"” ⇒ <b>"+esc(customMerges[i].canonical)+"</b> <button class='ghost' style='padding:2px 8px;font-size:11px;margin-left:8px;' onclick='removeCustom("+i+")'>remove</button></div>";
+  el("cust-list").innerHTML=h;
+}
+function removeCustom(i){customMerges.splice(i,1);renderCustom();updateBar();}
+
+// ── apply ──
+el("applybtn").addEventListener("click",function(){
+  var plan=currentPlan();
+  var errs=nmcValidatePlan(plan.map(function(p){return {canonical:p.canonical||"(no canonical picked)",dupes:p.dupes};}));
+  var noCanon=plan.some(function(p){return !p.canonical;});
+  if(noCanon)errs.unshift("a group has merges ticked but no canonical selected");
+  var box=el("oplan"),h="";
+  if(errs.length){
+    h+="<div class='logline l-fatal'>Plan invalid:</div>";
+    var i;for(i=0;i<errs.length;i++)h+="<div class='logline l-fatal'>✗ "+esc(errs[i])+"</div>";
+    el("oconfirm").style.display="none";
+  }else{
+    var i2,j2;
+    for(i2=0;i2<plan.length;i2++)
+      h+="<div class='planline'><b>"+esc(plan[i2].canonical)+"</b> absorbs "+plan[i2].dupes.map(function(d){return "“"+esc(d)+"”";}).join(", ")+"</div>";
+    h+="<div class='sub' style='margin-top:12px;'>Runs the live NPC_MERGE handler + residue rewrites, then mandatory verification (resolver bridge, alias invariants, RAG probe). "+
+       "If any check fails, no file is produced. Your original file is untouched either way — the result is a separate download.</div>";
+    el("oconfirm").style.display="";
+  }
+  box.innerHTML=h;
+  el("overlay").style.display="flex";
+});
+el("ocancel").addEventListener("click",function(){el("overlay").style.display="none";});
+el("oconfirm").addEventListener("click",function(){
+  el("overlay").style.display="none";
+  runApply(currentPlan());
+});
+function runApply(plan){
+  var res=el("results"),lg=el("rlog");
+  lg.innerHTML="";res.style.display="block";
+  var log=logHtml(lg);
+  log("info","APPLYING "+plan.length+" merge group(s)…");
+  try{nmcApplyPlan(plan,log);}
+  catch(e){
+    log("fatal",e.message+" — aborted. State may be partially modified: reload and start over.");
+    lockUi();return;
+  }
+  log("info","");log("info","POST-MERGE VERIFICATION (mandatory)");
+  var fatal=nmcPostChecks(plan,log);
+  applied=true;lockUi();
+  if(fatal){
+    log("fatal","VERIFICATION FAILED — "+fatal+" fatal check(s). NO file produced. Your original is untouched; reload the page to start over.");
+    el("rtitle").textContent="Apply log — FAILED";
+    return;
+  }
+  el("rtitle").textContent="Apply log — verified ✓";
+  tnd.worldState=worldState;tnd.memory=memory;tnd.sessionLog=sessionLog;
+  var outName=fileName.replace(/\.tnd$/i,"")+".merged.tnd";
+  var blob=new Blob([JSON.stringify(tnd,null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=outName;
+  a.textContent="⬇ Download "+outName;
+  a.className="big dl";a.style.cssText="display:inline-block;text-decoration:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:600;margin:14px 0;";
+  lg.insertBefore(a,lg.firstChild);
+  log("info","Next: import the downloaded file in-game (File ▸ Save / Load ▸ Import), spot-check the merged NPC's sheet and a recall question, and keep the original until satisfied.");
+  res.scrollIntoView({behavior:"smooth"});
+  updateBar();
+}
+function lockUi(){
+  var inputs=el("main").querySelectorAll("input,select,button"),i;
+  for(i=0;i<inputs.length;i++)inputs[i].disabled=true;
+  el("applybtn").disabled=true;
+}
+el("startover").addEventListener("click",function(){location.reload();});
+</script>
+</body>
+</html>
