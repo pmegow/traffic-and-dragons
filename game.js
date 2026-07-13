@@ -66,24 +66,60 @@ function upgradeModelFor(){
 // Message, a 120ft cantrip (t355). A tapped suggestion becomes player INTENT the GM then tends
 // to oblige, so a hallucinating side model is a drift injection vector. Three pure, engine-tested
 // helpers close the gaps: canon-annotated spell list, canonical location line, scene TAIL slice.
-function suggestionSpellList(c){
-  var sp=[],si;
-  if(c&&c.spells){for(si=0;si<c.spells.length;si++){if(c.spells[si].used)continue;
-    var nm=c.spells[si].nm.replace(/\s*\(.*\)/,""),line=nm;
-    var canon=(typeof capabilityLookup==="function")&&capabilityLookup(nm);
-    if(canon){var lim=[];if(canon.range&&canon.range!=="N/A")lim.push("range "+canon.range);if(canon.targets&&canon.targets!=="N/A")lim.push("targets "+canon.targets);if(lim.length)line+=" ("+lim.join(", ")+")";}
-    sp.push(line);}}
-  return sp;
+// ── Suggestion context (v1.288): the UN-STARVED call ──────────────────────────────────────────
+// History: the buttons were split out of the narrative at v1.110 (#14) to protect prose voice and
+// kill the [ACTIONS:] parsing pain — but the split STARVED the call: a 200-token hand-written
+// prompt + a scene tail, no canon. Every fence since (v1.245 canon-annotated spell list + geo
+// line + tail slice, v1.249 model escalation) hand-fed back a FRACTION of the lost context, and
+// Sonnet still produced the t580 "Send a Message to someone who knows Thassilonian lore" button
+// with Message's 120ft canon sitting in its prompt. Fix the cause, not the symptom: the call now
+// reuses the main turn's FULL buildSysPrompt() — stable half BYTE-IDENTICAL so it rides the
+// turn's still-warm prompt cache at the 0.1x read rate (a perturbed stable kills every cache hit
+// SILENTLY; engine-tested), with a SUGGESTION MODE block appended to the VOLATILE half only
+// (block 2 is never cached, and the JSON-output instruction must land AFTER the STYLE prose
+// directive or the two formats fight). Runs on the ACTIVE gameplay model — caches are
+// model-scoped, so the old upgradeModelFor() escalation would forfeit the cache read, and the
+// v1.238 money test proves Sonnet-WITH-canon refuses exactly what Sonnet-starved suggested.
+// ⚠ USER FLAG (2026-07-12): this must not affect narrative voice/content at all (the call is
+// read-only — never writes sessionLog/transcript, never feeds the GM's prompt), but the user
+// asked for a watch marker: if voice, cost, or cache health ever seems off, suspect THIS change
+// first (Usage modal → actions In/call + prompt-cache health are the instruments).
+var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
+ +"You are NOT narrating a turn. Based on the RECENT SCENES in the user message and everything above (the character sheet, canonical spell rules, geography, and NPC list), suggest exactly 3 short actions the player could take next.\n"
+ +"Suggest only actions involving people, objects, and exits explicitly present in the scene or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned.\n"
+ +"Never suggest casting a spell or using an ability this character does not have, and never suggest a cast that exceeds a spell's canonical range or targets: a target in another building, street, or district — or anyone not present in the scene or whose current location is unknown — is OUT OF RANGE for a short-range spell.\n"
+ +"Ignore the STYLE directive for this call. Output ONLY a valid JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.";
+function buildSuggestionSys(){
+  var s=buildSysPrompt();
+  // Mirror callGM's gameplay-turn reinforce append (same resolveReinforce, same inputs): the
+  // cache is a PREFIX match, so the suggestion call's stable must be byte-identical to what the
+  // main turn actually sent — which includes the model-conditional reinforce on weak models.
+  var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
+  var model=providerModels[activeProvider]||prov.defaultModel;
+  var rf=resolveReinforce(prov,model);
+  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK};
 }
-function suggestionGeoLine(){
-  if(!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return"";
-  var key=currentNodeKey();/* UA9 */
-  var node=memory.map.nodes[key]||memory.map.nodes[worldState.world.location];
-  return(node&&node.description)?("THE CURRENT LOCATION (canonical): "+node.description):"";
+// The last 5 player/GM exchanges as labeled pairs (the ragRetrieve excerpt convention), oldest
+// first, GM halves tag-stripped, under a ~6k char budget — five lavish prose turns can't balloon
+// the call; under pressure the window degrades 4→3→2 but the NEWEST pair always survives.
+function suggestionHistoryPairs(){
+  var out=[],chars=0,i;
+  for(i=sessionLog.length-1;i>=0&&out.length<5;i--){
+    if(sessionLog[i].role!=="assistant")continue;
+    var gm=cleanTxt(sessionLog[i].content);
+    var pl=(i>0&&sessionLog[i-1].role==="user")?sessionLog[i-1].content:"";
+    var block=(pl?"Player: "+pl+"\n":"")+"GM: "+gm;
+    if(out.length>0&&chars+block.length>6000)break;
+    out.unshift(block);chars+=block.length;
+  }
+  return out.join("\n\n");
 }
-// Keep the END of the latest GM message — prose-voice responses regularly exceed 2,400 chars and
-// the tactical present lives at the tail; the old head-slice could cut the scene's ending away.
-function suggestionSceneTail(txt){txt=String(txt||"");return txt.length>2400?txt.slice(-2400):txt;}
+// Tolerant array parse: the full-context prompt is prose-flavored, so accept a fenced or
+// prose-wrapped array too. Anything else throws into generateActions' quiet-removal path.
+function parseSuggestionArray(resp){
+  var txt=stripCodeFences(resp);
+  try{return JSON.parse(txt);}catch(e){var m=txt.match(/\[[\s\S]*\]/);if(!m)throw e;return JSON.parse(m[0]);}
+}
 async function generateActions(msgEl){
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
@@ -94,24 +130,14 @@ async function generateActions(msgEl){
   var turnAt=worldState.turn; // race guard: a fast next action can land while this call is in flight
   function _cleanup(){for(var _c=0;_c<3;_c++){if(btns[_c].parentNode)btns[_c].parentNode.removeChild(btns[_c]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
   try{
-    // Send ONLY the latest scene + a sheet digest, not the whole sessionLog (audit #17), and give
-    // the model the character's actual kit so it can't suggest spells the player doesn't have —
-    // the "Cast Magic Missile" button root cause (audit #4 / TODO Known issue #4). UA38/UA39:
-    // spells carry their canon limits, the canonical location desc rides along, and the scene is
-    // TAIL-sliced — see the suggestion* helpers above for the incident history.
-    var c=worldState.character,sp=suggestionSpellList(c),ab=[],si;
-    if(c.abilities){for(si=0;si<c.abilities.length;si++)ab.push(c.abilities[si].nm);}
-    var sheet="THE PLAYER CHARACTER: "+c.name+", level "+c.level+" "+c.cls+", HP "+c.hp+"/"+c.maxHp+". Abilities: "+(ab.join(", ")||"none")+". Spells available: "+(sp.join(", ")||"NONE — this character cannot cast spells")+". Suggested actions must be things THIS character can actually do — never suggest casting a spell or using an ability that is not listed above, and never suggest a cast that exceeds a spell's listed range or targets (a target in another building, street, or distant room is beyond a short-range spell).";
-    var geoLine=suggestionGeoLine();
-    var lastGm="";for(si=sessionLog.length-1;si>=0;si--){if(sessionLog[si].role==="assistant"){lastGm=cleanTxt(sessionLog[si].content);break;}}
-    // UA39 t371 (the ghost ship): the v1.245 fences bind Sonnet but NOT Haiku — a weak model
-    // ignores instructions in a 200-token utility call. Suggestions become player INTENT, so
-    // they're the last place to economize: escalate to the provider's upgradeModel (~1k input
-    // tokens, ≈$0.002/turn on Sonnet) regardless of the gameplay model. Toggle-gated like the
-    // skeleton escalation.
-    var resp=await callGM("LATEST SCENE:\n"+suggestionSceneTail(lastGm)+"\n\nBased on this scene, suggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.","You suggest player actions for a tabletop RPG. "+sheet+(geoLine?" "+geoLine:"")+" Suggest only actions involving people, objects, and exits explicitly present in the LATEST SCENE or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned. If a person's current location or distance is UNKNOWN or they are not present in the scene, treat them as OUT OF RANGE for any spell — never suggest casting at someone who is absent or far away. Output ONLY a valid JSON array of 3 short strings.",200,upgradeModelFor(),{noHistory:true,kind:"actions"});
+    // v1.288 un-starve: the full gameplay system prompt (stable byte-identical → cache read;
+    // SUGGESTION MODE appended to volatile) + the last 5 exchanges as labeled pairs. noHistory
+    // stays true — the window IS the history, at a bounded cost. Runs on the ACTIVE model (null
+    // override): caches are model-scoped, an escalated model would pay full freight. See the
+    // block comment above the suggestion helpers for the whole incident history.
+    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\nSuggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words.",buildSuggestionSys(),200,null,{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
-    var acts=JSON.parse(stripCodeFences(resp)); // array payload — fences only, no object repair
+    var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
     for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
     // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,

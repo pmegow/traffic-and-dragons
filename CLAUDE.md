@@ -368,10 +368,10 @@ Action suggestions are **fully decoupled from GM prose** (v1.110). The GM writes
 
 **Flow:** after the GM response renders, `generateActions(msgEl)` in `game.js`:
 1. Creates 3 placeholder `"…"` buttons (disabled) appended to the narrator message element
-2. Fires a lightweight follow-up `callGM` call (200 token budget, `sysOverride` so no full system prompt rebuild) asking for 3 short action options as a JSON array
-3. Parses the response, populates each button's text and `data-action`, enables them
-4. Stores the options in `worldState.lastActions` via `saveCore()` for reload persistence
-5. On failure, silently removes the placeholder buttons
+2. Fires a follow-up `callGM` call (200-token output budget) asking for 3 short action options as a JSON array. **UN-STARVED since v1.288:** the call reuses the main turn's FULL `buildSysPrompt()` — stable half passed BYTE-IDENTICAL (rides the turn's still-warm prompt cache at the 0.1× read rate; engine-tested, a perturbed stable silently kills every hit) with a `SUGGESTION_MODE_BLOCK` appended to the VOLATILE half only (after STYLE, so the JSON-output instruction wins the format fight) — plus the last 5 exchanges as labeled `Player:/GM:` pairs (`suggestionHistoryPairs`, ~6k char budget, newest always survives). Runs on the ACTIVE gameplay model (caches are model-scoped; the old `upgradeModelFor()` escalation was dropped from this call — it survives for the skeleton). Root cause fixed: the post-#14 split had STARVED the call (200-token mini-prompt + scene tail), and no bolt-on fence fully compensated — the t580 "Message someone who knows Thassilonian lore" button shipped WITH the 120ft canon annotated in its prompt. ⚠ User watch flag 2026-07-12: if prose voice/cost/cache health ever seems off, suspect this change first (Usage modal → actions In/call + cache-health lines).
+3. Parses the response via `parseSuggestionArray` (tolerates fenced and prose-wrapped arrays), populates each button's text and `data-action`, enables them
+4. Stores the options in `worldState.lastActions` via `saveAll()` for reload persistence
+5. On failure, silently removes the placeholder buttons (console-warned)
 
 **Reload:** `init()` and `campLoad()` check `worldState.lastActions` first and build buttons via `buildActionButtons(acts)` (returns HTML string). Falls back to `parseActions(clean, raw)` for pre-v1.110 saves that still have the `[ACTIONS:]` tag embedded.
 

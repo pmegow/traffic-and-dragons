@@ -2755,36 +2755,64 @@ function runEngineTests(R){
     return eq(worldState.coreMemories.length,1,"second migrate clobbered data");
   });
 
-  // ── Suggestion grounding (UA38 ②③ + UA39 ①) ─────────────────────────────────
-  section("suggestion grounding (UA38/UA39)");
-  t("spell list carries canon limits — Message annotated with its 120ft range (the t355 class)",function(){
-    makeWorld();worldState.character.spells=[{nm:"Message",lvl:0,used:false}];
-    var sp=suggestionSpellList(worldState.character);
-    return /^Message \(range 120/.test(sp[0])?true:"no canon annotation: "+JSON.stringify(sp);
-  });
-  t("used spells excluded; racial parenthetical stripped before lookup",function(){
-    makeWorld();// Faerie Fire (racial, 1/day) unused + a spent slot
-    worldState.character.spells.push({nm:"Charm Person",lvl:1,used:true});
-    var sp=suggestionSpellList(worldState.character);
-    if(sp.length!==1)return "used spell leaked: "+JSON.stringify(sp);
-    return sp[0].indexOf("Faerie Fire")===0&&sp[0].indexOf("(racial")<0?true:"parenthetical not stripped: "+sp[0];
-  });
-  t("unknown spell (no bible canon) stays a bare name",function(){
-    makeWorld();worldState.character.spells=[{nm:"Homebrew Zap",lvl:1,used:false}];
-    return eq(suggestionSpellList(worldState.character)[0],"Homebrew Zap");
-  });
-  t("geo line serves the sublocation node's desc over the world node's",function(){
+  // ── Suggestion context — the UN-STARVED call (v1.288; supersedes the UA38/UA39 fences) ──────
+  section("suggestion context (un-starve, v1.288)");
+  t("buildSuggestionSys: stable half is BYTE-IDENTICAL to the main turn's (cache prefix match)",function(){
     makeWorld();
-    memory.map.nodes["Ashfen"]={description:"A grey town."};
-    memory.map.nodes["Ashfen|The Flagon"]={description:"A smoky common room with one door to the street."};
-    worldState.world.sublocation="The Flagon";
-    if(suggestionGeoLine().indexOf("smoky common room")<0)return "subloc desc not served";
-    worldState.world.sublocation=null;
-    if(suggestionGeoLine().indexOf("grey town")<0)return "world desc not served";
-    memory.map.nodes={};
-    return eq(suggestionGeoLine(),"","no-desc should be empty");
+    var s=buildSysPrompt(),g=buildSuggestionSys();
+    return g.stable===s.stable?true:"stable perturbed — every cache hit would die silently";
   });
-  t("upgradeModelFor: escalates per provider, honors the toggle (UA39 t371)",function(){
+  t("buildSuggestionSys: Haiku's model-conditional reinforce is mirrored into the stable half",function(){
+    makeWorld();
+    var saved=providerModels.anthropic;
+    providerModels.anthropic="claude-haiku-4-5-20251001";
+    var s=buildSysPrompt(),g=buildSuggestionSys();
+    providerModels.anthropic=saved;
+    return g.stable===s.stable+ANTHROPIC_HAIKU_REINFORCE?true:"reinforce append not mirrored — the suggestion call's stable prefix would mismatch the main turn's on Haiku";
+  });
+  t("buildSuggestionSys: SUGGESTION MODE rides the volatile half only, appended AFTER STYLE",function(){
+    makeWorld();
+    var s=buildSysPrompt(),g=buildSuggestionSys();
+    if(g.stable.indexOf("SUGGESTION MODE")>=0)return "mode block leaked into the stable half";
+    if(g.volatile.indexOf(s.volatile)!==0)return "volatile is not the main turn's volatile + suffix";
+    var mi=g.volatile.indexOf("SUGGESTION MODE"),sti=g.volatile.indexOf("STYLE: ");
+    if(mi<0)return "mode block missing";
+    return mi>sti?true:"mode block landed BEFORE the STYLE directive (format fight)";
+  });
+  t("buildSuggestionSys: the proven canon fences survive in the mode block",function(){
+    makeWorld();
+    var v=buildSuggestionSys().volatile;
+    if(v.indexOf("NEVER invent doors, exits, items, or people")<0)return "scenery fence lost";
+    if(v.indexOf("OUT OF RANGE")<0)return "range fence lost";
+    return v.indexOf("JSON array")>=0?true:"output-format instruction lost";
+  });
+  t("suggestionHistoryPairs: last 5 exchanges, labeled, oldest-first, tags stripped",function(){
+    makeWorld();sessionLog=[];
+    for(var i=1;i<=7;i++){sessionLog.push({role:"user",content:"act "+i});sessionLog.push({role:"assistant",content:"scene "+i+" unfolds. [HP:-1]"});}
+    var h=suggestionHistoryPairs();
+    sessionLog=[];
+    if(h.indexOf("scene 1 ")>=0||h.indexOf("scene 2 ")>=0)return "older than 5 exchanges leaked in";
+    if(h.indexOf("scene 3 ")<0||h.indexOf("scene 7 ")<0)return "window wrong: "+h.slice(0,200);
+    if(h.indexOf("Player: act 7")<0||h.indexOf("GM: scene 7")<0)return "Player:/GM: labels missing";
+    if(h.indexOf("scene 3 ")>h.indexOf("scene 7 "))return "not oldest-first";
+    return h.indexOf("[HP:")<0?true:"tags leaked into the window";
+  });
+  t("suggestionHistoryPairs: char budget degrades the window but the NEWEST pair always survives",function(){
+    makeWorld();sessionLog=[];
+    var big=new Array(4001).join("x");
+    for(var i=1;i<=5;i++){sessionLog.push({role:"user",content:"a"+i});sessionLog.push({role:"assistant",content:"S"+i+"-"+big});}
+    var h=suggestionHistoryPairs();
+    sessionLog=[];
+    if(h.indexOf("S5-")<0)return "newest pair lost under budget pressure";
+    return h.indexOf("S1-")<0?true:"budget not enforced (all 5 giant pairs kept)";
+  });
+  t("parseSuggestionArray: plain, fenced, and prose-wrapped arrays parse; garbage throws",function(){
+    if(parseSuggestionArray('["a","b","c"]').length!==3)return "plain failed";
+    if(parseSuggestionArray('```json\n["a","b","c"]\n```').length!==3)return "fenced failed";
+    if(parseSuggestionArray('Here are the options:\n["a","b","c"]\nEnjoy!').length!==3)return "prose-wrapped failed";
+    try{parseSuggestionArray("no array here");return "garbage did not throw";}catch(e){return true;}
+  });
+  t("upgradeModelFor: escalates per provider, honors the toggle (UA39 t371 — still used by the skeleton)",function(){
     var savedUp=allowModelUpgrade,savedProv=activeProvider;
     allowModelUpgrade=true;activeProvider="anthropic";
     if(upgradeModelFor()!=="claude-sonnet-4-6")return "anthropic escalation wrong: "+upgradeModelFor();
@@ -2794,13 +2822,6 @@ function runEngineTests(R){
     var off=upgradeModelFor();
     allowModelUpgrade=savedUp;activeProvider=savedProv;
     return off===null?true:"toggle OFF still escalated: "+off;
-  });
-  t("scene slice keeps the TAIL — the ending survives an over-length message (UA38 ③)",function(){
-    var head="THE-BEGINNING ",body=new Array(3000).join("x"),tail=" THE-ENDING";
-    var out=suggestionSceneTail(head+body+tail);
-    if(out.length!==2400)return "wrong length: "+out.length;
-    if(out.indexOf("THE-ENDING")<0)return "ending lost — still head-slicing";
-    return out.indexOf("THE-BEGINNING")<0?true:"beginning retained on an over-length message?";
   });
 
   // ── Per-turn model attribution (#45) ─────────────────────────────────────────
