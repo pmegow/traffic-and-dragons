@@ -113,7 +113,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.33";
+var BP_DESIGNER_VERSION="v0.34";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -780,6 +780,10 @@ document.getElementById("btn-review").addEventListener("click",async function(){
     var order={HIGH:0,MED:1,LOW:2};
     all.sort(function(a,b){return (order[a.sev]==null?1:order[a.sev])-(order[b.sev]==null?1:order[b.sev]);});
     all=dedupeFindings(all);
+    // Default-select single-fix findings (user request 2026-07-13): one option = the obvious
+    // pick, pre-check it so ⚡ Apply is one click away. Multiple options = a genuine fork —
+    // leave unselected so the author must choose. _sel is view state (stripped from files).
+    for(i=0;i<all.length;i++){if(all[i].fixes.length===1)all[i]._sel=0;}
     // Store the section counts, not a frozen verdict string — reviewVerdict() recomputes the count
     // LIVE from the current findings so header and verdict never drift as findings are dismissed.
     bp.review={findings:all,sections:REVIEW_CHUNKS.length-failed,failedSections:failed};
