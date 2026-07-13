@@ -196,10 +196,39 @@ function buildReciprocityNudge(){
   }
   return"";
 }
+// UA31 (v1.287, pre-review approved): the AUDIT_PLAYTHRU desync — [ARC_COMPLETE:] fired while the
+// twin quest of the same name never closed, so the arc side moved on while the quest floated open
+// (and its reward never paid). When a skeleton arc is completed but a live questLog entry with a
+// matching title is still open, nudge the GM to close it (or add whatever step remains). NUDGE,
+// never auto-close: engine-closing a quest the GM hasn't narrated closed drops it from the journal
+// mid-scene (the row's ⚠ guard). Conservative title match (exact or one-contains-the-other,
+// case-insensitive — the findCompanionNpc discipline, no fuzzy scoring); one note per (arc, quest)
+// pair per campaign via worldState.arcQuestNudged (the reciprocity-latch pattern); silent in combat
+// WITHOUT consuming the latch (the mark only writes when a note is actually returned).
+function buildArcQuestNudge(){
+  if(!worldState||worldState.combat||!worldState.skeleton||!worldState.questLog)return"";
+  var sk=worldState.skeleton,i,j,k;
+  function titleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
+  for(i=0;i<(sk.acts||[]).length;i++){var act=sk.acts[i];
+    for(j=0;j<(act.arcs||[]).length;j++){var arc=act.arcs[j];
+      if(arc.status!=="completed")continue;
+      for(k=0;k<worldState.questLog.length;k++){var q=worldState.questLog[k];
+        if(q.status!=="active"&&q.status!=="offered")continue;
+        if(!titleMatch(arc.title,q.title))continue;
+        var key=arc.title+"|"+q.title;
+        if(worldState.arcQuestNudged&&worldState.arcQuestNudged[key])continue;
+        if(!worldState.arcQuestNudged)worldState.arcQuestNudged={};
+        worldState.arcQuestNudged[key]=worldState.turn;
+        return "[ENGINE NOTE — ARC/QUEST DESYNC (not a player action): the story arc '"+arc.title+"' is marked COMPLETE, but the quest '"+q.title+"' is still open in the journal. If the fiction has finished it, emit [QUEST:"+q.title+"|completed] in this response together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work genuinely remains, add the objective that is left via [QUEST_STEP:"+q.title+"|<objective>]. Do not silently leave it open.]";
+      }
+    }
+  }
+  return"";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

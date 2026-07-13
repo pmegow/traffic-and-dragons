@@ -2217,6 +2217,58 @@ function runEngineTests(R){
     return notes.indexOf("CONDITION AUDIT")<notes.indexOf("RELATIONSHIP RECIPROCITY")?true:"registry order changed";
   });
 
+  // ── UA31: arc↔quest coupling nudge (the AUDIT_PLAYTHRU desync) ───────────────
+  section("arc↔quest coupling (UA31)");
+  function __arcQuestWorld(){
+    makeWorld();worldState.turn=40;
+    worldState.skeleton={premise:"p",acts:[{title:"Act 1",goal:"g",status:"active",arcs:[
+      {title:"The Dying Patron",objective:"o",status:"completed"},
+      {title:"The Merchant Princes",objective:"o",status:"active"}
+    ]}]};
+    worldState.questLog=[
+      {title:"The Dying Patron",status:"active",desc:"",objectives:[{text:"Learn the Soulmonger's location",done:true}]},
+      {title:"The Merchant Princes",status:"active",desc:"",objectives:[{text:"a",done:false}]}
+    ];
+  }
+  t("UA31: completed arc + still-open same-name quest fires once, names both",function(){
+    __arcQuestWorld();
+    var n=buildArcQuestNudge();
+    if(n.indexOf("The Dying Patron")<0)return "did not name the arc/quest: "+n;
+    if(n.indexOf("[QUEST:The Dying Patron|completed]")<0)return "missing the close instruction: "+n;
+    if(n.indexOf("ENGINE NOTE")<0)return "not marked an engine note";
+    // the still-active arc's quest (also open) must NOT be nagged — its arc isn't done
+    if(n.indexOf("The Merchant Princes")>=0)return "nagged a quest whose arc is still active";
+    return buildArcQuestNudge()===""?true:"re-fired the same pair (latch broken)";
+  });
+  t("UA31: no matching quest title → silent",function(){
+    __arcQuestWorld();
+    worldState.questLog=[{title:"Some Unrelated Errand",status:"active",desc:"",objectives:[{text:"a",done:true}]}];
+    return buildArcQuestNudge()===""?true:"fired without a title match";
+  });
+  t("UA31: the twin quest already closed (archived out of the live log) → silent",function(){
+    __arcQuestWorld();
+    worldState.questLog=[{title:"The Merchant Princes",status:"active",desc:"",objectives:[{text:"a",done:false}]}];
+    return buildArcQuestNudge()===""?true:"fired though the arc's quest is no longer open";
+  });
+  t("UA31: silent mid-combat, and the pair is NOT consumed",function(){
+    __arcQuestWorld();
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5,ac:10,atk:1,dmg:"d4",morale:"low"}]};
+    if(buildArcQuestNudge()!=="")return "fired mid-combat";
+    if(worldState.arcQuestNudged&&worldState.arcQuestNudged["The Dying Patron|The Dying Patron"])return "pair consumed on the silent path";
+    worldState.combat=null;
+    return buildArcQuestNudge()!==""?true:"did not fire after combat ended";
+  });
+  t("UA31: contains-match (arc title inside quest title) fires; offered quests are eligible too",function(){
+    makeWorld();worldState.turn=40;
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",status:"active",arcs:[{title:"Skinsaw",objective:"o",status:"completed"}]}]};
+    worldState.questLog=[{title:"The Skinsaw Murders",status:"offered",desc:"",objectives:[]}];
+    return buildArcQuestNudge().indexOf("Skinsaw")>=0?true:"contains-match / offered-quest not caught";
+  });
+  t("UA31: rides the NOTE_BUILDERS registry (buildEngineNotes surfaces it)",function(){
+    __arcQuestWorld();
+    return buildEngineNotes().indexOf("[QUEST:The Dying Patron|completed]")>=0?true:"not wired into the registry";
+  });
+
   // ── #50a: item consumption + provenance doc lines ────────────────────────────
   section("item consumption + provenance (#50a)");
   t("consumption + provenance doc lines present",function(){

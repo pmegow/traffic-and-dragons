@@ -1,8 +1,9 @@
 # Pre-review — UA30 + UA31, the quest-teeth pass (⛨ drift policy item ②)
 
-**Status: AWAITING GO/NO-GO.** Drafted 2026-07-12 (autonomous window) so the review is ready the
-moment you're back; **no code has been written.** Per the standing policy: what it touches, what
-silent failure it could cause, the test plan.
+**Status: ✅ APPROVED + SHIPPED 2026-07-12** — both halves went in test-first exactly as scoped
+below: **UA30-b** (objective-less-active nudge) as v1.286, **UA31** (arc↔quest coupling) as v1.287.
+See Fable_UberAudit.md UA30/UA31 for the closure notes. Retained as the design record. *(Original
+status: awaiting go/no-go — drafted in the autonomous window per the drift policy's pre-review clause.)*
 
 ---
 
