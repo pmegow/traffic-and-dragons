@@ -1372,6 +1372,27 @@ function runEngineTests(R){
     var b2=buildQuestBlock();
     return b2.indexOf("Active crises ARE quests")>=0?true:"crisis line missing on empty log";
   });
+  t("UA30-b: objective-less ACTIVE quest gets the file-objectives nudge (named); with-objectives quest does NOT",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Vague errand",status:"active",desc:"",objectives:[]}];
+    var b=buildQuestBlock();
+    if(b.indexOf("NO OBJECTIVES FILED")<0)return "file-objectives nudge missing on objective-less active";
+    if(b.indexOf("[QUEST_STEP:Vague errand|")<0)return "nudge not quest-specific";
+    worldState.questLog=[{title:"Clear the mine",status:"active",desc:"",objectives:[{text:"a",done:false}]}];
+    return buildQuestBlock().indexOf("NO OBJECTIVES FILED")<0?true:"nudge leaked onto a quest that already has objectives";
+  });
+  t("UA30-b: an OFFERED objective-less quest never gets the file-objectives nudge",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Rumor",status:"offered",desc:"a whisper",objectives:[]}];
+    return buildQuestBlock().indexOf("NO OBJECTIVES FILED")<0?true:"nudge fired on an offered quest";
+  });
+  t("UA30-b: the proven ALL-OBJECTIVES-COMPLETE close text is byte-unchanged (regression pin)",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Clear the mine",status:"active",desc:"",objectives:[{text:"a",done:true},{text:"b",done:true}]}];
+    var b=buildQuestBlock();
+    var expect="    ⚑ ALL OBJECTIVES COMPLETE — if this quest is truly finished, emit [QUEST:Clear the mine|completed] now, together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work remains, add the next objective via [QUEST_STEP:Clear the mine|objective].\n";
+    return b.indexOf(expect)>=0?true:"the proven close-teeth text drifted";
+  });
 
   // ── GM-compliance teeth (audit P3/P14) ────────────────────────────────────────
   section("GM-compliance teeth (P3/P14)");
