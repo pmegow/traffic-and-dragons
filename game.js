@@ -316,7 +316,7 @@ function normalizeCompanionSheet(raw,npcName){
   if(typeof raw.cls==="string"){for(i=0;i<CLSS.length;i++){if(CLSS[i].id.toLowerCase()===raw.cls.trim().toLowerCase()){s.cls=CLSS[i].id;break;}}}
   if(raw.stats&&typeof raw.stats==="object"){var ks=["STR","DEX","CON","INT","WIS","CHA"];for(i=0;i<ks.length;i++){var v=parseInt(raw.stats[ks[i]]);if(!isNaN(v))s.stats[ks[i]]=Math.max(3,Math.min(20,v));}}
   if(typeof raw.gold==="number"&&raw.gold>=0)s.gold=Math.min(10000,Math.floor(raw.gold));
-  if(raw.inventory&&raw.inventory.length){s.inventory=[];for(i=0;i<raw.inventory.length&&s.inventory.length<12;i++){if(typeof raw.inventory[i]==="string")s.inventory.push(raw.inventory[i]);}}
+  if(raw.inventory&&raw.inventory.length)s.inventory=sanitizeModelInventory(raw.inventory,12);/* #50d: model arrays arrive verbatim — stack duplicates on arrival, never push raw */
   if(raw.abilities&&raw.abilities.length){s.abilities=[];for(i=0;i<raw.abilities.length&&s.abilities.length<6;i++){var ab=raw.abilities[i];if(ab&&typeof ab.nm==="string")s.abilities.push({nm:ab.nm,ds:typeof ab.ds==="string"?ab.ds:"",gained:worldState?worldState.turn:0});}}
   if(raw.spells&&raw.spells.length){s.spells=[];for(i=0;i<raw.spells.length&&s.spells.length<10;i++){var sp=raw.spells[i];if(sp&&typeof sp.nm==="string")s.spells.push({nm:sp.nm,lvl:parseInt(sp.lvl)||0,used:false});}}
   s.level=(worldState&&worldState.character&&worldState.character.level)||1;

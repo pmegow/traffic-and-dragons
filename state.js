@@ -161,6 +161,19 @@ function migrateWorldState(){
   // turn until the GM next re-emits the tag. clampNpcMood lives in memory.js (loaded after state.js
   // but present by the time this runs on load); guard for the edge where it isn't.
   if(typeof clampNpcMood==="function"){for(_pn=0;_pn<worldState.npcs.length;_pn++){var _cn=worldState.npcs[_pn];if(_cn&&_cn.status){var _cs=clampNpcMood(_cn.status);if(_cs!==_cn.status){_cn.status=_cs;_mig=true;}}}}
+  // #50(d) heal: fold byte-identical duplicate inventory entries into proper " xN" stacks. Only
+  // pre-v1.291 sheet generation could mint them (model arrays copied verbatim — the Frizwick t455
+  // adjacent-pairs shape); play-time writes always stacked. foldDuplicateInventory lives in api.js
+  // (loaded after state.js but present by the time this runs on load) — same guard as clampNpcMood.
+  if(typeof foldDuplicateInventory==="function"){
+    var _fdp=c.inventory?foldDuplicateInventory(c.inventory):0;
+    if(_fdp){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdp+" duplicate inventory entr"+(_fdp===1?"y":"ies")+" on "+(c.name||"the player"));}
+    for(_pn=0;_pn<worldState.npcs.length;_pn++){var _fdn=worldState.npcs[_pn];
+      if(_fdn&&_fdn.charSheet&&_fdn.charSheet.inventory){
+        var _fdc=foldDuplicateInventory(_fdn.charSheet.inventory);
+        if(_fdc){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdc+" duplicate inventory entr"+(_fdc===1?"y":"ies")+" on "+_fdn.name);}
+      }}
+  }
   return _mig;
 }
 function loadState(){

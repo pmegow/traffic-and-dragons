@@ -1470,7 +1470,7 @@ async function generateNpcSheet(name,doneCb){
     sheet.level=parseInt(sheet.level)||1;sheet.gold=parseInt(sheet.gold)||0;sheet.xp=parseInt(sheet.xp)||0;
     if(!sheet.abilities)sheet.abilities=[];
     if(!sheet.spells)sheet.spells=[];
-    if(!sheet.inventory)sheet.inventory=[];
+    sheet.inventory=sanitizeModelInventory(sheet.inventory);/* #50d: this regeneration path copied the model's inventory array VERBATIM (no type check, no dedupe) — the byte-identical-pairs faucet */
     if(!sheet.languages)sheet.languages=[{name:"Common",broken:false}];
     if(!sheet.conditions)sheet.conditions=[];
     if(!sheet.relationships)sheet.relationships=[];

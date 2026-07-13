@@ -3097,4 +3097,52 @@ function runEngineTests(R){
   t("normalizeSkeletonFindings: null / empty findings → []",function(){
     return normalizeSkeletonFindings(null).length===0&&normalizeSkeletonFindings({findings:[]}).length===0?true:"not empty";
   });
+
+  // ── #50(d) — duplicate-inventory faucets + heal (v1.291) ─────────────────────
+  // Byte-identical inventory pairs (Frizwick t455) can only be minted where model-emitted arrays
+  // are copied verbatim: sheet generation + regeneration. sanitizeModelInventory guards those
+  // faucets; foldDuplicateInventory heals existing saves via migrateWorldState.
+  section("#50d duplicate inventory");
+  t("sanitizeModelInventory: the Frizwick shape — adjacent pairs stack on arrival",function(){
+    var out=sanitizeModelInventory(["Lockpicks","Lockpicks","Rope","Rope","Chalk","Chalk"]);
+    return out.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"got "+out.join("|");
+  });
+  t("sanitizeModelInventory: quantity-aware stacking + non-strings dropped",function(){
+    var out=sanitizeModelInventory(["Rope x3",7,null,"Rope x3","Torch",{nm:"bad"},"torch"]);
+    return out.join("|")==="Rope x6|Torch x2"?true:"got "+out.join("|");
+  });
+  t("sanitizeModelInventory: cap counts UNIQUE entries",function(){
+    var big=[],i;for(i=0;i<15;i++)big.push("Item "+i);
+    return eq(sanitizeModelInventory(big,12).length,12,"cap");
+  });
+  t("normalizeCompanionSheet routes inventory through the sanitizer (recruit faucet closed)",function(){
+    makeWorld();
+    var s=normalizeCompanionSheet({inventory:["Lockpicks","Lockpicks","Shortbow"]},"Frizwick");
+    if(!s)return "sheet not built";
+    return s.inventory.join("|")==="Lockpicks x2|Shortbow"?true:"got "+s.inventory.join("|");
+  });
+  t("foldDuplicateInventory: folds byte-identical entries, keeps first-occurrence order",function(){
+    var inv=["Dagger","Rope","Dagger"];
+    var n=foldDuplicateInventory(inv);
+    if(n!==1)return "folded "+n;
+    return inv.join("|")==="Dagger x2|Rope"?true:"got "+inv.join("|");
+  });
+  t("foldDuplicateInventory: conservative — case-different entries untouched; stacked dups sum",function(){
+    var a=["Dagger","dagger"];
+    if(foldDuplicateInventory(a)!==0||a.length!==2)return "case-different entries were folded";
+    var b=["Torch x2","Torch x2"];
+    foldDuplicateInventory(b);
+    return b.join("|")==="Torch x4"?true:"got "+b.join("|");
+  });
+  t("migrateWorldState heals player + companion duplicate pairs, idempotent",function(){
+    makeWorld();
+    worldState.character.inventory=["Longsword","Travel ration","Travel ration"];
+    worldState.npcs=[{name:"Frizwick",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Frizwick",hp:20,maxHp:20,level:1,xp:0,inventory:["Lockpicks","Lockpicks","Rope","Rope","Chalk","Chalk"]}}];
+    if(!migrateWorldState())return "migration reported no change";
+    if(worldState.character.inventory.join("|")!=="Longsword|Travel ration x2")return "player not healed: "+worldState.character.inventory.join("|");
+    var ci=worldState.npcs[0].charSheet.inventory;
+    if(ci.join("|")!=="Lockpicks x2|Rope x2|Chalk x2")return "companion not healed: "+ci.join("|");
+    migrateWorldState();
+    return ci.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"second migrate mangled stacks: "+ci.join("|");
+  });
 }

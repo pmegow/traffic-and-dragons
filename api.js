@@ -645,6 +645,41 @@ function removeInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){var n=_invCount(inv[i])-1;if(n<=0)inv.splice(i,1);else if(n===1)inv[i]=_invBase(inv[i]);else inv[i]=_invBase(inv[i])+" x"+n;return true;}}
   return false;
 }
+// ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
+// Byte-identical duplicate inventory entries can only be MINTED where a model-emitted array is
+// copied verbatim — sheet generation (normalizeCompanionSheet) and regeneration (generateNpcSheet).
+// Every play-time write stacks via addInventoryItem, which provably cannot produce two identical
+// siblings (the Frizwick t455 three-adjacent-pairs anomaly). Two teeth:
+//   sanitizeModelInventory — guards the FAUCETS: strings only, duplicates stack on arrival
+//   (quantity-aware: two "Rope x3" fold to x6), cap counts unique entries.
+//   foldDuplicateInventory — heals the STOCK: migrateWorldState folds exact-duplicate entries
+//   already sitting in saves into proper " xN" stacks.
+function sanitizeModelInventory(list,cap){
+  var out=[],i,j,max=cap||1e9;
+  if(!list||!list.length)return out;
+  for(i=0;i<list.length&&out.length<max;i++){
+    if(typeof list[i]!=="string"||!list[i])continue;
+    var q=_qtyParse(list[i]),t=_invNorm(q.base),hit=false;
+    for(j=0;j<out.length;j++){if(_invNorm(out[j])===t){out[j]=_invBase(out[j])+" x"+(_invCount(out[j])+q.n);hit=true;break;}}
+    if(!hit)out.push(list[i]);
+  }
+  return out;
+}
+// Folds BYTE-IDENTICAL entries only — healing must never guess at intent, so "Dagger"+"Dagger"
+// becomes "Dagger x2" but "Dagger"+"dagger" is left alone (play-time writes already stack the
+// loose-match class; anything loose-distinct in a save could be deliberate). In place, order
+// preserved (first occurrence keeps its slot); returns the number of entries folded away.
+function foldDuplicateInventory(inv){
+  if(!inv||inv.length<2)return 0;
+  var seen={},out=[],folded=0,i,k,kk;
+  for(i=0;i<inv.length;i++){
+    k=inv[i];kk="k:"+k; // prefixed key — an item literally named "__proto__" must not walk the prototype
+    if(typeof k==="string"&&seen[kk]!=null){var fi=seen[kk];out[fi]=_invBase(out[fi])+" x"+(_invCount(out[fi])+_invCount(k));folded++;}
+    else{if(typeof k==="string")seen[kk]=out.length;out.push(k);}
+  }
+  if(folded){inv.length=0;for(i=0;i<out.length;i++)inv.push(out[i]);}
+  return folded;
+}
 // ⛨ UA1 CLOSED (v1.261): the tag TABLE is the ONLY parser. applyMutsLegacy and the
 // TAG_AUTHORITY/TAG_SHADOW cross-check machinery are DELETED — the reverse soak finished clean
 // (159 scripted parity runs + ~160 real turns across two devices, zero diffs ever;
