@@ -213,6 +213,19 @@ var storageAdapter = (function() {
     if (turnAt > _lastAckTurn) _lastAckTurn = turnAt;
     _updateSyncUI();
   }
+  // CAS 409 decision (2026-07-13, the Halvard turn-0 incident): pure + exposed for engine tests.
+  // The 409 body carries the server's turn FOR THIS CAMPAIGN's row (per-campaign CAS, so no
+  // identity ambiguity). serverTurn <= local means this device is current or ahead — the exact
+  // case the reload-reconcile path already resolves as local-wins (storage-adapter load(), the
+  // Known-issue-#5 re-arm) — so heal in place: ack the server turn and retry ONCE instead of
+  // hard-pausing on a conflict with our own (or an older) write. serverTurn AHEAD of local, an
+  // unverifiable body, or a second 409 in the same chain (loop bound) still pause exactly as
+  // before — the guard's real target (another device genuinely ahead) is untouched.
+  function resolveCas409(serverTurn, localTurn, alreadyHealed) {
+    if (alreadyHealed) return "pause";
+    if (typeof serverTurn !== "number" || typeof localTurn !== "number") return "pause";
+    return serverTurn <= localTurn ? "heal" : "pause";
+  }
   function _onSyncFail(msg, status) {
     _failCount++;
     console.warn("[storage] sync failed (" + _failCount + " consecutive): " + msg);
@@ -294,7 +307,7 @@ var storageAdapter = (function() {
     _syncNow(beacon);
   }
 
-  function _syncNow(beacon) {
+  function _syncNow(beacon, healedRetry) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
     if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; return; }
@@ -327,8 +340,22 @@ var storageAdapter = (function() {
       baseTurn:      _lastAckTurn
     });
     if (beacon) {
-      // Fire-and-forget keepalive POST — no _syncing bookkeeping, no retry (the page is going away).
-      try { fetch(_serverUrl + "/api/state", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+_token }, body:payload, keepalive:true }); } catch(e) {}
+      // Keepalive POST — no _syncing bookkeeping, no retry (the page may be going away). But DO
+      // ack the response when the page survives (alt-tab usually does): an un-acked beacon that
+      // created the campaign's first server row made the NEXT regular POST lose the CAS race
+      // against our own write (the Halvard turn-0 false positive, 2026-07-13). Best-effort: if
+      // the page really unloads, the .then never runs and we're no worse off than before.
+      try {
+        fetch(_serverUrl + "/api/state", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+_token }, body:payload, keepalive:true })
+          .then(function(r){
+            if (r.ok) _syncOk(turnAt);
+            else if (r.status === 409) r.json().then(function(d){
+              var st = d && d.serverTurn;
+              if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, false) === "heal") { _syncOk(st); console.warn("[storage] beacon 409 self-healed: server turn " + st + " ≤ local — acked, next regular sync proceeds."); }
+              else _onConflict(st);
+            }).catch(function(){});
+          }).catch(function(){});
+      } catch(e) {}
       return;
     }
     _tFetch(_serverUrl + "/api/state", {
@@ -337,7 +364,17 @@ var storageAdapter = (function() {
       body:    payload
     }, SYNC_TIMEOUT_MS).then(function(r) {
       _syncing = false;
-      if (r.status === 409) { r.json().then(function(d){ _onConflict(d && d.serverTurn); }).catch(function(){ _onConflict(null); }); }
+      if (r.status === 409) {
+        r.json().then(function(d){
+          var st = d && d.serverTurn;
+          if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, !!healedRetry) === "heal") {
+            // Our own (or an older) write — ack the server's turn and retry ONCE with the proof.
+            _syncOk(st);
+            console.warn("[storage] sync 409 self-healed: server turn " + st + " ≤ local turn " + (worldState ? (worldState.turn||0) : 0) + " — acked and retrying once.");
+            _syncNow(false, true);
+          } else _onConflict(st);
+        }).catch(function(){ _onConflict(null); });
+      }
       else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); }
       else {
         _syncOk(turnAt);
@@ -669,6 +706,7 @@ var storageAdapter = (function() {
     resetSyncState:        resetSyncState,
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
+    resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
     listCharacterLibrary:            listCharacterLibrary,

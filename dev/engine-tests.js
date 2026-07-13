@@ -526,6 +526,25 @@ function runEngineTests(R){
     return ids.indexOf("live")>=0&&ids.indexOf("local")>=0?true:"kept set wrong: "+ids.join(",");
   });
 
+  // ── CAS 409 self-heal (the Halvard turn-0 false positive, 2026-07-13) ────────
+  section("CAS 409 self-heal");
+  t("self-conflict at turn 0 heals (the beacon-outran-the-ack incident)",function(){
+    return eq(storageAdapter.resolveCas409(0,0,false),"heal");
+  });
+  t("local-ahead heals (dead-host recovery — same outcome the reload-reconcile already produces)",function(){
+    return eq(storageAdapter.resolveCas409(3,5,false),"heal");
+  });
+  t("another device genuinely ahead → PAUSE (the guard's real target is untouched)",function(){
+    return eq(storageAdapter.resolveCas409(99,5,false),"pause");
+  });
+  t("unverifiable serverTurn → PAUSE (never heal blind)",function(){
+    if(storageAdapter.resolveCas409(null,5,false)!=="pause")return "null healed";
+    return eq(storageAdapter.resolveCas409(undefined,5,false),"pause");
+  });
+  t("one heal per POST chain — a second 409 after healing PAUSES (loop bound)",function(){
+    return eq(storageAdapter.resolveCas409(0,0,true),"pause");
+  });
+
   // ── store fallback coherence (audit E5/E6) ───────────────────────────────────
   section("store quota fallback (E5/E6)");
   t("quota-failed set rethrows (so saveCore can toast) AND get serves _m, not stale disk",function(){
