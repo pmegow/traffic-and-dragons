@@ -6,8 +6,15 @@ R2.3 (load `.blueprint`/`.campaign` file → normalized), full field editing inc
 cards with add/remove/reorder arrows (R7.1/R7.2), NPCs/locations/rules, RD.1 (per-arc dnaHint
 textarea), constrained tone/voice/type dropdowns (R4.1–R4.3), save-blocking validation (R4.4),
 live counts (R7.3), unsaved-changes guard (R7.4), lossless round-trip verified on the Runelords
-fixture (R5.3). App File-menus gained "🧩 Blueprint Designer…" (opens the page). **Remaining
-chunks:** Generate mode (R-GEN), dnaHint generate button (RD.2), cloud-library load/save
+fixture (R5.3). App File-menus gained "🧩 Blueprint Designer…" (opens the page). **Generate mode
+SHIPPED as the ONE-CLICK variant (designer v0.33 / engine v1.290, 2026-07-13, TODO #59):**
+"✨ Generate…" topbar button — optional seeds only (concept line, tone, prose voice; blank =
+surprise me) → `generateBlueprintDraft` in the shared **`campaign_generator.js`** (same acts
+schema/rules as the game's on-the-fly skeleton, which now also gets a one-pass review there) →
+full draft blueprint (acts + 4-6 NPCs + 3-6 locations + 0-3 rules) lands in the editor UNSAVED
+(RG.4 honored). This supersedes RG.1's guided-prompt form (user call 2026-07-13); the guided
+form can layer on later as a second entry into the same generator. **Remaining chunks:**
+RG.1 guided form (optional now), dnaHint generate button (RD.2), cloud-library load/save
 (R2.4/R5.2 cloud half), edit-active-game (R2.5), browser "Edit in Designer" cross-link.
 Foundation: §5.1 normalizer at every load point, §5.2 tone-apply fixed (closes AUDIT_FABLE #24),
 §5.3 fixture corrected, §5.5 rich NPC export + D1; 7 engine tests (86 total).

@@ -3040,4 +3040,61 @@ function runEngineTests(R){
     if(/Bram[\s\S]{0,400}?Conditions:/.test(s.volatile.slice(s.volatile.indexOf("PARTY MEMBER"))))return "empty Conditions line rendered";
     return s.stable.indexOf("since t")<0?true:"#46 leaked into the stable half";
   });
+
+  // ── Campaign generator (#59, v1.290) — shared skeleton machinery ─────────────
+  // Pure halves of campaign_generator.js: structure validation, status stamping (extracted from
+  // the old generateSkeleton inline loop — semantics must not move), the shared prompt fragments
+  // (frozen anchors so a wording edit is a deliberate act, not review-churn fallout), and the
+  // findings normalizer that gates what the auto-correction call is allowed to apply.
+  section("campaign generator (#59)");
+  t("validateSkeletonStructure: valid 3-act skeleton passes and returns the skel",function(){
+    var sk={premise:"p",acts:[{arcs:[{}]},{arcs:[{}]},{arcs:[{}]}]};
+    return validateSkeletonStructure(sk)===sk?true:"did not return the skeleton";
+  });
+  t("validateSkeletonStructure rejects missing premise / wrong act count / empty arcs",function(){
+    var bad=[
+      {acts:[{arcs:[{}]},{arcs:[{}]},{arcs:[{}]}]},
+      {premise:"p",acts:[{arcs:[{}]},{arcs:[{}]}]},
+      {premise:"p",acts:[{arcs:[{}]},{arcs:[]},{arcs:[{}]}]}
+    ],i;
+    for(i=0;i<bad.length;i++){try{validateSkeletonStructure(bad[i]);return "case "+i+" did not throw";}catch(e){}}
+    return true;
+  });
+  t("stampSkeletonStatus: sequential act 1 — only its first arc active, act 2+ pending",function(){
+    var sk={premise:"p",acts:[{arcs:[{},{}]},{parallel:true,arcs:[{},{}]},{arcs:[{}]}]};
+    stampSkeletonStatus(sk);
+    if(sk.acts[0].status!=="active"||sk.acts[1].status!=="pending"||sk.acts[2].status!=="pending")return "act statuses wrong";
+    if(sk.acts[0].arcs[0].status!=="active"||sk.acts[0].arcs[1].status!=="pending")return "act 1 arc statuses wrong";
+    return eq(sk.acts[1].arcs[0].status,"pending","act 2 arcs must wait even when parallel");
+  });
+  t("stampSkeletonStatus: parallel act 1 — ALL its arcs active",function(){
+    var sk={premise:"p",acts:[{parallel:true,arcs:[{},{}]},{arcs:[{}]},{arcs:[{}]}]};
+    stampSkeletonStatus(sk);
+    return sk.acts[0].arcs[0].status==="active"&&sk.acts[0].arcs[1].status==="active"?true:"parallel act 1 arcs not all active";
+  });
+  t("prompt fragments: DNA toggles the dnaHint field + rule; frozen anchors in place",function(){
+    if(skelActsSchema(false).indexOf("dnaHint")>=0)return "dnaHint leaked into the no-DNA schema";
+    if(skelActsSchema(true).indexOf('"dnaHint":"One vivid sentence')<0)return "DNA schema missing the dnaHint spec";
+    if(skelRulesHead(false).indexOf("dnaHint")>=0)return "DNA rule leaked into the no-DNA rules";
+    if(skelRulesHead(true).indexOf("- Each arc MUST include a dnaHint")!==0)return "DNA rule must LEAD the rules head";
+    if(skelRulesHead(false).indexOf("- Each act should have 2-4 arcs\n")!==0)return "no-DNA rules head anchor moved";
+    if(skelRulesTail().indexOf("- Each arc has a type: combat (fights, sieges, hunts)")!==0)return "rules tail anchor moved";
+    return skelRulesTail().indexOf("Act 2 is often parallel.")>0?true:"parallel rule lost from the tail";
+  });
+  t("skeletonHasDna detects a dnaHint on any arc",function(){
+    if(skeletonHasDna({acts:[{arcs:[{}]},{arcs:[{}]},{arcs:[{}]}]}))return "false positive";
+    return skeletonHasDna({acts:[{arcs:[{}]},{arcs:[{},{dnaHint:"x"}]},{arcs:[{}]}]})?true:"missed the dnaHint";
+  });
+  t("normalizeSkeletonFindings: drops fix-less findings, uppercases sev, caps at SKELETON_FINDINGS_CAP",function(){
+    var fs=[{issue:"no fix"},{fix:"no issue"},{sev:"high",where:"Act 1",issue:"x",fix:"y"}],i;
+    for(i=0;i<12;i++)fs.push({issue:"i"+i,fix:"f"+i});
+    var out=normalizeSkeletonFindings({findings:fs});
+    if(out.length!==SKELETON_FINDINGS_CAP)return "cap failed: "+out.length;
+    if(out[0].sev!=="HIGH")return "sev not uppercased";
+    if(out[0].where!=="Act 1")return "where lost";
+    return eq(out[1].issue,"i0","fix-less findings not dropped");
+  });
+  t("normalizeSkeletonFindings: null / empty findings → []",function(){
+    return normalizeSkeletonFindings(null).length===0&&normalizeSkeletonFindings({findings:[]}).length===0?true:"not empty";
+  });
 }

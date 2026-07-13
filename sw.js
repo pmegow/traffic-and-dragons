@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260713a";
+var CACHE = "tnd-v3-20260713b";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -11,6 +11,7 @@ var APP_SHELL = [
   "/memory.js",
   "/tag_table.js",
   "/api.js",
+  "/campaign_generator.js",
   "/char-creation.js",
   "/game.js",
   "/ui.js",

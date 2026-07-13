@@ -86,6 +86,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <button class="tbtn" id="btn-new">New</button>
   <button class="tbtn" id="btn-load">Load&hellip;</button>
   <select id="llm-sel" title="LLM used by Review, Apply fix, Ask, and Generate"></select>
+  <button class="tbtn" id="btn-generate">&#10024; Generate&hellip;</button>
   <button class="tbtn" id="btn-ask">&#128172; Ask&hellip;</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
@@ -106,12 +107,13 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="storage-adapter.js"></script>
 <script src="memory.js"></script>
 <script src="api.js"></script>
+<script src="campaign_generator.js"></script>
 <script src="game.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.32";
+var BP_DESIGNER_VERSION="v0.33";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -625,6 +627,62 @@ async function genCreature(btn){
   var b2=document.querySelector("[data-op='gencreature']");
   if(b2){b2.disabled=false;b2.innerHTML="✨ Generate creature from story";}
 }
+// ── Generate campaign from scratch (v0.33, TODO #59 / R-GEN one-click) ─────────
+// One click fills the editor with a complete draft blueprint via the shared generator
+// (campaign_generator.js — the SAME acts schema/rules the game's on-the-fly skeleton uses).
+// Seeds are all optional (concept line, tone, prose voice — blank = surprise me). The result
+// lands in the editor UNSAVED (RG.4): the author edits freely and runs 🔍 Review on it.
+function _toneIdList(){var ids=[],i;for(i=0;i<TONES.length;i++){if(TONES[i].id!=="custom")ids.push(TONES[i].id);}return ids.join(", ");}
+function closeGenerate(){var m=document.getElementById("gen-modal");if(m)m.remove();}
+function openGenerate(){
+  if(!llmReady())return;
+  closeGenerate();
+  var tOpts="<option value=''>Surprise me</option>",i;
+  for(i=0;i<TONES.length;i++){if(TONES[i].id==="custom")continue;tOpts+="<option value='"+esc(TONES[i].id)+"'>"+esc(TONES[i].nm)+"</option>";}
+  var vOpts="";
+  for(i=0;i<AUTHORS.length;i++)vOpts+="<option value='"+esc(AUTHORS[i].id)+"'>"+esc(AUTHORS[i].nm)+"</option>";
+  var wrap=document.createElement("div");
+  wrap.id="gen-modal";
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
+  wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;width:min(560px,94vw);padding:16px;display:flex;flex-direction:column;gap:10px;'>"
+    +"<div style='display:flex;align-items:center;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>&#10024; Generate a campaign from scratch</span><button class='mini' id='gen-x'>Close</button></div>"
+    +"<div style='font-size:12.5px;color:var(--t2);line-height:1.5;'>Fills the editor with a complete draft blueprint — premise, 3-act skeleton, seed NPCs and locations. Every seed below is optional (blank = surprise me). Nothing is saved until you Save or Publish; run &#128269; Review on the result.</div>"
+    +"<textarea id='gen-concept' style='min-height:64px;' placeholder='Optional concept — one line or a paragraph. e.g. A dying river god hires the party to find its murderer.'></textarea>"
+    +"<div style='display:flex;gap:8px;'>"
+    +"<label style='flex:1;font-size:12px;color:var(--t2);'>Tone<br><select id='gen-tone' style='width:100%;'>"+tOpts+"</select></label>"
+    +"<label style='flex:1;font-size:12px;color:var(--t2);'>Prose voice<br><select id='gen-voice' style='width:100%;'>"+vOpts+"</select></label>"
+    +"</div>"
+    +"<div style='display:flex;justify-content:flex-end;'><button class='tbtn primary' id='gen-go'>&#10024; Generate</button></div></div>";
+  document.body.appendChild(wrap);
+  wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeGenerate();});
+  document.getElementById("gen-x").addEventListener("click",closeGenerate);
+  document.getElementById("gen-go").addEventListener("click",async function(){
+    if(dirty&&!confirm("Generating replaces the editor contents. Discard unsaved changes?"))return;
+    var btn=this;btn.disabled=true;btn.textContent="Generating… (can take a minute)";
+    setStatus("Generating a campaign draft…","");
+    try{
+      var toneId=document.getElementById("gen-tone").value,toneName="",j;
+      for(j=0;j<TONES.length;j++)if(TONES[j].id===toneId)toneName=TONES[j].nm;
+      var voiceId=document.getElementById("gen-voice").value,dna="";
+      for(j=0;j<AUTHORS.length;j++)if(AUTHORS[j].id===voiceId&&AUTHORS[j].contentDNA)dna=AUTHORS[j].contentDNA;
+      var draft=await generateBlueprintDraft({
+        concept:document.getElementById("gen-concept").value.trim(),
+        toneId:toneId,toneName:toneName,toneList:_toneIdList(),dna:dna
+      },designerModel());
+      draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";
+      if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
+      bp=normalizeBlueprint(draft);
+      var err=validateBlueprint(bp);
+      secOpen={}; // fresh content the author must actually read — start open, like New (loads collapse)
+      markDirty();render();
+      closeGenerate();
+      setStatus(err?("Generated with issues — "+err):("Generated “"+(bp.name||"untitled")+"” — a DRAFT, not a finished blueprint: edit freely, then 🔍 Review it."),err?"err":"ok");
+    }catch(e){setStatus("Generation failed: "+e.message,"err");}
+    btn.disabled=false;btn.textContent="✨ Generate";
+  });
+  document.getElementById("gen-concept").focus();
+}
+document.getElementById("btn-generate").addEventListener("click",openGenerate);
 // Review v2 (designer v0.8): structured findings written INTO bp.review — a persistent
 // CBB ("could be better") list that ships with the file for playtesters. Invisible to the
 // engine (canary engine test enforces it). Each finding: ✗ dismiss, or ⚡ Apply fix (LLM

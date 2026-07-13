@@ -51,7 +51,7 @@ function startGame(char,toneName,toneVoice,authorId){
     // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
     // (network, parse, bad provider), log it and start anyway — the game works without one.
     var _skMsg=addMsg("thinking","Forging the campaign...");
-    generateSkeleton().then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
+    generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
   }
 }
 // Model escalation for engine utility calls (skeleton since v1.2xx, suggestions since v1.249):
@@ -902,7 +902,7 @@ function applyBlueprint(bp){
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;
 }
-async function generateSkeleton(){
+async function generateSkeleton(statusFn){
   var c=worldState.character,w=worldState.world,t=worldState.tone;
   var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
@@ -916,27 +916,36 @@ async function generateSkeleton(){
     +"Generate a campaign with a central conflict that ties to the character's backstory and personality. The story should feel personal, not generic.\n\n"
     +"JSON format:\n"
     +'{"premise":"One paragraph: the central conflict driving the campaign",'
-    +'"acts":['
-    +'{"title":"Act 1 title","goal":"What must be accomplished","turningPoint":"The event that ends this act and propels into the next","parallel":false,"arcs":['
-    +'{"title":"Arc title","objective":"What the player pursues in this arc","type":"combat or investigation or exploration or social"'+(_skelDNA?',"dnaHint":"One vivid sentence: how THIS arc should feel and unfold in the narrative design above — specific to this arc, never generic procedure"':'')+'}]},'
-    +'{"title":"Act 2 title","goal":"...","turningPoint":"...","parallel":true,"arcs":[{"title":"...","objective":"...","type":"..."'+(_skelDNA?',"dnaHint":"..."':'')+'}]},'
-    +'{"title":"Act 3 title","goal":"...","turningPoint":"The climax/resolution","parallel":false,"arcs":[{"title":"...","objective":"...","type":"..."'+(_skelDNA?',"dnaHint":"..."':'')+'}]}'
-    +"]}\n\n"
+    // Schema + generic rules are shared fragments (campaign_generator.js, #59) — the designer's
+    // ✨ Generate builds its acts on the SAME text; the assembled prompt here is byte-identical
+    // to the pre-extraction original (flaw/motivation lines splice between head and tail).
+    +skelActsSchema(!!_skelDNA)
+    +"}\n\n"
     +"RULES:\n"
-    +(_skelDNA?"- Each arc MUST include a dnaHint: one concrete sentence telling the GM how to run THAT specific arc in the narrative design above. NOT generic procedure — e.g. for an investigation arc, not 'gather clues and interrogate' but how this author would twist it (who the clues implicate, what the truth costs, where the betrayal lies). The dnaHint is what keeps the campaign in voice turn after turn, so make it sharp and specific to the arc's content.\n":"")
-    +"- Each act should have 2-4 arcs\n"
-    +"- Act 1: establish the world, introduce the threat, end with a revelation or loss\n"
-    +"- Act 2: escalation, alliances, setbacks — the longest act\n"
-    +"- Act 3: convergence and climax — the shortest act\n"
-    +"- Arcs are waypoints, not scripts — leave room for player agency between them\n"
+    +skelRulesHead(!!_skelDNA)
     +(c.flaw?"- The character's flaw should be a source of tension, not just flavor\n":"")
     +(c.motivation?"- Weave the motivation into the central conflict so pursuing the plot IS pursuing the motivation\n":"- Weave the character's backstory into the central conflict so pursuing the plot IS personal\n")
-    +"- Each arc has a type: combat (fights, sieges, hunts), investigation (mysteries, clues, interrogation), exploration (travel, discovery, mapping), or social (politics, alliances, persuasion). Mix types within an act for variety.\n"
-    +"- An act may be parallel:true — its arcs can be pursued in any order (sandbox). Use this when the narrative supports it (e.g. investigating multiple leads, visiting locations in any order). Acts 1 and 3 are usually sequential; Act 2 is often parallel.";
-  var resp=await callGM(prompt,"You are a campaign architect for a tabletop RPG. Output ONLY valid JSON. No prose, no markdown, no backticks.",8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
+    +skelRulesTail();
+  var resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
   var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
-  if(!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
-  var ai,aj;for(ai=0;ai<skel.acts.length;ai++){skel.acts[ai].status=ai===0?"active":"pending";if(!skel.acts[ai].arcs||!skel.acts[ai].arcs.length)throw new Error("Act "+(ai+1)+" has no arcs");var isParallel=!!skel.acts[ai].parallel;for(aj=0;aj<skel.acts[ai].arcs.length;aj++){skel.acts[ai].arcs[aj].status=(ai===0&&(isParallel||aj===0))?"active":"pending";}}
+  validateSkeletonStructure(skel);
+  // ONE review pass + auto-correction (#59, v1.290) — the Blueprint Designer's reviewer
+  // discipline, scoped to the skeleton schema (campaign_generator.js). Both extra calls ride
+  // the "skeleton" usage bucket. A review/correction failure NEVER blocks campaign start:
+  // fall back to the valid first draft, loudly (toast + console — no silent failures).
+  try{
+    if(statusFn)statusFn("Reviewing the campaign...");
+    var findings=await reviewCampaignSkeleton(skel,upgradeModelFor(),"skeleton");
+    if(findings.length){
+      if(statusFn)statusFn("Refining the campaign ("+findings.length+" fix"+(findings.length===1?"":"es")+")...");
+      skel=await correctCampaignSkeleton(skel,findings,upgradeModelFor(),"skeleton");
+      if(typeof console!=="undefined")console.log("[skeleton review] applied "+findings.length+" fix(es)");
+    }else if(typeof console!=="undefined")console.log("[skeleton review] clean — no findings");
+  }catch(re){
+    showToast("Campaign review failed ("+(re&&re.message?re.message:"unknown")+") — using the first draft",5000);
+    if(typeof console!=="undefined")console.warn("[skeleton review] "+(re&&re.message?re.message:re));
+  }
+  stampSkeletonStatus(skel);
   worldState.skeleton=skel;saveCore();
 }
 async function beginAdventure(){
