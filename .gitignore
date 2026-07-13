@@ -9,8 +9,10 @@ Thumbs.db
 # Local backups
 BAK/
 
-# Archived audits (kept locally, not in the repo)
-audits/
+# Audit archive: the root AUDIT_*.md evidence files moved here 2026-07-13 and STAY TRACKED
+# (they are the cited evidence base for TODO.md / Fable_UberAudit.md rows). Only the Fable
+# working audits remain local-only, as before.
+audits/AUDIT_FABLE_*.md
 
 # Personal save files
 *.tnd

@@ -2,7 +2,7 @@
 
 **Run:** 4 GM turns (t9–t12, continuing the PT_v1275_NightBatch save at Harrow's Ford) + 2 sync
 audits + UI verification, Sonnet. **Cost:** $0.21 this segment ($0.53 campaign total, 32 calls).
-**Corpus:** [dev/corpus_playtest_v1276.json](dev/corpus_playtest_v1276.json) (cumulative t1–t12 +
+**Corpus:** [dev/corpus_playtest_v1276.json](../dev/corpus_playtest_v1276.json) (cumulative t1–t12 +
 toasts + labeled synthetic/RETRY notes). Commissioned by the user's morning review of
 AUDIT_playtest_v1271: complete every remaining actionable in one swoop before the OneDrive exodus.
 

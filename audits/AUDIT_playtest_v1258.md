@@ -5,7 +5,7 @@ companion recruit, 3× timed-condition forcing, sworn oath, long rest, completio
 fight). **Character:** Sera Vantel — fresh level-1 Human Cleric (catalog spells: Guidance, Sacred
 Flame, Healing Word, Bless), gritty tone, Abercrombie voice, emergent campaign "PT_v1258_PostCutover"
 in Duskbridge. **Cost:** $3.92 (218 calls: 101 turns + 101 escalated suggestion calls + 14
-summarize + skeleton). **Corpus:** [dev/corpus_playtest_v1258.json](dev/corpus_playtest_v1258.json)
+summarize + skeleton). **Corpus:** [dev/corpus_playtest_v1258.json](../dev/corpus_playtest_v1258.json)
 (100 turn log + 100 raw responses + 22 toasts + engine notes; durable copy in the preview browser's
 `tnd_pt_corpus_v1`). Instrumentation: toast capture, engine-note capture, steering, all baked into
 the corpus.

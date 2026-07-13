@@ -5,12 +5,12 @@ close-out scenarios. **Character:** Vex Calder — fresh level-3 Human (Northlan
 Sorcerer, hand-built with Message + a Flask of Alchemist's Fire, gritty tone, Abercrombie voice,
 emergent campaign "PT_v1271_PostBatch" in Marrowgate. **Cost:** $1.18 (68 calls, 272k in /
 18.7k out; prompt cache healthy — 191k cache reads). **Corpus:**
-[dev/corpus_playtest_v1271.json](dev/corpus_playtest_v1271.json) (29 turn log + 29 raw responses +
+[dev/corpus_playtest_v1271.json](../dev/corpus_playtest_v1271.json) (29 turn log + 29 raw responses +
 18 toasts + 4 instrumentation notes; durable copy in the preview browser's `tnd_pt_corpus_v1`,
 persisted after every turn per test-runs-always-audit). Synthetic interventions (3, all labeled in
 the corpus notes): the UA41 Morwen-class setup, the staged multi-foe panel states, and the
 ENEMY_SURRENDERS live-page check. **Screenshots:**
-[dev/img_playtest_v1271/](dev/img_playtest_v1271/) — combat panel at 3 and 5 foes, 1280px
+[dev/img_playtest_v1271/](../dev/img_playtest_v1271/) — combat panel at 3 and 5 foes, 1280px
 and 375px. *Capture method note: the Browser-pane screenshot pipeline was dead this session (every
 capture timed out; page itself healthy), so the PNGs are in-page rasterizations of `#cpanel` via
 SVG foreignObject using the app's own stylesheet at the target viewport widths — same CSS, same

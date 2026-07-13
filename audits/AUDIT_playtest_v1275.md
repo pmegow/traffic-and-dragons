@@ -3,7 +3,7 @@
 **Run:** 8 GM turns + 1 sheet-sync audit, Sonnet, harness-driven, every turn targeted at a
 just-shipped rule. **Character:** Brannoc Vail — fresh level-2 Human Warrior with two loot items,
 gritty tone, Abercrombie voice, emergent campaign "PT_v1275_NightBatch" in Dunmarrow. **Cost:**
-$0.32 (22 calls). **Corpus:** [dev/corpus_playtest_v1275.json](dev/corpus_playtest_v1275.json)
+$0.32 (22 calls). **Corpus:** [dev/corpus_playtest_v1275.json](../dev/corpus_playtest_v1275.json)
 (8 turn log + raw responses + toasts + labeled synthetic notes; durable in `tnd_pt_corpus_v1`).
 Synthetic interventions (2, labeled): the `[PARTY_MEMBER:]` trigger for the #48③ pipeline test
 (the GM kept the recruitment conditional in-fiction) and the removed-Longsword discrepancy for

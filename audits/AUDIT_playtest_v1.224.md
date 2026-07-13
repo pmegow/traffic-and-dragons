@@ -4,7 +4,7 @@
 
 **Mandate:** complete as much of the campaign as possible; test the `capability_bible` as hard as possible; observe how **Victor and Vyrindra** interact and whether their relationship status has any bearing. Then save `playtest_v1.224.tnd` and audit.
 
-**Result:** ✅ **50 turns, 0 turn errors, 0 console errors.** The party never left **Sandpoint** — 50 random-walk turns stayed inside **Act 1 "The Skinsaw Murders," arc 1 "Festival of Fire,"** which spun off a rich *emergent* subplot (a notation "Conservator," the Emberveil bloodline, a failing foundation seal) rather than advancing the canonical Skinsaw arcs. One side-quest closed cleanly with reward; Peet leveled 6→7. Save: [playtest_v1.224.tnd](playtest_v1.224.tnd).
+**Result:** ✅ **50 turns, 0 turn errors, 0 console errors.** The party never left **Sandpoint** — 50 random-walk turns stayed inside **Act 1 "The Skinsaw Murders," arc 1 "Festival of Fire,"** which spun off a rich *emergent* subplot (a notation "Conservator," the Emberveil bloodline, a failing foundation seal) rather than advancing the canonical Skinsaw arcs. One side-quest closed cleanly with reward; Peet leveled 6→7. Save: [playtest_v1.224.tnd](../playtest_v1.224.tnd).
 
 **Cost:** $1.82 · 51 turn calls (~7.5k avg input) · 7 summarize calls (on schedule) · 402,700 cache-read tokens (prompt caching #11 healthy) · 0 turn errors · 0 console errors.
 
