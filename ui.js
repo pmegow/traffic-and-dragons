@@ -1353,16 +1353,16 @@ async function showPortraitModal(refreshFn,opts){
     try{
       var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
       status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
-      var falRes,mdlCfg=RENDER_MODELS[0],mi;
+      var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
       if(isImg2Img){
         falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify({image_url:pmRefSrc,prompt:prompt,strength:0.75,num_inference_steps:28,num_images:1})});
+          body:JSON.stringify({image_url:pmRefSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
       }else{
         for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
         falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
+          body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
       }
       if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
       var falData=await falRes.json();
@@ -1383,16 +1383,16 @@ async function showPortraitModal(refreshFn,opts){
     status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
     busy=true;
     try{
-      var falRes,mdlCfg=RENDER_MODELS[0],mi;
+      var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
       if(isImg2Img){
         falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify({image_url:pmRefSrc,prompt:prompt,strength:0.75,num_inference_steps:28,num_images:1})});
+          body:JSON.stringify({image_url:pmRefSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
       }else{
         for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
         falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
           headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
+          body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
       }
       if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
       var falData=await falRes.json();

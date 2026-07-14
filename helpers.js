@@ -21,6 +21,12 @@ function img2imgStrength(cfg){
   var o=renderStrength[cfg.id];
   return typeof o==="number"?o:cfg.img2img.strength;
 }
+// Fixed style boilerplate appended to EVERY fal.ai image-generation prompt (scene render + all
+// portrait paths). withImgStyle() applies it at the fal.run boundary rather than baking it into the
+// GM prompt-writer instruction, so the string lands verbatim regardless of what the model writes.
+// Dedup-safe: the "Edit Prompt → Regenerate" path passes a prompt that already carries the suffix.
+var IMG_STYLE_SUFFIX="Dark fantasy concept art, painterly realism, cinematic composition, dramatic volumetric lighting, warm firelight and cool shadow contrast, ultra-detailed leather and cloth textures, realistic skin pores and fabric weave, rich atmospheric depth, high-end RPG key art, fantasy illustration, moody color grading, sharp focus, intricate craftsmanship, epic yet grounded realism, 8k detail.";
+function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;return p.replace(/\s+$/,"")+" "+IMG_STYLE_SUFFIX;}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 function r4d6(){var d=[droll(6),droll(6),droll(6),droll(6)];d.sort(function(a,b){return a-b;});return d[1]+d[2]+d[3];}
 function getFin(){

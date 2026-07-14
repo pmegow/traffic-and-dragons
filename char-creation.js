@@ -135,7 +135,7 @@ async function ftRenderPortrait(){
     for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
     var falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
       headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-      body:JSON.stringify(portraitRenderBody(mdlCfg,prompt))});
+      body:JSON.stringify(portraitRenderBody(mdlCfg,withImgStyle(prompt)))});
     if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
     var falData=await falRes.json();
     if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
