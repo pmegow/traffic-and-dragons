@@ -1005,6 +1005,7 @@ async function doRender(){
       +"Spell out each character's hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
       +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
       +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
+      +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
       +"Style: dark fantasy, dramatic lighting, painterly cinematic. "
       +(hasParty?"3-4 sentences":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
     var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe the protagonist's exact physical appearance with full specificity. No narration, no tags.");
@@ -1076,6 +1077,10 @@ async function doRender(){
         if(usingI2I)imgStatus.textContent=(isNano&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded)…"):"Generating scene (portrait-seeded)…";
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
+        // Nano Banana 2 is an edit/compositor — left alone it clings to the reference portraits' posed,
+        // front-facing headshot framing (the "school-portrait" stiffness). Tell it the references are
+        // likeness-only so it re-stages everyone dynamically. Scene-render only; portrait paths stay posed.
+        if(isNano&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene.";
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
