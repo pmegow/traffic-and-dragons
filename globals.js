@@ -139,7 +139,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.292";
+var APP_VERSION="v1.293";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -156,18 +156,23 @@ var RENDER_MODELS=[
   // edit-style API has no strength knob (nano-banana) simply omit the field; the slider hides.
   {id:"fal-ai/flux/dev",       label:"Flux [Dev]",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,num_images:1};},
+   // imgUrl may be a single data-URL OR an array of them (party render). Single-image denoise: takes
+   // the first seed only (the player) — multi-portrait party seeding is Nano-only by design.
    img2img:{endpoint:"fal-ai/flux/dev/image-to-image",strength:0.6,
-            body:function(p,imgUrl,s){return {prompt:p,image_url:imgUrl,strength:s,num_inference_steps:28,num_images:1};}}},
+            body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:28,num_images:1};}}},
   {id:"fal-ai/nano-banana-2",  label:"Nano Banana 2",
    body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1K",num_images:1};},
+   // Edit API composites MULTIPLE reference images — image_urls accepts the whole party portrait set
+   // (player first) for a group render; a lone data-URL is wrapped so single-subject renders still work.
    img2img:{endpoint:"fal-ai/nano-banana-2/edit",
-            body:function(p,imgUrl){return {prompt:p,image_urls:[imgUrl],aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
+            body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
    img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",strength:0.9,
             // qwen-image-edit is edit-style: it preserves the input image unless strength is high.
             // At 0.6 it returned near-copies of the portrait instead of the scene prompt.
-            body:function(p,imgUrl,s){return {prompt:p,image_url:imgUrl,strength:s,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
+            // Single-image denoise: array seed collapses to the first (player) — Nano-only multi-image.
+            body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:30,guidance_scale:4,num_images:1};}}}
 ];
 var renderModel="fal-ai/flux/dev";
 var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95} (#42); persisted under RENDER_STR_K

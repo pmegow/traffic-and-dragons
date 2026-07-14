@@ -27,6 +27,14 @@ function img2imgStrength(cfg){
 // Dedup-safe: the "Edit Prompt → Regenerate" path passes a prompt that already carries the suffix.
 var IMG_STYLE_SUFFIX="Dark fantasy concept art, painterly realism, cinematic composition, dramatic volumetric lighting, warm firelight and cool shadow contrast, ultra-detailed leather and cloth textures, realistic skin pores and fabric weave, rich atmospheric depth, high-end RPG key art, fantasy illustration, moody color grading, sharp focus, intricate craftsmanship, epic yet grounded realism, 8k detail.";
 function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;return p.replace(/\s+$/,"")+" "+IMG_STYLE_SUFFIX;}
+// Living party companions — partyMember NPCs that carry a charSheet and are not dead. The party-aware
+// scene render iterates this to describe (all models) and seed portraits (Nano Banana 2 only). Returns
+// the worldState.npcs entries; charSheet holds the v10 sheet, npcPortrait() the image.
+function livingPartyCompanions(){
+  var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
+  for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))out.push(n);}
+  return out;
+}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 function r4d6(){var d=[droll(6),droll(6),droll(6),droll(6)];d.sort(function(a,b){return a-b;});return d[1]+d[2]+d[3];}
 function getFin(){

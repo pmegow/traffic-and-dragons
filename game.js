@@ -988,12 +988,25 @@ async function doRender(){
     // Build a character-specific anchor so the model paints the same person each time
     var genderWord=c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male";
     var charDesc=c.name+", a "+genderWord+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
-    var rp="Write a detailed image generation prompt for the current scene. "
+    // Party render (all models): describe every living companion so the scene portrays the whole party
+    // with correct appearances, not invented ones. Portrait-likeness seeding (below) is Nano-only.
+    var party=livingPartyCompanions(),compDescs=[],pi;
+    for(pi=0;pi<party.length;pi++){
+      var pcs=party[pi].charSheet;
+      var pg=pcs.gender==="F"?"female":pcs.gender==="NB"?"androgynous":"male";
+      var pd=party[pi].name+", a "+pg+(pcs.age?" "+pcs.age:"")+" "+(pcs.ancestry||"")+" "+(pcs.cls||"")+(pcs.appear?", "+pcs.appear:"")+(pcs.mark?", "+pcs.mark:"");
+      compDescs.push(pd.replace(/\s+/g," ").trim());
+    }
+    var hasParty=compDescs.length>0;
+    var rp="Write a detailed image generation prompt for the current scene"
+      +(hasParty?", portraying the whole adventuring party together in one composition":"")+". "
       +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
-      +"Spell out hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
+      +(hasParty?"Party members also present — include every one, describe each exactly as written, do not invent appearance: "+compDescs.join("; ")+". ":"")
+      +"Spell out each character's hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
       +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
+      +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
       +"Style: dark fantasy, dramatic lighting, painterly cinematic. "
-      +"2-3 sentences. Output ONLY the prompt, no game tags.";
+      +(hasParty?"3-4 sentences":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
     var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe the protagonist's exact physical appearance with full specificity. No narration, no tags.");
     th.remove();
     var div=addMsg("render-out","");
@@ -1052,12 +1065,18 @@ async function doRender(){
       div.appendChild(imgStatus);
       try{
         var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
-        var portrait=worldState.character.portrait;
-        var usingI2I=!!(portrait&&mdlCfg.img2img);
-        if(usingI2I)imgStatus.textContent="Generating scene (portrait-seeded)…";
+        // Seed portraits: player first, then each living companion WITH a portrait — but only Nano
+        // Banana 2 composites multiple references, so companion seeds are gathered for Nano only.
+        // Flux/Qwen receive just the player (their body fn takes seeds[0]) — behavior unchanged.
+        var isNano=mdlCfg.id==="fal-ai/nano-banana-2";
+        var seeds=[],pj;
+        if(worldState.character.portrait)seeds.push(worldState.character.portrait);
+        if(isNano){for(pj=0;pj<party.length;pj++){var cpo=npcPortrait(party[pj]);if(cpo)seeds.push(cpo);}}
+        var usingI2I=!!(seeds.length&&mdlCfg.img2img);
+        if(usingI2I)imgStatus.textContent=(isNano&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded)…"):"Generating scene (portrait-seeded)…";
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
-        var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,portrait,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
+        var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
         var falData=await falRes.json();

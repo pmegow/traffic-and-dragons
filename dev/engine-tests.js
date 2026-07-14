@@ -1909,6 +1909,43 @@ function runEngineTests(R){
     return eq(b.strength,0.45);
   });
 
+  section("party render — multi-image seeding");
+  t("Nano edit body takes the WHOLE seed array (party composite)",function(){
+    var b=__rm("fal-ai/nano-banana-2").img2img.body("scene",["data:p1","data:p2","data:p3"]);
+    if(!Array.isArray(b.image_urls))return "image_urls not an array";
+    if(b.image_urls.length!==3)return "expected 3 seeds, got "+b.image_urls.length;
+    return eq(b.image_urls[0],"data:p1");
+  });
+  t("Nano edit body still wraps a lone data-URL (single-subject render unchanged)",function(){
+    var b=__rm("fal-ai/nano-banana-2").img2img.body("scene","data:solo");
+    return Array.isArray(b.image_urls)&&b.image_urls.length===1&&b.image_urls[0]==="data:solo";
+  });
+  t("Flux img2img collapses an array seed to the first (player only — Nano-only multi-image)",function(){
+    var b=__rm("fal-ai/flux/dev").img2img.body("scene",["data:player","data:comp"],0.6);
+    return eq(b.image_url,"data:player");
+  });
+  t("Qwen img2img collapses an array seed to the first",function(){
+    var b=__rm("fal-ai/qwen-image-2512").img2img.body("scene",["data:player","data:comp"],0.9);
+    return eq(b.image_url,"data:player");
+  });
+  t("Flux img2img still accepts a bare string (backward compat)",function(){
+    var b=__rm("fal-ai/flux/dev").img2img.body("scene","data:img",0.5);
+    return eq(b.image_url,"data:img");
+  });
+  t("livingPartyCompanions returns only partyMember + charSheet + alive",function(){
+    var savedWS=worldState;
+    worldState={npcs:[
+      {name:"Alive Comp",partyMember:true,charSheet:{cls:"Cleric"},status:"healthy"},
+      {name:"Dead Comp",partyMember:true,charSheet:{cls:"Rogue"},status:"dead in the crypt"},
+      {name:"Sheetless",partyMember:true,status:"healthy"},
+      {name:"Bystander",partyMember:false,charSheet:{cls:"Warrior"},status:"healthy"}
+    ]};
+    var out=livingPartyCompanions();
+    worldState=savedWS;
+    if(out.length!==1)return "expected 1, got "+out.length;
+    return eq(out[0].name,"Alive Comp");
+  });
+
   // ── UA1 LEGACY RETIREMENT (v1.261): the table IS the parser; legacy fully deleted ──
   section("legacy retirement (UA1 closing)");
   t("legacy parser fully retired — no symbols remain",function(){
