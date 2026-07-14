@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic and Dragons — Multiplayer Initiative</title>
+<style>
+  :root{--ink:#23201b;--dim:#8a7f6d;--acc:#b8935a;--bg:#faf7f0;--card:#fff;--line:#e7ddca;--code:#6b4f2a;
+    --good:#3f7a3f;--goodbg:#eaf3e6;--open:#9a6a1a;--openbg:#f6edd8;--later:#7a7266;--laterbg:#efe9dd;--warn:#9a3320;--warnbg:#f6e2dc;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:860px;margin:0 auto;padding:44px 22px 90px;}
+  header h1{font-size:27px;margin:0 0 6px;}
+  header p{color:var(--dim);font-size:14px;margin:0 0 6px;max-width:66ch;}
+  header .rule{color:var(--acc);font-weight:600;}
+  nav{margin:22px 0 8px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:2;}
+  nav a{color:var(--code);text-decoration:none;margin-right:14px;white-space:nowrap;}
+  nav a:hover{color:var(--acc);text-decoration:underline;}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  h3{font-size:15px;margin:22px 0 6px;}
+  p,li{color:#4a443b;}
+  code{background:#f0e9db;color:var(--code);padding:1px 5px;border-radius:4px;font-size:13px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0;}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0;}
+  th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line);}
+  th{color:var(--acc);text-transform:uppercase;letter-spacing:.06em;font-size:11px;}
+  td:first-child{white-space:nowrap;font-weight:600;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 9px;border-radius:12px;border:1px solid;}
+  .p-lock{background:var(--goodbg);border-color:var(--good);color:var(--good);}
+  .p-open{background:var(--openbg);border-color:var(--open);color:var(--open);}
+  .p-later{background:var(--laterbg);border-color:var(--later);color:var(--later);}
+  .p-warn{background:var(--warnbg);border-color:var(--warn);color:var(--warn);}
+  ol.steps{padding-left:20px;}
+  ol.steps li{margin:7px 0;}
+  .note{font-size:13px;color:var(--dim);font-style:italic;}
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12px;}
+  .scroll{overflow-x:auto;}
+  .editable{position:relative;outline:none;border:1px dashed transparent;border-radius:8px;padding:10px 12px;margin:2px -12px;transition:border-color .15s,background .15s;}
+  .editable:hover{border-color:var(--line);}
+  .editable:focus{border-color:var(--acc);border-style:solid;background:var(--card);}
+  .edit-tag{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);float:right;margin-top:2px;user-select:none;}
+  .edit-tag::before{content:"✎ editable";}
+  .q{margin:12px 0;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px;}
+  .q .qhead{font-weight:600;margin-bottom:2px;}
+  .q .qid{color:var(--acc);font-weight:700;margin-right:6px;}
+  .q .qbody{color:#4a443b;font-size:14px;}
+  .ans{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);}
+  .ans-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);font-weight:700;}
+  .ans-box{min-height:2.2em;margin-top:4px;font-size:14px;color:#4a443b;}
+  .ans-box:empty::before{content:"Jot the resolution here… (saved in your browser)";color:var(--dim);font-style:italic;}
+  .savednote{font-size:11px;color:var(--good);margin-left:8px;opacity:0;transition:opacity .2s;}
+  .savednote.show{opacity:1;}
+  .card>.editable{margin:0;}
+  .controls{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:10px 0;margin:-8px 0 6px;
+    background:var(--bg);border-bottom:1px solid var(--line);}
+  #save-btn{background:var(--acc);color:#fff;border:none;border-radius:20px;padding:9px 18px;font-size:14px;font-weight:700;
+    cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:background .15s,transform .1s;}
+  #save-btn:hover{background:#a07f47;}
+  #save-btn:active{transform:translateY(1px);}
+  #save-btn.saved{background:var(--good);}
+  #revert-btn{background:var(--card);color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:9px 14px;font-size:13px;cursor:pointer;}
+  #revert-btn:hover{color:var(--ink);border-color:var(--acc);}
+  #save-status{font-size:12px;color:var(--dim);margin-left:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="controls">
+  <button id="save-btn">💾 Save changes</button>
+  <button id="revert-btn" title="Discard this browser's saved edits and show the canonical doc version (use after I've absorbed your edits into the source)">↺ Revert to doc</button>
+  <span id="save-status"></span>
+</div>
+<header>
+  <h1>Multiplayer — Initiative &amp; Tracking</h1>
+  <p><span class="rule">TODO #1.</span> 2–4 player co-op on the family car trip: shared world, one character each, taking turns. This doc is the living spec and status board — planning captured here, not in the TODO row, because it's an initiative, not a task.</p>
+  <p class="note">Started 2026-07-13 · engine v1.291 · planning phase — nothing built yet.</p>
+</header>
+
+<nav>
+  <a href="#vision">Vision</a>
+  <a href="#scope">First-pass scope</a>
+  <a href="#locked">Decisions locked</a>
+  <a href="#flow">Turn flow</a>
+  <a href="#accessor">The activePlayer() migration</a>
+  <a href="#open">Open questions</a>
+  <a href="#phases">Phased plan</a>
+</nav>
+
+<h2 id="vision">Vision <span class="edit-tag"></span></h2>
+<div class="editable" id="vision-body" contenteditable="true">
+<p>Everyone in the car is a character in the same story. The active player holds the phone, reads the scene, picks their action, and passes it to the next player. When everyone has moved, the GM resolves the whole round at once and narrates what happens. The outgoing player rotates into the party bar; the incoming player rises into the hero slot (the two-screenshot mock: Ammut's turn → Morwen's turn).</p>
+<p><strong>Alternatively, in Car Mode</strong>, everything is voice-activated. The current player's portrait is displayed in the center of the screen. When the player is ready with their action, the <code>&gt;&gt;</code> button is pressed on the car stereo (likely the steering wheel) or interface, and the player speaks their action.</p>
+<p class="note">Ephemeral — this is the current picture, not a commitment. Edit freely, then press 💾 Save changes (saves in this browser); tell me to absorb an edit to make it canonical.</p>
+</div>
+
+<h2 id="scope">First-pass scope <span class="edit-tag"></span></h2>
+<div class="card">
+<div class="editable" id="scope-body" contenteditable="true">
+  <p><strong>Hot-seat on one device.</strong> No networking, no per-device sync, no split-party. One phone passed around a car. This removes the entire multiplayer <em>server</em> problem from the first pass — it's a local turn manager plus a display/POV pointer, nothing more.</p>
+  <p class="note">Networked co-op and per-player devices are explicitly later passes (Q7). <strong>Split-party (Q6) is different</strong> — it's a first-pass assumption, not a later feature: this flow holds only while the party stays together. Decide it early.</p>
+</div>
+</div>
+
+<h2 id="locked">Decisions locked</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>#</th><th>Decision</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>D1</td><td><strong>PC/NPC toggle</strong> replaces the single <code>▶</code> play button on the character sheet. Two side-by-side buttons, radio-style, the highlighted one showing current status — readable on mobile.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D2</td><td><strong>No minimum PC count.</strong> Demoting the last PC is allowed but throws a confirm: <em>"No active player specified — pure NPC turn?"</em> Falls out into a free "AI plays everyone" mode.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D3</td><td><strong>Sequential sub-turns.</strong> On a PC's sub-turn, generate their 3 suggestion buttons and bind the input to them; they pick; advance to the next PC. NPCs get no sub-turn — the GM controls them at resolution.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D4</td><td><strong>Per-PC POV.</strong> Suggestions generate from the sub-turn PC's own sheet/knowledge (that PC's turn = that PC's context), so Morwen never gets Ammut's options. Buttons are prefixed with the name: <em>"Morwen: Ask Hemlock for the address."</em></td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D5</td><td><strong>Single-block resolution.</strong> All queued actions reach the GM in ONE call as a labeled block (<em>"Ammut: …; Morwen: …"</em>), so the situation never changes out from under a player still waiting in the queue.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D6</td><td><strong>Light active-player pointer</strong>, not the heavy <code>_switchPlayerCharacter</code> swap. It drives display + input + suggestion POV only; reinforce to a full swap later only if needed.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D7</td><td><strong>Hero-slot rotation is the turn indicator.</strong> Active PC occupies the top hero position; everyone else sits in the party bar. No extra turn chrome.</td><td><span class="pill p-lock">Locked</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="flow">Turn flow</h2>
+<ol class="steps">
+  <li>Round starts. Pointer = first PC in party order. Hero slot shows them.</li>
+  <li>Their 3 suggestions generate from their POV; input is bound to them.</li>
+  <li>They submit an action → it's <strong>queued</strong>, not sent. Pointer advances to the next PC; hero slot + suggestions + input follow.</li>
+  <li>Repeat until every active PC has queued an action.</li>
+  <li>The queue is assembled into one labeled block and sent to the GM in a single <code>callGM</code>.</li>
+  <li>GM resolves the whole round, narrates once. Round resets to the first PC.</li>
+</ol>
+<p class="note">An all-NPC round (no active PCs) skips straight to step 5 after the D2 confirm — the GM plays the whole party.</p>
+
+<h2 id="accessor">The <code>activePlayer()</code> migration</h2>
+<p>The core engineering task. Today the code reads <code>worldState.character</code> everywhere for both <em>display</em> ("show the hero's HP") and <em>state writes</em> ("apply <code>[HP:-3]</code>"). Multiplayer needs the display to follow the pointer while writes still land on the true owner. The accessor isolates that split.</p>
+
+<h3>The invariant that keeps it drift-neutral</h3>
+<div class="card">
+  <p>With exactly one PC, <code>activePlayer()</code> <strong>must resolve to <code>worldState.character</code></strong> — byte-identical behavior for every existing save. That's the safety anchor and the first engine test: single-PC campaigns notice nothing.</p>
+</div>
+
+<h3>Process</h3>
+<ol class="steps">
+  <li><strong>Add the pointer + accessor.</strong> A pointer on <code>worldState</code> (name or party index) and <code>activePlayer()</code> returning the pointed-at party member's sheet, defaulting to <code>worldState.character</code> when unset or single-PC.</li>
+  <li><strong>Classify the read sites.</strong> ~130 <code>worldState.character</code> refs in engine/UI code (ui.js ~43, game.js ~32, tag_table.js ~30, others). Split into two buckets: <em>display/POV reads</em> vs <em>state writes</em>.</li>
+  <li><strong>Migrate the display/POV subset only</strong> (~20–30 sites): HUD, party bar, character-sheet render, input association, suggestion-call context. These point at <code>activePlayer()</code>.</li>
+  <li><strong>Leave every state write on the true owner.</strong> Tag application (HP/gold/inventory/conditions), level-up, save/load, migration — untouched this pass. A write following the display pointer would corrupt the wrong sheet.</li>
+  <li><strong>Guard it.</strong> Engine test for the single-PC byte-identity invariant; a grep-audit checklist so no write site is migrated by accident.</li>
+</ol>
+<p class="note">Estimate: an afternoon for the accessor + subset migration, because it's a curated ~25 sites, not all 130.</p>
+
+<h2 id="open">Open questions</h2>
+<p>The "more to consider" list — unresolved, ranked by how much they shape the build. Each has an editable answer block; jot resolutions as they land (saved in your browser).</p>
+
+<div class="q" id="q1">
+  <div class="qhead"><span class="qid">Q1</span>Tag routing at resolution — the big one. <span class="pill p-warn">Blocker</span></div>
+  <div class="qbody">When the GM resolves N actions in one response, an <code>[HP:-3]</code> or <code>[ITEM_LOST:]</code> must land on the <em>right</em> PC. Today all bare tags hit <code>worldState.character</code>. Options: teach the GM to address every player mutation with <code>COMPANION_</code>-style per-name tags, or a new addressing scheme. Deepest change; touches the drift surface.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a1" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q2">
+  <div class="qhead"><span class="qid">Q2</span>Reload mid-round. <span class="pill p-open">Open</span></div>
+  <div class="qbody">Persist the queued actions + whose turn is next, so a refresh between sub-turns doesn't drop the round.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a2" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q3">
+  <div class="qhead"><span class="qid">Q3</span>Turn order. <span class="pill p-open">Open</span></div>
+  <div class="qbody">Fixed by party order, or player-reorderable? First pass likely fixed party order.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a3" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q4">
+  <div class="qhead"><span class="qid">Q4</span>Combat. <span class="pill p-open">Open</span></div>
+  <div class="qbody">Does round-robin collection coexist with combat, or does combat impose its own initiative? Interaction with the combat tracker unexamined.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a4" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q5">
+  <div class="qhead"><span class="qid">Q5</span>Car Mode. <span class="pill p-open">Open</span></div>
+  <div class="qbody">The primary use case. How the hot-seat hand-off feels with voice + large touch targets; who reads the narration aloud.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a5" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q6">
+  <div class="qhead"><span class="qid">Q6</span>Geographic separation — the split party. <span class="pill p-open">Open</span></div>
+  <div class="qbody">The current vision assumes the party stays together — one scene, one shared "situation" the round resolves against. When players separate (Ammut scouts the docks while Morwen works the tavern), there are two scenes, two clocks, and one GM. Open design: does a round still resolve as one block, or each location independently? How does the hero-slot / party-bar model show who is <em>where</em>? Does the GM narrate parallel threads in one response, or alternate?
+  <br><span class="note">Early finding (2026-07-13, user in-game test): played a turn as Ammut, left Morwen behind, switched control to Morwen — she was still where Ammut left her. The engine already tracks per-character position implicitly via the narrative, so a geographically split party may be closer to working than feared. More simulation to come; the real gap is likely GM narration of parallel threads, not state.</span></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a6" contenteditable="true"></div></div>
+</div>
+
+<div class="q" id="q7">
+  <div class="qhead"><span class="qid">Q7</span>Networked co-op / per-device. <span class="pill p-later">Later</span></div>
+  <div class="qbody">The full XL version — separate devices, live sync. Out of the hot-seat first pass.</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a7" contenteditable="true"></div></div>
+</div>
+
+<h2 id="phases">Phased plan</h2>
+<ol class="steps">
+  <li><strong>P1 — PC/NPC toggle (D1/D2).</strong> Replace the play button; add the confirm on demoting the last PC. Small, self-contained, shippable alone.</li>
+  <li><strong>P2 — activePlayer() accessor + display migration (D6/D7).</strong> The pointer, the accessor, the ~25-site display subset, the single-PC invariant test. No turn logic yet — pointer just follows a manual pick.</li>
+  <li><strong>P3 — Sub-turn loop (D3/D4/D5).</strong> Queue actions, rotate the pointer per sub-turn, per-PC suggestions, assemble the labeled block, one GM call. Q2 (reload persistence) lands here.</li>
+  <li><strong>P4 — Tag routing (Q1).</strong> The resolution-side mutation addressing. Design-first, drift-surface — the hardest and most dangerous piece, deliberately last so the plumbing above is proven before touching how state gets written.</li>
+</ol>
+
+<footer>
+  Living doc — update the status pills as decisions land. Companion to TODO&nbsp;#1. ⛨ P4 is drift surface (tag write path) — design and pre-review before building.
+</footer>
+</div>
+<script>
+// Standalone tracking doc (opened directly, not in the SW shell) — editable blocks persist to
+// localStorage by element id, so the vision text and every answer survive reloads on THIS device.
+// Content-only; nothing here talks to the game or its state keys. localStorage is per-device — to
+// make an edit CANONICAL (committed / cross-device) it has to be absorbed into the source file.
+(function(){
+  var KEY="tnd_mp_doc_v1";
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||"{}");}catch(e){return {};}}
+  function persist(o){try{localStorage.setItem(KEY,JSON.stringify(o));return true;}catch(e){return false;}}
+  var store=load();
+  var nodes=document.querySelectorAll(".editable"),i;
+  var dirty=false;
+  // Restore saved edits on load.
+  for(i=0;i<nodes.length;i++){if(store[nodes[i].id]!=null)nodes[i].innerHTML=store[nodes[i].id];}
+  var status=document.getElementById("save-status");
+  function fmtTime(){try{return new Date().toLocaleTimeString();}catch(e){return "";}}
+  if(store.__savedAt)status.textContent="Last saved "+store.__savedAt;
+  // Mark dirty on any edit (autosave is a BACKSTOP; the button is the explicit control the user asked for).
+  var autoT=null;
+  for(i=0;i<nodes.length;i++){(function(el){
+    el.addEventListener("input",function(){
+      dirty=true;status.textContent="Unsaved changes…";
+      if(autoT)clearTimeout(autoT);
+      autoT=setTimeout(saveAll,4000); // slow backstop so nothing is lost if they forget the button
+    });
+  })(nodes[i]);}
+  function saveAll(){
+    for(var j=0;j<nodes.length;j++)store[nodes[j].id]=nodes[j].innerHTML;
+    store.__savedAt=fmtTime();
+    var ok=persist(store);
+    var btn=document.getElementById("save-btn");
+    if(ok){dirty=false;status.textContent="Saved "+store.__savedAt;btn.className="saved";btn.textContent="✓ Saved";
+      setTimeout(function(){btn.className="";btn.textContent="💾 Save changes";},1400);}
+    else{status.textContent="⚠ Save failed (storage full)";}
+  }
+  document.getElementById("save-btn").addEventListener("click",saveAll);
+  // Revert: drop this browser's saved edits so the canonical source shows (used after an edit has
+  // been absorbed into the file). Confirmed, because it discards local unsaved work.
+  document.getElementById("revert-btn").addEventListener("click",function(){
+    if(!confirm("Discard this browser's saved edits and reload the canonical doc version?"))return;
+    try{localStorage.removeItem(KEY);}catch(e){}
+    dirty=false;location.reload();
+  });
+  // Warn if leaving with unsaved edits.
+  window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
+})();
+</script>
+</body>
+</html>
