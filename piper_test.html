@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Piper TTS — kick-the-tires (v0.1)</title>
+<!--
+  piper_test.html — SATELLITE SPIKE, NOT in the SW app shell. Open directly (like bible_study.html /
+  blueprint-designer.html). Purpose: audition Piper's REAL voice quality on real Ammut narration,
+  with the sentence-split + punctuation-normalization wrapper that the flat demo pages lack.
+
+  Answers TODO #41's only open question: does Piper's voice hold up for immersive narration?
+
+  ── HARVEST MAP (what moves into the game vs what's scaffold) ─────────────────────────────
+    • normalizeForTTS() + splitSentences()  →  ✅ lift VERBATIM into a shared text-prep block in
+                                                 tts.js. Provider-agnostic — helps Cartesia + native too.
+    • loadPiper()/ensureVoice()/synth()      →  ✅ becomes the Piper adapter core in tts.js. Same calls;
+                                                 only the output routing changes.
+    • the Web-Audio scheduling in speakAll()  →  ◐ the GAME ALREADY HAS THIS (tts.js scheduleChunk()).
+                                                 Written here to mirror its shape so harvest is a drop-in.
+    • everything below "TEST UI"              →  ✗ satellite-only scaffold, never ships.
+
+  ⚠ RUN NOTE: Piper loads a WASM runtime + spawns workers. That is happiest over http://, not file://.
+     If opened from file:// and it errors on load, serve the folder and open via localhost (see chat).
+-->
+<style>
+  :root{
+    --bg:#141210; --bg2:#1c1917; --bg3:#242019; --ink:#e8e0d2; --dim:#9a8f7c;
+    --acc:#b8935a; --good:#7aa86a; --bad:#e06060; --brd:#3a332a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:24px;max-width:840px;margin:0 auto;}
+  h1{font-size:20px;color:var(--acc);margin:0 0 2px;}
+  .sub{color:var(--dim);font-size:12px;margin:0 0 20px;}
+  label{display:block;font-size:12px;color:var(--dim);margin:14px 0 5px;text-transform:uppercase;letter-spacing:.06em;}
+  textarea{width:100%;min-height:150px;background:var(--bg2);color:var(--ink);border:1px solid var(--brd);
+    border-radius:8px;padding:12px;font:14px/1.6 Georgia,serif;resize:vertical;}
+  select,input[type=range]{background:var(--bg2);color:var(--ink);border:1px solid var(--brd);
+    border-radius:6px;padding:7px 9px;font-size:13px;}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;}
+  .row > div{flex:1;min-width:150px;}
+  .chk{display:flex;align-items:center;gap:8px;margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);cursor:pointer;}
+  .chk input{width:16px;height:16px;accent-color:var(--acc);}
+  .btns{display:flex;gap:10px;margin:20px 0 6px;}
+  button{font:600 14px/1 inherit;padding:11px 20px;border-radius:7px;border:none;cursor:pointer;}
+  #go{background:var(--acc);color:#161310;}
+  #stop{background:none;border:1px solid var(--brd);color:var(--dim);}
+  button:disabled{opacity:.45;cursor:default;}
+  #prog{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:10px 0;display:none;}
+  #prog > i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s;}
+  #log{background:#0d0b09;border:1px solid var(--brd);border-radius:8px;padding:12px;margin-top:14px;
+    font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;
+    max-height:280px;overflow:auto;color:var(--dim);}
+  #log .ok{color:var(--good);} #log .err{color:var(--bad);} #log .hl{color:var(--acc);}
+  .metrics{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;font-size:13px;}
+  .metrics b{color:var(--acc);font-size:18px;display:block;}
+  .metrics span{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  .hint{font-size:11px;color:var(--dim);margin-top:4px;}
+</style>
+<!-- Import map: redirect the bare "onnxruntime-web" specifier (which vits-web imports
+     dynamically) to our VENDORED, SAME-ORIGIN copy. This is the whole trick — it makes
+     ORT same-origin so no cross-origin worker/COI is needed. Native browser feature, no bundler. -->
+<script type="importmap">
+{
+  "imports": {
+    "onnxruntime-web": "/piper_vendor/ort/ort.wasm.min.js"
+  }
+}
+</script>
+</head>
+<body>
+  <h1>Piper TTS — kick-the-tires</h1>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.1</p>
+
+  <label for="txt">Narration to speak</label>
+  <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
+
+Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the cathedral's new bell tower still glows at its base, and you can hear the sound of the town militia dragging bodies. Sheriff Hemlock stands near the fountain, giving orders nobody seems to hear, his jaw tight as a fist. Whatever brought you three to Sandpoint, it's about to get worse.</textarea>
+
+  <div class="row">
+    <div>
+      <label for="voice">Voice model</label>
+      <select id="voice" style="width:100%">
+        <option value="en_US-lessac-medium">Lessac — US, warm narrator (medium)</option>
+        <option value="en_US-ryan-high">Ryan — US male (HIGH quality)</option>
+        <option value="en_GB-alan-medium">Alan — UK male (medium)</option>
+        <option value="en_GB-northern_english_male-medium">Northern English male — UK (medium)</option>
+        <option value="en_US-hfc_male-medium">HFC male — US (medium)</option>
+        <option value="en_US-amy-medium">Amy — US female (medium)</option>
+        <option value="en_US-hfc_female-medium">HFC female — US (medium)</option>
+        <option value="en_US-libritts_r-medium">LibriTTS-R — US, expressive (medium)</option>
+      </select>
+      <div class="hint">First use of a voice downloads ~20–75MB once, then caches offline.</div>
+    </div>
+    <div style="flex:0 0 auto;min-width:200px">
+      <label for="gap">Sentence gap: <span id="gapv">220</span> ms</label>
+      <input id="gap" type="range" min="0" max="600" step="20" value="220" style="width:200px">
+      <div class="hint">Paragraph breaks get double this.</div>
+    </div>
+  </div>
+
+  <label class="chk" style="margin-top:16px">
+    <input type="checkbox" id="split" checked>
+    <span>Use sentence-split wrapper <span style="color:var(--dim)">(uncheck to hear raw one-shot Piper — the flat “ignores punctuation” demo behavior, for A/B)</span></span>
+  </label>
+
+  <div class="btns">
+    <button id="go">▶ Speak</button>
+    <button id="stop" disabled>■ Stop</button>
+  </div>
+
+  <div id="prog"><i></i></div>
+
+  <div class="metrics" id="metrics" style="display:none">
+    <div><b id="m-chars">–</b><span>characters</span></div>
+    <div><b id="m-audio">–</b><span>audio seconds</span></div>
+    <div><b id="m-synth">–</b><span>synth seconds</span></div>
+    <div><b id="m-rtf">–</b><span>× real-time (RTF)</span></div>
+  </div>
+
+  <div id="log">Ready. Pick a voice and hit Speak. (First run downloads the model — watch this log.)</div>
+
+<script type="module">
+/* ============================================================================
+   VENDORED, SAME-ORIGIN ORT  ·  the fix for the whole Piper-in-browser mess.
+   Root cause chain we hit: vits-web does `await import("onnxruntime-web")` and sets
+   ort.env.wasm.wasmPaths = <cdnjs/1.18> (broken) + numThreads = hardwareConcurrency
+   (→ threaded build → needs SharedArrayBuffer/COI → cross-origin worker from a CDN →
+   blocked). Fix, no build step: vendor ORT 1.18 + vits-web as LOCAL files (served
+   same-origin under /piper_vendor/), redirect the bare "onnxruntime-web" specifier to
+   the local copy via the <head> import map, then LOCK the two env knobs so the library
+   can't clobber them: wasmPaths → our local dir, numThreads → 1 (uses the NON-threaded
+   ort-wasm-simd.wasm → no worker, no SharedArrayBuffer, no cross-origin-isolation).
+   → HARVEST NOTE: this IS the shape of the real in-game integration — self-hosted ORT,
+     single-thread, pinned local wasm path. No CDN at runtime, no build tooling.
+   ============================================================================ */
+try {
+  var ort = await import("onnxruntime-web");   // import map → /piper_vendor/ort/ort.wasm.min.js
+  Object.defineProperty(ort.env.wasm, "wasmPaths", {
+    get: function(){ return "/piper_vendor/ort/"; },
+    set: function(_v){ /* ignore vits-web's cdnjs/1.18 clobber */ },
+    configurable: true
+  });
+  Object.defineProperty(ort.env.wasm, "numThreads", {
+    get: function(){ return 1; },
+    set: function(_v){ /* ignore navigator.hardwareConcurrency → force single-thread, no worker */ },
+    configurable: true
+  });
+} catch(e){ window.__ortErr = (e && e.message) || String(e); }
+
+/* ============================================================================
+   HARVEST → tts.js  ·  provider-agnostic text-prep  (lift these two verbatim)
+   ============================================================================ */
+
+// Normalize punctuation into cues Piper/Cartesia/native all honor.
+// (Extends the game's existing _dashToPause at tts.js:172 — there dashes→"..." for the
+//  native path; here em/en-dashes become a comma "breath" since we ALSO sentence-split.)
+function normalizeForTTS(text){
+  return (text || "")
+    .replace(/\s*--\s*/g, ", ")          // spaced ASCII double-hyphen → breath
+    .replace(/\s*[—–]\s*/g, ", ")        // em / en dash → breath
+    .replace(/\s*\.\.\.+\s*/g, "… ")// "..." → single ellipsis char + space
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
+
+// Max characters per synth call. Single-threaded Piper scales badly on long
+// utterances (a 500-char run-on sentence can take 30s+), so no unit exceeds this —
+// long sentences get sub-split on clauses, then hard-wrapped on words if needed.
+var MAX_UNIT = 220;
+
+// Pack a too-long sentence into <=MAX_UNIT pieces: greedily on clause boundaries
+// (, ; :), falling back to word-wrap for a single clause that's still too long.
+function packLongUnit(s){
+  if (s.length <= MAX_UNIT) return [s];
+  var clauses = s.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [s];
+  var out = [], buf = "";
+  function flush(){ if (buf.trim()) { out.push(buf.trim()); buf = ""; } }
+  for (var i = 0; i < clauses.length; i++){
+    var c = clauses[i].trim();
+    if (!c) continue;
+    if (c.length > MAX_UNIT){
+      flush();
+      var words = c.split(/\s+/), wb = "";
+      for (var w = 0; w < words.length; w++){
+        if (wb && (wb + " " + words[w]).length > MAX_UNIT){ out.push(wb); wb = words[w]; }
+        else wb = wb ? wb + " " + words[w] : words[w];
+      }
+      if (wb) buf = wb;   // carry remainder to pack with the next clause
+    } else if (buf && (buf + " " + c).length > MAX_UNIT){
+      flush(); buf = c;
+    } else {
+      buf = buf ? buf + " " + c : c;
+    }
+  }
+  flush();
+  return out;
+}
+
+// Split prose into speakable units. Paragraphs (blank-line separated) first, then
+// sentences within, then long sentences capped to MAX_UNIT. paraEnd (wider gap) only
+// on the final piece of the final sentence of a paragraph. Known limit (fine for
+// narration): naive on abbreviations like "Mr." / "St." — harden later if it mis-splits.
+function splitSentences(text){
+  var paras = (text || "").split(/\n\s*\n/);
+  var out = [];
+  for (var p = 0; p < paras.length; p++){
+    var norm = normalizeForTTS(paras[p]);
+    if (!norm) continue;
+    var parts = norm.match(/[^.!?…]+[.!?…]+(?=\s|$)|[^.!?…]+$/g) || [norm];
+    for (var i = 0; i < parts.length; i++){
+      var sent = parts[i].trim();
+      if (!sent) continue;
+      var lastSentence = (i === parts.length - 1);
+      var subs = packLongUnit(sent);
+      for (var j = 0; j < subs.length; j++){
+        out.push({ text: subs[j], paraEnd: (lastSentence && j === subs.length - 1) });
+      }
+    }
+  }
+  return out;
+}
+
+/* ============================================================================
+   HARVEST → tts.js  ·  Piper adapter core  (load / download / synth→WAV Blob)
+   In the game this becomes a Piper path; its output feeds the existing
+   scheduleChunk()/AudioContext instead of the local scheduler below.
+   ============================================================================ */
+
+var _piper = null;
+async function loadPiper(){
+  if (_piper) return _piper;
+  if (window.__ortErr) log("ORT preload warning: " + window.__ortErr, "err");
+  log("loading vendored vits-web (local, same-origin ORT)…");
+  _piper = await import("/piper_vendor/vits/vits-web.js");
+  log("library loaded.", "ok");
+  return _piper;
+}
+
+// Ensure the voice model is cached; download with progress on first use.
+async function ensureVoice(voiceId){
+  var t = await loadPiper();
+  var stored = [];
+  try { stored = await t.stored(); } catch(e){ stored = []; }
+  if (stored.indexOf(voiceId) !== -1){ log("voice already cached: " + voiceId, "ok"); return; }
+  log("downloading voice model: " + voiceId + " …", "hl");
+  showProg(true);
+  await t.download(voiceId, function(p){
+    if (p && p.total) setProg(p.loaded / p.total);
+  });
+  showProg(false);
+  log("voice downloaded + cached.", "ok");
+}
+
+// Synthesize one chunk of text → WAV Blob. Trailing space guards the documented
+// Piper "static tail when text ends in punctuation" bug (HA core #156603).
+async function synth(text, voiceId){
+  var t = await loadPiper();
+  var input = text + " ";
+  if (typeof t.predict === "function") return await t.predict({ text: input, voiceId: voiceId });
+  if (t.TtsSession){ var s = new t.TtsSession({ voiceId: voiceId }); return await s.predict(input); }
+  throw new Error("Piper API not recognized (no predict / TtsSession export).");
+}
+
+/* ============================================================================
+   SCHEDULER  ·  mirrors tts.js scheduleChunk() shape (◐ game already has this)
+   ============================================================================ */
+
+var _ctx = null, _sources = [], _cancelled = false;
+
+async function speakAll(fullText, voiceId, baseGapMs, useSplit){
+  _cancelled = false;
+  if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ctx.state === "suspended") await _ctx.resume();
+
+  await ensureVoice(voiceId);
+  if (_cancelled) return;
+
+  var units = useSplit
+    ? splitSentences(fullText)
+    : [{ text: normalizeForTTS(fullText), paraEnd: true }];  // raw one-shot = the flat demo behavior
+
+  log((useSplit ? "SPLIT mode: " : "RAW one-shot: ") + units.length + " unit(s).", "hl");
+
+  var cursor = _ctx.currentTime + 0.15;
+  var totalAudio = 0, totalSynth = 0, totalChars = 0;
+
+  for (var i = 0; i < units.length && !_cancelled; i++){
+    var u = units[i];
+    var t0 = performance.now();
+    var blob;
+    try { blob = await synth(u.text, voiceId); }
+    catch(e){ log("synth failed on unit " + (i+1) + ": " + e.message, "err"); continue; }
+    var synthMs = performance.now() - t0;
+    if (_cancelled) break;
+
+    var buf = await _ctx.decodeAudioData(await blob.arrayBuffer());
+    var src = _ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_ctx.destination);
+    var startAt = Math.max(cursor, _ctx.currentTime + 0.03);   // never schedule in the past
+    src.start(startAt);
+    _sources.push(src);
+
+    var gap = (u.paraEnd ? baseGapMs * 2 : baseGapMs) / 1000;
+    cursor = startAt + buf.duration + gap;
+
+    totalAudio += buf.duration; totalSynth += synthMs / 1000; totalChars += u.text.length;
+    var rtf = buf.duration / (synthMs / 1000);
+    log("  #" + (i+1) + "  " + buf.duration.toFixed(1) + "s audio · " +
+        (synthMs|0) + "ms synth · " + rtf.toFixed(1) + "× · “" +
+        u.text.slice(0, 46) + (u.text.length > 46 ? "…" : "") + "”");
+    showMetrics(totalChars, totalAudio, totalSynth);
+  }
+
+  if (!_cancelled){
+    var overall = totalAudio / (totalSynth || 1);
+    log("done. " + totalChars + " chars · " + totalAudio.toFixed(1) + "s audio · " +
+        totalSynth.toFixed(1) + "s synth · " + overall.toFixed(1) + "× real-time overall.",
+        overall >= 1 ? "ok" : "err");
+  }
+}
+
+function stopAll(){
+  _cancelled = true;
+  for (var i = 0; i < _sources.length; i++){ try { _sources[i].onended = null; _sources[i].stop(); } catch(e){} }
+  _sources = [];
+  showProg(false);
+}
+
+/* ============================================================================
+   TEST UI  ·  ✗ scaffold — none of this ships to the game
+   ============================================================================ */
+
+var $ = function(id){ return document.getElementById(id); };
+function log(msg, cls){
+  var el = $("log");
+  var line = document.createElement("span");
+  if (cls) line.className = cls;
+  line.textContent = msg + "\n";
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function showProg(on){ $("prog").style.display = on ? "block" : "none"; if (!on) setProg(0); }
+function setProg(f){ $("prog").firstElementChild.style.width = Math.round((f||0)*100) + "%"; }
+function showMetrics(chars, audio, synth){
+  $("metrics").style.display = "flex";
+  $("m-chars").textContent = chars;
+  $("m-audio").textContent = audio.toFixed(1);
+  $("m-synth").textContent = synth.toFixed(1);
+  $("m-rtf").textContent   = (audio / (synth || 1)).toFixed(1) + "×";
+}
+
+$("gap").addEventListener("input", function(){ $("gapv").textContent = this.value; });
+
+$("go").addEventListener("click", async function(){
+  $("go").disabled = true; $("stop").disabled = false;
+  $("metrics").style.display = "none";
+  try {
+    await speakAll($("txt").value, $("voice").value, parseInt($("gap").value, 10), $("split").checked);
+  } catch(e){
+    log("FATAL: " + (e && e.message ? e.message : e), "err");
+    log("If this is a load/worker error, serve the folder over http:// and open via localhost instead of file://.", "err");
+  } finally {
+    $("go").disabled = false; $("stop").disabled = true;
+  }
+});
+
+$("stop").addEventListener("click", function(){
+  stopAll();
+  $("go").disabled = false; $("stop").disabled = true;
+  log("stopped.", "hl");
+});
+</script>
+</body>
+</html>
