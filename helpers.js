@@ -27,6 +27,12 @@ function img2imgStrength(cfg){
 // Dedup-safe: the "Edit Prompt → Regenerate" path passes a prompt that already carries the suffix.
 var IMG_STYLE_SUFFIX="Dark fantasy concept art, painterly realism, cinematic composition, dramatic volumetric lighting, warm firelight and cool shadow contrast, ultra-detailed leather and cloth textures, realistic skin pores and fabric weave, rich atmospheric depth, high-end RPG key art, fantasy illustration, moody color grading, sharp focus, intricate craftsmanship, epic yet grounded realism, 8k detail.";
 function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;return p.replace(/\s+$/,"")+" "+IMG_STYLE_SUFFIX;}
+// Enhance pass (✨): re-grade a FINISHED scene render through img2img to buy the dramatic, painterly,
+// high-contrast look an aggressive editor (e.g. GPT-image) gets on a second pass over the same image.
+// Reuses the scene prompt + this directive; run on Flux img2img at ENHANCE_STRENGTH — moderate, so the
+// composition and likenesses survive while lighting, contrast, and texture get pushed hard.
+var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
+var ENHANCE_STRENGTH=0.45;
 // Living party companions — partyMember NPCs that carry a charSheet and are not dead. The party-aware
 // scene render iterates this to describe (all models) and seed portraits (Nano Banana 2 only). Returns
 // the worldState.npcs entries; charSheet holds the v10 sheet, npcPortrait() the image.

@@ -1006,13 +1006,13 @@ async function doRender(){
       +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
       +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
       +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
-      +"Style: dark fantasy, dramatic lighting, painterly cinematic. "
+      +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
       +(hasParty?"3-4 sentences":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
     var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe the protagonist's exact physical appearance with full specificity. No narration, no tags.");
     th.remove();
     var div=addMsg("render-out","");
     div.style.whiteSpace="normal";div.style.fontFamily="inherit";
-    var imageUrl="",promptShown=false;
+    var imageUrl="",promptShown=false,sceneImg=null;
 
     // Hidden prompt panel
     var promptDiv=document.createElement("div");
@@ -1037,6 +1037,27 @@ async function doRender(){
         var fname=buildFilename("render");exportToFolder("render",blob,fname);
       }).catch(function(){window.open(imageUrl,"_blank");});
     });
+    // ✨ Enhance: second img2img pass over the FINISHED render — a hard cinematic relight/regrade
+    // (Flux img2img at ENHANCE_STRENGTH), reusing the scene prompt so content stays coherent. This is
+    // what an aggressive editor does to buy drama Nano's flat compositor pass lacks. Replaces in place;
+    // Save/Portrait then act on the enhanced image. Re-runnable (each pass re-grades the current image).
+    var enhanceBtn=mkBtn("✨ Enhance","Cinematic relight & regrade of this image");
+    enhanceBtn.addEventListener("click",function(){
+      if(!imageUrl){showToast("Image not ready yet.");return;}
+      if(!falKey){showToast("Set a fal.ai key first.");return;}
+      enhanceBtn.textContent="Enhancing…";enhanceBtn.disabled=true;
+      var ep=withImgStyle(resp)+" "+ENHANCE_DIRECTIVE;
+      fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
+        headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
+        body:JSON.stringify({prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})})
+        .then(function(r){if(!r.ok)throw new Error("fal.ai HTTP "+r.status);return r.json();})
+        .then(function(d){
+          if(!(d.images&&d.images[0]&&d.images[0].url))throw new Error("No image returned.");
+          imageUrl=d.images[0].url;if(sceneImg)sceneImg.src=imageUrl;
+          enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;
+        })
+        .catch(function(e){enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;showToast("Enhance failed: "+e.message);});
+    });
     var portraitBtn=mkBtn("⧉ Portrait","Use this scene as character portrait");
     portraitBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
@@ -1056,7 +1077,7 @@ async function doRender(){
     });
     var closeBtn=mkBtn("× Close","Remove this image");
     closeBtn.addEventListener("click",function(){div.remove();});
-    toolbar.appendChild(saveBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
+    toolbar.appendChild(saveBtn);toolbar.appendChild(enhanceBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
     div.appendChild(toolbar);
 
     if(falKey){
@@ -1090,7 +1111,7 @@ async function doRender(){
           imgStatus.remove();
           var img=document.createElement("img");img.src=imageUrl;
           img.style.cssText="width:100%;border-radius:4px;display:block;";
-          img.alt="Scene illustration";div.appendChild(img);
+          img.alt="Scene illustration";div.appendChild(img);sceneImg=img;
         }else{imgStatus.textContent="No image returned.";}
       }catch(fe){imgStatus.textContent="Image error: "+fe.message;}
     }else{
