@@ -136,6 +136,12 @@ function migrateWorldState(){
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
   if(!worldState.coreMemories){worldState.coreMemories=[];_mig=true;}/* #40 Core Memory — party-shared defining moments */
+  /* #23 (v1.296) per-arc pacing clock: backfill startTurn for arcs already active in an existing save.
+     Stamp at the CURRENT turn (not a guessed origin) — the true start of a long-running arc is unknowable
+     and any earlier guess would false-fire the nudge on a legitimately-young later arc. So existing saves
+     start their arc clock at load: the nudge kicks in ARC_TURN_BUDGET turns on. The per-act nudge (already
+     firing on any over-budget act) covers the interim. New/transitioned arcs get an accurate stamp. */
+  if(worldState.skeleton&&worldState.skeleton.acts){var _sa,_sr;for(_sa=0;_sa<worldState.skeleton.acts.length;_sa++){var _arcs=worldState.skeleton.acts[_sa].arcs||[];for(_sr=0;_sr<_arcs.length;_sr++){if(_arcs[_sr].status==="active"&&_arcs[_sr].startTurn===undefined){_arcs[_sr].startTurn=worldState.turn;_mig=true;}}}}
   if(!c.aliases){c.aliases=[];_mig=true;}/* #47 epithets — schema field so titles survive PC↔NPC swaps */
   // UA26 multi-foe combat (v1.264): wrap a flat legacy in-flight combat object into the foes[]
   // shape. Idempotent — .foes presence short-circuits, so a re-run can never double-wrap.

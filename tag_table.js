@@ -450,7 +450,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         if(_act.parallel&&_act.arcs[_sj].title.toLowerCase()!==_ad.toLowerCase())continue;
         _act.arcs[_sj].status="completed";_matched=true;
         R.muts.push("Arc complete: "+_act.arcs[_sj].title);
-        if(!_act.parallel&&_sj+1<_act.arcs.length){_act.arcs[_sj+1].status="active";R.muts.push("New arc: "+_act.arcs[_sj+1].title);}
+        if(!_act.parallel&&_sj+1<_act.arcs.length){_act.arcs[_sj+1].status="active";_act.arcs[_sj+1].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */R.muts.push("New arc: "+_act.arcs[_sj+1].title);}
         break;
       }
       if(_matched)break;
@@ -467,7 +467,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         _sk2.acts[_si2+1].status="active";
         worldState.actStartTurn=worldState.turn;
         var _fa=_sk2.acts[_si2+1].arcs,_isP=!!_sk2.acts[_si2+1].parallel;
-        if(_fa&&_fa.length){for(var _fj=0;_fj<_fa.length;_fj++){if(_isP||_fj===0)_fa[_fj].status="active";}}
+        if(_fa&&_fa.length){for(var _fj=0;_fj<_fa.length;_fj++){if(_isP||_fj===0){_fa[_fj].status="active";_fa[_fj].startTurn=worldState.turn;/* #23 per-arc pacing clock starts now */}}}
         R.muts.push("New act: "+_sk2.acts[_si2+1].title);
       }else{R.muts.push("Campaign complete!");}
       break;

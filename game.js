@@ -767,7 +767,7 @@ function buildBlueprintFromGame(){
   if(sk&&sk.acts&&sk.acts.length){
     var i;for(i=0;i<sk.acts.length;i++){
       var a=Object.assign({},sk.acts[i]);a.status="pending";
-      a.arcs=(a.arcs||[]).map(function(arc){return Object.assign({},arc,{status:"pending"});});
+      a.arcs=(a.arcs||[]).map(function(arc){var _ea=Object.assign({},arc,{status:"pending"});delete _ea.startTurn;/* #23 runtime pacing clock — never author it into an exported blueprint */return _ea;});
       acts.push(a);
     }
   }
@@ -832,7 +832,7 @@ function applyBlueprint(bp){
       skel.acts[i].status=i===0?"active":"pending";
       var isP=!!skel.acts[i].parallel;
       if(!skel.acts[i].arcs)skel.acts[i].arcs=[]; // defensive — a raw blueprint bypassing normalizeBlueprint (audit E19)
-      for(j=0;j<skel.acts[i].arcs.length;j++){skel.acts[i].arcs[j].status=(i===0&&(isP||j===0))?"active":"pending";}
+      for(j=0;j<skel.acts[i].arcs.length;j++){var _ba=i===0&&(isP||j===0);skel.acts[i].arcs[j].status=_ba?"active":"pending";if(_ba)skel.acts[i].arcs[j].startTurn=0;/* #23 per-arc pacing clock — game begins at turn 0 */}
     }
     worldState.skeleton=skel;
   }

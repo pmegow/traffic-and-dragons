@@ -56,7 +56,7 @@ function stampSkeletonStatus(skel){
   for(i=0;i<skel.acts.length;i++){
     skel.acts[i].status=i===0?"active":"pending";
     var isParallel=!!skel.acts[i].parallel;
-    for(j=0;j<skel.acts[i].arcs.length;j++){skel.acts[i].arcs[j].status=(i===0&&(isParallel||j===0))?"active":"pending";}
+    for(j=0;j<skel.acts[i].arcs.length;j++){var _a=i===0&&(isParallel||j===0);skel.acts[i].arcs[j].status=_a?"active":"pending";if(_a)skel.acts[i].arcs[j].startTurn=0;/* #23 per-arc pacing clock — game begins at turn 0 */}
   }
   return skel;
 }

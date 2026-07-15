@@ -910,6 +910,89 @@ function runEngineTests(R){
     applyMuts("[ACT_COMPLETE:A1]");
     return worldState.skeleton.acts[1].status==="active"&&worldState.actStartTurn===137?true:"actStartTurn not reset on act advance (got "+worldState.actStartTurn+")";
   });
+  section("per-arc pacing budget (#23, v1.296) — a single arc that metastasizes");
+  t("per-arc nudge fires when the sole active arc outlives ARC_TURN_BUDGET, and SUPERSEDES the act-turn line",function(){
+    makeWorld();worldState.actStartTurn=0;worldState.turn=ARC_TURN_BUDGET+300;// act is WAY over too
+    worldState.skeleton={premise:"p",acts:[{title:"The Skinsaw Murders",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"a1",objective:"o",status:"completed"},
+      {title:"The Skinsaw Man",objective:"o",status:"active",startTurn:worldState.turn-(ARC_TURN_BUDGET+10)}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("the current arc (\"The Skinsaw Man\") has run "+(ARC_TURN_BUDGET+10)+" turns")<0)return "per-arc nudge missing/mis-measured";
+    if(b.indexOf("[ARC_COMPLETE:The Skinsaw Man]")<0)return "arc nudge did not name the close emission";
+    if(!/do NOT skip an active crisis/i.test(b))return "anti-over-rail guard missing from arc nudge";
+    return b.indexOf("per act)")<0?true:"generic act-turn line was NOT superseded by the arc nudge";
+  });
+  t("per-arc nudge is ABSENT while the arc is younger than ARC_TURN_BUDGET (act line still governs)",function(){
+    makeWorld();worldState.actStartTurn=0;worldState.turn=ARC_TURN_BUDGET+300;
+    worldState.skeleton={premise:"p",acts:[{title:"Long Act",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"Fresh Arc",objective:"o",status:"active",startTurn:worldState.turn-5}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("Fresh Arc")>=0&&b.indexOf("It is dragging")>=0)return "arc nudge fired on a 5-turn-old arc";
+    return b.indexOf("per act)")>=0?true:"act-turn line should still fire when the arc nudge does not";
+  });
+  t("per-arc nudge is ABSENT for a PARALLEL act (>1 active arc — overstay is unattributable)",function(){
+    makeWorld();worldState.actStartTurn=0;worldState.turn=ARC_TURN_BUDGET+300;
+    worldState.skeleton={premise:"p",acts:[{title:"Sandbox",goal:"g",turningPoint:"tp",status:"active",parallel:true,arcs:[
+      {title:"Lead A",objective:"o",status:"active",startTurn:0},
+      {title:"Lead B",objective:"o",status:"active",startTurn:0}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("It is dragging")>=0)return "arc nudge fired on a parallel act";
+    return b.indexOf("per act)")>=0?true:"act-turn line should govern a stalled parallel act";
+  });
+  t("per-arc nudge fails safe (no fire) when the active arc has no startTurn (pre-v1.296 arc)",function(){
+    makeWorld();worldState.actStartTurn=0;worldState.turn=ARC_TURN_BUDGET+300;
+    worldState.skeleton={premise:"p",acts:[{title:"Old Save Act",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"Unstamped Arc",objective:"o",status:"active"}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("It is dragging")>=0)return "arc nudge fired without a startTurn to measure from";
+    return b.indexOf("per act)")>=0?true:"act-turn line should still fire for the unstamped arc";
+  });
+  t("[ARC_COMPLETE:] stamps the newly-activated next arc's startTurn (its pacing clock starts now)",function(){
+    makeWorld();worldState.turn=212;
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"First",objective:"o",status:"active",startTurn:0},{title:"Second",objective:"o",status:"pending"}
+    ]}]};
+    applyMuts("[ARC_COMPLETE:First]");
+    var arcs=worldState.skeleton.acts[0].arcs;
+    return arcs[1].status==="active"&&arcs[1].startTurn===212?true:"next arc not stamped at the current turn (got "+arcs[1].startTurn+")";
+  });
+  t("[ACT_COMPLETE:] stamps the next act's first arc startTurn",function(){
+    makeWorld();worldState.turn=400;
+    worldState.skeleton={premise:"p",acts:[
+      {title:"A1",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"completed"}]},
+      {title:"A2",goal:"g2",turningPoint:"tp2",status:"pending",arcs:[{title:"b",objective:"o2",status:"pending"},{title:"c",objective:"o3",status:"pending"}]}
+    ]};
+    applyMuts("[ACT_COMPLETE:A1]");
+    var a2=worldState.skeleton.acts[1].arcs;
+    return a2[0].status==="active"&&a2[0].startTurn===400?true:"next act's first arc not stamped (got "+a2[0].startTurn+")";
+  });
+  t("migrateWorldState backfills startTurn on an already-active arc (existing save), at the current turn",function(){
+    memory=blankMemory();
+    worldState={character:{name:"Old",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"},turn:727,
+      skeleton:{premise:"p",acts:[{title:"Act 1",goal:"g",turningPoint:"tp",status:"active",arcs:[
+        {title:"done",objective:"o",status:"completed"},{title:"live",objective:"o",status:"active"}
+      ]}]}};
+    migrateWorldState();
+    var arcs=worldState.skeleton.acts[0].arcs;
+    if(arcs[1].startTurn!==727)return "active arc not backfilled at current turn (got "+arcs[1].startTurn+")";
+    return arcs[0].startTurn===undefined?true:"completed arc should NOT be stamped";
+  });
+  t("stampSkeletonStatus stamps startTurn=0 on the initially-active arc(s); export strips it",function(){
+    makeWorld();worldState.tone={name:"Sword and Sorcery",voice:"x"};
+    var sk=stampSkeletonStatus({premise:"p",acts:[
+      {title:"A1",arcs:[{title:"a",objective:"o"},{title:"b",objective:"o2"}]},
+      {title:"A2",arcs:[{title:"c",objective:"o3"}]}
+    ]});
+    if(sk.acts[0].arcs[0].startTurn!==0)return "active arc not stamped at 0";
+    if(sk.acts[0].arcs[1].startTurn!==undefined)return "pending arc wrongly stamped";
+    worldState.skeleton=sk;
+    var bp=buildBlueprintFromGame();
+    return bp.acts[0].arcs[0].startTurn===undefined?true:"startTurn leaked into an exported blueprint";
+  });
   t("blueprint review/CBB section is INVISIBLE to the engine but persists in the file (#39)",function(){
     makeWorld();
     var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"R",premise:"p",tone:"swords",

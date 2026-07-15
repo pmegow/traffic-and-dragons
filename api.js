@@ -445,13 +445,26 @@ function buildSkeletonBlock(){
     // strong close-the-act nudge, mirroring the quest ALL-OBJECTIVES-COMPLETE teeth (#20).
     var _allArcsDone=activeAct.arcs.length>0;for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status!=="completed"){_allArcsDone=false;break;}}
     if(_allArcsDone)pacingNote="⚑ ALL ARCS COMPLETE for the current act (\""+activeAct.title+"\") — its story is finished. Emit [ACT_COMPLETE:"+activeAct.title+"] at the next natural beat to advance the campaign"+(activeAct.reward?", granting the ACT REWARD in that same response":"")+".\n"+pacingNote;
+    var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
+    // #23 (v1.296) per-arc pacing budget: the act nudge below caught act-scale stalls, but the t727 save
+    // showed a single arc metastasizing (~220 turns in one "Skinsaw Man" arc that kept spawning fresh
+    // sub-objectives instead of closing) while the act nudge just repeated "the act is long". When exactly
+    // ONE arc is active and it has outlived ARC_TURN_BUDGET (measured from arc.startTurn), fire a TARGETED
+    // close-THIS-arc nudge and let it SUPERSEDE the generic act-turn line (it already asks to advance toward
+    // the act's turning point). Skipped when >1 arc is active (parallel — can't attribute the overstay) and
+    // when the arc lacks startTurn (pre-v1.296 arc that hasn't been re-stamped — fail safe to no nudge).
+    var _arcNudged=false;
+    if(!_allArcsDone&&activeArcs.length===1&&activeArcs[0].startTurn!=null){
+      var _arcTurns=worldState.turn-activeArcs[0].startTurn;
+      if(_arcTurns>ARC_TURN_BUDGET){pacingNote="⚑ PACING — the current arc (\""+activeArcs[0].title+"\") has run "+_arcTurns+" turns (soft target ~"+ARC_TURN_BUDGET+"). It is dragging: bring THIS arc to a decisive resolution and emit [ARC_COMPLETE:"+activeArcs[0].title+"], then move toward the act's turning point. Stop opening new threads or sub-objectives inside it. (Advance toward the ending — do NOT skip an active crisis or cut a scene mid-stakes; steer, don't teleport.)\n"+pacingNote;_arcNudged=true;}
+    }
     // #23/#43 act pacing budget: a soft nudge once the ACTIVE act has run past ACT_TURN_BUDGET turns
     // (the t308 save sat 308 turns in Act 1; the scene-level "4+ turns" rule never catches an act-scale
-    // stall). Skipped when all arcs are done — the close nudge above already owns that. The parenthetical is
-    // the anti-over-rail guard: steer toward the ending, never teleport past an active crisis or cut a scene.
+    // stall). Skipped when all arcs are done — the close nudge above already owns that — or when the more
+    // actionable per-arc nudge already fired. The parenthetical is the anti-over-rail guard: steer toward
+    // the ending, never teleport past an active crisis or cut a scene.
     var _actTurns=worldState.turn-(worldState.actStartTurn||0);
-    if(!_allArcsDone&&_actTurns>ACT_TURN_BUDGET)pacingNote="⚑ PACING — the current act (\""+activeAct.title+"\") has run "+_actTurns+" turns (soft target ~"+ACT_TURN_BUDGET+" per act). Bring the ACTIVE arc to a decisive resolution and move toward the act's turning point; stop opening unrelated detours. (Advance toward the ending — do NOT skip an active crisis or cut a scene mid-stakes; steer, don't teleport.)\n"+pacingNote;
-    var activeArcs=[];for(j=0;j<activeAct.arcs.length;j++){if(activeAct.arcs[j].status==="active")activeArcs.push(activeAct.arcs[j]);}
+    if(!_allArcsDone&&!_arcNudged&&_actTurns>ACT_TURN_BUDGET)pacingNote="⚑ PACING — the current act (\""+activeAct.title+"\") has run "+_actTurns+" turns (soft target ~"+ACT_TURN_BUDGET+" per act). Bring the ACTIVE arc to a decisive resolution and move toward the act's turning point; stop opening unrelated detours. (Advance toward the ending — do NOT skip an active crisis or cut a scene mid-stakes; steer, don't teleport.)\n"+pacingNote;
     if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.";
     // Generic type-hint only when the active arc has NO dnaHint — otherwise it contradicts the author
     // sensibility (a generic "investigation → gather clues" line is what flattened campaigns into procedure).
