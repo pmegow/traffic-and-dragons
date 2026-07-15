@@ -6,6 +6,7 @@ var SUMMARIZE_AT=2400; // session-token threshold: summarize() gate, sendAction 
 var FUTURE_EXPIRE_TURNS=40; // #29: unresolved futureEvents older than this are swept at summarize time
 var ACT_TURN_BUDGET=100;    // #23/#43: soft per-act pacing target — buildSkeletonBlock nudges toward the act's turning point once the ACTIVE act has run longer than this (measured from worldState.actStartTurn)
 var ARC_TURN_BUDGET=50;     // #23 (v1.296): soft per-ARC pacing target — a single active arc that outlives this (measured from arc.startTurn) gets a targeted "close THIS arc" nudge. Half the act budget: one arc eating >half an act's whole turn allowance is dragging (the t727 Skinsaw arc metastasized to ~220). Superseded by the act nudge only when >1 arc is active (parallel — can't attribute the overstay).
+var ARC_DRIFT_RECHECK=50;   // #23 (v1.297): the inverse arc/quest desync (buildArcDriftNudge) — an arc still 'active' after its same-name quest already completed — RE-FIRES this often (per pair, from worldState.arcDriftNudged[key]=lastTurn) instead of latching once, so a "justify and forget" can't let the open arc go stale unwatched. Soft nudge only; never auto-closes (user's one worry is a premature close).
 var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
@@ -140,7 +141,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.296";
+var APP_VERSION="v1.297";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

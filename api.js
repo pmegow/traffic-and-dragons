@@ -225,10 +225,43 @@ function buildArcQuestNudge(){
   }
   return"";
 }
+// #23 (v1.297, user-designed): the INVERSE of buildArcQuestNudge. Where that one catches a COMPLETED
+// arc whose quest is still open, this catches an ACTIVE arc whose originating same-name quest has
+// ALREADY completed+archived — the t727 Runelords drift: the 'Skinsaw Man' quest closed, but the arc
+// lingered and metastasized into an emergent 'Skinsaw Network' the authored spine never called for.
+// SOFT nudge only, never auto-close — the user's ONE worry is a PREMATURE close, so the note offers
+// both directions and explicitly forbids forcing it shut. Unlike the reciprocity/arc-quest latches
+// (one shot), this RE-FIRES every ARC_DRIFT_RECHECK turns (worldState.arcDriftNudged[key]=lastTurn),
+// so a "justify and forget" can't let the open arc quietly go stale 100 turns on. Skipped when a LIVE
+// quest still matches the arc title (the arc is legitimately tracked, not drifting) and silent in
+// combat WITHOUT resetting the timer (the mark only writes when a note is actually returned).
+function buildArcDriftNudge(){
+  if(!worldState||worldState.combat||!worldState.skeleton||!memory||!memory.quests)return"";
+  var sk=worldState.skeleton,i,j,qk;
+  function titleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
+  var qkeys=Object.keys(memory.quests),ql=worldState.questLog||[];
+  for(i=0;i<(sk.acts||[]).length;i++){var act=sk.acts[i];
+    for(j=0;j<(act.arcs||[]).length;j++){var arc=act.arcs[j];
+      if(arc.status!=="active")continue;
+      // legit-in-progress guard: a live quest tracking this arc means it is NOT drifting
+      var live=false,lk;for(lk=0;lk<ql.length;lk++){if((ql[lk].status==="active"||ql[lk].status==="offered")&&titleMatch(arc.title,ql[lk].title)){live=true;break;}}
+      if(live)continue;
+      // the arc's first matching COMPLETED archived quest (failed/declined don't imply the arc is done)
+      var mq=null;for(qk=0;qk<qkeys.length;qk++){var aq=memory.quests[qkeys[qk]];if(aq&&aq.status==="completed"&&titleMatch(arc.title,aq.title||qkeys[qk])){mq=aq.title||qkeys[qk];break;}}
+      if(!mq)continue;
+      var key=arc.title+"|"+mq,last=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
+      if(last!=null&&(worldState.turn-last)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
+      if(!worldState.arcDriftNudged)worldState.arcDriftNudged={};
+      worldState.arcDriftNudged[key]=worldState.turn;
+      return "[ENGINE NOTE — ARC DRIFT CHECK (not a player action): the arc '"+arc.title+"' is still active, but its originating quest '"+mq+"' has already been completed. If this arc's story is genuinely finished, emit [ARC_COMPLETE:"+arc.title+"] with its reward. If real work legitimately remains, that is fine — do NOT force it closed — but keep it converging toward the arc's objective"+(arc.objective?" ('"+arc.objective+"')":"")+" instead of sprawling into new open-ended threads. (This check repeats about every "+ARC_DRIFT_RECHECK+" turns while the arc stays open.)]";
+    }
+  }
+  return"";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

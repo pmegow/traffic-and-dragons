@@ -2408,6 +2408,64 @@ function runEngineTests(R){
     return buildEngineNotes().indexOf("[QUEST:The Dying Patron|completed]")>=0?true:"not wired into the registry";
   });
 
+  // ── #23 (v1.297): inverse arc-drift detector — active arc, quest already completed, 50-turn recheck ──
+  section("arc drift check — inverse arc/quest desync (#23, v1.297)");
+  function __arcDriftWorld(){
+    makeWorld();worldState.turn=200;
+    worldState.skeleton={premise:"p",acts:[{title:"The Skinsaw Murders",goal:"g",status:"active",arcs:[
+      {title:"Thistletop",objective:"assault the stronghold",status:"completed"},
+      {title:"The Skinsaw Man",objective:"track the killer to Foxglove Manor",status:"active"}
+    ]}]};
+    worldState.questLog=[{title:"The Skinsaw Network",status:"active",desc:"",objectives:[{text:"a",done:false}]}];// emergent, different title
+    memory.quests={"The Skinsaw Man":{title:"The Skinsaw Man",status:"completed",turn:150,objectives:[]}};
+  }
+  t("fires when an active arc's same-name quest is already completed+archived; soft + names both",function(){
+    __arcDriftWorld();
+    var n=buildArcDriftNudge();
+    if(n.indexOf("The Skinsaw Man")<0)return "did not name the arc/quest: "+n;
+    if(n.indexOf("[ARC_COMPLETE:The Skinsaw Man]")<0)return "missing the close option: "+n;
+    if(n.indexOf("do NOT force it closed")<0)return "missing the anti-premature-close guard (the user's one worry)";
+    if(n.indexOf("track the killer to Foxglove Manor")<0)return "did not re-anchor the arc objective";
+    return n.indexOf("ENGINE NOTE")>=0?true:"not marked an engine note";
+  });
+  t("re-fires only after ARC_DRIFT_RECHECK turns (NOT a one-shot latch)",function(){
+    __arcDriftWorld();
+    if(buildArcDriftNudge()==="")return "did not fire on first detection";
+    // same turn / inside the window → silent
+    if(buildArcDriftNudge()!=="")return "re-fired inside the recheck window";
+    worldState.turn+=ARC_DRIFT_RECHECK-1;
+    if(buildArcDriftNudge()!=="")return "re-fired one turn early";
+    worldState.turn+=1;// now exactly ARC_DRIFT_RECHECK turns since the last nudge
+    return buildArcDriftNudge()!==""?true:"did not re-fire after the recheck window elapsed";
+  });
+  t("silent when a LIVE quest still matches the arc title (arc is legitimately tracked)",function(){
+    __arcDriftWorld();
+    worldState.questLog=[{title:"The Skinsaw Man",status:"active",desc:"",objectives:[{text:"a",done:false}]}];
+    return buildArcDriftNudge()===""?true:"fired though a live quest still tracks the arc";
+  });
+  t("silent when the archived quest is failed/declined, not completed (arc isn't 'done')",function(){
+    __arcDriftWorld();
+    memory.quests={"The Skinsaw Man":{title:"The Skinsaw Man",status:"failed",turn:150,objectives:[]}};
+    return buildArcDriftNudge()===""?true:"fired on a failed (not completed) archived quest";
+  });
+  t("silent for a completed arc (that's the forward detector's job, not this one)",function(){
+    __arcDriftWorld();
+    worldState.skeleton.acts[0].arcs[1].status="completed";
+    return buildArcDriftNudge()===""?true:"fired on a completed arc";
+  });
+  t("silent mid-combat, and the timer is NOT consumed",function(){
+    __arcDriftWorld();
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5,ac:10,atk:1,dmg:"d4",morale:"low"}]};
+    if(buildArcDriftNudge()!=="")return "fired mid-combat";
+    if(worldState.arcDriftNudged&&worldState.arcDriftNudged["The Skinsaw Man|The Skinsaw Man"])return "timer written on the silent path";
+    worldState.combat=null;
+    return buildArcDriftNudge()!==""?true:"did not fire after combat ended";
+  });
+  t("rides the NOTE_BUILDERS registry (buildEngineNotes surfaces it)",function(){
+    __arcDriftWorld();
+    return buildEngineNotes().indexOf("ARC DRIFT CHECK")>=0?true:"not wired into the registry";
+  });
+
   // ── #50a: item consumption + provenance doc lines ────────────────────────────
   section("item consumption + provenance (#50a)");
   t("consumption + provenance doc lines present",function(){
