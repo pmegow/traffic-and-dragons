@@ -2541,6 +2541,21 @@ function showCarMode() {
   _carUpdate();
   _carMediaSession();
   if (typeof TTS !== "undefined") TTS.setOnDone(function() { if (carMode) _carAutoMic(); });
+  // #2 pre-flight fix (v1.309): follow the REAL listen state instead of guessing it once
+  // before STT.start() resolved — the overlay used to freeze on "Listening…" forever after
+  // any recognition end/error/timeout (stt.js only knew #mic-btn). Status writes here are
+  // edge-scoped: entering listening, and a listen ending while the status still claims
+  // "Listening…" — other statuses (Paused, Narrator speaking…) belong to their own writers.
+  if (typeof STT !== "undefined" && STT.setOnState) STT.setOnState(function(listening) {
+    if (!carMode) return;
+    _carSyncBtn();
+    if (listening) { _carSetStatus("Listening…"); return; }
+    var st = document.getElementById("car-status");
+    if (st && st.textContent === "Listening…") {
+      var inp = document.getElementById("userinput");
+      _carSetStatus(inp && inp.value.trim() ? "Heard you…" : "Tap to speak");
+    }
+  });
   _carKbHandler = function(e) {
     if (e.key === " ")           { e.preventDefault(); _carTap(); }
     else if (e.key === "ArrowRight") { e.preventDefault(); _carNext(); }
@@ -2558,7 +2573,7 @@ function hideCarMode() {
   if (ov) ov.style.display = "none";
   if (_carKbHandler) { document.removeEventListener("keydown", _carKbHandler); _carKbHandler = null; }
   if (typeof TTS !== "undefined") { TTS.setOnDone(null); TTS.stopAudioSessionPrimer(); }
-  if (typeof STT !== "undefined") STT.stop();
+  if (typeof STT !== "undefined") { if (STT.setOnState) STT.setOnState(null); STT.stop(); }
   if ("mediaSession" in navigator) {
     try {
       navigator.mediaSession.setActionHandler("play", null);
@@ -2677,9 +2692,14 @@ function _carStartMic() {
   if (typeof STT === "undefined" || !STT.isSupported()) { _carSetStatus("Voice input not available in this browser"); return; }
   var inp = document.getElementById("userinput");
   if (inp) inp.value = "";
-  _carSetStatus("Listening…");
-  _carSyncBtn();
+  // Start FIRST, then reflect the state STT actually reached — the old order set
+  // "Listening…" before STT.start() resolved, so a synchronous start failure (or the
+  // sandbox's denied mic) left the overlay lying from the first instant (#2 pre-flight).
+  // The setOnState hook (showCarMode) does the ongoing sync; this is the belt for the
+  // early-return paths inside STT.start() that never reach the hook.
   STT.start();
+  _carSetStatus(STT.isListening() ? "Listening…" : "Ready");
+  _carSyncBtn();
 }
 
 function _carAutoMic() {

@@ -16,6 +16,7 @@ var STT = (function() {
   var _listening = false;
   var _baseText  = "";     // input value captured when listening started (dictation appends)
   var _gotFinal  = false;  // did this session yield a final transcript? (gates auto-send)
+  var _onState   = null;   // external listen-state subscriber (Car Mode) — the TTS.setOnDone pattern
 
   function isSupported()  { return !!_Rec; }
   function getLang()      { return store.get(LANG_K) || "en-US"; }
@@ -112,10 +113,21 @@ var STT = (function() {
 
   function _syncBtn() {
     var el = document.getElementById("mic-btn");
-    if (!el) return;
-    if (_listening) el.classList.add("listening"); else el.classList.remove("listening");
-    el.title = _listening ? "Listening… tap to stop" : "Dictate your action";
+    if (el) {
+      if (_listening) el.classList.add("listening"); else el.classList.remove("listening");
+      el.title = _listening ? "Listening… tap to stop" : "Dictate your action";
+    }
+    // Notify the subscriber AFTER the internal sync — _syncBtn is the single choke point
+    // every listen-state transition routes through (start OK/fail, stop, onend), so a
+    // subscriber sees every edge #mic-btn does. Car Mode (#2) uses this to keep
+    // #car-tap-btn/#car-status honest; without it the overlay froze on "Listening…"
+    // after any recognition end/error/timeout (the 2026-07-16 pre-flight defect: stt.js
+    // knew nothing outside #mic-btn, and Car Mode only guessed once before start()).
+    if (_onState) try { _onState(_listening); } catch (e) {}
   }
+
+  // Subscribe to listen-state edges (pass null to unsubscribe). Mirrors TTS.setOnDone.
+  function setOnState(cb) { _onState = (typeof cb === "function") ? cb : null; }
 
   // Mirror the auto-send state across all three file menus' checkboxes.
   function _syncAutoCbs() {
@@ -142,6 +154,7 @@ var STT = (function() {
     toggle:       toggle,
     start:        start,
     stop:         stop,
+    setOnState:   setOnState,
     isAutoSend:   isAutoSend,
     setAutoSend:  setAutoSend,
     loadSettings: loadSettings
