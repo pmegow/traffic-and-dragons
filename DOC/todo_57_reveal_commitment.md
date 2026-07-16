@@ -1,6 +1,7 @@
 # #57 — Reveal-commitment gap: design (pre-build)
 
-> Status: DESIGN — awaiting user ratification of the forks in §6. No code written.
+> Status: SHIPPED v1.306 (2026-07-16) — all four §6 forks user-ratified as recommended
+> (all three legs v1; new tag; replacement required; knowledge-only scope).
 > Tier: Fable. ⛨ Drift surface: memory tiers + extraction prompt + one stable-half doc line.
 > Case study: t378 woman-in-bronze (UA40; saves t359/t378 preserved).
 

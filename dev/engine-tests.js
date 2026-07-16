@@ -1784,9 +1784,10 @@ function runEngineTests(R){
   function __djb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
   t("derived cleanTxt strip regex is byte-identical to the frozen literal",function(){
     // Frozen v1.240; updated v1.263 (UA25: +COMPANION_SPELL_USED strip entry — golden diffed by
-    // eye in the same commit). A registry edit that changes stripping MUST consciously update
+    // eye in the same commit), v1.306 (#57: +NPC_SUPERSEDE strip entry — source grew exactly 14
+    // chars = "NPC_SUPERSEDE|"). A registry edit that changes stripping MUST consciously update
     // these numbers.
-    if(__djb2(_CT_TAGS.source)!==318408531||_CT_TAGS.source.length!==861)return "_CT_TAGS diverged from the frozen literal";
+    if(__djb2(_CT_TAGS.source)!==-1374868737||_CT_TAGS.source.length!==875)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -1794,10 +1795,10 @@ function runEngineTests(R){
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
     // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
     // lines), v1.273 (P3-F2 rewards-paid-exactly-once line), v1.275 (#51 gold-economy trio +
-    // P3-F3 travel rule), v1.276 (#47 epithet policy rewrite + P3-F4 TAKING IS TAGGED line).
-    // Golden diffed by eye each time.
+    // P3-F3 travel rule), v1.276 (#47 epithet policy rewrite + P3-F4 TAKING IS TAGGED line),
+    // v1.306 (#57: the one NPC_SUPERSEDE doc line, +370 chars). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===927092364&&d.length===12000)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===1813813983&&d.length===12370)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -3584,5 +3585,171 @@ function runEngineTests(R){
     worldState=savedWs;store.del(PVOICE_K_T);
     if(threw)return "threw on worldState===null: "+threw;
     return got==="en_US-ryan-high"?true:"got "+got;
+  });
+
+  // ── #57 reveal-commitment: supersession + merge hints (DOC/todo_57_reveal_commitment.md) ──
+  section("#57 reveal-commitment: supersession + merge hints");
+  t("extractor supersession: exact match retires to archive and files the replacement",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:["has not confirmed or denied being the woman in bronze","fights with a bronze glaive"],events:[],aliases:[]};
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var st;try{st=applySummaryExtract({supersededFacts:[{name:"Daeris",old:"has not confirmed or denied being the woman in bronze","new":"IS the woman in bronze — confirmed openly at the chapel"}]});}finally{console.warn=_w;}
+    var k=memory.npcs["Daeris"].knowledge;
+    if(k.indexOf("IS the woman in bronze — confirmed openly at the chapel")<0)return "replacement not filed";
+    if(k.join("|").indexOf("not confirmed")>=0)return "hedge survived";
+    if(k.indexOf("fights with a bronze glaive")<0)return "unrelated fact was disturbed";
+    var a=memory.archive&&memory.archive.superseded;
+    if(!a||a.length!==1||a[0].npc!=="Daeris"||a[0].fact.indexOf("not confirmed")<0||!a[0].replacedBy)return "archive entry wrong: "+JSON.stringify(a);
+    return (st&&st.superseded===1&&st.supersededNames[0]==="Daeris")?true:"stats wrong: "+JSON.stringify(st);
+  });
+  t("extractor supersession: substring match lands; extractor name variants resolve",function(){
+    makeWorld();
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"stern",knowledge:["believes the arsonist fled north toward the hinterlands"],events:[],aliases:[]};
+    applySummaryExtract({supersededFacts:[{name:"Hemlock",old:"arsonist fled north","new":"knows the arsonist never left town"}]});
+    var k=memory.npcs["Sheriff Belor Hemlock"].knowledge;
+    if(k.length!==1||k[0]!=="knows the arsonist never left town")return "knowledge wrong: "+JSON.stringify(k);
+    return memory.archive.superseded.length===1?true:"not archived";
+  });
+  t("extractor supersession: no on-file match → whole item no-op + warn (can only retire what exists)",function(){
+    makeWorld();
+    memory.npcs["Bram"]={attitude:"dour",knowledge:["owes the party a favor"],events:[],aliases:[]};
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var st;try{st=applySummaryExtract({supersededFacts:[{name:"Bram",old:"secretly a vampire","new":"walks in daylight"}]});}finally{console.warn=_w;}
+    if(memory.npcs["Bram"].knowledge.length!==1)return "knowledge mutated on a no-match: "+JSON.stringify(memory.npcs["Bram"].knowledge);
+    if(st.superseded!==0)return "stats counted a no-op";
+    return warns.filter(function(m){return m.indexOf("supersede")>=0;}).length===1?true:"expected exactly 1 warn";
+  });
+  t("extractor supersession: shape guards — missing new / missing old / non-array all no-op (E43 discipline)",function(){
+    makeWorld();
+    memory.npcs["Bram"]={attitude:"dour",knowledge:["owes the party a favor"],events:[],aliases:[]};
+    applySummaryExtract({supersededFacts:"not an array"});
+    applySummaryExtract({supersededFacts:[{name:"Bram",old:"owes the party a favor"}]});
+    applySummaryExtract({supersededFacts:[{name:"Bram","new":"paid the favor back"}]});
+    var k=memory.npcs["Bram"].knowledge;
+    return (k.length===1&&k[0]==="owes the party a favor")?true:"guards leaked: "+JSON.stringify(k);
+  });
+  t("extractor supersession: knowledge cap (12) holds after replacement filing",function(){
+    makeWorld();
+    var kn=[],i;for(i=0;i<12;i++)kn.push("fact number "+i);
+    memory.npcs["Bram"]={attitude:"dour",knowledge:kn.slice(),events:[],aliases:[]};
+    applySummaryExtract({supersededFacts:[{name:"Bram",old:"fact number 0","new":"the corrected fact"}]});
+    var k=memory.npcs["Bram"].knowledge;
+    if(k.length>12)return "cap breached: "+k.length;
+    return k.indexOf("the corrected fact")>=0?true:"replacement missing";
+  });
+  t("buildRecordedFactsBlock: serves exact on-file lines for NPCs the window mentions; silent otherwise",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:["has not confirmed or denied being the woman in bronze"],events:[],aliases:[]};
+    memory.npcs["Bram"]={attitude:"dour",knowledge:["owes the party a favor"],events:[],aliases:[]};
+    var b=buildRecordedFactsBlock("user: I ask Daeris about the bronze armor.\nassistant: She goes very still.");
+    if(b.indexOf("Daeris: has not confirmed or denied")<0)return "Daeris facts not served";
+    if(b.indexOf("Bram")>=0)return "un-mentioned NPC leaked into the block";
+    if(b.indexOf("PEOPLE ON FILE")<0||b.indexOf("sameNpc")<0)return "instruction scaffolding missing";
+    return buildRecordedFactsBlock("user: I walk to the harbor alone.")===""?true:"non-empty block with no known NPC in window";
+  });
+  t("buildRecordedFactsBlock: budget truncation flags the list as partial",function(){
+    makeWorld();
+    var kn=[],i;for(i=0;i<12;i++)kn.push("a deliberately long recorded fact used to overflow the serving budget, entry "+i+" — "+new Array(20).join("padding "));
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:kn,events:[],aliases:[]};
+    var b=buildRecordedFactsBlock("Daeris waits.");
+    if(b.indexOf("(list truncated)")<0)return "truncation not flagged";
+    return b.length<RECORDED_FACTS_BUDGET+600?true:"block blew past the budget: "+b.length;
+  });
+  t("buildRecordedFactsBlock: NPC with no knowledge still appears in PEOPLE ON FILE (fork-name vocabulary)",function(){
+    makeWorld();
+    memory.npcs["Woman in Bronze"]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
+    var b=buildRecordedFactsBlock("The woman in bronze watches from the wall.");
+    if(b.indexOf("PEOPLE ON FILE mentioned in this session: Woman in Bronze")<0)return "name line missing: "+b.slice(0,120);
+    return b.indexOf("RECORDED FACTS")<0?true:"facts header rendered with nothing to serve";
+  });
+  t("sameNpc validation: valid pair queues; unknown key / player-named / both-party / self all dropped",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Woman in Bronze"]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Lyra"]={attitude:"steady",knowledge:[],events:[],aliases:[],partyMember:true};
+    memory.npcs["Bram"]={attitude:"dour",knowledge:[],events:[],aliases:[],partyMember:true};
+    worldState.npcs.push({name:"Lyra",partyMember:true},{name:"Bram",partyMember:true});
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applySummaryExtract({sameNpc:[
+      {canonical:"Daeris",duplicate:"Woman in Bronze"},
+      {canonical:"Daeris",duplicate:"Nobody Known"},
+      {canonical:"Tess",duplicate:"Daeris"},
+      {canonical:"Lyra",duplicate:"Bram"},
+      {canonical:"Daeris",duplicate:"Daeris"}
+    ]});}finally{console.warn=_w;}
+    var q=worldState.pendingMergeHints;
+    if(!q||q.length!==1)return "expected exactly 1 queued hint, got "+JSON.stringify(q);
+    if(q[0].canonical!=="Daeris"||q[0].duplicate!=="Woman in Bronze")return "wrong pair queued";
+    applySummaryExtract({sameNpc:[{canonical:"Woman in Bronze",duplicate:"Daeris"}]});
+    return worldState.pendingMergeHints.length===1?true:"reversed re-proposal was not deduped";
+  });
+  t("buildMergeConfirmNudge: fires once with the exact tag, consumes at build, latch blocks re-proposal",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Woman in Bronze"]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
+    worldState.pendingMergeHints=[{canonical:"Daeris",duplicate:"Woman in Bronze",turn:5}];
+    var note=buildMergeConfirmNudge();
+    if(note.indexOf("[NPC_MERGE:Daeris|Woman in Bronze]")<0)return "note missing the exact tag: "+note;
+    if(worldState.pendingMergeHints)return "queue not consumed";
+    if(buildMergeConfirmNudge()!=="")return "re-fired with an empty queue";
+    applySummaryExtract({sameNpc:[{canonical:"Daeris",duplicate:"Woman in Bronze"}]});
+    return worldState.pendingMergeHints===undefined?true:"latched pair re-queued after the nudge already fired";
+  });
+  t("buildMergeConfirmNudge: silent mid-combat WITHOUT consuming; already-healed hint discarded silently",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Woman in Bronze"]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
+    worldState.pendingMergeHints=[{canonical:"Daeris",duplicate:"Woman in Bronze",turn:5}];
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:9,maxHp:9}]};
+    if(buildMergeConfirmNudge()!=="")return "fired mid-combat";
+    if(!worldState.pendingMergeHints||worldState.pendingMergeHints.length!==1)return "combat consumed the hint";
+    worldState.combat=null;
+    memory.npcs["Daeris"].aliases=["Woman in Bronze"];delete memory.npcs["Woman in Bronze"];/* healed since queueing */
+    if(buildMergeConfirmNudge()!=="")return "fired for an already-healed pair";
+    return worldState.pendingMergeHints===undefined?true:"healed hint not discarded";
+  });
+  t("NPC_SUPERSEDE handler: scrubs the matching knowledge line, archives it, records the truth; events untouched",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:["has not confirmed or denied being the woman in bronze"],events:[{turn:2,note:"asked about the bronze armor"}],aliases:[]};
+    applyMuts("She lowers the visor herself. [NPC_SUPERSEDE:Daeris|not confirmed or denied|IS the woman in bronze — confirmed openly]");
+    var n=memory.npcs["Daeris"];
+    if(n.knowledge.length!==1||n.knowledge[0]!=="IS the woman in bronze — confirmed openly")return "knowledge wrong: "+JSON.stringify(n.knowledge);
+    if(n.events.length!==1)return "events were scrubbed — history must stay";
+    if(!memory.archive||!memory.archive.superseded||memory.archive.superseded.length!==1)return "retired line not archived";
+    return memory.archive.superseded[0].replacedBy==="IS the woman in bronze — confirmed openly"?true:"archive replacedBy wrong";
+  });
+  t("NPC_SUPERSEDE handler: no on-file match warns but still records the truth (the reveal is canon)",function(){
+    makeWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[NPC_SUPERSEDE:Daeris|an old rumor never filed|IS the woman in bronze]");}finally{console.warn=_w;}
+    var n=memory.npcs["Daeris"];
+    if(!n||n.knowledge.indexOf("IS the woman in bronze")<0)return "new fact not recorded on no-match";
+    if(memory.archive&&memory.archive.superseded&&memory.archive.superseded.length)return "archived a line that never existed";
+    return warns.filter(function(m){return m.indexOf("NPC_SUPERSEDE")>=0;}).length===1?true:"expected exactly 1 no-match warn";
+  });
+  t("NPC_SUPERSEDE: stripped from display text and known to the vocabulary (no unknown-tag warn)",function(){
+    makeWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("Prose. [NPC_SUPERSEDE:Daeris|old|new fact]");}finally{console.warn=_w;}
+    if(warns.filter(function(m){return m.indexOf("unknown tag")>=0||m.indexOf("UNKNOWN")>=0;}).length)return "unknown-tag scan flagged a registered tag";
+    var c=cleanTxt("Prose. [NPC_SUPERSEDE:Daeris|old|new fact] More prose.");
+    return c.indexOf("NPC_SUPERSEDE")<0?true:"tag leaked to the player: "+c;
+  });
+  t("t378 fixture end-to-end: extraction supersedes the hedge + proposes the merge → nudge → NPC_MERGE heals → silence",function(){
+    makeWorld();
+    memory.npcs["Daeris"]={attitude:"guarded",knowledge:["has not confirmed or denied being the woman in bronze"],events:[],aliases:[]};
+    memory.npcs["Woman in Bronze"]={attitude:"unknown",knowledge:["seen at the harbor at night"],events:[],aliases:[]};
+    applySummaryExtract({
+      supersededFacts:[{name:"Daeris",old:"has not confirmed or denied being the woman in bronze","new":"IS the woman in bronze — confirmed at the chapel"}],
+      sameNpc:[{canonical:"Daeris",duplicate:"Woman in Bronze"}]
+    });
+    if(memory.npcs["Daeris"].knowledge.join("|").indexOf("not confirmed")>=0)return "hedge survived extraction";
+    if(!worldState.pendingMergeHints||worldState.pendingMergeHints.length!==1)return "merge hint not queued";
+    var note=buildMergeConfirmNudge();
+    if(note.indexOf("[NPC_MERGE:Daeris|Woman in Bronze]")<0)return "nudge missing the tag";
+    applyMuts("It was her all along. [NPC_MERGE:Daeris|Woman in Bronze]");
+    if(memory.npcs["Woman in Bronze"])return "duplicate entry survived the merge";
+    if((memory.npcs["Daeris"].knowledge||[]).indexOf("seen at the harbor at night")<0)return "duplicate's knowledge not absorbed: "+JSON.stringify(memory.npcs["Daeris"].knowledge);
+    return buildMergeConfirmNudge()===""?true:"nudge re-fired after the fork was healed";
   });
 }

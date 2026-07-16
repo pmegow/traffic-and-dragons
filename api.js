@@ -311,10 +311,32 @@ function buildRelationshipAudit(){
   worldState.lastRelAudit=worldState.turn;delete worldState.relAuditDue;
   return "[ENGINE NOTE — RELATIONSHIP AUDIT (not a player action): below is every recorded bond in the party"+(eventDue?"; the party's composition just changed, so re-ground them now":"")+". For EACH: if it still matches the fiction, leave it alone — do NOT re-emit unchanged bonds. If it has grown, faded, or reads wrong, refresh it with [RELATIONSHIP:entity|descriptor] (player) or [COMPANION_RELATIONSHIP:Name|entity|descriptor] (companion), or end it with the matching REMOVED tag. Bonds the fiction has clearly established but that are MISSING below — especially for anyone who just joined — must be filed NOW with the same tags.\n"+(lines.length?lines.join("\n"):"- (none recorded yet)")+"]";
 }
+// #57 leg C: fork healing — the summarize extractor may PROPOSE that two on-file NPCs are the
+// same person (the t378 "Woman in Bronze"/Daeris class: zero shared name tokens, invisible to
+// resolveNpcName's consolidation). The engine NEVER auto-merges (a wrong merge fuses two real
+// people — UA29's E4 hazard): this note asks the GM to confirm in-fiction via the battle-tested
+// [NPC_MERGE:], or stay silent. One hint per turn; once per pair EVER (worldState.mergeHintNudged,
+// the reciprocity-latch pattern — a re-proposal after a GM decline is dropped at queue time);
+// consumed at build time; silent mid-combat WITHOUT consuming (the queue keeps the hint). Hints
+// whose pair has already been healed (merged/aliased since queueing) are discarded silently.
+function buildMergeConfirmNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.pendingMergeHints;
+  if(!q||!q.length)return"";
+  var h=null;
+  while(q.length){var c=q.shift();
+    if(resolveNpcName(c.canonical)!==resolveNpcName(c.duplicate)&&memory.npcs[c.canonical]&&memory.npcs[c.duplicate]){h=c;break;}
+  }
+  if(!q.length)delete worldState.pendingMergeHints;
+  if(!h)return"";
+  if(!worldState.mergeHintNudged)worldState.mergeHintNudged={};
+  worldState.mergeHintNudged[h.canonical+"|"+h.duplicate]=worldState.turn;
+  return "[ENGINE NOTE — POSSIBLE DUPLICATE NPC (not a player action): the record suggests \""+h.canonical+"\" and \""+h.duplicate+"\" may be the SAME person. If the story has confirmed this, emit [NPC_MERGE:"+h.canonical+"|"+h.duplicate+"] in this response (and [NPC_SUPERSEDE:] for any recorded fact the reveal made outdated). If they are genuinely different people, emit nothing — this note will not repeat.]";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

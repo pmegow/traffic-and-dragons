@@ -137,7 +137,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
@@ -642,10 +642,79 @@ function retainSessionTail(){
   if(typeof worldState!=="undefined"&&worldState)worldState.sessKept=keep.length;
 }
 function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
+// ── #57 reveal-commitment: knowledge supersession + fork hints ───────────────────
+// Serve-side of leg A (see DOC/todo_57_reveal_commitment.md): the extractor can only retire a
+// fact it can quote EXACTLY, so summarize() hands it the on-file knowledge lines for the NPCs
+// this window actually mentions (ragScanNames — the same deterministic detection the RAG index
+// uses). Also names the detected keys explicitly so sameNpc proposals use exact-key vocabulary.
+// Budget-capped: a truncated list is flagged so the extractor knows it is partial.
+var RECORDED_FACTS_BUDGET=2000;
+function buildRecordedFactsBlock(windowText){
+  if(typeof memory==="undefined"||!memory||!memory.npcs)return"";
+  var low=String(windowText||"").toLowerCase();if(!low)return"";
+  var det=[];
+  ragScanNames(low,ragKnownNames(),function(nm){if(det.indexOf(nm)<0)det.push(nm);});
+  if(!det.length)return"";
+  var lines=[],used=0,truncated=false,i,j;
+  for(i=0;i<det.length&&!truncated;i++){
+    var n=memory.npcs[det[i]];
+    if(!n||!n.knowledge||!n.knowledge.length)continue;
+    for(j=0;j<n.knowledge.length;j++){
+      var ln="- "+det[i]+": "+n.knowledge[j];
+      if(used+ln.length>RECORDED_FACTS_BUDGET){truncated=true;break;}
+      lines.push(ln);used+=ln.length+1;
+    }
+  }
+  var out="\nPEOPLE ON FILE mentioned in this session: "+det.join(", ")+"\n";
+  if(lines.length)out+="RECORDED FACTS on file for them"+(truncated?" (list truncated)":"")+" -- if this session REVEALS one of these is now wrong, outdated, or superseded (an identity confirmed, a secret exposed, a belief corrected), copy its EXACT text into supersededFacts 'old' with the replacement fact in 'new'. Only report what this session's events actually establish.\n"+lines.join("\n")+"\n";
+  out+="If this session CONFIRMS that two of the people on file are the SAME person, report the pair in sameNpc using their exact names from the list above.\n";
+  return out;
+}
 // Files one extraction result into memory/worldState — split from summarize() so the filing
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
+// Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
+// retired in the visible "Memory updated" line (#57 — no silent memory surgery).
 function applySummaryExtract(extracted){
   var i;
+  var stats={superseded:0,supersededNames:[]};
+  // #57 leg A: supersession BEFORE npcUpdates, so a same-window retire-then-learn lands in order.
+  // Replacement is REQUIRED (user-ratified fork 3): supersession is replacement, never bare
+  // deletion — that stays NPC_FORGET's job. Only an on-file fact can be retired (exact match,
+  // then substring — the resolveFutureEvent discipline); retired facts ARCHIVE, never vanish.
+  if(Array.isArray(extracted.supersededFacts)){for(i=0;i<extracted.supersededFacts.length;i++){var sf=extracted.supersededFacts[i];
+    if(!sf||!sf.name||!sf.old||!sf["new"])continue;
+    var sfName=resolveNpcName(String(sf.name)),sfNpc=memory.npcs[sfName];
+    if(!sfNpc||!sfNpc.knowledge||!sfNpc.knowledge.length){if(typeof console!=="undefined")console.warn("[memory] supersede: no knowledge on file for "+sfName+" — ignored");continue;}
+    var oldS=String(sf.old),sfIdx=-1,ki;
+    for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki])===oldS){sfIdx=ki;break;}}
+    if(sfIdx<0){for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki]).indexOf(oldS)>=0){sfIdx=ki;break;}}}
+    if(sfIdx<0){if(typeof console!=="undefined")console.warn("[memory] supersede: no on-file fact on "+sfName+" matches \""+oldS.slice(0,80)+"\" — ignored (the extractor can only retire what exists)");continue;}
+    var retired=sfNpc.knowledge.splice(sfIdx,1)[0];
+    memArchive().superseded.push({npc:sfName,fact:retired,turn:worldState.turn,replacedBy:String(sf["new"])});
+    var newFact=String(sf["new"]);
+    if(sfNpc.knowledge.indexOf(newFact)<0){sfNpc.knowledge.push(newFact);if(sfNpc.knowledge.length>12)sfNpc.knowledge.shift();}
+    stats.superseded++;if(stats.supersededNames.indexOf(sfName)<0)stats.supersededNames.push(sfName);
+    if(typeof console!=="undefined")console.warn("[memory] superseded fact on "+sfName+": \""+String(retired).slice(0,80)+"\" → \""+newFact.slice(0,80)+"\"");
+  }}
+  // #57 leg C: the extractor PROPOSES same-person pairs; the engine NEVER auto-merges (a wrong
+  // merge fuses two real people — UA29's E4 hazard). Validated hints queue for
+  // buildMergeConfirmNudge (api.js), which asks the GM to confirm via [NPC_MERGE:] in-fiction.
+  if(Array.isArray(extracted.sameNpc)){
+    var _isParty=function(nm){var wi;for(wi=0;wi<((worldState&&worldState.npcs)||[]).length;wi++){if(worldState.npcs[wi].name===nm&&worldState.npcs[wi].partyMember)return true;}return false;};
+    for(i=0;i<extracted.sameNpc.length;i++){var sn=extracted.sameNpc[i];
+      if(!sn||!sn.canonical||!sn.duplicate)continue;
+      var snC=resolveNpcName(String(sn.canonical)),snD=resolveNpcName(String(sn.duplicate));
+      if(snC===snD)continue;/* already one entry — nothing to heal */
+      if(!memory.npcs[snC]||!memory.npcs[snD]){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — not both on file: "+snC+" / "+snD);continue;}
+      var _plNm=(worldState&&worldState.character&&worldState.character.name)||"";
+      if(_plNm&&(snC.toLowerCase()===_plNm.toLowerCase()||snD.toLowerCase()===_plNm.toLowerCase())){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — names the player: "+snC+" / "+snD);continue;}
+      if(_isParty(snC)&&_isParty(snD)){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — both are party members: "+snC+" / "+snD);continue;}
+      if(worldState.mergeHintNudged&&(worldState.mergeHintNudged[snC+"|"+snD]||worldState.mergeHintNudged[snD+"|"+snC]))continue;/* already asked once — the GM declined or acted */
+      if(!worldState.pendingMergeHints)worldState.pendingMergeHints=[];
+      var _dupH=false,mi;for(mi=0;mi<worldState.pendingMergeHints.length;mi++){var _h=worldState.pendingMergeHints[mi];if((_h.canonical===snC&&_h.duplicate===snD)||(_h.canonical===snD&&_h.duplicate===snC)){_dupH=true;break;}}
+      if(!_dupH)worldState.pendingMergeHints.push({canonical:snC,duplicate:snD,turn:worldState.turn});
+    }
+  }
   // Array-guard every list field (audit E43) — a string value from the extractor would otherwise
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
@@ -663,6 +732,7 @@ function applySummaryExtract(extracted){
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
   if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
+  return stats;
 }
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
@@ -671,21 +741,23 @@ async function summarize(){
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
-    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"]}\n";
+    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}]}\n";
     // #29 ③: the extractor reads the session anyway — hand it the pending list and let it echo back
     // what the session shows is finished. EXACT text echo, so resolveFutureEvent's exact/substring
     // match lands without fuzzy matching. The GM itself rarely emits [FUTURE_EVENT_RESOLVED:].
     var _pend=[],_pi;for(_pi=0;_pi<memory.futureEvents.length;_pi++){if(!memory.futureEvents[_pi].resolved)_pend.push(memory.futureEvents[_pi].what);}
     if(_pend.length)extractPrompt+="\nANTICIPATED EVENTS currently on file — if this session shows one has already happened, failed, or become moot, copy its EXACT text into resolvedEvents:\n- "+_pend.join("\n- ")+"\n";
-    extractPrompt+="\nSESSION:\n";
     // GM turns carry the events — send them near-whole (a 1000-token turn is ~4000 chars; the old
     // 300-char slice fed the extractor only scene openings, silently dropping mid/late-scene events
     // from long-term memory — audit #3). Player turns are short; trim them lightly.
-    var i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];extractPrompt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
+    // Built BEFORE appending so the same window text also drives RECORDED FACTS detection (#57).
+    var _sessTxt="",i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];_sessTxt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
+    extractPrompt+=buildRecordedFactsBlock(_sessTxt);/* #57 leg A serve-side — "" when no known NPC appears in the window */
+    extractPrompt+="\nSESSION:\n"+_sessTxt;
     var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
-    applySummaryExtract(extracted);
-    retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters.");
+    var _exStats=applySummaryExtract(extracted);
+    retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
