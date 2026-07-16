@@ -3385,4 +3385,7 @@ function runEngineTests(R){
     for(i=0;i<out.length;i++)if(out[i].length>220)return "unit "+i+" exceeds MAX_UNIT: "+out[i].length;
     return true;
   });
+  t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
+    return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
+  });
 }

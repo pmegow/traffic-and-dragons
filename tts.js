@@ -1,5 +1,13 @@
-// tts.js — Cartesia streaming TTS (SSE + Web Audio API)
+// tts.js — Cartesia streaming TTS (SSE + Web Audio API) + local Piper TTS (WASM, offline, $0)
 // Depends on: store (state.js), showToast (ui.js)
+//
+// ES5 convention (var, function declarations, no arrows/template literals, no const/let) applies
+// throughout this file. SANCTIONED EXCEPTION (TODO #41 Phase 3, todo_TTS_piper.md §5 Q7):
+// async/await is permitted in the Piper adapter functions ONLY — _piperInit, _piperEnsureVoice,
+// _speakPiper, prewarmPiper — because Piper's dynamic import() + WASM predict() calls are a
+// genuine I/O boundary, the same justification that already sanctions async in the three
+// API-facing functions elsewhere in the codebase (callGM/summarize and kin). No other surface in
+// this file should introduce async — the queue/scheduler/controls stay plain ES5 callbacks.
 
 var TTS = (function() {
 
@@ -253,6 +261,7 @@ var TTS = (function() {
     var item = _queue.shift();
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
+    else if (item.piper) _speakPiper(item.text, item.voiceId);
     else _stream(item.text, item.voiceId);
   }
 
@@ -424,6 +433,212 @@ var TTS = (function() {
     });
   }
 
+  // ── Piper (local WASM) engine — TODO #41 Phase 3 ────────────────────────────
+  // Vendored, same-origin ORT + vits-web (Phase 2: vendor/piper/, import map in index.html).
+  // ENGINE ONLY here — nothing in _drain()/speak() routes to it by default yet (Phase 4 owns the
+  // provider table + dispatch). Mirrors the shape of _stream() above: a synth-then-schedule loop
+  // feeding the same AudioContext/_sources/_nextStart scheduler, so pause()/skip()/stop() work
+  // unchanged. Unlike Cartesia's fetch (which AbortController can cancel), an in-flight WASM
+  // predict() call cannot be aborted — so every await below is followed by an epoch check that
+  // silently discards stale work. That silent bail is the ONE sanctioned silent path in this
+  // engine: it is not a failure, it is "this result is for a narration turn the user already
+  // skipped past," and scheduling it would audibly overlap the next item (review finding 3).
+
+  var _piperMod      = null;  // vits-web module ref, kept warm across turns/synths
+  var _piperReady     = false; // true once _piperInit has completed successfully at least once
+  var _piperError     = "";    // last Piper failure reason; mirrors _cartesiaError's shape/semantics
+  var _piperErrorAt   = 0;     // when it was recorded — auto-retried after 5 min, same as Cartesia
+  var _piperEpoch     = 0;     // generation counter — bumped by _speakPiper (new synth) and
+                                // _stopCurrent() (skip/stop); a stale await checks this and bails
+
+  var PIPER_ORT_PATH = "/vendor/piper/ort/";
+  var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js";
+
+  // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. No caller routes
+  // speak() through Piper yet (Phase 4 owns dispatch); prewarmPiper uses this so a known-broken
+  // engine isn't re-attempted on every TTS toggle-on inside the retry window.
+  function _piperOk() {
+    if (_piperError && Date.now() - _piperErrorAt > 300000) { _piperError = ""; _piperErrorAt = 0; }
+    return !_piperError;
+  }
+
+  // Idempotent lazy engine init. Order is load-bearing (todo_TTS_piper.md §1 finding 4): the ORT
+  // env locks MUST be in place before vits-web's own predict() call, because vits-web
+  // unconditionally reassigns wasmPaths/numThreads on every call (vendor/piper/vits/vits-web.js) —
+  // Object.defineProperty getters with no-op setters make that clobber a no-op instead of a break.
+  async function _piperInit() {
+    if (_piperMod) return _piperMod;   // warm — already initialized
+    try {
+      var ort = await import("onnxruntime-web");   // bare specifier → import map → PIPER_ORT_PATH, same-origin
+      Object.defineProperty(ort.env.wasm, "wasmPaths", {
+        get: function() { return PIPER_ORT_PATH; },
+        set: function(_v) { /* ignore vits-web's per-predict() clobber */ },
+        configurable: true
+      });
+      Object.defineProperty(ort.env.wasm, "numThreads", {
+        get: function() { return 1; },
+        set: function(_v) { /* ignore navigator.hardwareConcurrency clobber — force single-thread, no Worker/SAB/COI */ },
+        configurable: true
+      });
+      _piperMod = await import(PIPER_LIB_PATH);
+      _piperReady = true;
+      return _piperMod;
+    } catch(e) {
+      _piperError = (e && e.message) || "Piper engine failed to load";
+      _piperErrorAt = Date.now();
+      console.warn("[tts piper] init failed:", _piperError);
+      throw e;
+    }
+  }
+
+  // Ensure a voice model is cached (vits-web caches in OPFS); download with progress on first use.
+  // Loud per the no-silent-failures rule: toast at start/end, coarse console.info during, toast +
+  // console.warn + rethrow on failure. Richer download UI (a real progress bar) is Phase 4 — this
+  // is the loud-not-silent floor.
+  async function _piperEnsureVoice(voiceId) {
+    var mod = await _piperInit();
+    var stored = [];
+    try { stored = await mod.stored(); } catch(e) { stored = []; }
+    if (stored.indexOf(voiceId) !== -1) return;
+    if (typeof showToast === "function") showToast("⬇ Downloading narrator voice — one-time, cached after");
+    var lastPct = -1;
+    try {
+      await mod.download(voiceId, function(p) {
+        if (!p || !p.total) return;
+        var pct = Math.floor((p.loaded / p.total) * 100 / 10) * 10;
+        if (pct > 0 && pct !== lastPct) { lastPct = pct; console.info("[tts piper] " + voiceId + " download " + pct + "%"); }
+      });
+    } catch(e) {
+      _piperError = (e && e.message) || "voice download failed";
+      _piperErrorAt = Date.now();
+      console.warn("[tts piper] voice download failed:", _piperError);
+      if (typeof showToast === "function") showToast("⚠ Narrator voice download failed — using fallback voice");
+      throw e;
+    }
+    if (typeof showToast === "function") showToast("✓ Narrator voice ready");
+  }
+
+  // Synthesize + schedule one narration item through Piper. Sequential per-unit loop (mirrors
+  // piper_test.html speakAll()): predict → decode → schedule on the shared AudioContext timeline.
+  // The epoch guard runs after EVERY await (see section comment above) — this is what makes a
+  // stopped/skipped narration safe against an unabortable WASM call resolving late.
+  async function _speakPiper(text, voiceId) {
+    var myEpoch = ++_piperEpoch;
+
+    var ctx = _ensureCtx();
+    if (!ctx) { _drain(); return; }
+    if (ctx.state === "suspended") { try { await ctx.resume(); } catch(e) {} }
+    if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited resume()
+
+    var mod;
+    try {
+      mod = await _piperInit();
+      if (_piperEpoch !== myEpoch) return;                 // stale after init
+      await _piperEnsureVoice(voiceId);
+      if (_piperEpoch !== myEpoch) return;                 // stale after voice download
+    } catch(e) {
+      if (_piperEpoch !== myEpoch) return;                 // stale — don't resurrect a skipped item
+      console.warn("[tts piper] engine/voice unavailable, falling back to native for this line:", e && e.message);
+      _curNative = true;
+      _speakNative(text);                                  // mirror of _stream's catch — still speak THIS line
+      return;
+    }
+
+    // default dashRepl ", " — commas ARE the right dash style for Piper (spike finding, §2)
+    var units = splitSentences(text);
+    if (!units.length) { _drain(); return; }
+
+    _sources = [];
+    var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
+    var loopDone   = false;
+    var activeSrcs = 0;
+    var anyOk      = false;
+
+    function onAllDone() {
+      _sources   = [];
+      _nextStart = 0;
+      _drain();
+    }
+
+    for (var i = 0; i < units.length; i++) {
+      if (_piperEpoch !== myEpoch) return;   // stale — stop()/skip() invalidated this loop mid-flight
+      var u = units[i];
+
+      var blob;
+      try {
+        blob = await mod.predict({ text: u.text + " ", voiceId: voiceId });   // trailing space: documented static-tail guard
+      } catch(e) {
+        console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
+        continue;
+      }
+      if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
+
+      var buf;
+      try {
+        var arrBuf = await blob.arrayBuffer();
+        if (_piperEpoch !== myEpoch) return;   // stale — discard mid-decode
+        buf = await ctx.decodeAudioData(arrBuf);
+        if (_piperEpoch !== myEpoch) return;   // stale — the guard that matters most: never schedule over the next item
+      } catch(e) {
+        console.warn("[tts piper] decode failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
+        continue;
+      }
+
+      anyOk = true;
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);   // never schedule in the past
+      src.start(startAt);
+      nextStart  = startAt + buf.duration + (u.paraEnd ? 0.44 : 0.22);   // 0.22s gap, 0.44s at paragraph end
+      _nextStart = nextStart;
+
+      activeSrcs++;
+      _sources.push(src);
+      src.onended = function() {
+        activeSrcs--;
+        if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
+      };
+    }
+
+    loopDone = true;
+    if (_piperEpoch !== myEpoch) return;   // stale — a skip() during the final unit must not reach the
+                                           // fallback below (it would speak a skipped item via native)
+                                           // or the activeSrcs===0 drain (double-_drain, overlapping items)
+    if (!anyOk) {
+      // every unit failed to synthesize — loud, then fall back to native for THIS item (mirror of _stream's catch)
+      _piperError = "all units failed to synthesize";
+      _piperErrorAt = Date.now();
+      console.warn("[tts piper] " + _piperError);
+      _curNative = true;
+      _speakNative(text);
+      return;
+    }
+    if (activeSrcs === 0) onAllDone();
+  }
+
+  // Fire-and-forget pre-warm: loads the engine + ensures the given voice + runs a throwaway
+  // 1-word predict (result discarded, NEVER scheduled) so the one-time ~9s WASM compile happens
+  // off the critical path of the user's first real narration. Snapshots (does not bump) the epoch
+  // — a prewarm must never invalidate a real in-flight _speakPiper loop; it only needs to know
+  // whether IT has been superseded, so its own discarded result isn't worth chasing further.
+  // Exported on the public API. Nothing calls this yet — Phase 4 wires it to TTS-enable.
+  function prewarmPiper(voiceId) {
+    if (!_piperOk()) return;   // known-broken within the retry window — don't hammer it every toggle-on
+    var myEpoch = _piperEpoch;
+    (async function() {
+      try {
+        var mod = await _piperInit();
+        if (_piperEpoch !== myEpoch) return;
+        await _piperEnsureVoice(voiceId);
+        if (_piperEpoch !== myEpoch) return;
+        await mod.predict({ text: "warm up", voiceId: voiceId });   // discarded — just forces the WASM compile
+      } catch(e) {
+        console.warn("[tts piper] prewarm failed (non-fatal):", e && e.message);
+      }
+    })();
+  }
+
   // ── Controls ────────────────────────────────────────────────────────────────
 
   function pause() {
@@ -432,6 +647,8 @@ var TTS = (function() {
       else { window.speechSynthesis.pause(); _paused = true; }
       _updatePauseBtn(_paused); return;
     }
+    // Piper items never set _curNative (see _drain()), so they fall through to here and pause via
+    // AudioContext suspend/resume — the same branch Cartesia uses. No Piper-specific code needed.
     if (!_audioCtx) return;
     if (_audioCtx.state === "suspended") {
       _audioCtx.resume();
@@ -458,6 +675,7 @@ var TTS = (function() {
   }
 
   function _stopCurrent() {
+    _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
@@ -715,6 +933,9 @@ var TTS = (function() {
     showSettingsModal: showSettingsModal,
     primeAudioSession:     primeAudioSession,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
+    // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Nothing calls this yet; Phase 4 wires
+    // it to TTS-enable so the ~9s one-time WASM compile happens off the critical path.
+    prewarmPiper:      prewarmPiper,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit }
