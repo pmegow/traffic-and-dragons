@@ -74,7 +74,7 @@
 <header>
   <h1>Multiplayer — Initiative &amp; Tracking</h1>
   <p><span class="rule">TODO #1.</span> 2–4 player co-op on the family car trip: shared world, one character each, taking turns. This doc is the living spec and status board — planning captured here, not in the TODO row, because it's an initiative, not a task.</p>
-  <p class="note">Started 2026-07-13 · engine v1.291 · planning phase — nothing built yet.</p>
+  <p class="note">Started 2026-07-13 · engine v1.291 · planning phase — nothing built yet. Planning round 2 (Fable, 2026-07-16): Q1/Q4/Q6/Q8 ruled — see D8–D11; phased plan reworked (P4 shrank, P5 added).</p>
 </header>
 
 <nav>
@@ -114,6 +114,10 @@
     <tr><td>D5</td><td><strong>Single-block resolution.</strong> All queued actions reach the GM in ONE call as a labeled block (<em>"Ammut: …; Morwen: …"</em>), so the situation never changes out from under a player still waiting in the queue.</td><td><span class="pill p-lock">Locked</span></td></tr>
     <tr><td>D6</td><td><strong>Light active-player pointer</strong>, not the heavy <code>_switchPlayerCharacter</code> swap. It drives display + input + suggestion POV only; reinforce to a full swap later only if needed.</td><td><span class="pill p-lock">Locked</span></td></tr>
     <tr><td>D7</td><td><strong>Hero-slot rotation is the turn indicator.</strong> Active PC occupies the top hero position; everyone else sits in the party bar. No extra turn chrome.</td><td><span class="pill p-lock">Locked</span></td></tr>
+    <tr><td>D8</td><td><strong>"PCs are party members" model (resolves Q1).</strong> Players 2–4 live as ordinary <code>worldState.npcs[]</code> party members (<code>charSheet</code> + new <code>isPC:true</code> flag — the D1 toggle flips it). <code>worldState.character</code> stays the schema anchor; bare tags keep meaning them. <strong>No tag vocabulary, parser, or STATE TAGS doc changes</strong> — the existing <code>COMPANION_*</code> name-addressed routing (live-validated in the 2026-07-16 arc-nudge loop) does all the mutation addressing. Free wins: party sheets already inject for PCs 2–4, XP mirror + companion auto-level already work, <code>partyCompanionCap()</code> just counts <code>isPC</code> as players. Note: the "fold stable entity IDs into #1" idea does NOT happen this pass (names stay keys) — it moves to the networked pass (Q7).</td><td><span class="pill p-lock">Locked 2026-07-16</span></td></tr>
+    <tr><td>D9</td><td><strong>Collection rounds ARE combat rounds (resolves Q4).</strong> One labeled block = one combat round; no separate initiative system; combat tracker unchanged. The GM already resolves companion combat actions from party sheets.</td><td><span class="pill p-lock">Locked 2026-07-16</span></td></tr>
+    <tr><td>D10</td><td><strong>Per-action second person (resolves Q8).</strong> Narration keeps "you", re-aimed at whoever queued each action — the resolution response shifts second-person POV beat by beat. <span class="pill p-warn">Known risk</span>: POV-shifting prose within one response may read confusingly; validate with a cheap 2-PC harness playtest before trusting it (fallback options recorded in Q8).</td><td><span class="pill p-lock">Locked 2026-07-16</span></td></tr>
+    <tr><td>D11</td><td><strong>Hard splits are IN the first pass (resolves Q6).</strong> Per-character location tracking ships with hot-seat — different world locations, not just sub-location splits. This is now the hardest piece of the build (P5): per-PC location schema, a name-addressed location tag, GEOGRAPHY-block rework. Drift surface — design-first, pre-review before code.</td><td><span class="pill p-lock">Locked 2026-07-16</span></td></tr>
   </tbody>
 </table>
 </div>
@@ -151,27 +155,27 @@
 <p>The "more to consider" list — unresolved, ranked by how much they shape the build. Each has an editable answer block; jot resolutions as they land (saved in your browser).</p>
 
 <div class="q" id="q1">
-  <div class="qhead"><span class="qid">Q1</span>Tag routing at resolution — the big one. <span class="pill p-warn">Blocker</span></div>
+  <div class="qhead"><span class="qid">Q1</span>Tag routing at resolution — the big one. <span class="pill p-lock">Resolved → D8</span></div>
   <div class="qbody">When the GM resolves N actions in one response, an <code>[HP:-3]</code> or <code>[ITEM_LOST:]</code> must land on the <em>right</em> PC. Today all bare tags hit <code>worldState.character</code>. Options: teach the GM to address every player mutation with <code>COMPANION_</code>-style per-name tags, or a new addressing scheme. Deepest change; touches the drift surface.</div>
-  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a1" contenteditable="true"></div></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a1" contenteditable="true"><strong>Resolved 2026-07-16 (Fable planning round 2) → D8.</strong> The routing already exists: players 2–4 are party members with <code>charSheet</code>s, and <code>COMPANION_*</code> tags route by name today. No new addressing scheme, no parser or STATE TAGS changes. P4 shrinks to: a multiplayer prompt block (labeled round-block names ↔ party sheets, keep using <code>COMPANION_*</code> for non-hero PCs) + a soft misroute tripwire (bare mutation tag in a multi-PC round → console warn + toast, never a block).</div></div>
 </div>
 
 <div class="q" id="q2">
-  <div class="qhead"><span class="qid">Q2</span>Reload mid-round. <span class="pill p-open">Open</span></div>
+  <div class="qhead"><span class="qid">Q2</span>Reload mid-round. <span class="pill p-lock">Resolved</span></div>
   <div class="qbody">Persist the queued actions + whose turn is next, so a refresh between sub-turns doesn't drop the round.</div>
-  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a2" contenteditable="true"></div></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a2" contenteditable="true"><strong>Resolved 2026-07-16:</strong> <code>worldState.mpRound = {queue:[{name, action}], pointerIdx}</code> — rides <code>saveAll()</code> and the sync blob for free, cleared at resolution. Same transient-marker pattern as <code>recentSwitch</code>. Lands in P3.</div></div>
 </div>
 
 <div class="q" id="q3">
-  <div class="qhead"><span class="qid">Q3</span>Turn order. <span class="pill p-open">Open</span></div>
+  <div class="qhead"><span class="qid">Q3</span>Turn order. <span class="pill p-lock">Resolved</span></div>
   <div class="qbody">Fixed by party order, or player-reorderable? First pass likely fixed party order.</div>
-  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a3" contenteditable="true"></div></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a3" contenteditable="true"><strong>Resolved 2026-07-16:</strong> fixed party order; the pointer skips non-<code>isPC</code> members. Reordering is a later luxury.</div></div>
 </div>
 
 <div class="q" id="q4">
-  <div class="qhead"><span class="qid">Q4</span>Combat. <span class="pill p-open">Open</span></div>
+  <div class="qhead"><span class="qid">Q4</span>Combat. <span class="pill p-lock">Resolved → D9</span></div>
   <div class="qbody">Does round-robin collection coexist with combat, or does combat impose its own initiative? Interaction with the combat tracker unexamined.</div>
-  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a4" contenteditable="true"></div></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a4" contenteditable="true"><strong>Resolved 2026-07-16 → D9:</strong> collection rounds map 1:1 onto combat rounds — one labeled block per combat round, no separate initiative, combat tracker untouched.</div></div>
 </div>
 
 <div class="q" id="q5">
@@ -181,28 +185,35 @@
 </div>
 
 <div class="q" id="q6">
-  <div class="qhead"><span class="qid">Q6</span>Geographic separation — the split party. <span class="pill p-open">Open</span></div>
+  <div class="qhead"><span class="qid">Q6</span>Geographic separation — the split party. <span class="pill p-lock">Resolved → D11</span></div>
   <div class="qbody">The current vision assumes the party stays together — one scene, one shared "situation" the round resolves against. When players separate (Ammut scouts the docks while Morwen works the tavern), there are two scenes, two clocks, and one GM. Open design: does a round still resolve as one block, or each location independently? How does the hero-slot / party-bar model show who is <em>where</em>? Does the GM narrate parallel threads in one response, or alternate?
   <br><span class="note">Early finding (2026-07-13, user in-game test): played a turn as Ammut, left Morwen behind, switched control to Morwen — she was still where Ammut left her. The engine already tracks per-character position implicitly via the narrative, so a geographically split party may be closer to working than feared. More simulation to come; the real gap is likely GM narration of parallel threads, not state.</span></div>
-  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a6" contenteditable="true"></div></div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a6" contenteditable="true"><strong>Resolved 2026-07-16 → D11: hard splits ARE first-pass</strong> (user overruled the soft-splits-only recommendation). Consequences, now P5 — the hardest piece of the build: ① per-PC location field on the sheet (<code>null</code> = "with the party" → falls back to <code>world.location</code>; single-player byte-identity preserved); ② a name-addressed location tag (one TAG_TABLE entry registers parse+strip+docs together); ③ GEOGRAPHY-block rework — camera follows the active player; ④ open sub-designs for the P5 pre-review: whose location does bare <code>[LOCATION:]</code> move, what happens to map nodes/edges + NPC last-seen when threads move independently, and combat-clear-on-travel semantics per location. Round still resolves as ONE block across locations (D5 holds); party-bar entries grow a location chip so you can see who is where.</div></div>
 </div>
 
 <div class="q" id="q7">
   <div class="qhead"><span class="qid">Q7</span>Networked co-op / per-device. <span class="pill p-later">Later</span></div>
-  <div class="qbody">The full XL version — separate devices, live sync. Out of the hot-seat first pass.</div>
+  <div class="qbody">The full XL version — separate devices, live sync. Out of the hot-seat first pass. <strong>Stable entity IDs fold in HERE</strong>, not in the hot-seat pass (D8 note) — server-canonical state is what actually forces them.</div>
   <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a7" contenteditable="true"></div></div>
 </div>
 
-<h2 id="phases">Phased plan</h2>
+<div class="q" id="q8">
+  <div class="qhead"><span class="qid">Q8</span>Narration voice with 2+ PCs (raised 2026-07-16). <span class="pill p-lock">Resolved → D10</span></div>
+  <div class="qbody">With multiple PCs, who is "you"? Options considered: ensemble third-person by name (recommended — unambiguous for a passed phone); "you" = active player, re-aimed per action; hybrid (second person in sub-turn suggestions, ensemble in resolution).</div>
+  <div class="ans"><span class="ans-lbl">Answer</span><span class="savednote">saved</span><div class="ans-box editable" id="a8" contenteditable="true"><strong>Resolved 2026-07-16 → D10: "you" = whoever queued each action</strong> (user pick, over the ensemble recommendation). The resolution response shifts second-person POV beat by beat between players. Known risk: POV-shifting prose within one response. Validation gate: before trusting it, run a cheap 2-PC harness playtest (same runner pattern as the 2026-07-16 arc-nudge loop) and judge the prose; fallbacks if it reads badly are the hybrid or ensemble options above — user decides on evidence.</div></div>
+</div>
+
+<h2 id="phases">Phased plan <span class="note">(reworked 2026-07-16: D8 shrank P4; D11 added P5)</span></h2>
 <ol class="steps">
-  <li><strong>P1 — PC/NPC toggle (D1/D2).</strong> Replace the play button; add the confirm on demoting the last PC. Small, self-contained, shippable alone.</li>
-  <li><strong>P2 — activePlayer() accessor + display migration (D6/D7).</strong> The pointer, the accessor, the ~25-site display subset, the single-PC invariant test. No turn logic yet — pointer just follows a manual pick.</li>
-  <li><strong>P3 — Sub-turn loop (D3/D4/D5).</strong> Queue actions, rotate the pointer per sub-turn, per-PC suggestions, assemble the labeled block, one GM call. Q2 (reload persistence) lands here.</li>
-  <li><strong>P4 — Tag routing (Q1).</strong> The resolution-side mutation addressing. Design-first, drift-surface — the hardest and most dangerous piece, deliberately last so the plumbing above is proven before touching how state gets written.</li>
+  <li><strong>P1 — PC/NPC toggle (D1/D2/D8).</strong> The toggle flips <code>isPC</code> on the party member; confirm on demoting the last PC; <code>partyCompanionCap()</code> counts <code>isPC</code> as players. Small, self-contained, shippable alone.</li>
+  <li><strong>P2 — activePlayer() accessor + display migration (D6/D7).</strong> The pointer, the accessor, the ~25-site display subset, the single-PC byte-identity invariant test. No turn logic yet — pointer just follows a manual pick.</li>
+  <li><strong>P3 — Sub-turn loop (D3/D4/D5).</strong> Queue actions, rotate the pointer per sub-turn, per-PC suggestions, assemble the labeled block, one GM call. Q2's <code>worldState.mpRound</code> persistence lands here.</li>
+  <li><strong>P4 — Multiplayer prompt block + misroute tripwire (D8/D10).</strong> Shrunk from "tag routing" by D8: a volatile-half prompt block (round-block names ↔ party sheets; <code>COMPANION_*</code> for non-hero PCs; D10's per-action second-person narration instruction) + the soft bare-tag misroute warn. <strong>Validation gate:</strong> a cheap 2-PC harness playtest for D10's POV-shifting prose before calling P4 done.</li>
+  <li><strong>P5 — Per-character location / hard splits (D11).</strong> Now the hardest, most dangerous piece — inherits P4's old slot and its discipline: ⛨ drift surface (LOCATION handler, buildGeoBlock, map layer), design-first with a pre-review. Per-PC location schema (null = with-the-party fallback), name-addressed location tag (one TAG_TABLE entry), camera-follows-active-player geo block, party-bar location chips, and the D11 sub-designs (bare <code>[LOCATION:]</code> semantics, map/NPC-last-seen under independent threads, per-location combat-clear).</li>
 </ol>
 
 <footer>
-  Living doc — update the status pills as decisions land. Companion to TODO&nbsp;#1. ⛨ P4 is drift surface (tag write path) — design and pre-review before building.
+  Living doc — update the status pills as decisions land. Companion to TODO&nbsp;#1. ⛨ P5 is drift surface (location write path + geo injection) — design and pre-review before building; P4 carries the D10 prose-validation gate.
 </footer>
 </div>
 <script>
