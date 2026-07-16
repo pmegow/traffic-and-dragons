@@ -1,4 +1,10 @@
-var CACHE = "tnd-v3-20260716a";
+var CACHE = "tnd-v3-20260716b";
+// Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
+// Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
+// frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
+// EVERY deploy because CACHE bumps every deploy. Without a separate cache name, the purge (which
+// deletes every cache !== CACHE) would wipe the wasm and force a re-download per device per deploy.
+var PIPER_CACHE = "tnd-piper-v1";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -33,7 +39,10 @@ self.addEventListener("install", function(e){
 self.addEventListener("activate", function(e){
   e.waitUntil(
     caches.keys().then(function(keys){
-      return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));
+      // Spare PIPER_CACHE from the per-deploy purge (LOAD-BEARING — see the PIPER_CACHE comment
+      // above). Without this exemption the purge deletes it right along with the old app-shell
+      // cache on every deploy, and the dedicated cache name buys nothing.
+      return Promise.all(keys.filter(function(k){return k!==CACHE && k!==PIPER_CACHE;}).map(function(k){return caches.delete(k);}));
     })
   );
   self.clients.claim();
@@ -73,6 +82,24 @@ self.addEventListener("fetch", function(e){
         // Non-OK (502/404/…): prefer a good cached copy over showing the error; else return the error.
         return caches.match(e.request).then(function(cached){ return cached || response; });
       }).catch(function(){ return caches.match(e.request); }) // offline / network reject → cache
+    );
+    return;
+  }
+  // Vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2): cache-first against the dedicated
+  // PIPER_CACHE, not the versioned CACHE — keeps the ~20MB of wasm off the per-deploy purge cycle.
+  // Not part of APP_SHELL (never precached); first Piper use populates it, then it's permanent.
+  if(e.request.url.indexOf("/vendor/piper/") !== -1){
+    e.respondWith(
+      caches.match(e.request).then(function(cached){
+        if(cached) return cached;
+        return fetch(e.request).then(function(response){
+          if(response && response.status === 200 && response.type === "basic"){
+            var clone = response.clone();
+            caches.open(PIPER_CACHE).then(function(cache){ cache.put(e.request, clone); });
+          }
+          return response;
+        });
+      })
     );
     return;
   }

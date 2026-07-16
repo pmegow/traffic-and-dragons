@@ -13,3 +13,13 @@
   Cache-Control: no-cache
 /manifest.json
   Cache-Control: no-cache
+
+# Vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2) — frozen, same-origin, content-addressed
+# by path not name, so they're safe to cache hard. Backstops the SW's dedicated PIPER_CACHE (sw.js)
+# with a plain-HTTP-cache immutable rule. The "! Cache-Control" line DETACHES the value set by the
+# overlapping /*.js no-cache rule above before setting ours — without it, whether the later rule
+# overrides or appends is Cloudflare-semantics-dependent, and an appended "no-cache, immutable"
+# would silently defeat the backstop. Verify live with curl -I after deploy (Phase 5).
+/vendor/piper/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
