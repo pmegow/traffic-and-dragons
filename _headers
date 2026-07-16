@@ -5,7 +5,11 @@
 # precache and any cache miss fetch the CURRENT deploy's files, not a stale CDN
 # copy. Without this, a long edge/browser cache on the non-hashed asset names
 # could hide a deploy from the SW.
+# The /sw.js rule overlaps /*.js below; without a detach Cloudflare APPENDS, and production
+# served "Cache-Control: no-cache, no-cache" (harmless duplicate, caught by the 2026-07-16
+# deployed-origin verification #41/#56 — same mechanism the vendor rule's comment warns about).
 /sw.js
+  ! Cache-Control
   Cache-Control: no-cache
 /*.html
   Cache-Control: no-cache
