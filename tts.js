@@ -23,6 +23,97 @@ var TTS = (function() {
   var CARTESIA_MODEL    = "sonic-2";
   var SAMPLE_RATE       = 22050;
 
+  // ── Shared text-prep (TODO #41 Phase 1 — harvested from piper_test.html spike) ──────────────
+  // Provider-agnostic normalization + sentence-splitting. Cartesia (_stream, below) deliberately
+  // does NOT use splitSentences — it's a streaming API that handles a whole paragraph in one
+  // request; splitting it multiplies POSTs and breaks cross-sentence prosody (Fable review finding
+  // 2, todo_TTS_piper.md Phase 1). Native DOES use it: Chrome flakes on very long single utterances
+  // and per-sentence units give skip() finer granularity. A future engine (Piper) uses both.
+
+  // Dash handling is per-caller via dashRepl: browser speechSynthesis SWALLOWS em/en-dashes (no
+  // audible pause) but DOES honor an ellipsis pause, so the native path (below) passes "... " —
+  // this is the exact validated behavior of the old _dashToPause (retired into this function).
+  // Do NOT change native's dashRepl to a comma. Other callers may pass ", " (a comma "breath").
+  // Order matters: the literal-"..."→ellipsis collapse runs BEFORE the dash substitution, so a
+  // dashRepl of "... " (three literal dots) is not immediately re-collapsed into a single "…" —
+  // that would silently change the exact validated native-speech output.
+  function normalizeForTTS(text, dashRepl) {
+    if (dashRepl == null) dashRepl = ", ";
+    return (text || "")
+      .replace(/\s*\.\.\.+\s*/g, "… ")     // literal "..." already in the source → single ellipsis char
+      .replace(/\s*--\s*/g, dashRepl)      // spaced ASCII double-hyphen
+      .replace(/\s*[—–]\s*/g, dashRepl)    // em / en dash
+      .replace(/\n/g, " ")                 // intra-paragraph newline → space (paragraphs are split before this runs)
+      .replace(/[ \t]+/g, " ")
+      .trim();
+  }
+
+  // Max characters per speakable unit. A ~500-char run-on sentence (commas, no period) synthesized
+  // as one utterance can hang/stall single-threaded engines and reads as frozen, so no unit exceeds
+  // this — long sentences sub-split on clause boundaries, then hard-wrap on words if needed.
+  var MAX_UNIT = 220;
+
+  // Pack a too-long sentence into <=MAX_UNIT pieces: greedily on clause boundaries (, ; :), falling
+  // back to word-wrap for a single clause that's still too long.
+  function packLongUnit(s) {
+    if (s.length <= MAX_UNIT) return [s];
+    var clauses = s.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [s];
+    var out = [], buf = "";
+    function flush() { if (buf.trim()) { out.push(buf.trim()); buf = ""; } }
+    for (var i = 0; i < clauses.length; i++) {
+      var c = clauses[i].trim();
+      if (!c) continue;
+      if (c.length > MAX_UNIT) {
+        flush();
+        var words = c.split(/\s+/), wb = "";
+        for (var w = 0; w < words.length; w++) {
+          if (wb && (wb + " " + words[w]).length > MAX_UNIT) { out.push(wb); wb = words[w]; }
+          else wb = wb ? wb + " " + words[w] : words[w];
+        }
+        if (wb) buf = wb;   // carry remainder to pack with the next clause
+      } else if (buf && (buf + " " + c).length > MAX_UNIT) {
+        flush(); buf = c;
+      } else {
+        buf = buf ? buf + " " + c : c;
+      }
+    }
+    flush();
+    return out;
+  }
+
+  // Split prose into speakable units: paragraphs (blank-line separated) → sentences → MAX_UNIT-capped
+  // pieces. paraEnd (wider gap) marks only the final piece of the final sentence of a paragraph.
+  // The boundary regex tolerates closing quotes/brackets after terminal punctuation (`"Run!" she
+  // said.` → two units) — without that, match()/g silently SKIPS the unmatchable span and the
+  // quoted line is dropped from the spoken output entirely (audible content loss, caught in the
+  // Phase 1 build). Known remaining limit: punctuation with no following space ("file.name",
+  // "3.5 gold", abbreviations) still defeats the regex — the no-loss net below catches every such
+  // case by comparing non-whitespace content and falling back to the whole paragraph as one
+  // (MAX_UNIT-capped) run, with a console.warn so it's never silent.
+  function splitSentences(text, dashRepl) {
+    var paras = (text || "").split(/\n\s*\n/);
+    var out = [];
+    for (var p = 0; p < paras.length; p++) {
+      var norm = normalizeForTTS(paras[p], dashRepl);
+      if (!norm) continue;
+      var parts = norm.match(/[^.!?…]+[.!?…]+["'”’»)\]]*(?=\s|$)|[^.!?…]+$/g) || [norm];
+      if (parts.join("").replace(/\s+/g, "") !== norm.replace(/\s+/g, "")) {
+        console.warn("[tts] sentence split would lose text — speaking paragraph unsplit (len " + norm.length + ")");
+        parts = [norm];
+      }
+      for (var i = 0; i < parts.length; i++) {
+        var sent = parts[i].trim();
+        if (!sent) continue;
+        var lastSentence = (i === parts.length - 1);
+        var subs = packLongUnit(sent);
+        for (var j = 0; j < subs.length; j++) {
+          out.push({ text: subs[j], paraEnd: (lastSentence && j === subs.length - 1) });
+        }
+      }
+    }
+    return out;
+  }
+
   var _queue      = [];
   var _playing    = false;
   var _paused     = false;
@@ -166,26 +257,37 @@ var TTS = (function() {
   }
 
   // ── Native (browser speechSynthesis) path ────────────────────────────────────
-  // The browser's speechSynthesis swallows em/en-dashes (no pause). Ellipses get a real
-  // beat, so convert dashes — and spaced ASCII "--" — to "..." for native narration only.
-  // On-screen prose and Cartesia (which handles dashes) are untouched.
-  function _dashToPause(text) {
-    return (text || "").replace(/\s*--\s*/g, "... ").replace(/\s*[—–]\s*/g, "... ");
-  }
-
+  // Splits into units (dashRepl "... " — see the normalizeForTTS comment for why) and speaks
+  // them as CHAINED utterances: unit i's onend triggers unit i+1, and the final unit's onend
+  // hands off to _drain(). A single long paragraph as one utterance is what used to flake on
+  // Chrome; chaining also gives skip() per-sentence granularity instead of per-paragraph.
   function _speakNative(text) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { _drain(); return; }
+    var units = splitSentences(text, "... ");
+    if (!units.length) { _drain(); return; }
+    try { window.speechSynthesis.cancel(); } catch(e) {}   // clear any stuck/previous utterance before starting the chain
+    _speakNativeUnit(units, 0);
+  }
+
+  function _speakNativeUnit(units, i) {
+    if (i >= units.length) { _nativeUtter = null; _drain(); return; }
     try {
-      window.speechSynthesis.cancel();            // clear any stuck/previous utterance
-      var u = new SpeechSynthesisUtterance(_dashToPause(text));
+      var u = new SpeechSynthesisUtterance(units[i].text);
       u.rate = 1.0; u.pitch = 1.0;
       var nv = _resolveNativeVoice();   // saved pick → preferred default → OS default
       if (nv) u.voice = nv;
       _nativeUtter = u;
-      u.onend   = function() { _nativeUtter = null; _drain(); };
-      u.onerror = function() { _nativeUtter = null; _drain(); };
+      u.onend   = function() { _speakNativeUnit(units, i + 1); };
+      u.onerror = function(e) {
+        // Do not let one bad unit silently kill the rest of the chain — warn and continue.
+        console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " failed, skipping:", e && e.error);
+        _speakNativeUnit(units, i + 1);
+      };
       window.speechSynthesis.speak(u);
-    } catch (e) { _nativeUtter = null; _drain(); }
+    } catch (e) {
+      console.warn("[tts] native speak failed:", e.message);
+      _nativeUtter = null; _drain();
+    }
   }
 
   // ── Streaming core ──────────────────────────────────────────────────────────
@@ -612,7 +714,10 @@ var TTS = (function() {
     stop:              stop,
     showSettingsModal: showSettingsModal,
     primeAudioSession:     primeAudioSession,
-    stopAudioSessionPrimer: stopAudioSessionPrimer
+    stopAudioSessionPrimer: stopAudioSessionPrimer,
+    // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
+    // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
+    _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit }
   };
 
 })();

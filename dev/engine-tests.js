@@ -3323,4 +3323,66 @@ function runEngineTests(R){
     migrateWorldState();
     return ci.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"second migrate mangled stacks: "+ci.join("|");
   });
+
+  // ── TTS shared text-prep (TODO #41 Phase 1 — normalizeForTTS/splitSentences/packLongUnit) ──
+  section("TTS text-prep (#41 Phase 1)");
+  var _tp=TTS._textPrep;
+  t("run-on sentence (commas, no period, 500+ chars) splits into MAX_UNIT-capped units",function(){
+    var clause="the wind carries ash and cinder and the smell of a town that has been screaming for days on end";
+    var s=clause;
+    while(s.length<500)s+=", "+clause;
+    var units=_tp.splitSentences(s);
+    if(!units.length)return "expected units, got none";
+    for(var i=0;i<units.length;i++)if(units[i].text.length>220)return "unit "+i+" exceeds MAX_UNIT: "+units[i].text.length;
+    return units.length>1?true:"expected multiple units for a 500+ char run-on, got "+units.length;
+  });
+  t("two-paragraph input: paraEnd true only on each paragraph's final unit",function(){
+    var text="First sentence. Second sentence.\n\nThird sentence. Fourth sentence.";
+    var units=_tp.splitSentences(text);
+    if(units.length!==4)return "expected 4 sentence units, got "+units.length+": "+JSON.stringify(units);
+    var flags=units.map(function(u){return u.paraEnd;});
+    return JSON.stringify(flags)===JSON.stringify([false,true,false,true])?true:"paraEnd flags wrong: "+JSON.stringify(flags);
+  });
+  t("empty / whitespace-only input yields no units",function(){
+    if(_tp.splitSentences("").length!==0)return "empty string produced units";
+    return _tp.splitSentences("   \n\n   ").length===0?true:"whitespace-only produced units";
+  });
+  t("dialogue with quotes: closing quote after terminal punctuation loses NOTHING (the pre-fix regex dropped the quoted line)",function(){
+    // `"Run!" she said.` — pre-fix, the closing quote after `!` defeated the boundary lookahead and
+    // match()/g silently SKIPPED the span: `"Run!` vanished from the spoken output (content loss,
+    // caught during the Phase 1 build). The regex now tolerates quotes/brackets after terminal
+    // punctuation, so the quoted exclamation becomes its own unit and every character survives.
+    var units=_tp.splitSentences('"Run!" she said. Next sentence.');
+    var joined=units.map(function(u){return u.text;}).join(" ").replace(/\s+/g,"");
+    var want='"Run!" she said. Next sentence.'.replace(/\s+/g,"");
+    if(joined!==want)return "content lost or altered: "+JSON.stringify(units);
+    return units[0].text==='"Run!"'?true:"expected the quoted line as its own unit, got "+JSON.stringify(units);
+  });
+  t("no-loss safety net: punctuation the regex can't split (mid-token period) falls back to the whole paragraph, loudly",function(){
+    // "file.name" / "3.5 gold" style tokens still defeat the boundary regex — the net compares
+    // non-whitespace content and speaks the paragraph unsplit rather than dropping the span.
+    var input="Check the ledger marked profits.q3 before dawn. Then burn it.";
+    var units=_tp.splitSentences(input);
+    var joined=units.map(function(u){return u.text;}).join(" ").replace(/\s+/g,"");
+    return joined===input.replace(/\s+/g,"")?true:"net failed, content lost: "+JSON.stringify(units);
+  });
+  t("dashRepl honored: native passes literal ellipsis-dots, default passes a comma breath",function(){
+    var native=_tp.normalizeForTTS("Wait — stop","... ");
+    if(native!=="Wait... stop")return "native dashRepl not honored: "+JSON.stringify(native);
+    var def=_tp.normalizeForTTS("Wait — stop");
+    return def==="Wait, stop"?true:"default dashRepl not honored: "+JSON.stringify(def);
+  });
+  t("intra-paragraph single newline collapses to a space",function(){
+    var out=_tp.normalizeForTTS("Line one\nLine two");
+    return out==="Line one Line two"?true:"got "+JSON.stringify(out);
+  });
+  t("over-long single clause (no commas/semicolons/colons) word-wraps under MAX_UNIT",function(){
+    var words=[];for(var i=0;i<60;i++)words.push("wordwordword"+i);
+    var clause=words.join(" ");
+    if(clause.length<=220)return "test fixture too short: "+clause.length;
+    var out=_tp.packLongUnit(clause);
+    if(out.length<2)return "expected word-wrap into multiple units, got "+out.length;
+    for(i=0;i<out.length;i++)if(out[i].length>220)return "unit "+i+" exceeds MAX_UNIT: "+out[i].length;
+    return true;
+  });
 }
