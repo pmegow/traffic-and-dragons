@@ -632,7 +632,7 @@ var TTS = (function() {
     var mod = await _piperInit();
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
-    if (stored.indexOf(voiceId) !== -1) { _piperDownloaded[voiceId] = true; return; }
+    if (stored.indexOf(voiceId) !== -1) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
     if (typeof showToast === "function") showToast("⬇ Downloading narrator voice — one-time, cached after");
     var lastPct = -1;
     try {
@@ -649,6 +649,7 @@ var TTS = (function() {
       throw e;
     }
     _piperDownloaded[voiceId] = true;
+    _updatePiperErr();   // repaint the modal's "not downloaded yet" info line if it's open (found stale in Phase 5 preview)
     if (typeof showToast === "function") showToast("✓ Narrator voice ready");
   }
 
