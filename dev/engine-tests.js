@@ -1785,9 +1785,10 @@ function runEngineTests(R){
   t("derived cleanTxt strip regex is byte-identical to the frozen literal",function(){
     // Frozen v1.240; updated v1.263 (UA25: +COMPANION_SPELL_USED strip entry — golden diffed by
     // eye in the same commit), v1.306 (#57: +NPC_SUPERSEDE strip entry — source grew exactly 14
-    // chars = "NPC_SUPERSEDE|"). A registry edit that changes stripping MUST consciously update
+    // chars = "NPC_SUPERSEDE|"), v1.307 (#40 GM tag: +CORE_MEMORY strip entry, +12 chars =
+    // "CORE_MEMORY|"). A registry edit that changes stripping MUST consciously update
     // these numbers.
-    if(__djb2(_CT_TAGS.source)!==-1374868737||_CT_TAGS.source.length!==875)return "_CT_TAGS diverged from the frozen literal";
+    if(__djb2(_CT_TAGS.source)!==-1912581764||_CT_TAGS.source.length!==887)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -1796,9 +1797,10 @@ function runEngineTests(R){
     // both CONDITION lines), v1.268 (#47 epithet clause), v1.269 (#50a consumption+provenance
     // lines), v1.273 (P3-F2 rewards-paid-exactly-once line), v1.275 (#51 gold-economy trio +
     // P3-F3 travel rule), v1.276 (#47 epithet policy rewrite + P3-F4 TAKING IS TAGGED line),
-    // v1.306 (#57: the one NPC_SUPERSEDE doc line, +370 chars). Golden diffed by eye each time.
+    // v1.306 (#57: the one NPC_SUPERSEDE doc line, +370 chars), v1.307 (#40 GM tag: the one
+    // CORE_MEMORY doc line, +503 chars). Golden diffed by eye each time.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1813813983&&d.length===12370)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===2118131806&&d.length===12873)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -3751,5 +3753,56 @@ function runEngineTests(R){
     if(memory.npcs["Woman in Bronze"])return "duplicate entry survived the merge";
     if((memory.npcs["Daeris"].knowledge||[]).indexOf("seen at the harbor at night")<0)return "duplicate's knowledge not absorbed: "+JSON.stringify(memory.npcs["Daeris"].knowledge);
     return buildMergeConfirmNudge()===""?true:"nudge re-fired after the fork was healed";
+  });
+
+  // ── #40 GM tag: [CORE_MEMORY:subject|text] — the deferred enrichment layer (v1.307) ──
+  section("#40 GM tag: CORE_MEMORY");
+  function __cmParty(name,dead){worldState.npcs.push({name:name,status:dead?"dead":"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:name,cls:"Cleric",level:2,hp:12,maxHp:12,xp:0,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});}
+  t("CORE_MEMORY files witnessed-by-all through the ONE write path (fileCoreMemory): player + living party, kind gm, camp stamp, toast, muts",function(){
+    makeWorld();worldState.campName="Testlands";
+    __cmParty("Lyra");__cmParty("Bram",true);/* dead — excluded unless subject */
+    var R=applyMuts("Vows are spoken. [CORE_MEMORY:Lyra|Lyra and Tess swore the Dawn Oath at the chapel.]");
+    function has(list){var i;for(i=0;i<(list||[]).length;i++){if(list[i].kind==="gm"&&list[i].who==="Lyra"&&list[i].camp==="Testlands"&&list[i].text.indexOf("Dawn Oath")>=0)return true;}return false;}
+    if(!has(worldState.character.coreMemories))return "player sheet missing the moment";
+    if(!has(worldState.npcs[0].charSheet.coreMemories))return "living party member missing the moment";
+    if(worldState.npcs[1].charSheet.coreMemories&&worldState.npcs[1].charSheet.coreMemories.length)return "dead non-subject received the moment";
+    if(!__toasts.filter(function(m){return m.indexOf("★ Defining moment")>=0;}).length)return "no ★ toast";
+    return (R.muts.join("|").indexOf("★ Defining moment (Lyra)")>=0)?true:"muts line missing: "+R.muts.join("|");
+  });
+  t("CORE_MEMORY subject routes through resolveNpcName (alias → canonical who); dead SUBJECT still carries their own moment",function(){
+    makeWorld();
+    __cmParty("Morwen Zethran",true);
+    memory.npcs["Morwen Zethran"]={attitude:"warm",knowledge:[],events:[],aliases:["Morwen"]};
+    applyMuts("[CORE_MEMORY:Morwen|Morwen Zethran fell holding the pass so the party could escape.]");
+    var cm=worldState.npcs[0].charSheet.coreMemories;
+    if(!cm||cm.length!==1)return "dead subject did not carry their own moment: "+JSON.stringify(cm);
+    return cm[0].who==="Morwen Zethran"?true:"alias not resolved: "+cm[0].who;
+  });
+  t("CORE_MEMORY same-subject same-turn duplicate dedupes (spam control) — second emission files nothing and warns",function(){
+    makeWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var R;try{R=applyMuts("[CORE_MEMORY:Tess|Tess was crowned.][CORE_MEMORY:Tess|Tess was also something else entirely.]");}finally{console.warn=_w;}
+    if(worldState.character.coreMemories.length!==1)return "expected exactly 1 filed, got "+worldState.character.coreMemories.length;
+    if(R.muts.filter(function(m){return m.indexOf("★")>=0;}).length!==1)return "muts claimed the deduped file";
+    return warns.filter(function(m){return m.indexOf("not filed")>=0;}).length===1?true:"no dedupe warn";
+  });
+  t("CORE_MEMORY over-long text is clamped at a word boundary with a LOUD warn (entries cost prompt tokens forever)",function(){
+    makeWorld();
+    var long="Tess did a great many things this day and the chronicler refused to stop writing about any of them "+new Array(8).join("padding words here ");
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[CORE_MEMORY:Tess|"+long+"]");}finally{console.warn=_w;}
+    var cm=worldState.character.coreMemories;
+    if(!cm||cm.length!==1)return "not filed";
+    if(cm[0].text.length>201)return "not clamped: "+cm[0].text.length;
+    if(cm[0].text.slice(-1)!=="…")return "clamp lost the ellipsis marker";
+    return warns.filter(function(m){return m.indexOf("clamped")>=0;}).length===1?true:"clamp was silent";
+  });
+  t("CORE_MEMORY: stripped from display text and known to the vocabulary (no unknown-tag warn)",function(){
+    makeWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("Prose. [CORE_MEMORY:Tess|Tess swore an oath.]");}finally{console.warn=_w;}
+    if(warns.filter(function(m){return m.indexOf("unknown tag")>=0||m.indexOf("UNKNOWN")>=0;}).length)return "unknown-tag scan flagged a registered tag";
+    var c=cleanTxt("Prose. [CORE_MEMORY:Tess|Tess swore an oath.] More.");
+    return c.indexOf("CORE_MEMORY")<0?true:"tag leaked to the player: "+c;
   });
 }

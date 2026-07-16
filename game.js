@@ -525,6 +525,7 @@ function fileCoreMemory(kind,who,text){
     fileTo(n.charSheet);
   }
   if(filedAny&&typeof showToast==="function")showToast("★ Defining moment: "+text);
+  return filedAny;/* #40 GM tag (v1.307): lets the CORE_MEMORY handler report honestly — no muts line for a deduped no-op */
 }
 function detectCoreMoments(pre){
   if(!pre||!worldState||!worldState.character)return;
