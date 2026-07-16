@@ -18,6 +18,111 @@ var TTS = (function() {
   var NATIVE_K = "tnd_tts_native_v1";   // use the browser's built-in speechSynthesis instead of Cartesia
   var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native voice, stored BY NAME (voice list differs per device)
   var NVOICE_DEFAULT = "Google US English"; // preferred voice when the user hasn't picked one (falls back to OS default if absent)
+  var TTS_TEST_LINE = "The lightless mass rotates, and the weapon-notation locks into place.";
+
+  // ── Engine selection (TODO #41 Phase 4) ─────────────────────────────────────
+  // Explicit engine choice, layered over the implicit native-vs-Cartesia branch that existed
+  // before Piper. ENGINE_K unset (every pre-Phase-4 save/device) MUST reproduce today's behavior
+  // exactly — see getEngine() below. Selection (getEngine) is INTENT; runtime availability
+  // (_cartesiaOk/_piperOk) is a separate ladder that can still downgrade a selected engine to
+  // native for one item — see speak().
+  var ENGINE_K = "tnd_tts_engine_v1";
+
+  // ── Piper voice stable (TODO #41 Phase 4, §5 Q6 — mirrors AUTHORS/proseAuthor) ──────────────
+  // The 8 voices validated in the piper_test.html spike. "medium" models run ~60MB, "high" larger;
+  // vits-web caches the .onnx in OPFS after the first download, so the cost is paid once per voice
+  // per device/origin.
+  var PIPER_VOICES = [
+    { id:"en_US-lessac-medium", label:"Lessac — warm US narrator (default)",
+      blurb:"Balanced, warm American voice — the house default. First use downloads once (~60MB), then cached." },
+    { id:"en_US-ryan-high", label:"Ryan — US male, high quality",
+      blurb:"Higher-fidelity US male voice (larger model than the mediums). First use downloads once, then cached." },
+    { id:"en_GB-alan-medium", label:"Alan — British male",
+      blurb:"UK male voice. First use downloads once (~60MB), then cached." },
+    { id:"en_GB-northern_english_male-medium", label:"Northern English male",
+      blurb:"UK male voice, Northern English accent. First use downloads once (~60MB), then cached." },
+    { id:"en_US-hfc_male-medium", label:"HFC male — US",
+      blurb:"US male voice. First use downloads once (~60MB), then cached." },
+    { id:"en_US-amy-medium", label:"Amy — US female",
+      blurb:"US female voice. First use downloads once (~60MB), then cached." },
+    { id:"en_US-hfc_female-medium", label:"HFC female — US",
+      blurb:"US female voice. First use downloads once (~60MB), then cached." },
+    { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, expressive multi-speaker",
+      blurb:"US voice, more expressive/varied prosody. First use downloads once (~60MB), then cached." }
+  ];
+  var PVOICE_K = "tnd_piper_voice_v1"; // device-default Piper voice id
+
+  // Two-tier voice scope — EXACTLY the worldState.proseAuthor pattern (ui.js showProseModal /
+  // PROSE_K): a per-campaign pick rides the sync blob (worldState.piperVoice) and wins when set;
+  // an unset/pre-game campaign falls back to the device default (PVOICE_K); an unset device falls
+  // back to the house default voice. Guard every worldState access — tts.js can run pre-game,
+  // and worldState itself is `null` until a campaign is loaded (state.js).
+  function resolvePiperVoice() {
+    return (typeof worldState !== "undefined" && worldState && worldState.piperVoice) || store.get(PVOICE_K) || "en_US-lessac-medium";
+  }
+
+  // Save semantics mirror showProseModal's Save handler exactly (ui.js, PROSE_K precedent):
+  // always write the device default so future/unset campaigns inherit the pick; ADDITIONALLY pin
+  // it to the live campaign (rides the sync blob) only when a campaign actually exists to pin it
+  // to. Pre-game, there is no worldState.character yet, so only the device default is written.
+  function savePiperVoice(id) {
+    store.set(PVOICE_K, id);
+    if (typeof worldState !== "undefined" && worldState && worldState.character) {
+      worldState.piperVoice = id;
+      if (typeof saveAll === "function") saveAll();
+    }
+  }
+
+  // getEngine() — explicit ENGINE_K wins. When unset (every save/device that predates Phase 4),
+  // LEGACY INFERENCE reproduces today's behavior byte-for-byte so an existing user's TTS doesn't
+  // silently change out from under them: isNative() checked → "native"; else a saved Cartesia key
+  // → "cartesia" (matches _cartesiaOk()'s key requirement); else "native" (today's ultimate
+  // fallback when nothing is configured).
+  function getEngine() {
+    var explicit = store.get(ENGINE_K);
+    if (explicit === "native" || explicit === "cartesia" || explicit === "piper") return explicit;
+    if (isNative()) return "native";
+    if (getKey()) return "cartesia";
+    return "native";
+  }
+
+  // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
+  // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
+  // instead of if(engine===...) branches. Provider-specific quirks (Cartesia's voice-bank
+  // requirement, Piper's voiceId resolution) live in that entry's own functions, never in speak().
+  // available()      — runtime usability check (separate from selection; see the ENGINE_K comment).
+  // enqueue(text,vId) — builds the _queue item, or returns null/undefined when the provider can't
+  //                     produce one right now (e.g. Cartesia with no voice configured) — speak()
+  //                     preserves the old car-mode-only fallback for that specific case.
+  // fallbackReason()  — human-readable reason shown by the settings-modal indicator when this
+  //                     engine downgrades to native for an item.
+  var TTS_PROVIDERS = {
+    native: {
+      id: "native", label: "Native (device voice)",
+      hint: "Your browser/OS built-in voice. No key needed, works everywhere, lower quality. Always the fallback target for the other engines.",
+      available: function() { return true; },
+      enqueue: function(text) { return { text: text, native: true }; },
+      fallbackReason: function() { return ""; }
+    },
+    cartesia: {
+      id: "cartesia", label: "Cartesia (cloud, high quality)",
+      hint: "Studio-quality cloud voices. Requires an API key and a saved voice.",
+      available: function() { return _cartesiaOk(); },
+      enqueue: function(text, voiceIdArg) {
+        var voiceId = voiceIdArg || getVoice();
+        if (!voiceId || !getKey()) return null;   // "no Cartesia voice configured" — speak() keeps the car-mode-only fallback
+        return { text: text, voiceId: voiceId };
+      },
+      fallbackReason: function() { return _cartesiaError || (!getKey() ? "no Cartesia key" : "Cartesia unavailable"); }
+    },
+    piper: {
+      id: "piper", label: "Piper (local, offline, $0)",
+      hint: "Synthesizes on-device — free, works offline. First use per voice downloads once (~60MB), then cached.",
+      available: function() { return _piperOk(); },
+      enqueue: function(text) { return { text: text, piper: true, voiceId: resolvePiperVoice() }; },
+      fallbackReason: function() { return _piperError || "Piper engine unavailable"; }
+    }
+  };
 
   // ── Voice bank ─────────────────────────────────────────────────────────────
 
@@ -154,7 +259,9 @@ var TTS = (function() {
     if (_cartesiaError && Date.now() - _cartesiaErrorAt > 300000) { _cartesiaError = ""; _updateCartErr(); }
     return !!getKey() && !_cartesiaError;
   }
-  function _useNative()  { return isNative() || !_cartesiaOk(); }
+  // (the old _useNative() = isNative()||!_cartesiaOk() helper is retired — speak() now dispatches
+  // through TTS_PROVIDERS[getEngine()].available(), which reproduces the same check for "cartesia"
+  // and adds "piper"; see the speak() comment for the exact behavior-preservation argument.)
 
   // ── Toggle ─────────────────────────────────────────────────────────────────
 
@@ -163,6 +270,7 @@ var TTS = (function() {
     store.set(ON_K, on ? "1" : "");
     if (on) {
       _ensureCtx();  // create AudioContext NOW, inside the user gesture
+      if (getEngine() === "piper") prewarmPiper(resolvePiperVoice());  // §5 Q4 — off the critical path of the first real line
     } else {
       stop();
       _closeCtx();
@@ -226,15 +334,35 @@ var TTS = (function() {
 
   function speak(text, voiceId) {
     if (!text || !text.trim()) return;
-    _lastSpokenText = text.trim();
-    if (_useNative()) { _queue.push({ text: text.trim(), native: true }); if (!_playing) _drain(); return; }
-    voiceId = voiceId || getVoice();
-    if (!voiceId || !getKey()) {
-      // No Cartesia voice configured — in car mode fall back to native so audio still plays
-      if (typeof carMode !== "undefined" && carMode) { _queue.push({ text: text.trim(), native: true }); if (!_playing) _drain(); }
+    var trimmed = text.trim();
+    _lastSpokenText = trimmed;
+
+    var engine = getEngine();
+    var prov = TTS_PROVIDERS[engine] || TTS_PROVIDERS.native;
+
+    // Runtime degradation ladder — separate from selection (ENGINE_K/getEngine above). A selected
+    // engine that isn't usable RIGHT NOW falls back to native for this item, unconditionally
+    // (matches pre-Phase-4 _useNative() behavior: isNative() OR !_cartesiaOk() went straight to
+    // native, no car-mode gating). Loud per no-silent-failures: warn + surface the reason in the
+    // settings modal indicator so the user can see WHY they're hearing the fallback voice.
+    if (engine !== "native" && !prov.available()) {
+      console.warn("[tts] " + engine + " unavailable (" + prov.fallbackReason() + ") — falling back to native for this line");
+      if (engine === "piper") _updatePiperErr();
+      _queue.push({ text: trimmed, native: true });
+      if (!_playing) _drain();
       return;
     }
-    _queue.push({ text: text.trim(), voiceId: voiceId });
+
+    var item = prov.enqueue(trimmed, voiceId);
+    if (!item) {
+      // Provider is "available" but couldn't build an item this turn (Cartesia: no voice
+      // configured). Preserves the exact old semantics: car mode still wants audio via native;
+      // outside car mode this is a silent no-op (the pre-existing "no Cartesia voice configured"
+      // early return).
+      if (typeof carMode !== "undefined" && carMode) { _queue.push({ text: trimmed, native: true }); if (!_playing) _drain(); }
+      return;
+    }
+    _queue.push(item);
     if (!_playing) _drain();
   }
 
@@ -433,10 +561,10 @@ var TTS = (function() {
     });
   }
 
-  // ── Piper (local WASM) engine — TODO #41 Phase 3 ────────────────────────────
+  // ── Piper (local WASM) engine — TODO #41 Phase 3/4 ──────────────────────────
   // Vendored, same-origin ORT + vits-web (Phase 2: vendor/piper/, import map in index.html).
-  // ENGINE ONLY here — nothing in _drain()/speak() routes to it by default yet (Phase 4 owns the
-  // provider table + dispatch). Mirrors the shape of _stream() above: a synth-then-schedule loop
+  // Dispatched from speak() via TTS_PROVIDERS.piper (Phase 4, above) and from _drain()'s
+  // item.piper branch. Mirrors the shape of _stream() above: a synth-then-schedule loop
   // feeding the same AudioContext/_sources/_nextStart scheduler, so pause()/skip()/stop() work
   // unchanged. Unlike Cartesia's fetch (which AbortController can cancel), an in-flight WASM
   // predict() call cannot be aborted — so every await below is followed by an epoch check that
@@ -450,15 +578,20 @@ var TTS = (function() {
   var _piperErrorAt   = 0;     // when it was recorded — auto-retried after 5 min, same as Cartesia
   var _piperEpoch     = 0;     // generation counter — bumped by _speakPiper (new synth) and
                                 // _stopCurrent() (skip/stop); a stale await checks this and bails
+  var _piperDownloaded = {};   // voiceId -> true, session-local cache-hit memory for the settings
+                                // modal's "not downloaded yet" indicator (_updatePiperErr, below).
+                                // Populated by _piperEnsureVoice; deliberately NOT persisted and
+                                // NOT authoritative — OPFS is the real cache, this is UI-only best-
+                                // effort so opening the modal never forces an engine init/OPFS read.
 
   var PIPER_ORT_PATH = "/vendor/piper/ort/";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js";
 
-  // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. No caller routes
-  // speak() through Piper yet (Phase 4 owns dispatch); prewarmPiper uses this so a known-broken
-  // engine isn't re-attempted on every TTS toggle-on inside the retry window.
+  // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. Backs both
+  // TTS_PROVIDERS.piper.available() (speak()'s dispatch) and prewarmPiper (so a known-broken
+  // engine isn't re-attempted on every TTS toggle-on inside the retry window).
   function _piperOk() {
-    if (_piperError && Date.now() - _piperErrorAt > 300000) { _piperError = ""; _piperErrorAt = 0; }
+    if (_piperError && Date.now() - _piperErrorAt > 300000) { _piperError = ""; _piperErrorAt = 0; _updatePiperErr(); }
     return !_piperError;
   }
 
@@ -499,7 +632,7 @@ var TTS = (function() {
     var mod = await _piperInit();
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
-    if (stored.indexOf(voiceId) !== -1) return;
+    if (stored.indexOf(voiceId) !== -1) { _piperDownloaded[voiceId] = true; return; }
     if (typeof showToast === "function") showToast("⬇ Downloading narrator voice — one-time, cached after");
     var lastPct = -1;
     try {
@@ -515,6 +648,7 @@ var TTS = (function() {
       if (typeof showToast === "function") showToast("⚠ Narrator voice download failed — using fallback voice");
       throw e;
     }
+    _piperDownloaded[voiceId] = true;
     if (typeof showToast === "function") showToast("✓ Narrator voice ready");
   }
 
@@ -622,7 +756,8 @@ var TTS = (function() {
   // off the critical path of the user's first real narration. Snapshots (does not bump) the epoch
   // — a prewarm must never invalidate a real in-flight _speakPiper loop; it only needs to know
   // whether IT has been superseded, so its own discarded result isn't worth chasing further.
-  // Exported on the public API. Nothing calls this yet — Phase 4 wires it to TTS-enable.
+  // Exported on the public API. Wired to TTS-enable by toggle() and to the settings modal's Save
+  // handler (both: only when the selected engine is Piper) — see §5 Q4.
   function prewarmPiper(voiceId) {
     if (!_piperOk()) return;   // known-broken within the retry window — don't hammer it every toggle-on
     var myEpoch = _piperEpoch;
@@ -715,6 +850,43 @@ var TTS = (function() {
     el.style.display = msg ? "inline" : "none";
   }
 
+  // Red indicator beside the Piper voice label — mirrors _updateCartErr's shape exactly (one
+  // span, error takes priority over the informational "not downloaded yet" note). Deliberately
+  // synchronous (no await/init here — this file's async surface is confined to the four Piper
+  // adapter functions, see the header comment): _piperDownloaded is session-local best-effort
+  // memory populated by _piperEnsureVoice/_piperRefreshDownloaded, not a live OPFS query, so
+  // opening the settings modal never forces an engine load just to paint this indicator.
+  function _updatePiperErr() {
+    var el = document.getElementById("tts-piper-err");
+    if (!el) return;
+    var msg = "", isErr = false;
+    if (_piperError) {
+      msg = "⚠ " + _piperError + " — using native voice";
+      isErr = true;
+    } else {
+      var sel = document.getElementById("tts-piper-sel");
+      var voiceId = sel ? sel.value : resolvePiperVoice();
+      if (voiceId && !_piperDownloaded[voiceId]) msg = "voice not downloaded yet — downloads on first use (~60MB, cached)";
+    }
+    el.textContent = msg;
+    el.title = msg;
+    // red is reserved for real failures; the not-downloaded-yet line is info, not an error
+    el.style.color = isErr ? "#e06060" : "var(--t2)";
+    el.style.display = msg ? "inline" : "none";
+  }
+
+  // Opportunistic, non-blocking refresh of _piperDownloaded from the engine's real OPFS listing —
+  // ONLY when the engine is already warm (_piperMod set, e.g. from a prior prewarmPiper this
+  // session). Never triggers an engine load itself. Plain .then() callback, not async/await, per
+  // the file's async-surface convention.
+  function _piperRefreshDownloaded() {
+    if (!_piperMod || typeof _piperMod.stored !== "function") return;
+    _piperMod.stored().then(function(stored) {
+      for (var i = 0; i < stored.length; i++) _piperDownloaded[stored[i]] = true;
+      _updatePiperErr();
+    }).catch(function() {});
+  }
+
   function _buildVoiceOptions() {
     var bank = getBank(), cur = getVoice(), html = "", found = false;
     if (!bank.length) return "<option value='' disabled selected>— no voices saved yet —</option>";
@@ -751,10 +923,33 @@ var TTS = (function() {
     }
     try {
       speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance("The lightless mass rotates, and the weapon-notation locks into place.");
+      var u = new SpeechSynthesisUtterance(TTS_TEST_LINE);
       var v = _findNativeVoice(name); if (v) u.voice = v;
       speechSynthesis.speak(u);
     } catch (e) {}
+  }
+
+  function _buildEngineOptions() {
+    var cur = getEngine(), html = "", order = ["native", "cartesia", "piper"];
+    for (var i = 0; i < order.length; i++) {
+      var p = TTS_PROVIDERS[order[i]];
+      html += "<option value='" + p.id + "'" + (p.id === cur ? " selected" : "") + ">" + _escVal(p.label) + "</option>";
+    }
+    return html;
+  }
+
+  function _buildPiperVoiceOptions() {
+    var cur = resolvePiperVoice(), html = "";
+    for (var i = 0; i < PIPER_VOICES.length; i++) {
+      var v = PIPER_VOICES[i];
+      html += "<option value='" + v.id + "'" + (v.id === cur ? " selected" : "") + ">" + _escVal(v.label) + "</option>";
+    }
+    return html;
+  }
+
+  function _piperVoiceBlurb(id) {
+    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].blurb; }
+    return "";
   }
 
   function _buildBankRows() {
@@ -818,17 +1013,29 @@ var TTS = (function() {
       +   "</div>"
       +   "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
       + "</div>"
-      + "<label style='display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:12px;color:var(--t1);cursor:pointer;'>"
-      +   "<input type='checkbox' id='tts-native-cb' style='accent-color:var(--acc);width:14px;height:14px;cursor:pointer;flex-shrink:0;'" + (isNative() ? " checked" : "") + "/>"
-      +   "<span>Use native voice <span style='color:var(--t2);'>— no key needed, lower quality. Used automatically if Cartesia is unavailable.</span></span>"
-      + "</label>"
+      + "<div style='margin-bottom:18px;'>"
+      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Voice engine</label>"
+      +   "<select id='tts-engine-sel' style='" + inpStyle + "'>" + _buildEngineOptions() + "</select>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(TTS_PROVIDERS[getEngine()].hint) + "</div>"
+      + "</div>"
       + "<div style='margin-bottom:20px;'>"
       +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Native voice</label>"
       +   "<div style='display:flex;gap:6px;'>"
       +     "<select id='tts-nvoice-sel' style='" + inpStyle + "flex:1;'>" + _buildNativeVoiceOptions() + "</select>"
       +     "<button id='tts-nvoice-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
       +   "</div>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Used for the native voice and the Cartesia fallback. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Used for the native voice and as the shared fallback whenever Cartesia or Piper is unavailable. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
+      + "</div>"
+      + "<div style='margin-bottom:20px;'>"
+      +   "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'>"
+      +     "<label style='font-size:12px;color:var(--t2);'>Piper voice <span style='color:var(--t2);font-weight:normal;'>(local, offline)</span></label>"
+      +     "<span id='tts-piper-err' style='font-size:11px;color:#e06060;display:none;'></span>"
+      +   "</div>"
+      +   "<div style='display:flex;gap:6px;'>"
+      +     "<select id='tts-piper-sel' style='" + inpStyle + "flex:1;'>" + _buildPiperVoiceOptions() + "</select>"
+      +     "<button id='tts-piper-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
+      +   "</div>"
+      +   "<div id='tts-piper-blurb' style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(_piperVoiceBlurb(resolvePiperVoice())) + "</div>"
       + "</div>"
       + "<div style='margin-bottom:20px;'>"
       +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"
@@ -854,9 +1061,19 @@ var TTS = (function() {
     modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
 
     _updateCartErr();
-    document.getElementById("tts-native-cb").addEventListener("change", function() {
-      store.set(NATIVE_K, this.checked ? "1" : "");
+    _updatePiperErr();
+    _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
+
+    document.getElementById("tts-engine-sel").addEventListener("change", function() {
+      // Live-writes on change (same pattern the old native checkbox used) so the choice takes
+      // effect immediately, not just after Save. NATIVE_K is kept in lockstep for back-compat —
+      // getEngine() reads ENGINE_K first and only falls through to NATIVE_K when ENGINE_K is unset.
+      store.set(ENGINE_K, this.value);
+      store.set(NATIVE_K, this.value === "native" ? "1" : "");
+      var hintEl = this.parentNode.querySelector("div");
+      if (hintEl) hintEl.textContent = TTS_PROVIDERS[this.value].hint;
       _updateCartErr();
+      _updatePiperErr();
     });
 
     // Native voices may not be ready on modal open (esp. iOS) — repopulate when they load.
@@ -870,6 +1087,20 @@ var TTS = (function() {
     document.getElementById("tts-nvoice-test").addEventListener("click", function() {
       var s = document.getElementById("tts-nvoice-sel");
       _testNativeVoice(s ? s.value : "");
+    });
+
+    document.getElementById("tts-piper-sel").addEventListener("change", function() {
+      var blurb = document.getElementById("tts-piper-blurb");
+      if (blurb) blurb.textContent = _piperVoiceBlurb(this.value);
+      _updatePiperErr();
+    });
+    document.getElementById("tts-piper-test").addEventListener("click", function() {
+      var s = document.getElementById("tts-piper-sel");
+      var voiceId = s ? s.value : resolvePiperVoice();
+      // Reuses the normal queue/dispatch path (not a bespoke call) so pause/skip/stop and the
+      // epoch guard all apply to the audition exactly as they would to real narration.
+      _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: voiceId });
+      if (!_playing) _drain();
     });
 
     document.getElementById("tts-add-btn").addEventListener("click", function() {
@@ -908,8 +1139,14 @@ var TTS = (function() {
       var voice = document.getElementById("tts-voice-sel").value;
       if (key) { store.set(KEY_K, key); _cartesiaError = ""; } else store.del(KEY_K);  // a fresh key gets Cartesia retried
       if (voice) store.set(VOICE_K, voice); else store.del(VOICE_K);
-      var ncb = document.getElementById("tts-native-cb"); if (ncb) store.set(NATIVE_K, ncb.checked ? "1" : "");
+      var esel = document.getElementById("tts-engine-sel");
+      var engine = esel ? esel.value : getEngine();
+      store.set(ENGINE_K, engine);
+      store.set(NATIVE_K, engine === "native" ? "1" : "");   // back-compat (see the engine-sel change listener)
       var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }
+      var psel = document.getElementById("tts-piper-sel");
+      if (psel && psel.value) savePiperVoice(psel.value);   // proseAuthor two-tier save — see savePiperVoice() above
+      if (engine === "piper" && isOn()) prewarmPiper(resolvePiperVoice());   // §5 Q4 — also pre-warm right after enabling Piper from here
       modal.remove();
       if (typeof showToast === "function") showToast("Voice settings saved.");
     });
@@ -933,9 +1170,14 @@ var TTS = (function() {
     showSettingsModal: showSettingsModal,
     primeAudioSession:     primeAudioSession,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
-    // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Nothing calls this yet; Phase 4 wires
-    // it to TTS-enable so the ~9s one-time WASM compile happens off the critical path.
+    // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to
+    // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s
+    // one-time WASM compile happens off the critical path of the user's first real narration.
     prewarmPiper:      prewarmPiper,
+    // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
+    // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
+    getEngine:         getEngine,
+    resolvePiperVoice: resolvePiperVoice,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit }

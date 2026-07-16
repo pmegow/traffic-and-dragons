@@ -3388,4 +3388,61 @@ function runEngineTests(R){
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });
+
+  // ── TTS engine selection + Piper voice tiering (TODO #41 Phase 4) ────────────
+  // Keys hardcoded here (not exported by tts.js — ENGINE_K/NATIVE_K/KEY_K/PVOICE_K are private to
+  // the TTS closure) so a rename in tts.js will silently desync these tests from reality; that's
+  // an acceptable trade for not growing the public API just for test access. Every test cleans up
+  // the keys it touches so ordering within/after this section can't leak state.
+  section("TTS engine selection (#41 Phase 4)");
+  var ENGINE_K_T="tnd_tts_engine_v1", NATIVE_K_T="tnd_tts_native_v1", KEY_K_T="tnd_cartesia_key_v1", PVOICE_K_T="tnd_piper_voice_v1";
+  t("getEngine() legacy inference: unset ENGINE_K + native flag set → native (pre-Phase-4 behavior preserved)",function(){
+    store.del(ENGINE_K_T);store.set(NATIVE_K_T,"1");store.del(KEY_K_T);
+    var got=TTS.getEngine();
+    store.del(NATIVE_K_T);
+    return got==="native"?true:"got "+got;
+  });
+  t("getEngine() legacy inference: unset ENGINE_K + no native flag + Cartesia key present → cartesia",function(){
+    store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.set(KEY_K_T,"sk_car_test");
+    var got=TTS.getEngine();
+    store.del(KEY_K_T);
+    return got==="cartesia"?true:"got "+got;
+  });
+  t("getEngine() legacy inference: unset ENGINE_K + nothing configured → native (ultimate fallback)",function(){
+    store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.del(KEY_K_T);
+    return TTS.getEngine()==="native"?true:"got "+TTS.getEngine();
+  });
+  t("getEngine() explicit ENGINE_K=piper wins over BOTH the native flag and a saved Cartesia key",function(){
+    store.set(NATIVE_K_T,"1");store.set(KEY_K_T,"sk_car_test");store.set(ENGINE_K_T,"piper");
+    var got=TTS.getEngine();
+    store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.del(KEY_K_T);
+    return got==="piper"?true:"got "+got;
+  });
+  t("resolvePiperVoice(): worldState.piperVoice (campaign pin) wins over the device default",function(){
+    makeWorld();worldState.piperVoice="en_GB-alan-medium";store.set(PVOICE_K_T,"en_US-amy-medium");
+    var got=TTS.resolvePiperVoice();
+    store.del(PVOICE_K_T);
+    return got==="en_GB-alan-medium"?true:"got "+got;
+  });
+  t("resolvePiperVoice(): device default wins when worldState.piperVoice is unset",function(){
+    makeWorld();store.set(PVOICE_K_T,"en_US-amy-medium");
+    var got=TTS.resolvePiperVoice();
+    store.del(PVOICE_K_T);
+    return got==="en_US-amy-medium"?true:"got "+got;
+  });
+  t("resolvePiperVoice(): falls through to the house default (lessac) when nothing is set",function(){
+    makeWorld();store.del(PVOICE_K_T);
+    return TTS.resolvePiperVoice()==="en_US-lessac-medium"?true:"got "+TTS.resolvePiperVoice();
+  });
+  t("resolvePiperVoice(): worldState===null (pre-game) does not throw and still falls through to device default",function(){
+    // The FAILURE condition this guards: a naive `worldState.piperVoice` access (no `worldState &&`
+    // guard) throws on `null.piperVoice`, since state.js initializes worldState=null and tts.js can
+    // run before a campaign is loaded/created.
+    var savedWs=worldState;worldState=null;store.set(PVOICE_K_T,"en_US-ryan-high");
+    var got,threw=null;
+    try{got=TTS.resolvePiperVoice();}catch(e){threw=e.message;}
+    worldState=savedWs;store.del(PVOICE_K_T);
+    if(threw)return "threw on worldState===null: "+threw;
+    return got==="en_US-ryan-high"?true:"got "+got;
+  });
 }
