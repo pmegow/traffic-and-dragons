@@ -336,7 +336,25 @@ function buildMergeConfirmNudge(){
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge];
+// #60: ghost-consumable check — the engine detected (deterministically, detectGhostConsumables
+// in game.js: a consumable's head noun named in the turn's text with no ITEM_LOST emitted) and
+// the GM DECIDES here — the note asks it to verify its OWN narration and either emit the
+// battle-tested tag or explicitly leave the sheet alone. Never auto-decrements: the #60 design
+// space rejected every shape where a second model writes inventory unattended; the only write
+// path stays the sole parser. One item per turn (note pressure), cooldown latch written on fire
+// (CONSUMABLE_NUDGE_COOLDOWN — an ignored nudge means "not spent", don't re-nag), silent
+// mid-combat WITHOUT consuming (spends happen in combat; the check keeps until the dust settles).
+function buildConsumableNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.consumableChecks;if(!q||!q.length)return"";
+  var c=q.shift();if(!q.length)delete worldState.consumableChecks;
+  if(!worldState.consumableNudged)worldState.consumableNudged={};
+  worldState.consumableNudged[c.key]=worldState.turn;
+  var tag=c.who?"[COMPANION_ITEM_LOST:"+c.who+"|"+c.item+"]":"[ITEM_LOST:"+c.item+"]";
+  var whose=c.who?c.who+"'s":"the player's";
+  return "[ENGINE NOTE — CONSUMABLE CHECK (not a player action): the recent scene mentioned "+whose+" '"+c.item+"' but no item-loss tag was emitted. Check your own recent narration: if one or more units were actually expended (thrown, drunk, detonated, burned, used up), emit "+tag+" in THIS response — one tag per unit spent. If it was merely mentioned, carried, examined, or reached for without being consumed, leave the sheet alone — do NOT invent a consumption.]";
+}
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}

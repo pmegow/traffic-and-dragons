@@ -644,6 +644,61 @@ function stampRelationshipChanges(pre){
   for(i=0;i<nk.length;i++){if(!pre.names[nk[i]])joined=true;}
   if(joined||left)worldState.relAuditDue=worldState.turn;
 }
+// ── Ghost-consumable detection (#60) ─────────────────────────────────────────────────────────
+// The t582 class: a consumable is narrated as spent (charge thrown, potion drunk) but the GM
+// never emits [ITEM_LOST:] — the sheet ghosts the unit forever. Strengthening the stable prompt
+// rule is spent (it already names "a charge detonated" and was ignored), and every auto-writer
+// design was rejected (#60 row: a second model mutating authoritative inventory is the drift
+// surface firing constantly). This is the house pattern instead — the ENGINE detects
+// deterministically, the GM DECIDES via an engine note (buildConsumableNudge, api.js), and the
+// only write path remains the battle-tested tag through the sole parser.
+// Detection: an inventory entry counts as a consumable if it is a counted stack (" xN", N≥2 —
+// the t582 "Blasting charge x4" form) OR its base name matches CONSUMABLE_RE. It is flagged when
+// its HEAD NOUN appears in this turn's player action or GM narration with no matching
+// ITEM_LOST/COMPANION_ITEM_LOST in the same response. Head-noun matching is deliberate: the t582
+// narration said "a charge is wedged", never "Blasting charge" — full-name matching misses the
+// real case. The cost is a loose match ("Frizwick charges the door" flags the stack); the nudge
+// wording carries the leave-alone escape for exactly that, and the cooldown latch keeps an
+// ignored nudge from re-nagging (CONSUMABLE_NUDGE_COOLDOWN).
+// Head noun: "X of Y" compounds head on the first segment's last word ("Greater Potion of
+// Healing" → potion); plain compounds on the last word ("Blasting charge" → charge).
+function consumableHeadNoun(base){
+  var b=String(base||"").replace(/\s*\([^)]*\)\s*$/,"").trim();
+  var ofm=b.match(/^(.+?)\s+of\s+/i);if(ofm)b=ofm[1].trim();
+  var words=b.split(/\s+/);
+  return words[words.length-1]||"";
+}
+function detectGhostConsumables(playerTxt,raw){
+  if(!worldState||!worldState.character)return;
+  var hay=String(playerTxt||"")+"\n"+String(raw||"");
+  // item-loss tags already in this response → those items are handled, not ghosts
+  var lostNorm={},tags=String(raw||"").match(/\[(?:COMPANION_)?ITEM_LOST:[^\]]+\]/g)||[],ti;
+  for(ti=0;ti<tags.length;ti++){
+    var tm=tags[ti].match(/\[COMPANION_ITEM_LOST:[^|\]]+\|([^\]]+)\]/)||tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
+    if(tm)lostNorm[_invNorm(_qtyParse(tm[1]).base)]=1;
+  }
+  function sweep(who,inv){
+    var j;for(j=0;j<(inv||[]).length;j++){var entry=inv[j];if(typeof entry!=="string")continue;
+      var base=_invBase(entry),norm=_invNorm(entry);
+      if(_invCount(entry)<2&&!CONSUMABLE_RE.test(base))continue;
+      if(lostNorm[norm])continue;
+      var head=consumableHeadNoun(base);if(head.length<3)head=base;
+      var re;try{re=new RegExp("\\b"+head.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(s|es)?\\b","i");}catch(e){continue;}
+      if(!re.test(hay))continue;
+      var key=(who||"")+"|"+norm;
+      var last=worldState.consumableNudged&&worldState.consumableNudged[key];
+      if(last!=null&&(worldState.turn-last)<CONSUMABLE_NUDGE_COOLDOWN)continue;
+      if(!worldState.consumableChecks)worldState.consumableChecks=[];
+      var dup=false,k;for(k=0;k<worldState.consumableChecks.length;k++){if(worldState.consumableChecks[k].key===key){dup=true;break;}}
+      if(dup)continue;
+      worldState.consumableChecks.push({who:who,item:base,key:key});
+      if(worldState.consumableChecks.length>6)worldState.consumableChecks.shift();/* bounded; oldest is stalest */
+    }
+  }
+  sweep(null,worldState.character.inventory);
+  var ni;for(ni=0;ni<(worldState.npcs||[]).length;ni++){var n=worldState.npcs[ni];
+    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))sweep(n.name,n.charSheet.inventory);}
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -682,6 +737,7 @@ async function sendAction(override,opts){
       var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
       applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
       detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts (and its shadow run) */
+      detectGhostConsumables(txt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
         if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
         else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)

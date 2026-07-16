@@ -3805,4 +3805,90 @@ function runEngineTests(R){
     var c=cleanTxt("Prose. [CORE_MEMORY:Tess|Tess swore an oath.] More.");
     return c.indexOf("CORE_MEMORY")<0?true:"tag leaked to the player: "+c;
   });
+
+  // ── #60: ghost-consumable check — engine detects, GM decides ──
+  section("ghost-consumable check (#60)");
+  function __consWorld(){
+    makeWorld();worldState.turn=100;
+    worldState.character.inventory=["Blasting charge x4","Longsword","Potion of Healing"];
+  }
+  t("t582 regression: counted stack + head-noun-only mention, no tag → check queued",function(){
+    __consWorld();
+    detectGhostConsumables("I wedge it into the stairwell","The charge is wedged deep between the stones. The blast comes up through the floor like a fist.");
+    var q=worldState.consumableChecks;
+    if(!q||q.length!==1)return "expected 1 check, got "+(q?q.length:0);
+    if(q[0].who!==null||q[0].item!=="Blasting charge")return "check fields wrong: "+JSON.stringify(q[0]);
+    return true;
+  });
+  t("ITEM_LOST present in the same response → NOT queued (already handled)",function(){
+    __consWorld();
+    detectGhostConsumables("I throw a charge","The charge detonates. [ITEM_LOST:Blasting charge]");
+    return worldState.consumableChecks===undefined?true:"queued despite the tag";
+  });
+  t("plural + 'X of Y' head noun: 'potions' mention queues Potion of Healing via the lexicon path (uncounted)",function(){
+    __consWorld();
+    detectGhostConsumables("","She hands back one of your potions, empty, and wipes her mouth.");
+    var q=worldState.consumableChecks;
+    if(!q||q.length!==1)return "expected 1 check, got "+(q?q.length:0);
+    return q[0].item==="Potion of Healing"?true:"wrong item: "+q[0].item;
+  });
+  t("non-consumable mention (Longsword) → ignored; unmentioned consumables → ignored",function(){
+    __consWorld();
+    detectGhostConsumables("I draw my longsword","The longsword bites deep. Steel rings on stone.");
+    return worldState.consumableChecks===undefined?true:"non-consumable was flagged: "+JSON.stringify(worldState.consumableChecks);
+  });
+  t("companion-owned consumable queues with owner; nudge uses the COMPANION_ITEM_LOST form",function(){
+    __consWorld();
+    worldState.npcs.push({name:"Frizwick",status:"steady",partyMember:true,charSheet:{name:"Frizwick",inventory:["Smoke bomb x3"],conditions:[],relationships:[]}});
+    detectGhostConsumables("","Frizwick's bomb goes off in the doorway. Smoke everywhere.");
+    var q=worldState.consumableChecks;
+    if(!q||q.length!==1||q[0].who!=="Frizwick")return "companion check wrong: "+JSON.stringify(q);
+    var n=buildConsumableNudge();
+    return n.indexOf("[COMPANION_ITEM_LOST:Frizwick|Smoke bomb]")>=0?true:"companion tag form wrong: "+n;
+  });
+  t("dead party member's inventory is not swept",function(){
+    __consWorld();worldState.character.inventory=[];
+    worldState.npcs.push({name:"Poor Yorick",status:"dead — fell at the bridge",partyMember:true,charSheet:{name:"Poor Yorick",inventory:["Blasting charge x2"],conditions:[],relationships:[]}});
+    detectGhostConsumables("","The charge in Yorick's pack is a grim reminder.");
+    return worldState.consumableChecks===undefined?true:"swept a dead member's pack";
+  });
+  t("nudge: names the item, carries the leave-alone escape, consumes the queue, writes the cooldown latch; empty → silent",function(){
+    __consWorld();
+    detectGhostConsumables("","A charge detonates below.");
+    var n=buildConsumableNudge();
+    if(n.indexOf("CONSUMABLE CHECK")<0||n.indexOf("[ITEM_LOST:Blasting charge]")<0)return "note malformed: "+n;
+    if(n.indexOf("do NOT invent a consumption")<0)return "leave-alone escape missing — false-positive guard gone";
+    if(worldState.consumableChecks!==undefined)return "queue not consumed";
+    if(!worldState.consumableNudged||worldState.consumableNudged["|blasting charge"]!==100)return "cooldown latch not written: "+JSON.stringify(worldState.consumableNudged);
+    return buildConsumableNudge()===""?true:"re-fired on an empty queue";
+  });
+  t("cooldown: latched item is not re-queued inside the window, re-queues after it",function(){
+    __consWorld();
+    worldState.consumableNudged={"|blasting charge":98};/* fired 2 turns ago */
+    detectGhostConsumables("","Another charge goes into the wall.");
+    if(worldState.consumableChecks!==undefined)return "re-queued inside the cooldown window";
+    worldState.turn=98+CONSUMABLE_NUDGE_COOLDOWN;
+    detectGhostConsumables("","Another charge goes into the wall.");
+    var q=worldState.consumableChecks;
+    return q&&q.length===1?true:"did not re-queue after the window";
+  });
+  t("combat: nudge silent WITHOUT consuming; queue survives to fire after the dust settles",function(){
+    __consWorld();
+    detectGhostConsumables("","The charge blows the door.");
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:9,maxHp:9}]};
+    if(buildConsumableNudge()!=="")return "fired mid-combat";
+    if(!worldState.consumableChecks||worldState.consumableChecks.length!==1)return "combat consumed the queue";
+    worldState.combat=null;
+    return buildConsumableNudge().indexOf("Blasting charge")>=0?true:"did not fire after combat cleared";
+  });
+  t("queue hygiene: same item not double-queued across turns; queue bounded at 6",function(){
+    __consWorld();
+    detectGhostConsumables("","The charge sits in your palm.");
+    detectGhostConsumables("","The charge sits in your palm still.");
+    if(!worldState.consumableChecks||worldState.consumableChecks.length!==1)return "duplicate queued: "+JSON.stringify(worldState.consumableChecks);
+    worldState.character.inventory=["Potion a x2","Potion b x2","Potion c x2","Potion d x2","Potion e x2","Potion f x2","Potion g x2"];
+    worldState.consumableChecks=undefined;delete worldState.consumableChecks;
+    detectGhostConsumables("","You lay out potion a, potion b, potion c, potion d, potion e, potion f, potion g on the table.");
+    return worldState.consumableChecks.length<=6?true:"queue unbounded: "+worldState.consumableChecks.length;
+  });
 }
