@@ -14,6 +14,7 @@ var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap — generous, not 
 var CONDITION_AUDIT_TURNS=12;    // #46 audit teeth: a party condition this many turns old (or unstamped/legacy) makes buildConditionAudit fire
 var CONDITION_AUDIT_COOLDOWN=12; // #46: at most one condition audit per this many turns — a kept condition gets re-audited next window, not nagged every turn
 var WEIGHTY_REL_RE=/(married|wed(ded)?|wife|husband|spouse|betrothed|lover|betray|sworn|oath|blood[- ]?(bound|brother|sister)|nemesis|widow|avenged)/i; // #40: relationship descriptors weighty enough to file as a defining moment. +wife/husband/spouse (v1.270, UA41): the t455 Morwen entries read literally "Wife" — the exact incident the reciprocity nudge exists to catch never matched the original list
+var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
 // chars ≈ 330-780 tok/exchange); 900 kept only 1, under the 2-3 the #28 spec calls for.
 // ── LLM provider adapters ─────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.302";
+var APP_VERSION="v1.303";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

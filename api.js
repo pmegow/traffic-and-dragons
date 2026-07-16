@@ -258,10 +258,47 @@ function buildArcDriftNudge(){
   }
   return"";
 }
+// #61: weighty-bond downgrade nudge — the [RELATIONSHIP:] upsert is last-write-wins, so a
+// moment-description could silently overwrite a defining bond (t582→t727 Frizwick: "Husband —
+// beloved family" → "Husband"). The write is NEVER blocked or reverted (the GM owns the fiction);
+// stampRelationshipChanges (game.js) records the drop and this note asks the GM to confirm or
+// restore NEXT turn. One entry per call, consumed at build time (the reciprocity-latch pattern);
+// silent mid-combat WITHOUT consuming.
+function buildRelationshipDowngradeNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.relDowngrades;
+  if(!q||!q.length)return"";
+  var d=q.shift();if(!q.length)delete worldState.relDowngrades;
+  var whose=d.who?d.who+"'s":"the player's",tag=d.who?"[COMPANION_RELATIONSHIP:"+d.who+"|"+d.entity+"|<descriptor>]":"[RELATIONSHIP:"+d.entity+"|<descriptor>]";
+  return "[ENGINE NOTE — BOND DOWNGRADE CHECK (not a player action): "+whose+" recorded bond with "+d.entity+" was just overwritten from \""+d.prev+"\" to \""+d.next+"\". If the bond has genuinely changed, leave it. But if the old descriptor was the BOND and the new one only describes a passing moment or mood, restore the bond's substance via "+tag+" — a defining bond (marriage, oath, sworn enmity) must not silently decay into a scene note.]";
+}
+// #61: periodic relationship audit — the cadence backstop behind the per-turn injection (party
+// sheets now carry Relationships lines; this catches DESCRIPTOR ROT: bonds that evolved in the
+// fiction without a tag). Same engine-detects/GM-decides shape as buildConditionAudit: fires at
+// most once per REL_AUDIT_TURNS (worldState.lastRelAudit, written on fire); a party join/leave
+// sets worldState.relAuditDue (stampRelationshipChanges, game.js) and pulls the audit forward —
+// a newcomer's bonds need filing NOW, not in 40 turns. Silent mid-combat without consuming.
+function buildRelationshipAudit(){
+  if(!worldState||!worldState.character||worldState.combat)return"";
+  var c=worldState.character,lines=[],i,j;
+  function fmt(who,list){
+    for(j=0;j<(list||[]).length;j++){var r=list[j];if(!r||!r.entity)continue;
+      lines.push("- "+who+" → "+r.entity+": \""+(r.descriptor||"")+"\""+(r.turn?" (since t"+r.turn+")":" (long-standing)"));}
+  }
+  fmt(c.name,c.relationships);
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))fmt(n.name,n.charSheet.relationships);}
+  var eventDue=!!worldState.relAuditDue;
+  var timerDue=(worldState.turn-(worldState.lastRelAudit||0))>=REL_AUDIT_TURNS;
+  if(!eventDue&&!timerDue)return"";
+  if(!lines.length&&!eventDue){worldState.lastRelAudit=worldState.turn;return"";}/* nothing to re-ground; consume the window so the first filed bond isn't audited one turn later */
+  worldState.lastRelAudit=worldState.turn;delete worldState.relAuditDue;
+  return "[ENGINE NOTE — RELATIONSHIP AUDIT (not a player action): below is every recorded bond in the party"+(eventDue?"; the party's composition just changed, so re-ground them now":"")+". For EACH: if it still matches the fiction, leave it alone — do NOT re-emit unchanged bonds. If it has grown, faded, or reads wrong, refresh it with [RELATIONSHIP:entity|descriptor] (player) or [COMPANION_RELATIONSHIP:Name|entity|descriptor] (companion), or end it with the matching REMOVED tag. Bonds the fiction has clearly established but that are MISSING below — especially for anyone who just joined — must be filed NOW with the same tags.\n"+(lines.length?lines.join("\n"):"- (none recorded yet)")+"]";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}
@@ -270,7 +307,13 @@ function buildEngineNotes(){
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(/\bdead\b/i.test(npc.status||""))continue;/* dead NPCs stay in memory.npcs but aren't listed as present */var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");ns.push(npc.name+npcAka+" ("+npc.status+", "+npc.rel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
+  // #61: the roster's rel field is last-[NPC:]-tag residue — for PARTY members it decayed to
+  // "companion"/"acquaintance" while the sheet held the real bond ("Wife"), and the contradiction
+  // (re-injected every turn) is what seeded relationship hallucinations (t755 Frizwick). For party
+  // members the PLAYER'S relationship descriptor is authoritative when one exists; non-party NPCs
+  // keep npc.rel untouched — theirs often carries identity ("mother of Morwen") no descriptor has.
+  var relByEntity={},_rbi,_rbl=(c.relationships||[]);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].descriptor)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].descriptor;}
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(/\bdead\b/i.test(npc.status||""))continue;/* dead NPCs stay in memory.npcs but aren't listed as present */var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;ns.push(npc.name+npcAka+" ("+npc.status+", "+npcRel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
   // PARTY MEMBER SHEETS — companions' full combat kit (class/spells/abilities). Without this the
   // GM only sees the one-line NPC roster entry and never knows a companion can cast → they default
   // to swinging a weapon. Rich block so a caster casts, a rogue uses tricks, etc.
@@ -296,9 +339,14 @@ function buildSysPrompt(){
       // a write-path with no read-path, so they silently rotted (Daeris, Unconscious for ~200
       // turns while narrated awake). Inject with age so stale state is visible and self-corrects.
       if(pcs.conditions&&pcs.conditions.length)line+="\n  Conditions: "+pcs.conditions.map(condInjectFmt).join(", ");
+      // #61: companion relationships were WRITTEN by [COMPANION_RELATIONSHIP:] but never injected —
+      // the same write-path-with-no-read-path class as the #46 conditions above. The GM never saw
+      // a companion's bonds (Morwen's marriages, 222 turns invisible at t755) and reconstructed
+      // party dynamics from the roster's decayed one-liners → hallucinated relationships.
+      if(pcs.relationships&&pcs.relationships.length)line+="\n  Relationships: "+pcs.relationships.map(function(r){return r.entity+(r.descriptor?" ("+r.descriptor+")":"");}).join(", ");
       pmArr.push(line);
     }
-    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW):\n"+pmArr.join("\n")+"\n\n";
+    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW. Each Relationships line is that companion's CANONICAL record of their bonds — never contradict it, and update it with [COMPANION_RELATIONSHIP:] when a bond genuinely changes):\n"+pmArr.join("\n")+"\n\n";
   }
   // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
   var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();

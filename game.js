@@ -571,6 +571,54 @@ function stampNewConditions(pre){
   var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
     if(n&&n.partyMember&&n.charSheet)diff(n.name,n.charSheet.conditions,pre.party[n.name]||{});}
 }
+// ── Relationship turn-stamps + downgrade/audit triggers (#61) ───────────────────────────────
+// Same snapshot-diff post-pass pattern as Core Memory (#40) and condition stamps (#46) above,
+// same rationale: ZERO parser contact — tag_table stays the untouched sole parser, and
+// syncCharSheet's audit-prompt applyMuts is naturally excluded (a sheet correction has no honest
+// onset turn and shouldn't trip the downgrade nudge the player just hand-drove). Three jobs:
+//   1. stamp .turn on new/changed relationship entries (player + companions) — feeds the
+//      "(since tN)" ages in buildRelationshipAudit; pre-#61 entries stay unstamped ("long-standing");
+//   2. detect a WEIGHTY→non-weighty descriptor overwrite and queue it on worldState.relDowngrades
+//      for buildRelationshipDowngradeNudge (api.js) — plus a loud toast, per the no-silent-failure
+//      policy. An explicit [RELATIONSHIP_REMOVED:] (entity gone entirely) is deliberate, not a
+//      downgrade, and is NOT flagged;
+//   3. on party composition change (join/leave), set worldState.relAuditDue so the relationship
+//      audit fires next turn instead of waiting out the 40-turn window.
+function relationshipSnapshot(){
+  if(!worldState||!worldState.character)return null;
+  function relMap(list){var m={},i;for(i=0;i<(list||[]).length;i++){if(list[i]&&list[i].entity)m[list[i].entity]=list[i].descriptor||"";}return m;}
+  var snap={player:relMap(worldState.character.relationships),party:{},names:{}},i;
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(n&&n.partyMember){snap.names[n.name]=1;if(n.charSheet)snap.party[n.name]=relMap(n.charSheet.relationships);}}
+  return snap;
+}
+function stampRelationshipChanges(pre){
+  if(!pre||!worldState||!worldState.character)return;
+  function sweep(who,list,had){
+    var i;for(i=0;i<(list||[]).length;i++){var r=list[i];if(!r||!r.entity)continue;
+      var prev=had[r.entity];
+      if(prev===undefined){if(!r.turn)r.turn=worldState.turn;continue;}/* new bond */
+      if(prev===(r.descriptor||""))continue;/* unchanged */
+      r.turn=worldState.turn;/* changed descriptor = the bond's new shape starts now */
+      if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(prev)&&!WEIGHTY_REL_RE.test(r.descriptor||"")){
+        if(!worldState.relDowngrades)worldState.relDowngrades=[];
+        worldState.relDowngrades.push({who:who,entity:r.entity,prev:prev,next:r.descriptor||"",turn:worldState.turn});
+        if(worldState.relDowngrades.length>8)worldState.relDowngrades.shift();/* bounded; oldest drop is also the stalest */
+        if(typeof showToast==="function")showToast("⚠ Bond downgraded: "+(who||worldState.character.name)+" → "+r.entity+" (\""+prev+"\" → \""+(r.descriptor||"")+"\") — the GM will be asked to confirm");
+      }
+    }
+  }
+  sweep(null,worldState.character.relationships,pre.player);
+  var i,nowNames={};
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(!n||!n.partyMember)continue;nowNames[n.name]=1;
+    if(n.charSheet)sweep(n.name,n.charSheet.relationships,pre.party[n.name]||{});}
+  var pk=Object.keys(pre.names),joined=false,left=false;
+  for(i=0;i<pk.length;i++){if(!nowNames[pk[i]])left=true;}
+  var nk=Object.keys(nowNames);
+  for(i=0;i<nk.length;i++){if(!pre.names[nk[i]])joined=true;}
+  if(joined||left)worldState.relAuditDue=worldState.turn;
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -606,8 +654,9 @@ async function sendAction(override,opts){
       // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
       var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
       var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
+      var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
       applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
-      detectCoreMoments(_cmPre);stampNewConditions(_cnPre);/* #40/#46: AFTER applyMuts (and its shadow run) */
+      detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts (and its shadow run) */
       if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
         if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
         else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
@@ -955,8 +1004,8 @@ async function beginAdventure(){
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
-    var _cmPre=coreMemorySnapshot(),_cnPre=conditionSnapshot();/* #40/#46 */
-    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);stampNewConditions(_cnPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
+    var _cmPre=coreMemorySnapshot(),_cnPre=conditionSnapshot(),_rlPre=relationshipSnapshot();/* #40/#46/#61 */
+    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
     logTranscript("gm",clean,resp);
     if(typeof TTS!=="undefined")TTS.speakResponse(clean);

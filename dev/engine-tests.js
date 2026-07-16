@@ -2356,6 +2356,108 @@ function runEngineTests(R){
     return notes.indexOf("CONDITION AUDIT")<notes.indexOf("RELATIONSHIP RECIPROCITY")?true:"registry order changed";
   });
 
+  // ── #61: relationship grounding — injection, roster derive, stamps, downgrade, audit ──
+  section("relationship grounding (#61)");
+  function __relWorld(){
+    makeWorld();worldState.turn=50;
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"companion",partyMember:true,charSheet:{name:"Morwen",gender:"F",cls:"Druid",level:3,hp:14,maxHp:14,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Husband — beloved family",turn:10}]}});
+    worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife",turn:10}];
+  }
+  t("party sheet injects the companion's Relationships line (the write-path-no-read-path fix)",function(){
+    __relWorld();var s=buildSysPrompt();
+    if(s.volatile.indexOf("Relationships: Tess (Husband — beloved family)")<0)return "companion bond missing from party sheet";
+    return s.stable.indexOf("Husband — beloved family")<0?true:"bond leaked into the stable half";/* the bare word 'husband' legitimately exists in a static rule (data.js) */
+  });
+  t("no Relationships lines anywhere when nobody has bonds (byte-shape unchanged)",function(){
+    __relWorld();worldState.character.relationships=[];worldState.npcs[0].charSheet.relationships=[];
+    return buildSysPrompt().volatile.indexOf("Relationships:")<0?true:"empty bond list still rendered a Relationships line";
+  });
+  t("roster rel DERIVES from the player's bond for party members; non-party npc.rel untouched; no bond falls back",function(){
+    __relWorld();
+    worldState.npcs.push({name:"Aldara",status:"wary",rel:"mother of Morwen",partyMember:false});
+    worldState.character.relationships.push({entity:"Aldara",descriptor:"Cautious Peace"});
+    worldState.npcs.push({name:"Durdun",status:"ally",rel:"business partner",partyMember:true,charSheet:{name:"Durdun",gender:"M",cls:"Rogue",level:2,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Morwen (steady, Wife")<0)return "party rel not derived from the player's bond";
+    if(v.indexOf("Aldara (wary, mother of Morwen")<0)return "non-party rel was overwritten — identity info lost";
+    return v.indexOf("Durdun (ally, business partner")>=0?true:"party member without a player bond lost its npc.rel fallback";
+  });
+  t("stamps: new bond stamped, changed descriptor re-stamped, unchanged bond keeps its stamp",function(){
+    __relWorld();var pre=relationshipSnapshot();
+    worldState.character.relationships.push({entity:"Shalelu",descriptor:"Tentative Ally"});
+    worldState.character.relationships[0].descriptor="Wife — estranged but wed";
+    worldState.npcs[0].charSheet.relationships[0].descriptor="Husband — beloved family";/* unchanged */
+    stampRelationshipChanges(pre);
+    var rl=worldState.character.relationships;
+    if(rl[1].turn!==50)return "new bond not stamped: "+rl[1].turn;
+    if(rl[0].turn!==50)return "changed descriptor not re-stamped: "+rl[0].turn;
+    return worldState.npcs[0].charSheet.relationships[0].turn===10?true:"unchanged bond lost its original stamp";
+  });
+  t("downgrade detect: weighty→non-weighty queues + toasts; weighty→weighty, removal, and non-weighty changes do NOT",function(){
+    __relWorld();var pre=relationshipSnapshot();
+    worldState.character.relationships[0].descriptor="Travel companion";/* weighty→non-weighty */
+    worldState.npcs[0].charSheet.relationships[0].descriptor="Sworn husband";/* weighty→weighty */
+    stampRelationshipChanges(pre);
+    var q=worldState.relDowngrades;
+    if(!q||q.length!==1)return "expected exactly 1 downgrade, got "+(q?q.length:0);
+    if(q[0].who!==null||q[0].entity!=="Morwen"||q[0].prev!=="Wife")return "downgrade fields wrong: "+JSON.stringify(q[0]);
+    if(!__toasts.some(function(m){return m.indexOf("Bond downgraded")>=0;}))return "no toast — silent failure";
+    __relWorld();pre=relationshipSnapshot();
+    worldState.character.relationships=[];/* explicit removal — deliberate, not a downgrade */
+    stampRelationshipChanges(pre);
+    return worldState.relDowngrades===undefined?true:"removal was flagged as a downgrade";
+  });
+  t("downgrade nudge: consumed on fire, companion form uses COMPANION_RELATIONSHIP, silent mid-combat without consuming",function(){
+    __relWorld();
+    worldState.relDowngrades=[{who:"Morwen",entity:"Tess",prev:"Husband — beloved family",next:"Husband",turn:50}];
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    if(buildRelationshipDowngradeNudge()!=="")return "fired mid-combat";
+    if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "combat path consumed the queue";
+    worldState.combat=null;
+    var n=buildRelationshipDowngradeNudge();
+    if(n.indexOf("BOND DOWNGRADE CHECK")<0||n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|")<0)return "companion tag form wrong: "+n;
+    if(worldState.relDowngrades!==undefined)return "queue not consumed";
+    return buildRelationshipDowngradeNudge()===""?true:"re-fired on an empty queue";
+  });
+  t("audit: timer fires at REL_AUDIT_TURNS with player+companion bonds and ages; cooldown suppresses re-fire",function(){
+    __relWorld();worldState.turn=50;worldState.lastRelAudit=20;
+    if(buildRelationshipAudit()!=="")return "fired inside the window (30 turns since last)";
+    worldState.turn=60;/* 40 since last */
+    var n=buildRelationshipAudit();
+    if(n.indexOf("RELATIONSHIP AUDIT")<0)return "did not fire when due";
+    if(n.indexOf("Tess → Morwen: \"Wife\" (since t10)")<0)return "player bond line wrong: "+n;
+    if(n.indexOf("Morwen → Tess: \"Husband — beloved family\" (since t10)")<0)return "companion bond line missing";
+    if(worldState.lastRelAudit!==60)return "lastRelAudit not stamped";
+    return buildRelationshipAudit()===""?true:"re-fired immediately after firing";
+  });
+  t("audit: unstamped legacy bond reads long-standing; combat silent without consuming; empty world consumes the window silently",function(){
+    __relWorld();worldState.turn=100;worldState.lastRelAudit=0;
+    delete worldState.character.relationships[0].turn;
+    worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    if(buildRelationshipAudit()!=="")return "fired mid-combat";
+    if(worldState.lastRelAudit!==0)return "combat path consumed the window";
+    worldState.combat=null;
+    var n=buildRelationshipAudit();
+    if(n.indexOf("Tess → Morwen: \"Wife\" (long-standing)")<0)return "legacy bond not marked long-standing: "+n;
+    makeWorld();worldState.turn=100;
+    if(buildRelationshipAudit()!=="")return "fired with zero bonds recorded";
+    return worldState.lastRelAudit===100?true:"empty fire did not consume the window (would audit the first bond one turn after filing)";
+  });
+  t("audit: a party join/leave sets relAuditDue via the snapshot diff and pulls the audit forward",function(){
+    __relWorld();var pre=relationshipSnapshot();
+    worldState.npcs.push({name:"Daeris",status:"alert",rel:"ally",partyMember:true,charSheet:{name:"Daeris",gender:"F",cls:"Cleric",level:3,hp:12,maxHp:12,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    stampRelationshipChanges(pre);
+    if(!worldState.relAuditDue)return "join did not set relAuditDue";
+    worldState.lastRelAudit=worldState.turn;/* window just consumed — event must fire THROUGH it */
+    var n=buildRelationshipAudit();
+    if(n.indexOf("composition just changed")<0)return "event-due audit did not fire through the cooldown: "+n;
+    if(worldState.relAuditDue)return "relAuditDue not cleared on fire";
+    pre=relationshipSnapshot();
+    worldState.npcs=worldState.npcs.filter(function(x){return x.name!=="Daeris";});
+    stampRelationshipChanges(pre);
+    return worldState.relAuditDue?true:"leave did not set relAuditDue";
+  });
+
   // ── UA31: arc↔quest coupling nudge (the AUDIT_PLAYTHRU desync) ───────────────
   section("arc↔quest coupling (UA31)");
   function __arcQuestWorld(){
