@@ -553,7 +553,7 @@ function detectCoreMoments(pre){
   for(i=0;i<rl.length;i++){var r=rl[i];
     if(!r||!r.descriptor||!r.entity)continue;
     if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(r.descriptor)&&pre.rels[r.entity]!==r.descriptor)
-      fileCoreMemory("bond",r.entity,"The bond with "+r.entity+" became \""+r.descriptor+"\".");
+      fileCoreMemory("bond",r.entity,"The bond between "+c.name+" and "+r.entity+" became \""+r.descriptor+"\".");/* #63: name BOTH parties — the old "The bond with X" left the player implicit, which reads as nonsense on X's own sheet and is meaningless once the moment travels to another campaign */
   }
 }
 // ── Condition turn-stamps (#46, Phase A) ────────────────────────────────────────────────────
