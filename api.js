@@ -57,10 +57,26 @@ function condInjectFmt(x){
 // play), never compressed, never evicted by the churn caps. Written ONLY by the engine-detected
 // triggers (detectCoreMoments, game.js). Renders NOTHING when empty, so pre-#40 saves and fresh
 // campaigns produce a byte-identical prompt — the natural off-state, no flag needed.
+// #63 (v1.304): now a VIEW assembled from the party's sheets (moments live on the character
+// schema, witnessed-by-all — see fileCoreMemory). Same-moment copies across sheets dedupe to one
+// line, so an unchanged party renders byte-identically to the old shared list. A moment stamped
+// with a DIFFERENT campaign (an imported character's carried history) renders attributed to that
+// campaign — its turn number means nothing here.
 function buildCoreMemoryBlock(){
-  if(!worldState||!worldState.coreMemories||!worldState.coreMemories.length)return"";
-  var cm=worldState.coreMemories,L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships:"],i;
-  for(i=0;i<cm.length;i++)L.push("- (turn "+cm[i].turn+") "+cm[i].text);
+  if(!worldState||!worldState.character)return"";
+  var camp=worldState.campName||"",seen={},cur=[],prior=[],i;
+  function collect(list){
+    var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
+      var k=(m.camp||"")+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;
+      if(m.camp&&m.camp!==camp)prior.push(m);else cur.push(m);}
+  }
+  collect(worldState.character.coreMemories);
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))collect(n.charSheet.coreMemories);}
+  if(!cur.length&&!prior.length)return"";
+  var L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships:"];
+  for(i=0;i<prior.length;i++)L.push("- ("+prior[i].camp+" — an earlier adventure) "+prior[i].text);
+  for(i=0;i<cur.length;i++)L.push("- (turn "+cur[i].turn+") "+cur[i].text);
   return L.join("\n")+"\n\n";
 }
 function saveRules(){try{store.set(RLK,JSON.stringify(customRules));}catch(e){console.warn("[rules] save failed — custom rules NOT persisted:",e.message);if(typeof showToast==="function")showToast("⚠ Custom rules could not be saved.");}}

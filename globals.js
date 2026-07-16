@@ -10,7 +10,7 @@ var ARC_DRIFT_RECHECK=50;   // #23 (v1.297): the inverse arc/quest desync (build
 var SUMMARY_KEEP_EX=3;     // #28: max exchanges retained in sessionLog after a summarize
 var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest exchange always kept).
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
-var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
+var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap, PER SHEET since #63 (v1.304) — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
 var CONDITION_AUDIT_TURNS=12;    // #46 audit teeth: a party condition this many turns old (or unstamped/legacy) makes buildConditionAudit fire
 var CONDITION_AUDIT_COOLDOWN=12; // #46: at most one condition audit per this many turns — a kept condition gets re-audited next window, not nagged every turn
 var WEIGHTY_REL_RE=/(married|wed(ded)?|wife|husband|spouse|betrothed|lover|betray|sworn|oath|blood[- ]?(bound|brother|sister)|nemesis|widow|avenged)/i; // #40: relationship descriptors weighty enough to file as a defining moment. +wife/husband/spouse (v1.270, UA41): the t455 Morwen entries read literally "Wife" — the exact incident the reciprocity nudge exists to catch never matched the original list
@@ -142,7 +142,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.303";
+var APP_VERSION="v1.304";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

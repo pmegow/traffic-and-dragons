@@ -135,7 +135,23 @@ function migrateWorldState(){
   for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0&&c.spells[si].used){c.spells[si].used=false;_mig=true;}}// cantrips never expend
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
-  if(!worldState.coreMemories){worldState.coreMemories=[];_mig=true;}/* #40 Core Memory — party-shared defining moments */
+  /* #63 (v1.304): core memories moved OFF worldState onto the character schema — witnessed-by-all
+     (see fileCoreMemory, game.js). The legacy party-shared list is copied to the player and every
+     party member's sheet (v1 was shared, so that's the faithful reading), stamped with this
+     campaign's name (an import into a FUTURE campaign renders them attributed, not as bogus turn
+     numbers), then DELETED — single source; dual-homing is the portrait-lesson drift class.
+     Idempotent: the worldState field is gone after the first run. */
+  if(!c.coreMemories){c.coreMemories=[];_mig=true;}
+  if(worldState.coreMemories){
+    var _cmLegacy=worldState.coreMemories,_cmi;
+    var _cmCopy=function(owner){if(!owner)return;if(!owner.coreMemories)owner.coreMemories=[];
+      var a,b;for(a=0;a<_cmLegacy.length;a++){var _cmM=_cmLegacy[a],_cmDup=false;
+        for(b=0;b<owner.coreMemories.length;b++){if(owner.coreMemories[b].turn===_cmM.turn&&owner.coreMemories[b].text===_cmM.text){_cmDup=true;break;}}
+        if(!_cmDup)owner.coreMemories.push({text:_cmM.text,turn:_cmM.turn,kind:_cmM.kind,who:_cmM.who,camp:_cmM.camp||worldState.campName||""});}};
+    _cmCopy(c);
+    for(_cmi=0;_cmi<worldState.npcs.length;_cmi++){var _cmN=worldState.npcs[_cmi];if(_cmN&&_cmN.partyMember&&_cmN.charSheet)_cmCopy(_cmN.charSheet);}
+    delete worldState.coreMemories;_mig=true;
+  }
   /* #23 (v1.296) per-arc pacing clock: backfill startTurn for arcs already active in an existing save.
      Stamp at the CURRENT turn (not a guessed origin) — the true start of a long-running arc is unknowable
      and any earlier guess would false-fire the nudge on a legitimately-young later arc. So existing saves
@@ -151,6 +167,7 @@ function migrateWorldState(){
   // lone npc.portrait in, then drop the duplicate. Display reads go through npcPortrait() (helpers).
   var _pn;for(_pn=0;_pn<worldState.npcs.length;_pn++){var _pnp=worldState.npcs[_pn];
     if(_pnp&&_pnp.charSheet&&!_pnp.charSheet.aliases){_pnp.charSheet.aliases=[];_mig=true;}/* #47 — sheets stay sympatico across swaps */
+    if(_pnp&&_pnp.charSheet&&!_pnp.charSheet.coreMemories){_pnp.charSheet.coreMemories=[];_mig=true;}/* #63 — same sympatico rule */
     if(_pnp&&_pnp.charSheet&&_pnp.portrait){
       if(!_pnp.charSheet.portrait)_pnp.charSheet.portrait=_pnp.portrait;
       _pnp.portrait=null;_mig=true;

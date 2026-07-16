@@ -2964,94 +2964,132 @@ function runEngineTests(R){
     return eq(resolveReinforce(PROVIDERS.openai,"gpt-4o"),TAG_REINFORCE,"openai keeps TAG_REINFORCE");
   });
 
-  // ── Core Memory (#40): engine-detected defining moments ──────────────────────
-  section("Core Memory (#40)");
-  function __cmWorld(){makeWorld();worldState.coreMemories=[];worldState.character.maxHp=20;worldState.character.hp=20;}
+  // ── Core Memory (#40, re-homed by #63): engine-detected defining moments on the SCHEMA ──
+  section("Core Memory (#40/#63)");
+  function __cmWorld(){makeWorld();worldState.character.maxHp=20;worldState.character.hp=20;}
   function __cmTurn(muts){var pre=coreMemorySnapshot();applyMuts(muts);detectCoreMoments(pre);}
+  function __cmPl(){return worldState.character.coreMemories||[];}
   t("HP crossing below 10% files ONE near-death; hovering low does not re-file",function(){
     __cmWorld();// maxHp 20 → threshold 2
     __cmTurn("[HP:-18]");// 20→2: crossing
-    if(worldState.coreMemories.length!==1)return "crossing not filed: "+worldState.coreMemories.length;
+    if(__cmPl().length!==1)return "crossing not filed: "+__cmPl().length;
     worldState.turn++;__cmTurn("[HP:-1]");// 2→1: already below — hysteresis
-    return eq(worldState.coreMemories.length,1,"re-filed while hovering");
+    return eq(__cmPl().length,1,"re-filed while hovering");
   });
   t("exact boundary: pre=threshold does NOT file (was already at/below)",function(){
     __cmWorld();worldState.character.hp=2;// exactly at threshold
     __cmTurn("[HP:-1]");
-    return eq(worldState.coreMemories.length,0);
+    return eq(__cmPl().length,0);
   });
   t("heal above threshold then drop again files a SECOND moment (new turn)",function(){
     __cmWorld();__cmTurn("[HP:-18]");
     worldState.turn++;__cmTurn("[HP:+15]");// back to 17
     worldState.turn++;__cmTurn("[HP:-16]");// 17→1: second crossing
-    return eq(worldState.coreMemories.length,2);
+    return eq(__cmPl().length,2);
   });
   t("same-turn duplicate (same kind+who) files once",function(){
     __cmWorld();
     var pre=coreMemorySnapshot();applyMuts("[HP:-18]");detectCoreMoments(pre);detectCoreMoments(pre);
-    return eq(worldState.coreMemories.length,1);
+    return eq(__cmPl().length,1);
   });
-  t("companion HP crossing files with the companion's name",function(){
+  t("#63 witnessed-by-all: a moment lands on the player AND every living party sheet; camp-stamped",function(){
+    __cmWorld();worldState.npcs=[
+      {name:"Lyra",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Lyra",hp:30,maxHp:30}},
+      {name:"Bram",status:"dead",rel:"companion",partyMember:true,charSheet:{name:"Bram",hp:0,maxHp:10}},
+      {name:"Shopkeep",status:"ally",rel:"merchant",partyMember:false,charSheet:{name:"Shopkeep",hp:8,maxHp:8}}];
+    __cmTurn("[HP:-18]");// player near-death — witnessed
+    if(__cmPl().length!==1)return "player not filed";
+    if((worldState.npcs[0].charSheet.coreMemories||[]).length!==1)return "living companion (witness) not filed";
+    if((worldState.npcs[1].charSheet.coreMemories||[]).length)return "dead companion filed as a witness";
+    if((worldState.npcs[2].charSheet.coreMemories||[]).length)return "non-party sheet filed";
+    return __cmPl()[0].camp==="Test"?true:"camp not stamped: "+JSON.stringify(__cmPl()[0]);
+  });
+  t("companion HP crossing files with the companion's name — on player AND the companion's own sheet",function(){
     __cmWorld();worldState.npcs=[{name:"Lyra",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Lyra",hp:30,maxHp:30}}];
     __cmTurn("[COMPANION_HP:Lyra|-28]");// 30→2, threshold 3
-    return worldState.coreMemories.length===1&&worldState.coreMemories[0].who==="Lyra"&&worldState.coreMemories[0].kind==="near-death"?true:JSON.stringify(worldState.coreMemories);
+    if(__cmPl().length!==1||__cmPl()[0].who!=="Lyra"||__cmPl()[0].kind!=="near-death")return "player copy wrong: "+JSON.stringify(__cmPl());
+    return (worldState.npcs[0].charSheet.coreMemories||[]).length===1?true:"Lyra's own sheet missing her moment";
   });
-  t("companion join and leave each file a party moment",function(){
+  t("companion join and leave each file a party moment (on the player's sheet)",function(){
     __cmWorld();
     __cmTurn("[NPC:Ekene|wary|guide][PARTY_MEMBER:Ekene|true]");
-    if(worldState.coreMemories.length!==1||worldState.coreMemories[0].kind!=="party")return "join not filed: "+JSON.stringify(worldState.coreMemories);
+    if(__cmPl().length!==1||__cmPl()[0].kind!=="party")return "join not filed: "+JSON.stringify(__cmPl());
     worldState.turn++;__cmTurn("[PARTY_MEMBER:Ekene|false]");
-    return worldState.coreMemories.length===2&&/parted ways/.test(worldState.coreMemories[1].text)?true:"leave not filed: "+JSON.stringify(worldState.coreMemories);
+    return __cmPl().length===2&&/parted ways/.test(__cmPl()[1].text)?true:"leave not filed: "+JSON.stringify(__cmPl());
+  });
+  t("#63 the departing companion carries their OWN departure (subject filed even off-party)",function(){
+    __cmWorld();worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:12,maxHp:12}}];
+    __cmTurn("[PARTY_MEMBER:Daeris|false]");
+    var dl=worldState.npcs[0].charSheet.coreMemories||[];
+    return dl.length===1&&/parted ways/.test(dl[0].text)?true:"departed companion's sheet missing the moment: "+JSON.stringify(dl);
   });
   t("cap-blocked 4th companion does NOT file a false join",function(){
     __cmWorld();worldState.npcs=[{name:"A",status:"ally",rel:"c",partyMember:true},{name:"B",status:"ally",rel:"c",partyMember:true},{name:"C",status:"ally",rel:"c",partyMember:true}];
     __cmTurn("[PARTY_MEMBER:Newbie|true]");// cap forces partyMember=false
-    var i;for(i=0;i<worldState.coreMemories.length;i++){if(worldState.coreMemories[i].who==="Newbie")return "false join filed";}
+    var i;for(i=0;i<__cmPl().length;i++){if(__cmPl()[i].who==="Newbie")return "false join filed";}
     return true;
   });
-  t("party-member death files a death moment",function(){
-    __cmWorld();worldState.npcs=[{name:"Bram",status:"ally",rel:"companion",partyMember:true}];
+  t("party-member death files a death moment — and the fallen's own sheet keeps it",function(){
+    __cmWorld();worldState.npcs=[{name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",hp:10,maxHp:10}}];
     __cmTurn("[NPC:Bram|dead|companion]");
-    return worldState.coreMemories.length===1&&worldState.coreMemories[0].kind==="death"?true:JSON.stringify(worldState.coreMemories);
+    if(__cmPl().length!==1||__cmPl()[0].kind!=="death")return JSON.stringify(__cmPl());
+    return (worldState.npcs[0].charSheet.coreMemories||[]).length===1?true:"the fallen companion's sheet missing their death";
   });
   t("weighty relationship files; mundane one does not; unchanged weighty does not re-file",function(){
     __cmWorld();
     __cmTurn("[RELATIONSHIP:Morwen|Sworn ally]");
-    if(worldState.coreMemories.length!==1)return "weighty not filed";
+    if(__cmPl().length!==1)return "weighty not filed";
     worldState.turn++;__cmTurn("[RELATIONSHIP:Barkeep|acquaintance]");
-    if(worldState.coreMemories.length!==1)return "mundane filed";
+    if(__cmPl().length!==1)return "mundane filed";
     worldState.turn++;__cmTurn("no tags this turn");
-    return eq(worldState.coreMemories.length,1,"unchanged weighty re-filed");
+    return eq(__cmPl().length,1,"unchanged weighty re-filed");
   });
-  t("over-cap eviction goes to memory.archive with the oldest near-death first",function(){
-    __cmWorld();var i;
-    for(i=0;i<CORE_MEMORY_CAP;i++)worldState.coreMemories.push({text:"m"+i,turn:i,kind:i===0?"near-death":"bond",who:"w"+i});
+  t("over-cap eviction is PER SHEET, goes to memory.archive with the oldest near-death first",function(){
+    __cmWorld();var i;worldState.character.coreMemories=[];
+    for(i=0;i<CORE_MEMORY_CAP;i++)worldState.character.coreMemories.push({text:"m"+i,turn:i,kind:i===0?"near-death":"bond",who:"w"+i});
     fileCoreMemory("party","New","New joined the party.");
-    if(worldState.coreMemories.length!==CORE_MEMORY_CAP)return "cap not enforced: "+worldState.coreMemories.length;
+    if(__cmPl().length!==CORE_MEMORY_CAP)return "cap not enforced: "+__cmPl().length;
     if(!memory.archive.coreMemories.length||memory.archive.coreMemories[0].text!=="m0")return "oldest near-death not archived: "+JSON.stringify(memory.archive.coreMemories);
-    return worldState.coreMemories[worldState.coreMemories.length-1].who==="New"?true:"new entry lost";
+    return __cmPl()[__cmPl().length-1].who==="New"?true:"new entry lost";
   });
   t("DEFINING MOMENTS injects into the VOLATILE half only",function(){
-    __cmWorld();worldState.coreMemories.push({text:"Tess was nearly slain.",turn:3,kind:"near-death",who:"Tess"});
+    __cmWorld();worldState.character.coreMemories=[{text:"Tess was nearly slain.",turn:3,kind:"near-death",who:"Tess"}];
     var s=buildSysPrompt();
     if(s.stable.indexOf("DEFINING MOMENTS")>=0)return "leaked into stable";
     if(s.volatile.indexOf("Tess was nearly slain.")<0)return "missing from volatile";
     return s.volatile.lastIndexOf("STYLE:")>s.volatile.lastIndexOf("DEFINING MOMENTS")?true:"block displaced STYLE from the end";
   });
+  t("#63 view dedupes same-moment copies across sheets; foreign-campaign moments render attributed",function(){
+    __cmWorld();
+    worldState.character.coreMemories=[{text:"The bridge fell.",turn:9,kind:"party",who:"Tess",camp:"Test"}];
+    worldState.npcs=[{name:"Morwen",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Morwen",hp:14,maxHp:14,
+      coreMemories:[{text:"The bridge fell.",turn:9,kind:"party",who:"Tess",camp:"Test"},{text:"Morwen bound the Hollow Keeper.",turn:210,kind:"bond",who:"Morwen",camp:"Rise of the Runelords"}]}}];
+    var b=buildCoreMemoryBlock();
+    if((b.split("The bridge fell.").length-1)!==1)return "shared moment not deduped: "+b;
+    if(b.indexOf("(Rise of the Runelords — an earlier adventure) Morwen bound the Hollow Keeper.")<0)return "imported moment not attributed: "+b;
+    return b.indexOf("(turn 9) The bridge fell.")>=0?true:"current-campaign line wrong: "+b;
+  });
   t("empty coreMemories renders NOTHING — prompt byte-identical to a pre-#40 save",function(){
-    makeWorld();delete worldState.coreMemories;// pre-#40 save shape
+    makeWorld();delete worldState.character.coreMemories;// pre-#40 save shape
     var a=buildSysPrompt();
-    worldState.coreMemories=[];// post-migration shape, still empty
+    worldState.character.coreMemories=[];// post-migration shape, still empty
     var b=buildSysPrompt();
     return a.stable===b.stable&&a.volatile===b.volatile?true:"empty list changed the prompt";
   });
-  t("migrateWorldState adds coreMemories:[] and is idempotent",function(){
-    makeWorld();delete worldState.coreMemories;
+  t("#63 migration: legacy worldState list copied to player + party sheets, camp-stamped, field DELETED, idempotent",function(){
+    makeWorld();
+    worldState.coreMemories=[{text:"x happened",turn:5,kind:"bond",who:"Tess"}];
+    worldState.npcs=[
+      {name:"Lyra",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Lyra",hp:10,maxHp:10}},
+      {name:"Shopkeep",status:"ally",rel:"merchant",partyMember:false,charSheet:{name:"Shopkeep",hp:8,maxHp:8}}];
     if(!migrateWorldState())return "migration reported no change";
-    if(!(worldState.coreMemories instanceof Array))return "field not added";
-    worldState.coreMemories.push({text:"x",turn:1,kind:"bond",who:"y"});
+    if(worldState.coreMemories!==undefined)return "legacy field not deleted";
+    var pl=worldState.character.coreMemories,ly=worldState.npcs[0].charSheet.coreMemories;
+    if(!pl||pl.length!==1||pl[0].camp!=="Test")return "player copy wrong: "+JSON.stringify(pl);
+    if(!ly||ly.length!==1)return "party sheet copy wrong: "+JSON.stringify(ly);
+    if((worldState.npcs[1].charSheet.coreMemories||[]).length)return "non-party sheet received the party's history";
     migrateWorldState();
-    return eq(worldState.coreMemories.length,1,"second migrate clobbered data");
+    return worldState.character.coreMemories.length===1?true:"second migrate duplicated entries";
   });
 
   // ── Suggestion context — the UN-STARVED call (v1.288; supersedes the UA38/UA39 fences) ──────

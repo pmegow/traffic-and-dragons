@@ -301,7 +301,7 @@ function buildCompanionSheetStub(npcName){
     cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,gold:0,inventory:[],level:lvl,xp:XP_LEVELS[lvl-1]||0,
     abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:null,
     trait:null,flaw:null,motivation:null,languages:[{name:"Common",broken:false}],skills:initSkills(),conditions:[],relationships:[],saveModifiers:[],
-    portrait:null,storyBeats:[],partyMember:true};
+    portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
 }
 // Overlay validated model fields onto the stub base. Level is engine-owned (always the player's
 // current level, XP seeded at the band floor so the shared [XP:] mirror levels the companion in
@@ -473,9 +473,18 @@ function sendSuggestedAction(btn,ev){
 //     crossing the HP threshold is bookkeeping, not a story moment);
 //   • rerollLast keeps mutations (it never re-runs applyMuts), so a moment filed from the
 //     original response remains mechanically true even after the prose is re-rolled — no purge.
-// Party-shared v1 (user call 2026-07-06): ONE worldState.coreMemories[] list, injected as the
-// DEFINING MOMENTS block (api.js, volatile half). Empty list renders nothing — byte-identical
-// prompt for saves with no moments yet.
+// #63 (v1.304, supersedes the party-shared v1): core memories live on the CHARACTER SCHEMA —
+// character.coreMemories[]/charSheet.coreMemories[] — filed WITNESSED-BY-ALL (user ruling
+// 2026-07-16): every present party member carries the moment on their own sheet, because a
+// witnessed moment is part of each witness's history. The v1 worldState list violated PC↔
+// companion interchangeability (export Morwen → new campaign → her defining moments stayed
+// behind with the quest log); on the schema they ride .char exports, library imports, and
+// _switchPlayerCharacter swaps for free — the same portability contract as relationships/
+// conditions/storyBeats. Entries carry a camp stamp so an imported character's moments from an
+// earlier adventure render attributed to that campaign, not as bogus turn numbers in the new
+// one. The DEFINING MOMENTS block (api.js) is now a VIEW assembled from the party's sheets;
+// worldState.coreMemories is migrated to sheets and DELETED (single source — the portrait
+// lesson: dual-homing is the drift class). Empty sheets render nothing — byte-identical prompt.
 function coreMemorySnapshot(){
   if(!worldState||!worldState.character)return null;
   var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,rels:{},party:{}},i;
@@ -485,22 +494,37 @@ function coreMemorySnapshot(){
   return snap;
 }
 function fileCoreMemory(kind,who,text){
-  if(!worldState)return;
-  if(!worldState.coreMemories)worldState.coreMemories=[];
-  var cm=worldState.coreMemories,i;
-  for(i=0;i<cm.length;i++){if(cm[i].turn===worldState.turn&&cm[i].kind===kind&&cm[i].who===who)return;}// one moment per event per turn
-  cm.push({text:text,turn:worldState.turn,kind:kind,who:who});
-  var cap=(typeof CORE_MEMORY_CAP!=="undefined")?CORE_MEMORY_CAP:25;
-  if(cm.length>cap){
-    // Evict the oldest near-death first (the repetitive class); preserve it in memory.archive
-    // rather than deleting — "never forget" degrades to "cold storage", not to loss.
-    var ev=-1;for(i=0;i<cm.length;i++){if(cm[i].kind==="near-death"){ev=i;break;}}
-    if(ev<0)ev=0;
-    var out=cm.splice(ev,1)[0];
-    if(typeof memory!=="undefined"&&memory&&memory.archive){if(!memory.archive.coreMemories)memory.archive.coreMemories=[];memory.archive.coreMemories.push(out);}
-    console.warn("[core-memory] over cap ("+cap+") — evicted to archive: \""+out.text+"\". A chronically full list means the #40 triggers fire too easily.");
+  if(!worldState||!worldState.character)return;
+  var camp=worldState.campName||"",cap=(typeof CORE_MEMORY_CAP!=="undefined")?CORE_MEMORY_CAP:25,filedAny=false,i;
+  function fileTo(owner){
+    if(!owner)return;
+    if(!owner.coreMemories)owner.coreMemories=[];
+    var cm=owner.coreMemories,j;
+    for(j=0;j<cm.length;j++){if(cm[j].turn===worldState.turn&&cm[j].kind===kind&&cm[j].who===who)return;}// one moment per event per turn per witness
+    cm.push({text:text,turn:worldState.turn,kind:kind,who:who,camp:camp});
+    filedAny=true;
+    if(cm.length>cap){
+      // Evict the oldest near-death first (the repetitive class); preserve it in memory.archive
+      // rather than deleting — "never forget" degrades to "cold storage", not to loss.
+      var ev=-1;for(j=0;j<cm.length;j++){if(cm[j].kind==="near-death"){ev=j;break;}}
+      if(ev<0)ev=0;
+      var out=cm.splice(ev,1)[0];
+      if(typeof memory!=="undefined"&&memory&&memory.archive){if(!memory.archive.coreMemories)memory.archive.coreMemories=[];memory.archive.coreMemories.push(out);}
+      console.warn("[core-memory] "+(owner.name||"?")+" over cap ("+cap+") — evicted to archive: \""+out.text+"\". A chronically full list means the #40 triggers fire too easily.");
+    }
   }
-  if(typeof showToast==="function")showToast("★ Defining moment: "+text);
+  // Witnesses: the player + every living party member with a sheet — plus the SUBJECT's sheet
+  // even off-party/dead (a just-departed companion carries their own departure; a fallen one
+  // carries their death — that history must travel if they're ever exported or return).
+  fileTo(worldState.character);
+  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
+    if(!n||!n.charSheet)continue;
+    var isSubject=(n.name===who);
+    if(!n.partyMember&&!isSubject)continue;
+    if(/\bdead\b/i.test(n.status||"")&&!isSubject)continue;
+    fileTo(n.charSheet);
+  }
+  if(filedAny&&typeof showToast==="function")showToast("★ Defining moment: "+text);
 }
 function detectCoreMoments(pre){
   if(!pre||!worldState||!worldState.character)return;
