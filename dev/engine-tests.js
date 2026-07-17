@@ -4684,4 +4684,40 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   })();
 
+
+  // ── #6 ruling (2026-07-16): dead companions get NOTHING; death-turn bookkeeping still lands ──
+  section("#6 ruling: dead companions get nothing");
+  function __deadParty(){
+    makeWorld();
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:12,maxHp:12,xp:100,stats:{},abilities:[],inventory:[],spells:[{nm:"Bless",lvl:1,used:true}],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+    worldState.npcs.push({name:"Bram",status:"dead — fell at the ford",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:0,maxHp:16,xp:100,stats:{},abilities:[],inventory:[],spells:[{nm:"Smite",lvl:1,used:true}],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
+  }
+  t("shared [XP:] mirror skips dead companions (living still mirrored)",function(){
+    __deadParty();
+    applyMuts("[XP:100]");
+    if(worldState.npcs[0].charSheet.xp!==200)return "living companion missed the mirror: "+worldState.npcs[0].charSheet.xp;
+    return worldState.npcs[1].charSheet.xp===100?true:"dead companion received mirrored XP: "+worldState.npcs[1].charSheet.xp;
+  });
+  t("individual [COMPANION_XP:] at a dead companion is refused LOUDLY (warn + muts line)",function(){
+    __deadParty();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var R;try{R=applyMuts("[COMPANION_XP:Bram|50]");}finally{console.warn=_w;}
+    if(worldState.npcs[1].charSheet.xp!==100)return "dead companion got XP: "+worldState.npcs[1].charSheet.xp;
+    if(!warns.filter(function(m){return m.indexOf("DEAD companion")>=0;}).length)return "no refusal warn";
+    return R.muts.join("|").indexOf("XP refused (dead)")>=0?true:"no muts line: "+R.muts.join("|");
+  });
+  t("restSpells restores LIVING slots only",function(){
+    __deadParty();
+    restSpells();
+    if(worldState.npcs[0].charSheet.spells[0].used)return "living companion slot not restored";
+    return worldState.npcs[1].charSheet.spells[0].used===true?true:"dead companion slot restored";
+  });
+  t("death-turn bookkeeping still lands: COMPANION_HP/CONDITION reach a dead sheet (deliberate routing)",function(){
+    __deadParty();
+    applyMuts("[COMPANION_HP:Bram|-4][COMPANION_CONDITION:Bram|Mortally wounded|permanent|the ford]");
+    var cs=worldState.npcs[1].charSheet;
+    if(cs.hp!==0)return "HP clamp wrong: "+cs.hp;
+    return cs.conditions.length===1?true:"death-turn condition dropped: "+JSON.stringify(cs.conditions);
+  });
+
 }

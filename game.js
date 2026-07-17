@@ -568,7 +568,7 @@ function conditionSnapshot(){
   if(!worldState||!worldState.character)return null;
   function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
   var snap={player:names(worldState.character.conditions),party:{}},i;
-  var _csParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions stay in the condition snapshot; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var _csParty=partyCompanionsWithSheets(true);/* DELIBERATE (user ruling 2026-07-16): read-side snapshot keeps dead companions so DEATH-TURN condition changes still stamp/toast (routing to dead sheets is deliberate — see findCompanionNpc) */
   for(i=0;i<_csParty.length;i++)snap.party[_csParty[i].name]=names(_csParty[i].charSheet.conditions);
   return snap;
 }
@@ -594,7 +594,7 @@ function stampNewConditions(pre){
     for(i=0;i<hk.length;i++){if(!now[hk[i]]&&typeof showToast==="function")showToast("✓ Condition lifted: "+who+" — "+hk[i]);}
   }
   diff(worldState.character.name,worldState.character.conditions,pre.player);
-  var i,_scParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — mirrors conditionSnapshot above; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var i,_scParty=partyCompanionsWithSheets(true);/* DELIBERATE (user ruling 2026-07-16): mirrors conditionSnapshot — death-turn stamps/toasts must land */
   for(i=0;i<_scParty.length;i++)diff(_scParty[i].name,_scParty[i].charSheet.conditions,pre.party[_scParty[i].name]||{});
 }
 // ── Relationship turn-stamps + downgrade/audit triggers (#61) ───────────────────────────────
@@ -1120,6 +1120,7 @@ async function generateSkeleton(statusFn){
 }
 async function beginAdventure(){
   busy=true;document.getElementById("sendbtn").disabled=true;var th=addMsg("thinking","The world stirs...");
+  var _openingCommitted=false;/* E82 latch for the opening — set by commitGmTurn's onMutated below */
   try{
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
@@ -1129,10 +1130,19 @@ async function beginAdventure(){
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
     // longer strand a saved state that lacks the opening narration. isOpening: no turn++.
-    commitGmTurn(resp,{userMsg:intro,isOpening:true});
+    commitGmTurn(resp,{userMsg:intro,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
     syncUI();
     _promptCampaignFolder();
-  }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+  }catch(e){th.remove();
+    if(_openingCommitted){
+      // E82 for the opening (user ruling 2026-07-16, surfaced by audit #5): the opening's tags
+      // already landed and persisted (UA6 order) — a Retry would re-run the whole opening call
+      // and double-apply them (double starting gold, duplicate NPCs). No Retry offered; the
+      // persisted transcript replays the scene on reload.
+      addMsg("system","Opening scene hit an error after your world was saved ("+e.message+") — reload to replay the scene. (Retry disabled: it would double-apply the opening.)");
+    }else{
+      var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
+    }}
   busy=false;document.getElementById("sendbtn").disabled=false;
 }
 function _promptCampaignFolder(){
@@ -1298,7 +1308,7 @@ function restSpells(){
   if(!worldState||!worldState.character.spells)return;
   var i;for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}
   // Also restore party companions' expended spells (audit E84) — a rest is party-wide.
-  var pj,ps,_rsParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions still get spell slots back on rest; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var pj,ps,_rsParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — no rest slots */
   for(pj=0;pj<_rsParty.length;pj++){var _pn=_rsParty[pj];if(_pn.charSheet.spells){for(ps=0;ps<_pn.charSheet.spells.length;ps++){if(_pn.charSheet.spells[ps].lvl>0)_pn.charSheet.spells[ps].used=false;}}}
   updateSpPanel();saveCore();showToast("Spell slots restored.");
 }
@@ -1351,7 +1361,7 @@ async function syncCharSheet(){
   if(busy||!worldState)return;
   busy=true;
   if(typeof showToast==="function")showToast("Syncing sheet…");
-  var companions=[];var pi,_syParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions still get audited by the sheet sync; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var companions=[];var pi,_syParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — the sheet audit no longer enumerates them */
   for(pi=0;pi<_syParty.length;pi++)companions.push(_syParty[pi].name);
   var auditMsg=buildSheetSyncPrompt(companions);
   try{
@@ -1362,7 +1372,7 @@ async function syncCharSheet(){
     var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
     // #50a loud trail: snapshot every inventory, diff after applyMuts, toast each correction.
     var invBefore={player:(worldState.character.inventory||[]).slice()};
-    var ci,_ivParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — matches the companions list above; user ruling pending (AUDIT_FABLE_07_16 #6) */
+    var ci,_ivParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): matches the living-only companions list above */
     for(ci=0;ci<_ivParty.length;ci++)invBefore[_ivParty[ci].name]=(_ivParty[ci].charSheet.inventory||[]).slice();
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
     var who;for(who in invBefore){

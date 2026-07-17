@@ -184,7 +184,7 @@ function buildConditionAudit(){
   // staleness governs from here (no every-turn re-fire on a reaffirmed condition).
   function consume(list){var j;for(j=0;j<(list||[]).length;j++){if(list[j].until!=null&&list[j].until<=worldState.turn)delete list[j].until;}}
   consume(worldState.character.conditions);
-  var _ccParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions' appointments still consumed; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var _ccParty=partyCompanionsWithSheets(true);/* DELIBERATE (user ruling 2026-07-16): appointment-consume is hygiene, not a benefit — clearing a dead companion's stale expiry stamps is inert (the audit SCAN already excludes dead) */
   for(i=0;i<_ccParty.length;i++)consume(_ccParty[i].charSheet.conditions);
   worldState.lastConditionAudit=worldState.turn;
   return"[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n"+lines.join("\n")+"]";
@@ -752,7 +752,7 @@ function findCompanionNpc(name){
   // the companion registered as "Sheriff Belor Hemlock", the same way NPC/PARTY_MEMBER tags do.
   var raw=name.trim().toLowerCase();
   var canon=(typeof resolveNpcName==="function")?resolveNpcName(name.trim()).toLowerCase():raw;
-  var i,_fcParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — COMPANION_* tags still resolve to a dead companion's sheet; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  var i,_fcParty=partyCompanionsWithSheets(true);/* DELIBERATE (user ruling 2026-07-16, AUDIT_FABLE_07_16 #6): tag ROUTING still reaches dead sheets — the death turn's own [COMPANION_HP:]/[COMPANION_CONDITION:] land after [NPC:|dead] in table order and must not drop; benefit tags gate at their source (XP mirror + COMPANION_XP refuse dead) */
   for(i=0;i<_fcParty.length;i++){var npc=_fcParty[i];var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc;}
   // Backstop (audit P2 remedy b): the name DOES match a party member, but they have no charSheet —
   // the COMPANION_* update is about to be dropped. Make that loud instead of silent (no-silent-failures);
