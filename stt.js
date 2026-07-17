@@ -228,10 +228,18 @@ var STT = (function() {
     if (carModeOn && text.length < 3) {
       console.info("[stt] auto-send suppressed (too short): " + JSON.stringify(text));
       if (typeof carNotify === "function") carNotify("info", "Heard '" + text + "' — tap mic to retry");
+      // round-2 #27: clear the field too, not just skip the send — otherwise the
+      // suppressed junk stays parked in #userinput and Car Mode's next tap (the
+      // parked-utterance branch) sends it anyway, only delaying the garbage by one tap.
+      if (el) el.value = "";
       if (el) el.focus();
       return;
     }
 
+    // round-2 #29b: ack earcon + "Heard you…" status right before the actual send.
+    // carNotify is a global from ui-carmode.js; guarded + no-ops outside car mode, so
+    // desktop auto-send is unaffected.
+    if (typeof carNotify === "function") carNotify("sent");
     sendAction(null);
   }
 

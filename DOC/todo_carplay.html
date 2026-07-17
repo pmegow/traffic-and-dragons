@@ -195,6 +195,40 @@ tr:hover td{background:var(--bg1);}
 <td>S</td><td><span class="pill st-ship">v1.342</span></td></tr>
 </table>
 
+<h2>Round 2 — re-audit of the v1.342 wave (2026-07-17, audited at v1.343)</h2>
+<p>Fresh full read of the post-wave ui-carmode.js, stt.js, ui-boot.js restore seam, and the Lane C tts.js additions. Seven findings — notably, the two HIGHs are <b>interactions between round-1 features</b>: the auto-listen loop feeding the new cloud recorder, and the carNotify contract shipping with two kinds ("sent"/"response") that no caller ever fired. All seven shipped v1.344 (two-lane wave + orchestrator integration).</p>
+<table>
+<tr><th>#</th><th>Area</th><th>Sev</th><th>Finding — root cause</th><th>Remedy</th><th>Effort</th><th>Status</th></tr>
+<tr><td class="rank">25</td><td class="area">input/cost</td><td><span class="pill sev-high">High</span></td>
+<td><b>Auto-listen drives the cloud recorder.</b> After every narration, <code>_carAutoMic</code> auto-started a 15s cloud recording — road noise/silence uploaded to Whisper (cost per narration), and Whisper hallucinates text on silence ("Thank you.") which passes the ≥3-char gate and <b>auto-sends a garbage GM turn</b>.</td>
+<td>Cloud STT is push-to-talk only: <code>_carAutoMic</code> bails when <code>STT.isCloudActive()</code>.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">26</td><td class="area">correctness</td><td><span class="pill sev-high">High</span></td>
+<td><b><code>carNotify("response")</code> had no caller</b> — <code>_carRetryArmed</code> only cleared on tap-consumption or exit. A turn recovered via any non-tap path (desktop send, retry succeeding) left the arm set: the next idle tap re-fired <code>retryLast()</code> = a duplicate GM turn (cost + doubled narrative beat). The "ready" earcon was dead for the same reason.</td>
+<td>addMsg's narrator branch (ui-shell.js) fires <code>carNotify("response")</code> on every successful narration — clears the arm, plays the earcon.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">27</td><td class="area">input</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Quality-gate defeat.</b> The rank-8 gate suppressed a short transcript but left it in #userinput; the next tap's parked-utterance branch sent "uh" anyway — the gate only delayed the garbage by one tap.</td>
+<td><code>_applySendPolicy</code> clears the field on suppression.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">28</td><td class="area">stability</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Wake-lock acquire race.</b> A sentinel resolving after <code>hideCarMode</code> was stored with nothing left to release it — the screen held awake through normal play until tab close.</td>
+<td>The <code>.then</code> releases-and-discards when carMode is off, and releases any prior sentinel before overwriting.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">29</td><td class="area">feedback</td><td><span class="pill sev-med">Med</span></td>
+<td><b><code>carNotify("sent")</code> had no caller either</b> — the send-ack earcon (rank 14's whole point) never played; voice sends gave no audio acknowledgment.</td>
+<td><code>_applySendPolicy</code> (auto-send path) and <code>_carTap</code> branch (e) fire <code>carNotify("sent")</code> before <code>sendAction</code>.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">30</td><td class="area">perf</td><td><span class="pill sev-low">Low</span></td>
+<td><code>_carMediaSession</code> rebuilt MediaMetadata (incl. base64 portrait artwork) and re-registered all four action handlers on <b>every syncUI tick</b> once rank 10 wired _carUpdate into syncUI.</td>
+<td>Handlers registered once in showCarMode (<code>_carMediaHandlers</code>); metadata memoized on the {name, campaign, portrait} triple.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+<tr><td class="rank">31</td><td class="area">input</td><td><span class="pill sev-low">Low</span></td>
+<td>Exiting car mode mid-cloud-recording finalized and <b>uploaded</b> the recording anyway (<code>hideCarMode</code> → <code>STT.stop()</code> = finish semantics).</td>
+<td><code>hideCarMode</code> prefers <code>STT.cancel()</code> — exit discards.</td>
+<td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
+</table>
+
 <h2>Verified evidence</h2>
 <div class="ev"><b>Landscape break (rank 3):</b> live render at 812×375 — portrait circle overflows the viewport; status + all three controls off-screen; × misplaced. Portrait 375×812 renders correctly (hero, party dots, status, controls). Both screenshots taken 2026-07-17 against v1.341 on localhost.</div>
 <div class="ev"><b>Toast burial (rank 1):</b> <code>index.html:438</code> — <code>#car-overlay … z-index:500</code>; <code>ui-shell.js:28</code> — <code>.tnd-toast … z-index:400</code>. Code-confirmed, not inferred.</div>

@@ -8,6 +8,10 @@
 var _carKbHandler = null;
 var _carRetryArmed = false;   // rank 2 — armed by carNotify("error",…), consumed by _carTap
 var _carWakeLock = null;      // rank 5 — Screen Wake Lock sentinel, held only while carMode is on
+// round-2 #30 — last {name, campName, portrait} triple the MediaMetadata was built from, so
+// _carMediaSession can skip the rebuild (incl. re-decoding the base64 portrait artwork) when
+// nothing it depends on changed since the previous syncUI tick.
+var _carMediaLast = null;
 
 // Centralized car-status strings (rank 24) — one table so every writer in this file (and
 // carNotify, called cross-lane) says the same thing the same way; also the future i18n seam.
@@ -53,6 +57,13 @@ function _carAcquireWakeLock() {
   if (!(navigator.wakeLock && navigator.wakeLock.request)) return; // not supported — no-op, feature-detected
   try {
     navigator.wakeLock.request("screen").then(function(sentinel) {
+      // round-2 #28 — the request can resolve AFTER hideCarMode already ran (async race); a
+      // sentinel stored at that point is never released, holding the screen awake through
+      // normal play. Bail out (and release the late sentinel) if car mode is no longer on.
+      if (!carMode) { try { sentinel.release(); } catch (e) {} return; }
+      // round-2 #28 — also release any previously-held sentinel before overwriting it (e.g. a
+      // visibilitychange re-acquire racing a prior in-flight request) so it isn't orphaned.
+      if (_carWakeLock) { try { _carWakeLock.release(); } catch (e) {} }
       _carWakeLock = sentinel;
     }).catch(function(e) {
       console.warn("[carmode] wake lock request rejected:", e);
@@ -76,6 +87,7 @@ function showCarMode() {
   ov.style.display = "flex";
   closeAllMenus();
   if (typeof TTS !== "undefined") TTS.primeAudioSession();
+  _carMediaHandlers(); // round-2 #30 — action handlers registered once per overlay open, not per syncUI tick
   _carUpdate();
   _carMediaSession();
   _carAcquireWakeLock(); // rank 5
@@ -119,7 +131,12 @@ function hideCarMode() {
     TTS.setOnDone(null); TTS.stopAudioSessionPrimer();
     if (!TTS.isOn()) TTS.stop(); // rank 16 — car-only narration must not outlive the overlay; voice-ON users keep theirs
   }
-  if (typeof STT !== "undefined") { if (STT.setOnState) STT.setOnState(null); STT.stop(); }
+  if (typeof STT !== "undefined") {
+    if (STT.setOnState) STT.setOnState(null);
+    // round-2 #31 — exiting car mode mid-cloud-recording used to still upload + transcribe
+    // (STT.stop() finalizes). Exit should discard instead: prefer cancel() when available.
+    if (typeof STT.cancel === "function") STT.cancel(); else STT.stop();
+  }
   if ("mediaSession" in navigator) {
     try {
       navigator.mediaSession.setActionHandler("play", null);
@@ -235,8 +252,11 @@ function _carTap() {
   }
   var inp = document.getElementById("userinput");
   if (inp && inp.value.trim()) { // (e) — a parked utterance (rank 19) waiting from a busy window
+    // round-2 #29a — carNotify("sent") already plays the ack earcon AND sets "Heard you…";
+    // calling _carSetStatus(CAR_STR.sending) here duplicated/shadowed that with a silent,
+    // earcon-less status. Use the shared ack path so tap-to-send matches voice-to-send.
+    carNotify("sent");
     if (typeof sendAction === "function") sendAction(null);
-    _carSetStatus(CAR_STR.sending);
     return;
   }
   _carStartMic(); // (f)
@@ -297,6 +317,11 @@ function _carAutoMic() {
   if (!carMode) return;
   _carSetStatus(CAR_STR.tapToSpeak);
   _carSyncBtn();
+  // round-2 #25 — cloud STT (Whisper) must be push-to-talk only, checked BEFORE the auto-listen
+  // pref below. Auto-starting the cloud recorder after every narration uploads ~15s of road
+  // noise on every turn (cost), and Whisper hallucinates text on silence — that can auto-send
+  // a garbage GM turn. Native STT is a local free-running recognizer and is unaffected.
+  if (typeof STT !== "undefined" && typeof STT.isCloudActive === "function" && STT.isCloudActive()) return;
   // rank 6 — "Auto-listen after narration" pref (Lane B, stt.js). Default ON (today's
   // behavior) whenever the pref isn't wired up yet or hasn't been set, per the contract.
   var autoOn = (typeof STT === "undefined" || typeof STT.isAutoListen !== "function" || STT.isAutoListen());
@@ -307,17 +332,13 @@ function _carAutoMic() {
   }, 800);
 }
 
-function _carMediaSession() {
+// round-2 #30 — action handlers, registered ONCE from showCarMode. They were previously
+// re-registered on every _carUpdate()/_carMediaSession() call (every syncUI tick, i.e. every
+// game-state change) for no benefit — the closures don't capture anything per-call, so this
+// was pure churn. Split out so _carMediaSession can stay a cheap metadata-only path.
+function _carMediaHandlers() {
   if (!("mediaSession" in navigator)) return;
-  var c = worldState && worldState.character;
-  var artwork = (c && c.portrait) ? [{ src: c.portrait, sizes: "512x512", type: "image/jpeg" }] : [];
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title:  (c && c.name)               || "Traffic and Dragons",
-      artist: "Traffic and Dragons",
-      album:  (worldState && worldState.campName) || "",
-      artwork: artwork
-    });
     // rank 11 — steering-wheel play/pause must never open a hot mic. While TTS is active
     // both map onto the existing pause toggle (_carTap already routes that correctly); while
     // idle, "play" replays the last narration instead of falling into _carTap's mic-start
@@ -336,5 +357,27 @@ function _carMediaSession() {
     });
     navigator.mediaSession.setActionHandler("nexttrack",     function() { if (carMode) _carNext(); });
     navigator.mediaSession.setActionHandler("previoustrack", function() { if (carMode) _carPrev(); });
+  } catch(e) {}
+}
+
+function _carMediaSession() {
+  if (!("mediaSession" in navigator)) return;
+  var c = worldState && worldState.character;
+  var name = (c && c.name) || "";
+  var camp = (worldState && worldState.campName) || "";
+  var portrait = (c && c.portrait) || "";
+  // round-2 #30 — skip rebuilding MediaMetadata (incl. re-decoding the base64 portrait into
+  // artwork) when nothing it depends on changed since the last build. _carUpdate calls this
+  // on every syncUI tick, i.e. every game-state change, most of which touch none of these three.
+  if (_carMediaLast && _carMediaLast.name === name && _carMediaLast.camp === camp && _carMediaLast.portrait === portrait) return;
+  _carMediaLast = { name: name, camp: camp, portrait: portrait };
+  var artwork = portrait ? [{ src: portrait, sizes: "512x512", type: "image/jpeg" }] : [];
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  name || "Traffic and Dragons",
+      artist: "Traffic and Dragons",
+      album:  camp,
+      artwork: artwork
+    });
   } catch(e) {}
 }

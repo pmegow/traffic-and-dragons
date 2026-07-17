@@ -127,6 +127,6 @@ story.appendChild(div);story.scrollTop=story.scrollHeight;if(isTTMsg&&activeChat
 // Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
 if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}
-if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
+if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){if(typeof carNotify==="function")carNotify("response");/* round-2 #26: clears the tap-to-retry arm on ANY successful narration (a stale arm re-fired retryLast = duplicate GM turn) + plays the ready earcon */_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
 return div;}
 function closeAllMenus(){eachMenuEl("file-menu",function(el){el.style.display="none";},MENU_ID_PREFIXES);}
