@@ -54,6 +54,14 @@ var STT = (function() {
     _baseText = inp.value ? (inp.value.replace(/\s+$/, "") + " ") : "";
     _gotFinal = false;
 
+    // Name correction (v1.330 — "Frizwick becomes Physics"): the recognizer snaps fantasy names
+    // to its own vocabulary; we hold the campaign's canonical roster and phonetically restore
+    // them (sttCorrectNames, helpers.js — battery-tested). Roster snapshotted once per
+    // dictation session; applied to FINAL chunks only (interims stay raw/live). The corrected
+    // text lands in the input box, so a wrong substitution is visible and editable before send.
+    var _roster = (typeof sttNameRoster === "function" && typeof worldState !== "undefined")
+      ? sttNameRoster(worldState, (typeof memory !== "undefined") ? memory : null) : [];
+
     _rec.onresult = function(ev) {
       var finalTxt = "", interimTxt = "";
       for (var i = ev.resultIndex; i < ev.results.length; i++) {
@@ -62,7 +70,10 @@ var STT = (function() {
         else           interimTxt += r[0].transcript;
       }
       // Persist finals into the base so they survive the next result event
-      if (finalTxt) { _baseText = _baseText + finalTxt; _gotFinal = true; }
+      if (finalTxt) {
+        if (_roster.length && typeof sttCorrectNames === "function") finalTxt = sttCorrectNames(finalTxt, _roster);
+        _baseText = _baseText + finalTxt; _gotFinal = true;
+      }
       inp.value = (_baseText + interimTxt).replace(/^\s+/, "");
     };
 

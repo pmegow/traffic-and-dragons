@@ -147,3 +147,149 @@ function bibleCardHTML(name,e){
     +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+escHtml(e.effect||"")+'</div>'
     +'</div>';
 }
+
+// ── STT name correction (#9 follow-up, v1.330) — "Frizwick becomes Physics" ─────────────────
+// Speech recognizers map audio to THEIR vocabulary; fantasy names always lose ("Frizwick" →
+// "physics", "Morwen" → "more when", "Ammut" → "a mutt"). Web Speech has no vocabulary hook, but
+// we hold what the recognizer doesn't: the campaign's canonical name roster. These PURE functions
+// (headless-testable — the thresholds are pinned by a mangle-pair battery in engine-tests) fix a
+// transcript by phonetic match against that roster. Containment: only roster names are ever
+// substituted; ambiguous double-matches are SKIPPED; the corrected text lands in the input box
+// where the player reviews it before sending.
+//
+// Two-layer match, tuned on the battery:
+//   layer 1 (recall):    consonant-skeleton keys (sttPhoneticKey) within edit distance 2
+//   layer 2 (precision): the vowel-preserving FOLDED forms within distance ceil(maxLen/2)
+// plus a first-sound gate (keys share their leading consonant) and a length window.
+function sttFold(w){
+  w=String(w||"").toLowerCase().replace(/[^a-z]/g,"");
+  if(!w)return"";
+  return w.replace(/ph/g,"f").replace(/wh/g,"w").replace(/wr/g,"r").replace(/kn/g,"n").replace(/gn/g,"n")
+          .replace(/qu/g,"kw").replace(/x/g,"ks").replace(/ck/g,"k").replace(/tch/g,"ch").replace(/dg/g,"j")
+          .replace(/c(?=[eiy])/g,"s").replace(/c/g,"k").replace(/z/g,"s").replace(/v/g,"f")
+          .replace(/b/g,"p").replace(/d/g,"t").replace(/g/g,"k").replace(/j/g,"ch");
+}
+function sttPhoneticKey(word){
+  var w=sttFold(word);
+  if(!w)return"";
+  var key=w.charAt(0)+w.slice(1).replace(/[aeiouyhw]/g,""),out="",i;
+  for(i=0;i<key.length;i++){if(key.charAt(i)!==out.charAt(out.length-1))out+=key.charAt(i);}
+  return out;
+}
+function sttLev(a,b){
+  var m=a.length,n=b.length,i,j;
+  if(!m)return n;if(!n)return m;
+  var prev=[],cur=[];
+  for(j=0;j<=n;j++)prev[j]=j;
+  for(i=1;i<=m;i++){
+    cur[0]=i;
+    for(j=1;j<=n;j++){
+      var cost=a.charAt(i-1)===b.charAt(j-1)?0:1;
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+    }
+    var t=prev;prev=cur;cur=t;
+  }
+  return prev[n];
+}
+// Common-word protection: a single spoken token that IS a common English word is almost never a
+// mangled name (the recognizer's whole failure mode is snapping TO these words — but when the
+// player actually says one, rewriting it is worse than any missed correction). Tuned by the
+// engine-test battery: every false positive it produced ("about"→Ammut, "and"→Ammut,
+// "attack"→Aldus, "search"→Zethran, "market"→Morwen) is a common word; no true mangle-pair is
+// ("physics", "dairies", "fizzwick" are all rare in spoken commands). Bigram HALVES stay
+// exempt — "more when"/"a mutt"/"sand point" are made of common words by nature; bigram safety
+// comes from the perfect-skeleton requirement instead.
+var STT_COMMON={about:1,after:1,again:1,against:1,ahead:1,all:1,along:1,also:1,always:1,and:1,any:1,anyone:1,anything:1,are:1,around:1,ask:1,attack:1,away:1,back:1,bag:1,be:1,before:1,begin:1,behind:1,below:1,beside:1,best:1,better:1,between:1,blade:1,block:1,body:1,both:1,bow:1,bread:1,break:1,bring:1,but:1,buy:1,call:1,camp:1,can:1,care:1,carefully:1,carry:1,cast:1,catch:1,cave:1,chase:1,check:1,city:1,climb:1,close:1,come:1,could:1,count:1,cover:1,cut:1,dagger:1,dark:1,day:1,deal:1,defend:1,did:1,dig:1,do:1,dodge:1,does:1,done:1,door:1,down:1,drag:1,draw:1,drink:1,drop:1,each:1,east:1,eat:1,edge:1,end:1,enter:1,even:1,ever:1,every:1,eyes:1,face:1,far:1,fast:1,fight:1,find:1,fire:1,first:1,fix:1,flee:1,floor:1,follow:1,food:1,foot:1,forest:1,forward:1,from:1,front:1,gate:1,get:1,give:1,go:1,goes:1,going:1,gold:1,good:1,grab:1,great:1,ground:1,guard:1,hand:1,has:1,have:1,head:1,hear:1,heal:1,held:1,help:1,her:1,here:1,hide:1,high:1,hill:1,him:1,his:1,hit:1,hold:1,home:1,horse:1,house:1,how:1,hurry:1,if:1,inn:1,inside:1,into:1,is:1,it:1,its:1,jump:1,just:1,keep:1,key:1,kill:1,knife:1,know:1,last:1,lead:1,leave:1,left:1,let:1,light:1,like:1,listen:1,little:1,lock:1,long:1,look:1,loot:1,low:1,make:1,man:1,many:1,map:1,mark:1,market:1,may:1,me:1,men:1,might:1,mine:1,more:1,most:1,mount:1,move:1,much:1,must:1,my:1,near:1,need:1,never:1,new:1,next:1,night:1,no:1,north:1,not:1,nothing:1,now:1,off:1,old:1,on:1,once:1,one:1,only:1,open:1,other:1,our:1,out:1,outside:1,over:1,own:1,pass:1,path:1,pay:1,pick:1,place:1,plan:1,point:1,potion:1,pull:1,push:1,put:1,quick:1,quiet:1,quietly:1,read:1,ready:1,rest:1,return:1,ride:1,ridge:1,right:1,river:1,road:1,rock:1,roll:1,room:1,rope:1,run:1,said:1,same:1,save:1,say:1,scout:1,search:1,see:1,sell:1,send:1,set:1,shield:1,ship:1,shoot:1,shop:1,short:1,should:1,show:1,side:1,signal:1,sit:1,sleep:1,slow:1,slowly:1,small:1,sneak:1,so:1,some:1,someone:1,something:1,soon:1,south:1,speak:1,spell:1,stab:1,stand:1,start:1,stay:1,steal:1,step:1,still:1,stone:1,stop:1,street:1,strike:1,such:1,swim:1,sword:1,take:1,talk:1,tavern:1,tell:1,than:1,that:1,the:1,their:1,them:1,then:1,there:1,these:1,they:1,think:1,this:1,those:1,three:1,through:1,throw:1,time:1,to:1,together:1,told:1,too:1,torch:1,toward:1,town:1,track:1,trade:1,trail:1,tree:1,try:1,turn:1,two:1,under:1,until:1,up:1,upon:1,us:1,use:1,very:1,view:1,village:1,wait:1,wake:1,walk:1,wall:1,want:1,warn:1,watch:1,water:1,way:1,we:1,weapon:1,wear:1,well:1,went:1,were:1,west:1,what:1,when:1,where:1,which:1,while:1,who:1,why:1,will:1,window:1,with:1,within:1,without:1,woman:1,wood:1,woods:1,word:1,work:1,would:1,yes:1,yet:1,you:1,your:1};
+// Function words that may not LEAD a bigram (joining "the"+noun makes phantom names); "a" is
+// deliberately allowed — "a mutt" → Ammut is a real recognizer split.
+var STT_BIGRAM_NOLEAD={the:1,to:1,of:1,in:1,on:1,at:1,is:1,it:1,and:1,or:1,for:1,with:1,my:1,we:1,he:1,she:1,they:1,i:1};
+// One roster word ↔ one transcript candidate. Returns a match quality (lower = better) or -1.
+function sttWordScore(candRaw,nameWord){
+  var kC=sttPhoneticKey(candRaw),kN=sttPhoneticKey(nameWord);
+  if(!kC||!kN)return -1;
+  if(kC.charAt(0)!==kN.charAt(0))return -1;                       // first-sound gate
+  var dK=sttLev(kC,kN),mK=Math.max(kC.length,kN.length);
+  if(!(dK===0||(dK===1&&mK>=3)||(dK===2&&mK>=4)))return -1;       // layer 1: skeleton distance
+  var fC=sttFold(candRaw),fN=sttFold(nameWord);
+  if(Math.abs(fC.length-fN.length)>4)return -1;                    // length window
+  var dF=sttLev(fC,fN),mF=Math.max(fC.length,fN.length);
+  if(dF>Math.ceil(mF/2))return -1;                                 // layer 2: folded-form precision
+  return dK*10+dF;                                                 // rank: skeleton first, folded tiebreak
+}
+// Canonical roster from live state: PC, NPCs (+aliases), memory keys (+aliases), locations.
+// Returns [{word, full}] — `word` is the substitutable canonical token, `full` the source name.
+function sttNameRoster(ws,mem){
+  var seen={},out=[];
+  function addName(full){
+    if(!full)return;
+    var parts=String(full).split(/\s+/),i;
+    for(i=0;i<parts.length;i++){
+      var w=parts[i].replace(/[^A-Za-z']/g,"");
+      if(w.replace(/[^A-Za-z]/g,"").length<4)continue;             // short/honorific-ish tokens skipped
+      var k=w.toLowerCase();
+      if(!seen[k]){seen[k]=1;out.push({word:w,full:String(full)});}
+    }
+  }
+  if(ws&&ws.character)addName(ws.character.name);
+  var i,j;
+  for(i=0;i<((ws&&ws.npcs)||[]).length;i++){var n=ws.npcs[i];addName(n.name);for(j=0;j<((n.aliases)||[]).length;j++)addName(n.aliases[j]);}
+  if(mem&&mem.npcs){for(var k2 in mem.npcs){addName(k2);var als=mem.npcs[k2].aliases||[];for(j=0;j<als.length;j++)addName(als[j]);}}
+  if(ws&&ws.world)addName(ws.world.location);
+  if(mem&&mem.locations){for(var k3 in mem.locations)addName(k3);}
+  return out;
+}
+// Correct a transcript against the roster. Bigrams first ("more when" → Morwen), then single
+// tokens; exact roster words pass through untouched; an ambiguous tie between two DIFFERENT
+// canonical words is skipped (never guess between people). Punctuation/casing of the
+// surrounding text is preserved; substitutions use the roster's canonical casing.
+function sttCorrectNames(text,roster){
+  if(!text||!roster||!roster.length)return text;
+  var toks=String(text).split(/(\s+)/),i,r;   // words + separator tokens interleaved
+  function alpha(s){return String(s||"").replace(/[^A-Za-z]/g,"");}
+  function best(cand){
+    var b=null,tie=false;
+    for(var ri=0;ri<roster.length;ri++){
+      var sc=sttWordScore(cand,roster[ri].word);
+      if(sc<0)continue;
+      if(b===null||sc<b.sc){b={sc:sc,word:roster[ri].word};tie=false;}
+      else if(sc===b.sc&&roster[ri].word.toLowerCase()!==b.word.toLowerCase())tie=true;
+    }
+    return (b&&!tie)?b:null;
+  }
+  function isRosterWord(cand){
+    var c=cand.toLowerCase();
+    for(var ri=0;ri<roster.length;ri++){if(roster[ri].word.toLowerCase()===c)return true;}
+    return false;
+  }
+  function subst(tok,canon){
+    // keep leading/trailing punctuation around the alpha core
+    return tok.replace(/[A-Za-z][A-Za-z']*/,canon);
+  }
+  for(i=0;i<toks.length;i++){
+    var w1=alpha(toks[i]);
+    if(!w1)continue;
+    if(isRosterWord(w1))continue;                                  // already canonical
+    // bigram first: this word + the next word joined (recognizers split names into real words).
+    // Bigrams demand a PERFECT phonetic-skeleton match (sc<10 ⇒ key distance 0) — every real
+    // split-name pair is exact at the skeleton level ("more when"→Morwen, "a mutt"→Ammut,
+    // "sand point"→Sandpoint), and every battery false positive ("the wards"→Daeris) was not.
+    var ni=i+2;                                                    // toks[i+1] is the separator
+    var w2=ni<toks.length?alpha(toks[ni]):"";
+    if(w2&&!isRosterWord(w2)&&(w1.length+w2.length)>=4&&!STT_BIGRAM_NOLEAD[w1.toLowerCase()]){
+      var bg=best(w1+w2);
+      if(bg&&bg.sc<10){                                            // perfect skeleton only
+        toks[i]=subst(toks[i],bg.word);toks[i+1]="";toks[ni]=toks[ni].replace(/[A-Za-z][A-Za-z']*/,"");
+        if(typeof console!=="undefined")console.info("[stt] name-corrected: \""+w1+" "+w2+"\" → "+bg.word);
+        continue;
+      }
+    }
+    if(w1.length<3)continue;                                       // too short to judge alone
+    if(STT_COMMON[w1.toLowerCase()])continue;                      // a common word the player said is (almost) never a mangled name
+    var sg=best(w1);
+    if(sg){
+      toks[i]=subst(toks[i],sg.word);
+      if(typeof console!=="undefined")console.info("[stt] name-corrected: \""+w1+"\" → "+sg.word);
+    }
+  }
+  return toks.join("").replace(/\s{2,}/g," ");
+}

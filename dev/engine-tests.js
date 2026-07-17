@@ -4733,4 +4733,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return a.step===1&&a.gender==="M"&&a.statMode==="roll"?true:"defaults drifted: "+JSON.stringify({step:a.step,gender:a.gender,statMode:a.statMode});
   });
 
+
+  // ── STT name correction (#9 follow-up, v1.330) — the Frizwick/physics class ──
+  section("STT name correction (v1.330)");
+  function __sttRoster(){return [{word:"Frizwick"},{word:"Morwen"},{word:"Zethran"},{word:"Ammut"},{word:"Daeris"},{word:"Hemlock"},{word:"Sandpoint"},{word:"Sandru"},{word:"Aldus"},{word:"Quink"}];}
+  t("hero mangle-pairs correct: physics/more when/a mutt/dairies/fizzwick/sand point",function(){
+    var r=__sttRoster();
+    var pairs=[["I ask physics about the wards","Frizwick"],["tell more when to scout ahead","Morwen"],["a mutt draws her blade","Ammut"],["I speak with dairies tonight","Daeris"],["ask fizzwick about the ledger","Frizwick"],["we ride to sand point at dawn","Sandpoint"]];
+    for(var i=0;i<pairs.length;i++){var out=sttCorrectNames(pairs[i][0],r);if(out.indexOf(pairs[i][1])<0)return JSON.stringify(pairs[i][0])+" did not correct to "+pairs[i][1]+": "+out;}
+    return true;
+  });
+  t("safety set: common words, exact roster words, and near-misses stay UNTOUCHED",function(){
+    var r=__sttRoster();
+    var keep=["I attack with my sword","the wolf is circling us","I search the room carefully","we go to the market and buy bread","I draw my dagger and wait","talk to belor about the murders","I ask hemlock about the fire","and then we attack together","sword and shield ready, we advance","signal quink from the ridge"];
+    for(var i=0;i<keep.length;i++){var out=sttCorrectNames(keep[i],r);if(out!==keep[i])return JSON.stringify(keep[i])+" was altered: "+out;}
+    return true;
+  });
+  t("punctuation and surrounding text survive a substitution",function(){
+    var out=sttCorrectNames("quick, ask physics, then run",__sttRoster());
+    return out==="quick, ask Frizwick, then run"?true:"got "+JSON.stringify(out);
+  });
+  t("ambiguity guard: a candidate matching two different names equally is SKIPPED",function(){
+    var out=sttCorrectNames("we meet dairies at dusk",[{word:"Daeris"},{word:"Daeriz"}]);/* fold-identical pair — a TRUE tie (Dairis would be measurably closer and legitimately win) */
+    return out==="we meet dairies at dusk"?true:"guessed between people: "+out;
+  });
+  t("empty roster is a no-op",function(){
+    var s="I ask physics about the wards";
+    return sttCorrectNames(s,[])===s?true:"altered with no roster";
+  });
+  t("sttNameRoster: PC + NPCs + aliases + locations, deduped, short tokens skipped",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen Zethran",aliases:["The Grey Blade"],partyMember:true});
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"n",knowledge:[],events:[],aliases:["Hemlock"]};
+    memory.locations["Sandpoint"]={visited:[1],notes:[]};
+    var r=sttNameRoster(worldState,memory),words={},i;
+    for(i=0;i<r.length;i++)words[r[i].word]=(words[r[i].word]||0)+1;
+    if(!words["Tess"])return "PC missing";
+    if(!words["Morwen"]||!words["Zethran"])return "NPC words missing";
+    if(!words["Blade"]&&!words["Grey"])return "alias words missing";
+    if(!words["Hemlock"]||!words["Belor"])return "memory-key words missing";
+    if(!words["Sandpoint"])return "location missing";
+    if(words["Hemlock"]!==1)return "dedupe failed: Hemlock x"+words["Hemlock"];
+    for(i=0;i<r.length;i++){if(r[i].word.replace(/[^A-Za-z]/g,"").length<4)return "short token leaked: "+r[i].word;}
+    return true;
+  });
+
 }
