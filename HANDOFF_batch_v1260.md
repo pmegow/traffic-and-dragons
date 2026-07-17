@@ -1,5 +1,7 @@
 # HANDOFF — the post-cutover additive batch (written at engine v1.260)
 
+**Status: ✅ EXECUTED (banner added 2026-07-16, audit #27)** — all items 0–9 shipped in the post-cutover commits (item 0 legacy-parser deletion v1.261; item 2 multi-enemy combat v1.264, per [MULTI_ENEMY_COMBAT.md](MULTI_ENEMY_COMBAT.md)'s own status header; item 5 condition `cause` v1.267; item 6 epithets v1.268; item 9 reciprocity nudge v1.270; the doc-line items ride in `TAG_DOC_LINES`). Nothing here is a live instruction; retained as the historical design/pre-review record.
+
 **Authorship & execution frame.** This is a Fable-authored implementation design, written for
 execution by a later (Opus) session under the drift-protection policy's compensating controls
 (CLAUDE.md ▸ Dev workflow ▸ Drift-protection change policy; Fable_UberAudit.md ▸ Standing policy).

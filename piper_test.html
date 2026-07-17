@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Piper TTS — kick-the-tires (v0.1)</title>
 <!--
+  ══════════════════════════════════════════════════════════════════════════════════════════
+  ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
+  (normalizeForTTS / splitSentences) was harvested into tts.js at v1.298 and has since EVOLVED
+  there (per-caller dashRepl, v1.310's commaSplit tiered-pause mode). This page's copies are the
+  pre-harvest SPIKE versions — tuning them no longer tests what ships. The page is retained as
+  the documented ORT-vendoring scaffold (the /vendor/piper/ bring-up record + voice audition rig).
+  ══════════════════════════════════════════════════════════════════════════════════════════
+
   piper_test.html — SATELLITE SPIKE, NOT in the SW app shell. Open directly (like bible_study.html /
   blueprint-designer.html). Purpose: audition Piper's REAL voice quality on real Ammut narration,
   with the sentence-split + punctuation-normalization wrapper that the flat demo pages lack.

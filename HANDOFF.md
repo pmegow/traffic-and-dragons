@@ -1,5 +1,7 @@
 # Traffic and Dragons — Session Handoff
 
+**Status: ✅ EXECUTED (banner added 2026-07-16, audit #27)** — the "⚡ NEXT TASK" below (audit the overnight playtest / bible money test) was done: see [audits/AUDIT_playtest_v1.224.md](audits/AUDIT_playtest_v1.224.md). Nothing in this doc is a live instruction; retained as the historical record of the v1.225 session state.
+
 **Date:** 2026-07-08 (the capability_bible build day)
 **Deployed version:** engine **v1.225** — pushed through `b9ac10a` (`origin/master` == local HEAD).
 **SW cache:** `tnd-v3-20260708c` (`sw.js`).

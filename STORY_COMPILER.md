@@ -1,5 +1,7 @@
 # Story Compiler — Planning Doc
 
+> **✅ STATUS UPDATE (2026-07-16, audit #28): the transcript prerequisite below is BUILT.** The "does not exist yet — build transcript capture first" hard dependency in the next block is SUPERSEDED: `worldState.transcript[]` (`{t,r,x}`, appended from sendAction/beginAdventure) shipped at v1.62 (TODO #12), is LZ-compressed at the localStorage boundary since v1.227 (`serializeWorldState`/`parseWorldState` + compress.js), and **📜 Export Narrative shipped v1.229** (`buildNarrativeHtml` — transcript → styled HTML with machine-readable `.act`/`.gm` blocks) as **stage 1** of the compiler pipeline. The auto-export `.txt` hack this doc rules out was removed v1.228. Whoever picks up TODO #5 starts from the stage-2+ composable LLM passes (fold player actions, person conversion) described in the TODO #5 row — not from building capture.
+
 > **⚠ DIRECTION REVISED (2026-06-15) — read before building.**
 > Decision: the keepsake is woven from **verbatim prose**, not chapter summaries. The body of this doc below still describes the original summaries-first design (`memory.chapters` as "the spine") — treat that as superseded for the *source* question.
 > New architecture: **complete append-only transcript = the flesh** (real prose/dialogue the player actually saw); **`memory.chapters` + `storyBeats` + `keyDecisions` = the skeleton** (arc shape, pacing, and which transcript stretches to pull verbatim — to control token cost on long campaigns).

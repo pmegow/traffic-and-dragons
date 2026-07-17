@@ -16,11 +16,12 @@ All logic has been extracted from the HTML into separate JS files.
 
 | File | Status | Contents |
 |---|---|---|
-| `index.html` | **Active host** | CSS, HTML scaffolding, 10 `<script src>` tags, no inline JS |
+| `index.html` | **Active host** | CSS, HTML scaffolding, 16 `<script src>` tags, no inline JS |
 | `globals.js` | ✅ Extracted | `apiKey`, `busy`, `lastAction`, `panelCol`, `secCol`, `activeChatTab`, `pendingChar`, `pendingSpellPool`, `pendingBumps`, `currentBump`, `rvGold`, `customRules`, `RENDER_MODELS`, `pendingCompanions` |
+| `compress.js` | ✅ Active (v1.227) | Self-contained LZ-string UTF-16 compressor (`LZ.compressToUTF16`/`decompressFromUTF16`, public-domain LZString, no deps) — compresses ONLY the transcript at the localStorage boundary (see §3 transcript compression); loads 2nd (right after globals.js) in the SW app shell and the headless test runner |
 | `data.js` | ✅ Extracted | All game data constants (TONES, ANCS, CLSS, ABILS, ARCHETYPES, CLASS_FEATURES, SPELLS, ARCH_SPELLS, XP_LEVELS, STAT_BUMP_LEVELS, STAT_PRIORITY, DEITY_MAP, DEITY_CENTRIC, DEFAULT_RULES, SPELL_PICK_LIMITS, SKILLS, SKILL_LEVELS, SKILL_THRESHOLDS) |
 | `capability_bible.js` | ✅ Active | The unified `capability_bible` (TODO #10, merged from spell_bible+ability_bible v1.222) — `CAPABILITY_BIBLE` holds spells AND abilities (no intrinsic difference; `kind` is cosmetic, `cost`+`isMagical` are the real axes). Keyed by base name (`capBaseName()`); schema `{kind:"spell"|"ability", tier, cost, isMagical, category, range, targets, duration, effect, dice?, save?}`. **`category`** (v1.223) is a LIST of traditions (`arcane`/`divine`/`primal`/`necromantic`/`martial`) — the gate for limiting a rolled enemy caster's menu (e.g. Turn Undead is `["divine","necromantic"]`); **`capabilitiesByCategory(cat)`** returns the matching list (base + overlay). **Fixed attribute set (v1.224):** every entry carries all of `cost/range/targets/duration/save/dice`, `"N/A"` where inapplicable — so the card always shows the same 6 rows (no variance) and the GM's injected canon can never be queried empty (Death Sight's duration = `N/A`, not missing). `capBibleLine()` (api.js) renders one labeled, complete injection line. **`capabilityLookup()`** — the ONE lookup for card, viewer, and injection: emergent `worldState.capabilityBible` overlay (written write-once by `[SPELL_DEF:]`, v1.219; carries `category=a,b`) wins over the static base. An ability that is really a spell (Hunter's Mark) resolves to its spell canon — no dup. Anti-drift injection: `buildSpellBibleBlock()` + `buildAbilityBibleBlock()` (api.js) re-inject canon for the player's known spells/abilities every turn (volatile half). Genuinely-different domains (item/creature/profession) get their own `*_bible` files |
-| `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, `pval`, etc. Plus `bibleCardHTML(name,entry)` (TODO #10) — the shared pure capability-card renderer used by BOTH the in-game click-card and `bible_study.html` (one render, two hosts) |
+| `helpers.js` | ✅ Extracted | Utility functions: `smod`, `skillLevel`, `initSkills`, `alignLabel`, etc. Plus `bibleCardHTML(name,entry)` (TODO #10) — the shared pure capability-card renderer used by BOTH the in-game click-card and `bible_study.html` (one render, two hosts) |
 | `state.js` | ✅ Extracted | `store`, `worldState`, `sessionLog`, `memory`, save/load functions, storage key constants |
 | `storage-adapter.js` | ✅ Extracted | Cloud sync: `loginWithServer`, `syncToServer`, `syncCampaignList`, `loadFromServer`, `logoutFromServer`, `listCharacterLibrary`, `saveCharacterToLibrary`, `deleteCharacterFromLibrary` |
 | `memory.js` | ✅ Extracted | `sessionTokens`, `fileNpcEvent`, `fileLocation`, `fileLore`, `fileDecision`, `fileFutureEvent`, `resolveFutureEvent`, `memoryTOC`, `memoryNpcDetail`, `summarize` |
@@ -30,12 +31,14 @@ All logic has been extracted from the HTML into separate JS files.
 | `char-creation.js` | ✅ Extracted | All wizard step logic, `cs`, `confirmChar`, archetype/spell/stat-bump pickers |
 | `game.js` | ✅ Extracted | `sendAction`, `sendSuggestedAction`, `beginAdventure`, `retryLast`, `checkLevelUp`, `showArchetypeModal`, `pickArchetype`, `showStatBumpModal`, `restSpells`, `doRender`, `newGame`, `syncCharSheet`, `checkLegacyCharacter`, `checkCompanionLevelUp` |
 | `ui.js` | ✅ Extracted | `syncUI`, `updateHUD`, `updateInvPanel`, `updateAbPanel`, `updateSpPanel`, `updateCombat`, `updateMemStatus`, `showGame`, `showChar`, `addMsg`, `switchTab`, `showToast`, `showSyncModal`, `showRulesModal`, `exportSave`, `importSave`, `showCharSheet`, `showNpcSheet`, `showCampaignPicker`, `buildFilename`, `wireButtons`, `showCharacterLibrary`, `_showCharExportOptions`, `showCompanionBrowser`, `_renderCompanionSlots`, `showCapabilityCard` (TODO #10 spell/ability click-card; clickable names in the char sheet) |
+| `tts.js` | ✅ Active | Text-to-speech: `TTS` module with a `TTS_PROVIDERS` table (mirrors the LLM `PROVIDERS` shape in globals.js) — `native` (browser speechSynthesis) / `cartesia` (cloud SSE + Web Audio) / `piper` (local WASM, offline, $0 — TODO #41; vendored at `/vendor/piper/`, voices cached in OPFS after one ~60MB download). Shared text-prep (`normalizeForTTS`/`splitSentences` with per-caller `dashRepl`/`commaSplit`, harvested from the piper_test.html spike at v1.298), queue/scheduler, voice bank, engine picker with per-item downgrade-to-native fallback |
+| `stt.js` | ✅ Active | Speech-to-text input: `STT` module over the Web Speech API (`webkitSpeechRecognition`, zero-dependency, no key/network) — mic button dictates into the input field, single utterance with live interim results, language + auto-send prefs (`tnd_stt_lang_v1`/`tnd_stt_autosend_v1`), listen-state subscriber hook for Car Mode (#5/#19). Chrome/Edge + Android Chrome only (`isSupported()` gates the UI; not Firefox, iOS flaky) |
 | `bible_study.html` | ✅ Active | Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML`; live name/text filter |
 
 ### Script load order
 
 ```
-globals.js → data.js → capability_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → tag_table.js → api.js → campaign_generator.js → char-creation.js → game.js → ui.js → tts.js
+globals.js → compress.js → data.js → capability_bible.js → helpers.js → state.js → storage-adapter.js → memory.js → tag_table.js → api.js → campaign_generator.js → char-creation.js → game.js → ui.js → tts.js → stt.js
 ```
 
 Each file depends only on symbols defined by files earlier in this list.
@@ -226,7 +229,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[HP:+/-X]` | Adjust `character.hp`, clamped to `[0, maxHp]` |
 | `[GOLD:+/-X]` | Adjust `character.gold` |
 | `[ITEM_GAINED:name]` / `[ITEM_LOST:name]` | Push/filter `character.inventory` |
-| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map`. **Also clears stale `worldState.combat` on a world-location change** (v1.216, audit F2) — the party traveled away, so any unclosed fight is over; skipped if the same response opens a fresh `[COMBAT_START:]` |
+| `[LOCATION:name]` | Update `world.location`, clear `sublocation`, file to `memory.locations` and `memory.map`. **Also clears `worldState.combat` on a world-location change** (v1.216, audit F2; generalized for multi-foe v1.264) — the party traveled away, so any unclosed fight is over. The clear runs UNCONDITIONALLY on a real move (under add-a-foe semantics, skipping it would leak the old location's foes into a new fight); it just runs silently (no warn/muts line) when the same response opens a fresh `[COMBAT_START:]`, which immediately rebuilds the tracker |
 | `[LOCATION_DESC:text]` | Store canonical description for current location (written once on first visit, never overwritten) |
 | `[SUBLOCATION:name]` | Enter a named area within the current world location; sets `world.sublocation` |
 | `[SUBLOCATION_LEAVE]` | Exit sub-location; clears `world.sublocation` |
@@ -238,10 +241,13 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[XP:N]` | Add XP, trigger `checkLevelUp()`. **XP parity (v1.172):** automatically mirrored to every party companion's `charSheet` (+ `checkCompanionLevelUp`), EXCEPT companions named in a `[COMPANION_XP:]` tag in the same response (individual award supersedes the mirror — no double count) |
 | `[QUEST:title\|status]` or `[QUEST:title\|status\|desc]` | Upsert `worldState.questLog[]`. status: `offered`/`active`/`completed`/`failed`. `offered` toasts "⚑ Quest opportunity"; `completed`/`failed` archive to `memory.quests` and remove from the live log |
 | `[QUEST_STEP:title\|objective\|done]` | Add an objective to a quest (`done` omitted/false), or mark an existing one complete (`done=true`); matched by objective text |
-| `[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale]` | Set `worldState.combat` |
-| `[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N]` | Set enemy ability scores and CR (always emit alongside COMBAT_START) |
-| `[COMBAT_IMMUNE:type,type]` / `[COMBAT_RESIST:...]` / `[COMBAT_VULN:...]` | Set damage immunities/resistances/vulnerabilities; displayed in combat panel |
-| `[ENEMY_HP:-X]` / `[COMBAT_ROUND:N]` / `[COMBAT_END:outcome]` | Update or clear combat state |
+| `[COMBAT_START:name\|hp\|ac\|atkbonus\|dmgdie\|morale]` | Multi-foe (UA26, v1.264): no combat → start the encounter as `{round:1, engaged:null, foes:[foe]}`; combat active → **APPEND a foe** to `foes[]`. Duplicate name while that foe is living → ignored + warn (re-emission, not a new foe); 9th foe → ignored + warn (cap 8, runaway-model guard). g-loop: every occurrence in the response lands |
+| `[COMBAT_STATS:STR:N\|DEX:N\|CON:N\|INT:N\|WIS:N\|CHA:N\|CR:N]` | Set a foe's ability scores and CR (always emit alongside COMBAT_START). Binds by **positional adjacency** (P3-F1, v1.272): each occurrence goes to the foe whose `[COMBAT_START:]` most recently precedes it in the response text; with no preceding start, `COMBAT_ATTR_FALLBACK="engaged"` routes like bare ENEMY_HP (single living foe, else the engaged foe, else first living + warn) |
+| `[COMBAT_IMMUNE:type,type]` / `[COMBAT_RESIST:...]` / `[COMBAT_VULN:...]` | Set a foe's damage immunities/resistances/vulnerabilities; same positional-adjacency binding + fallback as COMBAT_STATS (the three handlers are factory-generated by `combatAttrEntry`, audit #8); displayed in combat panel |
+| `[ENEMY_HP:Name\|-X]` (named) / `[ENEMY_HP:-X]` (bare) | Adjust a foe's hp (clamped ≥ 0). **Named:** matched exact-then-contains (`combatFoeByName`); no match → warn, NO mutation. **Bare:** single living foe → that foe; else the ENGAGED foe (`combat.engaged` = the foe the player last damaged) if living; else first living + warn — the mutation always lands. Any hit sets `engaged`; hp ≤ 0 sets `down:"slain"` and clears `engaged` |
+| `[ENEMY_SURRENDERS:Name]` / `[ENEMY_SURRENDERS]` (bare) | Mark foe(s) `down:"surrendered"` (UA2 resolved as IMPLEMENT, v1.264): named → that foe via `combatFoeByName` (warn if not found); bare → ALL living foes. Clears `engaged`. A surrendered foe stays in `foes[]` and survives the fight |
+| `[COMBAT_ROUND:N]` | Set `combat.round` (encounter-level) |
+| `[COMBAT_END:outcome]` | Close the WHOLE encounter (`worldState.combat=null`) regardless of foe states. Without the tag, **all foes down auto-closes** — as "surrender" if any foe surrendered, else "victory" |
 | `[ABILITY_GAINED:Name|Desc]` | Append to `character.abilities` (deduplicated) |
 | `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift `alignLaw`/`alignGood` (-3 to +3), recompute `actualAlignment` |
 | `[SPELL_USED:name]` | Mark matching spell as `used: true` |
@@ -338,7 +344,17 @@ Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArriva
 
 ### 10. Combat system
 
-Combat state lives in `worldState.combat`: `{name, hp, maxHp, ac, atk, dmg, morale, round}`. All mechanics handled by GM through state tags. `#cpanel` shown/hidden by `syncUI()`.
+**Multi-foe since UA26/v1.264** (design + ratified decisions in [MULTI_ENEMY_COMBAT.md](MULTI_ENEMY_COMBAT.md)). Combat state lives in `worldState.combat`:
+
+```
+{ round: N,
+  engaged: "name"|null,   // the foe the player last damaged — deterministic "who am I fighting" proxy for bare-tag addressing
+  foes: [ { name, hp, maxHp, ac, atk, dmg, morale,
+            stats?, immune?, resist?, vuln?,
+            down?: "slain"|"fled"|"surrendered" } ] }
+```
+
+`[COMBAT_START:]` APPENDS a foe (cap 8; duplicate living name ignored + warn). A foe at hp ≤ 0 or with `.down` set is out of the fight but STAYS in `foes[]` (panel strike-through + GM aftermath context). Named `[ENEMY_HP:Name\|-X]` routes exact-then-contains; bare `[ENEMY_HP:-X]` routes single-living → engaged → first-living + warn (see the §7 rows). Attribute tags (COMBAT_STATS / IMMUNE / RESIST / VULN) bind by positional adjacency to the closest preceding COMBAT_START in the response; no-preceding-start fallback governed by `COMBAT_ATTR_FALLBACK` (tag_table.js). All foes down auto-closes the encounter ("surrender" if any surrendered, else "victory") even without `[COMBAT_END:]`. Legacy single-enemy saves are wrapped into the foes[] shape by `migrateWorldState` (state.js). All mechanics handled by GM through state tags. `#cpanel` shown/hidden by `syncUI()` (`worldState.combat` truthiness).
 
 ### 10b. Quest system (v1.34)
 
@@ -460,7 +476,7 @@ Opened via **Sheet** button in topbar (desktop) or File menu (mobile). Built by 
 **Auth:** GitHub OAuth popup → server postMessages `{type:"tnd-auth", sessionId, username}` back to opener → token stored in `tnd_server_tok_v1`.
 **CORS:** Server uses `origin: function() { return "*"; }` to handle `null` origin from `file://` pages.
 **Endpoints:** ~18 routes — full enumeration in [SERVER_ARCHITECTURE.md](SERVER_ARCHITECTURE.md) §1.2 (auth: `/auth/github` + callback + `/auth/done` + one-shot `/auth/ticket/:ticket` + `/auth/me` + logout; state: `GET/POST /api/state` (POST carries the CAS turn guard), `GET/DELETE /api/campaigns[/:id]`, `PUT /api/campaigns/:id/portrait`; libraries: `/api/characters`, `/api/blueprints`; `GET /health`). Auth flow is TICKET-based: the popup postMessages a one-shot ticket (or the opener polls it on file://), and the sessionId comes from the claim endpoint.
-**Deploy:** `cd C:\Users\hannu\Projects\traffic-and-dragons-server && flyctl deploy --ha=false` — the server repo lives OUTSIDE the OneDrive-synced tree (moved 2026-07-12, PROJECT_ONE_DRIVE_EXODUS.html Phase 4); it is NOT a sibling of the game repo anymore
+**Deploy:** `cd C:\Users\hannu\Projects\traffic-and-dragons-server && flyctl deploy --ha=false` — the server repo lives OUTSIDE the OneDrive-synced tree (moved 2026-07-12, DOC/PROJECT_ONE_DRIVE_EXODUS.html Phase 4); it is NOT a sibling of the game repo anymore
 
 ### 23. Reload behavior
 
@@ -481,6 +497,7 @@ On `init()`, if a saved game is found, `rebuildNarrativeFromTranscript()` (ui.js
 - **Scrollbars** — custom styled via `::-webkit-scrollbar` rules: 6px wide, near-black track, dark grey thumb, amber on hover.
 - **No pill/chip borders on non-interactive elements** — use plain text, comma-separation, or `cs-list-row` rows instead. Borders imply clickability. ONE sanctioned exception: the verdict-badge standard below, for doc/satellite pages only.
 - **Verdict/status badge standard (user-approved 2026-07-12)** — when a doc/satellite page needs a colored verdict or status badge (pass/fail/warn, wins/loses, etc.), use the muted-fill pill from `DOC/app_vs_browser.html` (`.lean` classes), NOT an outlined pill or a full-brightness fill (both tried and rejected — outline reads thin, solid fill kills the text). Recipe: background = the accent color cut to **20% of its HSV value** (e.g. `--good` `#7aa86a` → `#182215`), 1px border in the **full-brightness** accent (the rim is what carries the color), text **bold monospace, uppercase, `rgba(255,255,255,.4)`**, `border-radius:12px; padding:2px 10px; font-size:.78em; letter-spacing:1px`. Game-UI surfaces keep the no-pill rule above.
+- **`DOC/` holds reference docs — HTML and MD** (amended 2026-07-16, audit #29, from eeef396's "HTML only" rule — the least-churn reading of what the folder already held). Reference material and completed-project records (e.g. `DOC/PROJECT_ONE_DRIVE_EXODUS.html`) live there; audits live in `audits/`; satellite TOOLS (bible_study.html, blueprint-designer.html, test.html, piper_test.html) stay at root.
 - **File menus are GENERATED, not hand-written (v1.159)** — `buildFileMenus()` (ui.js, called first in `wireButtons`) renders all three File menus (`#file-menu`/`#cs-file-menu`/`#api-file-menu`) from ONE spec. To add/move/remove a menu item, edit the spec in `buildFileMenus` — never touch index.html (the mount divs there are empty). Ids keep the `fm-`/`cs-fm-`/`api-fm-` prefixes (import inputs: `""`/`cs-`/`api-`), so all existing id-based wiring works unchanged. Per-surface differences (disabled items on char/API screens, mobile-only quick actions on the game screen) are flags in the spec.
 
 ---

@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "trial": "C1",
+    "scenario": "C",
+    "version": "v1.305",
+    "startedTurn": 343,
+    "endTurn": 353,
+    "scriptedTurns": 2
+  },
+  "log": [
+    {
+      "action": "Check Aldus for injuries before moving him.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 346You run your hands along his arms first. No breaks. No wounds.His wrists tell the story. The skin where his hands met the rune is wrong. Not burned. Not cut. Just thin. Translucent almost. Like something came through the surface slowly for a long time.You check his pulse again at the throat. Steady. Weak.His eyes are closed and don't open when you touch his face. Breathing through his nose in shallow pulls. Not unconscious exactly. Something between sleep and somewhere else.No other injuries. No blade marks. No bruising. Whatever the stone did to him it wasn't violent. Just patient.Morwen leans over your shoulder.\"Moving him won't make it worse,\" she says. \"Leaving him here will.\"You look at the terminus stone. At the spiral rune. At the slight depression in the carving where his palms rested for weeks, worn smooth by contact.The hum from above is still there. Low. Patient. Waiting.Frizwick has her arms ready.🔊………",
+      "sessionTokensApprox": 581,
+      "turn": 346,
+      "xp": 41100
+    },
+    {
+      "action": "Check Aldus for injuries before moving him.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 347You already did that.Thin wrists. Translucent skin. No blade marks, no breaks. The stone took something slow and internal and left the outside intact.He's as ready to move as he's going to get.Frizwick is still waiting with her arms out.🔊………",
+      "sessionTokensApprox": 653,
+      "turn": 347,
+      "xp": 41100
+    },
+    {
+      "action": "Lift Aldus and carry him up to the junction chamber.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 348You take him under the arms. Frizwick takes his legs.He's light. Too light.The stairs are steep and narrow and you take them slow. Morwen goes first with a hand on the wall. The greenish light fades behind you. The blue-white takes over again. The hum gets louder with each step. More present. Like it knows you're coming back up.The junction chamber opens around you.The creature stands where you left it. Watching. That almost-human patience.Daeris is against the wall. She sees Aldus. Something crosses her face. Not surprise. Recognition of a kind. She's seen what slow debt does to a person.You lay him down away from the channels. On clean stone. Away from the rune lines.Morwen kneels. Checks his breathing. Nods.\"Stable,\" she says. \"For now.\"Frizwick straightens. Rolls her shoulders. Looks at the four channels. Looks at the junction stone. Looks at the blasting charges in her kit.The creature hasn't moved.Four channels. One stone. A ward contract ten thousand years old and a creature that has been waiting for someone to finish the work.Aldus is out of the cave.The second problem is still standing right in front of you.🔊………",
+      "sessionTokensApprox": 977,
+      "turn": 348,
+      "xp": 41100
+    },
+    {
+      "action": "Leave Aldus here and begin the completion sequence.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 349You look at the creature.It looks back.You hold up one finger. Point at the nearest channel. Make a cutting motion.It steps back. Gives you room.Daeris speaks from the wall.\"The sequence has an order.\" Her voice is flat. Professional. \"Northeast channel first. Then south. Then west. Then the feed line closest to the stone.\" She pauses. \"Striking the junction stone last. Once. With full knowledge of the terms.\"\"You have full knowledge of the terms,\" Morwen says. Looking at you.You do. Reservoir empties downward. Sea cave terminus receives the discharge. No living anchor below. Clean completion.Frizwick already has the first charge in her hand.You move to the northeast channel.The fluid inside is moving. Slow and luminous. It pulses when your shadow crosses it. Sensitive to presence. To intention.The charge slots into the joint where the channel meets the chamber wall. Frizwick sets the fuse. Short. Long enough.She looks at you.You nod.🔊………",
+      "sessionTokensApprox": 1312,
+      "turn": 349,
+      "xp": 41100
+    },
+    {
+      "action": "Tell the creature I'm ready to complete the contract.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 350You face it directly.It's watching you the way old things watch. Not hungry. Not afraid. Just present. Waiting for something to finally happen.\"I'm ready,\" you say. \"To complete the contract.\"A pause.Then it moves. Not toward you. Toward the junction stone. It places both hands, too many joints folding wrong, flat against the carved surface. The ward script brightens. The hum shifts pitch. Lower. Expectant.It looks at you.Daeris speaks quietly from the wall.\"It's asking if you understand what you're agreeing to.\" She watches the creature's hands. \"Not the mechanics. The weight of it. Ten thousand years of accumulated greed and desperation emptying through this stone into the cave below.\" A pause. \"No anchor. It goes into the earth. Into the sea. Dispersed.\"\"Gone,\" Morwen says.\"Gone,\" Daeris confirms.The creature waits. Patient as geology.Frizwick has the remaining three charges in hand. Ready. Watching you.Aldus breathes in shallow pulls on the clean stone behind you.The channel fluid moves faster now. Like it heard something.You need to say it plainly. The contract requires it.🔊………",
+      "sessionTokensApprox": 1606,
+      "turn": 350,
+      "xp": 41100
+    },
+    {
+      "action": "Tell the creature I'm ready to complete the contract.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 351You already said it.The creature is still waiting at the junction stone. Hands flat. Ward script bright. The hum sitting in your back teeth.It needs the words Daeris described. Not readiness. Understanding.You know what empties into the cave. You know there's no anchor below. You know what dispersed means when ten thousand years of harvested greed meets open seawater.Say that. Mean it.The creature will hear the difference.🔊………",
+      "sessionTokensApprox": 1729,
+      "turn": 351,
+      "xp": 41100
+    },
+    {
+      "action": "Say 'I understand. Complete the contract.'",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 352Dexterity checkd20: 18 -- success\"I understand. Complete the contract.\"The creature's hands press flat against the junction stone.The ward script blazes. White. Then gone.Frizwick moves without being told. First charge, northeast channel. The fuse catches. She's already at the south channel before the spark travels three inches.Fast. Faster than you expected. All four charges placed before the first one blows.She grabs Aldus. You grab Aldus. The creature stands perfectly still at the junction stone and does not move and you understand it isn't going to.The first charge goes.Stone dust. A crack like a tree splitting. The northeast channel ruptures and the fluid inside doesn't spill. It drops. Straight down. Through the floor. Through channels you can't see.The second.The third.The hum becomes something else. A groan. Deep in the rock.The fourth charge takes the west feed line and the chamber goes dark for one full second before the wall-light returns, dimmer, faltering.Frizwick is already on the stairs with Aldus across her back.You look at the junction stone.One strike. Willing. Knowing.The creature watches you.🔊………",
+      "sessionTokensApprox": 2050,
+      "turn": 352,
+      "xp": 41100
+    },
+    {
+      "action": "Speak the terms aloud: reservoir disperses, no anchor, gone.",
+      "combat": null,
+      "gold": 75,
+      "hp": 68,
+      "maxHp": 68,
+      "narration": "Turn 353\"Reservoir disperses. No anchor. Gone.\"The creature inclines its head. Once.You hit the junction stone.Your knuckles crack against carved rock and the ward script doesn't blaze this time. It just stops. Every line of text on the stone surface goes dark in sequence, northeast to south to west to the feed line closest to the floor, like something reading a list and drawing a line through each entry.The hum ends.Not fades. Ends. One moment present, next moment not. Ten thousand years of accumulated pressure and it stops like a held breath finally released.The channel fluid is gone. All four lines dry. The walls still glow but quieter. Tired. Like something that has been working very hard for a very long time and has finally been told it can stop.The creature stands at the junction stone.It doesn't move for a long moment.Then it turns. Walks to the far wall. Sits down against it. Folds those wrong hands in its lap.And goes still.Not dead. Something else. Done.Daeris is watching it. Her river stone is in her fist.\"It completed its contract,\" she says. Quiet. \"Forty years feels like nothing.\"🔊………",
+      "sessionTokensApprox": 2420,
+      "turn": 353,
+      "xp": 41600
+    }
+  ],
+  "raw": [
+    {
+      "turn": 344,
+      "raw": "No goblin leader. That was Bruthazmus, and his head is in your satchel.\n\nThe man against the terminus stone doesn't move when you call out.\n\nFrizwick is beside you in three steps. Crouches. Two fingers to his throat.\n\n\"Alive,\" she says. Quiet. \"Barely.\"\n\nHe's grey. Not wounded grey. Something else. Drained. Like the colour left him slowly over a long period of time and took most of everything else with it. His clothes are salt-stiff. Weeks old. His hands are flat against the spiral rune and you have to pry them loose. They don't want to let go.\n\nMorwen crouches on the other side. Reads his face. Reads the stone.\n\n\"The terminus has been drawing on him,\" she says. \"Slowly. Whatever the reservoir feeds into this cave, it needs something to anchor the receipt.\" She looks up. \"He's been the anchor.\"\n\nAldus Vareth. Has to be. Same jaw as Corven. Same set to the brow.\n\nBreathing. Barely.\n\n[QUEST:Aldus Vareth|completed]\n[XP:300]\n[CONDITION_REMOVED:Bloodied Nose]\n[COMPANION_CONDITION_REMOVED:Daeris|Unconscious]\n[COMPANION_CONDITION_REMOVED:Daeris|Traumatized]\n[QUEST_STEP:Assault on Thistletop|Neutralise the threat below the waterline|false]\n[STORY_BEAT:Aldus Vareth found alive at the terminus stone, days from death, anchoring the reservoir's discharge point]"
+    },
+    {
+      "turn": 345,
+      "raw": "There are no prisoners. There are no goblins.\n\nThere is a dying man on a stone floor and the sound of the sea coming through the cave walls, and somewhere above you a ten-thousand-year-old mechanism waiting to empty itself into this room.\n\nMorwen watches you.\n\nFrizwick watches you.\n\nNeither says anything. They're good at that.\n\nYou look at Aldus. At the stone. At the spiral rune his hands were pressed against for weeks.\n\nOne problem at a time.\n\nGetting him out is the first problem. He can't walk. That's clear from looking at him. He weighs whatever a starved man weighs after weeks of slow drain. Manageable. Uncomfortable.\n\nThe second problem is the reservoir. Four channels above. A junction stone. A creature that has been waiting longer than Thassilon has been rubble. The completion sequence can begin any time. With Aldus still in this cave when that happens, the discharge comes straight through him again. Whether he survives it this time is a different question entirely.\n\nMorwen speaks first.\n\n\"We carry him up. Then we finish it.\" Flat. Practical. \"In that order.\"\n\nFrizwick is already clearing space on her back."
+    },
+    {
+      "turn": 346,
+      "raw": "You run your hands along his arms first. No breaks. No wounds.\n\nHis wrists tell the story. The skin where his hands met the rune is wrong. Not burned. Not cut. Just thin. Translucent almost. Like something came through the surface slowly for a long time.\n\nYou check his pulse again at the throat. Steady. Weak.\n\nHis eyes are closed and don't open when you touch his face. Breathing through his nose in shallow pulls. Not unconscious exactly. Something between sleep and somewhere else.\n\nNo other injuries. No blade marks. No bruising. Whatever the stone did to him it wasn't violent. Just patient.\n\nMorwen leans over your shoulder.\n\n\"Moving him won't make it worse,\" she says. \"Leaving him here will.\"\n\nYou look at the terminus stone. At the spiral rune. At the slight depression in the carving where his palms rested for weeks, worn smooth by contact.\n\nThe hum from above is still there. Low. Patient. Waiting.\n\nFrizwick has her arms ready.\n\n[NPC:Aldus Vareth|unconscious, critical|rescued]\n[NPC_PRONOUN:Aldus Vareth|he/him]"
+    },
+    {
+      "turn": 347,
+      "raw": "You already did that.\n\nThin wrists. Translucent skin. No blade marks, no breaks. The stone took something slow and internal and left the outside intact.\n\nHe's as ready to move as he's going to get.\n\nFrizwick is still waiting with her arms out."
+    },
+    {
+      "turn": 348,
+      "raw": "You take him under the arms. Frizwick takes his legs.\n\nHe's light. Too light.\n\nThe stairs are steep and narrow and you take them slow. Morwen goes first with a hand on the wall. The greenish light fades behind you. The blue-white takes over again. The hum gets louder with each step. More present. Like it knows you're coming back up.\n\nThe junction chamber opens around you.\n\nThe creature stands where you left it. Watching. That almost-human patience.\n\nDaeris is against the wall. She sees Aldus. Something crosses her face. Not surprise. Recognition of a kind. She's seen what slow debt does to a person.\n\nYou lay him down away from the channels. On clean stone. Away from the rune lines.\n\nMorwen kneels. Checks his breathing. Nods.\n\n\"Stable,\" she says. \"For now.\"\n\nFrizwick straightens. Rolls her shoulders. Looks at the four channels. Looks at the junction stone. Looks at the blasting charges in her kit.\n\nThe creature hasn't moved.\n\nFour channels. One stone. A ward contract ten thousand years old and a creature that has been waiting for someone to finish the work.\n\nAldus is out of the cave.\n\nThe second problem is still standing right in front of you.\n\n[QUEST_STEP:Assault on Thistletop|Neutralise the threat below the waterline|false]"
+    },
+    {
+      "turn": 349,
+      "raw": "You look at the creature.\n\nIt looks back.\n\nYou hold up one finger. Point at the nearest channel. Make a cutting motion.\n\nIt steps back. Gives you room.\n\nDaeris speaks from the wall.\n\n\"The sequence has an order.\" Her voice is flat. Professional. \"Northeast channel first. Then south. Then west. Then the feed line closest to the stone.\" She pauses. \"Striking the junction stone last. Once. With full knowledge of the terms.\"\n\n\"You have full knowledge of the terms,\" Morwen says. Looking at you.\n\nYou do. Reservoir empties downward. Sea cave terminus receives the discharge. No living anchor below. Clean completion.\n\nFrizwick already has the first charge in her hand.\n\nYou move to the northeast channel.\n\nThe fluid inside is moving. Slow and luminous. It pulses when your shadow crosses it. Sensitive to presence. To intention.\n\nThe charge slots into the joint where the channel meets the chamber wall. Frizwick sets the fuse. Short. Long enough.\n\nShe looks at you.\n\nYou nod.\n\n[QUEST_STEP:Assault on Thistletop|Neutralise the threat below the waterline|false]\n[FUTURE_EVENT_RESOLVED:Frizwick's four blasting charges to be placed at the junction stone once creature situation is resolved]\n[FUTURE_EVENT_RESOLVED:Four intake channels must be severed in sequence to begin the completion process]"
+    },
+    {
+      "turn": 350,
+      "raw": "You face it directly.\n\nIt's watching you the way old things watch. Not hungry. Not afraid. Just present. Waiting for something to finally happen.\n\n\"I'm ready,\" you say. \"To complete the contract.\"\n\nA pause.\n\nThen it moves. Not toward you. Toward the junction stone. It places both hands, too many joints folding wrong, flat against the carved surface. The ward script brightens. The hum shifts pitch. Lower. Expectant.\n\nIt looks at you.\n\nDaeris speaks quietly from the wall.\n\n\"It's asking if you understand what you're agreeing to.\" She watches the creature's hands. \"Not the mechanics. The weight of it. Ten thousand years of accumulated greed and desperation emptying through this stone into the cave below.\" A pause. \"No anchor. It goes into the earth. Into the sea. Dispersed.\"\n\n\"Gone,\" Morwen says.\n\n\"Gone,\" Daeris confirms.\n\nThe creature waits. Patient as geology.\n\nFrizwick has the remaining three charges in hand. Ready. Watching you.\n\nAldus breathes in shallow pulls on the clean stone behind you.\n\nThe channel fluid moves faster now. Like it heard something.\n\nYou need to say it plainly. The contract requires it."
+    },
+    {
+      "turn": 351,
+      "raw": "You already said it.\n\nThe creature is still waiting at the junction stone. Hands flat. Ward script bright. The hum sitting in your back teeth.\n\nIt needs the words Daeris described. Not readiness. Understanding.\n\nYou know what empties into the cave. You know there's no anchor below. You know what dispersed means when ten thousand years of harvested greed meets open seawater.\n\nSay that. Mean it.\n\nThe creature will hear the difference."
+    },
+    {
+      "turn": 352,
+      "raw": "\"I understand. Complete the contract.\"\n\nThe creature's hands press flat against the junction stone.\n\nThe ward script blazes. White. Then gone.\n\nFrizwick moves without being told. First charge, northeast channel. The fuse catches. She's already at the south channel before the spark travels three inches.\n\n[DICE:Dexterity check|18|success]\n\nFast. Faster than you expected. All four charges placed before the first one blows.\n\nShe grabs Aldus. You grab Aldus. The creature stands perfectly still at the junction stone and does not move and you understand it isn't going to.\n\nThe first charge goes.\n\nStone dust. A crack like a tree splitting. The northeast channel ruptures and the fluid inside doesn't spill. It drops. Straight down. Through the floor. Through channels you can't see.\n\nThe second.\n\nThe third.\n\nThe hum becomes something else. A groan. Deep in the rock.\n\nThe fourth charge takes the west feed line and the chamber goes dark for one full second before the wall-light returns, dimmer, faltering.\n\nFrizwick is already on the stairs with Aldus across her back.\n\nYou look at the junction stone.\n\nOne strike. Willing. Knowing.\n\nThe creature watches you.\n\n[QUEST_STEP:Assault on Thistletop|Neutralise the threat below the waterline|false]"
+    },
+    {
+      "turn": 353,
+      "raw": "\"Reservoir disperses. No anchor. Gone.\"\n\nThe creature inclines its head. Once.\n\nYou hit the junction stone.\n\nYour knuckles crack against carved rock and the ward script doesn't blaze this time. It just stops. Every line of text on the stone surface goes dark in sequence, northeast to south to west to the feed line closest to the floor, like something reading a list and drawing a line through each entry.\n\nThe hum ends.\n\nNot fades. Ends. One moment present, next moment not. Ten thousand years of accumulated pressure and it stops like a held breath finally released.\n\nThe channel fluid is gone. All four lines dry. The walls still glow but quieter. Tired. Like something that has been working very hard for a very long time and has finally been told it can stop.\n\nThe creature stands at the junction stone.\n\nIt doesn't move for a long moment.\n\nThen it turns. Walks to the far wall. Sits down against it. Folds those wrong hands in its lap.\n\nAnd goes still.\n\nNot dead. Something else. Done.\n\nDaeris is watching it. Her river stone is in her fist.\n\n\"It completed its contract,\" she says. Quiet. \"Forty years feels like nothing.\"\n\n[QUEST_STEP:Assault on Thistletop|Neutralise the threat below the waterline|true]\n[QUEST:Assault on Thistletop|completed]\n[XP:500]\n[ARC_COMPLETE:Thistletop]\n[STORY_BEAT:The Thassilonian reservoir beneath Thistletop is dispersed; the completion contract fulfilled after ten thousand years]"
+    }
+  ],
+  "errors": [],
+  "snaps": [
+    {
+      "label": "start",
+      "turn": 343,
+      "acts": [
+        {
+          "act": "The Skinsaw Murders",
+          "status": "active",
+          "arcs": [
+            { "t": "Festival of Fire", "s": "completed" },
+            { "t": "The Glassworks", "s": "completed" },
+            { "t": "Thistletop", "s": "active", "st": 143 },
+            { "t": "The Skinsaw Man", "s": "pending" }
+          ]
+        },
+        {
+          "act": "The Fall of the Runelord",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Fort and the Dam", "s": "pending" },
+            { "t": "Mokmurian's Army", "s": "pending" },
+            { "t": "Sins of the Saviors", "s": "pending" },
+            { "t": "The Politics of Magnimar", "s": "pending" }
+          ]
+        },
+        {
+          "act": "Spires of Xin-Shalast",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Road to Xin-Shalast", "s": "pending" },
+            { "t": "The Pinnacle of Avarice", "s": "pending" }
+          ]
+        }
+      ],
+      "arcDriftNudged": {},
+      "questLog": [
+        { "t": "Assault on Thistletop", "s": "active" },
+        { "t": "Aldus Vareth", "s": "active" }
+      ],
+      "combat": false,
+      "usage": {
+        "in": 2461606, "out": 107098, "cacheRead": 940786, "cacheWrite": 262474, "calls": 457,
+        "costUSD": 9.325058399999996,
+        "byKind": {
+          "turn": { "in": 2206681, "out": 69186, "cacheRead": 940786, "cacheWrite": 262474, "calls": 204, "costUSD": 8.1637474 },
+          "actions": { "in": 108417, "out": 9339, "cacheRead": 0, "cacheWrite": 0, "calls": 203, "costUSD": 0.41379999999999995 },
+          "summarize": { "in": 115065, "out": 25770, "cacheRead": 0, "cacheWrite": 0, "calls": 35, "costUSD": 0.6190890000000001 },
+          "other": { "in": 31443, "out": 2803, "cacheRead": 0, "cacheWrite": 0, "calls": 15, "costUSD": 0.128422 }
+        },
+        "since": 1783106313866
+      }
+    },
+    {
+      "label": "scene-set",
+      "turn": 345,
+      "acts": [
+        {
+          "act": "The Skinsaw Murders",
+          "status": "active",
+          "arcs": [
+            { "t": "Festival of Fire", "s": "completed" },
+            { "t": "The Glassworks", "s": "completed" },
+            { "t": "Thistletop", "s": "active", "st": 143 },
+            { "t": "The Skinsaw Man", "s": "pending" }
+          ]
+        },
+        {
+          "act": "The Fall of the Runelord",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Fort and the Dam", "s": "pending" },
+            { "t": "Mokmurian's Army", "s": "pending" },
+            { "t": "Sins of the Saviors", "s": "pending" },
+            { "t": "The Politics of Magnimar", "s": "pending" }
+          ]
+        },
+        {
+          "act": "Spires of Xin-Shalast",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Road to Xin-Shalast", "s": "pending" },
+            { "t": "The Pinnacle of Avarice", "s": "pending" }
+          ]
+        }
+      ],
+      "arcDriftNudged": {},
+      "questLog": [
+        { "t": "Assault on Thistletop", "s": "active" }
+      ],
+      "combat": false,
+      "usage": {
+        "in": 2527145, "out": 108904, "cacheRead": 961930, "cacheWrite": 269522, "calls": 462,
+        "costUSD": 9.581538599999996,
+        "byKind": {
+          "turn": { "in": 2238327, "out": 69855, "cacheRead": 947834, "cacheWrite": 269522, "calls": 206, "costUSD": 8.2972648 },
+          "actions": { "in": 138640, "out": 9430, "cacheRead": 14096, "cacheWrite": 0, "calls": 205, "costUSD": 0.5100627999999999 },
+          "summarize": { "in": 118735, "out": 26816, "cacheRead": 0, "cacheWrite": 0, "calls": 36, "costUSD": 0.6457890000000002 },
+          "other": { "in": 31443, "out": 2803, "cacheRead": 0, "cacheWrite": 0, "calls": 15, "costUSD": 0.128422 }
+        },
+        "since": 1783106313866
+      }
+    },
+    {
+      "label": "end",
+      "turn": 353,
+      "acts": [
+        {
+          "act": "The Skinsaw Murders",
+          "status": "active",
+          "arcs": [
+            { "t": "Festival of Fire", "s": "completed" },
+            { "t": "The Glassworks", "s": "completed" },
+            { "t": "Thistletop", "s": "completed", "st": 143 },
+            { "t": "The Skinsaw Man", "s": "active", "st": 353 }
+          ]
+        },
+        {
+          "act": "The Fall of the Runelord",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Fort and the Dam", "s": "pending" },
+            { "t": "Mokmurian's Army", "s": "pending" },
+            { "t": "Sins of the Saviors", "s": "pending" },
+            { "t": "The Politics of Magnimar", "s": "pending" }
+          ]
+        },
+        {
+          "act": "Spires of Xin-Shalast",
+          "status": "pending",
+          "arcs": [
+            { "t": "The Road to Xin-Shalast", "s": "pending" },
+            { "t": "The Pinnacle of Avarice", "s": "pending" }
+          ]
+        }
+      ],
+      "arcDriftNudged": {},
+      "questLog": [],
+      "combat": false,
+      "usage": {
+        "in": 2759174, "out": 111330, "cacheRead": 1074698, "cacheWrite": 269522, "calls": 478,
+        "costUSD": 10.347845999999997,
+        "byKind": {
+          "turn": { "in": 2360143, "out": 71951, "cacheRead": 1004218, "cacheWrite": 269522, "calls": 214, "costUSD": 8.711068000000001 },
+          "actions": { "in": 248853, "out": 9760, "cacheRead": 70480, "cacheWrite": 0, "calls": 213, "costUSD": 0.862567 },
+          "summarize": { "in": 118735, "out": 26816, "cacheRead": 0, "cacheWrite": 0, "calls": 36, "costUSD": 0.6457890000000002 },
+          "other": { "in": 31443, "out": 2803, "cacheRead": 0, "cacheWrite": 0, "calls": 15, "costUSD": 0.128422 }
+        },
+        "since": 1783106313866
+      }
+    }
+  ],
+  "sent": [
+    { "turn": 343, "sysOverride": false, "head": "[ENGINE NOTE: Quest 'Aldus Vareth' has had all objectives complete for 3 turns. In THIS response either emit [QUEST:Aldus Vareth|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:Aldus Vareth|<objective>].]\n\n[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n- Ammut: Bloodied Nose (until treated) — long-standing, onset unknown [player — use CONDITION_REMOVED:Bloodied Nose]\n- Daeris: Unconscious (until awakened) — long-standing, onset unkno" },
+    { "turn": 344, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: GM: woooo that's some nasty drift my dude. Nualia is dead and short an arm.  Coven didn't hire us.  We just said we'd return what we found.\nGM: You're right on both counts. Nualia is dead on the floor upstairs, arm already separated before the shadow blade finished it. And Corven didn't hire anyone, he just asked, quietly, on Cooper Street, if you found anything to bring back.\n\nThe cantrip goes to Frizwick. Quiet. Just the two of you.\n\n*Four channels. Junction stone. Reservoir empties into the sea cave. Aldus went into that cave.* A pause. *Talk to me.*\n\nFrizwick doesn't move. Eyes on the creature.\n\nHer reply comes ba" },
+    { "turn": 344, "sysOverride": true, "head": "Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\"5-8 sentence narrative summary written in this prose voice — Joe Abercrombie. Short, hard sentences — most under twelve words. Use deliberate sentence fragments for impact. Cynical, world-weary interiority; a bleak joke in the grimmest moment. NO similes, NO lyrical description, NO grandeur. Violence is fast, ugly, and matter-of-fact. If a word isn't pulling weight, cut it.\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"]}\n\nANTI" },
+    { "turn": 344, "sysOverride": false, "head": "I keep my weapon lowered and press for terms - what do they want in exchange for the prisoners? I am not leaving without them." },
+    { "turn": 345, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: [ENGINE NOTE: Quest 'Aldus Vareth' has had all objectives complete for 3 turns. In THIS response either emit [QUEST:Aldus Vareth|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:Aldus Vareth|<objective>].]\n\n[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n- Ammut: Bloodied Nose (until treated) — long-standing, onset unknown [player — use CONDITION_REMOVED:Bloodie" },
+    { "turn": 345, "sysOverride": false, "head": "Check Aldus for injuries before moving him." },
+    { "turn": 346, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: [ENGINE NOTE: Quest 'Aldus Vareth' has had all objectives complete for 3 turns. In THIS response either emit [QUEST:Aldus Vareth|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:Aldus Vareth|<objective>].]\n\n[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n- Ammut: Bloodied Nose (until treated) — long-standing, onset unknown [player — use CONDITION_REMOVED:Bloodie" },
+    { "turn": 346, "sysOverride": false, "head": "Check Aldus for injuries before moving him." },
+    { "turn": 347, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: [ENGINE NOTE: Quest 'Aldus Vareth' has had all objectives complete for 3 turns. In THIS response either emit [QUEST:Aldus Vareth|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:Aldus Vareth|<objective>].]\n\n[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n- Ammut: Bloodied Nose (until treated) — long-standing, onset unknown [player — use CONDITION_REMOVED:Bloodie" },
+    { "turn": 347, "sysOverride": false, "head": "Lift Aldus and carry him up to the junction chamber." },
+    { "turn": 348, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: I keep my weapon lowered and press for terms - what do they want in exchange for the prisoners? I am not leaving without them.\nGM: There are no prisoners. There are no goblins.\n\nThere is a dying man on a stone floor and the sound of the sea coming through the cave walls, and somewhere above you a ten-thousand-year-old mechanism waiting to empty itself into this room.\n\nMorwen watches you.\n\nFrizwick watches you.\n\nNeither says anything. They're good at that.\n\nYou look at Aldus. At the stone. At the spiral rune his hands were pressed against for weeks.\n\nOne problem at a time.\n\nGetting him out is the first problem. He can'" },
+    { "turn": 348, "sysOverride": false, "head": "Leave Aldus here and begin the completion sequence." },
+    { "turn": 349, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: I keep my weapon lowered and press for terms - what do they want in exchange for the prisoners? I am not leaving without them.\nGM: There are no prisoners. There are no goblins.\n\nThere is a dying man on a stone floor and the sound of the sea coming through the cave walls, and somewhere above you a ten-thousand-year-old mechanism waiting to empty itself into this room.\n\nMorwen watches you.\n\nFrizwick watches you.\n\nNeither says anything. They're good at that.\n\nYou look at Aldus. At the stone. At the spiral rune his hands were pressed against for weeks.\n\nOne problem at a time.\n\nGetting him out is the first problem. He can'" },
+    { "turn": 349, "sysOverride": false, "head": "Tell the creature I'm ready to complete the contract." },
+    { "turn": 350, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: Check Aldus for injuries before moving him.\nGM: You run your hands along his arms first. No breaks. No wounds.\n\nHis wrists tell the story. The skin where his hands met the rune is wrong. Not burned. Not cut. Just thin. Translucent almost. Like something came through the surface slowly for a long time.\n\nYou check his pulse again at the throat. Steady. Weak.\n\nHis eyes are closed and don't open when you touch his face. Breathing through his nose in shallow pulls. Not unconscious exactly. Something between sleep and somewhere else.\n\nNo other injuries. No blade marks. No bruising. Whatever the stone did to him it wasn't vi" },
+    { "turn": 350, "sysOverride": false, "head": "Tell the creature I'm ready to complete the contract." },
+    { "turn": 351, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: Check Aldus for injuries before moving him.\nGM: You already did that.\n\nThin wrists. Translucent skin. No blade marks, no breaks. The stone took something slow and internal and left the outside intact.\n\nHe's as ready to move as he's going to get.\n\nFrizwick is still waiting with her arms out.\n\nPlayer: Lift Aldus and carry him up to the junction chamber.\nGM: You take him under the arms. Frizwick takes his legs.\n\nHe's light. Too light.\n\nThe stairs are steep and narrow and you take them slow. Morwen goes first with a hand on the wall. The greenish light fades behind you. The blue-white takes over again. The hum gets louder" },
+    { "turn": 351, "sysOverride": false, "head": "Say 'I understand. Complete the contract.'" },
+    { "turn": 352, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: Lift Aldus and carry him up to the junction chamber.\nGM: You take him under the arms. Frizwick takes his legs.\n\nHe's light. Too light.\n\nThe stairs are steep and narrow and you take them slow. Morwen goes first with a hand on the wall. The greenish light fades behind you. The blue-white takes over again. The hum gets louder with each step. More present. Like it knows you're coming back up.\n\nThe junction chamber opens around you.\n\nThe creature stands where you left it. Watching. That almost-human patience.\n\nDaeris is against the wall. She sees Aldus. Something crosses her face. Not surprise. Recognition of a kind. She's" },
+    { "turn": 352, "sysOverride": false, "head": "Speak the terms aloud: reservoir disperses, no anchor, gone." },
+    { "turn": 353, "sysOverride": true, "head": "RECENT SCENES (oldest first — the LAST one is the current moment):\nPlayer: Leave Aldus here and begin the completion sequence.\nGM: You look at the creature.\n\nIt looks back.\n\nYou hold up one finger. Point at the nearest channel. Make a cutting motion.\n\nIt steps back. Gives you room.\n\nDaeris speaks from the wall.\n\n\"The sequence has an order.\" Her voice is flat. Professional. \"Northeast channel first. Then south. Then west. Then the feed line closest to the stone.\" She pauses. \"Striking the junction stone last. Once. With full knowledge of the terms.\"\n\n\"You have full knowledge of the terms,\" Morwen says. Looking at you.\n\nYou do. Reservoir empties downward. Sea cave terminus receives the dischar" }
+  ]
+}

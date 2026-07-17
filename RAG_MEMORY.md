@@ -1,5 +1,7 @@
 # RAG-Based Episodic Memory — Design Doc
 
+> **⚠ STATUS UPDATE (2026-07-16, audit #28): RAG is DEFAULT-ON since v1.230** — the semantics INVERTED from the opt-in Dev-Mode-toggle phase this doc describes. `ragEnabled()` (memory.js) returns `worldState.ragMemory !== false`, so every save with the field unset (all existing + all new campaigns) reads ON with zero migration; only a deliberate `false` via the Dev Mode toggle (retained as an escape hatch) turns it off, and the explicit-OFF path still reproduces the pre-RAG prompt byte-for-byte (engine-tested). Validated on the t308 mature save (audits/AUDIT_t308.md). Pollution guards (retcon/meta exclusions, merge-orphan bridge) added v1.167. Current authoritative summary: CLAUDE.md §8b. The body below is the original Phase-1 design record — read its "flag off by default" framing as historical.
+
 **Status:** Design locked 2026-07-03 (TODO #27 discussion). **Phase 1 BUILT — v1.154 (2026-07-03),
 user-pulled ahead of the Blueprint Designer.** Verified live on the Runelords t54 save: retrieval +
 TOC diet net −480 chars/turn WITH 1,360 chars of excerpts included (the diet paid for the excerpts,

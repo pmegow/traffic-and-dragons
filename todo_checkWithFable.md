@@ -22,7 +22,7 @@ _(none)_
 ### 1. TODO #23 — per-arc pacing budget + inverse arc-drift detector
 
 **Reviewed by Fable 2026-07-16 — VERDICT: PASS on all four verify items; no code changes needed.**
-Full record: [AUDIT_ARC_NUDGES.md](AUDIT_ARC_NUDGES.md); evidence: `testRuns/arc_nudge_loop/`.
+Full record: [AUDIT_ARC_NUDGES.md](audits/AUDIT_ARC_NUDGES.md); evidence: `testRuns/arc_nudge_loop/`.
 
 - Stable/volatile split: verified clean (skeleton block volatile-half, drift note rides the
   message; cache health confirmed live in usage telemetry).
@@ -51,5 +51,5 @@ Full record: [AUDIT_ARC_NUDGES.md](AUDIT_ARC_NUDGES.md); evidence: `testRuns/arc
 - **Files touched:** globals.js, api.js, campaign_generator.js, game.js, state.js, tag_table.js, dev/engine-tests.js, sw.js, TODO.md
 - **Design forks the user decided:** soft-nudge-only (declined a harder auto-advance); the inverse detector was first declined, then requested with a 50-turn recheck cadence; the ONE stated worry is a **premature arc/quest close** — the nudge wording must never force a close.
 - **Verification done (Opus):** volatile-half only, stable prompt cache untouched; 16 new engine tests (465 total, all green); spot-checked on the real t727 save (act nudge at load, per-arc nudge at t778; inverse detector fires with correct note, immediate re-call silent, re-fires at +50).
-- **What was verified (Fable, 2026-07-16):** all four items above — see the verdict block and AUDIT_ARC_NUDGES.md.
-- **Supporting docs:** TODO.md #23 row (full detail); AUDIT_ARC_NUDGES.md; testRuns/arc_nudge_loop/ (protocol, injector, EVAL_NOTES, 7 trial corpora).
+- **What was verified (Fable, 2026-07-16):** all four items above — see the verdict block and audits/AUDIT_ARC_NUDGES.md.
+- **Supporting docs:** TODO.md #23 row (full detail); audits/AUDIT_ARC_NUDGES.md; testRuns/arc_nudge_loop/ (protocol, injector, EVAL_NOTES, 7 trial corpora).
