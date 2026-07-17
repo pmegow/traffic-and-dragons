@@ -2,6 +2,16 @@
 // sheet actions (drop item, reject epithet, part ways, play-as swap), capability card,
 // NPC sheet generation, read-only library sheet viewer.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
+
+// E60/UA22 (v1.326): ONE offset-resolution rule for both sheet avatars. The copy-pasta pair
+// meant the E60 fallback (sheet-carried framing survives a PC↔companion swap) existed only on
+// the NPC side — fixes kept landing on one side. char is the sheet object (worldState.character
+// for the PC, wsNpc.charSheet for a companion); ownerNpc is the worldState.npcs entry when one
+// exists (companions), null for the PC. No behavior delta for today's PC saves
+// (character.portraitOffset is the PC's only home) — the divergence CLASS is what dies here.
+function sheetOffsetGet(ownerNpc,char){
+  return (ownerNpc&&ownerNpc.portraitOffset)||(char&&char.portraitOffset)||{x:0.5,y:0.5,zoom:1};
+}
 // ── Shared character-sheet helpers ────────────────────────────────────────────
 function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
 function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
@@ -169,7 +179,7 @@ function showCharSheet(){
   function wireAvatarDrag(){
     var img=document.getElementById("cs-portrait-img");if(!img)return;
     wirePortraitDrag(img,
-      function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};},
+      function(){return sheetOffsetGet(null,worldState.character);},
       function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();});
   }
   wireAvatarDrag();
@@ -409,7 +419,7 @@ function showNpcSheet(name){
     // Offset is stored per-companion (mirrored onto charSheet so it survives a swap-to-PC).
     // Without dedicated get/setOffset the portrait modal would fall back to the PLAYER's
     // offset — editing a companion's framing would silently rewrite the player's.
-    function npcGetOff(){return wsNpc.portraitOffset||(wsNpc.charSheet&&wsNpc.charSheet.portraitOffset)||{x:0.5,y:0.5,zoom:1};}/* fall back to the sheet's framing so a swapped-out PC keeps it (audit E60) */
+    function npcGetOff(){return sheetOffsetGet(wsNpc,wsNpc.charSheet);}/* E60 fallback now lives in the shared accessor (UA22) */
     function npcSetOff(x,y,zoom){wsNpc.portraitOffset={x:x,y:y,zoom:zoom};if(wsNpc.charSheet)wsNpc.charSheet.portraitOffset=wsNpc.portraitOffset;saveAll();}
     function wireNpcAvatarDrag(){var img=document.getElementById("npc-portrait-img");if(img)wirePortraitDrag(img,npcGetOff,npcSetOff);}
     function refreshNpcAvatar(){
