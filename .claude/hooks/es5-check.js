@@ -19,9 +19,12 @@ process.stdin.on("end", function () {
   } catch (e2) {}
 
   // Only enforce ES5 on game-client .js. Skip the server (modern Node),
-  // node_modules, and our own .claude/hooks scripts.
+  // node_modules, our own .claude/hooks scripts, and vendored third-party files
+  // (vendor/piper/* are ES modules — import/export/const are their native shape;
+  // T&D patches there match the file's own style, per the tts.js header note).
   var isGameJs = /\.js$/i.test(fp)
     && !/[\\/]\.claude[\\/]/i.test(fp)
+    && !/[\\/]vendor[\\/]/i.test(fp)
     && !/[\\/]traffic-and-dragons-server[\\/]/i.test(fp)
     && !/server/i.test(fp)
     && !/node_modules/i.test(fp);

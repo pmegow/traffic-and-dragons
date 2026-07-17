@@ -776,7 +776,7 @@ var TTS = (function() {
   // every vendored-file patch → new URL → both caches miss → fresh fetch. The vendored file exports
   // TND_VITS_PATCH with the same rev; _piperInit stores it and the Voice Settings Piper panel shows
   // it, so a phone can PROVE which runtime it runs before a test.
-  var PIPER_RUNTIME_REV = "r2";
+  var PIPER_RUNTIME_REV = "r3";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)

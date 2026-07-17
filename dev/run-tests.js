@@ -11,6 +11,29 @@ try {
     console.error("VENDOR PATCH MISSING: vendor/piper/vits/vits-web.js lost the T&D session-cache patch (re-vendored?) — reapply it (see the patch header it should carry).");
     process.exit(1);
   }
+  // v1.335 additions (piper-audit): the r3 patch set must survive a re-vendor too.
+  // ① download integrity — S() must reject non-OK responses (an HF error page cached to OPFS as
+  //    the model is permanent, silent breakage);
+  // ② same-origin phonemizer — tndLocate must resolve to the vendored TND_PHON_BASE, and the two
+  //    phonemize assets must exist on disk (the CDN path silently breaks offline).
+  if (_vits.indexOf("voice download failed: HTTP") < 0) {
+    console.error("VENDOR PATCH MISSING: vits-web.js S() lost the non-OK download guard (T&D r3) — an HF error page would be cached to OPFS as a voice model, permanently.");
+    process.exit(1);
+  }
+  if (_vits.indexOf("TND_PHON_BASE") < 0 || !_fsV.existsSync(_pathV.join(__dirname, "..", "vendor/piper/phonemize/piper_phonemize.wasm")) || !_fsV.existsSync(_pathV.join(__dirname, "..", "vendor/piper/phonemize/piper_phonemize.data"))) {
+    console.error("VENDOR PATCH MISSING: same-origin phonemizer (T&D r3) — tndLocate must use TND_PHON_BASE and vendor/piper/phonemize/piper_phonemize.{wasm,data} must exist, or Piper silently depends on a CDN again.");
+    process.exit(1);
+  }
+  // ③ rev parity — the ?tnd= query in tts.js is the ONLY delivery mechanism for a vits-web patch
+  //    (permanent SW cache + immutable header, the v1.322/323 wasted-tries trap). A patched file
+  //    whose TND_VITS_PATCH ran ahead of PIPER_RUNTIME_REV would never reach installed phones.
+  var _tts = _fsV.readFileSync(_pathV.join(__dirname, "..", "tts.js"), "utf8");
+  var _revT = (_tts.match(/PIPER_RUNTIME_REV\s*=\s*"(r\d+)"/) || [])[1];
+  var _revV = (_vits.match(/TND_VITS_PATCH\s*=\s*"(r\d+)"/) || [])[1];
+  if (!_revT || !_revV || _revT !== _revV) {
+    console.error("VENDOR REV MISMATCH: tts.js PIPER_RUNTIME_REV=" + _revT + " vs vits-web.js TND_VITS_PATCH=" + _revV + " — bump PIPER_RUNTIME_REV with every vendored vits-web change or the patch never reaches installed phones.");
+    process.exit(1);
+  }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).

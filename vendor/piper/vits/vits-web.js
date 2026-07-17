@@ -151,7 +151,13 @@ async function D(e) {
 }
 async function S(e, m) {
   var r;
-  const n = await fetch(e), o = (r = n.body) == null ? void 0 : r.getReader(), a = +(n.headers.get("Content-Length") ?? 0);
+  const n = await fetch(e);
+  // ═══ T&D PATCH v1.335 — download integrity. Upstream saved WHATEVER the fetch returned: an HF
+  // 404/rate-limit page written to OPFS as the .onnx, which stored() then reports as "downloaded"
+  // forever — every predict() fails and nothing ever re-fetches. Non-OK must THROW (propagates to
+  // _piperEnsureVoice's loud catch) so nothing is written and the next attempt retries.
+  if (!n.ok) throw new Error("voice download failed: HTTP " + n.status + " for " + e);
+  const o = (r = n.body) == null ? void 0 : r.getReader(), a = +(n.headers.get("Content-Length") ?? 0);
   let i = 0, t = [];
   for (; o; ) {
     const { done: s, value: d } = await o.read();
@@ -203,9 +209,16 @@ async function N(e, m) {
 // wasm memories too lazily under pressure and killed long reads. ONE cached instance re-driven
 // via callMain per call; if a build can't re-run main (ExitStatus/no output), we mark it broken
 // LOUDLY and fall back to upstream per-call behavior — never worse than before this patch.
-const TND_VITS_PATCH = "r2"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+// ═══ T&D PATCH v1.335 (2026-07-17) — offline integrity (piper-audit findings #1+#2 + hang rider):
+// ① S() rejects non-OK responses (see above) so an HF error page can never be cached as a model;
+// ② the phonemizer .wasm/.data now load from the SAME-ORIGIN vendored copies below (upstream's x
+// still points at jsdelivr — the SW ignores cross-origin, so those fetches were never in
+// PIPER_CACHE and broke the offline claim); ③ the fallback phonemizer path rejects/times out
+// instead of hanging predict() forever on a load failure (no-silent-failures).
+const TND_VITS_PATCH = "r3"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
-const tndLocate = (l) => l.endsWith(".wasm") ? `${x}.wasm` : l.endsWith(".data") ? `${x}.data` : l;
+const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm` : l.endsWith(".data") ? `${TND_PHON_BASE}.data` : l;
 async function tndPhonemize(espeakVoice, input) {
   if (!tndPhon.broken) {
     try {
@@ -226,12 +239,20 @@ async function tndPhonemize(espeakVoice, input) {
       console.warn("[T&D patch] phonemizer reuse unavailable — per-call instances (upstream behavior):", e && e.message);
     }
   }
-  return await new Promise(async (v) => {
-    (await h.createPiperPhonemize({
-      print: (l) => { v(JSON.parse(l).phoneme_ids); },
-      printErr: (l) => { throw new Error(l); },
+  // T&D r3: upstream's fallback promise had NO reject path — a createPiperPhonemize/callMain
+  // failure hung predict() forever (narration wedged with _playing=true, silently). Reject on
+  // every failure surface + the same 8s no-output timeout the cached path uses.
+  return await new Promise((v, rej) => {
+    let done = false;
+    h.createPiperPhonemize({
+      print: (l) => { try { done = true; v(JSON.parse(l).phoneme_ids); } catch (e) { if (!done) rej(e); } },
+      printErr: (l) => { if (!done) rej(new Error(l)); },
       locateFile: tndLocate
-    })).callMain(["-l", espeakVoice, "--input", input, "--espeak_data", "/espeak-ng-data"]);
+    }).then((mod) => {
+      try { mod.callMain(["-l", espeakVoice, "--input", input, "--espeak_data", "/espeak-ng-data"]); }
+      catch (e) { if (!done) rej(e); }
+      setTimeout(() => { if (!done) rej(new Error("phonemizer produced no output")); }, 8000);
+    }, (e) => { if (!done) rej(e); });
   });
 }
 const tndSess = { key: null, sess: null };
