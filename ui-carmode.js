@@ -4,6 +4,9 @@
 // Car-overlay findings implemented per DOC/todo_carplay.html (2026-07-17 audit) — ranks
 // noted inline. carNotify() below is a CROSS-LANE CONTRACT: stt.js/tts.js/game.js call it
 // with typeof guards, so its signature/semantics must not drift without updating all callers.
+// final-pass #32 — kinds are "error" (turn failures ONLY — arms tap-to-retry; game.js is the
+// sole legitimate caller) / "warn" (non-turn failures, e.g. mic denied / no signal / voice
+// download failed — status only, never arms retry) / "info" / "progress" / "sent" / "response".
 // ── Car Mode ──────────────────────────────────────────────────────────────────
 var _carKbHandler = null;
 var _carRetryArmed = false;   // rank 2 — armed by carNotify("error",…), consumed by _carTap
@@ -19,6 +22,7 @@ var CAR_STR = {
   ready: "Ready",
   listening: "Listening…",
   heardYou: "Heard you…",
+  heardTapToSend: "Heard you — tap to send", // final-pass #33 — must match the string game.js/stt.js send via carNotify
   tapToSpeak: "Tap to speak",
   paused: "Paused",
   narratorSpeaking: "Narrator speaking…",
@@ -35,13 +39,15 @@ document.addEventListener("visibilitychange", function() {
   if (carMode && document.visibilityState === "visible") _carAcquireWakeLock();
 });
 
-// Cross-lane contract (see header): kinds are "error"/"info"/"progress"/"sent"/"response".
+// Cross-lane contract (see header): kinds are "error"/"warn"/"info"/"progress"/"sent"/"response".
 // No-op outside car mode. Guards every TTS/STT access — callers may land in any load order.
 function carNotify(kind, text) {
   if (!carMode) return;
   if (kind === "error") {
     _carSetStatus(CAR_STR.errorPrefix + text);
     _carRetryArmed = true;
+  } else if (kind === "warn") { // final-pass #32 — non-turn failure: same status text, never arms tap-to-retry
+    _carSetStatus(CAR_STR.errorPrefix + text);
   } else if (kind === "info" || kind === "progress") {
     _carSetStatus(text);
   } else if (kind === "sent") {
@@ -317,6 +323,12 @@ function _carAutoMic() {
   if (!carMode) return;
   _carSetStatus(CAR_STR.tapToSpeak);
   _carSyncBtn();
+  // final-pass #33 — a busy-parked utterance (rank 19) sits in #userinput, already advertised
+  // via carNotify("info","Heard you — tap to send") at the game.js rank-19 site. _carStartMic
+  // below clears #userinput unconditionally, so starting the mic here would silently destroy
+  // it. Bail before touching the mic — the existing tap branch (e) in _carTap sends it.
+  var _parked = document.getElementById("userinput");
+  if (_parked && _parked.value.trim()) { _carSetStatus(CAR_STR.heardTapToSend); return; }
   // round-2 #25 — cloud STT (Whisper) must be push-to-talk only, checked BEFORE the auto-listen
   // pref below. Auto-starting the cloud recorder after every narration uploads ~15s of road
   // noise on every turn (cost), and Whisper hallucinates text on silence — that can auto-send

@@ -104,16 +104,16 @@ var STT = (function() {
       _lastErrorWasNoSpeech = (msg === "no-speech");
       if (msg === "not-allowed" || msg === "service-not-allowed") {
         if (typeof showToast === "function") showToast("Microphone permission denied.");
-        if (typeof carNotify === "function") carNotify("error", "Microphone permission denied");
+        if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
       } else if (msg === "no-speech") {
         if (typeof showToast === "function") showToast("Didn't catch that — try again.");
         if (typeof carNotify === "function") carNotify("info", "Didn't catch that");
       } else if (msg === "network") {
         if (typeof showToast === "function") showToast("Voice input error: network");
-        if (typeof carNotify === "function") carNotify("error", "No signal — voice input needs a connection");
+        if (typeof carNotify === "function") carNotify("warn", "No signal — voice input needs a connection"); /* final-pass #32 */
       } else if (msg && msg !== "aborted") {
         if (typeof showToast === "function") showToast("Voice input error: " + msg);
-        if (typeof carNotify === "function") carNotify("error", "Voice input failed: " + msg);
+        if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + msg); /* final-pass #32 */
       }
       // "aborted" (our own cancel()/abort()) stays silent on purpose — that's an intentional
       // tap-to-cancel, not a failure.
@@ -326,7 +326,7 @@ var STT = (function() {
       } catch(e) {
         _cloudTeardownStream();
         if (typeof showToast === "function") showToast("Couldn't start voice input.");
-        if (typeof carNotify === "function") carNotify("error", "Voice input failed: " + (e && e.message));
+        if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
         console.warn("[stt] MediaRecorder init failed:", e);
         return;
       }
@@ -340,7 +340,7 @@ var STT = (function() {
         _cloudTeardownStream();
         _cloudRec = null;
         if (typeof showToast === "function") showToast("Couldn't start voice input.");
-        if (typeof carNotify === "function") carNotify("error", "Voice input failed: " + (e && e.message));
+        if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
         console.warn("[stt] MediaRecorder start failed:", e);
         return;
       }
@@ -353,7 +353,7 @@ var STT = (function() {
       }, 15000);
     }).catch(function(e) {
       if (typeof showToast === "function") showToast("Microphone permission denied.");
-      if (typeof carNotify === "function") carNotify("error", "Microphone permission denied");
+      if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
       console.warn("[stt] getUserMedia failed:", e);
     });
   }
@@ -403,7 +403,7 @@ var STT = (function() {
     var key = (typeof providerKeys !== "undefined" && providerKeys) ? providerKeys.openai : null;
     if (!key) {
       if (typeof showToast === "function") showToast("Voice input needs an OpenAI API key.");
-      if (typeof carNotify === "function") carNotify("error", "Voice input needs an OpenAI API key");
+      if (typeof carNotify === "function") carNotify("warn", "Voice input needs an OpenAI API key"); /* final-pass #32 */
       console.warn("[stt] cloud upload skipped: no OpenAI key");
       return;
     }
@@ -425,7 +425,7 @@ var STT = (function() {
       _cloudFinalize(json && json.text ? String(json.text) : "");
     }).catch(function(e) {
       if (typeof showToast === "function") showToast("Voice transcription failed.");
-      if (typeof carNotify === "function") carNotify("error", "Voice input failed: " + (e && e.message));
+      if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
       console.warn("[stt] cloud transcription failed:", e);
       var el = document.getElementById("userinput");
       if (el) el.focus();

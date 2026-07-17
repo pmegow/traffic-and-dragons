@@ -1033,7 +1033,7 @@ var TTS = (function() {
       _piperErrorAt = Date.now();
       console.warn("[tts piper] voice download failed:", _piperError);
       if (typeof showToast === "function") showToast("⚠ Narrator voice download failed — using fallback voice");
-      if (typeof carNotify === "function") carNotify("error", "Voice download failed");
+      if (typeof carNotify === "function") carNotify("warn", "Voice download failed");   // final-pass #32: "warn" = status only — a download failure must not arm tap-to-retry (that re-fires the last GM turn)
       throw e;
     }
     _piperDownloaded[voiceId] = true;

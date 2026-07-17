@@ -229,6 +229,28 @@ tr:hover td{background:var(--bg1);}
 <td>S</td><td><span class="pill st-ship">v1.344</span></td></tr>
 </table>
 
+<h2>Round 3 — final pass: fix-interplay audit (2026-07-17, audited at v1.344)</h2>
+<p>Closing sweep focused on <b>interactions between the shipped fixes and existing infrastructure</b>. Two real findings (both fix-meets-fix), two suspects investigated and closed as non-issues. All shipped v1.345.</p>
+<table>
+<tr><th>#</th><th>Area</th><th>Sev</th><th>Finding — root cause</th><th>Remedy</th><th>Status</th></tr>
+<tr><td class="rank">32</td><td class="area">correctness</td><td><span class="pill sev-high">High</span></td>
+<td><b>Non-turn errors armed tap-to-retry.</b> <code>carNotify("error")</code> arms <code>_carRetryArmed</code> indiscriminately, but stt.js (8 call sites: mic denied, network, cloud failures) and tts.js (voice-download failure) used it too — after a mere mic-permission error, the next idle tap fired <code>retryLast()</code> = a duplicate GM turn triggered by an unrelated failure.</td>
+<td>Contract split: new <code>"warn"</code> kind (⚠ status, no arm). All 9 non-turn call sites switched; <code>"error"</code> now belongs to game.js turn failures alone. Live-verified: warn shows ⚠ without arming, error arms, response clears.</td>
+<td><span class="pill st-ship">v1.345</span></td></tr>
+<tr><td class="rank">33</td><td class="area">input</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Auto-mic destroyed parked utterances.</b> After a busy-window park, game.js advertises "Heard you — tap to send" — but narration-end fires <code>_carAutoMic</code> → <code>_carStartMic</code>, which clears <code>#userinput</code>, wiping the very text the driver was told to send. Two round-1 features racing each other.</td>
+<td><code>_carAutoMic</code> checks the field first: non-empty → status "Heard you — tap to send" (same string, byte-identical across all three writers) and no mic start; tap branch (e) sends it. Live-verified: parked text survives past the 800ms timer, mic held off.</td>
+<td><span class="pill st-ship">v1.345</span></td></tr>
+<tr><td class="rank">34</td><td class="area">boot</td><td><span class="pill sev-low">Low</span></td>
+<td>Suspected: car-mode boot restore before the transcript rebuild would route 20 narrator repaints through the new <code>carNotify("response")</code>/earcon path.</td>
+<td><b>Closed — non-issue.</b> ui-boot order verified: rebuild (line 316) precedes the restore (line 349), so carMode is false during the repaint.</td>
+<td><span class="pill st-ship">verified</span></td></tr>
+<tr><td class="rank">35</td><td class="area">input</td><td><span class="pill sev-low">Low</span></td>
+<td>Suspected: <code>STT.cancel()</code> called while idle (hideCarMode #31) leaves <code>_cancelled=true</code> dangling.</td>
+<td><b>Closed — benign.</b> Both start paths (native <code>start()</code> and <code>_cloudStart()</code>) reset the flag before any capture.</td>
+<td><span class="pill st-ship">verified</span></td></tr>
+</table>
+
 <h2>Verified evidence</h2>
 <div class="ev"><b>Landscape break (rank 3):</b> live render at 812×375 — portrait circle overflows the viewport; status + all three controls off-screen; × misplaced. Portrait 375×812 renders correctly (hero, party dots, status, controls). Both screenshots taken 2026-07-17 against v1.341 on localhost.</div>
 <div class="ev"><b>Toast burial (rank 1):</b> <code>index.html:438</code> — <code>#car-overlay … z-index:500</code>; <code>ui-shell.js:28</code> — <code>.tnd-toast … z-index:400</code>. Code-confirmed, not inferred.</div>
