@@ -47,6 +47,11 @@ var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;var _cached=(
 // Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
 var MODEL_PRICING={
   "claude-opus-4-8":  {in:5.00, out:25.00, cacheWrite:6.25, cacheRead:0.50},
+  // ⚠ Sonnet 5 is INTRO pricing ($2/$10) through 2026-08-31 — sticker is $3/$15. UPDATE this
+  // entry on Sep 1, 2026 or cost telemetry silently undercounts by 33%. Note its new tokenizer
+  // bills ~30% more tokens for the same text, so per-TURN cost ≈ 0.87× of 4.6 during intro,
+  // ≈1.3× after (see TODO #30 row).
+  "claude-sonnet-5":  {in:2.00, out:10.00, cacheWrite:2.50, cacheRead:0.20},
   "claude-sonnet-4-6":{in:3.00, out:15.00, cacheWrite:3.75, cacheRead:0.30},
   "claude-haiku-4-5": {in:1.00, out:5.00,  cacheWrite:1.25, cacheRead:0.10}
 };
@@ -60,7 +65,7 @@ var PROVIDERS={
     endpoint:"https://api.anthropic.com/v1/messages",
     defaultModel:MDL,
     upgradeModel:"claude-sonnet-4-6",
-    models:["claude-opus-4-8","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
+    models:["claude-opus-4-8","claude-sonnet-5","claude-sonnet-4-6","claude-haiku-4-5-20251001"],
     headers:function(key){return {"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};},
     // {stable, volatile} → two system blocks with a cache_control breakpoint after the stable
     // one: the stable prefix re-reads at 0.1x input price on every turn (writes at 1.25x, 5min
@@ -69,6 +74,11 @@ var PROVIDERS={
     // stable block clears it (enforced by an engine test); verify live via usage.cache_read_input_tokens.
     buildBody:function(msgs,sys,maxTok,model){
       var body={model:model,max_tokens:maxTok,messages:msgs};
+      // Sonnet 5 runs ADAPTIVE THINKING when `thinking` is omitted (4.6 ran thinking-off) —
+      // unguarded, every GM turn would bill thinking as output tokens AND eat into maxTok=1000
+      // (truncated narration mid-scene). Explicit disabled preserves the 4.6-equivalent turn
+      // shape. Sonnet-5-only: 4.6 doesn't need it, and Fable-tier models would 400 on it.
+      if(model.indexOf("claude-sonnet-5")===0)body.thinking={type:"disabled"};
       if(typeof sys==="string")body.system=sys;
       else body.system=[{type:"text",text:sys.stable,cache_control:{type:"ephemeral"}},{type:"text",text:sys.volatile}];
       return body;
@@ -144,7 +154,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.342";
+var APP_VERSION="v1.343";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
