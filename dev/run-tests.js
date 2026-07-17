@@ -1,6 +1,18 @@
 // run-tests.js — headless runner for the test.html suites (DEV TOOL, not loaded by index.html).
 // Evals the REAL engine files in load order (via dev/load-engine.js — the canonical list,
 // AUDIT_FABLE_07_16_2026 #18), then dev/engine-tests.js, and reports to the console.
+// T&D vendor-patch tripwire (v1.322): the session-cache patch in vendor/piper/vits/vits-web.js
+// is what keeps iOS Safari from being killed by per-sentence InferenceSession creation. A
+// re-vendor that drops it resurrects the crash SILENTLY — fail the suite instead.
+try {
+  var _fsV = require("fs"), _pathV = require("path");
+  var _vits = _fsV.readFileSync(_pathV.join(__dirname, "..", "vendor/piper/vits/vits-web.js"), "utf8");
+  if (_vits.indexOf("T&D PATCH") < 0 || _vits.indexOf("tndGetSession") < 0) {
+    console.error("VENDOR PATCH MISSING: vendor/piper/vits/vits-web.js lost the T&D session-cache patch (re-vendored?) — reapply it (see the patch header it should carry).");
+    process.exit(1);
+  }
+} catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains

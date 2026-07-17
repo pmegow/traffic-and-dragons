@@ -197,7 +197,7 @@ async function N(e, m) {
       "--espeak_data",
       "/espeak-ng-data"
     ]);
-  }), r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, k = await f(`${u}/${n}`, m), y = await _.InferenceSession.create(await k.arrayBuffer()), w = {
+  }), r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
     input: new _.Tensor("int64", t, [1, t.length]),
     input_lengths: new _.Tensor("int64", [t.length]),
     scales: new _.Tensor("float32", [d, g, U])
@@ -207,6 +207,22 @@ async function N(e, m) {
     output: { data: E }
   } = await y.run(w);
   return new Blob([b(E, 1, s)], { type: "audio/x-wav" });
+}
+// ═══ T&D PATCH v1.322 (2026-07-16) — session cache. Upstream predict() created a NEW
+// ORT InferenceSession from the FULL model (~60MB) on EVERY call and never released it:
+// per-sentence memory growth that Chrome absorbed and iOS Safari could not (tab killed at
+// the same unit count every read — the Turn-769 repro). ONE session per voice, evict+
+// release() on voice change. If this file is ever re-vendored, REAPPLY this patch (the
+// engine test 'vendored vits-web carries the T&D session-cache patch' trips otherwise).
+const tndSess = { key: null, sess: null };
+async function tndGetSession(n2, m2) {
+  if (tndSess.key !== n2) {
+    const k2 = await f(`${u}/${n2}`, m2);
+    const s2 = await _.InferenceSession.create(await k2.arrayBuffer());
+    if (tndSess.sess) { try { tndSess.sess.release(); } catch (e2) {} }
+    tndSess.key = n2; tndSess.sess = s2;
+  }
+  return tndSess.sess;
 }
 async function f(e, m) {
   let n = await D(e);
