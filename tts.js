@@ -289,6 +289,8 @@ var TTS = (function() {
   var _cartesiaError = "";  // last Cartesia failure reason; once set, speech falls back to native
   var _cartesiaErrorAt = 0; // when it was recorded — auto-retried after 5 min so one transient blip doesn't downgrade the whole session (audit #27)
   var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
+  var _nativeStallT  = null;// pending native stall-watchdog timer — cleared by _stopCurrent so a
+                            // skipped chain can't be resurrected by a stale watchdog (v1.334, audit #4)
   var _curNative     = false;// is the currently-playing queue item using native TTS
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -372,7 +374,10 @@ var TTS = (function() {
       document.removeEventListener("touchend",   fire, true);
       document.removeEventListener("keydown",    fire, true);
       _armCtxUnlock._armed = false;
-      _resumeCtx(_ensureCtx());
+      // v1.334 (audit #4): a USER-paused ctx (pause() suspended it deliberately) must stay
+      // suspended until they press ▶ — the unlock is for iOS-blocked contexts only. Without
+      // this guard any tap resumed paused narration while the bar still showed "paused".
+      if (!_paused) _resumeCtx(_ensureCtx());
     };
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("touchend",   fire, true);
@@ -382,7 +387,9 @@ var TTS = (function() {
   // refuses, the next tap unlocks via the armed listener. (typeof guard: the headless test
   // runner loads tts.js with no DOM.)
   if (typeof document !== "undefined") document.addEventListener("visibilitychange", function() {
-    if (!document.hidden && _audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") { _resumeCtx(_audioCtx); _armCtxUnlock(); }
+    // !_paused (v1.334, audit #4): a user pause suspends the same ctx — returning to the tab must
+    // not auto-resume it (audio restarted by itself while the button showed ▶, state desync).
+    if (!document.hidden && !_paused && _audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") { _resumeCtx(_audioCtx); _armCtxUnlock(); }
   });
   // Wait briefly for the ctx to actually reach "running" (resume can settle async); resolves
   // true/false, never throws — callers refuse loudly on false.
@@ -405,6 +412,10 @@ var TTS = (function() {
   }
 
   function _closeCtx() {
+    // v1.334 (audit #3): the primer node belongs to THIS ctx — clearing it here keeps
+    // primeAudioSession()'s _primerSrc guard from short-circuiting on a dead node after a
+    // voice off/on cycle (which silently lost the iOS playback-category session, v1.328).
+    stopAudioSessionPrimer();
     if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
   }
 
@@ -419,7 +430,11 @@ var TTS = (function() {
     var ctx = _ensureCtx();
     if (!ctx) return;
     _resumeCtx(ctx);   // v1.327: covers iOS "interrupted" too
-    if (_primerSrc) return;
+    // v1.334 (audit #3): the guard must check the primer is on the CURRENT ctx — a primer left
+    // over from a closed/replaced ctx is a dead node, and returning on it would leave the new
+    // ctx with no playback-category claim (iOS mute-switch silence back again).
+    if (_primerSrc && _primerSrc.context === ctx) return;
+    stopAudioSessionPrimer();
     try {
       var buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
       var src = ctx.createBufferSource();
@@ -559,16 +574,23 @@ var TTS = (function() {
       // chain (and _playing) can never strand silently again.
       var advanced = false;
       var stallMs = 10000 + units[i].text.length * 90;
-      var stallT = setTimeout(function() {
+      var stallCheck = function() {
         if (advanced) return;
+        // v1.334 (audit #4): a USER pause legitimately stops onend from firing — re-arm and wait
+        // instead of force-advancing (the old path cancel()ed the paused utterance and the next
+        // unit's resume-kick un-paused the engine: a >10s pause resumed all by itself). Keyed on
+        // _paused (user intent) ONLY — speechSynthesis.paused without _paused is the iOS wedge
+        // this watchdog exists to break, so that case still advances.
+        if (_paused) { _nativeStallT = setTimeout(stallCheck, stallMs); return; }
         advanced = true;
         console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " STALLED (" + stallMs + "ms, no onend/onerror — iOS wedge) — forcing the chain forward");
         try { window.speechSynthesis.cancel(); } catch(e1) {}
         _speakNativeUnit(units, i + 1);
-      }, stallMs);
-      u.onend   = function() { if (advanced) return; advanced = true; clearTimeout(stallT); _speakNativeUnit(units, i + 1); };
+      };
+      _nativeStallT = setTimeout(stallCheck, stallMs);
+      u.onend   = function() { if (advanced) return; advanced = true; clearTimeout(_nativeStallT); _speakNativeUnit(units, i + 1); };
       u.onerror = function(e) {
-        if (advanced) return; advanced = true; clearTimeout(stallT);
+        if (advanced) return; advanced = true; clearTimeout(_nativeStallT);
         // Do not let one bad unit silently kill the rest of the chain — warn and continue.
         console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " failed, skipping:", e && e.error);
         _speakNativeUnit(units, i + 1);
@@ -1060,6 +1082,7 @@ var TTS = (function() {
     _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
     _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
+    if (_nativeStallT) { clearTimeout(_nativeStallT); _nativeStallT = null; }   // v1.334: a live watchdog would resurrect the cancelled chain
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
     for (var i = 0; i < _sources.length; i++) {
