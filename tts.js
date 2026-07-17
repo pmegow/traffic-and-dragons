@@ -703,6 +703,36 @@ var TTS = (function() {
     if (typeof showToast === "function") showToast("✓ Narrator voice ready");
   }
 
+  // Manual WAV→AudioBuffer decode (v1.321 — the iOS same-spot crash, part 2). WebKit's
+  // decodeAudioData holds each call's decoded audio in the media daemon beyond JS reach, so the
+  // v1.320 free-on-end couldn't return it — memory grew per UNIT DECODED and Safari killed the
+  // tab at the same unit count every time (Chrome, which releases properly, played the whole
+  // passage). Piper emits plain RIFF/PCM16, so we parse it ourselves into a ctx.createBuffer —
+  // ordinary JS-heap memory that the free-on-end actually frees. Returns null on any unexpected
+  // shape → caller falls back to decodeAudioData LOUDLY (never silent).
+  function _wavToAudioBuffer(ab, ctx) {
+    try {
+      var dv = new DataView(ab);
+      if (dv.byteLength < 44 || dv.getUint32(0, false) !== 0x52494646 || dv.getUint32(8, false) !== 0x57415645) return null; // "RIFF"…"WAVE"
+      var pos = 12, fmt = null, dataOff = -1, dataLen = 0;
+      while (pos + 8 <= dv.byteLength) {
+        var id = dv.getUint32(pos, false), sz = dv.getUint32(pos + 4, true);
+        if (id === 0x666d7420) fmt = { audioFormat: dv.getUint16(pos + 8, true), channels: dv.getUint16(pos + 10, true), sampleRate: dv.getUint32(pos + 12, true), bits: dv.getUint16(pos + 22, true) }; // "fmt "
+        else if (id === 0x64617461) { dataOff = pos + 8; dataLen = Math.min(sz, dv.byteLength - dataOff); break; } // "data"
+        pos += 8 + sz + (sz & 1);
+      }
+      if (!fmt || dataOff < 0 || fmt.audioFormat !== 1 || fmt.bits !== 16 || fmt.channels < 1) return null;
+      var frames = Math.floor(dataLen / 2 / fmt.channels);
+      if (frames <= 0) return null;
+      var buf = ctx.createBuffer(fmt.channels, frames, fmt.sampleRate);
+      for (var ch = 0; ch < fmt.channels; ch++) {
+        var out = buf.getChannelData(ch);
+        for (var f = 0; f < frames; f++) out[f] = dv.getInt16(dataOff + (f * fmt.channels + ch) * 2, true) / 32768;
+      }
+      return buf;
+    } catch (e) { return null; }
+  }
+
   // Synthesize + schedule one narration item through Piper. Sequential per-unit loop (mirrors
   // piper_test.html speakAll()): predict → decode → schedule on the shared AudioContext timeline.
   // The epoch guard runs after EVERY await (see section comment above) — this is what makes a
@@ -774,7 +804,11 @@ var TTS = (function() {
       try {
         var arrBuf = await blob.arrayBuffer();
         if (_piperEpoch !== myEpoch) return;   // stale — discard mid-decode
-        buf = await ctx.decodeAudioData(arrBuf);
+        buf = _wavToAudioBuffer(arrBuf, ctx);  // v1.321: manual PCM16 parse — bypasses WebKit's decodeAudioData daemon-side retention
+        if (!buf) {
+          console.warn("[tts piper] manual WAV parse failed on unit " + (i + 1) + "/" + units.length + " — falling back to decodeAudioData (iOS memory risk)");
+          buf = await ctx.decodeAudioData(arrBuf);
+        }
         if (_piperEpoch !== myEpoch) return;   // stale — the guard that matters most: never schedule over the next item
       } catch(e) {
         console.warn("[tts piper] decode failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
