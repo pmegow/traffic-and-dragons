@@ -545,13 +545,30 @@ var TTS = (function() {
   function _speakNativeUnit(units, i) {
     if (i >= units.length) { _nativeUtter = null; _drain(); return; }
     try {
+      // v1.329: iOS speechSynthesis can sit PAUSED after an interruption — utterances then queue
+      // forever with no onend/onerror, stranding _playing=true (the wedged-pipeline class: every
+      // later speak/Test silently queues behind the phantom). Kick resume() (harmless elsewhere)…
+      try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch(e0) {}
       var u = new SpeechSynthesisUtterance(units[i].text);
       u.rate = 1.0; u.pitch = 1.0;
       var nv = _resolveNativeVoice();   // saved pick → preferred default → OS default
       if (nv) u.voice = nv;
       _nativeUtter = u;
-      u.onend   = function() { _speakNativeUnit(units, i + 1); };
+      // …and arm a per-unit stall watchdog: if NEITHER event fires within a generous budget
+      // (10s + 90ms/char — far beyond real speech onset+duration), force-advance LOUDLY so the
+      // chain (and _playing) can never strand silently again.
+      var advanced = false;
+      var stallMs = 10000 + units[i].text.length * 90;
+      var stallT = setTimeout(function() {
+        if (advanced) return;
+        advanced = true;
+        console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " STALLED (" + stallMs + "ms, no onend/onerror — iOS wedge) — forcing the chain forward");
+        try { window.speechSynthesis.cancel(); } catch(e1) {}
+        _speakNativeUnit(units, i + 1);
+      }, stallMs);
+      u.onend   = function() { if (advanced) return; advanced = true; clearTimeout(stallT); _speakNativeUnit(units, i + 1); };
       u.onerror = function(e) {
+        if (advanced) return; advanced = true; clearTimeout(stallT);
         // Do not let one bad unit silently kill the rest of the chain — warn and continue.
         console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " failed, skipping:", e && e.error);
         _speakNativeUnit(units, i + 1);
@@ -1159,6 +1176,7 @@ var TTS = (function() {
     }
     try {
       speechSynthesis.cancel();
+      try { if (speechSynthesis.paused) speechSynthesis.resume(); } catch(e0) {}   // v1.329: unstick an iOS-paused engine
       var u = new SpeechSynthesisUtterance(TTS_TEST_LINE);
       var v = _findNativeVoice(name); if (v) u.voice = v;
       speechSynthesis.speak(u);
@@ -1325,7 +1343,10 @@ var TTS = (function() {
       var d = document.getElementById("tts-audio-diag");
       if (!d) return;
       var st = _audioCtx ? _audioCtx.state : "not created yet";
-      d.textContent = "Audio: " + st + " · voice " + (isOn() ? "ON" : "off") + (st === "running" ? "" : st === "not created yet" ? " (created on first use/tap)" : " ⚠ no sound until running — tap 🔊 off/on");
+      // v1.329: pipeline state too — a wedged _playing latch ("speaking" with nothing audible and
+      // items queued) is exactly the phone-visible signature of the stranded-fallback class.
+      var pipe = (_playing ? "speaking" : "idle") + (_queue.length ? " +" + _queue.length + " queued" : "");
+      d.textContent = "Audio: " + st + " · voice " + (isOn() ? "ON" : "off") + " · " + pipe + (st === "running" ? "" : st === "not created yet" ? " (created on first use/tap)" : " ⚠ no sound until running — tap 🔊 off/on");
       d.style.color = (st === "running" || st === "not created yet") ? "var(--t2)" : "#e0a060";
     }
     _updateAudioDiag();
@@ -1381,10 +1402,14 @@ var TTS = (function() {
     document.getElementById("tts-piper-test").addEventListener("click", function() {
       var s = document.getElementById("tts-piper-sel");
       var voiceId = s ? s.value : resolvePiperVoice();
+      // v1.329: PRE-EMPT — a Test tap should interrupt whatever is (or claims to be) speaking.
+      // stop() also resets a wedged _playing latch (the phone incident: a stranded native
+      // fallback left _playing=true, so Test taps queued silently forever — "does nothing").
+      stop();
       // Reuses the normal queue/dispatch path (not a bespoke call) so pause/skip/stop and the
       // epoch guard all apply to the audition exactly as they would to real narration.
       _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: voiceId });
-      if (!_playing) _drain();
+      _drain();
     });
 
     document.getElementById("tts-add-btn").addEventListener("click", function() {
