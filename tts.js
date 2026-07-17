@@ -21,6 +21,16 @@ var TTS = (function() {
   var NVOICE_DEFAULT = "Google US English"; // preferred voice when the user hasn't picked one (falls back to OS default if absent)
   var TTS_TEST_LINE = "The lightless mass rotates, and the weapon-notation locks into place.";
 
+  // ── Speech rate (Car Mode audit rank 20, todo_carplay.html) ─────────────────────────────────
+  // Applies to native (utterance.rate) and Piper (length_scale / rate, vendored patch r7). Cartesia
+  // is served as-is — no rate knob exists on that path, noted in the settings-modal hint.
+  var RATE_K = "tnd_tts_rate_v1";
+  function getRate() {
+    var v = parseFloat(store.get(RATE_K));
+    if (isNaN(v) || v < 0.8 || v > 1.3) return 1.0;
+    return v;
+  }
+
   // ── Engine selection (TODO #41 Phase 4) ─────────────────────────────────────
   // Explicit engine choice, layered over the implicit native-vs-Cartesia branch that existed
   // before Piper. ENGINE_K unset (every pre-Phase-4 save/device) MUST reproduce today's behavior
@@ -303,6 +313,9 @@ var TTS = (function() {
   var _playing    = false;
   var _paused     = false;
   var _lastSpokenText  = "";
+  var _lastNarration   = "";   // set ONLY by speakResponse (rank 17/18, todo_carplay.html) — narration-
+                                // sourced, unlike _lastSpokenText which every speak() caller (incl. the
+                                // settings-modal Test buttons) overwrites. Backs TTS.replayLast().
   var _onDoneCallback  = null;
   var _audioCtx   = null;   // single persistent context, created on first toggle-on
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
@@ -468,6 +481,36 @@ var TTS = (function() {
   }
   function _clearCtxWatch() { if (_ctxWatchT) { clearInterval(_ctxWatchT); _ctxWatchT = null; } }
 
+  // ── mediaSession positionState (Car Mode audit rank 23, todo_carplay.html) ─────────────────
+  // Cosmetic, best-effort: without it, lock screens / head units show an inert 0:00 scrubber.
+  // Piggybacks the _armCtxWatch/_clearCtxWatch lifecycle (same "a WebAudio item is playing" window)
+  // rather than owning its own state — armed alongside the watchdog in _stream/_speakPiper, cleared
+  // everywhere the watchdog is cleared (_drain's empty-queue branch, _stopCurrent). A light 2s poll,
+  // never touches _nextStart/_sources, wrapped in try/catch so a missing/odd mediaSession API can
+  // never throw into the scheduler.
+  var _posStateT = null;
+  function _armPosState(ctx) {
+    if (_posStateT) return;
+    if (!ctx || !("mediaSession" in navigator) || typeof navigator.mediaSession.setPositionState !== "function") return;
+    var startedAt = ctx.currentTime;
+    _posStateT = setInterval(function() {
+      try {
+        if (!_playing || _paused || !_audioCtx) return;
+        // Coarse estimate: the scheduled span grown so far as "duration", now vs. start as "position".
+        var dur = Math.max(0.1, _nextStart - startedAt);
+        var pos = Math.max(0, Math.min(dur, ctx.currentTime - startedAt));
+        navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: pos });
+      } catch(e) {}
+    }, 2000);
+  }
+  function _clearPosState() {
+    if (_posStateT) { clearInterval(_posStateT); _posStateT = null; }
+    try {
+      if ("mediaSession" in navigator && typeof navigator.mediaSession.setPositionState === "function")
+        navigator.mediaSession.setPositionState({ duration: 0, playbackRate: 1, position: 0 });
+    } catch(e) {}
+  }
+
   function _closeCtx() {
     // v1.334 (audit #3): the primer node belongs to THIS ctx — clearing it here keeps
     // primeAudioSession()'s _primerSrc guard from short-circuiting on a dead node after a
@@ -583,7 +626,19 @@ var TTS = (function() {
 
   function speakResponse(cleanText) {
     if (!isOn() && !(typeof carMode !== "undefined" && carMode)) return;
-    speak(cleanText.trim());
+    var trimmed = cleanText.trim();
+    // Rank 17/18: record ONLY here (narration, not Test/other speak() callers), and persist onto
+    // worldState so ⏮ survives a reload — it rides the existing saveAll cycles (no save call here).
+    _lastNarration = trimmed;
+    if (typeof worldState !== "undefined" && worldState && worldState.character) worldState.lastNarration = trimmed;
+    speak(trimmed);
+  }
+
+  // Reload-tolerant read: in-memory copy first, else the persisted worldState fallback (rank 18).
+  function _getLastNarration() {
+    if (_lastNarration) return _lastNarration;
+    if (typeof worldState !== "undefined" && worldState && worldState.lastNarration) return worldState.lastNarration;
+    return "";
   }
 
   // ── Queue management ────────────────────────────────────────────────────────
@@ -594,6 +649,7 @@ var TTS = (function() {
       _paused  = false;
       _curNative = false;
       _clearCtxWatch();   // audit #10 — nothing left to guard
+      _clearPosState();   // rank 23 — same lifecycle as the ctx watch above
       _showBar(false);
       if (_onDoneCallback) _onDoneCallback();
       return;
@@ -630,7 +686,7 @@ var TTS = (function() {
       // later speak/Test silently queues behind the phantom). Kick resume() (harmless elsewhere)…
       try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch(e0) {}
       var u = new SpeechSynthesisUtterance(units[i].text);
-      u.rate = 1.0; u.pitch = 1.0;
+      u.rate = getRate(); u.pitch = 1.0;
       var nv = _resolveNativeVoice();   // saved pick → preferred default → OS default
       if (nv) u.voice = nv;
       _nativeUtter = u;
@@ -684,6 +740,7 @@ var TTS = (function() {
       if (!ok) { _ctxBlockedLoud("Cartesia"); _curNative = true; _speakNative(text); return; }
       primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent
       _armCtxWatch("Cartesia");   // audit #10 — catch a mid-read ctx interruption loudly
+      _armPosState(ctx);   // rank 23 — same lifecycle as the ctx watch above
       _streamGo(text, voiceId, ctx);
     });
   }
@@ -850,7 +907,9 @@ var TTS = (function() {
   // every vendored-file patch → new URL → both caches miss → fresh fetch. The vendored file exports
   // TND_VITS_PATCH with the same rev; _piperInit stores it and the Voice Settings Piper panel shows
   // it, so a phone can PROVE which runtime it runs before a test.
-  var PIPER_RUNTIME_REV = "r6";
+  // r7 (2026-07-17, Car Mode audit rank 20 — todo_carplay.html): predict() gained an optional
+  // `rate` param (length_scale / rate) — see the T&D PATCH r7 comment in vits-web.js.
+  var PIPER_RUNTIME_REV = "r7";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
@@ -955,23 +1014,32 @@ var TTS = (function() {
     try { stored = await mod.stored(); } catch(e) { stored = []; }
     if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
     if (typeof showToast === "function") showToast("⬇ Downloading narrator voice (" + piperVoiceSize(voiceId) + ") — one-time, cached after");
+    // Rank 9 (todo_carplay.html): mirror the download lifecycle into #car-status — the toast above
+    // is invisible under #car-overlay (rank 1; also now fixed, but this is IN ADDITION, not instead).
+    if (typeof carNotify === "function") carNotify("progress", "Downloading narrator voice (" + piperVoiceSize(voiceId) + ")…");
     var lastPct = -1;
     try {
       await mod.download(voiceId, function(p) {
         if (!p || !p.total) return;
         var pct = Math.floor((p.loaded / p.total) * 100 / 10) * 10;
-        if (pct > 0 && pct !== lastPct) { lastPct = pct; console.info("[tts piper] " + voiceId + " download " + pct + "%"); }
+        if (pct > 0 && pct !== lastPct) {
+          lastPct = pct;
+          console.info("[tts piper] " + voiceId + " download " + pct + "%");
+          if (typeof carNotify === "function") carNotify("progress", "Voice download " + pct + "%");
+        }
       });
     } catch(e) {
       _piperError = (e && e.message) || "voice download failed";
       _piperErrorAt = Date.now();
       console.warn("[tts piper] voice download failed:", _piperError);
       if (typeof showToast === "function") showToast("⚠ Narrator voice download failed — using fallback voice");
+      if (typeof carNotify === "function") carNotify("error", "Voice download failed");
       throw e;
     }
     _piperDownloaded[voiceId] = true;
     _updatePiperErr();   // repaint the modal's "not downloaded yet" info line if it's open (found stale in Phase 5 preview)
     if (typeof showToast === "function") showToast("✓ Narrator voice ready");
+    if (typeof carNotify === "function") carNotify("info", "Voice ready");
   }
 
   // Manual WAV→AudioBuffer decode (v1.321 — the iOS same-spot crash, part 2). WebKit's
@@ -1021,6 +1089,7 @@ var TTS = (function() {
     if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (_primerSrc guard)
     _armCtxWatch("Piper");   // audit #10 — catch a mid-read ctx interruption loudly
+    _armPosState(ctx);   // rank 23 — same lifecycle as the ctx watch above
 
     var mod;
     try {
@@ -1081,7 +1150,7 @@ var TTS = (function() {
       try {
         // trailing space: documented static-tail guard; _piperSerial: audit #9 (never concurrent
         // with a prewarm predict or another flow's ensure/download on the shared wasm session)
-        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: voiceId }); });
+        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: voiceId, rate: getRate() }); });
       } catch(e) {
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
         continue;
@@ -1167,11 +1236,59 @@ var TTS = (function() {
         await _piperEnsureVoice(voiceId);
         if (_piperEpoch !== myEpoch) return;
         // discarded — just forces the WASM compile; serialized per audit #9
-        await _piperSerial(function() { return mod.predict({ text: "warm up", voiceId: voiceId }); });
+        await _piperSerial(function() { return mod.predict({ text: "warm up", voiceId: voiceId, rate: getRate() }); });
       } catch(e) {
         console.warn("[tts piper] prewarm failed (non-fatal):", e && e.message);
       }
     })();
+  }
+
+  // ── Car Mode support: earcons + replay (todo_carplay.html ranks 14, 17/18) ─────────────────
+  // Both are exported for ui-carmode.js (typeof-guarded there — this file loads before it).
+
+  // Two tiny WebAudio blips, deliberately OFF the narration scheduler: separate oscillator/gain
+  // nodes wired straight to ctx.destination, never touching _nextStart/_sources, so they can never
+  // shift a scheduled narration start or get swept by stop()/skip(). Quiet (gain ~0.08), <200ms.
+  // No-op (console.debug only) if the ctx doesn't exist or isn't running — never throws, never
+  // creates/resumes the ctx itself (that's a user-gesture concern owned by toggle()/primeAudioSession).
+  function earcon(kind) {
+    try {
+      var ctx = _ensureCtx();   // reuse the shared ctx — creates it only if genuinely absent
+      if (!ctx) { console.debug("[tts] earcon '" + kind + "' skipped — no AudioContext"); return; }
+      _resumeCtx(ctx);          // best-effort; does not block — see the state check right below
+      if (ctx.state !== "running") { console.debug("[tts] earcon '" + kind + "' skipped — ctx " + ctx.state); return; }
+      var t0 = ctx.currentTime;
+      function blip(offset, freq, dur) {
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        var st = t0 + offset;
+        osc.start(st);
+        osc.stop(st + dur);
+      }
+      if (kind === "ready") { blip(0, 660, 0.08); blip(0.1, 880, 0.08); }   // two quick ascending blips
+      else { blip(0, 740, 0.09); }                                          // "ack" — one short blip
+    } catch(e) { console.debug("[tts] earcon failed:", e && e.message); }
+  }
+
+  // Rank 17/18: replay the last NARRATION (not whatever speak() last happened to say) without
+  // discarding a second queued item. Reuses the public stop()/speak() path (not a bespoke synth
+  // call) so the epoch guard, watchdogs, and engine ladder all apply exactly as they do to real
+  // narration — no parallel machinery to keep in sync with the audited scheduler.
+  function replayLast() {
+    var text = _getLastNarration();
+    if (!text) return false;
+    var pending = _queue.slice();   // snapshot pending items BEFORE stop() clears the queue
+    stop();                         // internal stop path: kills current audio/timers, clears queue
+    speak(text);                    // normal dispatch — engine ladder applies; since !_playing this
+                                     // also starts it immediately via _drain() (shifts this one item)
+    for (var i = 0; i < pending.length; i++) _queue.push(pending[i]);   // requeue behind the replay
+    if (!_playing) _drain();        // defensive, mirrors speak()'s own convention (normally a no-op —
+                                     // speak() above already started draining in the common case)
+    return true;
   }
 
   // ── Controls ────────────────────────────────────────────────────────────────
@@ -1219,6 +1336,7 @@ var TTS = (function() {
     _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
     _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
     _clearCtxWatch();   // audit #10 — the item the watchdog guarded is gone
+    _clearPosState();   // rank 23 — same lifecycle as the ctx watch above
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
     if (_nativeStallT) { clearTimeout(_nativeStallT); _nativeStallT = null; }   // v1.334: a live watchdog would resurrect the cancelled chain
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
@@ -1360,6 +1478,7 @@ var TTS = (function() {
       try { if (speechSynthesis.paused) speechSynthesis.resume(); } catch(e0) {}   // v1.329: unstick an iOS-paused engine
       var u = new SpeechSynthesisUtterance(TTS_TEST_LINE);
       var v = _findNativeVoice(name); if (v) u.voice = v;
+      u.rate = getRate();
       speechSynthesis.speak(u);
     } catch (e) {}
   }
@@ -1440,6 +1559,16 @@ var TTS = (function() {
       "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
       +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
       +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
+      + "</div>"
+      // Rank 20 (todo_carplay.html): speech rate — applies to Native + Piper; Cartesia is served
+      // as-is (no rate knob on that path). Placed ABOVE the engine block since it isn't engine-specific.
+      + "<div style='margin-bottom:16px;'>"
+      +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;'>"
+      +     "<label style='font-size:12px;color:var(--t2);'>Speech rate</label>"
+      +     "<span id='tts-rate-val' style='font-size:11px;color:var(--t2);'>" + getRate().toFixed(2) + "&times;</span>"
+      +   "</div>"
+      +   "<input id='tts-rate-sel' type='range' min='0.8' max='1.3' step='0.05' value='" + getRate() + "' style='width:100%;accent-color:var(--acc);'/>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Native + Piper only. (Cartesia unaffected)</div>"
       + "</div>"
       + "<div style='margin-bottom:16px;'>"
       +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Voice engine</label>"
@@ -1540,6 +1669,15 @@ var TTS = (function() {
       for (var r = 0; r < rows.length; r++) rows[r].style.borderColor = (rows[r].getAttribute("data-eng-row") === engine) ? "var(--acc)" : "var(--brd)";
       var hintEl = document.getElementById("tts-engine-hint");
       if (hintEl) hintEl.textContent = TTS_PROVIDERS[engine].hint;
+    }
+    // Rank 20: live-write on drag — takes effect on the NEXT synth call (getRate() reads store live).
+    var rateSel = document.getElementById("tts-rate-sel");
+    if (rateSel) {
+      rateSel.addEventListener("input", function() {
+        store.set(RATE_K, this.value);
+        var rv = document.getElementById("tts-rate-val");
+        if (rv) rv.textContent = parseFloat(this.value).toFixed(2) + "×";
+      });
     }
     var radios = modal.querySelectorAll("input[name='tts-engine']");
     for (var ri = 0; ri < radios.length; ri++) {
@@ -1650,6 +1788,9 @@ var TTS = (function() {
     pause:             pause,
     skip:              skip,
     stop:              stop,
+    // Car Mode support (todo_carplay.html) — Lane A (ui-carmode.js) calls both with typeof guards.
+    earcon:            earcon,       // kind: "ack" | "ready" — oscillator blips, off the narration scheduler
+    replayLast:        replayLast,   // replays the last NARRATION (not Test/other speak() calls), queue-preserving
     showSettingsModal: showSettingsModal,
     primeAudioSession:     primeAudioSession,
     stopAudioSessionPrimer: stopAudioSessionPrimer,

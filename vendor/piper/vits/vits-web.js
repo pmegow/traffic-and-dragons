@@ -220,7 +220,7 @@ async function N(e, m) {
   h = h ?? await import(`./piper-DeOu3H9E.js?tnd=${TND_DEP_REV}`), _ = _ ?? await import("onnxruntime-web");
   const n = c[e.voiceId], o = JSON.stringify([{ text: e.text.trim() }]);
   _.env.allowLocalModels = !1, _.env.wasm.numThreads = navigator.hardwareConcurrency, _.env.wasm.wasmPaths = B;
-  const a = await f(`${u}/${n}.json`), i = JSON.parse(await a.text()), t = await tndPhonemize(i.espeak.voice, o) /* T&D PATCH v1.323 — cached phonemizer, see above */, r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
+  const a = await f(`${u}/${n}.json`), i = JSON.parse(await a.text()), t = await tndPhonemize(i.espeak.voice, o) /* T&D PATCH v1.323 — cached phonemizer, see above */, r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale / (e.rate || 1) /* T&D PATCH r7 — speech rate, see header */, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
     input: new _.Tensor("int64", t, [1, t.length]),
     input_lengths: new _.Tensor("int64", [t.length]),
     scales: new _.Tensor("float32", [d, g, U])
@@ -249,7 +249,12 @@ async function N(e, m) {
 // still points at jsdelivr — the SW ignores cross-origin, so those fetches were never in
 // PIPER_CACHE and broke the offline claim); ③ the fallback phonemizer path rejects/times out
 // instead of hanging predict() forever on a load failure (no-silent-failures).
-const TND_VITS_PATCH = "r6"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+// ═══ T&D PATCH r7 (2026-07-17, Car Mode audit rank 20 — todo_carplay.html) — speech rate. predict()
+// now accepts an optional `rate` (0.8–1.3, default 1) and divides length_scale by it: Piper has no
+// native rate knob, but length_scale inversely scales phoneme duration (the standard VITS speed
+// trick). See the `g = i.inference.length_scale / (e.rate || 1)` line in N() above. Falls back to
+// unchanged length_scale when the caller omits rate (e.g. an older cached caller pre-dating this).
+const TND_VITS_PATCH = "r7"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
 const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;

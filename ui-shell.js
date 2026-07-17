@@ -25,7 +25,11 @@ function showToast(msg){
   msg=String(msg==null?"":msg).replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(parseInt(n,10));}).replace(/&mdash;/g,"—").replace(/&ndash;/g,"–").replace(/&amp;/g,"&");
   var live=document.querySelectorAll(".tnd-toast").length;
   var t=document.createElement("div");t.className="tnd-toast";
-  t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:var(--modal-bg);border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:var(--font);z-index:400;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
+  // Car Mode audit rank 1 (todo_carplay.html): toasts at z-index:400 rendered UNDER #car-overlay
+  // (z-index:500) — every failure/progress signal was invisible in the one mode where the screen
+  // is the only channel. Codebase max is #lineage-popup at 9999 (index.html); 10000 clears that
+  // too so a toast is never buried behind ANY overlay/modal (acceptable — transient, tap-dismiss).
+  t.style.cssText="position:fixed;bottom:"+(80+live*42)+"px;left:50%;transform:translateX(-50%);background:var(--modal-bg);border:1px solid var(--acc);color:var(--acc);padding:10px 20px;border-radius:20px;font-size:13px;font-family:var(--font);z-index:10000;cursor:pointer;pointer-events:auto;transition:opacity .25s;";
   t.title="Tap to dismiss";
   t.textContent=msg;
   var x=document.createElement("span");x.textContent="✕";x.style.cssText="margin-left:10px;opacity:.45;font-size:11px;";t.appendChild(x);

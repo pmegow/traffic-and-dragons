@@ -794,10 +794,11 @@ async function sendAction(override,opts){
     }
     syncUI();
   }catch(e){th.remove();
-    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);}/* no Retry — the mutation already landed (E82) */
-    else{var em=addMsg("system","GM error: "+e.message);if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
+    else{var em=addMsg("system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
+  if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("userinput");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
 }
 function retryLast(){if(lastAction)sendAction(lastAction);}
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
@@ -1141,8 +1142,9 @@ async function beginAdventure(){
       // and double-apply them (double starting gold, duplicate NPCs). No Retry offered; the
       // persisted transcript replays the scene on reload.
       addMsg("system","Opening scene hit an error after your world was saved ("+e.message+") — reload to replay the scene. (Retry disabled: it would double-apply the opening.)");
+      if(typeof carNotify==="function")carNotify("error","Opening failed — reload to continue");
     }else{
-      var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
+      var em=addMsg("system","Failed to start: "+e.message);if(typeof carNotify==="function")carNotify("error","Failed to start — tap to retry");if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     }}
   busy=false;document.getElementById("sendbtn").disabled=false;
 }

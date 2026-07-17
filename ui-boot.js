@@ -67,6 +67,7 @@ function buildFileMenus(){
       +btn(p+"fal-key","🖼 Render Options&hellip;",0)
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
+      +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
       +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
       +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
       +sep(true)
@@ -179,7 +180,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","font-lg","legacy-cb","autosend"].forEach(function(sfx){/* autosend added so toggling it doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
+  ["adult-cb","font-lg","legacy-cb","autosend","autolisten"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -226,7 +227,12 @@ function wireButtons(){
   // STT (speech-to-text dictation) — Car Mode foundation
   document.getElementById("mic-btn").addEventListener("click",function(){if(typeof STT!=="undefined")STT.toggle();});
   eachMenuEl("autosend",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});});
+  // rank 6 (todo_carplay) — "Auto-listen after narration" pref: default ON (today's auto-mic
+  // behavior) whenever STT.isAutoListen isn't wired up yet, per the cross-lane contract in
+  // ui-carmode.js's _carAutoMic. Wired/initialized exactly like autosend above.
+  eachMenuEl("autolisten",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setAutoListen)STT.setAutoListen(el.checked);});});
   if(typeof STT!=="undefined")STT.loadSettings();
+  if(typeof STT!=="undefined"&&typeof STT.isAutoListen==="function"){var _alOn=STT.isAutoListen();eachMenuEl("autolisten",function(el){el.checked=_alOn;});}
   // Suggested-action buttons: plain tap = fill input (editable); long-press (~500ms) = execute the turn.
   // (Ctrl/Cmd-click is handled in sendSuggestedAction.) Delegated so it covers dynamically-added buttons.
   (function(){
@@ -336,6 +342,17 @@ function initState(saved){
     initReplaySession();
     if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
     if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
+    // rank 13 (todo_carplay) — restore Car Mode across a reload/tab-reclaim mid-drive; flag
+    // expires after 6h so a desktop session weeks later doesn't boot back into the car UI. The
+    // × close button (hideCarMode) always clears the flag, so it stays the escape hatch either way.
+    try{
+      var _cmFlag=store.get("tnd_carmode_v1");
+      if(_cmFlag){
+        var _cmData=JSON.parse(_cmFlag);
+        if(_cmData&&_cmData.on&&(Date.now()-_cmData.t)<6*3600*1000&&typeof showCarMode==="function")showCarMode();
+        else store.del("tnd_carmode_v1");
+      }
+    }catch(e){store.del("tnd_carmode_v1");}
   }else{
     showChar();
   }
