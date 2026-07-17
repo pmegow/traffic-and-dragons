@@ -674,7 +674,10 @@ var TTS = (function() {
     if (!key) { _drain(); return; }
 
     var ctx = _ensureCtx();
-    if (!ctx) { _drain(); return; }
+    // Audit #17 (v1.341): a device where AudioContext can't be created at all used to DROP the
+    // line silently (skip to _drain, no speech, no warning — every narration lost while the
+    // voice toggle showed ON). Fall back to native like every other failure on this path.
+    if (!ctx) { console.warn("[tts] AudioContext unavailable — Cartesia line falls back to native"); _curNative = true; _speakNative(text); return; }
     // v1.327: gate on the ctx actually RUNNING (handles iOS "interrupted" too — the old
     // suspended-only check scheduled Cartesia chunks onto a stopped clock = silence).
     _ctxRunning(ctx).then(function(ok) {
@@ -1009,7 +1012,8 @@ var TTS = (function() {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
-    if (!ctx) { _drain(); return; }
+    // Audit #17 (v1.341): no ctx at all → native fallback, never a silent drop (see _stream).
+    if (!ctx) { console.warn("[tts piper] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
     // v1.327: require RUNNING (suspended AND iOS "interrupted" both resume-attempted; a ctx that
     // won't run refuses LOUDLY + native fallback instead of scheduling silence).
     var ctxOk = await _ctxRunning(ctx);
