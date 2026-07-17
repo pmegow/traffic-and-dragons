@@ -166,6 +166,29 @@ var TTS = (function() {
   // this — long sentences sub-split on clause boundaries, then hard-wrap on words if needed.
   var MAX_UNIT = 220;
 
+  // ── Piper pause tiers (user-tuned 2026-07-16 after the first phone listen) ─────────────────
+  // Piper renders essentially NO pause for punctuation inside a unit (spike finding, #41), so the
+  // ONLY rhythm control we have is the scheduled gap between units. Piper therefore splits on
+  // EVERY comma (splitSentences commaSplit mode) and each unit carries an `end` type mapped to an
+  // independently tunable gap below. Full-stop was doubled from the shipped 0.22 by user call
+  // ("the way it just runs over a comma is nasty"); comma is a breath, not a stop. Native does
+  // NOT comma-split (its OS voice renders commas itself — validated behavior, don't change);
+  // Cartesia never splits at all (prosody).
+  var PAUSE_COMMA        = 0.15;  // gap after a unit ending in ","  (a breath)
+  var PAUSE_COMMA_CLAUSE = 0.22;  // gap after ";" / ":" and mid-sentence wrap pieces (heavier than a breath)
+  var PAUSE_FULLSTOP     = 0.44;  // gap after ". ! ? …" (sentence end)
+  var PAUSE_PARAGRAPH    = 0.88;  // gap at a paragraph break (2× full stop — keeps the hierarchy)
+  function unitGap(u) {
+    if (u) {
+      if (u.end === "para")     return PAUSE_PARAGRAPH;
+      if (u.end === "sentence") return PAUSE_FULLSTOP;
+      if (u.end === "clause")   return PAUSE_COMMA_CLAUSE;
+      if (u.end === "comma")    return PAUSE_COMMA;
+      if (u.paraEnd)            return PAUSE_PARAGRAPH;   // legacy unit shape (no `end` field)
+    }
+    return PAUSE_COMMA_CLAUSE;
+  }
+
   // Pack a too-long sentence into <=MAX_UNIT pieces: greedily on clause boundaries (, ; :), falling
   // back to word-wrap for a single clause that's still too long.
   function packLongUnit(s) {
@@ -203,7 +226,14 @@ var TTS = (function() {
   // "3.5 gold", abbreviations) still defeats the regex — the no-loss net below catches every such
   // case by comparing non-whitespace content and falling back to the whole paragraph as one
   // (MAX_UNIT-capped) run, with a console.warn so it's never silent.
-  function splitSentences(text, dashRepl) {
+  //
+  // commaSplit (Piper only): additionally break every sentence at , ; : boundaries and tag each
+  // unit's `end` type ("comma"/"clause"/"sentence"/"para") so scheduling can give each its own
+  // gap (unitGap above) — Piper renders no punctuation pause itself, so the gaps ARE the rhythm.
+  // The clause regex covers every character (same shape packLongUnit uses), so comma mode cannot
+  // lose content. Default (native) path: NO comma splits, unchanged unit boundaries — the `end`
+  // field is added but paraEnd semantics are byte-identical to Phase 1.
+  function splitSentences(text, dashRepl, commaSplit) {
     var paras = (text || "").split(/\n\s*\n/);
     var out = [];
     for (var p = 0; p < paras.length; p++) {
@@ -218,9 +248,27 @@ var TTS = (function() {
         var sent = parts[i].trim();
         if (!sent) continue;
         var lastSentence = (i === parts.length - 1);
-        var subs = packLongUnit(sent);
-        for (var j = 0; j < subs.length; j++) {
-          out.push({ text: subs[j], paraEnd: (lastSentence && j === subs.length - 1) });
+        var units = [], j, s2;
+        if (commaSplit) {
+          var clauses = sent.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [sent];
+          for (var c = 0; c < clauses.length; c++) {
+            var cl = clauses[c].trim();
+            if (!cl) continue;
+            var tail = cl.charAt(cl.length - 1);
+            var endType = (tail === ",") ? "comma" : (tail === ";" || tail === ":") ? "clause" : "sentence";
+            var subs = packLongUnit(cl);
+            for (s2 = 0; s2 < subs.length; s2++)
+              units.push({ text: subs[s2], end: (s2 === subs.length - 1) ? endType : "clause" });
+          }
+        } else {
+          var whole = packLongUnit(sent);
+          for (j = 0; j < whole.length; j++)
+            units.push({ text: whole[j], end: (j === whole.length - 1) ? "sentence" : "clause" });
+        }
+        if (units.length && lastSentence) units[units.length - 1].end = "para";
+        for (j = 0; j < units.length; j++) {
+          units[j].paraEnd = (units[j].end === "para");
+          out.push(units[j]);
         }
       }
     }
@@ -679,8 +727,9 @@ var TTS = (function() {
       return;
     }
 
-    // default dashRepl ", " — commas ARE the right dash style for Piper (spike finding, §2)
-    var units = splitSentences(text);
+    // default dashRepl ", " — commas ARE the right dash style for Piper (spike finding, §2);
+    // commaSplit=true: Piper gets its rhythm from scheduled gaps (see the pause tiers above)
+    var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
 
     _sources = [];
@@ -725,7 +774,7 @@ var TTS = (function() {
       src.connect(ctx.destination);
       var startAt = Math.max(nextStart, ctx.currentTime + 0.03);   // never schedule in the past
       src.start(startAt);
-      nextStart  = startAt + buf.duration + (u.paraEnd ? 0.44 : 0.22);   // 0.22s gap, 0.44s at paragraph end
+      nextStart  = startAt + buf.duration + unitGap(u);   // tiered: comma/clause/fullstop/paragraph (see PAUSE_* above)
       _nextStart = nextStart;
 
       activeSrcs++;
@@ -1181,7 +1230,8 @@ var TTS = (function() {
     resolvePiperVoice: resolvePiperVoice,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
-    _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit }
+    _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
+                 pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } }
   };
 
 })();

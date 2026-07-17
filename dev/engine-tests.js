@@ -3528,6 +3528,39 @@ function runEngineTests(R){
     for(i=0;i<out.length;i++)if(out[i].length>220)return "unit "+i+" exceeds MAX_UNIT: "+out[i].length;
     return true;
   });
+  // ── Piper tiered pause gaps (user-tuned 2026-07-16 after the first phone listen) ──
+  t("commaSplit mode: units break at every comma with end types comma/clause/sentence/para",function(){
+    var units=_tp.splitSentences("The wind howls, the rain follows; night falls. New day.",null,true);
+    var ends=units.map(function(u){return u.end;});
+    if(JSON.stringify(ends)!==JSON.stringify(["comma","clause","sentence","para"]))return "end types wrong: "+JSON.stringify(units);
+    return units[0].text==="The wind howls,"?true:"comma unit text wrong: "+JSON.stringify(units[0]);
+  });
+  t("commaSplit mode: no content loss (clause regex covers every character)",function(){
+    var input='"Steady, lads," Borin says, spitting; the tide answers: nothing. Then bells.';
+    var units=_tp.splitSentences(input,null,true);
+    var joined=units.map(function(u){return u.text;}).join(" ").replace(/\s+/g,"");
+    return joined===input.replace(/\s+/g,"")?true:"content lost: "+JSON.stringify(units);
+  });
+  t("default (native) path does NOT comma-split — Phase 1 unit boundaries and paraEnd byte-identical",function(){
+    var units=_tp.splitSentences("The wind howls, the rain follows; night falls. New day.");
+    if(units.length!==2)return "native path split changed: "+JSON.stringify(units);
+    var flags=units.map(function(u){return u.paraEnd;});
+    return JSON.stringify(flags)===JSON.stringify([false,true])?true:"paraEnd flags wrong: "+JSON.stringify(flags);
+  });
+  t("unitGap: each end type maps to its own independently tunable pause; legacy paraEnd shape still honored",function(){
+    var P=_tp.pauses();
+    if(!(P.comma<P.clause&&P.clause<P.fullstop&&P.fullstop<P.paragraph))return "pause hierarchy violated: "+JSON.stringify(P);
+    if(_tp.unitGap({end:"comma"})!==P.comma)return "comma gap wrong";
+    if(_tp.unitGap({end:"clause"})!==P.clause)return "clause gap wrong";
+    if(_tp.unitGap({end:"sentence"})!==P.fullstop)return "fullstop gap wrong";
+    if(_tp.unitGap({end:"para"})!==P.paragraph)return "paragraph gap wrong";
+    if(_tp.unitGap({paraEnd:true})!==P.paragraph)return "legacy paraEnd shape not honored";
+    return _tp.unitGap({paraEnd:false})===P.clause?true:"legacy default gap wrong";
+  });
+  t("commaSplit mode: paragraph-final unit is 'para' even when the paragraph trails off on a comma",function(){
+    var units=_tp.splitSentences("He reaches for the latch, then",null,true);
+    return units.length&&units[units.length-1].end==="para"?true:"trailing unit not promoted: "+JSON.stringify(units);
+  });
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });
