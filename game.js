@@ -466,7 +466,8 @@ function sendSuggestedAction(btn,ev){
 }
 // ── Core Memory (#40): permanent, always-injected defining moments ─────────────────────────
 // ENGINE-DETECTED, never GM-judged: a snapshot-diff wrapped around applyMuts at the TURN call
-// sites (sendAction + beginAdventure). Deliberately NOT inside applyMuts or tag_table:
+// site (commitGmTurn — the unified sendAction/beginAdventure commit pipeline, audit 07-16 #5).
+// Deliberately NOT inside applyMuts or tag_table:
 //   • zero parser contact — nothing to implement twice pre-cutover, survives the UA1 cutover
 //     unchanged, and invisible to the shadow diff (which clones state at applyMuts ENTRY);
 //   • syncCharSheet's audit-prompt applyMuts is naturally excluded (a sheet CORRECTION
@@ -699,6 +700,63 @@ function detectGhostConsumables(playerTxt,raw){
   var ni;for(ni=0;ni<(worldState.npcs||[]).length;ni++){var n=worldState.npcs[ni];
     if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))sweep(n.name,n.charSheet.inventory);}
 }
+// ── THE GM-turn commit pipeline (audit 07-16 #5) ─────────────────────────────────────────────
+// One home for the formerly duplicated sendAction/beginAdventure commit sequences. sendAction's
+// order is CANONICAL — it carries UA6 (persist history BEFORE any display step) and every later
+// fix; beginAdventure now inherits it, which closes its display-first gap (a throw in the
+// opening addMsg used to strand a saved state whose transcript/sessionLog lacked the opening
+// scene — exactly the desync class UA6 fixed for normal turns). rerollLast is deliberately NOT
+// unified: it never re-runs applyMuts, swaps sessionLog entries instead of appending, and
+// replaces the last transcript entry in place — different semantics, forcing it in would lie.
+// opts:
+//   userMsg   — user-role content pushed to sessionLog. sendAction passes apiTxt so the API
+//               history stays consistent with what the GM actually answered (P3 engine notes
+//               included); beginAdventure passes the intro directive.
+//   playerTxt — clean player action text for detectGhostConsumables (#60).
+//   isOpening — beginAdventure's opening scene: skips turn++/nameIdx rotation (the opening is
+//               not a numbered turn), the ghost-consumable check (no player action yet), and
+//               transient-marker maintenance (pendingLegacy/recentSwitch/recentlyLeft are
+//               mid-game constructs) — explicit per-caller differences, never behavior loss.
+//   onMutated — called the moment applyMuts lands (sendAction latches _committed here for the
+//               E82 no-double-apply Retry guard).
+// Returns the narrator message element.
+function commitGmTurn(resp,opts){
+  var o=opts||{};
+  if(!o.isOpening){
+    worldState.turn++;
+    if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
+  }
+  // Order is significant: applyMuts on raw text first, then cleanTxt strips tags.
+  var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
+  var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
+  var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
+  applyMuts(resp);
+  if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
+  detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
+  if(!o.isOpening){
+    detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
+    if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
+      if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
+      else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
+    }
+    if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
+    if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
+  }
+  var clean=cleanTxt(resp),dice=diceTxt(resp);
+  // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
+  // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
+  // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
+  // narration lost. With history+state saved first, a display throw leaves them
+  // consistent and reload REPLAYS the missed narration from the transcript.
+  logTranscript("gm",clean,resp);
+  sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
+  saveAll();
+  var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
+  if(typeof TTS!=="undefined")TTS.speakResponse(clean);
+  generateActions(narEl);
+  processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
+  return narEl;
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -729,34 +787,9 @@ async function sendAction(override,opts){
     var resp=await callGM(apiTxt,sys);th.remove();
     if(isTT){addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(resp)+"</p>");}/* escape GM table-talk output (audit E11) */
     else{
-      worldState.turn++;
-      if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
-      // Order is significant: applyMuts on raw text first, then cleanTxt strips tags, then parseActions on clean text.
-      var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
-      var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
-      var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
-      applyMuts(resp);_committed=true;/* state is now mutated — a later throw must NOT offer a re-applying Retry (E82) */
-      detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts (and its shadow run) */
-      detectGhostConsumables(txt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
-      if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
-        if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
-        else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
-      }
-      if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
-      if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
-      var clean=cleanTxt(resp),dice=diceTxt(resp);
-      // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
-      // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
-      // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
-      // narration lost. With history+state saved first, a display throw leaves them
-      // consistent and reload REPLAYS the missed narration from the transcript.
-      logTranscript("gm",clean,resp);
-      sessionLog.push({role:"user",content:apiTxt},{role:"assistant",content:resp});/* apiTxt so the API history stays consistent with what the GM actually answered (P3 note included) */
-      saveAll();
-      var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-      if(typeof TTS!=="undefined")TTS.speakResponse(clean);
-      generateActions(narEl);
-      processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
+      // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
+      // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
+      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();
   }catch(e){th.remove();
@@ -770,6 +803,8 @@ function retryLast(){if(lastAction)sendAction(lastAction);}
 // or re-applying state tags — a clean A/B tool for trying Prose Inspiration voices on the
 // same scene. Pops the last exchange so the GM regenerates in the original context, then
 // swaps the displayed narration + the sessionLog assistant entry for the new one.
+// Deliberately NOT unified into commitGmTurn (audit 07-16 #5): it swaps/replaces instead of
+// appending and never runs applyMuts — a different pipeline, not a duplicate of it.
 async function rerollLast(){
   if(busy||!worldState)return;
   if(activeChatTab==="tabletalk"){if(typeof showToast==="function")showToast("Switch to the Story tab to re-roll.");return;}
@@ -1090,14 +1125,12 @@ async function beginAdventure(){
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
-    var _cmPre=coreMemorySnapshot(),_cnPre=conditionSnapshot(),_rlPre=relationshipSnapshot();/* #40/#46/#61 */
-    var resp=await callGM(intro);th.remove();applyMuts(resp);detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);var clean=cleanTxt(resp),dice=diceTxt(resp);
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-    logTranscript("gm",clean,resp);
-    if(typeof TTS!=="undefined")TTS.speakResponse(clean);
-    sessionLog.push({role:"user",content:intro},{role:"assistant",content:resp});syncUI();saveAll();
-    generateActions(narEl);
-    processPendingCompanionSheets();// a join can land in the opening scene too (audit P2)
+    var resp=await callGM(intro);th.remove();
+    // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
+    // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
+    // longer strand a saved state that lacks the opening narration. isOpening: no turn++.
+    commitGmTurn(resp,{userMsg:intro,isOpening:true});
+    syncUI();
     _promptCampaignFolder();
   }catch(e){th.remove();var em=addMsg("system","Failed to start: "+e.message);if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   busy=false;document.getElementById("sendbtn").disabled=false;

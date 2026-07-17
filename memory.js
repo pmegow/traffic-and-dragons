@@ -757,6 +757,18 @@ function buildRecordedFactsBlock(windowText){
   out+="If this session CONFIRMS that two of the people on file are the SAME person, report the pair in sameNpc using their exact names from the list above.\n";
   return out;
 }
+// Audit #10 (AUDIT_FABLE_07_16_2026): the chapter-filing block existed TWICE — in
+// applySummaryExtract below and in the degraded-summarize fallback inside summarize()'s catch —
+// so a cap/archive change edited in one place silently forked the P12 discipline. ONE routine
+// now, byte-identical to both former inline copies: push {turn,summary} → cap-10 shift routing
+// the evicted chapter to memory.archive via memArchive() (never vanishes) → eventHistory
+// "[T<turn>] <summary>" push → cap-8 shift.
+function fileChapter(turn,summary){
+  memory.chapters.push({turn:turn,summary:summary});
+  if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());
+  worldState.eventHistory.push("[T"+turn+"] "+summary);
+  if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
+}
 // Files one extraction result into memory/worldState — split from summarize() so the filing
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
 // Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
@@ -818,7 +830,7 @@ function applySummaryExtract(extracted){
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
-  if(extracted.chapterSummary){memory.chapters.push({turn:worldState.turn,summary:extracted.chapterSummary});if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());worldState.eventHistory.push("[T"+worldState.turn+"] "+extracted.chapterSummary);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();}
+  if(extracted.chapterSummary)fileChapter(worldState.turn,extracted.chapterSummary);
   return stats;
 }
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
@@ -853,8 +865,7 @@ async function summarize(){
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
-      memory.chapters.push({turn:worldState.turn,summary:_rawSum});if(memory.chapters.length>10)memArchive().chapters.push(memory.chapters.shift());
-      worldState.eventHistory.push("[T"+worldState.turn+"] "+_rawSum);if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
+      fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
       retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
     }else{
       addMsg("system","Memory filing failed ("+(e&&e.message?e.message:"unknown")+") — will retry next turn.");

@@ -307,6 +307,22 @@ var storageAdapter = (function() {
     _syncNow(beacon);
   }
 
+  // Keep the CURRENT PC's portrait INLINE in the state blob — it must stay atomic with the
+  // state turn. Splitting it into the separate /portrait request let it desync: after a
+  // character swap the blob said "PC=X" while the separate store still held the old PC's image,
+  // so a second device loaded the wrong portrait. (Companion charSheet portraits already ride in
+  // the blob unstripped — the PC being the one thing split off was the bug.) Only NPC avatar
+  // portraits (n.portrait) are stripped to the separate store, since campaigns can have many.
+  // ONE map for both POST /api/state paths (audit B9) — _syncNow and pushCampaignState; the
+  // ui.js copy used to drift (the v1.240/E27 re-apply incidents).
+  function _stripNpcPortraits(ws) {
+    return Object.assign({}, ws, {
+      npcs: (ws.npcs||[]).map(function(n){
+        return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
+      })
+    });
+  }
+
   function _syncNow(beacon, healedRetry) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
     if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
@@ -314,17 +330,7 @@ var storageAdapter = (function() {
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
     if (!beacon) { _syncing = true; _pendingSync = false; }
     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
-    // Keep the CURRENT PC's portrait INLINE in the state blob — it must stay atomic with the
-    // state turn. Splitting it into the separate /portrait request (below) let it desync: after a
-    // character swap the blob said "PC=X" while the separate store still held the old PC's image,
-    // so a second device loaded the wrong portrait. (Companion charSheet portraits already ride in
-    // the blob unstripped — the PC being the one thing split off was the bug.) Only NPC avatar
-    // portraits (n.portrait) are stripped to the separate store, since campaigns can have many.
-    var wsStripped = Object.assign({}, worldState, {
-      npcs: (worldState.npcs||[]).map(function(n){
-        return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
-      })
-    });
+    var wsStripped = _stripNpcPortraits(worldState); // PC portrait stays inline — see _stripNpcPortraits
     // narrativeHtml intentionally empty (audit #18): the story pane is rebuilt from
     // worldState.transcript on load — the DOM copy was the largest payload item and fully
     // derivable. Field kept (as "") so the server never sees an undefined key.
@@ -676,6 +682,69 @@ var storageAdapter = (function() {
       .catch(function(e) { console.warn("[storage] campaign delete failed:", e.message); if (cb) cb(e.message); });
   }
 
+  // ── Campaign transport (audit B9) ────────────────────────────────────────
+  // ui.js used to re-implement these six requests with raw fetch() — bypassing _tFetch
+  // (the TODO #24 dead-host timeout, so a sleeping Fly host hung the UI forever) and
+  // re-reading the private token key. PURE TRANSPORT: no live-campaign assumptions —
+  // pushCampaignState ships exactly the parts it is given (connectToServer pushes
+  // NON-active campaigns' snapshots through it), cb(err, data) like the library wrappers.
+
+  function hasToken() { return !!_token; }
+
+  function whoAmI(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _tFetch(_serverUrl + "/auth/me", {
+      headers: { "Authorization": "Bearer " + _token }
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  function getCampaignState(campId, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId), {
+      headers: { "Authorization": "Bearer " + _token }
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  // parts = {worldState, sessionLog, memory} — the EXPLICIT blob to ship; never reads the
+  // live globals, so a stale snapshot pushes as-is. NPC avatar portraits are stripped via
+  // the same _stripNpcPortraits the main sync path uses (PC portrait stays inline — E27);
+  // they travel through putCampaignPortrait instead. No baseTurn: this is the connect-time
+  // "upload a local-only campaign" path, not the CAS-guarded per-turn sync (syncToServer
+  // owns that — the server row doesn't exist yet, so there is nothing to guard against).
+  function pushCampaignState(campId, parts, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _tFetch(_serverUrl + "/api/state", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body: JSON.stringify({
+        worldState:    _stripNpcPortraits(parts.worldState),
+        sessionLog:    parts.sessionLog,
+        memory:        parts.memory,
+        campaignId:    campId,
+        narrativeHtml: ""
+      })
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
+  // payload = {portrait, npcPortraits} — built by the caller from ITS blob (silent push
+  // reads a snapshot, syncPortrait reads live state; only the transport is shared).
+  function putCampaignPortrait(campId, payload, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
+      method:  "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
+      body:    JSON.stringify(payload)
+    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────
 
   // Auto-connect immediately (runs on script load)
@@ -712,6 +781,11 @@ var storageAdapter = (function() {
     listCharacterLibrary:            listCharacterLibrary,
     saveCharacterToLibrary:          saveCharacterToLibrary,
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
+    hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
+    whoAmI:                whoAmI,
+    getCampaignState:      getCampaignState,
+    pushCampaignState:     pushCampaignState,
+    putCampaignPortrait:   putCampaignPortrait,
     listBlueprintLibrary:       listBlueprintLibrary,
     saveBlueprintToLibrary:     saveBlueprintToLibrary,
     deleteBlueprintFromLibrary: deleteBlueprintFromLibrary,

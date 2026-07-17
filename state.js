@@ -18,7 +18,7 @@ var sessionLog=[];
 // Single source of truth for the empty-memory shape (audit #22). Every reset path
 // (new game, new campaign, import) must use this — the old inline literals drifted
 // (most omitted map/npcGraph/nameIdx and leaned on lazy guards to self-heal).
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],usedNames:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -250,7 +250,7 @@ function loadState(){
 function healMemory(){
   if(!memory)memory=blankMemory();
   if(!memory.futureEvents)memory.futureEvents=[];
-  if(!memory.usedNames)memory.usedNames=[];
+  if(memory.usedNames!==undefined)delete memory.usedNames;/* AUDIT_FABLE_07_16 #12: dead field — nothing ever read or wrote it (name uniqueness moved to nameIdx rotation); heal converges old saves to the canonical shape by removing it */
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   if(!memory.map.edges)memory.map.edges=[];
   if(!memory.map.nodes)memory.map.nodes={};

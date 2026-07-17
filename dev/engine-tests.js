@@ -439,7 +439,7 @@ function runEngineTests(R){
     if(!worldState.questLog[0].objectives||worldState.questLog[0].desc===undefined)return "quest fields";
     return true;
   });
-  t("blankMemory carries the full shape (audit #22)",function(){var m=blankMemory();var need=["npcs","locations","quests","lore","keyDecisions","futureEvents","chapters","usedNames","nameIdx","map","npcGraph"];for(var i=0;i<need.length;i++){if(!(need[i] in m))return "missing "+need[i];}return m.npcGraph.factions?true:"npcGraph incomplete";});
+  t("blankMemory carries the full shape (audit #22)",function(){var m=blankMemory();var need=["npcs","locations","quests","lore","keyDecisions","futureEvents","chapters","nameIdx","map","npcGraph"];/* usedNames dropped — AUDIT_FABLE_07_16 #12 (dead field) */for(var i=0;i<need.length;i++){if(!(need[i] in m))return "missing "+need[i];}return m.npcGraph.factions?true:"npcGraph incomplete";});
   t("getNameSuggestions peek mode never mutates the cursor",function(){memory=blankMemory();var a=getNameSuggestions(5,true).join("|"),b=getNameSuggestions(5,true).join("|");return a===b&&memory.nameIdx===0?true:"cursor moved: "+memory.nameIdx;});
   t("migrateWorldState adds a usage accumulator to old saves (TODO #21)",function(){memory=blankMemory();worldState={character:{name:"Old",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"}};migrateWorldState();var u=worldState.usage;return u&&u.calls===0&&u.byKind&&typeof u.costUSD==="number"?true:"usage: "+JSON.stringify(u);});
   t("portrait dedupe (#3): npc.portrait moves into charSheet and the duplicate is dropped",function(){
@@ -611,8 +611,14 @@ function runEngineTests(R){
     healMemory();
     if(!memory.map||!memory.map.nodes||!memory.map.edges)return "map not healed";
     if(!memory.npcGraph||!memory.npcGraph.factions||!memory.npcGraph.npcFactions||!memory.npcGraph.factionEdges)return "npcGraph not healed";
-    if(!Array.isArray(memory.futureEvents)||!Array.isArray(memory.usedNames))return "arrays not healed";
+    if(!Array.isArray(memory.futureEvents))return "arrays not healed";
+    if(memory.usedNames!==undefined)return "dead usedNames field not scrubbed (AUDIT_FABLE_07_16 #12)";
     return typeof memory.nameIdx==="number"?true:"nameIdx not healed";
+  });
+  t("healMemory actively removes the dead usedNames field from old saves (#12)",function(){
+    memory={npcs:{},locations:{},usedNames:["Stale","Names"]};
+    healMemory();
+    return memory.usedNames===undefined?true:"usedNames survived heal";
   });
 
   // ── Transcript compression (Known issue #3, v1.227) ──────────────────────────
@@ -4132,5 +4138,385 @@ function runEngineTests(R){
     if(blk.indexOf("Sheriff Belor Hemlock")<0)return "window NPC not detected through the memo: "+blk.slice(0,120);
     return blk.indexOf("Keeps the broadsheet locked away")>=0?true:"recorded fact line missing";
   });
+
+
+  // ═══ Group B wave 1 (AUDIT_FABLE_07_16 #5/#8/#9/#10) — folded from agent fragments ═══
+  // ── B5: commitGmTurn — stubs saved/restored (TTS/generateActions/processPendingCompanionSheets are REAL in this suite) ──
+  (function(){
+    var _TTS=TTS,_gA=generateActions,_pP=processPendingCompanionSheets,_aM=addMsg,_sA=saveAll;
+  // ── UI + persistence stubs (same set as engine-tests.js, plus the commit pipeline's
+  //    display-side calls: generateActions / processPendingCompanionSheets / TTS) ────────────
+  var __toasts=[];
+  function __stubEl(){return {appendChild:function(){},style:{},remove:function(){},textContent:"",innerHTML:"",className:""};}
+  addMsg=function(){return __stubEl();};
+  showToast=function(m){__toasts.push(String(m));};
+  syncUI=function(){};
+  updateAbPanel=function(){};
+  updateSpPanel=function(){};
+  showArchetypeModal=function(){};
+  showStatBumpModal=function(){};
+  saveAll=function(){};saveCore=function(){};saveMem=function(){};
+  generateActions=function(){};              // async fire-and-forget in prod; inert here
+  processPendingCompanionSheets=function(){};
+  TTS={speakResponse:function(){}};
+  if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){},syncNow:function(){}};
+
+  function eq(got,want,label){if(got===want)return true;return (label||"")+" expected "+JSON.stringify(want)+" got "+JSON.stringify(got);}
+
+  // Fresh minimal world — mirrors engine-tests.js makeWorld().
+  function makeWorld(){
+    memory=blankMemory();sessionLog=[];__toasts.length=0;
+    worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
+      character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
+        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
+        inventory:["Longsword","Travel ration"],level:1,xp:0,abilities:[],spells:[],
+        archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
+        trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
+        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],partyMember:true},
+      world:{location:"Ashfen",region:"The Reach",time:"dusk",weather:"rain",threat:"low",sublocation:null},
+      npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[],ragMemory:false};
+  }
+
+  section("commitGmTurn (audit 07-16 #5)");
+
+  t("(a) UA6 on the opening path: addMsg THROWS, yet transcript + sessionLog already carry the turn",function(){
+    makeWorld();
+    addMsg=function(type){if(type==="narrator")throw new Error("display exploded");return __stubEl();};
+    var raw="The road opens before you. [LOCATION:Greyford]",threw=false;
+    try{commitGmTurn(raw,{userMsg:"intro directive",isOpening:true});}catch(e){threw=true;}
+    addMsg=function(){return __stubEl();};
+    if(!threw)return "addMsg stub did not throw — the failure condition was never exercised";
+    var tl=worldState.transcript;
+    if(!tl.length||tl[tl.length-1].r!=="gm")return "gm transcript entry missing after display throw";
+    if(tl[tl.length-1].x.indexOf("The road opens")!==0)return "transcript text wrong: "+tl[tl.length-1].x;
+    if(sessionLog.length!==2)return "sessionLog not persisted before display: len="+sessionLog.length;
+    if(sessionLog[0].role!=="user"||sessionLog[0].content!=="intro directive")return "user entry wrong: "+JSON.stringify(sessionLog[0]);
+    if(sessionLog[1].role!=="assistant"||sessionLog[1].content!==raw)return "assistant entry must keep the RAW response";
+    if(worldState.world.location!=="Greyford")return "applyMuts did not land before the throw";
+    return true;
+  });
+
+  t("(b) normal path ordering: logTranscript → sessionLog.push → saveAll ALL before narrator addMsg",function(){
+    makeWorld();
+    var order=[],logAtAddMsg=-1;
+    var _realLT=logTranscript;
+    logTranscript=function(){order.push("logTranscript:"+arguments[0]);return _realLT.apply(null,arguments);};
+    saveAll=function(){order.push("saveAll");};
+    addMsg=function(type){if(type==="narrator"){order.push("addMsg:narrator");logAtAddMsg=sessionLog.length;}return __stubEl();};
+    commitGmTurn("You swing and connect. [XP:10]",{userMsg:"I attack the wolf",playerTxt:"I attack the wolf"});
+    logTranscript=_realLT;saveAll=function(){};addMsg=function(){return __stubEl();};
+    // NOTE: applyMuts has its own trailing saveAll (state persist), which correctly precedes
+    // logTranscript — the HISTORY persist is the LAST saveAll before display, hence lastIndexOf.
+    var iLT=order.indexOf("logTranscript:gm"),iSV=order.lastIndexOf("saveAll"),iAM=order.indexOf("addMsg:narrator");
+    if(iLT<0||iSV<0||iAM<0)return "step missing: "+order.join(" → ");
+    if(!(iLT<iSV&&iSV<iAM))return "persist-before-display violated: "+order.join(" → ");
+    return logAtAddMsg===2?true:"sessionLog had "+logAtAddMsg+" entries when narrator rendered (want 2)";
+  });
+
+  t("(c) turn + nameIdx advance exactly once per normal commit",function(){
+    makeWorld();worldState.turn=5;memory.nameIdx=0;
+    commitGmTurn("The wolf falls.",{userMsg:"u",playerTxt:"p"});
+    if(worldState.turn!==6)return "turn "+worldState.turn+" (want 6)";
+    if(memory.nameIdx!==10)return "nameIdx "+memory.nameIdx+" (want 10)";
+    commitGmTurn("A second wolf appears.",{userMsg:"u2",playerTxt:"p2"});
+    return worldState.turn===7&&memory.nameIdx===20?true:"second commit: turn="+worldState.turn+" nameIdx="+memory.nameIdx;
+  });
+
+  t("(c) isOpening: turn and nameIdx do NOT advance (the opening is not a numbered turn)",function(){
+    makeWorld();worldState.turn=0;memory.nameIdx=0;
+    commitGmTurn("The adventure begins.",{userMsg:"intro",isOpening:true});
+    return worldState.turn===0&&memory.nameIdx===0?true:"turn="+worldState.turn+" nameIdx="+memory.nameIdx;
+  });
+
+  t("(d) onMutated fires AFTER applyMuts has mutated state (the E82 latch point)",function(){
+    makeWorld();var goldAtLatch=-1;
+    commitGmTurn("You pay the toll. [GOLD:-5]",{userMsg:"u",playerTxt:"p",onMutated:function(){goldAtLatch=worldState.character.gold;}});
+    return goldAtLatch===20?true:"gold at onMutated = "+goldAtLatch+" (want 20 — mutation must precede the latch)";
+  });
+
+  t("(e) returns the narrator element",function(){
+    makeWorld();var el=null;
+    addMsg=function(type){var e=__stubEl();if(type==="narrator"){e._isNar=true;el=e;}return e;};
+    var got=commitGmTurn("A quiet night.",{userMsg:"u",playerTxt:"p"});
+    addMsg=function(){return __stubEl();};
+    return got&&got===el&&got._isNar===true?true:"did not return the narrator addMsg element";
+  });
+    TTS=_TTS;generateActions=_gA;processPendingCompanionSheets=_pP;addMsg=_aM;saveAll=_sA;
+  })();
+
+  // ── B8: combat-attr factory + fileChapter ──
+  (function(){
+    var _aM=addMsg,_sT=showToast,_sU=syncUI,_sAll=saveAll,_sC=saveCore,_sM=saveMem;
+  // DOM-free stubs (same discipline as engine-tests.js — safe to re-assign)
+  addMsg=function(){return {appendChild:function(){},style:{}};};
+  showToast=function(){};
+  syncUI=function(){};
+  saveAll=function(){};saveCore=function(){};saveMem=function(){};
+
+  // Fresh minimal v10 world — B8's own fixture, not a copy of the suite's makeWorld.
+  function b8World(){
+    memory=blankMemory();sessionLog=[];
+    worldState={ver:10,campId:null,campName:"B8",legacyCharsUsed:[],pendingLegacy:null,
+      character:{name:"Vex",gender:"NB",age:"27",appear:"",mark:"",backstory:"",ancestry:"Elf",subrace:"wood",subraceNm:"Wood Elf",heritageVariant:"",
+        cls:"Ranger",stats:{STR:10,DEX:16,CON:12,INT:11,WIS:14,CHA:9},hp:11,maxHp:11,gold:12,
+        inventory:["Shortbow"],level:1,xp:0,abilities:[],spells:[],
+        archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
+        trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
+        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true},
+      world:{location:"Bram Hollow",region:"The Weald",time:"noon",weather:"clear",threat:"low",sublocation:null},
+      npcs:[],questLog:[],eventHistory:[],combat:null,turn:9,transcript:[],ragMemory:false};
+  }
+  function b8TwoFoes(){ // two foes standing, established across two prior responses
+    b8World();
+    applyMuts("[COMBAT_START:Marsh Hag|18|12|+4|1d8|8]");
+    applyMuts("[COMBAT_START:Bog Wretch|7|10|+1|1d4|4]");
+  }
+
+  // ── (a) #8: the t10 multi-foe single-response shape — per-foe binding identical to today ──
+  section("B8 #8 — factory triplet + cached start positions");
+  t("multi-foe single response: STATS/IMMUNE/RESIST/VULN each bind to THEIR preceding COMBAT_START",function(){
+    b8World();
+    applyMuts("The pair bursts from the reeds."
+      +"[COMBAT_START:Marsh Hag|18|12|+4|1d8|8][COMBAT_STATS:STR:14|DEX:9|CON:15|INT:12|WIS:13|CHA:11|CR:2][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold,necrotic]"
+      +"[COMBAT_START:Bog Wretch|7|10|+1|1d4|4][COMBAT_STATS:STR:7|DEX:13|CON:8|INT:5|WIS:7|CHA:4|CR:0.25][COMBAT_VULN:fire]");
+    var f=worldState.combat.foes;
+    if(f.length!==2)return "expected 2 foes, got "+f.length;
+    if(!f[0].stats||f[0].stats.STR!==14||f[0].stats.CR!=="2")return "Hag stats misbound: "+JSON.stringify(f[0].stats);
+    if(!f[0].immune||f[0].immune[0]!=="poison")return "Hag immune misbound";
+    if(!f[0].resist||f[0].resist.length!==2||f[0].resist[1]!=="necrotic")return "Hag resist list wrong: "+JSON.stringify(f[0].resist);
+    if(f[0].vuln)return "Wretch's vuln leaked onto the Hag";
+    if(!f[1].stats||f[1].stats.STR!==7||f[1].stats.CR!=="0.25")return "Wretch stats misbound: "+JSON.stringify(f[1].stats);
+    if(f[1].immune||f[1].resist)return "Hag's attribute lists leaked onto the Wretch";
+    return f[1].vuln&&f[1].vuln[0]==="fire"?true:"Wretch vuln lost";
+  });
+  t("factory-generated entries keep exact t-names + nc flag + table positions (STATS→IMMUNE→RESIST→VULN)",function(){
+    var want=["COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN"],idx=[],i,j;
+    for(j=0;j<want.length;j++){for(i=0;i<TAG_TABLE.length;i++){if(TAG_TABLE[i].t===want[j]){idx.push(i);if(TAG_TABLE[i].nc!==1)return want[j]+" lost its nc flag";break;}}}
+    if(idx.length!==4)return "missing entries: found "+idx.length+" of 4";
+    return (idx[1]===idx[0]+1&&idx[2]===idx[1]+1&&idx[3]===idx[2]+1)?true:"entries no longer adjacent/in order: "+idx.join(",");
+  });
+  t("'none' filtering survives the factory (combatDmgList behavior unchanged)",function(){
+    b8TwoFoes();
+    applyMuts("[COMBAT_START:Fen Lurker|9|11|+2|1d6|5][COMBAT_IMMUNE:none][COMBAT_RESIST:acid, none ,thunder]");
+    var f=worldState.combat.foes[2];
+    if(!f||f.name!=="Fen Lurker")return "third foe not added";
+    if(!f.immune||f.immune.length!==0)return "IMMUNE:none should yield empty list: "+JSON.stringify(f.immune);
+    return f.resist&&f.resist.length===2&&f.resist[0]==="acid"&&f.resist[1]==="thunder"?true:"resist 'none' entry not filtered: "+JSON.stringify(f.resist);
+  });
+
+  // ── (b) #8: lone-attribute fallback, both COMBAT_ATTR_FALLBACK settings ──
+  t("lone attribute tag, fallback='engaged': routes to the engaged foe (warn-free single target)",function(){
+    b8TwoFoes();
+    applyMuts("[ENEMY_HP:Bog Wretch|-2]"); // engage foe 1
+    applyMuts("[COMBAT_VULN:radiant]");    // no COMBAT_START in this response
+    var f=worldState.combat.foes;
+    if(f[0].vuln)return "vuln leaked onto unengaged Marsh Hag";
+    return f[1].vuln&&f[1].vuln[0]==="radiant"?true:"engaged routing failed: "+JSON.stringify(f[1].vuln);
+  });
+  t("lone attribute tag, fallback='engaged', nobody engaged, 2 living: first living + ambiguity warn",function(){
+    b8TwoFoes();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[COMBAT_RESIST:lightning]");}finally{console.warn=_w;}
+    var f=worldState.combat.foes;
+    if(!f[0].resist||f[0].resist[0]!=="lightning")return "first-living fallback failed";
+    if(f[1].resist)return "resist also landed on foe 2";
+    return warns.filter(function(m){return m.indexOf("ambiguous combat-attribute")>=0;}).length===1?true:"ambiguity warn missing: "+warns.join(" / ");
+  });
+  t("lone attribute tag, fallback='last-added': last foe in the array, engagement ignored (pre-v1.272 mode)",function(){
+    b8TwoFoes();
+    applyMuts("[ENEMY_HP:Marsh Hag|-3]"); // engage foe 0 — must be IGNORED in last-added mode
+    var _fb=COMBAT_ATTR_FALLBACK;COMBAT_ATTR_FALLBACK="last-added";
+    try{applyMuts("[COMBAT_IMMUNE:psychic]");}finally{COMBAT_ATTR_FALLBACK=_fb;}
+    var f=worldState.combat.foes;
+    if(f[0].immune)return "last-added mode routed to the engaged foe";
+    return f[1].immune&&f[1].immune[0]==="psychic"?true:"last-added fallback failed: "+JSON.stringify(f[1].immune);
+  });
+  t("R.combatStarts caches: 4 attribute handlers in one response = combatStartPositions computed ONCE",function(){
+    b8World();
+    var calls=0,_orig=combatStartPositions;
+    combatStartPositions=function(text){calls++;return _orig(text);};
+    try{
+      applyMuts("[COMBAT_START:Gnarl|10|10|+1|1d4|5][COMBAT_STATS:STR:10|DEX:10|CON:10|INT:10|WIS:10|CHA:10|CR:1][COMBAT_IMMUNE:poison][COMBAT_RESIST:cold][COMBAT_VULN:fire]");
+    }finally{combatStartPositions=_orig;}
+    var f=worldState.combat.foes[0];
+    if(!f.stats||!f.immune||!f.resist||!f.vuln)return "an attribute handler went missing";
+    return calls===1?true:"combatStartPositions computed "+calls+"× (want 1)";
+  });
+
+  // ── (c) #10: fileChapter — one filing routine, both paths ──
+  section("B8 #10 — fileChapter");
+  t("fileChapter files chapter + '[T..] ' eventHistory line",function(){
+    b8World();
+    fileChapter(17,"The hag fell at the ford.");
+    if(memory.chapters.length!==1||memory.chapters[0].turn!==17)return "chapter not filed: "+JSON.stringify(memory.chapters);
+    if(memory.chapters[0].summary!=="The hag fell at the ford.")return "summary mangled";
+    return worldState.eventHistory[0]==="[T17] The hag fell at the ford."?true:"eventHistory format wrong: "+worldState.eventHistory[0];
+  });
+  t("cap-10 eviction ARCHIVES the oldest chapter via memArchive (P12 — never vanishes)",function(){
+    b8World();
+    var i;for(i=1;i<=11;i++)fileChapter(i,"Chapter "+i);
+    if(memory.chapters.length!==10)return "live cap wrong: "+memory.chapters.length;
+    if(memory.chapters[0].summary!=="Chapter 2")return "wrong chapter evicted: "+memory.chapters[0].summary;
+    var arch=memory.archive&&memory.archive.chapters;
+    if(!arch||arch.length!==1)return "evicted chapter not archived: "+JSON.stringify(arch);
+    return arch[0].summary==="Chapter 1"&&arch[0].turn===1?true:"archive holds the wrong chapter: "+JSON.stringify(arch[0]);
+  });
+  t("eventHistory cap-8 shifts oldest",function(){
+    b8World();
+    var i;for(i=1;i<=9;i++)fileChapter(i,"Chapter "+i);
+    if(worldState.eventHistory.length!==8)return "cap wrong: "+worldState.eventHistory.length;
+    return worldState.eventHistory[0]==="[T2] Chapter 2"&&worldState.eventHistory[7]==="[T9] Chapter 9"?true:"wrong window: "+worldState.eventHistory[0]+" … "+worldState.eventHistory[7];
+  });
+  t("applySummaryExtract files its chapter through fileChapter (same routing, same format)",function(){
+    b8World();
+    worldState.turn=42;
+    applySummaryExtract({chapterSummary:"A bargain sealed in bog-water."});
+    if(memory.chapters.length!==1||memory.chapters[0].turn!==42)return "extract chapter not filed";
+    return worldState.eventHistory[0]==="[T42] A bargain sealed in bog-water."?true:"eventHistory line wrong: "+worldState.eventHistory[0];
+  });
+  t("applySummaryExtract with NO chapterSummary files nothing (guard preserved)",function(){
+    b8World();
+    applySummaryExtract({loreDiscovered:["The ford is cursed."]});
+    return memory.chapters.length===0&&worldState.eventHistory.length===0?true:"empty summary filed a chapter";
+  });
+  t("degraded-summarize fallback shape files through the SAME helper (raw excerpt, archive discipline intact)",function(){
+    b8World();
+    // Pre-fill to the cap so the degraded filing exercises eviction+archive in the same call —
+    // the exact hazard #10 exists to prevent (a fork would silently drop the evicted chapter).
+    var i;for(i=1;i<=10;i++)fileChapter(i,"Chapter "+i);
+    worldState.turn=99;
+    // Simulate summarize()'s catch-path call exactly as written (memory.js): the composed
+    // "(summary failed; raw excerpt) …" string through fileChapter(worldState.turn, _rawSum).
+    var _rawSum="(summary failed; raw excerpt) The wretch splashed away … the hag laughed.";
+    fileChapter(worldState.turn,_rawSum);
+    if(memory.chapters.length!==10)return "live cap broken by degraded path: "+memory.chapters.length;
+    if(memory.chapters[9].summary!==_rawSum||memory.chapters[9].turn!==99)return "raw chapter not filed last";
+    if(!memory.archive||memory.archive.chapters.length!==1||memory.archive.chapters[0].summary!=="Chapter 1")return "degraded path forked the archive discipline";
+    return worldState.eventHistory[worldState.eventHistory.length-1]==="[T99] "+_rawSum?true:"eventHistory line wrong: "+worldState.eventHistory[worldState.eventHistory.length-1];
+  });
+    addMsg=_aM;showToast=_sT;syncUI=_sU;saveAll=_sAll;saveCore=_sC;saveMem=_sM;
+  })();
+
+  // ── B9: cloud transport — SYNC subset (request shape + push-body parity). The full battery
+  //    incl. async cb-propagation/timeout tests self-runs via: node dev/tests-b9-transport.js ──
+  (function(){
+    var G=(typeof global!=="undefined")?global:window;
+    var _realFetch=G.fetch;
+    var calls=[],nextResponse=null,curSection="";
+    G.fetch=function(url,opts){calls.push({url:url,opts:opts||{}});return nextResponse?nextResponse():Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});}});};
+    function okJson(data){return function(){return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve(data);}});};}
+    function httpErr(status){return function(){return Promise.resolve({ok:false,status:status,json:function(){return Promise.resolve({});}});};}
+    function rejectWith(err){return function(){return Promise.reject(err);};}
+    function lastCall(){return calls[calls.length-1];}
+    var tAsync=function(){};/* async battery lives in dev/tests-b9-transport.js — inert here */
+    storageAdapter.setServer("https://unit.test","TOK_B9");
+// ── (a) request shape: path + method + auth header, all on the _tFetch seam ──
+section("B9 transport — request shape");
+
+t("hasToken() is true while connected (the 'am I connected' check, no token key read)", function () {
+  return eq(storageAdapter.hasToken(), true);
+});
+t("whoAmI → GET /auth/me with the bearer token", function () {
+  calls.length = 0; nextResponse = okJson({ username: "pmegow" });
+  storageAdapter.whoAmI(function () {});
+  var c = lastCall(); if (!c) return "no fetch fired";
+  if (c.url !== "https://unit.test/auth/me") return "url " + c.url;
+  if (c.opts.method) return "method should be GET (unset), got " + c.opts.method;
+  return eq(c.opts.headers["Authorization"], "Bearer TOK_B9", "auth header");
+});
+t("getCampaignState → GET /api/campaigns/:id (URI-encoded) with the bearer token", function () {
+  calls.length = 0; nextResponse = okJson({ worldState: {} });
+  storageAdapter.getCampaignState("camp 1", function () {});
+  var c = lastCall(); if (!c) return "no fetch fired";
+  if (c.url !== "https://unit.test/api/campaigns/camp%201") return "url " + c.url;
+  if (c.opts.method) return "method should be GET (unset), got " + c.opts.method;
+  return eq(c.opts.headers["Authorization"], "Bearer TOK_B9", "auth header");
+});
+t("pushCampaignState → POST /api/state, JSON content-type, bearer token", function () {
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.pushCampaignState("campX", { worldState: { npcs: [] }, sessionLog: [], memory: {} }, function () {});
+  var c = lastCall(); if (!c) return "no fetch fired";
+  if (c.url !== "https://unit.test/api/state") return "url " + c.url;
+  if (c.opts.method !== "POST") return "method " + c.opts.method;
+  if (c.opts.headers["Content-Type"] !== "application/json") return "content-type " + c.opts.headers["Content-Type"];
+  return eq(c.opts.headers["Authorization"], "Bearer TOK_B9", "auth header");
+});
+t("putCampaignPortrait → PUT /api/campaigns/:id/portrait, body passed through verbatim", function () {
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.putCampaignPortrait("campX", { portrait: null, npcPortraits: { Bandit: "IMG" } }, null);
+  var c = lastCall(); if (!c) return "no fetch fired";
+  if (c.url !== "https://unit.test/api/campaigns/campX/portrait") return "url " + c.url;
+  if (c.opts.method !== "PUT") return "method " + c.opts.method;
+  if (c.opts.headers["Authorization"] !== "Bearer TOK_B9") return "auth header missing";
+  return eq(c.opts.body, JSON.stringify({ portrait: null, npcPortraits: { Bandit: "IMG" } }), "portrait payload");
+});
+t("every method rides _tFetch — an abort signal is armed on each request (the #24 timeout)", function () {
+  // opts.signal is set by _tFetch itself; a raw fetch re-implementation would lack it.
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.whoAmI(function () {});
+  storageAdapter.getCampaignState("campX", function () {});
+  storageAdapter.pushCampaignState("campX", { worldState: { npcs: [] }, sessionLog: [], memory: {} }, function () {});
+  storageAdapter.putCampaignPortrait("campX", { portrait: null, npcPortraits: {} }, null);
+  if (calls.length !== 4) return "expected 4 captured requests, got " + calls.length;
+  for (var k = 0; k < calls.length; k++) { if (!calls[k].opts.signal) return "request " + k + " (" + calls[k].url + ") has no abort signal — bypassed _tFetch"; }
+  return true;
+});
+
+// ── (b) pushCampaignState body: exact parts, no live-state contamination ─────
+section("B9 transport — pushCampaignState body");
+
+t("ships EXACTLY the given parts — live worldState/sessionLog/memory never leak in", function () {
+  // Sentinel live globals, all different from the parts being pushed (the non-live-campaign case:
+  // connectToServer pushes another campaign's snapshot while a different campaign is active).
+  worldState = { turn: 99, character: { name: "LIVE_PC" }, npcs: [] };
+  sessionLog = [{ role: "user", content: "LIVE_SL" }];
+  memory = { lore: ["LIVE_MEM"] };
+  var parts = {
+    worldState: { turn: 3, character: { name: "SNAP_PC", portrait: "PC_IMG" }, npcs: [{ name: "Bandit", portrait: "NPC_IMG" }, { name: "Ally", charSheet: { portrait: "SHEET_IMG" } }] },
+    sessionLog: [{ role: "user", content: "SNAP_SL" }],
+    memory: { lore: ["SNAP_MEM"] }
+  };
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.pushCampaignState("campX", parts, function () {});
+  var raw = lastCall().opts.body, body = JSON.parse(raw);
+  if (raw.indexOf("LIVE_") >= 0) return "live-state sentinel leaked into the payload";
+  if (body.worldState.turn !== 3 || body.worldState.character.name !== "SNAP_PC") return "worldState not the given snapshot";
+  if (body.sessionLog[0].content !== "SNAP_SL" || body.memory.lore[0] !== "SNAP_MEM") return "sessionLog/memory not the given parts";
+  if (body.campaignId !== "campX") return "campaignId " + body.campaignId;
+  if (body.narrativeHtml !== "") return "narrativeHtml should be \"\" (audit #18), got " + JSON.stringify(body.narrativeHtml);
+  return ("baseTurn" in body) ? "baseTurn leaked in — that's syncToServer's CAS guard, not this path" : true;
+});
+t("NPC avatar portrait stripped, PC portrait INLINE, companion charSheet portrait rides (E27/#3)", function () {
+  var body = JSON.parse(lastCall().opts.body);
+  if (body.worldState.character.portrait !== "PC_IMG") return "PC portrait not inline";
+  if (body.worldState.npcs[0].portrait !== null) return "npc.portrait not stripped: " + JSON.stringify(body.worldState.npcs[0].portrait);
+  return eq(body.worldState.npcs[1].charSheet.portrait, "SHEET_IMG", "companion sheet portrait");
+});
+t("strip is non-destructive — the caller's snapshot object keeps its portraits", function () {
+  // (relies on the previous test's parts still being reachable via the captured body only —
+  // so re-run with a held reference)
+  var parts = { worldState: { npcs: [{ name: "Bandit", portrait: "NPC_IMG" }] }, sessionLog: [], memory: {} };
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.pushCampaignState("campY", parts, function () {});
+  return eq(parts.worldState.npcs[0].portrait, "NPC_IMG", "caller object mutated");
+});
+t("payload is byte-identical to the pre-B9 ui.js inline construction", function () {
+  var parts = {
+    worldState: { turn: 3, character: { name: "SNAP_PC", portrait: "PC_IMG" }, npcs: [{ name: "Bandit", portrait: "NPC_IMG" }, { name: "Ally", charSheet: { portrait: "SHEET_IMG" } }] },
+    sessionLog: [{ role: "user", content: "SNAP_SL" }],
+    memory: { lore: ["SNAP_MEM"] }
+  };
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.pushCampaignState("campX", parts, function () {});
+  // The exact expression campCloudPushSilent used before the routing (ui.js pre-B9):
+  var wsObj = parts.worldState;
+  var wsStripped = Object.assign({}, wsObj, { npcs: (wsObj.npcs || []).map(function (n) { return n.portrait ? Object.assign({}, n, { portrait: null }) : n; }) });
+  var expected = JSON.stringify({ worldState: wsStripped, sessionLog: parts.sessionLog, memory: parts.memory, campaignId: "campX", narrativeHtml: "" });
+  return eq(lastCall().opts.body, expected, "byte parity");
+});
+    storageAdapter.setServer(null,null);
+    G.fetch=_realFetch;
+    makeWorld();/* the no-leak test replaced the live globals with sentinels — normalize */
+  })();
 
 }

@@ -545,12 +545,12 @@ function updateServerUI(){
     if(btnDisc) btnDisc.style.display=connected?"block":"none";
   });
   if(connected){
-    // Fetch username from server to show in button label
-    fetch(TND_SERVER_URL+"/auth/me",{headers:{"Authorization":"Bearer "+(localStorage.getItem("tnd_server_tok_v1")||"")}})
-      .then(function(r){return r.ok?r.json():null;})
-      .then(function(d){
-        ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
-      }).catch(function(){});
+    // Fetch username from server to show in button label — via the adapter (audit B9):
+    // timed, and the label just stays generic on any failure (silent, as before).
+    storageAdapter.whoAmI(function(err,d){
+      if(err)return;
+      ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
+    });
   }
 }
 
@@ -596,29 +596,24 @@ function campCloudPushSilent(id,cb){
   var sl=isActive?store.get(SLK):store.get("tnd_camp_"+id+"_sl")||"[]";
   var mem=isActive?store.get(MEM_KEY):store.get("tnd_camp_"+id+"_mem")||"{}";
   if(!ws){if(cb)cb(false);return;}
-  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-  var serverUrl=storageAdapter.getServerUrl();
   // v1.240: parseWorldState, NOT bare JSON.parse — since v1.227 the stored save carries the
   // transcript LZ-compressed ({__lz:…}). Shipping that raw poisoned the server blob: every
   // device that adopted it silently failed the story rebuild until UA3's tolerant inflate
   // self-healed it on the NEXT load (observed live 2026-07-10, the Ammut F5 incident).
   var wsObj;try{wsObj=parseWorldState(ws);}catch(e){if(cb)cb(false);return;}
-  // Keep the PC portrait INLINE (audit E27 — matches the v1.45 fix / the main _syncNow path): it must
-  // ride atomic with the state so a device pulling this campaign doesn't get a portrait-less PC. Only
-  // NPC avatar portraits are stripped to the separate /portrait store.
-  var wsStripped=Object.assign({},wsObj,{npcs:(wsObj.npcs||[]).map(function(n){return n.portrait?Object.assign({},n,{portrait:null}):n;})});
-  // narrativeHtml no longer shipped (audit #18) — replay rebuilds from worldState.transcript.
-  fetch(serverUrl+"/api/state",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({worldState:wsStripped,sessionLog:JSON.parse(sl),memory:JSON.parse(mem),campaignId:id,narrativeHtml:""})})
-    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(function(){
-      var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
-      // Also push portrait if this campaign has one
-      var portrait=wsObj.character&&wsObj.character.portrait;
-      var npcPortraits={};(wsObj.npcs||[]).forEach(function(n){var p=npcPortrait(n);if(p)npcPortraits[n.name]=p;});
-      if(portrait||Object.keys(npcPortraits).length){fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id)+"/portrait",{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok},body:JSON.stringify({portrait:portrait||null,npcPortraits:npcPortraits})}).catch(function(){});}
-      if(cb)cb(true);
-    })
-    .catch(function(){if(cb)cb(false);});
+  // Transport via the adapter (audit B9): pushCampaignState ships EXACTLY this blob (no
+  // live-state contamination) and applies the shared NPC-portrait strip — the PC portrait
+  // stays inline (audit E27), the same single map _syncNow uses, so the copies can't fork
+  // again. narrativeHtml no longer shipped (audit #18) — replay rebuilds from the transcript.
+  storageAdapter.pushCampaignState(id,{worldState:wsObj,sessionLog:JSON.parse(sl),memory:JSON.parse(mem)},function(err){
+    if(err){if(cb)cb(false);return;}
+    var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
+    // Also push portrait if this campaign has one — fire-and-forget, silent on failure (as before)
+    var portrait=wsObj.character&&wsObj.character.portrait;
+    var npcPortraits={};(wsObj.npcs||[]).forEach(function(n){var p=npcPortrait(n);if(p)npcPortraits[n.name]=p;});
+    if(portrait||Object.keys(npcPortraits).length){storageAdapter.putCampaignPortrait(id,{portrait:portrait||null,npcPortraits:npcPortraits},null);}
+    if(cb)cb(true);
+  });
 }
 
 function disconnectFromServer(){
@@ -837,7 +832,7 @@ function importSave(event){
     migrateWorldState(); // older exports miss v10 fields (objectives/transcript/etc) — same battery loadState runs (audit #15)
     sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
     var mm=data.memory||{};
-    memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],usedNames:Array.isArray(mm.usedNames)?mm.usedNames:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:mm.archive?{lore:mm.archive.lore||[],decisions:mm.archive.decisions||[],chapters:mm.archive.chapters||[]}:{lore:[],decisions:[],chapters:[]}};/* archive survives export/import (P12) */
+    memory={npcs:mm.npcs||{},locations:mm.locations||{},quests:mm.quests||{},lore:Array.isArray(mm.lore)?mm.lore:[],keyDecisions:Array.isArray(mm.keyDecisions)?mm.keyDecisions:[],futureEvents:Array.isArray(mm.futureEvents)?mm.futureEvents:[],chapters:Array.isArray(mm.chapters)?mm.chapters:[],map:mm.map||{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:mm.npcGraph?{edges:mm.npcGraph.edges||[],factions:mm.npcGraph.factions||{},factionEdges:mm.npcGraph.factionEdges||[],npcFactions:mm.npcGraph.npcFactions||{}}:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:mm.archive?{lore:mm.archive.lore||[],decisions:mm.archive.decisions||[],chapters:mm.archive.chapters||[]}:{lore:[],decisions:[],chapters:[]}};/* archive survives export/import (P12) */
     saveAll();document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }
@@ -1696,14 +1691,12 @@ function showCharacterBrowser(initialMode){
     if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
-    // Fall back to server
-    var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-    var url=(localStorage.getItem("tnd_server_url_v1")||"").replace(/\/$/,"");
-    if(!url||!tok){return cb("Not available locally and not connected to server.");}
-    fetch(url+"/api/campaigns/"+id,{headers:{"Authorization":"Bearer "+tok}})
-      .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-      .then(function(d){if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data on server.");})
-      .catch(function(e){cb(e.message);});
+    // Fall back to server — via the adapter (audit B9): timed, token stays adapter-private.
+    if(!storageAdapter.isServerMode()||!storageAdapter.hasToken()){return cb("Not available locally and not connected to server.");}
+    storageAdapter.getCampaignState(id,function(err,d){
+      if(err)return cb(err);
+      if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data on server.");
+    });
   }
 
   // Pull a campaign's PC portrait straight from its saved worldState (the portrait rides inline
@@ -1993,24 +1986,21 @@ function campLoad(id){
     _applyLoadedCampaign();
     return;
   }
-  // No local data — fetch from server if connected
+  // No local data — fetch from server if connected. Adapter transport (audit B9): a
+  // sleeping Fly host now times out in 20s instead of hanging this toast forever.
   if(!storageAdapter.isServerMode()){showToast("Campaign data not found locally. Connect to server to load it.");return;}
-  var serverUrl=storageAdapter.getServerUrl();
-  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
   showToast("☁ Fetching campaign from server…");
-  fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
-    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-    .then(function(data){
-      if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
-      // Write into the campaign slot then switch to it
-      store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
-      store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-      store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
-      var ok=switchToCampaign(id);
-      if(!ok){showToast("Failed to load campaign.");return;}
-      _applyLoadedCampaign();
-    })
-    .catch(function(e){showToast("Failed to fetch campaign: "+e.message);});
+  storageAdapter.getCampaignState(id,function(err,data){
+    if(err){showToast("Failed to fetch campaign: "+err);return;}
+    if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
+    // Write into the campaign slot then switch to it
+    store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
+    store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+    store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+    var ok=switchToCampaign(id);
+    if(!ok){showToast("Failed to load campaign.");return;}
+    _applyLoadedCampaign();
+  });
 }
 function campCloudPush(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
@@ -2023,38 +2013,35 @@ function campCloudPush(id){
 }
 function campCloudPull(id){
   if(!storageAdapter.isServerMode()){showToast("Not connected to server.");return;}
-  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-  var serverUrl=storageAdapter.getServerUrl();
   showToast("☁ Pulling from server…");
-  fetch(serverUrl+"/api/campaigns/"+encodeURIComponent(id),{headers:{"Authorization":"Bearer "+tok}})
-    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-    .then(function(data){
-      if(!data||!data.worldState){showToast("Not found on server.");return;}
-      data.worldState.campId=id;
-      store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
-      store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-      store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
-      // Update meta savedAt
-      var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
-      showToast("☁ Pulled from server.");
-      // If active campaign, reload and restore narrative. Write the pulled blob straight into the
-      // LIVE keys and loadState — NOT switchToCampaign, whose snapshotActiveCamp would overwrite the
-      // just-pulled slot with the STALE live state before reading it back, silently discarding the
-      // pull while the toast claimed success (audit E3).
-      if(id===getActiveCampId()){
-        store.set(WSK,serializeWorldState(data.worldState));
-        store.set(SLK,JSON.stringify(data.sessionLog||[]));
-        store.set(MEM_KEY,JSON.stringify(data.memory||{}));
-        var ok=loadState();
-        if(ok){
-          _applyLoadedCampaign(); // replays from the transcript via initReplaySession
-          // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
-          if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
-        }
+  // Adapter transport (audit B9): timed — a dead host fails this toast in 20s, not never.
+  storageAdapter.getCampaignState(id,function(err,data){
+    if(err){showToast("Pull failed: "+err);return;}
+    if(!data||!data.worldState){showToast("Not found on server.");return;}
+    data.worldState.campId=id;
+    store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
+    store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
+    store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+    // Update meta savedAt
+    var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
+    showToast("☁ Pulled from server.");
+    // If active campaign, reload and restore narrative. Write the pulled blob straight into the
+    // LIVE keys and loadState — NOT switchToCampaign, whose snapshotActiveCamp would overwrite the
+    // just-pulled slot with the STALE live state before reading it back, silently discarding the
+    // pull while the toast claimed success (audit E3).
+    if(id===getActiveCampId()){
+      store.set(WSK,serializeWorldState(data.worldState));
+      store.set(SLK,JSON.stringify(data.sessionLog||[]));
+      store.set(MEM_KEY,JSON.stringify(data.memory||{}));
+      var ok=loadState();
+      if(ok){
+        _applyLoadedCampaign(); // replays from the transcript via initReplaySession
+        // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
+        if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
       }
-      var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
-    })
-    .catch(function(e){showToast("Pull failed: "+e.message);});
+    }
+    var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
+  });
 }
 function campDelete(id){
   if(!confirm("Delete this campaign? This cannot be undone."))return;
@@ -2418,19 +2405,17 @@ function showCompanionBrowser(){
   var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  var tok=localStorage.getItem("tnd_server_tok_v1")||"";
-  var url=(localStorage.getItem("tnd_server_url_v1")||"").replace(/\/$/,"");
-  var connected=!!(tok&&url);
+  var connected=storageAdapter.isServerMode()&&storageAdapter.hasToken(); // adapter owns the token (audit B9)
   var mode=connected?"library":"local";
   function getChar(id,cb){
     if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
     var raw=store.get("tnd_camp_"+id+"_ws");
     if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
-    if(!url||!tok){return cb("Not available locally.");}
-    fetch(url+"/api/campaigns/"+id,{headers:{"Authorization":"Bearer "+tok}})
-      .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-      .then(function(d){if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data.");})
-      .catch(function(e){cb(e.message);});
+    if(!connected){return cb("Not available locally.");}
+    storageAdapter.getCampaignState(id,function(err,d){
+      if(err)return cb(err);
+      if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data.");
+    });
   }
   function isAlreadyAdded(name){for(var j=0;j<pendingCompanions.length;j++){if(pendingCompanions[j].name===name)return true;}return false;}
   function compRow(name,sub,pickId,pickType){

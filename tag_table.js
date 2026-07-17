@@ -19,6 +19,8 @@
 //   R.muts   — mutation labels for the system line
 //   R.turn   — worldState.turn frozen at entry
 //   R.feGet()    — lazy first-encounter snippet (computed once per response)
+//   R.combatStarts() — lazy [COMBAT_START:] position list (computed once per response; audit #8 —
+//                  was recomputed by each of the 4 combat-attribute handlers)
 //   R._xpMirror(n) — party XP mirror with the COMPANION_XP supersede scan
 // Handlers reference worldState/memory/helpers as GLOBALS, exactly like the originals did —
 // this is what let shadow mode run them against clones by swapping the globals during the
@@ -151,6 +153,20 @@ function combatAttrFoe(starts,idx){
   return fl[fl.length-1];
 }
 function combatDmgList(s){return s.split(",").map(function(x){return x.trim();}).filter(function(x){return x&&x.toLowerCase()!=="none";});}
+// Audit #8 (AUDIT_FABLE_07_16_2026): the IMMUNE/RESIST/VULN handler bodies were byte-identical
+// ×3 copy-paste except tag name + target field — ONE factory now generates all three table
+// entries (the table's own "adding a tag = one entry" philosophy). Behavior is 1:1 with the
+// hand-written bodies it replaces: same nc flag, same no-combat guard, same g-loop regex shape
+// ("\\["+tagName+":([^\\]]+)\\]" ≡ the old literals), same P3-F1 positional-adjacency binding
+// via combatAttrFoe over R.combatStarts() (the per-response lazy cache of combatStartPositions
+// — see applyMutsTable), same COMBAT_ATTR_FALLBACK routing and warn paths inside combatAttrFoe.
+function combatAttrEntry(tagName,field){
+  return {t:tagName,nc:1,apply:function(text,R){
+    if(!worldState.combat||!worldState.combat.foes.length)return;
+    var starts=R.combatStarts();
+    var re=new RegExp("\\["+tagName+":([^\\]]+)\\]","g"),m;
+    while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe[field]=combatDmgList(m[1]);}}};
+}
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];if(!hpTags.length)return;
   // UA8: a save that escaped migration can carry non-finite hp/maxHp — the clamp math below
@@ -296,25 +312,16 @@ var TAG_TABLE=[
 // the no-preceding-start fallback policy). g-loops: every occurrence lands (MULTI_ENEMY_COMBAT §3).
 {t:"COMBAT_STATS",nc:1,apply:function(text,R){
   if(!worldState.combat||!worldState.combat.foes.length)return;
-  var starts=combatStartPositions(text);
+  var starts=R.combatStarts();
   var re=/\[COMBAT_STATS:STR:(\d+)\|DEX:(\d+)\|CON:(\d+)\|INT:(\d+)\|WIS:(\d+)\|CHA:(\d+)\|CR:([0-9.\/]+)\]/g,m;
   while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;
     foe.stats={STR:+m[1],DEX:+m[2],CON:+m[3],INT:+m[4],WIS:+m[5],CHA:+m[6],CR:m[7]};}}},
-{t:"COMBAT_IMMUNE",nc:1,apply:function(text,R){
-  if(!worldState.combat||!worldState.combat.foes.length)return;
-  var starts=combatStartPositions(text);
-  var re=/\[COMBAT_IMMUNE:([^\]]+)\]/g,m;
-  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.immune=combatDmgList(m[1]);}}},
-{t:"COMBAT_RESIST",nc:1,apply:function(text,R){
-  if(!worldState.combat||!worldState.combat.foes.length)return;
-  var starts=combatStartPositions(text);
-  var re=/\[COMBAT_RESIST:([^\]]+)\]/g,m;
-  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.resist=combatDmgList(m[1]);}}},
-{t:"COMBAT_VULN",nc:1,apply:function(text,R){
-  if(!worldState.combat||!worldState.combat.foes.length)return;
-  var starts=combatStartPositions(text);
-  var re=/\[COMBAT_VULN:([^\]]+)\]/g,m;
-  while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe.vuln=combatDmgList(m[1]);}}},
+// The IMMUNE/RESIST/VULN triplet is factory-generated (audit #8, see combatAttrEntry above) —
+// same entries, same positions, same "COMBAT_IMMUNE"/"COMBAT_RESIST"/"COMBAT_VULN" t-names
+// (coverage guards + strip registry key on them).
+combatAttrEntry("COMBAT_IMMUNE","immune"),
+combatAttrEntry("COMBAT_RESIST","resist"),
+combatAttrEntry("COMBAT_VULN","vuln"),
 // UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
 // [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the
 // single living foe, else the ENGAGED foe, else first-living + warn — the mutation always lands
@@ -525,6 +532,11 @@ function applyMutsTable(text){
   _sheetlessWarned={};
   var feSnip=null;
   R.feGet=function(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim().slice(0,280);var fb=Math.max(ft.lastIndexOf(". "),ft.lastIndexOf("! "),ft.lastIndexOf("? "));if(fb>60)ft=ft.slice(0,fb+1);feSnip=ft;}return feSnip;};
+  // Audit #8: combatStartPositions(text) is pure over the fixed response text, but was
+  // recomputed by each of the 4 combat-attribute handlers — lazy-cache it once per response,
+  // the exact R.feGet pattern above.
+  var csPos=null;
+  R.combatStarts=function(){if(csPos===null)csPos=combatStartPositions(text);return csPos;};
   var _xpSkip=null;
   R._xpMirror=function(n){
     // UA7: the skip list is keyed by canonical NPC NAME, not charSheet object identity — the
