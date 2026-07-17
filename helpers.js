@@ -8,6 +8,33 @@ function smod(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;}
 // Canonical pronouns from a character's gender (M/F/NB). Used to seed companion/NPC pronouns so the
 // GM never has to guess and gender-swap them (defaults to he/him for M or anything unspecified).
 function pronounsForGender(g){return g==="F"?"she/her":g==="NB"?"they/them":"he/him";}
+// AUDIT_FABLE_07_16 #11③: gender → image-prompt word (fal.ai render/portrait paths). An UNSET
+// gender defaults to "male" (the wizard/doRender behavior) UNLESS the caller passes an explicit
+// unsetDefault — the ui.js portrait modal deliberately defaults unset to "androgynous" (divergence
+// preserved, not unified; see that call site).
+function genderWord(g,unsetDefault){if(g==="F")return"female";if(g==="NB")return"androgynous";if(!g&&unsetDefault)return unsetDefault;return"male";}
+// #11③ display-label variant (char sheet / wizard review). NOTE: api.js keeps two PROSE mappings
+// inline ("non-binary" lowercase; the legacy block's 4-way with an empty-string default) — third
+// and fourth mappings, deliberately not unified here.
+function genderLabel(g){return g==="F"?"Female":g==="NB"?"Non-binary":"Male";}
+// AUDIT_FABLE_07_16 #11②: per-level HP gain — ceil(hd/2)+1+CON mod, floor 1. ONE formula for the
+// player level-up loop, the companion auto-level loop, and generated-companion baseline HP
+// (the game.js "keeps companions on the engine's curve" promise, now enforced by shared code).
+function hpGainPerLevel(hd,conMod){return Math.max(1,Math.ceil(hd/2)+1+conMod);}
+// AUDIT_FABLE_07_16 #7: THE exact-name worldState.npcs lookup — === match, first hit, object or
+// null. Lives in helpers.js (loads before state/memory/tag_table/api/game/ui) so every consumer
+// can share it; formerly inlined ~14× (and game.js's _compNpcByName couldn't serve earlier files).
+// Sites needing the INDEX (splice/write-back) or a compound predicate (name+charSheet,
+// name+partyMember) keep their own loops — this helper is name-only on purpose.
+function wsNpcByName(name){
+  if(typeof worldState==="undefined"||!worldState||!worldState.npcs)return null;
+  var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}
+  return null;
+}
+// AUDIT_FABLE_07_16 #11①: conservative arc↔quest title match — exact or one-contains-the-other,
+// case-insensitive (the findCompanionNpc discipline, no fuzzy scoring). Shared by
+// buildArcQuestNudge and buildArcDriftNudge (api.js), which defined it twice char-identically.
+function arcTitleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
 // Known issue #3 dedupe: an NPC's portrait has ONE canonical home — charSheet.portrait when a
 // sheet exists (rides inline in the sync blob, atomic with state), npc.portrait otherwise
 // (sheet-less NPCs; travels via the separate /portrait store). ALL display reads go through
@@ -33,14 +60,20 @@ function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;retu
 // composition and likenesses survive while lighting, contrast, and texture get pushed hard.
 var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
 var ENHANCE_STRENGTH=0.45;
+// AUDIT_FABLE_07_16 #6: THE party-companion scan — partyMember NPCs that carry a charSheet, in
+// worldState.npcs order. includeDead=true skips the dead filter: a handful of call sites
+// (restSpells, the [XP:] mirror, syncCharSheet, and the snapshot/consume passes) historically
+// had NO dead check — each routes through includeDead=true with a marker comment, preserving
+// today's behavior until the user rules on whether dead companions earn XP/rest/audit.
+function partyCompanionsWithSheets(includeDead){
+  var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
+  for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!/\bdead\b/i.test(n.status||"")))out.push(n);}
+  return out;
+}
 // Living party companions — partyMember NPCs that carry a charSheet and are not dead. The party-aware
 // scene render iterates this to describe (all models) and seed portraits (Nano Banana 2 only). Returns
 // the worldState.npcs entries; charSheet holds the v10 sheet, npcPortrait() the image.
-function livingPartyCompanions(){
-  var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
-  for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))out.push(n);}
-  return out;
-}
+function livingPartyCompanions(){return partyCompanionsWithSheets(false);}
 function droll(s){return Math.floor(Math.random()*s)+1;}
 function r4d6(){var d=[droll(6),droll(6),droll(6),droll(6)];d.sort(function(a,b){return a-b;});return d[1]+d[2]+d[3];}
 function getFin(){

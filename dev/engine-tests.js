@@ -4519,4 +4519,169 @@ t("payload is byte-identical to the pre-B9 ui.js inline construction", function 
     makeWorld();/* the no-leak test replaced the live globals with sentinels — normalize */
   })();
 
+
+  // ── Group B wave 2 (AUDIT_FABLE_07_16 #6/#7/#11) — folded from the agent fragment ──
+  (function(){
+
+// ── Bw2 #7: wsNpcByName — THE exact-name worldState.npcs lookup (helpers.js) ──
+section("Bw2 #7 — wsNpcByName");
+t("hit returns the live npc object (=== identity, mutations land on worldState)",function(){
+  makeWorld();
+  var ana={name:"Ana",status:"ally",rel:"friend",partyMember:false};
+  var bo={name:"Bo",status:"wary",rel:"rival",partyMember:false};
+  worldState.npcs.push(ana,bo);
+  var got=wsNpcByName("Bo");
+  if(got!==bo)return "expected the exact Bo object, got "+JSON.stringify(got);
+  got.status="hostile";
+  return eq(worldState.npcs[1].status,"hostile","write-through");
+});
+t("miss returns null (unknown name; exact === — no case-folding, no substring)",function(){
+  makeWorld();worldState.npcs.push({name:"Ana"});
+  if(wsNpcByName("Anastasia")!==null)return "substring must not match";
+  if(wsNpcByName("ana")!==null)return "case-insensitive must not match";
+  return eq(wsNpcByName("Nobody"),null,"unknown");
+});
+t("no-world / no-npcs fail safe to null",function(){
+  var keep=worldState;worldState=null;
+  var r1=wsNpcByName("Ana");
+  worldState={};var r2=wsNpcByName("Ana");
+  worldState=keep;
+  if(r1!==null)return "null worldState should give null";
+  return eq(r2,null,"missing npcs[]");
+});
+t("first-match wins on a (pathological) duplicate name — the old inline-loop semantics",function(){
+  makeWorld();
+  var first={name:"Twin",status:"a"},second={name:"Twin",status:"b"};
+  worldState.npcs.push(first,second);
+  return wsNpcByName("Twin")===first?true:"expected the FIRST entry";
+});
+
+// ── Bw2 #6: partyCompanionsWithSheets — the shared party scan + includeDead axis ──
+function _bw2PartyFixture(){
+  makeWorld();
+  worldState.npcs.push(
+    {name:"Liv",status:"ally",partyMember:true,charSheet:{name:"Liv"}},          // living, sheeted
+    {name:"Mora",status:"dead",partyMember:true,charSheet:{name:"Mora"}},        // dead, sheeted
+    {name:"Ghor",status:"undead ally",partyMember:true,charSheet:{name:"Ghor"}}, // "undead" is NOT \bdead\b
+    {name:"Pip",status:"ally",partyMember:true},                                 // party but sheet-LESS
+    {name:"Zed",status:"ally",partyMember:false,charSheet:{name:"Zed"}}          // sheeted but not party
+  );
+}
+section("Bw2 #6 — partyCompanionsWithSheets");
+t("includeDead=false: living sheeted companions only (dead out, sheet-less out, non-party out)",function(){
+  _bw2PartyFixture();
+  var names=partyCompanionsWithSheets(false).map(function(n){return n.name;}).join(",");
+  return eq(names,"Liv,Ghor");
+});
+t("includeDead=true: dead companion kept; sheet-less and non-party still excluded",function(){
+  _bw2PartyFixture();
+  var names=partyCompanionsWithSheets(true).map(function(n){return n.name;}).join(",");
+  return eq(names,"Liv,Mora,Ghor");
+});
+t("status 'undead' never reads as dead (\\bdead\\b, both modes)",function(){
+  _bw2PartyFixture();
+  var offList=partyCompanionsWithSheets(false),i,found=false;
+  for(i=0;i<offList.length;i++){if(offList[i].name==="Ghor")found=true;}
+  return found?true:"Ghor (undead) was dropped by the dead filter";
+});
+t("livingPartyCompanions() delegates — same entries as includeDead=false",function(){
+  _bw2PartyFixture();
+  var a=livingPartyCompanions(),b=partyCompanionsWithSheets(false),i;
+  if(a.length!==b.length)return "length "+a.length+" vs "+b.length;
+  for(i=0;i<a.length;i++){if(a[i]!==b[i])return "entry "+i+" differs";}
+  return true;
+});
+t("no-world fail safe: empty array",function(){
+  var keep=worldState;worldState=null;
+  var r=partyCompanionsWithSheets(true);
+  worldState=keep;
+  return eq(r.length,0);
+});
+
+// ── Bw2 #6 sanctioned fix: migratePendingCompanionSheets uses \bdead\b ──
+// The ONE behavior change of the wave: game.js used /dead/i here (every other site \bdead\b),
+// so a sheet-less companion whose status contains "undead" was read as dead and NEVER flagged
+// for sheet generation. Exercise the REAL code path: busy=true lets the flags land while the
+// network-bound processPendingCompanionSheets() kick is skipped (its own guard).
+section("Bw2 #6 — migratePendingCompanionSheets \\bdead\\b fix");
+t("status 'undead' is flagged sheetPending (was silently skipped under /dead/i)",function(){
+  makeWorld();
+  worldState.npcs.push(
+    {name:"Und",status:"undead thrall",partyMember:true},
+    {name:"Ded",status:"dead",partyMember:true},
+    {name:"Viv",status:"ally",partyMember:true}
+  );
+  var keepBusy=busy;busy=true;              // skip the async generation kick — flags only
+  migratePendingCompanionSheets();
+  busy=keepBusy;
+  if(worldState.npcs[0].sheetPending!==true)return "undead companion NOT flagged — the /dead/i bug";
+  if(worldState.npcs[1].sheetPending)return "truly dead companion must stay unflagged";
+  return eq(worldState.npcs[2].sheetPending,true,"living companion");
+});
+
+// ── Bw2 #11①: arcTitleMatch (hoisted from the two api.js nudge builders) ──
+section("Bw2 #11① — arcTitleMatch");
+t("exact match, case-insensitive",function(){
+  if(!arcTitleMatch("The Skinsaw Man","the skinsaw man"))return "case fold failed";
+  return eq(arcTitleMatch("The Skinsaw Man","The Skinsaw Man"),true);
+});
+t("one-contains-the-other, both directions",function(){
+  if(!arcTitleMatch("Skinsaw Man","The Skinsaw Man murders"))return "a-in-b failed";
+  return eq(arcTitleMatch("The Skinsaw Man murders","skinsaw man"),true,"b-in-a");
+});
+t("no overlap / empty / null → false (no fuzzy scoring)",function(){
+  if(arcTitleMatch("Chapel in the Mud","Lost Cause"))return "unrelated titles matched";
+  if(arcTitleMatch("","Lost Cause"))return "empty a matched";
+  if(arcTitleMatch("Lost Cause",""))return "empty b matched";
+  return eq(arcTitleMatch(null,undefined),false,"null/undefined");
+});
+
+// ── Bw2 #11②: hpGainPerLevel — ceil(hd/2)+1+CON, floor 1 ──
+section("Bw2 #11② — hpGainPerLevel");
+t("formula: hd12 CON+2 → 9; hd8 CON0 → 5; odd die hd7 CON0 → ceil→5",function(){
+  if(hpGainPerLevel(12,2)!==9)return "hd12/+2 gave "+hpGainPerLevel(12,2);
+  if(hpGainPerLevel(8,0)!==5)return "hd8/0 gave "+hpGainPerLevel(8,0);
+  return eq(hpGainPerLevel(7,0),5,"hd7/0 (ceil)");
+});
+t("min-1 clamp: a crippling CON penalty can never drain HP on level-up",function(){
+  if(hpGainPerLevel(6,-5)!==1)return "raw -1 not clamped: "+hpGainPerLevel(6,-5);
+  return eq(hpGainPerLevel(6,-4),1,"raw 0 clamps to 1");
+});
+t("parity with a hand-computed companion level-up (Warrior hd12, CON 14, Lv1→3: +9+9)",function(){
+  makeWorld();
+  var cs={name:"Par",cls:"Warrior",level:1,xp:900,stats:{CON:14},hp:10,maxHp:10,abilities:[]};
+  checkCompanionLevelUp(cs);
+  if(cs.level!==3)return "expected Lv3, got "+cs.level;
+  if(cs.maxHp!==28)return "hand-computed 10+9+9=28, got "+cs.maxHp; // ceil(12/2)+1+2 = 9 per level
+  return eq(cs.hp,28,"hp rides with maxHp");
+});
+
+// ── Bw2 #11③: genderWord / genderLabel + the preserved fallback divergence ──
+section("Bw2 #11③ — genderWord / genderLabel");
+t("genderWord: F→female, NB→androgynous, M→male, unset→male (wizard/doRender default)",function(){
+  if(genderWord("F")!=="female")return "F";
+  if(genderWord("NB")!=="androgynous")return "NB";
+  if(genderWord("M")!=="male")return "M";
+  if(genderWord("")!=="male")return "unset ''";
+  return eq(genderWord(undefined),"male","unset undefined");
+});
+t("preserved divergence: unset + explicit fallback → 'androgynous' (ui.js portrait modal ONLY)",function(){
+  if(genderWord("","androgynous")!=="androgynous")return "unset+fallback";
+  if(genderWord(undefined,"androgynous")!=="androgynous")return "undefined+fallback";
+  // the fallback must NOT leak into set genders
+  if(genderWord("F","androgynous")!=="female")return "F+fallback leaked";
+  if(genderWord("M","androgynous")!=="male")return "M+fallback leaked";
+  return eq(genderWord("NB","androgynous"),"androgynous","NB stays androgynous");
+});
+t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function(){
+  if(genderLabel("F")!=="Female")return "F";
+  if(genderLabel("NB")!=="Non-binary")return "NB";
+  if(genderLabel("M")!=="Male")return "M";
+  return eq(genderLabel(""),"Male","unset");
+});
+
+// ══ BODY END ═══════════════════════════════════════════════════════════════════════════════
+
+  })();
+
 }

@@ -179,7 +179,8 @@ function migrateWorldState(){
         for(b=0;b<owner.coreMemories.length;b++){if(owner.coreMemories[b].turn===_cmM.turn&&owner.coreMemories[b].text===_cmM.text){_cmDup=true;break;}}
         if(!_cmDup)owner.coreMemories.push({text:_cmM.text,turn:_cmM.turn,kind:_cmM.kind,who:_cmM.who,camp:_cmM.camp||worldState.campName||""});}};
     _cmCopy(c);
-    for(_cmi=0;_cmi<worldState.npcs.length;_cmi++){var _cmN=worldState.npcs[_cmi];if(_cmN&&_cmN.partyMember&&_cmN.charSheet)_cmCopy(_cmN.charSheet);}
+    var _cmParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — legacy shared moments copy to dead companions' sheets too (they witnessed them); AUDIT_FABLE_07_16 #6 */
+    for(_cmi=0;_cmi<_cmParty.length;_cmi++)_cmCopy(_cmParty[_cmi].charSheet);
     delete worldState.coreMemories;_mig=true;
   }
   /* #23 (v1.296) per-arc pacing clock: backfill startTurn for arcs already active in an existing save.

@@ -178,8 +178,7 @@ function checkLegacyCharacter(){
     if(!ch||!ch.name)continue;
     if(worldState.legacyCharsUsed.indexOf(ch.name)>=0)continue;
     if(worldState.character&&ch.name===worldState.character.name)continue;
-    var dup=false,nj;for(nj=0;nj<worldState.npcs.length;nj++){if(worldState.npcs[nj].name===ch.name){dup=true;break;}}
-    if(dup)continue;
+    if(wsNpcByName(ch.name))continue;/* already an NPC in this campaign (#7: shared lookup) */
     candidates.push(ch);
   }
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
@@ -210,7 +209,7 @@ function checkLevelUp(){
   while(c.level<newLvl){
     c.level++;
     var conMod=c.stats&&typeof c.stats.CON==="number"?Math.floor((c.stats.CON-10)/2):0;
-    var hpGain=cls?Math.ceil(cls.hd/2)+1+conMod:3;hpGain=Math.max(1,hpGain);
+    var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     c.maxHp+=hpGain;c.hp+=hpGain;totalHp+=hpGain;
     var features=CLASS_FEATURES[c.cls]||{};
     if(features[c.level]){c.abilities.push({nm:"Lv"+c.level,ds:features[c.level],gained:worldState.turn});newFeatures.push(features[c.level]);}
@@ -236,7 +235,7 @@ function checkCompanionLevelUp(cs){
   while(cs.level<newLvl){
     cs.level++;
     var conMod=cs.stats&&typeof cs.stats.CON==="number"?Math.floor((cs.stats.CON-10)/2):0;
-    var hpGain=cls?Math.ceil(cls.hd/2)+1+conMod:3;hpGain=Math.max(1,hpGain);
+    var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     cs.maxHp=(cs.maxHp||0)+hpGain;cs.hp=(cs.hp||0)+hpGain;
     var features=CLASS_FEATURES[cs.cls]||{};
     if(features[cs.level]){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:"Lv"+cs.level,ds:features[cs.level],gained:worldState?worldState.turn:0});}
@@ -252,9 +251,8 @@ function checkCompanionLevelUp(cs){
 // fire-after-render pattern as generateActions — asks the model for a sheet. The prompt build and
 // the parse/attach are pure functions so the engine tests exercise them without network, and a
 // deterministic stub guarantees a party member is NEVER left sheet-less (no-silent-failures).
-function _compNpcByName(name){if(!worldState||!worldState.npcs)return null;var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name)return worldState.npcs[i];}return null;}
 function buildCompanionSheetPrompt(npcName){
-  var npc=_compNpcByName(npcName)||{};
+  var npc=wsNpcByName(npcName)||{};/* #7: _compNpcByName retired — wsNpcByName (helpers.js) is the one exact-name lookup */
   var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
   var c=worldState.character;
   var known="Status: "+(npc.status||mem.attitude||"unknown")+" | Relation to the player: "+(npc.rel||"unknown")+(npc.pronouns?" | Pronouns: "+npc.pronouns:"")+"\n";
@@ -285,13 +283,13 @@ function guessCompanionClass(text){
 function companionBaselineHp(clsId,level,conMod){
   var cls=null,i;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===clsId){cls=CLSS[i];break;}}
   var hd=cls?cls.hd:10,hp=Math.max(1,hd+conMod),l;
-  for(l=2;l<=level;l++)hp+=Math.max(1,Math.ceil(hd/2)+1+conMod);
+  for(l=2;l<=level;l++)hp+=hpGainPerLevel(hd,conMod);/* #11②: shared formula */
   return hp;
 }
 // Minimal but fully valid v10 companion sheet — the fallback when generation fails, and the
 // guaranteed-shape base that normalizeCompanionSheet overlays model output onto.
 function buildCompanionSheetStub(npcName){
-  var npc=_compNpcByName(npcName)||{};
+  var npc=wsNpcByName(npcName)||{};
   var mem=(memory&&memory.npcs&&memory.npcs[npcName])||{};
   var lvl=(worldState&&worldState.character&&worldState.character.level)||1;
   var cls=guessCompanionClass((npc.rel||"")+" "+(npc.status||"")+" "+((mem.knowledge||[]).join(" ")));
@@ -365,7 +363,7 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
 }
 // Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.
 function attachCompanionSheet(npcName,sheet){
-  var npc=_compNpcByName(npcName);
+  var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
   npc.charSheet=sheet;delete npc.sheetPending;
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
@@ -373,7 +371,7 @@ function attachCompanionSheet(npcName,sheet){
 }
 var _sheetGenInFlight={};
 async function generateCompanionSheet(npcName){
-  var npc=_compNpcByName(npcName);
+  var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet||_sheetGenInFlight[npcName])return;
   _sheetGenInFlight[npcName]=1;
   var sheet=null,failReason=null;
@@ -409,7 +407,9 @@ function migratePendingCompanionSheets(){
   if(!worldState||!worldState.npcs)return;
   var found=false,i;
   for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];
-    if(n.partyMember&&!n.charSheet&&!/dead/i.test(n.status||"")){n.sheetPending=true;found=true;}}
+    /* \bdead\b (AUDIT_FABLE_07_16 #6 sanctioned fix): was /dead/i — the ONLY site without the word
+       boundary, so an "undead" companion read as dead here and was never flagged for a sheet */
+    if(n.partyMember&&!n.charSheet&&!/\bdead\b/i.test(n.status||"")){n.sheetPending=true;found=true;}}
   if(!found)return;
   if(typeof busy!=="undefined"&&busy)return;
   processPendingCompanionSheets();
@@ -568,8 +568,8 @@ function conditionSnapshot(){
   if(!worldState||!worldState.character)return null;
   function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
   var snap={player:names(worldState.character.conditions),party:{}},i;
-  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember&&n.charSheet)snap.party[n.name]=names(n.charSheet.conditions);}
+  var _csParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions stay in the condition snapshot; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(i=0;i<_csParty.length;i++)snap.party[_csParty[i].name]=names(_csParty[i].charSheet.conditions);
   return snap;
 }
 function stampNewConditions(pre){
@@ -594,8 +594,8 @@ function stampNewConditions(pre){
     for(i=0;i<hk.length;i++){if(!now[hk[i]]&&typeof showToast==="function")showToast("✓ Condition lifted: "+who+" — "+hk[i]);}
   }
   diff(worldState.character.name,worldState.character.conditions,pre.player);
-  var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember&&n.charSheet)diff(n.name,n.charSheet.conditions,pre.party[n.name]||{});}
+  var i,_scParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — mirrors conditionSnapshot above; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(i=0;i<_scParty.length;i++)diff(_scParty[i].name,_scParty[i].charSheet.conditions,pre.party[_scParty[i].name]||{});
 }
 // ── Relationship turn-stamps + downgrade/audit triggers (#61) ───────────────────────────────
 // Same snapshot-diff post-pass pattern as Core Memory (#40) and condition stamps (#46) above,
@@ -697,8 +697,8 @@ function detectGhostConsumables(playerTxt,raw){
     }
   }
   sweep(null,worldState.character.inventory);
-  var ni;for(ni=0;ni<(worldState.npcs||[]).length;ni++){var n=worldState.npcs[ni];
-    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))sweep(n.name,n.charSheet.inventory);}
+  var ni,_swParty=livingPartyCompanions();/* #6: shared party scan */
+  for(ni=0;ni<_swParty.length;ni++)sweep(_swParty[ni].name,_swParty[ni].charSheet.inventory);
 }
 // ── THE GM-turn commit pipeline (audit 07-16 #5) ─────────────────────────────────────────────
 // One home for the formerly duplicated sendAction/beginAdventure commit sequences. sendAction's
@@ -1154,14 +1154,14 @@ async function doRender(){
   try{
     var c=worldState.character,w=worldState.world;
     // Build a character-specific anchor so the model paints the same person each time
-    var genderWord=c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male";
-    var charDesc=c.name+", a "+genderWord+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
+    var gw=genderWord(c.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
+    var charDesc=c.name+", a "+gw+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
     // Party render (all models): describe every living companion so the scene portrays the whole party
     // with correct appearances, not invented ones. Portrait-likeness seeding (below) is Nano-only.
     var party=livingPartyCompanions(),compDescs=[],pi;
     for(pi=0;pi<party.length;pi++){
       var pcs=party[pi].charSheet;
-      var pg=pcs.gender==="F"?"female":pcs.gender==="NB"?"androgynous":"male";
+      var pg=genderWord(pcs.gender);/* #11③: shared mapping */
       var pd=party[pi].name+", a "+pg+(pcs.age?" "+pcs.age:"")+" "+(pcs.ancestry||"")+" "+(pcs.cls||"")+(pcs.appear?", "+pcs.appear:"")+(pcs.mark?", "+pcs.mark:"");
       compDescs.push(pd.replace(/\s+/g," ").trim());
     }
@@ -1298,7 +1298,8 @@ function restSpells(){
   if(!worldState||!worldState.character.spells)return;
   var i;for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}
   // Also restore party companions' expended spells (audit E84) — a rest is party-wide.
-  var pj,ps;for(pj=0;pj<(worldState.npcs||[]).length;pj++){var _pn=worldState.npcs[pj];if(_pn.partyMember&&_pn.charSheet&&_pn.charSheet.spells){for(ps=0;ps<_pn.charSheet.spells.length;ps++){if(_pn.charSheet.spells[ps].lvl>0)_pn.charSheet.spells[ps].used=false;}}}
+  var pj,ps,_rsParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions still get spell slots back on rest; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(pj=0;pj<_rsParty.length;pj++){var _pn=_rsParty[pj];if(_pn.charSheet.spells){for(ps=0;ps<_pn.charSheet.spells.length;ps++){if(_pn.charSheet.spells[ps].lvl>0)_pn.charSheet.spells[ps].used=false;}}}
   updateSpPanel();saveCore();showToast("Spell slots restored.");
 }
 function initAbilities(){
@@ -1350,7 +1351,8 @@ async function syncCharSheet(){
   if(busy||!worldState)return;
   busy=true;
   if(typeof showToast==="function")showToast("Syncing sheet…");
-  var companions=[];var pi;for(pi=0;pi<worldState.npcs.length;pi++){if(worldState.npcs[pi].partyMember&&worldState.npcs[pi].charSheet)companions.push(worldState.npcs[pi].name);}
+  var companions=[];var pi,_syParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions still get audited by the sheet sync; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(pi=0;pi<_syParty.length;pi++)companions.push(_syParty[pi].name);
   var auditMsg=buildSheetSyncPrompt(companions);
   try{
     // v1.250 (user decree: "syncSheet fights drift. Always fight drift."): the audit RESULT
@@ -1360,7 +1362,8 @@ async function syncCharSheet(){
     var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
     // #50a loud trail: snapshot every inventory, diff after applyMuts, toast each correction.
     var invBefore={player:(worldState.character.inventory||[]).slice()};
-    var ci;for(ci=0;ci<worldState.npcs.length;ci++){var cn=worldState.npcs[ci];if(cn.partyMember&&cn.charSheet)invBefore[cn.name]=(cn.charSheet.inventory||[]).slice();}
+    var ci,_ivParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — matches the companions list above; user ruling pending (AUDIT_FABLE_07_16 #6) */
+    for(ci=0;ci<_ivParty.length;ci++)invBefore[_ivParty[ci].name]=(_ivParty[ci].charSheet.inventory||[]).slice();
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
     var who;for(who in invBefore){
       var nowInv=who==="player"?worldState.character.inventory:(function(){var i2;for(i2=0;i2<worldState.npcs.length;i2++){if(worldState.npcs[i2].name===who&&worldState.npcs[i2].charSheet)return worldState.npcs[i2].charSheet.inventory;}return [];})();

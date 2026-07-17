@@ -115,11 +115,11 @@ async function ftRenderPortrait(){
   var status=document.getElementById("ft-portrait-status");
   if(!falKey){status.innerHTML="<span style='color:var(--red);'>No fal.ai key — add one via File &#9656; fal.ai image key…</span>";return;}
   if(busy){status.innerHTML="<span style='color:var(--t2);'>Game is busy — try again in a moment.</span>";return;}
-  var genderWord=cs.gender==="F"?"female":cs.gender==="NB"?"androgynous":"male";
+  var gw=genderWord(cs.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
   var d=cs.name||"A character";
   var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
-  if(anc)d+=", a "+genderWord+" "+(cs.age||"")+(" "+anc.nm)+(cs.cls?" "+cs.cls:"");
-  else d+=", a "+genderWord+(cs.age?" "+cs.age:"")+(cs.cls?" "+cs.cls:"");
+  if(anc)d+=", a "+gw+" "+(cs.age||"")+(" "+anc.nm)+(cs.cls?" "+cs.cls:"");
+  else d+=", a "+gw+(cs.age?" "+cs.age:"")+(cs.cls?" "+cs.cls:"");
   var ap=document.getElementById("char-appear");
   if(ap&&ap.value.trim())d+=", "+ap.value.trim();
   var promptReq="Write a detailed image generation prompt for a fantasy character portrait. "
@@ -185,7 +185,7 @@ function buildReview(){
     var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+ch.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
     var fs2=ch.stats||{};
     el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName?escHtml(dispName):'<span style="color:var(--t2)">Enter a name above</span>')+'</div>'/* imported-file name (#22/UA18) */
-      +'<div class="rv-sub">'+(ch.subraceNm||ch.subrace||ch.ancestry||"")+" "+(ch.cls||"")+" &middot; Lv"+(ch.level||1)+" &middot; "+(ch.gender==="F"?"Female":ch.gender==="NB"?"Non-binary":"Male")+'</div></div></div>'
+      +'<div class="rv-sub">'+(ch.subraceNm||ch.subrace||ch.ancestry||"")+" "+(ch.cls||"")+" &middot; Lv"+(ch.level||1)+" &middot; "+genderLabel(ch.gender)+'</div></div></div>'
       +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+(fs2[s]||"—")+'</div><div class="rm">'+(fs2[s]?smod(fs2[s]):"")+'</div></div>';}).join("")+'</div>'
       +'<div class="rv-2c"><div class="rv-row"><span class="rk">Max HP</span><span class="rv">'+(ch.maxHp||ch.hp||0)+'</span></div><div class="rv-row"><span class="rk">Gold</span><span class="rv">'+(ch.gold||0)+' gp</span></div><div class="rv-row"><span class="rk">Level</span><span class="rv">'+(ch.level||1)+'</span></div><div class="rv-row"><span class="rk">XP</span><span class="rv">'+(ch.xp||0)+'</span></div></div>'
       +(ch.appear?'<div class="desc-pre">"'+escHtml(ch.appear)+'"</div>':"")
@@ -200,7 +200,7 @@ function buildReview(){
   var init=(dispNm||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
   var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
-  var genderLbl=cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male";
+  var genderLbl=genderLabel(cs.gender);/* #11③: shared mapping */
   var avHtml=cs.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+cs.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init+'</div>';
   el.innerHTML='<div class="rv-head">'+avHtml+'<div><div class="rv-nm">'+(dispNm?escHtml(dispNm):'<span style="color:var(--t2)">Enter a name above</span>')+'</div><div class="rv-sub">'+(subnm||(anc?anc.nm:"?"))+" "+(cs.cls||"?")+" &middot; "+cs.age+" &middot; "+genderLbl+'</div></div></div>'/* user-typed name (#22/UA18) */
     +'<div class="rsgd">'+STATS.map(function(s){return'<div class="rsb"><div class="rn">'+s+'</div><div class="rv2">'+fs[s]+'</div><div class="rm">'+smod(fs[s])+'</div></div>';}).join("")+'</div>'
@@ -491,7 +491,7 @@ function _csContext(){
   var cls=cs.cls?CLSS.filter(function(c){return c.id===cs.cls;})[0]:null;
   if(cls)ctx+="Class: "+cls.id+"\n";
   if(cs.name)ctx+="Name: "+cs.name+"\n";
-  if(cs.gender)ctx+="Gender: "+(cs.gender==="F"?"Female":cs.gender==="NB"?"Non-binary":"Male")+"\n";
+  if(cs.gender)ctx+="Gender: "+genderLabel(cs.gender)+"\n";
   if(cs.age)ctx+="Age: "+cs.age+"\n";
   return ctx;
 }

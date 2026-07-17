@@ -647,7 +647,7 @@ function buildNpcGraph(){
     var name=nodes[ni];
     if(name===player)continue;
     var npc=memory.npcs[name]||{};
-    var wsNpc=null;for(var wi=0;wi<worldState.npcs.length;wi++){if(worldState.npcs[wi].name===name){wsNpc=worldState.npcs[wi];break;}}
+    var wsNpc=wsNpcByName(name);/* #7: shared lookup */
     var meta=[];
     if(npc.attitude)meta.push(npc.attitude);
     if(wsNpc&&wsNpc.partyMember)meta.push("PARTY");

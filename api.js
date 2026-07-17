@@ -71,8 +71,8 @@ function buildCoreMemoryBlock(){
       if(m.camp&&m.camp!==camp)prior.push(m);else cur.push(m);}
   }
   collect(worldState.character.coreMemories);
-  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))collect(n.charSheet.coreMemories);}
+  var _cmParty=livingPartyCompanions();/* #6: shared party scan */
+  for(i=0;i<_cmParty.length;i++)collect(_cmParty[i].charSheet.coreMemories);
   if(!cur.length&&!prior.length)return"";
   var L=["DEFINING MOMENTS — permanent party history the whole party carries forever. These are canon: recall them naturally when relevant, never contradict them, and let them shade tone and relationships:"];
   for(i=0;i<prior.length;i++)L.push("- ("+prior[i].camp+" — an earlier adventure) "+prior[i].text);
@@ -170,7 +170,8 @@ function buildConditionAudit(){
     }
   }
   scan(worldState.character.name,worldState.character.conditions,false);
-  var i;for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))scan(n.name,n.charSheet.conditions,true);}
+  var i,_caParty=livingPartyCompanions();/* #6: shared party scan */
+  for(i=0;i<_caParty.length;i++)scan(_caParty[i].name,_caParty[i].charSheet.conditions,true);
   if(!lines.length)return"";
   // Expiry audits are APPOINTMENTS: they fire through combat (a 3-round stun ending mid-fight is
   // the whole point) and through the cooldown. Staleness audits keep the original gates.
@@ -183,7 +184,8 @@ function buildConditionAudit(){
   // staleness governs from here (no every-turn re-fire on a reaffirmed condition).
   function consume(list){var j;for(j=0;j<(list||[]).length;j++){if(list[j].until!=null&&list[j].until<=worldState.turn)delete list[j].until;}}
   consume(worldState.character.conditions);
-  for(i=0;i<(worldState.npcs||[]).length;i++){var n2=worldState.npcs[i];if(n2&&n2.partyMember&&n2.charSheet)consume(n2.charSheet.conditions);}
+  var _ccParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — dead companions' appointments still consumed; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(i=0;i<_ccParty.length;i++)consume(_ccParty[i].charSheet.conditions);
   worldState.lastConditionAudit=worldState.turn;
   return"[ENGINE NOTE — CONDITION AUDIT (not a player action): the tracker lists the conditions below. For EACH one, decide in THIS response: if it no longer matches the fiction, emit its REMOVED tag; if it still holds, let it visibly shape the narration.\n"+lines.join("\n")+"]";
 }
@@ -223,14 +225,13 @@ function buildReciprocityNudge(){
 // WITHOUT consuming the latch (the mark only writes when a note is actually returned).
 function buildArcQuestNudge(){
   if(!worldState||worldState.combat||!worldState.skeleton||!worldState.questLog)return"";
-  var sk=worldState.skeleton,i,j,k;
-  function titleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
+  var sk=worldState.skeleton,i,j,k;/* #11①: titleMatch hoisted to arcTitleMatch (helpers.js) */
   for(i=0;i<(sk.acts||[]).length;i++){var act=sk.acts[i];
     for(j=0;j<(act.arcs||[]).length;j++){var arc=act.arcs[j];
       if(arc.status!=="completed")continue;
       for(k=0;k<worldState.questLog.length;k++){var q=worldState.questLog[k];
         if(q.status!=="active"&&q.status!=="offered")continue;
-        if(!titleMatch(arc.title,q.title))continue;
+        if(!arcTitleMatch(arc.title,q.title))continue;
         var key=arc.title+"|"+q.title;
         if(worldState.arcQuestNudged&&worldState.arcQuestNudged[key])continue;
         if(!worldState.arcQuestNudged)worldState.arcQuestNudged={};
@@ -253,17 +254,16 @@ function buildArcQuestNudge(){
 // combat WITHOUT resetting the timer (the mark only writes when a note is actually returned).
 function buildArcDriftNudge(){
   if(!worldState||worldState.combat||!worldState.skeleton||!memory||!memory.quests)return"";
-  var sk=worldState.skeleton,i,j,qk;
-  function titleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
+  var sk=worldState.skeleton,i,j,qk;/* #11①: titleMatch hoisted to arcTitleMatch (helpers.js) */
   var qkeys=Object.keys(memory.quests),ql=worldState.questLog||[];
   for(i=0;i<(sk.acts||[]).length;i++){var act=sk.acts[i];
     for(j=0;j<(act.arcs||[]).length;j++){var arc=act.arcs[j];
       if(arc.status!=="active")continue;
       // legit-in-progress guard: a live quest tracking this arc means it is NOT drifting
-      var live=false,lk;for(lk=0;lk<ql.length;lk++){if((ql[lk].status==="active"||ql[lk].status==="offered")&&titleMatch(arc.title,ql[lk].title)){live=true;break;}}
+      var live=false,lk;for(lk=0;lk<ql.length;lk++){if((ql[lk].status==="active"||ql[lk].status==="offered")&&arcTitleMatch(arc.title,ql[lk].title)){live=true;break;}}
       if(live)continue;
       // the arc's first matching COMPLETED archived quest (failed/declined don't imply the arc is done)
-      var mq=null;for(qk=0;qk<qkeys.length;qk++){var aq=memory.quests[qkeys[qk]];if(aq&&aq.status==="completed"&&titleMatch(arc.title,aq.title||qkeys[qk])){mq=aq.title||qkeys[qk];break;}}
+      var mq=null;for(qk=0;qk<qkeys.length;qk++){var aq=memory.quests[qkeys[qk]];if(aq&&aq.status==="completed"&&arcTitleMatch(arc.title,aq.title||qkeys[qk])){mq=aq.title||qkeys[qk];break;}}
       if(!mq)continue;
       var key=arc.title+"|"+mq,last=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
       if(last!=null&&(worldState.turn-last)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
@@ -302,8 +302,8 @@ function buildRelationshipAudit(){
       lines.push("- "+who+" → "+r.entity+": \""+(r.descriptor||"")+"\""+(r.turn?" (since t"+r.turn+")":" (long-standing)"));}
   }
   fmt(c.name,c.relationships);
-  for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember&&n.charSheet&&!/\bdead\b/i.test(n.status||""))fmt(n.name,n.charSheet.relationships);}
+  var _raParty=livingPartyCompanions();/* #6: shared party scan */
+  for(i=0;i<_raParty.length;i++)fmt(_raParty[i].name,_raParty[i].charSheet.relationships);
   var eventDue=!!worldState.relAuditDue;
   var timerDue=(worldState.turn-(worldState.lastRelAudit||0))>=REL_AUDIT_TURNS;
   if(!eventDue&&!timerDue)return"";
@@ -375,11 +375,9 @@ function buildSysPrompt(){
   // to swinging a weapon. Rich block so a caster casts, a rogue uses tricks, etc.
   var partyBlock="";
   if(worldState.npcs.length){
-    var pmArr=[],pj;
-    for(pj=0;pj<worldState.npcs.length;pj++){
-      var pmN=worldState.npcs[pj];
-      if(!pmN.partyMember||!pmN.charSheet)continue;
-      if(/\bdead\b/i.test(pmN.status||""))continue;
+    var pmArr=[],pj,_pbParty=livingPartyCompanions();/* #6: shared party scan; body stays inline (per-companion prompt text) */
+    for(pj=0;pj<_pbParty.length;pj++){
+      var pmN=_pbParty[pj];
       var pcs=pmN.charSheet;
       var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++)pa2.push(pcs.abilities[pai].nm);if(pa2.length)pAb=pa2.join(", ");}
       // Playtest-F1 (v1.239): name expended spells EXPLICITLY instead of omitting them — the bible
@@ -652,10 +650,9 @@ function buildCompanionSpellBibleBlock(){
   if(!worldState||!worldState.npcs||!worldState.npcs.length||typeof capabilityLookup!=="function")return"";
   var seen={},i,c=worldState.character;
   if(c&&c.spells){for(i=0;i<c.spells.length;i++){if(c.spells[i]&&c.spells[i].nm)seen[capBaseName(c.spells[i].nm)]=1;}}
-  var lines=[],pj,ps;
-  for(pj=0;pj<worldState.npcs.length;pj++){var n=worldState.npcs[pj];
-    if(!n.partyMember||!n.charSheet||!n.charSheet.spells)continue;
-    if(/\bdead\b/i.test(n.status||""))continue;
+  var lines=[],pj,ps,_sbParty=livingPartyCompanions();/* #6: shared party scan */
+  for(pj=0;pj<_sbParty.length;pj++){var n=_sbParty[pj];
+    if(!n.charSheet.spells)continue;
     for(ps=0;ps<n.charSheet.spells.length;ps++){var sp=n.charSheet.spells[ps];
       if(!sp||!sp.nm)continue;
       var key=capBaseName(sp.nm);if(seen[key])continue;
@@ -755,7 +752,8 @@ function findCompanionNpc(name){
   // the companion registered as "Sheriff Belor Hemlock", the same way NPC/PARTY_MEMBER tags do.
   var raw=name.trim().toLowerCase();
   var canon=(typeof resolveNpcName==="function")?resolveNpcName(name.trim()).toLowerCase():raw;
-  var i;for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npc.partyMember&&npc.charSheet){var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc;}}
+  var i,_fcParty=partyCompanionsWithSheets(true);/* dead-check divergence preserved — COMPANION_* tags still resolve to a dead companion's sheet; user ruling pending (AUDIT_FABLE_07_16 #6) */
+  for(i=0;i<_fcParty.length;i++){var npc=_fcParty[i];var nn=npc.name.toLowerCase();if(nn===raw||nn===canon)return npc;}
   // Backstop (audit P2 remedy b): the name DOES match a party member, but they have no charSheet —
   // the COMPANION_* update is about to be dropped. Make that loud instead of silent (no-silent-failures);
   // dedupe once per name per response (map cleared at the top of applyMuts).

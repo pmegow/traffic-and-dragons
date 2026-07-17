@@ -1003,7 +1003,7 @@ function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-s
 function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
 function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";}
 function csHeroHeader(c){
-  var genderLbl=c.gender==="F"?"Female":c.gender==="NB"?"Non-binary":"Male";
+  var genderLbl=genderLabel(c.gender);/* #11③: shared mapping */
   var subnm=c.subraceNm?c.subraceNm+" ":"";
   var clsLine=escHtml(subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":""));/* companion sheets are model-generated (#22/UA18) */
   var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
@@ -1183,13 +1183,16 @@ async function showPortraitModal(refreshFn,opts){
   var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};};
   var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;
-  var genderWord=!c.gender||c.gender==="NB"?"androgynous":c.gender==="F"?"female":"male";
+  /* #11③ DIVERGENCE PRESERVED: this portrait path defaults an UNSET gender to "androgynous"
+     (every other image site defaults unset to "male") — expressed via the explicit 2nd arg,
+     deliberately NOT unified. Local renamed so it can't shadow the helper. */
+  var gw=genderWord(c.gender,"androgynous");
   var pmRefSrc=getPort()||null;
   var hasPortrait=!!(getPort());
 
   function buildCharDesc(){
     var d=c.name;
-    if(c.age||c.ancestry||c.cls)d+=", a "+genderWord+(c.age?" "+c.age:"")+(c.ancestry?" "+c.ancestry:"")+(c.cls?" "+c.cls:"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
+    if(c.age||c.ancestry||c.cls)d+=", a "+gw+(c.age?" "+c.age:"")+(c.ancestry?" "+c.ancestry:"")+(c.cls?" "+c.cls:"")+(c.archetypeNm?" ["+c.archetypeNm+"]":"");
     if(c.appear)d+=", "+c.appear;
     if(c.mark)d+=", "+c.mark;
     if(c.inventory&&c.inventory.length)d+=". Visible wardrobe/gear: "+c.inventory.join(", ");
@@ -1428,7 +1431,7 @@ async function showPortraitModal(refreshFn,opts){
 async function generateNpcSheet(name,doneCb){
   if(!worldState)return;
   if(busy){showToast("Game is busy — try again in a moment.");return;}
-  var wsNpc=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){wsNpc=worldState.npcs[i];break;}}
+  var wsNpc=wsNpcByName(name),i;/* #7: shared lookup */
   var memNpc=memory&&memory.npcs?memory.npcs[name]:null;
   if(!wsNpc){showToast("NPC not found.");return;}
   // Build context from all known data
@@ -1499,10 +1502,10 @@ async function generateNpcSheet(name,doneCb){
 function partWaysWithCompanion(name){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   if(!worldState||!worldState.npcs)return;
-  var n=(typeof resolveNpcName==="function")?resolveNpcName(name):name,idx=-1,i;
-  for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===n){idx=i;break;}}
-  if(idx<0||!worldState.npcs[idx].partyMember)return;
-  worldState.npcs[idx].partyMember=false;
+  var n=(typeof resolveNpcName==="function")?resolveNpcName(name):name;
+  var pwNpc=wsNpcByName(n);/* #7: shared lookup */
+  if(!pwNpc||!pwNpc.partyMember)return;
+  pwNpc.partyMember=false;
   if(memory.npcs[n])memory.npcs[n].partyMember=false;
   if(!worldState.recentlyLeft)worldState.recentlyLeft=[];
   worldState.recentlyLeft.push({name:n,turn:worldState.turn||0});
@@ -1512,7 +1515,7 @@ function partWaysWithCompanion(name){
 function showNpcSheet(name){
   if(!worldState)return;
   var ex=document.getElementById("npc-modal");if(ex)ex.remove();
-  var wsNpc=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===name){wsNpc=worldState.npcs[i];break;}}
+  var wsNpc=wsNpcByName(name),i;/* #7: shared lookup */
   var memNpc=memory&&memory.npcs?memory.npcs[name]:null;
   if(!wsNpc&&!memNpc)return;
   var isParty=!!(wsNpc&&wsNpc.partyMember);
@@ -1529,7 +1532,7 @@ function showNpcSheet(name){
   // ── Hero info block ───────────────────────────────────────────────────────
   var heroInfo;
   if(sheet){
-    var gLbl=sheet.gender==="F"?"Female":sheet.gender==="NB"?"Non-binary":"Male";
+    var gLbl=genderLabel(sheet.gender);/* #11③: shared mapping */
     var clsLine=escHtml((sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":""));/* model-generated sheet fields (#22/UA18) */
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
     var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
@@ -2235,7 +2238,7 @@ function _startImportedCampaign(char){
 function _addImportedCompanion(char){
   if(!worldState){showToast("No active campaign to add companion to.");return;}
   // Check if already in party
-  for(var i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name===char.name){showToast(char.name+" is already in this campaign.");return;}}
+  if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
   // Add as party member NPC with full charSheet
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
