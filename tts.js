@@ -319,7 +319,7 @@ var TTS = (function() {
     var on = !isOn();
     store.set(ON_K, on ? "1" : "");
     if (on) {
-      _ensureCtx();  // create AudioContext NOW, inside the user gesture
+      _resumeCtx(_ensureCtx());  // create/resume NOW, inside the user gesture (v1.327: also revives an iOS-interrupted ctx)
       if (getEngine() === "piper") prewarmPiper(resolvePiperVoice());  // §5 Q4 — off the critical path of the first real line
     } else {
       stop();
@@ -338,6 +338,66 @@ var TTS = (function() {
     return _audioCtx;
   }
 
+  // ── iOS context-state discipline (v1.327 — the phone-silence diagnosis) ────────────────────
+  // Two iOS-only facts broke Piper AND Cartesia (both schedule on the shared ctx) while native
+  // (speechSynthesis, no ctx) kept working, and desktop stayed fine:
+  //   1. With the voice-ON flag persisted, a fresh page load never runs toggle() — the ctx is
+  //      then created when the GM RESPONSE arrives, seconds after the tap, OUTSIDE any gesture.
+  //      iOS births it "suspended" and denies resume() outside a gesture → scheduled audio is
+  //      pure silence, no error, no fallback.
+  //   2. iOS has a THIRD state, "interrupted" (tab-kill storms, route change, backgrounding);
+  //      every old check read state==="suspended" only, so even a real Test-button tap skipped
+  //      resume on an interrupted ctx and scheduled onto a stopped clock.
+  // Discipline: _resumeCtx handles BOTH states; a one-time document-level tap unlock re-arms the
+  // ctx in-gesture whenever it isn't running (the canonical iOS unlock); visibility-return also
+  // retries; and synth entry points VERIFY state==="running" before scheduling — refusing
+  // LOUDLY (toast + native fallback) instead of playing silence (no-silent-failures).
+  function _resumeCtx(ctx) {
+    if (!ctx) return;
+    if (ctx.state === "suspended" || ctx.state === "interrupted") { try { return ctx.resume(); } catch(e) {} }
+  }
+  function _armCtxUnlock() {
+    // One-shot capture-phase listeners: ANY user tap/keypress re-creates/resumes the ctx
+    // in-gesture, then detaches. Re-armed whenever a synth finds the ctx not running.
+    if (_armCtxUnlock._armed) return;
+    _armCtxUnlock._armed = true;
+    var fire = function() {
+      document.removeEventListener("pointerdown", fire, true);
+      document.removeEventListener("touchend",   fire, true);
+      document.removeEventListener("keydown",    fire, true);
+      _armCtxUnlock._armed = false;
+      _resumeCtx(_ensureCtx());
+    };
+    document.addEventListener("pointerdown", fire, true);
+    document.addEventListener("touchend",   fire, true);
+    document.addEventListener("keydown",    fire, true);
+  }
+  // Interrupted → visible again (unlocked phone, returned to tab): try to resume; if iOS still
+  // refuses, the next tap unlocks via the armed listener. (typeof guard: the headless test
+  // runner loads tts.js with no DOM.)
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", function() {
+    if (!document.hidden && _audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") { _resumeCtx(_audioCtx); _armCtxUnlock(); }
+  });
+  // Wait briefly for the ctx to actually reach "running" (resume can settle async); resolves
+  // true/false, never throws — callers refuse loudly on false.
+  function _ctxRunning(ctx, waitMs) {
+    return new Promise(function(res) {
+      if (!ctx) return res(false);
+      if (ctx.state === "running") return res(true);
+      _resumeCtx(ctx);
+      var t0 = Date.now();
+      var iv = setInterval(function() {
+        if (ctx.state === "running") { clearInterval(iv); res(true); }
+        else if (Date.now() - t0 > (waitMs || 1500)) { clearInterval(iv); res(false); }
+      }, 100);
+    });
+  }
+  function _ctxBlockedLoud(engineLabel) {
+    _armCtxUnlock();
+    console.warn("[tts] AudioContext not running (state=" + (_audioCtx ? _audioCtx.state : "none") + ") — " + engineLabel + " line falls back to native; next tap unlocks");
+    if (typeof showToast === "function") showToast("🔇 iOS paused game audio — speaking this line in the native voice; tap anywhere, then it recovers", 6000);
+  }
+
   function _closeCtx() {
     if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
   }
@@ -352,7 +412,7 @@ var TTS = (function() {
   function primeAudioSession() {
     var ctx = _ensureCtx();
     if (!ctx) return;
-    if (ctx.state === "suspended") ctx.resume();
+    _resumeCtx(ctx);   // v1.327: covers iOS "interrupted" too
     if (_primerSrc) return;
     try {
       var buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -374,6 +434,10 @@ var TTS = (function() {
 
   function loadSettings() {
     _syncBtn();
+    // v1.327: voice-on persisted across a reload means toggle() never runs this session — the ctx
+    // would otherwise be born OUTSIDE a gesture at first narration (iOS: suspended forever). Arm
+    // the one-tap unlock so the user's first interaction creates/resumes it in-gesture.
+    if (isOn()) _armCtxUnlock();
     // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
     // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
     try {
@@ -501,7 +565,15 @@ var TTS = (function() {
 
     var ctx = _ensureCtx();
     if (!ctx) { _drain(); return; }
-    if (ctx.state === "suspended") ctx.resume();
+    // v1.327: gate on the ctx actually RUNNING (handles iOS "interrupted" too — the old
+    // suspended-only check scheduled Cartesia chunks onto a stopped clock = silence).
+    _ctxRunning(ctx).then(function(ok) {
+      if (!ok) { _ctxBlockedLoud("Cartesia"); _curNative = true; _speakNative(text); return; }
+      _streamGo(text, voiceId, ctx);
+    });
+  }
+  function _streamGo(text, voiceId, ctx) {
+    var key = getKey();
 
     _sources = [];
 
@@ -771,8 +843,11 @@ var TTS = (function() {
 
     var ctx = _ensureCtx();
     if (!ctx) { _drain(); return; }
-    if (ctx.state === "suspended") { try { await ctx.resume(); } catch(e) {} }
-    if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited resume()
+    // v1.327: require RUNNING (suspended AND iOS "interrupted" both resume-attempted; a ctx that
+    // won't run refuses LOUDLY + native fallback instead of scheduling silence).
+    var ctxOk = await _ctxRunning(ctx);
+    if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited
+    if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
 
     var mod;
     try {
@@ -926,8 +1001,8 @@ var TTS = (function() {
     // Piper items never set _curNative (see _drain()), so they fall through to here and pause via
     // AudioContext suspend/resume — the same branch Cartesia uses. No Piper-specific code needed.
     if (!_audioCtx) return;
-    if (_audioCtx.state === "suspended") {
-      _audioCtx.resume();
+    if (_audioCtx.state !== "running") {   // v1.327: "suspended" OR iOS "interrupted" → resume; only a running ctx pauses
+      _resumeCtx(_audioCtx);
       _paused = false;
     } else {
       _audioCtx.suspend();
@@ -1168,6 +1243,7 @@ var TTS = (function() {
       +   radioRow("piper",    "Piper <span style='color:var(--t2);'>(local, offline, free)</span>")
       +   radioRow("native",   "Native <span style='color:var(--t2);'>(this device's built-in voices)</span>")
       +   "<div id='tts-engine-hint' style='font-size:11px;color:var(--t2);margin-top:2px;'>" + _escVal(TTS_PROVIDERS[eng0].hint) + "</div>"
+      +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
       + "</div>"
       // ── Cartesia panel ──
       + "<div id='tts-panel-cartesia' style='display:" + (eng0 === "cartesia" ? "block" : "none") + ";'>"
@@ -1233,6 +1309,26 @@ var TTS = (function() {
     _updateCartErr();
     _updatePiperErr();
     _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
+
+    // v1.327 on-device audio diagnostics: the phone has no console, so the modal SHOWS the shared
+    // AudioContext's state — "running" is the only state that produces sound on the Piper/Cartesia
+    // paths; "suspended"/"interrupted" here IS the silence diagnosis, live-updating on statechange.
+    function _updateAudioDiag() {
+      var d = document.getElementById("tts-audio-diag");
+      if (!d) return;
+      var st = _audioCtx ? _audioCtx.state : "not created yet";
+      d.textContent = "Audio: " + st + " · voice " + (isOn() ? "ON" : "off") + (st === "running" ? "" : st === "not created yet" ? " (created on first use/tap)" : " ⚠ no sound until running — tap 🔊 off/on");
+      d.style.color = (st === "running" || st === "not created yet") ? "var(--t2)" : "#e0a060";
+    }
+    _updateAudioDiag();
+    if (_audioCtx) _audioCtx.onstatechange = _updateAudioDiag;
+    // The ctx may be CREATED (or replaced) while the modal is open — a 1s self-clearing poll keeps
+    // the line honest; it stops itself as soon as the modal is gone.
+    var _diagPoll = setInterval(function() {
+      if (!document.getElementById("tts-modal")) { clearInterval(_diagPoll); return; }
+      _updateAudioDiag();
+      if (_audioCtx && _audioCtx.onstatechange !== _updateAudioDiag) _audioCtx.onstatechange = _updateAudioDiag;
+    }, 1000);
 
     function _setEnginePanels(engine) {
       var panels = { cartesia: "tts-panel-cartesia", piper: "tts-panel-piper", native: "tts-panel-native" }, k;
