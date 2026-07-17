@@ -3569,6 +3569,32 @@ function runEngineTests(R){
     var units=_tp.splitSentences("He reaches for the latch, then",null,true);
     return units.length&&units[units.length-1].end==="para"?true:"trailing unit not promoted: "+JSON.stringify(units);
   });
+  t("commaSplit mode: thousands separator is NOT a clause boundary — '1,000 gold' stays one unit (audit #7)",function(){
+    // The FAILURE condition: the raw clause regex splits "1,000" into "1," + "000 gold." and Piper
+    // speaks "one … zero zero zero gold" — audible corruption on every formatted number.
+    var units=_tp.splitSentences("You find 1,000 gold, then rest.",null,true);
+    if(units.length!==2)return "wrong unit count: "+JSON.stringify(units);
+    return units[0].text==="You find 1,000 gold,"?true:"number split apart: "+JSON.stringify(units);
+  });
+  t("commaSplit mode: chained thousands groups merge left-to-right — '1,000,000' survives intact (audit #7)",function(){
+    var units=_tp.splitSentences("The hoard holds 1,000,000 coins, easily.",null,true);
+    if(units.length!==2)return "wrong unit count: "+JSON.stringify(units);
+    return units[0].text==="The hoard holds 1,000,000 coins,"?true:"number split apart: "+JSON.stringify(units);
+  });
+  t("commaSplit mode: colon inside a clock time is NOT a clause boundary — '3:30' stays one unit (audit #7)",function(){
+    var units=_tp.splitSentences("We leave at 3:30, sharp.",null,true);
+    if(units.length!==2)return "wrong unit count: "+JSON.stringify(units);
+    return units[0].text==="We leave at 3:30,"?true:"time split apart: "+JSON.stringify(units);
+  });
+  t("packLongUnit: a digit-tight comma inside an over-long clause never becomes a piece boundary (audit #7)",function(){
+    var words=[];for(var i=0;i<28;i++)words.push("longword"+i);
+    var s=words.join(" ")+" and the vault holds 1,000 crowns";
+    if(s.length<=220)return "fixture too short: "+s.length;
+    var out=_tp.packLongUnit(s);
+    for(i=0;i<out.length;i++)if(/\d,$/.test(out[i]))return "piece "+i+" ends mid-number: "+JSON.stringify(out[i]);
+    var joined=out.join(" ").replace(/\s+/g,"");
+    return joined===s.replace(/\s+/g,"")?true:"content lost: "+JSON.stringify(out);
+  });
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });

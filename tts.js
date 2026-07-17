@@ -191,11 +191,26 @@ var TTS = (function() {
     return PAUSE_COMMA_CLAUSE;
   }
 
+  // A [,;:] wedged between digits is thousands/time notation ("1,000 gold", "3:30"), not a clause
+  // boundary — the raw clause split would hand Piper "1," + "000 gold." and it speaks "one … zero
+  // zero zero gold" (audit #7, v1.338). Merge such splits back together. Works on the RAW
+  // (untrimmed) match pieces: a real clause break always carries whitespace after the separator,
+  // so a piece ending digit-tight on [,;:] with the next piece starting on a digit is unambiguous.
+  function mergeDigitClauses(cl) {
+    var out = [];
+    for (var i = 0; i < cl.length; i++) {
+      var prev = out.length ? out[out.length - 1] : "";
+      if (prev && /\d[,;:]$/.test(prev) && /^\d/.test(cl[i])) out[out.length - 1] = prev + cl[i];
+      else out.push(cl[i]);
+    }
+    return out;
+  }
+
   // Pack a too-long sentence into <=MAX_UNIT pieces: greedily on clause boundaries (, ; :), falling
   // back to word-wrap for a single clause that's still too long.
   function packLongUnit(s) {
     if (s.length <= MAX_UNIT) return [s];
-    var clauses = s.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [s];
+    var clauses = mergeDigitClauses(s.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [s]);
     var out = [], buf = "";
     function flush() { if (buf.trim()) { out.push(buf.trim()); buf = ""; } }
     for (var i = 0; i < clauses.length; i++) {
@@ -252,7 +267,7 @@ var TTS = (function() {
         var lastSentence = (i === parts.length - 1);
         var units = [], j, s2;
         if (commaSplit) {
-          var clauses = sent.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [sent];
+          var clauses = mergeDigitClauses(sent.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [sent]);
           for (var c = 0; c < clauses.length; c++) {
             var cl = clauses[c].trim();
             if (!cl) continue;
