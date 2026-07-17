@@ -2843,7 +2843,9 @@ function wireButtons(){
   injectSparkleButtons();
   document.getElementById("rv-start-loc").addEventListener("change",function(){document.getElementById("rv-start-loc-custom").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("rv-start-level").addEventListener("change",function(){var b=document.getElementById("rv-go");if(b)b.textContent=parseInt(this.value)>=3?"Assign level perks":"Begin your journey";buildDots();});
-  document.getElementById("char-name").addEventListener("input",function(){cs.name=this.value.trim();buildReview();});
+  // Audit 07/16 #4: rebuild the review card only when it's visible (step 6) — goStep(6) always
+  // calls buildReview() on entry (char-creation.js goStep), so a name typed earlier can't go stale.
+  document.getElementById("char-name").addEventListener("input",function(){cs.name=this.value.trim();if(cs.step===6)buildReview();});
   document.getElementById("state-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});

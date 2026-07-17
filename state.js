@@ -43,15 +43,45 @@ function loadProviderSettings(){
 // localStorage boundary compresses. parseWorldState is TOLERANT: it inflates a compressed transcript OR
 // passes a plain array straight through (server blob / .tnd import / legacy pre-v1.227 saves). Degrades
 // safely to plain JSON if compress.js (LZ) didn't load.
+// Audit 07-16 #1: memoize the compressed-transcript blob. saveAll() runs 3+×/turn (end of
+// applyMutsTable, sendAction, generateActions) and each call re-LZ'd the WHOLE append-only
+// transcript (hundreds of KB on a mature save) on the UI thread. The memo sits STRICTLY above
+// LZ.compressToUTF16 — a hit returns the byte-identical string a fresh compression would produce.
+// Keyed by the transcript ARRAY OBJECT via WeakMap (the one sanctioned WeakMap use): ui.js also
+// calls serializeWorldState with server-pulled worldState objects, and object keying means those
+// can never cross-contaminate the live campaign's memo; entries GC with their arrays.
+// Validity = same array ref + same .length + same last-entry OBJECT ref + same last-entry .x:
+//   • append (logTranscript) → length changes → miss.
+//   • [RETCON:] rc-marks the PRECEDING gm entry, but only inside the same logTranscript call
+//     that appends (state.js below) → covered by the length check.
+//   • rerollLast (game.js) mutates the last entry IN PLACE (.x/.e on the SAME object — it does
+//     NOT swap it), so lastRef alone would serve a stale blob: the .x check catches it, and
+//     rerollLast also calls serializeWorldState.invalidateTranscriptMemo() explicitly
+//     (belt and suspenders — .e alone could change while .x stays equal).
+//   • ragRetrieve's lazy .e backfill (memory.js) mutates OLD entries idempotently; a memoized
+//     blob missing backfilled .e fields is ACCEPTED — the backfill recomputes lazily after any
+//     reload, so nothing is lost (audit-row ruling).
+// The LZ-absent degrade path (plain JSON) never touches the memo.
+var _trLzMemo=(typeof WeakMap!=="undefined")?new WeakMap():null;
 function serializeWorldState(ws){
   ws=(ws===undefined)?worldState:ws;
   if(ws&&ws.transcript&&ws.transcript.length&&typeof LZ!=="undefined"&&LZ.compressToUTF16){
     var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
-    snap.transcript={__lz:LZ.compressToUTF16(JSON.stringify(ws.transcript))};
+    var tr=ws.transcript,len=tr.length,last=tr[len-1],lz=null;
+    var hit=_trLzMemo?_trLzMemo.get(tr):null;
+    if(hit&&hit.len===len&&hit.lastRef===last&&hit.lastX===last.x){lz=hit.lz;}
+    else{
+      lz=LZ.compressToUTF16(JSON.stringify(tr));
+      serializeWorldState._compressions++;
+      if(_trLzMemo)_trLzMemo.set(tr,{len:len,lastRef:last,lastX:last.x,lz:lz});
+    }
+    snap.transcript={__lz:lz};
     return JSON.stringify(snap);
   }
   return JSON.stringify(ws);
 }
+serializeWorldState._compressions=0; // test/diagnostic hook: counts ACTUAL LZ passes (memo hits don't increment)
+serializeWorldState.invalidateTranscriptMemo=function(tr){if(_trLzMemo&&tr)_trLzMemo["delete"](tr);};
 function parseWorldState(str){
   var o=JSON.parse(str);
   if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz){

@@ -792,6 +792,11 @@ async function rerollLast(){
     if(worldState.transcript&&worldState.transcript.length&&worldState.transcript[worldState.transcript.length-1].r==="gm"){
       worldState.transcript[worldState.transcript.length-1].x=clean.trim();
       if(typeof ragEntitiesFromRaw==="function")worldState.transcript[worldState.transcript.length-1].e=ragEntitiesFromRaw(resp); // keep the #27 entity index honest too
+      // Audit 07-16 #1: this is an IN-PLACE mutation of the last entry (same object, same
+      // length — no swap), invisible to the serialize memo's identity checks except via its
+      // last-entry .x compare. Invalidate explicitly so even an .e-only change (identical
+      // reroll text) can never persist a stale compressed blob.
+      if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
     }
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}

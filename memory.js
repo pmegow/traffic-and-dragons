@@ -7,12 +7,27 @@ var _NPC_STOP={sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,m
   professor:1,the:1,old:1,young:1,a:1,an:1,man:1,woman:1,girl:1,boy:1,child:1,lad:1,lass:1,
   stranger:1,guard:1,barkeep:1,keeper:1,innkeeper:1,merchant:1,wife:1,husband:1,soldier:1,priest:1,
   priestess:1,mage:1,wizard:1,knight:1,thief:1,beggar:1,drunk:1,unnamed:1};
+// Memoized (AUDIT_FABLE_07_16 #3): pure function of an immutable string, recomputed O(N) per
+// resolveNpcName all-keys scan and O(N) per ragKnownNames rebuild. Map growth is bounded by the
+// distinct NPC-name vocabulary; no eviction. Null-prototype map so hostile keys ("__proto__",
+// "hasOwnProperty") behave as plain entries. The SAME array is returned on a hit — every caller
+// is read-only (verified: memory.js, dev/npc-merge-core.js, engine-tests); do NOT mutate it.
+// Deliberately NOT memoized: resolveNpcName itself — NPC_ALIAS/NPC_MERGE run EARLY in the tag
+// table precisely so later tags in the SAME response resolve through the just-registered alias;
+// a response-scoped resolution memo primed before the alias lands would misroute those tags.
+var _npcTokMemo=Object.create(null);
 function npcCoreTokens(name){
-  var s=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s]/g," ");
+  var key=String(name||"");
+  var hit=_npcTokMemo[key];
+  if(hit)return hit;
+  npcCoreTokens._misses++;
+  var s=key.toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s]/g," ");
   var raw=s.split(/\s+/),out=[],i;
   for(i=0;i<raw.length;i++){if(raw[i]&&!_NPC_STOP[raw[i]])out.push(raw[i]);}
+  _npcTokMemo[key]=out;
   return out;
 }
+npcCoreTokens._misses=0; // test hook (dev/_tests_A2.js): counts real computations, not hits
 function resolveNpcName(name){
   if(!memory.npcs)return name;
   if(memory.npcs[name])return name;
@@ -218,9 +233,34 @@ var RAG_MAX=3;         // excerpts per turn
 // key is "Sheriff Belor Hemlock", no match, entity invisible to the index (the t164
 // broadsheet-quiz failure). Tokens come from npcCoreTokens (the alias system's
 // distinctive-name machinery), matched word-bounded to avoid inside-word false hits.
+// ── A2 memo plumbing (AUDIT_FABLE_07_16 #2) ──
+// djb2 string hash (same helper as dev/engine-tests.js's __djb2 — the frozen-literal guards).
+function _ragDjb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h;}
+// Cheap fingerprint of EVERYTHING ragKnownNames' output depends on — memory.npcs key names +
+// per-entry aliases, nothing else (verified by reading the function: it touches no other state).
+// O(total name chars) to compute vs O(N²) to rebuild the token-subset collapse. Key count +
+// alias count + djb2 over the joined names catch adds, deletes, merges, renames, and alias
+// registrations, including mid-response ones. Shared by the ragKnownNames memo and the
+// ragRetrieve result memo (whose scoring consumes ragKnownNames' output).
+function _ragNpcsFp(){
+  if(typeof memory==="undefined"||!memory||!memory.npcs)return "none";
+  var ks=Object.keys(memory.npcs),aCnt=0,aJoin="",i,e;
+  // "\u0001" separators, never bare concatenation — ["ab","c"] and ["a","bc"] must hash apart.
+  for(i=0;i<ks.length;i++){e=memory.npcs[ks[i]];if(e&&e.aliases&&e.aliases.length){aCnt+=e.aliases.length;aJoin+="\u0001"+e.aliases.join("\u0001");}}
+  return ks.length+"."+aCnt+"."+_ragDjb2(ks.join("\u0001"))+"."+_ragDjb2(aJoin);
+}
+// Memoized (AUDIT_FABLE_07_16 #2): rebuilt ~5×/turn pre-memo (logTranscript ×2, prompt build ×2
+// via ragRetrieve+ragSceneTerms, backfill/summarize) with an O(N²) collapse each time. ONE memo
+// entry behind the fingerprint above (+ worldState.turn as an extra conservative invalidator,
+// per the pre-reviewed design). A hit returns the SAME array (same entry objects) — all callers
+// are read-only. Any fingerprint mismatch rebuilds from scratch in the original order.
+// Test hooks: ragKnownNames._misses (real rebuilds), ._memo (null it to force a rebuild).
 function ragKnownNames(){
   var out=[],i,j;
   if(typeof memory==="undefined"||!memory||!memory.npcs)return out;
+  var _fp=((typeof worldState!=="undefined"&&worldState)?worldState.turn:0)+"|"+_ragNpcsFp();
+  if(ragKnownNames._memo&&ragKnownNames._memo.fp===_fp)return ragKnownNames._memo.out;
+  ragKnownNames._misses++;
   var ks=Object.keys(memory.npcs);
   for(i=0;i<ks.length;i++){
     var low=ks[i].toLowerCase(),als=[],src=memory.npcs[ks[i]].aliases||[];
@@ -257,8 +297,10 @@ function ragKnownNames(){
       out[h].others.push(out[i2].nm); // duplicate keys ride along for weight aliasing
     }
   }
+  ragKnownNames._memo={fp:_fp,out:keep};
   return keep;
 }
+ragKnownNames._memo=null;ragKnownNames._misses=0; // test hooks (dev/_tests_A2.js)
 // Word-bounded containment: "hemlock" matches "Hemlock's face" but not "hemlocked" prose;
 // prevents short tokens hitting inside unrelated words.
 function ragHasWord(lowText,word){
@@ -354,14 +396,59 @@ function ragTrim(s,max){
   if(b>max*0.4)t=t.slice(0,b+1);
   return t+" …";
 }
+// ── A2 (AUDIT_FABLE_07_16 #2): ragRetrieve result memo — ONE entry (the last call) ──────────
+// The scoring pass below is deterministic given the same state (its ONLY mutation is the lazy
+// .e backfill, which is idempotent — a memo hit merely skips re-backfilling entries that are
+// already backfilled), so a byte-identical repeat call may serve the cached string.
+// RECORDED DEVIATION from the pre-reviewed key, in the CONSERVATIVE direction only: the spec'd
+// key was (turn, inputText, transcript.length), but that triple is not unique across states —
+// two different transcripts of equal length at the same turn with the same input collide (the
+// engine suite's two Hemlock-broadsheet fixtures are a live instance; the narrow key serves
+// test A's block to test B). The key here is a strict SUPERSET: it adds first/last
+// transcript-entry hashes (covers append AND rerollLast's last-entry swap), sessionLog.length
+// (drives the skipN window), the npc-table fingerprint (keys/aliases feed scoring via
+// ragKnownNames + the merge-orphan bridge), and a scene hash (location, party, active quests,
+// NPC lastSeenAt — everything ragQueryEntities reads). A superset key can only MISS more and
+// recompute fresh; every hit it serves, the spec'd key would also have served.
+// NOTE: in the live main-turn → v1.288 suggestion-call sequence, worldState.turn++ and
+// logTranscript("gm") land BETWEEN the two prompt builds, so ANY key containing turn or
+// transcript.length (the spec'd one included) misses there and recomputes — correct, since
+// applyMuts ran in between and can change scene entities. Real hits: retryLast after a failed
+// turn, same-state double builds (e.g. a sheet-audit build right after the suggestion build),
+// repeated Table Talk sends. The flag-off / pre-game / young-campaign "" paths return BEFORE
+// the memo and are never cached. Test hooks: ragRetrieve._misses (real passes), ._memo.
+function _ragRetrieveKey(inputText){
+  function entFp(en){return en?String(en.t)+"~"+String(en.r)+"~"+_ragDjb2(String(en.x||"")):"-";}
+  var tr=worldState.transcript,scene="",i,k;
+  if(worldState.world)scene+=String(worldState.world.location||"");
+  for(i=0;i<(worldState.npcs||[]).length;i++){if(worldState.npcs[i].partyMember)scene+="\u0001"+worldState.npcs[i].name;}
+  for(i=0;i<(worldState.questLog||[]).length;i++){if(worldState.questLog[i].status==="active")scene+="\u0002"+worldState.questLog[i].title;}
+  if(typeof memory!=="undefined"&&memory&&memory.npcs){for(k in memory.npcs){if(memory.npcs[k]&&memory.npcs[k].lastSeenAt)scene+="\u0003"+k+"@"+memory.npcs[k].lastSeenAt;}}
+  var slLen=(typeof sessionLog!=="undefined"&&sessionLog)?sessionLog.length:0;
+  return worldState.turn+"|"+tr.length+"|"+entFp(tr[0])+"|"+entFp(tr[tr.length-1])+"|"+slLen+"|"+_ragNpcsFp()+"|"+_ragDjb2(scene)+"|"+String(inputText==null?"":inputText);
+}
+function ragRetrieve(inputText){
+  if(!ragEnabled())return "";
+  var tr=worldState.transcript;
+  if(!tr||tr.length<6)return "";
+  var _k=_ragRetrieveKey(inputText);
+  var _m=ragRetrieve._memo;
+  if(_m&&_m.k===_k)return _m.v;
+  ragRetrieve._misses++;
+  var v=_ragRetrieveScore(inputText);
+  ragRetrieve._memo={k:_k,v:v};
+  return v;
+}
+ragRetrieve._memo=null;ragRetrieve._misses=0; // test hooks (dev/_tests_A2.js)
 // The retrieval pass — returns the PAST SCENE EXCERPTS block for buildSysPrompt's volatile
 // half, or "" (flag off / young campaign / no hits). Scores indexed GM entries by entity
 // overlap with the current scene, skips the last RAG_RECENT turns (already in sessionLog),
 // picks the top RAG_MAX at least 3 turns apart (adjacent turns are one scene), renders
 // oldest-first within RAG_BUDGET. Only mutation is filling missing .e index fields (lazy
 // backfill — idempotent, so repeated buildSysPrompt calls are safe; no cursor advances
-// here, same discipline as getNameSuggestions peek mode).
-function ragRetrieve(inputText){
+// here, same discipline as getNameSuggestions peek mode). Call via ragRetrieve (the memo
+// wrapper above) — this function always runs the full pass.
+function _ragRetrieveScore(inputText){
   if(!ragEnabled())return "";
   var tr=worldState.transcript;
   if(!tr||tr.length<6)return "";

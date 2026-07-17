@@ -3924,4 +3924,213 @@ function runEngineTests(R){
     detectGhostConsumables("","You lay out potion a, potion b, potion c, potion d, potion e, potion f, potion g on the table.");
     return worldState.consumableChecks.length<=6?true:"queue unbounded: "+worldState.consumableChecks.length;
   });
+
+  // ── Group A perf pass (AUDIT_FABLE_07_16 #1-#3) — folded from agent fragments ──
+  section("transcript LZ memo (audit 07-16 #1)");
+  t("memo hit: two serializes of an unchanged worldState are byte-identical and compress ONCE",function(){
+    makeWorld();worldState.transcript=[];
+    for(var i=0;i<50;i++)worldState.transcript.push({t:i,r:i%2?"gm":"player",x:"The lantern gutters and the corridor exhales cold air. Turn "+i});
+    serializeWorldState._compressions=0;
+    var a=serializeWorldState(),b=serializeWorldState();
+    if(a!==b)return "blobs differ between back-to-back calls";
+    if(serializeWorldState._compressions!==1)return "expected 1 compression, got "+serializeWorldState._compressions;
+    return true;
+  });
+  t("memo hit output is byte-identical to a FRESH compression (memo defeated)",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"alpha — em dash",e:{n:["Vyra"],l:"Sandpoint"}},{t:2,r:"player",x:"beta"}];
+    var warm=serializeWorldState();          // populates memo
+    var hit=serializeWorldState();           // memo hit
+    serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
+    var fresh=serializeWorldState();         // forced recompression
+    return (hit===warm&&hit===fresh)?true:"memo blob != fresh blob (compression not deterministic or memo stale)";
+  });
+  t("append invalidates: logTranscript then serialize reflects the new entry",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"old scene"}];
+    serializeWorldState();                   // warm the memo
+    logTranscript("gm","a brand new scene unfolds","a brand new scene unfolds");
+    var back=parseWorldState(serializeWorldState());
+    if(back.transcript.length!==2)return "appended entry missing from round-trip: len "+back.transcript.length;
+    return back.transcript[1].x==="a brand new scene unfolds"?true:"wrong appended text: "+back.transcript[1].x;
+  });
+  t("last-entry SWAP invalidates (new object at tr[len-1])",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"first"},{t:2,r:"gm",x:"take one"}];
+    serializeWorldState();                   // warm
+    worldState.transcript[1]={t:2,r:"gm",x:"take two"}; // new OBJECT — lastRef identity changes
+    var back=parseWorldState(serializeWorldState());
+    return back.transcript[1].x==="take two"?true:"swap served stale blob: "+back.transcript[1].x;
+  });
+  t("last-entry IN-PLACE .x mutation invalidates (the ACTUAL rerollLast pattern, game.js:793)",function(){
+    // rerollLast does NOT swap the entry object — it mutates .x/.e on the same object.
+    // Same array ref, same length, same lastRef: only the .x compare (or the explicit
+    // hook rerollLast now calls) catches this. Exercise the .x compare alone here.
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"first"},{t:2,r:"gm",x:"take one"}];
+    serializeWorldState();                   // warm
+    worldState.transcript[1].x="take two — rerolled"; // in place, no swap
+    var back=parseWorldState(serializeWorldState());
+    return back.transcript[1].x==="take two — rerolled"?true:"in-place .x mutation served stale blob: "+back.transcript[1].x;
+  });
+  t("explicit invalidateTranscriptMemo catches an .e-only in-place change (.x unchanged)",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"same text",e:{n:["Old"],l:"A",q:[]}}];
+    serializeWorldState();                   // warm
+    worldState.transcript[0].e={n:["New"],l:"B",q:[]}; // .x identical — identity checks alone would miss this
+    serializeWorldState.invalidateTranscriptMemo(worldState.transcript); // what rerollLast calls
+    var back=parseWorldState(serializeWorldState());
+    return back.transcript[0].e.n[0]==="New"?true:"stale .e persisted: "+JSON.stringify(back.transcript[0].e);
+  });
+  t("rc-marking round-trips: RETCON marks the preceding gm entry in the same appending call",function(){
+    makeWorld();worldState.transcript=[];
+    logTranscript("gm","the pin is in your pocket","the pin is in your pocket");
+    serializeWorldState();                   // warm the memo BEFORE the retcon
+    logTranscript("gm","correction: the pin was never taken","[RETCON: pin grab retracted] correction: the pin was never taken");
+    var back=parseWorldState(serializeWorldState());
+    if(back.transcript.length!==2)return "retcon append missing: len "+back.transcript.length;
+    if(back.transcript[0].rc!==1)return "preceding entry's rc flag lost in memoized serialize";
+    return back.transcript[1].rc===1?true:"correcting entry not rc-marked";
+  });
+  t("distinct worldState objects don't cross-contaminate the memo",function(){
+    makeWorld();
+    var wsA=JSON.parse(JSON.stringify(worldState));wsA.transcript=[{t:1,r:"gm",x:"campaign A scene"}];
+    var wsB=JSON.parse(JSON.stringify(worldState));wsB.transcript=[{t:1,r:"gm",x:"campaign B scene"}];
+    serializeWorldState._compressions=0;
+    var a1=serializeWorldState(wsA),b1=serializeWorldState(wsB),a2=serializeWorldState(wsA);
+    if(serializeWorldState._compressions!==2)return "expected 2 compressions (one per object), got "+serializeWorldState._compressions;
+    if(a1!==a2)return "A's second call not a stable memo hit";
+    var backA=parseWorldState(a2),backB=parseWorldState(b1);
+    if(backA.transcript[0].x!=="campaign A scene")return "A served B's (or stale) content: "+backA.transcript[0].x;
+    return backB.transcript[0].x==="campaign B scene"?true:"B contaminated: "+backB.transcript[0].x;
+  });
+  t("LZ-absent degrade path unaffected: plain JSON, round-trips, memo recovers after restore",function(){
+    makeWorld();worldState.transcript=[{t:1,r:"gm",x:"degrade scene"}];
+    serializeWorldState();                   // warm the memo while LZ is healthy
+    var _LZ=LZ;LZ=undefined;                 // hide LZ — mirrors engine-tests.js:1877
+    var plain=serializeWorldState();
+    LZ=_LZ;
+    var o=JSON.parse(plain);
+    if(!(o.transcript instanceof Array))return "degrade path emitted {__lz} without LZ";
+    if(o.transcript[0].x!=="degrade scene")return "degrade blob wrong: "+JSON.stringify(o.transcript);
+    var probe=JSON.parse(serializeWorldState()); // LZ back — compression (and memo) resume
+    return (probe.transcript&&probe.transcript.__lz)?true:"compression did not resume after LZ restore";
+  });
+
+  section("A2/A3 memoization (AUDIT_FABLE_07_16 #2+#3)");
+
+  // 1 — npcCoreTokens memo: correct tokens, second call is a real memo hit returning the SAME array.
+  t("npcCoreTokens memo: tokens correct; repeat call returns the same array without recomputing",function(){
+    var name="Grand Vizier Qoltharion Vex (the unseen)"; // unique — guaranteed cold in the memo
+    var m0=npcCoreTokens._misses;
+    var a=npcCoreTokens(name);
+    if(JSON.stringify(a)!==JSON.stringify(["grand","vizier","qoltharion","vex"]))return "tokens wrong: "+JSON.stringify(a);
+    if(npcCoreTokens._misses!==m0+1)return "first call did not count as a miss";
+    var b=npcCoreTokens(name);
+    if(b!==a)return "second call did not return the memoized array (identity)";
+    if(npcCoreTokens._misses!==m0+1)return "second call recomputed (memo did not hit)";
+    // hostile-key safety: the null-prototype map must treat __proto__ as a plain entry
+    var p=npcCoreTokens("__proto__"),p2=npcCoreTokens("__proto__");
+    if(p2!==p||Object.prototype.toString.call(p2)!=="[object Array]")return "__proto__ key mishandled: "+Object.prototype.toString.call(p2);
+    return JSON.stringify(p)===JSON.stringify(["proto"])?true:"__proto__ tokens wrong: "+JSON.stringify(p);
+  });
+
+  // 2 — ragKnownNames memo: hit on unchanged state; miss on key add / alias add / key delete.
+  t("ragKnownNames memo: same-ref hit on unchanged state; invalidated by key add, alias add, key delete",function(){
+    makeWorld();ragKnownNames._memo=null;
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Ameiko Kaijitsu"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    var a=ragKnownNames();
+    var b=ragKnownNames();
+    if(b!==a)return "unchanged state did not return the same array reference";
+    memory.npcs["Tsuto Kaijitsu"]={attitude:"n",knowledge:[],events:[],aliases:[]}; // new NPC mid-response
+    var c=ragKnownNames(),i,seen=false;
+    if(c===a)return "new memory.npcs key did not invalidate the memo";
+    for(i=0;i<c.length;i++){if(c[i].nm==="Tsuto Kaijitsu")seen=true;}
+    if(!seen)return "new NPC missing from the rebuilt output";
+    memory.npcs["Sheriff Belor Hemlock"].aliases.push("Hemlock the Elder"); // alias add (NPC_ALIAS)
+    var d=ragKnownNames(),als=null;
+    if(d===c)return "alias add did not invalidate the memo";
+    for(i=0;i<d.length;i++){if(d[i].nm==="Sheriff Belor Hemlock")als=d[i].als;}
+    if(!als||als.indexOf("hemlock the elder")<0)return "new alias missing from the scan list: "+JSON.stringify(als);
+    delete memory.npcs["Tsuto Kaijitsu"]; // merge simulation (NPC_MERGE deletes the duplicate key)
+    var e=ragKnownNames();
+    if(e===d)return "key delete did not invalidate the memo";
+    for(i=0;i<e.length;i++){if(e[i].nm==="Tsuto Kaijitsu")return "deleted key still present in output";}
+    return true;
+  });
+
+  // 3 — memoized output byte-equal to a forced-fresh rebuild on the dupe-collapse fixture.
+  t("ragKnownNames memo output identical to a fresh rebuild (token-subset collapse fixture)",function(){
+    makeWorld();ragKnownNames._memo=null;
+    memory.npcs["Hemlock"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Ameiko Kaijitsu"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    ragKnownNames();                        // build + store
+    var viaMemo=ragKnownNames();            // served from the memo
+    var memoJson=JSON.stringify(viaMemo);
+    ragKnownNames._memo=null;               // force a from-scratch computation
+    var fresh=ragKnownNames();
+    if(JSON.stringify(fresh)!==memoJson)return "memoized output diverged from a fresh rebuild";
+    var hem=[],i;
+    for(i=0;i<fresh.length;i++){if(fresh[i].toks.indexOf("hemlock")>=0)hem.push(fresh[i]);}
+    if(hem.length!==1)return "expected 1 collapsed hemlock identity, got "+hem.length;
+    if(hem[0].nm!=="Sheriff Belor Hemlock"||hem[0].others.length!==1||hem[0].others[0]!=="Hemlock")return "collapse shape wrong: "+JSON.stringify({nm:hem[0].nm,others:hem[0].others});
+    return fresh.length===2?true:"Ameiko lost in collapse: "+fresh.length+" identities";
+  });
+
+  // 4 — resolveNpcName mid-response alias registration: UNCHANGED (no resolution caching snuck in).
+  t("resolveNpcName follows an alias registered mid-response (no resolution memo)",function(){
+    makeWorld();
+    memory.npcs["Morwen Zethran"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Mistress Veyra Ashcombe"]={attitude:"n",knowledge:[],events:[],aliases:[]};
+    var r1=resolveNpcName("The Grey Blade"); // pre-alias: no key, no alias, no token subset → unchanged
+    if(r1!=="The Grey Blade")return "pre-alias resolve should pass the name through, got "+r1;
+    memory.npcs["Mistress Veyra Ashcombe"].aliases.push("The Grey Blade"); // what [NPC_ALIAS:] does, EARLY in the tag table
+    var r2=resolveNpcName("The Grey Blade"); // later tag in the SAME response must now route through the alias
+    return r2==="Mistress Veyra Ashcombe"?true:"post-alias resolve did not follow the just-registered alias: "+r2;
+  });
+
+  // 5 — ragRetrieve memo: one scoring pass per identical state; turn/input/transcript changes recompute; flag-off untouched.
+  t("ragRetrieve memo: repeat serves cache (one pass); turn bump / input change / append recompute; flag-off stays \"\"",function(){
+    makeWorld();ragRetrieve._memo=null;
+    worldState.ragMemory=true;worldState.turn=40;
+    memory.npcs["Bram"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"y"}];
+    worldState.transcript=[
+      {t:2,r:"player",x:"I ask Bram about the toll"},
+      {t:3,r:"gm",x:"Bram promises you safe passage for a year and a day.",e:{n:["Bram"],l:"Greyford",q:[]}},
+      {t:6,r:"gm",x:"filler a",e:{n:[],l:"Ashfen",q:[]}},
+      {t:7,r:"gm",x:"filler b",e:{n:[],l:"Ashfen",q:[]}},
+      {t:8,r:"gm",x:"filler c",e:{n:[],l:"Ashfen",q:[]}},
+      {t:9,r:"gm",x:"filler d",e:{n:[],l:"Ashfen",q:[]}}
+    ];
+    var a=ragRetrieve("I ask Bram to honor his promise");
+    if(a.indexOf("safe passage")<0)return "baseline retrieval failed: "+a.slice(0,120);
+    var m0=ragRetrieve._misses;
+    var b=ragRetrieve("I ask Bram to honor his promise");
+    if(b!==a)return "repeat call did not return the identical string";
+    if(ragRetrieve._misses!==m0)return "repeat call re-scored the transcript (memo did not hit)";
+    worldState.turn=41;                                   // turn bump
+    ragRetrieve("I ask Bram to honor his promise");
+    if(ragRetrieve._misses!==m0+1)return "turn bump did not force a fresh pass";
+    ragRetrieve("I remind Bram of his promise");          // input change
+    if(ragRetrieve._misses!==m0+2)return "input change did not force a fresh pass";
+    worldState.transcript.push({t:10,r:"gm",x:"filler e",e:{n:[],l:"Ashfen",q:[]}}); // append
+    ragRetrieve("I remind Bram of his promise");
+    if(ragRetrieve._misses!==m0+3)return "transcript append did not force a fresh pass";
+    var m1=ragRetrieve._misses;
+    worldState.ragMemory=false;                           // flag off — must return "" and never touch the memo
+    if(ragRetrieve("I ask Bram to honor his promise")!=="")return "flag off did not return the empty string";
+    if(ragRetrieve("I ask Bram to honor his promise")!=="")return "flag off second call not empty";
+    if(ragRetrieve._misses!==m1)return "flag-off path consulted the scoring pass";
+    worldState.ragMemory=true;
+    return true;
+  });
+
+  // 6 — #57 buildRecordedFactsBlock still detects window NPCs through the memoized ragKnownNames.
+  t("buildRecordedFactsBlock (#57) detects window NPCs through the memoized name table",function(){
+    makeWorld();ragKnownNames._memo=null;
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"n",knowledge:["Keeps the broadsheet locked away"],events:[],aliases:[]};
+    ragKnownNames();ragKnownNames(); // prime the memo — the block's scan must run against a HIT
+    var blk=buildRecordedFactsBlock("player: I ask Hemlock about the broadsheet\nassistant: He frowns.\n");
+    if(blk.indexOf("Sheriff Belor Hemlock")<0)return "window NPC not detected through the memo: "+blk.slice(0,120);
+    return blk.indexOf("Keeps the broadsheet locked away")>=0?true:"recorded fact line missing";
+  });
+
 }
