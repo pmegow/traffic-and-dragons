@@ -180,24 +180,7 @@ async function N(e, m) {
   h = h ?? await import("./piper-DeOu3H9E.js"), _ = _ ?? await import("onnxruntime-web");
   const n = c[e.voiceId], o = JSON.stringify([{ text: e.text.trim() }]);
   _.env.allowLocalModels = !1, _.env.wasm.numThreads = navigator.hardwareConcurrency, _.env.wasm.wasmPaths = B;
-  const a = await f(`${u}/${n}.json`), i = JSON.parse(await a.text()), t = await new Promise(async (v) => {
-    (await h.createPiperPhonemize({
-      print: (l) => {
-        v(JSON.parse(l).phoneme_ids);
-      },
-      printErr: (l) => {
-        throw new Error(l);
-      },
-      locateFile: (l) => l.endsWith(".wasm") ? `${x}.wasm` : l.endsWith(".data") ? `${x}.data` : l
-    })).callMain([
-      "-l",
-      i.espeak.voice,
-      "--input",
-      o,
-      "--espeak_data",
-      "/espeak-ng-data"
-    ]);
-  }), r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
+  const a = await f(`${u}/${n}.json`), i = JSON.parse(await a.text()), t = await tndPhonemize(i.espeak.voice, o) /* T&D PATCH v1.323 — cached phonemizer, see above */, r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
     input: new _.Tensor("int64", t, [1, t.length]),
     input_lengths: new _.Tensor("int64", [t.length]),
     scales: new _.Tensor("float32", [d, g, U])
@@ -214,6 +197,42 @@ async function N(e, m) {
 // the same unit count every read — the Turn-769 repro). ONE session per voice, evict+
 // release() on voice change. If this file is ever re-vendored, REAPPLY this patch (the
 // engine test 'vendored vits-web carries the T&D session-cache patch' trips otherwise).
+// ═══ T&D PATCH v1.323 (2026-07-16) — phonemizer reuse. Upstream instantiated a FRESH Emscripten
+// phonemizer module (own WebAssembly.Memory + the espeak-ng-data FS payload) on EVERY predict —
+// the second per-sentence memory faucet behind the v1.322 session leak; Safari collects discarded
+// wasm memories too lazily under pressure and killed long reads. ONE cached instance re-driven
+// via callMain per call; if a build can't re-run main (ExitStatus/no output), we mark it broken
+// LOUDLY and fall back to upstream per-call behavior — never worse than before this patch.
+const tndPhon = { mod: null, sink: null, broken: false };
+const tndLocate = (l) => l.endsWith(".wasm") ? `${x}.wasm` : l.endsWith(".data") ? `${x}.data` : l;
+async function tndPhonemize(espeakVoice, input) {
+  if (!tndPhon.broken) {
+    try {
+      if (!tndPhon.mod) tndPhon.mod = await h.createPiperPhonemize({
+        print: (l) => { if (tndPhon.sink) tndPhon.sink(l); },
+        printErr: (l) => { throw new Error(l); },
+        locateFile: tndLocate
+      });
+      return await new Promise((v, rej) => {
+        let done = false;
+        tndPhon.sink = (l) => { done = true; v(JSON.parse(l).phoneme_ids); };
+        try { tndPhon.mod.callMain(["-l", espeakVoice, "--input", input, "--espeak_data", "/espeak-ng-data"]); }
+        catch (e) { if (!done) rej(e); }
+        setTimeout(() => { if (!done) rej(new Error("phonemizer reuse produced no output")); }, 8000);
+      });
+    } catch (e) {
+      tndPhon.broken = true; tndPhon.mod = null;
+      console.warn("[T&D patch] phonemizer reuse unavailable — per-call instances (upstream behavior):", e && e.message);
+    }
+  }
+  return await new Promise(async (v) => {
+    (await h.createPiperPhonemize({
+      print: (l) => { v(JSON.parse(l).phoneme_ids); },
+      printErr: (l) => { throw new Error(l); },
+      locateFile: tndLocate
+    })).callMain(["-l", espeakVoice, "--input", input, "--espeak_data", "/espeak-ng-data"]);
+  });
+}
 const tndSess = { key: null, sess: null };
 async function tndGetSession(n2, m2) {
   if (tndSess.key !== n2) {

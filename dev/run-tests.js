@@ -7,7 +7,7 @@
 try {
   var _fsV = require("fs"), _pathV = require("path");
   var _vits = _fsV.readFileSync(_pathV.join(__dirname, "..", "vendor/piper/vits/vits-web.js"), "utf8");
-  if (_vits.indexOf("T&D PATCH") < 0 || _vits.indexOf("tndGetSession") < 0) {
+  if (_vits.indexOf("T&D PATCH") < 0 || _vits.indexOf("tndGetSession") < 0 || _vits.indexOf("tndPhonemize") < 0) {
     console.error("VENDOR PATCH MISSING: vendor/piper/vits/vits-web.js lost the T&D session-cache patch (re-vendored?) — reapply it (see the patch header it should carry).");
     process.exit(1);
   }
