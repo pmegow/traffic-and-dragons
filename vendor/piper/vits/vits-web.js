@@ -181,9 +181,18 @@ function b(e, m, n) {
   }
   return i.buffer;
 }
+// ═══ T&D PATCH v1.336 (2026-07-17, piper-audit finding #5) — dependency delivery rev. The
+// ?tnd= mechanism only covered THIS file; piper-DeOu3H9E.js (relative import → query dropped)
+// and the phonemize wasm/data sat in the permanent PIPER_CACHE + immutable HTTP cache with NO
+// way to deliver a patch to installed phones. TND_DEP_REV rides every dependency URL this file
+// controls — bump it when piper-DeOu3H9E.js or piper_phonemize.{wasm,data} change content.
+// (The ORT files are the remaining gap: the import map in index.html carries its own ?tnd= rev
+// for ort.wasm.min.js, and the .wasm binaries — fetched via the wasmPaths PREFIX, which cannot
+// carry a query — are delivered by RENAME-on-change. See the tts.js PIPER_ORT_PATH comment.)
+const TND_DEP_REV = "r1";
 let h, _;
 async function N(e, m) {
-  h = h ?? await import("./piper-DeOu3H9E.js"), _ = _ ?? await import("onnxruntime-web");
+  h = h ?? await import(`./piper-DeOu3H9E.js?tnd=${TND_DEP_REV}`), _ = _ ?? await import("onnxruntime-web");
   const n = c[e.voiceId], o = JSON.stringify([{ text: e.text.trim() }]);
   _.env.allowLocalModels = !1, _.env.wasm.numThreads = navigator.hardwareConcurrency, _.env.wasm.wasmPaths = B;
   const a = await f(`${u}/${n}.json`), i = JSON.parse(await a.text()), t = await tndPhonemize(i.espeak.voice, o) /* T&D PATCH v1.323 — cached phonemizer, see above */, r = 0, s = i.audio.sample_rate, d = i.inference.noise_scale, g = i.inference.length_scale, U = i.inference.noise_w, y = await tndGetSession(n, m) /* T&D PATCH v1.322 — cached session, see above */, w = {
@@ -215,10 +224,10 @@ async function N(e, m) {
 // still points at jsdelivr — the SW ignores cross-origin, so those fetches were never in
 // PIPER_CACHE and broke the offline claim); ③ the fallback phonemizer path rejects/times out
 // instead of hanging predict() forever on a load failure (no-silent-failures).
-const TND_VITS_PATCH = "r3"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_VITS_PATCH = "r4"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
-const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm` : l.endsWith(".data") ? `${TND_PHON_BASE}.data` : l;
+const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;
 async function tndPhonemize(espeakVoice, input) {
   if (!tndPhon.broken) {
     try {

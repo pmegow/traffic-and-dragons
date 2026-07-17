@@ -27,6 +27,18 @@ try {
   // ③ rev parity — the ?tnd= query in tts.js is the ONLY delivery mechanism for a vits-web patch
   //    (permanent SW cache + immutable header, the v1.322/323 wasted-tries trap). A patched file
   //    whose TND_VITS_PATCH ran ahead of PIPER_RUNTIME_REV would never reach installed phones.
+  // ④ dependency delivery (v1.336): the relative piper-DeOu3H9E import and the phonemize assets
+  //    must carry the TND_DEP_REV query, and the import map must carry the ort ?tnd= rev — those
+  //    URLs are the ONLY way a patch to a permanently-cached dependency reaches installed phones.
+  if (_vits.indexOf("piper-DeOu3H9E.js?tnd=") < 0 || _vits.indexOf("TND_DEP_REV") < 0) {
+    console.error("VENDOR PATCH MISSING: vits-web.js lost the TND_DEP_REV query on its dependency URLs (T&D r4) — a patched piper-DeOu3H9E.js/phonemize asset would never reach installed phones.");
+    process.exit(1);
+  }
+  var _idx = _fsV.readFileSync(_pathV.join(__dirname, "..", "index.html"), "utf8");
+  if (_idx.indexOf("ort.wasm.min.js?tnd=") < 0) {
+    console.error("VENDOR PATCH MISSING: index.html import map lost the ?tnd= rev on ort.wasm.min.js — a patched ORT loader would never reach installed phones.");
+    process.exit(1);
+  }
   var _tts = _fsV.readFileSync(_pathV.join(__dirname, "..", "tts.js"), "utf8");
   var _revT = (_tts.match(/PIPER_RUNTIME_REV\s*=\s*"(r\d+)"/) || [])[1];
   var _revV = (_vits.match(/TND_VITS_PATCH\s*=\s*"(r\d+)"/) || [])[1];

@@ -311,10 +311,15 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
      This is the whole trick that avoids CDN/worker/cross-origin-isolation failures — see
      DOC/todo_TTS_piper.md §1 findings + §2 recipe. Harmlessly ignored by browsers without import-map
      support (the Piper engine then fails to load → loud fallback to native TTS, Phase 4). -->
+<!-- ?tnd=ort-r1 (v1.336, piper-audit #5): ort.wasm.min.js sits in the permanent PIPER_CACHE +
+     an immutable HTTP header — this query rev is its ONLY patch-delivery mechanism (same trap
+     class as tts.js PIPER_RUNTIME_REV). Bump it if the vendored ORT loader is ever patched.
+     The ORT .wasm BINARIES can't take a query (fetched via the wasmPaths prefix) — deliver a
+     binary change by RENAMING the file. -->
 <script type="importmap">
 {
   "imports": {
-    "onnxruntime-web": "/vendor/piper/ort/ort.wasm.min.js"
+    "onnxruntime-web": "/vendor/piper/ort/ort.wasm.min.js?tnd=ort-r1"
   }
 }
 </script>

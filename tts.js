@@ -768,6 +768,10 @@ var TTS = (function() {
                                 // NOT authoritative — OPFS is the real cache, this is UI-only best-
                                 // effort so opening the modal never forces an engine init/OPFS read.
 
+  // Patch delivery for the ORT half (v1.336, audit #5): ort.wasm.min.js is revved by the ?tnd=
+  // query on the import map entry (index.html); the .wasm binaries below this prefix CANNOT carry
+  // a query (ORT builds URLs as prefix+filename), so a patched binary must be delivered by RENAME
+  // (new filename = new URL = both permanent caches miss). Same trap class as PIPER_RUNTIME_REV.
   var PIPER_ORT_PATH = "/vendor/piper/ort/";
   // ⚠ DELIVERY (v1.324, the wasted-tries lesson): /vendor/piper/* is served cache-first from the
   // PERMANENT tnd-piper-v1 SW cache + an immutable HTTP header — an installed phone NEVER refetches
@@ -776,7 +780,7 @@ var TTS = (function() {
   // every vendored-file patch → new URL → both caches miss → fresh fetch. The vendored file exports
   // TND_VITS_PATCH with the same rev; _piperInit stores it and the Voice Settings Piper panel shows
   // it, so a phone can PROVE which runtime it runs before a test.
-  var PIPER_RUNTIME_REV = "r3";
+  var PIPER_RUNTIME_REV = "r4";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
