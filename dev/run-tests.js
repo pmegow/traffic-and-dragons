@@ -1,24 +1,32 @@
 // run-tests.js — headless runner for the test.html suites (DEV TOOL, not loaded by index.html).
-// Evals the REAL engine files in load order, then dev/engine-tests.js, and reports to the
-// console. Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
-//   node dev/run-tests.js
+// Evals the REAL engine files in load order (via dev/load-engine.js — the canonical list,
+// AUDIT_FABLE_07_16_2026 #18), then dev/engine-tests.js, and reports to the console.
+// Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
+//   node dev/run-tests.js                     — full suite
+//   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains
+//     the substring (case-insensitive), e.g. `node dev/run-tests.js quest`. Reporter-level
+//     filter — engine-tests.js is untouched; t() no-ops outside matching sections.
 // The suites are DOM-free by design (see engine-tests.js), so no browser or jsdom is needed.
 var fs=require("fs");
 var path=require("path");
-var root=path.join(__dirname,"..");
-var files=["globals.js","compress.js","data.js","capability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","tag_table.js","api.js","campaign_generator.js","game.js","tts.js"];
-var geval=eval; // indirect eval → runs in global scope, so the engine's `var`s become globals
-for(var i=0;i<files.length;i++){
-  try{geval(fs.readFileSync(path.join(root,files[i]),"utf8"));}
-  catch(e){console.error("ENGINE LOAD FAILED in "+files[i]+": "+e.message);process.exit(1);}
-}
+var engine=require("./load-engine.js");
+try{engine.loadEngine();}
+catch(e){console.error(e.message);process.exit(1);}
+var geval=eval; // indirect eval → global scope (same loader convention as load-engine.js)
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));
 
+var filterRaw=process.argv[2]||"";
+var filter=filterRaw.toLowerCase();
 var pass=0,fails=[];
-var curSection="";
+var curSection="",sectionOn=!filter,matchedSections=0;
 runEngineTests({
-  section:function(name){curSection=name;},
+  section:function(name){
+    curSection=name;
+    sectionOn=!filter||name.toLowerCase().indexOf(filter)!==-1;
+    if(filter&&sectionOn)matchedSections++;
+  },
   t:function(name,fn){
+    if(!sectionOn)return; // #20 section filter — skipped sections never execute
     var label=curSection+" › "+name;
     try{
       var r=fn();
@@ -27,11 +35,19 @@ runEngineTests({
     }catch(e){fails.push(label+" — threw: "+e.message);}
   }
 });
+if(filter&&matchedSections===0){
+  console.error("FILTER \""+filterRaw+"\" matched 0 sections — NOTHING ran (typo?). Remove the argument for the full suite.");
+  process.exit(1);
+}
 if(fails.length){
   console.error("ENGINE TESTS FAILED ("+fails.length+" of "+(pass+fails.length)+"):");
   for(var f=0;f<fails.length;f++)console.error("  ✗ "+fails[f]);
   console.error("Open test.html in a browser for the full red/green view.");
   process.exit(1);
 }
-console.log("ALL GREEN — "+pass+" assertions passed (engine tests)");
+if(filter){
+  console.log("FILTERED GREEN — \""+filterRaw+"\": "+matchedSections+" section(s) matched, "+pass+" assertions passed — NOT the full suite");
+}else{
+  console.log("ALL GREEN — "+pass+" assertions passed (engine tests)");
+}
 process.exit(0);

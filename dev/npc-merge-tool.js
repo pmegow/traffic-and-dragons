@@ -134,19 +134,15 @@ if(!applyMode&&(mergeArgs.length||mergesFile||outPath||forceOut))
 if(applyMode&&!mergeArgs.length&&!mergesFile)
   fail("--apply requires an explicit merge list (--merge or --merges). This tool NEVER auto-applies its own proposals (spec E4 — the two-Aldaras hazard).");
 
-// ───────────────────────────── engine load (run-tests.js pattern) ─────────────────────────────
+// ───────────────────────────── engine load (dev/load-engine.js) ─────────────────────────────
 // Whole real files, global-scope eval — the tool runs the SHIPPING resolver, tokenizer,
-// RAG retrieval, and NPC_MERGE handler. Prefix through tag_table.js (api/game/ui not
-// needed), then the shared merge core.
-var ENGINE_FILES=["globals.js","compress.js","data.js","capability_bible.js","helpers.js",
-                  "state.js","storage-adapter.js","memory.js","tag_table.js"];
+// RAG retrieval, and NPC_MERGE handler. Canonical list prefix through tag_table.js
+// (api/game/ui not needed — AUDIT_FABLE_07_16_2026 #18), then the shared merge core.
 var geval=eval; // indirect eval → global scope, engine `var`s become node globals
 (function(){
-  var i;
-  for(i=0;i<ENGINE_FILES.length;i++){
-    try{geval(fs.readFileSync(path.join(root,ENGINE_FILES[i]),"utf8"));}
-    catch(e){fail("engine load failed in "+ENGINE_FILES[i]+": "+e.message);}
-  }
+  var engine=require("./load-engine.js");
+  try{engine.loadEngine("tag_table.js");}
+  catch(e){fail(e.message);}
   try{geval(fs.readFileSync(path.join(__dirname,"npc-merge-core.js"),"utf8"));}
   catch(e){fail("core load failed in npc-merge-core.js: "+e.message);}
 })();

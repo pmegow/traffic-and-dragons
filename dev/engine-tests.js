@@ -35,11 +35,13 @@ function runEngineTests(R){
         inventory:["Longsword","Travel ration"],level:1,xp:0,abilities:[],spells:[{nm:"Faerie Fire (racial, 1/day)",lvl:1,used:false}],
         archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
         trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
-        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],partyMember:true},
+        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true},
       world:{location:"Ashfen",region:"The Reach",time:"dusk",weather:"rain",threat:"low",sublocation:null},
       npcs:[],questLog:[],eventHistory:[],combat:null,turn:5,transcript:[],ragMemory:false};
     // RAG defaults ON in production (v1.230); tests pin it OFF here for a deterministic baseline and
     // opt in explicitly. The default-on semantics are covered by their own unit test below.
+    // coreMemories:[] added at audit #19 close (v1.304 schema field) — keep in step with
+    // dev/load-engine.js makeTestWorld (the documented manual-copy pair).
   }
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──

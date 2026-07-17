@@ -6,8 +6,11 @@
 <!--
   TODO #14 — manual-run sanity page. No framework, no build, no CI. Open in a browser tab.
   The suites live in dev/engine-tests.js and run against the REAL engine files (same order
-  as index.html, minus ui/tts/stt which need the game DOM). The SAME suites gate every
-  commit headlessly via dev/run-tests.js + .git/hooks/pre-commit.
+  as index.html, minus char-creation/ui/stt which wire the game DOM on load). The SAME
+  suites gate every commit headlessly via dev/run-tests.js + .git/hooks/pre-commit.
+  The script list below mirrors dev/load-engine.js FILES (the canonical ordered list —
+  a browser page can't require it, so this copy is manual; the load guard in the reporter
+  script names any file that goes missing instead of showering false-red assertions).
   NOT loaded by index.html; does not affect APP_VERSION/CACHE on its own.
   NOTE: the service worker runtime-caches same-origin GETs — if this page looks stale
   after an engine change, hard-refresh (Ctrl+Shift+R).
@@ -28,11 +31,16 @@
 <div id="summary">Running…</div>
 <div id="out"></div>
 
-<!-- Real engine, same order as index.html (ui.js/tts.js/stt.js excluded: they wire the game DOM on load) -->
+<!-- Real engine, same order as index.html (char-creation.js/ui.js/stt.js excluded: they wire
+     the game DOM on load; tts.js IS loaded — the suites exercise its text-prep).
+     Keep in step with dev/load-engine.js FILES (AUDIT_FABLE_07_16_2026 #17/#18). -->
 <script src="globals.js"></script>
+<script src="compress.js"></script>
 <script src="data.js"></script>
+<script src="capability_bible.js"></script>
 <script src="helpers.js"></script>
 <script src="state.js"></script>
+<script src="storage-adapter.js"></script>
 <script src="memory.js"></script>
 <script src="tag_table.js"></script>
 <script src="api.js"></script>
@@ -42,6 +50,25 @@
 <script src="dev/engine-tests.js"></script>
 
 <script>
+// Engine-load guard (#18): if a script tag above 404'd / a file was renamed / the list rots,
+// name the missing file LOUDLY instead of showering dozens of mystery-red assertion failures
+// (#17's failure mode — 55 false reds that would hide a real regression).
+var __engineSyms=[["globals.js","APP_VERSION"],["compress.js","LZ"],["data.js","TONES"],
+  ["capability_bible.js","CAPABILITY_BIBLE"],["helpers.js","skillLevel"],["state.js","blankMemory"],
+  ["storage-adapter.js","storageAdapter"],["memory.js","resolveNpcName"],["tag_table.js","TAG_TABLE"],
+  ["api.js","buildSysPrompt"],["campaign_generator.js","validateSkeletonStructure"],
+  ["game.js","checkLevelUp"],["tts.js","TTS"],["dev/engine-tests.js","runEngineTests"]];
+var __missing=[];
+for(var __i=0;__i<__engineSyms.length;__i++){
+  if(typeof window[__engineSyms[__i][1]]==="undefined")__missing.push(__engineSyms[__i][0]+" ("+__engineSyms[__i][1]+" is undefined)");
+}
+if(__missing.length){
+  var __sum=document.getElementById("summary");
+  __sum.className="bad";
+  __sum.textContent="ENGINE FILE(S) FAILED TO LOAD: "+__missing.join(", ")+" — fix the <script> list above (mirror dev/load-engine.js FILES) before trusting anything on this page.";
+  document.title="✗ ENGINE LOAD FAILED -- engine sanity test";
+  throw new Error("engine load incomplete: "+__missing.join(", "));
+}
 // Browser reporter — renders each suite/assertion as a red/green row.
 var __pageTitle="Traffic and Dragons "+APP_VERSION+" -- engine sanity test"; // live version from globals.js
 document.getElementById("page-title").textContent=__pageTitle;

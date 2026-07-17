@@ -9,8 +9,13 @@
 // Usage: node dev/diff-replay.js <corpus.json>
 var fs = require("fs"), path = require("path");
 var root = path.join(__dirname, "..");
-var geval = eval;
-["globals.js","compress.js","data.js","capability_bible.js","helpers.js","state.js","storage-adapter.js","memory.js","tag_table.js","api.js","game.js"].forEach(function(f){geval(fs.readFileSync(path.join(root,f),"utf8"));});
+// Full canonical engine load (dev/load-engine.js, AUDIT_FABLE_07_16_2026 #18). The old
+// hand-copied 11-file list here was a ROTTED copy, not a curation — it predated
+// campaign_generator.js (v1.290) and never picked up tts.js; loading the full 13 was
+// verified to leave all four corpus end states byte-identical (neither file touches
+// applyMuts/worldState at load). UI stubs below are assigned AFTER the load, so they win.
+var engine = require("./load-engine.js");
+engine.loadEngine();
 
 // UI stubs (same shape as the engine-test harness)
 var elStub={appendChild:function(){},remove:function(){},style:{},textContent:"",innerHTML:""};
@@ -24,9 +29,14 @@ if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){}
 var corpusPath = process.argv[2] || "dev/corpus_playtest_v1238.json";
 var corpus = JSON.parse(fs.readFileSync(path.join(root, corpusPath), "utf8"));
 
-// Vex Marrowlight's exact start state (the corpus campaign's turn-0 shape).
-memory = blankMemory(); sessionLog = [];
-worldState = { ver:10, campId:"replay", campName:"Replay", legacyCharsUsed:[], pendingLegacy:null,
+// Vex Marrowlight's exact start state (the corpus campaign's turn-0 shape), built on the
+// shared fixture (#19). The `character` override REPLACES the base character WHOLESALE
+// (makeTestWorld's shallow-merge contract) — Vex is a FROZEN corpus-era snapshot and must
+// stay byte-exact: the committed *.endstate.json files were generated from this shape, so
+// "modernizing" it (e.g. adding coreMemories:[], v1.304) would dirty all four end states
+// and break the tool's cross-version byte-comparability. Do NOT update Vex to schema
+// changes unless you deliberately regenerate every committed end state in the same commit.
+engine.makeTestWorld({ campId:"replay", campName:"Replay", turn:0,
   character:{ name:"Vex Marrowlight", gender:"F", age:"late twenties",
     appear:"Wiry, quick-eyed, ink-stained fingers; a grey hood over dark braids.", mark:"",
     backstory:"A copyist's apprentice who learned that the right whisper opens more doors than any key.",
@@ -40,8 +50,7 @@ worldState = { ver:10, campId:"replay", campName:"Replay", legacyCharsUsed:[], p
     statedAlignment:"Chaotic Neutral", actualAlignment:"Chaotic Neutral", alignLaw:-1, alignGood:0, deity:"",
     trait:"", flaw:"", motivation:"", languages:[{name:"Common",broken:false}], skills:initSkills(),
     conditions:[], relationships:[], saveModifiers:[], portrait:null, storyBeats:[], partyMember:true },
-  world:{ location:"The Crossroads of Ashenveil", region:"The Blighted Reach", time:"dusk", weather:"ash-fall", threat:"low", sublocation:null },
-  npcs:[], questLog:[], eventHistory:[], combat:null, turn:0, transcript:[], ragMemory:false };
+  world:{ location:"The Crossroads of Ashenveil", region:"The Blighted Reach", time:"dusk", weather:"ash-fall", threat:"low", sublocation:null } });
 
 var raws = corpus.raw || [];
 console.log("Smoke-replaying " + raws.length + " raw GM responses through the table parser…");
