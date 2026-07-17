@@ -320,6 +320,12 @@ var TTS = (function() {
     store.set(ON_K, on ? "1" : "");
     if (on) {
       _resumeCtx(_ensureCtx());  // create/resume NOW, inside the user gesture (v1.327: also revives an iOS-interrupted ctx)
+      // v1.328: escalate to a real PLAYBACK audio session for ALL WebAudio narration, not just Car
+      // Mode — iOS plays bare WebAudio in the "ambient" category, which the physical ringer/silent
+      // switch mutes (while speechSynthesis ignores the switch: the exact native-works/Piper-silent
+      // split reported from the phone with ctx state=running). The primer's silent loop, started
+      // in-gesture, claims playback category: mute-switch-immune + consistent BT routing.
+      primeAudioSession();
       if (getEngine() === "piper") prewarmPiper(resolvePiperVoice());  // §5 Q4 — off the critical path of the first real line
     } else {
       stop();
@@ -569,6 +575,7 @@ var TTS = (function() {
     // suspended-only check scheduled Cartesia chunks onto a stopped clock = silence).
     _ctxRunning(ctx).then(function(ok) {
       if (!ok) { _ctxBlockedLoud("Cartesia"); _curNative = true; _speakNative(text); return; }
+      primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent
       _streamGo(text, voiceId, ctx);
     });
   }
@@ -848,6 +855,7 @@ var TTS = (function() {
     var ctxOk = await _ctxRunning(ctx);
     if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited
     if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
+    primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (_primerSrc guard)
 
     var mod;
     try {
