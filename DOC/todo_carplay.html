@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Mode — Audit &amp; Backlog (todo_carplay)</title>
+<style>
+:root{
+  --bg0:#111; --bg1:#181818; --bg2:#1f1f1f; --brd:#333; --brd2:#2a2a2a;
+  --acc:#b8935a; --t0:#e8e0d0; --t1:#b8b0a0; --t2:#807868;
+  --high:#e06060; --med:#e0a060; --low:#7aa86a;
+  --font:Georgia,'Times New Roman',serif; --mono:Consolas,'Courier New',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);line-height:1.55;padding:32px 20px 80px;}
+.wrap{max-width:1280px;margin:0 auto;}
+h1{color:var(--acc);font-size:26px;margin:0 0 4px;}
+h2{color:var(--acc);font-size:18px;margin:36px 0 10px;border-bottom:1px solid var(--brd2);padding-bottom:6px;}
+.meta{font-family:var(--mono);font-size:12px;color:var(--t2);margin-bottom:22px;}
+p{color:var(--t1);font-size:14px;max-width:900px;}
+code{font-family:var(--mono);font-size:.92em;color:var(--acc);background:var(--bg2);padding:1px 5px;border-radius:4px;}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:14px;}
+th{position:sticky;top:0;background:var(--bg1);color:var(--acc);text-align:left;padding:8px 10px;border-bottom:2px solid var(--acc);font-size:12px;letter-spacing:.5px;white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--brd2);vertical-align:top;color:var(--t1);}
+td.rank{font-family:var(--mono);color:var(--t0);font-weight:bold;white-space:nowrap;}
+td.area{white-space:nowrap;color:var(--t2);font-size:12px;font-family:var(--mono);}
+tr:hover td{background:var(--bg1);}
+/* Verdict-badge standard (user-approved 2026-07-12, DOC/app_vs_browser.html .lean recipe):
+   bg = accent cut to 20% HSV value, 1px FULL-brightness border, bold mono uppercase text
+   at rgba(255,255,255,.4), radius 12, 2px 10px, .78em, ls 1px. */
+.pill{display:inline-block;border-radius:12px;padding:2px 10px;font-family:var(--mono);font-weight:bold;text-transform:uppercase;font-size:.78em;letter-spacing:1px;color:rgba(255,255,255,.4);white-space:nowrap;}
+.sev-high{background:#2d1313;border:1px solid var(--high);}
+.sev-med {background:#2d2013;border:1px solid var(--med);}
+.sev-low {background:#182215;border:1px solid var(--low);}
+.st-open {background:#251d12;border:1px solid var(--acc);}
+.ev{background:var(--bg1);border:1px solid var(--brd2);border-left:3px solid var(--acc);border-radius:6px;padding:12px 16px;margin:10px 0;font-size:13px;color:var(--t1);}
+.ev b{color:var(--t0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🚗 Car Mode — Audit &amp; Backlog</h1>
+<div class="meta">todo_carplay · Fable deep-dive 2026-07-17 · audited at engine v1.341 · surfaces read in full: ui-carmode.js, stt.js, tts.js (post-piper-audit), #car-overlay markup/CSS (index.html), wiring (ui-boot.js), status writers (ui-shell.js addMsg), busy lifecycle (game.js) · 24 findings, severity-ranked · all rows OPEN</div>
+
+<p><b>Method.</b> Full read of every Car Mode surface plus its integration seams (TTS queue/engine ladder, STT auto-send, mediaSession/Bluetooth controls, busy gate, toast channel, service-worker asset caching for the voice models). Layout claims were <b>render-verified</b> in the browser at 375×812 (portrait — clean) and 812×375 (landscape — broken, see rank 3). Each remedy carries a cross-feature repercussions note per the standing policy: nothing here should be fixed without reading its column 6.</p>
+
+<h2>Ranked findings</h2>
+<table>
+<tr><th>#</th><th>Area</th><th>Sev</th><th>Finding — root cause</th><th>Remedy</th><th>Cross-feature repercussions</th><th>Effort</th><th>Status</th></tr>
+
+<tr><td class="rank">1</td><td class="area">feedback</td><td><span class="pill sev-high">High</span></td>
+<td>Toasts render <b>behind</b> the overlay: <code>.tnd-toast</code> z-index 400 &lt; <code>#car-overlay</code> 500. Every failure/progress signal — GM-turn errors, voice-download progress, the v1.339 iOS-audio watchdog, quest offers — is invisible in the one mode where the screen is the only channel.</td>
+<td>Raise toast z-index above 500 (e.g. 600) AND route car-relevant classes (errors, download) into <code>#car-status</code> — toasts alone are too small to read while driving.</td>
+<td>Toasts will then overlay all modals too — acceptable (transient, tap-dismiss), but verify no modal flow expects to cover an active toast.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">2</td><td class="area">stability</td><td><span class="pill sev-high">High</span></td>
+<td>A failed GM turn strands the car on <b>“Thinking…” forever, in silence</b>: sendAction's error path (game.js:798) writes a retry UI into the story log — which the overlay covers — and never touches <code>#car-status</code>; nothing is spoken. Driver cannot tell failure from a slow turn.</td>
+<td>carMode branch on the error path: <code>_carSetStatus("⚠ Turn failed — tap to retry")</code>, map the next tap to <code>retryLast()</code>, optionally speak a short failure line via the native engine.</td>
+<td>Tap gains a state (retry-armed) — must reset on any success and never fire while <code>busy</code>; desktop error path stays byte-identical.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">3</td><td class="area">layout</td><td><span class="pill sev-high">High</span></td>
+<td><b>Landscape mount is unusable — render-verified.</b> At 812×375 the portrait circle (<code>min(360px,60vw)</code> at 3/4 aspect, <code>flex-shrink:0</code>) is 360×480px in a 375px-tall fixed non-scrolling overlay: status line and ALL THREE controls (⏮ 🎤 ⏭) are pushed fully off-screen; the × lands mid-screen. Portrait (375×812) verified clean.</td>
+<td>Cap the circle by viewport height too (<code>min(360px,60vw,50vh)</code>) and add an <code>@media (orientation:landscape)</code> row layout: portrait left, status+controls right.</td>
+<td>Overlay CSS only; re-verify BOTH orientations by screenshot after (the v0.28 lesson: render is ground truth).</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">4</td><td class="area">input</td><td><span class="pill sev-high">High</span></td>
+<td><b>Tap-to-cancel actually sends.</b> <code>_carTap</code> on a live mic calls <code>STT.stop()</code> → <code>rec.stop()</code> <i>finalizes</i> recognition → <code>onend</code> auto-sends whatever was heard (car mode forces auto-send, stt.js:98) — while the status shows “Ready” as if cancelled. A mis-tap or passenger interruption fires an unwanted GM turn.</td>
+<td>Add <code>STT.cancel()</code> using <code>rec.abort()</code> (discards results, no auto-send); car tap uses cancel semantics.</td>
+<td>Desktop #mic-btn keeps stop()=finalize (dictation-into-field is its contract). Verify <code>onend</code> still resyncs state after abort and the "aborted" onerror stays silent (it already does).</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">5</td><td class="area">stability</td><td><span class="pill sev-high">High</span></td>
+<td><b>No Screen Wake Lock.</b> Zero <code>wakeLock</code> references in the codebase. When the screen sleeps mid-drive: STT dies, timers throttle, the loop stalls (narration may survive via the playback session, but the conversation is over until the driver unlocks the phone).</td>
+<td><code>navigator.wakeLock.request("screen")</code> in showCarMode; re-acquire on visibilitychange (locks auto-release on hide); release in hideCarMode. Feature-detect (Chrome/Android, iOS Safari 16.4+).</td>
+<td>Battery draw is expected in-car (phone typically charging); MUST release on hide so normal play never holds the lock.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">6</td><td class="area">bluetooth</td><td><span class="pill sev-high">High</span></td>
+<td><b>A2DP↔HFP profile flapping.</b> Auto-mic opens SpeechRecognition ~800ms after <i>every</i> narration (<code>_carAutoMic</code>); on Bluetooth car audio, opening a mic switches the route to the handsfree profile — output ducks/degrades, and many head units clip the first ~1s of the next narration when switching back. The tighter the loop, the worse the flapping.</td>
+<td>Add an “Auto-listen after narration” pref (default ON = today's behavior) so BT users can switch to push-to-talk; consider lengthening the delay. (No web API reliably detects BT routing — a pref beats a heuristic.)</td>
+<td>Pref must default to current behavior; pairs with rank 21 (continuous mode) — design them together, they pull opposite directions.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">7</td><td class="area">platform</td><td><span class="pill sev-high">High</span></td>
+<td><b>iOS Safari has no SpeechRecognition</b> — Car Mode is output-only on iPhone (the primary phone platform): <code>_carStartMic</code> dead-ends at “Voice input not available in this browser”. The flagship car-trip feature can't take voice input where it's most used.</td>
+<td>Options: ① cloud STT adapter (MediaRecorder → provider, same adapter-table shape as PROVIDERS/TTS_PROVIDERS); ② surface a clear hint that iOS keyboard-dictation into the normal input works outside car mode. ① is the real fix.</td>
+<td>Cloud STT adds cost + a key surface + latency; the adapter-table shape keeps <code>if(provider)</code> branches out. Recognition audio leaves the device — note it in the UI.</td>
+<td>L</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">8</td><td class="area">input</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Auto-send has no quality gate.</b> Any final transcript — a cough transcribed as “uh”, road noise as a word — auto-sends a real GM turn: API cost, a polluted narrative beat, ~30s of dead time.</td>
+<td>Gate: transcript &lt; ~3 characters → <code>#car-status</code> “Heard ‘uh’ — tap to retry”, no send. Keep it minimal so legit one-worders (“attack”, “yes”, “flee”) pass.</td>
+<td>Desktop auto-send pref must keep identical behavior (gate only under carMode, or apply globally after a play-test). RETCON/retry already covers the escaped cases.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">9</td><td class="area">feedback</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Voice-download dead air.</b> First Piper line in the car can trigger a 60–115MB download (progress toast invisible per rank 1) — minutes of silence, possibly on cellular, with no in-car indication anything is happening.</td>
+<td>When carMode, mirror download start/progress/done into <code>#car-status</code> (the progress callback already exists); consider a pre-flight check on entering car mode that warns if the selected voice isn't on disk.</td>
+<td>Reuses <code>_piperEnsureVoiceNow</code>'s existing loud path — no new download logic; keep the (v1.340) truthful size in the message.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">10</td><td class="area">freshness</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Party bar / portrait / name never refresh</b> after entry — <code>_carUpdate()</code> runs only in showCarMode. HP swings, companion joins/departures, and mid-game player switches leave the dots and hero stale for the whole drive.</td>
+<td>Tail-call <code>if (carMode) _carUpdate()</code> from <code>syncUI()</code> (ui-panels.js) — the one place every state change already funnels through.</td>
+<td>syncUI is hot: <code>_carUpdate</code> re-sets <code>img.src</code> each call → guard with a changed-check to avoid portrait flicker/decode churn.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">11</td><td class="area">bluetooth</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Steering-wheel “play” while idle opens a hot mic.</b> mediaSession play/pause both map to <code>_carTap</code>; when nothing is playing, tap = start mic + auto-send. The universal “resume audio” gesture becomes surprise voice capture (a passenger pressing play sends their sentence to the GM).</td>
+<td>Split the handlers: mediaSession “play” while idle → replay last narration (or no-op); mic stays on the on-screen tap only.</td>
+<td>Changes BT semantics only — on-screen tap flow untouched. Pairs with rank 18 (what “last narration” means).</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">12</td><td class="area">controls</td><td><span class="pill sev-med">Med</span></td>
+<td><b>⏭ while paused starts the mic instead of skipping</b>: <code>_carNext</code> tests <code>isPlaying()</code> only; a paused narration falls through to <code>_carStartMic</code> — mic over a half-finished, still-queued story beat.</td>
+<td><code>isPlaying() || isPaused()</code> → skip. (<code>skip()</code> already handles a suspended ctx: <code>_drain</code> resets <code>_paused</code>.)</td>
+<td>None — skip semantics already correct downstream.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">13</td><td class="area">persistence</td><td><span class="pill sev-med">Med</span></td>
+<td><b>carMode doesn't survive a reload.</b> Any refresh or iOS tab-reclaim mid-drive lands in the full game UI — menu navigation at 70 mph to get back.</td>
+<td>Persist <code>tnd_carmode_v1</code>; <code>init()</code> restores the overlay when a saved game loads; expire the flag (&gt;~6h) so a desktop session weeks later doesn't boot into car UI.</td>
+<td>Boot ordering (needs worldState); the × must always work as the escape hatch; interacts with rank 5 (re-acquire wake lock on restore).</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">14</td><td class="area">feedback</td><td><span class="pill sev-med">Med</span></td>
+<td><b>No audio acknowledgment.</b> Between “Heard you…” and narration lies 10–30s of silence (GM latency + synth); eyes-on-road, that's indistinguishable from failure — which drives redundant taps and re-sends.</td>
+<td>Two tiny WebAudio earcons (oscillator blips, no assets): send-acknowledged and response-arrived. Pref-gated, car-mode-only by default.</td>
+<td>Schedule on the shared ctx so <code>stop()</code> kills them; keep them off the narration timeline (`_nextStart`) to avoid shifting speech starts.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">15</td><td class="area">input</td><td><span class="pill sev-med">Med</span></td>
+<td><b>Recognition is cloud-backed</b> (Chrome's STT is server-side): dead zones fail with a “network” error whose toast is invisible (rank 1) — status just says “Tap to speak”, so the driver retries into repeated silent failure.</td>
+<td>Route STT errors into <code>#car-status</code> in plain words (“No signal — voice input needs a connection”). Document the offline limitation beside the offline-TTS claim.</td>
+<td>None. (True offline STT would need a wasm model — out of scope; note only.)</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">16</td><td class="area">correctness</td><td><span class="pill sev-low">Low</span></td>
+<td><b>Exiting car mode with the voice toggle OFF leaves the narrator running.</b> speakResponse spoke because carMode was true; hideCarMode stops the primer but not the speech — “voice off” now audibly lying.</td>
+<td><code>hideCarMode</code>: <code>if (!TTS.isOn()) TTS.stop()</code>.</td>
+<td>Voice-ON users exiting mid-read keep their narration — correct; only the car-only-speech case stops.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">17</td><td class="area">queue</td><td><span class="pill sev-low">Low</span></td>
+<td>⏮ replay calls <code>TTS.stop()</code>, which clears the whole queue — a second queued narration item (rare but possible) is silently discarded to replay the first.</td>
+<td>Snapshot and re-queue pending items after the replay item, or accept and document the trade.</td>
+<td>Queue re-injection must respect per-item engine/voiceId fields.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">18</td><td class="area">scope</td><td><span class="pill sev-low">Low</span></td>
+<td>⏮ replays <code>_lastSpokenText</code>, which every <code>speak()</code> caller sets — a settings-modal Test can leave “The lightless mass rotates…” as the “last narration” the car replays. Also not persisted, so ⏮ is dead after any reload (filed as tts #22).</td>
+<td>Record replay text only from <code>speakResponse</code> (narration-sourced), and persist it on worldState for reload survival.</td>
+<td>worldState write = rides the sync blob (tiny string); keep out of the stable prompt half — it's UI state, not prompt state.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">19</td><td class="area">input</td><td><span class="pill sev-low">Low</span></td>
+<td><b>Busy-window utterance is parked forever.</b> If <code>busy</code> flips true between mic start and <code>onend</code>, auto-send is skipped and the transcript sits invisibly in the hidden input (narrow window — auto-mic checks busy first — but reachable).</td>
+<td>On busy-clear in sendAction's tail: <code>if (carMode &amp;&amp; input.value.trim())</code> → surface “Heard you — tap to send” (don't auto-fire a stale utterance into a changed scene).</td>
+<td>Desktop must be untouched (users park text in the input deliberately); gate strictly on carMode.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">20</td><td class="area">missing</td><td><span class="pill sev-low">Low</span></td>
+<td><b>No volume or speech-rate control anywhere</b>: native rate hardcoded 1.0, Piper length_scale fixed in the vendored runtime, Cartesia as-served. Hardware volume is the only knob — awkward mid-drive.</td>
+<td>A rate pref: trivial for native (<code>utter.rate</code>); Piper needs a length_scale override in the vendored predict (= patch + <code>PIPER_RUNTIME_REV</code> bump per the delivery discipline).</td>
+<td>Vendored change → full rev/tripwire ceremony; rate changes alter unit durations → scheduler gaps unaffected (relative), but re-verify backpressure math.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">21</td><td class="area">missing</td><td><span class="pill sev-low">Low</span></td>
+<td><b>Single-shot listening</b>: auto-mic gives up after one no-speech timeout; a thinking driver returns to “Tap to speak” and must tap anyway — halfway defeating hands-free.</td>
+<td>Optional continuous mode: one silent auto-retry with a hard cap, pref-gated.</td>
+<td>Direct tension with rank 6 (BT flapping — more listening = more profile switches): design these two prefs as one setting.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">22</td><td class="area">missing</td><td><span class="pill sev-low">Low</span></td>
+<td><b>No glanceable state</b>: the overlay shows portrait + HP dots only. After a combat beat, a stoplight glance can't answer “how hurt am I?” — no big-text HP/gold, no last-line text to skim.</td>
+<td>Rotating one-line ticker under the status (HP after damage, gold after loot), or tap-portrait-to-peek panel.</td>
+<td>Data already flows through syncUI (pairs with rank 10). Driver-distraction: keep it glanceable, not readable.</td>
+<td>M</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">23</td><td class="area">bluetooth</td><td><span class="pill sev-low">Low</span></td>
+<td><b>No mediaSession positionState</b>: lock screens / head units show an inert scrubber, 0:00 durations, and sometimes flag the “track” as stalled.</td>
+<td>Approximate <code>setPositionState</code> from the scheduler (<code>_nextStart − currentTime</code> as remaining) per narration item; clear on drain.</td>
+<td>Cosmetic; must update on pause/resume or some UIs show drift.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+
+<tr><td class="rank">24</td><td class="area">a11y</td><td><span class="pill sev-low">Low</span></td>
+<td>Car statuses are 14px, low-contrast <code>--t1</code>, English-hardcoded — small for an arm's-length mounted phone, and unlocalizable.</td>
+<td>Bump <code>#car-status</code> to 18–20px/high-contrast; centralize the ~10 status strings in one table for future i18n.</td>
+<td>None; string table helps rank 2/9/15 land their new statuses consistently.</td>
+<td>S</td><td><span class="pill st-open">Open</span></td></tr>
+</table>
+
+<h2>Verified evidence</h2>
+<div class="ev"><b>Landscape break (rank 3):</b> live render at 812×375 — portrait circle overflows the viewport; status + all three controls off-screen; × misplaced. Portrait 375×812 renders correctly (hero, party dots, status, controls). Both screenshots taken 2026-07-17 against v1.341 on localhost.</div>
+<div class="ev"><b>Toast burial (rank 1):</b> <code>index.html:438</code> — <code>#car-overlay … z-index:500</code>; <code>ui-shell.js:28</code> — <code>.tnd-toast … z-index:400</code>. Code-confirmed, not inferred.</div>
+<div class="ev"><b>Stuck Thinking… (rank 2):</b> <code>game.js:798</code> error path writes the retry UI to the story log (covered by the overlay) and never writes <code>#car-status</code>; <code>ui-shell.js:126</code> shows the only carMode status writers are the "thinking"/"narrator" message types.</div>
+<div class="ev"><b>Send-on-cancel (rank 4):</b> <code>ui-carmode.js:134</code> → <code>STT.stop()</code>; <code>stt.js:117</code> uses <code>rec.stop()</code> (finalize), and <code>stt.js:98</code> auto-sends on any final when <code>carMode</code>.</div>
+
+<h2>Cross-references</h2>
+<p>TTS-side residuals #18–#22 from the 2026-07-17 piper audit are filed in TODO.md #41 (rank 18 here subsumes tts #22). The piper delivery discipline (PIPER_RUNTIME_REV / TND_DEP_REV / rename-on-change) applies to rank 20's vendored change. Multiplayer (#1) plans Car Mode as the car-trip surface — ranks 5, 6, 13 are prerequisites for that vision to survive a real highway drive.</p>
+
+</div>
+</body>
+</html>
