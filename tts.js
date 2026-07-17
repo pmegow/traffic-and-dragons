@@ -1260,10 +1260,6 @@ var TTS = (function() {
   }
 
   function showSettingsModal() {
-    var ex = document.getElementById("tts-modal"); if (ex) ex.remove();
-    var modal = document.createElement("div");
-    modal.id = "tts-modal";
-    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
     var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
     // One engine panel at a time (user call 2026-07-16, from the phone screenshot: every option on
@@ -1278,8 +1274,9 @@ var TTS = (function() {
         + "<span style='font-size:13px;color:var(--t0);'>" + label + "</span>"
         + "</label>";
     }
-    modal.innerHTML = "<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:480px;width:100%;margin-top:60px;'>"
-      + "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
+    /* #14: modalShell (global, ui-shell.js) — callable from this IIFE at run time */
+    var modal = modalShell("tts-modal",
+      "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
       +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
       +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
       + "</div>"
@@ -1345,12 +1342,8 @@ var TTS = (function() {
       +     "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Also the shared FALLBACK whenever Cartesia or Piper is unavailable — worth setting even if you use another engine. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
       +   "</div>"
       + "</div>"
-      + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:var(--font);font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>"
-      + "</div>";
-    document.body.appendChild(modal);
-
-    document.getElementById("tts-modal-x").addEventListener("click", function() { modal.remove(); });
-    modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+      + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:var(--font);font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>",
+      { align: "flex-start", overlayExtra: "overflow-y:auto;", boxBg: "#181818", maxWidth: 480, boxExtra: "margin-top:60px;", closeId: "tts-modal-x", outside: true });
 
     _updateCartErr();
     _updatePiperErr();

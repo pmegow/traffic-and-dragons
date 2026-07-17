@@ -113,30 +113,23 @@ function csSheetSections(c,invOwner){
 // and ability names in the character sheet (data-cap).
 function showCapabilityCard(name){
   var e=(typeof capabilityLookup==="function")?capabilityLookup(name):null;
-  var ex=document.getElementById("cap-card-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="cap-card-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
-  modal.innerHTML="<div style='background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;'>"+bibleCardHTML(name,e)+"<button id='cap-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button></div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(ev){if(ev.target===modal)modal.remove();});
-  var x=document.getElementById("cap-card-x");if(x)x.onclick=function(){modal.remove();};
+  /* #14: bg .9 + padless position:relative box — the card carries its own chrome */
+  modalShell("cap-card-modal",
+    bibleCardHTML(name,e)+"<button id='cap-card-x' style='position:absolute;top:6px;right:10px;background:none;border:none;color:var(--t2);font-size:24px;line-height:1;cursor:pointer;'>&times;</button>",
+    {z:400,bg:".9",boxCss:"background:var(--modal-bg,#181818);border:1px solid var(--acc);border-radius:12px;max-width:420px;width:100%;position:relative;",closeId:"cap-card-x",outside:true});
 }
 function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
 
 function showCharSheet(){
   if(!worldState)return;
-  var ex=document.getElementById("cs-modal");if(ex)ex.remove();
   var c=worldState.character;
 
   var initials=csInitials(c.name);
   var hdr=csHeroHeader(c);
 
   // ── compose ───────────────────────────────────────────────────────────────
-  var modal=document.createElement("div");modal.id="cs-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
-
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+  var modal=modalShell("cs-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
@@ -158,15 +151,11 @@ function showCharSheet(){
     +"</div>"
     +"</div></div>"
 
-    +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the drop × (#50) */
+    +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the drop × (#50) */,
+    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"cs-x",outside:true});
 
-    +"</div>";
-
-  document.body.appendChild(modal);
-  document.getElementById("cs-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   csWireToggles(modal);
 
   // ── portrait handlers ─────────────────────────────────────────────────────
@@ -275,7 +264,6 @@ function partWaysWithCompanion(name){
 }
 function showNpcSheet(name){
   if(!worldState)return;
-  var ex=document.getElementById("npc-modal");if(ex)ex.remove();
   var wsNpc=wsNpcByName(name),i;/* #7: shared lookup */
   var memNpc=memory&&memory.npcs?memory.npcs[name]:null;
   if(!wsNpc&&!memNpc)return;
@@ -354,38 +342,33 @@ function showNpcSheet(name){
   var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
   var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
-  var modal=document.createElement("div");modal.id="npc-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+  var modal=modalShell("npc-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
     +"<div class='cs-hero-info'>"+heroInfo+"</div></div>"
     +sheetSections
     +(sheetSections?"<div style='height:1px;background:var(--brd);margin:18px 0;'></div>":"")
     +npcSections
     +genBtnHtml
-    +partWaysHtml
-    +"</div>";
+    +partWaysHtml,
+    {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"npc-x",outside:true});
 
-  document.body.appendChild(modal);
-  document.getElementById("npc-x").addEventListener("click",function(){modal.remove();});
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   csWireToggles(modal);
 
   // ── Play as this character ────────────────────────────────────────────────
   if(document.getElementById("npc-play-btn")){
     document.getElementById("npc-play-btn").addEventListener("click",function(){
-      var confirm=document.createElement("div");
-      confirm.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;";
-      confirm.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;text-align:center;'>"
-        +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Switch character?</div>"
+      /* #14: converted to the shell — id "switch-confirm" is NEW (the legacy div was
+         anonymous; it sat under a full-screen overlay so a duplicate could never stack) */
+      var confirm=modalShell("switch-confirm",
+        "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Switch character?</div>"
         +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>"+escHtml(name)+" will take the lead. "+escHtml(worldState.character.name)+" becomes a companion.</div>"
         +"<div style='display:flex;gap:10px;justify-content:center;'>"
         +"<button id='sw-ok' style='padding:10px 28px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Switch</button>"
         +"<button id='sw-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
-        +"</div></div>";
-      document.body.appendChild(confirm);
+        +"</div>",
+        {z:500,maxWidth:360,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
       document.getElementById("sw-ok").addEventListener("click",function(){confirm.remove();modal.remove();_switchPlayerCharacter(name);});
       document.getElementById("sw-cancel").addEventListener("click",function(){confirm.remove();});
     });
@@ -399,16 +382,15 @@ function showNpcSheet(name){
   // ── Part ways (remove from party) ─────────────────────────────────────────
   if(document.getElementById("npc-part-btn")){
     document.getElementById("npc-part-btn").addEventListener("click",function(){
-      var pc=document.createElement("div");
-      pc.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;";
-      pc.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;text-align:center;'>"
-        +"<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Part ways with "+escHtml(name)+"?</div>"
+      /* #14: converted to the shell — id "partways-confirm" is NEW (legacy div was anonymous) */
+      var pc=modalShell("partways-confirm",
+        "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Part ways with "+escHtml(name)+"?</div>"
         +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>They leave the party and become an ordinary NPC. You can recruit them again later, and a party slot frees up.</div>"
         +"<div style='display:flex;gap:10px;justify-content:center;'>"
         +"<button id='pw-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--dng);color:var(--on-dng);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Part ways</button>"
         +"<button id='pw-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
-        +"</div></div>";
-      document.body.appendChild(pc);
+        +"</div>",
+        {z:500,maxWidth:360,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
       document.getElementById("pw-ok").addEventListener("click",function(){pc.remove();modal.remove();partWaysWithCompanion(name);});
       document.getElementById("pw-cancel").addEventListener("click",function(){pc.remove();});
     });
@@ -482,15 +464,12 @@ function _switchPlayerCharacter(name){
 // opts.onImport, if supplied, adds an Import button to the header.
 function showReadOnlyCharSheet(c,opts){
   if(!c)return;
-  var ex=document.getElementById("ro-cs-modal");if(ex)ex.remove();
   opts=opts||{};
   var initials=csInitials(c.name||"?");
   var hdr=csHeroHeader(c);
-  var modal=document.createElement("div");modal.id="ro-cs-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:420;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;";
   var importBtn=opts.onImport?"<button id='ro-cs-import' style='font-size:11px;font-family:var(--font);padding:4px 12px;border:none;border-radius:var(--r);background:var(--acc);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Import</button>":"";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;margin:20px 0 40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Character library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+  var modal=modalShell("ro-cs-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:11px;color:var(--t2);font-style:italic;'>Character library snapshot &middot; read-only</span><div style='display:flex;gap:8px;align-items:center;'>"+importBtn+"<button id='ro-cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
     +"<div class='cs-avatar'>"+(c.portrait?"<img src='"+c.portrait+"' alt='"+escHtml(c.name||"")+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"</div>"
@@ -510,11 +489,8 @@ function showReadOnlyCharSheet(c,opts){
     +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
     +"</div>"
     +"</div></div>"
-    +csSheetSections(c)
-    +"</div>";
-  document.body.appendChild(modal);
-  document.getElementById("ro-cs-x").addEventListener("click",function(){modal.remove();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    +csSheetSections(c),
+    {z:420,align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"ro-cs-x",outside:true});
   if(opts.onImport){document.getElementById("ro-cs-import").addEventListener("click",function(){modal.remove();opts.onImport();});}
   csWireToggles(modal);
 }

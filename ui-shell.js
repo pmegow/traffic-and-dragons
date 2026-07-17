@@ -44,6 +44,47 @@ function showLoadingModal(msg){
   document.body.appendChild(modal);
   return function(){var m=document.getElementById("loading-modal");if(m)m.remove();};
 }
+// ── #14: THE modal scaffold (AUDIT_FABLE_07_16_2026 #14) ──────────────────────
+// Every standard modal (dim overlay + amber box) routes through this — the ~28 hand-rolled
+// copies of remove-prior / overlay div / inner box / ×-wiring / click-outside are gone.
+// Opts pass each modal's CURRENT values through verbatim (drift-FREEZING, not drift-fixing:
+// the ad-hoc z 300/400/410/420/500 and margin spread stay as they were; harmonizing them is
+// a separate deliberate commit). Opts:
+//   z:300            overlay z-index
+//   bg:".88"         overlay black alpha (cap-card uses .9)
+//   align:"center"   overlay align-items ("flex-start" for tall scrolling modals)
+//   overlayExtra:""  appended after padding — e.g. "overflow-y:auto;" (sheets add the
+//                    -webkit-overflow-scrolling:touch variant)
+//   overlayCss       FULL overlay cssText override (escape hatch; none needed today)
+//   maxWidth:480     box max-width in px
+//   boxBg            box background (default var(--modal-bg); game/tts legacy boxes #181818)
+//   boxPad:"24px"    box padding (confirm dialogs use "28px 24px")
+//   boxExtra:""      appended after width:100%; — "margin-top:40px;", "margin:20px 0 40px;",
+//                    "text-align:center;" …
+//   boxCss           FULL box style override (cap-card's padless position:relative box)
+//   closeId          id of an × button INSIDE innerHtml — wired to close
+//   outside:true     clicking the overlay itself closes
+//   onClose          replaces the default close action (modal.remove())
+//   wireClose:false  skip ALL close wiring (caller owns the close flow, e.g. re-rendering
+//                    modals that wire their × per render, or forced-choice modals)
+// Remove-prior-by-id is built in. Returns the overlay element; the box is .firstChild
+// (re-rendering callers set .firstChild.innerHTML).
+function modalShell(id,innerHtml,opts){
+  opts=opts||{};
+  var ex=document.getElementById(id);if(ex)ex.remove();
+  var modal=document.createElement("div");modal.id=id;
+  var overlayHead=opts.bg?("position:fixed;inset:0;background:rgba(0,0,0,"+opts.bg+");"):"position:fixed;inset:0;background:rgba(0,0,0,.88);";
+  modal.style.cssText=opts.overlayCss||(overlayHead+"z-index:"+(opts.z||300)+";display:flex;align-items:"+(opts.align||"center")+";justify-content:center;padding:20px;"+(opts.overlayExtra||""));
+  var boxCss=opts.boxCss||("background:"+(opts.boxBg||"var(--modal-bg)")+";border:1px solid var(--acc);border-radius:12px;padding:"+(opts.boxPad||"24px")+";max-width:"+(opts.maxWidth||480)+"px;width:100%;"+(opts.boxExtra||""));
+  modal.innerHTML="<div style='"+boxCss+"'>"+(innerHtml||"")+"</div>";
+  document.body.appendChild(modal);
+  if(opts.wireClose!==false){
+    var close=opts.onClose||function(){modal.remove();};
+    if(opts.closeId){var xb=document.getElementById(opts.closeId);if(xb)xb.addEventListener("click",close);}
+    if(opts.outside)modal.addEventListener("click",function(e){if(e.target===modal)close();});
+  }
+  return modal;
+}
 function showGame(){
   document.getElementById("char-screen").style.display="none";
   document.getElementById("game-screen").style.display="flex";

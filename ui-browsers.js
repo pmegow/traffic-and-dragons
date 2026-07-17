@@ -65,22 +65,16 @@ function loadCampaignCharacter(id,cb,msgs){
   });
 }
 function showBlueprintBrowser(){
-  var ex=document.getElementById("bp-browser-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="bp-browser-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var connected=storageAdapter.isServerMode();
   var mode=connected?"library":"local";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+  var modal=modalShell("bp-browser-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
     +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs.</div>"
     +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'></div>"
-    +"<div id='bp-body'></div>"
-    +"</div>";
-  document.body.appendChild(modal);
-  document.getElementById("bp-x").addEventListener("click",function(){modal.remove();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    +"<div id='bp-body'></div>",
+    {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",closeId:"bp-x",outside:true});
   function showPreview(bp){
     var body=document.getElementById("bp-body");if(!body)return;
     var actCount=bp.acts?bp.acts.length:0;
@@ -201,12 +195,13 @@ function showBlueprintBrowser(){
 }
 // ── Character browser modal ───────────────────────────────────────────────────
 function showCharacterBrowser(initialMode){
-  var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
   ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
   // Explicit arg wins; otherwise land on Library when connected, fall back to Local when offline.
   var mode=(initialMode==="local"||initialMode==="library")?initialMode:(storageAdapter.isServerMode()?"library":"local");
-  var modal=document.createElement("div");modal.id="char-browser-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
+  /* #14: re-rendering modal — shell() below repaints the box (modal.firstChild) per mode
+     switch and re-wires its own ×, so only the outside-closer rides the scaffold. */
+  var modal=modalShell("char-browser-modal","",{z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",outside:true});
+  var boxEl=modal.firstChild;
 
   // Campaign-character loads route through the shared loadCampaignCharacter (#15 ②) — this
   // browser's error strings ride in as the msgs arg (see _cbPickLocal below).
@@ -234,8 +229,7 @@ function showCharacterBrowser(initialMode){
     return "<div class='cbr-row' "+clickAttr+" style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;'>"+inner+"</div>";
   }
   function shell(bodyHtml){
-    modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-      +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+    boxEl.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
       +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
       +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>"+(mode==="library"?"Campaign-agnostic character snapshots. Click to inspect, then import.":"Characters from your saved campaigns. Click to inspect, then import.")+"</div>"
@@ -243,8 +237,7 @@ function showCharacterBrowser(initialMode){
       +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
-      +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>"
-      +"</div>";
+      +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>";
     document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
     // UA21 ①: shared scaffold; the same-mode guard this browser always had stays in onSwitch.
     cbrSegControl("cbr-seg",[{lbl:"&#9729; Character Library",val:"library",pos:"left"},{lbl:"<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local",val:"local",pos:"right"}],mode,cbrSegBtnWide,"data-mode",function(m){if(m!==mode){mode=m;render();}});
@@ -334,15 +327,10 @@ function showCharacterBrowser(initialMode){
     });
   };
 
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   render();
 }
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
-  var ex=document.getElementById("char-import-preview");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="char-import-preview";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
@@ -353,8 +341,9 @@ function showCharImportPreview(char, onAccept, onCancel){
   var spells=(char.spells||[]).filter(function(s){return!s.used;}).slice(0,6).map(function(s){return escHtml(s.nm);}).join(", ");
   var inv=escHtml((char.inventory||[]).join(", ")||"Nothing");
   var langs=(char.languages||[]).map(function(l){return escHtml(l.name)+(l.broken?" (broken)":"");}).join(", ")||"Common";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:520px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
+  /* #14: wireClose:false — × and Cancel share the custom doCancel (fires onCancel) */
+  var modal=modalShell("char-import-preview",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
     +"<span style='font-size:15px;color:var(--t0);font-weight:bold;'>Import Character</span>"
     +"<button id='cip-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='display:flex;gap:16px;align-items:center;margin-bottom:18px;'>"
@@ -381,8 +370,8 @@ function showCharImportPreview(char, onAccept, onCancel){
     +"<button id='cip-cancel' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
     +"</div>"
     +(worldState?"<button id='cip-companion' style='width:100%;padding:10px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>+ Add "+escHtml(char.name)+" as companion to current campaign</button>":"")
-    +"</div></div>";
-  document.body.appendChild(modal);
+    +"</div>",
+    {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:520,boxExtra:"margin-top:40px;",wireClose:false});
   function doCancel(){modal.remove();if(typeof onCancel==="function")onCancel();}
   document.getElementById("cip-x").addEventListener("click",doCancel);
   document.getElementById("cip-cancel").addEventListener("click",doCancel);
@@ -405,9 +394,6 @@ function exportCharacter(){
   var chars=[{name:worldState.character.name,sheet:worldState.character,label:"Player character"}];
   var i,npc;for(i=0;i<worldState.npcs.length;i++){npc=worldState.npcs[i];if(npc.charSheet){var sub="Party member";if(npc.charSheet.cls)sub+=" · "+npc.charSheet.cls+(npc.charSheet.level?" Lv"+npc.charSheet.level:"");chars.push({name:npc.name,sheet:npc.charSheet,label:sub});}}
   // Always show picker — never silently download
-  var ex=document.getElementById("char-export-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="char-export-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
   // Same slug as _doExportChar so the previewed filename matches what's actually written, and
   // escHtml the names/labels which are model-derived (audit E70).
   var slug=function(s){return(s||"unknown").replace(/[^a-zA-Z0-9_\-]/g,"_");};
@@ -420,12 +406,10 @@ function exportCharacter(){
       +"<div style='font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(fname)+"</div></div>"
       +"<span style='font-size:18px;color:var(--t2);flex-shrink:0;'>&#8595;</span></div>";
   }
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>Export Character</span><button id='cep-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-    +rows+"</div>";
-  document.body.appendChild(modal);
-  document.getElementById("cep-x").addEventListener("click",function(){modal.remove();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+  modalShell("char-export-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>Export Character</span><button id='cep-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +rows,
+    {maxWidth:420,closeId:"cep-x",outside:true});
   window._charExportList=chars;
 }
 function _charExportPick(idx){
@@ -453,18 +437,16 @@ function _importCharToReview(char){
 function _startImportedCampaign(char){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   pendingBlueprint=null; // a stale wizard blueprint would otherwise apply to this import + override its location (audit E86)
-  var ex=document.getElementById("import-setup");if(ex)ex.remove();
   // Clone starting-location options from the wizard's Review-step select so the lists never drift.
   var locSel=document.getElementById("rv-start-loc"),locOpts="",li;
   if(locSel&&locSel.options.length){for(li=0;li<locSel.options.length;li++){var lo=locSel.options[li];locOpts+='<option value="'+escHtml(lo.value)+'">'+escHtml(lo.textContent)+'</option>';}}
   else locOpts='<option value="The Crossroads of Ashenveil">The Crossroads of Ashenveil</option><option value="custom">Custom…</option>';
   var toneOpts="",ti;for(ti=0;ti<TONES.length;ti++){if(TONES[ti].id==="custom")continue;toneOpts+='<option value="'+ti+'"'+(TONES[ti].id==="swords"?" selected":"")+'>'+escHtml(TONES[ti].nm)+'</option>';}
-  var modal=document.createElement("div");modal.id="import-setup";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:410;display:flex;align-items:center;justify-content:center;padding:20px;";
   var lblCss="display:block;font-size:11px;color:var(--t2);margin-bottom:4px;";
   var inpCss="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);font-family:var(--font);font-size:13px;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>New campaign for "+escHtml(char.name)+"</div>"
+  /* #14: wireClose:false — forced-choice setup; Cancel button is the only way out */
+  var modal=modalShell("import-setup",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>New campaign for "+escHtml(char.name)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:18px;'>Lv"+(char.level||1)+" "+escHtml(((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim())+" — imported as-is</div>"
     +"<label style='"+lblCss+"'>Campaign name</label>"
     +"<input id='is-camp-name' type='text' value='"+escHtml(char.name)+"' style='"+inpCss+"margin-bottom:12px;'/>"
@@ -477,8 +459,8 @@ function _startImportedCampaign(char){
     +"<div style='display:flex;gap:10px;'>"
     +"<button id='is-go' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Begin your journey</button>"
     +"<button id='is-cancel' style='padding:11px 18px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
-    +"</div></div>";
-  document.body.appendChild(modal);
+    +"</div>",
+    {z:410,maxWidth:420,wireClose:false});
   document.getElementById("is-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("is-loc").addEventListener("change",function(){document.getElementById("is-loc-text").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("is-go").addEventListener("click",function(){
@@ -536,20 +518,16 @@ function importCharacterFile(e){
 function _charLibSlug(name){return(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
 
 function _showCharExportOptions(char){
-  var ex=document.getElementById("char-export-opts");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="char-export-opts";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
   var connected=storageAdapter.isServerMode();
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:380px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>Export "+escHtml(char.name)+"</div>"
+  var modal=modalShell("char-export-opts",/* #14 */
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>Export "+escHtml(char.name)+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:20px;'>Lv"+char.level+" "+escHtml((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim()+"</div>"
     +"<div style='display:flex;flex-direction:column;gap:8px;'>"
     +"<button id='ceo-character-library' style='padding:11px;font-size:13px;font-family:var(--font);background:"+(connected?"var(--acc)":"var(--bg3)")+";color:"+(connected?"var(--on-acc)":"var(--t2)")+";border:none;border-radius:var(--r);cursor:"+(connected?"pointer":"default")+";font-weight:bold;"+(connected?"":"")+";'>&#9729; Save to character library"+(connected?"":" <span style='font-size:10px;font-weight:normal;'>(not connected)</span>")+"</button>"
     +"<button id='ceo-file' style='padding:10px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);color:var(--t1);border-radius:var(--r);cursor:pointer;'>&#8595; Download .char file</button>"
     +"<button id='ceo-cancel' style='padding:8px;font-size:12px;font-family:var(--font);background:none;border:none;color:var(--t2);cursor:pointer;'>Cancel</button>"
-    +"</div></div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    +"</div>",
+    {z:400,maxWidth:380,outside:true});
   document.getElementById("ceo-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("ceo-file").addEventListener("click",function(){modal.remove();_doExportChar(char.name,char);showToast("Character downloaded.");});
   var libBtn=document.getElementById("ceo-character-library");
@@ -567,17 +545,15 @@ function _showCharExportOptions(char){
 }
 
 function _showCharOverwriteConfirm(char,existing){
-  var ex=document.getElementById("char-overwrite-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="char-overwrite-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:360px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite character library entry?</div>"
+  /* #14: wireClose:false — explicit Overwrite/Cancel choice only */
+  var modal=modalShell("char-overwrite-modal",
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>Overwrite character library entry?</div>"
     +"<div style='font-size:13px;color:var(--t2);margin-bottom:20px;'>Character library has <span style='color:var(--t1);'>"+escHtml(existing.name)+" Lv"+existing.level+"</span>. Replace with <span style='color:var(--acc);'>Lv"+char.level+"</span>?</div>"
     +"<div style='display:flex;gap:10px;'>"
     +"<button id='cow-ok' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Overwrite</button>"
     +"<button id='cow-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
-    +"</div></div>";
-  document.body.appendChild(modal);
+    +"</div>",
+    {z:400,maxWidth:360,wireClose:false});
   document.getElementById("cow-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("cow-ok").addEventListener("click",function(){
     var btn=document.getElementById("cow-ok");btn.textContent="Saving…";btn.disabled=true;
@@ -625,9 +601,6 @@ function _removePendingCompanion(idx){
   _renderCompanionSlots();
 }
 function showCompanionBrowser(){
-  var ex=document.getElementById("char-browser-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="char-browser-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var connected=storageAdapter.isServerMode()&&storageAdapter.hasToken(); // adapter owns the token (audit B9)
   var mode=connected?"library":"local";
   // Campaign-character loads route through the shared loadCampaignCharacter (#15 ②) with this
@@ -705,16 +678,13 @@ function showCompanionBrowser(){
     cbrSegControl("comp-seg",[{lbl:"&#9729; Character Library",val:"library",pos:"left"},{lbl:"Local",val:"local",pos:"right"}],mode,cbrSegBtnStd,"data-seg",function(v){mode=v;render();});/* UA21 ① */
     if(mode==="library")renderLibrary();else renderLocal();
   }
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
+  var modal=modalShell("char-browser-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Add Companion</span>"
     +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>"+pendingCompanions.length+" / 3 selected</div>"
     +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'></div>"
-    +"<div id='comp-list'></div>"
-    +"</div>";
-  document.body.appendChild(modal);
-  document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
+    +"<div id='comp-list'></div>",
+    {z:500,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",closeId:"cbr-x",outside:true});
   render();
 }

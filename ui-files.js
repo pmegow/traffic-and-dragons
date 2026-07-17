@@ -176,19 +176,15 @@ function exportSave(){
   // Check if we've saved this filename before (same turn = likely overwrite)
   var saved=[];try{var sr=localStorage.getItem("tnd_saved_files_v1");if(sr)saved=JSON.parse(sr);}catch(e){}
   var alreadySaved=saved.indexOf(fname)>=0;
-  var ex=document.getElementById("save-confirm-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="save-confirm-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:400px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
+  var modal=modalShell("save-confirm-modal",/* #14 */
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Save Game (local)</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Turn "+worldState.turn+" &nbsp;·&nbsp; "+worldState.world.location+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>File</div>"
     +"<input id='sc-fname' type='text' value='"+fname+"' style='width:100%;font-size:12px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;color:var(--t1);box-sizing:border-box;margin-bottom:"+(alreadySaved?"12":"20")+"px;'/>"
     +(alreadySaved?"<div style='font-size:12px;color:var(--acc);margin-bottom:16px;'>&#9888; A file with this name may already exist in your downloads folder.</div>":"")
     +"<div style='display:flex;gap:10px;'><button id='sc-cancel' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
-    +"<button id='sc-save' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Save</button></div>"
-    +"</div>";
-  document.body.appendChild(modal);
+    +"<button id='sc-save' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Save</button></div>",
+    {maxWidth:400,outside:true});
   function getFname(){var el=document.getElementById("sc-fname");return(el&&el.value.trim())||fname;}
   function doSave(){
     var actualFname=getFname();
@@ -207,7 +203,6 @@ function exportSave(){
   document.getElementById("sc-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("sc-save").addEventListener("click",doSave);
   document.getElementById("sc-fname").addEventListener("keydown",function(e){if(e.key==="Enter")doSave();});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
 // buildBlueprintFromGame moved to game.js (v1.156) — pure data logic, now headless-testable.
 // The Blueprint Designer is a fully EXTERNAL page (blueprint-designer.html, D5 revised
@@ -216,14 +211,11 @@ function exportBlueprint(){
   if(!worldState||!worldState.character)return;
   document.getElementById("file-menu").style.display="none";
   var bp=buildBlueprintFromGame();
-  var ex=document.getElementById("bp-export-modal");if(ex)ex.remove();
   var connected=storageAdapter.isServerMode();
-  var modal=document.createElement("div");modal.id="bp-export-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
   var voiceOpts="",vCur=bp.proseAuthor||"",vi;
   for(vi=0;vi<AUTHORS.length;vi++){voiceOpts+="<option value='"+AUTHORS[vi].id+"'"+(AUTHORS[vi].id===vCur?" selected":"")+">"+escHtml(AUTHORS[vi].nm)+(AUTHORS[vi].blurb?" — "+escHtml(AUTHORS[vi].blurb):"")+"</option>";}
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
-    +"<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
+  var modal=modalShell("bp-export-modal",/* #14 */
+    "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Blueprint name</div>"
     +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'/>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Prose voice <span style='opacity:0.6;'>(player can override)</span></div>"
@@ -233,8 +225,8 @@ function exportBlueprint(){
     +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
     +"<button id='bp-export-dl' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#8595; Download</button>"
     +(connected?"<button id='bp-export-cloud' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>&#9729; Save to blueprint library</button>":"<button disabled style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:default;opacity:0.5;'>&#9729; Save to blueprint library</button>")
-    +"</div></div>";
-  document.body.appendChild(modal);
+    +"</div>",
+    {maxWidth:420,outside:true});
   function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
   function getVoice(){var s=document.getElementById("bp-export-voice");return s?s.value:"";}
   document.getElementById("bp-export-cancel").addEventListener("click",function(){modal.remove();});
@@ -256,7 +248,6 @@ function exportBlueprint(){
       });
     });
   }
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
 }
 function importSave(event){
   var file=event.target.files[0];if(!file)return;var reader=new FileReader();

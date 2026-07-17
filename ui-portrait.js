@@ -113,7 +113,6 @@ async function generatePortraitImage(prompt,refSrc){
   return falData.images[0].url;
 }
 async function showPortraitModal(refreshFn,opts){
-  var ex=document.getElementById("portrait-modal");if(ex)ex.remove();
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
   var getPort=opts&&opts.getPortrait?opts.getPortrait:function(){return worldState.character.portrait;};
   var setPort=opts&&opts.setPortrait?opts.setPortrait:function(url){worldState.character.portrait=url;storageAdapter.markPortraitDirty();saveAll();};/* mark dirty on removal too so it propagates (E28) */
@@ -136,17 +135,17 @@ async function showPortraitModal(refreshFn,opts){
     return d;
   }
 
-  var modal=document.createElement("div");modal.id="portrait-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:20px;";
   var IS="width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:10px;box-sizing:border-box;";
   var BA="display:block;width:100%;padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:left;box-sizing:border-box;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;";
   function div(lbl){return "<div style='display:flex;align-items:center;gap:8px;margin:14px 0;'><div style='flex:1;height:1px;background:var(--brd);'></div><span style='font-size:11px;color:var(--t2);'>"+lbl+"</span><div style='flex:1;height:1px;background:var(--brd);'></div></div>";}
   function lbl(t){return "<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>"+t+"</div>";}
 
 
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;margin:20px 0 40px;'>"
+  /* #14: legacy overlay had overflow-y:auto BEFORE display:flex — same declaration set, order
+     normalized to the shared scaffold (rendering identical; no conflicting properties). */
+  var modal=modalShell("portrait-modal",
     // Header
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'>"
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'>"
     +"<span style='font-size:15px;color:var(--t0);font-weight:bold;'>&#129718; Edit Portrait</span>"
     +"<button id='pm-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;'>&#215;</button>"
     +"</div>"
@@ -173,14 +172,10 @@ async function showPortraitModal(refreshFn,opts){
     +(hasPortrait?"<input type='text' id='pm-details-upd' placeholder='e.g. now wearing plate armour, older, battle-worn' style='"+IS+"'/>":"")
     +(hasPortrait?"<button id='pm-upd' style='"+BA+"'>&#10024; Update from Character Sheet</button>":"")
     // ── Result ─────────────────────────────────────────────────────────────
-    +"<div id='pm-status' style='margin-top:14px;'></div>"
-    +"</div>";
-
-  document.body.appendChild(modal);
+    +"<div id='pm-status' style='margin-top:14px;'></div>",
+    {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:420,boxExtra:"margin:20px 0 40px;",closeId:"pm-x",outside:true});
 
   function pmClose(){modal.remove();}
-  document.getElementById("pm-x").addEventListener("click",pmClose);
-  modal.addEventListener("click",function(e){if(e.target===modal)pmClose();});
   var pmImg=document.getElementById("pm-preview-img");
   if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y,zoom){setOff(x,y,zoom);if(refreshFn)refreshFn();});
   if(document.getElementById("pm-zoom-in"))document.getElementById("pm-zoom-in").addEventListener("click",function(){if(pmImg&&pmImg._zoomBy)pmImg._zoomBy(1.2);});

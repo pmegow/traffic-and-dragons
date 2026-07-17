@@ -105,13 +105,10 @@ function showCampaignPicker(){
   }
 }
 function _showCampaignPickerModal(){
-  var ex=document.getElementById("camp-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="camp-modal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var svrConnected=storageAdapter.isServerMode();
   var svrBtnStyle="padding:3px 10px;font-family:var(--font);font-size:11px;background:none;border:1px solid "+(svrConnected?"var(--acc)":"var(--brd2)")+";border-radius:var(--r);cursor:pointer;color:"+(svrConnected?"var(--acc)":"var(--t2)")+";";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
+  var modal=modalShell("camp-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaigns</span>"
     +"<div style='display:flex;align-items:center;gap:8px;'>"
     +"<button id='camp-svr-btn' style='"+svrBtnStyle+"'>&#9729; "+(svrConnected?"Disconnect":"Connect")+"</button>"
@@ -119,10 +116,8 @@ function _showCampaignPickerModal(){
     +"</div></div>"
     +"<div id='camp-sync-status' style='display:none;font-size:11px;color:var(--t2);margin-bottom:10px;text-align:center;'></div>"
     +"<div id='camp-list'></div>"
-    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"
-    +"</div>";
-  document.body.appendChild(modal);
-  document.getElementById("camp-x").addEventListener("click",function(){modal.remove();});
+    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>",
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",closeId:"camp-x"});
   document.getElementById("camp-svr-btn").addEventListener("click",function(){
     modal.remove();
     if(storageAdapter.isServerMode()){

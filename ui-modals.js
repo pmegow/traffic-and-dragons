@@ -31,10 +31,9 @@ function radioRowsRefresh(container,cls,selId,labelSel){
   });
 }
 function showRulesModal(){
-  var ex=document.getElementById("rules-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  var inner=document.createElement("div");inner.style.cssText="background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:520px;width:100%;margin-top:40px;";
-  modal.appendChild(inner);document.body.appendChild(modal);
+  /* #14: re-rendering modal — × wired per render below, so wireClose:false */
+  var modal=modalShell("rules-modal","",{align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:520,boxExtra:"margin-top:40px;",wireClose:false});
+  var inner=modal.firstChild;
   function renderRules(){
     var h="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Narrative Rules</span><button id='rules-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div><div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>Strictly enforced on every GM response.</div>",i;
     for(i=0;i<DEFAULT_RULES.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;font-size:12px;display:flex;gap:8px;'><span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-top:1px;'>DEFAULT</span><span style='color:var(--t1);'>"+DEFAULT_RULES[i]+"</span></div>";}
@@ -69,9 +68,9 @@ function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.
 
 function showSyncModal(){
   var ex=document.getElementById("sync-modal");if(ex)ex.remove();if(!worldState){showToast("No active game.");return;}
-  var dir="ui";var modalDiv=document.createElement("div");modalDiv.id="sync-modal";modalDiv.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  var inner=document.createElement("div");inner.style.cssText="background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:520px;width:100%;margin-top:40px;";
-  modalDiv.appendChild(inner);document.body.appendChild(modalDiv);
+  /* #14: re-rendering modal — × wired per render below, so wireClose:false */
+  var dir="ui";var modalDiv=modalShell("sync-modal","",{align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:520,boxExtra:"margin-top:40px;",wireClose:false});
+  var inner=modalDiv.firstChild;
   function renderSync(){
     var c=worldState.character,w=worldState.world,isUI=(dir==="ui"),ro=isUI?"":"readonly";
     inner.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Sync World State</span><button id='sc-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
@@ -115,12 +114,10 @@ function loadRenderModel(){
 }
 function showRenderOptionsModal(){
   document.getElementById("file-menu").style.display="none";
-  var ex=document.getElementById("render-opts-modal");if(ex)ex.remove();
-  var modal=document.createElement("div");modal.id="render-opts-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
   // Build model rows — shared radio-row builder (#15①)
   var mhtml=radioRowsHTML("ro-row",RENDER_MODELS,renderModel,function(m,sel){return "<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+m.label+"</span>";});
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:400px;width:100%;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 Render Options</span><button id='ro-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+  var modal=modalShell("render-opts-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 Render Options</span><button id='ro-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>fal.ai API Key</div>"
     +"<input type='password' id='ro-fal-inp' placeholder='fal_key_...' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:8px;box-sizing:border-box;'/>"
     +"<div style='display:flex;gap:6px;margin-bottom:22px;'><button id='ro-fal-clear' style='padding:7px 13px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button><button id='ro-fal-save' style='flex:1;padding:8px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save Key</button></div>"
@@ -136,11 +133,9 @@ function showRenderOptionsModal(){
     +"<p style='font-size:11px;color:var(--t2);margin:6px 0 0;'>Higher follows the scene prompt more; lower stays closer to your portrait. Applies when a portrait seeds the scene render.</p>"
     +"</div>"
     +"<p id='ro-str-na' style='display:none;font-size:11px;color:var(--t2);font-style:italic;margin:0;'>This model's img2img has no strength control.</p>"
-    +"<p id='ro-msg' style='font-size:12px;min-height:16px;margin-top:10px;text-align:center;'></p>"
-    +"</div>";
-  document.body.appendChild(modal);
+    +"<p id='ro-msg' style='font-size:12px;min-height:16px;margin-top:10px;text-align:center;'></p>",
+    {maxWidth:400,closeId:"ro-x"});
   var inp=document.getElementById("ro-fal-inp");if(falKey)inp.value=falKey;
-  document.getElementById("ro-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("ro-fal-save").addEventListener("click",function(){var v=inp.value.trim();if(v){falKey=v;store.set(FAL_KEY_K,v);var msg=document.getElementById("ro-msg");msg.textContent="Key saved.";msg.style.color="var(--grn)";}else{document.getElementById("ro-msg").textContent="Enter a key.";}});
   document.getElementById("ro-fal-clear").addEventListener("click",function(){falKey="";store.del(FAL_KEY_K);inp.value="";var msg=document.getElementById("ro-msg");msg.textContent="Key cleared.";msg.style.color="var(--t2)";});
   // Strength slider (#42) — shows the SELECTED model's effective strength (override or default);
@@ -184,17 +179,15 @@ function saveProviderSettings(){
 }
 function showProviderModal(){
   closeAllMenus();/* #15④: was the closeAllMenus body inlined verbatim */
-  var ex=document.getElementById("provider-modal");if(ex)ex.remove();
   var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
   // Stage key edits locally and commit only on Save (audit E88) — the old row-click wrote the typed
   // key straight into the LIVE providerKeys, so editing one provider's key then switching + cancelling
   // left the change applied for the rest of the session.
   var _pvStaged={};(function(){var _k=Object.keys(providerKeys),_i;for(_i=0;_i<_k.length;_i++)_pvStaged[_k[_i]]=providerKeys[_k[_i]];})();
-  var modal=document.createElement("div");modal.id="provider-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
   function provRows(){var ids=Object.keys(PROVIDERS),items=[],i;for(i=0;i<ids.length;i++)items.push({id:ids[i],label:PROVIDERS[ids[i]].label});return radioRowsHTML("pv-row",items,selProv,function(p,sel){return "<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span>";});}
   function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,o="",i;for(i=0;i<p.models.length;i++){o+="<option value='"+p.models[i]+"'"+(p.models[i]===cur?" selected":"")+">"+p.models[i]+"</option>";}return o;}
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🧠 Language Model</span><button id='pv-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+  var modal=modalShell("provider-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🧠 Language Model</span><button id='pv-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Provider</div>"
     +"<div id='pv-rows'>"+provRows()+"</div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>API Key</div>"
@@ -203,9 +196,8 @@ function showProviderModal(){
     +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
     +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"
     +"<p id='pv-msg' style='font-size:12px;min-height:16px;margin:12px 0;text-align:center;'></p>"
-    +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>"
-    +"</div>";
-  document.body.appendChild(modal);
+    +"<button id='pv-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save &amp; Use</button>",
+    {maxWidth:420,closeId:"pv-x"});
   var keyInp=document.getElementById("pv-key"),modelSel=document.getElementById("pv-model");
   function refreshSel(){
     keyInp.value=_pvStaged[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
@@ -213,7 +205,6 @@ function showProviderModal(){
   }
   Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){_pvStaged[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
   refreshSel();
-  document.getElementById("pv-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("pv-save").addEventListener("click",function(){
     _pvStaged[selProv]=keyInp.value.trim();
     // Commit the staged keys into the live map now (E88) — this is the only place providerKeys is mutated.
@@ -234,7 +225,6 @@ function showProviderModal(){
 // avg input/call before and after. Cost is an estimate priced from MODEL_PRICING.
 function showUsageModal(){
   closeAllMenus();/* #15④ */
-  var ex=document.getElementById("usage-modal");if(ex)ex.remove();
   var u=(worldState&&worldState.usage)||blankUsage();
   function n(v){return (v||0).toLocaleString();}
   function row(label,b,bold){
@@ -251,9 +241,8 @@ function showUsageModal(){
   if(!kinds.length)rows="<tr><td colspan='8' style='padding:14px;text-align:center;font-size:12px;color:var(--t2);font-style:italic;'>No API calls recorded yet — play a turn.</td></tr>";
   rows+=row("total",u,true);
   var hd="padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);text-align:right;white-space:nowrap;";
-  var modal=document.createElement("div");modal.id="usage-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:560px;width:100%;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>📊 Usage &amp; Cost</span><button id='us-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+  var modal=modalShell("usage-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>📊 Usage &amp; Cost</span><button id='us-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;'>"
     +"<table style='width:100%;min-width:500px;border-collapse:collapse;'>"
     +"<tr><th style='"+hd+"text-align:left;'>Kind</th><th style='"+hd+"'>Calls</th><th style='"+hd+"'>Input</th><th style='"+hd+"'>In/call</th><th style='"+hd+"'>Cache rd</th><th style='"+hd+"'>Cache wr</th><th style='"+hd+"'>Output</th><th style='"+hd+"'>~Cost</th></tr>"
@@ -261,11 +250,8 @@ function showUsageModal(){
     +(function(){var tb=u.byKind&&u.byKind.turn;if(!tb||!(tb.in+tb.cacheRead))return "";var pct=Math.round(100*tb.cacheRead/(tb.in+tb.cacheRead));var col=pct>=50?"var(--grn)":pct>0?"var(--acc)":"var(--dng)";return "<p style='font-size:11px;margin:12px 0 0;color:"+col+";'>Prompt-cache health: <b>"+pct+"%</b> of turn input served from cache"+(pct===0?" — the cache is DEAD (stable-half purity leak, see console)":pct<50?" — low; long idle gaps between turns, or a purity leak":"")+".</p>";})()
     +(function(){var np=u.unpriced||0;if(!np)return "";return "<p style='font-size:11px;margin:6px 0 0;color:var(--dng);'>Unpriced calls: <b>"+np+"</b> — tokens recorded under a model id with no MODEL_PRICING entry, so the cost column UNDERCOUNTS real spend (console names the id — #30).</p>";})()
     +"<p style='font-size:11px;color:var(--t2);margin:12px 0 0;'>Token counts are exact (API-reported). Cost is an estimate for known Anthropic models; other providers count tokens but contribute $0."+(u.since?" Collecting since "+new Date(u.since).toLocaleDateString()+".":"")+"</p>"
-    +"<button id='us-reset' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Reset counters (start a fresh measurement window)</button>"
-    +"</div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  document.getElementById("us-x").addEventListener("click",function(){modal.remove();});
+    +"<button id='us-reset' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Reset counters (start a fresh measurement window)</button>",
+    {maxWidth:560,closeId:"us-x",outside:true});
   document.getElementById("us-reset").addEventListener("click",function(){
     if(worldState){worldState.usage=blankUsage();saveCore();}
     modal.remove();showUsageModal();
@@ -276,21 +262,16 @@ function showUsageModal(){
 // the proseAuthor pattern). Modal is built fresh on open so it always reads live state.
 function showRagModal(){
   closeAllMenus();/* #15④ */
-  var ex=document.getElementById("rag-modal");if(ex)ex.remove();
   var hasGame=!!(worldState&&worldState.character);
   var on=!(worldState&&worldState.ragMemory===false); // default ON (v1.230) — checked unless explicitly disabled
-  var modal=document.createElement("div");modal.id="rag-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:440px;width:100%;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🗂 Episodic Memory (RAG)</span><button id='rag-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+  var modal=modalShell("rag-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🗂 Episodic Memory (RAG)</span><button id='rag-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<p style='font-size:11px;color:var(--t2);margin:0 0 10px;'>The GM recalls verbatim moments from earlier in this campaign when the people, places, or quests involved come up again — exact promises, shared history, callbacks. Also trims long-tail lore from the prompt in mature campaigns.</p>"
     +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'><b>On by default.</b> Per-campaign and fully reversible — switching it off restores the standard prompt exactly. Takes effect next turn. Young campaigns won't notice it (there is no history to recall yet); it earns its keep on mature ones.</p>"
     +(hasGame
       ?"<label style='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);cursor:pointer;font-size:13px;color:var(--t1);'><input type='checkbox' id='rag-cb' style='accent-color:var(--acc);cursor:pointer;width:14px;height:14px;'"+(on?" checked":"")+"/> Enable for this campaign</label>"
-      :"<p style='font-size:12px;color:var(--t2);font-style:italic;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);margin:0;'>Start or load a campaign first — the setting lives on the campaign.</p>")
-    +"</div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  document.getElementById("rag-x").addEventListener("click",function(){modal.remove();});
+      :"<p style='font-size:12px;color:var(--t2);font-style:italic;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);margin:0;'>Start or load a campaign first — the setting lives on the campaign.</p>"),
+    {maxWidth:440,closeId:"rag-x",outside:true});
   var cb=document.getElementById("rag-cb");
   if(cb)cb.addEventListener("change",function(){
     if(cb.checked)delete worldState.ragMemory; // ON is the default — drop the field, keep the save byte-clean
@@ -303,24 +284,19 @@ function showRagModal(){
 function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
 function showProseModal(){
   closeAllMenus();/* #15④ */
-  var ex=document.getElementById("prose-modal");if(ex)ex.remove();
   var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");
   function rows(){return radioRowsHTML("pr-row",AUTHORS,sel,function(a,s){
     return "<div><div style='font-size:13px;color:"+(s?"var(--acc)":"var(--t1)")+";'>"+escHtml(a.nm)+(a.profane?" <span style=\"font-size:10px;color:var(--t2);\">· 18+ for full voice</span>":"")+"</div>"
       +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div>";
   },{align:"flex-start",dotTop:true});}
-  var modal=document.createElement("div");modal.id="prose-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:440px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+  var modal=modalShell("prose-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM imitates this author's voice. Takes effect on the next turn — switch any time.</p>"
     +"<div id='pr-rows'>"+rows()+"</div>"
-    +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>"
-    +"</div>";
-  document.body.appendChild(modal);
+    +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>",
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:440,boxExtra:"margin-top:40px;",closeId:"pr-x",outside:true});
   function refresh(){radioRowsRefresh(modal,"pr-row",sel,"div>div");}/* #15① — "div>div" preserved verbatim, see radioRowsRefresh note */
   Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(row){row.addEventListener("click",function(){sel=this.getAttribute("data-id");refresh();});});
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  document.getElementById("pr-x").addEventListener("click",function(){modal.remove();});
   document.getElementById("pr-save").addEventListener("click",function(){
     proseAuthor=sel;store.set(PROSE_K,sel);   // device default for new/unset campaigns
     if(worldState){worldState.proseAuthor=sel;if(typeof saveAll==="function")saveAll();} // pin to THIS campaign; rides the sync blob across devices
@@ -331,7 +307,6 @@ function showProseModal(){
 }
 // ── Quest journal ─────────────────────────────────────────────────────────────
 function showQuestModal(){
-  var ex=document.getElementById("quest-modal");if(ex)ex.remove();
   var ql=(worldState&&worldState.questLog)||[];
   function objList(q){if(!q.objectives||!q.objectives.length)return"";var h="<div style='margin-top:6px;'>",oj;for(oj=0;oj<q.objectives.length;oj++){var o=q.objectives[oj];h+="<div style='font-size:12px;color:"+(o.done?"var(--t2)":"var(--t1)")+";margin:2px 0;'>"+(o.done?"☑":"☐")+" "+escHtml(o.text)+"</div>";}return h+"</div>";}
   var offeredHtml="",activeHtml="",i;
@@ -355,12 +330,9 @@ function showQuestModal(){
   if(offeredHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin:2px 0 8px;'>⚑ Opportunities</div>"+offeredHtml;
   body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:14px 0 8px;'>Active</div>"+(activeHtml||"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No active quests.</div>");
   if(histHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:14px 0 8px;'>History</div>"+histHtml;
-  var modal=document.createElement("div");modal.id="quest-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:480px;width:100%;margin-top:40px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Quest Journal</span><button id='qm-x' style='background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;'>&#215;</button></div>"+body+"</div>";
-  document.body.appendChild(modal);
-  modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  document.getElementById("qm-x").addEventListener("click",function(){modal.remove();});
+  var modal=modalShell("quest-modal",/* #14 */
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Quest Journal</span><button id='qm-x' style='background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;'>&#215;</button></div>"+body,
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:480,boxExtra:"margin-top:40px;",closeId:"qm-x",outside:true});
   // Wire by TITLE, not render-time index (audit E24): applyMuts can splice the questLog while the
   // modal is open (a completed quest archives), and an index baked into onclick would then hit the
   // wrong quest — declineQuest could even archive a still-active quest.
