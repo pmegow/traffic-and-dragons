@@ -4720,4 +4720,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return cs.conditions.length===1?true:"death-turn condition dropped: "+JSON.stringify(cs.conditions);
   });
 
+
+  // ── #16 blankWizardState — union-shape pin (full battery: dev/tests-c13-adapter.js) ──
+  section("#16 blankWizardState");
+  t("union shape: the once-divergent fields exist and each call returns a fresh object",function(){
+    var a=blankWizardState(),b=blankWizardState();
+    if(!("mark" in a))return "mark missing (the showChar-only field)";
+    if(!("portraitOffset" in a)||a.portraitOffset!==null)return "portraitOffset missing/wrong";
+    if(a===b||a.bs===b.bs||a.fp===b.fp)return "shared references between calls";
+    return a.step===1&&a.gender==="M"&&a.statMode==="roll"?true:"defaults drifted: "+JSON.stringify({step:a.step,gender:a.gender,statMode:a.statMode});
+  });
+
 }

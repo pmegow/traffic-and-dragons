@@ -235,7 +235,7 @@ function showGame(){
 function showChar(){
   document.getElementById("char-screen").style.display="block";
   document.getElementById("game-screen").style.display="none";
-  cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,portraitOffset:null,step:1};rvGoldRolled=false;pendingImportChar=null;
+  cs=blankWizardState();rvGoldRolled=false;pendingImportChar=null;/* audit #16: single-source blank wizard state (globals.js) */
   // Known issue #2: resetting cs alone left the OLD wizard in the DOM — the previous campaign's
   // Review step kept .active (so New Game landed on it), and stale input/select values leaked
   // into the next character (anc-next reads char-gender/char-age straight from the DOM).

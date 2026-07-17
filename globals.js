@@ -144,7 +144,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.315";
+var APP_VERSION="v1.316";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -186,7 +186,14 @@ var renderStrength={}; // per-model img2img strength overrides {modelId:0.2-0.95
 var panelCol=false,secCol={quest:false,inv:false,ab:false,sp:false};
 var _qaSuppressUntil=0; // brief window after a long-press fires, to swallow the trailing click on an action button
 var activeChatTab="narrative";
-var cs={tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,step:1};
+// Blank wizard-state factory (audit #16): the SINGLE source for a fresh `cs`. The boot literal
+// here and ui.js showChar()'s reset copy had already diverged (showChar's carried mark:"" +
+// portraitOffset:null, this one didn't — so a fresh boot lacked both until the first showChar).
+// Union shape is canonical; returns a NEW object each call (bs is fresh too — no shared refs).
+function blankWizardState(){
+  return {tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,portraitOffset:null,step:1};
+}
+var cs=blankWizardState();
 var rvGold=20;var rvGoldRolled=false;
 var pendingChar=null,pendingTone="",pendingVoice="",pendingAuthor="",pendingLoc="",pendingBumps=0,currentBump=0;
 // Perk-flow (creation level>=3) undo state (audit E2): a snapshot of the character taken when the

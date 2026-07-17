@@ -607,79 +607,47 @@ var storageAdapter = (function() {
     });
   }
 
+  // ── Shared JSON endpoint transport (audit #13) ───────────────────────────
+  // ONE truth for the token-authed JSON endpoints: connected-guard → _tFetch (audit E77:
+  // a dead/waking host used to hang these modals for minutes — the #24 mode) → ok-throw →
+  // json → cb(null, data) / cb("HTTP "+status | error message). bodyObj (when given) is
+  // JSON.stringify'd with Content-Type set; GET requests leave opts.method unset (fetch
+  // default — pinned by dev/tests-b9-transport.js). Callers own path encoding
+  // (encodeURIComponent on segments) — this takes the finished path.
+  function _apiJson(path, method, bodyObj, cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    var opts = { headers: { "Authorization": "Bearer " + _token } };
+    if (method && method !== "GET") opts.method = method;
+    if (bodyObj != null) {
+      opts.headers = { "Content-Type": "application/json", "Authorization": "Bearer " + _token };
+      opts.body = JSON.stringify(bodyObj);
+    }
+    _tFetch(_serverUrl + path, opts, SYNC_TIMEOUT_MS)
+      .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d) { if (cb) cb(null, d); })
+      .catch(function(e) { if (cb) cb(e.message); });
+  }
+
   // ── Character library ────────────────────────────────────────────────────
 
-  function listCharacterLibrary(cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    // _tFetch (audit E77): a dead/waking host used to hang these modals for minutes — the #24 mode.
-    _tFetch(_serverUrl + "/api/characters", {
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
-
-  function saveCharacterToLibrary(char, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/characters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
-      body: JSON.stringify({ character: char })
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
-
-  function deleteCharacterFromLibrary(slug, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/characters/" + encodeURIComponent(slug), {
-      method: "DELETE",
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
+  function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }
+  function saveCharacterToLibrary(char, cb) { _apiJson("/api/characters", "POST", { character: char }, cb); }
+  function deleteCharacterFromLibrary(slug, cb) { _apiJson("/api/characters/" + encodeURIComponent(slug), "DELETE", null, cb); }
 
   // ── Blueprint library ────────────────────────────────────────────────────
 
-  function listBlueprintLibrary(cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/blueprints", {
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
-
-  function saveBlueprintToLibrary(bp, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/blueprints", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
-      body: JSON.stringify({ blueprint: bp })
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
-
-  function deleteBlueprintFromLibrary(slug, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/blueprints/" + encodeURIComponent(slug), {
-      method: "DELETE",
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
+  function listBlueprintLibrary(cb)       { _apiJson("/api/blueprints", "GET", null, cb); }
+  function saveBlueprintToLibrary(bp, cb) { _apiJson("/api/blueprints", "POST", { blueprint: bp }, cb); }
+  function deleteBlueprintFromLibrary(slug, cb) { _apiJson("/api/blueprints/" + encodeURIComponent(slug), "DELETE", null, cb); }
 
   function deleteCampaignFromServer(id, cb) {
+    // Local guard so the not-connected path stays warn-free (pre-#13 behavior): only real
+    // transport/HTTP failures carry the console.warn this wrapper has always emitted.
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(id), {
-      method: "DELETE",
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { console.warn("[storage] campaign delete failed:", e.message); if (cb) cb(e.message); });
+    _apiJson("/api/campaigns/" + encodeURIComponent(id), "DELETE", null, function(e, d) {
+      if (e) { console.warn("[storage] campaign delete failed:", e); if (cb) cb(e); return; }
+      if (cb) cb(null, d);
+    });
   }
 
   // ── Campaign transport (audit B9) ────────────────────────────────────────
@@ -691,23 +659,8 @@ var storageAdapter = (function() {
 
   function hasToken() { return !!_token; }
 
-  function whoAmI(cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/auth/me", {
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
-
-  function getCampaignState(campId, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId), {
-      headers: { "Authorization": "Bearer " + _token }
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
-  }
+  function whoAmI(cb)                { _apiJson("/auth/me", "GET", null, cb); }
+  function getCampaignState(campId, cb) { _apiJson("/api/campaigns/" + encodeURIComponent(campId), "GET", null, cb); }
 
   // parts = {worldState, sessionLog, memory} — the EXPLICIT blob to ship; never reads the
   // live globals, so a stale snapshot pushes as-is. NPC avatar portraits are stripped via
@@ -716,33 +669,19 @@ var storageAdapter = (function() {
   // "upload a local-only campaign" path, not the CAS-guarded per-turn sync (syncToServer
   // owns that — the server row doesn't exist yet, so there is nothing to guard against).
   function pushCampaignState(campId, parts, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/state", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
-      body: JSON.stringify({
-        worldState:    _stripNpcPortraits(parts.worldState),
-        sessionLog:    parts.sessionLog,
-        memory:        parts.memory,
-        campaignId:    campId,
-        narrativeHtml: ""
-      })
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
+    _apiJson("/api/state", "POST", {
+      worldState:    _stripNpcPortraits(parts.worldState),
+      sessionLog:    parts.sessionLog,
+      memory:        parts.memory,
+      campaignId:    campId,
+      narrativeHtml: ""
+    }, cb);
   }
 
   // payload = {portrait, npcPortraits} — built by the caller from ITS blob (silent push
   // reads a snapshot, syncPortrait reads live state; only the transport is shared).
   function putCampaignPortrait(campId, payload, cb) {
-    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    _tFetch(_serverUrl + "/api/campaigns/" + encodeURIComponent(campId) + "/portrait", {
-      method:  "PUT",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
-      body:    JSON.stringify(payload)
-    }, SYNC_TIMEOUT_MS).then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function(d) { if (cb) cb(null, d); })
-      .catch(function(e) { if (cb) cb(e.message); });
+    _apiJson("/api/campaigns/" + encodeURIComponent(campId) + "/portrait", "PUT", payload, cb);
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
