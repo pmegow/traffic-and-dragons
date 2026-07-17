@@ -271,26 +271,10 @@ function showUsageModal(){
 // ── RAG episodic memory toggle (#27 Phase 1 — RAG_MEMORY.md) ───────────────────
 // Per-campaign flag on worldState.ragMemory (rides the sync blob, read live each turn —
 // the proseAuthor pattern). Modal is built fresh on open so it always reads live state.
-function showRagModal(){
-  closeAllMenus();/* #15④ */
-  var hasGame=!!(worldState&&worldState.character);
-  var on=!(worldState&&worldState.ragMemory===false); // default ON (v1.230) — checked unless explicitly disabled
-  var modal=modalShell("rag-modal",/* #14 */
-    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🗂 Episodic Memory (RAG)</span><button id='rag-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
-    +"<p style='font-size:11px;color:var(--t2);margin:0 0 10px;'>The GM recalls verbatim moments from earlier in this campaign when the people, places, or quests involved come up again — exact promises, shared history, callbacks. Also trims long-tail lore from the prompt in mature campaigns.</p>"
-    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'><b>On by default.</b> Per-campaign and fully reversible — switching it off restores the standard prompt exactly. Takes effect next turn. Young campaigns won't notice it (there is no history to recall yet); it earns its keep on mature ones.</p>"
-    +(hasGame
-      ?"<label style='display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);cursor:pointer;font-size:13px;color:var(--t1);'><input type='checkbox' id='rag-cb' style='accent-color:var(--acc);cursor:pointer;width:14px;height:14px;'"+(on?" checked":"")+"/> Enable for this campaign</label>"
-      :"<p style='font-size:12px;color:var(--t2);font-style:italic;padding:10px 12px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);margin:0;'>Start or load a campaign first — the setting lives on the campaign.</p>"),
-    {maxWidth:440,closeId:"rag-x",outside:true});
-  var cb=document.getElementById("rag-cb");
-  if(cb)cb.addEventListener("change",function(){
-    if(cb.checked)delete worldState.ragMemory; // ON is the default — drop the field, keep the save byte-clean
-    else worldState.ragMemory=false; // explicit opt-out (default-on semantics: only false disables)
-    if(typeof saveAll==="function")saveAll();
-    showToast(cb.checked?"Episodic memory ON — this campaign":"Episodic memory OFF");
-  });
-}
+// showRagModal removed v1.349 (user call 2026-07-17, after closing #55 on field evidence): episodic
+// memory is standard behavior, not a setting. ragEnabled()'s flag machinery + the engine-tested
+// flag-off prompt path survive intact (console `worldState.ragMemory=false` = diagnosis-only escape
+// hatch; migrateWorldState clears it on next load so it can never silently stick).
 // ── Prose inspiration (TODO #23) ───────────────────────────────────────────────
 function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
 function showProseModal(){

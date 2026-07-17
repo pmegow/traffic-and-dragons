@@ -165,6 +165,11 @@ function migrateWorldState(){
   for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0&&c.spells[si].used){c.spells[si].used=false;_mig=true;}}// cantrips never expend
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
+  // v1.349 (user call 2026-07-17, after closing #55): episodic memory (RAG) is standard behavior —
+  // the toggle UI is gone, so a legacy explicit-OFF would be permanent and invisible. Clear it.
+  // ragEnabled()'s default-ON semantics are untouched; `worldState.ragMemory=false` from the console
+  // remains a diagnosis-only escape hatch (cleared again on next load by this line).
+  if(worldState.ragMemory===false){delete worldState.ragMemory;console.info("[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)");_mig=true;}
   /* #63 (v1.304): core memories moved OFF worldState onto the character schema — witnessed-by-all
      (see fileCoreMemory, game.js). The legacy party-shared list is copied to the player and every
      party member's sheet (v1 was shared, so that's the faithful reading), stamped with this
