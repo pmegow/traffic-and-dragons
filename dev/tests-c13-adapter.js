@@ -188,11 +188,16 @@ t("boot-time cs comes from the factory (globals load) — carries mark + portrai
 });
 t("no duplicate cs literal survives — both sites assign from blankWizardState (source scan)", function () {
   var g = fs.readFileSync(path.join(root, "globals.js"), "utf8");
-  var u = fs.readFileSync(path.join(root, "ui.js"), "utf8");
-  // ui.js is not loaded headless (DOM), so pin its call site at the source level.
-  if (u.indexOf("cs=blankWizardState()") < 0) return "ui.js showChar does not assign from the factory";
-  var litRe = /cs\s*=\s*\{tone/;
-  if (litRe.test(u)) return "ui.js still carries an inline cs literal";
+  // #54 split: showChar now lives in ui-shell.js; scan ALL ten ui-*.js so a re-introduced
+  // inline cs literal anywhere in the ui layer trips this. (ui files aren't loaded headless.)
+  var uiFiles = ["ui-shell.js","ui-panels.js","ui-portrait.js","ui-files.js","ui-sheets.js","ui-browsers.js","ui-campaigns.js","ui-carmode.js","ui-modals.js","ui-boot.js"];
+  var litRe = /cs\s*=\s*\{tone/, factorySeen = false;
+  for (var fi = 0; fi < uiFiles.length; fi++) {
+    var src = fs.readFileSync(path.join(root, uiFiles[fi]), "utf8");
+    if (litRe.test(src)) return uiFiles[fi] + " carries an inline cs literal";
+    if (src.indexOf("cs=blankWizardState()") >= 0) factorySeen = true;
+  }
+  if (!factorySeen) return "showChar's cs=blankWizardState() call site not found in any ui-*.js";
   if ((g.match(/\{tone:null,author:""/g) || []).length !== 1) return "globals.js should carry exactly ONE blank-state literal (inside the factory)";
   return true;
 });
