@@ -1128,11 +1128,31 @@ var TTS = (function() {
     if (rt) rt.textContent = "Piper runtime: " + (_piperPatchRev ? _piperPatchRev + " (loaded)" : PIPER_RUNTIME_REV + " expected — engine loads on first use") + " · app " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?");
   }
 
-  // Opportunistic, non-blocking refresh of _piperDownloaded from the engine's real OPFS listing —
-  // ONLY when the engine is already warm (_piperMod set, e.g. from a prior prewarmPiper this
-  // session). Never triggers an engine load itself. Plain .then() callback, not async/await, per
-  // the file's async-surface convention.
+  // Non-blocking refresh of _piperDownloaded from the REAL on-disk store. v1.331: reads OPFS
+  // directly (same 'piper' directory vits-web's stored() lists) so the modal's "not downloaded
+  // yet" line is TRUTHFUL without engine init — the old engine-warm-only refresh left the line
+  // pessimistic on fresh sessions, and that mis-read cost two rounds of on-phone diagnosis
+  // (the model was on the device the whole time). Falls back to the engine listing when OPFS
+  // isn't available. Plain .then() callbacks per the file's async-surface convention.
   function _piperRefreshDownloaded() {
+    if (navigator.storage && navigator.storage.getDirectory) {
+      navigator.storage.getDirectory().then(function(rootDir) {
+        return rootDir.getDirectoryHandle("piper");
+      }).then(function(dir) {
+        var it = dir.keys(), found = [];
+        function step() {
+          return it.next().then(function(r) {
+            if (r.done) return found;
+            if (String(r.value).slice(-5) === ".onnx") found.push(String(r.value).split(".")[0]);   // same id rule as vits-web stored()
+            return step();
+          });
+        }
+        return step();
+      }).then(function(ids) {
+        for (var i = 0; i < ids.length; i++) _piperDownloaded[ids[i]] = true;
+        _updatePiperErr();
+      }).catch(function() {});   // no OPFS dir yet = genuinely not downloaded — the line stays honest
+    }
     if (!_piperMod || typeof _piperMod.stored !== "function") return;
     _piperMod.stored().then(function(stored) {
       for (var i = 0; i < stored.length; i++) _piperDownloaded[stored[i]] = true;
