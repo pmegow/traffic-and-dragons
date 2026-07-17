@@ -114,6 +114,10 @@ function showCarMode() {
       _carSetStatus(inp && inp.value.trim() ? CAR_STR.heardYou : CAR_STR.tapToSpeak);
     }
   });
+  // #70: a re-entrant open (button tap racing boot's auto-restore, or a double-fired button)
+  // would otherwise leak the old listener forever — each stacks another keydown handler that
+  // outlives this overlay session.
+  if (_carKbHandler) document.removeEventListener("keydown", _carKbHandler);
   _carKbHandler = function(e) {
     if (e.key === " ")           { e.preventDefault(); _carTap(); }
     else if (e.key === "ArrowRight") { e.preventDefault(); _carNext(); }

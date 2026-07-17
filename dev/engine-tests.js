@@ -191,6 +191,20 @@ function runEngineTests(R){
     if(resolveNpcName("y")!=="A")return "chained alias did not flatten: "+resolveNpcName("y");
     return resolveNpcName("B")==="A"?true:"merged key not aliased";
   });
+  t("TODO#69: NPC_MERGE knowledge overfill re-slices to cap 12, newest-last (E50 parallel)",function(){
+    makeWorld();
+    var ck=[],dk=[],i;
+    for(i=0;i<8;i++)ck.push("canon fact "+i);
+    for(i=0;i<10;i++)dk.push("dupe fact "+i);
+    memory.npcs["Canon"]={attitude:"ally",knowledge:ck,events:[],aliases:[]};
+    memory.npcs["Dupe"]={attitude:"ally",knowledge:dk,events:[],aliases:[]};
+    applyMuts("[NPC_MERGE:Canon|Dupe]");
+    var k=memory.npcs["Canon"].knowledge;
+    if(k.length>12)return "knowledge overfilled past cap: "+k.length;
+    if(k.indexOf("dupe fact 9")<0)return "newest merged fact lost";
+    if(k.indexOf("canon fact 0")>=0)return "oldest fact survived a full overfill — not newest-last";
+    return true;
+  });
   t("UA12-T10: empty-core incoming vs empty-core keys (I3/I1)",function(){
     memory=blankMemory();memory.npcs["Barkeep (Rusty Dragon)"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};
     if(resolveNpcName("The Guard")!=="The Guard")return "empty-core incoming mismerged";

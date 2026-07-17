@@ -148,6 +148,16 @@ var TTS = (function() {
   }
   function setBank(arr) { store.set(BANK_K, JSON.stringify(arr)); }
 
+  // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
+  function _piperLruLoad() {
+    try { var r = store.get(PIPER_VOICE_LRU_K); return r ? JSON.parse(r) : {}; } catch(e) { return {}; }
+  }
+  function _piperLruStamp(voiceId) {
+    var lru = _piperLruLoad();
+    lru[voiceId] = Date.now();
+    try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) { console.warn("[tts piper] LRU stamp write failed:", e && e.message); }
+  }
+
   var CARTESIA_SSE_URL  = "https://api.cartesia.ai/tts/sse";
   var CARTESIA_VERSION  = "2026-03-01";
   var CARTESIA_MODEL    = "sonic-2";
@@ -918,6 +928,12 @@ var TTS = (function() {
   var PIPER_RUNTIME_REV = "r8";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
+  // TODO #66 (v1.347): voice models run 60-115MB each in OPFS — unbounded downloads across a
+  // campaign's provider-hopping eventually repeat the eviction risk audit #12 already flags for a
+  // SINGLE voice, just at OS-storage scale instead of browser-eviction scale. Cap resident voices;
+  // evict least-recently-used on overflow. Re-download on demand is cheap (progress UI already exists).
+  var PIPER_VOICE_CAP = 3;
+  var PIPER_VOICE_LRU_K = "tnd_piper_voice_lru_v1";  // {voiceId: epoch-ms last ensured} — LRU stamps for the cap above
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
   // r8 crash-forensics counters. The crumb carries them so the NEXT tab kill (if any) can
   // discriminate on-phone between the two remaining hypotheses: death at a similar CUMULATIVE
@@ -1031,7 +1047,7 @@ var TTS = (function() {
     }
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
-    if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
+    if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _piperLruStamp(voiceId); _updatePiperErr(); return; }
     if (typeof showToast === "function") showToast("⬇ Downloading narrator voice (" + piperVoiceSize(voiceId) + ") — one-time, cached after");
     // Rank 9 (todo_carplay.html): mirror the download lifecycle into #car-status — the toast above
     // is invisible under #car-overlay (rank 1; also now fixed, but this is IN ADDITION, not instead).
@@ -1056,9 +1072,44 @@ var TTS = (function() {
       throw e;
     }
     _piperDownloaded[voiceId] = true;
+    _piperLruStamp(voiceId);
     _updatePiperErr();   // repaint the modal's "not downloaded yet" info line if it's open (found stale in Phase 5 preview)
     if (typeof showToast === "function") showToast("✓ Narrator voice ready");
     if (typeof carNotify === "function") carNotify("info", "Voice ready");
+    await _piperEvictExcess(mod, voiceId);   // #66: keep resident voice models bounded — never the one just ensured
+  }
+
+  // #66: called only after a fresh download (the already-downloaded branch above returns before
+  // this point) — the cap is enforced at the moment residency actually grows, not on every ensure.
+  // Failures are non-fatal per voice (a locked/in-use OPFS handle shouldn't block narration); the
+  // loop advances to the next-oldest candidate instead of retrying the same id forever.
+  async function _piperEvictExcess(mod, keepId) {
+    var stored;
+    try { stored = await mod.stored(); } catch(e) { return; }
+    var over = stored.length - PIPER_VOICE_CAP;
+    if (over <= 0) return;
+    var lru = _piperLruLoad();
+    var candidates = [];
+    for (var i = 0; i < stored.length; i++) { if (stored[i] !== keepId) candidates.push(stored[i]); }
+    candidates.sort(function(a, b) {
+      var at = lru.hasOwnProperty(a) ? lru[a] : 0, bt = lru.hasOwnProperty(b) ? lru[b] : 0;   // unstamped voices count as oldest
+      return at - bt;
+    });
+    for (var j = 0; j < candidates.length && over > 0; j++) {
+      var id = candidates[j];
+      try {
+        await mod.remove(id);
+        var lru2 = _piperLruLoad();
+        delete lru2[id];
+        try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru2)); } catch(e2) {}
+        delete _piperDownloaded[id];
+        over--;
+        console.info("[tts piper] evicted narrator voice (LRU cap " + PIPER_VOICE_CAP + "): " + id);
+        if (typeof showToast === "function") showToast("🗑 Removed narrator voice " + id + " — keeping your 3 most recent (Voice Settings re-downloads any voice on demand)");
+      } catch(e) {
+        console.warn("[tts piper] failed to evict narrator voice " + id + ", keeping it:", e && e.message);
+      }
+    }
   }
 
   // Manual WAV→AudioBuffer decode (v1.321 — the iOS same-spot crash, part 2). WebKit's

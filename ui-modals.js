@@ -249,6 +249,17 @@ function showUsageModal(){
     +rows+"</table></div>"
     +(function(){var tb=u.byKind&&u.byKind.turn;if(!tb||!(tb.in+tb.cacheRead))return "";var pct=Math.round(100*tb.cacheRead/(tb.in+tb.cacheRead));var col=pct>=50?"var(--grn)":pct>0?"var(--acc)":"var(--dng)";return "<p style='font-size:11px;margin:12px 0 0;color:"+col+";'>Prompt-cache health: <b>"+pct+"%</b> of turn input served from cache"+(pct===0?" — the cache is DEAD (stable-half purity leak, see console)":pct<50?" — low; long idle gaps between turns, or a purity leak":"")+".</p>";})()
     +(function(){var np=u.unpriced||0;if(!np)return "";return "<p style='font-size:11px;margin:6px 0 0;color:var(--dng);'>Unpriced calls: <b>"+np+"</b> — tokens recorded under a model id with no MODEL_PRICING entry, so the cost column UNDERCOUNTS real spend (console names the id — #30).</p>";})()
+    +(function(){/* #67: display-time only, reads worldState.usage — nothing recorded here */
+      var lastB=u.lastSyncBytes,totB=u.syncBytes,posts=u.syncPosts;
+      var lastS=lastB?n(Math.round(lastB/1024))+" KB":"—",totS=totB?(totB/1024/1024).toFixed(2)+" MB":"—",postS=posts?n(posts):"—";
+      return "<p style='font-size:11px;color:var(--t2);margin:6px 0 0;'>Sync upload: last "+lastS+" &middot; total "+totS+" across "+postS+" posts</p>";
+    })()
+    +(function(){/* #65 phase 1: read-only archive size — never writes to memory, JSON.stringify is for measurement only */
+      if(typeof memory==="undefined"||!memory)return "";
+      var a=memory.archive||{};
+      var kb=Math.round(JSON.stringify(a).length/1024);
+      return "<p style='font-size:11px;color:var(--t2);margin:6px 0 0;'>Memory archive: "+kb+" KB (lore "+n((a.lore||[]).length)+" &middot; decisions "+n((a.decisions||[]).length)+" &middot; chapters "+n((a.chapters||[]).length)+" &middot; superseded "+n((a.superseded||[]).length)+" &middot; coreMemories "+n((a.coreMemories||[]).length)+")</p>";
+    })()
     +"<p style='font-size:11px;color:var(--t2);margin:12px 0 0;'>Token counts are exact (API-reported). Cost is an estimate for known Anthropic models; other providers count tokens but contribute $0."+(u.since?" Collecting since "+new Date(u.since).toLocaleDateString()+".":"")+"</p>"
     +"<button id='us-reset' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Reset counters (start a fresh measurement window)</button>",
     {maxWidth:560,closeId:"us-x",outside:true});

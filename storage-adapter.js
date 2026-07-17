@@ -24,6 +24,7 @@ var storageAdapter = (function() {
   var _portraitSyncedOnce  = false;  // upload portrait on first sync of session
   var _popup               = null;
   var _popupCb             = null;
+  var _syncSizeWarned      = false;  // #67: warn once per page session, not once per oversized POST
 
   // ── Auto-connect on page load ───────────────────────────────────────────
   // If a saved server URL + token exist in localStorage, restore server mode.
@@ -86,8 +87,20 @@ var storageAdapter = (function() {
     // AND poll /auth/ticket/:ticket as fallback for file:// origins
     var _ticket = null;
     var _pollInterval = null;
+    // #70: an abandoned popup (user closes the tab, walks away, or the OAuth screen just sits
+    // there) otherwise leaves the "message" listener + both intervals alive for the rest of the
+    // page session — a leak with no completion path. 5min is generous for a manual GitHub login
+    // but bounds the leak. Cleared on every completion path below (onAuth + the popup-closed branch).
+    var _authGiveUpTimer = setTimeout(function() {
+      window.removeEventListener("message", onMsg);
+      if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+      if (_ticketPoll) { clearInterval(_ticketPoll); }
+      console.warn("[storage] login abandoned — OAuth popup listener timed out after 5min");
+      _popup = null; _popupCb = null;
+    }, 5 * 60 * 1000);
 
     function onAuth(sessionId, username, avatarUrl) {
+      clearTimeout(_authGiveUpTimer);
       window.removeEventListener("message", onMsg);
       if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
       if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) {} }
@@ -124,6 +137,7 @@ var storageAdapter = (function() {
         // Popup closed — if we have a ticket try to claim it, else give up
         clearInterval(_pollInterval); _pollInterval = null;
         window.removeEventListener("message", onMsg);
+        clearTimeout(_authGiveUpTimer); // #70: popup-closed is a completion path too, ticket claim below is fire-and-forget
         _popup = null;
         if (_ticket) {
           fetch(serverUrl + "/auth/ticket/" + _ticket)
@@ -345,6 +359,21 @@ var storageAdapter = (function() {
       // clobber it. -1 = never seen server state — also correctly refused against existing data.
       baseTurn:      _lastAckTurn
     });
+    // #67 sync payload telemetry: .length on the JSON string is a byte-count proxy (fine for the
+    // "is this campaign getting heavy" signal it's used for). Mutate worldState.usage only — never
+    // saveAll/saveCore here, or the save would re-enter syncToServer from inside a sync. The
+    // mutation rides along on whatever save happens next.
+    if (worldState.usage) {
+      var _syncPayloadBytes = payload.length;
+      worldState.usage.syncBytes     = (worldState.usage.syncBytes || 0) + _syncPayloadBytes;
+      worldState.usage.syncPosts     = (worldState.usage.syncPosts || 0) + 1;
+      worldState.usage.lastSyncBytes = _syncPayloadBytes;
+      if (_syncPayloadBytes > 2*1024*1024 && !_syncSizeWarned) {
+        _syncSizeWarned = true;
+        console.warn("[storage] sync payload is " + (_syncPayloadBytes/1024/1024).toFixed(1) + " MB");
+        if (typeof showToast === "function") showToast("&#9888; Cloud sync upload is " + (_syncPayloadBytes/1024/1024).toFixed(1) + " MB &mdash; mature campaign; mention it to the dev");
+      }
+    }
     if (beacon) {
       // Keepalive POST — no _syncing bookkeeping, no retry (the page may be going away). But DO
       // ack the response when the page survives (alt-tab usually does): an un-acked beacon that
