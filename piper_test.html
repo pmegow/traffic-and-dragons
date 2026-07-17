@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.1)</title>
+<title>Piper TTS — kick-the-tires (v0.2)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
   (normalizeForTTS / splitSentences) was harvested into tts.js at v1.298 and has since EVOLVED
   there (per-caller dashRepl, v1.310's commaSplit tiered-pause mode). This page's copies are the
   pre-harvest SPIKE versions — tuning them no longer tests what ships. The page is retained as
-  the documented ORT-vendoring scaffold (the /vendor/piper/ bring-up record + voice audition rig).
+  the documented ORT-vendoring scaffold (the /vendor/piper/ bring-up record + voice audition rig)
+  — AND, since v0.2 (2026-07-17), as the LIVE memory-slope harness: see the SOAK section below.
+  Soak is not historical — it is the standing verification tool for the wasm memory-ratchet
+  class (Fable_UberAudit.md ▸ "Standing audit dimension — monotonic resources").
   ══════════════════════════════════════════════════════════════════════════════════════════
 
   piper_test.html — SATELLITE SPIKE, NOT in the SW app shell. Open directly (like bible_study.html /
@@ -46,7 +49,7 @@
   label{display:block;font-size:12px;color:var(--dim);margin:14px 0 5px;text-transform:uppercase;letter-spacing:.06em;}
   textarea{width:100%;min-height:150px;background:var(--bg2);color:var(--ink);border:1px solid var(--brd);
     border-radius:8px;padding:12px;font:14px/1.6 Georgia,serif;resize:vertical;}
-  select,input[type=range]{background:var(--bg2);color:var(--ink);border:1px solid var(--brd);
+  select,input[type=range],input[type=number]{background:var(--bg2);color:var(--ink);border:1px solid var(--brd);
     border-radius:6px;padding:7px 9px;font-size:13px;}
   .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;}
   .row > div{flex:1;min-width:150px;}
@@ -81,7 +84,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.1</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.2</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -127,6 +130,28 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
     <div><b id="m-audio">–</b><span>audio seconds</span></div>
     <div><b id="m-synth">–</b><span>synth seconds</span></div>
     <div><b id="m-rtf">–</b><span>× real-time (RTF)</span></div>
+  </div>
+
+  <div style="margin-top:22px;padding:14px 14px 12px;border:1px solid var(--brd);border-radius:8px;background:var(--bg2)">
+    <label style="margin-top:0">Soak — memory-slope harness <span style="text-transform:none;letter-spacing:0;color:var(--dim)">(v0.2 · the r8/jetsam lesson — duration IS the failure condition)</span></label>
+    <div class="row" style="align-items:flex-end">
+      <div style="flex:0 0 auto;min-width:110px">
+        <label for="soak-n">Synths</label>
+        <input id="soak-n" type="number" value="500" min="10" step="10" style="width:100px">
+      </div>
+      <div style="flex:0 0 auto;min-width:170px">
+        <label for="soak-recycle">Recycle every (0 = off)</label>
+        <input id="soak-recycle" type="number" value="0" min="0" step="5" style="width:100px">
+      </div>
+      <div style="flex:1 1 auto">
+        <button id="soak" style="background:none;border:1px solid var(--acc);color:var(--acc)">🔥 Soak (silent synth)</button>
+      </div>
+    </div>
+    <div class="hint">Drives N silent predicts (no audio scheduling — isolates the synth-side accumulators). A/B: recycle 0 vs 30 (the game's
+      PIPER_RECYCLE_AFTER). Two instruments, know which you're reading: <b>iOS Safari</b> — no heap API; the signal is the tab SURVIVING,
+      and a mid-soak tab kill is reported by the crumb at next load (that crash IS the jetsam repro — the definitive test for the
+      wasm-ratchet class). <b>Chrome</b> — the settled verdict catches JS-side leaks only; wasm memory is invisible to
+      performance.memory, so watch this tab in Task Manager (Shift+Esc) for the process-level ratchet.</div>
   </div>
 
   <div id="log">Ready. Pick a voice and hit Speak. (First run downloads the model — watch this log.)</div>
@@ -243,8 +268,12 @@ async function loadPiper(){
   if (_piper) return _piper;
   if (window.__ortErr) log("ORT preload warning: " + window.__ortErr, "err");
   log("loading vendored vits-web (local, same-origin ORT)…");
-  _piper = await import("/vendor/piper/vits/vits-web.js");
-  log("library loaded.", "ok");
+  // ?tnd= rev MUST stay in lockstep with tts.js PIPER_RUNTIME_REV (run-tests.js vendor check ⑤b
+  // enforces it): the game's SW piper-cache is permanent and keys by URL, so an UN-queried import
+  // here could silently serve a years-stale build — the soak would then measure the wrong runtime
+  // (the exact v1.322/323 wasted-tries trap this page exists to prevent).
+  _piper = await import("/vendor/piper/vits/vits-web.js?tnd=r8");
+  log("library loaded (runtime rev " + (_piper.TND_VITS_PATCH || "pre-r3 UNPATCHED") + ").", "ok");
   return _piper;
 }
 
@@ -381,6 +410,107 @@ $("stop").addEventListener("click", function(){
   stopAll();
   $("go").disabled = false; $("stop").disabled = true;
   log("stopped.", "hl");
+});
+
+/* ============================================================================
+   SOAK — memory-slope harness (v0.2, 2026-07-17 — the r8/jetsam lesson)
+   NOT historical scaffold: this is the standing verification tool for the wasm
+   memory-ratchet class (Fable_UberAudit.md ▸ monotonic resources). Why it exists:
+   v1.320–323 each fixed a PER-SENTENCE accumulator and were each validated against
+   a single long read — while the PER-SESSION accumulator (the cached ORT session's
+   arena + per-shape plan cache) kept growing until iOS killed the tab on turn 4 of
+   a live drive. "N turns worked" is the benign case; hundreds of synths on demand
+   is the failure condition. Chrome reports heap slope (performance.memory); iOS has
+   no heap API, so there the pass signal is survival and the crash crumb below turns
+   a mid-soak tab kill into a loud report at next load (same discipline as tts.js).
+   ============================================================================ */
+var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
+(function(){   // boot forensics — a soak that died (tab kill) reports itself at next load
+  try {
+    var c = localStorage.getItem(SOAK_CRUMB_K);
+    if (c){
+      c = JSON.parse(c); localStorage.removeItem(SOAK_CRUMB_K);
+      if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r + ") — the tab was killed mid-soak. That IS the jetsam repro.", "err");
+    }
+  } catch(e){}
+})();
+function heapMB(){ return (window.performance && performance.memory && performance.memory.usedJSHeapSize) ? performance.memory.usedJSHeapSize / 1048576 : null; }
+var _soaking = false;
+
+async function soak(n, recycleEvery){
+  var voiceId = $("voice").value;
+  await ensureVoice(voiceId);
+  var t = await loadPiper();
+  var canRecycle = typeof t.tndRecycleSession === "function";
+  if (recycleEvery > 0 && !canRecycle) log("recycle requested but this vits-web has no tndRecycleSession (pre-r8 build served?) — soaking WITHOUT recycle.", "err");
+  var units = splitSentences($("txt").value);
+  if (!units.length){ log("no text to soak.", "err"); return; }
+
+  // ⚠ What Chrome's usedJSHeapSize can and cannot see (verified live, 2026-07-17 bring-up):
+  // mid-loop samples are dominated by GC TIMING, not retention — a recycle-mode run showed a
+  // false +128MB/100 "ratchet" from ~78MB transient model-buffer copies per recycle, then sat
+  // at 21MB after 10s idle. And the wasm linear memory (where the ORT arena/plan-cache ratchet
+  // actually lives) is NOT counted by this API at all. So: baseline and verdict are both taken
+  // after an idle SETTLE (churn nets out; only RETAINED JS-side growth counts), the per-25
+  // curve is kept as texture only, and the verdict line says plainly that the wasm side is
+  // invisible here — iOS survival (this button on an iPhone) and Chrome Task Manager process
+  // memory are the ground-truth instruments for the ratchet class.
+  log("SOAK: warm-up synth (session create excluded from the slope)…", "hl");
+  try { await synth(units[0].text, voiceId); } catch(e){ log("warm-up synth failed: " + e.message, "err"); return; }
+  if (heapMB() !== null) await new Promise(function(r){ setTimeout(r, 8000); });   // settle before baseline — SAME 8s as the verdict settle, or the asymmetry alone reads as a big negative slope
+  var heap0 = heapMB(), tStart = performance.now(), lastHeap = heap0, sinceRecycle = 0;
+  var samples = [];
+  log("SOAK: " + n + " silent synths · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
+      (heap0 === null ? " · no heap API on this browser — SURVIVAL is the signal" : " · settled baseline " + heap0.toFixed(0) + "MB"), "hl");
+
+  for (var i = 0; i < n && _soaking; i++){
+    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false })); } catch(e){}
+    try { await synth(units[i % units.length].text, voiceId); }   // result discarded — synth-side memory only
+    catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
+    sinceRecycle++;
+    if (recycleEvery > 0 && canRecycle && sinceRecycle >= recycleEvery){
+      sinceRecycle = 0;
+      try { await t.tndRecycleSession(); } catch(e){ log("recycle failed: " + e.message, "err"); }
+    }
+    if ((i + 1) % 25 === 0){
+      var h = heapMB();
+      if (h !== null){ samples.push({ i: i + 1, h: h }); }
+      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")"));
+      if (h !== null) lastHeap = h;
+      await new Promise(function(r){ setTimeout(r, 50); });   // let the log paint between batches
+    }
+  }
+  try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true })); } catch(e){}
+  if (!_soaking){ log("soak stopped by user.", "hl"); return; }
+
+  var mins = (performance.now() - tStart) / 60000;
+  if (heap0 === null){
+    log("SOAK COMPLETE: " + n + " synths in " + mins.toFixed(1) + " min — tab SURVIVED, which is the pass signal on this browser (no heap numbers here).", "ok");
+  } else {
+    log("  settling 8s before verdict (GC the loop's transient buffers)…");
+    await new Promise(function(r){ setTimeout(r, 8000); });
+    var hs = heapMB();
+    // >2MB/100 synths RETAINED after settle is the heuristic tripwire for JS-side leaks. The
+    // wasm-side ratchet does NOT show here (see the block comment above) — a clean verdict on
+    // Chrome does not clear the iOS class; only an on-phone soak surviving does.
+    var slope = (hs - heap0) / (n / 100);
+    var verdict;
+    if (slope > 2)       verdict = "retained +" + slope.toFixed(1) + "MB/100 synths — JS-SIDE LEAK (something survives GC per synth)";
+    else if (slope >= 0) verdict = "retained +" + slope.toFixed(1) + "MB/100 synths — no JS-side retention";
+    else                 verdict = "net NEGATIVE (fresh-page startup buffers got collected during the run) — no JS-side retention";
+    log("SOAK COMPLETE: " + n + " synths in " + mins.toFixed(1) + " min · settled heap " + heap0.toFixed(0) + "→" + hs.toFixed(0) +
+        "MB · " + verdict +
+        " · wasm memory is INVISIBLE to this API — ratchet ground truth = iOS survival / Chrome Task Manager (Shift+Esc).",
+        slope > 2 ? "err" : "ok");
+  }
+}
+
+$("soak").addEventListener("click", async function(){
+  if (_soaking){ _soaking = false; $("soak").textContent = "🔥 Soak (silent synth)"; return; }
+  _soaking = true; $("soak").textContent = "■ Stop soak"; $("go").disabled = true;
+  try { await soak(parseInt($("soak-n").value, 10) || 500, parseInt($("soak-recycle").value, 10) || 0); }
+  catch(e){ log("SOAK FATAL: " + (e && e.message ? e.message : e), "err"); }
+  finally { _soaking = false; $("soak").textContent = "🔥 Soak (silent synth)"; $("go").disabled = false; }
 });
 </script>
 </body>

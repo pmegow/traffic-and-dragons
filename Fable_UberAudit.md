@@ -28,6 +28,15 @@ Format matches [TODO.md](TODO.md) (incl. the new **Tier** column — see its leg
 
 Rows below marked **⛨** are on the drift surface and carry the policy (their Tier is Fable regardless of intrinsic difficulty). Per-row **⚠ guard** notes state the specific hazard.
 
+### Standing audit dimension — monotonic resources (added 2026-07-17, the r8/jetsam lesson)
+
+Every audit — engine, subsystem, or deep-dive — includes a **resource-lifecycle pass**: enumerate everything that accumulates (JS-side AND inside vendored wasm/black-box dependencies), and for each ask *what bounds it, what releases it, what grows per unit of play?* Run the enumeration at **three scopes: per-sentence/per-call, per-turn, per-session** — a class fixed at one scope recurs at the next (v1.320–323 fixed four per-sentence accumulators; the per-session one, the v1.322 forever-cached ORT session's arena + per-shape plan cache, killed the tab on turn 4 of a live drive). Riders:
+
+1. **A prior fix's retained singleton is NOT exempt.** The v1.322 "one session, never released" *fix* was itself the next accumulator. A fix's own retention is psychologically exempt from suspicion — audit it hardest, not least.
+2. **Second instance of a failure class = stop fixing instances.** After the second occurrence of the same class, enumerate the whole class exhaustively at all three scopes before shipping the third point-fix. (v1.320→r8 was five sequential discoveries of one class, each validated only against the repro that prompted it.)
+3. **Vendored dependencies are components with their own failure modes.** Sweep the upstream issue tracker (at minimum: "memory", "leak") when vendoring or auditing one. We audited our *patches to* vits-web thoroughly and never audited onnxruntime-web itself.
+4. **The failure condition for memory bugs is DURATION, not an input** — "N turns worked" is the benign case. Verification tool for this class: `piper_test.html` **soak mode** (memory-slope harness): hundreds of silent synths on demand, recycle-every-N for A/B against the shipped guard. Know the instruments (live finding, 2026-07-17 bring-up): **on iOS the signal is tab survival** + the crash crumb (the soak button IS the on-demand jetsam repro — the definitive test); **on Chrome the settled verdict catches JS-side leaks only** — `performance.memory` cannot see wasm linear memory (mid-loop samples measure GC timing, not retention: a recycle run false-read +128MB/100 from transient model-buffer churn, then settled to 21MB), so the wasm-side ratchet needs Task Manager process memory or the phone.
+
 ---
 
 ## The recommendation (session plan — reordered 2026-07-09: spine + lanes, playtest-gated blocks)

@@ -52,6 +52,15 @@ try {
     console.error("VENDOR PATCH MISSING: session recycle (T&D r8) — vits-web.js must export tndRecycleSession and tts.js must call it between narrations, or cross-turn ORT memory growth resumes killing iOS tabs.");
     process.exit(1);
   }
+  // ⑤b soak-harness rev lockstep (piper_test.html v0.2): the soak page imports vits-web with its
+  //    own hardcoded ?tnd= rev. If it lags PIPER_RUNTIME_REV, the permanent SW piper-cache serves
+  //    the soak a STALE runtime and the harness measures a build that no longer ships.
+  var _spike = _fsV.readFileSync(_pathV.join(__dirname, "..", "piper_test.html"), "utf8");
+  var _revS = (_spike.match(/vits-web\.js\?tnd=(r\d+)/) || [])[1];
+  if (_revS && _revS !== _revT) {
+    console.error("SOAK REV LAG: piper_test.html imports vits-web ?tnd=" + _revS + " but tts.js PIPER_RUNTIME_REV=" + _revT + " — bump the soak page's import rev so the harness measures the shipped runtime.");
+    process.exit(1);
+  }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
