@@ -4,6 +4,8 @@
 
 **Result:** ✅ **150 turns, 0 turn errors, 0 console errors.** Vyrindra leveled **7→8**, 5 quests opened & closed, the campaign ran the full arc under steering. Corpus: 150 raw GM responses + turn log (durable harness).
 
+**Narrative export:** [haiku_narrative.html](haiku_narrative.html) — the full readable story export of this 150-turn window (the prose the numbers below were judged against).
+
 ---
 
 ## 💰 COST — the headline

@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260716q";
+var CACHE = "tnd-v3-20260716r";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -24,7 +24,9 @@ var APP_SHELL = [
   "/tts.js",
   "/stt.js",
   "/manifest.json",
-  "/icon.svg"
+  "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 self.addEventListener("install", function(e){
@@ -66,11 +68,15 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
-  // Dev-utility satellite pages are NOT part of the cached app shell — their commits don't bump
+  // Dev-utility satellite/doc pages are NOT part of the cached app shell — their commits don't bump
   // CACHE, so the cache-first path below would pin stale copies indefinitely (it did: the designer
   // all through the v0.2x work, then the todo-viewer on 07-06 — every update needed a manual cache
   // clear). Serve them network-first: always fetch fresh when online, cached copy only as fallback.
-  if(/blueprint-designer|todo-viewer/.test(e.request.url)){
+  // Covers ALL satellites (audit 07-16 #22): designer, todo-viewer, bible_study, piper_test,
+  // test.html (anchored on the preceding "/" so e.g. "protest.html" can't match), the
+  // npc-merge-studio, and everything under /DOC/. Tested against e.request.url (the FULL URL),
+  // hence the path-fragment style.
+  if(/blueprint-designer|todo-viewer|bible_study|piper_test|npc-merge-studio|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.
