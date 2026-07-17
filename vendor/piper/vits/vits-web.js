@@ -254,7 +254,7 @@ async function N(e, m) {
 // native rate knob, but length_scale inversely scales phoneme duration (the standard VITS speed
 // trick). See the `g = i.inference.length_scale / (e.rate || 1)` line in N() above. Falls back to
 // unchanged length_scale when the caller omits rate (e.g. an older cached caller pre-dating this).
-const TND_VITS_PATCH = "r7"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_VITS_PATCH = "r8"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
 const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;
@@ -304,6 +304,18 @@ async function tndGetSession(n2, m2) {
   }
   return tndSess.sess;
 }
+// ═══ T&D PATCH r8 (2026-07-17) — session recycle. v1.322/323 fixed the PER-SENTENCE leaks, but
+// the surviving cached session's wasm-side arena + per-shape execution-plan cache still grow
+// ACROSS turns (every sentence is a new input length = new shape, and wasm linear memory never
+// shrinks) — the 2026-07-17 field crash: three full turns fine, iOS killed the tab at unit 9 of
+// turn 4. tts.js calls this between narrations once enough predicts have accumulated; the next
+// predict (or tts.js's background warm call) rebuilds the session from OPFS. The phonemizer is
+// deliberately NOT recycled — recreating it per turn would reintroduce the v1.323 leak class
+// (Safari collects discarded wasm memories too lazily under pressure).
+async function tndRecycleSession() {
+  if (tndSess.sess) { try { const r = tndSess.sess.release(); if (r && r.then) await r; } catch (e) {} }
+  tndSess.sess = null; tndSess.key = null;
+}
 async function f(e, m) {
   let n = await D(e);
   return n || (n = await S(e, m), await p(e, n)), n;
@@ -349,6 +361,7 @@ async function P() {
 }
 export {
   TND_VITS_PATCH,
+  tndRecycleSession,
   u as HF_BASE,
   B as ONNX_BASE,
   c as PATH_MAP,

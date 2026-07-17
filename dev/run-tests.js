@@ -46,6 +46,12 @@ try {
     console.error("VENDOR REV MISMATCH: tts.js PIPER_RUNTIME_REV=" + _revT + " vs vits-web.js TND_VITS_PATCH=" + _revV + " — bump PIPER_RUNTIME_REV with every vendored vits-web change or the patch never reaches installed phones.");
     process.exit(1);
   }
+  // ⑤ session recycle (T&D r8): the cross-turn wasm memory-ratchet guard — the vendored export
+  //    AND the tts.js caller must both exist, or the iOS "9/50" tab-kill class quietly returns.
+  if (_vits.indexOf("tndRecycleSession") < 0 || _tts.indexOf("tndRecycleSession") < 0) {
+    console.error("VENDOR PATCH MISSING: session recycle (T&D r8) — vits-web.js must export tndRecycleSession and tts.js must call it between narrations, or cross-turn ORT memory growth resumes killing iOS tabs.");
+    process.exit(1);
+  }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).

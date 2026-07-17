@@ -574,7 +574,8 @@ var TTS = (function() {
         c = JSON.parse(c);
         store.del(PIPER_CRUMB_K);   // one-shot
         if (!c.done && typeof c.i === "number") {
-          var msg = "⚠ Last narration died at sentence " + c.i + "/" + c.n + " (piper " + (c.rev || "?") + ", " + (c.app || "?") + ")";
+          var msg = "⚠ Last narration died at sentence " + c.i + "/" + c.n + " (piper " + (c.rev || "?") + ", " + (c.app || "?") +
+                    (typeof c.pc === "number" ? ", " + c.pc + " synths / " + c.up + " min into the session" : "") + ")";
           console.warn("[tts piper] " + msg);
           if (typeof showToast === "function") showToast(msg, 8000);
         }
@@ -909,10 +910,28 @@ var TTS = (function() {
   // it, so a phone can PROVE which runtime it runs before a test.
   // r7 (2026-07-17, Car Mode audit rank 20 — todo_carplay.html): predict() gained an optional
   // `rate` param (length_scale / rate) — see the T&D PATCH r7 comment in vits-web.js.
-  var PIPER_RUNTIME_REV = "r7";
+  // r8 (2026-07-17, the 9/50 field crash): tndRecycleSession() export — between narrations, once
+  // PIPER_RECYCLE_AFTER synths have accumulated, the ORT session is released + rebuilt in the
+  // background (_piperMaybeRecycle). Targets the CROSS-TURN accumulator left after v1.320–323:
+  // the cached session's wasm arena + per-shape plan cache grow with every distinct sentence
+  // length, wasm memory never shrinks, and iOS killed the tab early in turn 4 of a live drive.
+  var PIPER_RUNTIME_REV = "r8";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
+  // r8 crash-forensics counters. The crumb carries them so the NEXT tab kill (if any) can
+  // discriminate on-phone between the two remaining hypotheses: death at a similar CUMULATIVE
+  // synth count regardless of read position = cross-session memory ratchet (recycle threshold too
+  // high / wrong accumulator); death tied to one giant read at a LOW cumulative count = per-read
+  // peak (next lever: mid-read recycle or worker isolation). No console on a phone — the crumb
+  // toast is the only instrument we have in a moving car.
+  var _piperBootAt        = Date.now();  // page-load timestamp — crumb "min into the session"
+  var _piperSynthsTotal   = 0;           // successful predicts since page load (crumb forensics)
+  var _piperSynthsSession = 0;           // predicts since the ORT session was (re)built — recycle trigger
+  var PIPER_RECYCLE_AFTER = 30;          // recycle between narrations once ≥30 synths on the session
+                                         // (~one long turn — keeps the session younger than the
+                                         // observed-safe single-read envelope; rebuild cost hides
+                                         // off the critical path between turns)
 
   // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. Backs both
   // TTS_PROVIDERS.piper.available() (speak()'s dispatch) and prewarmPiper (so a known-broken
@@ -1114,7 +1133,8 @@ var TTS = (function() {
     // synth, so if the tab dies mid-predict the crumb names the killing unit.
     var _crumbBase = { n: units.length, rev: _piperPatchRev, app: (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?") };
     function _crumb(iDone, done) {
-      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, done: !!done })); } catch(e) {}
+      // pc/up (r8): cumulative synths + minutes since page load — see the counter block above.
+      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, pc: _piperSynthsTotal, up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done })); } catch(e) {}
     }
     _crumb(0, false);
 
@@ -1155,6 +1175,7 @@ var TTS = (function() {
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
         continue;
       }
+      _piperSynthsTotal++; _piperSynthsSession++;   // r8: count BEFORE the stale check — the wasm memory was spent either way
       if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
 
       var buf;
@@ -1199,6 +1220,9 @@ var TTS = (function() {
     if (_piperEpoch !== myEpoch) return;   // stale — a skip() during the final unit must not reach the
                                            // fallback below (it would speak a skipped item via native)
                                            // or the activeSrcs===0 drain (double-_drain, overlapping items)
+    _piperMaybeRecycle(voiceId);   // r8: between-narrations ORT session recycle (cross-turn ratchet guard);
+                                   // deliberately BEFORE the !anyOk fallback — an all-units-failed session
+                                   // is exactly one worth recycling
     if (!anyOk) {
       // every unit failed to synthesize — loud, then fall back to native for THIS item (mirror of _stream's catch)
       _piperError = "all units failed to synthesize";
@@ -1237,10 +1261,34 @@ var TTS = (function() {
         if (_piperEpoch !== myEpoch) return;
         // discarded — just forces the WASM compile; serialized per audit #9
         await _piperSerial(function() { return mod.predict({ text: "warm up", voiceId: voiceId, rate: getRate() }); });
+        _piperSynthsTotal++; _piperSynthsSession++;   // r8: prewarm exercises the session like any predict
       } catch(e) {
         console.warn("[tts piper] prewarm failed (non-fatal):", e && e.message);
       }
     })();
+  }
+
+  // r8 (the 9/50 field crash) — between-narrations ORT session recycle. Fires from _speakPiper
+  // after a synth loop completes, only once ≥PIPER_RECYCLE_AFTER synths have accumulated on the
+  // current session. release() frees the session's wasm-side arena/plan-cache allocations back to
+  // ORT's malloc so the heap stops ratcheting across turns; the background warm predict rebuilds
+  // the session from OPFS off the critical path (epoch-snapshotted like prewarm — if a real read
+  // races in, ITS first predict does the rebuild instead and the warm call is skipped). Loud on
+  // both success and failure; failure is non-fatal (next predict rebuilds lazily).
+  function _piperMaybeRecycle(voiceId) {
+    if (_piperSynthsSession < PIPER_RECYCLE_AFTER) return;
+    if (!_piperMod || typeof _piperMod.tndRecycleSession !== "function") return;   // stale pre-r8 runtime — rev-mismatch warn already fired in _piperInit
+    var myEpoch = _piperEpoch;
+    var n = _piperSynthsSession;
+    _piperSynthsSession = 0;
+    _piperSerial(function() { return _piperMod.tndRecycleSession(); })
+      .then(function() {
+        console.info("[tts piper] ORT session recycled after " + n + " synths (iOS memory-ratchet guard) — rebuilding in background");
+        if (_piperEpoch !== myEpoch) return;   // a new read/stop raced in — its own predict rebuilds
+        return _piperSerial(function() { return _piperMod.predict({ text: "ready", voiceId: voiceId, rate: getRate() }); })
+          .then(function() { _piperSynthsTotal++; _piperSynthsSession++; });
+      })
+      .catch(function(e) { console.warn("[tts piper] session recycle failed (non-fatal — next predict rebuilds):", e && e.message); });
   }
 
   // ── Car Mode support: earcons + replay (todo_carplay.html ranks 14, 17/18) ─────────────────
@@ -1404,7 +1452,8 @@ var TTS = (function() {
     // test — "expected rN" until the engine loads, the loaded TND_VITS_PATCH after; a mismatch
     // means a cache served a stale vendored file (the v1.322/v1.323 delivery trap).
     var rt = document.getElementById("tts-piper-runtime");
-    if (rt) rt.textContent = "Piper runtime: " + (_piperPatchRev ? _piperPatchRev + " (loaded)" : PIPER_RUNTIME_REV + " expected — engine loads on first use") + " · app " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?");
+    if (rt) rt.textContent = "Piper runtime: " + (_piperPatchRev ? _piperPatchRev + " (loaded)" : PIPER_RUNTIME_REV + " expected — engine loads on first use") + " · app " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?") +
+                             (_piperSynthsTotal ? " · " + _piperSynthsTotal + " synths (" + _piperSynthsSession + " on session)" : "");   // r8: on-phone memory-ratchet forensics
   }
 
   // Non-blocking refresh of _piperDownloaded from the REAL on-disk store. v1.331: reads OPFS
