@@ -3,7 +3,8 @@
 //
 // ES5 convention (var, function declarations, no arrows/template literals, no const/let) applies
 // throughout this file. SANCTIONED EXCEPTION (TODO #41 Phase 3, todo_TTS_piper.md §5 Q7):
-// async/await is permitted in the Piper adapter functions ONLY — _piperInit, _piperEnsureVoice,
+// async/await is permitted in the Piper adapter functions ONLY — _piperInit, _piperEnsureVoice
+// (+ its _piperEnsureVoiceNow body and the _piperVoiceComplete OPFS check, v1.339),
 // _speakPiper, prewarmPiper — because Piper's dynamic import() + WASM predict() calls are a
 // genuine I/O boundary, the same justification that already sanctions async in the three
 // API-facing functions elsewhere in the codebase (callGM/summarize and kin). No other surface in
@@ -426,6 +427,33 @@ var TTS = (function() {
     if (typeof showToast === "function") showToast("🔇 iOS paused game audio — speaking this line in the native voice; tap anywhere, then it recovers", 6000);
   }
 
+  // WebAudio stall watchdog (audit #10, v1.339 — the v1.329 native watchdog's missing twin): iOS
+  // can flip the shared ctx to "interrupted" MID-READ with no hide/show cycle and no event we act
+  // on (e.g. a BT route change with the screen on). Scheduled audio freezes, onended never fires,
+  // and _playing stays latched — the wedged-pipeline class, silently. While a WebAudio item plays,
+  // poll: a non-running ctx the user did NOT pause gets a resume attempt, ONE loud toast, and the
+  // tap unlock armed. No force-advance — scheduled sources survive suspend/interrupted and resume
+  // seamlessly once the ctx runs again.
+  var _ctxWatchT = null;
+  function _armCtxWatch(engineLabel) {
+    if (_ctxWatchT) return;
+    var warned = false;
+    _ctxWatchT = setInterval(function() {
+      if (!_playing || _curNative) { _clearCtxWatch(); return; }
+      if (_paused) return;   // a user pause suspends the same ctx deliberately (audit #4)
+      if (_audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") {
+        _resumeCtx(_audioCtx);
+        if (!warned) {
+          warned = true;
+          _armCtxUnlock();
+          console.warn("[tts] AudioContext " + _audioCtx.state + " mid-" + engineLabel + " read — narration frozen; tap unlock armed");
+          if (typeof showToast === "function") showToast("🔇 iOS paused game audio mid-narration — tap anywhere to resume", 6000);
+        }
+      } else warned = false;
+    }, 2000);
+  }
+  function _clearCtxWatch() { if (_ctxWatchT) { clearInterval(_ctxWatchT); _ctxWatchT = null; } }
+
   function _closeCtx() {
     // v1.334 (audit #3): the primer node belongs to THIS ctx — clearing it here keeps
     // primeAudioSession()'s _primerSrc guard from short-circuiting on a dead node after a
@@ -473,7 +501,14 @@ var TTS = (function() {
     // v1.327: voice-on persisted across a reload means toggle() never runs this session — the ctx
     // would otherwise be born OUTSIDE a gesture at first narration (iOS: suspended forever). Arm
     // the one-tap unlock so the user's first interaction creates/resumes it in-gesture.
-    if (isOn()) _armCtxUnlock();
+    if (isOn()) {
+      _armCtxUnlock();
+      // Audit #8 (v1.339): the same reload path also skipped prewarm, so the ~9s WASM compile
+      // landed inside the FIRST narration of every returning session — exactly what prewarm
+      // (§5 Q4) exists to prevent. Boot prewarm is download-gated (see prewarmPiper): it warms
+      // engine+voice only when the voice is already on disk; never a surprise 60MB download.
+      if (getEngine() === "piper") prewarmPiper(resolvePiperVoice(), true);
+    }
     // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
     // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
     try {
@@ -544,6 +579,7 @@ var TTS = (function() {
       _playing = false;
       _paused  = false;
       _curNative = false;
+      _clearCtxWatch();   // audit #10 — nothing left to guard
       _showBar(false);
       if (_onDoneCallback) _onDoneCallback();
       return;
@@ -630,6 +666,7 @@ var TTS = (function() {
     _ctxRunning(ctx).then(function(ok) {
       if (!ok) { _ctxBlockedLoud("Cartesia"); _curNative = true; _speakNative(text); return; }
       primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent
+      _armCtxWatch("Cartesia");   // audit #10 — catch a mid-read ctx interruption loudly
       _streamGo(text, voiceId, ctx);
     });
   }
@@ -840,15 +877,51 @@ var TTS = (function() {
     }
   }
 
+  // Serialization gate (audit #9, v1.339): ONE Piper engine operation (voice ensure/download,
+  // predict) at a time. prewarm's throwaway predict can overlap a real narration's (the epoch
+  // guard discards stale RESULTS — it doesn't prevent overlap), and two concurrent ensures for a
+  // missing voice each start their own ~60MB download (two OPFS writers on the same files).
+  // Underneath sits ONE single-threaded wasm session — unserialized concurrent run() is undefined
+  // behavior. The chain itself never rejects (failures propagate to the caller; the chain keeps
+  // going), so one failed op can't wedge every later one.
+  var _piperChain = Promise.resolve();
+  function _piperSerial(fn) {
+    var run = _piperChain.then(fn);
+    _piperChain = run.then(function() {}, function() {});
+    return run;
+  }
+
+  // stored() only proves an .onnx FILE exists — not that it has bytes (a tab killed during the
+  // very first download leaves the 0-byte file OPFS pre-created, committed and listed forever),
+  // nor that the .onnx.json config landed beside it (predict() would then silently fetch it from
+  // HF at narration time — a network dependency while the modal says "downloaded"; offline, the
+  // first unit fails). Audit #11 (v1.339): verify both files exist and are non-empty; any gap
+  // re-runs the full download, which overwrites both.
+  async function _piperVoiceComplete(voiceId) {
+    try {
+      var rel = ((_piperMod && _piperMod.PATH_MAP) || {})[voiceId];
+      if (!rel) return true;   // id unknown to the map — defer to stored()'s verdict
+      var base = rel.split("/").pop();
+      var dir = await (await navigator.storage.getDirectory()).getDirectoryHandle("piper");
+      var onnx = await (await dir.getFileHandle(base)).getFile();
+      var json = await (await dir.getFileHandle(base + ".json")).getFile();
+      return onnx.size > 0 && json.size > 0;
+    } catch (e) { return false; }
+  }
+
   // Ensure a voice model is cached (vits-web caches in OPFS); download with progress on first use.
   // Loud per the no-silent-failures rule: toast at start/end, coarse console.info during, toast +
   // console.warn + rethrow on failure. Richer download UI (a real progress bar) is Phase 4 — this
-  // is the loud-not-silent floor.
+  // is the loud-not-silent floor. The check+download runs under _piperSerial (audit #9) so two
+  // callers racing on a missing voice can't both download it.
   async function _piperEnsureVoice(voiceId) {
     var mod = await _piperInit();
+    return _piperSerial(function() { return _piperEnsureVoiceNow(mod, voiceId); });
+  }
+  async function _piperEnsureVoiceNow(mod, voiceId) {
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
-    if (stored.indexOf(voiceId) !== -1) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
+    if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
     if (typeof showToast === "function") showToast("⬇ Downloading narrator voice — one-time, cached after");
     var lastPct = -1;
     try {
@@ -914,6 +987,7 @@ var TTS = (function() {
     if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited
     if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
     primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (_primerSrc guard)
+    _armCtxWatch("Piper");   // audit #10 — catch a mid-read ctx interruption loudly
 
     var mod;
     try {
@@ -972,7 +1046,9 @@ var TTS = (function() {
 
       var blob;
       try {
-        blob = await mod.predict({ text: u.text + " ", voiceId: voiceId });   // trailing space: documented static-tail guard
+        // trailing space: documented static-tail guard; _piperSerial: audit #9 (never concurrent
+        // with a prewarm predict or another flow's ensure/download on the shared wasm session)
+        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: voiceId }); });
       } catch(e) {
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
         continue;
@@ -1040,16 +1116,25 @@ var TTS = (function() {
   // whether IT has been superseded, so its own discarded result isn't worth chasing further.
   // Exported on the public API. Wired to TTS-enable by toggle() and to the settings modal's Save
   // handler (both: only when the selected engine is Piper) — see §5 Q4.
-  function prewarmPiper(voiceId) {
+  function prewarmPiper(voiceId, onlyIfDownloaded) {
     if (!_piperOk()) return;   // known-broken within the retry window — don't hammer it every toggle-on
     var myEpoch = _piperEpoch;
     (async function() {
       try {
         var mod = await _piperInit();
         if (_piperEpoch !== myEpoch) return;
+        if (onlyIfDownloaded) {
+          // Boot-time prewarm (loadSettings, audit #8): warm the engine, but NEVER start a ~60MB
+          // voice download the user didn't ask for this session — the first real narration
+          // handles that (with its toast) exactly as before.
+          var have = [];
+          try { have = await mod.stored(); } catch (e0) { have = []; }
+          if (have.indexOf(voiceId) === -1) return;
+        }
         await _piperEnsureVoice(voiceId);
         if (_piperEpoch !== myEpoch) return;
-        await mod.predict({ text: "warm up", voiceId: voiceId });   // discarded — just forces the WASM compile
+        // discarded — just forces the WASM compile; serialized per audit #9
+        await _piperSerial(function() { return mod.predict({ text: "warm up", voiceId: voiceId }); });
       } catch(e) {
         console.warn("[tts piper] prewarm failed (non-fatal):", e && e.message);
       }
@@ -1100,6 +1185,7 @@ var TTS = (function() {
   function _stopCurrent() {
     _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
     _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
+    _clearCtxWatch();   // audit #10 — the item the watchdog guarded is gone
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
     if (_nativeStallT) { clearTimeout(_nativeStallT); _nativeStallT = null; }   // v1.334: a live watchdog would resurrect the cancelled chain
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
