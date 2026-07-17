@@ -1050,10 +1050,16 @@ function applyBlueprint(bp){
       if(mn&&mn.knowledge){var ki=mn.knowledge.indexOf(sn.notes);if(ki>=0)mn.knowledge[ki]=sp.bio;}
     }
   }
-  // Custom rules from the blueprint
+  // Custom rules from the blueprint — WRAPPED as quoted data (TODO #22, v1.350): a raw push gave a
+  // semi-trusted campaign file the same prompt authority as the player's own rules (an embedded
+  // "ignore all other rules…" would read as OUR instruction). The wrapper keeps the rule enforced
+  // but visibly provenance-marked and quoted; dedupe keys on the wrapped string so re-imports of
+  // the same blueprint stay idempotent. Forward-only: rules already imported raw by older saves
+  // can't be told apart from user-authored ones, so they are left as-is.
   if(bp.rules&&bp.rules.length){
     var ri;for(ri=0;ri<bp.rules.length;ri++){
-      if(customRules.indexOf(bp.rules[ri])===-1)customRules.push(bp.rules[ri]);
+      var wrapped='Blueprint rule (quoted from the campaign file): "'+bp.rules[ri]+'"';
+      if(customRules.indexOf(wrapped)===-1)customRules.push(wrapped);
     }
     saveRules();
   }
