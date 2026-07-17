@@ -203,6 +203,7 @@ async function N(e, m) {
 // wasm memories too lazily under pressure and killed long reads. ONE cached instance re-driven
 // via callMain per call; if a build can't re-run main (ExitStatus/no output), we mark it broken
 // LOUDLY and fall back to upstream per-call behavior — never worse than before this patch.
+const TND_VITS_PATCH = "r2"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const tndPhon = { mod: null, sink: null, broken: false };
 const tndLocate = (l) => l.endsWith(".wasm") ? `${x}.wasm` : l.endsWith(".data") ? `${x}.data` : l;
 async function tndPhonemize(espeakVoice, input) {
@@ -283,6 +284,7 @@ async function P() {
   return Object.values(await e.json());
 }
 export {
+  TND_VITS_PATCH,
   u as HF_BASE,
   B as ONNX_BASE,
   c as PATH_MAP,

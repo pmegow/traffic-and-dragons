@@ -372,7 +372,23 @@ var TTS = (function() {
     if (_primerSrc) { try { _primerSrc.stop(); } catch(e) {} _primerSrc = null; }
   }
 
-  function loadSettings() { _syncBtn(); }
+  function loadSettings() {
+    _syncBtn();
+    // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
+    // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
+    try {
+      var c = store.get(PIPER_CRUMB_K);
+      if (c) {
+        c = JSON.parse(c);
+        store.del(PIPER_CRUMB_K);   // one-shot
+        if (!c.done && typeof c.i === "number") {
+          var msg = "⚠ Last narration died at sentence " + c.i + "/" + c.n + " (piper " + (c.rev || "?") + ", " + (c.app || "?") + ")";
+          console.warn("[tts piper] " + msg);
+          if (typeof showToast === "function") showToast(msg, 8000);
+        }
+      }
+    } catch(e) {}
+  }
 
   function _syncBtn() {
     var on = isOn();
@@ -635,7 +651,17 @@ var TTS = (function() {
                                 // effort so opening the modal never forces an engine init/OPFS read.
 
   var PIPER_ORT_PATH = "/vendor/piper/ort/";
-  var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js";
+  // ⚠ DELIVERY (v1.324, the wasted-tries lesson): /vendor/piper/* is served cache-first from the
+  // PERMANENT tnd-piper-v1 SW cache + an immutable HTTP header — an installed phone NEVER refetches
+  // it on deploy, so a patched vits-web.js silently doesn't arrive (v1.322/v1.323 likely never ran
+  // on the reporting phone). The ?tnd= query is the delivery mechanism: bump PIPER_RUNTIME_REV with
+  // every vendored-file patch → new URL → both caches miss → fresh fetch. The vendored file exports
+  // TND_VITS_PATCH with the same rev; _piperInit stores it and the Voice Settings Piper panel shows
+  // it, so a phone can PROVE which runtime it runs before a test.
+  var PIPER_RUNTIME_REV = "r2";
+  var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
+  var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
+  var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
 
   // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. Backs both
   // TTS_PROVIDERS.piper.available() (speak()'s dispatch) and prewarmPiper (so a known-broken
@@ -665,6 +691,9 @@ var TTS = (function() {
       });
       _piperMod = await import(PIPER_LIB_PATH);
       _piperReady = true;
+      _piperPatchRev = _piperMod.TND_VITS_PATCH || "r0-unpatched";
+      if (_piperPatchRev !== PIPER_RUNTIME_REV) console.warn("[tts piper] runtime rev mismatch: loaded " + _piperPatchRev + ", expected " + PIPER_RUNTIME_REV + " — a cache served a stale vendored file");
+      _updatePiperErr();   // repaint the modal's runtime line if it's open
       return _piperMod;
     } catch(e) {
       _piperError = (e && e.message) || "Piper engine failed to load";
@@ -764,6 +793,14 @@ var TTS = (function() {
     var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
 
+    // Per-unit crash journal (v1.324) — see _crumbDone/loadSettings. Written BEFORE each unit's
+    // synth, so if the tab dies mid-predict the crumb names the killing unit.
+    var _crumbBase = { n: units.length, rev: _piperPatchRev, app: (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?") };
+    function _crumb(iDone, done) {
+      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, done: !!done })); } catch(e) {}
+    }
+    _crumb(0, false);
+
     _sources = [];
     var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
     var loopDone   = false;
@@ -779,6 +816,7 @@ var TTS = (function() {
     for (var i = 0; i < units.length; i++) {
       if (_piperEpoch !== myEpoch) return;   // stale — stop()/skip() invalidated this loop mid-flight
       var u = units[i];
+      _crumb(i, false);   // about to synth unit i+1 — a tab kill here names it at next boot
 
       // Backpressure (v1.320 — the iOS long-passage crash): never synthesize more than
       // PIPER_MAX_AHEAD_SEC of audio past the playhead. The old synth-everything-ahead loop held
@@ -838,6 +876,7 @@ var TTS = (function() {
     }
 
     loopDone = true;
+    _crumb(units.length, true);   // synth loop completed — playback tail can't be "killed mid-synth"
     if (_piperEpoch !== myEpoch) return;   // stale — a skip() during the final unit must not reach the
                                            // fallback below (it would speak a skipped item via native)
                                            // or the activeSrcs===0 drain (double-_drain, overlapping items)
@@ -911,8 +950,15 @@ var TTS = (function() {
     _showBar(false);
   }
 
+  // Breadcrumb (v1.324): a crash-killed tab can't log, so _speakPiper journals per-unit progress to
+  // localStorage; loadSettings() reads it at next boot. A record with done:false = the read DIED
+  // there (crash) — user-initiated skip/stop marks done via _crumbDone below, so it never false-alarms.
+  function _crumbDone() {
+    try { var c = store.get(PIPER_CRUMB_K); if (c) { c = JSON.parse(c); c.done = true; store.set(PIPER_CRUMB_K, JSON.stringify(c)); } } catch(e) {}
+  }
   function _stopCurrent() {
     _piperEpoch++;   // invalidate any in-flight Piper synth loop — unabortable WASM predict() must not schedule stale audio
+    _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
     if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
@@ -975,6 +1021,11 @@ var TTS = (function() {
     // red is reserved for real failures; the not-downloaded-yet line is info, not an error
     el.style.color = isErr ? "#e06060" : "var(--t2)";
     el.style.display = msg ? "inline" : "none";
+    // Runtime provenance line (v1.324): lets a phone PROVE which vendored build it runs before a
+    // test — "expected rN" until the engine loads, the loaded TND_VITS_PATCH after; a mismatch
+    // means a cache served a stale vendored file (the v1.322/v1.323 delivery trap).
+    var rt = document.getElementById("tts-piper-runtime");
+    if (rt) rt.textContent = "Piper runtime: " + (_piperPatchRev ? _piperPatchRev + " (loaded)" : PIPER_RUNTIME_REV + " expected — engine loads on first use") + " · app " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?");
   }
 
   // Opportunistic, non-blocking refresh of _piperDownloaded from the engine's real OPFS listing —
@@ -1157,6 +1208,7 @@ var TTS = (function() {
       +       "<button id='tts-piper-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
       +     "</div>"
       +     "<div id='tts-piper-blurb' style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(_piperVoiceBlurb(resolvePiperVoice())) + "</div>"
+      +     "<div id='tts-piper-runtime' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
       +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Piper is unavailable, narration falls back to your Native voice (set it under Native).</div>"
       +   "</div>"
       + "</div>"
