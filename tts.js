@@ -932,7 +932,7 @@ var TTS = (function() {
   // campaign's provider-hopping eventually repeat the eviction risk audit #12 already flags for a
   // SINGLE voice, just at OS-storage scale instead of browser-eviction scale. Cap resident voices;
   // evict least-recently-used on overflow. Re-download on demand is cheap (progress UI already exists).
-  var PIPER_VOICE_CAP = 3;
+  var PIPER_VOICE_CAP = 4;   // user call 2026-07-17 (raised from the triage's 3 with the slot UI)
   var PIPER_VOICE_LRU_K = "tnd_piper_voice_lru_v1";  // {voiceId: epoch-ms last ensured} — LRU stamps for the cap above
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
   // r8 crash-forensics counters. The crumb carries them so the NEXT tab kill (if any) can
@@ -1048,7 +1048,7 @@ var TTS = (function() {
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
     if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _piperLruStamp(voiceId); _updatePiperErr(); return; }
-    if (typeof showToast === "function") showToast("⬇ Downloading narrator voice (" + piperVoiceSize(voiceId) + ") — one-time, cached after");
+    if (typeof showToast === "function") showToast("⬇ Downloading narrator voice (" + piperVoiceSize(voiceId) + ") — one-time, cached after", 6000);   // timed (#68): lifecycle info, not a cheer
     // Rank 9 (todo_carplay.html): mirror the download lifecycle into #car-status — the toast above
     // is invisible under #car-overlay (rank 1; also now fixed, but this is IN ADDITION, not instead).
     if (typeof carNotify === "function") carNotify("progress", "Downloading narrator voice (" + piperVoiceSize(voiceId) + ")…");
@@ -1074,9 +1074,10 @@ var TTS = (function() {
     _piperDownloaded[voiceId] = true;
     _piperLruStamp(voiceId);
     _updatePiperErr();   // repaint the modal's "not downloaded yet" info line if it's open (found stale in Phase 5 preview)
-    if (typeof showToast === "function") showToast("✓ Narrator voice ready");
+    if (typeof showToast === "function") showToast("✓ Narrator voice ready", 4000);   // timed (#68)
     if (typeof carNotify === "function") carNotify("info", "Voice ready");
     await _piperEvictExcess(mod, voiceId);   // #66: keep resident voice models bounded — never the one just ensured
+    _renderPiperSlots();   // residency changed — repaint the slot array if Voice Settings is open (no-op otherwise)
   }
 
   // #66: called only after a fresh download (the already-downloaded branch above returns before
@@ -1105,7 +1106,8 @@ var TTS = (function() {
         delete _piperDownloaded[id];
         over--;
         console.info("[tts piper] evicted narrator voice (LRU cap " + PIPER_VOICE_CAP + "): " + id);
-        if (typeof showToast === "function") showToast("🗑 Removed narrator voice " + id + " — keeping your 3 most recent (Voice Settings re-downloads any voice on demand)");
+        // Timed toast (#68) — the field test showed sticky lifecycle toasts stacking into spam
+        if (typeof showToast === "function") showToast("🗑 Removed narrator voice " + id + " — keeping your " + PIPER_VOICE_CAP + " most recent", 8000);
       } catch(e) {
         console.warn("[tts piper] failed to evict narrator voice " + id + ", keeping it:", e && e.message);
       }
@@ -1514,29 +1516,105 @@ var TTS = (function() {
   // (the model was on the device the whole time). Falls back to the engine listing when OPFS
   // isn't available. Plain .then() callbacks per the file's async-surface convention.
   function _piperRefreshDownloaded() {
-    if (navigator.storage && navigator.storage.getDirectory) {
-      navigator.storage.getDirectory().then(function(rootDir) {
-        return rootDir.getDirectoryHandle("piper");
-      }).then(function(dir) {
-        var it = dir.keys(), found = [];
-        function step() {
-          return it.next().then(function(r) {
-            if (r.done) return found;
-            if (String(r.value).slice(-5) === ".onnx") found.push(String(r.value).split(".")[0]);   // same id rule as vits-web stored()
-            return step();
-          });
-        }
-        return step();
-      }).then(function(ids) {
-        for (var i = 0; i < ids.length; i++) _piperDownloaded[ids[i]] = true;
-        _updatePiperErr();
-      }).catch(function() {});   // no OPFS dir yet = genuinely not downloaded — the line stays honest
-    }
+    _piperOpfsIds().then(function(ids) {
+      for (var i = 0; i < ids.length; i++) _piperDownloaded[ids[i]] = true;
+      _updatePiperErr();
+    });
     if (!_piperMod || typeof _piperMod.stored !== "function") return;
     _piperMod.stored().then(function(stored) {
       for (var i = 0; i < stored.length; i++) _piperDownloaded[stored[i]] = true;
       _updatePiperErr();
     }).catch(function() {});
+  }
+
+  // Shared OPFS voice listing (factored from _piperRefreshDownloaded for the #66 slot UI): resolves
+  // the resident voice ids WITHOUT engine init, [] on any failure (no OPFS dir yet = none resident).
+  function _piperOpfsIds() {
+    if (!(navigator.storage && navigator.storage.getDirectory)) return Promise.resolve([]);
+    return navigator.storage.getDirectory().then(function(rootDir) {
+      return rootDir.getDirectoryHandle("piper");
+    }).then(function(dir) {
+      var it = dir.keys(), found = [];
+      function step() {
+        return it.next().then(function(r) {
+          if (r.done) return found;
+          if (String(r.value).slice(-5) === ".onnx") found.push(String(r.value).split(".")[0]);   // same id rule as vits-web stored()
+          return step();
+        });
+      }
+      return step();
+    }).catch(function() { return []; });
+  }
+
+  // ── #66 slot UI (user call 2026-07-17): the resident-voice array in the Piper panel ────────────
+  // Shows exactly PIPER_VOICE_CAP slots (the cap made VISIBLE — the field test's eviction toast was
+  // the user's first hint a cap existed), most-recently-used first, so the BOTTOM filled slot is
+  // the next eviction candidate. Radio = pick that voice (mirrors the dropdown: sets the select +
+  // blurb; Save persists, same as a dropdown pick). ✕ = delete from OPFS on the spot.
+  function _renderPiperSlots() {
+    var host = document.getElementById("tts-piper-slots");
+    if (!host) return;   // Voice Settings not open — callers fire this unconditionally on residency changes
+    _piperOpfsIds().then(function(ids) {
+      var lru = _piperLruLoad(), sel = document.getElementById("tts-piper-sel");
+      var cur = sel ? sel.value : resolvePiperVoice();
+      ids.sort(function(a, b) {
+        var at = lru.hasOwnProperty(a) ? lru[a] : 0, bt = lru.hasOwnProperty(b) ? lru[b] : 0;
+        return bt - at;   // most recent first — bottom of the list is next to evict
+      });
+      var html = "<label style='font-size:12px;color:var(--t2);display:block;margin:10px 0 4px;'>Downloaded voices (" + ids.length + " of " + PIPER_VOICE_CAP + " slots)</label>", i;
+      for (i = 0; i < PIPER_VOICE_CAP; i++) {
+        if (i < ids.length) {
+          var id = ids[i], nm = id, bi;
+          for (bi = 0; bi < PIPER_VOICES.length; bi++) { if (PIPER_VOICES[bi].id === id) { nm = PIPER_VOICES[bi].label; break; } }
+          html += "<div style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;'>"
+            + "<input type='radio' name='tts-piper-resident' value='" + _escVal(id) + "'" + (id === cur ? " checked" : "") + " style='accent-color:var(--acc);margin:0;flex-shrink:0;'/>"
+            + "<span style='flex:1;font-size:12px;color:var(--t0);'>" + _escVal(nm) + "</span>"
+            + "<span style='font-size:10px;color:var(--t2);'>" + _escVal(piperVoiceSize(id)) + "</span>"
+            + "<button data-pvoice-del='" + _escVal(id) + "' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;' title='Delete this voice from the device'>&#215;</button>"
+            + "</div>";
+        } else {
+          html += "<div style='padding:6px 10px;border:1px dashed var(--brd);border-radius:6px;margin-bottom:4px;font-size:11px;color:var(--t2);opacity:.6;'>— empty slot —</div>";
+        }
+      }
+      html += "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Downloading a " + (PIPER_VOICE_CAP + 1) + "th voice replaces the bottom (least-recently used) one.</div>";
+      host.innerHTML = html;
+      var radios = host.querySelectorAll("input[name='tts-piper-resident']"), r;
+      for (r = 0; r < radios.length; r++) {
+        radios[r].addEventListener("change", function() {
+          // Mirror a dropdown pick exactly — set the select and let Save persist, no second write path
+          var s = document.getElementById("tts-piper-sel");
+          if (s) s.value = this.value;
+          var blurb = document.getElementById("tts-piper-blurb");
+          if (blurb) blurb.textContent = _piperVoiceBlurb(this.value);
+          _updatePiperErr();
+          _renderPiperSlots();   // repaint the border highlight
+        });
+      }
+      var dels = host.querySelectorAll("[data-pvoice-del]"), d;
+      for (d = 0; d < dels.length; d++) {
+        dels[d].addEventListener("click", function() { _piperDeleteVoice(this.getAttribute("data-pvoice-del")); });
+      }
+    });
+  }
+
+  // ✕ handler — engine-load is acceptable here (remove() only touches OPFS, no wasm compile), and
+  // the op rides _piperSerial so it can never interleave a download/predict on the shared session.
+  function _piperDeleteVoice(id) {
+    _piperInit().then(function(mod) {
+      return _piperSerial(function() { return mod.remove(id); });
+    }).then(function() {
+      var lru = _piperLruLoad();
+      delete lru[id];
+      try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) {}
+      delete _piperDownloaded[id];
+      var stillSelected = (resolvePiperVoice() === id);
+      if (typeof showToast === "function") showToast("🗑 Deleted narrator voice " + id + (stillSelected ? " — still selected, re-downloads on next use" : ""), 6000);
+      _updatePiperErr();
+      _renderPiperSlots();
+    }).catch(function(e) {
+      console.warn("[tts piper] voice delete failed:", e && e.message);
+      if (typeof showToast === "function") showToast("⚠ Could not delete voice " + id + ": " + ((e && e.message) || "unknown error"), 8000);
+    });
   }
 
   function _buildVoiceOptions() {
@@ -1718,6 +1796,7 @@ var TTS = (function() {
       +     "</div>"
       +     "<div id='tts-piper-blurb' style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(_piperVoiceBlurb(resolvePiperVoice())) + "</div>"
       +     "<div id='tts-piper-runtime' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
+      +     "<div id='tts-piper-slots'></div>"   /* #66 slot UI — rendered async by _renderPiperSlots (OPFS read) */
       +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Piper is unavailable, narration falls back to your Native voice (set it under Native).</div>"
       +   "</div>"
       + "</div>"
@@ -1738,6 +1817,7 @@ var TTS = (function() {
     _updateCartErr();
     _updatePiperErr();
     _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
+    _renderPiperSlots();         // #66 slot UI — direct OPFS read, no engine init needed
 
     // v1.327 on-device audio diagnostics: the phone has no console, so the modal SHOWS the shared
     // AudioContext's state — "running" is the only state that produces sound on the Piper/Cartesia
@@ -1810,6 +1890,7 @@ var TTS = (function() {
       var blurb = document.getElementById("tts-piper-blurb");
       if (blurb) blurb.textContent = _piperVoiceBlurb(this.value);
       _updatePiperErr();
+      _renderPiperSlots();   // #66: keep the resident radio/highlight in step with the dropdown
     });
     document.getElementById("tts-piper-test").addEventListener("click", function() {
       var s = document.getElementById("tts-piper-sel");
