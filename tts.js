@@ -178,6 +178,8 @@ var TTS = (function() {
   var PAUSE_COMMA_CLAUSE = 0.22;  // gap after ";" / ":" and mid-sentence wrap pieces (heavier than a breath)
   var PAUSE_FULLSTOP     = 0.44;  // gap after ". ! ? …" (sentence end)
   var PAUSE_PARAGRAPH    = 0.88;  // gap at a paragraph break (2× full stop — keeps the hierarchy)
+  var PIPER_MAX_AHEAD_SEC = 25;   // v1.320: max seconds of synthesized-but-unplayed audio held at once
+                                  // (backpressure — the iOS long-passage tab-kill fix; see _speakPiper)
   function unitGap(u) {
     if (u) {
       if (u.end === "para")     return PAUSE_PARAGRAPH;
@@ -748,6 +750,17 @@ var TTS = (function() {
       if (_piperEpoch !== myEpoch) return;   // stale — stop()/skip() invalidated this loop mid-flight
       var u = units[i];
 
+      // Backpressure (v1.320 — the iOS long-passage crash): never synthesize more than
+      // PIPER_MAX_AHEAD_SEC of audio past the playhead. The old synth-everything-ahead loop held
+      // the WHOLE passage's decoded PCM in memory at once; on a long read, iOS's tab-memory
+      // ceiling killed the page at the same spot every time ("A problem repeatedly occurred").
+      // Synth runs 2-4× realtime, so a bounded lead never starves playback. ctx.currentTime
+      // freezes while pause() suspends the context, which correctly pauses synthesis too.
+      while (_piperEpoch === myEpoch && (nextStart - ctx.currentTime) > PIPER_MAX_AHEAD_SEC) {
+        await new Promise(function(res) { setTimeout(res, 250); });
+      }
+      if (_piperEpoch !== myEpoch) return;   // stale — invalidated while waiting on the playhead
+
       var blob;
       try {
         blob = await mod.predict({ text: u.text + " ", voiceId: voiceId });   // trailing space: documented static-tail guard
@@ -779,10 +792,15 @@ var TTS = (function() {
 
       activeSrcs++;
       _sources.push(src);
-      src.onended = function() {
+      src.onended = (function(mySrc) { return function() {
         activeSrcs--;
+        // Free the played buffer (v1.320): disconnect + drop our reference so the decoded PCM can
+        // GC as playback progresses — with the backpressure above, memory stays ~constant however
+        // long the passage is. stop()/skip() only need the still-pending sources.
+        try { mySrc.disconnect(); } catch(e) {}
+        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
         if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
-      };
+      }; })(src);
     }
 
     loopDone = true;
