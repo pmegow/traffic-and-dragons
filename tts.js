@@ -33,24 +33,30 @@ var TTS = (function() {
   // The 8 voices validated in the piper_test.html spike. "medium" models run ~60MB, "high" larger;
   // vits-web caches the .onnx in OPFS after the first download, so the cost is paid once per voice
   // per device/origin.
+  // size: real model download size (HEAD-checked against HF 2026-07-17, audit #16) — this is the
+  // number a user on cellular consents to, so it must be per-voice truth, not a shared "~60MB".
   var PIPER_VOICES = [
-    { id:"en_US-lessac-medium", label:"Lessac — warm US narrator (default)",
-      blurb:"Balanced, warm American voice — the house default. First use downloads once (~60MB), then cached." },
-    { id:"en_US-ryan-high", label:"Ryan — US male, high quality",
-      blurb:"Higher-fidelity US male voice (larger model than the mediums). First use downloads once, then cached." },
-    { id:"en_GB-alan-medium", label:"Alan — British male",
-      blurb:"UK male voice. First use downloads once (~60MB), then cached." },
-    { id:"en_GB-northern_english_male-medium", label:"Northern English male",
-      blurb:"UK male voice, Northern English accent. First use downloads once (~60MB), then cached." },
-    { id:"en_US-hfc_male-medium", label:"HFC male — US",
-      blurb:"US male voice. First use downloads once (~60MB), then cached." },
-    { id:"en_US-amy-medium", label:"Amy — US female",
-      blurb:"US female voice. First use downloads once (~60MB), then cached." },
-    { id:"en_US-hfc_female-medium", label:"HFC female — US",
-      blurb:"US female voice. First use downloads once (~60MB), then cached." },
-    { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, expressive multi-speaker",
-      blurb:"US voice, more expressive/varied prosody. First use downloads once (~60MB), then cached." }
+    { id:"en_US-lessac-medium", label:"Lessac — warm US narrator (default)", size:"60MB",
+      blurb:"Balanced, warm American voice — the house default. First use downloads once (60MB), then cached." },
+    { id:"en_US-ryan-high", label:"Ryan — US male, high quality", size:"115MB",
+      blurb:"Higher-fidelity US male voice (larger model than the mediums). First use downloads once (115MB), then cached." },
+    { id:"en_GB-alan-medium", label:"Alan — British male", size:"60MB",
+      blurb:"UK male voice. First use downloads once (60MB), then cached." },
+    { id:"en_GB-northern_english_male-medium", label:"Northern English male", size:"60MB",
+      blurb:"UK male voice, Northern English accent. First use downloads once (60MB), then cached." },
+    { id:"en_US-hfc_male-medium", label:"HFC male — US", size:"60MB",
+      blurb:"US male voice. First use downloads once (60MB), then cached." },
+    { id:"en_US-amy-medium", label:"Amy — US female", size:"60MB",
+      blurb:"US female voice. First use downloads once (60MB), then cached." },
+    { id:"en_US-hfc_female-medium", label:"HFC female — US", size:"60MB",
+      blurb:"US female voice. First use downloads once (60MB), then cached." },
+    { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, expressive multi-speaker", size:"75MB",
+      blurb:"US voice, more expressive/varied prosody. First use downloads once (75MB), then cached." }
   ];
+  function piperVoiceSize(id) {
+    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].size; }
+    return "60–115MB";
+  }
   var PVOICE_K = "tnd_piper_voice_v1"; // device-default Piper voice id
 
   // Two-tier voice scope — EXACTLY the worldState.proseAuthor pattern (ui.js showProseModal /
@@ -118,7 +124,7 @@ var TTS = (function() {
     },
     piper: {
       id: "piper", label: "Piper (local, offline, $0)",
-      hint: "Synthesizes on-device — free, works offline. First use per voice downloads once (~60MB), then cached.",
+      hint: "Synthesizes on-device — free, works offline. First use per voice downloads once (60–115MB by voice), then cached.",
       available: function() { return _piperOk(); },
       enqueue: function(text) { return { text: text, piper: true, voiceId: resolvePiperVoice() }; },
       fallbackReason: function() { return _piperError || "Piper engine unavailable"; }
@@ -398,6 +404,14 @@ var TTS = (function() {
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("touchend",   fire, true);
     document.addEventListener("keydown",    fire, true);
+  }
+  // Audit #14 (v1.340): a deliberate tab close / navigation mid-read is not a crash — mark the
+  // crumb done so the boot forensics (loadSettings) don't false-alarm "narration died". Real
+  // crashes and iOS memory-kills fire NEITHER event, so genuine deaths still surface. pagehide
+  // covers iOS (where beforeunload is unreliable); beforeunload covers desktop.
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide",     function() { _crumbDone(); });
+    window.addEventListener("beforeunload", function() { _crumbDone(); });
   }
   // Interrupted → visible again (unlocked phone, returned to tab): try to resume; if iOS still
   // refuses, the next tap unlocks via the armed listener. (typeof guard: the headless test
@@ -814,6 +828,7 @@ var TTS = (function() {
   var _piperErrorAt   = 0;     // when it was recorded — auto-retried after 5 min, same as Cartesia
   var _piperEpoch     = 0;     // generation counter — bumped by _speakPiper (new synth) and
                                 // _stopCurrent() (skip/stop); a stale await checks this and bails
+  var _piperPersistAsked = false;  // one persistent-storage request per session (audit #12) — see _piperEnsureVoiceNow
   var _piperDownloaded = {};   // voiceId -> true, session-local cache-hit memory for the settings
                                 // modal's "not downloaded yet" indicator (_updatePiperErr, below).
                                 // Populated by _piperEnsureVoice; deliberately NOT persisted and
@@ -832,7 +847,7 @@ var TTS = (function() {
   // every vendored-file patch → new URL → both caches miss → fresh fetch. The vendored file exports
   // TND_VITS_PATCH with the same rev; _piperInit stores it and the Voice Settings Piper panel shows
   // it, so a phone can PROVE which runtime it runs before a test.
-  var PIPER_RUNTIME_REV = "r5";
+  var PIPER_RUNTIME_REV = "r6";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
@@ -919,10 +934,24 @@ var TTS = (function() {
     return _piperSerial(function() { return _piperEnsureVoiceNow(mod, voiceId); });
   }
   async function _piperEnsureVoiceNow(mod, voiceId) {
+    // Audit #12 (v1.340): OPFS is best-effort storage — without a persistence grant the browser
+    // may evict the 60–115MB voice models under pressure (witnessed live 2026-07-17: a desktop
+    // profile dropped a 78MB voice between sessions), turning "downloaded once" into surprise
+    // re-downloads. Ask once per session, on BOTH branches (already-downloaded voices need the
+    // grant too). Chrome/Safari decide silently (no prompt); denial is non-fatal but logged —
+    // eviction risk simply remains.
+    if (!_piperPersistAsked && navigator.storage && navigator.storage.persist) {
+      _piperPersistAsked = true;
+      navigator.storage.persisted().then(function(already) {
+        return already || navigator.storage.persist();
+      }).then(function(granted) {
+        if (!granted) console.warn("[tts piper] persistent-storage request DENIED — downloaded voices remain evictable");
+      }).catch(function() {});
+    }
     var stored = [];
     try { stored = await mod.stored(); } catch(e) { stored = []; }
     if (stored.indexOf(voiceId) !== -1 && await _piperVoiceComplete(voiceId)) { _piperDownloaded[voiceId] = true; _updatePiperErr(); return; }
-    if (typeof showToast === "function") showToast("⬇ Downloading narrator voice — one-time, cached after");
+    if (typeof showToast === "function") showToast("⬇ Downloading narrator voice (" + piperVoiceSize(voiceId) + ") — one-time, cached after");
     var lastPct = -1;
     try {
       await mod.download(voiceId, function(p) {
@@ -1242,7 +1271,7 @@ var TTS = (function() {
     } else {
       var sel = document.getElementById("tts-piper-sel");
       var voiceId = sel ? sel.value : resolvePiperVoice();
-      if (voiceId && !_piperDownloaded[voiceId]) msg = "voice not downloaded yet — downloads on first use (~60MB, cached)";
+      if (voiceId && !_piperDownloaded[voiceId]) msg = "voice not downloaded yet — downloads on first use (" + piperVoiceSize(voiceId) + ", cached)";
     }
     el.textContent = msg;
     el.title = msg;

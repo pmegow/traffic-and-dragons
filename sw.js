@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260717i";
+var CACHE = "tnd-v3-20260717j";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -110,7 +110,22 @@ self.addEventListener("fetch", function(e){
         return fetch(e.request).then(function(response){
           if(response && response.status === 200 && response.type === "basic"){
             var clone = response.clone();
-            caches.open(PIPER_CACHE).then(function(cache){ cache.put(e.request, clone); });
+            caches.open(PIPER_CACHE).then(function(cache){
+              cache.put(e.request, clone).then(function(){
+                // GC superseded revs (piper-audit #15, v1.341): a cache MISS here means a NEW
+                // ?tnd= rev of this file just landed — older entries for the SAME pathname with a
+                // different query are dead weight forever (this cache is purge-exempt by design).
+                // Drop them now. Safe: exactly one rev of each file is live per deploy, and a
+                // still-running old tab already holds its module in memory.
+                var fresh = new URL(e.request.url);
+                cache.keys().then(function(reqs){
+                  reqs.forEach(function(req){
+                    var u = new URL(req.url);
+                    if(u.pathname === fresh.pathname && u.search !== fresh.search) cache.delete(req);
+                  });
+                });
+              });
+            });
           }
           return response;
         });

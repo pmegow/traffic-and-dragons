@@ -151,7 +151,23 @@ async function D(e) {
 }
 async function S(e, m) {
   var r;
-  const n = await fetch(e);
+  // ═══ T&D PATCH v1.341 (r6) — stall watchdog. Upstream's reader loop had no timeout: a
+  // connection that stalls mid-body (network hop mid-download) hangs read() forever, which hangs
+  // _piperEnsureVoice forever — and since the tts.js op mutex (audit #9) serializes engine work,
+  // one hung download would block every later Piper op until reload. Abort after 30s with NO new
+  // data (progress resets the clock, so slow-but-alive connections are fine) and throw loud.
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  let stallT = null;
+  const resetStall = () => {
+    if (!ctrl) return;
+    if (stallT) clearTimeout(stallT);
+    stallT = setTimeout(() => { try { ctrl.abort(); } catch (e2) {} }, 30000);
+  };
+  resetStall();   // armed BEFORE fetch — a stall at the headers stage must abort too
+  const n = await fetch(e, ctrl ? { signal: ctrl.signal } : {}).catch((err) => {
+    if (ctrl && ctrl.signal.aborted) throw new Error("voice download stalled — no response for 30s: " + e);
+    throw err;
+  });
   // ═══ T&D PATCH v1.335 — download integrity. Upstream saved WHATEVER the fetch returned: an HF
   // 404/rate-limit page written to OPFS as the .onnx, which stored() then reports as "downloaded"
   // forever — every predict() fails and nothing ever re-fetches. Non-OK must THROW (propagates to
@@ -159,15 +175,24 @@ async function S(e, m) {
   if (!n.ok) throw new Error("voice download failed: HTTP " + n.status + " for " + e);
   const o = (r = n.body) == null ? void 0 : r.getReader(), a = +(n.headers.get("Content-Length") ?? 0);
   let i = 0, t = [];
-  for (; o; ) {
-    const { done: s, value: d } = await o.read();
-    if (s)
-      break;
-    t.push(d), i += d.length, m == null || m({
-      url: e,
-      total: a,
-      loaded: i
-    });
+  resetStall();   // fresh window for the body
+  try {
+    for (; o; ) {
+      const { done: s, value: d } = await o.read();
+      if (s)
+        break;
+      resetStall();
+      t.push(d), i += d.length, m == null || m({
+        url: e,
+        total: a,
+        loaded: i
+      });
+    }
+  } catch (err) {
+    if (ctrl && ctrl.signal.aborted) throw new Error("voice download stalled — no data for 30s: " + e);
+    throw err;
+  } finally {
+    if (stallT) clearTimeout(stallT);
   }
   return new Blob(t, { type: n.headers.get("Content-Type") ?? void 0 });
 }
@@ -224,7 +249,7 @@ async function N(e, m) {
 // still points at jsdelivr — the SW ignores cross-origin, so those fetches were never in
 // PIPER_CACHE and broke the offline claim); ③ the fallback phonemizer path rejects/times out
 // instead of hanging predict() forever on a load failure (no-silent-failures).
-const TND_VITS_PATCH = "r5"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_VITS_PATCH = "r6"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
 const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;
