@@ -224,7 +224,7 @@ async function N(e, m) {
 // still points at jsdelivr — the SW ignores cross-origin, so those fetches were never in
 // PIPER_CACHE and broke the offline claim); ③ the fallback phonemizer path rejects/times out
 // instead of hanging predict() forever on a load failure (no-silent-failures).
-const TND_VITS_PATCH = "r4"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_VITS_PATCH = "r5"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
 const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;
@@ -282,7 +282,11 @@ async function I(e, m) {
   const n = c[e], o = [`${u}/${n}`, `${u}/${n}.json`];
   await Promise.all(
     o.map(async (a) => {
-      p(a, await S(a, a.endsWith(".onnx") ? m : void 0));
+      // ═══ T&D PATCH v1.337 (r5) — upstream fired p() (the OPFS write) WITHOUT awaiting it, so
+      // download() resolved while the ~78MB commit was still in flight. The first predict right
+      // after a download then read the not-yet-committed (empty) file → ORT "No graph was found
+      // in the protobuf" — reliably reproduced on a fast connection (2026-07-17 live verify).
+      await p(a, await S(a, a.endsWith(".onnx") ? m : void 0));
     })
   );
 }
