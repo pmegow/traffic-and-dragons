@@ -54,6 +54,11 @@ function img2imgStrength(cfg){
 // Dedup-safe: the "Edit Prompt → Regenerate" path passes a prompt that already carries the suffix.
 var IMG_STYLE_SUFFIX="Dark fantasy concept art, painterly realism, cinematic composition, dramatic volumetric lighting, warm firelight and cool shadow contrast, ultra-detailed leather and cloth textures, realistic skin pores and fabric weave, rich atmospheric depth, high-end RPG key art, fantasy illustration, moody color grading, sharp focus, intricate craftsmanship, epic yet grounded realism, 8k detail.";
 function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;return p.replace(/\s+$/,"")+" "+IMG_STYLE_SUFFIX;}
+// AUDIT_FABLE_07_16 #15③: THE initials derivation for every avatar/monogram — moved verbatim
+// from ui-sheets.js so all surfaces (sheets, browsers, wizard review, companion slots) share
+// one copy. The per-word `w[0]||""` guard matters: without it a double-space name renders the
+// string "undefined" into the avatar (the former ui-browsers import-preview copy's bug).
+function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";}
 // Enhance pass (✨): re-grade a FINISHED scene render through img2img to buy the dramatic, painterly,
 // high-contrast look an aggressive editor (e.g. GPT-image) gets on a second pass over the same image.
 // Reuses the scene prompt + this directive; run on Flux img2img at ENHANCE_STRENGTH — moderate, so the

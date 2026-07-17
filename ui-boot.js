@@ -134,7 +134,7 @@ function wireButtons(){
   document.getElementById("render-btn").addEventListener("click",doRender);
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
   document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();var fm=document.getElementById("file-menu");var opening=fm.style.display!=="block";if(opening)resetFileSubmenus(fm);fm.style.display=opening?"block":"none";});
-  document.addEventListener("click",function(){var fm=document.getElementById("file-menu");if(fm)fm.style.display="none";var cfm=document.getElementById("cs-file-menu");if(cfm)cfm.style.display="none";var afm=document.getElementById("api-file-menu");if(afm)afm.style.display="none";});
+  document.addEventListener("click",closeAllMenus);/* #15④: was the closeAllMenus body unrolled inline */
   // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
   var _menus=[{pfx:"fm-",menu:"file-menu",imp:""},{pfx:"cs-fm-",menu:"cs-file-menu",imp:"cs-"},{pfx:"api-fm-",menu:"api-file-menu",imp:"api-"}];
   _menus.forEach(function(m){
@@ -179,26 +179,25 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb","fm-font-lg","cs-fm-font-lg","api-fm-font-lg","fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb","fm-autosend","cs-fm-autosend","api-fm-autosend"].forEach(function(id){/* autosend added so toggling it doesn't close the File menu (audit E67) */
-    var el=document.getElementById(id);if(!el)return;
-    var lbl=el.closest("label")||el.parentElement;
-    if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
+  ["adult-cb","font-lg","legacy-cb","autosend"].forEach(function(sfx){/* autosend added so toggling it doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
+    eachMenuEl(sfx,function(el){
+      var lbl=el.closest("label")||el.parentElement;
+      if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
+    });
   });
   // Legacy characters checkbox + chance input (synced across all three menus)
-  ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){
-    var el=document.getElementById(id);if(!el)return;
+  eachMenuEl("legacy-cb",function(el){
     el.addEventListener("change",function(){
       legacyCharsOn=el.checked;saveLegacySettings();
       if(el.checked&&typeof loadLegacyLibrary==="function")loadLegacyLibrary();
-      ["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(oid){var o=document.getElementById(oid);if(o&&o!==el)o.checked=el.checked;});
+      eachMenuEl("legacy-cb",function(o){if(o!==el)o.checked=el.checked;});
     });
   });
-  ["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(id){
-    var el=document.getElementById(id);if(!el)return;
+  eachMenuEl("legacy-pct",function(el){
     el.addEventListener("change",function(){
       var v=parseInt(el.value,10);if(isNaN(v)||v<1)v=1;if(v>100)v=100;
       el.value=v;legacyChancePct=v;saveLegacySettings();
-      ["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(oid){var o=document.getElementById(oid);if(o&&o!==el)o.value=v;});
+      eachMenuEl("legacy-pct",function(o){if(o!==el)o.value=v;});
     });
     el.addEventListener("click",function(e){e.stopPropagation();});
   });
@@ -222,17 +221,11 @@ function wireButtons(){
   document.getElementById("car-next-btn").addEventListener("click",_carNext);
   // TTS
   document.getElementById("tts-btn").addEventListener("click",function(){if(typeof TTS!=="undefined")TTS.toggle();});
-  ["fm-tts-settings","cs-fm-tts-settings","api-fm-tts-settings"].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el)el.addEventListener("click",function(){closeAllMenus();if(typeof TTS!=="undefined")TTS.showSettingsModal();});
-  });
+  eachMenuEl("tts-settings",function(el){el.addEventListener("click",function(){closeAllMenus();if(typeof TTS!=="undefined")TTS.showSettingsModal();});});
   if(typeof TTS!=="undefined")TTS.loadSettings();
   // STT (speech-to-text dictation) — Car Mode foundation
   document.getElementById("mic-btn").addEventListener("click",function(){if(typeof STT!=="undefined")STT.toggle();});
-  ["fm-autosend","cs-fm-autosend","api-fm-autosend"].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el)el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});
-  });
+  eachMenuEl("autosend",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});});
   if(typeof STT!=="undefined")STT.loadSettings();
   // Suggested-action buttons: plain tap = fill input (editable); long-press (~500ms) = execute the turn.
   // (Ctrl/Cmd-click is handled in sendSuggestedAction.) Delegated so it covers dynamically-added buttons.

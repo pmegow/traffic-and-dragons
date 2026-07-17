@@ -284,6 +284,10 @@ function healMemory(){
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";
+// #15②/#54 lane B: THE builder for the per-campaign slot keys ("tnd_camp_<id>_ws|_sl|_mem").
+// Was hand-concatenated ~23× across state/ui-campaigns/ui-browsers — one typo forks a campaign
+// silently. state.js owns storage keys, so the builder lives here. part: "ws" | "sl" | "mem".
+function campSlotKey(id,part){return "tnd_camp_"+id+"_"+part;}
 function getCampMeta(){var r=store.get(CAMP_META_K);if(!r)return[];try{return JSON.parse(r);}catch(e){
   // Back up the corrupt list before callers overwrite it (audit E72) — the next updateCampMeta would
   // persist a [] wipe, unlisting every other campaign; the raw copy keeps them recoverable.
@@ -304,9 +308,9 @@ function updateCampMeta(){
 function snapshotActiveCamp(){
   var id=getActiveCampId();if(!id)return;
   var ws=store.get(WSK),sl=store.get(SLK),mem=store.get(MEM_KEY);
-  if(ws)store.set("tnd_camp_"+id+"_ws",ws);
-  if(sl)store.set("tnd_camp_"+id+"_sl",sl);
-  if(mem)store.set("tnd_camp_"+id+"_mem",mem);
+  if(ws)store.set(campSlotKey(id,"ws"),ws);
+  if(sl)store.set(campSlotKey(id,"sl"),sl);
+  if(mem)store.set(campSlotKey(id,"mem"),mem);
   updateCampMeta();
   // Flush the debounced server sync before leaving this campaign (audit E74): snapshotActiveCamp is
   // the "about to switch/wipe" signal, and switchToCampaign/campNew/newGame/import never flushed —
@@ -320,7 +324,7 @@ function switchToCampaign(id){
   // repointed while the worldState/memory globals still hold the OLD campaign — the next saveAll
   // then writes campaign A's state under campaign B's id, locally AND on the server.
   var prevWs=store.get(WSK),prevSl=store.get(SLK),prevMem=store.get(MEM_KEY),prevId=getActiveCampId();
-  var ws=store.get("tnd_camp_"+id+"_ws"),sl=store.get("tnd_camp_"+id+"_sl"),mem=store.get("tnd_camp_"+id+"_mem");
+  var ws=store.get(campSlotKey(id,"ws")),sl=store.get(campSlotKey(id,"sl")),mem=store.get(campSlotKey(id,"mem"));
   if(ws)store.set(WSK,ws);else store.del(WSK);
   if(sl)store.set(SLK,sl);else store.del(SLK);
   if(mem)store.set(MEM_KEY,mem);else store.del(MEM_KEY);
@@ -337,7 +341,7 @@ function switchToCampaign(id){
   return ok;
 }
 function deleteCampaign(id){
-  store.del("tnd_camp_"+id+"_ws");store.del("tnd_camp_"+id+"_sl");store.del("tnd_camp_"+id+"_mem");
+  store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
 }
 function migrateToCampaigns(){

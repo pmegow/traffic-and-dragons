@@ -112,12 +112,8 @@ function clearCampaignFolder(){
   showToast("Campaign folder cleared.");
 }
 function updateCampFolderUI(){
-  ["","cs-","api-"].forEach(function(p){
-    var btn=document.getElementById(p+"fm-set-folder");
-    var clr=document.getElementById(p+"fm-clear-folder");
-    if(btn)btn.style.display=_campFolderHandle?"none":"block";
-    if(clr){clr.style.display=_campFolderHandle?"block":"none";if(_campFolderHandle)clr.textContent="📁 "+_campFolderHandle.name+" ×";}
-  });
+  eachMenuEl("set-folder",function(btn){btn.style.display=_campFolderHandle?"none":"block";});/* #15⑤ */
+  eachMenuEl("clear-folder",function(clr){clr.style.display=_campFolderHandle?"block":"none";if(_campFolderHandle)clr.textContent="📁 "+_campFolderHandle.name+" ×";});
 }
 // Export Narrative (v1.229) — an on-demand, self-contained HTML keepsake of the whole story. Reads
 // worldState.transcript (the COMPLETE, ordered, cross-device record — NOT the DOM, which the old removed

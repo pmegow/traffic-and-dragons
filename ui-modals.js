@@ -1,6 +1,35 @@
 // ui-modals.js — settings & utility modals: narrative rules, font size, adult mode, legacy
 // toggles, sync (world-state editor), render options, provider, usage, RAG, prose, quests.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
+// ── #15①: shared radio-row picker (Render Options / Provider / Prose) ─────────
+// One markup builder + one restyle-on-click loop for the dot+amber-row triplet that was
+// hand-rolled ×3. items: array of objects with .id; labelFn(item, sel) returns the caller's
+// label markup (the three modals' labels genuinely differ — plain span vs name+blurb block).
+// opts: {align:"flex-start", dotTop:true} — Prose's two deviations from the shared skeleton.
+// Markup is byte-identical to the three original inline builders (parity-pinned in
+// dev/_tests_dedupB.js).
+function radioRowsHTML(cls,items,selId,labelFn,opts){
+  opts=opts||{};var h="",i;
+  for(i=0;i<items.length;i++){var it=items[i],sel=(it.id===selId);
+    h+="<div class='"+cls+"' data-id='"+it.id+"' style='display:flex;align-items:"+(opts.align||"center")+";gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
+      +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;"+(opts.dotTop?"margin-top:2px;":"")+"'></div>"
+      +labelFn(it,sel)
+      +"</div>";
+  }
+  return h;
+}
+// labelSel: "span" (Render/Provider) or "div>div" (Prose — NOTE this preserves the original
+// verbatim: querySelector("div>div") actually first-matches the DOT (a div child of the row
+// div), so Prose's name text never recolored on click. Latent pre-existing quirk, kept —
+// this pass is pure behavior preservation. Reported in the #54 lane-B notes.)
+function radioRowsRefresh(container,cls,selId,labelSel){
+  Array.prototype.forEach.call(container.querySelectorAll("."+cls),function(r){
+    var s=(r.getAttribute("data-id")===selId);
+    r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";
+    var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}
+    var lbl=r.querySelector(labelSel||"span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";
+  });
+}
 function showRulesModal(){
   var ex=document.getElementById("rules-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="rules-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
@@ -26,16 +55,16 @@ function loadFontSize(){
   var large=saved!==null?(saved==="1"):(isIOS?true:false);
   if(large)document.body.classList.add("font-large");
   else document.body.classList.remove("font-large");
-  ["fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=large;});
+  eachMenuEl("font-lg",function(el){el.checked=large;});
 }
 function toggleFontSize(){
   var large=document.body.classList.toggle("font-large");
   store.set(FONT_KEY,large?"1":"0");
-  ["fm-font-lg","cs-fm-font-lg","api-fm-font-lg"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=large;});
+  eachMenuEl("font-lg",function(el){el.checked=large;});
 }
-function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
-function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");["fm-adult-cb","cs-fm-adult-cb","api-fm-adult-cb"].forEach(function(id){var cb=document.getElementById(id);if(cb)cb.checked=adultMode;});}
-function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);["fm-legacy-cb","cs-fm-legacy-cb","api-fm-legacy-cb"].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=legacyCharsOn;});["fm-legacy-pct","cs-fm-legacy-pct","api-fm-legacy-pct"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=legacyChancePct;});}
+function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
+function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});}
+function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);eachMenuEl("legacy-cb",function(el){el.checked=legacyCharsOn;});eachMenuEl("legacy-pct",function(el){el.value=legacyChancePct;});}
 function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}
 
 function showSyncModal(){
@@ -88,15 +117,8 @@ function showRenderOptionsModal(){
   document.getElementById("file-menu").style.display="none";
   var ex=document.getElementById("render-opts-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="render-opts-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
-  // Build model rows
-  var mhtml="",mi;
-  for(mi=0;mi<RENDER_MODELS.length;mi++){
-    var m=RENDER_MODELS[mi],sel=(m.id===renderModel);
-    mhtml+="<div class='ro-row' data-id='"+m.id+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
-      +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;'></div>"
-      +"<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+m.label+"</span>"
-      +"</div>";
-  }
+  // Build model rows — shared radio-row builder (#15①)
+  var mhtml=radioRowsHTML("ro-row",RENDER_MODELS,renderModel,function(m,sel){return "<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+m.label+"</span>";});
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:400px;width:100%;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 Render Options</span><button id='ro-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>fal.ai API Key</div>"
@@ -141,17 +163,11 @@ function showRenderOptionsModal(){
     var msg=document.getElementById("ro-msg");msg.textContent="Strength reset to model default.";msg.style.color="var(--t2)";
   });
   _roStrSync();
-  // Model rows — update in place on click
-  var rows=modal.querySelectorAll(".ro-row");
-  Array.prototype.forEach.call(rows,function(row){
+  // Model rows — update in place on click (restyle via the shared refresh, #15①)
+  Array.prototype.forEach.call(modal.querySelectorAll(".ro-row"),function(row){
     row.addEventListener("click",function(){
       renderModel=this.getAttribute("data-id");store.set(RENDER_MDL_K,renderModel);
-      Array.prototype.forEach.call(rows,function(r){
-        var s=(r.getAttribute("data-id")===renderModel);
-        r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";
-        var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}
-        var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";
-      });
+      radioRowsRefresh(modal,"ro-row",renderModel,"span");
       var mdlName=renderModel.split("/").pop();var msg=document.getElementById("ro-msg");if(msg){msg.textContent="Model: "+mdlName;msg.style.color="var(--grn)";}
       _roStrSync();
     });
@@ -167,7 +183,7 @@ function saveProviderSettings(){
   store.set(UPGRADE_K,allowModelUpgrade?"true":"false");
 }
 function showProviderModal(){
-  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  closeAllMenus();/* #15④: was the closeAllMenus body inlined verbatim */
   var ex=document.getElementById("provider-modal");if(ex)ex.remove();
   var selProv=PROVIDERS[activeProvider]?activeProvider:"anthropic";
   // Stage key edits locally and commit only on Save (audit E88) — the old row-click wrote the typed
@@ -175,7 +191,7 @@ function showProviderModal(){
   // left the change applied for the rest of the session.
   var _pvStaged={};(function(){var _k=Object.keys(providerKeys),_i;for(_i=0;_i<_k.length;_i++)_pvStaged[_k[_i]]=providerKeys[_k[_i]];})();
   var modal=document.createElement("div");modal.id="provider-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
-  function provRows(){var ids=Object.keys(PROVIDERS),h="",i;for(i=0;i<ids.length;i++){var p=PROVIDERS[ids[i]],sel=(ids[i]===selProv);h+="<div class='pv-row' data-id='"+ids[i]+"' style='display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(sel?"var(--acc)":"var(--brd)")+";background:"+(sel?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"+"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";flex-shrink:0;'></div>"+"<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span></div>";}return h;}
+  function provRows(){var ids=Object.keys(PROVIDERS),items=[],i;for(i=0;i<ids.length;i++)items.push({id:ids[i],label:PROVIDERS[ids[i]].label});return radioRowsHTML("pv-row",items,selProv,function(p,sel){return "<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span>";});}
   function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,o="",i;for(i=0;i<p.models.length;i++){o+="<option value='"+p.models[i]+"'"+(p.models[i]===cur?" selected":"")+">"+p.models[i]+"</option>";}return o;}
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:420px;width:100%;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🧠 Language Model</span><button id='pv-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
@@ -193,7 +209,7 @@ function showProviderModal(){
   var keyInp=document.getElementById("pv-key"),modelSel=document.getElementById("pv-model");
   function refreshSel(){
     keyInp.value=_pvStaged[selProv]||"";keyInp.placeholder=PROVIDERS[selProv].keyHint;modelSel.innerHTML=modelOpts();
-    var rows=modal.querySelectorAll(".pv-row");Array.prototype.forEach.call(rows,function(r){var s=(r.getAttribute("data-id")===selProv);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var lbl=r.querySelector("span");if(lbl)lbl.style.color=s?"var(--acc)":"var(--t1)";});
+    radioRowsRefresh(modal,"pv-row",selProv,"span");/* #15① */
   }
   Array.prototype.forEach.call(modal.querySelectorAll(".pv-row"),function(row){row.addEventListener("click",function(){_pvStaged[selProv]=keyInp.value.trim();selProv=this.getAttribute("data-id");refreshSel();});});
   refreshSel();
@@ -217,7 +233,7 @@ function showProviderModal(){
 // api.js). "turn" is the bucket that prompt caching (#11) will move — compare its
 // avg input/call before and after. Cost is an estimate priced from MODEL_PRICING.
 function showUsageModal(){
-  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  closeAllMenus();/* #15④ */
   var ex=document.getElementById("usage-modal");if(ex)ex.remove();
   var u=(worldState&&worldState.usage)||blankUsage();
   function n(v){return (v||0).toLocaleString();}
@@ -259,7 +275,7 @@ function showUsageModal(){
 // Per-campaign flag on worldState.ragMemory (rides the sync blob, read live each turn —
 // the proseAuthor pattern). Modal is built fresh on open so it always reads live state.
 function showRagModal(){
-  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  closeAllMenus();/* #15④ */
   var ex=document.getElementById("rag-modal");if(ex)ex.remove();
   var hasGame=!!(worldState&&worldState.character);
   var on=!(worldState&&worldState.ragMemory===false); // default ON (v1.230) — checked unless explicitly disabled
@@ -286,14 +302,13 @@ function showRagModal(){
 // ── Prose inspiration (TODO #23) ───────────────────────────────────────────────
 function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
 function showProseModal(){
-  ["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});
+  closeAllMenus();/* #15④ */
   var ex=document.getElementById("prose-modal");if(ex)ex.remove();
   var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");
-  function rows(){var h="",i;for(i=0;i<AUTHORS.length;i++){var a=AUTHORS[i],s=(a.id===sel);
-    h+="<div class='pr-row' data-id='"+a.id+"' style='display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;border:1px solid "+(s?"var(--acc)":"var(--brd)")+";background:"+(s?"rgba(184,147,90,.08)":"var(--bg2)")+";margin-bottom:6px;'>"
-      +"<div style='width:13px;height:13px;border-radius:50%;border:2px solid "+(s?"var(--acc)":"var(--brd2)")+";background:"+(s?"var(--acc)":"transparent")+";flex-shrink:0;margin-top:2px;'></div>"
-      +"<div><div style='font-size:13px;color:"+(s?"var(--acc)":"var(--t1)")+";'>"+escHtml(a.nm)+(a.profane?" <span style=\"font-size:10px;color:var(--t2);\">· 18+ for full voice</span>":"")+"</div>"
-      +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div></div>";}return h;}
+  function rows(){return radioRowsHTML("pr-row",AUTHORS,sel,function(a,s){
+    return "<div><div style='font-size:13px;color:"+(s?"var(--acc)":"var(--t1)")+";'>"+escHtml(a.nm)+(a.profane?" <span style=\"font-size:10px;color:var(--t2);\">· 18+ for full voice</span>":"")+"</div>"
+      +(a.blurb?"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(a.blurb)+"</div>":"")+"</div>";
+  },{align:"flex-start",dotTop:true});}
   var modal=document.createElement("div");modal.id="prose-modal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:440px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>✍ Prose Inspiration</span><button id='pr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
@@ -302,7 +317,7 @@ function showProseModal(){
     +"<button id='pr-save' style='width:100%;padding:10px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;margin-top:8px;'>Save</button>"
     +"</div>";
   document.body.appendChild(modal);
-  function refresh(){Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(r){var s=(r.getAttribute("data-id")===sel);r.style.borderColor=s?"var(--acc)":"var(--brd)";r.style.background=s?"rgba(184,147,90,.08)":"var(--bg2)";var dot=r.querySelector("div");if(dot){dot.style.borderColor=s?"var(--acc)":"var(--brd2)";dot.style.background=s?"var(--acc)":"transparent";}var nm=r.querySelector("div>div");if(nm)nm.style.color=s?"var(--acc)":"var(--t1)";});}
+  function refresh(){radioRowsRefresh(modal,"pr-row",sel,"div>div");}/* #15① — "div>div" preserved verbatim, see radioRowsRefresh note */
   Array.prototype.forEach.call(modal.querySelectorAll(".pr-row"),function(row){row.addEventListener("click",function(){sel=this.getAttribute("data-id");refresh();});});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
   document.getElementById("pr-x").addEventListener("click",function(){modal.remove();});

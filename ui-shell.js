@@ -1,6 +1,20 @@
 // ui-shell.js — toasts, loading modal, screen switching (showGame/showChar incl. wizard reset),
-// chat tabs + addMsg message log (Car Mode hook inside), closeAllMenus.
+// chat tabs + addMsg message log (Car Mode hook inside), closeAllMenus, eachMenuEl.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
+// ── #15⑤/UA21⑤: ONE walk for the three File-menu surfaces ─────────────────────
+// The triple-id enumeration (["fm-…","cs-fm-…","api-fm-…"] / ["","cs-","api-"] loops) was
+// hand-pasted across ui-modals/ui-boot/ui-campaigns/ui-files/stt — every consumer now routes
+// through this. TWO id conventions exist and they share one id space:
+//   • menu ITEMS:      "fm-"+suffix / "cs-fm-"+suffix / "api-fm-"+suffix   (FM_ID_PREFIXES, default)
+//   • menu CONTAINERS + import inputs: ""+suffix / "cs-"+suffix / "api-"+suffix (MENU_ID_PREFIXES)
+// (they are the same space because ""+"fm-x" === "fm-"+"x" — pass MENU_ID_PREFIXES only for
+// ids with no fm- segment, e.g. closeAllMenus' "file-menu" containers.)
+// Calls fn(el) only for elements that exist — every routed walk already tolerated gaps.
+var FM_ID_PREFIXES=["fm-","cs-fm-","api-fm-"];
+var MENU_ID_PREFIXES=["","cs-","api-"];
+function eachMenuEl(idSuffix,fn,prefixes){
+  (prefixes||FM_ID_PREFIXES).forEach(function(p){var el=document.getElementById(p+idSuffix);if(el)fn(el);});
+}
 function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=0;i<ts.length;i++)ts[i].style.bottom=(80+i*42)+"px";}
 // Toasts stay until acknowledged (tap to dismiss) — important "cheers" (quest opportunity, legacy
 // arrival, level-up) shouldn't vanish before they're seen.
@@ -70,4 +84,4 @@ story.appendChild(div);story.scrollTop=story.scrollHeight;if(isTTMsg&&activeChat
 if(type==="narrator"&&activeChatTab==="tabletalk"){var tnb=document.getElementById("tab-narrative");if(tnb){var _nb=tnb.querySelector(".tab-narr-badge");if(!_nb){_nb=document.createElement("span");tnb.appendChild(_nb);}_nb.className="tab-badge on tab-narr-badge";}}
 if(typeof carMode!=="undefined"&&carMode){if(type==="thinking"){_carSetStatus("Thinking…");_carSyncBtn();}else if(type==="narrator"){_carSetStatus("Narrator speaking…");setTimeout(function(){if(carMode)_carSyncBtn();},100);}}
 return div;}
-function closeAllMenus(){["file-menu","cs-file-menu","api-file-menu"].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display="none";});}
+function closeAllMenus(){eachMenuEl("file-menu",function(el){el.style.display="none";},MENU_ID_PREFIXES);}

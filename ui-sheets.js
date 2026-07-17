@@ -15,7 +15,7 @@ function sheetOffsetGet(ownerNpc,char){
 // ── Shared character-sheet helpers ────────────────────────────────────────────
 function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
 function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
-function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";}
+// csInitials moved to helpers.js (#15③) — canonical home, loads before every consumer.
 function csHeroHeader(c){
   var genderLbl=genderLabel(c.gender);/* #11③: shared mapping */
   var subnm=c.subraceNm?c.subraceNm+" ":"";

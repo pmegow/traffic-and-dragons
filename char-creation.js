@@ -131,15 +131,10 @@ async function ftRenderPortrait(){
   try{
     var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
     status.innerHTML="<span style='color:var(--t2);font-style:italic;'>Generating portrait…</span>";
-    var mdlCfg=RENDER_MODELS[0],mi;
-    for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
-    var falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
-      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-      body:JSON.stringify(portraitRenderBody(mdlCfg,withImgStyle(prompt)))});
-    if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
-    var falData=await falRes.json();
-    if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
-    var imgUrl=falData.images[0].url;
+    // UA21 ②: shared fal.ai fetch lives in ui-portrait.js — which loads AFTER this file in
+    // index.html, but ftRenderPortrait only runs on user action (wizard step 5) long after
+    // all scripts have loaded, so the call-time reference is safe.
+    var imgUrl=await generatePortraitImage(prompt,null);
     var resp=await fetch(imgUrl);var blob=await resp.blob();
     var reader=new FileReader();
     reader.onload=function(e){
@@ -181,7 +176,7 @@ function buildReview(){
   if(pendingImportChar){
     var ch=pendingImportChar,nameEl=document.getElementById("char-name");
     var dispName=nameEl&&nameEl.value.trim()?nameEl.value.trim():ch.name;
-    var init2=(dispName||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+    var init2=csInitials(dispName);/* #15③: canonical (helpers.js) */
     var avHtml2=ch.portrait?'<div class="rv-av" style="overflow:hidden;"><img src="'+ch.portrait+'" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>':'<div class="rv-av">'+init2+'</div>';
     var fs2=ch.stats||{};
     el.innerHTML='<div class="rv-head">'+avHtml2+'<div><div class="rv-nm">'+(dispName?escHtml(dispName):'<span style="color:var(--t2)">Enter a name above</span>')+'</div>'/* imported-file name (#22/UA18) */
@@ -197,7 +192,7 @@ function buildReview(){
   var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP();if(!rvGoldRolled){rvGold=15+droll(10);rvGoldRolled=true;}
   var dispNm=cs.name||(document.getElementById("char-name")?document.getElementById("char-name").value.trim():"");
-  var init=(dispNm||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";
+  var init=csInitials(dispNm);/* #15③: canonical (helpers.js) */
   var subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var genderLbl=genderLabel(cs.gender);/* #11③: shared mapping */

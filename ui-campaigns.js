@@ -7,18 +7,14 @@ var TND_SERVER_URL = "https://traffic-and-dragons-server.fly.dev";
 
 function updateServerUI(){
   var connected=storageAdapter.isServerMode();
-  ["","cs-","api-"].forEach(function(p){
-    var btnConn=document.getElementById(p+"fm-server-connect");
-    var btnDisc=document.getElementById(p+"fm-server-disconnect");
-    if(btnConn) btnConn.style.display=connected?"none":"block";
-    if(btnDisc) btnDisc.style.display=connected?"block":"none";
-  });
+  eachMenuEl("server-connect",function(el){el.style.display=connected?"none":"block";});/* #15⑤ */
+  eachMenuEl("server-disconnect",function(el){el.style.display=connected?"block":"none";});
   if(connected){
     // Fetch username from server to show in button label — via the adapter (audit B9):
     // timed, and the label just stays generic on any failure (silent, as before).
     storageAdapter.whoAmI(function(err,d){
       if(err)return;
-      ["fm-server-user","cs-fm-server-user","api-fm-server-user"].forEach(function(id){var span=document.getElementById(id);if(span&&d&&d.username)span.textContent=d.username;});
+      eachMenuEl("server-user",function(span){if(d&&d.username)span.textContent=d.username;});
     });
   }
 }
@@ -60,9 +56,9 @@ function campCloudPushSilent(id,cb){
   // For the active campaign use live keys, not the snapshot (snapshot is only
   // written on campaign switch and may be many turns stale).
   var isActive=id===getActiveCampId();
-  var ws=isActive?store.get(WSK):store.get("tnd_camp_"+id+"_ws");
-  var sl=isActive?store.get(SLK):store.get("tnd_camp_"+id+"_sl")||"[]";
-  var mem=isActive?store.get(MEM_KEY):store.get("tnd_camp_"+id+"_mem")||"{}";
+  var ws=isActive?store.get(WSK):store.get(campSlotKey(id,"ws"));
+  var sl=isActive?store.get(SLK):store.get(campSlotKey(id,"sl"))||"[]";
+  var mem=isActive?store.get(MEM_KEY):store.get(campSlotKey(id,"mem"))||"{}";
   if(!ws){if(cb)cb(false);return;}
   // v1.240: parseWorldState, NOT bare JSON.parse — since v1.227 the stored save carries the
   // transcript LZ-compressed ({__lz:…}). Shipping that raw poisoned the server blob: every
@@ -146,7 +142,7 @@ function _renderCampList(){
   if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
   else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
     var dispName=cm.campName||cm.charName;
-    var hasLocal=!!store.get("tnd_camp_"+cm.id+"_ws");
+    var hasLocal=!!store.get(campSlotKey(cm.id,"ws"));
     var cloudOnly=cm.onServer&&!hasLocal&&!isActive;
     var cloudBtns=storageAdapter.isServerMode()
       ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
@@ -186,7 +182,7 @@ function campLoad(id){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
   // Check if local data exists for this campaign
-  var hasLocal=!!(store.get("tnd_camp_"+id+"_ws"));
+  var hasLocal=!!(store.get(campSlotKey(id,"ws")));
   if(hasLocal){
     var ok=switchToCampaign(id);
     if(!ok){showToast("Failed to load campaign.");return;}
@@ -201,9 +197,9 @@ function campLoad(id){
     if(err){showToast("Failed to fetch campaign: "+err);return;}
     if(!data||!data.worldState){showToast("Campaign not found on server.");return;}
     // Write into the campaign slot then switch to it
-    store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
-    store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-    store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+    store.set(campSlotKey(id,"ws"),serializeWorldState(data.worldState));
+    store.set(campSlotKey(id,"sl"),JSON.stringify(data.sessionLog||[]));
+    store.set(campSlotKey(id,"mem"),JSON.stringify(data.memory||{}));
     var ok=switchToCampaign(id);
     if(!ok){showToast("Failed to load campaign.");return;}
     _applyLoadedCampaign();
@@ -226,9 +222,9 @@ function campCloudPull(id){
     if(err){showToast("Pull failed: "+err);return;}
     if(!data||!data.worldState){showToast("Not found on server.");return;}
     data.worldState.campId=id;
-    store.set("tnd_camp_"+id+"_ws",serializeWorldState(data.worldState));
-    store.set("tnd_camp_"+id+"_sl",JSON.stringify(data.sessionLog||[]));
-    store.set("tnd_camp_"+id+"_mem",JSON.stringify(data.memory||{}));
+    store.set(campSlotKey(id,"ws"),serializeWorldState(data.worldState));
+    store.set(campSlotKey(id,"sl"),JSON.stringify(data.sessionLog||[]));
+    store.set(campSlotKey(id,"mem"),JSON.stringify(data.memory||{}));
     // Update meta savedAt
     var meta=getCampMeta();for(var i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].savedAt=Date.now();meta[i].onServer=true;break;}}setCampMeta(meta);
     showToast("☁ Pulled from server.");
@@ -278,8 +274,8 @@ function campSaveRename(id){
   if(id===getActiveCampId()&&worldState){worldState.campName=name;saveAll();renameCampaignFolder(name);}
   else {
     // Patch the stored worldState for this campaign
-    var raw=store.get("tnd_camp_"+id+"_ws");
-    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set("tnd_camp_"+id+"_ws",JSON.stringify(ws));}catch(e){}}
+    var raw=store.get(campSlotKey(id,"ws"));
+    if(raw){try{var ws=JSON.parse(raw);ws.campName=name;store.set(campSlotKey(id,"ws"),JSON.stringify(ws));}catch(e){}}
     // Push the rename to the server (audit E80) — otherwise the next syncCampaignList merge (server
     // wins on conflict) reverts the local name back to the server's old one.
     if(storageAdapter.isServerMode()&&typeof campCloudPushSilent==="function")campCloudPushSilent(id,null);

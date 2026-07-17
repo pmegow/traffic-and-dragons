@@ -81,6 +81,37 @@ function compressPortrait(dataUrl,cb){
   img.onerror=function(){cb(dataUrl);}; // fallback: store as-is if canvas fails
   img.src=dataUrl;
 }
+// UA21 ②: the ONE fal.ai portrait-generation fetch — formerly triplicated byte-identically in
+// showPortraitModal's runGenerate + runGenerateWithPrompt (which differed ONLY by the callGM
+// prompt-writing step, kept in the callers) and char-creation.js's ftRenderPortrait.
+// prompt: the finished image prompt; withImgStyle() is applied HERE (all three copies did).
+// refSrc: reference-image URL → img2img on flux/dev at the portrait paths' pinned 0.75
+//         strength (NOT the #42 scene-render slider); null/absent → text-to-image on the
+//         player's selected render model (renderModel lookup, default RENDER_MODELS[0]) with
+//         portraitRenderBody's 3:4 aspect override.
+// Resolves to the generated image URL; rejects with the exact Error messages the inline
+// copies threw ("fal.ai HTTP <n>" / "No image returned."). Callers own guards (falKey/busy),
+// status lines, and result handling — those genuinely differ per surface.
+// Load-order note: char-creation.js loads BEFORE ui-portrait.js in index.html, but
+// ftRenderPortrait only RUNS on user action (wizard step 5) long after all scripts have
+// loaded — call-time resolution makes the cross-file call safe.
+async function generatePortraitImage(prompt,refSrc){
+  var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
+  if(refSrc){
+    falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
+      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
+      body:JSON.stringify({image_url:refSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
+  }else{
+    for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
+    falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
+      headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
+      body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
+  }
+  if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
+  var falData=await falRes.json();
+  if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
+  return falData.images[0].url;
+}
 async function showPortraitModal(refreshFn,opts){
   var ex=document.getElementById("portrait-modal");if(ex)ex.remove();
   // opts = {getPortrait, setPortrait, getOffset, setOffset, subject} — defaults to player character
@@ -258,28 +289,15 @@ async function showPortraitModal(refreshFn,opts){
     try{
       var prompt=await callGM(promptReq,"You are a portrait image prompt writer for a dark fantasy RPG. Output ONLY the image prompt. No narration, no game tags.",600);
       status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
-      var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
-      if(isImg2Img){
-        falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
-          headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify({image_url:pmRefSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
-      }else{
-        for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
-        falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
-          headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
-      }
-      if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
-      var falData=await falRes.json();
-      if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
-      showResult(falData.images[0].url,isImg2Img,prompt);
+      showResult(await generatePortraitImage(prompt,isImg2Img?pmRefSrc:null),isImg2Img,prompt);/* UA21 ②: shared fetch */
     }catch(err){
       status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+err.message+"</span>";
     }
     busy=false;
   }
 
-  // ── Shared: regenerate with edited prompt (skips Claude step) ───────────
+  // ── Shared: regenerate with edited prompt (skips Claude step — the ONLY way the twins
+  // ever differed; both now ride generatePortraitImage, UA21 ②) ───────────
   async function runGenerateWithPrompt(isImg2Img,prompt){
     var status=document.getElementById("pm-status");
     if(!falKey||!prompt)return;
@@ -288,21 +306,7 @@ async function showPortraitModal(refreshFn,opts){
     status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
     busy=true;
     try{
-      var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
-      if(isImg2Img){
-        falRes=await fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
-          headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify({image_url:pmRefSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1})});
-      }else{
-        for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
-        falRes=await fetch("https://fal.run/"+mdlCfg.id,{method:"POST",
-          headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
-          body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
-      }
-      if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
-      var falData=await falRes.json();
-      if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
-      showResult(falData.images[0].url,isImg2Img,prompt);
+      showResult(await generatePortraitImage(prompt,isImg2Img?pmRefSrc:null),isImg2Img,prompt);/* UA21 ②: shared fetch */
     }catch(err){
       status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+err.message+"</span>";
     }

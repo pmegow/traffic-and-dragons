@@ -1,6 +1,6 @@
 // stt.js — Speech-to-text input via the Web Speech API (zero-dependency).
 // Foundation for Car Mode (#5/#19): dictate an action into the input field hands-light.
-// Depends on: showToast (ui.js). No API key, no network — browser-native recognition.
+// Depends on: showToast, eachMenuEl (ui-shell.js). No API key, no network — browser-native recognition.
 //
 // Support: Chrome/Edge desktop + Android Chrome (webkitSpeechRecognition). NOT Firefox.
 // iOS Safari support is partial/flaky. isSupported() gates the UI so the mic button
@@ -140,13 +140,11 @@ var STT = (function() {
   // Subscribe to listen-state edges (pass null to unsubscribe). Mirrors TTS.setOnDone.
   function setOnState(cb) { _onState = (typeof cb === "function") ? cb : null; }
 
-  // Mirror the auto-send state across all three file menus' checkboxes.
+  // Mirror the auto-send state across all three file menus' checkboxes (#15⑤: via
+  // eachMenuEl, ui-shell.js — loads before stt.js in the app shell; only called at runtime).
   function _syncAutoCbs() {
-    var on = isAutoSend(), ids = ["fm-autosend", "cs-fm-autosend", "api-fm-autosend"];
-    for (var i = 0; i < ids.length; i++) {
-      var cb = document.getElementById(ids[i]);
-      if (cb) cb.checked = on;
-    }
+    var on = isAutoSend();
+    eachMenuEl("autosend", function(cb) { cb.checked = on; });
   }
 
   function loadSettings() {

@@ -18,20 +18,64 @@ function clearBlueprint(){
   var banner=document.getElementById("blueprint-banner");if(banner)banner.style.display="none";
   showToast("Blueprint cleared.");
 }
+// ── UA21 ① — the ONE segmented-control scaffold for the three browser modals ──────────────
+// (blueprint / character / companion) — each used to re-declare its own segBtn/render/wireSegs
+// copy. Paints the button pair for the current mode into the container and wires the clicks;
+// a caller repaints by calling it again from its render() (onSwitch sets the caller's own
+// mode var and re-renders — callers keep their own same-mode guard where they had one).
+// container: element or id. modes: [{lbl,val,pos}]. current: the selected val.
+// btnHtml(lbl,val,selected,pos): one button's markup — the two visual variants that existed
+// before the dedup are preserved as renderers (cbrSegBtnStd below for blueprint/companion;
+// cbrSegBtnWide for the character browser's full-width look). attr: the data attribute
+// carrying the mode value ("data-seg" for std, "data-mode" for wide).
+function cbrSegControl(container,modes,current,btnHtml,attr,onSwitch){
+  var el=(typeof container==="string")?document.getElementById(container):container;
+  if(!el)return;
+  var h="",i;for(i=0;i<modes.length;i++){h+=btnHtml(modes[i].lbl,modes[i].val,current===modes[i].val,modes[i].pos);}
+  el.innerHTML=h;
+  Array.prototype.forEach.call(el.querySelectorAll("button"),function(sb){
+    sb.addEventListener("click",function(){onSwitch(sb.getAttribute(attr));});
+  });
+}
+// Standard segmented-button markup — byte-identical to the former segBtn copies in the
+// blueprint and companion browsers.
+function cbrSegBtnStd(lbl,val,sel,pos){
+  var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
+  return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
+// Full-width variant — byte-identical to the character browser's former inner segBtn
+// (class .cbr-seg + data-mode attr; flex:1 buttons, transparent unselected background).
+function cbrSegBtnWide(lbl,val,sel,pos){
+  var side=pos==="left"?"border-radius:var(--r) 0 0 var(--r);border-right:none;":"border-radius:0 var(--r) var(--r) 0;";
+  return "<button class='cbr-seg' data-mode='"+val+"' style='flex:1;font-size:12px;font-family:var(--font);padding:7px 0;border:1px solid "+(sel?"var(--acc)":"var(--brd2)")+";background:"+(sel?"var(--acc)":"transparent")+";color:"+(sel?"var(--on-acc)":"var(--t2)")+";font-weight:"+(sel?"bold":"normal")+";cursor:pointer;"+side+"'>"+lbl+"</button>";}
+// ── #15 ② — the ONE campaign-character loader ─────────────────────────────────────────────
+// (was byte-duplicated as showCharacterBrowser's getCharFromCampaign and showCompanionBrowser's
+// inner getChar). Fallback chain preserved byte-for-byte: active campaign → live WSK state
+// (snapshot may be stale — e.g. portrait set after last snapshot) → the campaign's local
+// snapshot → server via the adapter (audit B9: timed, token stays adapter-private).
+// msgs carries the two caller-specific error strings, byte-preserved:
+//   {offline: no local copy and no server connection, missing: server blob has no character}.
+function loadCampaignCharacter(id,cb,msgs){
+  if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
+  var raw=store.get(campSlotKey(id,"ws"));/* #15: shared key builder (state.js) */
+  if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
+  if(!storageAdapter.isServerMode()||!storageAdapter.hasToken()){return cb(msgs.offline);}
+  storageAdapter.getCampaignState(id,function(err,d){
+    if(err)return cb(err);
+    if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb(msgs.missing);
+  });
+}
 function showBlueprintBrowser(){
   var ex=document.getElementById("bp-browser-modal");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="bp-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var connected=storageAdapter.isServerMode();
   var mode=connected?"library":"local";
-  var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
-  function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Campaign Blueprints</span>"
     +"<button id='bp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>Pre-built campaign skeletons with NPCs, locations, and story arcs.</div>"
-    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Blueprint Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='bp-seg' style='display:flex;margin-bottom:16px;'></div>"
     +"<div id='bp-body'></div>"
     +"</div>";
   document.body.appendChild(modal);
@@ -150,17 +194,9 @@ function showBlueprintBrowser(){
     });
   }
   function render(){
-    var seg=document.getElementById("bp-seg");
-    if(seg){seg.innerHTML=segBtn("&#9729; Blueprint Library","library","left")+segBtn("Local","local","right");wireSegs();}
+    cbrSegControl("bp-seg",[{lbl:"&#9729; Blueprint Library",val:"library",pos:"left"},{lbl:"Local",val:"local",pos:"right"}],mode,cbrSegBtnStd,"data-seg",function(v){mode=v;render();});/* UA21 ① */
     if(mode==="library")renderLibrary();else renderLocal();
   }
-  function wireSegs(){
-    var seg=document.getElementById("bp-seg");if(!seg)return;
-    Array.prototype.forEach.call(seg.querySelectorAll("button"),function(sb){
-      sb.addEventListener("click",function(){mode=sb.getAttribute("data-seg");render();});
-    });
-  }
-  wireSegs();
   render();
 }
 // ── Character browser modal ───────────────────────────────────────────────────
@@ -172,25 +208,15 @@ function showCharacterBrowser(initialMode){
   var modal=document.createElement("div");modal.id="char-browser-modal";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
 
-  function getCharFromCampaign(id,cb){
-    // Active campaign: prefer live WSK state (snapshot may be stale — e.g. portrait set after last snapshot)
-    if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
-    var raw=store.get("tnd_camp_"+id+"_ws");
-    if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
-    // Fall back to server — via the adapter (audit B9): timed, token stays adapter-private.
-    if(!storageAdapter.isServerMode()||!storageAdapter.hasToken()){return cb("Not available locally and not connected to server.");}
-    storageAdapter.getCampaignState(id,function(err,d){
-      if(err)return cb(err);
-      if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data on server.");
-    });
-  }
+  // Campaign-character loads route through the shared loadCampaignCharacter (#15 ②) — this
+  // browser's error strings ride in as the msgs arg (see _cbPickLocal below).
 
   // Pull a campaign's PC portrait straight from its saved worldState (the portrait rides inline
   // in the blob; meta deliberately doesn't carry it to avoid bloat). Active campaign prefers live
   // WSK; others read their snapshot. Returns null gracefully if absent (→ initials avatar).
   function campPortrait(id){
     try{
-      var raw=(id===getActiveCampId())?store.get(WSK):store.get("tnd_camp_"+id+"_ws");
+      var raw=(id===getActiveCampId())?store.get(WSK):store.get(campSlotKey(id,"ws"));/* #15 */
       if(!raw)return null;
       var ws=JSON.parse(raw);
       return(ws&&ws.character&&ws.character.portrait)?ws.character.portrait:null;
@@ -199,7 +225,7 @@ function showCharacterBrowser(initialMode){
 
   // small round avatar — portrait if present, otherwise initials (matches the Library look)
   function avatarHtml(name,portrait){
-    var ini=(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
+    var ini=csInitials(name);/* #15③: canonical (helpers.js) */
     return portrait?"<img src='"+portrait+"' style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
       :"<div style='width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
   }
@@ -207,27 +233,21 @@ function showCharacterBrowser(initialMode){
   function rowHtml(clickAttr,inner){
     return "<div class='cbr-row' "+clickAttr+" style='display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px;cursor:pointer;'>"+inner+"</div>";
   }
-  function segBtn(label,m,pos){
-    var on=mode===m;
-    var side=pos==="left"?"border-radius:var(--r) 0 0 var(--r);border-right:none;":"border-radius:0 var(--r) var(--r) 0;";
-    return "<button class='cbr-seg' data-mode='"+m+"' style='flex:1;font-size:12px;font-family:var(--font);padding:7px 0;border:1px solid "+(on?"var(--acc)":"var(--brd2)")+";background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";cursor:pointer;"+side+"'>"+label+"</button>";
-  }
-
   function shell(bodyHtml){
     modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
       +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
       +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Import Character</span>"
       +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
       +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>"+(mode==="library"?"Campaign-agnostic character snapshots. Click to inspect, then import.":"Characters from your saved campaigns. Click to inspect, then import.")+"</div>"
-      +"<div style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Character Library","library","left")+segBtn("<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local","local","right")+"</div>"
+      +"<div id='cbr-seg' style='display:flex;margin-bottom:16px;'></div>"
       +"<div id='cbr-body'>"+bodyHtml+"</div>"
       +"<div style='border-top:1px solid var(--brd);margin-top:14px;padding-top:14px;text-align:center;'>"
       +"<label style='display:inline-block;padding:8px 20px;font-size:12px;font-family:var(--font);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;' onmouseover='this.style.borderColor=\"var(--acc)\";this.style.color=\"var(--acc)\"' onmouseout='this.style.borderColor=\"var(--brd2)\";this.style.color=\"var(--t2)\"'>"
       +"<input type='file' id='cbr-file-inp' accept='.char' style='display:none;'/> Import from file (.char)&hellip;</label></div>"
       +"</div>";
     document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
-    var segs=modal.querySelectorAll(".cbr-seg"),si;
-    for(si=0;si<segs.length;si++){segs[si].addEventListener("click",function(){var m=this.getAttribute("data-mode");if(m!==mode){mode=m;render();}});}
+    // UA21 ①: shared scaffold; the same-mode guard this browser always had stays in onSwitch.
+    cbrSegControl("cbr-seg",[{lbl:"&#9729; Character Library",val:"library",pos:"left"},{lbl:"<svg viewBox='0 0 24 24' width='12' height='12' style='vertical-align:-2px;fill:currentColor;'><path d='M12 3 3 11 5 11 5 21 10 21 10 15 14 15 14 21 19 21 19 11 21 11Z'/></svg> Local",val:"local",pos:"right"}],mode,cbrSegBtnWide,"data-mode",function(m){if(m!==mode){mode=m;render();}});
     document.getElementById("cbr-file-inp").addEventListener("change",function(e){modal.remove();importCharacterFile(e);});
   }
 
@@ -286,10 +306,10 @@ function showCharacterBrowser(initialMode){
   function render(){if(mode==="library")renderLibrary();else renderLocal();}
 
   window._cbPickLocal=function(id){
-    getCharFromCampaign(id,function(err,char){
+    loadCampaignCharacter(id,function(err,char){
       if(err){showToast("Could not load character: "+err);return;}
       inspectAndImport(char);
-    });
+    },{offline:"Not available locally and not connected to server.",missing:"No character data on server."});
   };
   window._cbPickLib=function(slug){
     storageAdapter.listCharacterLibrary(function(err,list){
@@ -323,7 +343,7 @@ function showCharImportPreview(char, onAccept, onCancel){
   var ex=document.getElementById("char-import-preview");if(ex)ex.remove();
   var modal=document.createElement("div");modal.id="char-import-preview";
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
-  var initials=(char.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
+  var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+char.portrait+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
   var statRow=["STR","DEX","CON","INT","WIS","CHA"].map(function(s){
@@ -576,7 +596,7 @@ function _renderCompanionSlots(){
     h+="<div style='display:flex;flex-direction:column;gap:6px;margin-bottom:8px;'>";
     for(var i=0;i<pendingCompanions.length;i++){
       var comp=pendingCompanions[i];
-      var ini=(comp.name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2);
+      var ini=csInitials(comp.name);/* #15③: canonical (helpers.js) */
       var av=comp.portrait?"<img src='"+comp.portrait+"' style='width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;'>"
         :"<div style='width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--acc);font-weight:bold;flex-shrink:0;'>"+ini+"</div>";
       h+="<div style='display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--r);'>"+av
@@ -610,16 +630,10 @@ function showCompanionBrowser(){
   modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;";
   var connected=storageAdapter.isServerMode()&&storageAdapter.hasToken(); // adapter owns the token (audit B9)
   var mode=connected?"library":"local";
-  function getChar(id,cb){
-    if(id===getActiveCampId()){var live=store.get(WSK);if(live){try{var lws=JSON.parse(live);if(lws&&lws.character)return cb(null,lws.character);}catch(e){}}}
-    var raw=store.get("tnd_camp_"+id+"_ws");
-    if(raw){try{var ws=JSON.parse(raw);if(ws&&ws.character)return cb(null,ws.character);}catch(e){}}
-    if(!connected){return cb("Not available locally.");}
-    storageAdapter.getCampaignState(id,function(err,d){
-      if(err)return cb(err);
-      if(d&&d.worldState&&d.worldState.character)cb(null,d.worldState.character);else cb("No character data.");
-    });
-  }
+  // Campaign-character loads route through the shared loadCampaignCharacter (#15 ②) with this
+  // browser's shorter error strings (see wirePicks). Note: the old inner getChar tested the
+  // `connected` flag captured at modal open; the shared loader re-reads the same
+  // isServerMode()+hasToken() pair live — identical except across a mid-modal connect change.
   function isAlreadyAdded(name){for(var j=0;j<pendingCompanions.length;j++){if(pendingCompanions[j].name===name)return true;}return false;}
   function compRow(name,sub,pickId,pickType){
     var added=isAlreadyAdded(name);
@@ -678,40 +692,29 @@ function showCompanionBrowser(){
               modal.remove();_addPendingCompanion(found.character);
             });
           }else{
-            getChar(id,function(err,char){
+            loadCampaignCharacter(id,function(err,char){
               if(err){showToast("Could not load: "+err);btn.textContent="Select";btn.disabled=false;return;}
               modal.remove();_addPendingCompanion(char);
-            });
+            },{offline:"Not available locally.",missing:"No character data."});
           }
         });
       })(btns[bi]);
     }
   }
-  function render(){if(mode==="library")renderLibrary();else renderLocal();}
-  var segS="padding:7px 16px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--brd2);";
-  function segBtn(lbl,val,pos){var sel=mode===val;return "<button data-seg='"+val+"' style='"+segS+"background:"+(sel?"var(--acc)":"var(--bg2)")+";color:"+(sel?"var(--on-acc)":"var(--t1)")+";border-radius:"+(pos==="left"?"var(--r) 0 0 var(--r)":"0 var(--r) var(--r) 0")+";font-weight:"+(sel?"bold":"normal")+";border-"+(pos==="left"?"right":"left")+":none;'>"+lbl+"</button>";}
+  function render(){
+    cbrSegControl("comp-seg",[{lbl:"&#9729; Character Library",val:"library",pos:"left"},{lbl:"Local",val:"local",pos:"right"}],mode,cbrSegBtnStd,"data-seg",function(v){mode=v;render();});/* UA21 ① */
+    if(mode==="library")renderLibrary();else renderLocal();
+  }
   modal.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:24px;max-width:500px;width:100%;margin-top:40px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;'>"
     +"<span style='font-size:16px;color:var(--t0);font-weight:bold;'>Add Companion</span>"
     +"<button id='cbr-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;'>"+pendingCompanions.length+" / 3 selected</div>"
-    +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'>"+segBtn("&#9729; Character Library","library","left")+segBtn("Local","local","right")+"</div>"
+    +"<div id='comp-seg' style='display:flex;margin-bottom:16px;'></div>"
     +"<div id='comp-list'></div>"
     +"</div>";
   document.body.appendChild(modal);
   document.getElementById("cbr-x").addEventListener("click",function(){modal.remove();});
   modal.addEventListener("click",function(e){if(e.target===modal)modal.remove();});
-  function wireSegs(){
-    var segBtns=document.getElementById("comp-seg").querySelectorAll("button"),sbi;
-    for(sbi=0;sbi<segBtns.length;sbi++){
-      (function(sb){sb.addEventListener("click",function(){
-        mode=sb.getAttribute("data-seg");
-        document.getElementById("comp-seg").innerHTML=segBtn("&#9729; Character Library","library","left")+segBtn("Local","local","right");
-        wireSegs();
-        render();
-      });})(segBtns[sbi]);
-    }
-  }
-  wireSegs();
   render();
 }

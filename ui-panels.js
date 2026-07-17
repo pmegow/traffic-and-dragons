@@ -1,6 +1,28 @@
 // ui-panels.js — syncUI + the live game panels: HUD/sidebar, party, quests, inventory,
 // abilities, spells, combat tracker, membar status + sync badge.
 // Split from ui.js at v1.324 per UI_SEAM_MAP.md (TODO #54 / UA17).
+// ── UA21③: ONE derivation of a party member's vitals ─────────────────────────
+// PURE (no DOM) — consumed by the three party renderers: updateHUD's compact cards +
+// updatePartyPanel (this file) and _carUpdateParty (ui-carmode.js). Each renderer keeps
+// its own markup AND its own color mapping: the HUD colors on the clamped/rounded pct
+// (hp||0) at >50/>25 → grn/acc/red, Car Mode on the RAW ratio (default 1 when maxHp is
+// missing) at >0.5/>0.25 → grn/warn/dng. Different semantics near the boundaries AND a
+// different palette — deliberately NOT unified (pure-preservation pass; see lane-B notes).
+// Fields (null when no sheet / no maxHp, matching each original guard):
+//   name, sheet, hp (raw sheet.hp), maxHp, pct (HUD's clamped 0-100 int), ratio (Car's
+//   raw fraction), cls (sheet.cls || npc.role fallback — the party panel's line 2).
+function partyMemberVitals(npc){
+  var sheet=npc.charSheet||null;
+  return {
+    name:npc.name,
+    sheet:sheet,
+    hp:sheet?sheet.hp:null,
+    maxHp:sheet?sheet.maxHp:null,
+    pct:(sheet&&sheet.maxHp)?Math.max(0,Math.min(100,Math.round((sheet.hp||0)/sheet.maxHp*100))):null,
+    ratio:sheet?(sheet.maxHp?sheet.hp/sheet.maxHp:1):null,
+    cls:sheet?(sheet.cls||""):(npc.role||"")
+  };
+}
 function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}}
 function updateQuestPanel(){
   if(!worldState)return;var ql=worldState.questLog||[];
@@ -34,19 +56,19 @@ function updateHUD(){
     if(partyNpcs.length){
       hudParty.style.display="flex";hudParty.innerHTML="";
       for(var pi=0;pi<partyNpcs.length;pi++){
-        var pm=partyNpcs[pi],pmSheet=pm.charSheet;
+        var pm=partyNpcs[pi],pv=partyMemberVitals(pm),pmSheet=pv.sheet;/* UA21③ */
         var card=document.createElement("div");
         card.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t1);cursor:pointer;padding:2px 8px 2px 6px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);";
         (function(nm){card.addEventListener("click",function(){showNpcSheet(nm);});})(pm.name);
         var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>";
         if(pmSheet&&pmSheet.maxHp){
-          var pct=Math.max(0,Math.min(100,Math.round((pmSheet.hp||0)/pmSheet.maxHp*100)));
-          var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";
+          var pct=pv.pct;
+          var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";/* HUD mapping — Car Mode's differs, kept separate (UA21③) */
           var pmXpHtml="";if(pmSheet.xp!==undefined&&pmSheet.level!==undefined){var pmNextXp=XP_LEVELS[pmSheet.level];pmXpHtml="<span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-left:2px;'>"+pmSheet.xp+"/"+(pmNextXp!==undefined?pmNextXp:"max")+" xp</span>";}
           card.innerHTML=nameSpan
             +"<div style='width:48px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;flex-shrink:0;'>"
             +"<div style='width:"+pct+"%;height:100%;background:"+hpClr+";border-radius:3px;'></div></div>"
-            +"<span style='color:var(--hp);flex-shrink:0;'>"+(pmSheet.hp||0)+"/"+pmSheet.maxHp+"</span>"
+            +"<span style='color:var(--hp);flex-shrink:0;'>"+(pv.hp||0)+"/"+pv.maxHp+"</span>"
             +pmXpHtml;
         }else{
           card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"ally")+"</span>";
@@ -83,7 +105,7 @@ function updatePartyPanel(){
   var pss=document.getElementById("pss-party");if(!pss)return;
   pss.style.display="";
   document.getElementById("party-cnt").textContent=1+npcs.length;
-  var h="",i,m,sheet,hp,maxHp,cls;
+  var h="",i,m,pv,hp,maxHp,cls;
   // Player always first
   h+="<div onclick='showCharSheet()' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
     +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(c.name)+" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>YOU</span></div>"
@@ -91,9 +113,8 @@ function updatePartyPanel(){
     +"<div style='font-size:10px;color:var(--hp);'>HP "+c.hp+"/"+c.maxHp+"</div>"
     +"</div>";
   for(i=0;i<npcs.length;i++){
-    m=npcs[i];sheet=m.charSheet||null;
-    hp=sheet?sheet.hp:null;maxHp=sheet?sheet.maxHp:null;
-    cls=sheet?(sheet.cls||""):(m.role||"");
+    m=npcs[i];pv=partyMemberVitals(m);/* UA21③ */
+    hp=pv.hp;maxHp=pv.maxHp;cls=pv.cls;
     // data-npc + delegated wiring below (audit E69) — an inline onclick with the name in a JS string
     // literal breaks when the name contains a double quote (escHtml's &quot; decodes back to ").
     h+="<div class='party-row' data-npc='"+escHtml(m.name)+"' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
