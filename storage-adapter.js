@@ -30,9 +30,16 @@ var storageAdapter = (function() {
   function testModeOn() {
     try { return !!localStorage.getItem(TEST_MODE_KEY); } catch(e) { return false; }
   }
-  function _testBlock(what) {
-    if (!testModeOn()) return false;
-    console.warn("[storage] TEST MODE — " + what + " blocked (remove localStorage '" + TEST_MODE_KEY + "' and reload to re-enable cloud sync)");
+  // #72 (local-server route, user call 2026-07-18): a LOCALLY-RUN server is the sanctioned
+  // target for sync-feature tests (server repo README ▸ "Local test server" — dev-login mints
+  // the session). Test mode therefore blocks only NON-local servers: localhost traffic flows,
+  // production remains mechanically unreachable.
+  function _isLocalServer(url) {
+    return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:\/]|$)/i.test(String(url || ""));
+  }
+  function _testBlock(what, targetUrl) {
+    if (!testModeOn() || _isLocalServer(targetUrl)) return false;
+    console.warn("[storage] TEST MODE — " + what + " blocked (remove localStorage '" + TEST_MODE_KEY + "' and reload to re-enable cloud sync; localhost servers are exempt)");
     if (!_testWarned) {
       _testWarned = true;
       if (typeof showToast === "function") showToast("&#129514; Test mode &mdash; cloud sync disabled");
@@ -54,13 +61,14 @@ var storageAdapter = (function() {
   // If a saved server URL + token exist in localStorage, restore server mode.
 
   function autoConnect() {
-    // Test mode (#72): never restore a live server connection into a test session — the
-    // saved URL+token stay in localStorage untouched, they just don't come live.
-    if (testModeOn()) { console.warn("[storage] TEST MODE — saved server connection NOT restored (tnd_test_mode_v1 is set)"); return; }
     try {
       var url = localStorage.getItem(SERVER_URL_KEY);
       var tok = localStorage.getItem(SERVER_TOK_KEY);
       if (url && tok) {
+        // Test mode (#72): never restore a NON-local server connection into a test session —
+        // the saved URL+token stay in localStorage untouched, they just don't come live.
+        // A localhost server (the sanctioned sync-test target) restores normally.
+        if (testModeOn() && !_isLocalServer(url)) { console.warn("[storage] TEST MODE — saved server connection NOT restored (tnd_test_mode_v1 is set)"); return; }
         _serverUrl = url;
         _token     = tok;
       }
@@ -90,7 +98,7 @@ var storageAdapter = (function() {
   // ── GitHub OAuth popup login ────────────────────────────────────────────
 
   function loginWithServer(serverUrl, onSuccess) {
-    if (_testBlock("login")) {
+    if (_testBlock("login", serverUrl)) {
       if (typeof onSuccess === "function") onSuccess("Test mode active — cloud sync is disabled. Remove localStorage key 'tnd_test_mode_v1' and reload to reconnect.");
       return;
     }
@@ -307,7 +315,7 @@ var storageAdapter = (function() {
 
   function syncPortrait(campId) {
     if (!_serverUrl || !_token || !campId) return;
-    if (_testBlock("portrait sync")) return;
+    if (_testBlock("portrait sync", _serverUrl)) return;
     if (typeof worldState === "undefined" || !worldState) return;
     var portrait = worldState.character ? worldState.character.portrait : null;
     // Collect all NPC portraits — via npcPortrait() (v1.170): after the #3 dedupe, companion
@@ -371,7 +379,7 @@ var storageAdapter = (function() {
 
   function _syncNow(beacon, healedRetry) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
-    if (_testBlock("state sync (POST /api/state)")) return; // #72 — covers debounce, flush AND beacon paths
+    if (_testBlock("state sync (POST /api/state)", _serverUrl)) return; // #72 — covers debounce, flush AND beacon paths
     if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
@@ -488,7 +496,7 @@ var storageAdapter = (function() {
 
   function syncCampaignList(cb) {
     if (!_serverUrl || !_token) { if (cb) cb(null); return; }
-    if (_testBlock("campaign list sync")) { if (cb) cb(null); return; }
+    if (_testBlock("campaign list sync", _serverUrl)) { if (cb) cb(null); return; }
     var _fired = false;
     function done(result) { if (!_fired) { _fired = true; if (cb) cb(result); } }
     // _tFetch (20s) replaces the old 60s fallback timer — a dead host held the campaign
@@ -555,7 +563,7 @@ var storageAdapter = (function() {
 
     // #72: the reconcile GET is exactly the B7 contamination path (a foreign blob seeding the
     // ack baseline / being adopted wholesale) — a test session never reads server state either.
-    if (_testBlock("server reconcile (GET /api/state)")) { cb(localOk); return; }
+    if (_testBlock("server reconcile (GET /api/state)", _serverUrl)) { cb(localOk); return; }
 
     // Paint from local cache instantly, then reconcile with server.
     cb(localOk);
@@ -683,7 +691,7 @@ var storageAdapter = (function() {
   // (encodeURIComponent on segments) — this takes the finished path.
   function _apiJson(path, method, bodyObj, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
-    if (_testBlock("server call " + (method || "GET") + " " + path)) { if (cb) cb("Test mode — cloud sync disabled"); return; }
+    if (_testBlock("server call " + (method || "GET") + " " + path, _serverUrl)) { if (cb) cb("Test mode — cloud sync disabled"); return; }
     var opts = { headers: { "Authorization": "Bearer " + _token } };
     if (method && method !== "GET") opts.method = method;
     if (bodyObj != null) {

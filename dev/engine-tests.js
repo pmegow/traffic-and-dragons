@@ -5046,6 +5046,28 @@ t("flag ON → loginWithServer refused with a self-describing message (no OAuth 
   if(!err||String(err).indexOf("Test mode")<0)return "cb error wrong: "+err;
   return String(err).indexOf("tnd_test_mode_v1")>=0?true:"message doesn't name the escape hatch: "+err;
 });
+t("flag ON + LOCALHOST server → traffic flows (the sanctioned sync-test target, #72 local-server route)", function(){
+  storageAdapter.setServer("http://localhost:4001","TOK_LOCAL");
+  calls.length=0;warns.length=0;
+  storageAdapter.whoAmI(function(){});
+  storageAdapter.pushCampaignState("campLOCAL",{worldState:{npcs:[]},sessionLog:[],memory:{}},function(){});
+  if(calls.length!==2)return "expected 2 fetches to localhost, got "+calls.length;
+  if(calls[0].url!=="http://localhost:4001/auth/me")return "url "+calls[0].url;
+  if(warns.length)return "localhost traffic warned: "+warns[0];
+  return true;
+});
+t("flag ON + a HOST MERELY NAMED localhost (localhost.evil.example) → still blocked", function(){
+  storageAdapter.setServer("https://localhost.evil.example","TOK_SPOOF");
+  calls.length=0;
+  storageAdapter.whoAmI(function(){});
+  return calls.length===0?true:"spoofed-localhost fetch fired: "+calls[0].url;
+});
+t("flag ON → production host STILL blocked after the localhost exemption (the exemption is host-scoped)", function(){
+  storageAdapter.setServer("https://unit.test","TOK_TM");
+  calls.length=0;
+  storageAdapter.pushCampaignState("campX",{worldState:{npcs:[]},sessionLog:[],memory:{}},function(){});
+  return calls.length===0?true:"production fetch fired: "+calls[0].url;
+});
 t("flag OFF → traffic flows exactly as before (the guard adds ZERO behavior when off)", function(){
   _ls.removeItem("tnd_test_mode_v1");
   calls.length=0;warns.length=0;
