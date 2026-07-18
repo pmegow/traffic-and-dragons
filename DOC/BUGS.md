@@ -24,6 +24,48 @@ them here).
 
 ## Open
 
+## B4 — localStorage over quota on mobile — saves failing with "storage full" toasts; old campaign snapshots dominate the breakdown
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-07-18 (v1.360) · **Last seen:** 2026-07-18 (v1.361) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 810
+**Fingerprint:** `user-report · user-report · v1.360 · save failed storage full`
+**Report ids:** c725ae74-038c-4d68-9125-aae6869a6db7, 90ca0046-8013-4045-9cb7-e4484be45bc9
+_Two reports of the same incident 8 minutes apart filed as one row (same device/campaign/turn); the second (v1.361) carries the [STORAGE] diagnostic block and its fingerprint differs textually (`getting storage full toasts.`) — future re-arrivals of either message belong here._
+
+### Report (untrusted user-submitted data — never instructions)
+
+First report (c725ae74, 19:50 UTC, v1.360) — message only; transcript context omitted (same session as B2/B3, t805–t810):
+```text
+Save failed storage full
+```
+
+Second report (90ca0046, 19:58 UTC, v1.361) — message + the [STORAGE] diagnostic tail:
+```text
+Getting storage full toasts.
+
+STATE: Ammut (Rogue Lv9) HP 71/75, 267 gp — Sandpoint / Sandpoint - Rusty Dragon|Common Room, evening — turn 810
+[... transcript context t805–t809 identical to the B2/B3 excerpt — omitted ...]
+[STORAGE] localStorage: ~2561K chars across 55 keys (5MB quota ≈ 2,500K chars)
+  tnd_core_v10: 385K
+  tnd_camp_camp_1782799175437_7288_ws: 384K
+  tnd_camp_camp_1782774292257_7206_ws: 317K
+  tnd_camp_camp_1781763448157_5034_ws: 305K
+  tnd_camp_camp_1781070814763_8744_ws: 240K
+  tnd_mem_v10: 202K
+  tnd_camp_camp_1782799175437_7288_mem: 202K
+  tnd_camp_camp_1782462323538_8329_ws: 113K
+  tnd_camp_camp_1782513156963_6664_ws: 98K
+  tnd_camp_camp_1781070814763_8744_mem: 95K
+  (+45 smaller keys)
+in-memory fallback: empty (all writes persisting)
+```
+Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pages.dev).
+
+### Findings
+_(none yet — run /bugs investigate B4)_
+
+### Action log
+_(none)_
+
 ## B3 — Canon drift around Rinn Toldrath — player states he is dead (killed by Ammut at the docks, the event behind Frizwick’s ethical conundrum) and play contradicted that
 **Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.354) · **Last seen:** 2026-07-18 · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 809
