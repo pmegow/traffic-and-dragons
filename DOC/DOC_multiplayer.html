@@ -212,8 +212,8 @@
   <li><strong>P5 — Per-character location / hard splits (D11). 📐 Designed 2026-07-18 — see <a href="#p5design">P5 design</a> below; forks F1–F4 await a user call before any code.</strong> Threads-not-cameras model: <code>world.location</code> stays the hero's primary thread; <code>charSheet.splitLoc</code> (null = with the party) marks a split member; one <code>[PARTY_SPLIT:Name|Loc]</code> tag both directions; geo block gains a SPLIT THREADS section; combat v1 keeps one primary-thread tracker.</li>
 </ol>
 
-<h2 id="p5design">P5 design — per-character location / hard splits <span class="pill p-open">Draft for ratification (Fable, 2026-07-18)</span></h2>
-<p>⛨ Drift surface: the <code>[LOCATION:]</code> write path, <code>buildGeoBlock</code>, the map layer, and NPC last-seen all assume ONE camera. This design splits the <em>party</em> without splitting the <em>engine's</em> single-thread invariants more than necessary. Nothing below is code yet — the four forks at the end need a user call, then P5 builds against the ratified answers.</p>
+<h2 id="p5design">P5 design — per-character location / hard splits <span class="pill p-lock">RATIFIED 2026-07-18 — all four forks A (walked one at a time with the user)</span></h2>
+<p>⛨ Drift surface: the <code>[LOCATION:]</code> write path, <code>buildGeoBlock</code>, the map layer, and NPC last-seen all assume ONE camera. This design splits the <em>party</em> without splitting the <em>engine's</em> single-thread invariants more than necessary. Forks F1–F4 below were each discussed and ruled individually (2026-07-18); the build proceeds against these answers, pre-review still applies before code.</p>
 
 <h3>Core model: threads, not cameras</h3>
 <div class="card">
@@ -254,11 +254,11 @@
   <li>Corpus replay (dev/diff-replay.js) byte-identical — no legacy transcript contains the tag, so end states must not move.</li>
 </ol>
 
-<h3>Forks needing a user call before build</h3>
-<div class="q"><div class="qhead"><span class="qid">F1</span>Tag name: <code>[PARTY_SPLIT:Name|Loc|Sub?]</code> + <code>|rejoin</code> (recommended — says what it means, one tag both directions) vs extending the <code>COMPANION_*</code> family (<code>[COMPANION_LOCATION:]</code> — familiar shape, but heroes-can't-split makes "companion" a lie when a PC splits, and rejoin needs a magic value either way).</div></div>
-<div class="q"><div class="qhead"><span class="qid">F2</span>Bare <code>[LOCATION:]</code> = primary thread only (recommended — D8 consistency: bare means the hero). Alternative: bare moves the ACTIVE PC's thread — rejected in draft (the GM doesn't know the display pointer; it would make tag meaning depend on invisible client state).</div></div>
-<div class="q"><div class="qhead"><span class="qid">F3</span>Combat v1 = single primary-thread tracker, split fights narrative-only (recommended); v2 per-thread trackers only if play demands. Alternative: block splits during combat entirely (simplest, but forbids the classic "rogue slips away mid-fight").</div></div>
-<div class="q"><div class="qhead"><span class="qid">F4</span>Split-thread geography injects EVERY turn while split (recommended — the GM must not forget an absent thread; compact block bounds the cost) vs only on that PC's sub-turn (cheaper, but the GM narrates threads it wasn't reminded of).</div></div>
+<h3>Forks — ratified 2026-07-18 (each discussed individually with the user)</h3>
+<div class="q"><div class="qhead"><span class="qid">F1</span><span class="pill p-lock">A ratified</span> <code>[PARTY_SPLIT:Name|Loc|Sub?]</code> + <code>|rejoin</code>, optional sublocation arg ships in v1. User note: "it MAY require tweaking, but it's the obvious starting point." (Rejected: extending <code>COMPANION_*</code> — "companion" lies when a PC splits, and rejoin needs a magic value either way.)</div></div>
+<div class="q"><div class="qhead"><span class="qid">F2</span><span class="pill p-lock">A ratified</span> Bare <code>[LOCATION:]</code> moves the PRIMARY thread only — D8 consistency: bare means the hero's context, and tag meaning stays a pure function of the tag (replay-deterministic). (Rejected: bare-moves-the-active-PC — the GM can't see the display pointer; same response would mutate different saves differently.)</div></div>
+<div class="q"><div class="qhead"><span class="qid">F3</span><span class="pill p-lock">A ratified — WITH a recorded user reservation</span> v1 = single primary-thread tracker; split-thread fights are narrative-only (<code>COMPANION_*</code> outcomes, no tracker). <strong>⚠ User objection on record: this makes Player 2 a second-class citizen while split-and-fighting — that is the named v2 TRIPWIRE, not a someday-maybe:</strong> the first time a split-thread fight matters in real play and prose-tracking feels thin, per-thread trackers get designed. (Rejected: forbidding splits in combat — kills "the rogue slips away mid-fight".)</div></div>
+<div class="q"><div class="qhead"><span class="qid">F4</span><span class="pill p-lock">A ratified ("Hard A" — user)</span> Split-thread geography injects EVERY turn while any split exists. B (sub-turn-only) re-creates the #53 canon-starved failure class inside the D5 single resolution call — the GM would narrate threads it wasn't reminded of.</div></div>
 
 <footer>
   Living doc — update the status pills as decisions land. Companion to TODO&nbsp;#1. ⛨ P5 is drift surface (location write path + geo injection) — design ratified via the F1–F4 forks above, then pre-review, then build; P4 carries the D10 prose-validation gate.
