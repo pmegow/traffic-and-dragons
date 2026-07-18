@@ -1,6 +1,6 @@
 ---
 name: bugs
-description: Bug-triage pipeline over DOC/BUGS.md — "/bugs sync" pulls new reports from the GAS webhook feed, "/bugs investigate B<n>" dispatches the read-only bug-investigator agent, "/bugs act B<n>" implements a fix gated on findings. Use whenever the user runs /bugs or asks to pull/triage/investigate the emailed error reports.
+description: Bug-triage pipeline over DOC/BUGS.md — "/bugs sync" pulls new reports from the GAS webhook feed, "/bugs investigate B<n>" dispatches the read-only bug-investigator agent, "/bugs act B<n>" implements a fix gated on findings, "/bugs ignore B<n>" archives a row as ignored (the viewer's ✕ button). Use whenever the user runs /bugs or asks to pull/triage/investigate the emailed error reports.
 ---
 
 # /bugs — field bug-report triage
@@ -59,3 +59,17 @@ INVESTIGATION ONLY — no code changes in this mode, including "trivial" ones sp
 4. Update the row in the SAME commit: `Status: fixed`, Action log entry (date, commit hash,
    version, one-line what-changed). After live verification, `Status: verified` and move the row
    to **Completed**. Update TODO.md too if the bug maps to a backlog row.
+
+## /bugs ignore B<n>
+
+The viewer's ✕ button copies this command — a deliberate "not worth pursuing" archive. No status
+gate (any Open row qualifies), and NO code changes in this mode.
+
+1. Move the row whole to **Completed** (newest first), set `Status: ignored`. Nothing else on the
+   row is edited — report fences, findings, and meta stay intact.
+2. Append an Action log line: date, `ignored (was <prior status>) via tracker ✕`, plus the user's
+   stated reason if they gave one.
+3. If the row was `suspected-injection`, note that in the log line — ignoring archives it, it does
+   not clear the flag's history.
+4. Confirm the move to the user (id + TLDR). Commit per standing rules (tracker-only change — no
+   APP_VERSION bump needed).
