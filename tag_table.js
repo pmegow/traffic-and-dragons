@@ -277,7 +277,7 @@ var TAG_TABLE=[
           console.warn("[quest] blocked re-creation of '"+qTitle+"' arrived with rewards ("+_any.join(", ")+"; original close paid "+(_orig.join(", ")||"nothing")+") — possible re-pay with different amounts");
           if(typeof showToast==="function")showToast("⚠ "+qTitle+": "+_any.join(", ")+" arrived with a blocked re-completion (original close paid "+(_orig.join(", ")||"nothing")+") — check the sheet; Sync can correct");}}
       continue;}}
-  if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
+  if(qIdx<0){worldState.questLog.push({title:qTitle,status:qStat,desc:qDesc,objectives:[],started:R.turn});if(qStat==="offered"){if(typeof showToast==="function")showToast("⚑ Quest opportunity: "+qTitle);if(typeof Sound!=="undefined")Sound.play("quest");/* TODO #7: side-effect only — never touches parse/mutation flow */R.muts.push("Quest offered: "+qTitle);}else R.muts.push("Quest: "+qTitle+" ("+qStat+")");}else{var qq=worldState.questLog[qIdx];qq.status=qStat;if(qDesc)qq.desc=qDesc;R.muts.push("Quest "+qTitle+": "+qStat);}
   if(qStat==="completed"||qStat==="failed"){
     // UA42: player-visible closure — the toast names the same-response rewards so a close never
     // again passes in silence (two Playtest-2 completions had ZERO feedback). Positive gold only:
