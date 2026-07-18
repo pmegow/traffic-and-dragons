@@ -158,7 +158,7 @@ function hideCarMode() {
 }
 
 function _carUpdate() {
-  var c = worldState && worldState.character;
+  var c = worldState && activePlayer();/* TODO #1 P2: overlay portrait/name follow the spotlight PC */
   if (!c) return;
   var nameEl = document.getElementById("car-name");
   if (nameEl) nameEl.textContent = c.name || "";
@@ -175,7 +175,7 @@ function _carUpdate() {
     }
   }
   var vit = document.getElementById("car-vitals"); // rank 22 — glanceable HP/gold under the party dots
-  if (vit) vit.textContent = "HP " + c.hp + "/" + c.maxHp + " · " + c.gold + " gp";
+  if (vit) vit.textContent = "HP " + c.hp + "/" + c.maxHp + " · " + (c.gold != null ? c.gold : 0) + " gp";
   _carUpdateParty();
   _carMediaSession();
 }
@@ -183,7 +183,11 @@ function _carUpdate() {
 function _carUpdateParty() {
   var el = document.getElementById("car-party");
   if (!el || !worldState) return;
-  var members = (worldState.npcs || []).filter(function(n) { return n.partyMember && n.charSheet; });
+  /* TODO #1 P2: the spotlight PC owns the main portrait, so their dot leaves the row and the
+     hero (when not spotlit) joins it — same swap the HUD party cards make. */
+  var act = activePlayer(), hero = worldState.character;
+  var members = (worldState.npcs || []).filter(function(n) { return n.partyMember && n.charSheet && !(act !== hero && n.name === act.name); });
+  if (act !== hero && hero) members.unshift({ name: hero.name, charSheet: hero });
   if (!members.length) { el.innerHTML = ""; return; }
   var html = "", i, n, pv, ratio, col;
   for (i = 0; i < members.length; i++) {
@@ -378,7 +382,7 @@ function _carMediaHandlers() {
 
 function _carMediaSession() {
   if (!("mediaSession" in navigator)) return;
-  var c = worldState && worldState.character;
+  var c = worldState && activePlayer();/* TODO #1 P2: lockscreen metadata follows the spotlight PC */
   var name = (c && c.name) || "";
   var camp = (worldState && worldState.campName) || "";
   var portrait = (c && c.portrait) || "";

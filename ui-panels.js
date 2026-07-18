@@ -41,25 +41,35 @@ function updateQuestPanel(){
   if(listEl)listEl.innerHTML=h||"<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No active quests</div>";
 }
 function updateHUD(){
-  if(!worldState)return;var c=worldState.character,w=worldState.world;
+  /* TODO #1 P2 (D6/D7): the hero slot shows activePlayer() — the spotlight PC — while the
+     sidebar party section stays hero-anchored (playerBtn always opens the hero's sheet). */
+  if(!worldState)return;var c=activePlayer(),hero=worldState.character,w=worldState.world;
   document.getElementById("hud-name").textContent=c.name;
   document.getElementById("hud-cls").textContent=(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" Lv"+c.level;
   document.getElementById("hud-hp").textContent=c.hp+"/"+c.maxHp+" HP";
-  document.getElementById("hud-gold").textContent=c.gold+" gp";
+  document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=w.location;
   var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=XP_LEVELS[c.level];var xpTxt=nxp!==undefined?c.xp+" / "+nxp+" xp":c.xp+" xp (max)";var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
   // ── Party HUD (compact cards — second topbar row) ─────────────────────────
   var hudParty=document.getElementById("hud-party");
   if(hudParty){
-    var partyNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
-    if(partyNpcs.length){
+    /* P2: the spotlight PC lives in the hero slot, so their card leaves the bar; the hero
+       (when NOT spotlit) joins it as an ordinary card that opens showCharSheet. */
+    var cards=[];
+    if(c!==hero)cards.push({name:hero.name,vitals:{sheet:hero,hp:hero.hp,maxHp:hero.maxHp,pct:Math.max(0,Math.round((hero.hp/(hero.maxHp||1))*100))},status:"the hero",open:function(){showCharSheet();}});
+    (worldState.npcs||[]).forEach(function(n){
+      if(!n.partyMember)return;
+      if(c!==hero&&n.name===c.name)return;/* spotlit companion is in the hero slot */
+      cards.push({name:n.name,vitals:partyMemberVitals(n),status:n.status||"ally",open:(function(nm){return function(){showNpcSheet(nm);};})(n.name)});
+    });
+    if(cards.length){
       hudParty.style.display="flex";hudParty.innerHTML="";
-      for(var pi=0;pi<partyNpcs.length;pi++){
-        var pm=partyNpcs[pi],pv=partyMemberVitals(pm),pmSheet=pv.sheet;/* UA21③ */
+      for(var pi=0;pi<cards.length;pi++){
+        var pm=cards[pi],pv=pm.vitals,pmSheet=pv.sheet;/* UA21③ */
         var card=document.createElement("div");
         card.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t1);cursor:pointer;padding:2px 8px 2px 6px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);";
-        (function(nm){card.addEventListener("click",function(){showNpcSheet(nm);});})(pm.name);
+        card.addEventListener("click",pm.open);/* P2: hero card opens showCharSheet, companions showNpcSheet */
         var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>";
         if(pmSheet&&pmSheet.maxHp){
           var pct=pv.pct;
@@ -95,23 +105,32 @@ function updateHUD(){
     +questSec;
   // ── Party section — built programmatically to avoid onclick string escaping ──
   var partySec=document.getElementById("sb-party-sec");
-  var playerBtn=document.createElement("button");playerBtn.className="sb-party-btn sb-pb-player";playerBtn.textContent=c.name;playerBtn.addEventListener("click",showCharSheet);partySec.appendChild(playerBtn);
+  var playerBtn=document.createElement("button");playerBtn.className="sb-party-btn sb-pb-player";playerBtn.textContent=hero.name;/* P2: hero-anchored — always the hero's sheet, whoever holds the spotlight */playerBtn.addEventListener("click",showCharSheet);partySec.appendChild(playerBtn);
   for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember){(function(nm){var btn=document.createElement("button");btn.className="sb-party-btn";btn.textContent=nm;btn.addEventListener("click",function(){showNpcSheet(nm);});partySec.appendChild(btn);})(worldState.npcs[i].name);}}
 }
 function updatePartyPanel(){
   if(!worldState)return;
-  var c=worldState.character;
+  /* TODO #1 P2 (D6/D7): the spotlight PC leads the list as "YOU"; the hero (when not spotlit)
+     drops to an ordinary row that opens showCharSheet. Writes untouched — display routing only. */
+  var c=activePlayer(),hero=worldState.character;
   var npcs=(worldState.npcs||[]).filter(function(n){return n.partyMember&&n.name!==c.name;});
   var pss=document.getElementById("pss-party");if(!pss)return;
   pss.style.display="";
-  document.getElementById("party-cnt").textContent=1+npcs.length;
+  document.getElementById("party-cnt").textContent=(c!==hero?1:0)+1+npcs.length;/* spotlit companion left npcs[], hero re-enters as a row — total unchanged */
   var h="",i,m,pv,hp,maxHp,cls;
-  // Player always first
-  h+="<div onclick='showCharSheet()' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
+  // Spotlight PC always first
+  h+="<div "+(c===hero?"onclick='showCharSheet()'":"class='party-row' data-npc='"+escHtml(c.name)+"'")+" style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
     +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(c.name)+" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>YOU</span></div>"
-    +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(c.cls)+"</div>"
+    +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(c.cls||"")+"</div>"
     +"<div style='font-size:10px;color:var(--hp);'>HP "+c.hp+"/"+c.maxHp+"</div>"
     +"</div>";
+  if(c!==hero){
+    h+="<div onclick='showCharSheet()' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
+      +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(hero.name)+"</div>"
+      +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(hero.cls||"")+"</div>"
+      +"<div style='font-size:10px;color:var(--hp);'>HP "+hero.hp+"/"+hero.maxHp+"</div>"
+      +"</div>";
+  }
   for(i=0;i<npcs.length;i++){
     m=npcs[i];pv=partyMemberVitals(m);/* UA21③ */
     hp=pv.hp;maxHp=pv.maxHp;cls=pv.cls;
@@ -146,7 +165,7 @@ function invItemHtml(s){
   return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>"+_qh;
 }
 function updateInvPanel(){
-  if(!worldState)return;var inv=worldState.character.inventory,gold=worldState.character.gold;
+  if(!worldState)return;var _ap=activePlayer(),inv=_ap.inventory||[],gold=(_ap.gold!=null?_ap.gold:0);/* P2: panel follows the spotlight PC */
   var weps=["sword","blade","axe","bow","staff","crossbow","knife","dagger","spear","mace","hammer","blades"];
   var arm=["armor","chainmail","leather","hide","shield","helm","cloak","mail","scale"];
   document.getElementById("inv-cnt").textContent=inv.length;document.getElementById("inv-gold").textContent=gold+" gp";
@@ -154,13 +173,13 @@ function updateInvPanel(){
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }
 function updateAbPanel(hl){
-  if(!worldState)return;var abs=worldState.character.abilities||[];document.getElementById("ab-cnt").textContent=abs.length;
+  if(!worldState)return;var abs=activePlayer().abilities||[];/* P2: follows the spotlight PC */document.getElementById("ab-cnt").textContent=abs.length;
   var h="",i;for(i=0;i<abs.length;i++){h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+'"><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
   document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
 function updateSpPanel(){
   if(!worldState)return;
-  var spells=worldState.character.spells||[];
+  var _ap=activePlayer(),spells=_ap.spells||[];/* P2: follows the spotlight PC */
   var avail=spells.filter(function(s){return !s.used;}).length;
   document.getElementById("sp-cnt").textContent=avail+"/"+spells.length;
   var h="",i,sp,tag,nm,ds;
@@ -175,7 +194,9 @@ function updateSpPanel(){
     h+="</div>";
   }
   if(!h)h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No spells</div>";
-  else h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore spells)</button>";
+  /* P2: restSpells() writes the HERO's spells — hide the button while a companion PC holds the
+     spotlight, or resting would restore the wrong sheet (writes stay on their true owner). */
+  else if(_ap===worldState.character)h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore spells)</button>";
   document.getElementById("sp-list").innerHTML=h;
 }
 function updateCombat(){
@@ -184,7 +205,7 @@ function updateCombat(){
   // The statblock renders for the ENGAGED foe (else the first living foe that has stats).
   // Names/morale/immunities are model-authored — escHtml every sink.
   if(!worldState||!worldState.combat)return;
-  var cm=worldState.combat,pc=worldState.character;
+  var cm=worldState.combat,pc=activePlayer();/* P2: the player HP row tracks the spotlight PC */
   document.getElementById("ct-round").textContent="Round "+cm.round;
   var rows=document.getElementById("en-rows");
   if(rows){

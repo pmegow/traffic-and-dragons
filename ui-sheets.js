@@ -165,6 +165,9 @@ function showCharSheet(){
     +"<button id='cs-tog-npc' style='"+_pcTogBtnCss(c.isPC===false)+"'>NPC</button>"
     +"<span style='font-size:10px;color:var(--t2);'>"+(c.isPC!==false?"player character":"GM-played — no active player")+"</span>"
     +"</div>"
+    /* TODO #1 P2 (D6/D7): manual spotlight pick — shown only while a companion PC holds the
+       display pointer, to hand the hero slot back. P3's turn loop drives the same pointer. */
+    +(activePlayer()!==c?"<div style='margin-top:6px;'><button id='cs-spot-btn' style='font-size:10px;font-family:var(--font);padding:3px 10px;border:1px solid var(--acc);border-radius:var(--r);background:none;color:var(--acc);cursor:pointer;'>&#9728; Take the spotlight</button></div>":"")
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+c.hp+"/"+c.maxHp+" HP</span>"
@@ -196,6 +199,14 @@ function showCharSheet(){
     var demote=function(){c.isPC=false;saveAll();showToast(c.name+" is GM-played — "+(playerCount()===0?"no active player (pure NPC turns)":playerCount()+" player"+(playerCount()===1?"":"s")+" remain"),5000);modal.remove();showCharSheet();};
     if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
   });
+  // ── Spotlight return (TODO #1 P2, D6/D7) ──────────────────────────────────
+  if(document.getElementById("cs-spot-btn")){
+    document.getElementById("cs-spot-btn").addEventListener("click",function(){
+      setActivePC(null);saveAll();if(typeof syncUI==="function")syncUI();
+      showToast("☀ "+c.name+" has the spotlight",3500);
+      modal.remove();showCharSheet();
+    });
+  }
 
   // ── portrait handlers ─────────────────────────────────────────────────────
   function refreshAvatar(){
@@ -295,6 +306,7 @@ function partWaysWithCompanion(name){
   var pwNpc=wsNpcByName(n);/* #7: shared lookup */
   if(!pwNpc||!pwNpc.partyMember)return;
   pwNpc.partyMember=false;
+  if(worldState.activePC===n)delete worldState.activePC;/* TODO #1 P2: a departed companion can't keep the display spotlight */
   if(memory.npcs[n])memory.npcs[n].partyMember=false;
   if(!worldState.recentlyLeft)worldState.recentlyLeft=[];
   worldState.recentlyLeft.push({name:n,turn:worldState.turn||0});
@@ -334,7 +346,10 @@ function showNpcSheet(name){
       +"<button id='npc-tog-pc' style='"+_pcTogBtnCss(_isPC)+"'>PC</button>"
       +"<button id='npc-tog-npc' style='"+_pcTogBtnCss(!_isPC)+"'>NPC</button>"
       +"<span style='font-size:10px;color:var(--t2);'>"+(_isPC?"player character (hot-seat)":"companion — the GM plays them")+"</span>"
-      +"</div>":"";
+      +"</div>"
+      /* TODO #1 P2 (D6/D7): manual spotlight pick — HUD/panels/Car Mode display this PC. Only a
+         living isPC party member qualifies (setActivePC validates); hidden when already spotlit. */
+      +(_isPC&&worldState&&worldState.activePC!==name?"<div style='margin-top:6px;'><button id='npc-spot-btn' style='font-size:10px;font-family:var(--font);padding:3px 10px;border:1px solid var(--acc);border-radius:var(--r);background:none;color:var(--acc);cursor:pointer;'>&#9728; Take the spotlight</button></div>":""):"";
     heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
       +"<div class='cs-hero-sub'>"+gLbl+" · "+escHtml(sheet.age||"?")+(sheet.deity?" · "+escHtml(sheet.deity):"")+"</div>"
@@ -416,9 +431,18 @@ function showNpcSheet(name){
     });
     document.getElementById("npc-tog-npc").addEventListener("click",function(){
       if(!wsNpc.isPC)return;
-      var demote=function(){wsNpc.isPC=false;saveAll();showToast(name+" is a companion again — the GM plays them",4000);modal.remove();showNpcSheet(name);};
+      var demote=function(){wsNpc.isPC=false;if(worldState.activePC===name)delete worldState.activePC;/* P2: a demoted PC can't keep the spotlight — deliberate clear (the accessor's loud heal is the backstop) */saveAll();if(typeof syncUI==="function")syncUI();/* P2: repaint — the HUD may have been showing this PC */showToast(name+" is a companion again — the GM plays them",4000);modal.remove();showNpcSheet(name);};
       // D2 guard here too: if the hero is demoted, this companion can be the LAST PC
       if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
+    });
+  }
+  // ── Spotlight pick (TODO #1 P2, D6/D7) ────────────────────────────────────
+  if(document.getElementById("npc-spot-btn")){
+    document.getElementById("npc-spot-btn").addEventListener("click",function(){
+      if(!setActivePC(name)){showToast("⚠ "+name+" can't take the spotlight (not a living PC party member)");return;}
+      saveAll();if(typeof syncUI==="function")syncUI();
+      showToast("☀ "+name+" has the spotlight — HUD and panels now show them",4000);
+      modal.remove();showNpcSheet(name);
     });
   }
 
@@ -505,6 +529,7 @@ function _switchPlayerCharacter(name){
   worldState.npcs.push(oldNpc);             // add old char as npc
   newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing (npcGetOff's E60 fallback, mirrored) — else a promotion silently resets it to center */
   worldState.character=newChar;
+  delete worldState.activePC;/* TODO #1 P2: the heavy anchor swap resets the light display pointer — the new hero IS the spotlight */
   // Mark the switch so buildSysPrompt re-injects a forceful POV-reassignment block for
   // the next couple of turns — the sessionLog is full of the OLD character as "you", and a
   // single handoff line can't overpower that momentum. Cleared in sendAction after ~2 turns.

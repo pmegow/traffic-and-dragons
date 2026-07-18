@@ -119,6 +119,39 @@ function playerCount(){
   if(worldState&&worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];if(p&&p.partyMember&&p.isPC&&!/\bdead\b/i.test(p.status||""))n++;}}
   return n;
 }
+// TODO #1 P2 (multiplayer, D6/D7): the LIGHT active-player pointer. worldState.activePC names the
+// party-member PC currently holding the display spotlight (HUD, panels, Car Mode); UNSET = the hero
+// — the single-player invariant (every existing save resolves to worldState.character, byte-identical
+// behavior). This is DISPLAY routing only: state writes (tag application, level-up, save/load) stay
+// on their true owner, and the pointer must never leak into buildSysPrompt before P4 (engine-tested).
+// A pointer that no longer names a living isPC party member with a sheet heals LOUDLY to the hero
+// (warn + cleared), so demote/death/part-ways can never strand the HUD on a stale character.
+function activePlayer(){
+  if(typeof worldState==="undefined"||!worldState)return null;
+  var nm=worldState.activePC,hero=worldState.character;
+  if(nm&&hero&&nm!==hero.name){
+    if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
+      if(p&&p.name===nm){
+        if(p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))return p.charSheet;
+        break;
+      }}}
+    console.warn("[multiplayer] activePC '"+nm+"' is not a living PC party member with a sheet — spotlight returns to "+(hero.name||"the hero"));
+    delete worldState.activePC;
+  }
+  return hero;
+}
+// Pointer setter — validates, mutates ONLY worldState.activePC, returns success. Callers own
+// saveAll()/syncUI(). null or the hero's name clears the pointer (undefined = hero, the ragMemory
+// convention — legacy saves stay byte-clean). Rejection is loud, never silent.
+function setActivePC(nm){
+  if(typeof worldState==="undefined"||!worldState||!worldState.character)return false;
+  if(nm==null||nm===worldState.character.name){delete worldState.activePC;return true;}
+  if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
+    if(p&&p.name===nm&&p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))
+      {worldState.activePC=nm;return true;}}}
+  console.warn("[multiplayer] setActivePC('"+nm+"') rejected — not a living PC party member with a sheet");
+  return false;
+}
 // Convert a suggested action from 2nd person ("Gather your belongings") to 1st person
 // ("Gather my belongings") when it transfers into the input / is sent. Possessives,
 // reflexives and contractions convert cleanly; bare "you" is best-effort: object "you"

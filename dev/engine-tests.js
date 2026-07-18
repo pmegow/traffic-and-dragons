@@ -881,6 +881,62 @@ function runEngineTests(R){
     if(playerCount()!==1)return "explicit true miscounted: "+playerCount();
     return true;
   });
+  t("MP-P2: activePlayer() — pointer unset / hero-named / null world all resolve to the hero (single-player invariant)",function(){
+    makeWorld();
+    if(activePlayer()!==worldState.character)return "unset pointer did not resolve to the hero";
+    worldState.activePC=worldState.character.name;
+    if(activePlayer()!==worldState.character)return "hero-named pointer did not resolve to the hero";
+    delete worldState.activePC;
+    return true;
+  });
+  t("MP-P2: activePlayer() resolves a living isPC party member's charSheet; setActivePC round-trips",function(){
+    makeWorld();
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,gold:12,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    if(!setActivePC("Morwen"))return "setActivePC rejected a valid PC";
+    if(activePlayer()!==cs)return "pointer did not resolve to the companion charSheet";
+    if(!setActivePC(null))return "setActivePC(null) failed";
+    if(worldState.activePC!==undefined)return "null did not clear the pointer";
+    if(activePlayer()!==worldState.character)return "cleared pointer did not return the hero";
+    return true;
+  });
+  t("MP-P2: setActivePC rejects non-PC / dead / sheet-less / unknown names — loud no-op, pointer untouched",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Bram",partyMember:true,status:"ally",charSheet:{name:"Bram",cls:"Warrior",level:2,hp:15,maxHp:15,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    worldState.npcs.push({name:"Ghost",partyMember:true,isPC:true,status:"dead",charSheet:{name:"Ghost",cls:"Rogue",level:2,hp:0,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    worldState.npcs.push({name:"Sheetless",partyMember:true,isPC:true,status:"ally"});
+    if(setActivePC("Bram"))return "non-PC accepted";
+    if(setActivePC("Ghost"))return "dead PC accepted";
+    if(setActivePC("Sheetless"))return "sheet-less PC accepted";
+    if(setActivePC("Nobody"))return "unknown name accepted";
+    if(worldState.activePC!==undefined)return "a rejection mutated the pointer: "+worldState.activePC;
+    return true;
+  });
+  t("MP-P2: a stale pointer (PC demoted/died after the pick) HEALS to the hero and clears itself",function(){
+    makeWorld();
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    setActivePC("Morwen");
+    worldState.npcs[worldState.npcs.length-1].isPC=false;/* demoted out from under the pointer */
+    if(activePlayer()!==worldState.character)return "stale pointer did not heal to the hero";
+    if(worldState.activePC!==undefined)return "heal did not clear the pointer";
+    setActivePC("Morwen");/* re-promote, re-point, then kill */
+    worldState.npcs[worldState.npcs.length-1].isPC=true;
+    setActivePC("Morwen");
+    worldState.npcs[worldState.npcs.length-1].status="dead";
+    if(activePlayer()!==worldState.character)return "dead PC pointer did not heal to the hero";
+    return true;
+  });
+  t("MP-P2: the display pointer NEVER leaks into buildSysPrompt — both halves byte-identical with a companion PC spotlit (P4 owns prompt changes)",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    var p0=buildSysPrompt();
+    if(!setActivePC("Morwen"))return "setup: setActivePC failed";
+    var p1=buildSysPrompt();
+    if(p1.stable!==p0.stable)return "spotlight perturbed the STABLE half — cache kill";
+    if(p1.volatile!==p0.volatile)return "spotlight leaked into the VOLATILE half before P4";
+    return true;
+  });
   t("TODO#22: blueprint rules inject as WRAPPED data, not raw prompt text (+ re-apply dedupes)",function(){
     makeWorld();
     customRules=[];
