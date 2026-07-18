@@ -25,7 +25,7 @@
 // ER_SESSION_CAP (10) hard-stops a boot-loop from mailing forever; the cap trip is console.warned
 // once. ES5 throughout (var, no arrows) per project convention.
 
-var ERROR_WEBHOOK_URL = ""; // ← paste the GAS /exec URL here (empty = reporting disabled)
+var ERROR_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzivwUvDUoEX6tFDnFy16DAj9gwehAkIaLv1XDSYcL-JChkeBEdt84eCvJJeuZv2lNvjQ/exec"; // GAS web app (deployed 2026-07-18) → emails pmegow@gmail.com; empty = reporting disabled
 
 var ER_DEBOUNCE_MS  = 30000;
 var ER_SESSION_CAP  = 10;
