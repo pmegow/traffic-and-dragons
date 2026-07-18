@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Error Reporting (#16) — Traffic and Dragons</title>
+<style>
+  :root{
+    --bg:#101010; --panel:#181818; --panel2:#1f1c16;
+    --acc:#b8935a; --txt:#d8d2c8; --dim:#8a8478;
+    --good:#7aa86a; --bad:#c06a5a; --warn:#c9a24b;
+    --border:#2c2c2c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:Georgia,'Times New Roman',serif;
+    line-height:1.65; padding:32px 16px 80px;
+  }
+  .wrap{max-width:860px; margin:0 auto;}
+  header{border-bottom:1px solid var(--acc); padding-bottom:18px; margin-bottom:28px;}
+  h1{font-size:1.9em; color:var(--acc); font-weight:normal; letter-spacing:.5px;}
+  .subtitle{color:var(--dim); font-style:italic; margin-top:6px; font-size:.95em;}
+  .meta{color:var(--dim); font-size:.8em; margin-top:10px; font-family:Consolas,monospace;}
+  h2{
+    color:var(--acc); font-size:1.35em; font-weight:normal;
+    margin:36px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  h3{color:var(--txt); font-size:1.05em; margin:22px 0 8px;}
+  p{margin:0 0 12px;}
+  strong{color:#efe8da;}
+  em{color:var(--dim);}
+  code{
+    font-family:Consolas,monospace; font-size:.88em; color:#cbb891;
+    background:#1d1a14; padding:1px 5px; border-radius:4px;
+  }
+  pre{
+    background:#14120e; border:1px solid var(--border); border-radius:8px;
+    padding:14px 16px; margin:12px 0; overflow-x:auto;
+    font-family:Consolas,monospace; font-size:.82em; line-height:1.5; color:#cbb891;
+  }
+  pre code{background:none; padding:0;}
+  .verdict{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:16px 20px; margin:14px 0 22px;
+  }
+  .verdict .vlabel{
+    font-family:Consolas,monospace; font-size:.72em; letter-spacing:2px;
+    text-transform:uppercase; color:var(--acc); display:block; margin-bottom:6px;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 22px; margin:14px 0;
+  }
+  ul{margin:0 0 12px 20px;}
+  li{margin-bottom:7px;}
+  ol{margin:0 0 12px 22px;}
+  ol li{margin-bottom:9px;}
+  .lean{
+    font-family:Consolas,monospace; font-size:.78em; letter-spacing:1px;
+    padding:2px 10px; border-radius:12px; border:1px solid;
+    font-weight:bold; color:rgba(255,255,255,.4); text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .lean.ok{background:#182215; border-color:var(--good);}
+  .lean.pend{background:#28200f; border-color:var(--warn);}
+  .lean.off{background:#261512; border-color:var(--bad);}
+  .lean-row{display:flex; align-items:center; gap:12px; margin:4px 0 14px; flex-wrap:wrap;}
+  .lean-row .dim{color:var(--dim); font-size:.85em;}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92em;}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{
+    color:var(--acc); font-family:Consolas,monospace; font-size:.78em;
+    letter-spacing:1.5px; text-transform:uppercase; font-weight:normal;
+  }
+  td:first-child{color:#efe8da; white-space:nowrap;}
+  .num{font-family:Consolas,monospace; color:var(--warn); white-space:nowrap;}
+  .path{border-left:3px solid var(--acc); padding:4px 0 4px 18px; margin:18px 0;}
+  .path h3{margin-top:0;}
+  .bottom{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:20px 24px; margin-top:34px;
+  }
+  .bottom h2{margin-top:0; border-bottom:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Mobile Error Reporting</h1>
+  <div class="subtitle">TODO #16 — how a runtime error on your phone becomes an email in your inbox</div>
+  <div class="meta">crash channel v1.352 (commit 2bffbf2) · user reports v1.353 · error-report.js + ui-modals.js</div>
+  <div class="lean-row" style="margin-top:12px;">
+    <span class="lean ok">client shipped</span>
+    <span class="lean pend">webhook not deployed</span>
+    <span class="lean off">reporting currently off</span>
+    <span class="dim">— ships inert until the webhook URL is pasted in</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <span class="vlabel">TLDR</span>
+  <p><strong>When the game hits a runtime error on a device where you can't see the console — your phone, the car —
+  it now emails you the details instead of dying silently.</strong> A new file, <code>error-report.js</code>, catches
+  errors from eight places in the app (including the Piper narration-death forensics), packages them with the app
+  version, campaign, turn, and device info, and POSTs them to a tiny Google Apps Script webhook that forwards the
+  report to pmegow@gmail.com. Flood control means a cascading failure sends <em>one</em> email per 30 seconds, not
+  fifty.</p>
+  <p style="margin-bottom:0;"><strong>Current state:</strong> the game side is fully built, tested, and pushed — but
+  <em>switched off</em>, because the webhook half is a ~10-minute Google-account step only you can do. Until that URL
+  is pasted into <code>ERROR_WEBHOOK_URL</code>, nothing about the game's behavior changes. And per last night's
+  conversation: the whole thing sits in one clean-revert commit, so "keep, adjust, or discard" is still an open
+  question — the open decision points are at the bottom.</p>
+</div>
+
+<h2>Why this exists</h2>
+<p>Two incidents in one evening made the case. The Piper narration deaths surface as a toast on the phone —
+8 seconds in a moving car, then the forensics are gone. And the desktop "input cut off" report couldn't be
+diagnosed because the evidence lived in a console nobody was looking at. The pattern: <strong>the app already
+detects its failures loudly (the no-silent-failures rule), but on mobile the loudness goes nowhere.</strong>
+This feature gives every existing loud-failure path a destination that survives the moment.</p>
+
+<h2>How a report travels</h2>
+<div class="path">
+  <h3>Error → inbox, step by step</h3>
+  <ol>
+    <li><strong>Something breaks.</strong> An uncaught exception, a failed GM turn, a summarize failure, a
+    narration death detected at boot — any of the wired sites below.</li>
+    <li><strong>The catch site calls <code>reportError(context, message, detail)</code></strong> — every call is
+    <code>typeof</code>-guarded, so even a missing/stale <code>error-report.js</code> can never itself throw.</li>
+    <li><strong>The flood gate decides.</strong> No webhook URL → do nothing (one console note). Already sent 10
+    this session → stop (boot-loop guard). Sent something in the last 30s → count it and wait — the count rides
+    the <em>next</em> email as "N earlier errors suppressed."</li>
+    <li><strong>The payload is built:</strong> context, message, detail (stack trace, capped 4KB), app version,
+    campaign + turn, page URL, device user-agent, online/offline flag, timestamp.</li>
+    <li><strong>One <code>fetch</code> POST to the webhook.</strong> Deliberately a "simple request" — plain body,
+    no custom headers — because Google Apps Script can't answer CORS preflight. A simple request skips preflight
+    entirely, and delivery success/failure is still readable and console-logged.</li>
+    <li><strong>The Apps Script receives the JSON and calls <code>MailApp.sendEmail()</code></strong> — subject line
+    like <code>[T&amp;D v1.352] narration-death: ⚠ Last narration died at sentence 1/35…</code>, body with every
+    field labeled.</li>
+  </ol>
+</div>
+
+<h2>What gets caught</h2>
+<table>
+  <tr><th>Source</th><th>File</th><th>What it means</th></tr>
+  <tr><td><code>window.onerror</code></td><td>error-report.js</td><td>Any uncaught exception anywhere in the app — the catch-all. Wired at load, browser only; never swallows the error (the console still sees it).</td></tr>
+  <tr><td><code>onunhandledrejection</code></td><td>error-report.js</td><td>Async failures nobody awaited — the promise-shaped twin of the above.</td></tr>
+  <tr><td>Turn catch</td><td>game.js</td><td>A GM turn failed — including the nastier half-failed case where state committed but a display step threw (the payload says which).</td></tr>
+  <tr><td>Re-roll catch</td><td>game.js</td><td>The Re-roll path failed after restoring the original exchange.</td></tr>
+  <tr><td>Skeleton catch</td><td>game.js</td><td>Campaign-skeleton generation failed at game start (the game already continues freeform; now you also hear about it).</td></tr>
+  <tr><td>Actions catch</td><td>game.js</td><td>The suggestion-buttons call failed — deliberately quiet in the UI, so previously it was <em>only</em> a console line.</td></tr>
+  <tr><td>Summarize catch</td><td>memory.js</td><td>Memory extraction failed; the report includes the consecutive-failure count (3 triggers the degraded-chapter fallback).</td></tr>
+  <tr><td>Narration-death crumb</td><td>tts.js</td><td><strong>The one that motivated all this.</strong> The Piper crash forensics (sentence position, cumulative synths, session age, runtime rev) that currently flash as an 8-second toast now also email themselves at next boot.</td></tr>
+</table>
+
+<h2>Flood control — why a cascade can't melt the inbox</h2>
+<div class="card">
+  <ul style="margin-bottom:0;">
+    <li><strong>30-second debounce.</strong> First error sends; everything inside the next 30s is counted, not sent.
+    The next accepted email carries <code>suppressed: N</code> — so a cascade reads as one email saying "and N more
+    followed," which is usually the more useful signal anyway.</li>
+    <li><strong>10 emails per page load, hard stop.</strong> A boot-loop that errors on every reload gets 10 chances
+    per session, then silence (with a console warning). Google's MailApp quota (~100/day) is the outer wall.</li>
+    <li><strong>Reentrancy latch.</strong> If the reporter itself throws, it cannot recurse through
+    <code>window.onerror</code> back into itself — verified by a test that makes the transport explode.</li>
+    <li><strong>4KB detail cap</strong> keeps a pathological stack trace from becoming a megabyte email.</li>
+  </ul>
+</div>
+
+<h2>What it deliberately does NOT do</h2>
+<ul>
+  <li><strong>No behavior change when unconfigured.</strong> Empty <code>ERROR_WEBHOOK_URL</code> = every call is a
+  cheap no-op (one console note the first time). That's how it shipped.</li>
+  <li><strong>No UI.</strong> No toasts about reports, no settings modal. The existing error surfaces (toasts,
+  system messages) are untouched; this only adds a destination.</li>
+  <li><strong>No new dependencies.</strong> ES5, no libraries, one file loaded second (right after globals.js) so
+  the catch-all hooks exist before any other file can fail. Added to the SW app shell and the engine-test loader;
+  5 new suite tests (619 green) pin the debounce, cap, payload shape, truncation, and the can't-recurse guarantee.</li>
+</ul>
+
+<h2>User-initiated reports (#16b) — "not all bugs are crashes"</h2>
+<p>The second species: nonsense action suggestions, hallucinations, drift, broken screens — things only a
+human notices. <strong>File ▸ ⚠ Report bug</strong> (game screen): the menu closes, the game screen is
+screenshotted, and a modal opens with the thumbnail, an editable text box, and a Send button.</p>
+<div class="card">
+  <ul style="margin-bottom:0;">
+    <li><strong>The screenshot is a DOM re-render, not a real screen grab</strong> — browsers don't let a page
+    screenshot itself without a permission picker (which doesn't exist on iOS at all). The vendored
+    <code>html-to-image</code> library inlines the page into an SVG; we rasterize it to JPEG ourselves, because
+    the library's own rasterizer awaits <code>img.decode()</code> + <code>requestAnimationFrame</code> and hangs
+    in embedded Chromium (found live during the build). 8-second timeout; any capture failure degrades to a
+    <em>text-only</em> report with a console note — never a blocked report. Known limit: iOS WebKit taints the
+    canvas for this SVG type, so iPhone reports are text-only by design.</li>
+    <li><strong>Auto-attached context:</strong> a state digest (name/class/HP/gold/location/turn), the last 5
+    exchanges, the newest GM response with its state tags <em>intact</em> (was the tag missing, or the prose
+    wrong? — half of every drift diagnosis), and the suggestion buttons on screen.</li>
+    <li><strong>The hint table:</strong> the report text is scanned for topic keywords — mentioning quests,
+    rendering, the model, voice, combat, memory, or sync attaches that subsystem's settings (one table,
+    <code>ER_REPORT_HINTS</code>, one entry per topic). API keys and tokens are never gathered; the sync hint
+    sends a connected <em>boolean</em>, never the token.</li>
+    <li><strong>No crash debounce</strong> — the player pressed the button, they meant it. Just an in-flight
+    latch, and send failures show inline in the modal with the typed text preserved.</li>
+  </ul>
+</div>
+
+<h2>The missing half — the webhook (your ~10 minutes)</h2>
+<p>A Google Apps Script web app: ~15 lines, <code>doPost</code> parses the JSON and calls
+<code>MailApp.sendEmail()</code>. Deploy as <em>Web app · execute as Me · anyone has access</em>, copy the
+<code>/exec</code> URL, and I wire it in (one-line change + version bump + a live end-to-end test error to confirm
+the email lands). The exact script and click-path are in last night's chat.</p>
+
+<h2>Decision record — resolved 2026-07-18 ("we'll keep that")</h2>
+<p><em>The calls made during the build, kept on review. Retained here as the record of the alternatives
+considered.</em></p>
+<table>
+  <tr><th>Decision</th><th>What I did</th><th>The alternative(s)</th></tr>
+  <tr><td>Transport</td><td>Option A — Google Apps Script (the TODO row's recommendation)</td><td>B: EmailJS (no Google, 200/mo free). C: Fly server <code>/api/error</code> + Resend — your own infra, could feed a dashboard later instead of email.</td></tr>
+  <tr><td>URL placement</td><td>Hardcoded in the public repo — spammable in principle, bounded by the mail quota, redeployable in two clicks</td><td>localStorage settings field: private, but per-device setup and a fresh device reports nothing — arguably wrong for a crash reporter.</td></tr>
+  <tr><td>Wiring scope</td><td>The row's list <em>plus</em> summarize + the narration-death crumb</td><td>Trim back to the row's exact list, or extend further (e.g. companion-sheet failures).</td></tr>
+  <tr><td>Tuning</td><td>30s debounce · 10/session · 4KB detail</td><td>All plain constants at the top of the file.</td></tr>
+  <tr><td>Placement</td><td>New single-purpose file, loaded 2nd</td><td>Fold into helpers.js (fewer files, but violates the one-job-per-file convention and loads too late for early boot errors).</td></tr>
+</table>
+
+<div class="bottom">
+  <h2>Where things stand</h2>
+  <p style="margin-bottom:0;">Crash channel shipped inert in <code>v1.352</code>; user-initiated reports
+  (screenshot + text + hint-matched context) in <code>v1.353</code>. Suite 625 green; both live-verified in
+  preview — crash path: three uncaught errors → exactly one POST with correct suppressed-count; report path:
+  full flow including the 500-failure branch (inline error, text preserved) and a 105KB JPEG payload. Nothing
+  reaches your inbox until the Apps Script webhook exists and its /exec URL is pasted into
+  <code>ERROR_WEBHOOK_URL</code>.</p>
+</div>
+
+</div>
+</body>
+</html>

@@ -4921,6 +4921,90 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(_erInReporter!==false)return "reentrancy latch stuck";
     return true;
   });
-  __erReset("");_erSend=__erOrigSend; // later sections: reporting inert, real transport restored
+  // ── user bug reports (#16b) — context builder, hint table, transport ─────────
+  section("user bug reports (#16b)");
+  var __erOrigPost=_erPost,__erPosts=[];
+  function __erReportWorld(){
+    makeWorld();
+    worldState.transcript=[];
+    var k;for(k=1;k<=8;k++){
+      worldState.transcript.push({t:k,r:"player",x:"player line "+k});
+      worldState.transcript.push({t:k,r:"gm",x:"gm line "+k,m:"test-model"});
+    }
+    worldState.lastActions=["Press him for the name","Block the escape route","Try Half-Fey Charm"];
+    worldState.questLog=[{title:"The Skinsaw Murders",status:"active",desc:"",objectives:[{text:"Find the lighthouse",done:true},{text:"Name the killer",done:false}]}];
+    sessionLog.push({role:"user",content:"raw player"},{role:"assistant",content:"raw gm response [GOLD:-5] with tags"});
+  }
+  t("context: digest + last 5 exchanges only + raw response + actions",function(){
+    __erReportWorld();
+    var c=erReportContext("something odd happened");
+    if(c.indexOf("Tess (Warrior Lv1)")<0)return "digest missing";
+    if(c.indexOf("gm line 8")<0||c.indexOf("player line 4")<0)return "recent exchanges missing";
+    if(c.indexOf("player line 3")>=0)return "older exchange leaked past the 10-entry window";
+    if(c.indexOf("[GOLD:-5]")<0)return "raw tagged response missing";
+    if(c.indexOf("Press him for the name")<0)return "suggested actions missing";
+    if(c.indexOf("[QUESTS]")>=0)return "quest hint fired without a quest mention";
+    return true;
+  });
+  t("hint table: quest mention attaches the quest log with objectives",function(){
+    __erReportWorld();
+    var c=erReportContext("the quest journal shows the wrong objective");
+    if(c.indexOf("[QUESTS]")<0)return "quest hint didn't fire";
+    if(c.indexOf("The Skinsaw Murders (active)")<0)return "quest title missing";
+    return eq(c.indexOf("[x] Find the lighthouse")>=0,true,"objective state");
+  });
+  t("hint table: provider mention attaches provider, never keys",function(){
+    __erReportWorld();
+    apiKey="sk-ant-SECRET-XYZZY";
+    providerKeys={anthropic:"sk-ant-SECRET-XYZZY",openai:"sk-SECRET-2"};
+    var c=erReportContext("the model keeps writing nonsense")+erReportContext("sync to server broke")+erReportContext("quest render voice combat memory model");
+    apiKey="";providerKeys={};
+    if(c.indexOf("LLM provider:")<0)return "provider hint didn't fire";
+    return eq(c.indexOf("SECRET")<0&&c.indexOf("XYZZY")<0,true,"key leaked into report context");
+  });
+  t("sendUserReport: payload shape; no crash debounce; in-flight latch",function(){
+    __erReportWorld();
+    ERROR_WEBHOOK_URL="https://example.test/hook";
+    _erLastSentAt=Date.now(); // crash debounce window OPEN — user reports must ignore it
+    __erPosts.length=0;
+    var held=null;
+    _erPost=function(p,cb){__erPosts.push(p);held=cb;};
+    var latch=null;
+    sendUserReport("a bug!","data:image/jpeg;base64,AAAA",function(){});
+    sendUserReport("second while first in flight",null,function(ok,err){latch=[ok,err];});
+    held(true,null); // release the first
+    _erPost=function(p,cb){__erPosts.push(p);cb(true,null);};
+    var after=null;
+    sendUserReport("third after release",null,function(ok){after=ok;});
+    ERROR_WEBHOOK_URL="";
+    if(__erPosts.length!==2)return "posts "+__erPosts.length;
+    var p=__erPosts[0];
+    if(p.kind!=="user-report"||p.report!=="a bug!")return "payload wrong: "+p.kind+"/"+p.report;
+    if(p.screenshot!=="data:image/jpeg;base64,AAAA")return "screenshot missing";
+    if(p.context.indexOf("Tess")<0)return "context missing";
+    if(latch===null||latch[0]!==false)return "in-flight latch didn't refuse";
+    return eq(after,true,"post-release send");
+  });
+  t("sendUserReport: oversized screenshot dropped with a note, report still goes",function(){
+    __erReportWorld();
+    ERROR_WEBHOOK_URL="https://example.test/hook";
+    __erPosts.length=0;
+    _erPost=function(p,cb){__erPosts.push(p);cb(true,null);};
+    var big="data:image/jpeg;base64,"+new Array(ER_SHOT_MAX+10).join("A");
+    sendUserReport("big shot",big,function(){});
+    ERROR_WEBHOOK_URL="";
+    var p=__erPosts[0];
+    if(p.screenshot!==null)return "oversized screenshot not dropped";
+    return eq(p.context.indexOf("screenshot dropped")>=0,true,"drop note");
+  });
+  t("sendUserReport: unconfigured refuses loudly via callback",function(){
+    ERROR_WEBHOOK_URL="";
+    var got=null;
+    sendUserReport("x",null,function(ok,err){got=[ok,String(err)];});
+    if(got===null)return "callback never fired";
+    if(got[0]!==false)return "ok should be false";
+    return eq(got[1].indexOf("ERROR_WEBHOOK_URL")>=0,true,"reason names the missing config");
+  });
+  _erPost=__erOrigPost;__erReset("");_erSend=__erOrigSend; // later sections: reporting inert, real transports restored
 
 }

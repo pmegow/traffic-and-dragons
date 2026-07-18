@@ -38,18 +38,24 @@ var _erDisabledNote = false; // "reporting not configured" logged once
 var _erCapNote      = false; // "session cap hit" logged once
 var _erInReporter   = false; // reentrancy latch — a bug in HERE must not recurse via window.onerror
 
-// Transport seam — engine tests stub this; the browser build fetches. Returns nothing; delivery
-// success/failure is console-logged (the ONLY place that can see it — this IS the error channel,
-// so it gets console + nothing else: no toasts, no recursion into reportError).
-function _erSend(payload){
+// Shared POST core — both report species (crash + user report) go through here. cb(ok, errMsg)
+// always fires exactly once; never throws.
+function _erPost(payload,cb){
   try{
     fetch(ERROR_WEBHOOK_URL,{method:"POST",body:JSON.stringify(payload)})
-      .then(function(r){
-        if(r.ok)console.info("[error-report] sent ("+payload.ctx+")");
-        else console.warn("[error-report] webhook answered "+r.status+" — report may not have been delivered");
-      })
-      .catch(function(e){console.warn("[error-report] send failed:",e&&e.message);});
-  }catch(e){console.warn("[error-report] send failed:",e&&e.message);}
+      .then(function(r){cb(!!r.ok,r.ok?null:("webhook answered "+r.status));})
+      .catch(function(e){cb(false,(e&&e.message)||"send failed");});
+  }catch(e){cb(false,(e&&e.message)||"send failed");}
+}
+
+// Crash-path transport seam — engine tests stub this. Delivery success/failure is console-logged
+// (the ONLY place that can see it — this IS the error channel, so it gets console + nothing else:
+// no toasts, no recursion into reportError).
+function _erSend(payload){
+  _erPost(payload,function(ok,err){
+    if(ok)console.info("[error-report] sent ("+payload.ctx+")");
+    else console.warn("[error-report] "+(err||"send failed")+" — report may not have been delivered");
+  });
 }
 
 // reportError(context, message, detail) — the single public entry point. Returns a string naming
@@ -70,6 +76,7 @@ function reportError(ctx,msg,detail){
       out="debounced";
     }else{
       var payload={
+        kind:"crash",
         ctx:String(ctx||"unknown"),
         msg:String(msg||"(no message)").slice(0,500),
         detail:String(detail||"").slice(0,ER_DETAIL_MAX),
@@ -93,6 +100,139 @@ function reportError(ctx,msg,detail){
   }
   _erInReporter=false;
   return out;
+}
+
+// ── User bug reports (#16b) — "not all bugs are crashes" ──────────────────────────────────────
+// The player-initiated species: nonsense action suggestions, hallucinations, drift, broken
+// screens. Same webhook, kind:"user-report", NO crash debounce (the user pressed the button; they
+// meant it) — just an in-flight latch. The UI half (screenshot capture + modal) lives in
+// ui-modals.js showBugReportModal(); this half is the DOM-free payload assembly + transport.
+
+// Hint table — ONE place mapping "what the user's message sounds like" → "which extra state to
+// attach" (abstraction over scattered conditionals). Each gather() is individually try/caught: a
+// failed gather reports its own failure INSIDE the report instead of killing it. Rules:
+// NOTHING sensitive — no API keys, no tokens, no portrait image data. The sync hint sends a
+// connected BOOLEAN, never the token.
+var ER_REPORT_HINTS=[
+  {id:"quests",re:/quest|objective|journal|task/i,gather:function(w){
+    if(!w||!w.questLog||!w.questLog.length)return "quest log: empty";
+    var ls=[],i,j;for(i=0;i<w.questLog.length;i++){var q=w.questLog[i];var os="";
+      if(q.objectives&&q.objectives.length){var ob=[];for(j=0;j<q.objectives.length;j++)ob.push((q.objectives[j].done?"[x] ":"[ ] ")+q.objectives[j].text);os=" — "+ob.join("; ");}
+      ls.push(q.title+" ("+q.status+")"+os);}
+    return "quest log:\n"+ls.join("\n");}},
+  {id:"render",re:/render|scene|image|picture|portrait|illustrat/i,gather:function(w){
+    var m=(typeof renderModel!=="undefined")?renderModel:"?";
+    var hasP=!!(w&&w.character&&w.character.portrait);
+    var s="render model: "+m+"; portrait on file: "+hasP;
+    try{if(typeof img2imgStrength==="function"&&typeof RENDER_MODELS!=="undefined"){var i;for(i=0;i<RENDER_MODELS.length;i++){if(RENDER_MODELS[i].id===m&&RENDER_MODELS[i].img2img){s+="; img2img strength: "+img2imgStrength(RENDER_MODELS[i].img2img);break;}}}}catch(e){}
+    return s;}},
+  {id:"provider",re:/model|llm|provider|claude|sonnet|opus|haiku|gpt|gemini|grok|ollama/i,gather:function(){
+    var p=(typeof activeProvider!=="undefined")?activeProvider:"?";
+    var m="default";
+    try{if(typeof providerModels!=="undefined"&&providerModels[p])m=providerModels[p];}catch(e){}
+    return "LLM provider: "+p+"; model override: "+m;}},
+  {id:"tts",re:/voice|speech|speak|narrat|tts|piper|audio|sound|mute|silen/i,gather:function(){
+    var s="tts: ?";
+    try{if(typeof store!=="undefined")s="tts engine: "+(store.get("tnd_tts_engine_v1")||"(legacy-inferred)")+"; on: "+(store.get("tnd_tts_on_v1")==="1")+"; piper voice: "+(store.get("tnd_piper_voice_v1")||"(default)")+"; rate: "+(store.get("tnd_tts_rate_v1")||"1.0");}catch(e){}
+    return s;}},
+  {id:"combat",re:/combat|fight|battle|enemy|foe|attack|initiative|round/i,gather:function(w){
+    return "combat state: "+((w&&w.combat)?JSON.stringify(w.combat):"none");}},
+  {id:"memory",re:/memor|remember|forgot|forget|drift|hallucinat|contradict|canon|recall/i,gather:function(w){
+    var s="memory stats: ";
+    try{
+      var mm=(typeof memory!=="undefined")?memory:null;
+      s+="NPCs "+(mm&&mm.npcs?Object.keys(mm.npcs).length:0)+", chapters "+(mm&&mm.chapters?mm.chapters.length:0)+", lore "+(mm&&mm.lore?mm.lore.length:0)+", pending events "+(mm&&mm.futureEvents?mm.futureEvents.length:0);
+      if(typeof sessionTokens==="function")s+=", session ~"+sessionTokens()+"tk of "+(typeof SUMMARIZE_AT!=="undefined"?SUMMARIZE_AT:"?");
+      if(w)s+=", RAG "+(w.ragMemory!==false?"on":"OFF");
+    }catch(e){s+="(partial: "+e.message+")";}
+    return s;}},
+  {id:"sync",re:/sync|server|cloud|device|login/i,gather:function(w){
+    var conn=false;try{if(typeof store!=="undefined")conn=!!store.get("tnd_server_tok_v1");}catch(e){}
+    return "server connected: "+conn+"; campId: "+((w&&w.campId)||"none");}}
+];
+
+var ER_ENTRY_MAX=1200;   // per transcript entry in the context block
+var ER_RAW_MAX=2500;     // the newest raw (tags-unstripped) GM response
+var ER_CONTEXT_MAX=20000;// whole context block
+
+// Build the auto-attached context for a user report. DOM-free and defensive throughout — every
+// section guards its own globals so this works pre-game, mid-wizard, or in the node test runner.
+function erReportContext(userText){
+  var out=[],i;
+  var w=(typeof worldState!=="undefined")?worldState:null;
+  // ① digest
+  try{
+    if(w&&w.character){
+      var c=w.character;
+      out.push("STATE: "+c.name+" ("+c.cls+" Lv"+c.level+") HP "+c.hp+"/"+c.maxHp+", "+c.gold+" gp — "
+        +((w.world&&w.world.location)||"?")+(w.world&&w.world.sublocation?" / "+w.world.sublocation:"")
+        +", "+((w.world&&w.world.time)||"?")+" — turn "+w.turn);
+    }else out.push("STATE: no active campaign");
+  }catch(e){out.push("STATE: (gather failed: "+e.message+")");}
+  // ② last 5 exchanges (≈10 transcript entries), oldest first, each capped
+  try{
+    var tr=(w&&w.transcript)||[];
+    var start=Math.max(0,tr.length-10);
+    if(tr.length>start){
+      out.push("LAST EXCHANGES (clean text):");
+      for(i=start;i<tr.length;i++){var en=tr[i];
+        out.push("[t"+en.t+" "+(en.r==="gm"?"GM":"player")+(en.m?" · "+en.m:"")+"] "+String(en.x||"").slice(0,ER_ENTRY_MAX));}
+    }else out.push("LAST EXCHANGES: (no transcript)");
+  }catch(e){out.push("LAST EXCHANGES: (gather failed: "+e.message+")");}
+  // ③ newest RAW GM response — tags un-stripped, because "prose said it, tag missing" is half of
+  // every drift diagnosis
+  try{
+    if(typeof sessionLog!=="undefined"&&sessionLog&&sessionLog.length){
+      for(i=sessionLog.length-1;i>=0;i--){
+        if(sessionLog[i].role==="assistant"){out.push("NEWEST RAW GM RESPONSE (tags intact):\n"+String(sessionLog[i].content||"").slice(0,ER_RAW_MAX));break;}
+      }
+    }
+  }catch(e){out.push("RAW RESPONSE: (gather failed: "+e.message+")");}
+  // ④ the suggestion buttons on screen — the "this suggestion makes no sense" species
+  try{
+    if(w&&w.lastActions&&w.lastActions.length)out.push("SUGGESTED ACTIONS SHOWN: "+w.lastActions.join(" | "));
+  }catch(e){}
+  // ⑤ hint-matched extras
+  var msg=String(userText||"");
+  for(i=0;i<ER_REPORT_HINTS.length;i++){
+    var h=ER_REPORT_HINTS[i];
+    if(!h.re.test(msg))continue;
+    try{out.push("["+h.id.toUpperCase()+"] "+h.gather(w));}
+    catch(e){out.push("["+h.id.toUpperCase()+"] (gather failed: "+e.message+")");}
+  }
+  return out.join("\n").slice(0,ER_CONTEXT_MAX);
+}
+
+var ER_SHOT_MAX=1500000; // ~1.5MB of base64 — beyond this the image is dropped, noted in the report
+var _erReportInFlight=false;
+
+// sendUserReport(text, screenshotDataUrl|null, cb(ok, errMsg)) — the modal's Send handler.
+// Failure is the CALLER's to surface (inline in the modal); this never toasts.
+function sendUserReport(text,screenshot,cb){
+  cb=cb||function(){};
+  if(!ERROR_WEBHOOK_URL){cb(false,"bug reporting isn't configured — ERROR_WEBHOOK_URL is empty (error-report.js)");return;}
+  if(_erReportInFlight){cb(false,"a report is already sending");return;}
+  _erReportInFlight=true;
+  var payload={
+    kind:"user-report",
+    report:String(text||"").slice(0,4000),
+    context:erReportContext(text),
+    screenshot:(screenshot&&screenshot.length<=ER_SHOT_MAX)?screenshot:null,
+    app:(typeof APP_VERSION!=="undefined"?APP_VERSION:"?"),
+    url:(typeof location!=="undefined"?location.href:"(node)"),
+    ua:(typeof navigator!=="undefined"?navigator.userAgent:"(node)"),
+    online:(typeof navigator!=="undefined"&&"onLine" in navigator?navigator.onLine:null),
+    camp:(typeof worldState!=="undefined"&&worldState&&worldState.campName)||null,
+    turn:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||null,
+    ts:new Date().toISOString()
+  };
+  if(screenshot&&!payload.screenshot)payload.context+="\n(screenshot dropped: "+screenshot.length+" chars exceeds "+ER_SHOT_MAX+")";
+  _erPost(payload,function(ok,err){
+    _erReportInFlight=false;
+    if(ok)console.info("[error-report] user report sent");
+    else console.warn("[error-report] user report failed:",err);
+    cb(ok,err);
+  });
 }
 
 // ── Global hooks (browser only — the node test runner loads this file with no window) ─────────

@@ -55,6 +55,7 @@ function buildFileMenus(){
       +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}));
     h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
     h+=btn(p+"blueprints","&#9729; Blueprint Library&hellip;",0);
+    h+=g?btn(p+"bugreport","⚠ Report bug&hellip;",0):btn(null,"⚠ Report bug&hellip;",0,{dim:true});/* #16b: game screen only — it reports on live play */
     h+=sep();
     var narr=btn(p+"rules","Narrative rules",0)
       +btn(p+"prose","✍ Prose inspiration&hellip;",0)
@@ -143,7 +144,7 @@ function wireButtons(){
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["blueprints",showBlueprintBrowser],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)

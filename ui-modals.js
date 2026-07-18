@@ -345,3 +345,97 @@ function declineQuest(title){
   var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];if(q.title===title&&q.status==="offered"){if(!memory.quests)memory.quests={};memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:"declined",turn:worldState.turn||0};worldState.questLog.splice(i,1);saveAll();syncUI();if(typeof showToast==="function")showToast("Quest declined: "+title);break;}}
   showQuestModal();
 }
+// ── Bug report modal (#16b) — File ▸ ⚠ Report bug ────────────────────────────────────────────
+// Flow: menu already closed by the caller → screenshot FIRST (so the report shows the game, not
+// this modal) → modal with thumbnail + textarea + Send. Screenshot is a DOM re-render via the
+// vendored html-to-image (loaded lazily below — 20KB, only fetched on first report; the real
+// screen-capture API needs a permission picker and doesn't exist on iOS). Capture failure is
+// non-fatal and VISIBLE: the modal says the report will go text-only.
+var _h2iLoading=false;
+function _loadHtml2Image(cb){
+  if(typeof htmlToImage!=="undefined"){cb(htmlToImage);return;}
+  if(_h2iLoading){cb(null);return;}
+  _h2iLoading=true;
+  var s=document.createElement("script");
+  s.src="vendor/html-to-image/html-to-image.js";
+  s.onload=function(){_h2iLoading=false;cb(typeof htmlToImage!=="undefined"?htmlToImage:null);};
+  s.onerror=function(){_h2iLoading=false;console.warn("[bug-report] html-to-image failed to load — report will go without a screenshot");cb(null);};
+  document.head.appendChild(s);
+}
+// Capture = html-to-image's toSvg (the DOM→SVG style-inliner, the genuinely hard part) + OUR OWN
+// Image/canvas/JPEG encode. Deliberately NOT the lib's toJpeg: its internal helper awaits
+// img.decode() + requestAnimationFrame, and BOTH can stall forever in embedded/backgrounded
+// Chromium (live-verified 2026-07-18: toJpeg hung >8s on a 2-element div while toSvg + manual
+// onload/drawImage of the same SVG succeeded instantly). Plain Image.onload + drawImage avoids
+// both. Every failure path lands cb(null) exactly once — the report then goes text-only, LOUDLY.
+// Known WebKit limit: iOS Safari taints a canvas that drew a foreignObject SVG, so toDataURL
+// throws there → text-only report on iPhones (the catch below). skipFonts always: the UI is
+// system-font, embedding is pure cost/risk.
+var BUG_SHOT_TIMEOUT_MS=8000;
+function _bugCapture(cb){
+  _loadHtml2Image(function(lib){
+    if(!lib){cb(null);return;}
+    var el=document.getElementById("game-screen");
+    if(!el||el.style.display==="none"||!el.offsetWidth)el=document.body;
+    var W=el.offsetWidth||document.documentElement.clientWidth||800;
+    var H=el.offsetHeight||document.documentElement.clientHeight||600;
+    var done=false;
+    function fin(d){if(done)return;done=true;cb(d);}
+    setTimeout(function(){if(!done){console.warn("[bug-report] screenshot timed out ("+BUG_SHOT_TIMEOUT_MS+"ms) — sending text-only");fin(null);}},BUG_SHOT_TIMEOUT_MS);
+    lib.toSvg(el,{skipFonts:true})
+      .then(function(svg){
+        var im=new Image();
+        im.onload=function(){
+          try{
+            var cv=document.createElement("canvas");
+            cv.width=W;cv.height=H;
+            var cx=cv.getContext("2d");
+            cx.fillStyle="#0d0d0d";cx.fillRect(0,0,W,H);
+            cx.drawImage(im,0,0,W,H);
+            fin(cv.toDataURL("image/jpeg",0.55));
+          }catch(e){console.warn("[bug-report] canvas encode failed (WebKit foreignObject taint?) — sending text-only:",e&&e.message);fin(null);}
+        };
+        im.onerror=function(){console.warn("[bug-report] snapshot image failed to load — sending text-only");fin(null);};
+        im.src=svg;
+      })
+      .catch(function(e){console.warn("[bug-report] DOM snapshot failed — sending text-only:",e&&e.message);fin(null);});
+  });
+}
+function showBugReportModal(){
+  if(typeof ERROR_WEBHOOK_URL==="undefined"||!ERROR_WEBHOOK_URL){
+    if(typeof showToast==="function")showToast("⚠ Bug reporting isn't configured — ERROR_WEBHOOK_URL is empty (error-report.js)",6000);
+    return;
+  }
+  _bugCapture(function(dataUrl){_bugReportModal(dataUrl);});
+}
+function _bugReportModal(shot){
+  var inner="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><h3 style='color:var(--acc);font-size:15px;font-weight:bold;'>⚠ Report a problem</h3><button id='bug-close' style='background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;line-height:1;'>&times;</button></div>"
+    +(shot
+      ?"<img src='"+shot+"' alt='screenshot' style='display:block;max-width:100%;max-height:120px;border:1px solid var(--brd);border-radius:6px;margin:0 auto 10px;'/>"
+      :"<div style='font-size:11px;color:var(--t2);margin-bottom:10px;'>(screenshot unavailable — the report will be text-only)</div>")
+    +"<textarea id='bug-text' rows='5' placeholder='What happened? A nonsense suggestion, a hallucination, drift, a broken screen — describe what you saw and what you expected.' style='width:100%;box-sizing:border-box;padding:10px;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;color:var(--t0);font-size:13px;font-family:var(--font);resize:vertical;'></textarea>"
+    +"<div style='font-size:10px;color:var(--t2);margin-top:8px;line-height:1.5;'>Attached automatically: the screenshot above, your last 5 exchanges, the suggested actions on screen, and a game-state summary. Mentioning quests, rendering, the model, voice, combat, memory, or sync attaches those settings too. Never sent: API keys or tokens.</div>"
+    +"<div id='bug-err' style='display:none;color:var(--hp);font-size:12px;margin-top:8px;'></div>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:12px;'>"
+    +"<button id='bug-cancel' style='padding:8px 14px;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:13px;font-family:var(--font);cursor:pointer;'>Cancel</button>"
+    +"<button id='bug-send' style='padding:8px 16px;background:var(--acc);border:none;border-radius:6px;color:#141210;font-size:13px;font-family:var(--font);font-weight:bold;cursor:pointer;'>Send report</button>"
+    +"</div>";
+  var modal=modalShell("bug-modal",inner,{closeId:"bug-close",outside:true,maxWidth:520});
+  document.getElementById("bug-cancel").addEventListener("click",function(){modal.remove();});
+  document.getElementById("bug-send").addEventListener("click",function(){
+    var ta=document.getElementById("bug-text");
+    var txt=ta.value.trim();
+    if(!txt){ta.focus();ta.style.borderColor="var(--acc)";return;}
+    var btn=document.getElementById("bug-send");
+    btn.disabled=true;btn.style.opacity="0.6";btn.textContent="Sending…";
+    sendUserReport(txt,shot,function(ok,err){
+      if(ok){modal.remove();if(typeof showToast==="function")showToast("✓ Report sent — thank you",4000);}
+      else{
+        btn.disabled=false;btn.style.opacity="1";btn.textContent="Send report";
+        var ee=document.getElementById("bug-err");
+        if(ee){ee.style.display="block";ee.textContent="⚠ Send failed: "+err+" — your text is preserved, try again.";}
+      }
+    });
+  });
+  setTimeout(function(){var t=document.getElementById("bug-text");if(t)t.focus();},50);
+}
