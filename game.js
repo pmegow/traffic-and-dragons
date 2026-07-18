@@ -760,7 +760,7 @@ function commitGmTurn(resp,opts){
       else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
     }
     if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
-    if(worldState.mpEnded&&(worldState.turn-worldState.mpEnded.turn)>=2)worldState.mpEnded=null; // D12 exit reinforcement done — sessionLog now carries second-person turns again
+    if(worldState.mpEnded&&(worldState.turn-worldState.mpEnded.turn)>=3)worldState.mpEnded=null; // D12 exit reinforcement done — sessionLog now carries second-person turns again (3 not 2: the retained tail holds ~3 exchanges, so the third-person prose must be fully out of the window before the note stops firing)
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
   }
   var clean=cleanTxt(resp),dice=diceTxt(resp);

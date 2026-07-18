@@ -1017,7 +1017,20 @@ function runEngineTests(R){
     if(exIdx<0)return "post-STYLE second-person tail command missing";
     if(exIdx<p1.volatile.lastIndexOf("STYLE: "))return "tail command sits BEFORE the STYLE tail — it would lose the position fight";
     if(p1.volatile.indexOf("address "+worldState.character.name+" as 'you'")<0)return "tail command does not name the hero";
+    /* ROUND 3 — the channel that actually beats history recency: the note must ride the USER
+       message (buildEngineNotes), which lands AFTER the retained third-person prose. The
+       system-prompt copies above are reinforcement; THIS is the enforcement. */
+    var notes=buildEngineNotes();
+    if(notes.indexOf("NARRATION MODE CHANGE")<0)return "mp-end note absent from the engine-note channel";
+    if(notes.indexOf("SECOND PERSON")<0)return "engine note does not command second person";
+    if(notes.indexOf("PROSE directive")<0)return "note fails to self-identify as prose — the protocol clause would suppress it";
+    if(ENGINE_NOTES_PROTOCOL.indexOf("PROSE or NARRATION directive is not bookkeeping")<0)return "protocol lacks the prose-directive carve-out — it would override the note (it is appended after it)";
+    /* Re-promoting mid-window must silence the note — the D12 third-person override rules again */
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    if(buildEngineNotes().indexOf("NARRATION MODE CHANGE")>=0)return "mp-end note still fires while multiplayer is active again";
+    worldState.npcs.pop();
     worldState.mpEnded=null;
+    if(buildEngineNotes().indexOf("NARRATION MODE CHANGE")>=0)return "mp-end note survived the marker clear";
     var p2=buildSysPrompt();
     if(p2.volatile!==p0.volatile)return "clearing mpEnded did not restore volatile byte-identity";
     return true;

@@ -383,7 +383,22 @@ function buildDeadStatusNudge(){
   var w=wsNpcByName(d.name);var died=(w&&typeof w.dead==="number")?" (died t"+w.dead+")":"";
   return "[ENGINE NOTE — DEAD CHARACTER (not a player action): "+d.name+" is recorded DEAD"+died+", but the last response set their status to \""+d.status+"\", which the engine refused. If they are genuinely alive again through an explicit in-story resurrection, emit [NPC:"+d.name+"|resurrected|relation] to confirm it. Otherwise they stay dead: never narrate them as present or alive — only as remains, memory, or legacy.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge];
+// TODO #1 D12 exit, round 3 (2026-07-18 — the fix that actually addresses the mechanism).
+// Rounds 1-2 put the reversal in the SYSTEM prompt (mid-volatile, then post-STYLE). Both failed
+// in the field for the same reason, which the header below already states: the system prompt
+// sits BEFORE the whole conversation, and the retained tail is ~3 exchanges of the GM's OWN
+// third-person prose. No position INSIDE the system prompt is later than that history, so
+// recency won twice. This channel is the answer — the note rides the user message, i.e. the
+// newest tokens in context, after all the third-person output it has to overrule.
+// Deliberately NOT bound by the protocol clause's "respond only with tags": this note is a
+// narration-mode directive, and says so in its own text (the clause targets bookkeeping notes).
+function buildMpEndNote(){
+  if(!worldState||!worldState.mpEnded||!worldState.character)return"";
+  if(typeof playerCount==="function"&&playerCount()>1)return"";/* re-promoted mid-window — the D12 override rules again */
+  var nm=worldState.character.name;
+  return "[NARRATION MODE CHANGE — this note is a PROSE directive, not bookkeeping, and applies to THIS response: the multiplayer session has ended and "+nm+" is the only player character again. Write this response in SECOND PERSON: 'you' means "+nm+". The third-person narration in the recent turns above was the multiplayer mode and is now over — do not continue that style. Change the prose silently; never mention the mode change in the story.]";
+}
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -395,7 +410,7 @@ var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudg
 // legitimate fictional consequences (the condition audit's "let it visibly shape the narration"
 // — the limp shows, the checking doesn't). Only appended when a note fired: an empty notes block
 // stays byte-empty (engine-tested — the common turn must not grow a phantom preamble).
-var ENGINE_NOTES_PROTOCOL="[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping, not part of the story. Respond to them ONLY by emitting the state tags they call for, or by silently leaving state unchanged. The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text. Their fictional CONSEQUENCES may still shape the scene: a kept wound may limp, an expended vial is simply gone.]";
+var ENGINE_NOTES_PROTOCOL="[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping, not part of the story. Respond to them ONLY by emitting the state tags they call for, or by silently leaving state unchanged. The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text. Their fictional CONSEQUENCES may still shape the scene: a kept wound may limp, an expended vial is simply gone. ONE EXCEPTION: a note that explicitly identifies itself as a PROSE or NARRATION directive is not bookkeeping — apply it to the writing of this response as instructed.]";
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}
