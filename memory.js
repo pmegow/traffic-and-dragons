@@ -862,6 +862,7 @@ async function summarize(){
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
     // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
     _sumFails++;
+    if(typeof reportError==="function")reportError("summarize",e&&e.message?e.message:"unknown","consecutive fails: "+_sumFails+"\n"+((e&&e.stack)||""));/* #16 */
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);

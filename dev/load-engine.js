@@ -16,7 +16,7 @@
 // stt.js). Each engine file depends only on files earlier in the list.
 var fs = require("fs"), path = require("path");
 var ROOT = path.join(__dirname, "..");
-var FILES = ["globals.js", "compress.js", "data.js", "capability_bible.js", "helpers.js",
+var FILES = ["globals.js", "error-report.js", "compress.js", "data.js", "capability_bible.js", "helpers.js",
   "state.js", "storage-adapter.js", "memory.js", "tag_table.js", "api.js",
   "campaign_generator.js", "game.js", "tts.js"];
 

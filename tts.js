@@ -588,6 +588,9 @@ var TTS = (function() {
                     (typeof c.pc === "number" ? ", " + c.pc + " synths / " + c.up + " min into the session" : "") + ")";
           console.warn("[tts piper] " + msg);
           if (typeof showToast === "function") showToast(msg, 8000);
+          // #16: the narration-death crumb is the exact "invisible mobile console" class this
+          // reporting exists for — mail the same forensics the toast shows, plus the raw crumb.
+          if (typeof reportError === "function") reportError("narration-death", msg, JSON.stringify(c));
         }
       }
     } catch(e) {}

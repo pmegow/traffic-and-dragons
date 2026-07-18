@@ -51,7 +51,7 @@ function startGame(char,toneName,toneVoice,authorId){
     // Generate the campaign skeleton, then open the adventure. If skeleton generation fails
     // (network, parse, bad provider), log it and start anyway — the game works without one.
     var _skMsg=addMsg("thinking","Forging the campaign...");
-    generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);beginAdventure();});
+    generateSkeleton(function(tx){try{_skMsg.innerHTML=tx;}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
   }
 }
 // Model escalation for engine utility calls (skeleton since v1.2xx, suggestions since v1.249):
@@ -145,7 +145,7 @@ async function generateActions(msgEl){
     // rendered stale actions while the text matched. saveAll re-arms the debounce with the
     // fresh lastActions (one cheap extra POST at most).
     worldState.lastActions=acts.slice(0,3);saveAll();
-  }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);_cleanup();}
+  }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -794,6 +794,7 @@ async function sendAction(override,opts){
     }
     syncUI();
   }catch(e){th.remove();
+    if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")+(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
     else{var em=addMsg("system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
@@ -843,6 +844,7 @@ async function rerollLast(){
     generateActions(narEl);
   }catch(e){
     th.remove();sessionLog.push(prevU,prevA); // restore the original exchange on failure
+    if(typeof reportError==="function")reportError("reroll",e.message,(e&&e.stack)||"");
     addMsg("system","Re-roll error: "+e.message);
   }
   busy=false;document.getElementById("sendbtn").disabled=false;

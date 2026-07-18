@@ -4870,4 +4870,57 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── error reporting (#16) — flood control + payload, transport stubbed ───────
+  section("reportError (#16)");
+  var __erOrigSend=_erSend,__erSent=[];
+  function __erReset(url){ERROR_WEBHOOK_URL=url||"";_erLastSentAt=0;_erSuppressed=0;_erSentCount=0;_erDisabledNote=false;_erCapNote=false;__erSent.length=0;_erSend=function(p){__erSent.push(p);};}
+  t("no webhook URL → disabled, nothing sent",function(){
+    __erReset("");
+    var r=reportError("test","boom","");
+    if(r!=="disabled")return "outcome "+r;
+    return eq(__erSent.length,0,"sent count");
+  });
+  t("payload carries version/campaign/turn; detail truncated",function(){
+    makeWorld();__erReset("https://example.test/hook");
+    var big=new Array(ER_DETAIL_MAX+100).join("x");
+    var r=reportError("turn","GM error",big);
+    if(r!=="sent")return "outcome "+r;
+    var p=__erSent[0];
+    if(p.ctx!=="turn"||p.msg!=="GM error")return "ctx/msg wrong: "+p.ctx+"/"+p.msg;
+    if(p.detail.length!==ER_DETAIL_MAX)return "detail len "+p.detail.length;
+    if(p.app!==APP_VERSION)return "app "+p.app;
+    if(p.camp!=="Test"||p.turn!==5)return "camp/turn "+p.camp+"/"+p.turn;
+    return true;
+  });
+  t("debounce: 2nd call inside 30s suppressed; count rides the next send then resets",function(){
+    __erReset("https://example.test/hook");
+    if(reportError("a","first","")!=="sent")return "first not sent";
+    if(reportError("b","second","")!=="debounced")return "second not debounced";
+    if(reportError("c","third","")!=="debounced")return "third not debounced";
+    _erLastSentAt=Date.now()-ER_DEBOUNCE_MS-1; // window elapsed
+    if(reportError("d","fourth","")!=="sent")return "fourth not sent";
+    if(__erSent.length!==2)return "sent count "+__erSent.length;
+    if(__erSent[1].suppressed!==2)return "suppressed "+__erSent[1].suppressed;
+    _erLastSentAt=Date.now()-ER_DEBOUNCE_MS-1;
+    reportError("e","fifth","");
+    return eq(__erSent[2].suppressed,0,"suppressed reset");
+  });
+  t("session cap: no sends past ER_SESSION_CAP",function(){
+    __erReset("https://example.test/hook");
+    _erSentCount=ER_SESSION_CAP;
+    var r=reportError("x","boom","");
+    if(r!=="capped")return "outcome "+r;
+    return eq(__erSent.length,0,"sent count");
+  });
+  t("a throwing transport can't escape the reporter",function(){
+    __erReset("https://example.test/hook");
+    _erSend=function(){throw new Error("transport exploded");};
+    var r;
+    try{r=reportError("x","boom","");}catch(e){return "reportError threw: "+e.message;}
+    if(r!=="reporter-error")return "outcome "+r;
+    if(_erInReporter!==false)return "reentrancy latch stuck";
+    return true;
+  });
+  __erReset("");_erSend=__erOrigSend; // later sections: reporting inert, real transport restored
+
 }
