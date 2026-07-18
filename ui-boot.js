@@ -61,6 +61,14 @@ function buildFileMenus(){
       +btn(p+"prose","✍ Prose inspiration&hellip;",0)
       +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label");
     var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)
+      // TODO #7: UI sound library toggle + test. Deliberately NOT inside the Voice Settings modal
+      // (that modal is built entirely in tts.js, which is drift-protected/off-limits) — lives here
+      // as an inline menu row instead, matching this file's own established pattern for a boolean
+      // pref + inline action (font-lg/autosend/autolisten/legacy-cb checkboxes above).
+      +"<div style='display:flex;align-items:center;gap:8px;padding:2px 14px 7px;'>"
+        +"<label style='display:flex;align-items:center;gap:8px;flex:1;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'><input type='checkbox' id='"+p+"sound-cb' style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> &#9834; UI sounds</label>"
+        +"<button id='"+p+"sound-test' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Test</button>"
+      +"</div>"
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
       +btn(p+"llm","🧠 Language Model&hellip;",0)
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0)
@@ -180,7 +188,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","font-lg","legacy-cb","autosend","autolisten"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
+  ["adult-cb","font-lg","legacy-cb","autosend","autolisten","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -224,6 +232,11 @@ function wireButtons(){
   document.getElementById("tts-btn").addEventListener("click",function(){if(typeof TTS!=="undefined")TTS.toggle();});
   eachMenuEl("tts-settings",function(el){el.addEventListener("click",function(){closeAllMenus();if(typeof TTS!=="undefined")TTS.showSettingsModal();});});
   if(typeof TTS!=="undefined")TTS.loadSettings();
+  // TODO #7: UI sound library toggle + test (see the buildFileMenus comment above for why this
+  // lives here instead of inside the Voice Settings modal).
+  eachMenuEl("sound-cb",function(el){el.addEventListener("change",function(){if(typeof Sound!=="undefined")Sound.setEnabled(el.checked);eachMenuEl("sound-cb",function(o){if(o!==el)o.checked=el.checked;});});});
+  if(typeof Sound!=="undefined"){var _sndOn=Sound.enabled();eachMenuEl("sound-cb",function(el){el.checked=_sndOn;});}
+  eachMenuEl("sound-test",function(el){el.addEventListener("click",function(e){e.stopPropagation();if(typeof Sound!=="undefined")Sound.play("chime");});});
   // STT (speech-to-text dictation) — Car Mode foundation
   document.getElementById("mic-btn").addEventListener("click",function(){if(typeof STT!=="undefined")STT.toggle();});
   eachMenuEl("autosend",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});});

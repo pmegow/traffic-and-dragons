@@ -23,7 +23,8 @@ function partyMemberVitals(npc){
     cls:sheet?(sheet.cls||""):(npc.role||"")
   };
 }
-function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
+var _cpanelWasActive=false;/* TODO #7: module-local previous-state latch — lets syncUI detect the hidden->shown edge (combat just started) instead of firing a sound on every sync while combat persists */
+function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();var _combatNowActive=!!worldState.combat;if(_combatNowActive){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(_combatNowActive&&!_cpanelWasActive&&typeof Sound!=="undefined")Sound.play("combat");_cpanelWasActive=_combatNowActive;if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
 function updateQuestPanel(){
   if(!worldState)return;var ql=worldState.questLog||[];
   var live=[];for(var li=0;li<ql.length;li++){if(ql[li].status==="offered"||ql[li].status==="active")live.push(ql[li]);}

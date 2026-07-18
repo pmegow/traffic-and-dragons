@@ -216,6 +216,7 @@ function checkLevelUp(){
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
   addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+totalHp+" (now "+c.maxHp+")");
+  if(typeof Sound!=="undefined")Sound.play("levelup");
   for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
   if(newFeatures.length)updateAbPanel(true);
   _levelBumpsOwed+=bumpsOwed;
@@ -527,6 +528,7 @@ function fileCoreMemory(kind,who,text){
     fileTo(n.charSheet);
   }
   if(filedAny&&typeof showToast==="function")showToast("★ Defining moment: "+text);
+  if(filedAny&&typeof Sound!=="undefined")Sound.play("moment");
   return filedAny;/* #40 GM tag (v1.307): lets the CORE_MEMORY handler report honestly — no muts line for a deduped no-op */
 }
 function detectCoreMoments(pre){

@@ -5063,4 +5063,52 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   _erPost=__erOrigPost;__erReset("");_erSend=__erOrigSend; // later sections: reporting inert, real transports restored
 
+  // ── TODO #7: sound.js — synthesized UI earcons ──────────────────────────────
+  section("sound");
+  var REQUIRED_SOUND_IDS=["chime","quest","levelup","moment","combat","coin","error"];
+  t("all seven required ids present in SOUND_LIB",function(){
+    var missing=[];for(var i=0;i<REQUIRED_SOUND_IDS.length;i++){if(!SOUND_LIB[REQUIRED_SOUND_IDS[i]])missing.push(REQUIRED_SOUND_IDS[i]);}
+    return missing.length?("missing: "+missing.join(", ")):true;
+  });
+  t("every SOUND_LIB entry: >=1 note, finite f>0/d>0/g>0/g<=0.3, total motif length <=1s",function(){
+    var bad=[],k;
+    for(k in SOUND_LIB){
+      var recipe=SOUND_LIB[k],notes=recipe&&recipe.notes;
+      if(!notes||!notes.length){bad.push(k+": no notes");continue;}
+      var maxEnd=0,j;
+      for(j=0;j<notes.length;j++){
+        var n=notes[j];
+        if(typeof n.f!=="number"||!isFinite(n.f)||n.f<=0){bad.push(k+"["+j+"]: bad f "+n.f);continue;}
+        if(typeof n.d!=="number"||!isFinite(n.d)||n.d<=0){bad.push(k+"["+j+"]: bad d "+n.d);continue;}
+        if(typeof n.g!=="number"||!isFinite(n.g)||n.g<=0||n.g>0.3){bad.push(k+"["+j+"]: bad g "+n.g);continue;}
+        var end=(n.t||0)+n.d;if(end>maxEnd)maxEnd=end;
+      }
+      if(maxEnd>1)bad.push(k+": total length "+maxEnd+"s > 1s");
+    }
+    return bad.length?bad.join("; "):true;
+  });
+  t("Sound.play('no-such-id') warns and does not throw (headless, no AudioContext)",function(){
+    var warned=null,origWarn=console.warn;
+    console.warn=function(msg){warned=msg;};
+    try{Sound.play("no-such-id");}finally{console.warn=origWarn;}
+    return warned&&String(warned).indexOf("no-such-id")>=0?true:"expected a warn naming the id, got "+warned;
+  });
+  t("enabled() defaults true when the pref is unset",function(){
+    Sound.setEnabled(true); // node has no localStorage — setEnabled(true) clears any prior in-memory override
+    return eq(Sound.enabled(),true);
+  });
+  t("setEnabled(false) -> enabled() false",function(){
+    Sound.setEnabled(false);
+    var got=Sound.enabled();
+    Sound.setEnabled(true); // restore default for any later test relying on it
+    return eq(got,false);
+  });
+  t("play() while disabled does not throw (headless, no AudioContext either)",function(){
+    Sound.setEnabled(false);
+    var threw=false;
+    try{Sound.play("chime");}catch(e){threw=true;}
+    Sound.setEnabled(true);
+    return eq(threw,false);
+  });
+
 }
