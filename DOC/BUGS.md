@@ -25,7 +25,7 @@ them here).
 ## Open
 
 ## B3 — Canon drift around Rinn Toldrath — player states he is dead (killed by Ammut at the docks, the event behind Frizwick’s ethical conundrum) and play contradicted that
-**Status:** new
+**Status:** findings-ready
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.354) · **Last seen:** 2026-07-18 · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 809
 **Fingerprint:** `user-report · user-report · v1.354 · rinn toldrath is dead. ammut killed him at the docks. it’s what spawned frizwicks ethical conundrum.`
 **Report ids:** b8482cfb-631f-4c6c-8966-135ec66e8d23
@@ -170,7 +170,28 @@ SUGGESTED ACTIONS SHOWN: Watch the Charred Barrel's east hearth from hiding | Se
 ```
 
 ### Findings
-_(none yet — run /bugs investigate B3)_
+
+**2026-07-18 — bug-investigator (read-only), dispatched by /bugs investigate**
+
+- **Verdict:** **design-gap** — NPC death is not a first-class fact anywhere in the stack. Mechanism class root-caused from code; which specific leg fired at t809 needs the save data. Not an injection (plain complaint, no directive text).
+- **Mechanism — five independent legs, any one of which reproduces "the GM treats a dead NPC as alive canon":**
+  1. **Nothing instructs or guarantees a death record.** The only death convention is the free-text `status` containing "dead" — set only if the GM voluntarily emits `[NPC:Rinn Toldrath|dead|...]`. The STATE TAGS doc (tag_table.js:56) defines status as "current mood/condition in 2-4 WORDS" and never mentions death; no DEFAULT_RULES line does either. Party-join has a MUST-emit rule (tag_table.js:104); death has no equivalent.
+  2. **A combat kill evaporates.** `[ENEMY_HP:]` sets `foe.down="slain"` inside `worldState.combat` only (tag_table.js:349); `[COMBAT_END:]` nulls the combat object (tag_table.js:371). Nothing propagates a slain foe to the NPC stores even when the foe is a registered NPC — "Ammut killed him at the docks" plausibly left ZERO structured death record.
+  3. **`memory.npcs` has no death field at all** (schema: attitude/knowledge/events/aliases — tag_table.js:247). The summarize extractor schema (memory.js:843) carries only attitude + knowledgeGained per NPC; `npcUpdates` writes only `memory.npcs[].attitude` (memory.js:821), never `worldState.npcs[].status`. The #40 death core-memory trigger covers PARTY members only (game.js:513, :569) — non-party NPCs get nothing.
+  4. **Even a recorded death renders as ABSENCE, not fact.** The roster silently omits dead-status NPCs (api.js:388), while every other tier keeps presenting the NPC alive-looking: memoryTOC lists all `memory.npcs` keys unannotated (memory.js:574); ACTIVE NPC DETAILS fires on name mention with no death marker (api.js:486–489, memory.js:610); NPC GRAPH renders `last:<node>` (memory.js:646–655); **GEOGRAPHY "NPCs elsewhere: Rinn → <docks node>"** (api.js:40–42; `lastSeenAt` never cleared) affirmatively implies he's findable there, forever; and RAG serves old alive-Rinn scenes whose override header defers to "the CURRENT state blocks above" (memory.js:564) — but the roster OMITTED him, so nothing overrides the alive-era excerpts. **Death-as-omission defeats RAG's own drift guard.**
+  5. **Resurrection-by-overwrite.** The `[NPC:]` handler overwrites status unconditionally (tag_table.js:245, no dead-guard) — one later momentum-driven `[NPC:Rinn Toldrath|calculating|enemy]` (exactly what leg 4's stale context invites) silently flips him back into the living roster. Quests have an archived-resurrection guard for this same class (tag_table.js:250–259); NPCs have none.
+  - Causal chain for this campaign: docks kill → death record never created (legs 1–2) or created-then-rendered-as-absence (leg 4) → memory tiers keep serving Rinn as a normal referable figure with a last-seen location (which is also why Frizwick's conundrum and "what Rinn said" still inject fine) → GM narrates him ambiently; any re-registration resurrects him outright (leg 5).
+- **Ruled out:** parser bug (the `dead` convention works where it IS used — tag_table.js:546, :524); `[NPC_SUPERSEDE:]` (#57) as the vehicle — it can only retire/replace `knowledge[]` strings, requires a matching on-file fact, and cannot set a flag; death is a STATE change adjacent to the #57 class but needs distinct handling.
+- **Fix sketch — make death an affirmative, durable, guarded fact:**
+  1. `[NPC:]` handler: status matching `/\b(dead|slain|deceased)\b/i` (word-boundary — the "undead" lesson) stamps `dead=turn` on BOTH stores; once stamped, a later non-dead status write is refused with loud warn + engine nudge ("recorded dead t N — confirm resurrection explicitly"), mirroring the quest archived-resurrection guard.
+  2. Roster (api.js:388): replace silent omission with a compact affirmative line — `DECEASED: Rinn Toldrath (killed t312)` — the single highest-value change: it gives RAG's "current state overrides" header something to actually override with.
+  3. `(DECEASED t N)` annotation in memoryNpcDetail + NPC GRAPH; exclude dead from GEOGRAPHY "NPCs elsewhere" (or render "remains at X").
+  4. One STATE TAGS doc line ("when a named NPC dies, emit `[NPC:name|dead|...]` in that same response") + propagate a slain registered combat foe to dead status at COMBAT_END/auto-close (combatFoeByName match against worldState.npcs).
+  5. Optional backstop: `deaths:[]` field in the summarize extractor schema, filed by `applySummaryExtract` onto both stores (catches prose-only deaths).
+- **Drift-surface flag: YES — essentially all of it.** tag_table `[NPC:]` write path + STATE TAGS doc text (stable half — frozen doc hashes, cache invalidation), buildSysPrompt roster/TOC/NPC-detail/GEOGRAPHY blocks, summarize extractor prompt/filing, RAG-adjacent semantics. Full drift policy on the act step: Fable-tier, critical pre-review, engine tests + stable-half byte-identity re-freeze.
+- **Risk:** dead-detection regex false-positives ("dead tired", "undead"); a hard overwrite-guard breaks legitimate resurrection plots (hence nudge-not-block on conflicting writes); doc edits perturb the stable cached half; roster DECEASED line unbounded in murder-heavy campaigns (cap/recency window needed); foe→NPC propagation could mis-match a pooled foe name ("Goblin pack") onto a real NPC.
+- **Confidence:** High on the mechanism class (all five legs directly evidenced in code); medium on which leg fired at t809. To settle: capture from the live save `worldState.npcs` entry for Rinn (status value), `memory.npcs["Rinn Toldrath"]`, and the raw docks-kill turn response (did the GM ever emit a dead status?).
+- **Observations filed on the way:** (a) the roster's dead-omission comment shows death handling was PARTIALLY built for the companion-death arc but never extended to memory/geography/RAG — non-party NPC death fell between the combat system and the companion system; (b) `lastSeenAt` is never invalidated by anything, so GEOGRAPHY also implies presence for long-departed living NPCs — same staleness class, fold into the fix review; (c) B2 shares this excerpt — B2's phantom name and B3's lost death are opposite ends of the same registration-fidelity surface.
 
 ### Action log
 _(none)_
