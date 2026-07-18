@@ -200,6 +200,26 @@ function mpAssembleRound(){
   for(i=0;i<order.length;i++){for(j=0;j<q.length;j++){if(q[j].name===order[i]){lines.push(q[j].name+": "+q[j].action);break;}}}
   return lines.join("\n");
 }
+// ── TODO #1 P5 (D11, forks F1–F4 ratified 2026-07-18): hard splits — pure read helpers ───────
+// A party member with charSheet.splitLoc={location,sublocation} is on their OWN thread; null/
+// absent = with the party (every legacy save, byte-identical). The HERO can never split — the
+// hero IS the primary thread (worldState.world.location).
+// THE one effective-location derivation — HUD, party chips, geo block, and suggestions all read
+// through here (no scattered splitLoc conditionals).
+function pcEffectiveLoc(ch){
+  if(ch&&ch.splitLoc&&ch.splitLoc.location)return {location:ch.splitLoc.location,sublocation:ch.splitLoc.sublocation||null};
+  var w=(typeof worldState!=="undefined"&&worldState)?worldState.world:null;
+  return {location:(w&&w.location)||"",sublocation:(w&&w.sublocation)||null};
+}
+// Living split party members (the dead drop out passively — a corpse is not a thread; their
+// last location survives in memory.npcs[name].lastSeenAt).
+function partySplitMembers(){
+  var out=[];
+  if(typeof worldState==="undefined"||!worldState||!worldState.npcs)return out;
+  var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
+    if(p&&p.partyMember&&p.charSheet&&p.charSheet.splitLoc&&p.charSheet.splitLoc.location&&!/\bdead\b/i.test(p.status||""))out.push(p);}
+  return out;
+}
 // Convert a suggested action from 2nd person ("Gather your belongings") to 1st person
 // ("Gather my belongings") when it transfers into the input / is sent. Possessives,
 // reflexives and contractions convert cleanly; bare "you" is best-effort: object "you"

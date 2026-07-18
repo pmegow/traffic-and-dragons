@@ -1016,6 +1016,63 @@ function runEngineTests(R){
     }finally{console.warn=origWarn;}
     return true;
   });
+  t("MP-P5 (F1): [PARTY_SPLIT:Name|Loc] splits a member — splitLoc set, node+edge+lastSeenAt filed, primary camera untouched",function(){
+    makeWorld();
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    memory.npcs["Morwen"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var primLoc=worldState.world.location,primArrival=memory.map.lastArrivalFrom;
+    var primVisits=(memory.map.nodes[primLoc]||{}).visits;
+    applyMuts("Morwen slips away toward the docks. [PARTY_SPLIT:Morwen|The Docks]");
+    if(!cs.splitLoc||cs.splitLoc.location!=="The Docks")return "splitLoc not set: "+JSON.stringify(cs.splitLoc);
+    if(worldState.world.location!==primLoc)return "primary camera moved on a split";
+    if(!memory.map.nodes["The Docks"])return "destination node not filed";
+    if(memory.map.lastArrivalFrom!==primArrival)return "lastArrivalFrom touched by a split move";
+    if(primVisits!==undefined&&(memory.map.nodes[primLoc]||{}).visits!==primVisits)return "primary visits touched";
+    var hasEdge=false,i;for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i];if((e.from===primLoc&&e.to==="The Docks")||(e.from==="The Docks"&&e.to===primLoc))hasEdge=true;}
+    if(!hasEdge)return "edge from primary to split destination not recorded";
+    if(memory.npcs["Morwen"].lastSeenAt!=="The Docks")return "lastSeenAt not stamped: "+memory.npcs["Morwen"].lastSeenAt;
+    return true;
+  });
+  t("MP-P5 (F1): |rejoin clears the split and the GEOGRAPHY block byte-reverts (the anchor invariant)",function(){
+    makeWorld();
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    memory.npcs["Morwen"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var geo0=buildGeoBlock();
+    if(geo0.indexOf("SPLIT THREADS")>=0)return "unsplit world already carries SPLIT THREADS";
+    applyMuts("[PARTY_SPLIT:Morwen|The Docks|The Salted Rope]");
+    if(!cs.splitLoc||cs.splitLoc.sublocation!=="The Salted Rope")return "third arg (sublocation) not stored";
+    var geo1=buildGeoBlock();
+    if(geo1.indexOf("SPLIT THREADS")<0)return "geo lacks SPLIT THREADS while split";
+    if(geo1.indexOf("Morwen")<0||geo1.indexOf("The Docks")<0)return "split thread missing who/where";
+    if(geo1.indexOf("PARTY_SPLIT")<0)return "geo section lacks the move-only-via instruction (F2 mitigation)";
+    applyMuts("She returns before moonrise. [PARTY_SPLIT:Morwen|rejoin]");
+    if(cs.splitLoc)return "rejoin did not clear splitLoc";
+    var geo2=buildGeoBlock();
+    if(geo2.indexOf("SPLIT THREADS")>=0)return "SPLIT THREADS survived the rejoin";
+    /* NOT geo2===geo0: the split legitimately recorded a map edge (a real path was learned),
+       so "Connected to:" may have grown — the anchor invariant is no-SPLIT-THREADS + the
+       never-split corpus replays byte-identical, not amnesia about the journey. */
+    return true;
+  });
+  t("MP-P5 (F2): bare [LOCATION:] moves the PRIMARY thread only — split member untouched; hero/unknown/non-party splits are loud no-ops",function(){
+    makeWorld();
+    var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    worldState.npcs.push({name:"Stranger",status:"neutral",rel:"unknown"});
+    applyMuts("[PARTY_SPLIT:Morwen|The Docks]");
+    applyMuts("The rest of you ride for Greyford. [LOCATION:Greyford]");
+    if(worldState.world.location!=="Greyford")return "primary thread did not move";
+    if(!cs.splitLoc||cs.splitLoc.location!=="The Docks")return "bare LOCATION moved the split member";
+    var heroNm=worldState.character.name;
+    applyMuts("[PARTY_SPLIT:"+heroNm+"|The Docks]");
+    if(worldState.character.splitLoc)return "the HERO was allowed to split (the hero IS the primary thread)";
+    applyMuts("[PARTY_SPLIT:Nobody Real|The Docks]");
+    applyMuts("[PARTY_SPLIT:Stranger|The Docks]");
+    var i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Stranger"&&worldState.npcs[i].charSheet)return "non-party NPC gained a sheet/split";}
+    return true;
+  });
   t("MP-P3 (D4): suggestion POV — multi-PC appends the sub-turn line to VOLATILE only; stable stays byte-identical (cache); single-player unchanged",function(){
     makeWorld();
     var s0=buildSuggestionSys();
@@ -2011,7 +2068,8 @@ function runEngineTests(R){
     // chars = "NPC_SUPERSEDE|"), v1.307 (#40 GM tag: +CORE_MEMORY strip entry, +12 chars =
     // "CORE_MEMORY|"). A registry edit that changes stripping MUST consciously update
     // these numbers.
-    if(__djb2(_CT_TAGS.source)!==-1912581764||_CT_TAGS.source.length!==887)return "_CT_TAGS diverged from the frozen literal";
+    // v1.359 (#1 P5): +PARTY_SPLIT strip entry — source grew exactly 12 chars = "PARTY_SPLIT|".
+    if(__djb2(_CT_TAGS.source)!==-1707561453||_CT_TAGS.source.length!==899)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -2022,8 +2080,9 @@ function runEngineTests(R){
     // P3-F3 travel rule), v1.276 (#47 epithet policy rewrite + P3-F4 TAKING IS TAGGED line),
     // v1.306 (#57: the one NPC_SUPERSEDE doc line, +370 chars), v1.307 (#40 GM tag: the one
     // CORE_MEMORY doc line, +503 chars). Golden diffed by eye each time.
+    // v1.359 (#1 P5): the one PARTY_SPLIT doc line (+391 chars). Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===2118131806&&d.length===12873)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-1869754963&&d.length===13264)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;

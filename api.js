@@ -40,6 +40,22 @@ function buildGeoBlock(){
   var npcLocs=[],nNames=Object.keys(memory.npcs);
   for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
   if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
+  // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
+  // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
+  // applied to geography). No splits = this whole section is absent, byte-identical geo.
+  var splits=(typeof partySplitMembers==="function")?partySplitMembers():[];
+  if(splits.length){
+    lines.push("SPLIT THREADS — these party members are ELSEWHERE right now: they cannot perceive, assist, or be assisted by the main party this round; give each split thread its own beat every turn. They move ONLY via [PARTY_SPLIT:Name|Location] (emit [PARTY_SPLIT:Name|rejoin] when they return); bare [LOCATION:] NEVER moves them.");
+    var sGroups={},sgi;
+    for(sgi=0;sgi<splits.length;sgi++){var sl=splits[sgi].charSheet.splitLoc;var sgk=sl.location+(sl.sublocation?" ("+sl.sublocation+")":"");if(!sGroups[sgk])sGroups[sgk]={names:[],loc:sl.location};sGroups[sgk].names.push(splits[sgi].name);}
+    var sgks=Object.keys(sGroups);
+    for(sgi=0;sgi<sgks.length;sgi++){var sg=sGroups[sgks[sgi]];var sgLine="— "+sgks[sgi]+": "+sg.names.join(", ");
+      var sgNode=memory.map.nodes[sg.loc];
+      if(sgNode&&sgNode.description)sgLine+=". "+sgNode.description;
+      var sgConns=[],sgei;for(sgei=0;sgei<memory.map.edges.length;sgei++){var sge=memory.map.edges[sgei];if(sge.from===sg.loc)sgConns.push(sge.to);else if(sge.to===sg.loc)sgConns.push(sge.from);}
+      if(sgConns.length)sgLine+=" [connected to: "+sgConns.join(", ")+"]";
+      lines.push(sgLine);}
+  }
   return"GEOGRAPHY (strict continuity — never contradict):\n"+lines.join("\n")+"\n\n";
 }
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}

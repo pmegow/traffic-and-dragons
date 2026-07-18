@@ -307,6 +307,7 @@ function partWaysWithCompanion(name){
   if(!pwNpc||!pwNpc.partyMember)return;
   pwNpc.partyMember=false;
   if(worldState.activePC===n)delete worldState.activePC;/* TODO #1 P2: a departed companion can't keep the display spotlight */
+  if(pwNpc.charSheet&&pwNpc.charSheet.splitLoc)delete pwNpc.charSheet.splitLoc;/* P5: leaving the party ends their thread — lastSeenAt keeps where they went */
   if(memory.npcs[n])memory.npcs[n].partyMember=false;
   if(!worldState.recentlyLeft)worldState.recentlyLeft=[];
   worldState.recentlyLeft.push({name:n,turn:worldState.turn||0});

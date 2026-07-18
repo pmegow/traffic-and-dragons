@@ -104,7 +104,12 @@ function buildSuggestionSys(){
   var mpPov="";
   if(typeof playerCount==="function"&&playerCount()>1){
     var _sp=activePlayer();
-    if(_sp&&_sp.name)mpPov="\nMULTIPLAYER SUB-TURN: suggest actions for "+_sp.name+" SPECIFICALLY — the party member whose turn it is (their sheet is in the context above; if they are the main character sheet, use that). Only actions "+_sp.name+" can take with THEIR OWN abilities, spells, and items — never another party member's.";
+    if(_sp&&_sp.name){
+      mpPov="\nMULTIPLAYER SUB-TURN: suggest actions for "+_sp.name+" SPECIFICALLY — the party member whose turn it is (their sheet is in the context above; if they are the main character sheet, use that). Only actions "+_sp.name+" can take with THEIR OWN abilities, spells, and items — never another party member's.";
+      /* P5: a split PC's options must be scene-local to THEIR thread, not the party's */
+      var _spLoc=pcEffectiveLoc(_sp);
+      if(_spLoc.location)mpPov+=" "+_sp.name+" is currently at "+_spLoc.location+(_spLoc.sublocation?" ("+_spLoc.sublocation+")":"")+(_sp.splitLoc?" — SPLIT OFF from the party; suggest only actions available there.":".");
+    }
   }
   return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK+mpPov};
 }

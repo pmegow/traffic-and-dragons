@@ -50,7 +50,7 @@ function updateHUD(){
   document.getElementById("hud-hp").textContent=c.hp+"/"+c.maxHp+" HP";
   document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
-  document.getElementById("hud-loc").textContent=w.location;
+  document.getElementById("hud-loc").textContent=pcEffectiveLoc(c).location;/* P5: camera follows the spotlight PC (a split PC shows THEIR location) */
   var xpEl=document.getElementById("hud-xp");if(xpEl){var nxp=XP_LEVELS[c.level];var xpTxt=nxp!==undefined?c.xp+" / "+nxp+" xp":c.xp+" xp (max)";var prevXp=xpEl.getAttribute("data-xp");if(prevXp!==null&&prevXp!==String(c.xp)){xpEl.className="";void xpEl.offsetWidth;/* force reflow so the animation retriggers on rapid gains */xpEl.className="xp-pulse";setTimeout(function(){xpEl.className="";},900);}xpEl.setAttribute("data-xp",String(c.xp));xpEl.textContent=xpTxt;}
   // ── Party HUD (compact cards — second topbar row) ─────────────────────────
   var hudParty=document.getElementById("hud-party");
@@ -71,7 +71,10 @@ function updateHUD(){
         var card=document.createElement("div");
         card.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t1);cursor:pointer;padding:2px 8px 2px 6px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);";
         card.addEventListener("click",pm.open);/* P2: hero card opens showCharSheet, companions showNpcSheet */
-        var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>";
+        /* P5: location chip when this member's effective location differs from the spotlight PC's */
+        var pmLoc=pcEffectiveLoc(pv.sheet),actLoc=pcEffectiveLoc(c);
+        var locChip=(pmLoc.location&&pmLoc.location!==actLoc.location)?"<span style='color:var(--t2);font-size:9px;flex-shrink:0;'>· "+escHtml(pmLoc.location)+"</span>":"";
+        var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>"+locChip;
         if(pmSheet&&pmSheet.maxHp){
           var pct=pv.pct;
           var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";/* HUD mapping — Car Mode's differs, kept separate (UA21③) */
@@ -132,13 +135,16 @@ function updatePartyPanel(){
       +"<div style='font-size:10px;color:var(--hp);'>HP "+hero.hp+"/"+hero.maxHp+"</div>"
       +"</div>";
   }
+  var _ppActLoc=pcEffectiveLoc(c);/* P5: chip reference — where the spotlight PC is */
   for(i=0;i<npcs.length;i++){
     m=npcs[i];pv=partyMemberVitals(m);/* UA21③ */
     hp=pv.hp;maxHp=pv.maxHp;cls=pv.cls;
+    var _ppLoc=pcEffectiveLoc(m.charSheet);
+    var _ppChip=(_ppLoc.location&&_ppLoc.location!==_ppActLoc.location)?" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>· "+escHtml(_ppLoc.location)+"</span>":"";
     // data-npc + delegated wiring below (audit E69) — an inline onclick with the name in a JS string
     // literal breaks when the name contains a double quote (escHtml's &quot; decodes back to ").
     h+="<div class='party-row' data-npc='"+escHtml(m.name)+"' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
-      +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+"</div>"
+      +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+_ppChip+"</div>"
       +(cls?"<div style='font-size:10px;color:var(--t2);'>"+escHtml(cls)+"</div>":"")
       +(hp!==null?"<div style='font-size:10px;color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</div>":"")
       +"</div>";
