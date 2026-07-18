@@ -77,7 +77,7 @@ _(none)_
 ---
 
 ## B4 — localStorage over quota on mobile — saves failing with "storage full" toasts; old campaign snapshots dominate the breakdown
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.360) · **Last seen:** 2026-07-18 (v1.361) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 810
 **Fingerprint:** `user-report · user-report · v1.360 · save failed storage full`
 **Report ids:** c725ae74-038c-4d68-9125-aae6869a6db7, 90ca0046-8013-4045-9cb7-e4484be45bc9
@@ -147,7 +147,7 @@ Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pag
   - Campaign rename for non-active campaigns (`ui-campaigns.js:272-273`) round-trips the blob through bare `JSON.parse`/`stringify` — verified it preserves `{__lz}` (not a bug, noting because it bypasses `parseWorldState`).
 
 ### Action log
-_(none)_
+**2026-07-18** — **fixed** (v1.363). Design ratified with the user (per-campaign "Remove local" button, NOT the bulk free-up-space flow — "the amount of space is irrelevant to the average user"); drift policy applied (Fable-tier, pre-code critical review, transcript-custody rule: eviction ONLY behind a freshly confirmed cloud copy). What shipped: ① **"Remove local" button** on every non-active local campaign row in the picker → `campRemoveLocal` (ui-campaigns.js): fresh `GET /api/campaigns/:id` probe (never the stale `onServer` flag) → pure `planRemoveLocalCopy` (state.js, engine-tested) decides the dialog — no cloud copy → "add to cloud, then remove?" (decline aborts); cloud at/ahead → plain removal with both turn numbers shown; **device AHEAD of cloud → update-first offer whose decline ABORTS** (a deliberate refinement of the ratified "decline removes anyway": in the device-ahead case that path would destroy the newest turns; discard-local is still reachable via Pull-then-Remove). Eviction = `removeCampaignLocalCopy` (slot triplet only, picker row degrades to the existing cloud-only tier). ② **Active-campaign de-dup** (~590K): `dedupeActiveCampSlots` at boot + after an active cloud pull; `switchToCampaign` deletes the incoming slot duplicate after a successful load (rollback path keeps it, E35 intact); picker's hasLocal reads WSK for the active row. ③ **Quota-path hardening**: `snapshotActiveCamp` no longer throws (loud toast + console, ALWAYS flushes the server sync, returns false) and all five destructive callers (switch/campNew/newGame/import-save/import-char) abort instead of wiping the un-snapshotted live keys; `updateCampMeta` swallows quota loudly (an escape there killed saveAll's `syncToServer` scheduling — a hole the investigation missed, found in the pre-code review); saveCore/snapshot toasts now point at the remedy. 13 new engine tests (674 green, incl. quota-simulated snapshot/switch/meta failures + every planRemoveLocalCopy branch); live-verified in preview: boot dedupe on a seeded duplicate, disconnected gate, all four dialog branches incl. failed-push-keeps-local, mobile 375px layout, zero console errors. Recompress-migration for pre-v1.227 dormant snapshots (findings opt 3) deliberately NOT shipped — eviction supersedes it (the evictable snapshots are the uncompressed ones), revisit only if a disconnected device needs headroom. Awaiting live verification on the reporting device → then `verified` + move to Completed.
 
 ---
 

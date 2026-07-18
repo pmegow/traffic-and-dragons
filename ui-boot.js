@@ -349,6 +349,7 @@ function initReplaySession(){
 function initState(saved){
   if(saved&&worldState){
     if(!getActiveCampId())migrateToCampaigns();
+    dedupeActiveCampSlots();/* B4: free the active campaign's ~590K standing slot duplicate for this session (recreated at unload) */
     checkLegacyCharacter();showGame();syncUI();initAbilities();initSpells();
     addMsg("system","Welcome back, "+worldState.character.name+".");
     addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");

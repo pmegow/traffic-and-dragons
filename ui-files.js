@@ -265,7 +265,7 @@ function importSave(event){
     // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
     // used to overwrite worldState + the active campaign id without preserving the current campaign,
     // silently destroying its in-session progress since the last snapshot.
-    snapshotActiveCamp();
+    if(!snapshotActiveCamp())throw new Error("Storage full — couldn't back up the current campaign before importing.");/* B4: surfaces via this function's own import-error path */
     worldState=ws;
     // Resolve campaign slot: reuse the file's own campId if present, else current active, else mint new
     var _cid=ws.campId;

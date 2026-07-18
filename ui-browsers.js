@@ -469,7 +469,7 @@ function _startImportedCampaign(char){
     var loc=document.getElementById("is-loc").value;
     if(loc==="custom"){var lt=document.getElementById("is-loc-text").value.trim();loc=lt||"A place of your choosing";}
     modal.remove();
-    snapshotActiveCamp();
+    if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
     worldState=null;sessionLog=[];memory=blankMemory();

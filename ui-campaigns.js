@@ -137,7 +137,9 @@ function _renderCampList(){
   if(!sorted.length){rows="<div style='padding:20px;text-align:center;color:var(--t2);font-size:12px;font-style:italic;'>No saved campaigns yet.</div>";}
   else{var i;for(i=0;i<sorted.length;i++){var cm=sorted[i],isActive=cm.id===activeId;
     var dispName=cm.campName||cm.charName;
-    var hasLocal=!!store.get(campSlotKey(cm.id,"ws"));
+    // B4: the active campaign lives in the LIVE keys — its slot duplicate is deduped away at
+    // boot (dedupeActiveCampSlots), so "has a local copy" must read WSK for the active row.
+    var hasLocal=isActive?!!store.get(WSK):!!store.get(campSlotKey(cm.id,"ws"));
     var cloudOnly=cm.onServer&&!hasLocal&&!isActive;
     var cloudBtns=storageAdapter.isServerMode()
       ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
@@ -159,7 +161,11 @@ function _renderCampList(){
       +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+savedLine+"</div>"
       +"</div>"
       +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
-        :"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;flex-shrink:0;'>Load</button>"
+        :"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
+        +"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;'>Load</button>"
+        /* B4: per-campaign local-copy eviction — the campaign stays in the picker as cloud-only */
+        +(hasLocal?"<button onclick='campRemoveLocal(\""+cm.id+"\")' title='Remove the local copy from this device (kept in your cloud library)' style='padding:3px 6px;font-size:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Remove local</button>":"")
+        +"</div>"
         +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
       +"</div>";}}
   listEl.innerHTML=rows;
@@ -236,9 +242,54 @@ function campCloudPull(id){
         _applyLoadedCampaign(); // replays from the transcript via initReplaySession
         // Legacy fallback: pre-transcript blobs (no worldState.transcript) still carry narrativeHtml.
         if(data.narrativeHtml&&!(worldState&&worldState.transcript&&worldState.transcript.length)){try{var _ne=document.getElementById("story-narrative");if(_ne){_ne.innerHTML=data.narrativeHtml;_ne.scrollTop=_ne.scrollHeight;}}catch(x){}}
+        dedupeActiveCampSlots();/* B4: the slot copy written above duplicates the live keys just written */
       }
     }
     var ex=document.getElementById("camp-modal");if(ex)ex.remove();showCampaignPicker();
+  });
+}
+// B4: "Remove local" — evict this campaign's local snapshot behind a PROVEN cloud copy.
+// The decision policy is planRemoveLocalCopy (state.js, engine-tested); this function owns the
+// dialogs and transport. The cloud probe is a FRESH GET (existence + turn in one authoritative
+// answer) — never the stale onServer flag, because an offline-played local copy can be AHEAD of
+// the server and eviction on a stale flag would delete the only copy of those turns.
+function campRemoveLocal(id){
+  if(id===getActiveCampId()){showToast("Can't remove the campaign you're playing.");return;}
+  if(!storageAdapter.isServerMode()){showToast("Connect to the server first — the cloud copy is what makes local removal safe.");return;}
+  var raw=store.get(campSlotKey(id,"ws"));
+  if(!raw){showToast("No local copy on this device.");return;}
+  var localTurn=-1;try{var lw=JSON.parse(raw);if(typeof lw.turn==="number")localTurn=lw.turn;}catch(e){}
+  showToast("☁ Checking the cloud copy…");
+  storageAdapter.getCampaignState(id,function(err,data){
+    var plan=planRemoveLocalCopy(err,data&&data.worldState,localTurn);
+    function evict(msg){
+      removeCampaignLocalCopy(id);
+      var meta=getCampMeta(),i;for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i].onServer=true;break;}}setCampMeta(meta);
+      showToast(msg);_renderCampList();
+    }
+    function pushThenEvict(){
+      campCloudPushSilent(id,function(ok){
+        if(!ok){showToast("⚠ Cloud update failed — local copy kept.");return;}
+        evict("☁ Cloud updated — local copy removed.");
+      });
+    }
+    if(plan.kind==="no-server"){showToast("⚠ Couldn't reach the server ("+plan.err+") — local copy kept.");return;}
+    if(plan.kind==="offer-add"){
+      if(!confirm("This campaign isn't in your cloud library.\n\nAdd it to the cloud, then remove the local copy?\n\n(Cancel keeps the local copy.)"))return;
+      pushThenEvict();return;
+    }
+    if(plan.kind==="offer-remove"){
+      if(!confirm("Remove the local copy?\n\nCloud copy: turn "+plan.cloudTurn+" · this device: turn "+plan.localTurn+"\n\nThe cloud copy is current — Load re-downloads it anytime.\n(Cancel keeps the local copy.)"))return;
+      evict("Local copy removed — cloud copy kept (turn "+plan.cloudTurn+").");return;
+    }
+    // offer-update: this device is ahead (or its turn is unreadable) — removing without a fresh
+    // push would destroy the newest turns, so declining ABORTS. (To deliberately discard
+    // local-ahead turns: Pull from cloud first, then Remove local.)
+    var lbl=plan.localTurn>=0
+      ?"Cloud copy: turn "+plan.cloudTurn+" · this device: turn "+plan.localTurn+" (this device is ahead)"
+      :"This device's copy couldn't be read for comparison.";
+    if(!confirm("This device has the newest copy.\n\n"+lbl+"\n\nUpdate the cloud copy, then remove the local one?\n\n(Cancel keeps the local copy.)"))return;
+    pushThenEvict();
   });
 }
 function campDelete(id){
@@ -280,7 +331,7 @@ function campSaveRename(id){
 function campNew(){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
   var modal=document.getElementById("camp-modal");if(modal)modal.remove();
-  snapshotActiveCamp();
+  if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
   var nid=newCampaignId();setActiveCampId(nid);
   worldState=null;sessionLog=[];memory=blankMemory();

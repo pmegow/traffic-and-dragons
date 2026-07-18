@@ -130,7 +130,7 @@ function restoreTranscriptRescue(){
     return true;
   }catch(e){console.error("[save] transcript rescue re-inflate failed — keeping the rescue blob",e);return false;}
 }
-function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Export your save now.");console.error("[save] saveCore failed:",e);}}
+function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Free space: Campaigns → \"Remove local\" on old campaigns.");console.error("[save] saveCore failed:",e);}}
 function saveMem(){try{store.set(MEM_KEY,JSON.stringify(memory));}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);}}
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
 // into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
@@ -320,22 +320,41 @@ function updateCampMeta(){
   var meta=getCampMeta(),found=false,i;
   for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i]=Object.assign({},meta[i],entry);found=true;break;}}
   if(!found)meta.push(entry);
-  setCampMeta(meta);
+  // B4: never let a quota throw escape — updateCampMeta runs OUTSIDE saveCore's try in saveAll,
+  // so an uncaught throw here killed the storageAdapter.syncToServer() call that follows, i.e.
+  // the server sync stopped being scheduled at exactly the moment the server copy was the only
+  // safe one. The list itself self-heals from the server merge (syncCampaignList).
+  try{setCampMeta(meta);}catch(e){console.error("[camps] campaign-list update failed — storage full? (list self-heals from the server merge):",e);}
 }
 function snapshotActiveCamp(){
-  var id=getActiveCampId();if(!id)return;
+  var id=getActiveCampId();if(!id)return true;
   var ws=store.get(WSK),sl=store.get(SLK),mem=store.get(MEM_KEY);
-  if(ws)store.set(campSlotKey(id,"ws"),ws);
-  if(sl)store.set(campSlotKey(id,"sl"),sl);
-  if(mem)store.set(campSlotKey(id,"mem"),mem);
+  // B4: a quota throw here used to abort the CALLER unhandled — killing the beforeunload server
+  // flush below (exactly when the server copy is the only safe one) and leaving switch/new-game
+  // half-done with no toast. Now: fail LOUDLY, still flush, and return false so destructive
+  // callers (which wipe the live keys next) can abort instead of losing the un-snapshotted turns.
+  // One try for all three writes — the first failure stops the rest (consistent-stale together).
+  var ok=true;
+  try{
+    if(ws)store.set(campSlotKey(id,"ws"),ws);
+    if(sl)store.set(campSlotKey(id,"sl"),sl);
+    if(mem)store.set(campSlotKey(id,"mem"),mem);
+  }catch(e){
+    ok=false;
+    console.error("[camps] snapshot failed — storage full:",e);
+    if(typeof showToast==="function")showToast("⚠ Storage full — couldn't back up the current campaign. Free space: Campaigns → \"Remove local\" on old campaigns.");
+  }
   updateCampMeta();
   // Flush the debounced server sync before leaving this campaign (audit E74): snapshotActiveCamp is
   // the "about to switch/wipe" signal, and switchToCampaign/campNew/newGame/import never flushed —
   // so the outgoing campaign's final turn(s) could sit unsent in the 1.5s debounce window.
   if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow();
+  return ok;
 }
 function switchToCampaign(id){
-  snapshotActiveCamp();
+  // B4: abort BEFORE touching the live keys if the outgoing snapshot couldn't be written (storage
+  // full) — proceeding would overwrite the only local copy of the outgoing campaign's newest turns.
+  if(!snapshotActiveCamp())return false;
   // Capture the live keys + active id so a failed load can roll back (audit E35). Without this,
   // when loadState() fails on a corrupt target slot, the active id and live keys are already
   // repointed while the worldState/memory globals still hold the OLD campaign — the next saveAll
@@ -354,8 +373,47 @@ function switchToCampaign(id){
     setActiveCampId(prevId);
     loadState(); // restore the previous campaign into the globals
     if(typeof showToast==="function")showToast("Couldn't load that campaign — its save looks corrupted.");
+  }else{
+    // B4 de-dup: the slot copy just BECAME the live keys — the standing duplicate was ~590K of
+    // dead weight on a quota-pinned save. The next switch-away/unload snapshot recreates it.
+    // Only on success: the failed-load rollback must keep the target slots untouched (E35).
+    store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   }
   return ok;
+}
+// B4: drop the ACTIVE campaign's standing slot duplicate (~590K on a mature save). The live keys
+// ARE the campaign while it's active; the slot copy is only ever read after a switch-away, and
+// every switch path re-snapshots first (switchToCampaign/campNew/newGame/import). Runs at boot and
+// after an active-campaign cloud pull. Guarded: never deletes when the live core is missing —
+// then the slot IS the only copy.
+function dedupeActiveCampSlots(){
+  var id=getActiveCampId();if(!id||!store.get(WSK))return;
+  store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
+}
+// B4: remove a campaign's local snapshot but KEEP its picker row (unlike deleteCampaign) — the
+// row degrades to the existing cloud-only tier ("click Load to download"). The caller owns the
+// safety gate (planRemoveLocalCopy + a freshly confirmed cloud copy); this is just the storage op.
+function removeCampaignLocalCopy(id){
+  store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
+}
+// B4: policy for the picker's "Remove local" flow — pure so the engine tests can pin every branch;
+// ui-campaigns owns the dialogs and transport. cloudErr/cloudWs come from a FRESH server GET of
+// this campaign (never the stale onServer flag — an offline-played local copy can be AHEAD of the
+// cloud). localTurn = the local snapshot's turn, -1 when unreadable. Kinds:
+//   "offer-add"    — no cloud copy (404, or a row whose blob the server can't read): push first,
+//                    then remove; declining ABORTS (removal without a cloud copy = deletion).
+//   "offer-remove" — cloud is at/ahead of this device: plain removal, cloud kept as-is.
+//   "offer-update" — this device is AHEAD (or its turn is unreadable): push first, then remove;
+//                    declining ABORTS — removing without the push would destroy the newest turns.
+//   "no-server"    — the probe failed (offline/timeout/HTTP error): abort, keep the local copy.
+function planRemoveLocalCopy(cloudErr,cloudWs,localTurn){
+  if(cloudErr==="HTTP 404")return {kind:"offer-add"};
+  if(cloudErr)return {kind:"no-server",err:cloudErr};
+  if(!cloudWs)return {kind:"offer-add"};
+  var ct=typeof cloudWs.turn==="number"?cloudWs.turn:0;
+  var lt=typeof localTurn==="number"?localTurn:-1;
+  if(lt>=0&&ct>=lt)return {kind:"offer-remove",cloudTurn:ct,localTurn:lt};
+  return {kind:"offer-update",cloudTurn:ct,localTurn:lt};
 }
 function deleteCampaign(id){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));

@@ -270,7 +270,7 @@ function confirmChar(){
     var slEl2=document.getElementById("rv-start-loc"),startLoc2=slEl2?slEl2.value:"The Crossroads of Ashenveil";
     if(startLoc2==="custom"){var clEl2=document.getElementById("rv-start-loc-text");startLoc2=clEl2&&clEl2.value.trim()?clEl2.value.trim():"A place of your choosing";}
     ic._campName=campNm2;ic._startLoc=startLoc2;
-    snapshotActiveCamp();
+    if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
     worldState=null;sessionLog=[];memory=blankMemory();

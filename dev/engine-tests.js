@@ -5428,4 +5428,147 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return eq(threw,false);
   });
 
+  // ── B4: local-copy eviction + quota hardening ─────────────────────────────
+  section("B4: local-copy eviction + quota hardening");
+  t("planRemoveLocalCopy: HTTP 404 → offer-add (push first; decline aborts)",function(){
+    return eq(planRemoveLocalCopy("HTTP 404",null,810).kind,"offer-add");
+  });
+  t("planRemoveLocalCopy: row exists but server blob unreadable → offer-add (pushing repairs it)",function(){
+    return eq(planRemoveLocalCopy(null,null,810).kind,"offer-add");
+  });
+  t("planRemoveLocalCopy: probe failure (offline/HTTP 500) → no-server, local copy kept",function(){
+    var p=planRemoveLocalCopy("HTTP 500",{turn:5},810);
+    return p.kind==="no-server"&&p.err==="HTTP 500"?true:JSON.stringify(p);
+  });
+  t("planRemoveLocalCopy: cloud at/ahead of device → offer-remove, turns carried for the dialog",function(){
+    var a=planRemoveLocalCopy(null,{turn:810},810),b=planRemoveLocalCopy(null,{turn:900},810);
+    if(a.kind!=="offer-remove")return "equal turns: "+a.kind;
+    if(b.kind!=="offer-remove")return "cloud ahead: "+b.kind;
+    return a.cloudTurn===810&&a.localTurn===810?true:"turns not carried: "+JSON.stringify(a);
+  });
+  t("planRemoveLocalCopy: device AHEAD of cloud → offer-update (remove-without-push would destroy turns)",function(){
+    var p=planRemoveLocalCopy(null,{turn:480},512);
+    return p.kind==="offer-update"&&p.cloudTurn===480&&p.localTurn===512?true:JSON.stringify(p);
+  });
+  t("planRemoveLocalCopy: unreadable local turn → offer-update (conservative: treat as possibly ahead)",function(){
+    return eq(planRemoveLocalCopy(null,{turn:480},-1).kind,"offer-update");
+  });
+  t("planRemoveLocalCopy: cloud blob missing its turn field → treated as turn 0 → offer-update",function(){
+    var p=planRemoveLocalCopy(null,{},810);
+    return p.kind==="offer-update"&&p.cloudTurn===0?true:JSON.stringify(p);
+  });
+  t("removeCampaignLocalCopy deletes the slot triplet but KEEPS the picker row",function(){
+    setCampMeta([{id:"EV1",campName:"Evict Me",savedAt:1}]);
+    store.set(campSlotKey("EV1","ws"),"{}");store.set(campSlotKey("EV1","sl"),"[]");store.set(campSlotKey("EV1","mem"),"{}");
+    removeCampaignLocalCopy("EV1");
+    var gone=!store.get(campSlotKey("EV1","ws"))&&!store.get(campSlotKey("EV1","sl"))&&!store.get(campSlotKey("EV1","mem"));
+    var meta=getCampMeta(),kept=meta.length===1&&meta[0].id==="EV1";
+    store.del(CAMP_META_K);
+    if(!gone)return "slot keys survived eviction";
+    return kept?true:"picker row lost — that's deleteCampaign's job, not eviction's";
+  });
+  t("dedupeActiveCampSlots removes the active slots ONLY when the live core exists",function(){
+    setActiveCampId("DD1");
+    store.set(campSlotKey("DD1","ws"),"{}");store.set(campSlotKey("DD1","mem"),"{}");
+    store.del(WSK);
+    dedupeActiveCampSlots(); // no live core — the slot IS the only copy, must survive
+    var survived=!!store.get(campSlotKey("DD1","ws"));
+    store.set(WSK,"{}");
+    dedupeActiveCampSlots(); // live core present — the duplicate goes
+    var gone=!store.get(campSlotKey("DD1","ws"))&&!store.get(campSlotKey("DD1","mem"));
+    store.del(WSK);setActiveCampId(null);
+    store.del(campSlotKey("DD1","ws"));store.del(campSlotKey("DD1","sl"));store.del(campSlotKey("DD1","mem"));
+    if(!survived)return "deleted the only copy (no live core present)";
+    return gone?true:"duplicate survived with the live core present";
+  });
+  t("switchToCampaign deletes the incoming slot duplicate after a successful load (rollback path keeps it — E35)",function(){
+    makeWorld();worldState.campId="SB";worldState.character.name="Bryn";worldState.turn=42;
+    var bWs=JSON.stringify(worldState),bMem=JSON.stringify(memory);
+    makeWorld();worldState.campId="SA";
+    setActiveCampId("SA");
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(campSlotKey("SB","ws"),bWs);store.set(campSlotKey("SB","sl"),"[]");store.set(campSlotKey("SB","mem"),bMem);
+    var ok=switchToCampaign("SB");
+    var slotGone=!store.get(campSlotKey("SB","ws"))&&!store.get(campSlotKey("SB","sl"))&&!store.get(campSlotKey("SB","mem"));
+    var liveIsB=worldState&&worldState.character&&worldState.character.name==="Bryn";
+    var aSnapshotted=!!store.get(campSlotKey("SA","ws"));
+    ["SA","SB"].forEach(function(id){store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));});
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);setActiveCampId(null);store.del(CAMP_META_K);
+    if(!ok)return "switch failed — fixture should be loadable";
+    if(!liveIsB)return "live globals are not campaign B";
+    if(!aSnapshotted)return "outgoing campaign A was not snapshotted";
+    return slotGone?true:"incoming slot duplicate survived the switch";
+  });
+  t("snapshotActiveCamp at quota: returns false, toasts, and STILL flushes the server sync",function(){
+    makeWorld();setActiveCampId("QF1");
+    store.set(WSK,'{"turn":9}');
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    var backing={};
+    global.localStorage={
+      getItem:function(k){return (k in backing)?backing[k]:null;},
+      setItem:function(k,v){if(k.indexOf("tnd_camp_")===0){var e=new Error("quota");e.name="QuotaExceededError";throw e;}backing[k]=v;},
+      removeItem:function(k){delete backing[k];}
+    };
+    var flushed=false,realSync=storageAdapter.syncNow;storageAdapter.syncNow=function(){flushed=true;};
+    var toasts=[],hadToast=("showToast" in global),realToast=hadToast?global.showToast:undefined;
+    global.showToast=function(m){toasts.push(m);};
+    var ok;
+    try{ok=snapshotActiveCamp();}finally{
+      storageAdapter.syncNow=realSync;
+      if(hadToast)global.showToast=realToast;else delete global.showToast;
+      if(had)global.localStorage=real;else delete global.localStorage;
+    }
+    Object.keys(_mKeys).forEach(function(k){if(k.indexOf("tnd_camp_QF1_")===0){delete _m[k];delete _mKeys[k];}});
+    store.del(WSK);setActiveCampId(null);store.del(CAMP_META_K);
+    if(ok!==false)return "expected false, got "+ok;
+    if(!flushed)return "server flush was skipped — a quota throw still kills the beforeunload flush";
+    return toasts.length?true:"no toast — silent failure";
+  });
+  t("switchToCampaign ABORTS untouched when the outgoing snapshot hits quota",function(){
+    makeWorld();worldState.campId="QA";setActiveCampId("QA");
+    var liveBlob=JSON.stringify(worldState);
+    store.set(WSK,liveBlob);store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));
+    store.set(campSlotKey("QB","ws"),liveBlob); // a target that WOULD load fine
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    var backing={};
+    global.localStorage={
+      getItem:function(k){return (k in backing)?backing[k]:null;},
+      setItem:function(k,v){if(k.indexOf("tnd_camp_QA_")===0){var e=new Error("quota");e.name="QuotaExceededError";throw e;}backing[k]=v;},
+      removeItem:function(k){delete backing[k];}
+    };
+    var ok;
+    try{ok=switchToCampaign("QB");}finally{if(had)global.localStorage=real;else delete global.localStorage;}
+    var stillA=getActiveCampId()==="QA"&&store.get(WSK)===liveBlob;
+    Object.keys(_mKeys).forEach(function(k){if(k.indexOf("tnd_camp_Q")===0){delete _m[k];delete _mKeys[k];}});
+    store.del(WSK);store.del(SLK);store.del(MEM_KEY);setActiveCampId(null);
+    store.del(campSlotKey("QB","ws"));store.del(CAMP_META_K);
+    if(ok!==false)return "expected false, got "+ok;
+    return stillA?true:"live keys / active id were touched despite the failed snapshot";
+  });
+  t("updateCampMeta swallows a quota throw LOUDLY (saveAll runs it un-guarded before scheduling the server sync)",function(){
+    // The real saveAll is stubbed suite-wide (top of this file), so exercise the property directly:
+    // updateCampMeta must never rethrow quota — in production an escape here kills the
+    // storageAdapter.syncToServer() call that follows it in saveAll, i.e. the server stops
+    // being scheduled at exactly the moment the server copy is the only safe one.
+    makeWorld();worldState.campId="QM";setActiveCampId("QM");
+    var had=("localStorage" in global),real=had?global.localStorage:undefined;
+    var backing={};
+    global.localStorage={
+      getItem:function(k){return (k in backing)?backing[k]:null;},
+      setItem:function(k,v){if(k===CAMP_META_K){var e=new Error("quota");e.name="QuotaExceededError";throw e;}backing[k]=v;},
+      removeItem:function(k){delete backing[k];}
+    };
+    var errs=[],realErr=console.error;console.error=function(m){errs.push(String(m));};
+    var threw=false;
+    try{updateCampMeta();}catch(e){threw=true;}
+    finally{
+      console.error=realErr;
+      if(had)global.localStorage=real;else delete global.localStorage;
+    }
+    delete _m[CAMP_META_K];delete _mKeys[CAMP_META_K];
+    setActiveCampId(null);
+    if(threw)return "quota escaped updateCampMeta — saveAll's syncToServer call dies with it";
+    return errs.length?true:"the swallowed failure was SILENT — no console.error";
+  });
+
 }

@@ -174,7 +174,7 @@ Parked watches and break-glass items — deliberately OUT of the backlog so they
 1. **FTS5 for RAG** — `ragRetrieve`'s hand-rolled IDF is a poor man's BM25; SQLite FTS5 gives real BM25 + indexes over the transcript, same no-API/deterministic character as Phase 1. Likely a better-fitting RAG Phase 2 than embeddings.
 2. **Changeset-based sync** — the server is already SQLite; the session extension produces row-level changesets = the grown-up answer to whole-blob last-writer-wins (Known issue #5) and the multiplayer (#1) prerequisite.
 
-**Revisit triggers:** RAG Phase 2 gets green-lit (→ consider FTS5 for the transcript index only); multiplayer/server-authoritative state starts (→ consider changesets server-side); or localStorage quota actually bites in the wild (→ IndexedDB first, not SQLite).
+**Revisit triggers:** RAG Phase 2 gets green-lit (→ consider FTS5 for the transcript index only); multiplayer/server-authoritative state starts (→ consider changesets server-side); or localStorage quota actually bites in the wild (→ IndexedDB first, not SQLite). *Quota DID bite 2026-07-18 (bug B4, iPhone at the iOS 2560K-char ceiling) — addressed WITHOUT IndexedDB by snapshot eviction ("Remove local" behind a confirmed cloud copy) + active-campaign de-dup (v1.363, see DOC/BUGS.md B4); IndexedDB remains the escalation if a single campaign ever outgrows the quota on its own.*
 
 ### Subscription model (2026-06)
 **Decision:** Traffic and Dragons will ship as a subscription service. Users will not bring their own API keys.
