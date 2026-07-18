@@ -120,6 +120,24 @@ function showCapabilityCard(name){
 }
 function csWireToggles(modal){var hdrs=modal.querySelectorAll(".cs-sec-tog"),hi;for(hi=0;hi<hdrs.length;hi++){hdrs[hi].addEventListener("click",function(){var body=this.parentNode.querySelector(".cs-sec-body"),arr=this.querySelector(".cs-tog-arr"),open=body.style.display!=="none";body.style.display=open?"none":"block";arr.style.transform=open?"":"rotate(90deg)";});}}
 
+// TODO #1 P1: shared PC/NPC toggle button style — one renderer for the hero sheet and every
+// companion sheet (radio-style pair, highlighted side = current status, per D1).
+function _pcTogBtnCss(on){return "padding:3px 14px;font-size:11px;font-family:var(--font);border-radius:var(--r);cursor:pointer;border:1px solid "+(on?"var(--acc)":"var(--brd)")+";background:"+(on?"var(--acc)":"none")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";";}
+// D2 confirm — demoting the LAST player character is allowed (AI-plays-everyone mode) but never
+// silent. cb runs only on explicit confirm.
+function _confirmLastPcDemote(cb){
+  var m=modalShell("lastpc-confirm",
+    "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>No active player specified — pure NPC turn?</div>"
+    +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>With no player characters, the GM plays the whole party. You can flip anyone back to PC at any time.</div>"
+    +"<div style='display:flex;gap:10px;justify-content:center;'>"
+    +"<button id='lp-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Yes — GM plays everyone</button>"
+    +"<button id='lp-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+    +"</div>",
+    {z:500,maxWidth:380,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
+  document.getElementById("lp-ok").addEventListener("click",function(){m.remove();cb();});
+  document.getElementById("lp-cancel").addEventListener("click",function(){m.remove();});
+}
+
 function showCharSheet(){
   if(!worldState)return;
   var c=worldState.character;
@@ -139,6 +157,14 @@ function showCharSheet(){
     +"<div class='cs-hero-name'>"+escHtml(c.name)+"</div>"
     +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
     +"<div class='cs-hero-sub'>"+hdr.genderLbl+" · "+escHtml(c.age)+(c.deity?" · "+escHtml(c.deity):"")+"</div>"
+    /* TODO #1 P1 (user call 2026-07-17): the hero gets the SAME PC/NPC toggle as companions.
+       isPC===false is the only demoted state (undefined = PC — every legacy save). Demoting the
+       LAST PC triggers the D2 confirm ("pure NPC turn?") — allowed, it's the AI-plays-everyone mode. */
+    +"<div style='display:flex;gap:6px;margin-top:6px;align-items:center;'>"
+    +"<button id='cs-tog-pc' style='"+_pcTogBtnCss(c.isPC!==false)+"'>PC</button>"
+    +"<button id='cs-tog-npc' style='"+_pcTogBtnCss(c.isPC===false)+"'>NPC</button>"
+    +"<span style='font-size:10px;color:var(--t2);'>"+(c.isPC!==false?"player character":"GM-played — no active player")+"</span>"
+    +"</div>"
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+c.hp+"/"+c.maxHp+" HP</span>"
@@ -157,6 +183,19 @@ function showCharSheet(){
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   csWireToggles(modal);
+
+  // ── PC/NPC toggle on the hero (TODO #1 P1, D1/D2) ─────────────────────────
+  document.getElementById("cs-tog-pc").addEventListener("click",function(){
+    if(c.isPC!==false)return;
+    delete c.isPC;/* undefined = PC — keeps legacy saves byte-clean, same convention as ragMemory */
+    saveAll();showToast("★ "+c.name+" is a PLAYER character — "+playerCount()+" player"+(playerCount()===1?"":"s"),4000);
+    modal.remove();showCharSheet();
+  });
+  document.getElementById("cs-tog-npc").addEventListener("click",function(){
+    if(c.isPC===false)return;
+    var demote=function(){c.isPC=false;saveAll();showToast(c.name+" is GM-played — "+(playerCount()===0?"no active player (pure NPC turns)":playerCount()+" player"+(playerCount()===1?"":"s")+" remain"),5000);modal.remove();showCharSheet();};
+    if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
+  });
 
   // ── portrait handlers ─────────────────────────────────────────────────────
   function refreshAvatar(){
@@ -291,10 +330,9 @@ function showNpcSheet(name){
     // (anchor swap) deliberately SURVIVES until P3 gives the toggle real turn semantics — D1's
     // full replacement lands there, else P1 would regress a working feature for a no-op flag.
     var _isPC=!!(wsNpc&&wsNpc.isPC);
-    function _togBtnCss(on){return "padding:3px 14px;font-size:11px;font-family:var(--font);border-radius:var(--r);cursor:pointer;border:1px solid "+(on?"var(--acc)":"var(--brd)")+";background:"+(on?"var(--acc)":"none")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";";}
     var pcToggle=isParty?"<div style='display:flex;gap:6px;margin-top:6px;align-items:center;'>"
-      +"<button id='npc-tog-pc' style='"+_togBtnCss(_isPC)+"'>PC</button>"
-      +"<button id='npc-tog-npc' style='"+_togBtnCss(!_isPC)+"'>NPC</button>"
+      +"<button id='npc-tog-pc' style='"+_pcTogBtnCss(_isPC)+"'>PC</button>"
+      +"<button id='npc-tog-npc' style='"+_pcTogBtnCss(!_isPC)+"'>NPC</button>"
       +"<span style='font-size:10px;color:var(--t2);'>"+(_isPC?"player character (hot-seat)":"companion — the GM plays them")+"</span>"
       +"</div>":"";
     heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+"</div>"
@@ -378,9 +416,9 @@ function showNpcSheet(name){
     });
     document.getElementById("npc-tog-npc").addEventListener("click",function(){
       if(!wsNpc.isPC)return;
-      wsNpc.isPC=false;saveAll();
-      showToast(name+" is a companion again — the GM plays them",4000);
-      modal.remove();showNpcSheet(name);
+      var demote=function(){wsNpc.isPC=false;saveAll();showToast(name+" is a companion again — the GM plays them",4000);modal.remove();showNpcSheet(name);};
+      // D2 guard here too: if the hero is demoted, this companion can be the LAST PC
+      if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
     });
   }
 

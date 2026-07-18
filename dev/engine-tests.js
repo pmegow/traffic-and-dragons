@@ -871,6 +871,16 @@ function runEngineTests(R){
     if(playerCount()!==1)return "dead PC counted as a player: "+playerCount();
     return true;
   });
+  t("MP-P1: hero demote (D2) — isPC:false zeroes playerCount; delete restores; only ===false demotes",function(){
+    makeWorld();
+    worldState.character.isPC=false;
+    if(playerCount()!==0)return "demoted hero still counted: "+playerCount();
+    delete worldState.character.isPC;
+    if(playerCount()!==1)return "delete did not restore the hero: "+playerCount();
+    worldState.character.isPC=true;/* explicit true must behave like undefined */
+    if(playerCount()!==1)return "explicit true miscounted: "+playerCount();
+    return true;
+  });
   t("TODO#22: blueprint rules inject as WRAPPED data, not raw prompt text (+ re-apply dedupes)",function(){
     makeWorld();
     customRules=[];
