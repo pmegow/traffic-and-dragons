@@ -19,4 +19,7 @@ audits/AUDIT_FABLE_*.md
 
 # Personal Claude Code settings (hooks + launch.json ARE committed)
 .claude/settings.local.json
+
+# Bug-triage endpoint secret (/bugs sync) — the GAS doGet shared secret never enters the repo
+.claude/bugs.local.json
 dev/*.endstate.json

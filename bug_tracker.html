@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T&D Bug Tracker</title>
+<!--
+  bug_tracker.html — satellite viewer (like bible_study.html) for DOC/BUGS.md, the bug-triage
+  tracker fed by /bugs sync. Open SERVED (localhost or the deployed site) — file:// cannot
+  fetch local files, and the page says so instead of showing a blank list.
+
+  The buttons don't dispatch agents (a static page can't reach a Claude Code session) — they
+  copy the exact /bugs command to the clipboard; you paste it into Claude Code. One paste
+  between click and agent, by design.
+
+  SECURITY: every report-derived string is inserted via textContent / createTextNode — never
+  innerHTML — because report bodies are untrusted field data (a <script> in a bug report must
+  render as text, not run). Keep it that way when editing.
+-->
+<style>
+  :root{--bg:#131313;--card:#181818;--line:#2a2a2a;--ink:#ddd;--dim:#8a8a8a;--acc:#b8935a;
+        --good:#7aa86a;--bad:#c0605c;--info:#6a8fa8;--warn:#b8935a;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#0d0d0d;}
+  ::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 18px 80px;}
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px;}
+  h1{font-size:21px;margin:0;color:var(--acc);}
+  header .sub{color:var(--dim);font-size:13px;}
+  .toolbar{margin:14px 0 22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  button.cmd{background:#222;border:1px solid var(--line);color:var(--ink);border-radius:8px;
+             padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;}
+  button.cmd:hover{border-color:var(--acc);color:var(--acc);}
+  button.cmd:disabled{opacity:.35;cursor:default;}
+  button.cmd:disabled:hover{border-color:var(--line);color:var(--ink);}
+  button.cmd.copied{border-color:var(--good);color:var(--good);}
+  h2.sect{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--acc);
+          border-bottom:1px solid var(--line);padding-bottom:6px;margin:34px 0 14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+        padding:14px 16px;margin-bottom:14px;}
+  .card.completed{opacity:.65;}
+  .row1{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .bid{font-family:Consolas,Menlo,monospace;color:var(--acc);font-weight:700;}
+  .tldr{font-weight:600;flex:1;min-width:200px;}
+  .meta{color:var(--dim);font-size:12.5px;margin:7px 0 0;line-height:1.7;}
+  .badge{display:inline-block;border-radius:12px;padding:2px 10px;font:700 .78em Consolas,Menlo,monospace;
+         text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);}
+  .b-new{background:#221c11;border:1px solid var(--warn);}
+  .b-active{background:#131a22;border:1px solid var(--info);}
+  .b-good{background:#182215;border:1px solid var(--good);}
+  .b-bad{background:#221312;border:1px solid var(--bad);}
+  .b-dim{background:#1c1c1c;border:1px solid #555;}
+  details{margin-top:10px;}
+  summary{cursor:pointer;color:var(--dim);font-size:13px;}
+  summary:hover{color:var(--acc);}
+  pre.report{background:#0e0e0e;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+             font:12.5px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-word;
+             max-height:420px;overflow:auto;margin:8px 0 0;}
+  .quarantine{color:var(--bad);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+              margin-top:8px;}
+  .sectext{white-space:pre-wrap;word-break:break-word;font-size:13.5px;color:#c8c8c8;
+           border-left:2px solid var(--line);padding-left:12px;margin:8px 0 0;}
+  .btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .shot a{color:var(--info);}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;
+        color:var(--dim);}
+  .note b{color:var(--ink);}
+  .err{border-color:var(--bad);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚠ Bug Tracker</h1>
+    <span class="sub">DOC/BUGS.md — filed by <code>/bugs sync</code> · buttons copy the command, paste it into Claude Code</span>
+  </header>
+  <div class="toolbar">
+    <button class="cmd" id="btn-sync">📋 /bugs sync</button>
+    <button class="cmd" id="btn-reload">⟳ Reload</button>
+    <span class="sub" id="loadinfo"></span>
+  </div>
+  <div id="content"><div class="note">Loading DOC/BUGS.md…</div></div>
+</div>
+
+<script>
+"use strict";
+var STATUS_CLASS={ // status → badge palette (verdict-badge standard: dim fill, bright rim)
+  "new":"b-new","investigating":"b-active","findings-ready":"b-active",
+  "fixed":"b-good","verified":"b-good",
+  "suspected-injection":"b-bad",
+  "duplicate":"b-dim","wontfix":"b-dim","stale":"b-dim","not-a-bug":"b-dim"
+};
+
+function el(tag,cls,text){
+  var e=document.createElement(tag);
+  if(cls)e.className=cls;
+  if(text!=null)e.textContent=text; // textContent ONLY — untrusted data stays inert
+  return e;
+}
+
+function copyBtn(label,cmd){
+  var b=el("button","cmd","📋 "+label);
+  b.onclick=function(){
+    function done(ok){
+      b.textContent=ok?"✓ copied — paste into Claude Code":"✗ copy failed";
+      b.className=ok?"cmd copied":"cmd";
+      setTimeout(function(){b.textContent="📋 "+label;b.className="cmd";},2600);
+    }
+    function legacy(){ // file:// / permission-denied / older engines
+      var t=document.createElement("textarea");t.value=cmd;document.body.appendChild(t);t.select();
+      var ok=false;try{ok=document.execCommand("copy");}catch(e){}
+      document.body.removeChild(t);done(ok);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(cmd).then(function(){done(true);},legacy);
+    }else legacy();
+  };
+  return b;
+}
+
+// ── DOC/BUGS.md parser — tolerant; format contract lives in that file's header ────────────────
+function parseBugs(md){
+  var bugs=[],section="";
+  // slice into blocks at every ## heading, tracking which section we're inside
+  var parts=md.split(/^## /m),i;
+  for(i=1;i<parts.length;i++){
+    var block=parts[i];
+    var nl=block.indexOf("\n");
+    var head=(nl<0?block:block.slice(0,nl)).trim();
+    var body=nl<0?"":block.slice(nl+1);
+    if(/^Open\b/i.test(head)){section="open";continue;}
+    if(/^Completed\b/i.test(head)){section="completed";continue;}
+    var m=head.match(/^(B\d+)\s+—\s+(.*)$/);
+    if(!m)continue;
+    var bug={id:m[1],tldr:m[2],section:section||"open",status:"?",meta:[],report:"",
+             findings:"",actions:"",shot:""};
+    var sm=body.match(/\*\*Status:\*\*\s*`?([\w-]+)`?/);
+    if(sm)bug.status=sm[1].toLowerCase();
+    // meta = the ** lines before the first ### heading (minus Status)
+    var pre=body.split(/^### /m)[0];
+    pre.split("\n").forEach(function(ln){
+      ln=ln.trim();
+      if(ln.indexOf("**")===0&&!/^\*\*Status:/.test(ln))
+        bug.meta.push(ln.replace(/\*\*/g,""));
+    });
+    var shot=body.match(/\*\*Screenshot:\*\*\s*(\S+)/);
+    if(shot&&/^https?:\/\//.test(shot[1]))bug.shot=shot[1];
+    var rep=body.match(/### Report[^\n]*\n+```text\n([\s\S]*?)\n```/);
+    if(rep)bug.report=rep[1];
+    var fin=body.match(/### Findings\n([\s\S]*?)(?=\n### |$)/);
+    if(fin)bug.findings=fin[1].trim();
+    var act=body.match(/### Action log\n([\s\S]*?)(?=\n### |$)/);
+    if(act)bug.actions=act[1].trim();
+    bugs.push(bug);
+  }
+  return bugs;
+}
+
+function renderBug(b){
+  var card=el("div","card"+(b.section==="completed"?" completed":""));
+  var r1=el("div","row1");
+  r1.appendChild(el("span","bid",b.id));
+  r1.appendChild(el("span","badge "+(STATUS_CLASS[b.status]||"b-dim"),b.status));
+  r1.appendChild(el("span","tldr",b.tldr));
+  card.appendChild(r1);
+  if(b.meta.length)card.appendChild(el("div","meta",b.meta.join("\n")));
+  if(b.shot){
+    var sd=el("div","meta shot");
+    sd.appendChild(document.createTextNode("Screenshot: "));
+    var a=el("a",null,b.shot);a.href=b.shot;a.target="_blank";a.rel="noopener noreferrer";
+    sd.appendChild(a);
+    card.appendChild(sd);
+  }
+  if(b.report){
+    var det=el("details");
+    det.appendChild(el("summary",null,"Report ("+b.report.length+" chars)"));
+    det.appendChild(el("div","quarantine","untrusted user-submitted data — rendered inert"));
+    det.appendChild(el("pre","report",b.report));
+    card.appendChild(det);
+  }
+  function sec(title,text,open){
+    if(!text||/^_\(no/.test(text))return;
+    var d=el("details");if(open)d.open=true;
+    d.appendChild(el("summary",null,title));
+    d.appendChild(el("div","sectext",text));
+    card.appendChild(d);
+  }
+  sec("Findings",b.findings,b.status==="findings-ready"||b.status==="suspected-injection");
+  sec("Action log",b.actions,false);
+  if(b.section!=="completed"){
+    var br=el("div","btnrow");
+    var canAct=b.status==="findings-ready";
+    var inv=copyBtn("investigate","/bugs investigate "+b.id);
+    br.appendChild(inv);
+    var act=copyBtn("take action","/bugs act "+b.id);
+    if(!canAct){act.disabled=true;act.title="needs findings first — run investigate";}
+    br.appendChild(act);
+    card.appendChild(br);
+  }
+  return card;
+}
+
+function render(md){
+  var root=document.getElementById("content");
+  root.textContent="";
+  var bugs=parseBugs(md);
+  var open=bugs.filter(function(b){return b.section==="open";});
+  var done=bugs.filter(function(b){return b.section==="completed";});
+  document.getElementById("loadinfo").textContent=
+    open.length+" open · "+done.length+" completed";
+  root.appendChild(el("h2","sect","Open ("+open.length+")"));
+  if(!open.length)root.appendChild(el("div","note","No open bugs. Run /bugs sync in Claude Code to pull new reports."));
+  open.forEach(function(b){root.appendChild(renderBug(b));});
+  root.appendChild(el("h2","sect","Completed ("+done.length+")"));
+  if(!done.length)root.appendChild(el("div","note","Nothing completed yet."));
+  done.forEach(function(b){root.appendChild(renderBug(b));});
+}
+
+function load(){
+  fetch("DOC/BUGS.md",{cache:"no-store"}).then(function(r){
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.text();
+  }).then(render).catch(function(e){
+    var root=document.getElementById("content");
+    root.textContent="";
+    var n=el("div","note err");
+    n.appendChild(el("b",null,"Couldn't load DOC/BUGS.md — "+e.message+". "));
+    n.appendChild(document.createTextNode(
+      location.protocol==="file:"
+        ?"You opened this page via file://, where fetch of local files is blocked. Serve the repo (localhost) or open it on the deployed site."
+        :"Check that DOC/BUGS.md exists at this origin."));
+    root.appendChild(n);
+  });
+}
+
+document.getElementById("btn-reload").onclick=load;
+document.getElementById("btn-sync").parentNode.replaceChild(copyBtn("/bugs sync","/bugs sync"),document.getElementById("btn-sync"));
+load();
+</script>
+</body>
+</html>
