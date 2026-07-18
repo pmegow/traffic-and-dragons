@@ -980,6 +980,42 @@ function runEngineTests(R){
     worldState.mpQueue=[];
     return true;
   });
+  t("MP-P4 (D8/D10): multiplayer round rules inject VOLATILE-only when playerCount>1 — named tag routing, per-action POV; demote restores byte-identity",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen",partyMember:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    var p0=buildSysPrompt();/* Morwen present as a plain companion — isolates the round-rules diff */
+    if(p0.volatile.indexOf("MULTIPLAYER ROUND RULES")>=0)return "single-player volatile carries the round rules";
+    worldState.npcs[worldState.npcs.length-1].isPC=true;
+    var p1=buildSysPrompt();
+    if(p1.stable!==p0.stable)return "round rules perturbed the STABLE half — cache kill";
+    if(p1.volatile.indexOf("MULTIPLAYER ROUND RULES")<0)return "round rules missing in a multi-PC world";
+    if(p1.volatile.indexOf("always mean "+worldState.character.name+" and ONLY")<0)return "bare-tag routing line missing the hero's name";
+    if(p1.volatile.indexOf("per-action POV")<0)return "D10 POV instruction missing";
+    worldState.npcs[worldState.npcs.length-1].isPC=false;
+    var p2=buildSysPrompt();
+    if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
+    return true;
+  });
+  t("MP-P4 (D8): bare-tag misroute tripwire — warns (batched, soft) on bare sheet tags in a multi-PC round; XP exempt; single-player silent",function(){
+    makeWorld();
+    var warns=[],origWarn=console.warn;
+    console.warn=function(){warns.push(Array.prototype.join.call(arguments," "));};
+    try{
+      applyMuts("You take the hit. [HP:-3]");
+      var spWarned=warns.some(function(w){return w.indexOf("bare mutation tag")>=0;});
+      if(spWarned)return "single-player round tripped the multi-PC warn";
+      worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+      warns.length=0;
+      applyMuts("Steel rings. [HP:-3] A purse lands in your hand. [GOLD:+5] [XP:10]");
+      var hit=null,i;for(i=0;i<warns.length;i++){if(warns[i].indexOf("bare mutation tag")>=0){hit=warns[i];break;}}
+      if(!hit)return "multi-PC bare tags did not warn";
+      if(hit.indexOf("2 bare")<0)return "expected 2 bare hits (HP+GOLD, XP exempt): "+hit;
+      warns.length=0;
+      applyMuts("Morwen staggers. [COMPANION_HP:Morwen|-4] [XP:10]");
+      for(i=0;i<warns.length;i++){if(warns[i].indexOf("bare mutation tag")>=0)return "COMPANION_*-only response false-tripped: "+warns[i];}
+    }finally{console.warn=origWarn;}
+    return true;
+  });
   t("MP-P3 (D4): suggestion POV — multi-PC appends the sub-turn line to VOLATILE only; stable stays byte-identical (cache); single-player unchanged",function(){
     makeWorld();
     var s0=buildSuggestionSys();

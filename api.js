@@ -407,7 +407,15 @@ function buildSysPrompt(){
   var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")
     // TODO #1 P1: >1 guard is load-bearing — single-player prompts must stay BYTE-IDENTICAL
     // (the DOC_multiplayer invariant; engine-tested). Full round semantics arrive with P3/P4.
-    +(typeof playerCount==="function"&&playerCount()>1?" PLAYERS: "+playerCount()+" party members are PLAYER characters (hot-seat multiplayer — each acts on their own player's intent).":"")
+    +(typeof playerCount==="function"&&playerCount()>1?" PLAYERS: "+playerCount()+" party members are PLAYER characters (hot-seat multiplayer — each acts on their own player's intent)."
+      /* TODO #1 P4 (D8/D10): the multiplayer round rules — VOLATILE-only, playerCount>1 gated
+         (single-player byte-identity is the spec anchor, engine-tested). References the existing
+         COMPANION_* tag docs in the stable half; adds NO tag vocabulary. */
+      +"\nMULTIPLAYER ROUND RULES:"
+      +"\n- The player message each turn is a labeled round block — one line per player character, \"Name: action\". Resolve ALL of the round's actions in ONE narration, ordered sensibly within the fiction; no player character's action may be skipped."
+      +"\n- Second person: \"you\" addresses whichever player character's beat you are narrating (per-action POV). Anchor each beat with that character's name BEFORE using \"you\" for them, and never leave a \"you\" ambiguous between player characters."
+      +"\n- STATE TAG ROUTING: bare tags (HP, GOLD, ITEM_GAINED/ITEM_LOST, SPELL_USED, CONDITION, ALIGNMENT, ABILITY_GAINED, SKILL_SUCCESS, ...) always mean "+c.name+" and ONLY "+c.name+". For every OTHER player character use the name-addressed COMPANION_* tags (e.g. [COMPANION_HP:Name|-3]), exactly as for companions. NEVER emit a bare mutation tag for something that happened to a player character other than "+c.name+"."
+      +"\n- [XP:N] stays a single shared award (the engine mirrors it to every party member) — emit it once per round, never per character; [COMPANION_XP:] remains individual-bonus-only.":"")
     +"\n\n";
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
@@ -842,7 +850,28 @@ function foldDuplicateInventory(inv){
 function applyMuts(text){
   var R=applyMutsTable(text);
   __tagUnknownScan(text);
+  __mpBareTagScan(text);
   return R;
+}
+// ── TODO #1 P4 (D8): soft misroute tripwire ──────────────────────────────────
+// OBSERVATIONAL ONLY — zero parser contact, zero mutation, runs AFTER the table has applied.
+// In a multi-PC round every bare sheet-mutation tag lands on the HERO by definition (D8: bare
+// tags keep meaning worldState.character). That is often correct — but if the GM meant another
+// player character it is a silent misroute, so we surface every bare hit: one console warn per
+// tag, ONE batched toast per response (soft — never a block, the spec's ruling). XP is excluded
+// (deliberately shared — the party mirror). Single-player: gated off entirely.
+var MP_BARE_TAGS=["HP","GOLD","ITEM_GAINED","ITEM_LOST","SPELL_USED","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","ALIGNMENT","ABILITY_GAINED","LANGUAGE","SKILL_SUCCESS"];
+function __mpBareTagScan(text){
+  if(typeof playerCount!=="function"||playerCount()<=1)return;
+  var hits=[],i;
+  for(i=0;i<MP_BARE_TAGS.length;i++){
+    var re=new RegExp("\\["+MP_BARE_TAGS[i]+":","g"),m;
+    while((m=re.exec(text))!==null)hits.push(MP_BARE_TAGS[i]);
+  }
+  if(!hits.length)return;
+  var hero=(worldState&&worldState.character&&worldState.character.name)||"the hero";
+  console.warn("[multiplayer] "+hits.length+" bare mutation tag(s) in a multi-PC round — applied to "+hero+" ("+hits.join(", ")+"). If any were meant for another PC, the GM should have used COMPANION_* tags; correct via Sync.");
+  if(typeof showToast==="function")showToast("⚠ "+hits.length+" bare tag"+(hits.length>1?"s":"")+" → "+hero+" (multi-PC round). Wrong sheet? Fix via Sync.",5000);
 }
 // ── Usage/cost telemetry (TODO #21) ───────────────────────────────────────────
 // Estimated $ for one response's usage, priced from MODEL_PRICING (globals.js) by
