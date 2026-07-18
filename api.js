@@ -560,6 +560,14 @@ function buildSysPrompt(){
   // Transient departure marker — set by the "Part ways" button; auto-cleared in sendAction after ~2 turns.
   var leftBlock="";
   if(worldState.recentlyLeft&&worldState.recentlyLeft.length){var _ln=worldState.recentlyLeft.map(function(x){return x.name;}).join(", ");leftBlock="*** PARTY DEPARTURE ***\n"+_ln+" has LEFT the party and is no longer travelling with the player. Do not narrate them as present in the current scene or acting alongside the party; the conversation history above may still show them present, but they have gone. They remain part of the world and may reappear later as an ordinary NPC if the story brings them back.\n\n";}
+  // TODO #1 D12 follow-up (user field report 2026-07-18): leaving multiplayer needs the same
+  // history-momentum antidote as a control switch — after the last co-PC demotes, the sessionLog
+  // is full of the GM's OWN third-person narration and one role line can't outweigh it (the
+  // narration stayed third-person in the field). Same recentSwitch pattern: set by the demote
+  // toggles when playerCount drops to 1, auto-cleared in commitGmTurn after ~2 turns, deleted
+  // instantly by a re-promote (the D12 override takes back over).
+  var mpEndBlock="";
+  if(worldState.mpEnded){mpEndBlock="*** MULTIPLAYER ENDED — SINGLE PLAYER RESUMED ***\nThe hot-seat session is over: "+c.name+" is the ONLY player character again. Return to SECOND-PERSON narration immediately — 'you'/'your' means "+c.name+". The recent history's third-person narration of "+c.name+" was the multiplayer mode and no longer applies; companions are narrated in third person as usual.\n\n";}
   // ── Stable/volatile split (TODO #11 prompt caching) ───────────────────────
   // STABLE: campaign-constant text only — byte-identical turn to turn, so the Anthropic
   // adapter can put a cache_control breakpoint after it. Rules, tone, and voice change only
@@ -581,7 +589,7 @@ function buildSysPrompt(){
     // to the battle-tested hand-written text (frozen by an engine test + a pre/post stable-half
     // capture). Doc wording changes are separate deliberate commits, never bundled with mechanics.
     +buildStateTagsDoc();
-  var volatile_=identity+switchBlock+leftBlock
+  var volatile_=identity+switchBlock+mpEndBlock+leftBlock
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"

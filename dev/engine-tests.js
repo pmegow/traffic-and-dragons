@@ -1002,6 +1002,19 @@ function runEngineTests(R){
     if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
     return true;
   });
+  t("MP-D12 exit: worldState.mpEnded injects the second-person reinforcement block (volatile-only); clearing restores byte-identity",function(){
+    makeWorld();
+    var p0=buildSysPrompt();
+    worldState.mpEnded={turn:worldState.turn||0};
+    var p1=buildSysPrompt();
+    if(p1.stable!==p0.stable)return "mpEnded perturbed the STABLE half — cache kill";
+    if(p1.volatile.indexOf("MULTIPLAYER ENDED — SINGLE PLAYER RESUMED")<0)return "exit reinforcement block missing";
+    if(p1.volatile.indexOf("'you'/'your' means "+worldState.character.name)<0)return "block does not re-anchor 'you' to the hero";
+    worldState.mpEnded=null;
+    var p2=buildSysPrompt();
+    if(p2.volatile!==p0.volatile)return "clearing mpEnded did not restore volatile byte-identity";
+    return true;
+  });
   t("MP-P4 (D8): bare-tag misroute tripwire — warns (batched, soft) on bare sheet tags in a multi-PC round; XP exempt; single-player silent",function(){
     makeWorld();
     var warns=[],origWarn=console.warn;

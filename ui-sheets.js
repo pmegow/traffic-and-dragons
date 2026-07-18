@@ -191,6 +191,7 @@ function showCharSheet(){
   document.getElementById("cs-tog-pc").addEventListener("click",function(){
     if(c.isPC!==false)return;
     delete c.isPC;/* undefined = PC — keeps legacy saves byte-clean, same convention as ragMemory */
+    if(worldState.mpEnded&&playerCount()>1)worldState.mpEnded=null;/* D12: back into multiplayer — cancel the exit reinforcement */
     saveAll();showToast("★ "+c.name+" is a PLAYER character — "+playerCount()+" player"+(playerCount()===1?"":"s"),4000);
     modal.remove();showCharSheet();
   });
@@ -426,13 +427,13 @@ function showNpcSheet(name){
   if(document.getElementById("npc-tog-pc")){
     document.getElementById("npc-tog-pc").addEventListener("click",function(){
       if(wsNpc.isPC)return;
-      wsNpc.isPC=true;saveAll();
+      wsNpc.isPC=true;if(worldState.mpEnded)worldState.mpEnded=null;/* D12: re-entering multiplayer cancels the exit reinforcement — the third-person override takes back over */saveAll();
       showToast("★ "+name+" is now a PLAYER character — "+playerCount()+" players in the party",4000);
       modal.remove();showNpcSheet(name);
     });
     document.getElementById("npc-tog-npc").addEventListener("click",function(){
       if(!wsNpc.isPC)return;
-      var demote=function(){wsNpc.isPC=false;if(worldState.activePC===name)delete worldState.activePC;/* P2: a demoted PC can't keep the spotlight — deliberate clear (the accessor's loud heal is the backstop) */saveAll();if(typeof syncUI==="function")syncUI();/* P2: repaint — the HUD may have been showing this PC */showToast(name+" is a companion again — the GM plays them",4000);modal.remove();showNpcSheet(name);};
+      var demote=function(){var _wasMulti=playerCount()>1;wsNpc.isPC=false;if(worldState.activePC===name)delete worldState.activePC;/* P2: a demoted PC can't keep the spotlight — deliberate clear (the accessor's loud heal is the backstop) */if(_wasMulti&&playerCount()<=1&&worldState.character.isPC!==false)worldState.mpEnded={turn:worldState.turn||0};/* D12 exit: the sessionLog is full of third-person narration — arm the 2-turn second-person reinforcement (the recentSwitch pattern). Hero-is-PC guard: in the all-NPC/D2 corner "you = hero" would be wrong */saveAll();if(typeof syncUI==="function")syncUI();/* P2: repaint — the HUD may have been showing this PC */showToast(name+" is a companion again — the GM plays them",4000);modal.remove();showNpcSheet(name);};
       // D2 guard here too: if the hero is demoted, this companion can be the LAST PC
       if(playerCount()<=1)_confirmLastPcDemote(demote);else demote();
     });
