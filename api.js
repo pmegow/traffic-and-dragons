@@ -384,10 +384,23 @@ function buildDeadStatusNudge(){
   return "[ENGINE NOTE — DEAD CHARACTER (not a player action): "+d.name+" is recorded DEAD"+died+", but the last response set their status to \""+d.status+"\", which the engine refused. If they are genuinely alive again through an explicit in-story resurrection, emit [NPC:"+d.name+"|resurrected|relation] to confirm it. Otherwise they stay dead: never narrate them as present or alive — only as remains, memory, or legacy.]";
 }
 var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge];
+// B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
+// chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
+// answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
+// we run with thinking disabled) opened responses with spoken bookkeeping ("Nothing spent, no
+// tag needed" — the B5 field reports). One clause appended after the joined notes fixes all ten
+// builders at once. Wording constraints (the drift risk): it MUST keep tag emission as the
+// sanctioned response (these notes exist because softer instructions were ignored — suppressing
+// the tags would silently revive the #60/#46 classes), and it must NOT suppress a note's
+// legitimate fictional consequences (the condition audit's "let it visibly shape the narration"
+// — the limp shows, the checking doesn't). Only appended when a note fired: an empty notes block
+// stays byte-empty (engine-tested — the common turn must not grow a phantom preamble).
+var ENGINE_NOTES_PROTOCOL="[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping, not part of the story. Respond to them ONLY by emitting the state tags they call for, or by silently leaving state unchanged. The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text. Their fictional CONSEQUENCES may still shape the scene: a kept wound may limp, an expended vial is simply gone.]";
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}
-  return out.join("\n\n");
+  if(!out.length)return"";
+  return out.join("\n\n")+"\n\n"+ENGINE_NOTES_PROTOCOL;
 }
 function buildSysPrompt(){
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};

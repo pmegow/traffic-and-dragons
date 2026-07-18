@@ -5598,4 +5598,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return eq(rid(null,null,"camp_B",true),false);
   });
 
+  // ── B5: engine-notes silence clause ────────────────────────────────────────
+  section("B5: engine-notes silence clause");
+  t("a fired note carries the protocol clause AFTER the note (last thing read before the player action)",function(){
+    makeWorld();worldState.turn=200;
+    worldState.questLog=[{title:"Stuck Quest",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:190}];
+    var n=buildEngineNotes();
+    if(n.indexOf("ENGINE NOTES PROTOCOL")<0)return "clause missing";
+    return n.indexOf("Stuck Quest")<n.indexOf("ENGINE NOTES PROTOCOL")?true:"clause not after the note";
+  });
+  t("clause appears exactly ONCE even when multiple builders fire",function(){
+    makeWorld();worldState.turn=200;
+    worldState.questLog=[{title:"Stuck Quest",status:"active",desc:"",objectives:[{text:"a",done:true}],allDoneSince:190}];
+    worldState.character.conditions=[{name:"Cursed",duration:"until lifted",turn:100}];
+    var n=buildEngineNotes(),first=n.indexOf("ENGINE NOTES PROTOCOL");
+    if(first<0)return "clause missing";
+    return n.indexOf("ENGINE NOTES PROTOCOL",first+1)<0?true:"clause duplicated";
+  });
+  t("the common turn stays byte-empty — no phantom clause when nothing fires",function(){
+    makeWorld();worldState.turn=200;
+    return eq(buildEngineNotes(),"");
+  });
+  t("clause wording keeps tag emission SANCTIONED and fictional consequences allowed (the drift guard)",function(){
+    // The B5 risk is overcorrection: a clause the model reads as "don't emit" would silently
+    // revive the #60/#46 ghost-consumable/stale-condition classes. Pin the load-bearing phrases.
+    if(ENGINE_NOTES_PROTOCOL.indexOf("emitting the state tags")<0)return "tag emission no longer sanctioned";
+    if(ENGINE_NOTES_PROTOCOL.indexOf("never acknowledge")<0)return "silence directive missing";
+    return ENGINE_NOTES_PROTOCOL.indexOf("CONSEQUENCES may still shape the scene")>=0?true:"consequences carve-out missing (would fight the condition audit's visible-shaping intent)";
+  });
+
 }

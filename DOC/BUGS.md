@@ -125,7 +125,7 @@ Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pag
 ---
 
 ## B5 — GM process-narration leaking into story prose — sonnet-5 turns open with meta-commentary like a no-tags-needed remark before the narrative
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.361) · **Last seen:** 2026-07-18 (v1.361) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 810
 **Fingerprint:** `user-report · user-report · v1.361 · turn 809 nothing spent there either, no tag needed. this seems like ai thought leaking into the dialog`
 **Report ids:** 0aeee404-6ee4-4609-a4da-6f68d9945bed
@@ -203,7 +203,7 @@ SUGGESTED ACTIONS SHOWN: Cast Augury on the ride south for guidance | Ask Morwen
   - The report's t809 player entry shows the D12 assembled-round block rendering into the transcript as expected (one labeled player entry per round) — D12 transcript semantics look healthy at t809-t815.
 
 ### Action log
-_(none)_
+**2026-07-18** — **fixed** (v1.367). Findings fix #1 implemented under the drift policy (Fable-tier; pre-code review resolved the one wording fork: the clause must sanction tag emission AND carve out fictional consequences, so it can't fight the condition audit's "visibly shape the narration" intent or scare the model out of emitting). What shipped: `ENGINE_NOTES_PROTOCOL` constant + `buildEngineNotes` appends it once AFTER the joined notes whenever ANY builder fired — respond ONLY via tags or silent no-change, never acknowledge a note/tag/the checking in prose, consequences may still shape the scene. Surface: the user-message prepend only — zero stable-half contact (frozen hashes green), empty turns stay byte-empty. Options #2 (per-builder wording) and #3 (STYLE line) held in reserve per findings. 4 engine tests (685 green): clause after-notes, exactly-once with multiple builders, common-turn byte-empty, and a wording-pin drift guard on the sanction/silence/consequences phrases. **Remaining validation (field):** next sonnet-5 play session — fired nudges must still produce their tags, and the openers should fade; expect a few residual openers first (sessionLog momentum, mechanism 5) — that's the pattern aging out, not fix failure.
 
 ---
 
