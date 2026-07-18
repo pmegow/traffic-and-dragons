@@ -2081,8 +2081,9 @@ function runEngineTests(R){
     // v1.306 (#57: the one NPC_SUPERSEDE doc line, +370 chars), v1.307 (#40 GM tag: the one
     // CORE_MEMORY doc line, +503 chars). Golden diffed by eye each time.
     // v1.359 (#1 P5): the one PARTY_SPLIT doc line (+391 chars). Golden diffed by eye.
+    // v1.361 (B3): the one NPC-DEATH-IS-PERMANENT-CANON doc line (+478 chars). Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1869754963&&d.length===13264)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===1682497214&&d.length===13742)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -2091,6 +2092,152 @@ function runEngineTests(R){
     for(var t2 in have){if(t2==="SUBLOCATION_LEAVE")continue;if(!stripped[t2])return "handler "+t2+" is NOT stripped (would leak to the player)";}
     if(!stripped["SUBLOCATION_LEAVE"])return "bare tag SUBLOCATION_LEAVE not stripped";
     for(var s2 in stripped){if(!have[s2]&&!exempt[s2])return "stripped tag "+s2+" has NO handler and NO documented exemption (the phantom class)";}
+    return true;
+  });
+
+  // ═══ B3 (v1.361): NPC death is first-class canon — the five-leg battery ═══
+  // Field bug B3 (Rise of the Runelords t809): Rinn Toldrath, killed at the docks, kept being
+  // served as alive canon. Root cause: death was representable only as a status-string regex and
+  // rendered as roster ABSENCE. Every test below exercises the FAILURE condition of one leg.
+  section("B3: NPC death is first-class canon");
+  t("B3-1: [NPC:name|dead|rel] stamps the durable flag on BOTH stores at the death turn",function(){
+    makeWorld();
+    applyMuts("He talks.\n[NPC:Rinn Toldrath|calculating|informant]");
+    applyMuts("He dies.\n[NPC:Rinn Toldrath|dead|former informant]");
+    var w=wsNpcByName("Rinn Toldrath");
+    if(!w||w.dead!==5)return "ws dead not stamped: "+(w&&w.dead);
+    if(!memory.npcs["Rinn Toldrath"]||memory.npcs["Rinn Toldrath"].dead!==5)return "memory dead not stamped";
+    return true;
+  });
+  t("B3-2: resurrection-by-overwrite REFUSED — a later status write cannot re-animate; conflict queued",function(){
+    var w=wsNpcByName("Rinn Toldrath");
+    applyMuts("He schemes?\n[NPC:Rinn Toldrath|scheming|enemy]");
+    if(w.status!=="dead")return "status overwritten to: "+w.status;
+    if(!w.dead)return "dead flag lost";
+    if(w.rel!=="enemy")return "rel should still apply (only status is guarded): "+w.rel;
+    var q=worldState.deadStatusConflicts;
+    if(!q||!q.length||q[0].name!=="Rinn Toldrath")return "conflict not queued";
+    return true;
+  });
+  t("B3-3: dead-status nudge — silent mid-combat WITHOUT consuming, fires once, then empty",function(){
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildDeadStatusNudge()!=="")return "not silent mid-combat";
+    if(!worldState.deadStatusConflicts)return "queue consumed mid-combat";
+    worldState.combat=null;
+    var n=buildDeadStatusNudge();
+    if(n.indexOf("Rinn Toldrath")<0||n.indexOf("resurrected")<0)return "note malformed: "+n.slice(0,120);
+    if(buildDeadStatusNudge()!=="")return "note did not consume";
+    return true;
+  });
+  t("B3-4: explicit resurrection clears the stamp — and a 'raised from the dead' status must not re-kill",function(){
+    applyMuts("He gasps.\n[NPC:Rinn Toldrath|raised from the dead|former informant]");
+    var w=wsNpcByName("Rinn Toldrath");
+    if(npcIsDead(w))return "still dead after explicit resurrection";
+    if(memory.npcs["Rinn Toldrath"].dead)return "memory flag survived resurrection";
+    return true;
+  });
+  t("B3-5: living idioms never stamp — half-dead / wants-you-dead / undead / playing dead / dead tired",function(){
+    makeWorld();
+    applyMuts("Crowd.\n[NPC:Ana|half-dead, bleeding out|ally][NPC:Bo|vengeful, wants you dead|enemy][NPC:Cul|undead, shambling|enemy][NPC:Dag|playing dead|enemy][NPC:Ery|dead tired|ally]");
+    var nm=["Ana","Bo","Cul","Dag","Ery"],i;
+    for(i=0;i<nm.length;i++){if(npcIsDead(wsNpcByName(nm[i])))return nm[i]+" wrongly stamped dead (status: "+wsNpcByName(nm[i]).status+")";}
+    return true;
+  });
+  t("B3-6: the roster renders the dead as an AFFIRMATIVE DECEASED line (leg 4 — absence taught nothing)",function(){
+    makeWorld();
+    applyMuts("Two.\n[NPC:Alive Guy|calm|ally][NPC:Rinn Toldrath|dead|former informant]");
+    var sys=buildSysPrompt(),v=sys.volatile;
+    if(v.indexOf("DECEASED")<0)return "no DECEASED line";
+    if(v.indexOf("Rinn Toldrath (died t5)")<0)return "dead NPC not affirmatively listed";
+    if(v.indexOf("Rinn Toldrath (dead,")>=0)return "dead NPC still in the living roster";
+    return true;
+  });
+  t("B3-7: geography excludes the dead from NPCs-elsewhere (no more 'findable at the docks')",function(){
+    makeWorld();
+    applyMuts("Meet.\n[NPC:Foo|calm|ally]");
+    applyMuts("Kill.\n[NPC:Foo|dead|ally]");
+    applyMuts("Travel.\n[LOCATION:Duskmere]");
+    var g=buildGeoBlock();
+    if(g.indexOf("Foo")>=0)return "dead NPC still served by geography: "+g;
+    return true;
+  });
+  t("B3-8: slain REGISTERED foe propagates at [COMBAT_END:]; pooled/unregistered foes never stamp (leg 2)",function(){
+    makeWorld();
+    applyMuts("Fight.\n[NPC:Karvun|hostile|enemy][COMBAT_START:Karvun|10|12|2|1d6|steady][COMBAT_START:Goblin pack|20|10|1|1d4|cowardly]");
+    applyMuts("Kill.\n[ENEMY_HP:Karvun|-10][ENEMY_HP:Goblin pack|-20][COMBAT_END:victory]");
+    var w=wsNpcByName("Karvun");
+    if(!w||w.dead!==5)return "registered slain foe not stamped: "+(w&&w.dead);
+    if(w.status!=="slain")return "status not slain: "+w.status;
+    if(wsNpcByName("Goblin pack"))return "pooled foe minted an NPC entry";
+    return true;
+  });
+  t("B3-9: the all-foes-down AUTO-close propagates too (no [COMBAT_END:] emitted)",function(){
+    makeWorld();
+    applyMuts("Fight.\n[NPC:Brute|hostile|enemy][COMBAT_START:Brute|8|12|2|1d6|steady]");
+    applyMuts("Kill.\n[ENEMY_HP:-8]");
+    if(worldState.combat)return "encounter did not auto-close";
+    var w=wsNpcByName("Brute");
+    if(!w||!w.dead)return "auto-close did not stamp the registered kill";
+    return true;
+  });
+  t("B3-10: the LOCATION-move stale-combat clear stamps already-slain foes; the living stay unstamped",function(){
+    makeWorld();
+    applyMuts("Fight.\n[NPC:Karvun|hostile|enemy][NPC:Runner|hostile|enemy][COMBAT_START:Karvun|10|12|2|1d6|steady][COMBAT_START:Runner|10|12|2|1d6|cowardly]");
+    applyMuts("One falls.\n[ENEMY_HP:Karvun|-10]");
+    applyMuts("We ride away.\n[LOCATION:Duskmere]");
+    if(worldState.combat)return "stale combat not cleared";
+    if(!wsNpcByName("Karvun")||!wsNpcByName("Karvun").dead)return "slain foe not stamped on the move-clear";
+    if(npcIsDead(wsNpcByName("Runner")))return "LIVING foe wrongly stamped";
+    return true;
+  });
+  t("B3-11: summarize backstop — npcDeaths stamps on-file NPCs only (the untagged docks-kill class, leg 3)",function(){
+    makeWorld();
+    applyMuts("Meet.\n[NPC:Tharwick|nervous|prisoner]");
+    applySummaryExtract({npcDeaths:["Tharwick","Unknown Stranger"]});
+    var w=wsNpcByName("Tharwick");
+    if(!w||w.dead!==5)return "on-file death not stamped";
+    if(w.status!=="dead")return "status not set: "+w.status;
+    if(!memory.npcs["Tharwick"].dead)return "memory flag missing";
+    if(memory.npcs["Unknown Stranger"]||wsNpcByName("Unknown Stranger"))return "extractor minted a corpse the world doesn't know";
+    return true;
+  });
+  t("B3-12: migration stamps legacy dead statuses; wrongly-hidden living idioms REGAIN the roster",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Old Corpse",status:"dead (poisoned)",rel:"victim",met:1,partyMember:false,portrait:null,aliases:[]});
+    worldState.npcs.push({name:"Bleeder",status:"half-dead, bleeding out",rel:"ally",met:1,partyMember:false,portrait:null,aliases:[]});
+    memory.npcs["Old Corpse"]={attitude:"unknown",knowledge:[],events:[],aliases:[]};
+    migrateWorldState();healMemory();
+    if(wsNpcByName("Old Corpse").dead!==true)return "legacy death not stamped";
+    if(memory.npcs["Old Corpse"].dead!==true)return "healMemory mirror missing";
+    if(npcIsDead(wsNpcByName("Bleeder")))return "living idiom wrongly stamped by migration";
+    var sys=buildSysPrompt();
+    if(sys.volatile.indexOf("Bleeder (half-dead, bleeding out")<0)return "wrongly-hidden living NPC did not regain the roster";
+    return true;
+  });
+  t("B3-13: [NPC_MERGE:] carries the dead flag on both stores",function(){
+    makeWorld();
+    applyMuts("Two names.\n[NPC:Rinn|calculating|enemy][NPC:Rinn Toldrath|dead|enemy]");
+    applyMuts("Same man.\n[NPC_MERGE:Rinn|Rinn Toldrath]");
+    if(!npcIsDead(wsNpcByName("Rinn")))return "merge lost the dupe's death (ws)";
+    if(!memory.npcs["Rinn"]||!memory.npcs["Rinn"].dead)return "merge lost the dupe's death (memory)";
+    return true;
+  });
+  t("B3-14: TOC and NPC detail carry the death; the doc block carries the GM instruction",function(){
+    makeWorld();
+    applyMuts("Death.\n[NPC:Rinn Toldrath|dead|former informant]");
+    if(memoryTOC().indexOf("Rinn Toldrath (dead)")<0)return "TOC unannotated";
+    if(memoryNpcDetail("Rinn Toldrath").indexOf("DECEASED (died t5)")<0)return "detail unannotated: "+memoryNpcDetail("Rinn Toldrath").split("\n")[0];
+    if(buildStateTagsDoc().indexOf("NPC DEATH IS PERMANENT CANON")<0)return "doc line missing";
+    return true;
+  });
+  t("B3-15: party scans read the flag, not the status regex — a half-dead companion is ALIVE",function(){
+    makeWorld();
+    applyMuts("Join.\n[PARTY_MEMBER:Morwen|true]");
+    var m=wsNpcByName("Morwen");m.charSheet={name:"Morwen",hp:1,maxHp:20,level:3,cls:"Cleric",stats:{STR:10,DEX:10,CON:10,INT:10,WIS:14,CHA:12},abilities:[],spells:[],inventory:[],conditions:[],relationships:[],coreMemories:[]};
+    m.status="half-dead, bleeding out";
+    if(livingPartyCompanions().length!==1)return "half-dead companion wrongly excluded from the living party";
+    m.dead=5;
+    if(livingPartyCompanions().length!==0)return "flag-dead companion not excluded";
     return true;
   });
 

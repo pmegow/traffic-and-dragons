@@ -36,9 +36,10 @@ function buildGeoBlock(){
   var conns=[];
   for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i];if(e.from===w.location)conns.push(e.to);else if(e.to===w.location)conns.push(e.from);}
   if(conns.length)lines.push("Connected to: "+conns.join(", "));
-  // NPCs elsewhere
+  // NPCs elsewhere. B3: the dead are excluded — "Rinn → the docks" affirmatively implied he was
+  // findable there forever; the roster's DECEASED line now carries the truth instead.
   var npcLocs=[],nNames=Object.keys(memory.npcs);
-  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
+  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
   if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
   // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
   // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
@@ -370,7 +371,19 @@ function buildConsumableNudge(){
   var whose=c.who?c.who+"'s":"the player's";
   return "[ENGINE NOTE — CONSUMABLE CHECK (not a player action): the recent scene mentioned "+whose+" '"+c.item+"' but no item-loss tag was emitted. Check your own recent narration: if one or more units were actually expended (thrown, drunk, detonated, burned, used up), emit "+tag+" in THIS response — one tag per unit spent. If it was merely mentioned, carried, examined, or reached for without being consumed, leave the sheet alone — do NOT invent a consumption.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge];
+// B3: dead-status conflict nudge — the [NPC:] handler REFUSED a status write on a dead character
+// (the resurrection-by-overwrite leg). Same engine-detects/GM-decides shape as the downgrade
+// nudge: one per turn, consumed at build time, silent mid-combat WITHOUT consuming (the queue
+// keeps the conflict until the dust settles).
+function buildDeadStatusNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.deadStatusConflicts;
+  if(!q||!q.length)return"";
+  var d=q.shift();if(!q.length)delete worldState.deadStatusConflicts;
+  var w=wsNpcByName(d.name);var died=(w&&typeof w.dead==="number")?" (died t"+w.dead+")":"";
+  return "[ENGINE NOTE — DEAD CHARACTER (not a player action): "+d.name+" is recorded DEAD"+died+", but the last response set their status to \""+d.status+"\", which the engine refused. If they are genuinely alive again through an explicit in-story resurrection, emit [NPC:"+d.name+"|resurrected|relation] to confirm it. Otherwise they stay dead: never narrate them as present or alive — only as remains, memory, or legacy.]";
+}
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge];
 function buildEngineNotes(){
   var out=[],i;
   for(i=0;i<NOTE_BUILDERS.length;i++){var n=NOTE_BUILDERS[i]();if(n)out.push(n);}
@@ -385,7 +398,18 @@ function buildSysPrompt(){
   // members the PLAYER'S relationship descriptor is authoritative when one exists; non-party NPCs
   // keep npc.rel untouched — theirs often carries identity ("mother of Morwen") no descriptor has.
   var relByEntity={},_rbi,_rbl=(c.relationships||[]);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].descriptor)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].descriptor;}
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(/\bdead\b/i.test(npc.status||""))continue;/* dead NPCs stay in memory.npcs but aren't listed as present */var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;ns.push(npc.name+npcAka+" ("+npc.status+", "+npcRel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
+  // B3 (v1.361): dead NPCs render as an AFFIRMATIVE "DECEASED" line, never as silent omission —
+  // absence taught the GM nothing, so every other tier (TOC/detail/RAG excerpts/geography) kept
+  // presenting the dead as alive and NOTHING in "the CURRENT state blocks above" overrode it
+  // (the Rinn Toldrath class). Cap 10 most recent; the full record stays in memory.npcs.
+  var _decList=[];
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;ns.push(npc.name+npcAka+" ("+npc.status+", "+npcRel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
+  if(_decList.length){
+    _decList.sort(function(a,b){return b.t-a.t;});
+    var _decShow=_decList.slice(0,10),_decStr=[],_dsi;
+    for(_dsi=0;_dsi<_decShow.length;_dsi++)_decStr.push(_decShow[_dsi].n+(_decShow[_dsi].t?" (died t"+_decShow[_dsi].t+")":""));
+    nstr+="\nDECEASED — permanent canon, they are DEAD: never narrate them as present or alive, only as remains, memory, or legacy: "+_decStr.join(", ")+(_decList.length>10?" (+"+(_decList.length-10)+" more long dead)":"");
+  }
   // PARTY MEMBER SHEETS — companions' full combat kit (class/spells/abilities). Without this the
   // GM only sees the one-line NPC roster entry and never knows a companion can cast → they default
   // to swinging a weapon. Rich block so a caster casts, a rogue uses tricks, etc.

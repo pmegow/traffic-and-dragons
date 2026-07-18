@@ -54,6 +54,7 @@ var TAG_DOC_LINES=[
 "TRAVEL MOVES THE MAP: any journey that ends somewhere else -- another town, a waystation, a camp on the road -- MUST emit [LOCATION:name] on arrival; [TIME:] and [WEATHER:] alone do NOT move the party, and narrating a new place while the tracker still shows the old one corrupts the geography canon\n",
 "ITEM NAMES CARRY PROVENANCE: name items so their origin stays recoverable ('Vial of basilisk blood', 'Signet ring (from Sheriff Hemlock)') -- never a bare noun like 'blood'; the name is the ONLY thing the sheet keeps, so where or whom it came from must live in it\n",
 "[NPC:name|status|relation] -- status=current mood/condition in 2-4 WORDS (a label like 'wary, bargaining' -- never a sentence; scene detail belongs in prose or [NPC_NOTE:]), relation=how they relate to the player (ally/enemy/acquaintance/rival/etc.); NEVER put pronouns in these fields -- pronouns go ONLY in [NPC_PRONOUN:]. [PARTY_MEMBER:name|true/false] [QUEST:title|status] [ABILITY_GAINED:Name|Desc]\n",
+"NPC DEATH IS PERMANENT CANON: when a named character dies -- killed in combat, executed, assassinated, lost to any cause -- emit [NPC:name|dead|relation] in that SAME response; the engine records the death permanently (they leave the living roster and join the DECEASED line) and refuses later status writes. A dead character can return ONLY through an explicit in-story resurrection, tagged [NPC:name|resurrected|relation]. Never quietly reintroduce a dead character as alive.\n",
 "REWARDS ARE PAID EXACTLY ONCE, when a quest first closes: if you correct or re-state an already-completed or failed quest (e.g. alongside a [RETCON:]), NEVER re-emit its [XP:]/[GOLD:]/[ITEM_GAINED:] -- they are already banked and a re-emission pays the player twice\n",
 "[LOCATION_DESC:text] -- canonical description of this location; emit ONCE on first visit ONLY; stored permanently and never overwritten. ALWAYS name every visible exit and where each leads -- exits are canon: a way in or out that the description never mentioned does not exist\n",
 "[LOCATION_SIZE:scale|travelMins] -- size of current location; scale=tiny/small/medium/large/vast; travelMins=estimated minutes to cross on foot (e.g. [LOCATION_SIZE:large|45]); emit once on first visit alongside LOCATION_DESC\n",
@@ -114,6 +115,24 @@ function buildStateTagsDoc(){return TAG_DOC_LINES.join("");}
 // "who am I fighting" proxy — ratified decision 2, MULTI_ENEMY_COMBAT.md §7).
 function combatLivingFoes(){var out=[],i,f=(worldState.combat&&worldState.combat.foes)||[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0)out.push(f[i]);}return out;}
+// B3 (v1.361): a slain foe who is a REGISTERED NPC gets the durable dead stamp when the
+// encounter closes — without this the kill evaporated with worldState.combat (the Rinn Toldrath
+// class: [ENEMY_HP:] set down:"slain", [COMBAT_END:] nulled the object, and no store ever heard).
+// EXACT match only, on the alias-resolved canonical name: a pooled foe ("Goblin pack") or an
+// unregistered mook must never stamp a real NPC (the B3 mis-match hazard).
+function propagateSlainFoes(R){
+  var f=(worldState.combat&&worldState.combat.foes)||[],i;
+  for(i=0;i<f.length;i++){
+    if(f[i].down!=="slain")continue;
+    var cn=resolveNpcName(String(f[i].name||"").trim());
+    var w=wsNpcByName(cn);
+    if(!w||npcIsDead(w))continue;
+    w.dead=R.turn;w.status="slain";
+    if(memory.npcs[cn]&&!memory.npcs[cn].dead)memory.npcs[cn].dead=R.turn;
+    R.muts.push(w.name+": dead (combat, t"+R.turn+")");
+    if(typeof console!=="undefined")console.warn("[combat] slain foe "+w.name+" is a registered NPC — DECEASED stamped (B3)");
+  }
+}
 function combatFoeByName(nm){
   var f=(worldState.combat&&worldState.combat.foes)||[],i,t=String(nm||"").toLowerCase().trim();
   for(i=0;i<f.length;i++){if(f[i].name.toLowerCase()===t)return f[i];}
@@ -190,6 +209,7 @@ var TAG_TABLE=[
   if(worldState.combat&&_lname!==_prevLoc){
     var _freshFight=/\[COMBAT_START:/.test(text);
     var _staleFoe=(worldState.combat.foes||[]).map(function(f){return f.name;}).join(", ")||"?";
+    propagateSlainFoes(R);/* B3: foes already slain before the party moved on still get their durable stamp */
     worldState.combat=null;
     if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}},
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),R.turn);R.muts.push("Sub: "+sloctag[1].trim());}}},
@@ -222,7 +242,7 @@ var TAG_TABLE=[
   var _alCs=findCompanionChar(alCanon);
   if(_alCs){if(!_alCs.aliases)_alCs.aliases=[];if(_alCs.aliases.indexOf(alAlias)<0)_alCs.aliases.push(alAlias);}
   if(!memory.npcs[alCanon])memory.npcs[alCanon]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[alCanon].aliases)memory.npcs[alCanon].aliases=[];if(memory.npcs[alCanon].aliases.indexOf(alAlias)<0)memory.npcs[alCanon].aliases.push(alAlias);var _alWs=wsNpcByName(alCanon);if(_alWs){if(!_alWs.aliases)_alWs.aliases=[];if(_alWs.aliases.indexOf(alAlias)<0)_alWs.aliases.push(alAlias);}R.muts.push("Alias: "+alAlias+" -> "+alCanon);}}},
-{t:"NPC_MERGE",apply:function(text,R){var npcMergeTags=text.match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/g)||[];var mgii;for(mgii=0;mgii<npcMergeTags.length;mgii++){var mgp=npcMergeTags[mgii].match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/);if(!mgp)continue;var mgCanon=mgp[1].trim(),mgDupe=mgp[2].trim();if(memory.npcs[mgDupe]){if(!memory.npcs[mgCanon])memory.npcs[mgCanon]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[mgCanon].aliases)memory.npcs[mgCanon].aliases=[];if(memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);var mgevs=memory.npcs[mgDupe].events||[],mgevi;for(mgevi=0;mgevi<mgevs.length;mgevi++)memory.npcs[mgCanon].events.push(mgevs[mgevi]);var mgkns=memory.npcs[mgDupe].knowledge||[],mgkni;for(mgkni=0;mgkni<mgkns.length;mgkni++){if(memory.npcs[mgCanon].knowledge.indexOf(mgkns[mgkni])<0)memory.npcs[mgCanon].knowledge.push(mgkns[mgkni]);}if(memory.npcs[mgCanon].knowledge.length>12)memory.npcs[mgCanon].knowledge=memory.npcs[mgCanon].knowledge.slice(-12);/* TODO#69: re-slice to the write-site cap after a merge concat (E50 parallel) — the shift-based cap at the write sites only sheds 1/write, so an overfill would otherwise feed memoryNpcDetail oversized for a long time */if(memory.npcs[mgDupe].aliases){var mgals=memory.npcs[mgDupe].aliases,mgali;for(mgali=0;mgali<mgals.length;mgali++){if(memory.npcs[mgCanon].aliases.indexOf(mgals[mgali])<0)memory.npcs[mgCanon].aliases.push(mgals[mgali]);}}if(!memory.npcs[mgCanon].firstEncounter&&memory.npcs[mgDupe].firstEncounter)memory.npcs[mgCanon].firstEncounter=memory.npcs[mgDupe].firstEncounter;delete memory.npcs[mgDupe];}
+{t:"NPC_MERGE",apply:function(text,R){var npcMergeTags=text.match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/g)||[];var mgii;for(mgii=0;mgii<npcMergeTags.length;mgii++){var mgp=npcMergeTags[mgii].match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/);if(!mgp)continue;var mgCanon=mgp[1].trim(),mgDupe=mgp[2].trim();if(memory.npcs[mgDupe]){if(!memory.npcs[mgCanon])memory.npcs[mgCanon]={attitude:"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[mgCanon].aliases)memory.npcs[mgCanon].aliases=[];if(memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);var mgevs=memory.npcs[mgDupe].events||[],mgevi;for(mgevi=0;mgevi<mgevs.length;mgevi++)memory.npcs[mgCanon].events.push(mgevs[mgevi]);var mgkns=memory.npcs[mgDupe].knowledge||[],mgkni;for(mgkni=0;mgkni<mgkns.length;mgkni++){if(memory.npcs[mgCanon].knowledge.indexOf(mgkns[mgkni])<0)memory.npcs[mgCanon].knowledge.push(mgkns[mgkni]);}if(memory.npcs[mgCanon].knowledge.length>12)memory.npcs[mgCanon].knowledge=memory.npcs[mgCanon].knowledge.slice(-12);/* TODO#69: re-slice to the write-site cap after a merge concat (E50 parallel) — the shift-based cap at the write sites only sheds 1/write, so an overfill would otherwise feed memoryNpcDetail oversized for a long time */if(memory.npcs[mgDupe].aliases){var mgals=memory.npcs[mgDupe].aliases,mgali;for(mgali=0;mgali<mgals.length;mgali++){if(memory.npcs[mgCanon].aliases.indexOf(mgals[mgali])<0)memory.npcs[mgCanon].aliases.push(mgals[mgali]);}}if(!memory.npcs[mgCanon].firstEncounter&&memory.npcs[mgDupe].firstEncounter)memory.npcs[mgCanon].firstEncounter=memory.npcs[mgDupe].firstEncounter;if(memory.npcs[mgDupe].dead&&!memory.npcs[mgCanon].dead)memory.npcs[mgCanon].dead=memory.npcs[mgDupe].dead;/* B3: a merge must not lose the dupe's death */delete memory.npcs[mgDupe];}
   var _mgDupN=wsNpcByName(mgDupe),_mgCanN=wsNpcByName(mgCanon);/* #7: shared lookup (degenerate X|X merge still nets to entry removed, same as the old single-pass else-if) */
   if(_mgDupN){
     if(!_mgCanN){_mgCanN={name:mgCanon,status:_mgDupN.status||"unknown",rel:_mgDupN.rel||"unknown",met:_mgDupN.met||R.turn,partyMember:false,portrait:null,aliases:[]};worldState.npcs.push(_mgCanN);}
@@ -231,6 +251,7 @@ var TAG_TABLE=[
     if(_mgDupN.portrait&&!_mgCanN.portrait)_mgCanN.portrait=_mgDupN.portrait;
     if(_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
+    if(_mgDupN.dead&&!_mgCanN.dead)_mgCanN.dead=_mgDupN.dead;/* B3: a merge must not lose the dupe's death */
     if((!_mgCanN.status||_mgCanN.status==="unknown")&&_mgDupN.status)_mgCanN.status=_mgDupN.status;
     if((!_mgCanN.rel||_mgCanN.rel==="unknown")&&_mgDupN.rel)_mgCanN.rel=_mgDupN.rel;
     if(typeof _mgDupN.met==="number"&&(typeof _mgCanN.met!=="number"||_mgDupN.met<_mgCanN.met))_mgCanN.met=_mgDupN.met;
@@ -242,9 +263,35 @@ var TAG_TABLE=[
   if(isPronounStr(npRel)){npPron=npRel;npRel="";}
   if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
   var _npN=wsNpcByName(npName);/* #7: shared lookup */
-  if(_npN){if(npStatus)_npN.status=npStatus;if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;}
-  else{worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
-  if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;mapNpcLocation(npName);R.muts.push("NPC: "+npName);}}},
+  // B3 (v1.361): death is FIRST-CLASS canon. A death-status write stamps npc.dead=turn on BOTH
+  // stores; once stamped, a NON-death status write is REFUSED (loud warn + toast + a GM-decides
+  // nudge next turn) — the resurrection-by-overwrite leg: one momentum-driven [NPC:name|scheming|
+  // enemy] used to silently re-animate a corpse (the Rinn Toldrath class). The GM keeps the
+  // fiction: an explicit resurrection status ([NPC:name|resurrected|...]) clears the stamp —
+  // same nudge-not-block shape as the quest archived-resurrection guard above.
+  var _npWasDead=npcIsDead(_npN);
+  if(_npN&&npStatus&&_npWasDead){
+    if(NPC_RESURRECT_RE.test(npStatus)){
+      delete _npN.dead;if(memory.npcs[npName])delete memory.npcs[npName].dead;_npWasDead=false;
+      _npN.status=npStatus;R.muts.push(npName+" RESURRECTED");
+      if(typeof console!=="undefined")console.warn("[npc] "+npName+" resurrected — DECEASED stamp cleared (explicit in-story resurrection)");
+    }else if(npcDeadStatus(npStatus)){_npN.status=npStatus;/* re-stating the death is harmless */}
+    else{
+      if(typeof console!=="undefined")console.warn("[npc] status write \""+npStatus+"\" REFUSED — "+npName+" is recorded dead"+(typeof _npN.dead==="number"?" (t"+_npN.dead+")":"")+"; only an explicit resurrection status revives (B3)");
+      if(typeof showToast==="function")showToast("⚠ "+npName+" is dead — status change refused");
+      R.muts.push(npName+": status refused (dead)");
+      if(!worldState.deadStatusConflicts)worldState.deadStatusConflicts=[];
+      var _dcDup=false,_dci;for(_dci=0;_dci<worldState.deadStatusConflicts.length;_dci++){if(worldState.deadStatusConflicts[_dci].name===npName){_dcDup=true;break;}}
+      if(!_dcDup)worldState.deadStatusConflicts.push({name:npName,status:npStatus,turn:R.turn});
+      npStatus="";/* refused — the memory-side writes below must not re-animate either */
+    }
+  }else if(_npN){if(npStatus)_npN.status=npStatus;}
+  else{worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
+  if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
+    /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
+       death word) — so this stamp can never re-kill what the resurrection branch just cleared */
+    if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");}}
+  if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(_npN&&_npN.dead&&!memory.npcs[npName].dead)memory.npcs[npName].dead=_npN.dead;/* B3: mirror the stamp */if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;if(!_npWasDead)mapNpcLocation(npName);/* B3: a re-mention must not drag a dead NPC's last-seen node to the party's location — the dead don't travel */R.muts.push("NPC: "+npName);}}},
 {t:"XP",apply:function(text,R){var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);R.muts.push("+"+xpm[1]+" XP");checkLevelUp();R._xpMirror(parseInt(xpm[1]));}}},
 {t:"QUEST",apply:function(text,R){var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";else if(qStat==="declined")qStat="failed";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}
   // UA42/F3: a title already ARCHIVED as completed/failed must not silently resurrect via a
@@ -368,12 +415,13 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 // them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
 {t:"COMBAT_END",nc:1,apply:function(text,R){
   var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
-  if(ce){worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
     if(f[i].down==="surrendered")surr=true;names.push(f[i].name);}
   if(anyUp||!f.length)return;
+  propagateSlainFoes(R);/* B3: auto-close path — same stamp */
   worldState.combat=null;
   R.muts.push(surr?"Combat: surrender ("+names.join(", ")+")":"Combat: victory ("+names.join(", ")+")");}},
 {t:"ABILITY_GAINED",apply:function(text,R){var abs=text.match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[];var abi;for(abi=0;abi<abs.length;abi++){var abp=abs[abi].match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!abp)continue;if(!worldState.character.abilities)worldState.character.abilities=[];var already=false,abj;for(abj=0;abj<worldState.character.abilities.length;abj++){if(worldState.character.abilities[abj].nm===abp[1]){already=true;break;}}if(!already){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
@@ -521,7 +569,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(worldState.character&&psName===worldState.character.name){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — the hero IS the primary thread (bare [LOCATION:] moves them)");continue;}
   var psN=wsNpcByName(psName);
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}
-  if(/\bdead\b/i.test(psN.status||"")){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — they are dead");continue;}
+  if(npcIsDead(psN)){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — they are dead");continue;}/* B3: flag, not status regex */
   if(/^rejoin$/i.test(psArg)){
     if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=currentNodeKey();R.muts.push(psName+" rejoins the party");}
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
@@ -543,7 +591,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
      award at a dead companion is refused loudly (findCompanionNpc still routes OTHER companion tags
      to dead sheets on purpose: the death turn's own [COMPANION_HP:]/[COMPANION_CONDITION:] land
      after the [NPC:|dead] status in table order and must not be dropped) */
-  if(/\bdead\b/i.test(cXpNpc.status||"")){if(typeof console!=="undefined")console.warn("[tags] COMPANION_XP at DEAD companion "+cXpNpc.name+" — refused (dead companions get nothing)");R.muts.push(cXpNpc.name+": XP refused (dead)");continue;}
+  if(npcIsDead(cXpNpc)){if(typeof console!=="undefined")console.warn("[tags] COMPANION_XP at DEAD companion "+cXpNpc.name+" — refused (dead companions get nothing)");R.muts.push(cXpNpc.name+": XP refused (dead)");continue;}/* B3: flag, not status regex */
   var cXpCs=cXpNpc.charSheet;if(typeof cXpCs.xp!=="number")cXpCs.xp=0;cXpCs.xp+=parseInt(cXpm[2]);R.muts.push(cXpm[1].trim()+": +"+cXpm[2]+" XP");checkCompanionLevelUp(cXpCs);}}},
 // #46 Phase B: 4th arg = cause, mirror of the player handler (same first-writer-wins upsert).
 {t:"COMPANION_CONDITION",apply:function(text,R){var cCondTags=text.match(/\[COMPANION_CONDITION:([^|\]]+)\|([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var cCondi;for(cCondi=0;cCondi<cCondTags.length;cCondi++){var cCondp=cCondTags[cCondi].match(/\[COMPANION_CONDITION:([^|\]]+)\|([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!cCondp)continue;var cCondCs=findCompanionChar(cCondp[1]);if(!cCondCs)continue;if(!cCondCs.conditions)cCondCs.conditions=[];var cCnm=cCondp[2].trim(),cCdur=cCondp[3].trim(),cCcause=cCondp[4]?cCondp[4].trim():"",cCalready=false,cCondj;

@@ -233,6 +233,14 @@ function migrateWorldState(){
         if(_fdc){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdc+" duplicate inventory entr"+(_fdc===1?"y":"ies")+" on "+_fdn.name);}
       }}
   }
+  // B3 (v1.361): NPC death became a first-class flag — stamp it from legacy death statuses so old
+  // saves' dead NPCs join the DECEASED canon (they were roster-hidden by a status regex before).
+  // dead=true means "died before the flag existed" (turn unknown). Statuses the new detection
+  // EXCLUDES ("half-dead, bleeding out", "wants you dead") deliberately REGAIN the living roster —
+  // the old regex was wrongly hiding living NPCs. Memory-side mirror lives in healMemory()
+  // (memory parses AFTER this runs in loadState).
+  if(worldState.npcs&&typeof npcDeadStatus==="function"){var _bdi;for(_bdi=0;_bdi<worldState.npcs.length;_bdi++){var _bdn=worldState.npcs[_bdi];
+    if(_bdn&&!_bdn.dead&&npcDeadStatus(_bdn.status)){_bdn.dead=true;_mig=true;if(typeof console!=="undefined")console.warn("[migrate] B3: legacy dead status on "+_bdn.name+" — DECEASED flag stamped");}}}
   return _mig;
 }
 function loadState(){
@@ -272,6 +280,10 @@ function healMemory(){
   if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
   // P6 retro-clamp: sentence-length attitudes from pre-v1.211 extractor runs (memoryNpcDetail injects them).
   if(typeof clampNpcMood==="function"&&memory.npcs){var _ank=Object.keys(memory.npcs),_ai2;for(_ai2=0;_ai2<_ank.length;_ai2++){var _an=memory.npcs[_ank[_ai2]];if(_an&&_an.attitude)_an.attitude=clampNpcMood(_an.attitude);}}
+  // B3: mirror worldState DECEASED stamps onto memory.npcs — geography/TOC/detail/graph read the
+  // memory-side flag. Runs here (not migrateWorldState) because loadState parses memory AFTER the
+  // worldState migrate; idempotent, converges legacy saves in one load.
+  if(memory.npcs&&typeof worldState!=="undefined"&&worldState&&worldState.npcs){var _hdi;for(_hdi=0;_hdi<worldState.npcs.length;_hdi++){var _hdn=worldState.npcs[_hdi];if(_hdn&&_hdn.dead&&memory.npcs[_hdn.name]&&!memory.npcs[_hdn.name].dead)memory.npcs[_hdn.name].dead=_hdn.dead;}}
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
   // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
   // (~43KB duplicated per ToA campaign, riding every sync POST). The node description

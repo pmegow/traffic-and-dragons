@@ -25,7 +25,7 @@ them here).
 ## Open
 
 ## B3 — Canon drift around Rinn Toldrath — player states he is dead (killed by Ammut at the docks, the event behind Frizwick’s ethical conundrum) and play contradicted that
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.354) · **Last seen:** 2026-07-18 · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 809
 **Fingerprint:** `user-report · user-report · v1.354 · rinn toldrath is dead. ammut killed him at the docks. it’s what spawned frizwicks ethical conundrum.`
 **Report ids:** b8482cfb-631f-4c6c-8966-135ec66e8d23
@@ -194,7 +194,7 @@ SUGGESTED ACTIONS SHOWN: Watch the Charred Barrel's east hearth from hiding | Se
 - **Observations filed on the way:** (a) the roster's dead-omission comment shows death handling was PARTIALLY built for the companion-death arc but never extended to memory/geography/RAG — non-party NPC death fell between the combat system and the companion system; (b) `lastSeenAt` is never invalidated by anything, so GEOGRAPHY also implies presence for long-departed living NPCs — same staleness class, fold into the fix review; (c) B2 shares this excerpt — B2's phantom name and B3's lost death are opposite ends of the same registration-fidelity surface.
 
 ### Action log
-_(none)_
+**2026-07-18** — **fixed** (v1.361). All five legs closed in one commit; drift policy applied in full (Fable-tier, pre-code critical review — confidently resolved, no user forks; the one judgment call, refuse-vs-block on dead-status overwrites, follows the ratified engine-detects/GM-decides shape). What shipped: ① `npcDeadStatus()`/`npcIsDead()` (helpers.js) — THE conservative death detection (word-boundary death words minus living idioms minus resurrection phrasing; flag authoritative, status fallback for version-skewed blobs); `[NPC:|dead]` stamps durable `dead=turn` on both stores, non-death overwrites REFUSED (warn + toast + `buildDeadStatusNudge`), revival via explicit `resurrected` status. ② `propagateSlainFoes()` — slain registered foes stamp at COMBAT_END/auto-close/LOCATION-clear (exact-match on resolved name; pooled foes never stamp). ③ summarize extractor `npcDeaths[]` + `applySummaryExtract` filing (on-file NPCs only). ④ roster renders affirmative `DECEASED:` line (cap 10 recent) instead of silent omission — arms RAG's override header; GEOGRAPHY excludes the dead; TOC/detail/graph annotated; dead NPCs' `lastSeenAt` frozen (no re-stamp on mention). ⑤ resurrection-by-overwrite guard + `[NPC_MERGE:]` dead-flag adoption + one STATE TAGS doc line (frozen golden re-frozen: hash 1682497214, len 13742, +478 chars) + migration (legacy dead statuses stamped; wrongly-hidden living idioms like "half-dead" regain the roster). 15 new failure-condition engine tests (B3-1…B3-15), suite ALL GREEN at 660. Party-scan dead checks switched from status regex to the flag (fixes the half-dead-companion false-exclusion class).
 
 ---
 

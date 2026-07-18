@@ -65,14 +65,30 @@ function csInitials(name){return(name||"?").split(" ").map(function(w){return w[
 // composition and likenesses survive while lighting, contrast, and texture get pushed hard.
 var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
 var ENHANCE_STRENGTH=0.45;
+// B3 (v1.361): NPC death is FIRST-CLASS canon — worldState.npcs[].dead / memory.npcs[].dead =
+// death turn (number), or true when the death predates the flag (legacy migration). Detection is
+// deliberately conservative: word-boundary death words MINUS living idioms ("half-dead, bleeding
+// out" is a LIVING NPC; "wants you dead" is a mood about someone else; "playing dead" is a ruse).
+// "killed" alone is NOT a death word — "killed the mayor" describes a killer, not a corpse.
+// The ONE detection — the [NPC:] handler, migration, and the summarize backstop all route here.
+var NPC_DEAD_RE=/\b(dead|slain|deceased|perished)\b/i;
+var NPC_DEAD_EXCLUDE_RE=/(?:half|near|nearly|almost|mostly)[- ]dead|left for dead|presumed dead|playing dead|feign|not dead|dead\s+(?:tired|drunk|set|serious|inside|calm|man|men)\b|wants?\s+\S+\s+dead|dead\s+to\s+/i;
+var NPC_RESURRECT_RE=/\b(resurrect(?:ed|ion)?|raised from the dead|alive again|returned? to life|restored to life|back from the dead|revived)\b/i;
+function npcDeadStatus(status){var s=String(status||"");if(!s)return false;if(NPC_RESURRECT_RE.test(s))return false;/* "raised from the dead" contains a death word — resurrection phrasing is never a death */if(NPC_DEAD_EXCLUDE_RE.test(s))return false;return NPC_DEAD_RE.test(s);}
+// The flag is authoritative; the status fallback covers writes that bypass the stamp — chiefly a
+// server blob written by an OLDER app version mid-session (cross-device skew), where a companion
+// died with status-only. Same detection either way — never a second regex.
+function npcIsDead(n){return !!(n&&(n.dead||npcDeadStatus(n.status)));}
 // AUDIT_FABLE_07_16 #6: THE party-companion scan — partyMember NPCs that carry a charSheet, in
 // worldState.npcs order. includeDead=true skips the dead filter: a handful of call sites
 // (restSpells, the [XP:] mirror, syncCharSheet, and the snapshot/consume passes) historically
 // had NO dead check — each routes through includeDead=true with a marker comment, preserving
 // today's behavior until the user rules on whether dead companions earn XP/rest/audit.
+// B3: the dead filter reads the durable flag, not the status regex — a "half-dead, bleeding out"
+// companion is ALIVE and no longer silently excluded.
 function partyCompanionsWithSheets(includeDead){
   var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
-  for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!/\bdead\b/i.test(n.status||"")))out.push(n);}
+  for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!npcIsDead(n)))out.push(n);}
   return out;
 }
 // Living party companions — partyMember NPCs that carry a charSheet and are not dead. The party-aware

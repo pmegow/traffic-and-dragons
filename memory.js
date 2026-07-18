@@ -571,7 +571,9 @@ function memoryTOC(){
   // eventHistory summaries every turn anyway). Flag OFF must produce today's output
   // byte-for-byte — enforced by an engine test; do not restructure the off-path strings.
   var _diet=typeof ragEnabled==="function"&&ragEnabled();
-  var nk=Object.keys(memory.npcs);if(nk.length)lines.push("KNOWN NPCs: "+nk.join(", "));
+  // B3: dead NPCs stay listed (they're still known) but carry the marker — an unannotated name
+  // read as alive. No dead NPCs → byte-identical to the pre-B3 line (the flag-off TOC contract).
+  var nk=Object.keys(memory.npcs);if(nk.length){var _nkS=[],_nki;for(_nki=0;_nki<nk.length;_nki++)_nkS.push(memory.npcs[nk[_nki]]&&memory.npcs[nk[_nki]].dead?nk[_nki]+" (dead)":nk[_nki]);lines.push("KNOWN NPCs: "+_nkS.join(", "));}
   // P9 (audit): blueprint import pre-files every location, so a flat "VISITED:" line told
   // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
   // on the map node's visit count; entries with NO node data are legacy saves — keep them
@@ -607,7 +609,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+": "+n.attitude],i;if(n.knowledge.length){var _kn=n.knowledge.join("; ");if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+": "+n.attitude],i;/* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _kn=n.knowledge.join("; ");if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
@@ -651,6 +653,7 @@ function buildNpcGraph(){
     var meta=[];
     if(npc.attitude)meta.push(npc.attitude);
     if(wsNpc&&wsNpc.partyMember)meta.push("PARTY");
+    if(npc.dead)meta.push("DECEASED");/* B3 */
     if(npc.lastSeenAt)meta.push("last:"+npc.lastSeenAt);
     var header=name+(meta.length?" ("+meta.join(", ")+")":"");
     var links=adj[name].map(function(e){return e.other+"("+e.rel+")"+(e.turn?" [T"+e.turn+"]":"");}).join("  ↔ ");
@@ -814,6 +817,18 @@ function applySummaryExtract(extracted){
       if(!_dupH)worldState.pendingMergeHints.push({canonical:snC,duplicate:snD,turn:worldState.turn});
     }
   }
+  // B3 backstop: deaths the GM narrated but never tagged (the docks class — the kill that spawned
+  // this bug left ZERO structured record). Only stamps NPCs already ON FILE — the extractor must
+  // never mint a corpse the world doesn't know; a wrong stamp is loud, visible (DECEASED line),
+  // and reversible via [NPC:name|resurrected|...].
+  if(Array.isArray(extracted.npcDeaths)){for(i=0;i<extracted.npcDeaths.length;i++){var nd=extracted.npcDeaths[i];if(!nd)continue;
+    var ndName=resolveNpcName(String(nd)),ndWs=(typeof wsNpcByName==="function")?wsNpcByName(ndName):null;
+    if(!ndWs&&!memory.npcs[ndName]){if(typeof console!=="undefined")console.warn("[memory] npcDeaths: "+ndName+" not on file — ignored");continue;}
+    if((ndWs&&ndWs.dead)||(memory.npcs[ndName]&&memory.npcs[ndName].dead))continue;
+    if(ndWs){ndWs.dead=worldState.turn;if(!npcDeadStatus(ndWs.status))ndWs.status="dead";}
+    if(memory.npcs[ndName])memory.npcs[ndName].dead=worldState.turn;
+    if(typeof console!=="undefined")console.warn("[memory] death filed from summary extraction: "+ndName+" (t"+worldState.turn+") — the GM narrated a death without [NPC:"+ndName+"|dead|...]");
+  }}
   // Array-guard every list field (audit E43) — a string value from the extractor would otherwise
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
@@ -840,7 +855,7 @@ async function summarize(){
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
-    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}]}\n";
+    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"2-4 word mood, NOT a sentence\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[\"exact name of each named character who DIED in these events -- only unambiguous, on-screen deaths; empty if none\"]}\n";
     // #29 ③: the extractor reads the session anyway — hand it the pending list and let it echo back
     // what the session shows is finished. EXACT text echo, so resolveFutureEvent's exact/substring
     // match lands without fuzzy matching. The GM itself rarely emits [FUTURE_EVENT_RESOLVED:].

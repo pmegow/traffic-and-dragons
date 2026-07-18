@@ -148,7 +148,30 @@ var ER_REPORT_HINTS=[
     return s;}},
   {id:"sync",re:/sync|server|cloud|device|login/i,gather:function(w){
     var conn=false;try{if(typeof store!=="undefined")conn=!!store.get("tnd_server_tok_v1");}catch(e){}
-    return "server connected: "+conn+"; campId: "+((w&&w.campId)||"none");}}
+    return "server connected: "+conn+"; campId: "+((w&&w.campId)||"none");}},
+  // "storage full" reports must carry the numbers that diagnose them: per-key size breakdown
+  // (key NAMES + sizes ONLY — never values; tnd_ak_v1's value is the API key) and the store
+  // wrapper's in-memory-fallback key list (_mKeys = writes localStorage REJECTED — the direct
+  // evidence of what stopped persisting). Sizes in UTF-16 chars, the unit quotas count.
+  {id:"storage",re:/storag|quota|\bfull\b|space|persist|\bsav/i,gather:function(){
+    var out=[],rows=[],total=0,i,k,v;
+    try{
+      if(typeof localStorage==="undefined")out.push("localStorage: (not available in this environment)");
+      else{
+        for(i=0;i<localStorage.length;i++){k=localStorage.key(i);v=localStorage.getItem(k)||"";rows.push([k,k.length+v.length]);total+=k.length+v.length;}
+        rows.sort(function(a,b){return b[1]-a[1];});
+        out.push("localStorage: ~"+Math.round(total/1024)+"K chars across "+rows.length+" keys (5MB quota ≈ 2,500K chars)");
+        for(i=0;i<rows.length&&i<10;i++)out.push("  "+rows[i][0]+": "+Math.round(rows[i][1]/1024)+"K");
+        if(rows.length>10)out.push("  (+"+(rows.length-10)+" smaller keys)");
+      }
+    }catch(e){out.push("localStorage scan failed: "+e.message);}
+    try{
+      if(typeof _mKeys!=="undefined"){
+        var mk=Object.keys(_mKeys);
+        out.push(mk.length?("⚠ IN-MEMORY FALLBACK ACTIVE — keys localStorage REJECTED: "+mk.join(", ")):"in-memory fallback: empty (all writes persisting)");
+      }
+    }catch(e){}
+    return out.join("\n");}}
 ];
 
 var ER_ENTRY_MAX=1200;   // per transcript entry in the context block
