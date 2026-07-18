@@ -15,6 +15,30 @@ var storageAdapter = (function() {
 
   var SERVER_URL_KEY = "tnd_server_url_v1";
   var SERVER_TOK_KEY = "tnd_server_tok_v1";
+  var TEST_MODE_KEY  = "tnd_test_mode_v1";
+
+  // ── Test-mode latch (#72, 2026-07-18 — the B7 root cause) ────────────────
+  // A playtest/harness browser session carrying the real auth token pushed a throwaway
+  // campaign to the PRODUCTION account, which then poisoned GET /api/state for the user's
+  // real phone (B7's false "763 turns un-synced" badge). While TEST_MODE_KEY is set in
+  // localStorage, EVERY server call is refused — loudly (console.warn per call + one toast
+  // per session), never silently — so a test run is mechanically incapable of touching
+  // production data. The harness sets the key at install; any manual test session must set
+  // it before driving turns. Escape hatch: remove the key and reload (loginWithServer's
+  // refusal message says exactly that).
+  var _testWarned = false;
+  function testModeOn() {
+    try { return !!localStorage.getItem(TEST_MODE_KEY); } catch(e) { return false; }
+  }
+  function _testBlock(what) {
+    if (!testModeOn()) return false;
+    console.warn("[storage] TEST MODE — " + what + " blocked (remove localStorage '" + TEST_MODE_KEY + "' and reload to re-enable cloud sync)");
+    if (!_testWarned) {
+      _testWarned = true;
+      if (typeof showToast === "function") showToast("&#129514; Test mode &mdash; cloud sync disabled");
+    }
+    return true;
+  }
 
   var _serverUrl           = null;   // null = local mode
   var _token               = null;
@@ -30,6 +54,9 @@ var storageAdapter = (function() {
   // If a saved server URL + token exist in localStorage, restore server mode.
 
   function autoConnect() {
+    // Test mode (#72): never restore a live server connection into a test session — the
+    // saved URL+token stay in localStorage untouched, they just don't come live.
+    if (testModeOn()) { console.warn("[storage] TEST MODE — saved server connection NOT restored (tnd_test_mode_v1 is set)"); return; }
     try {
       var url = localStorage.getItem(SERVER_URL_KEY);
       var tok = localStorage.getItem(SERVER_TOK_KEY);
@@ -63,6 +90,10 @@ var storageAdapter = (function() {
   // ── GitHub OAuth popup login ────────────────────────────────────────────
 
   function loginWithServer(serverUrl, onSuccess) {
+    if (_testBlock("login")) {
+      if (typeof onSuccess === "function") onSuccess("Test mode active — cloud sync is disabled. Remove localStorage key 'tnd_test_mode_v1' and reload to reconnect.");
+      return;
+    }
     if (_popup && !_popup.closed) { _popup.focus(); return; }
 
     serverUrl = serverUrl.replace(/\/$/, "");
@@ -276,6 +307,7 @@ var storageAdapter = (function() {
 
   function syncPortrait(campId) {
     if (!_serverUrl || !_token || !campId) return;
+    if (_testBlock("portrait sync")) return;
     if (typeof worldState === "undefined" || !worldState) return;
     var portrait = worldState.character ? worldState.character.portrait : null;
     // Collect all NPC portraits — via npcPortrait() (v1.170): after the #3 dedupe, companion
@@ -339,6 +371,7 @@ var storageAdapter = (function() {
 
   function _syncNow(beacon, healedRetry) {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
+    if (_testBlock("state sync (POST /api/state)")) return; // #72 — covers debounce, flush AND beacon paths
     if (_conflict) return; // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
@@ -455,6 +488,7 @@ var storageAdapter = (function() {
 
   function syncCampaignList(cb) {
     if (!_serverUrl || !_token) { if (cb) cb(null); return; }
+    if (_testBlock("campaign list sync")) { if (cb) cb(null); return; }
     var _fired = false;
     function done(result) { if (!_fired) { _fired = true; if (cb) cb(result); } }
     // _tFetch (20s) replaces the old 60s fallback timer — a dead host held the campaign
@@ -518,6 +552,10 @@ var storageAdapter = (function() {
       cb(localOk);
       return;
     }
+
+    // #72: the reconcile GET is exactly the B7 contamination path (a foreign blob seeding the
+    // ack baseline / being adopted wholesale) — a test session never reads server state either.
+    if (_testBlock("server reconcile (GET /api/state)")) { cb(localOk); return; }
 
     // Paint from local cache instantly, then reconcile with server.
     cb(localOk);
@@ -645,6 +683,7 @@ var storageAdapter = (function() {
   // (encodeURIComponent on segments) — this takes the finished path.
   function _apiJson(path, method, bodyObj, cb) {
     if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    if (_testBlock("server call " + (method || "GET") + " " + path)) { if (cb) cb("Test mode — cloud sync disabled"); return; }
     var opts = { headers: { "Authorization": "Bearer " + _token } };
     if (method && method !== "GET") opts.method = method;
     if (bodyObj != null) {
@@ -750,6 +789,7 @@ var storageAdapter = (function() {
     saveCharacterToLibrary:          saveCharacterToLibrary,
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
+    testModeOn:            testModeOn,           // #72 test-mode latch — exposed for UI + engine tests
     whoAmI:                whoAmI,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,

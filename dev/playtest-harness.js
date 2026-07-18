@@ -6,12 +6,23 @@
 // schedule, HP/gold/XP stay sane, no console errors — and (2) collect a narration corpus you
 // (Claude) can read afterward and judge for prose-voice / content-DNA drift over a long run.
 //
+// ⚠ PRODUCTION-DATA ISOLATION (#72, the 2026-07-18 B7 incident): a harness session carrying the
+// real auth token (localStorage tnd_server_tok_v1) once pushed a throwaway campaign to the
+// PRODUCTION Fly account, which poisoned GET /api/state for the user's real phone. Installing
+// this harness now sets localStorage tnd_test_mode_v1, which makes storage-adapter refuse ALL
+// cloud traffic loudly — but set the key in step 1 (below), BEFORE the first turn, so the
+// startGame/beginAdventure turns of step 2 are covered too. The same rule applies to ANY manual
+// test session that drives turns (multiplayer tests included): set tnd_test_mode_v1 first.
+// A test that genuinely needs a live server (sync features) must use a dedicated test account
+// or a locally-run server — NEVER the production account.
+//
 // HOW TO USE (via preview_eval against a running `npx serve .` instance, fresh browser state):
 //
-// 1. Clear stale localStorage and reload so you start from a clean slate:
+// 1. Clear stale localStorage, arm TEST MODE, and reload so you start from a clean slate:
 //      (function(){var keep=["tnd_ak_v1","tnd_provider_keys_v1","tnd_provider_models_v1","tnd_provider_v1"];
 //        for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);
-//        if(k.indexOf("tnd_")===0&&keep.indexOf(k)===-1)localStorage.removeItem(k);}})()
+//        if(k.indexOf("tnd_")===0&&keep.indexOf(k)===-1)localStorage.removeItem(k);}
+//        localStorage.setItem("tnd_test_mode_v1","1");/* block ALL cloud traffic — see isolation note above */})()
 //      window.location.reload()
 //    Confirm you land on #char-screen (not a stale #game-screen) before continuing.
 //    If tnd_ak_v1 isn't already set, ask the user to enter their API key in the visible
@@ -74,6 +85,14 @@
 
 (function(){
   var PT_KEY="tnd_pt_corpus_v1";
+  // PRODUCTION-DATA GUARD (#72): arm the storage-adapter test-mode latch — every server call is
+  // refused loudly while tnd_test_mode_v1 is set, so a harness run is mechanically incapable of
+  // pushing a throwaway campaign to the real cloud account. Belt on top of the step-1 snippet
+  // (which sets it BEFORE the first turn — do that too; this only closes the forgot-step-1 case).
+  try { localStorage.setItem("tnd_test_mode_v1", "1"); } catch(e) {}
+  if (typeof storageAdapter !== "undefined" && storageAdapter.isServerMode && storageAdapter.isServerMode()) {
+    console.warn("[harness] a server connection was LIVE when the harness installed — test mode now blocks all cloud traffic, but earlier turns this session may already have synced. Reload before the next run.");
+  }
   // DURABILITY (a test run must ALWAYS be auditable — its evidence must survive the tab). The corpus
   // is persisted to localStorage after every turn AND every GM response, and recovered on install, so a
   // closed/reopened/crashed window can never cost more than the single in-flight turn. Recover a prior

@@ -120,7 +120,7 @@ Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pag
 - **Test-hygiene root cause (filed as a task chip):** the playtest harness runs against the production account — pushing test campaigns into live user data is what armed this in the first place.
 
 ### Action log
-_(none)_
+- **2026-07-18 (v1.365, #72):** the test-hygiene root cause is closed — storage-adapter test-mode latch (`tnd_test_mode_v1`) refuses ALL cloud traffic loudly while set; the playtest harness arms it before the first turn. Test runs are now mechanically incapable of pushing to the production account (the arming event for this bug). The E4 identity-guard fix itself is tracked separately.
 
 ---
 

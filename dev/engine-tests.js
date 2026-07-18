@@ -4974,6 +4974,92 @@ t("payload is byte-identical to the pre-B9 ui.js inline construction", function 
     makeWorld();/* the no-leak test replaced the live globals with sentinels — normalize */
   })();
 
+  // ── #72: test-mode latch — a test/harness session must be MECHANICALLY incapable of touching
+  //    production data (the 2026-07-18 B7 playtest-pollution incident: a browser session with the
+  //    real token pushed a throwaway campaign to the live account). Flag ON blocks every server
+  //    call LOUDLY (console.warn per call — asserted below, no-silent-failures policy); flag OFF
+  //    must be byte-for-byte the old behavior. ──
+  (function(){
+    var G=(typeof global!=="undefined")?global:window;
+    var _realFetch=G.fetch,_realWarn=console.warn,_hadLS=("localStorage" in G),_realLS=_hadLS?G.localStorage:null;
+    var calls=[],warns=[];
+    G.fetch=function(url,opts){calls.push({url:url,opts:opts||{}});return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});}});};
+    console.warn=function(m){warns.push(String(m));};
+    var _ls={_m:{}};
+    _ls.getItem=function(k){return Object.prototype.hasOwnProperty.call(this._m,k)?this._m[k]:null;};
+    _ls.setItem=function(k,v){this._m[k]=String(v);};
+    _ls.removeItem=function(k){delete this._m[k];};
+    G.localStorage=_ls;
+    storageAdapter.setServer("https://unit.test","TOK_TM");
+section("test-mode isolation (#72 — harness production-data guard)");
+
+t("testModeOn() reads the tnd_test_mode_v1 key live (off → on → off)", function(){
+  if(storageAdapter.testModeOn())return "on with no key set";
+  _ls.setItem("tnd_test_mode_v1","1");
+  if(!storageAdapter.testModeOn())return "key set but latch off";
+  _ls.removeItem("tnd_test_mode_v1");
+  return storageAdapter.testModeOn()?"key removed but latch still on":true;
+});
+t("flag ON → syncNow() fires NO fetch and warns loudly (the per-turn POST /api/state path)", function(){
+  makeWorld();_ls.setItem("tnd_test_mode_v1","1");
+  calls.length=0;warns.length=0;
+  storageAdapter.syncNow();
+  if(calls.length!==0)return "fetch fired: "+calls[0].url;
+  if(!warns.length||warns[0].indexOf("TEST MODE")<0)return "block was SILENT — warns: "+JSON.stringify(warns);
+  return true;
+});
+t("flag ON → syncNow(true) (the beacon/page-hide flush) is blocked too", function(){
+  calls.length=0;
+  storageAdapter.syncNow(true);
+  return calls.length===0?true:"beacon fetch fired: "+calls[0].url;
+});
+t("flag ON → pushCampaignState (the exact incident call) refused, cb told why, no fetch", function(){
+  calls.length=0;var err="(cb not called)";
+  storageAdapter.pushCampaignState("campX",{worldState:{npcs:[]},sessionLog:[],memory:{}},function(e){err=e;});
+  if(calls.length!==0)return "fetch fired: "+calls[0].url;
+  return (err&&String(err).indexOf("Test mode")===0)?true:"cb error wrong: "+err;
+});
+t("flag ON → whoAmI / deleteCampaignFromServer / library writes all refused via the one _apiJson gate", function(){
+  calls.length=0;var errs=[];
+  storageAdapter.whoAmI(function(e){errs.push(e);});
+  storageAdapter.deleteCampaignFromServer("campX",function(e){errs.push(e);});
+  storageAdapter.saveCharacterToLibrary({name:"Tess"},function(e){errs.push(e);});
+  if(calls.length!==0)return "fetch fired: "+calls[0].url;
+  for(var i=0;i<errs.length;i++){if(!errs[i]||String(errs[i]).indexOf("Test mode")!==0)return "cb "+i+" error wrong: "+errs[i];}
+  return errs.length===3?true:"expected 3 cbs, got "+errs.length;
+});
+t("flag ON → syncCampaignList no-ops with cb(null), no fetch", function(){
+  calls.length=0;var got="(cb not called)";
+  storageAdapter.syncCampaignList(function(r){got=r;});
+  if(calls.length!==0)return "fetch fired: "+calls[0].url;
+  return got===null?true:"cb got "+JSON.stringify(got);
+});
+t("flag ON → load() serves LOCAL state only — the reconcile GET (B7's contamination path) never fires", function(){
+  calls.length=0;var cbCount=0;
+  storageAdapter.load(function(){cbCount++;});
+  if(calls.length!==0)return "reconcile fetch fired: "+calls[0].url;
+  return cbCount===1?true:"cb fired "+cbCount+" times (expected exactly 1 — the local paint)";
+});
+t("flag ON → loginWithServer refused with a self-describing message (no OAuth popup)", function(){
+  var err="(cb not called)";
+  storageAdapter.loginWithServer("https://unit.test",function(e){err=e;});
+  if(!err||String(err).indexOf("Test mode")<0)return "cb error wrong: "+err;
+  return String(err).indexOf("tnd_test_mode_v1")>=0?true:"message doesn't name the escape hatch: "+err;
+});
+t("flag OFF → traffic flows exactly as before (the guard adds ZERO behavior when off)", function(){
+  _ls.removeItem("tnd_test_mode_v1");
+  calls.length=0;warns.length=0;
+  storageAdapter.whoAmI(function(){});
+  if(calls.length!==1)return "expected 1 fetch, got "+calls.length;
+  if(calls[0].url!=="https://unit.test/auth/me")return "url "+calls[0].url;
+  return warns.length===0?true:"flag off but warned: "+warns[0];
+});
+    storageAdapter.setServer(null,null);
+    G.fetch=_realFetch;console.warn=_realWarn;
+    if(_hadLS)G.localStorage=_realLS;else delete G.localStorage;
+    makeWorld();/* load() ran loadState() against empty storage — normalize the globals */
+  })();
+
 
   // ── Group B wave 2 (AUDIT_FABLE_07_16 #6/#7/#11) — folded from the agent fragment ──
   (function(){
