@@ -242,9 +242,11 @@ function renderBug(b){
 }
 
 // ── live server feed — reads the GAS doGet JSON directly (offsite check, no sync needed) ──────
-// Dedup invariant: a feed report is "new" only if its id appears on NO filed row's "Report ids:"
-// line — so nothing doubles up when /bugs sync later files it (the id lands on the row and the
-// entry drops out of this section on the next reload).
+// Dedup invariant: a feed report is "new" only if its id appears NOWHERE in DOC/BUGS.md — filed
+// rows' "Report ids:" lines AND the "## Skipped reports" ledger both count. (Was rows-only, which
+// left deliberately-skipped reports showing as "not yet synced" forever — the 2026-07-18 probe
+// batch.) When /bugs sync files or ledgers a report, its id lands in the file and the entry drops
+// out of this section on the next reload.
 var FEED_URL="https://script.google.com/macros/s/AKfycbzivwUvDUoEX6tFDnFy16DAj9gwehAkIaLv1XDSYcL-JChkeBEdt84eCvJJeuZv2lNvjQ/exec";
 var SECRET_KEY="tnd_bugfeed_secret_v1"; // this browser only — the secret never enters the repo
 
@@ -287,7 +289,7 @@ function loadFeed(filedIds){
   if(!sec){feedNote("","Live server check is off — click 🔑 feed secret… to enable it (one-time per browser).");return;}
   fetch(FEED_URL+"?s="+encodeURIComponent(sec)).then(function(r){return r.json();}).then(function(d){
     if(!d.ok){feedNote("err","Server feed refused: "+String(d.error)+" — re-enter the secret (🔑).");return;}
-    var fresh=(d.reports||[]).filter(function(r){return !filedIds[r.id];});
+    var fresh=(d.reports||[]).filter(function(r){return !filedIds[String(r.id).toLowerCase()];});
     var wrap=document.getElementById("feedwrap");
     if(!wrap)return;
     wrap.textContent="";
@@ -314,8 +316,10 @@ function render(md){
   var done=bugs.filter(function(b){return b.section==="completed";});
   document.getElementById("loadinfo").textContent=
     open.length+" open · "+done.length+" completed";
+  // Accounted-for = any report id present ANYWHERE in the markdown — rows AND the Skipped ledger
+  // (see the dedup-invariant comment above loadFeed).
   var filedIds={};
-  bugs.forEach(function(b){b.ids.forEach(function(x){filedIds[x]=true;});});
+  (md.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)||[]).forEach(function(x){filedIds[x.toLowerCase()]=true;});
   root.appendChild(el("div",null,"")).id="feedwrap";
   loadFeed(filedIds);
   root.appendChild(el("h2","sect","Open ("+open.length+")"));

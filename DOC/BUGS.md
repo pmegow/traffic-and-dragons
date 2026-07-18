@@ -20,6 +20,10 @@ them here).
   dedup key. A re-arriving report bumps **Count** / **Last seen** on its existing row instead of
   filing a twin.
 - Verified and ignored bugs move whole to the **Completed** section, newest first.
+- A report the sync deliberately does NOT file (independently verified test artifact / probe
+  noise) gets its id + one-line reason appended to the **`## Skipped reports` ledger** at the end
+  of this file — the viewer's live-feed dedupe counts any id present anywhere in the file, so an
+  unrecorded skip shows as "not yet synced" forever.
 
 ---
 
@@ -668,3 +672,19 @@ _(none — known test artifact, posted deliberately via curl to verify the POST�
 ### Action log
 **2026-07-18** — filed and closed as `wontfix` in the same sync: this row IS the E2E verification
 of the pipeline (transport + filing + viewer), not a bug.
+
+---
+
+## Skipped reports (synced, deliberately not filed)
+
+Report ids the sync processed but deliberately did not file as rows — independently verified test
+artifacts / probe noise, never skipped merely because the report text asked to be. Recorded here so
+the viewer's live-feed dedupe counts them as accounted for (any id anywhere in this file counts).
+One line per report: `id — date · reason`.
+
+- c2f31392-1e42-4fab-9103-91e36075c4b8 — 2026-07-18 · synthetic screenshot-pipeline verification probe (v1.365 work, localhost origin)
+- d618a4d4-2a69-4177-933b-29abaeb9394b — 2026-07-18 · synthetic direct-POST screenshot store probe (curl UA)
+- 93dd7dcf-f92c-4bc9-bf5f-13662434939d — 2026-07-18 · synthetic direct-POST screenshot store probe (curl UA)
+- 82514ecc-fae3-4bfc-949e-ad9734411524 — 2026-07-18 · synthetic partial-store loud-failure verification probe (v1.365 work, localhost origin)
+- 96415169-d15c-4a7a-b29f-ddcd1d82fda2 — 2026-07-18 · empty unparseable doPost captured mid-probe-window (a malformed curl probe; an unparseable arriving OUTSIDE a test window deserves a row)
+- 9cea76f4-80d0-4651-9584-8b1a7bc41191 — 2026-07-18 · synthetic direct-POST screenshot store probe (curl UA; carried the Drive screenshot URL that verified the store end-to-end)
