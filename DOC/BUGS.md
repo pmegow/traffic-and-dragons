@@ -66,8 +66,12 @@ _(none yet — run /bugs investigate B4)_
 ### Action log
 _(none)_
 
+---
+
+## Completed
+
 ## B3 — Canon drift around Rinn Toldrath — player states he is dead (killed by Ammut at the docks, the event behind Frizwick’s ethical conundrum) and play contradicted that
-**Status:** fixed
+**Status:** verified
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.354) · **Last seen:** 2026-07-18 · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 809
 **Fingerprint:** `user-report · user-report · v1.354 · rinn toldrath is dead. ammut killed him at the docks. it’s what spawned frizwicks ethical conundrum.`
 **Report ids:** b8482cfb-631f-4c6c-8966-135ec66e8d23
@@ -237,10 +241,7 @@ SUGGESTED ACTIONS SHOWN: Watch the Charred Barrel's east hearth from hiding | Se
 
 ### Action log
 **2026-07-18** — **fixed** (v1.361). All five legs closed in one commit; drift policy applied in full (Fable-tier, pre-code critical review — confidently resolved, no user forks; the one judgment call, refuse-vs-block on dead-status overwrites, follows the ratified engine-detects/GM-decides shape). What shipped: ① `npcDeadStatus()`/`npcIsDead()` (helpers.js) — THE conservative death detection (word-boundary death words minus living idioms minus resurrection phrasing; flag authoritative, status fallback for version-skewed blobs); `[NPC:|dead]` stamps durable `dead=turn` on both stores, non-death overwrites REFUSED (warn + toast + `buildDeadStatusNudge`), revival via explicit `resurrected` status. ② `propagateSlainFoes()` — slain registered foes stamp at COMBAT_END/auto-close/LOCATION-clear (exact-match on resolved name; pooled foes never stamp). ③ summarize extractor `npcDeaths[]` + `applySummaryExtract` filing (on-file NPCs only). ④ roster renders affirmative `DECEASED:` line (cap 10 recent) instead of silent omission — arms RAG's override header; GEOGRAPHY excludes the dead; TOC/detail/graph annotated; dead NPCs' `lastSeenAt` frozen (no re-stamp on mention). ⑤ resurrection-by-overwrite guard + `[NPC_MERGE:]` dead-flag adoption + one STATE TAGS doc line (frozen golden re-frozen: hash 1682497214, len 13742, +478 chars) + migration (legacy dead statuses stamped; wrongly-hidden living idioms like "half-dead" regain the roster). 15 new failure-condition engine tests (B3-1…B3-15), suite ALL GREEN at 660. Party-scan dead checks switched from status regex to the flag (fixes the half-dead-companion false-exclusion class).
-
----
-
-## Completed
+**2026-07-18** — **verified / closed on user call.** v1.361 confirmed live on the reporting device (the B4 report arrived from it). Engine-side behavior fully covered by the B3-1…15 battery; the specific Rinn entry self-heals via migration if his status carried a death word, else one `[NPC:Rinn Toldrath|dead|…]` (Table Talk nudge or sync) makes it permanent — from that point the DECEASED line, the overwrite guard, and the geography exclusion hold the canon.
 
 ## B2 — A “Who’s Kendra” interrogation appeared in the narration with no Kendra anywhere in the campaign record — player asks where the name came from
 **Status:** wontfix
