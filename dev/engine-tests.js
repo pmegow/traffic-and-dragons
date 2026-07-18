@@ -5571,4 +5571,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return errs.length?true:"the swallowed failure was SILENT — no console.error";
   });
 
+  // ── B7: reconcile identity guard (cross-campaign ack contamination) ────────
+  section("B7: reconcile identity guard");
+  var rid=storageAdapter.reconcileIdentityOk;
+  t("THE B7 field case: active-id unreadable + local save present + server returns a FOREIGN campaign → refuse",function(){
+    return eq(rid(null,"camp_A","camp_B",true),false);
+  });
+  t("active-id unreadable but worldState.campId MATCHES the server blob → reconcile proceeds (flaky key, right campaign)",function(){
+    return eq(rid(null,"camp_A","camp_A",true),true);
+  });
+  t("classic E4 mismatch (both ids readable, different) still refused",function(){
+    return eq(rid("camp_A","camp_A","camp_B",true),false);
+  });
+  t("full identity match → proceed; match via active-id alone (no wsCampId) also proceeds",function(){
+    if(rid("camp_A","camp_A","camp_A",true)!==true)return "full match refused";
+    return eq(rid("camp_A",null,"camp_A",true),true);
+  });
+  t("server blob carries NO identity at all → refuse when any local identity exists (stricter than E4 — deliberate)",function(){
+    return eq(rid("camp_A",null,null,true),false);
+  });
+  t("truly fresh device (no local identity, no local save) → first-load adopt allowed",function(){
+    if(rid(null,null,"camp_B",false)!==true)return "fresh-device adopt refused";
+    return eq(rid(null,null,null,false),true);
+  });
+  t("local save present but NO identity anywhere on it → refuse (never adopt over an unidentified local save)",function(){
+    return eq(rid(null,null,"camp_B",true),false);
+  });
+
 }

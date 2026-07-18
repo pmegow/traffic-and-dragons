@@ -53,7 +53,7 @@ _(none)_
 ---
 
 ## B7 — Membar sync badge reports an impossibly large un-synced turn count (763 at turn 815) on a connected device
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.363) · **Last seen:** 2026-07-18 (v1.363) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 815
 **Fingerprint:** `user-report · user-report · v1.363 · mem bar says 763 turns un-synced. that's impossible.`
 **Report ids:** 307b2168-8b88-436b-9de0-8044cc8aa8a9
@@ -120,12 +120,12 @@ Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pag
 - **Test-hygiene root cause (filed as a task chip):** the playtest harness runs against the production account — pushing test campaigns into live user data is what armed this in the first place.
 
 ### Action log
-_(none)_
+**2026-07-18** — **fixed** (v1.366). Corrected-findings fix sketch #1 implemented (drift policy applied — the change only ever makes reconcile adoption STRICTER). New pure `reconcileIdentityOk(localActive, wsCampId, serverCamp, localOk)` (storage-adapter.js, exposed for tests, same pattern as resolveCas409): identity drawn from the active-id key OR the live `worldState.campId`, POSITIVE match with the server blob's id required for both the `_lastAckTurn` seed and the adopt; the only no-match reconcile allowed is a truly fresh device (no local identity AND no readable local save) adopting its first campaign. Also stricter than the old E4 guard on a server blob carrying no identity at all (refused when any local identity exists). 7 engine tests (681 green); preview-verified against the original repro: the field case (unreadable key + foreign campaign t52) now leaves ack −1/unsynced 0, a flaky key with the MATCHING campaign still reconciles honestly (ack seeds, real deficit shows), and the near-miss clobber case (foreign campaign at HIGHER turn) leaves the live campaign untouched. Server-side belt (`GET /api/state?campaignId=`, fix #2) NOT shipped — separate server deploy, queue behind the harness-isolation task. Awaiting field confirmation the badge reads sanely → then `verified` + move to Completed.
 
 ---
 
 ## B5 — GM process-narration leaking into story prose — sonnet-5 turns open with meta-commentary like a no-tags-needed remark before the narrative
-**Status:** new
+**Status:** investigating
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.361) · **Last seen:** 2026-07-18 (v1.361) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 810
 **Fingerprint:** `user-report · user-report · v1.361 · turn 809 nothing spent there either, no tag needed. this seems like ai thought leaking into the dialog`
 **Report ids:** 0aeee404-6ee4-4609-a4da-6f68d9945bed

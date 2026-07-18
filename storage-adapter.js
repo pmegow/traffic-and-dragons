@@ -240,6 +240,23 @@ var storageAdapter = (function() {
     if (typeof serverTurn !== "number" || typeof localTurn !== "number") return "pause";
     return serverTurn <= localTurn ? "heal" : "pause";
   }
+  // B7 (cross-campaign ack contamination): the reconcile identity decision — pure, exposed for
+  // engine tests. GET /api/state returns the user's MOST-RECENTLY-UPDATED campaign, not
+  // necessarily the active one, so the ack seed and the adopt in load() MUST prove the blob is
+  // THIS campaign before using it. The old guard only rejected when BOTH ids were readable and
+  // different: a transiently unreadable local active-id (B7 in the field: a quota-stressed
+  // iPhone, minutes after a test campaign became the account's most-recent) let a FOREIGN
+  // campaign's turn seed _lastAckTurn — the badge showed local-turn-minus-the-OTHER-campaign's-
+  // turn (815−52=763) — and, had the foreign turn been HIGHER, the adopt would have replaced the
+  // live campaign wholesale. Identity now draws on BOTH local sources (the active-id key and the
+  // live worldState.campId), and a POSITIVE match is required; the only permitted no-match
+  // reconcile is a truly fresh device (no local identity AND no readable local save) adopting
+  // its first campaign.
+  function reconcileIdentityOk(localActive, wsCampId, serverCamp, localOk) {
+    var localId = localActive || wsCampId || null;
+    if (!localId && !localOk) return true; // fresh device — first-load adopt is the intended path
+    return !!serverCamp && serverCamp === localId;
+  }
   function _onSyncFail(msg, status) {
     _failCount++;
     console.warn("[storage] sync failed (" + _failCount + " consecutive): " + msg);
@@ -535,13 +552,17 @@ var storageAdapter = (function() {
         syncCampaignList(null);
         return;
       }
-      // Campaign-identity guard (audit E4): GET /api/state returns the user's most-recent state for
-      // ANY campaign. If a DIFFERENT campaign is active locally, adopting this blob would silently
-      // switch campaigns and stomp the active one. Reconcile only the SAME campaign; a fresh device
-      // (no local active campaign / no server campId) still adopts, which is the intended first load.
+      // Campaign-identity guard (audit E4, hardened for B7): GET /api/state returns the user's
+      // most-recent state for ANY campaign. If a DIFFERENT campaign is active locally, adopting
+      // this blob would silently switch campaigns and stomp the active one — and even just
+      // SEEDING _lastAckTurn from it poisons the sync badge (B7: 815−52=763 "unsynced"). A
+      // POSITIVE identity match is required (see reconcileIdentityOk above) — identity from the
+      // active-id key OR the live worldState.campId, so a transiently unreadable key can no
+      // longer bypass the guard; only a truly fresh device reconciles without a match.
       var _localActive = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
       var _serverCamp  = data.campaignId || data.worldState.campId || null;
-      if (_localActive && _serverCamp && _serverCamp !== _localActive) { syncCampaignList(null); return; }
+      var _wsCampId    = (typeof worldState !== "undefined" && worldState) ? worldState.campId : null;
+      if (!reconcileIdentityOk(_localActive, _wsCampId, _serverCamp, localOk)) { syncCampaignList(null); return; }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
       // The server provably holds serverTurn — seed the ACK baseline (#24). If local is
@@ -744,6 +765,7 @@ var storageAdapter = (function() {
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
+    reconcileIdentityOk:   reconcileIdentityOk, // exposed for the engine tests (B7 identity guard)
     markPortraitDirty:     markPortraitDirty,
     fillPortraitsFromBlob: fillPortraitsFromBlob, // exposed for the engine tests (v1.170)
     listCharacterLibrary:            listCharacterLibrary,
