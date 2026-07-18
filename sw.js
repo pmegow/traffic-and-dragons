@@ -33,6 +33,7 @@ var APP_SHELL = [
   "/ui-boot.js",
   "/tts.js",
   "/stt.js",
+  "/sound.js",
   "/vendor/html-to-image/html-to-image.js",
   "/manifest.json",
   "/icon.svg",
