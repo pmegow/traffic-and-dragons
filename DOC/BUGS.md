@@ -30,7 +30,7 @@ them here).
 ## Open
 
 ## B8 — Browser password-manager autofill dropdown pops up over the action input when it is clicked (desktop Chrome)
-**Status:** new
+**Status:** findings-ready
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.363) · **Last seen:** 2026-07-18 (v1.363) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 815
 **Fingerprint:** `user-report · user-report · v1.363 · password auto complete keeps popping up when i click in the input field.`
 **Report ids:** b96107ff-19ee-46d4-91a1-0d5c0c06fc38
@@ -49,7 +49,42 @@ SUGGESTED ACTIONS SHOWN: Tell Frizwick she's not alone in this | Push the pace t
 Device: Windows desktop Chrome 150, online, deployed site (traffic-and-dragons.pages.dev), v1.363.
 
 ### Findings
-_(none yet — run /bugs investigate B8)_
+
+**2026-07-18 — bug-investigator (read-only), dispatched by /bugs investigate**
+
+- **Verdict:** `probable-cause` (root-caused on the in-repo half; the exact Chrome-internal classification of `#userinput` is browser-side and can only be confirmed with the two checks listed under Confidence).
+
+- **Mechanism:**
+  1. **The origin teaches Chrome it has credentials.** The page has multiple bare `type="password"` fields with no autofill guard: `#api-input` and `#fal-input` (index.html:357 — neither has ANY `autocomplete` attribute), `#pv-key` in the Language Model modal (ui-modals.js:194), `#ro-fal-inp` in Render Options (ui-modals.js:122), `#tts-key-inp` in Voice Settings (tts.js:1769). None sit in a `<form>` — there is not one `<form>` tag in the repo. Chrome treats a formless password field whose typed value survives a "submission-like" event (field hidden / removed / navigation) as a login and offers "Save password?". That is exactly what `submitKey()` does: type key → click → `#api-screen.style.display="none"` (ui-boot.js:294). The modal key inputs are torn down on Save (modals are created fresh / removed by ID), the same trigger. One accepted save bubble = a stored credential for `traffic-and-dragons.pages.dev` (password = an API key, username = whatever Chrome guessed, likely blank).
+  2. **Formless-field grouping binds `#userinput` to the password fields.** Chromium groups ALL form-less fields on a page into one synthetic "unowned form" for password-manager purposes. `#api-screen` is never removed from the DOM — only `display:none` (ui-boot.js:294) — so during gameplay the live DOM simultaneously contains two `type="password"` inputs (index.html:357) and the action input (index.html:430) in the same synthetic form. The page is permanently shaped like a login form.
+  3. **`#userinput` matches Chrome's username heuristics.** The id is literally `userinput` (index.html:430); Chromium's username detector keys on developer attributes containing `user` (among `login`/`email` etc.). With a saved credential for the origin (step 1) + a synthetic form containing password fields (step 2) + a text field whose id matches the username keyword (step 3), Chrome shows the credential dropdown on click.
+  4. **`autocomplete="off"` is present and irrelevant.** `#userinput` already has `autocomplete="off"` (index.html:430) — Chrome deliberately ignores `off` for password-manager suggestions (documented Chromium behavior since ~M43). Candidate (b) from the questions is thus a component of (a), not a rival. Candidate (c) — type-toggling — is ruled out: nothing in the repo ever writes `.type` on `#userinput` (full-repo grep; the only dynamic `type="password"` creation is the auth-error retry input, game.js:914, a different element).
+
+- **Evidence:**
+  - index.html:357 — `#api-input` `type="password"`, no autocomplete; `#fal-input` `type="password"`, no autocomplete. Same line: both live inside `#api-screen`, a plain `<div>`.
+  - ui-boot.js:294 — `submitKey()` hides `#api-screen` via `display="none"`; the password inputs stay in the DOM for the whole session.
+  - index.html:430 — `#userinput` markup: `type="text" id="userinput" ... autocomplete="off"`; no `<form>` wrapper (`<form` matches zero files repo-wide).
+  - ui-modals.js:122 (`#ro-fal-inp`), ui-modals.js:194 (`#pv-key`), tts.js:1769 (`#tts-key-inp`) — all `type='password'`, all missing `autocomplete`.
+  - game.js:914 — the auth-error retry key input is the ONLY key field that sets `autocomplete="off"` (still the ignored value, but shows the intent existed once).
+  - Ruled out: bug_tracker.html takes its feed secret via `prompt()` (bug_tracker.html:353) — no autofillable field; blueprint-designer.html has no password inputs (its inputs are `type='text'`/`file`/`checkbox`, blueprint-designer.html:98,175,251 — it reads `providerKeys` from localStorage).
+
+- **Fix sketch (smallest-first, two halves):**
+  1. **Stop the current popup (user-side, zero code):** user deletes the `traffic-and-dragons.pages.dev` entry in `chrome://passwords` (and optionally adds the site to "Never save"). Code cannot remove an already-saved credential — without this step every code fix below still leaves the existing dropdown possible.
+  2. **Stop the future teaching (one attribute per key input, 6 sites):** add `autocomplete="one-time-code"` (Chrome honors it — no save bubble, no credential fill; `new-password` is the fallback choice but invites the password-generation dropdown) to: `#api-input` + `#fal-input` (index.html:357), `#pv-key` (ui-modals.js:194), `#ro-fal-inp` (ui-modals.js:122), `#tts-key-inp` (tts.js:1769), and upgrade `ki.autocomplete` at game.js:914. Six one-token edits, no logic change.
+  3. **Break the username-heuristic match (rename `#userinput` → e.g. `#action-input`):** the "user" substring in the id is the classification hook and no autocomplete token reliably overrides a username prediction on a text field. Counted call sites for the rename: **17 JS references** — game.js:478, 793, 859, 860 (4); stt.js:58, 135, 155, 204, 308, 430, 438 (7); ui-boot.js:139, 141 (2); ui-carmode.js:113, 267, 318, 338 (4) — plus **5 CSS selector occurrences** in index.html (147 ×2, 149, 193, 249) and the markup at index.html:430. Comment-only mentions (stt.js:232, ui-carmode.js:334/336, docs) are cosmetic. Mechanical grep-driven rename; do it in one commit.
+  4. **Optional belt-and-braces:** remove the `#api-screen` password inputs from the DOM once the key is accepted (e.g. clear `value` and set `type="text"`+`hidden`, or `parentNode.removeChild`) so the gameplay DOM stops containing password fields at all — this dissolves the synthetic-form association even for users who never clean their saved credential. Slightly more invasive (touches `submitKey` and `loadFalKey`'s re-fill at ui-modals.js:110).
+
+- **Drift-surface flag:** NO — index.html markup/CSS, ui-modals.js/tts.js/game.js UI strings, ui-boot.js/stt.js/ui-carmode.js id references. No contact with applyMuts, memory tiers, buildSysPrompt, cleanTxt, transcript serialization, or quest/skeleton teeth.
+
+- **Risk & blast radius:** the id rename (fix 3) is the only risky piece — a missed reference silently breaks Send-on-Enter, the clear button, STT dictation landing, or Car Mode's parked-utterance flow (stt.js/ui-carmode.js are the easy ones to miss; a missed CSS selector degrades styling silently). Fixes 1–2 are zero-blast. Fix 4 could break `loadFalKey()`'s prefill and the "change key later" path if done carelessly. None of this touches game state.
+
+- **Confidence:** medium-high. High that the teaching mechanism is as described (the code facts are unambiguous). Medium on precisely WHY Chrome picks `#userinput` (username-keyword match vs. server-side crowdsourced prediction — both are browser-internal). Settled by: (a) user checks `chrome://passwords` for a `traffic-and-dragons.pages.dev` entry and reports its username/password shape (expect an sk-ant/fal key as the password); (b) DevTools → the Autofill panel (Chrome 150 has it) on the deployed site shows Chrome's live field-type prediction for `#userinput` — if it says USERNAME/username-first-flow, mechanism step 3 is confirmed verbatim.
+
+- **Observations filed on the way:**
+  - The auth-error retry input (game.js:914) is the only key field that even attempts an autocomplete guard — the five permanent/modal key inputs have none; this is a class, not a point (per the standing "enumerate the class" audit rule, fix all six in one pass).
+  - `#api-screen` (with its two password fields) stays in the DOM for the entire session — relevant beyond this bug (it also means the fal/API key values sit in live DOM `value` attributes all session).
+  - bug_tracker.html's `prompt()`-based secret entry is incidentally the safest key-entry pattern in the project — nothing for a password manager to latch onto.
+  - The same user plays on iPhone; iOS Safari/Chrome-on-iOS use iCloud Keychain with different heuristics — if a credential was saved there too, the user-side deletion needs doing per password store.
 
 ### Action log
 _(none)_
