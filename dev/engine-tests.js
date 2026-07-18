@@ -980,17 +980,23 @@ function runEngineTests(R){
     worldState.mpQueue=[];
     return true;
   });
-  t("MP-P4 (D8/D10): multiplayer round rules inject VOLATILE-only when playerCount>1 — named tag routing, per-action POV; demote restores byte-identity",function(){
+  t("MP-P4 (D8/D12): multiplayer round rules inject VOLATILE-only when playerCount>1 — named tag routing, THIRD-person narration with the post-STYLE override; demote restores byte-identity",function(){
     makeWorld();
     worldState.npcs.push({name:"Morwen",partyMember:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
     var p0=buildSysPrompt();/* Morwen present as a plain companion — isolates the round-rules diff */
     if(p0.volatile.indexOf("MULTIPLAYER ROUND RULES")>=0)return "single-player volatile carries the round rules";
+    if(p0.volatile.indexOf("MULTIPLAYER OVERRIDE")>=0)return "single-player volatile carries the third-person override";
     worldState.npcs[worldState.npcs.length-1].isPC=true;
     var p1=buildSysPrompt();
     if(p1.stable!==p0.stable)return "round rules perturbed the STABLE half — cache kill";
     if(p1.volatile.indexOf("MULTIPLAYER ROUND RULES")<0)return "round rules missing in a multi-PC world";
     if(p1.volatile.indexOf("always mean "+worldState.character.name+" and ONLY")<0)return "bare-tag routing line missing the hero's name";
-    if(p1.volatile.indexOf("per-action POV")<0)return "D10 POV instruction missing";
+    if(p1.volatile.indexOf("NARRATION IS THIRD-PERSON")<0)return "D12 third-person round-rules line missing";
+    /* D12 position contract: the override must sit AFTER STYLE — end-of-prompt authority is
+       what beats the stable role block's second-person instruction. */
+    var ovIdx=p1.volatile.indexOf("MULTIPLAYER OVERRIDE — THIRD-PERSON NARRATION");
+    if(ovIdx<0)return "post-STYLE third-person override missing";
+    if(ovIdx<p1.volatile.lastIndexOf("STYLE: "))return "third-person override sits BEFORE the STYLE tail — it would lose the position fight";
     worldState.npcs[worldState.npcs.length-1].isPC=false;
     var p2=buildSysPrompt();
     if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";

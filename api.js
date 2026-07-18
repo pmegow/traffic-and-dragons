@@ -453,7 +453,10 @@ function buildSysPrompt(){
          COMPANION_* tag docs in the stable half; adds NO tag vocabulary. */
       +"\nMULTIPLAYER ROUND RULES:"
       +"\n- The player message each turn is a labeled round block — one line per player character, \"Name: action\". Resolve ALL of the round's actions in ONE narration, ordered sensibly within the fiction; no player character's action may be skipped."
-      +"\n- Second person: \"you\" addresses whichever player character's beat you are narrating (per-action POV). Anchor each beat with that character's name BEFORE using \"you\" for them, and never leave a \"you\" ambiguous between player characters."
+      /* D12 (supersedes D10, user field ruling 2026-07-18): third person for EVERYONE while
+         multiple players are active — "you" privileges one player at the table; naming every
+         character gives all players equal agency and keeps the narrative clean. */
+      +"\n- NARRATION IS THIRD-PERSON while multiple players are active: refer to EVERY player character by name (he/she/they) — the word \"you\" must not appear in narration. No character is the camera; give each player's character their own clearly-attributed beat."
       +"\n- STATE TAG ROUTING: bare tags (HP, GOLD, ITEM_GAINED/ITEM_LOST, SPELL_USED, CONDITION, ALIGNMENT, ABILITY_GAINED, SKILL_SUCCESS, ...) always mean "+c.name+" and ONLY "+c.name+". For every OTHER player character use the name-addressed COMPANION_* tags (e.g. [COMPANION_HP:Name|-3]), exactly as for companions. NEVER emit a bare mutation tag for something that happened to a player character other than "+c.name+"."
       +"\n- [XP:N] stays a single shared award (the engine mirrors it to every party member) — emit it once per round, never per character; [COMPANION_XP:] remains individual-bonus-only.":"")
     +"\n\n";
@@ -589,7 +592,12 @@ function buildSysPrompt(){
     +cb+hist
     +buildCoreMemoryBlock()
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
-    +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible.";
+    +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible."
+    /* D12 (supersedes D10, user field ruling 2026-07-18): the third-person override must sit
+       AFTER STYLE — end-of-prompt position is what lets it beat the stable role block's
+       "second-person" instruction (same position-is-authority mechanic STYLE itself relies on).
+       playerCount>1 gated: single-player prompts stay byte-identical (engine-tested). */
+    +(typeof playerCount==="function"&&playerCount()>1?" MULTIPLAYER OVERRIDE — THIRD-PERSON NARRATION: multiple players share this game, so narrate EVERY player character by name in third person; the word 'you' must not appear in narration (it would privilege one player). All other style rules stand.":"");
   return {stable:stable,volatile:volatile_};
 }
 function buildSkeletonBlock(){
