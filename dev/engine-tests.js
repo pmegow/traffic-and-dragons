@@ -5317,6 +5317,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(c.indexOf("LLM provider:")<0)return "provider hint didn't fire";
     return eq(c.indexOf("SECRET")<0&&c.indexOf("XYZZY")<0,true,"key leaked into report context");
   });
+  t("hint table: storage mention attaches key sizes + fallback state, never values",function(){
+    __erReportWorld();
+    store.set("tnd_test_planted","XYZZY-PLANTED-VALUE");
+    var c=erReportContext("I'm getting storage full toasts on mobile");
+    var quiet=erReportContext("the goblin dialogue was odd");
+    store.del("tnd_test_planted");
+    if(c.indexOf("[STORAGE]")<0)return "storage hint didn't fire on 'storage full'";
+    if(c.indexOf("localStorage")<0)return "no localStorage line (scan or unavailable-note expected)";
+    if(c.indexOf("XYZZY-PLANTED-VALUE")>=0)return "a stored VALUE leaked into the report context";
+    if(quiet.indexOf("[STORAGE]")>=0)return "storage hint fired without a storage mention";
+    return true;
+  });
   t("sendUserReport: payload shape; no crash debounce; in-flight latch",function(){
     __erReportWorld();
     ERROR_WEBHOOK_URL="https://example.test/hook";
