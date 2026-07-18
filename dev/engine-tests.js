@@ -1002,7 +1002,7 @@ function runEngineTests(R){
     if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
     return true;
   });
-  t("MP-D12 exit: worldState.mpEnded injects the second-person reinforcement block (volatile-only); clearing restores byte-identity",function(){
+  t("MP-D12 exit: worldState.mpEnded injects the second-person reinforcement TWICE — early block + post-STYLE tail command (the position that wins); clearing restores byte-identity",function(){
     makeWorld();
     var p0=buildSysPrompt();
     worldState.mpEnded={turn:worldState.turn||0};
@@ -1010,6 +1010,13 @@ function runEngineTests(R){
     if(p1.stable!==p0.stable)return "mpEnded perturbed the STABLE half — cache kill";
     if(p1.volatile.indexOf("MULTIPLAYER ENDED — SINGLE PLAYER RESUMED")<0)return "exit reinforcement block missing";
     if(p1.volatile.indexOf("'you'/'your' means "+worldState.character.name)<0)return "block does not re-anchor 'you' to the hero";
+    /* Round-2 position contract (2026-07-18 field failure: the mid-volatile block alone lost to
+       third-person history): the reversal COMMAND must sit AFTER the STYLE tail — the same
+       authority slot the D12 override uses, or it loses the momentum fight. */
+    var exIdx=p1.volatile.indexOf("NARRATION MODE — SECOND PERSON RESUMED");
+    if(exIdx<0)return "post-STYLE second-person tail command missing";
+    if(exIdx<p1.volatile.lastIndexOf("STYLE: "))return "tail command sits BEFORE the STYLE tail — it would lose the position fight";
+    if(p1.volatile.indexOf("address "+worldState.character.name+" as 'you'")<0)return "tail command does not name the hero";
     worldState.mpEnded=null;
     var p2=buildSysPrompt();
     if(p2.volatile!==p0.volatile)return "clearing mpEnded did not restore volatile byte-identity";

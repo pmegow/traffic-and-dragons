@@ -618,7 +618,12 @@ function buildSysPrompt(){
        AFTER STYLE — end-of-prompt position is what lets it beat the stable role block's
        "second-person" instruction (same position-is-authority mechanic STYLE itself relies on).
        playerCount>1 gated: single-player prompts stay byte-identical (engine-tested). */
-    +(typeof playerCount==="function"&&playerCount()>1?" MULTIPLAYER OVERRIDE — THIRD-PERSON NARRATION: multiple players share this game, so narrate EVERY player character by name in third person; the word 'you' must not appear in narration (it would privilege one player). All other style rules stand.":"");
+    +(typeof playerCount==="function"&&playerCount()>1?" MULTIPLAYER OVERRIDE — THIRD-PERSON NARRATION: multiple players share this game, so narrate EVERY player character by name in third person; the word 'you' must not appear in narration (it would privilege one player). All other style rules stand."
+      /* D12 exit, round 2 (field failure 2026-07-18: the mid-volatile block alone lost to the
+         GM's own third-person history twice over). The reversal command needs the SAME end-of-
+         prompt authority slot that makes the multiplayer override itself stick — mutually
+         exclusive with it by gate (override: playerCount>1; this: mpEnded && playerCount<=1). */
+      :(worldState.mpEnded?" NARRATION MODE — SECOND PERSON RESUMED: the multiplayer session is OVER. Starting with THIS response, address "+c.name+" as 'you' again — vivid second-person prose, exactly as before multiplayer. Do NOT continue the third-person style of the recent turns; that mode has ended.":""));
   return {stable:stable,volatile:volatile_};
 }
 function buildSkeletonBlock(){
