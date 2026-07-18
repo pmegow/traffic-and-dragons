@@ -152,6 +152,54 @@ function setActivePC(nm){
   console.warn("[multiplayer] setActivePC('"+nm+"') rejected — not a living PC party member with a sheet");
   return false;
 }
+// ── TODO #1 P3 (D3/D4/D5): the sub-turn round queue — PURE state helpers, no DOM ─────────────
+// A round = every active PC queues one action (worldState.mpQueue, rides the sync blob so a
+// mid-round reload resumes), then the whole queue resolves as ONE labeled block in ONE GM call
+// (D5 — the situation never changes under a player still waiting). Engaged ONLY when
+// playerCount()>1; single-player never touches any of this (the spec anchor).
+// Round order (D3): the hero first (when a PC), then living isPC party members in roster order.
+function mpPcOrder(){
+  var order=[];
+  if(typeof worldState==="undefined"||!worldState||!worldState.character)return order;
+  if(worldState.character.isPC!==false)order.push(worldState.character.name);
+  if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
+    if(p&&p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))order.push(p.name);}}
+  return order;
+}
+// Drop queue entries whose PC is no longer in the round (demoted/died/parted mid-round) — loud.
+function mpPruneQueue(){
+  if(!worldState.mpQueue||!worldState.mpQueue.length)return;
+  var order=mpPcOrder();
+  worldState.mpQueue=worldState.mpQueue.filter(function(q){
+    var ok=order.indexOf(q.name)>=0;
+    if(!ok)console.warn("[multiplayer] dropped queued action from '"+q.name+"' — no longer an active PC this round");
+    return ok;
+  });
+}
+// Queue (or replace — a re-submit overwrites) the given PC's action for this round.
+function mpQueuePush(name,action){
+  if(!worldState.mpQueue)worldState.mpQueue=[];
+  mpPruneQueue();
+  var i;for(i=0;i<worldState.mpQueue.length;i++){if(worldState.mpQueue[i].name===name){worldState.mpQueue[i].action=action;return;}}
+  worldState.mpQueue.push({name:name,action:action});
+}
+// First PC in round order with no queued action, or null when the round is complete.
+function mpNextUnqueued(){
+  var order=mpPcOrder(),q=worldState.mpQueue||[],i,j;
+  for(i=0;i<order.length;i++){
+    var queued=false;
+    for(j=0;j<q.length;j++){if(q[j].name===order[i]){queued=true;break;}}
+    if(!queued)return order[i];
+  }
+  return null;
+}
+// The D5 labeled block — round order, one "Name: action" line per PC. Caller clears the queue.
+function mpAssembleRound(){
+  mpPruneQueue();
+  var order=mpPcOrder(),q=worldState.mpQueue||[],lines=[],i,j;
+  for(i=0;i<order.length;i++){for(j=0;j<q.length;j++){if(q[j].name===order[i]){lines.push(q[j].name+": "+q[j].action);break;}}}
+  return lines.join("\n");
+}
 // Convert a suggested action from 2nd person ("Gather your belongings") to 1st person
 // ("Gather my belongings") when it transfers into the input / is sent. Possessives,
 // reflexives and contractions convert cleanly; bare "you" is best-effort: object "you"

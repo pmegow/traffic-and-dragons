@@ -937,6 +937,63 @@ function runEngineTests(R){
     if(p1.volatile!==p0.volatile)return "spotlight leaked into the VOLATILE half before P4";
     return true;
   });
+  t("MP-P3: mpPcOrder — hero first, isPC companions in roster order; demoted hero / dead / non-PC / sheet-less excluded",function(){
+    makeWorld();
+    var cs=function(nm){return {name:nm,cls:"Rogue",level:1,hp:5,maxHp:5,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};};
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:cs("Morwen")});
+    worldState.npcs.push({name:"Bram",partyMember:true,status:"ally",charSheet:cs("Bram")});/* not a PC */
+    worldState.npcs.push({name:"Ghost",partyMember:true,isPC:true,status:"dead",charSheet:cs("Ghost")});
+    worldState.npcs.push({name:"Sheetless",partyMember:true,isPC:true,status:"ally"});
+    var o=mpPcOrder();
+    if(o.join(",")!==worldState.character.name+",Morwen")return "order wrong: "+o.join(",");
+    worldState.character.isPC=false;
+    if(mpPcOrder().join(",")!=="Morwen")return "demoted hero still in order: "+mpPcOrder().join(",");
+    delete worldState.character.isPC;
+    return true;
+  });
+  t("MP-P3: round queue lifecycle — push advances next-unqueued, re-submit replaces, assemble emits the D5 labeled block in round order",function(){
+    makeWorld();
+    var heroNm=worldState.character.name;
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    if(mpNextUnqueued()!==heroNm)return "round should open on the hero: "+mpNextUnqueued();
+    mpQueuePush(heroNm,"draw my sword");
+    if(mpNextUnqueued()!=="Morwen")return "queue did not advance to Morwen: "+mpNextUnqueued();
+    mpQueuePush(heroNm,"sheathe my sword and parley");/* re-submit replaces, not duplicates */
+    if(worldState.mpQueue.length!==1)return "re-submit duplicated the entry: "+worldState.mpQueue.length;
+    mpQueuePush("Morwen","cast Magic Missile");
+    if(mpNextUnqueued()!==null)return "round should be complete";
+    var block=mpAssembleRound();
+    if(block!==heroNm+": sheathe my sword and parley\nMorwen: cast Magic Missile")return "block wrong: "+JSON.stringify(block);
+    worldState.mpQueue=[];
+    return true;
+  });
+  t("MP-P3: mid-round demote prunes that PC's queued action (loud) and the round completes without them",function(){
+    makeWorld();
+    var heroNm=worldState.character.name;
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    mpQueuePush("Morwen","loose an arrow");
+    worldState.npcs[worldState.npcs.length-1].isPC=false;/* demoted mid-round */
+    if(mpNextUnqueued()!==heroNm)return "next should be the hero after the demote";
+    mpQueuePush(heroNm,"charge");
+    var block=mpAssembleRound();
+    if(block!==heroNm+": charge")return "demoted PC's action survived into the block: "+JSON.stringify(block);
+    worldState.mpQueue=[];
+    return true;
+  });
+  t("MP-P3 (D4): suggestion POV — multi-PC appends the sub-turn line to VOLATILE only; stable stays byte-identical (cache); single-player unchanged",function(){
+    makeWorld();
+    var s0=buildSuggestionSys();
+    if(s0.volatile.indexOf("MULTIPLAYER SUB-TURN")>=0)return "single-player suggestion prompt carries the multiplayer POV line";
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    setActivePC("Morwen");
+    var s1=buildSuggestionSys();
+    if(s1.stable!==s0.stable)return "multi-PC POV perturbed the suggestion STABLE half — cache kill";
+    if(s1.volatile.indexOf("MULTIPLAYER SUB-TURN: suggest actions for Morwen")<0)return "POV line missing for the sub-turn PC";
+    setActivePC(null);
+    var s2=buildSuggestionSys();
+    if(s2.volatile.indexOf("suggest actions for "+worldState.character.name)<0)return "hero sub-turn POV line missing";
+    return true;
+  });
   t("TODO#22: blueprint rules inject as WRAPPED data, not raw prompt text (+ re-apply dedupes)",function(){
     makeWorld();
     customRules=[];

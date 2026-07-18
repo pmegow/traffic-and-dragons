@@ -97,7 +97,16 @@ function buildSuggestionSys(){
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var model=providerModels[activeProvider]||prov.defaultModel;
   var rf=resolveReinforce(prov,model);
-  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK};
+  // TODO #1 P3 (D4): per-PC POV — in a multi-PC round the suggestions are for the sub-turn PC,
+  // drawn from THEIR sheet. VOLATILE-only append (after the mode block, so the JSON-output
+  // instruction still wins the format fight); the stable half must stay byte-identical to the
+  // main turn's or every cache hit dies (engine-tested). Single-player: zero change.
+  var mpPov="";
+  if(typeof playerCount==="function"&&playerCount()>1){
+    var _sp=activePlayer();
+    if(_sp&&_sp.name)mpPov="\nMULTIPLAYER SUB-TURN: suggest actions for "+_sp.name+" SPECIFICALLY — the party member whose turn it is (their sheet is in the context above; if they are the main character sheet, use that). Only actions "+_sp.name+" can take with THEIR OWN abilities, spells, and items — never another party member's.";
+  }
+  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK+mpPov};
 }
 // The last 5 player/GM exchanges as labeled pairs (the ragRetrieve excerpt convention), oldest
 // first, GM halves tag-stripped, under a ~6k char budget — five lavish prose turns can't balloon
@@ -139,7 +148,10 @@ async function generateActions(msgEl){
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
-    for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
+    /* TODO #1 P3 (D4): in a multi-PC round, label whose options these are. Display prefix ONLY —
+       data-action stays the bare action (the queue line re-attaches the name at submit). */
+    var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";
+    for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
     // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,
     // so a local-only save left the server blob holding the PREVIOUS turn's buttons — device B
     // rendered stale actions while the text matched. saveAll re-arms the debounce with the
@@ -760,6 +772,17 @@ function commitGmTurn(resp,opts){
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   return narEl;
 }
+// TODO #1 P3 (D4): mid-round suggestion refresh — strip the previous sub-turn's buttons off the
+// last narration and generate a fresh set for the (new) spotlight PC. DOM-side companion to the
+// pure queue helpers in helpers.js.
+function mpRefreshSuggestions(){
+  var story=document.getElementById("story-narrative");if(!story)return;
+  var nars=story.querySelectorAll(".msg.narrator");if(!nars.length)return;
+  var narEl=nars[nars.length-1];
+  var olds=narEl.querySelectorAll("button.qa"),i;
+  for(i=0;i<olds.length;i++){var wrap=olds[i].parentNode;if(wrap&&wrap.parentNode)wrap.parentNode.removeChild(wrap);else if(olds[i].parentNode)olds[i].parentNode.removeChild(olds[i]);}
+  generateActions(narEl);
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("userinput");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -767,8 +790,35 @@ async function sendAction(override,opts){
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
   if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}
   var isTT=activeChatTab==="tabletalk";
+  // ── TODO #1 P3 (D3/D5): multi-PC sub-turn queue ───────────────────────────────────────────
+  // Engaged ONLY when playerCount()>1 and this is a real story action (Table Talk and silent
+  // engine sends bypass — they are out-of-character). Each submit queues the SPOTLIGHT PC's
+  // action and advances the pointer (D7: the hero slot IS the turn indicator); the last PC's
+  // submit assembles the whole round into ONE labeled block (D5) and falls through to the
+  // normal single-call path below — so retry, transcript (ONE player entry per round: the
+  // block), engine notes, and summarize all keep their existing semantics. opts.mpResolve
+  // marks that fall-through so the block isn't addMsg'd twice (the queue lines already were).
+  var _mpResolve=false;
+  if(!isTT&&!(opts&&opts.silent)&&!(opts&&opts.mpBypass)&&typeof playerCount==="function"&&playerCount()>1){
+    var _who=activePlayer();var _whoNm=(_who&&_who.name)||worldState.character.name;
+    mpQueuePush(_whoNm,txt);
+    inp.value="";
+    addMsg("player","<b>"+escHtml(_whoNm)+":</b> "+escHtml(txt));/* escape player input (E11) */
+    var _next=mpNextUnqueued();
+    if(_next){
+      setActivePC(_next);saveAll();syncUI();
+      if(typeof showToast==="function")showToast("⚔ "+_next+"'s turn",2500);
+      mpRefreshSuggestions();
+      return;/* no API call — the round is still collecting */
+    }
+    txt=mpAssembleRound();
+    worldState.mpQueue=[];
+    setActivePC(mpPcOrder()[0]||null);/* round resets to the first PC (spec step 6) — the post-response suggestions generate for them */
+    saveAll();syncUI();
+    _mpResolve=true;
+  }
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
-  if(!(opts&&opts.silent))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11) */
+  if(!(opts&&opts.silent)&&!_mpResolve)addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
   // Skip the transcript write on a retry of the same action — the failed attempt already
   // logged it, and a duplicate player line corrupts the story-compiler record (audit #9).
   var _tl=worldState.transcript;
@@ -803,7 +853,7 @@ async function sendAction(override,opts){
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
   if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("userinput");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
 }
-function retryLast(){if(lastAction)sendAction(lastAction);}
+function retryLast(){if(lastAction)sendAction(lastAction,{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
 // or re-applying state tags — a clean A/B tool for trying Prose Inspiration voices on the
 // same scene. Pops the last exchange so the GM regenerates in the original context, then
