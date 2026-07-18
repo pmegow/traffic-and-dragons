@@ -74,7 +74,7 @@
 <header>
   <h1>Multiplayer — Initiative &amp; Tracking</h1>
   <p><span class="rule">TODO #1.</span> 2–4 player co-op on the family car trip: shared world, one character each, taking turns. This doc is the living spec and status board — planning captured here, not in the TODO row, because it's an initiative, not a task.</p>
-  <p class="note">Started 2026-07-13 · engine v1.291 · planning phase — nothing built yet. Planning round 2 (Fable, 2026-07-16): Q1/Q4/Q6/Q8 ruled — see D8–D11; phased plan reworked (P4 shrank, P5 added).</p>
+  <p class="note">Started 2026-07-13 · engine v1.291 · Planning round 2 (Fable, 2026-07-16): Q1/Q4/Q6/Q8 ruled — see D8–D11; phased plan reworked (P4 shrank, P5 added). <strong>BUILD STARTED 2026-07-17 (user greenlight): P1 shipped v1.351.</strong></p>
 </header>
 
 <nav>
@@ -205,7 +205,7 @@
 
 <h2 id="phases">Phased plan <span class="note">(reworked 2026-07-16: D8 shrank P4; D11 added P5)</span></h2>
 <ol class="steps">
-  <li><strong>P1 — PC/NPC toggle (D1/D2/D8).</strong> The toggle flips <code>isPC</code> on the party member; confirm on demoting the last PC; <code>partyCompanionCap()</code> counts <code>isPC</code> as players. Small, self-contained, shippable alone.</li>
+  <li><strong>P1 — PC/NPC toggle (D1/D2/D8).</strong> The toggle flips <code>isPC</code> on the party member; confirm on demoting the last PC; <code>partyCompanionCap()</code> counts <code>isPC</code> as players. Small, self-contained, shippable alone. <span class="pill p-lock">Shipped v1.351</span> — <code>wsNpc.isPC</code> + radio-style toggle on party-member sheets, <code>playerCount()</code> (helpers.js, dead-filtered), guarded PLAYERS prompt note (single-player prompts BYTE-IDENTICAL, engine-tested both halves + live-verified round trip). <em>Two deliberate P1 scope notes:</em> ① the ▶ play button (anchor swap) survives beside the toggle until P3 gives <code>isPC</code> real turn semantics — D1's replacement completes there (else P1 regresses a working feature for a no-op flag); ② D2's last-PC-demote confirm ships with P3 too (there is no hero-demote UI until all-NPC rounds exist). <code>partyCompanionCap()</code> needed no change — total-slot math was already player-count-proof (promotion adds no one).</li>
   <li><strong>P2 — activePlayer() accessor + display migration (D6/D7).</strong> The pointer, the accessor, the ~25-site display subset, the single-PC byte-identity invariant test. No turn logic yet — pointer just follows a manual pick.</li>
   <li><strong>P3 — Sub-turn loop (D3/D4/D5).</strong> Queue actions, rotate the pointer per sub-turn, per-PC suggestions, assemble the labeled block, one GM call. Q2's <code>worldState.mpRound</code> persistence lands here.</li>
   <li><strong>P4 — Multiplayer prompt block + misroute tripwire (D8/D10).</strong> Shrunk from "tag routing" by D8: a volatile-half prompt block (round-block names ↔ party sheets; <code>COMPANION_*</code> for non-hero PCs; D10's per-action second-person narration instruction) + the soft bare-tag misroute warn. <strong>Validation gate:</strong> a cheap 2-PC harness playtest for D10's POV-shifting prose before calling P4 done.</li>

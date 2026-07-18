@@ -845,6 +845,32 @@ function runEngineTests(R){
     if(!worldState.bestiary||worldState.bestiary[0].name!=="Chasm Spawn")return "bestiary not seeded";
     return true;
   });
+  t("MP-P1: playerCount()===1 on a legacy world (no isPC flags) — the single-player invariant",function(){
+    makeWorld();
+    if(playerCount()!==1)return "bare world: "+playerCount();
+    worldState.npcs.push({name:"Morwen",partyMember:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    if(playerCount()!==1)return "un-flagged companion counted as a player: "+playerCount();
+    return true;
+  });
+  t("MP-P1: promote raises playerCount + stamps the prompt PLAYERS note; demote restores BYTE-IDENTITY",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Morwen",partyMember:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{STR:8,DEX:12,CON:12,INT:14,WIS:10,CHA:16},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    var p0=buildSysPrompt();
+    if(p0.volatile.indexOf("PLAYERS:")>=0)return "single-player prompt already carries the multiplayer note";
+    worldState.npcs[worldState.npcs.length-1].isPC=true;
+    if(playerCount()!==2)return "promote did not raise playerCount: "+playerCount();
+    var p1=buildSysPrompt();
+    if(p1.volatile.indexOf("PLAYERS: 2 party members are PLAYER characters")<0)return "PLAYERS note missing after promote";
+    if(p1.stable!==p0.stable)return "promote perturbed the STABLE half — cache kill";
+    worldState.npcs[worldState.npcs.length-1].isPC=false;
+    var p2=buildSysPrompt();
+    if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
+    if(p2.stable!==p0.stable)return "demote perturbed the stable half";
+    var dead={name:"Ghost",partyMember:true,isPC:true,status:"dead",charSheet:{name:"Ghost",cls:"Rogue",level:2,hp:0,maxHp:10,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}};
+    worldState.npcs.push(dead);
+    if(playerCount()!==1)return "dead PC counted as a player: "+playerCount();
+    return true;
+  });
   t("TODO#22: blueprint rules inject as WRAPPED data, not raw prompt text (+ re-apply dedupes)",function(){
     makeWorld();
     customRules=[];

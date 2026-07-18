@@ -286,9 +286,21 @@ function showNpcSheet(name){
     var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
     var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
+    // TODO #1 P1 (multiplayer D1/D8): the PC/NPC toggle — radio-style pair, highlighted side =
+    // current status. Flips wsNpc.isPC (roster-level; rides the sync blob). The ▶ play button
+    // (anchor swap) deliberately SURVIVES until P3 gives the toggle real turn semantics — D1's
+    // full replacement lands there, else P1 would regress a working feature for a no-op flag.
+    var _isPC=!!(wsNpc&&wsNpc.isPC);
+    function _togBtnCss(on){return "padding:3px 14px;font-size:11px;font-family:var(--font);border-radius:var(--r);cursor:pointer;border:1px solid "+(on?"var(--acc)":"var(--brd)")+";background:"+(on?"var(--acc)":"none")+";color:"+(on?"var(--on-acc)":"var(--t2)")+";font-weight:"+(on?"bold":"normal")+";";}
+    var pcToggle=isParty?"<div style='display:flex;gap:6px;margin-top:6px;align-items:center;'>"
+      +"<button id='npc-tog-pc' style='"+_togBtnCss(_isPC)+"'>PC</button>"
+      +"<button id='npc-tog-npc' style='"+_togBtnCss(!_isPC)+"'>NPC</button>"
+      +"<span style='font-size:10px;color:var(--t2);'>"+(_isPC?"player character (hot-seat)":"companion — the GM plays them")+"</span>"
+      +"</div>":"";
     heroInfo="<div style='display:flex;align-items:center;flex-wrap:wrap;gap:4px;'><span class='cs-hero-name'>"+escHtml(name)+"</span>"+playBtn+"</div>"
       +"<div class='cs-hero-cls'>"+clsLine+"</div>"
       +"<div class='cs-hero-sub'>"+gLbl+" · "+escHtml(sheet.age||"?")+(sheet.deity?" · "+escHtml(sheet.deity):"")+"</div>"
+      +pcToggle
       +"<div style='margin-top:8px;font-size:13px;'>"
       +"<span style='color:var(--acc)'>Lv "+lvl+"</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+(sheet.hp||0)+"/"+(sheet.maxHp||0)+" HP</span>"
@@ -355,6 +367,22 @@ function showNpcSheet(name){
 
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
   csWireToggles(modal);
+
+  // ── PC/NPC toggle (TODO #1 P1, D1/D8) ─────────────────────────────────────
+  if(document.getElementById("npc-tog-pc")){
+    document.getElementById("npc-tog-pc").addEventListener("click",function(){
+      if(wsNpc.isPC)return;
+      wsNpc.isPC=true;saveAll();
+      showToast("★ "+name+" is now a PLAYER character — "+playerCount()+" players in the party",4000);
+      modal.remove();showNpcSheet(name);
+    });
+    document.getElementById("npc-tog-npc").addEventListener("click",function(){
+      if(!wsNpc.isPC)return;
+      wsNpc.isPC=false;saveAll();
+      showToast(name+" is a companion again — the GM plays them",4000);
+      modal.remove();showNpcSheet(name);
+    });
+  }
 
   // ── Play as this character ────────────────────────────────────────────────
   if(document.getElementById("npc-play-btn")){

@@ -404,7 +404,11 @@ function buildSysPrompt(){
   }
   // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
   var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();
-  var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")+"\n\n";
+  var partyCapBlock="PARTY SIZE: "+pmCnt+" of "+pmCap+" companion slots filled (hard cap "+PARTY_MAX+" total, including the player)."+(pmCnt>=pmCap?" THE PARTY IS FULL — do NOT have any new NPC join the party (no [PARTY_MEMBER:|true]) until a current companion leaves or dies. An NPC may still aid the party temporarily as an ally without becoming a member.":"")
+    // TODO #1 P1: >1 guard is load-bearing — single-player prompts must stay BYTE-IDENTICAL
+    // (the DOC_multiplayer invariant; engine-tested). Full round semantics arrive with P3/P4.
+    +(typeof playerCount==="function"&&playerCount()>1?" PLAYERS: "+playerCount()+" party members are PLAYER characters (hot-seat multiplayer — each acts on their own player's intent).":"")
+    +"\n\n";
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
   // Playtest-F1 (v1.239): expended spells are NAMED, not omitted — see the companion-block note above.
