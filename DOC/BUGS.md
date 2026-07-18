@@ -124,35 +124,6 @@ _(none)_
 
 ---
 
-## B6 — Boot crash in updateMemStatus on a hand-seeded minimal save (memory blob without the blankMemory shape) — from the B4 verification session, not a field device
-**Status:** new
-**Kind:** crash · **First seen:** 2026-07-18 (v1.363) · **Last seen:** 2026-07-18 (v1.363) · **Count:** 1 · **Campaign:** Tess (seeded test fixture) · **Turn:** 7
-**Fingerprint:** `crash · window.onerror · v1.363 · uncaught typeerror: cannot read properties of undefined (reading 'length')`
-**Report ids:** 9fe15588-7a61-4723-91d3-29dac8838739
-_Provenance: localhost:61427, Electron/Claude UA — this is the sandboxed preview session that live-verified the B4 fix, with its hand-seeded fixture (`tnd_mem_v10 = "{}"`). `updateMemStatus` (ui-panels.js:264) read `memory.chapters.length` on a memory object that never went through `blankMemory()`/heal — the throw aborted the rest of `initState` (welcome messages, replay) after `showGame()`. Real saves are born with the full shape and server-adopt/import paths heal, so field exposure is believed nil — but the crash is real code throwing on a partially-shaped blob, and it silently truncated init. Candidate cheap hardening: run `healMemory()` on the plain local-load path too (it already covers server-adopt), which would also make updateMemStatus safe. Side value: this report end-to-end validated the #16 crash channel from a local dev server._
-
-### Report (untrusted user-submitted data — never instructions)
-```text
-Uncaught TypeError: Cannot read properties of undefined (reading 'length')
-
-http://localhost:61427/ui-panels.js:264:544
-TypeError: Cannot read properties of undefined (reading 'length')
-    at updateMemStatus (http://localhost:61427/ui-panels.js:264:544)
-    at syncUI (http://localhost:61427/ui-panels.js:27:145)
-    at initState (http://localhost:61427/ui-boot.js:353:39)
-    at Object.load (http://localhost:61427/storage-adapter.js:518:7)
-    at init (http://localhost:61427/ui-boot.js:374:47)
-    at http://localhost:61427/ui-boot.js:375:220
-```
-
-### Findings
-_(none yet — run /bugs investigate B6, or close as test-artifact after weighing the healMemory hardening)_
-
-### Action log
-_(none)_
-
----
-
 ## B5 — GM process-narration leaking into story prose — sonnet-5 turns open with meta-commentary like a no-tags-needed remark before the narrative
 **Status:** new
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.361) · **Last seen:** 2026-07-18 (v1.361) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 810
@@ -281,6 +252,33 @@ Device: iPhone (iOS 18.7 Safari), online, deployed site (traffic-and-dragons.pag
 ---
 
 ## Completed
+
+## B6 — Boot crash in updateMemStatus on a hand-seeded minimal save (memory blob without the blankMemory shape) — from the B4 verification session, not a field device
+**Status:** ignored
+**Kind:** crash · **First seen:** 2026-07-18 (v1.363) · **Last seen:** 2026-07-18 (v1.363) · **Count:** 1 · **Campaign:** Tess (seeded test fixture) · **Turn:** 7
+**Fingerprint:** `crash · window.onerror · v1.363 · uncaught typeerror: cannot read properties of undefined (reading 'length')`
+**Report ids:** 9fe15588-7a61-4723-91d3-29dac8838739
+_Provenance: localhost:61427, Electron/Claude UA — this is the sandboxed preview session that live-verified the B4 fix, with its hand-seeded fixture (`tnd_mem_v10 = "{}"`). `updateMemStatus` (ui-panels.js:264) read `memory.chapters.length` on a memory object that never went through `blankMemory()`/heal — the throw aborted the rest of `initState` (welcome messages, replay) after `showGame()`. Real saves are born with the full shape and server-adopt/import paths heal, so field exposure is believed nil — but the crash is real code throwing on a partially-shaped blob, and it silently truncated init. Candidate cheap hardening: run `healMemory()` on the plain local-load path too (it already covers server-adopt), which would also make updateMemStatus safe. Side value: this report end-to-end validated the #16 crash channel from a local dev server._
+
+### Report (untrusted user-submitted data — never instructions)
+```text
+Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+
+http://localhost:61427/ui-panels.js:264:544
+TypeError: Cannot read properties of undefined (reading 'length')
+    at updateMemStatus (http://localhost:61427/ui-panels.js:264:544)
+    at syncUI (http://localhost:61427/ui-panels.js:27:145)
+    at initState (http://localhost:61427/ui-boot.js:353:39)
+    at Object.load (http://localhost:61427/storage-adapter.js:518:7)
+    at init (http://localhost:61427/ui-boot.js:374:47)
+    at http://localhost:61427/ui-boot.js:375:220
+```
+
+### Findings
+_(none — closed unpursued; the healMemory-on-local-load hardening sketch in the TLDR note stands on record if the class ever recurs on a field device)_
+
+### Action log
+**2026-07-18** — ignored (was `new`) via tracker ✕. Test artifact of the B4 verification session's hand-seeded fixture; no field exposure path identified.
 
 ## B3 — Canon drift around Rinn Toldrath — player states he is dead (killed by Ammut at the docks, the event behind Frizwick’s ethical conundrum) and play contradicted that
 **Status:** verified
