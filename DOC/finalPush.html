@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Final Push — 12-Hour Work Plan (2026-07-18) — Traffic and Dragons</title>
+<style>
+  :root{
+    --bg:#101010; --panel:#181818; --panel2:#1f1c16;
+    --acc:#b8935a; --txt:#d8d2c8; --dim:#8a8478;
+    --good:#7aa86a; --bad:#c06a5a; --warn:#c9a24b;
+    --border:#2c2c2c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:Georgia,'Times New Roman',serif;
+    line-height:1.65; padding:32px 16px 80px;
+  }
+  .wrap{max-width:900px; margin:0 auto;}
+  header{border-bottom:1px solid var(--acc); padding-bottom:18px; margin-bottom:28px;}
+  h1{font-size:1.9em; color:var(--acc); font-weight:normal; letter-spacing:.5px;}
+  .subtitle{color:var(--dim); font-style:italic; margin-top:6px; font-size:.95em;}
+  .meta{color:var(--dim); font-size:.8em; margin-top:10px; font-family:Consolas,monospace;}
+  h2{
+    color:var(--acc); font-size:1.35em; font-weight:normal;
+    margin:36px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  h3{color:var(--txt); font-size:1.05em; margin:22px 0 8px;}
+  p{margin:0 0 12px;}
+  strong{color:#efe8da;}
+  em{color:var(--dim);}
+  code{
+    font-family:Consolas,monospace; font-size:.88em; color:#cbb891;
+    background:#1d1a14; padding:1px 5px; border-radius:4px;
+  }
+  .verdict{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:16px 20px; margin:14px 0 22px;
+  }
+  .verdict .vlabel{
+    font-family:Consolas,monospace; font-size:.72em; letter-spacing:2px;
+    text-transform:uppercase; color:var(--acc); display:block; margin-bottom:6px;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 22px; margin:14px 0;
+  }
+  ul{margin:0 0 12px 20px;}
+  li{margin-bottom:7px;}
+  ol{margin:0 0 12px 22px;}
+  ol li{margin-bottom:9px;}
+  .lean{
+    font-family:Consolas,monospace; font-size:.78em; letter-spacing:1px;
+    padding:2px 10px; border-radius:12px; border:1px solid;
+    font-weight:bold; color:rgba(255,255,255,.4); text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .lean.ok{background:#182215; border-color:var(--good);}
+  .lean.pend{background:#28200f; border-color:var(--warn);}
+  .lean.off{background:#261512; border-color:var(--bad);}
+  .lean-row{display:flex; align-items:center; gap:12px; margin:4px 0 14px; flex-wrap:wrap;}
+  .lean-row .dim{color:var(--dim); font-size:.85em;}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92em;}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{
+    color:var(--acc); font-family:Consolas,monospace; font-size:.78em;
+    letter-spacing:1.5px; text-transform:uppercase; font-weight:normal;
+  }
+  td:first-child{color:#efe8da; white-space:nowrap;}
+  .num{font-family:Consolas,monospace; color:var(--warn); white-space:nowrap;}
+  .path{border-left:3px solid var(--acc); padding:4px 0 4px 18px; margin:18px 0;}
+  .path h3{margin-top:0;}
+  .hours{font-family:Consolas,monospace; color:var(--warn); font-size:.85em; white-space:nowrap;}
+  .why{color:var(--dim); font-size:.9em; font-style:italic;}
+  .bottom{
+    margin-top:48px; padding-top:16px; border-top:1px solid var(--border);
+    color:var(--dim); font-size:.8em; font-family:Consolas,monospace;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Final Push — 12-Hour Work Plan</h1>
+  <div class="subtitle">One long window, one backbone: drive Multiplayer (#1) from P2 through P4, close the loose ends around it.</div>
+  <div class="meta">2026-07-18 &nbsp;·&nbsp; engine v1.352 &nbsp;·&nbsp; source: TODO.md + DOC_multiplayer.html + session plan</div>
+</header>
+
+<div class="verdict">
+  <span class="vlabel">The call</span>
+  <p style="margin:0">Multiplayer #1 is the only open item with an explicit greenlight, live momentum (P1 shipped v1.351), and every design fork already ratified (D1&ndash;D11 in the spec). It is XL &mdash; it <em>needs</em> a window this long. Everything else today is either housekeeping, an optional parallel lane, or deliberately deferred because it would reopen a design conversation.</p>
+</div>
+
+<h2>Where the backlog stands</h2>
+<table>
+  <tr><th>Class</th><th>Items</th><th>Today?</th></tr>
+  <tr>
+    <td>Active build</td>
+    <td>#1 Multiplayer — P1 shipped (PC/NPC toggle, <code>playerCount()</code>); P2&ndash;P5 remain</td>
+    <td><span class="lean ok">Backbone</span></td>
+  </tr>
+  <tr>
+    <td>Housekeeping</td>
+    <td>Untracked <code>DOC/DOC_error_reporting.html</code>; #16 webhook URL wire-up (client shipped v1.352)</td>
+    <td><span class="lean ok">Block 0</span></td>
+  </tr>
+  <tr>
+    <td>Lane candidates</td>
+    <td>#7 sound library (self-contained, zero drift contact); #9 per-character voices (touches tts.js broadly — single-lane only)</td>
+    <td><span class="lean pend">Your call</span></td>
+  </tr>
+  <tr>
+    <td>Design-first, deferred</td>
+    <td>#12 brevity dial · #52 skills bible · #51 gold economy · #62 character editor · #44 curated catalog · #6 HQ</td>
+    <td><span class="lean off">Not today</span></td>
+  </tr>
+  <tr>
+    <td>Blocked on you / hardware</td>
+    <td>#16 GAS app creation (~10 min) · #2/#19 real car session · #56 device tests</td>
+    <td><span class="lean pend">Parallel</span></td>
+  </tr>
+</table>
+
+<h2>The 12 hours, block by block</h2>
+
+<div class="path">
+  <h3><span class="hours">~0.5 h</span> &nbsp;Block 0 — Housekeeping</h3>
+  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">closes #16 completely</span></div>
+  <ul>
+    <li>Commit the untracked <code>DOC/DOC_error_reporting.html</code> (docs-only, no version bump).</li>
+    <li>Once the GAS <code>/exec</code> URL arrives (your ~10-min task, steps in the 2026-07-17 session notes): paste into <code>ERROR_WEBHOOK_URL</code> in error-report.js, bump version, live-verify by forcing a real error and confirming the email lands.</li>
+  </ul>
+</div>
+
+<div class="path">
+  <h3><span class="hours">~2.5&ndash;3 h</span> &nbsp;Block 1 — Multiplayer P2: <code>activePlayer()</code> + display migration</h3>
+  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">spec forks D6/D7</span></div>
+  <ul>
+    <li>Add the <code>activePlayer()</code> accessor; migrate the ~25 curated display sites off direct <code>worldState.character</code> reads.</li>
+    <li>Engine tests per site class; re-prove the <strong>single-player byte-identity anchor</strong> after migration — the spec's safety net that a solo game is untouched.</li>
+    <li>Commit + push at the phase boundary.</li>
+  </ul>
+</div>
+
+<div class="path">
+  <h3><span class="hours">~3 h</span> &nbsp;Block 2 — Multiplayer P3: sub-turn loop</h3>
+  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">spec forks D3/D4/D5</span></div>
+  <ul>
+    <li>Turn rotation across PCs; the hero-slot swap rides the existing <code>_switchPlayerCharacter</code> plumbing (already half the machinery, per the spec).</li>
+    <li>Incoming player rotates into the hero position; outgoing drops to the party bar — no new layout.</li>
+    <li>Engine tests for rotation order, skip-dead/absent, and the single-player no-op path. Commit + push.</li>
+  </ul>
+</div>
+
+<div class="path">
+  <h3><span class="hours">~2 h</span> &nbsp;Block 3 — Multiplayer P4: prompt block + misroute tripwire</h3>
+  <div class="lean-row"><span class="lean off">Drift surface</span><span class="dim">spec forks D8/D10 — full discipline applies</span></div>
+  <ul>
+    <li>Multiplayer prompt block (labeled round-block names &harr; party sheets) + the D10 misroute tripwire.</li>
+    <li>This touches <code>buildSysPrompt</code>: stable-half byte-identity enforced by test, prompt diff against a real transcript, single-player prompt provably unchanged.</li>
+    <li>Commit + push.</li>
+  </ul>
+</div>
+
+<div class="path">
+  <h3><span class="hours">~1.5 h</span> &nbsp;Block 4 — Live smoke playtest</h3>
+  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">the failure condition, not a benign case</span></div>
+  <ul>
+    <li>Throwaway 2-player campaign: alternating turns end-to-end — sheet routing, XP mirror, party bar, prompt sanity per sub-turn.</li>
+    <li>Fix findings on the spot; suite green; commit + push.</li>
+    <li>Per standing rule: the run ends in a durable audit note (corpus persisted).</li>
+  </ul>
+</div>
+
+<div class="path">
+  <h3><span class="hours">~1.5 h</span> &nbsp;Block 5 — Buffer</h3>
+  <div class="lean-row"><span class="lean pend">Your call</span></div>
+  <ul>
+    <li><strong>Option A (recommended):</strong> P5 design doc — per-PC location / hard splits. It is drift surface (LOCATION handler, <code>buildGeoBlock</code>, map layer) and design-first by the spec, so a written design + pre-review tees up the next session with zero code risk today.</li>
+    <li><strong>Option B:</strong> pure overflow slack for Blocks 1&ndash;4.</li>
+  </ul>
+</div>
+
+<h2>Optional parallel lane</h2>
+<div class="card">
+  <p style="margin-bottom:8px"><strong>#7 Sound library</strong> (chime on notification, action sounds) on a Sonnet lane while the multiplayer track runs — self-contained, zero drift-surface contact, same minion-lane pattern that worked for v1.342 and v1.347. Fable designs the contract, Sonnet builds, Fable integrates.</p>
+  <p style="margin:0" class="why">#9 (per-character TTS voices) is the other candidate but touches tts.js broadly — if picked, it runs single-lane, not in parallel with anything else in tts.js.</p>
+</div>
+
+<h2>Deliberately not today</h2>
+<table>
+  <tr><th>Item</th><th>Why it waits</th></tr>
+  <tr><td><span class="num">#12</span> Brevity dial</td><td>Prompt-shaping next to STYLE = prose-voice drift surface; needs a design conversation first.</td></tr>
+  <tr><td><span class="num">#52</span> Skills bible</td><td>Drift surface + open design; would eat build hours.</td></tr>
+  <tr><td><span class="num">#51</span> Gold economy</td><td>Fable design work, no ratified shape yet.</td></tr>
+  <tr><td><span class="num">#62</span> Character editor</td><td>User-requested but scope undefined — naming a todo is not a green light.</td></tr>
+  <tr><td><span class="num">#44</span> Curated catalog</td><td>Content/pipeline work, no urgency this window.</td></tr>
+  <tr><td><span class="num">#5</span> Story compiler</td><td>Parked by your call; stage-1 export already shipped.</td></tr>
+</table>
+
+<h2>Expected end state</h2>
+<div class="card">
+  <ul style="margin-bottom:0">
+    <li>Multiplayer playable through P4 — shared-location co-op, alternating turns, per-player sheets, misroute tripwire live.</li>
+    <li>Single-player provably byte-identical at every phase boundary (the spec's anchor, re-proven three times).</li>
+    <li>#16 mobile error reporting fully closed (webhook live-verified).</li>
+    <li>P5 designed on paper (if Option A), plus possibly the #7 sound library from a lane.</li>
+    <li>TODO.md rows updated in the same commits as the work; version bumped every code commit; pushed at every phase boundary.</li>
+  </ul>
+</div>
+
+<h2>Decision points (blocking start)</h2>
+<ol>
+  <li><strong>Greenlight the P2&rarr;P4 backbone?</strong> <em>(recommended)</em></li>
+  <li><strong>Parallel Sonnet lane on #7 sounds?</strong> yes / no</li>
+  <li><strong>Buffer:</strong> P5 design doc <em>(recommended)</em> vs. plain overflow slack</li>
+</ol>
+
+<h2>Action required (you)</h2>
+<ul>
+  <li>Answer the 3 decision points above.</li>
+  <li>#16: create the Google Apps Script web app (~10 min) and paste the <code>/exec</code> URL here.</li>
+  <li>Whenever convenient (not part of this window): the real-car items #2/#19/#56 — the last Car Mode validation blockers only move with you in the driver's seat.</li>
+</ul>
+
+<div class="bottom">DOC/finalPush.html · plan drafted 2026-07-18 · engine v1.352 · backbone: TODO #1 (Multiplayer), spec DOC_multiplayer.html</div>
+
+</div>
+</body>
+</html>
