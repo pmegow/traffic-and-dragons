@@ -29,8 +29,10 @@ them here).
 
 ## Open
 
+## Completed
+
 ## B8 — Browser password-manager autofill dropdown pops up over the action input when it is clicked (desktop Chrome)
-**Status:** findings-ready
+**Status:** verified
 **Kind:** user-report · **First seen:** 2026-07-18 (v1.363) · **Last seen:** 2026-07-18 (v1.363) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 815
 **Fingerprint:** `user-report · user-report · v1.363 · password auto complete keeps popping up when i click in the input field.`
 **Report ids:** b96107ff-19ee-46d4-91a1-0d5c0c06fc38
@@ -87,9 +89,8 @@ Device: Windows desktop Chrome 150, online, deployed site (traffic-and-dragons.p
   - The same user plays on iPhone; iOS Safari/Chrome-on-iOS use iCloud Keychain with different heuristics — if a credential was saved there too, the user-side deletion needs doing per password store.
 
 ### Action log
-_(none)_
+**2026-07-18** — **fixed** (v1.371). Both findings fixes implemented, user did the third (manual step — see below). ① `autocomplete="one-time-code"` added to all six key inputs (the full class, not just the reported one): `#api-input`/`#fal-input` (index.html), `#pv-key` (Language Model modal), `#ro-fal-inp` (Render Options), `#tts-key-inp` (Voice Settings), and the auth-error retry key input (game.js, upgraded from the already-ignored `off`). ② `#userinput` renamed to `#action-input` across every live reference — 17 JS call sites (stt.js ×7, ui-boot.js ×2, ui-carmode.js ×4, game.js ×4) + 5 CSS selector occurrences + the markup line, all in index.html/stt.js/ui-boot.js/ui-carmode.js/game.js; `DOC/todo_carplay.html`'s historical comment mentions deliberately left as an accurate record of the id at the time. Mechanical grep-verified rename (zero residual `userinput`, counts matched the findings exactly). ③ User independently deleted the saved `traffic-and-dragons.pages.dev` credential from `chrome://passwords` — the piece no code fix can reach. Drift-surface confirmed NO (suite 686 green, zero engine-test contact — UI/markup only). Live-verified in preview: `#action-input` renders with its CSS intact, Enter-to-send/clear-button/Car Mode wiring all function post-rename, `#api-input` carries the new autocomplete attribute. **Closed verified in the same turn** — the manual credential deletion already confirmed the popup itself is gone; today's code changes are the durable prevention for recurrence (this device, other browsers/profiles, or future players) rather than a symptom still needing field re-confirmation.
 
-## Completed
 
 ## B5 — GM process-narration leaking into story prose — sonnet-5 turns open with meta-commentary like a no-tags-needed remark before the narrative
 **Status:** verified

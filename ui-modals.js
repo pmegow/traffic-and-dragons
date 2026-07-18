@@ -119,7 +119,7 @@ function showRenderOptionsModal(){
   var modal=modalShell("render-opts-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🖼 Render Options</span><button id='ro-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:6px;'>fal.ai API Key</div>"
-    +"<input type='password' id='ro-fal-inp' placeholder='fal_key_...' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:8px;box-sizing:border-box;'/>"
+    +"<input type='password' id='ro-fal-inp' placeholder='fal_key_...' autocomplete='one-time-code' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);margin-bottom:8px;box-sizing:border-box;'/>"
     +"<div style='display:flex;gap:6px;margin-bottom:22px;'><button id='ro-fal-clear' style='padding:7px 13px;font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Clear</button><button id='ro-fal-save' style='flex:1;padding:8px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Save Key</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Image Model</div>"
     +mhtml
@@ -191,7 +191,7 @@ function showProviderModal(){
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Provider</div>"
     +"<div id='pv-rows'>"+provRows()+"</div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>API Key</div>"
-    +"<input type='password' id='pv-key' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
+    +"<input type='password' id='pv-key' autocomplete='one-time-code' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'/>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin:16px 0 6px;'>Model</div>"
     +"<select id='pv-model' style='width:100%;padding:9px 12px;font-size:13px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);box-sizing:border-box;'>"+modelOpts()+"</select>"
     +"<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;'><input type='checkbox' id='pv-upgrade'"+(allowModelUpgrade?" checked":"")+"><span style='font-size:12px;color:var(--t2);'>Allow model upgrade for complex tasks</span></label>"

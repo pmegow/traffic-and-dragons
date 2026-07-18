@@ -110,7 +110,7 @@ function showCarMode() {
     if (listening) { _carSetStatus(CAR_STR.listening); return; }
     var st = document.getElementById("car-status");
     if (st && st.textContent === CAR_STR.listening) {
-      var inp = document.getElementById("userinput");
+      var inp = document.getElementById("action-input");
       _carSetStatus(inp && inp.value.trim() ? CAR_STR.heardYou : CAR_STR.tapToSpeak);
     }
   });
@@ -264,7 +264,7 @@ function _carTap() {
     _carSetStatus(CAR_STR.retrying);
     return;
   }
-  var inp = document.getElementById("userinput");
+  var inp = document.getElementById("action-input");
   if (inp && inp.value.trim()) { // (e) — a parked utterance (rank 19) waiting from a busy window
     // round-2 #29a — carNotify("sent") already plays the ack earcon AND sets "Heard you…";
     // calling _carSetStatus(CAR_STR.sending) here duplicated/shadowed that with a silent,
@@ -315,7 +315,7 @@ function _carPrev() {
 
 function _carStartMic() {
   if (typeof STT === "undefined" || !STT.isSupported()) { _carSetStatus(CAR_STR.voiceUnavailable); return; }
-  var inp = document.getElementById("userinput");
+  var inp = document.getElementById("action-input");
   if (inp) inp.value = "";
   // Start FIRST, then reflect the state STT actually reached — the old order set
   // "Listening…" before STT.start() resolved, so a synchronous start failure (or the
@@ -331,11 +331,11 @@ function _carAutoMic() {
   if (!carMode) return;
   _carSetStatus(CAR_STR.tapToSpeak);
   _carSyncBtn();
-  // final-pass #33 — a busy-parked utterance (rank 19) sits in #userinput, already advertised
+  // final-pass #33 — a busy-parked utterance (rank 19) sits in #action-input, already advertised
   // via carNotify("info","Heard you — tap to send") at the game.js rank-19 site. _carStartMic
-  // below clears #userinput unconditionally, so starting the mic here would silently destroy
+  // below clears #action-input unconditionally, so starting the mic here would silently destroy
   // it. Bail before touching the mic — the existing tap branch (e) in _carTap sends it.
-  var _parked = document.getElementById("userinput");
+  var _parked = document.getElementById("action-input");
   if (_parked && _parked.value.trim()) { _carSetStatus(CAR_STR.heardTapToSend); return; }
   // round-2 #25 — cloud STT (Whisper) must be push-to-talk only, checked BEFORE the auto-listen
   // pref below. Auto-starting the cloud recorder after every narration uploads ~15s of road

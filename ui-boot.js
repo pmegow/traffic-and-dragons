@@ -136,9 +136,9 @@ function wireButtons(){
   // submits. Desktop keeps Enter-sends. Phase 2 (true multiline = textarea swap) is TODO #49.
   // Width 0 (hidden/prerendered tab) must FAIL OPEN to desktop behavior — a swallowed desktop
   // Enter reads as "game broken"; a fat-finger send is merely annoying.
-  document.getElementById("userinput").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){var _w=window.innerWidth||document.documentElement.clientWidth||9999;if(_w>0&&_w<=768){e.preventDefault();return;}sendAction(null);}});
+  document.getElementById("action-input").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){var _w=window.innerWidth||document.documentElement.clientWidth||9999;if(_w>0&&_w<=768){e.preventDefault();return;}sendAction(null);}});
   // × clear (#33) — visibility is pure CSS (:placeholder-shown), so programmatic clears (send, Car Mode mic) hide it for free
-  document.getElementById("input-clear").addEventListener("click",function(){var inp=document.getElementById("userinput");inp.value="";inp.focus();});
+  document.getElementById("input-clear").addEventListener("click",function(){var inp=document.getElementById("action-input");inp.value="";inp.focus();});
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
   document.getElementById("render-btn").addEventListener("click",doRender);
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);

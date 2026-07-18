@@ -1766,7 +1766,7 @@ var TTS = (function() {
       +       "<label style='font-size:12px;color:var(--t2);'>Cartesia API Key</label>"
       +       "<span id='tts-cart-err' style='font-size:11px;color:#e06060;display:none;'></span>"
       +     "</div>"
-      +     "<input id='tts-key-inp' type='password' placeholder='sk_car_...' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
+      +     "<input id='tts-key-inp' type='password' placeholder='sk_car_...' autocomplete='one-time-code' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
       +   "</div>"
       +   "<div style='margin-bottom:20px;'>"
       +     "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"

@@ -475,7 +475,7 @@ function sendSuggestedAction(btn,ev){
   var action=btn.getAttribute("data-action");if(!action)return;
   if(Date.now()<_qaSuppressUntil){_qaSuppressUntil=0;return;} // a long-press already executed this; swallow the trailing click
   if(ev&&(ev.ctrlKey||ev.metaKey)){if(!busy)sendAction(toFirstPerson(action));return;}
-  var inp=document.getElementById("userinput");if(!inp)return;
+  var inp=document.getElementById("action-input");if(!inp)return;
   // APPEND to whatever's already typed (#33) — the player may have started a partial thought
   // before tapping a suggestion; replacing would eat it. The × button clears in one tap.
   var fp=toFirstPerson(action),cur=inp.value;
@@ -790,7 +790,7 @@ function mpRefreshSuggestions(){
   generateActions(narEl);
 }
 async function sendAction(override,opts){
-  if(busy||!worldState)return;var inp=document.getElementById("userinput");
+  if(busy||!worldState)return;var inp=document.getElementById("action-input");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
@@ -856,8 +856,8 @@ async function sendAction(override,opts){
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
     else{var em=addMsg("system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
-  busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("userinput").focus();
-  if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("userinput");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
+  busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("action-input").focus();
+  if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("action-input");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
 }
 function retryLast(){if(lastAction)sendAction(lastAction,{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
@@ -911,7 +911,7 @@ function _attachGMErrorUI(em,retryFn,msg){
   var isAuth=/invalid.{0,10}key|api.{0,6}key|authentication_error|401|permission_denied/i.test(msg);
   if(isAuth){
     var kw=document.createElement("div");kw.style.cssText="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;";
-    var ki=document.createElement("input");ki.type="password";ki.placeholder="Paste new API key…";ki.autocomplete="off";
+    var ki=document.createElement("input");ki.type="password";ki.placeholder="Paste new API key…";ki.autocomplete="one-time-code";
     ki.style.cssText="flex:1;min-width:200px;padding:5px 8px;font-family:var(--font);font-size:12px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);color:var(--t0);outline:none;";
     var kb=document.createElement("button");kb.className="qa";kb.textContent="Update & Retry";
     kb.onclick=function(){

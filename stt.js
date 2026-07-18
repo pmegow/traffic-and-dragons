@@ -55,7 +55,7 @@ var STT = (function() {
       if (_cloudAvailable()) _cloudStart();
       return;
     }
-    var inp = document.getElementById("userinput");
+    var inp = document.getElementById("action-input");
     if (!inp) return;
 
     try {
@@ -132,7 +132,7 @@ var STT = (function() {
       if (wasCancelled) {
         _cancelled = false;
         _noSpeechRetried = false;
-        var elc = document.getElementById("userinput");
+        var elc = document.getElementById("action-input");
         if (elc) elc.focus();
         return;
       }
@@ -152,7 +152,7 @@ var STT = (function() {
               start();
             }
           }, 400);
-          var el2 = document.getElementById("userinput");
+          var el2 = document.getElementById("action-input");
           if (el2) el2.focus();
           return;
         }
@@ -201,7 +201,7 @@ var STT = (function() {
   // branches above) and from the cloud path's finalize step, so both surfaces share one
   // set of rules (rank 5 busy-park notice, rank 8 short-transcript gate).
   function _applySendPolicy() {
-    var el = document.getElementById("userinput");
+    var el = document.getElementById("action-input");
     var carModeOn = (typeof carMode !== "undefined" && carMode);
     var autoOn = isAutoSend() || carModeOn;
     var text = el ? el.value.trim() : "";
@@ -229,7 +229,7 @@ var STT = (function() {
       console.info("[stt] auto-send suppressed (too short): " + JSON.stringify(text));
       if (typeof carNotify === "function") carNotify("info", "Heard '" + text + "' — tap mic to retry");
       // round-2 #27: clear the field too, not just skip the send — otherwise the
-      // suppressed junk stays parked in #userinput and Car Mode's next tap (the
+      // suppressed junk stays parked in #action-input and Car Mode's next tap (the
       // parked-utterance branch) sends it anyway, only delaying the garbage by one tap.
       if (el) el.value = "";
       if (el) el.focus();
@@ -305,7 +305,7 @@ var STT = (function() {
 
   function _cloudStart() {
     if (_listening) return;
-    var inp = document.getElementById("userinput");
+    var inp = document.getElementById("action-input");
     if (!inp) return;
 
     _baseText  = inp.value ? (inp.value.replace(/\s+$/, "") + " ") : "";
@@ -427,7 +427,7 @@ var STT = (function() {
       if (typeof showToast === "function") showToast("Voice transcription failed.");
       if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
       console.warn("[stt] cloud transcription failed:", e);
-      var el = document.getElementById("userinput");
+      var el = document.getElementById("action-input");
       if (el) el.focus();
     });
   }
@@ -435,7 +435,7 @@ var STT = (function() {
   // Same finalization contract as native onresult/onend: name-correction, write into the
   // field, mark _gotFinal, then the shared send policy (rank 5 busy-park + rank 8 gate).
   function _cloudFinalize(rawText) {
-    var el = document.getElementById("userinput");
+    var el = document.getElementById("action-input");
     var text = rawText || "";
     if (text) {
       var roster = (typeof sttNameRoster === "function" && typeof worldState !== "undefined")
