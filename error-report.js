@@ -38,12 +38,20 @@ var _erDisabledNote = false; // "reporting not configured" logged once
 var _erCapNote      = false; // "session cap hit" logged once
 var _erInReporter   = false; // reentrancy latch — a bug in HERE must not recurse via window.onerror
 
-// Shared POST core — both report species (crash + user report) go through here. cb(ok, errMsg)
-// always fires exactly once; never throws.
+// Shared POST core — both report species (crash + user report) go through here.
+// cb(ok, errMsg, body) always fires exactly once; never throws. body = the webhook's parsed JSON
+// response (or null) — GAS reports PER-HALF failures in it ({sheet, email, screenshot}: null=ok,
+// string=error). Discarding it is how the Drive-permission screenshot failure stayed invisible
+// for the pipeline's whole first month (v1.365 lesson) — callers must surface non-null halves.
 function _erPost(payload,cb){
   try{
     fetch(ERROR_WEBHOOK_URL,{method:"POST",body:JSON.stringify(payload)})
-      .then(function(r){cb(!!r.ok,r.ok?null:("webhook answered "+r.status));})
+      .then(function(r){
+        return r.text().then(function(t){
+          var body=null;try{body=JSON.parse(t);}catch(e2){}
+          cb(!!r.ok,r.ok?null:("webhook answered "+r.status),body);
+        });
+      })
       .catch(function(e){cb(false,(e&&e.message)||"send failed");});
   }catch(e){cb(false,(e&&e.message)||"send failed");}
 }
@@ -52,9 +60,11 @@ function _erPost(payload,cb){
 // (the ONLY place that can see it — this IS the error channel, so it gets console + nothing else:
 // no toasts, no recursion into reportError).
 function _erSend(payload){
-  _erPost(payload,function(ok,err){
+  _erPost(payload,function(ok,err,body){
     if(ok)console.info("[error-report] sent ("+payload.ctx+")");
     else console.warn("[error-report] "+(err||"send failed")+" — report may not have been delivered");
+    if(ok&&body&&(body.sheet||body.email))
+      console.warn("[error-report] webhook stored the report PARTIALLY — sheet: "+(body.sheet||"ok")+"; email: "+(body.email||"ok"));
   });
 }
 
@@ -250,11 +260,13 @@ function sendUserReport(text,screenshot,cb){
     ts:new Date().toISOString()
   };
   if(screenshot&&!payload.screenshot)payload.context+="\n(screenshot dropped: "+screenshot.length+" chars exceeds "+ER_SHOT_MAX+")";
-  _erPost(payload,function(ok,err){
+  _erPost(payload,function(ok,err,body){
     _erReportInFlight=false;
     if(ok)console.info("[error-report] user report sent");
     else console.warn("[error-report] user report failed:",err);
-    cb(ok,err);
+    if(ok&&body&&(body.screenshot||body.sheet||body.email))
+      console.warn("[error-report] webhook stored the report PARTIALLY — screenshot: "+(body.screenshot||"ok")+"; sheet: "+(body.sheet||"ok")+"; email: "+(body.email||"ok"));
+    cb(ok,err,body);
   });
 }
 

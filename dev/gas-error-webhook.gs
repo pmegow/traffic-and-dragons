@@ -30,6 +30,11 @@
 // 5. Verify in a browser (logged in as you or not — doesn't matter):
 //        <your /exec URL>?s=<SECRET>          → {"ok":true,"count":0,"reports":[]}
 //        <your /exec URL>?s=wrong             → {"ok":false,"error":"forbidden"}
+// 5b. Run AUTHORIZE_DRIVE once from the editor (▶ Run, bottom of this file) and approve the
+//     Drive consent prompt. The runtime try/catch around storeScreenshot_ SUPPRESSES Google's
+//     authorization prompt (the AUTHORIZE_ME lesson), so without this one-shot the Drive scope
+//     is never granted and every screenshot store fails quietly — discovered live 2026-07-18
+//     ("You do not have permission to call DriveApp.createFolder" in the POST response).
 // 6. Hand the SECRET to Claude Code to store in .claude/bugs.local.json (gitignored — the
 //    secret never enters the public repo; this .gs file is committable because it reads the
 //    secret from Script Properties, not from source).
@@ -180,4 +185,18 @@ function doGet(e) {
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
+}
+
+// ── AUTHORIZE_DRIVE — one-shot editor run (deploy step 5b) ────────────────────────────────────
+// The runtime wraps every DriveApp call in try/catch (correctly — a screenshot must never kill
+// the report), which means Google never shows the Drive consent prompt on its own: the exact
+// AUTHORIZE_ME bring-up lesson, replayed on the Drive half (found live 2026-07-18 — the 07-18
+// deploy had the Sheets scope only, and every screenshot store failed with "You do not have
+// permission to call DriveApp.createFolder", visible only in the POST response body).
+// Run this once from the editor (▶ Run) and approve the prompt. It creates the screenshots
+// folder and self-stores FOLDER_ID. No re-deploy needed — scope grants attach to the script,
+// not the deployment. Safe to leave in the file; nothing calls it at runtime.
+function AUTHORIZE_DRIVE() {
+  var f = getFolder_();
+  Logger.log("Drive authorized — screenshots folder: " + f.getUrl());
 }

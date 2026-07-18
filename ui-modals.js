@@ -372,6 +372,18 @@ function _loadHtml2Image(cb){
 // throws there → text-only report on iPhones (the catch below). skipFonts always: the UI is
 // system-font, embedding is pure cost/risk.
 var BUG_SHOT_TIMEOUT_MS=8000;
+var BUG_SHOT_PLACEHOLDER="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // 1×1 transparent GIF
+// Clone-time node filter — ONE bad <img> anywhere in the captured subtree used to kill the WHOLE
+// capture (root-caused live 2026-07-18, the reason no field report has ever carried a screenshot):
+// an <img> with a missing/empty src attribute resolves to the PAGE URL itself, html-to-image
+// fetches it, embeds the returned text/html as the "image", and that img's error event rejects
+// toSvg (proven breaker: the src-less #car-portrait-img). Src-less imgs paint nothing, so
+// dropping them is visually free. The OTHER half of the class — non-empty but unfetchable srcs
+// (CORS-blocked fal.media scene renders, 404s, dead hosts) — is absorbed by imagePlaceholder in
+// the toSvg options: the lib swaps failed fetches for the placeholder instead of breaking.
+function _bugShotFilter(node){
+  return !(node&&node.tagName==="IMG"&&!node.getAttribute("src"));
+}
 function _bugCapture(cb){
   _loadHtml2Image(function(lib){
     if(!lib){cb(null);return;}
@@ -382,7 +394,7 @@ function _bugCapture(cb){
     var done=false;
     function fin(d){if(done)return;done=true;cb(d);}
     setTimeout(function(){if(!done){console.warn("[bug-report] screenshot timed out ("+BUG_SHOT_TIMEOUT_MS+"ms) — sending text-only");fin(null);}},BUG_SHOT_TIMEOUT_MS);
-    lib.toSvg(el,{skipFonts:true})
+    lib.toSvg(el,{skipFonts:true,filter:_bugShotFilter,imagePlaceholder:BUG_SHOT_PLACEHOLDER})
       .then(function(svg){
         var im=new Image();
         im.onload=function(){
@@ -428,8 +440,14 @@ function _bugReportModal(shot){
     if(!txt){ta.focus();ta.style.borderColor="var(--acc)";return;}
     var btn=document.getElementById("bug-send");
     btn.disabled=true;btn.style.opacity="0.6";btn.textContent="Sending…";
-    sendUserReport(txt,shot,function(ok,err){
-      if(ok){modal.remove();if(typeof showToast==="function")showToast("✓ Report sent — thank you",4000);}
+    sendUserReport(txt,shot,function(ok,err,body){
+      if(ok){
+        modal.remove();
+        // GAS reports per-half store failures in its response body — a report that "sent" but
+        // lost its screenshot/sheet/email half must say so (the Drive-permission lesson, v1.365).
+        var partial=body&&(body.screenshot?"screenshot":body.sheet?"sheet record":body.email?"email":null);
+        if(typeof showToast==="function")showToast(partial?("⚠ Report sent, but the server couldn't store the "+partial+" — see console"):"✓ Report sent — thank you",partial?7000:4000);
+      }
       else{
         btn.disabled=false;btn.style.opacity="1";btn.textContent="Send report";
         var ee=document.getElementById("bug-err");
