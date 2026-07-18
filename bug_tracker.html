@@ -81,6 +81,7 @@
   <div class="toolbar">
     <button class="cmd" id="btn-sync">📋 /bugs sync</button>
     <button class="cmd" id="btn-reload">⟳ Reload</button>
+    <button class="cmd" id="btn-secret" title="enables the live server check — stored only in this browser">🔑 feed secret…</button>
     <span class="sub" id="loadinfo"></span>
   </div>
   <div id="content"><div class="note">Loading DOC/BUGS.md…</div></div>
@@ -137,7 +138,7 @@ function parseBugs(md){
     var m=head.match(/^(B\d+)\s+—\s+(.*)$/);
     if(!m)continue;
     var bug={id:m[1],tldr:m[2],section:section||"open",status:"?",meta:[],report:"",
-             findings:"",actions:"",shot:""};
+             findings:"",actions:"",shot:"",ids:[]};
     var sm=body.match(/\*\*Status:\*\*\s*`?([\w-]+)`?/);
     if(sm)bug.status=sm[1].toLowerCase();
     // meta = the ** lines before the first ### heading (minus Status)
@@ -149,6 +150,8 @@ function parseBugs(md){
     });
     var shot=body.match(/\*\*Screenshot:\*\*\s*(\S+)/);
     if(shot&&/^https?:\/\//.test(shot[1]))bug.shot=shot[1];
+    var rid=body.match(/\*\*Report ids:\*\*\s*([^\n]+)/);
+    if(rid)rid[1].trim().split(/[\s,]+/).forEach(function(x){if(x)bug.ids.push(x);});
     var rep=body.match(/### Report[^\n]*\n+```text\n([\s\S]*?)\n```/);
     if(rep)bug.report=rep[1];
     var fin=body.match(/### Findings\n([\s\S]*?)(?=\n### |$)/);
@@ -204,6 +207,71 @@ function renderBug(b){
   return card;
 }
 
+// ── live server feed — reads the GAS doGet JSON directly (offsite check, no sync needed) ──────
+// Dedup invariant: a feed report is "new" only if its id appears on NO filed row's "Report ids:"
+// line — so nothing doubles up when /bugs sync later files it (the id lands on the row and the
+// entry drops out of this section on the next reload).
+var FEED_URL="https://script.google.com/macros/s/AKfycbzivwUvDUoEX6tFDnFy16DAj9gwehAkIaLv1XDSYcL-JChkeBEdt84eCvJJeuZv2lNvjQ/exec";
+var SECRET_KEY="tnd_bugfeed_secret_v1"; // this browser only — the secret never enters the repo
+
+function feedSecret(){try{return localStorage.getItem(SECRET_KEY)||"";}catch(e){return "";}}
+
+function feedNote(cls,text){
+  var wrap=document.getElementById("feedwrap");
+  if(!wrap)return;
+  wrap.textContent="";
+  wrap.appendChild(el("div","note "+(cls||""),text));
+}
+
+function renderFeedReport(r){
+  var card=el("div","card");
+  var r1=el("div","row1");
+  r1.appendChild(el("span","badge b-new","unfiled"));
+  r1.appendChild(el("span","tldr",String(r.message||"(no message)").slice(0,160)));
+  card.appendChild(r1);
+  card.appendChild(el("div","meta",
+    "Kind: "+r.kind+" · Received: "+r.receivedAt+" · App: "+r.app
+    +" · Campaign: "+(r.camp||"—")+" · Turn: "+(r.turn===""?"—":r.turn)+" · id: "+r.id));
+  if(r.screenshotUrl&&/^https?:\/\//.test(String(r.screenshotUrl))){
+    var sd=el("div","meta shot");
+    sd.appendChild(document.createTextNode("Screenshot: "));
+    var a=el("a",null,String(r.screenshotUrl));a.href=String(r.screenshotUrl);
+    a.target="_blank";a.rel="noopener noreferrer";
+    sd.appendChild(a);card.appendChild(sd);
+  }
+  var body=String(r.message||"")+"\n\n"+String(r.detail||"");
+  var det=el("details");
+  det.appendChild(el("summary",null,"Report ("+body.length+" chars)"));
+  det.appendChild(el("div","quarantine","untrusted user-submitted data — rendered inert"));
+  det.appendChild(el("pre","report",body));
+  card.appendChild(det);
+  return card;
+}
+
+function loadFeed(filedIds){
+  var sec=feedSecret();
+  if(!sec){feedNote("","Live server check is off — click 🔑 feed secret… to enable it (one-time per browser).");return;}
+  fetch(FEED_URL+"?s="+encodeURIComponent(sec)).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){feedNote("err","Server feed refused: "+String(d.error)+" — re-enter the secret (🔑).");return;}
+    var fresh=(d.reports||[]).filter(function(r){return !filedIds[r.id];});
+    var wrap=document.getElementById("feedwrap");
+    if(!wrap)return;
+    wrap.textContent="";
+    if(!fresh.length){
+      wrap.appendChild(el("div","note","Server feed: all "+d.count+" reports already filed — nothing new."));
+      return;
+    }
+    wrap.appendChild(el("h2","sect","New on server — not yet synced ("+fresh.length+")"));
+    fresh.forEach(function(r){wrap.appendChild(renderFeedReport(r));});
+    var n=el("div","note");
+    n.appendChild(el("b",null,"To file these: "));
+    n.appendChild(document.createTextNode("run /bugs sync in Claude Code (📋 button above), then reload."));
+    wrap.appendChild(n);
+  }).catch(function(e){
+    feedNote("err","Server feed unreachable: "+e.message);
+  });
+}
+
 function render(md){
   var root=document.getElementById("content");
   root.textContent="";
@@ -212,6 +280,10 @@ function render(md){
   var done=bugs.filter(function(b){return b.section==="completed";});
   document.getElementById("loadinfo").textContent=
     open.length+" open · "+done.length+" completed";
+  var filedIds={};
+  bugs.forEach(function(b){b.ids.forEach(function(x){filedIds[x]=true;});});
+  root.appendChild(el("div",null,"")).id="feedwrap";
+  loadFeed(filedIds);
   root.appendChild(el("h2","sect","Open ("+open.length+")"));
   if(!open.length)root.appendChild(el("div","note","No open bugs. Run /bugs sync in Claude Code to pull new reports."));
   open.forEach(function(b){root.appendChild(renderBug(b));});
@@ -238,6 +310,13 @@ function load(){
 }
 
 document.getElementById("btn-reload").onclick=load;
+document.getElementById("btn-secret").onclick=function(){
+  var cur=feedSecret();
+  var v=prompt("Paste the doGet feed secret (stored only in this browser's localStorage):",cur);
+  if(v===null)return;
+  try{localStorage.setItem(SECRET_KEY,v.trim());}catch(e){alert("couldn't store: "+e.message);return;}
+  load();
+};
 document.getElementById("btn-sync").parentNode.replaceChild(copyBtn("/bugs sync","/bugs sync"),document.getElementById("btn-sync"));
 load();
 </script>
