@@ -20,8 +20,10 @@ Fable session can audit it in one pass.
 - **Built by:** Opus 4.8 (NOT Fable) — 2026-07-19. **User ran out of Fable access mid-session and
   explicitly authorized continuing**, with this review to follow when access is restored.
 - **Versions / commits:**
-  - v1.379 — `ddbaa7d` "fix(npc): mood and relation stop contaminating each other" _(commit 1 of 4)_
-  - _commits 2–4 pending this session; append here as they land_
+  - v1.379 — `ddbaa7d` "fix(npc): mood and relation stop contaminating each other" _(stop the corruption)_
+  - v1.380 — `aea21f5` "fix(npc): repair moods already corrupted by relation vocabulary" _(clean the data)_
+  - v1.381 — `0c5be2d` "feat(npc): mood staleness audit — moods heal instead of latching" _(fix the symptom)_
+  - **The stamped-LIST schema the user approved is deliberately NOT shipped — see "Deferred" below.**
 - **Trigger:** user reported a party member (Frizwick) "acting off and moody, a shift from how she
   acted previously" in the live Runelords campaign (t867). Diagnosed against the real save.
 - **Root cause (measured, not inferred):** `memory.npcs[].attitude` had **two authors writing two
@@ -81,6 +83,44 @@ Fable session can audit it in one pass.
      Frizwick's *wrong* pinned mood produced the user-visible drift. Wrong appears worse than absent.
   5. Whatever commits 2–4 add (repair migration over live save data; stamped-list schema + labeled
      renders; the audit note builder + its NOTE_BUILDERS entry and interval tuning).
+- **What changed (commits 2–3):**
+  - **v1.380 repair:** `stripRelWordsFromMood` + `NPC_REL_VOCAB` (memory.js, beside `clampNpcMood`).
+    Typed strip, never positional — the user's first instinct was "drop the 3rd comma element", which
+    tested against the live save repairs 2 of 6 and misses the 4 worst (their whole mood IS the leak).
+    Conservative vocabulary: `prisoner`/`captive` excluded on purpose (the slot is spec'd
+    "mood/condition"); anchored per element so `friendly`/`rivalrous`/`companionable` survive. Applied
+    to `worldState.npcs[].status` in `migrateWorldState` and `memory.npcs[].attitude` in `healMemory`
+    (memory parses later), also clearing the legacy `"unknown"` placeholder.
+  - **v1.381 audit:** `statusTurn` stamp on every mood write (a relation-only update deliberately does
+    NOT refresh it); backfilled at the CURRENT turn per the #23 arc-clock precedent. `buildMoodAudit`
+    in `NOTE_BUILDERS` — relationship-audit shape, condition-audit per-item trigger,
+    `MOOD_AUDIT_TURNS`/`COOLDOWN` = 12/12, party-members-only scope, empty mood due immediately.
+- **⚠ DEFERRED — the stamped-list schema (user-approved, NOT built):** a consumer sweep found **9
+  readers of `npc.status`**, four of which are raw `/\bdead\b/i.test(n.status)` checks inside the B3
+  death-detection path shipped the same day. Converting the field to a list means rewriting all nine
+  un-reviewed, a week before Fable returns, to buy a *refinement* (per-element mood decay) when the
+  reported symptom is already fixed by a stamp. Judged a bad trade; recorded here so the sweep isn't
+  repeated. **The map:**
+  - `api.js:439` roster render _(already list-safe — builds from present parts)_
+  - `game.js:307` NPC-sheet generation prompt — `npc.status||mem.attitude||"unknown"`, crosses tiers
+  - `game.js:344` `guessCompanionClass` — concatenates status as free text
+  - `game.js:461, 544, 575, 600` — **four raw `/\bdead\b/i.test(n.status||"")` checks** (B3 territory;
+    CLAUDE.md says party-scan dead checks moved to the flag, but these four still read the string)
+  - `game.js:1041` blueprint export — maps `status` into a `role` field
+  - `ui-panels.js:65` party card — `n.status||"ally"`
+  - `attitude` readers: `ui-sheets.js:242` (sheet-gen context), `ui-sheets.js:403` (sheet display)
+- **Two further instances of the same category error, found and NOT fixed** (scope discipline;
+  worth folding into the schema work): `ui-panels.js:65` defaults a party card's *mood* to the
+  relation word `"ally"`; `game.js:1041` writes a *mood* into an exported blueprint's `role`.
+- **Additional judgment calls for review:**
+  - `"neutral"` is in `NPC_REL_VOCAB`. It read as a relation/alignment label in the one live instance
+    (`"Neutral, professionally closed"` → `"professionally closed"`) but could arguably be a real mood.
+    False positives are cheap here — the audit refills.
+  - Mood-stamp backfill at the current turn means a genuinely stale mood waits one 12-turn window
+    after upgrade rather than firing immediately. Chose the #23 "fail late, not early" precedent over
+    flagging every party member at once on the upgrade turn.
+  - Audit scope is party-only. Scene-present NPCs need `lastSeenAt`-vs-current-node logic; empty mood
+    on an off-screen character is CORRECT and must never be nagged.
 - **Test bed:** the live campaign was pulled read-only from the Fly volume for diagnosis
   (`camp_1782799175437_7288`, t867, 1.76 MB). It lives in a session scratchpad and will not persist —
   re-pull with a readonly better-sqlite3 read of `/data/ashen.db` via `flyctl ssh console` if needed.
