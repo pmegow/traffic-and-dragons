@@ -23,7 +23,19 @@ Fable session can audit it in one pass.
   - v1.379 — `ddbaa7d` "fix(npc): mood and relation stop contaminating each other" _(stop the corruption)_
   - v1.380 — `aea21f5` "fix(npc): repair moods already corrupted by relation vocabulary" _(clean the data)_
   - v1.381 — `0c5be2d` "feat(npc): mood staleness audit — moods heal instead of latching" _(fix the symptom)_
+  - v1.382 — `d24256f` "fix(prompt): label the two mood tiers so they stop reading as rivals" _(remove the ambiguity)_
+  - v1.383 — `<this commit>` "fix(memory): attitude becomes disposition toward the player" _(make the label true)_
   - **The stamped-LIST schema the user approved is deliberately NOT shipped — see "Deferred" below.**
+- **⚠ A mistake worth reviewing, caught by the user mid-session:** v1.382 labelled `memory.npcs[].attitude`
+  as `"toward you:"` based on the FIELD NAME, while the extractor spec said `"2-4 word mood"`. The label
+  therefore asserted a meaning the data did not have — Morwen's stored `"cataloguing, wary"` (which
+  echoes her sheet trait nearly verbatim, i.e. her nature) rendered as her opinion of the player. The
+  user spotted it immediately: *"To me this reads that she's wary of me... is that correct?"* v1.383
+  corrects the extractor spec so the field genuinely becomes disposition, and clears the pre-existing
+  values (48 on the live save) under a `memory.attitudeSpec` marker so nothing lies in the interim.
+  **This is the same failure mode as the original bug, committed by me: a field whose name and whose
+  contents disagree.** Fable should sanity-check that disposition-vs-mood is the right split at all,
+  and that the marker guard cannot re-fire and wipe correct values.
 - **Trigger:** user reported a party member (Frizwick) "acting off and moody, a shift from how she
   acted previously" in the live Runelords campaign (t867). Diagnosed against the real save.
 - **Root cause (measured, not inferred):** `memory.npcs[].attitude` had **two authors writing two

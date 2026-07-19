@@ -5807,6 +5807,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     // Both present, both labelled: two DIFFERENT measurements, nothing for the model to adjudicate.
     return true;
   });
+  t("v1.383: the attitude spec change clears old MOOD values ONCE, then never again",function(){
+    makeWorld();
+    memory.npcs={A:{attitude:"cataloguing, wary",knowledge:[],events:[],aliases:[]},
+                 B:{attitude:"easy, approving",knowledge:[],events:[],aliases:[]}};
+    delete memory.attitudeSpec;
+    healMemory();
+    if(memory.npcs.A.attitude!=="")return "old-spec value survived the clear: "+JSON.stringify(memory.npcs.A.attitude);
+    if(memory.attitudeSpec!==2)return "marker not set — the clear would re-run every load";
+    // the summarizer now writes a real disposition; a second heal must NOT wipe it
+    memory.npcs.A.attitude="wary, testing";
+    healMemory();
+    return eq(memory.npcs.A.attitude,"wary, testing");
+  });
+  t("v1.383: the extractor asks for a DISPOSITION toward the player, not a mood",function(){
+    var src=String(summarize);
+    if(src.indexOf("2-4 word mood")>=0)return "the old mood spec is still in the extractor prompt";
+    return src.indexOf("regards the PLAYER")>=0?true:"disposition wording missing from the extractor prompt";
+  });
   t("v1.382: labels appear only when the field has content (no 'mood: ' on an empty mood)",function(){
     makeWorld();
     worldState.npcs=[{name:"Blank",status:"",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
@@ -5852,6 +5870,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory.npcs={A:{attitude:"enemy",knowledge:[],events:[],aliases:[]},
                  B:{attitude:"unknown",knowledge:[],events:[],aliases:[]},
                  C:{attitude:"easy, approving",knowledge:[],events:[],aliases:[]}};
+    memory.attitudeSpec=2;/* isolate the STRIP: opt out of the v1.383 one-time spec clear, which is a separate concern with its own test */
     healMemory();
     if(memory.npcs.A.attitude!=="")return "A: "+JSON.stringify(memory.npcs.A.attitude);
     if(memory.npcs.B.attitude!=="")return "B ('unknown' is not a mood): "+JSON.stringify(memory.npcs.B.attitude);

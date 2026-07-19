@@ -311,6 +311,20 @@ function healMemory(){
     for(_mai=0;_mai<_mak.length;_mai++){var _man=memory.npcs[_mak[_mai]];if(!_man||!_man.attitude)continue;
       var _maClean=(_man.attitude==="unknown")?"":stripRelWordsFromMood(_man.attitude);
       if(_maClean!==_man.attitude){if(typeof console!=="undefined")console.warn("[heal] mood/relation: "+_mak[_mai]+" attitude \""+_man.attitude+"\" → "+(_maClean?"\""+_maClean+"\"":"(empty — awaiting the next summarize)"));_man.attitude=_maClean;}}}
+  // v1.383 — ONE-TIME clear on the attitude spec change. Until now the extractor was told to write
+  // a "2-4 word mood" into `attitude`, but v1.382 began rendering that field as "toward you:" —
+  // a DISPOSITION. Those are different measurements, so every stored value is mislabelled by the
+  // new render: Morwen's "cataloguing, wary" described her nature (it echoes her sheet trait almost
+  // verbatim), not her opinion of the player, and rendering it as "toward you" quietly turned a
+  // character note into an accusation. The extractor spec is corrected in summarize(); these values
+  // predate it. Cleared once so nothing lies while the next summarize refills them under the new
+  // meaning. MUST stay marker-guarded — an unguarded clear would wipe correct values every load.
+  if(memory.npcs&&memory.attitudeSpec!==2){
+    var _asK=Object.keys(memory.npcs),_asI,_asN=0;
+    for(_asI=0;_asI<_asK.length;_asI++){var _asE=memory.npcs[_asK[_asI]];if(_asE&&_asE.attitude){_asE.attitude="";_asN++;}}
+    memory.attitudeSpec=2;
+    if(_asN&&typeof console!=="undefined")console.warn("[heal] attitude spec v2 (disposition toward the player, was mood): cleared "+_asN+" value(s) written under the old spec — the next summarize refills them");
+  }
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
   // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
   // (~43KB duplicated per ToA campaign, riding every sync POST). The node description
