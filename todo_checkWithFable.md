@@ -13,7 +13,79 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
-_(none)_
+### 2. NPC mood / relation separation — schema repair of the character-state tier
+
+- **Tier:** Fable (drift surface — the `[NPC:]` tag write path in tag_table.js, the roster + NPC-detail
+  blocks of `buildSysPrompt`, the summarize extractor's write path, and a migration over live save data)
+- **Built by:** Opus 4.8 (NOT Fable) — 2026-07-19. **User ran out of Fable access mid-session and
+  explicitly authorized continuing**, with this review to follow when access is restored.
+- **Versions / commits:**
+  - v1.379 — `ddbaa7d` "fix(npc): mood and relation stop contaminating each other" _(commit 1 of 4)_
+  - _commits 2–4 pending this session; append here as they land_
+- **Trigger:** user reported a party member (Frizwick) "acting off and moody, a shift from how she
+  acted previously" in the live Runelords campaign (t867). Diagnosed against the real save.
+- **Root cause (measured, not inferred):** `memory.npcs[].attitude` had **two authors writing two
+  different categories of data**, last-write-wins:
+  - the summarize extractor is spec'd (memory.js:858) to write a `"2-4 word mood"` into it;
+  - **every `[NPC:]` tag carrying a relation overwrote it with the RELATION** (`if(npRel)
+    memory.npcs[npName].attitude=npRel;`), and seeded it from `npRel` on creation.
+  Reproduced live: summarizer wrote `"weary, grieving"`; the next tag restating an *unchanged*
+  relation reset it to `"ally"`. Because the GM must tag anyone it interacts with, extractor moods
+  were routinely destroyed within a turn or two. Characters still holding a real mood kept it only
+  because nobody had re-tagged them in ~50 turns — the same neglect that let Frizwick's `status`
+  latch on a stale `"watchful, tense"`.
+  Second, independent leg: the parse regex required 1+ chars per slot, so a sparse tag
+  (`[NPC:X||ally]`) **failed to match and was dropped silently, losing both fields with no warn**.
+  The format therefore rewarded fabricating a value for every slot — which is how relation
+  vocabulary ended up in mood fields. Measured on the live save: **6 of 28 NPCs (21%)** carry a
+  relation word in `status`; for 4 of them (Karzoug/Tsuto/Mokmurian `"enemy"`, Morwen `"ally"`) the
+  leak IS the entire mood field.
+- **What changed (commit 1):** `attitude` is now summarizer-owned (tag writes mood→`npc.status`,
+  relation→`npc.rel`, never touches attitude; seeds `""`); empty slots parse and mean "leave
+  unchanged" (the write path already had those semantics — `if(npStatus)` — only the regex couldn't
+  express it); new NPCs seed an empty mood rather than the non-mood string `"unknown"`; roster
+  parenthetical and NPC-detail line are built from present parts only (an empty mood previously
+  rendered as a stray leading comma, `"Morwen Zethran (, Wife — beloved family…)"`).
+- **Files touched (commit 1):** tag_table.js, api.js, memory.js, dev/engine-tests.js, globals.js, sw.js
+- **Design forks the user decided (2026-07-19):**
+  - **Option B over Option A** — keep mood and disposition as *two distinct fields*, properly
+    specified and **labeled at render**, rather than collapsing to one. Rationale accepted: Frizwick's
+    own data (`"watchful, tense"` + `"easy, approving"`) is a coherent character — on edge about the
+    job, warm toward her spouse — that only reads as contradiction because nothing labels which is which.
+  - **Co-locate** both on the NPC record; principled tier line: `worldState.npcs` = who they are now,
+    `memory.npcs` = what has happened with them.
+  - **Stamped lists** with per-element turn stamps (so mood decays per element instead of latching),
+    capped ~3–4 elements, with **the parser doing all structuring — the wire format stays dumb**
+    (the GM keeps emitting `[NPC:Name|watchful, tense|ally]`; no new emission burden).
+  - **Mood audit at 12 turns / 12-turn cooldown** (user rejected 40 as far too long for a volatile
+    field; 40 was tuned for bonds, which move on a ~100-turn scale). Empty mood on a party member is
+    eligible immediately, no age wait. Scope: party members + NPCs present in the scene — empty is
+    *correct* for off-screen characters and must not be nagged.
+  - **Migrate** existing corrupted records rather than waiting for self-heal.
+- **Verification done (Opus, commit 1):** 8 new failure-condition tests (702 total, all green) —
+  contamination repro, both partial-update directions, the silent-drop, both render guards, and a
+  byte-identity pin on the full-field roster render. Frozen strip/doc hashes unchanged. The live
+  t867 save re-renders identically for existing data.
+- **⚠ What Fable should verify:**
+  1. **Consumer audit of `attitude`** — I checked the three prompt render sites (roster, NPC detail,
+     NPC graph) but did NOT sweep the UI (sidebar, NPC sheet) or any other reader for code that
+     depended on attitude being relation-shaped. This is the likeliest place for a missed consumer.
+  2. **The regex loosening `+`→`*` on slots 2 and 3.** Frozen strip/doc hashes were unchanged and the
+     strip regexes derive from tag NAMES rather than the parse regex — but confirm that reasoning, and
+     that no previously-unmatched malformed shape now matches and writes something unintended.
+  3. **Empty status × the B3 death path.** `npcIsDead`/`npcDeadStatus` logic is untouched, but empty
+     status is now far more reachable; confirm no interaction with the dead-guard or resurrection branch.
+  4. **The "empty is honest" design judgment** — whether a blank mood for an off-screen NPC is the
+     right end state, versus some explicit "unrecorded" marker. My argument for empty is empirical:
+     Morwen has effectively had no mood in the roster for a long time and reads fine in play, while
+     Frizwick's *wrong* pinned mood produced the user-visible drift. Wrong appears worse than absent.
+  5. Whatever commits 2–4 add (repair migration over live save data; stamped-list schema + labeled
+     renders; the audit note builder + its NOTE_BUILDERS entry and interval tuning).
+- **Test bed:** the live campaign was pulled read-only from the Fly volume for diagnosis
+  (`camp_1782799175437_7288`, t867, 1.76 MB). It lives in a session scratchpad and will not persist —
+  re-pull with a readonly better-sqlite3 read of `/data/ashen.db` via `flyctl ssh console` if needed.
+- **Supporting docs:** commit messages on the commits above (each carries the measured root cause);
+  the diagnostic transcript in this session.
 
 ---
 
