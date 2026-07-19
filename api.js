@@ -431,7 +431,13 @@ function buildSysPrompt(){
   // presenting the dead as alive and NOTHING in "the CURRENT state blocks above" overrode it
   // (the Rinn Toldrath class). Cap 10 most recent; the full record stays in memory.npcs.
   var _decList=[];
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;ns.push(npc.name+npcAka+" ("+npc.status+", "+npcRel+(npcPr?", "+npcPr:"")+(npc.partyMember?", PARTY MEMBER":"")+")");}if(ns.length)nstr=ns.join("; ");}
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;
+    /* v1.372: build the parenthetical from PRESENT parts only. Mood may now be legitimately empty
+       (a character whose current mood was never recorded, or was repaired away), and the old
+       unguarded concatenation rendered that as a stray leading comma — "Morwen Zethran (, Wife…)".
+       Byte-identical to the previous output whenever every part is present. */
+    var npcBits=[];if(npc.status)npcBits.push(npc.status);if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
+    ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");}
   if(_decList.length){
     _decList.sort(function(a,b){return b.t-a.t;});
     var _decShow=_decList.slice(0,10),_decStr=[],_dsi;

@@ -5741,4 +5741,65 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return ENGINE_NOTES_PROTOCOL.indexOf("CONSEQUENCES may still shape the scene")>=0?true:"consequences carve-out missing (would fight the condition audit's visible-shaping intent)";
   });
 
+  // ── mood/relation separation (v1.372) ──────────────────────────────────────
+  section("mood/relation separation");
+  t("THE contamination bug: an [NPC:] tag must NOT overwrite the summarizer's attitude",function(){
+    makeWorld();
+    __cnTurn("[NPC:Testy|cheerful, bright|ally]");
+    memory.npcs["Testy"].attitude="weary, grieving";           // summarizer writes a real mood
+    __cnTurn("[NPC:Testy|still cheerful|ally]");               // tag restates an UNCHANGED relation
+    if(memory.npcs["Testy"].attitude==="ally")return "attitude was overwritten with the RELATION — the pre-v1.372 bug is back";
+    return eq(memory.npcs["Testy"].attitude,"weary, grieving");
+  });
+  t("a new NPC seeds an EMPTY mood and an empty attitude — never the relation, never 'unknown'",function(){
+    makeWorld();
+    __cnTurn("[NPC:Fresh||ally]");
+    var w=wsNpcByName("Fresh");
+    if(!w)return "NPC was not registered at all — the empty-status tag was dropped";
+    if(w.status!=="")return "mood seeded with "+JSON.stringify(w.status)+" — expected empty";
+    if(memory.npcs["Fresh"].attitude!=="")return "attitude seeded with "+JSON.stringify(memory.npcs["Fresh"].attitude);
+    return eq(w.rel,"ally");
+  });
+  t("empty MOOD slot is parsed and leaves the existing mood untouched (partial update)",function(){
+    makeWorld();
+    __cnTurn("[NPC:Testy|watchful, tense|companion]");
+    __cnTurn("[NPC:Testy||ally]");                             // relation-only update
+    var w=wsNpcByName("Testy");
+    if(w.status!=="watchful, tense")return "mood was clobbered: "+JSON.stringify(w.status);
+    return eq(w.rel,"ally");
+  });
+  t("empty RELATION slot is parsed and leaves the existing relation untouched (partial update)",function(){
+    makeWorld();
+    __cnTurn("[NPC:Testy|watchful, tense|companion]");
+    __cnTurn("[NPC:Testy|playful, affectionate|]");            // mood-only update
+    var w=wsNpcByName("Testy");
+    if(w.rel!=="companion")return "relation was clobbered: "+JSON.stringify(w.rel);
+    return eq(w.status,"playful, affectionate");
+  });
+  t("pre-v1.372 the sparse tag was dropped SILENTLY — the whole write must not vanish now",function(){
+    makeWorld();
+    __cnTurn("[NPC:Ghosty||ally]");
+    return wsNpcByName("Ghosty")?true:"the sparse tag registered nothing — silent data loss";
+  });
+  t("roster render: an empty mood produces NO stray comma",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Blank",status:"",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
+    var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
+    if(/\(,|,\s*,/.test(line))return "stray comma in: "+line;
+    return line.indexOf("Blank (ally, she/her)")>=0?true:"unexpected render: "+line;
+  });
+  t("roster render is BYTE-IDENTICAL to the old format when every part is present",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Full",status:"watchful, tense",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
+    var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
+    return line.indexOf("Full (watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
+  });
+  t("NPC detail render: an empty attitude produces no dangling colon",function(){
+    makeWorld();
+    memory.npcs["Quiet"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    var d=memoryNpcDetail("Quiet");
+    if(/Quiet\s*:\s*$/m.test(d))return "dangling colon: "+JSON.stringify(d);
+    return d.indexOf("Quiet")===0?true:"unexpected detail render: "+JSON.stringify(d);
+  });
+
 }

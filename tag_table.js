@@ -258,7 +258,14 @@ var TAG_TABLE=[
   }
   worldState.npcs=worldState.npcs.filter(function(n){return n.name!==mgDupe;});
   if(memory.npcGraph){var _mge=memory.npcGraph.edges||[],_mgei;for(_mgei=0;_mgei<_mge.length;_mgei++){if(_mge[_mgei].a===mgDupe)_mge[_mgei].a=mgCanon;if(_mge[_mgei].b===mgDupe)_mge[_mgei].b=mgCanon;}var _mgnf=memory.npcGraph.npcFactions;if(_mgnf&&_mgnf[mgDupe]){if(!_mgnf[mgCanon])_mgnf[mgCanon]=_mgnf[mgDupe];else _mgnf[mgCanon]=_mgnf[mgCanon].concat(_mgnf[mgDupe]);delete _mgnf[mgDupe];}}if(worldState.character.relationships){var rgj,newRels2=[],seenRel={};for(rgj=0;rgj<worldState.character.relationships.length;rgj++){var rent=worldState.character.relationships[rgj].entity;if(rent===mgDupe)worldState.character.relationships[rgj].entity=mgCanon;var rkey=worldState.character.relationships[rgj].entity;if(!seenRel[rkey]){seenRel[rkey]=true;newRels2.push(worldState.character.relationships[rgj]);}}worldState.character.relationships=newRels2;}R.muts.push("Merged: "+mgDupe+" -> "+mgCanon);}}},
-{t:"NPC",apply:function(text,R){var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());
+// MOOD/RELATION SEPARATION (v1.372): the status and relation slots accept EMPTY (`*` not `+`) so
+// the GM can update one field without restating the other — `[NPC:Name||ally]` sets the relation
+// and leaves the mood alone. Before this, an empty slot failed the whole regex and the tag was
+// dropped SILENTLY (both fields lost, no warn) — so the format's only options were "invent a value
+// for every slot" or "lose the write", and inventing is what put relation words like "acquaintance"
+// into mood fields. The write path below ALREADY had the right semantics (`if(npStatus)` = leave
+// unchanged); only the parse couldn't express it.
+{t:"NPC",apply:function(text,R){var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^\]]*))?\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^\]]*))?\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());
   var npStatus=clampNpcMood((np[2]||"").trim()),npRel=clampNpcMood((np[3]||"").trim()),npPron="";
   if(isPronounStr(npRel)){npPron=npRel;npRel="";}
   if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
@@ -286,12 +293,26 @@ var TAG_TABLE=[
       npStatus="";/* refused — the memory-side writes below must not re-animate either */
     }
   }else if(_npN){if(npStatus)_npN.status=npStatus;}
-  else{worldState.npcs.push({name:npName,status:npStatus||"unknown",rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
+  /* v1.372: a new NPC's MOOD seeds EMPTY, not "unknown" — "unknown" is not a mood, and the field
+     is now allowed to be honestly blank (the roster render skips empty parts). `rel` keeps
+     "unknown" because that IS a legitimate category for a relationship we haven't established. */
+  else{worldState.npcs.push({name:npName,status:npStatus||"",rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
   if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
     /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
        death word) — so this stamp can never re-kill what the resurrection branch just cleared */
     if(npStatus&&!_npN.dead&&npcDeadStatus(npStatus)){_npN.dead=R.turn;R.muts.push(npName+": dead (t"+R.turn+")");}}
-  if(!memory.npcs[npName])memory.npcs[npName]={attitude:npRel||"unknown",knowledge:[],events:[],aliases:[]};if(_npN&&_npN.dead&&!memory.npcs[npName].dead)memory.npcs[npName].dead=_npN.dead;/* B3: mirror the stamp */if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npRel)memory.npcs[npName].attitude=npRel;if(npPron)memory.npcs[npName].pronouns=npPron;if(!_npWasDead)mapNpcLocation(npName);/* B3: a re-mention must not drag a dead NPC's last-seen node to the party's location — the dead don't travel */R.muts.push("NPC: "+npName);}}},
+  /* v1.372 — THE contamination fix. This line used to read:
+         if(npRel)memory.npcs[npName].attitude=npRel;
+     i.e. EVERY [NPC:] tag carrying a relation overwrote memory.npcs[].attitude with the RELATION.
+     But the summarize extractor is spec'd to write a "2-4 word mood" into that same field, so one
+     field had two authors writing two different CATEGORIES of data, last-write-wins. Since the GM
+     re-tags anyone it interacts with, the extractor's mood was routinely destroyed within a turn or
+     two — measured live: summarizer wrote "weary, grieving", the next tag restating an UNCHANGED
+     relation reset it to "ally". Characters whose attitude still held a real mood (Frizwick
+     "easy, approving") kept it only because nobody had re-tagged them in ~50 turns.
+     attitude is now SUMMARIZER-OWNED: the tag writes mood to npc.status and relation to npc.rel,
+     and touches attitude never. Seeds empty, not from npRel (same reason). */
+  if(!memory.npcs[npName])memory.npcs[npName]={attitude:"",knowledge:[],events:[],aliases:[]};if(_npN&&_npN.dead&&!memory.npcs[npName].dead)memory.npcs[npName].dead=_npN.dead;/* B3: mirror the stamp */if(!memory.npcs[npName].firstEncounter)memory.npcs[npName].firstEncounter=R.feGet();if(npPron)memory.npcs[npName].pronouns=npPron;if(!_npWasDead)mapNpcLocation(npName);/* B3: a re-mention must not drag a dead NPC's last-seen node to the party's location — the dead don't travel */R.muts.push("NPC: "+npName);}}},
 {t:"XP",apply:function(text,R){var xpTags=text.match(/\[XP:\s*\+?(\d+)[^\]]*\]/g)||[];var xpi;for(xpi=0;xpi<xpTags.length;xpi++){var xpm=xpTags[xpi].match(/\[XP:\s*\+?(\d+)[^\]]*\]/);if(!xpm)continue;worldState.character.xp+=parseInt(xpm[1]);R.muts.push("+"+xpm[1]+" XP");checkLevelUp();R._xpMirror(parseInt(xpm[1]));}}},
 {t:"QUEST",apply:function(text,R){var quests=text.match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var qi;for(qi=0;qi<quests.length;qi++){var qp=quests[qi].match(/\[QUEST:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!qp)continue;var qTitle=qp[1].trim(),qStat=qp[2].trim().toLowerCase(),qDesc=qp[3]?qp[3].trim():"";if(qStat==="complete"||qStat==="done"||qStat==="finished")qStat="completed";else if(qStat==="abandoned"||qStat==="dropped")qStat="failed";else if(qStat==="accepted")qStat="active";else if(qStat==="declined")qStat="failed";var qIdx=-1,qj;for(qj=0;qj<worldState.questLog.length;qj++){if(worldState.questLog[qj].title.toLowerCase()===qTitle.toLowerCase()){qIdx=qj;break;}}
   // UA42/F3: a title already ARCHIVED as completed/failed must not silently resurrect via a
