@@ -232,8 +232,8 @@ function checkLevelUp(){
     if(features[c.level]){c.abilities.push({nm:"Lv"+c.level,ds:features[c.level],gained:worldState.turn});newFeatures.push(features[c.level]);}
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
+  if(typeof Sound!=="undefined")Sound.play("click_glass");/* #7: the attention sound fires BEFORE the message so it claims the playIfQuiet window (the toast-level poke must not double up) */
   addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+totalHp+" (now "+c.maxHp+")");
-  if(typeof Sound!=="undefined")Sound.play("levelup");
   for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
   if(newFeatures.length)updateAbPanel(true);
   _levelBumpsOwed+=bumpsOwed;
@@ -544,8 +544,8 @@ function fileCoreMemory(kind,who,text){
     if(/\bdead\b/i.test(n.status||"")&&!isSubject)continue;
     fileTo(n.charSheet);
   }
+  if(filedAny&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: before the toast — claims the playIfQuiet window */
   if(filedAny&&typeof showToast==="function")showToast("★ Defining moment: "+text);
-  if(filedAny&&typeof Sound!=="undefined")Sound.play("moment");
   return filedAny;/* #40 GM tag (v1.307): lets the CORE_MEMORY handler report honestly — no muts line for a deduped no-op */
 }
 function detectCoreMoments(pre){

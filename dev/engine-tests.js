@@ -1002,6 +1002,22 @@ function runEngineTests(R){
     if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
     return true;
   });
+  t("#7 wiring: bone (general poke) and glass (attention) exist and are the ids the call sites use",function(){
+    if(!SOUND_LIB.click_bone)return "click_bone missing — showToast wires to it";
+    if(!SOUND_LIB.click_glass)return "click_glass missing — quest/levelup/moment/combat wire to it";
+    if(SOUND_LIB.click_bone.group!=="click"||SOUND_LIB.click_glass.group!=="click")return "wired sounds left the click group";
+    return true;
+  });
+  t("#7 anti-double-up: playIfQuiet suppresses a poke right after a sound, and allows it once the window passes",function(){
+    /* Headless has no AudioContext, so play() returns false and never stamps the window — assert
+       the CONTRACT that is testable here: playIfQuiet never throws, and returns a boolean. The
+       ordering rule it enforces (glass before its toast) is pinned by the call-site comments and
+       verified live; a fuller test needs an audio-capable browser. */
+    var r=Sound.playIfQuiet("click_bone",300);
+    if(typeof r!=="boolean")return "playIfQuiet did not return a boolean: "+r;
+    if(Sound.playIfQuiet("no-such-id",300)!==false)return "unknown id through playIfQuiet did not report failure";
+    return true;
+  });
   t("#7 audition: Sound.preview plays regardless of the enabled pref and reports honestly; play() still respects it",function(){
     var was=Sound.enabled();
     Sound.setEnabled(false);

@@ -292,7 +292,7 @@ function showSoundModal(){
   if(typeof Sound==="undefined"){showToast("Sound library unavailable.");return;}
   var ids=Object.keys(Sound.SOUND_LIB||{});
   // Where each sound fires today — audition without this is judging a noise out of context.
-  var WIRED={chime:"Not wired yet",quest:"Quest offered",levelup:"Level up",moment:"★ Defining moment",combat:"Combat starts",coin:"Not wired yet",error:"Not wired yet"};
+  var WIRED={click_bone:"Every toast (general poke)",click_glass:"Quest · level up · defining moment · combat"};
   var rows="",i,grp=null;
   for(i=0;i<ids.length;i++){
     var id=ids[i],e=Sound.SOUND_LIB[id],w=WIRED[id]||"Not wired yet";
@@ -308,7 +308,7 @@ function showSoundModal(){
         +"<div style='font-size:13px;color:var(--t0);'>"+escHtml(id)+"</div>"
         +"<div style='font-size:11px;color:var(--t2);'>"+escHtml(e&&e.label?e.label:"")+"</div>"
       +"</div>"
-      +(g==="click"?"":"<div style='flex-shrink:0;font-size:10px;color:"+(unwired?"var(--t2)":"var(--acc)")+";text-align:right;max-width:110px;'>"+escHtml(w)+"</div>")/* the wiring column is meaningless for the unassigned click palette */
+      +"<div style='flex-shrink:0;font-size:10px;color:"+(unwired?"var(--t2)":"var(--acc)")+";text-align:right;max-width:118px;'>"+escHtml(unwired?"":w)+"</div>"/* wired sounds name where they fire; unwired ones show nothing rather than shouting "Not wired yet" 15 times */
       +"</div>";
   }
   var on=Sound.enabled();

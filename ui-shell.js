@@ -23,6 +23,10 @@ function showToast(msg,ms){
   // so "&#9729;"/"&mdash;" would show literally. Numeric refs + a couple of named ones; toast strings
   // are developer constants, so this is a safe decode (not model/user input).
   msg=String(msg==null?"":msg).replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(parseInt(n,10));}).replace(/&mdash;/g,"—").replace(/&ndash;/g,"–").replace(/&amp;/g,"&");
+  // TODO #7 (user pick 2026-07-18): a toast IS the "general poke at the user", so bone rides this
+  // one choke point instead of dozens of call sites. playIfQuiet keeps it from doubling up on an
+  // attention event (quests/level-ups/defining moments play glass just BEFORE their toast).
+  if(typeof Sound!=="undefined"&&Sound.playIfQuiet)Sound.playIfQuiet("click_bone",300);
   var live=document.querySelectorAll(".tnd-toast").length;
   var t=document.createElement("div");t.className="tnd-toast";
   // Car Mode audit rank 1 (todo_carplay.html): toasts at z-index:400 rendered UNDER #car-overlay

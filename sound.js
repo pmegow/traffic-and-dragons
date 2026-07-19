@@ -207,6 +207,7 @@ var Sound = (function() {
   // under an exponential decay), so it costs no files and no network. Built once, wired straight
   // to destination; per-play sends feed it. This is what removes the dry, close, arcade quality.
   var _verb = null;
+  var _lastAt = 0;   // timestamp of the last successful play — the playIfQuiet suppression window
   function _reverb(ctx) {
     if (_verb) return _verb;
     try {
@@ -329,6 +330,7 @@ var Sound = (function() {
         try { bus.disconnect(); } catch (e) {}
         if (send) { try { send.disconnect(); } catch (e) {} }
       }, (last + 2.2) * 1000);   // clear of the longest note AND the ~1.6s reverb tail
+      _lastAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : +new Date();
     } catch (e) { console.debug("[sound] '" + id + "' play failed:", e && e.message); return false; }
     return true;
   }
@@ -337,10 +339,24 @@ var Sound = (function() {
   // as broken). Returns true only when notes were actually scheduled, so the caller can show an
   // honest "couldn't play" state instead of a dead button.
   function preview(id) { return play(id, true); }
+  // playIfQuiet(id, ms) — play only if nothing has played in the last `ms`. THE mechanism that
+  // lets the general "poke" (bone, on every toast) coexist with the specific attention sound
+  // (glass, on quests/level-ups/defining moments): those events toast AND play, so without this
+  // you would hear both, every time. The alternative — threading a "silent" flag through dozens
+  // of showToast call sites — would put audio concerns in every caller; this keeps the rule in
+  // one place: a general poke never doubles up on a sound that just fired.
+  // Ordering contract: the SPECIFIC sound must be played BEFORE its toast, so it claims the
+  // window and the poke steps aside (the call sites are ordered that way deliberately).
+  function playIfQuiet(id, ms) {
+    var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : +new Date();
+    if (_lastAt && (now - _lastAt) < (ms || 300)) { console.debug("[sound] '" + id + "' skipped — a sound just played"); return false; }
+    return play(id);
+  }
 
   return {
     play: play,
     preview: preview,
+    playIfQuiet: playIfQuiet,
     enabled: enabled,
     setEnabled: setEnabled,
     SOUND_LIB: SOUND_LIB
