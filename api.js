@@ -469,7 +469,13 @@ function buildSysPrompt(){
        (a character whose current mood was never recorded, or was repaired away), and the old
        unguarded concatenation rendered that as a stray leading comma — "Morwen Zethran (, Wife…)".
        Byte-identical to the previous output whenever every part is present. */
-    var npcBits=[];if(npc.status)npcBits.push(npc.status);if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
+    /* v1.382: LABEL the mood. The prompt carries two mood-ish readings for the same character —
+       npc.status here (GM-written, per-turn) and memory.npcs[].attitude in the NPC-detail and graph
+       blocks (summarizer-written, slower). Both were rendered as bare adjective pairs, so they read
+       as rival claims about one thing rather than complementary facts about two: a character can be
+       "watchful, tense" about the job while "easy, approving" toward the player, and both be true.
+       Labels remove the adjudication entirely — the model never has to guess which is which. */
+    var npcBits=[];if(npc.status)npcBits.push("mood: "+npc.status);if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
     ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");}
   if(_decList.length){
     _decList.sort(function(a,b){return b.t-a.t;});

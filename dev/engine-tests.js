@@ -2279,7 +2279,7 @@ function runEngineTests(R){
     if(memory.npcs["Old Corpse"].dead!==true)return "healMemory mirror missing";
     if(npcIsDead(wsNpcByName("Bleeder")))return "living idiom wrongly stamped by migration";
     var sys=buildSysPrompt();
-    if(sys.volatile.indexOf("Bleeder (half-dead, bleeding out")<0)return "wrongly-hidden living NPC did not regain the roster";
+    if(sys.volatile.indexOf("Bleeder (mood: half-dead, bleeding out")<0)return "wrongly-hidden living NPC did not regain the roster";
     return true;
   });
   t("B3-13: [NPC_MERGE:] carries the dead flag on both stores",function(){
@@ -2878,9 +2878,9 @@ function runEngineTests(R){
     worldState.character.relationships.push({entity:"Aldara",descriptor:"Cautious Peace"});
     worldState.npcs.push({name:"Durdun",status:"ally",rel:"business partner",partyMember:true,charSheet:{name:"Durdun",gender:"M",cls:"Rogue",level:2,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
     var v=buildSysPrompt().volatile;
-    if(v.indexOf("Morwen (steady, Wife")<0)return "party rel not derived from the player's bond";
-    if(v.indexOf("Aldara (wary, mother of Morwen")<0)return "non-party rel was overwritten — identity info lost";
-    return v.indexOf("Durdun (ally, business partner")>=0?true:"party member without a player bond lost its npc.rel fallback";
+    if(v.indexOf("Morwen (mood: steady, Wife")<0)return "party rel not derived from the player's bond";
+    if(v.indexOf("Aldara (mood: wary, mother of Morwen")<0)return "non-party rel was overwritten — identity info lost";
+    return v.indexOf("Durdun (mood: ally, business partner")>=0?true:"party member without a player bond lost its npc.rel fallback";
   });
   t("stamps: new bond stamped, changed descriptor re-stamped, unchanged bond keeps its stamp",function(){
     __relWorld();var pre=relationshipSnapshot();
@@ -5788,11 +5788,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(/\(,|,\s*,/.test(line))return "stray comma in: "+line;
     return line.indexOf("Blank (ally, she/her)")>=0?true:"unexpected render: "+line;
   });
-  t("roster render is BYTE-IDENTICAL to the old format when every part is present",function(){
+  t("roster render: every part present renders in a fixed order with the mood LABELLED (v1.382)",function(){
     makeWorld();
     worldState.npcs=[{name:"Full",status:"watchful, tense",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
-    return line.indexOf("Full (watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
+    return line.indexOf("Full (mood: watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
+  });
+  t("v1.382: the two mood-ish tiers are LABELLED so they can never read as rival claims",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Friz",status:"watchful, tense",statusTurn:900,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Friz",hp:9,maxHp:9,conditions:[],relationships:[]}}];
+    memory.npcs["Friz"]={attitude:"easy, approving",knowledge:[],events:[],aliases:[]};
+    // ACTIVE NPC DETAILS only fires for a name mentioned in the last 6 session messages — this is
+    // the shape that actually reaches the GM in play, so exercise it rather than the empty case.
+    sessionLog=[{role:"user",content:"talk to Friz"},{role:"assistant",content:"Friz looks up."}];
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("mood: watchful, tense")<0)return "roster mood is unlabelled";
+    if(v.indexOf("toward you: easy, approving")<0)return "disposition is unlabelled — it reads as a competing mood";
+    // Both present, both labelled: two DIFFERENT measurements, nothing for the model to adjudicate.
+    return true;
+  });
+  t("v1.382: labels appear only when the field has content (no 'mood: ' on an empty mood)",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Blank",status:"",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
+    var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
+    if(line.indexOf("mood:")>=0)return "empty mood still rendered a label: "+line;
+    return line.indexOf("Blank (ally, she/her)")>=0?true:"unexpected render: "+line;
   });
   t("repair: strips a trailing relation word, keeps the real mood (the Frizwick shape)",function(){
     return eq(stripRelWordsFromMood("watchful, tense, acquaintance"),"watchful, tense");
