@@ -3623,6 +3623,39 @@ function runEngineTests(R){
     if(v.indexOf("OUT OF RANGE")<0)return "range fence lost";
     return v.indexOf("JSON array")>=0?true:"output-format instruction lost";
   });
+  t("t833: concealment condition → CONCEALMENT CHECK data line in suggestion volatile; stable untouched",function(){
+    makeWorld();
+    var s0=buildSuggestionSys();
+    if(s0.volatile.indexOf("CONCEALMENT CHECK")>=0)return "line present with no concealment condition";
+    worldState.character.conditions.push({name:"Invisible",duration:"until attack or cast"});
+    var s1=buildSuggestionSys();
+    if(s1.volatile.indexOf("CONCEALMENT CHECK: Tess is currently Invisible (until attack or cast)")<0)return "concealment data line missing: "+s1.volatile.slice(-300);
+    if(s1.volatile.indexOf("Casting ANY spell")<0)return "consequence not spelled out";
+    if(s1.stable!==s0.stable)return "concealment line perturbed the STABLE half — cache kill";
+    worldState.character.conditions.length=0;
+    return true;
+  });
+  t("t833: non-concealment conditions (Poisoned) do NOT fire the concealment line",function(){
+    makeWorld();
+    worldState.character.conditions.push({name:"Poisoned",duration:"1 hour"});
+    var v=buildSuggestionSys().volatile;
+    worldState.character.conditions.length=0;
+    return v.indexOf("CONCEALMENT CHECK")<0?true:"fired on a non-concealment condition";
+  });
+  t("t833: previous button set feeds the anti-fixation line; absent when there is none",function(){
+    makeWorld();
+    var s0=buildSuggestionSys();
+    if(s0.volatile.indexOf("PREVIOUS SUGGESTIONS")>=0)return "line present with no previous set";
+    var s1=buildSuggestionSys(["Use Message to whisper a threat","Stay hidden","Signal Frizwick via Message"]);
+    if(s1.volatile.indexOf("PREVIOUS SUGGESTIONS")<0)return "anti-fixation line missing";
+    if(s1.volatile.indexOf("Use Message to whisper a threat | Stay hidden | Signal Frizwick via Message")<0)return "previous set not carried verbatim";
+    if(s1.stable!==s0.stable)return "prev-set line perturbed the STABLE half — cache kill";
+    return true;
+  });
+  t("t833: at-most-one-spell rule rides the mode block",function(){
+    makeWorld();
+    return buildSuggestionSys().volatile.indexOf("at most ONE of the 3 suggestions may involve casting a spell")>=0?true:"variety cap missing from mode block";
+  });
   t("suggestionHistoryPairs: last 5 exchanges, labeled, oldest-first, tags stripped",function(){
     makeWorld();sessionLog=[];
     for(var i=1;i<=7;i++){sessionLog.push({role:"user",content:"act "+i});sessionLog.push({role:"assistant",content:"scene "+i+" unfolds. [HP:-1]"});}

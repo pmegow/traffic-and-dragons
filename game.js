@@ -88,8 +88,37 @@ var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
  +"You are NOT narrating a turn. Based on the RECENT SCENES in the user message and everything above (the character sheet, canonical spell rules, geography, and NPC list), suggest exactly 3 short actions the player could take next.\n"
  +"Suggest only actions involving people, objects, and exits explicitly present in the scene or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned.\n"
  +"Never suggest casting a spell or using an ability this character does not have, and never suggest a cast that exceeds a spell's canonical range or targets: a target in another building, street, or district — or anyone not present in the scene or whose current location is unknown — is OUT OF RANGE for a short-range spell.\n"
+ +"A spell is a spice, not a default: at most ONE of the 3 suggestions may involve casting a spell or using a named ability — the other two must be mundane actions (move, hide, wait, talk, search, signal by hand).\n"
  +"Ignore the STYLE directive for this call. Output ONLY a valid JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.";
-function buildSuggestionSys(){
+// t833 (2026-07-18) — the recurring Message-cantrip class (t355 cross-town range → t580 unlocated
+// target → t833 casting while INVISIBLE + an invented back exit). The un-starve (v1.288) put every
+// fact and fence in the prompt, and the reconstruction of the t833 call verified all of it present
+// and ordered — yet the model, forced to emit instant JSON with no checking space, still lets the
+// "clever rogue cantrip" prior win in every stealth scene; each incident just found the fence's
+// next uncovered face. So stop enumerating sins and feed the checker what it never had:
+// ① its own concealment state as explicit DATA with the consequence spelled out (the sheet said
+//   "Conditions: Invisible" but the model had to INFER "casting ends it" — it never did), and
+// ② the previous button set, so spell-fixation (2 of 3 buttons pushing Message) meets direct
+//   counter-pressure instead of none.
+// Both are VOLATILE-half appends in suggestion mode only — the stable half stays byte-identical
+// (cache prefix) and gameplay turns are untouched.
+function suggestionTacticalLine(){
+  var c=(typeof activePlayer==="function"?activePlayer():null)||(worldState&&worldState.character)||null;
+  var conds=(c&&c.conditions)||[],i;
+  for(i=0;i<conds.length;i++){
+    if(/invisib|hidden|conceal|disguis|stealth/i.test(conds[i].name||"")){
+      return "\nCONCEALMENT CHECK: "+((c&&c.name)||"the player")+" is currently "+conds[i].name
+        +(conds[i].duration?" ("+conds[i].duration+")":"")
+        +". Casting ANY spell, attacking, or speaking reveals them and can end the effect. Do not suggest an action that breaks concealment unless its payoff is clearly worth being revealed, and make that trade explicit in the wording.";
+    }
+  }
+  return "";
+}
+function suggestionVarietyLine(prev){
+  if(!prev||!prev.length)return "";
+  return "\nPREVIOUS SUGGESTIONS (do not repeat any of them, and do not lean on the same spell again): "+prev.join(" | ");
+}
+function buildSuggestionSys(prevActs){
   var s=buildSysPrompt();
   // Mirror callGM's gameplay-turn reinforce append (same resolveReinforce, same inputs): the
   // cache is a PREFIX match, so the suggestion call's stable must be byte-identical to what the
@@ -111,7 +140,7 @@ function buildSuggestionSys(){
       if(_spLoc.location)mpPov+=" "+_sp.name+" is currently at "+_spLoc.location+(_spLoc.sublocation?" ("+_spLoc.sublocation+")":"")+(_sp.splitLoc?" — SPLIT OFF from the party; suggest only actions available there.":".");
     }
   }
-  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK+mpPov};
+  return {stable:s.stable+(rf||""),volatile:s.volatile+SUGGESTION_MODE_BLOCK+suggestionTacticalLine()+suggestionVarietyLine(prevActs)+mpPov};
 }
 // The last 5 player/GM exchanges as labeled pairs (the ragRetrieve excerpt convention), oldest
 // first, GM halves tag-stripped, under a ~6k char budget — five lavish prose turns can't balloon
@@ -140,6 +169,8 @@ async function generateActions(msgEl){
   var btns=[],i;
   for(i=0;i<3;i++){var b=document.createElement("button");b.className="qa";b.textContent="…";b.disabled=true;b.style.minWidth="80px";btnDiv.appendChild(b);btns.push(b);}
   msgEl.appendChild(btnDiv);
+  // t833: keep the outgoing set for the anti-fixation line BEFORE the E26 clear below
+  var prevActs=(worldState.lastActions&&worldState.lastActions.slice)?worldState.lastActions.slice(0,3):null;
   worldState.lastActions=null; // clear now (audit E26) — if this call fails, reload won't re-attach the PREVIOUS turn's buttons to the newest narration
   var turnAt=worldState.turn; // race guard: a fast next action can land while this call is in flight
   function _cleanup(){for(var _c=0;_c<3;_c++){if(btns[_c].parentNode)btns[_c].parentNode.removeChild(btns[_c]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
@@ -149,7 +180,7 @@ async function generateActions(msgEl){
     // stays true — the window IS the history, at a bounded cost. Runs on the ACTIVE model (null
     // override): caches are model-scoped, an escalated model would pay full freight. See the
     // block comment above the suggestion helpers for the whole incident history.
-    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\nSuggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words.",buildSuggestionSys(),200,null,{noHistory:true,kind:"actions"});
+    var resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\nSuggest exactly 3 short actions the player could take next. Output ONLY a JSON array of 3 strings, each under 10 words.",buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
