@@ -398,7 +398,40 @@ function buildMpEndNote(){
   var nm=worldState.character.name;
   return "[NARRATION MODE CHANGE — this note is a PROSE directive, not bookkeeping, and applies to THIS response: the multiplayer session has ended and "+nm+" is the only player character again. Write this response in SECOND PERSON: 'you' means "+nm+". The third-person narration in the recent turns above was the multiplayer mode and is now over — do not continue that style. Change the prose silently; never mention the mode change in the story.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote];
+// v1.381 — mood staleness audit. The engine-detected half of the mood/relation repair: v1.379/380
+// stopped the corruption and cleaned the data, but nothing made a stale mood HEAL. `status` was
+// write-once-per-mention and immortal otherwise, so a single emission pinned a character's
+// "current" mood for an entire arc — the reported case read watchful/tense for ~50 turns while
+// the memory tier still said easy/approving.
+// Shape follows buildRelationshipAudit (timer + stamp + empty-window consumption + combat gate),
+// but triggers on PER-ITEM age like buildConditionAudit: mood carries individual staleness in a
+// way bonds do not, so a global sweep clock would be the wrong instrument.
+// SCOPE (v1): party members only — they are in every scene, they are what the player notices, and
+// the set is deterministic. Extending to NPCs present in the scene needs lastSeenAt-vs-current-node
+// logic and is deliberately deferred; an empty mood on an OFF-SCREEN character is CORRECT and must
+// never be nagged (the campaign's endgame villain has no current mood because nobody has seen him).
+// Anti-churn is load-bearing: without "leave accurate ones alone", a compliant GM re-emits every
+// mood each time this fires — costing tokens AND re-rolling the vocabulary-leak dice on characters
+// that were fine. Partial updates (v1.379) are what make the refresh cheap: the GM can now update a
+// mood alone via [NPC:Name|mood|] without restating the relationship.
+function buildMoodAudit(){
+  if(!worldState||!worldState.character||worldState.combat)return"";
+  if(worldState.turn-(worldState.lastMoodAudit||0)<MOOD_AUDIT_COOLDOWN)return"";
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],lines=[],due=false,i;
+  for(i=0;i<party.length;i++){
+    var n=party[i],mood=n.status||"",age=worldState.turn-(n.statusTurn||0);
+    if(!mood){due=true;lines.push("- "+n.name+": (no mood recorded) — set one from how they are ACTUALLY behaving now");}
+    else{
+      if(age>=MOOD_AUDIT_TURNS)due=true;
+      lines.push("- "+n.name+": \""+mood+"\""+(n.statusTurn?" (set t"+n.statusTurn+", "+age+" turns ago)":" (age unknown)"));
+    }
+  }
+  if(!lines.length){worldState.lastMoodAudit=worldState.turn;return"";}/* nobody to audit — consume the window so a companion joining next turn isn't audited one turn later */
+  if(!due)return"";
+  worldState.lastMoodAudit=worldState.turn;
+  return "[ENGINE NOTE — MOOD CHECK (not a player action): the tracker's record of how each party member is FEELING is below, with its age. For EACH: if it still matches how you are actually writing them, leave it alone — do NOT re-emit an unchanged mood. If it has gone stale, or was never set, emit [NPC:Name|new mood|] — the empty third slot updates the mood WITHOUT touching their relationship. Mood is 2-4 words for their CURRENT emotional state ONLY; never a relationship word (ally/companion/acquaintance), which the engine tracks separately.\n"+lines.join("\n")+"]";
+}
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

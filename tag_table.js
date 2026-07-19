@@ -280,9 +280,9 @@ var TAG_TABLE=[
   if(_npN&&npStatus&&_npWasDead){
     if(NPC_RESURRECT_RE.test(npStatus)){
       delete _npN.dead;if(memory.npcs[npName])delete memory.npcs[npName].dead;_npWasDead=false;
-      _npN.status=npStatus;R.muts.push(npName+" RESURRECTED");
+      _npN.status=npStatus;_npN.statusTurn=R.turn;R.muts.push(npName+" RESURRECTED");
       if(typeof console!=="undefined")console.warn("[npc] "+npName+" resurrected — DECEASED stamp cleared (explicit in-story resurrection)");
-    }else if(npcDeadStatus(npStatus)){_npN.status=npStatus;/* re-stating the death is harmless */}
+    }else if(npcDeadStatus(npStatus)){_npN.status=npStatus;_npN.statusTurn=R.turn;/* re-stating the death is harmless */}
     else{
       if(typeof console!=="undefined")console.warn("[npc] status write \""+npStatus+"\" REFUSED — "+npName+" is recorded dead"+(typeof _npN.dead==="number"?" (t"+_npN.dead+")":"")+"; only an explicit resurrection status revives (B3)");
       if(typeof showToast==="function")showToast("⚠ "+npName+" is dead — status change refused");
@@ -292,11 +292,14 @@ var TAG_TABLE=[
       if(!_dcDup)worldState.deadStatusConflicts.push({name:npName,status:npStatus,turn:R.turn});
       npStatus="";/* refused — the memory-side writes below must not re-animate either */
     }
-  }else if(_npN){if(npStatus)_npN.status=npStatus;}
+  /* v1.381: stamp the turn a MOOD was written, so staleness is measurable per character rather
+     than guessed. Only on an actual mood write — a relation-only update ([NPC:Name||ally]) must
+     NOT refresh the mood's age, or the audit would be fooled into thinking a stale mood is fresh. */
+  }else if(_npN){if(npStatus){_npN.status=npStatus;_npN.statusTurn=R.turn;}}
   /* v1.372: a new NPC's MOOD seeds EMPTY, not "unknown" — "unknown" is not a mood, and the field
      is now allowed to be honestly blank (the roster render skips empty parts). `rel` keeps
      "unknown" because that IS a legitimate category for a relationship we haven't established. */
-  else{worldState.npcs.push({name:npName,status:npStatus||"",rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
+  else{worldState.npcs.push({name:npName,status:npStatus||"",statusTurn:npStatus?R.turn:0,rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
   if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
     /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
        death word) — so this stamp can never re-kill what the resurrection branch just cleared */

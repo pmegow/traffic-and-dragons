@@ -5837,6 +5837,61 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(memory.npcs.B.attitude!=="")return "B ('unknown' is not a mood): "+JSON.stringify(memory.npcs.B.attitude);
     return eq(memory.npcs.C.attitude,"easy, approving");
   });
+  t("mood audit: fires on a STALE mood, lists the party with ages, and never fires mid-combat",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Friz",status:"watchful, tense",statusTurn:830,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Friz",hp:10,maxHp:10,conditions:[],relationships:[]}}];
+    worldState.combat={foes:[{name:"Wolf",hp:5}],round:1};
+    if(buildMoodAudit()!=="")return "fired mid-combat";
+    worldState.combat=null;
+    var n=buildMoodAudit();
+    if(n.indexOf("MOOD CHECK")<0)return "did not fire on a 70-turn-old mood";
+    if(n.indexOf("70 turns ago")<0)return "age not reported: "+n;
+    return n.indexOf("do NOT re-emit an unchanged mood")>=0?true:"anti-churn instruction missing";
+  });
+  t("mood audit: a FRESH mood does not fire the audit",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Friz",status:"watchful, tense",statusTurn:895,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Friz",hp:10,maxHp:10,conditions:[],relationships:[]}}];
+    return eq(buildMoodAudit(),"");
+  });
+  t("mood audit: an EMPTY mood is due IMMEDIATELY — no age wait (the repaired-to-empty case)",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Morwen",status:"",statusTurn:900,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Morwen",hp:10,maxHp:10,conditions:[],relationships:[]}}];
+    var n=buildMoodAudit();
+    if(n.indexOf("MOOD CHECK")<0)return "an empty mood on a party member did not fire";
+    return n.indexOf("(no mood recorded)")>=0?true:"empty mood not flagged as such: "+n;
+  });
+  t("mood audit: cooldown suppresses a re-fire, then it re-fires after the window",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Friz",status:"watchful, tense",statusTurn:800,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Friz",hp:10,maxHp:10,conditions:[],relationships:[]}}];
+    if(buildMoodAudit()==="")return "did not fire when due";
+    if(buildMoodAudit()!=="")return "cooldown ignored — re-fired immediately";
+    worldState.turn+=MOOD_AUDIT_COOLDOWN;
+    return buildMoodAudit()!==""?true:"did not re-fire after the cooldown window";
+  });
+  t("mood audit: rides the NOTE_BUILDERS registry",function(){
+    makeWorld();worldState.turn=900;
+    worldState.npcs=[{name:"Friz",status:"",statusTurn:0,rel:"companion",partyMember:true,aliases:[],charSheet:{name:"Friz",hp:10,maxHp:10,conditions:[],relationships:[]}}];
+    return buildEngineNotes().indexOf("MOOD CHECK")>=0?true:"not wired into the registry";
+  });
+  t("stamp: a relation-only update must NOT refresh the mood's age (else staleness is unmeasurable)",function(){
+    makeWorld();worldState.turn=100;
+    __cnTurn("[NPC:Testy|watchful, tense|companion]");
+    var stamped=wsNpcByName("Testy").statusTurn;
+    worldState.turn=150;
+    __cnTurn("[NPC:Testy||ally]");                       // relation-only
+    if(wsNpcByName("Testy").statusTurn!==stamped)return "relation-only update refreshed the mood stamp";
+    worldState.turn=160;
+    __cnTurn("[NPC:Testy|playful, affectionate|]");      // mood-only
+    return eq(wsNpcByName("Testy").statusTurn,160);
+  });
+  t("migration backfills the mood stamp at the CURRENT turn, and 0 for an empty mood",function(){
+    makeWorld();worldState.turn=500;
+    worldState.npcs=[{name:"Has",status:"watchful, tense",rel:"companion",aliases:[]},
+                     {name:"None",status:"",rel:"companion",aliases:[]}];
+    migrateWorldState();
+    if(wsNpcByName("Has").statusTurn!==500)return "stamped "+wsNpcByName("Has").statusTurn+", expected the current turn";
+    return eq(wsNpcByName("None").statusTurn,0);
+  });
   t("NPC detail render: an empty attitude produces no dangling colon",function(){
     makeWorld();
     memory.npcs["Quiet"]={attitude:"",knowledge:[],events:[],aliases:[]};

@@ -252,6 +252,13 @@ function migrateWorldState(){
     if(!_mrn||!_mrn.status)continue;
     var _mrClean=stripRelWordsFromMood(_mrn.status);
     if(_mrClean!==_mrn.status){if(typeof console!=="undefined")console.warn("[migrate] mood/relation: "+_mrn.name+" mood \""+_mrn.status+"\" → "+(_mrClean?"\""+_mrClean+"\"":"(empty — the whole field was a relation word)"));_mrn.status=_mrClean;_mig=true;}}}
+  // v1.381: backfill the mood-age stamp. Set at the CURRENT turn, not 0 — a long-standing mood's
+  // true origin is unknowable, and the #23 arc-clock precedent chose the same tradeoff ("fails
+  // late, not early"): a stale mood waits one audit window rather than every party member being
+  // flagged at once on the upgrade turn. Characters repaired to an EMPTY mood are unaffected by
+  // this choice — the audit treats empty as due immediately, so they refresh in the first window.
+  if(worldState.npcs){var _msi;for(_msi=0;_msi<worldState.npcs.length;_msi++){var _msn=worldState.npcs[_msi];
+    if(_msn&&_msn.statusTurn===undefined){_msn.statusTurn=_msn.status?(worldState.turn||0):0;_mig=true;}}}
   return _mig;
 }
 function loadState(){
