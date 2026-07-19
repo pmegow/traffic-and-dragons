@@ -5794,6 +5794,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
     return line.indexOf("Full (watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
   });
+  t("repair: strips a trailing relation word, keeps the real mood (the Frizwick shape)",function(){
+    return eq(stripRelWordsFromMood("watchful, tense, acquaintance"),"watchful, tense");
+  });
+  t("repair: a mood that is ENTIRELY a relation word goes empty (the Morwen/Karzoug shape)",function(){
+    if(stripRelWordsFromMood("ally")!=="")return "ally survived";
+    return eq(stripRelWordsFromMood("enemy"),"");
+  });
+  t("repair: strips by TYPE not position — a LEADING relation word goes too (the live Savah case)",function(){
+    return eq(stripRelWordsFromMood("Neutral, professionally closed"),"professionally closed");
+  });
+  t("repair: does NOT eat a mood that merely CONTAINS a relation word as a substring",function(){
+    if(stripRelWordsFromMood("friendly, open")!=="friendly, open")return "'friendly' was eaten by the 'friend' entry";
+    if(stripRelWordsFromMood("rivalrous")!=="rivalrous")return "'rivalrous' was eaten by 'rival'";
+    return eq(stripRelWordsFromMood("companionable, warm"),"companionable, warm");
+  });
+  t("repair: CONSERVATIVE — 'prisoner' survives, because the slot is spec'd mood/CONDITION",function(){
+    return eq(stripRelWordsFromMood("prisoner, broken"),"prisoner, broken");
+  });
+  t("repair: idempotent — a second pass changes nothing",function(){
+    var once=stripRelWordsFromMood("watchful, tense, acquaintance");
+    return eq(stripRelWordsFromMood(once),once);
+  });
+  t("migrateWorldState repairs live moods and reports the change",function(){
+    makeWorld();
+    worldState.npcs=[{name:"Latched",status:"watchful, tense, acquaintance",rel:"companion",aliases:[]},
+                     {name:"Blanked",status:"ally",rel:"companion",aliases:[]},
+                     {name:"Fine",status:"focused, quietly urgent",rel:"ally",aliases:[]}];
+    var changed=migrateWorldState();
+    if(!changed)return "migration did not report a change";
+    if(wsNpcByName("Latched").status!=="watchful, tense")return "Latched: "+JSON.stringify(wsNpcByName("Latched").status);
+    if(wsNpcByName("Blanked").status!=="")return "Blanked should repair to empty, got "+JSON.stringify(wsNpcByName("Blanked").status);
+    return eq(wsNpcByName("Fine").status,"focused, quietly urgent");
+  });
+  t("healMemory repairs attitudes and clears the legacy 'unknown' placeholder",function(){
+    makeWorld();
+    memory.npcs={A:{attitude:"enemy",knowledge:[],events:[],aliases:[]},
+                 B:{attitude:"unknown",knowledge:[],events:[],aliases:[]},
+                 C:{attitude:"easy, approving",knowledge:[],events:[],aliases:[]}};
+    healMemory();
+    if(memory.npcs.A.attitude!=="")return "A: "+JSON.stringify(memory.npcs.A.attitude);
+    if(memory.npcs.B.attitude!=="")return "B ('unknown' is not a mood): "+JSON.stringify(memory.npcs.B.attitude);
+    return eq(memory.npcs.C.attitude,"easy, approving");
+  });
   t("NPC detail render: an empty attitude produces no dangling colon",function(){
     makeWorld();
     memory.npcs["Quiet"]={attitude:"",knowledge:[],events:[],aliases:[]};

@@ -139,6 +139,22 @@ function mapNpcLocation(name){
 // write boundary; word-boundary cut so the kept part stays readable. Cosmetic normalization,
 // so console.warn (not a toast) is the visibility.
 var NPC_MOOD_MAX=48;
+// v1.379 (mood/relation separation): the MOOD field must never hold RELATION vocabulary. Before
+// v1.379 the [NPC:] format could not express an empty slot — a sparse tag was dropped silently —
+// so the GM had to put SOMETHING in every slot, and the nearest word was frequently the relation.
+// Measured on a live t867 save: 6 of 28 NPCs, and for 4 of them the leak was the ENTIRE mood
+// ("enemy"/"ally"). Strip by TYPE, never by position: a positional rule ("drop the 3rd element")
+// repairs only the 2 records that HAVE a 3rd element and misses the 4 worst.
+// Deliberately CONSERVATIVE — only words naming a RELATIONSHIP that can never be a mood. Words
+// like "prisoner"/"captive" are excluded ON PURPOSE: the slot is spec'd "mood/condition", so a
+// captivity state is legitimate there and must not be scrubbed.
+var NPC_REL_VOCAB=/^(all(y|ies)|enem(y|ies)|acquaintances?|rivals?|companions?|friends?|strangers?|neutral|adversar(y|ies)|partner)$/i;
+function stripRelWordsFromMood(s){
+  if(!s)return "";
+  var parts=String(s).split(","),out=[],i,p;
+  for(i=0;i<parts.length;i++){p=parts[i].trim();if(p&&!NPC_REL_VOCAB.test(p))out.push(p);}
+  return out.join(", ");
+}
 function clampNpcMood(s){
   if(!s)return s;s=String(s).trim();
   if(s.length<=NPC_MOOD_MAX)return s;

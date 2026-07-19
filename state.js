@@ -241,6 +241,17 @@ function migrateWorldState(){
   // (memory parses AFTER this runs in loadState).
   if(worldState.npcs&&typeof npcDeadStatus==="function"){var _bdi;for(_bdi=0;_bdi<worldState.npcs.length;_bdi++){var _bdn=worldState.npcs[_bdi];
     if(_bdn&&!_bdn.dead&&npcDeadStatus(_bdn.status)){_bdn.dead=true;_mig=true;if(typeof console!=="undefined")console.warn("[migrate] B3: legacy dead status on "+_bdn.name+" — DECEASED flag stamped");}}}
+  // v1.379 (mood/relation separation): repair MOOD fields that accumulated RELATION vocabulary
+  // while the format forced a value into every slot. Runs AFTER the B3 death scan on purpose —
+  // npcDeadStatus must see the original string, since a death word could sit beside a relation
+  // word ("slain, enemy") and stripping first would not change that outcome but ordering it this
+  // way keeps the death detection reading exactly what the GM wrote. Repairs to EMPTY are the
+  // intended result for a character whose whole "mood" was a relation word; empty is legal now
+  // (render guards skip it) and the mood audit refills party members.
+  if(worldState.npcs&&typeof stripRelWordsFromMood==="function"){var _mri;for(_mri=0;_mri<worldState.npcs.length;_mri++){var _mrn=worldState.npcs[_mri];
+    if(!_mrn||!_mrn.status)continue;
+    var _mrClean=stripRelWordsFromMood(_mrn.status);
+    if(_mrClean!==_mrn.status){if(typeof console!=="undefined")console.warn("[migrate] mood/relation: "+_mrn.name+" mood \""+_mrn.status+"\" → "+(_mrClean?"\""+_mrClean+"\"":"(empty — the whole field was a relation word)"));_mrn.status=_mrClean;_mig=true;}}}
   return _mig;
 }
 function loadState(){
@@ -284,6 +295,15 @@ function healMemory(){
   // memory-side flag. Runs here (not migrateWorldState) because loadState parses memory AFTER the
   // worldState migrate; idempotent, converges legacy saves in one load.
   if(memory.npcs&&typeof worldState!=="undefined"&&worldState&&worldState.npcs){var _hdi;for(_hdi=0;_hdi<worldState.npcs.length;_hdi++){var _hdn=worldState.npcs[_hdi];if(_hdn&&_hdn.dead&&memory.npcs[_hdn.name]&&!memory.npcs[_hdn.name].dead)memory.npcs[_hdn.name].dead=_hdn.dead;}}
+  // v1.379: the memory-side twin of the mood repair above. `attitude` is spec'd as a mood but was
+  // OVERWRITTEN with the relation by every [NPC:] tag until v1.379 (and seeded from it), so old
+  // saves carry bare relation words there — "enemy" for every villain the party never re-met.
+  // Same conservative typed strip; also clears the legacy "unknown" placeholder, which is not a
+  // mood. Lands in healMemory because memory parses AFTER migrateWorldState in loadState.
+  if(memory.npcs&&typeof stripRelWordsFromMood==="function"){var _mak=Object.keys(memory.npcs),_mai;
+    for(_mai=0;_mai<_mak.length;_mai++){var _man=memory.npcs[_mak[_mai]];if(!_man||!_man.attitude)continue;
+      var _maClean=(_man.attitude==="unknown")?"":stripRelWordsFromMood(_man.attitude);
+      if(_maClean!==_man.attitude){if(typeof console!=="undefined")console.warn("[heal] mood/relation: "+_mak[_mai]+" attitude \""+_man.attitude+"\" → "+(_maClean?"\""+_maClean+"\"":"(empty — awaiting the next summarize)"));_man.attitude=_maClean;}}}
   // P7 cleanup: blueprint import (pre-fix) stored each location description TWICE —
   // memory.locations[k].notes AND memory.map.nodes[k].description, byte-identical
   // (~43KB duplicated per ToA campaign, riding every sync POST). The node description
