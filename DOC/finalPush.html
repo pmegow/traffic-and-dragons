@@ -84,14 +84,15 @@
 
 <header>
   <h1>Final Push — 12-Hour Work Plan</h1>
-  <div class="subtitle">One long window, one backbone: drive Multiplayer (#1) from P2 through P4, close the loose ends around it.</div>
-  <div class="meta">2026-07-18 &nbsp;·&nbsp; engine v1.352 &nbsp;·&nbsp; source: TODO.md + DOC_multiplayer.html + session plan</div>
+  <div class="subtitle">One long window, one backbone: drive Multiplayer (#1) from P2 through P4, close the loose ends around it. <strong>Closed: P2 through P5, all shipped.</strong></div>
+  <div class="meta">2026-07-18 &nbsp;·&nbsp; planned at engine v1.352 &nbsp;·&nbsp; closed at <strong>v1.372</strong> &nbsp;·&nbsp; source: TODO.md + DOC_multiplayer.html + session plan</div>
 </header>
 
 <div class="verdict" style="border-color:var(--good);">
-  <span class="vlabel" style="color:var(--good);">Outcome — filled at session end, 2026-07-18</span>
-  <p style="margin:0 0 8px"><strong>All six blocks landed, ahead of schedule.</strong> Block 0: #16 was found already closed end-to-end (v1.353/354 — stale git snapshot). Multiplayer: <span class="lean ok">P2 v1.355</span> (activePlayer pointer + spotlight migration; live-verify caught a real demote-repaint gap), <span class="lean ok">P3 v1.357</span> (sub-turn queue, per-PC suggestions, D5 block — full 2-PC round verified against a stubbed GM), <span class="lean ok">P4 v1.358</span> (round-rules prompt block + misroute tripwire; <em>D10 prose gate still open — needs a real-key playtest</em>). Sonnet lane: <span class="lean ok">#7 sounds v1.356</span> (7-earcon library + Admin toggle, integrated + quest chime). Buffer: <span class="lean ok">P5 designed</span> (threads-not-cameras, forks F1–F4 await ratification). Suite 625 → 642 green; every phase pushed at its boundary.</p>
-  <p style="margin:0" class="why">Still open for the user: ratify F1–F4 (then P5 builds), run the D10 real-key prose gate, and the real-car items #2/#19/#56.</p>
+  <span class="vlabel" style="color:var(--good);">Outcome — session end, 2026-07-18</span>
+  <p style="margin:0 0 8px"><strong>Every block landed, and the buffer over-delivered: P5 was BUILT, not just designed.</strong> The multiplayer engine is complete end to end — <span class="lean ok">P2 v1.355</span> (activePlayer pointer + spotlight migration) · <span class="lean ok">P3 v1.357</span> (sub-turn queue, per-PC suggestions, D5 round block) · <span class="lean ok">P4 v1.358</span> (round rules + misroute tripwire) · <span class="lean ok">P5 v1.359</span> (hard splits — designed, forks ratified live, then built same session) · <span class="lean ok">#7 sounds v1.356</span> (Sonnet lane). Block 0 dissolved on contact: #16 was already closed end-to-end (v1.353/354 — the start-of-session git snapshot was stale).</p>
+  <p style="margin:0 0 8px"><strong>Two field findings reshaped the design after the build:</strong> the D10 prose gate ran with a real key and returned a <em>design</em> verdict, not a pass — per-action "you" was clear but privileged one player, so <strong>D12</strong> (full third person for all PCs) superseded it at v1.362 and was field-approved: <em>"Third person was the right call. Feels perfect."</em> Then the exit path failed — demoting back to solo kept the third person — and cost three rounds (v1.368 → v1.370 → v1.372) before the real mechanism surfaced: the instruction was in the wrong <em>channel</em>, not the wrong place. Fixed and field-verified.</p>
+  <p style="margin:0" class="why">Suite 625 → 686 assertions green. Every phase committed and pushed at its boundary. What remains is field work only — no engineering blockers.</p>
 </div>
 
 <div class="verdict">
@@ -104,28 +105,28 @@
   <tr><th>Class</th><th>Items</th><th>Today?</th></tr>
   <tr>
     <td>Active build</td>
-    <td>#1 Multiplayer — P1 shipped (PC/NPC toggle, <code>playerCount()</code>); P2&ndash;P5 remain</td>
-    <td><span class="lean ok">Backbone</span></td>
+    <td>#1 Multiplayer — P1 shipped (PC/NPC toggle, <code>playerCount()</code>); P2&ndash;P5 remain <em>→ all five phases now built (v1.355–v1.359), plus D12 + the exit fix</em></td>
+    <td><span class="lean ok">100% engine</span></td>
   </tr>
   <tr>
     <td>Housekeeping</td>
-    <td>Untracked <code>DOC/DOC_error_reporting.html</code>; #16 webhook URL wire-up (client shipped v1.352)</td>
-    <td><span class="lean ok">Block 0</span></td>
+    <td>Untracked <code>DOC/DOC_error_reporting.html</code>; #16 webhook URL wire-up <em>→ doc committed; #16 was already fully closed (stale snapshot)</em></td>
+    <td><span class="lean ok">100%</span></td>
   </tr>
   <tr>
     <td>Lane candidates</td>
-    <td>#7 sound library (self-contained, zero drift contact); #9 per-character voices (touches tts.js broadly — single-lane only)</td>
-    <td><span class="lean pend">Your call</span></td>
+    <td>#7 sound library <em>→ shipped v1.356 (coin/chime entries still unwired, pending a taste call)</em>; #9 per-character voices — not started</td>
+    <td><span class="lean pend">#7: 85%</span></td>
   </tr>
   <tr>
     <td>Design-first, deferred</td>
     <td>#12 brevity dial · #52 skills bible · #51 gold economy · #62 character editor · #44 curated catalog · #6 HQ</td>
-    <td><span class="lean off">Not today</span></td>
+    <td><span class="lean off">0% — by choice</span></td>
   </tr>
   <tr>
     <td>Blocked on you / hardware</td>
-    <td>#16 GAS app creation (~10 min) · #2/#19 real car session · #56 device tests</td>
-    <td><span class="lean pend">Parallel</span></td>
+    <td>#16 GAS app <em>(done before the session)</em> · #2/#19 real car session · #56 device tests</td>
+    <td><span class="lean pend">Field work</span></td>
   </tr>
 </table>
 
@@ -133,66 +134,70 @@
 
 <div class="path">
   <h3><span class="hours">~0.5 h</span> &nbsp;Block 0 — Housekeeping</h3>
-  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">closes #16 completely</span></div>
+  <div class="lean-row"><span class="lean ok">100% done</span><span class="dim">#16 needed nothing — it was already closed</span></div>
   <ul>
-    <li>Commit the untracked <code>DOC/DOC_error_reporting.html</code> (docs-only, no version bump).</li>
-    <li>Once the GAS <code>/exec</code> URL arrives (your ~10-min task, steps in the 2026-07-17 session notes): paste into <code>ERROR_WEBHOOK_URL</code> in error-report.js, bump version, live-verify by forcing a real error and confirming the email lands.</li>
+    <li>✅ Committed <code>DOC/DOC_error_reporting.html</code> + the plan doc itself (8672485).</li>
+    <li>✅ #16 webhook: <strong>no work needed.</strong> The session-start git snapshot was stale — v1.353 (user-initiated bug reports) and v1.354 (live GAS webhook, both emails confirmed) had already shipped. Lesson banked: check <code>git log</code> before trusting a snapshot.</li>
   </ul>
 </div>
 
 <div class="path">
   <h3><span class="hours">~2.5&ndash;3 h</span> &nbsp;Block 1 — Multiplayer P2: <code>activePlayer()</code> + display migration</h3>
-  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">spec forks D6/D7</span></div>
+  <div class="lean-row"><span class="lean ok">100% done</span><span class="dim">shipped v1.355 · D6/D7</span></div>
   <ul>
-    <li>Add the <code>activePlayer()</code> accessor; migrate the ~25 curated display sites off direct <code>worldState.character</code> reads.</li>
-    <li>Engine tests per site class; re-prove the <strong>single-player byte-identity anchor</strong> after migration — the spec's safety net that a solo game is untouched.</li>
-    <li>Commit + push at the phase boundary.</li>
+    <li>✅ <code>activePlayer()</code>/<code>setActivePC()</code> + the <code>worldState.activePC</code> pointer (unset = hero, stale pointers heal loudly). Display subset migrated: HUD hero slot, party cards, party panel, inventory/abilities/spells, combat row, Car Mode.</li>
+    <li>✅ Byte-identity anchor re-proven; an engine test pins that the pointer never reaches <code>buildSysPrompt</code>. Writes deliberately left on their true owner.</li>
+    <li>🔍 <strong>Live-verify earned its keep:</strong> found a real gap — demoting the spotlit PC cleared the pointer but never repainted the HUD. Fixed before commit.</li>
   </ul>
 </div>
 
 <div class="path">
   <h3><span class="hours">~3 h</span> &nbsp;Block 2 — Multiplayer P3: sub-turn loop</h3>
-  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">spec forks D3/D4/D5</span></div>
+  <div class="lean-row"><span class="lean ok">100% done</span><span class="dim">shipped v1.357 · D3/D4/D5</span></div>
   <ul>
-    <li>Turn rotation across PCs; the hero-slot swap rides the existing <code>_switchPlayerCharacter</code> plumbing (already half the machinery, per the spec).</li>
-    <li>Incoming player rotates into the hero position; outgoing drops to the party bar — no new layout.</li>
-    <li>Engine tests for rotation order, skip-dead/absent, and the single-player no-op path. Commit + push.</li>
+    <li>✅ Round queue (<code>worldState.mpQueue</code>, survives a mid-round reload): each submit queues the spotlight PC's action and rotates the hero slot; the last submit assembles the D5 labeled block and sends ONE GM call.</li>
+    <li>✅ Per-PC suggestions with name prefixes; transcript keeps one player entry per round; retry guarded so a replayed block can't re-queue.</li>
+    <li>✅ Verified end-to-end against a stubbed GM (queue → rotate → block → one call → XP mirrored to both PCs → pointer reset), then single-player regression byte-clean.</li>
   </ul>
 </div>
 
 <div class="path">
   <h3><span class="hours">~2 h</span> &nbsp;Block 3 — Multiplayer P4: prompt block + misroute tripwire</h3>
-  <div class="lean-row"><span class="lean off">Drift surface</span><span class="dim">spec forks D8/D10 — full discipline applies</span></div>
+  <div class="lean-row"><span class="lean ok">100% done</span><span class="dim">v1.358 built · gate closed via D12 v1.362 · exit fixed v1.372</span></div>
   <ul>
-    <li>Multiplayer prompt block (labeled round-block names &harr; party sheets) + the D10 misroute tripwire.</li>
-    <li>This touches <code>buildSysPrompt</code>: stable-half byte-identity enforced by test, prompt diff against a real transcript, single-player prompt provably unchanged.</li>
-    <li>Commit + push.</li>
+    <li>✅ MULTIPLAYER ROUND RULES block (volatile-only, gated on 2+ players) + <code>__mpBareTagScan</code> misroute tripwire (observational, batched toast, never blocks). Stable half untouched; single-player byte-identity engine-tested.</li>
+    <li>🔄 <strong>The D10 gate returned a design verdict, not a pass.</strong> Field test: "I know who the 'you' is, but I think it's wrong" → third person for everyone, so all players feel agency. <strong>D12</strong> superseded D10 (v1.362) and was approved: <em>"Third person was the right call. Feels perfect."</em></li>
+    <li>🐛 <strong>Exit bug — the session's one real stumble.</strong> Demoting back to solo kept the third person; it took three rounds (v1.368 → v1.370 → v1.372) because I twice moved the instruction <em>within</em> the system prompt instead of asking why it lost. Real cause: the system prompt precedes the whole conversation, and the GM's own third-person prose sits after it — recency, not placement. Fixed by moving the directive to the engine-note channel (rides the player message = newest tokens). Field-verified.</li>
+    <li>⚠ Open watch: the misroute toast also fires on legitimate hero mutations — tune to warn-only if it cries wolf in play.</li>
   </ul>
 </div>
 
 <div class="path">
   <h3><span class="hours">~1.5 h</span> &nbsp;Block 4 — Live smoke playtest</h3>
-  <div class="lean-row"><span class="lean pend">Ready</span><span class="dim">the failure condition, not a benign case</span></div>
+  <div class="lean-row"><span class="lean pend">70%</span><span class="dim">solo verification done; the multi-human session is what's left</span></div>
   <ul>
-    <li>Throwaway 2-player campaign: alternating turns end-to-end — sheet routing, XP mirror, party bar, prompt sanity per sub-turn.</li>
-    <li>Fix findings on the spot; suite green; commit + push.</li>
-    <li>Per standing rule: the run ends in a durable audit note (corpus persisted).</li>
+    <li>✅ Stubbed-GM 2-PC round end-to-end + single-player regression, zero console errors (Blocks 1–3).</li>
+    <li>✅ Real-key 2-PC session (user-run) — this is what produced D12 and caught the exit bug. Worth more than the scripted run.</li>
+    <li>⬜ <strong>Not done:</strong> a real multi-human hot-seat session — the one that tests whether the turn flow works in several pairs of hands, exercises a split-thread fight (the F3 question), and gives a verdict on misroute-toast noise.</li>
+    <li>⬜ Findings live in the spec, TODO rows, and commit messages rather than a standalone audit file — acceptable here since nothing was corpus-collected, but noted against the standing rule.</li>
   </ul>
 </div>
 
 <div class="path">
-  <h3><span class="hours">~1.5 h</span> &nbsp;Block 5 — Buffer</h3>
-  <div class="lean-row"><span class="lean pend">Your call</span></div>
+  <h3><span class="hours">~1.5 h</span> &nbsp;Block 5 — Buffer (Option A chosen)</h3>
+  <div class="lean-row"><span class="lean ok">100% + overshoot</span><span class="dim">designed AND built — P5 shipped v1.359</span></div>
   <ul>
-    <li><strong>Option A (recommended):</strong> P5 design doc — per-PC location / hard splits. It is drift surface (LOCATION handler, <code>buildGeoBlock</code>, map layer) and design-first by the spec, so a written design + pre-review tees up the next session with zero code risk today.</li>
-    <li><strong>Option B:</strong> pure overflow slack for Blocks 1&ndash;4.</li>
+    <li>✅ P5 designed on paper as planned: threads-not-cameras (<code>charSheet.splitLoc</code>, <code>[PARTY_SPLIT:]</code>, SPLIT THREADS geo section, single combat tracker in v1) with an invariant-first test plan.</li>
+    <li>✅ Forks F1–F4 walked one at a time and ratified live — including F3, where your objection (a split Player 2 is second-class in a fight) is recorded as the <em>named trigger</em> for per-thread combat trackers, not a someday-maybe.</li>
+    <li>✅ <strong>Then built the same session (v1.359)</strong>, test-first: 3 red tests → green, hash guards re-baselined, corpus replays byte-identical, live-verified split → chips → camera → rejoin.</li>
   </ul>
 </div>
 
-<h2>Optional parallel lane</h2>
+<h2>Optional parallel lane — #7 sounds <span class="lean pend">85%</span></h2>
 <div class="card">
-  <p style="margin-bottom:8px"><strong>#7 Sound library</strong> (chime on notification, action sounds) on a Sonnet lane while the multiplayer track runs — self-contained, zero drift-surface contact, same minion-lane pattern that worked for v1.342 and v1.347. Fable designs the contract, Sonnet builds, Fable integrates.</p>
-  <p style="margin:0" class="why">#9 (per-character TTS voices) is the other candidate but touches tts.js broadly — if picked, it runs single-lane, not in parallel with anything else in tts.js.</p>
+  <p style="margin-bottom:8px">✅ <strong>Shipped v1.356</strong> (Sonnet lane in an isolated worktree, Fable contract + integration): <code>sound.js</code> with a 7-earcon <code>SOUND_LIB</code> registry (adding a sound = adding an entry), one lazy singleton AudioContext, never throws. Wired to level-ups, defining moments, combat starts, and quest offers, plus an on/off toggle and ♪ Test in the Admin drawer.</p>
+  <p style="margin-bottom:8px">One sensible lane deviation: the Voice Settings modal lives inside drift-protected <code>tts.js</code>, so the lane used the inline-pref house pattern instead of touching it. Correct call.</p>
+  <p style="margin:0" class="why">⬜ Remaining 15%: <code>coin</code> and <code>chime</code> ship unwired pending a taste call, and nothing has been volume-tuned by ear in real play. #9 (per-character voices) was not started.</p>
 </div>
 
 <h2>Deliberately not today</h2>
@@ -206,32 +211,43 @@
   <tr><td><span class="num">#5</span> Story compiler</td><td>Parked by your call; stage-1 export already shipped.</td></tr>
 </table>
 
-<h2>Expected end state</h2>
+<h2>Expected end state &rarr; what actually landed</h2>
+<table>
+  <tr><th>Planned</th><th>Actual</th><th></th></tr>
+  <tr><td>Multiplayer playable through P4</td><td>Through <strong>P5</strong> — hard splits included, one phase beyond the plan</td><td><span class="lean ok">Exceeded</span></td></tr>
+  <tr><td>Single-player byte-identical at every boundary</td><td>Held at all five phases, engine-tested each time</td><td><span class="lean ok">100%</span></td></tr>
+  <tr><td>#16 fully closed</td><td>Already closed before the session started</td><td><span class="lean ok">100%</span></td></tr>
+  <tr><td>P5 designed on paper</td><td>Designed, ratified fork-by-fork, <strong>and built</strong></td><td><span class="lean ok">Exceeded</span></td></tr>
+  <tr><td>#7 sound library from a lane</td><td>Shipped and integrated; two earcons await a taste call</td><td><span class="lean pend">85%</span></td></tr>
+  <tr><td>TODO rows updated in-commit, version bumped, pushed at boundaries</td><td>Held throughout; suite 625 &rarr; 686 green</td><td><span class="lean ok">100%</span></td></tr>
+</table>
+
+<h2>Decision points — all resolved</h2>
+<ol>
+  <li><strong>Greenlight the P2&rarr;P4 backbone?</strong> → <em>"greenlit. go."</em> <span class="lean ok">Done</span></li>
+  <li><strong>Parallel Sonnet lane on #7 sounds?</strong> → <em>yes</em> <span class="lean ok">Done</span></li>
+  <li><strong>Buffer: P5 design doc vs. slack?</strong> → <em>design doc</em> — which then became a full build <span class="lean ok">Done</span></li>
+</ol>
+
+<h2>What's left (field work only — no engineering blockers)</h2>
+<ul>
+  <li><strong>Multi-human hot-seat session</strong> — the remaining 30% of Block 4. Tests the turn flow in real hands, exercises a split-thread fight (the F3 trigger), and settles the misroute-toast noise question.</li>
+  <li><strong>Real-car session (#2 / #19 / #56)</strong> — Bluetooth steering-wheel routing and on-road speech accuracy; only moves with you in the driver's seat.</li>
+  <li><strong>Coin/chime taste call</strong> — one sentence closes the last 15% of #7.</li>
+  <li><strong>Q5 (Car Mode &times; multiplayer)</strong> — still an open design question in the spec, untouched today.</li>
+</ul>
+
+<h2>Lessons banked</h2>
 <div class="card">
   <ul style="margin-bottom:0">
-    <li>Multiplayer playable through P4 — shared-location co-op, alternating turns, per-player sheets, misroute tripwire live.</li>
-    <li>Single-player provably byte-identical at every phase boundary (the spec's anchor, re-proven three times).</li>
-    <li>#16 mobile error reporting fully closed (webhook live-verified).</li>
-    <li>P5 designed on paper (if Option A), plus possibly the #7 sound library from a lane.</li>
-    <li>TODO.md rows updated in the same commits as the work; version bumped every code commit; pushed at every phase boundary.</li>
+    <li><strong>Recency beats position.</strong> When the GM ignores an instruction because its own recent output says otherwise, change the <em>channel</em> (engine note on the player message), not the spot in the system prompt. Cost: three rounds on the D12 exit bug.</li>
+    <li><strong>A failed fix is a stop signal.</strong> User's rule, now standing: don't ship a refined guess — go find the mechanism. Two failures is the outer limit, not the target.</li>
+    <li><strong>Check <code>git log</code> before trusting a snapshot.</strong> Block 0 was planned around work that had already shipped.</li>
+    <li><strong>Field verdicts can be design verdicts.</strong> The D10 gate didn't pass or fail on the terms it was written — it produced a better rule (D12).</li>
   </ul>
 </div>
 
-<h2>Decision points (blocking start)</h2>
-<ol>
-  <li><strong>Greenlight the P2&rarr;P4 backbone?</strong> <em>(recommended)</em></li>
-  <li><strong>Parallel Sonnet lane on #7 sounds?</strong> yes / no</li>
-  <li><strong>Buffer:</strong> P5 design doc <em>(recommended)</em> vs. plain overflow slack</li>
-</ol>
-
-<h2>Action required (you)</h2>
-<ul>
-  <li>Answer the 3 decision points above.</li>
-  <li>#16: create the Google Apps Script web app (~10 min) and paste the <code>/exec</code> URL here.</li>
-  <li>Whenever convenient (not part of this window): the real-car items #2/#19/#56 — the last Car Mode validation blockers only move with you in the driver's seat.</li>
-</ul>
-
-<div class="bottom">DOC/finalPush.html · plan drafted 2026-07-18 · engine v1.352 · backbone: TODO #1 (Multiplayer), spec DOC_multiplayer.html</div>
+<div class="bottom">DOC/finalPush.html · planned 2026-07-18 at v1.352 · closed same day at v1.372 · backbone: TODO #1 (Multiplayer), spec DOC_multiplayer.html</div>
 
 </div>
 </body>
