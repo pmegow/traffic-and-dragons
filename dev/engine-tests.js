@@ -2137,7 +2137,11 @@ function runEngineTests(R){
     // "CORE_MEMORY|"). A registry edit that changes stripping MUST consciously update
     // these numbers.
     // v1.359 (#1 P5): +PARTY_SPLIT strip entry — source grew exactly 12 chars = "PARTY_SPLIT|".
-    if(__djb2(_CT_TAGS.source)!==-1707561453||_CT_TAGS.source.length!==899)return "_CT_TAGS diverged from the frozen literal";
+    // v1.384 (#60b): +ITEM_KEPT and +COMPANION_ITEM_KEPT strip entries — source grew exactly 30
+    // chars = "ITEM_KEPT|" (10) + "COMPANION_ITEM_KEPT|" (20). Stripping is the WHOLE POINT of
+    // this pair: an unstripped [ITEM_KEPT:] would put bookkeeping back in the transcript and
+    // re-arm the very feedback loop it exists to break.
+    if(__djb2(_CT_TAGS.source)!==-1280743406||_CT_TAGS.source.length!==929)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -4441,12 +4445,16 @@ function runEngineTests(R){
     detectGhostConsumables("","The charge in Yorick's pack is a grim reminder.");
     return worldState.consumableChecks===undefined?true:"swept a dead member's pack";
   });
-  t("nudge: names the item, carries the leave-alone escape, consumes the queue, writes the cooldown latch; empty → silent",function(){
+  t("nudge: names the item, offers BOTH tags as the only answers, consumes the queue, writes the cooldown latch; empty → silent",function(){
     __consWorld();
     detectGhostConsumables("","A charge detonates below.");
     var n=buildConsumableNudge();
     if(n.indexOf("CONSUMABLE CHECK")<0||n.indexOf("[ITEM_LOST:Blasting charge]")<0)return "note malformed: "+n;
-    if(n.indexOf("do NOT invent a consumption")<0)return "leave-alone escape missing — false-positive guard gone";
+    // #60b: the negative branch must name a TAG, not invite silence. "Leave the sheet alone" is
+    // what left the GM with nowhere to put its decision but the prose — the leak's origin.
+    if(n.indexOf("[ITEM_KEPT:Blasting charge]")<0)return "negative-branch channel missing — the GM has nowhere to answer 'not spent' but the story text";
+    if(n.indexOf("never invent a consumption")<0)return "false-positive guard gone";
+    if(n.indexOf("never in the story text")<0)return "prose-suppression clause gone";
     if(worldState.consumableChecks!==undefined)return "queue not consumed";
     if(!worldState.consumableNudged||worldState.consumableNudged["|blasting charge"]!==100)return "cooldown latch not written: "+JSON.stringify(worldState.consumableNudged);
     return buildConsumableNudge()===""?true:"re-fired on an empty queue";
@@ -4479,6 +4487,85 @@ function runEngineTests(R){
     worldState.consumableChecks=undefined;delete worldState.consumableChecks;
     detectGhostConsumables("","You lay out potion a, potion b, potion c, potion d, potion e, potion f, potion g on the table.");
     return worldState.consumableChecks.length<=6?true:"queue unbounded: "+worldState.consumableChecks.length;
+  });
+
+  // ── #60b (v1.384): the self-feeding loop that #60 shipped with ────────────────────────────
+  // FIELD BUG (Rise of the Runelords, t793-868 — 14 leaked turns, 0 before #60 shipped): the
+  // GM answered the CONSUMABLE CHECK in PROSE ("No blasting charge spent in that beat"), because
+  // the note's negative branch told it to emit NOTHING and thinking is disabled. cleanTxt does
+  // not strip prose, so the denial landed in worldState.transcript — still carrying the item's
+  // head noun — and detectGhostConsumables re-armed on it next sweep. Of the 29 "charge"
+  // mentions in t760-881, the ONLY 5 carrying a consumption verb were the GM's own denials.
+  // Every test below exercises the FAILURE condition of one leg of that loop.
+  section("#60b: consumable check — the self-feeding loop");
+  t("THE LOOP: the GM's own 'No charge spent' denial must not re-arm the check once latched",function(){
+    __consWorld();
+    // turn 1 — a mere mention queues the check, exactly as in the field
+    detectGhostConsumables("","\"We have three charges,\" she says.");
+    if(!worldState.consumableChecks)return "setup: mention did not queue";
+    buildConsumableNudge();/* fires; GM now answers */
+    // the GM answers with the tag instead of prose
+    applyMuts("She counts them again. [ITEM_KEPT:Blasting charge]");
+    if(!worldState.consumableKept||worldState.consumableKept["|blasting charge"]!==4)return "latch not written at the current count: "+JSON.stringify(worldState.consumableKept);
+    // turn 2 — the SAME denial text the field GM produced, fed straight back in
+    worldState.turn=100+CONSUMABLE_NUDGE_COOLDOWN+1;/* past the cooldown, so only the latch can save us */
+    detectGhostConsumables("","No blasting charge spent in that beat, nothing to tag there.");
+    return worldState.consumableChecks===undefined?true:"THE LOOP IS OPEN — the denial re-queued the check: "+JSON.stringify(worldState.consumableChecks);
+  });
+  t("[ITEM_KEPT:] is stripped — nothing reaches the player or the transcript",function(){
+    var c=cleanTxt("She counts them again. [ITEM_KEPT:Blasting charge] The wind picks up.");
+    if(c.indexOf("ITEM_KEPT")>=0)return "tag leaked to the player: "+c;
+    var c2=cleanTxt("Frizwick shoulders the pack. [COMPANION_ITEM_KEPT:Frizwick|Blasting charge]");
+    return c2.indexOf("ITEM_KEPT")<0?true:"companion tag leaked to the player: "+c2;
+  });
+  t("latch is count-scoped: a real spend invalidates it and the check speaks again",function(){
+    __consWorld();
+    applyMuts("[ITEM_KEPT:Blasting charge]");
+    if(worldState.consumableKept["|blasting charge"]!==4)return "setup: latch not at 4";
+    worldState.turn=200;
+    applyMuts("She throws one. [ITEM_LOST:Blasting charge]");/* count 4 → 3 */
+    detectGhostConsumables("","Another charge goes into the wall.");
+    if(!worldState.consumableChecks||worldState.consumableChecks.length!==1)return "count changed but the stale latch still suppressed the check";
+    return worldState.consumableKept&&worldState.consumableKept["|blasting charge"]!=null?"stale latch not cleared":true;
+  });
+  t("count gate DELETED: a counted stack of durable gear is no longer swept",function(){
+    __consWorld();
+    // the t881 false-positive class — party quantities of ordinary kit
+    worldState.character.inventory=["Mountain gloves x3","Iron ring x2","Saddles x3","Boot liners x3"];
+    detectGhostConsumables("","She pulls the gloves on, checks the rings, tightens the saddles over the boot liners.");
+    return worldState.consumableChecks===undefined?true:"durable gear still queued: "+JSON.stringify(worldState.consumableChecks);
+  });
+  t("...but the t582 motivating case still fires on NAME alone, with no count",function(){
+    __consWorld();
+    worldState.character.inventory=["Blasting charge"];/* unstacked — the count leg cannot help */
+    detectGhostConsumables("","The charge is wedged deep between the stones.");
+    var q=worldState.consumableChecks;
+    return (q&&q.length===1&&q[0].item==="Blasting charge")?true:"#60's own case regressed: "+JSON.stringify(q);
+  });
+  t("companion form latches under the owner's key, and suppresses only that owner",function(){
+    __consWorld();
+    worldState.npcs.push({name:"Frizwick",status:"steady",partyMember:true,charSheet:{name:"Frizwick",inventory:["Blasting charge x2"],conditions:[],relationships:[]}});
+    applyMuts("[COMPANION_ITEM_KEPT:Frizwick|Blasting charge]");
+    if(!worldState.consumableKept||worldState.consumableKept["Frizwick|blasting charge"]!==2)return "companion latch not written: "+JSON.stringify(worldState.consumableKept);
+    detectGhostConsumables("","Charges all round.");
+    var q=worldState.consumableChecks||[];
+    var whos=q.map(function(x){return String(x.who);});
+    if(whos.indexOf("Frizwick")>=0)return "latched owner was still queued";
+    return whos.indexOf("null")>=0?true:"the PLAYER's unlatched stack should still queue: "+JSON.stringify(q);
+  });
+  t("orphan latches are pruned when the item leaves the sheet (monotonic-resources rule)",function(){
+    __consWorld();
+    applyMuts("[ITEM_KEPT:Blasting charge]");
+    worldState.character.inventory=["Longsword"];/* stack fully spent/sold away */
+    detectGhostConsumables("","Nothing but steel now.");
+    return (worldState.consumableKept===undefined)?true:"orphan latch survived: "+JSON.stringify(worldState.consumableKept);
+  });
+  t("[ITEM_KEPT:] for an item not on the sheet warns and writes nothing (no silent failure)",function(){
+    __consWorld();
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    try{applyMuts("[ITEM_KEPT:Ghost Elixir]");}finally{console.warn=ow;}
+    if(worldState.consumableKept&&worldState.consumableKept["|ghost elixir"]!=null)return "latch written for an item that is not on the sheet";
+    return warned?true:"failed silently — no warn";
   });
 
   // ── Group A perf pass (AUDIT_FABLE_07_16 #1-#3) — folded from agent fragments ──

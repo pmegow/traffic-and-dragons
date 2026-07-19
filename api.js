@@ -368,8 +368,9 @@ function buildConsumableNudge(){
   if(!worldState.consumableNudged)worldState.consumableNudged={};
   worldState.consumableNudged[c.key]=worldState.turn;
   var tag=c.who?"[COMPANION_ITEM_LOST:"+c.who+"|"+c.item+"]":"[ITEM_LOST:"+c.item+"]";
+  var keepTag=c.who?"[COMPANION_ITEM_KEPT:"+c.who+"|"+c.item+"]":"[ITEM_KEPT:"+c.item+"]";
   var whose=c.who?c.who+"'s":"the player's";
-  return "[ENGINE NOTE — CONSUMABLE CHECK (not a player action): the recent scene mentioned "+whose+" '"+c.item+"' but no item-loss tag was emitted. Check your own recent narration: if one or more units were actually expended (thrown, drunk, detonated, burned, used up), emit "+tag+" in THIS response — one tag per unit spent. If it was merely mentioned, carried, examined, or reached for without being consumed, leave the sheet alone — do NOT invent a consumption.]";
+  return "[ENGINE NOTE — CONSUMABLE CHECK (not a player action): the recent scene mentioned "+whose+" '"+c.item+"' but no item-loss tag was emitted. Check your own recent narration: if one or more units were actually expended (thrown, drunk, detonated, burned, used up), emit "+tag+" in THIS response — one tag per unit spent. If it was merely mentioned, carried, examined, or reached for without being consumed, emit "+keepTag+" instead — that records the decision and stops this check re-asking. Answer with ONE of those two tags and nothing else: never in the story text, and never invent a consumption.]";
 }
 // B3: dead-status conflict nudge — the [NPC:] handler REFUSED a status write on a dead character
 // (the resurrection-by-overwrite leg). Same engine-detects/GM-decides shape as the downgrade
@@ -934,6 +935,32 @@ function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([2-9])$/i);r
 function addInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);
+}
+// #60b (v1.384) — the confirmed-negative latch behind [ITEM_KEPT:]/[COMPANION_ITEM_KEPT:].
+// ROOT CAUSE it closes (measured on the t881 Runelords corpus, turns 760-881): the consumable
+// check's "not consumed" branch had NO output channel — the note said "leave the sheet alone",
+// i.e. emit nothing — and with thinking disabled (globals.js) the GM had nowhere to put the
+// decision except the prose. That prose ("No blasting charge spent in that beat") went through
+// cleanTxt untouched (it is not a tag) into worldState.transcript, where it STILL CONTAINED the
+// item's head noun — which re-armed detectGhostConsumables on the next sweep. The check was
+// eating its own denials: of the 29 "charge" mentions in that window, the only 5 carrying a
+// consumption verb were the GM's own leaked bookkeeping lines. Zero real spends, 14 leaked turns.
+// A silence clause cannot fix this (B5/v1.367 tried and the leak continued at t849/853/867/868) —
+// the decision needs somewhere to GO. This is that somewhere: a normal tag, stripped from display
+// like any other, so nothing reaches the transcript and the loop has no fuel.
+// The latch records the COUNT at which the GM confirmed "not spent", so the check stays silent
+// for that item until the count actually changes (a real spend, or a fresh acquisition) rather
+// than re-nagging every CONSUMABLE_NUDGE_COOLDOWN turns on a decision already made.
+function _stampItemKept(who,inv,name){
+  var n=_invNorm(name),i;
+  for(i=0;i<(inv||[]).length;i++){
+    if(_invNorm(inv[i])!==n)continue;
+    if(!worldState.consumableKept)worldState.consumableKept={};
+    worldState.consumableKept[(who||"")+"|"+n]=_invCount(inv[i]);
+    return true;
+  }
+  console.warn("[ITEM_KEPT] no inventory entry matches '"+name+"'"+(who?" on "+who:"")+" — latch not written");
+  return false;
 }
 function removeInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){var n=_invCount(inv[i])-1;if(n<=0)inv.splice(i,1);else if(n===1)inv[i]=_invBase(inv[i]);else inv[i]=_invBase(inv[i])+" x"+n;return true;}}

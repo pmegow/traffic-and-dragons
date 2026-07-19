@@ -704,8 +704,14 @@ function stampRelationshipChanges(pre){
 // surface firing constantly). This is the house pattern instead — the ENGINE detects
 // deterministically, the GM DECIDES via an engine note (buildConsumableNudge, api.js), and the
 // only write path remains the battle-tested tag through the sole parser.
-// Detection: an inventory entry counts as a consumable if it is a counted stack (" xN", N≥2 —
-// the t582 "Blasting charge x4" form) OR its base name matches CONSUMABLE_RE. It is flagged when
+// Detection: an inventory entry counts as a consumable if its base name matches CONSUMABLE_RE.
+// v1.384 (#60b) DELETED the original "or it is a counted stack (' xN', N≥2)" leg. That leg was
+// added for the t582 "Blasting charge x4" form, but it never earned its keep: "charge" is in
+// CONSUMABLE_RE, so the motivating case was always caught by name alone. What the count leg
+// actually did was assert "counted ⇒ consumable", which is false for a party that outfits itself
+// — on the t881 corpus 20 of 23 counted stacks were durable gear (Saddles x3, Mountain gloves x3,
+// Boot liners x3, Iron key x4), and they generated 35 of 109 candidate hits over 120 turns.
+// It is flagged when
 // its HEAD NOUN appears in this turn's player action or GM narration with no matching
 // ITEM_LOST/COMPANION_ITEM_LOST in the same response. Head-noun matching is deliberate: the t582
 // narration said "a charge is wedged", never "Blasting charge" — full-name matching misses the
@@ -729,15 +735,25 @@ function detectGhostConsumables(playerTxt,raw){
     var tm=tags[ti].match(/\[COMPANION_ITEM_LOST:[^|\]]+\|([^\]]+)\]/)||tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
     if(tm)lostNorm[_invNorm(_qtyParse(tm[1]).base)]=1;
   }
+  var liveKeys={};/* #60b: every key the current party can legitimately hold a latch for */
   function sweep(who,inv){
     var j;for(j=0;j<(inv||[]).length;j++){var entry=inv[j];if(typeof entry!=="string")continue;
       var base=_invBase(entry),norm=_invNorm(entry);
-      if(_invCount(entry)<2&&!CONSUMABLE_RE.test(base))continue;
+      if(!CONSUMABLE_RE.test(base))continue;
+      var key=(who||"")+"|"+norm;
+      liveKeys[key]=1;
       if(lostNorm[norm])continue;
+      // #60b: the GM already answered "not spent" for this item at this exact count. Stay silent
+      // until the count actually moves — a spend or a fresh acquisition is new information, a
+      // re-mention of the same unspent stack is not (that re-nagging is what produced the leak).
+      var kept=worldState.consumableKept&&worldState.consumableKept[key];
+      if(kept!=null){
+        if(kept===_invCount(entry))continue;
+        delete worldState.consumableKept[key];/* count moved — the confirmation is stale, let the check speak again */
+      }
       var head=consumableHeadNoun(base);if(head.length<3)head=base;
       var re;try{re=new RegExp("\\b"+head.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(s|es)?\\b","i");}catch(e){continue;}
       if(!re.test(hay))continue;
-      var key=(who||"")+"|"+norm;
       var last=worldState.consumableNudged&&worldState.consumableNudged[key];
       if(last!=null&&(worldState.turn-last)<CONSUMABLE_NUDGE_COOLDOWN)continue;
       if(!worldState.consumableChecks)worldState.consumableChecks=[];
@@ -750,6 +766,15 @@ function detectGhostConsumables(playerTxt,raw){
   sweep(null,worldState.character.inventory);
   var ni,_swParty=livingPartyCompanions();/* #6: shared party scan */
   for(ni=0;ni<_swParty.length;ni++)sweep(_swParty[ni].name,_swParty[ni].charSheet.inventory);
+  // #60b: prune orphaned latches (item fully spent, sold, or its owner left the party). The
+  // standing monotonic-resources rule — consumableKept is per-item-per-owner and would otherwise
+  // accumulate for the life of the campaign. The sweep above just enumerated every legitimate
+  // key, so anything else is dead weight. A returning companion simply gets checked again.
+  if(worldState.consumableKept){
+    var kk=Object.keys(worldState.consumableKept),kx;
+    for(kx=0;kx<kk.length;kx++)if(!liveKeys[kk[kx]])delete worldState.consumableKept[kk[kx]];
+    if(!Object.keys(worldState.consumableKept).length)delete worldState.consumableKept;
+  }
 }
 // ── THE GM-turn commit pipeline (audit 07-16 #5) ─────────────────────────────────────────────
 // One home for the formerly duplicated sendAction/beginAdventure commit sequences. sendAction's
