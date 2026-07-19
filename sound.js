@@ -18,56 +18,82 @@
 // t=start offset from the play() call (seconds), d=note duration (seconds), w=waveform
 // ("sine"/"triangle"/"square"), g=peak gain (0..1). Every motif is short (<=0.6s) and quiet
 // (peak gain <=0.25) by design — soft video-game UI sounds, not alarms.
+// ── v2 VOICING (2026-07-18) — why v1 read as 8-bit, and what replaced it ─────────────────────
+// User verdict on v1: "a little bit 8bit sounding and not really the feel we're going for."
+// That was structural, not a tuning problem. Four things make a tone read as chiptune:
+//   ① ONE bare oscillator per note — that is literally how NES/SID synths work. Physical objects
+//      ring with many partials at once, so a lone sine/triangle can only ever sound synthetic.
+//   ② square waves (v1 coin) — the single most chiptune-coded waveform there is.
+//   ③ quantized rising arpeggios (C-E-G blips) — that IS the Mario power-up/coin idiom.
+//   ④ bone-dry, fast-attack, short-decay tones — no room, no strike transient, no air.
+// v2 fixes all four with real synthesis primitives (still zero files, zero deps):
+//   • "bell" notes expand into INHARMONIC partial stacks at measured bell ratios — inharmonicity
+//     is exactly what the ear reads as struck bronze rather than a beep;
+//   • "noise" notes give the physical strike/air transient (band-passed white noise);
+//   • a shared synthesized-IR convolution REVERB puts everything in a stone room;
+//   • slower attacks, longer tails, lower register, and struck/tolled gestures instead of
+//     ascending blips.
+// Tuning knobs live in the DATA below; the physics lives once in the engine. Dark fantasy target:
+// bronze, stone, leather, distance — never plastic, never arcade.
 var SOUND_LIB = {
   chime: {
-    label: "Cheerful two-note ascending notification",
+    label: "Small bronze bell, softly struck — warm, with a room tail",
+    wet: 0.34,
     notes: [
-      { f: 660,  t: 0,    d: 0.12, w: "sine", g: 0.18 },  // E5
-      { f: 880,  t: 0.12, d: 0.16, w: "sine", g: 0.20 }   // A5 — the "cheers" resolve
+      { type: "noise", t: 0, d: 0.035, g: 0.05, bp: { f: 2600, q: 1.1 } },   // mallet contact
+      { type: "bell", f: 587.33, t: 0.004, d: 0.85, g: 0.15 }                // D5 bronze, long decay
     ]
   },
   quest: {
-    label: "Three-note bright ascending 'opportunity' motif (distinct from chime/levelup)",
+    label: "Two bells a fifth apart, beckoning — an opening, not a fanfare",
+    wet: 0.40,
     notes: [
-      { f: 523.25, t: 0,    d: 0.10, w: "triangle", g: 0.16 },  // C5
-      { f: 659.25, t: 0.10, d: 0.10, w: "triangle", g: 0.18 },  // E5
-      { f: 783.99, t: 0.20, d: 0.18, w: "triangle", g: 0.20 }   // G5, longer resolve
+      { type: "noise", t: 0, d: 0.03, g: 0.04, bp: { f: 2200, q: 1.1 } },
+      { type: "bell", f: 392.00, t: 0.004, d: 0.80, g: 0.14 },               // G4
+      { type: "bell", f: 587.33, t: 0.19,  d: 0.78, g: 0.12 }                // D5 — a fifth above, overlapping
     ]
   },
   levelup: {
-    label: "Three-note ascending arpeggio, slightly celebratory",
+    label: "Rising bell triad, dignified — earned, not celebratory",
+    wet: 0.45,
     notes: [
-      { f: 523.25, t: 0,    d: 0.10, w: "triangle", g: 0.18 },  // C5
-      { f: 659.25, t: 0.10, d: 0.10, w: "triangle", g: 0.20 },  // E5
-      { f: 783.99, t: 0.20, d: 0.22, w: "triangle", g: 0.22 }   // G5, held resolve
+      { type: "bell", f: 293.66, t: 0,    d: 0.85, g: 0.13 },                // D4
+      { type: "bell", f: 440.00, t: 0.16, d: 0.85, g: 0.12 },                // A4
+      { type: "bell", f: 587.33, t: 0.32, d: 0.90, g: 0.13 }                 // D5 — octave resolve, all three ringing together
     ]
   },
   moment: {
-    label: "Soft bell-like tone (fundamental + one quiet harmonic overtone), for a defining moment",
+    label: "Deep bell toll, long tail — the weight of a defining moment",
+    wet: 0.55,
     notes: [
-      { f: 880,  t: 0, d: 0.50, w: "sine", g: 0.16 },  // fundamental (A5), long soft decay
-      { f: 1760, t: 0, d: 0.25, w: "sine", g: 0.08 }   // octave overtone, quieter + shorter — gives the bell its shimmer
+      { type: "noise", t: 0, d: 0.05, g: 0.045, bp: { f: 1400, q: 0.9 } },   // heavy clapper
+      { type: "bell", f: 174.61, t: 0.006, d: 0.95, g: 0.16 }                // F3 — low, slow, resonant
     ]
   },
   combat: {
-    label: "Low, brief, dramatic two-note descent (small interval) for combat starting",
+    label: "Struck iron and a low drum — a threat, not a jingle",
+    wet: 0.30,
     notes: [
-      { f: 110, t: 0,    d: 0.16, w: "triangle", g: 0.22 },  // A2
-      { f: 98,  t: 0.16, d: 0.20, w: "triangle", g: 0.24 }   // G2 — a low, close-interval drop
+      { type: "noise", t: 0,    d: 0.09, g: 0.07, bp: { f: 900, q: 0.7 } },  // impact / scrape
+      { f: 61.74, t: 0, d: 0.42, w: "sine", g: 0.24, atk: 0.006, lp: 220 },  // B1 drum body
+      { type: "bell", f: 138.59, t: 0.01, d: 0.55, g: 0.10, bright: 0.55 }   // C#3 dull iron, damped highs
     ]
   },
   coin: {
-    label: "Tiny bright metallic blip",
+    label: "Soft coin clink — struck metal, close and small",
+    wet: 0.22,
     notes: [
-      { f: 1200, t: 0,    d: 0.05, w: "square", g: 0.12 },
-      { f: 1800, t: 0.05, d: 0.07, w: "square", g: 0.14 }
+      { type: "noise", t: 0, d: 0.02, g: 0.05, bp: { f: 4200, q: 1.4 } },    // the contact tick
+      { type: "bell", f: 1046.50, t: 0.003, d: 0.34, g: 0.10, bright: 1.25 } // C6 small metal, quick decay
     ]
   },
   error: {
-    label: "Muted low two-note descending",
+    label: "Dull low thud — a door closing, not a buzzer",
+    wet: 0.26,
     notes: [
-      { f: 220,    t: 0,    d: 0.14, w: "sine", g: 0.15 },  // A3
-      { f: 174.61, t: 0.14, d: 0.18, w: "sine", g: 0.14 }   // F3
+      { type: "noise", t: 0, d: 0.07, g: 0.05, bp: { f: 300, q: 0.6 } },
+      { f: 87.31, t: 0, d: 0.38, w: "sine", g: 0.20, atk: 0.012, lp: 300 },  // F2 body
+      { f: 130.81, t: 0, d: 0.22, w: "triangle", g: 0.07, atk: 0.012, lp: 400 }
     ]
   }
 };
@@ -117,27 +143,120 @@ var Sound = (function() {
     return _ctx;
   }
 
-  // Schedule one note: its own oscillator+gain, short attack, decay to (near-)silence by the
-  // note's end, cleaned up onended (disconnect both nodes — nothing accumulates across plays).
-  function _playNote(ctx, t0, note) {
-    var osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.type = note.w || "sine";
-    osc.frequency.value = note.f;
-    var st = t0 + (note.t || 0);
-    var end = st + note.d;
-    var peak = note.g > 0 ? note.g : 0.0001;
-    var attack = Math.min(0.005, note.d / 4);   // ~5ms attack, never more than a quarter of the note
+  // ── v2 primitives ────────────────────────────────────────────────────────────────────────
+  // Measured bell partial ratios (hum · prime · tierce · quint · nominal · two upper inharmonics).
+  // The NON-integer ratios are the whole point: integer harmonics read as a musical beep, these
+  // read as struck bronze. amp falls and decay SHORTENS as you go up — higher partials die first
+  // on a real bell, and skipping that is what makes synthetic bells sound like organ tones.
+  var BELL_PARTIALS = [
+    { r: 0.50, a: 0.30, dk: 1.00 },
+    { r: 1.00, a: 1.00, dk: 0.90 },
+    { r: 1.19, a: 0.55, dk: 0.62 },
+    { r: 1.56, a: 0.32, dk: 0.45 },
+    { r: 2.00, a: 0.40, dk: 0.38 },
+    { r: 2.51, a: 0.18, dk: 0.24 },
+    { r: 3.01, a: 0.12, dk: 0.16 }
+  ];
+  var _noiseBuf = null;   // one 2s white-noise buffer, sliced by every noise note (singleton)
+  function _noise(ctx) {
+    if (_noiseBuf) return _noiseBuf;
+    var len = Math.floor(ctx.sampleRate * 2), buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0), i;
+    for (i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    _noiseBuf = buf;
+    return buf;
+  }
+  // Shared convolution reverb — a small stone room, from a SYNTHESIZED impulse response (noise
+  // under an exponential decay), so it costs no files and no network. Built once, wired straight
+  // to destination; per-play sends feed it. This is what removes the dry, close, arcade quality.
+  var _verb = null;
+  function _reverb(ctx) {
+    if (_verb) return _verb;
+    try {
+      var secs = 1.6, len = Math.floor(ctx.sampleRate * secs);
+      var ir = ctx.createBuffer(2, len, ctx.sampleRate), ch, i;
+      for (ch = 0; ch < 2; ch++) {
+        var d = ir.getChannelData(ch);
+        for (i = 0; i < len; i++) {
+          var x = i / len;
+          d[i] = (Math.random() * 2 - 1) * Math.pow(1 - x, 2.6);   // exponential-ish tail
+        }
+      }
+      var cv = ctx.createConvolver();
+      cv.buffer = ir;
+      cv.connect(ctx.destination);
+      _verb = cv;
+    } catch (e) { _verb = null; }
+    return _verb;
+  }
+  // One oscillator voice with optional attack shaping + lowpass (taming brightness is half of
+  // sounding acoustic rather than electronic). Connects to the caller's bus, not to destination.
+  function _voice(ctx, bus, st, dur, freq, wave, peak, atkMs, lpHz) {
+    var osc = ctx.createOscillator(), gain = ctx.createGain(), node = gain;
+    osc.type = wave || "sine";
+    osc.frequency.value = freq;
+    var end = st + dur;
+    var attack = Math.min(atkMs || 0.005, dur / 3);
+    var p = peak > 0 ? peak : 0.0001;
     gain.gain.setValueAtTime(0.0001, st);
-    gain.gain.exponentialRampToValueAtTime(peak, st + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, end);   // exponential decay to the note's end
+    gain.gain.exponentialRampToValueAtTime(p, st + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    if (lpHz) {
+      var lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = lpHz;
+      gain.connect(lp); node = lp;
+    }
+    node.connect(bus);
     osc.onended = function() {
       try { osc.disconnect(); } catch (e) {}
       try { gain.disconnect(); } catch (e) {}
+      if (node !== gain) { try { node.disconnect(); } catch (e) {} }
     };
     osc.start(st);
     osc.stop(end);
+  }
+  // Band-passed noise burst — the physical transient (mallet contact, iron scrape, air).
+  function _noiseBurst(ctx, bus, st, dur, peak, bp) {
+    var src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = _noise(ctx);
+    src.loop = true;
+    var filt = ctx.createBiquadFilter();
+    filt.type = "bandpass";
+    filt.frequency.value = (bp && bp.f) || 2000;
+    filt.Q.value = (bp && bp.q) || 1;
+    var end = st + dur;
+    var p = peak > 0 ? peak : 0.0001;
+    gain.gain.setValueAtTime(0.0001, st);
+    gain.gain.exponentialRampToValueAtTime(p, st + Math.min(0.004, dur / 3));
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    src.connect(filt); filt.connect(gain); gain.connect(bus);
+    src.onended = function() {
+      try { src.disconnect(); } catch (e) {}
+      try { filt.disconnect(); } catch (e) {}
+      try { gain.disconnect(); } catch (e) {}
+    };
+    src.start(st);
+    src.stop(end);
+  }
+  // Schedule one note onto the play's bus. Three shapes, dispatched by `type` — adding a shape
+  // means adding a branch here and entries in the table, nothing else changes.
+  function _playNote(ctx, bus, t0, note) {
+    var st = t0 + (note.t || 0);
+    if (note.type === "noise") { _noiseBurst(ctx, bus, st, note.d, note.g, note.bp); return; }
+    if (note.type === "bell") {
+      // Expand into the inharmonic stack. `bright` scales how much the upper partials survive:
+      // <1 damps them (dull iron), >1 keeps them (small bright metal).
+      var br = typeof note.bright === "number" ? note.bright : 1, i;
+      for (i = 0; i < BELL_PARTIALS.length; i++) {
+        var p = BELL_PARTIALS[i];
+        var amp = note.g * p.a * (p.r > 1.2 ? br : 1);
+        if (amp < 0.002) continue;                       // inaudible partial — don't spend a node on it
+        _voice(ctx, bus, st, note.d * p.dk, note.f * p.r, "sine", amp, 0.004, null);
+      }
+      return;
+    }
+    _voice(ctx, bus, st, note.d, note.f, note.w, note.g, note.atk, note.lp);
   }
 
   // play(id) — no-op (console.debug) when sound is disabled or the AudioContext is
@@ -152,8 +271,27 @@ var Sound = (function() {
     try { if (ctx.state === "suspended" && typeof ctx.resume === "function") ctx.resume(); } catch (e) {}
     if (ctx.state !== "running") { console.debug("[sound] '" + id + "' skipped — ctx " + ctx.state); return false; }
     try {
+      // Per-play bus: dry straight out, plus a wet send into the shared reverb. Both bus nodes are
+      // disconnected once the tail has run (monotonic-resources rule — nothing accumulates across
+      // plays; the convolver and noise buffer are the only long-lived singletons).
       var t0 = ctx.currentTime, notes = recipe.notes, i;
-      for (i = 0; i < notes.length; i++) _playNote(ctx, t0, notes[i]);
+      var bus = ctx.createGain(); bus.gain.value = 1;
+      bus.connect(ctx.destination);
+      var send = null, cv = _reverb(ctx);
+      if (cv && recipe.wet > 0) {
+        send = ctx.createGain(); send.gain.value = recipe.wet;
+        bus.connect(send); send.connect(cv);
+      }
+      var last = 0;
+      for (i = 0; i < notes.length; i++) {
+        var n = notes[i], end = (n.t || 0) + n.d;
+        if (end > last) last = end;
+        _playNote(ctx, bus, t0, n);
+      }
+      setTimeout(function() {
+        try { bus.disconnect(); } catch (e) {}
+        if (send) { try { send.disconnect(); } catch (e) {} }
+      }, (last + 2.2) * 1000);   // clear of the longest note AND the ~1.6s reverb tail
     } catch (e) { console.debug("[sound] '" + id + "' play failed:", e && e.message); return false; }
     return true;
   }

@@ -5433,20 +5433,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var missing=[];for(var i=0;i<REQUIRED_SOUND_IDS.length;i++){if(!SOUND_LIB[REQUIRED_SOUND_IDS[i]])missing.push(REQUIRED_SOUND_IDS[i]);}
     return missing.length?("missing: "+missing.join(", ")):true;
   });
-  t("every SOUND_LIB entry: >=1 note, finite f>0/d>0/g>0/g<=0.3, total motif length <=1s",function(){
+  // v2 schema (2026-07-18): notes are one of three shapes — plain oscillator, type:"bell"
+  // (expands to an inharmonic partial stack), type:"noise" (band-passed burst, no frequency).
+  // Length cap raised 1s → 1.6s: bells RING, and a v1-length cutoff is part of what made them
+  // read as arcade blips. Gain cap holds at 0.3 per note (bell partials scale DOWN off note.g).
+  t("every SOUND_LIB entry: >=1 note, valid shape per type, gain<=0.3, total motif length <=1.6s",function(){
     var bad=[],k;
     for(k in SOUND_LIB){
       var recipe=SOUND_LIB[k],notes=recipe&&recipe.notes;
       if(!notes||!notes.length){bad.push(k+": no notes");continue;}
+      if(recipe.wet!=null&&(typeof recipe.wet!=="number"||recipe.wet<0||recipe.wet>1)){bad.push(k+": bad wet "+recipe.wet);}
       var maxEnd=0,j;
       for(j=0;j<notes.length;j++){
         var n=notes[j];
-        if(typeof n.f!=="number"||!isFinite(n.f)||n.f<=0){bad.push(k+"["+j+"]: bad f "+n.f);continue;}
         if(typeof n.d!=="number"||!isFinite(n.d)||n.d<=0){bad.push(k+"["+j+"]: bad d "+n.d);continue;}
         if(typeof n.g!=="number"||!isFinite(n.g)||n.g<=0||n.g>0.3){bad.push(k+"["+j+"]: bad g "+n.g);continue;}
+        if(n.type==="noise"){
+          if(n.bp&&(typeof n.bp.f!=="number"||n.bp.f<=0)){bad.push(k+"["+j+"]: bad bandpass f");}
+        }else{
+          if(typeof n.f!=="number"||!isFinite(n.f)||n.f<=0){bad.push(k+"["+j+"]: bad f "+n.f);continue;}
+          if(n.type==="bell"&&n.bright!=null&&(typeof n.bright!=="number"||n.bright<=0)){bad.push(k+"["+j+"]: bad bright "+n.bright);}
+        }
         var end=(n.t||0)+n.d;if(end>maxEnd)maxEnd=end;
       }
-      if(maxEnd>1)bad.push(k+": total length "+maxEnd+"s > 1s");
+      if(maxEnd>1.6)bad.push(k+": total length "+maxEnd+"s > 1.6s");
+    }
+    return bad.length?bad.join("; "):true;
+  });
+  t("v2 voicing: no square waves anywhere, and every entry carries a reverb send (the two things that made v1 read as 8-bit)",function(){
+    var bad=[],k,j;
+    for(k in SOUND_LIB){
+      var r=SOUND_LIB[k];
+      if(!(r.wet>0))bad.push(k+": no wet send — it would come out dry/arcade");
+      for(j=0;j<r.notes.length;j++){if(r.notes[j].w==="square")bad.push(k+"["+j+"]: square wave");}
     }
     return bad.length?bad.join("; "):true;
   });
