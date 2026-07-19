@@ -18,6 +18,34 @@ function eachMenuEl(idSuffix,fn,prefixes){
 function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=0;i<ts.length;i++)ts[i].style.bottom=(80+i*42)+"px";}
 // Toasts stay until acknowledged (tap to dismiss) — important "cheers" (quest opportunity, legacy
 // arrival, level-up) shouldn't vanish before they're seen.
+// THE entry point for a USER-INITIATED play request (the per-message 🔊 replay button).
+// Root cause it fixes (user report 2026-07-18): speakResponse() — the auto-narration path — is
+// gated on isOn(), but speak() is not, so tapping replay with voice OFF ran the whole synthesis
+// pipeline into a closed AudioContext. It "played for no-one": no sound, no explanation, nothing
+// to distinguish it from a broken button. A deliberate tap deserves an answer, so ask instead:
+// confirm → unmute and play; decline → play nothing (the user said no, honor it).
+// Car Mode is exempt — the overlay IS an audio intent, and its own paths already speak with the
+// global toggle off (see speakResponse's carMode clause); asking there would be nagging.
+function requestSpeak(text){
+  if(typeof TTS==="undefined"||!text)return;
+  if(TTS.isOn()||(typeof carMode!=="undefined"&&carMode)){TTS.speak(text);return;}
+  var m=modalShell("audio-muted-confirm",
+    "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Game audio is muted. Unmute?</div>"
+    +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>Voice narration is switched off, so this line would play silently. Unmuting turns narration back on for the rest of the session.</div>"
+    +"<div style='display:flex;gap:10px;justify-content:center;'>"
+    +"<button id='am-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>&#128266; Unmute and play</button>"
+    +"<button id='am-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Stay muted</button>"
+    +"</div>",
+    {z:500,maxWidth:380,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
+  document.getElementById("am-ok").addEventListener("click",function(){
+    m.remove();
+    // toggle() must run inside this click gesture — it creates/resumes the AudioContext and primes
+    // the iOS playback session, both of which browsers only permit from a real user gesture.
+    TTS.toggle();
+    TTS.speak(text);
+  });
+  document.getElementById("am-cancel").addEventListener("click",function(){m.remove();});
+}
 function showToast(msg,ms){
   // Decode the HTML entities several call sites pass (audit E40) — showToast renders via textContent,
   // so "&#9729;"/"&mdash;" would show literally. Numeric refs + a couple of named ones; toast strings
@@ -160,7 +188,7 @@ function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
 if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
 div.innerHTML=html;
-if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){TTS.speak(text);};div.appendChild(rb);})(opts.replayText);}
+if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){requestSpeak(text);};div.appendChild(rb);})(opts.replayText);}
 story.appendChild(div);story.scrollTop=story.scrollHeight;trimStoryDom(story);if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
 // Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
