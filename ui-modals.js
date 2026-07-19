@@ -291,19 +291,24 @@ function showSoundModal(){
   closeAllMenus();/* #15④ */
   if(typeof Sound==="undefined"){showToast("Sound library unavailable.");return;}
   var ids=Object.keys(Sound.SOUND_LIB||{});
-  // Where each sound actually fires today — audition without this is judging a noise out of context.
+  // Where each sound fires today — audition without this is judging a noise out of context.
   var WIRED={chime:"Not wired yet",quest:"Quest offered",levelup:"Level up",moment:"★ Defining moment",combat:"Combat starts",coin:"Not wired yet",error:"Not wired yet"};
-  var rows="",i;
+  var rows="",i,grp=null;
   for(i=0;i<ids.length;i++){
-    var id=ids[i],e=Sound.SOUND_LIB[id],w=WIRED[id]||"";
+    var id=ids[i],e=Sound.SOUND_LIB[id],w=WIRED[id]||"Not wired yet";
     var unwired=/Not wired/.test(w);
+    // Section header whenever the group changes — the click palette is a different KIND of
+    // thing from the event motifs and shouldn't read as one undifferentiated list.
+    var g=e.group||"event";
+    if(g!==grp){grp=g;
+      rows+="<div style='font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);padding:14px 0 4px;'>"+(g==="click"?"Click palette — pick by material":"Event sounds")+"</div>";}
     rows+="<div class='snd-row' data-id='"+escHtml(id)+"' style='display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--brd);'>"
       +"<button class='snd-play' data-id='"+escHtml(id)+"' title='Play "+escHtml(id)+"' style='flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--acc);background:none;color:var(--acc);cursor:pointer;font-size:12px;line-height:1;'>&#9654;</button>"
       +"<div style='flex:1;min-width:0;'>"
         +"<div style='font-size:13px;color:var(--t0);'>"+escHtml(id)+"</div>"
         +"<div style='font-size:11px;color:var(--t2);'>"+escHtml(e&&e.label?e.label:"")+"</div>"
       +"</div>"
-      +"<div style='flex-shrink:0;font-size:10px;color:"+(unwired?"var(--t2)":"var(--acc)")+";text-align:right;max-width:110px;'>"+escHtml(w)+"</div>"
+      +(g==="click"?"":"<div style='flex-shrink:0;font-size:10px;color:"+(unwired?"var(--t2)":"var(--acc)")+";text-align:right;max-width:110px;'>"+escHtml(w)+"</div>")/* the wiring column is meaningless for the unassigned click palette */
       +"</div>";
   }
   var on=Sound.enabled();

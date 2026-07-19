@@ -95,7 +95,44 @@ var SOUND_LIB = {
       { f: 87.31, t: 0, d: 0.38, w: "sine", g: 0.20, atk: 0.012, lp: 300 },  // F2 body
       { f: 130.81, t: 0, d: 0.22, w: "triangle", g: 0.07, atk: 0.012, lp: 400 }
     ]
-  }
+  },
+
+  // ── CLICK PALETTE (2026-07-18) ───────────────────────────────────────────────────────────
+  // User call after v2: the musical-motif direction isn't working — "give me 10 different click
+  // sounds." So these are deliberately NOT music: no melody, no interval, nothing to recognise as
+  // a tune. Each is a single short impact differentiated by MATERIAL, which is the axis you can
+  // actually judge by ear ("that one's wood, that one's glass") rather than by melody.
+  // Construction: a band-passed noise transient carries the material (its centre frequency and Q
+  // ARE the material — tight+high reads as glass, broad+low reads as cloth), optionally over a
+  // brief pitched body for objects that ring. All ≤0.15s, low gain, and only a touch of reverb —
+  // a click drowned in room tail stops reading as a click.
+  click_wood:     { group: "click", label: "Wood — a knuckle on a tavern table", wet: 0.10,
+    notes: [ { type: "noise", t: 0, d: 0.018, g: 0.10, bp: { f: 1500, q: 1.5 } },
+             { f: 190, t: 0, d: 0.05, w: "sine", g: 0.11, atk: 0.002, lp: 900 } ] },
+  click_stone:    { group: "click", label: "Stone — a pebble set down on slate", wet: 0.14,
+    notes: [ { type: "noise", t: 0, d: 0.022, g: 0.11, bp: { f: 700, q: 0.9 } },
+             { f: 124, t: 0, d: 0.045, w: "sine", g: 0.09, atk: 0.002, lp: 420 } ] },
+  click_metal:    { group: "click", label: "Metal — a fingernail on a blade", wet: 0.16,
+    notes: [ { type: "noise", t: 0, d: 0.012, g: 0.07, bp: { f: 5500, q: 2.0 } },
+             { type: "bell", f: 2400, t: 0.002, d: 0.10, g: 0.05, bright: 1.3 } ] },
+  click_leather:  { group: "click", label: "Leather — a glove flexing, no ring at all", wet: 0.08,
+    notes: [ { type: "noise", t: 0, d: 0.038, g: 0.10, bp: { f: 900, q: 0.7 } } ] },
+  click_glass:    { group: "click", label: "Glass — a vial tapped once, crisp", wet: 0.18,
+    notes: [ { type: "noise", t: 0, d: 0.008, g: 0.05, bp: { f: 8000, q: 2.5 } },
+             { f: 3100, t: 0.001, d: 0.06, w: "sine", g: 0.05, atk: 0.001 } ] },
+  click_bone:     { group: "click", label: "Bone — dry, hollow, a die on a board", wet: 0.12,
+    notes: [ { type: "noise", t: 0, d: 0.015, g: 0.09, bp: { f: 2600, q: 1.8 } },
+             { f: 780, t: 0, d: 0.045, w: "sine", g: 0.07, atk: 0.001, lp: 2000 } ] },
+  click_parchment:{ group: "click", label: "Parchment — a page turned, purely papery", wet: 0.09,
+    notes: [ { type: "noise", t: 0, d: 0.032, g: 0.07, bp: { f: 3800, q: 0.6 } } ] },
+  click_ceramic:  { group: "click", label: "Ceramic — a cup on a saucer, small ping", wet: 0.16,
+    notes: [ { type: "noise", t: 0, d: 0.010, g: 0.06, bp: { f: 3200, q: 2.2 } },
+             { type: "bell", f: 1500, t: 0.002, d: 0.13, g: 0.06 } ] },
+  click_drip:     { group: "click", label: "Water — a single drop in a cistern", wet: 0.30,
+    notes: [ { f: 1500, t: 0, d: 0.018, w: "sine", g: 0.10, atk: 0.001 },
+             { f: 700, t: 0.014, d: 0.055, w: "sine", g: 0.09, atk: 0.002, lp: 1600 } ] },
+  click_cloth:    { group: "click", label: "Cloth — muffled, the quietest of the ten", wet: 0.07,
+    notes: [ { type: "noise", t: 0, d: 0.045, g: 0.09, bp: { f: 380, q: 0.5 } } ] }
 };
 
 var Sound = (function() {
