@@ -277,6 +277,68 @@ function showUsageModal(){
 // hatch; migrateWorldState clears it on next load so it can never silently stick).
 // ── Prose inspiration (TODO #23) ───────────────────────────────────────────────
 function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
+// TODO #7 audition surface — the Sound Library modal. Built because the console/one-button route
+// was unusable for actually JUDGING these: a 50ms blip you have to wait 45 seconds for and might
+// miss entirely is not a review tool (user, 2026-07-18). Three properties make it usable:
+//   ① one ▶ per sound, replayable on tap — compare by ear, back to back, in any order;
+//   ② a visual PULSE on the row that fires with the audio — you can SEE which one played, so a
+//      sound you missed (or that failed to emit) is never ambiguous;
+//   ③ Sound.preview() plays even when UI sounds are OFF — clicking ▶ is an explicit request, and
+//      it reports honestly (⚠ row) when nothing could be scheduled instead of silently doing nothing.
+// DATA-DRIVEN: rows are generated from SOUND_LIB, so adding a sound adds a row for free — no
+// per-sound UI code, same registry philosophy as the tag table and the capability bible.
+function showSoundModal(){
+  closeAllMenus();/* #15④ */
+  if(typeof Sound==="undefined"){showToast("Sound library unavailable.");return;}
+  var ids=Object.keys(Sound.SOUND_LIB||{});
+  // Where each sound actually fires today — audition without this is judging a noise out of context.
+  var WIRED={chime:"Not wired yet",quest:"Quest offered",levelup:"Level up",moment:"★ Defining moment",combat:"Combat starts",coin:"Not wired yet",error:"Not wired yet"};
+  var rows="",i;
+  for(i=0;i<ids.length;i++){
+    var id=ids[i],e=Sound.SOUND_LIB[id],w=WIRED[id]||"";
+    var unwired=/Not wired/.test(w);
+    rows+="<div class='snd-row' data-id='"+escHtml(id)+"' style='display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--brd);'>"
+      +"<button class='snd-play' data-id='"+escHtml(id)+"' title='Play "+escHtml(id)+"' style='flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--acc);background:none;color:var(--acc);cursor:pointer;font-size:12px;line-height:1;'>&#9654;</button>"
+      +"<div style='flex:1;min-width:0;'>"
+        +"<div style='font-size:13px;color:var(--t0);'>"+escHtml(id)+"</div>"
+        +"<div style='font-size:11px;color:var(--t2);'>"+escHtml(e&&e.label?e.label:"")+"</div>"
+      +"</div>"
+      +"<div style='flex-shrink:0;font-size:10px;color:"+(unwired?"var(--t2)":"var(--acc)")+";text-align:right;max-width:110px;'>"+escHtml(w)+"</div>"
+      +"</div>";
+  }
+  var on=Sound.enabled();
+  var modal=modalShell("snd-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>&#9834; Sound Library</span><button id='snd-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 12px;'>Tap &#9654; to hear a sound — the row flashes as it plays, so a short blip is never ambiguous. Preview works even with UI sounds switched off.</p>"
+    +"<div id='snd-rows'>"+rows+"</div>"
+    +"<div style='display:flex;align-items:center;gap:10px;margin-top:14px;'>"
+      +"<label style='display:flex;align-items:center;gap:8px;flex:1;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'><input type='checkbox' id='snd-on' "+(on?"checked":"")+" style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> UI sounds on during play</label>"
+      +"<button id='snd-all' style='font-size:11px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;padding:4px 10px;'>Play all</button>"
+    +"</div>",
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:440,boxExtra:"margin-top:40px;",closeId:"snd-x",outside:true});
+  // Pulse the row so the eye confirms what the ear may have missed (property ② above).
+  function flash(id,ok){
+    var row=modal.querySelector(".snd-row[data-id='"+id+"']");if(!row)return;
+    row.style.transition="";row.style.background=ok?"rgba(184,147,90,.28)":"rgba(192,106,90,.28)";
+    setTimeout(function(){row.style.transition="background .45s";row.style.background="";},90);
+  }
+  function playOne(id){
+    var ok=Sound.preview(id);
+    flash(id,ok);
+    if(!ok)showToast("⚠ '"+id+"' could not play — check the console for the reason");
+  }
+  Array.prototype.forEach.call(modal.querySelectorAll(".snd-play"),function(b){
+    b.addEventListener("click",function(){playOne(b.getAttribute("data-id"));});
+  });
+  document.getElementById("snd-on").addEventListener("change",function(){
+    Sound.setEnabled(this.checked);
+    eachMenuEl("sound-cb",function(el){el.checked=Sound.enabled();});/* keep the menu checkboxes in step */
+  });
+  // Play all: 700ms apart — long enough to separate two ~0.5s motifs, short enough to compare.
+  document.getElementById("snd-all").addEventListener("click",function(){
+    var k;for(k=0;k<ids.length;k++)(function(id,n){setTimeout(function(){if(document.getElementById("snd-modal"))playOne(id);},n*700);})(ids[k],k);
+  });
+}
 function showProseModal(){
   closeAllMenus();/* #15④ */
   var sel=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(proseAuthor||"");

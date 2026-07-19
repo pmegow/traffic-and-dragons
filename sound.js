@@ -143,22 +143,29 @@ var Sound = (function() {
   // play(id) — no-op (console.debug) when sound is disabled or the AudioContext is
   // unavailable/not running; console.warn (no throw) for an unknown id — matches the
   // no-silent-failures convention (a caller typo should be loud, a benign runtime skip shouldn't).
-  function play(id) {
+  function play(id, force) {
     var recipe = SOUND_LIB[id];
-    if (!recipe) { console.warn("[sound] unknown sound id '" + id + "'"); return; }
-    if (!enabled()) { console.debug("[sound] '" + id + "' skipped — disabled"); return; }
+    if (!recipe) { console.warn("[sound] unknown sound id '" + id + "'"); return false; }
+    if (!force && !enabled()) { console.debug("[sound] '" + id + "' skipped — disabled"); return false; }
     var ctx = _ensureCtx();
-    if (!ctx) { console.debug("[sound] '" + id + "' skipped — no AudioContext"); return; }
+    if (!ctx) { console.debug("[sound] '" + id + "' skipped — no AudioContext"); return false; }
     try { if (ctx.state === "suspended" && typeof ctx.resume === "function") ctx.resume(); } catch (e) {}
-    if (ctx.state !== "running") { console.debug("[sound] '" + id + "' skipped — ctx " + ctx.state); return; }
+    if (ctx.state !== "running") { console.debug("[sound] '" + id + "' skipped — ctx " + ctx.state); return false; }
     try {
       var t0 = ctx.currentTime, notes = recipe.notes, i;
       for (i = 0; i < notes.length; i++) _playNote(ctx, t0, notes[i]);
-    } catch (e) { console.debug("[sound] '" + id + "' play failed:", e && e.message); }
+    } catch (e) { console.debug("[sound] '" + id + "' play failed:", e && e.message); return false; }
+    return true;
   }
+  // preview(id) — audition path for the Sound Library modal: plays even when UI sounds are OFF,
+  // because clicking a ▶ IS an explicit request to hear it (a silent audition button would read
+  // as broken). Returns true only when notes were actually scheduled, so the caller can show an
+  // honest "couldn't play" state instead of a dead button.
+  function preview(id) { return play(id, true); }
 
   return {
     play: play,
+    preview: preview,
     enabled: enabled,
     setEnabled: setEnabled,
     SOUND_LIB: SOUND_LIB

@@ -1002,6 +1002,19 @@ function runEngineTests(R){
     if(p2.volatile!==p0.volatile)return "demote did not restore volatile byte-identity";
     return true;
   });
+  t("#7 audition: Sound.preview plays regardless of the enabled pref and reports honestly; play() still respects it",function(){
+    var was=Sound.enabled();
+    Sound.setEnabled(false);
+    if(Sound.play("chime")!==false)return "play() ignored the disabled pref";
+    /* headless: no AudioContext, so preview must return false (honest) — never throw, never true */
+    var pv=Sound.preview("chime");
+    if(pv!==false)return "preview returned "+pv+" with no AudioContext — the modal would show a false success";
+    if(Sound.preview("no-such-id")!==false)return "unknown id did not report failure";
+    Sound.setEnabled(true);
+    if(Sound.play("chime")!==false)return "play() with no AudioContext should still report false";
+    Sound.setEnabled(was);
+    return true;
+  });
   t("MP-D12 exit: worldState.mpEnded injects the second-person reinforcement TWICE — early block + post-STYLE tail command (the position that wins); clearing restores byte-identity",function(){
     makeWorld();
     var p0=buildSysPrompt();

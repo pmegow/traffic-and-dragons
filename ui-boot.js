@@ -67,7 +67,7 @@ function buildFileMenus(){
       // pref + inline action (font-lg/autosend/autolisten/legacy-cb checkboxes above).
       +"<div style='display:flex;align-items:center;gap:8px;padding:2px 14px 7px;'>"
         +"<label style='display:flex;align-items:center;gap:8px;flex:1;font-size:12px;font-family:var(--font);color:var(--t1);cursor:pointer;'><input type='checkbox' id='"+p+"sound-cb' style='accent-color:var(--acc);cursor:pointer;width:13px;height:13px;'/> &#9834; UI sounds</label>"
-        +"<button id='"+p+"sound-test' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Test</button>"
+        +"<button id='"+p+"sound-test' title='Audition every UI sound' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>&#9834; Sounds&hellip;</button>"/* was a chime-only Test button — replaced by the audition modal (a one-sound test could not serve judging the set) */
       +"</div>"
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
       +btn(p+"llm","🧠 Language Model&hellip;",0)
@@ -236,7 +236,7 @@ function wireButtons(){
   // lives here instead of inside the Voice Settings modal).
   eachMenuEl("sound-cb",function(el){el.addEventListener("change",function(){if(typeof Sound!=="undefined")Sound.setEnabled(el.checked);eachMenuEl("sound-cb",function(o){if(o!==el)o.checked=el.checked;});});});
   if(typeof Sound!=="undefined"){var _sndOn=Sound.enabled();eachMenuEl("sound-cb",function(el){el.checked=_sndOn;});}
-  eachMenuEl("sound-test",function(el){el.addEventListener("click",function(e){e.stopPropagation();if(typeof Sound!=="undefined")Sound.play("chime");});});
+  eachMenuEl("sound-test",function(el){el.addEventListener("click",function(e){e.stopPropagation();if(typeof showSoundModal==="function")showSoundModal();});});
   // STT (speech-to-text dictation) — Car Mode foundation
   document.getElementById("mic-btn").addEventListener("click",function(){if(typeof STT!=="undefined")STT.toggle();});
   eachMenuEl("autosend",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined")STT.setAutoSend(el.checked);});});
