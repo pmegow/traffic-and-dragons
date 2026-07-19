@@ -923,7 +923,17 @@ function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\
 // Stack-matching tolerates case, extra whitespace, and a trailing plural "s" (so "Travel ration",
 // "travel rations", and "Saddle"/"Saddles" stack) — but NOT parenthetical qualifiers: "Sword (rusty)"
 // and "Sword (enchanted)" are distinct and must stay separate. A trailing " xN" count is stripped first.
-function _invNorm(s){return (s||"").replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/\s+/g," ").trim().replace(/s$/,"");}
+// #75(b) v1.385: DASH VARIANTS normalise too. The GM writes the same item with an em-dash one
+// turn and a hyphen the next ("Iron ring — unmarked" / "Iron ring - unmarked"), and because the
+// two strings differed here they were two separate stacks of the same three rings — on the t881
+// save, exactly 2 such pairs across the party (Iron ring, Iron key; verified by enumerating every
+// NEW collision the change causes, since a wrong merge silently destroys a real item — the
+// superficially-similar "Dark tooth cap 'Third'/'Seventh'" pair correctly does NOT fold).
+// Every dash character folds to "-" and the
+// spacing around it collapses, so all of "A — B", "A - B", "A—B" agree. Spaced words are NOT
+// folded into hyphenated ones ("well worn" stays distinct from "well-worn") — deliberately
+// conservative, since a wrong merge silently destroys a real item.
+function _invNorm(s){return (s||"").replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
 function _invCount(s){var m=(s||"").match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
 function _invBase(s){return (s||"").replace(/\s*x\d+\s*$/i,"").trim();}
 // P14: a quantity baked into an item TAG ("Rope x3") means N of the base item, not one item
@@ -994,7 +1004,14 @@ function foldDuplicateInventory(inv){
   if(!inv||inv.length<2)return 0;
   var seen={},out=[],folded=0,i,k,kk;
   for(i=0;i<inv.length;i++){
-    k=inv[i];kk="k:"+k; // prefixed key — an item literally named "__proto__" must not walk the prototype
+    // #75(b) v1.385: key on _invNorm, not the raw string. Byte-identical matching could never
+    // heal the dash-variant splits this pass exists to clean up ("Iron ring — unmarked" vs
+    // "Iron ring - unmarked"), and raw matching was already INCONSISTENT with the write path —
+    // addInventoryItem/removeInventoryItem have always stacked by _invNorm, so the migration was
+    // using a stricter notion of "same item" than the code that creates the stacks.
+    // Verified on the t881 save: norm keying merges exactly 2 groups across the whole party, both
+    // genuine dash twins; the look-alike "Dark tooth cap 'Third'/'Seventh'" pair is untouched.
+    k=inv[i];kk="k:"+(typeof k==="string"?_invNorm(k):k); // prefixed key — an item literally named "__proto__" must not walk the prototype
     if(typeof k==="string"&&seen[kk]!=null){var fi=seen[kk];out[fi]=_invBase(out[fi])+" x"+(_invCount(out[fi])+_invCount(k));folded++;}
     else{if(typeof k==="string")seen[kk]=out.length;out.push(k);}
   }

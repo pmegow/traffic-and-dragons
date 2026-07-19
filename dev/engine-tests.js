@@ -3982,12 +3982,35 @@ function runEngineTests(R){
     if(n!==1)return "folded "+n;
     return inv.join("|")==="Dagger x2|Rope"?true:"got "+inv.join("|");
   });
-  t("foldDuplicateInventory: conservative — case-different entries untouched; stacked dups sum",function(){
+  // v1.385 (#75b) REVERSED the old "case-different entries untouched" assertion. That
+  // conservatism was incoherent: addInventoryItem/removeInventoryItem have always stacked by
+  // _invNorm, so the migration was using a STRICTER notion of "same item" than the code that
+  // creates the stacks — "Dagger" and "dagger" could never coexist from play, only from a
+  // model-authored sheet array, and when they did the heal pass refused to touch them.
+  // Folding now matches the write path exactly. Real-data impact is nil: on the t881 save,
+  // norm keying merges the same 2 groups raw keying would have, both genuine dash twins.
+  t("foldDuplicateInventory: folds by _invNorm — same sameness rule as the write path",function(){
     var a=["Dagger","dagger"];
-    if(foldDuplicateInventory(a)!==0||a.length!==2)return "case-different entries were folded";
+    if(foldDuplicateInventory(a)!==1||a.join("|")!=="Dagger x2")return "case-different entries not folded: "+a.join("|");
     var b=["Torch x2","Torch x2"];
     foldDuplicateInventory(b);
     return b.join("|")==="Torch x4"?true:"got "+b.join("|");
+  });
+  t("#75b: dash variants of the same item fold; look-alikes with real differences do NOT",function(){
+    // the t881 field pair — em-dash and hyphen spellings of the same three rings
+    var a=["Iron ring — unmarked x3","Iron ring - unmarked x3"];
+    if(foldDuplicateInventory(a)!==1||a.join("|")!=="Iron ring — unmarked x6")return "dash twins did not fold: "+a.join("|");
+    // the FAILURE condition: superficially similar, genuinely different objects must survive
+    var b=["Dark tooth cap — script reads 'Third' x2","Dark tooth cap — script reads 'Seventh'"];
+    if(foldDuplicateInventory(b)!==0||b.length!==2)return "DESTRUCTIVE MERGE — two different items were folded: "+b.join("|");
+    var c=["Iron ring x2","Iron ring — unmarked x3"];
+    return (foldDuplicateInventory(c)===0&&c.length===2)?true:"qualified and unqualified rings were folded: "+c.join("|");
+  });
+  t("#75b: _invNorm agrees across dash spellings but not across genuine differences",function(){
+    if(_invNorm("Iron ring — unmarked")!==_invNorm("Iron ring - unmarked"))return "em-dash and hyphen still disagree";
+    if(_invNorm("Iron ring—unmarked")!==_invNorm("Iron ring - unmarked"))return "unspaced dash disagrees";
+    if(_invNorm("well worn cloak")===_invNorm("well-worn cloak"))return "over-merged: spaced words folded into a hyphenated compound";
+    return _invNorm("Folded letter — from iron box")!==_invNorm("Folded letter — from iron box, Hemwick's name")?true:"distinct letters collapsed";
   });
   t("migrateWorldState heals player + companion duplicate pairs, idempotent",function(){
     makeWorld();
