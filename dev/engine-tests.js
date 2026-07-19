@@ -2154,8 +2154,12 @@ function runEngineTests(R){
     // CORE_MEMORY doc line, +503 chars). Golden diffed by eye each time.
     // v1.359 (#1 P5): the one PARTY_SPLIT doc line (+391 chars). Golden diffed by eye.
     // v1.361 (B3): the one NPC-DEATH-IS-PERMANENT-CANON doc line (+478 chars). Golden diffed by eye.
+    // v1.385 (#75a): the one "AN ITEM IS A DISCRETE PORTABLE OBJECT" line (+421 chars). Golden
+    // diffed by eye. Counterweight to TAKING IS TAGGED, which pushes hard toward emitting
+    // [ITEM_GAINED:] and had nothing telling the GM what does NOT qualify — the t881 sheet
+    // carried "blood" and "confirmed loft position clear" as inventory.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1682497214&&d.length===13742)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-1396121130&&d.length===14163)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
