@@ -12,6 +12,9 @@ var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest excha
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
 var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap, PER SHEET since #63 (v1.304) — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
 var CONDITION_AUDIT_TURNS=12;    // #46 audit teeth: a party condition this many turns old (or unstamped/legacy) makes buildConditionAudit fire
+var TT_HISTORY_MAX=6;       // #76: max Table Talk Q/A pairs fed back into the TT prompt (its OWN log — never sessionLog, so TT chatter can't reach story context). Stored list is capped at 2x this.
+var TT_HISTORY_CHARS=3000;  // #76: char budget on that TT history (newest pair always survives)
+var TT_CAP_MATCH_MAX=6;     // #76: max capability-bible entries expanded to full canon per question (the index of ALL names is always sent; only matches get the 6-row detail)
 var CONDITION_AUDIT_COOLDOWN=12; // #46: at most one condition audit per this many turns — a kept condition gets re-audited next window, not nagged every turn
 var WEIGHTY_REL_RE=/(married|wed(ded)?|wife|husband|spouse|betrothed|lover|betray|sworn|oath|blood[- ]?(bound|brother|sister)|nemesis|widow|avenged)/i; // #40: relationship descriptors weighty enough to file as a defining moment. +wife/husband/spouse (v1.270, UA41): the t455 Morwen entries read literally "Wife" — the exact incident the reciprocity nudge exists to catch never matched the original list
 var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than this is due for a re-check (buildMoodAudit, api.js). Deliberately far shorter than REL_AUDIT_TURNS below: bonds shift on a ~100-turn scale, mood is scene-scale, and auditing a volatile field on a slow field's clock is what let "watchful, tense" sit pinned on Frizwick for an entire arc. ~12 turns ≈ one play session at the observed rate. An EMPTY mood is eligible immediately — no age wait — since a party member in every scene with no recorded mood is a gap now, not in 12 turns.
@@ -156,7 +159,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.386";
+var APP_VERSION="v1.387";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

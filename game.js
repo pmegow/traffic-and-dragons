@@ -890,7 +890,11 @@ async function sendAction(override,opts){
   var _committed=false; // true once applyMuts has mutated state — a Retry after that would double-apply (audit E82)
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
-    var sys=isTT?"STRICT OUT-OF-CHARACTER MODE. The player is speaking to you as the GM, not as a character in the story. YOUR RESPONSE MUST CONTAIN ZERO narrative prose, ZERO second-person story description, ZERO scene-setting, and ZERO story advancement. Do not describe what the player character does, sees, or experiences. Do not use phrases like 'you slip', 'you notice', 'ahead lies', or any story language. Respond ONLY in plain first-person GM voice -- conversational, direct, factual. Answer their question or engage with their comment as a game master would between sessions. Any narrative content in your response is a STRICT VIOLATION of these instructions.":null;
+    // #76: Table Talk is a HELP AGENT with its own prompt builder (table-talk.js) — app help
+    // derived from the rendered File menu, capability-bible canon, engine-stored campaign facts,
+    // memory tiers + question-keyed RAG, and its OWN rolling history. Deliberately NOT
+    // buildSysPrompt: sharing that stable half would kill gameplay prompt-cache hits (UA5).
+    var sys=isTT?buildTableTalkPrompt(txt):null;
     // P3 quest escalation: when an active quest has sat all-objectives-done for
     // QUEST_ESCALATE_TURNS+ turns (see buildQuestEscalation, api.js), prepend a bracketed
     // engine note to the OUTGOING API message. apiTxt is what callGM sends and what
@@ -899,8 +903,19 @@ async function sendAction(override,opts){
     // lastAction/retry keep the clean txt too, so the note never reaches the player.
     var apiTxt=txt;
     if(!isTT&&!(opts&&opts.silent)){var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
-    var resp=await callGM(apiTxt,sys);th.remove();
-    if(isTT){addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(resp)+"</p>");}/* escape GM table-talk output (audit E11) */
+    // #76: TT sends noHistory — the narrative sessionLog is what used to overpower the
+    // out-of-character instruction (#74 ②: GM narrated, was corrected, complied, then narrated
+    // again next question). Its context now comes from buildTableTalkPrompt instead, including
+    // a TT-only history. kind:"tabletalk" gives it its own Usage-modal bucket.
+    var resp=await callGM(apiTxt,sys,null,null,isTT?{noHistory:true,kind:"tabletalk"}:undefined);th.remove();
+    if(isTT){
+      // #74 ①: the TT pane never ran cleanTxt, unlike the narrative path, so any stray tag
+      // rendered verbatim to the player (the [CALENDAR:…] sighting). Strip them here too.
+      var ttClean=(typeof cleanTxt==="function")?cleanTxt(resp):resp;
+      ttLogExchange(txt,ttClean);
+      addMsg("tabletalk","<em>[GM]</em> <p>"+escProse(ttClean)+"</p>");/* escape GM table-talk output (audit E11) */
+      saveAll();/* persist the TT log; debounced server sync coalesces the burst */
+    }
     else{
       // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
