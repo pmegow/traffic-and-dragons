@@ -24,6 +24,8 @@
   dt .full{font-weight:400;color:var(--dim);font-size:13px;font-style:italic;}
   dt code{background:#f0e9db;color:var(--code);padding:1px 5px;border-radius:4px;font-size:13px;}
   dd{margin:3px 0 0;color:#4a443b;}
+  dd .use{display:block;margin-top:5px;color:var(--dim);font-size:13px;}
+  dd .use b{color:var(--code);font-weight:600;}
   footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12px;}
 </style>
 </head>
@@ -41,6 +43,7 @@
   <a href="#state">Save &amp; state</a>
   <a href="#chars">Characters</a>
   <a href="#infra">Infra &amp; releases</a>
+  <a href="#cmds">Commands we typed into being</a>
 </nav>
 
 <h2 id="browser">Browser &amp; plumbing</h2>
@@ -121,6 +124,17 @@
   <div class="term"><dt>Cloudflare Pages</dt><dd>Where the app itself is hosted — plain static files, auto-published every time we push to the main branch.</dd></div>
   <div class="term"><dt>Fly.dev</dt><dd>Where the sync server lives — it handles logins and stores your cloud saves so a campaign follows you across devices.</dd></div>
   <div class="term"><dt>GAS <span class="full">Google Apps Script</span></dt><dd>A tiny program hosted free inside your Google account. Ours receives the game's crash reports and emails them to you.</dd></div>
+</dl>
+
+<h2 id="cmds">Commands we typed into being (skills)</h2>
+<p style="color:var(--dim);font-size:13.5px;margin:0 0 10px;max-width:62ch;">Rituals we kept re-explaining from scratch each session, written down once so Claude runs them the same way every time. Each lives in <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
+<dl>
+  <div class="term"><dt><code>/bugs</code></dt><dd>Triage for crash reports the game emailed itself — pull new ones, investigate a chosen one, then fix it.
+    <span class="use"><b>Use it when:</b> reports have piled up and you want them filed, explained, or fixed. <b>Say:</b> <code>/bugs sync</code>, then <code>/bugs investigate B7</code>, then <code>/bugs act B7</code>.</span></dd></div>
+  <div class="term"><dt><code>/field-finding</code></dt><dd>Turns "the GM did something wrong in my game" into a proven cause and a backlog row. Never edits code.
+    <span class="use"><b>Use it when:</b> you saw it happen while playing, and there's no crash report — just your eyes on a turn. <b>Say:</b> <code>/field-finding my healing potion vanished from the pack around t612</code>. A turn number makes it far stronger.</span></dd></div>
+  <div class="term"><dt><code>/playtest</code></dt><dd>Auto-plays real turns against a throwaway hero, then judges the corpus for broken rules, missing state tags, and prose drift.
+    <span class="use"><b>Use it when:</b> a risky change needs proof it survives real play. Costs real API money — it asks first past ~25 turns. <b>Say:</b> <code>/playtest run 20</code>, then <code>/playtest audit</code>; <code>/playtest recover</code> rescues a run whose window you closed.</span></dd></div>
 </dl>
 
 <footer>
