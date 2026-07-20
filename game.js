@@ -851,7 +851,9 @@ async function sendAction(override,opts){
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
   if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}
-  var isTT=activeChatTab==="tabletalk";
+  // opts.ttRetry forces the Table Talk path regardless of the current tab — a failed TT question
+  // must retry AS Table Talk even if the player switched to Story while it was in flight (#76).
+  var isTT=(opts&&opts.ttRetry)?true:(activeChatTab==="tabletalk");
   // ── TODO #1 P3 (D3/D5): multi-PC sub-turn queue ───────────────────────────────────────────
   // Engaged ONLY when playerCount()>1 and this is a real story action (Table Talk and silent
   // engine sends bypass — they are out-of-character). Each submit queues the SPOTLIGHT PC's
@@ -879,7 +881,11 @@ async function sendAction(override,opts){
     saveAll();syncUI();
     _mpResolve=true;
   }
-  busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;lastAction=txt;
+  // lastAction feeds the topbar Retry button (retryLast), which sends as a STORY turn. A Table
+  // Talk question must never land there: ask a TT question, switch to Story, hit Retry, and the
+  // out-of-character question would be replayed as a real player action — transcript-logged,
+  // applyMuts'd, turn advanced. TT keeps its retry payload in the catch closure instead (#76).
+  busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;if(!isTT)lastAction=txt;
   if(!(opts&&opts.silent)&&!_mpResolve)addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
   // Skip the transcript write on a retry of the same action — the failed attempt already
   // logged it, and a duplicate player line corrupts the story-compiler record (audit #9).
@@ -925,7 +931,7 @@ async function sendAction(override,opts){
   }catch(e){th.remove();
     if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")+(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
-    else{var em=addMsg("system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+    else{var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("action-input").focus();
   if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("action-input");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}

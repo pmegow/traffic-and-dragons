@@ -63,6 +63,51 @@ try {
   }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
+// Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
+// TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,
+// the multi-PC queue, and the turn counter. Every one of those is a `!isTT` guard that a future
+// edit could drop, and NONE of them would fail visibly — the campaign would just start quietly
+// absorbing out-of-character chatter. So the guards are asserted here as a source contract.
+// The `lastAction` one is not hypothetical: it WAS unguarded (ask a TT question, switch to the
+// Story tab, press Retry → the question replayed as a real player turn). Fixed v1.388.
+try {
+  var _fsT = require("fs"), _pathT = require("path");
+  var _rootT = _pathT.join(__dirname, "..");
+  var _game = _fsT.readFileSync(_pathT.join(_rootT, "game.js"), "utf8");
+  var _ttFail = [];
+  function _ttReq(name, cond) { if (!cond) _ttFail.push(name); }
+  _ttReq("lastAction guarded by !isTT (else Retry replays a TT question as a story turn)", /if\(!isTT\)lastAction=txt;/.test(_game));
+  _ttReq("transcript write guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!_isRetryDup\)logTranscript/.test(_game));
+  _ttReq("summarize guarded by !isTT", /if\(!isTT&&sessionTokens\(\)>=SUMMARIZE_AT\)/.test(_game));
+  _ttReq("engine notes guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)\)\{var _en=buildEngineNotes/.test(_game));
+  _ttReq("multi-PC queue bypassed for TT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!\(opts&&opts\.mpBypass\)/.test(_game));
+  _ttReq("TT sends noHistory (the narrative sessionLog is not sent)", /isTT\?\{noHistory:true,kind:"tabletalk"\}:undefined/.test(_game));
+  _ttReq("TT response runs cleanTxt (#74 (1): raw tags used to render verbatim)", /var ttClean=\(typeof cleanTxt==="function"\)\?cleanTxt\(resp\)/.test(_game));
+  _ttReq("TT failure retries AS TT, not through retryLast", /isTT\?function\(\)\{sendAction\(txt,\{ttRetry:true\}\);\}:function\(\)\{retryLast\(\);\}/.test(_game));
+  _ttReq("opts.ttRetry forces the TT path regardless of the active tab", /var isTT=\(opts&&opts\.ttRetry\)\?true:\(activeChatTab==="tabletalk"\)/.test(_game));
+  // commitGmTurn is what runs applyMuts + logs the GM entry + advances the turn.
+  var _bodyT = _game.slice(_game.indexOf("async function sendAction"), _game.indexOf("function retryLast"));
+  var _iIf = _bodyT.indexOf("if(isTT){"), _iElse = _bodyT.indexOf("else{", _iIf), _iCommit = _bodyT.indexOf("commitGmTurn(resp");
+  _ttReq("commitGmTurn sits in the ELSE of if(isTT) — TT can never reach it", _iIf > 0 && _iElse > _iIf && _iCommit > _iElse);
+  _ttReq("commitGmTurn called exactly once in sendAction", (_bodyT.match(/commitGmTurn\(/g) || []).length === 1);
+  // The TT log is TT's alone — if a prompt builder ever reads it, TT chatter reaches the GM.
+  var _apiT = _fsT.readFileSync(_pathT.join(_rootT, "api.js"), "utf8");
+  _ttReq("buildSysPrompt/api.js has zero Table Talk references", !/ttLog|buildTableTalkPrompt/.test(_apiT));
+  _ttReq("ttLog is written in game.js exactly once and read nowhere else", (_game.match(/ttLog/g) || []).length === 1);
+  // #76 (2): the never-infer rule is general. A date/calendar branch would both special-case it
+  // and rot the moment TODO #73 lands a real campaign clock.
+  var _ttSrc = _fsT.readFileSync(_pathT.join(_rootT, "table-talk.js"), "utf8");
+  var _ttCode = _ttSrc.replace(/^\s*\/\/.*$/gm, ""); // strip comments — the rationale MAY say "solstice"
+  _ttReq("table-talk.js has NO date/solstice special-case branch (#73 must land with zero changes here)",
+    !/if\s*\([^)]*\b(solstice|calendar|days?\s*(to|until))\b/i.test(_ttCode));
+  if (_ttFail.length) {
+    console.error("TABLE TALK ISOLATION BROKEN (#76) — Table Talk could now influence gameplay:");
+    _ttFail.forEach(function (f) { console.error("  - " + f); });
+    process.exit(1);
+  }
+} catch (e) { console.error("TT ISOLATION CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains
