@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Glossary icon (DOC/DOC_technical_terms.html) — the game icon's composition on parchment:
+       same Traffic / & / Dragons lockup, ruled-page field instead of graph paper, and A/Z
+       corner marks where the designer icon has drafting registers. Palette matches the page. -->
+  <defs>
+    <linearGradient id="bg-grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#b8935a" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#6b4f2a" stop-opacity="0.06"/>
+    </linearGradient>
+    <pattern id="ruling" width="512" height="32" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="31" x2="512" y2="31" stroke="#b8935a" stroke-opacity="0.13" stroke-width="1"/>
+    </pattern>
+    <clipPath id="rnd"><rect width="512" height="512" rx="90"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="90" fill="#faf7f0"/>
+  <g clip-path="url(#rnd)">
+    <rect width="512" height="512" fill="url(#ruling)"/>
+    <rect width="512" height="512" fill="url(#bg-grad)"/>
+  </g>
+  <!-- Firm rim: this is the only icon in the family whose field matches the page it sits on,
+       so without a real edge it reads as a hole on light chrome (caught in render, not code). -->
+  <rect x="3" y="3" width="506" height="506" rx="87" fill="none" stroke="#b8935a" stroke-opacity="0.55" stroke-width="6"/>
+  <!-- A–Z corner marks (the glossary's register marks) -->
+  <text x="52" y="58" font-family="Georgia,serif" font-size="42" font-weight="bold" fill="#b8935a" text-anchor="middle" dominant-baseline="central" opacity="0.55">A</text>
+  <text x="460" y="454" font-family="Georgia,serif" font-size="42" font-weight="bold" fill="#b8935a" text-anchor="middle" dominant-baseline="central" opacity="0.55">Z</text>
+  <text x="256" y="64" font-family="Georgia,serif" font-size="68" fill="#6b4f2a" text-anchor="middle" dominant-baseline="central" opacity="0.7">Traffic</text>
+  <line x1="80" y1="128" x2="432" y2="128" stroke="#b8935a" stroke-width="2" stroke-opacity="0.5"/>
+  <text x="256" y="256" font-family="Georgia,serif" font-size="210" font-weight="bold" fill="#6b4f2a" text-anchor="middle" dominant-baseline="central">&amp;</text>
+  <line x1="80" y1="384" x2="432" y2="384" stroke="#b8935a" stroke-width="2" stroke-opacity="0.5"/>
+  <text x="256" y="448" font-family="Georgia,serif" font-size="68" fill="#6b4f2a" text-anchor="middle" dominant-baseline="central" opacity="0.7">Dragons</text>
+</svg>
