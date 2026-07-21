@@ -133,9 +133,18 @@ function ttStateBlock(){
     +" | HP "+c.hp+"/"+c.maxHp+" | gold "+c.gold+" | XP "+c.xp);
   s.push("Location: "+(w.location||"unknown")+(w.sublocation?" — "+w.sublocation:"")
     +" | time of day: "+(w.time||"not set")+" | weather: "+(w.weather||"not set"));
-  s.push("NOTE ON TIME: the engine tracks a free-text TIME OF DAY only. There is no date, no day"
-    +"\ncounter, no calendar, and no season tracking anywhere in the save. Any question about dates,"
-    +"\nelapsed days, or a countdown to a future date is NOT TRACKED — say so.");
+  // #73 campaign clock: elapsed time + scheduled-deadline countdowns are now REAL, computed data.
+  // buildClockBlock is the SAME shared builder the game prompt uses, so TT and the GM can never
+  // disagree about the clock or a countdown (the #76↔#73 coupling — TT answers "days to the
+  // solstice" from the stored anchor, not by inventing a number). If nothing has elapsed and
+  // nothing is scheduled it renders "", and TT correctly falls back to "not tracked" below.
+  var clk=(typeof buildClockBlock==="function")?buildClockBlock():"";
+  if(clk)s.push(clk.replace(/\n+$/,""));
+  s.push("NOTE ON TIME: the CAMPAIGN CLOCK above (when present) is elapsed campaign time plus any"
+    +"\nscheduled deadlines with COMPUTED time-remaining — answer date/countdown questions from it"
+    +"\nEXACTLY, never estimate. There is still no named-month calendar or wall-clock time-of-day yet"
+    +"\n(free-text 'time of day' is narrative only); if the clock block is absent, elapsed time has not"
+    +"\nbeen tracked in this campaign — say that rather than inventing a number.");
   // Party
   var party=[];
   if(worldState.npcs)for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];if(n.partyMember)party.push(n.name+(n.charSheet?" (lv"+n.charSheet.level+" "+(n.charSheet.cls||"")+", HP "+n.charSheet.hp+"/"+n.charSheet.maxHp+")":""));}

@@ -671,6 +671,7 @@ function buildSysPrompt(){
     +legacyBlock
     +buildNpcGraph()
     +buildGeoBlock()
+    +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
     +cb+hist
     +buildCoreMemoryBlock()
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"

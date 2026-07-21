@@ -195,6 +195,11 @@ function migrateWorldState(){
      firing on any over-budget act) covers the interim. New/transitioned arcs get an accurate stamp. */
   if(worldState.skeleton&&worldState.skeleton.acts){var _sa,_sr;for(_sa=0;_sa<worldState.skeleton.acts.length;_sa++){var _arcs=worldState.skeleton.acts[_sa].arcs||[];for(_sr=0;_sr<_arcs.length;_sr++){if(_arcs[_sr].status==="active"&&_arcs[_sr].startTurn===undefined){_arcs[_sr].startTurn=worldState.turn;_mig=true;}}}}
   if(!c.aliases){c.aliases=[];_mig=true;}/* #47 epithets — schema field so titles survive PC↔NPC swaps */
+  /* #73 campaign clock: the elapsed-time counter + scheduler. min=0 = campaign start. Additive —
+     an old save simply starts its clock at load (Day 0), and buildClockBlock renders nothing until
+     time is advanced or something is scheduled, so the prompt stays byte-clean for untouched saves. */
+  if(!worldState.clock||typeof worldState.clock.min!=="number"||isNaN(worldState.clock.min)){worldState.clock={min:0,schedule:[]};_mig=true;}
+  if(!worldState.clock.schedule){worldState.clock.schedule=[];_mig=true;}
   // UA26 multi-foe combat (v1.264): wrap a flat legacy in-flight combat object into the foes[]
   // shape. Idempotent — .foes presence short-circuits, so a re-run can never double-wrap.
   if(worldState.combat&&!worldState.combat.foes){var _oc=worldState.combat;worldState.combat={round:_oc.round||1,engaged:null,foes:[_oc]};_mig=true;}

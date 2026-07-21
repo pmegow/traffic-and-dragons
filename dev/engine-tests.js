@@ -2141,7 +2141,11 @@ function runEngineTests(R){
     // chars = "ITEM_KEPT|" (10) + "COMPANION_ITEM_KEPT|" (20). Stripping is the WHOLE POINT of
     // this pair: an unstripped [ITEM_KEPT:] would put bookkeeping back in the transcript and
     // re-arm the very feedback loop it exists to break.
-    if(__djb2(_CT_TAGS.source)!==-1280743406||_CT_TAGS.source.length!==929)return "_CT_TAGS diverged from the frozen literal";
+    // v1.389 (#73 campaign clock): +TIME_ADVANCE|SCHEDULE|SCHEDULE_RESOLVED|SCHEDULE_CANCEL strip
+    // entries — source grew exactly 56 chars = "TIME_ADVANCE|"(13)+"SCHEDULE|"(9)+
+    // "SCHEDULE_RESOLVED|"(18)+"SCHEDULE_CANCEL|"(16). Stripping these keeps the clock/scheduler
+    // brackets out of the player-facing prose (and out of the transcript).
+    if(__djb2(_CT_TAGS.source)!==-1586017263||_CT_TAGS.source.length!==985)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -2158,8 +2162,12 @@ function runEngineTests(R){
     // diffed by eye. Counterweight to TAKING IS TAGGED, which pushes hard toward emitting
     // [ITEM_GAINED:] and had nothing telling the GM what does NOT qualify — the t881 sheet
     // carried "blood" and "confirmed loft position clear" as inventory.
+    // v1.389 (#73 campaign clock): +2 doc lines (the [TIME_ADVANCE:] estimation-table line and the
+    // [SCHEDULE:]/RESOLVED/CANCEL line, +1241 chars). Golden diffed by eye. These tell the GM to
+    // estimate turn duration every turn and to set deadlines ONCE (the engine computes the
+    // countdown) — the anti-hallucination instruction pair behind #73.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1396121130&&d.length===14163)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===154890390&&d.length===15404)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -6051,6 +6059,131 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var d=memoryNpcDetail("Quiet");
     if(/Quiet\s*:\s*$/m.test(d))return "dangling colon: "+JSON.stringify(d);
     return d.indexOf("Quiet")===0?true:"unexpected detail render: "+JSON.stringify(d);
+  });
+
+  // ═══ #73 CAMPAIGN CLOCK — the counter, the scheduler, and the jump-safety that is the point ═══
+  section("#73 campaign clock");
+  t("parseDuration: units, compound, bare-minutes, and junk", function(){
+    if(parseDuration("2h")!==120)return "2h="+parseDuration("2h");
+    if(parseDuration("30m")!==30)return "30m";
+    if(parseDuration("45")!==45)return "bare 45="+parseDuration("45");   // bare = minutes
+    if(parseDuration("1d 6h")!==1800)return "1d 6h="+parseDuration("1d 6h");
+    if(parseDuration("1d6h30m")!==1830)return "compound="+parseDuration("1d6h30m");   // 1440+360+30
+    if(parseDuration("3d")!==4320)return "3d";
+    if(parseDuration("")!==0||parseDuration("soon")!==0)return "junk should be 0";
+    return true;
+  });
+  t("clockAdvance is monotonic and clamps <1 up to 1 (never freezes, never reverses)", function(){
+    makeWorld();
+    if(clockNow()!==0)return "fresh clock not 0: "+clockNow();
+    if(clockAdvance(90)!==90||clockNow()!==90)return "add 90 failed: "+clockNow();
+    if(clockAdvance(0)!==1||clockNow()!==91)return "zero should clamp to +1: "+clockNow();
+    if(clockAdvance(-500)!==1||clockNow()!==92)return "negative should clamp to +1, never reverse: "+clockNow();
+    return true;
+  });
+  t("clockFmt derives Day/Hh/Mm from the scalar (nothing stored)", function(){
+    makeWorld(); clockAdvance(4*1440 + 14*60 + 30);   // Day 4, 14h30m
+    return /Day 4, 14h 30m elapsed/.test(clockFmt())?true:"got: "+clockFmt();
+  });
+  t("scheduleAdd stores an ABSOLUTE due-time; a duplicate label refreshes, never twins", function(){
+    makeWorld(); clockAdvance(100);
+    var e=scheduleAdd("Winter solstice","11d");
+    if(e.dueMin!==100+11*1440)return "due not absolute: "+e.dueMin;
+    if(worldState.clock.schedule.length!==1)return "count "+worldState.clock.schedule.length;
+    clockAdvance(1440);                                  // a day passes
+    scheduleAdd("winter solstice","5d");                 // same label (case-insensitive), reset
+    if(worldState.clock.schedule.length!==1)return "duplicate twinned: "+worldState.clock.schedule.length;
+    if(worldState.clock.schedule[0].dueMin!==1540+5*1440)return "refresh due wrong: "+worldState.clock.schedule[0].dueMin;
+    return true;
+  });
+  t("JUMP-SAFETY: a 1h deadline slept past by a 6h rest FIRES on waking (the whole point)", function(){
+    makeWorld(); clockAdvance(300);                      // now=300
+    scheduleAdd("Messenger arrives","60");               // due at 360
+    if(scheduleDue().length!==0)return "fired early at now=300";
+    clockAdvance(360);                                   // ONE 6h jump: now=660, straight past 360
+    var due=scheduleDue();
+    if(due.length!==1)return "MISS: jumped-over event did not fire (this is the exact-minute bug)";
+    if(due[0].label!=="Messenger arrives")return "wrong event";
+    if(due[0].elapsed!==300)return "elapsed-since-due should be 300 (came due 5h ago): "+due[0].elapsed;
+    return true;
+  });
+  t("JUMP-SAFETY: ALL events crossed in one jump fire, oldest-due first", function(){
+    makeWorld();
+    scheduleAdd("A","1h"); scheduleAdd("B","2h"); scheduleAdd("C","5h"); scheduleAdd("Later","2d");
+    clockAdvance(6*60);                                   // rest 6h — crosses A,B,C but not Later
+    var due=scheduleDue();
+    if(due.length!==3)return "expected 3 due, got "+due.length;
+    if(due[0].label!=="A"||due[2].label!=="C")return "not oldest-due-first: "+due.map(function(x){return x.label;}).join(",");
+    if(schedulePending().length!==1||schedulePending()[0].label!=="Later")return "Later should still be pending";
+    return true;
+  });
+  t("countdown is COMPUTED, never stored — advancing shrinks the gap", function(){
+    makeWorld();
+    scheduleAdd("Solstice","10d");
+    var b1=buildClockBlock();
+    if(b1.indexOf("in 10 days")<0)return "initial gap wrong: "+b1;
+    clockAdvance(3*1440);                                 // 3 days pass
+    var b2=buildClockBlock();
+    if(b2.indexOf("in 7 days")<0)return "gap did not recompute to 7 days: "+b2;
+    return true;
+  });
+  t("scheduleRemove (resolved/cancel) drops by case-insensitive substring", function(){
+    makeWorld();
+    scheduleAdd("The Duke's ball","3d"); scheduleAdd("Poison tick","10m");
+    if(scheduleRemove("duke")!==1)return "resolve by substring failed";
+    if(scheduleRemove("nope")!==0)return "no-match should remove 0";
+    if(worldState.clock.schedule.length!==1)return "count "+worldState.clock.schedule.length;
+    return true;
+  });
+  t("buildClockBlock renders nothing on an untouched clock (byte-clean for quiet saves)", function(){
+    makeWorld();
+    if(buildClockBlock()!=="")return "should be empty at min=0 with no schedule: "+JSON.stringify(buildClockBlock());
+    clockAdvance(60);
+    if(buildClockBlock().indexOf("CAMPAIGN CLOCK")<0)return "should render once time has passed";
+    return true;
+  });
+  t("tags: [TIME_ADVANCE:] advances; multiple in one response SUM", function(){
+    makeWorld();
+    applyMuts("You travel.\n[TIME_ADVANCE:2h][TIME_ADVANCE:30m]");
+    return clockNow()===150?true:"expected 150m, got "+clockNow();
+  });
+  t("tags: [SCHEDULE:]/[SCHEDULE_RESOLVED:] round-trip through applyMuts", function(){
+    makeWorld(); clockAdvance(100);
+    applyMuts("The priest warns you.\n[SCHEDULE:Winter solstice|11d]");
+    if(worldState.clock.schedule.length!==1)return "schedule not added";
+    if(worldState.clock.schedule[0].dueMin!==100+11*1440)return "due wrong: "+worldState.clock.schedule[0].dueMin;
+    applyMuts("It comes to pass.\n[SCHEDULE_RESOLVED:Winter solstice]");
+    return worldState.clock.schedule.length===0?true:"resolve did not remove";
+  });
+  t("migrateWorldState adds the clock to a legacy save (additive, not destructive)", function(){
+    makeWorld(); delete worldState.clock;
+    migrateWorldState();
+    if(!worldState.clock||worldState.clock.min!==0||!Array.isArray(worldState.clock.schedule))return "clock not migrated: "+JSON.stringify(worldState.clock);
+    return true;
+  });
+  t("STABLE-HALF PURITY: the clock is volatile-only — never in the cached stable block, and advancing it never perturbs stable", function(){
+    makeWorld(); worldState.ragMemory=false;
+    scheduleAdd("Solstice","5d"); clockAdvance(90);
+    var p1=buildSysPrompt();
+    if(typeof p1==="string")return "buildSysPrompt should return {stable,volatile} for gameplay";
+    // Marker = "UPCOMING (computed" — a DATA-block-only string. (The phrase "CAMPAIGN CLOCK" also
+    // appears in the constant STATE-TAGS doc instruction, which legitimately lives in stable; the
+    // invariant is that the per-turn DATA never does.)
+    if(p1.stable.indexOf("UPCOMING (computed")>=0)return "clock DATA leaked into the cached stable half — would kill every cache hit";
+    if(p1.volatile.indexOf("UPCOMING (computed")<0)return "clock data missing from the volatile half";
+    var stableBefore=p1.stable;
+    clockAdvance(6*60); scheduleAdd("Another","1d");      // change the clock a lot
+    var p2=buildSysPrompt();
+    if(p2.stable!==stableBefore)return "advancing the clock changed the STABLE half — cache-killer";
+    if(p2.volatile.indexOf("in 4 days")<0&&p2.volatile.indexOf("in 5 days")<0)return "volatile countdown not present after advance";
+    return true;
+  });
+  t("Table Talk surfaces the computed countdown (the #76 coupling — solstice answerable without inventing)", function(){
+    makeWorld(); clockAdvance(100); scheduleAdd("Winter solstice","11d");
+    var p=(typeof buildTableTalkPrompt==="function")?buildTableTalkPrompt("how many days to the solstice?"):"";
+    if(p.indexOf("CAMPAIGN CLOCK")<0)return "TT prompt missing the clock block";
+    if(p.indexOf("Winter solstice")<0||p.indexOf("in 11 days")<0)return "TT prompt missing the computed countdown";
+    return true;
   });
 
 }

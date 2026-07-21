@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic and Dragons — Campaign Clock</title>
+<style>
+  :root{--ink:#23201b;--dim:#8a7f6d;--acc:#b8935a;--bg:#faf7f0;--card:#fff;--line:#e7ddca;--code:#6b4f2a;
+    --good:#3f7a3f;--goodbg:#eaf3e6;--open:#9a6a1a;--openbg:#f6edd8;--later:#7a7266;--laterbg:#efe9dd;--warn:#9a3320;--warnbg:#f6e2dc;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:860px;margin:0 auto;padding:44px 22px 90px;}
+  header h1{font-size:27px;margin:0 0 6px;}
+  header p{color:var(--dim);font-size:14px;margin:0 0 6px;max-width:70ch;}
+  header .rule{color:var(--acc);font-weight:600;}
+  nav{margin:22px 0 8px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:2;}
+  nav a{color:var(--code);text-decoration:none;margin-right:14px;white-space:nowrap;}
+  nav a:hover{color:var(--acc);text-decoration:underline;}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  h3{font-size:15px;margin:22px 0 6px;}
+  p,li{color:#4a443b;}
+  code{background:#f0e9db;color:var(--code);padding:1px 5px;border-radius:4px;font-size:13px;}
+  pre{background:#23201b;color:#e7ddca;padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.5;}
+  pre code{background:none;color:inherit;padding:0;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0;}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0;}
+  th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line);}
+  th{color:var(--acc);text-transform:uppercase;letter-spacing:.06em;font-size:11px;}
+  td:first-child{white-space:nowrap;font-weight:600;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 9px;border-radius:12px;border:1px solid;}
+  .p-lock{background:var(--goodbg);border-color:var(--good);color:var(--good);}
+  .p-open{background:var(--openbg);border-color:var(--open);color:var(--open);}
+  .p-later{background:var(--laterbg);border-color:var(--later);color:var(--later);}
+  .p-warn{background:var(--warnbg);border-color:var(--warn);color:var(--warn);}
+  ol.steps{padding-left:20px;} ol.steps li{margin:7px 0;}
+  ul{padding-left:20px;} ul li{margin:5px 0;}
+  .note{font-size:13px;color:var(--dim);font-style:italic;}
+  .key{border-left:3px solid var(--acc);padding-left:12px;margin:14px 0;}
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12px;}
+  .scroll{overflow-x:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Campaign Clock</h1>
+  <p>Design spec for TODO&nbsp;#73 — the engine's in-fiction time system: a monotonic clock the GM advances each turn, and a scheduler whose countdowns are <span class="rule">computed, never remembered</span>.</p>
+  <p class="note">Status: design converged 2026-07-20 (user + Claude designed independently, then compared). v1 built same day. Drift surface → Fable pre-review pending (logged in todo_checkWithFable.md).</p>
+</header>
+
+<nav>
+  <a href="#problem">The problem</a>
+  <a href="#pillars">Four pillars</a>
+  <a href="#model">Data model</a>
+  <a href="#tags">Tags</a>
+  <a href="#firing">Firing &amp; jump-safety</a>
+  <a href="#inject">Injection</a>
+  <a href="#scope">v1 vs fast-follow</a>
+  <a href="#calendar">Calendar</a>
+  <a href="#decisions">Decisions</a>
+</nav>
+
+<h2 id="problem">The problem it fixes</h2>
+<div class="card">
+<p>The engine has no concept of a <strong>day</strong>. The only clock is free-text <code>[TIME:]</code> ("dusk", "midday") with no advancement. So any in-fiction deadline is pure hallucination.</p>
+<p><strong>Live evidence (2026-07-19, Table Talk):</strong> asked "how many days to the winter solstice", the GM answered <strong>11</strong>, then <strong>8</strong>, then <strong>94</strong> — three confident answers, nothing stored behind any of them — and emitted <code>[CALENDAR:11 days to winter solstice]</code> and <code>[DAYS_TO_SOLSTICE:94]</code>, <em>inventing tags for a system that does not exist</em>. The GM believed it was recording a countdown; nothing was listening.</p>
+<p class="key">The root cause is not that the GM is bad at counting. It is that <strong>the GM is asked to remember and re-state a number</strong>. The fix removes that request entirely: the engine stores an anchor, and every countdown is recomputed from it. A number the GM never re-states cannot drift.</p>
+</div>
+
+<h2 id="pillars">The four pillars</h2>
+<table class="scroll">
+<thead><tr><th>Pillar</th><th>Design</th></tr></thead>
+<tbody>
+<tr><td>Counter</td><td>ONE scalar — total minutes since epoch (<code>clock.min</code>). The human day/hour/minute view is <em>derived</em>, never stored. A single monotonic integer cannot carry-desync from itself, and "add 90 minutes" is a bare <code>+90</code>. (User's first instinct was three stored fields m/h/d; same capability, but the scalar removes the carry-bug surface and those three become the display.)</td></tr>
+<tr><td>Advance</td><td>The GM estimates how long each turn took and the ENGINE adds it. The GM does <strong>zero arithmetic</strong> — it emits a duration in natural units (<code>2h</code>, <code>11d</code>), which is judgment, the thing models are good at. Every add, carry, and countdown is deterministic JavaScript. This is why "LLMs are bad at math" is the <em>reason</em> for the design, not a constraint worked around.</td></tr>
+<tr><td>Rest</td><td>Routes through the same advance tag — a rest is just a big advance (6–12h per the narrative), not a second mechanism.</td></tr>
+<tr><td>Scheduler</td><td>Stores an <strong>absolute</strong> due-time; the "time remaining" is recomputed every turn (<code>due − now</code>). The GM sets a deadline ONCE and can never drift because it never re-states the number.</td></tr>
+</tbody>
+</table>
+
+<h2 id="model">Data model</h2>
+<pre><code>worldState.clock = {
+  min: 0,              // total MINUTES since epoch (campaign start = 0). Monotonic.
+  schedule: [          // absolute-time deadlines; countdowns are computed, never stored
+    { id, label, dueMin, born }   // fires when clock.min >= dueMin
+  ]
+}</code></pre>
+<p>Epoch = 0 = campaign start, resettable via the Sync modal (fast-follow). The v1 clock measures <strong>elapsed campaign time</strong> — "Day 4, 14h 30m since the campaign began" — which is the honest primitive. Mapping elapsed time onto an in-world wall-clock date ("3rd of Frostfall") is the <a href="#calendar">calendar fast-follow</a>.</p>
+
+<h2 id="tags">Tags</h2>
+<table class="scroll">
+<thead><tr><th>Tag</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><code>[TIME_ADVANCE:N]</code></td><td>Advance the clock. Unit-suffixed: <code>2h</code>, <code>30m</code>, <code>1d 6h</code>, or bare = minutes. Clamped to ≥ 1 min. <strong>Monotonic — never runs backward.</strong> Emitted every turn. Missing → default +1 min (fail-safe-small) + a compliance watch (HP-under-emission class).</td></tr>
+<tr><td><code>[SCHEDULE:label|when]</code></td><td>Schedule a future event at <code>now + when</code> (duration form: <code>11d</code>, <code>10m</code>). Stores the absolute <code>dueMin</code>. Duplicate label refreshes rather than twinning.</td></tr>
+<tr><td><code>[SCHEDULE_RESOLVED:label]</code></td><td>The event happened / was handled — remove it.</td></tr>
+<tr><td><code>[SCHEDULE_CANCEL:label]</code></td><td>The event is no longer going to happen — remove it (distinct from resolved for clarity in logs).</td></tr>
+</tbody>
+</table>
+<p class="note">The GM gets a duration <strong>reference table</strong> in the prompt so estimates stay consistent: combat round ≈ 1 min · conversation 1–5 min · searching a room 10–30 min · an errand 30–60 min · travel = hours (judge by distance) · a rest 6–12h. This is the "will take tweaking" knob.</p>
+
+<h2 id="firing">Firing &amp; jump-safety <span class="pill p-lock">load-bearing</span></h2>
+<div class="card">
+<p><strong>Firing = surface to the GM; the GM mutates.</strong> When <code>now ≥ dueMin</code>, the engine does <em>not</em> silently change state. It surfaces the event under "HAPPENING NOW" in the prompt; the GM narrates it and emits any consequent tag itself (<code>[CONDITION_REMOVED:paralysis]</code>). This preserves the engine's core contract — <strong>the GM is the only mutator; the engine tracks time and re-injects authoritative state.</strong> A due event surfaces for ~2 turns then auto-retires with a warn (the #29 futureEvents-hygiene lesson), so it can't nag forever.</p>
+<p class="key"><strong>The <code>≥</code> is not incidental — it is jump-safety.</strong> Firing is THRESHOLD-triggered (<code>now ≥ due</code>), NEVER exact-minute (<code>now == due</code>). An event due in 1 hour that the party sleeps past with a 6-hour rest (clock jumps 300 → 660, due = 360) MUST fire on waking — and it does, because <code>660 ≥ 360</code>. The gap is never "checked"; the standing condition is. One comparison per pending event catches everything, robust to a jump of any size, and fires ALL events crossed in one jump (rest 6h over events at +1h/+2h/+5h → all surface, oldest-due first).</p>
+<p><strong>Do NOT</strong> "optimize" this into a per-minute scan or an exact match — an exact-minute check would silently skip every jumped-over event and pass casual testing. <strong>Test the failure case:</strong> schedule at +60 min, advance +360 min in one tag, assert it fires.</p>
+<p><strong>Narration nuance:</strong> the block distinguishes JUST-became-due ("a messenger arrives") from ELAPSED-during-a-jump ("you wake to find a messenger has waited since dawn") — same firing mechanism, the GM is told which flavor so a slept-past event reads as already-happened, not happening-now.</p>
+</div>
+
+<h2 id="inject">Injection — one shared builder</h2>
+<div class="card">
+<p><code>buildClockBlock()</code> is a single pure builder injected into the <strong>volatile</strong> half every turn (never the cached stable half — a per-turn counter in the stable block would kill every prompt-cache hit, the UA5 failure). It computes all countdowns from data:</p>
+<pre><code>CAMPAIGN CLOCK: Day 4, 14h 30m elapsed (since the campaign began).
+UPCOMING (computed from the clock — never invent or restate these numbers):
+  • Winter solstice — in 7 days
+  • Paralysis on Ammut wears off — in 6 minutes
+HAPPENING NOW:
+  • (nothing due)</code></pre>
+<p>Same re-inject-from-data pattern as the quest block, character sheet, and <code>[LOCATION_DESC:]</code>. <strong>Both</strong> <code>buildSysPrompt</code> and Table Talk's <code>ttStateBlock</code> call it — which is how #73 makes the solstice question answerable in Table Talk (#76) with (near-)zero change: TT gets the computed countdown by calling the shared builder, honoring the coupling promised when #76 shipped.</p>
+</div>
+
+<h2 id="scope">v1 vs. fast-follow — what actually shipped</h2>
+<table class="scroll">
+<thead><tr><th>Piece</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Scalar counter + migration</td><td><span class="pill p-lock">v1</span></td></tr>
+<tr><td><code>[TIME_ADVANCE:]</code> + estimation table</td><td><span class="pill p-lock">v1</span></td></tr>
+<tr><td>Scheduler + firing + jump-safety</td><td><span class="pill p-lock">v1</span></td></tr>
+<tr><td><code>buildClockBlock()</code> injection (game + Table Talk)</td><td><span class="pill p-lock">v1</span></td></tr>
+<tr><td>Named in-world calendar (months, epoch date, wall-clock dates)</td><td><span class="pill p-later">fast-follow</span></td></tr>
+<tr><td>Time-of-day AUTHORITY — derive tod from the clock, retire/repoint <code>[TIME:]</code>, Sync-modal clock editor</td><td><span class="pill p-later">fast-follow</span></td></tr>
+</tbody>
+</table>
+<div class="key">
+<p><strong>Deliberate v1 boundary (flag for the user).</strong> The user ratified "clock is authoritative for time-of-day". v1 does NOT deliver that yet — it keeps the v1 clock as an <em>elapsed-time</em> counter and leaves free-text <code>[TIME:]</code> / <code>world.time</code> ("dusk") untouched as narrative flavor. There is no conflict for the #73 fix, because scheduling runs on <code>clock.min</code>, not <code>world.time</code>. Retiring <code>[TIME:]</code> and deriving wall-clock time-of-day belongs with the calendar (both are the display / date-projection layer, and both touch the Sync modal), so they land together in the fast-follow rather than half-wiring the Sync modal now. This keeps v1 tightly scoped to the actual bug on a drift surface.</p>
+</div>
+
+<h2 id="calendar">The named in-world calendar <span class="pill p-later">fast-follow</span></h2>
+<div class="card">
+<p>With minutes-since-epoch, a named calendar is a <strong>pure read-only projection</strong> over the same scalar: an epoch anchor ("begins 1st of Frostfall, Year 823") + month names + <em>fixed</em> month lengths → any <code>clock.min</code> maps to an in-world date via deterministic modular arithmetic in the engine (the model does none of it).</p>
+<p><strong>Not just flavor.</strong> It upgrades the scheduler: a deadline as <code>21st of Deepfrost</code> is an <em>absolute anchor</em> — self-correcting, never re-stated — versus <code>+11d</code>, which is relative to when it was set and fragile if set twice. Fixed-date deadlines (solstices, festivals, "the tax is due on the 1st") become first-class. The delightfully-ridiculous month names ride on top for free.</p>
+<p class="note">⚠ Keep the calendar SIMPLE — fixed month lengths, no leap logic. It's a fantasy world; we make the rules, and simple rules stay deterministic and testable.</p>
+</div>
+
+<h2 id="decisions">Decision log</h2>
+<table class="scroll">
+<thead><tr><th>#</th><th>Decision</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>C1</td><td><strong>One scalar, derive the three fields.</strong> Avoids carry-desync; the m/h/d view is the display, not the storage.</td><td><span class="pill p-lock">Locked 2026-07-20</span></td></tr>
+<tr><td>C2</td><td><strong>Firing = surface-to-GM, GM mutates.</strong> Engine tracks time and re-injects; it never becomes a second silent mutator.</td><td><span class="pill p-lock">Locked 2026-07-20</span></td></tr>
+<tr><td>C3</td><td><strong>Threshold firing (<code>≥</code>), jump-safe.</strong> A slept-past deadline fires on waking; never an exact-minute check. Failure-case test required.</td><td><span class="pill p-lock">Locked 2026-07-20</span></td></tr>
+<tr><td>C4</td><td><strong>Clock authoritative for time-of-day</strong> (retire/repoint <code>[TIME:]</code>).</td><td><span class="pill p-later">Ratified; deferred to fast-follow</span></td></tr>
+<tr><td>C5</td><td><strong>Named in-world calendar is IN scope</strong> (reversing Claude's "defer as flavor" — user: "it's gold"). Fixed month lengths, no leap logic.</td><td><span class="pill p-later">Locked; fast-follow</span></td></tr>
+<tr><td>C6</td><td><strong>Relationship to <code>memory.futureEvents</code> (#29):</strong> that system is FUZZY narrative anticipation (free-text "when"). The scheduler is the HARD, precisely-timed sibling — complementary, not a duplicate. Possible later unify.</td><td><span class="pill p-lock">Noted</span></td></tr>
+</tbody>
+</table>
+
+<footer>
+Traffic and Dragons — Campaign Clock spec. TODO&nbsp;#73. Drift surface: new tags + <code>buildSysPrompt</code> injection + migration. Built by Opus 4.8; Fable pre-review pending (todo_checkWithFable.md).
+</footer>
+</div>
+</body>
+</html>

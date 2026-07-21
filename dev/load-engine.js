@@ -17,7 +17,7 @@
 var fs = require("fs"), path = require("path");
 var ROOT = path.join(__dirname, "..");
 var FILES = ["globals.js", "error-report.js", "compress.js", "data.js", "capability_bible.js", "helpers.js",
-  "state.js", "storage-adapter.js", "memory.js", "tag_table.js", "api.js",
+  "state.js", "storage-adapter.js", "memory.js", "clock.js", "tag_table.js", "api.js",
   "table-talk.js", "campaign_generator.js", "game.js", "tts.js", "sound.js"];
 
 var geval = eval; // indirect eval → runs in global scope, so the engine's `var`s become node globals
