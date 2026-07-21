@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Piper Voice Picker</title>
+<style>
+:root{--bg0:#0e1116;--bg1:#161b22;--bg2:#1c232c;--brd:#2b3440;--t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;--acc:#9ab0c8;--good:#7aa86a;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg0);color:var(--t0);font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:820px;margin:0 auto;padding:24px 16px 120px}
+h1{font-size:20px;margin:0 0 4px}p.sub{color:var(--t1);font-size:13px;margin:0 0 16px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg0);border-bottom:1px solid var(--brd);padding:10px 0;margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cnt{font-weight:700;color:var(--acc)}
+button{font-family:inherit;font-size:13px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.play{min-width:36px;font-size:14px}button.play.on{background:var(--acc);color:#000;border-color:var(--acc)}
+.filt{display:flex;gap:6px;flex-wrap:wrap}
+.filt button.on{background:var(--acc);color:#000;border-color:var(--acc)}
+#export{margin-left:auto;font-weight:700}
+.row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--brd);border-radius:10px;margin:6px 0;background:var(--bg1)}
+.row.sel{border-color:var(--good);background:#141c14}
+.nm{font-weight:600}.meta{color:var(--t1);font-size:12px;margin-top:2px}
+.spk{color:var(--acc)}.grow{flex:1;min-width:0}
+.mono{font-family:monospace;color:var(--t2);font-size:11px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--good);cursor:pointer;flex:none}
+.tag{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--t1);border:1px solid var(--brd);border-radius:5px;padding:1px 5px}
+#exportbox{width:100%;height:240px;margin-top:10px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:8px;padding:10px;font:12px/1.45 monospace;display:none}
+.note{color:var(--t2);font-size:12px;margin-top:10px}
+</style></head><body><div class="wrap">
+<h1>&#127908; Piper Voice Picker</h1>
+<p class="sub">All 30 distinct English (US + UK) Piper voices at best quality. Tap &#9654; to hear a sample &mdash; pre-rendered, nothing to download. Check the ones to keep, then Export. <b>TODO #9.</b></p>
+<div class="bar">
+  <span class="cnt"><span id="n">0</span> selected</span>
+  <div class="filt">
+    <button data-f="all" class="on">All</button><button data-f="en_US">US</button><button data-f="en_GB">UK</button><button data-f="multi">Multi-speaker</button><button data-f="sel">Selected</button>
+  </div>
+  <button id="export">Export picks &rarr;</button>
+</div>
+<div id="list"></div>
+<textarea id="exportbox" readonly></textarea>
+<p class="note">Multi-speaker models (e.g. LibriTTS R &mdash; 904 speakers) can voice many distinct characters from one download; the sample plays speaker 0. Per-speaker selection is a later step. Picks persist in this browser.</p>
+</div>
+<script>
+var VOICES=[{"id":"en_GB-alan-medium","name":"alan","lang":"en_GB","quality":"medium","speakers":1,"onnx":"en/en_GB/alan/medium/en_GB-alan-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/alan/medium/speaker_0.mp3","sizeMB":60},{"id":"en_GB-alba-medium","name":"alba","lang":"en_GB","quality":"medium","speakers":1,"onnx":"en/en_GB/alba/medium/en_GB-alba-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/alba/medium/speaker_0.mp3","sizeMB":60},{"id":"en_GB-aru-medium","name":"aru","lang":"en_GB","quality":"medium","speakers":12,"onnx":"en/en_GB/aru/medium/en_GB-aru-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/aru/medium/speaker_0.mp3","sizeMB":73},{"id":"en_GB-cori-high","name":"cori","lang":"en_GB","quality":"high","speakers":1,"onnx":"en/en_GB/cori/high/en_GB-cori-high.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/cori/high/speaker_0.mp3","sizeMB":109},{"id":"en_GB-jenny_dioco-medium","name":"jenny_dioco","lang":"en_GB","quality":"medium","speakers":1,"onnx":"en/en_GB/jenny_dioco/medium/en_GB-jenny_dioco-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/jenny_dioco/medium/speaker_0.mp3","sizeMB":60},{"id":"en_GB-northern_english_male-medium","name":"northern_english_male","lang":"en_GB","quality":"medium","speakers":1,"onnx":"en/en_GB/northern_english_male/medium/en_GB-northern_english_male-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/northern_english_male/medium/speaker_0.mp3","sizeMB":60},{"id":"en_GB-semaine-medium","name":"semaine","lang":"en_GB","quality":"medium","speakers":4,"onnx":"en/en_GB/semaine/medium/en_GB-semaine-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/semaine/medium/speaker_0.mp3","sizeMB":73},{"id":"en_GB-southern_english_female-low","name":"southern_english_female","lang":"en_GB","quality":"low","speakers":1,"onnx":"en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/southern_english_female/low/speaker_0.mp3","sizeMB":60},{"id":"en_GB-vctk-medium","name":"vctk","lang":"en_GB","quality":"medium","speakers":109,"onnx":"en/en_GB/vctk/medium/en_GB-vctk-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_GB/vctk/medium/speaker_0.mp3","sizeMB":73},{"id":"en_US-amy-medium","name":"amy","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/amy/medium/en_US-amy-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/amy/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-arctic-medium","name":"arctic","lang":"en_US","quality":"medium","speakers":18,"onnx":"en/en_US/arctic/medium/en_US-arctic-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/arctic/medium/speaker_0.mp3","sizeMB":73},{"id":"en_US-bryce-medium","name":"bryce","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/bryce/medium/en_US-bryce-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/bryce/medium/speaker_0.mp3","sizeMB":61},{"id":"en_US-danny-low","name":"danny","lang":"en_US","quality":"low","speakers":1,"onnx":"en/en_US/danny/low/en_US-danny-low.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/danny/low/speaker_0.mp3","sizeMB":60},{"id":"en_US-hfc_female-medium","name":"hfc_female","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/hfc_female/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-hfc_male-medium","name":"hfc_male","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/hfc_male/medium/en_US-hfc_male-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/hfc_male/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-joe-medium","name":"joe","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/joe/medium/en_US-joe-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/joe/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-john-medium","name":"john","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/john/medium/en_US-john-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/john/medium/speaker_0.mp3","sizeMB":61},{"id":"en_US-kathleen-low","name":"kathleen","lang":"en_US","quality":"low","speakers":1,"onnx":"en/en_US/kathleen/low/en_US-kathleen-low.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/kathleen/low/speaker_0.mp3","sizeMB":60},{"id":"en_US-kristin-medium","name":"kristin","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/kristin/medium/en_US-kristin-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/kristin/medium/speaker_0.mp3","sizeMB":61},{"id":"en_US-kusal-medium","name":"kusal","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/kusal/medium/en_US-kusal-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/kusal/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-l2arctic-medium","name":"l2arctic","lang":"en_US","quality":"medium","speakers":24,"onnx":"en/en_US/l2arctic/medium/en_US-l2arctic-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/l2arctic/medium/speaker_0.mp3","sizeMB":73},{"id":"en_US-lessac-high","name":"lessac","lang":"en_US","quality":"high","speakers":1,"onnx":"en/en_US/lessac/high/en_US-lessac-high.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/lessac/high/speaker_0.mp3","sizeMB":109},{"id":"en_US-libritts-high","name":"libritts","lang":"en_US","quality":"high","speakers":904,"onnx":"en/en_US/libritts/high/en_US-libritts-high.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/libritts/high/speaker_0.mp3","sizeMB":130},{"id":"en_US-libritts_r-medium","name":"libritts_r","lang":"en_US","quality":"medium","speakers":904,"onnx":"en/en_US/libritts_r/medium/en_US-libritts_r-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/libritts_r/medium/speaker_0.mp3","sizeMB":75},{"id":"en_US-ljspeech-high","name":"ljspeech","lang":"en_US","quality":"high","speakers":1,"onnx":"en/en_US/ljspeech/high/en_US-ljspeech-high.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/ljspeech/high/speaker_0.mp3","sizeMB":109},{"id":"en_US-mike-medium","name":"mike","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/mike/medium/en_US-mike-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/mike/medium/speaker_0.mp3","sizeMB":60},{"id":"en_US-norman-medium","name":"norman","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/norman/medium/en_US-norman-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/norman/medium/speaker_0.mp3","sizeMB":61},{"id":"en_US-reza_ibrahim-medium","name":"reza_ibrahim","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/reza_ibrahim/medium/en_US-reza_ibrahim-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/reza_ibrahim/medium/speaker_0.mp3","sizeMB":61},{"id":"en_US-ryan-high","name":"ryan","lang":"en_US","quality":"high","speakers":1,"onnx":"en/en_US/ryan/high/en_US-ryan-high.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/ryan/high/speaker_0.mp3","sizeMB":115},{"id":"en_US-sam-medium","name":"sam","lang":"en_US","quality":"medium","speakers":1,"onnx":"en/en_US/sam/medium/en_US-sam-medium.onnx","sample":"https://rhasspy.github.io/piper-samples/samples/en/en_US/sam/medium/speaker_0.mp3","sizeMB":60}];
+var KEY="tnd_voicepick_v1";
+var sel={};
+try{ sel=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){ sel={}; }
+var filter="all", audio=null, playingId=null;
+
+function nice(n){
+  var parts=String(n).split("_"), out=[], i;
+  for(i=0;i<parts.length;i++){ out.push(parts[i].charAt(0).toUpperCase()+parts[i].slice(1)); }
+  return out.join(" ");
+}
+function stopAudio(){
+  if(audio){ audio.pause(); audio=null; }
+  var p=document.querySelector(".play.on"); if(p){ p.className="play"; p.textContent="▶"; }
+  playingId=null;
+}
+function play(v, btn){
+  var wasPlaying=(playingId===v.id);
+  stopAudio();
+  if(wasPlaying){ return; }
+  audio=new Audio(v.sample); playingId=v.id;
+  btn.className="play on"; btn.textContent="■";
+  audio.onended=function(){ stopAudio(); };
+  audio.onerror=function(){ btn.textContent="!"; playingId=null; audio=null; };
+  audio.play()["catch"](function(){ btn.textContent="!"; playingId=null; });
+}
+function count(){ document.getElementById("n").textContent=Object.keys(sel).length; }
+function render(){
+  var list=document.getElementById("list"); list.innerHTML="";
+  var i;
+  for(i=0;i<VOICES.length;i++){
+    var v=VOICES[i];
+    if(filter==="en_US" && v.lang!=="en_US") continue;
+    if(filter==="en_GB" && v.lang!=="en_GB") continue;
+    if(filter==="multi" && v.speakers<=1) continue;
+    if(filter==="sel" && !sel[v.id]) continue;
+    (function(v){
+      var row=document.createElement("div"); row.className="row"+(sel[v.id]?" sel":"");
+      var pb=document.createElement("button"); pb.className="play"; pb.textContent="▶";
+      pb.onclick=function(){ play(v, pb); };
+      var mid=document.createElement("div"); mid.className="grow";
+      mid.innerHTML="<div class=nm>"+nice(v.name)+" <span class=tag>"+(v.lang==="en_US"?"US":"UK")+"</span></div>"+
+        "<div class=meta>"+v.quality+" · "+v.sizeMB+"MB"+(v.speakers>1?" · <span class=spk>"+v.speakers+" speakers</span>":"")+" · <span class=mono>"+v.id+"</span></div>";
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!sel[v.id];
+      cb.onchange=function(){
+        if(cb.checked){ sel[v.id]=1; } else { delete sel[v.id]; }
+        localStorage.setItem(KEY, JSON.stringify(sel));
+        row.className="row"+(cb.checked?" sel":""); count();
+      };
+      row.appendChild(pb); row.appendChild(mid); row.appendChild(cb); list.appendChild(row);
+    })(v);
+  }
+}
+var fbtns=document.querySelectorAll(".filt button"), fi;
+for(fi=0;fi<fbtns.length;fi++){
+  (function(b){ b.onclick=function(){
+    filter=b.getAttribute("data-f");
+    var all=document.querySelectorAll(".filt button"), k;
+    for(k=0;k<all.length;k++){ all[k].className=""; }
+    b.className="on"; render();
+  }; })(fbtns[fi]);
+}
+document.getElementById("export").onclick=function(){
+  var picks=[], i;
+  for(i=0;i<VOICES.length;i++){ if(sel[VOICES[i].id]) picks.push(VOICES[i]); }
+  var lines=[];
+  for(i=0;i<picks.length;i++){
+    var v=picks[i];
+    var label=nice(v.name)+" — "+(v.lang==="en_US"?"US":"UK")+(v.speakers>1?", "+v.speakers+"-speaker":"");
+    lines.push('  { id:"'+v.id+'", label:"'+label+'", size:"'+v.sizeMB+'MB", onnx:"'+v.onnx+'", speakers:'+v.speakers+' }');
+  }
+  var ids=[];
+  for(i=0;i<picks.length;i++){ ids.push(picks[i].id); }
+  var box=document.getElementById("exportbox");
+  box.style.display="block";
+  box.value="// "+picks.length+" picks — paste into PIPER_VOICES (tts.js)\nvar PIPER_VOICES = [\n"+lines.join(",\n")+"\n];\n\n// ids only:\n"+ids.join("\n");
+  box.focus(); box.select();
+};
+render(); count();
+</script></body></html>
