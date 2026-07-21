@@ -1,83 +1,83 @@
-# Traffic and Dragons — Session Handoff
+# Traffic and Dragons — Session Handoff (2026-07-21)
 
-**Status: ✅ EXECUTED (banner added 2026-07-16, audit #27)** — the "⚡ NEXT TASK" below (audit the overnight playtest / bible money test) was done: see [audits/AUDIT_playtest_v1.224.md](audits/AUDIT_playtest_v1.224.md). Nothing in this doc is a live instruction; retained as the historical record of the v1.225 session state.
+**Current deployed version:** `v1.398` (APP_VERSION in globals.js; CACHE `tnd-v3-20260720m` in sw.js).
+**Branch:** master — everything committed + pushed, working tree clean except this file.
 
-**Date:** 2026-07-08 (the capability_bible build day)
-**Deployed version:** engine **v1.225** — pushed through `b9ac10a` (`origin/master` == local HEAD).
-**SW cache:** `tnd-v3-20260708c` (`sw.js`).
-**Working tree:** only the two `.blueprint` files (Runelords + ToA) carry UNCOMMITTED changes — pre-existing, the user's, not this session's. Leave them; don't sweep into a commit.
-**Server:** healthy on Fly (untouched this session).
-**Overnight:** the user is running a **playtest while they sleep**. This handoff is for the session that audits it.
+This session ran long. It covered: the Table Talk rebuild (#76), the campaign clock (#73), the multiplayer close-out (#1/Q5), a batch of issue closures, and a large **TTS / voice rework (#9)** which is the main in-flight thread. **Read TODO #9 and `todo_checkWithFable.md #4` first** — they are the source of truth; this file is orientation.
 
 ---
 
-## ⚡ NEXT TASK: AUDIT THE OVERNIGHT PLAYTEST — the bible "MONEY TEST"
+## ⚠ IN FLIGHT — pick this up first
 
-This session built the whole `capability_bible` anti-drift system (v1.218–v1.224). Every turn, the GM prompt now carries CANONICAL rules for the player's known spells/abilities (`buildSpellBibleBlock` + `buildAbilityBibleBlock`, VOLATILE half). **The machinery is proven and unit-tested; what is NOT proven is whether the model HONORS the fixed bounds under real play.** That is the money test the overnight run exists to answer.
+**Cartesia dead-code sweep (part of #9).** Cartesia was removed as a user choice in v1.398 (`getEngine()` returns the constant `"piper"`; the modal lost the engine picker + Cartesia panel). The Cartesia CODE is still present but DORMANT/unreachable. A read-only Sonnet already MAPPED it (2026-07-21) — **the plan below is ready to execute; you do NOT need to re-analyze.** Line numbers are as of v1.398 tts.js (~1950 lines; re-grep each symbol to confirm before deleting — a later edit may have shifted them). Baseline: **57 lines / 71 occurrences of case-insensitive "cartesia"**; a clean sweep should drop that to ~0.
 
-### Get the data
-1. **If the preview browser is still open** from the overnight run: the harness corpus is live at `window.__pt.log` (turn/action/narration) and `window.__pt.errors`. Pull it via `preview_eval` before anything reloads it away.
-2. **Extract the save** regardless (source of truth): in the page, `saveAll(); window.__b64=btoa(unescape(encodeURIComponent(JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2))))` then `window.__b64` — an oversized `preview_eval` result **auto-saves to a tool-results file**; read it, strip the wrapping quotes, `Buffer.from(b64,"base64").toString("utf8")` → write `playtest_v1.224.tnd`. (This is exactly how the v1.214 save was captured — one whole-blob eval, not chunks.)
+**DELETE (Cartesia-exclusive) — functions:** `getKey()` (377), `getVoice()` (378), `getBank()` (179-181), `setBank()` (182), `_cartesiaOk()` (388-391), `_stream()` (775-793), `_streamGo()` (794-919), `_updateCartErr()` (1506-1515, already dead — its element is gone), `_buildVoiceOptions()` (1656-1669), `_buildBankRows()` (1714-1726), `_wireBankDelBtns()` (1738-1754), `_refreshVoiceUI()` (1728-1736, already dead). **Vars/constants:** `KEY_K` (15), `VOICE_K` (17), `BANK_K` (18), `CARTESIA_SSE_URL` (194), `CARTESIA_VERSION` (195), `CARTESIA_MODEL` (196), `_cartesiaError` (367), `_cartesiaErrorAt` (368), `_abortCtrl` (366), and the `cartesia:` entry inside `TTS_PROVIDERS` (157-167 — delete ONLY that key; keep the table + the `native`/`piper` entries).
 
-### What to check — bible compliance FIRST
-Grep the narration corpus / transcript against `capability_bible.js` and look for **drift** (the whole point):
-- **Range/targets/duration honored?** e.g. Message stays ≤120ft (the original drift), Hunter's Mark stays ONE target (exclusive), Fireball's radius/save intact. Any spell narrated outside its canon = a finding, and it means injection isn't enough (next step would be per-provider reinforcement, like the openai tag-discipline block).
-- **`[SPELL_DEF:]`** — did the GM invent a spell not in the bible and canonize it write-once into `worldState.capabilityBible`? (Check the save's `capabilityBible` overlay.)
-- **`[SPELL_USED:]`** slot expenditure + **`[REST:long]`** restore (P10/R1).
-- **NOTE:** the money test is only real if the character CASTS. **Full spell coverage shipped v1.225** — all 91 game spells are now in the bible (was an 18-spell starter; Necromancer went 0/23 → 23/23), so ANY caster now exercises it. The local save (Kael) is a **Ranger** (light casting); a **Sorcerer, Cleric, or Necromancer** hammers it far harder — recommend one of those for any re-run. Coverage is guarded by a test (a new SPELLS entry with no bible key fails the build).
+**TWO one-line edits inside SHARED functions (do NOT delete the functions):**
+- `_drain()` line 712: the `else _stream(item.text, item.voiceId);` clause is the only `_stream` caller and is unreachable now (no queue item lacks both `.native` and `.piper`). Drop the `else` clause (keep `_drain()` — it's the shared dispatcher).
+- `_stopCurrent()` line 1477: the `if (_abortCtrl) {...}` line is dead once `_abortCtrl` is gone. Delete just that line (keep `_stopCurrent()` — used by skip/stop for every engine).
 
-### Then the regression invariants (all shipped this arc — confirm they held live)
-- **F2 (v1.216):** combat clears on a `[LOCATION:]` world-move — grep for stale `worldState.combat` persisting across a travel. (Console prints `[combat] auto-cleared stale combat …`.)
-- **F3 (v1.216):** an act with all arcs `completed` gets the `[ACT_COMPLETE:]` nudge and actually advances.
-- **v1.215:** NO raw tags in displayed prose (`[TIME:]`/`[WEATHER:]`/`[REST:]` were leaking pre-v1.215 — should be clean now).
-- From the v1.214 audits (still the live behaviour): quest lifecycle CLOSES with rewards (P3), story beats fire (P11), `[LOCATION]`/`[SUBLOCATION]` movement upkeep (P4), `[TIME:]`/`[WEATHER:]` advance (R2), companion auto-sheets (P2). Zero console errors.
+**⚠ PROTECT — Cartesia touched these but Piper NEEDS them, do NOT remove:** the whole shared scheduler `_audioCtx`/`_ensureCtx`/`_closeCtx`/`_sources`/`_nextStart`/`_queue`/`_playing`/`_paused`/`_curNative`/`_onDoneCallback`/`_drain`/`_stopCurrent`/`speak`/`isOn`; the iOS ctx-discipline subsystem (`_resumeCtx`/`_ctxRunning`/`_armCtxUnlock`/`_armCtxWatch`/`_armPosState`/etc.); `primeAudioSession`/`stopAudioSessionPrimer`/`_primerSrc`; **`SAMPLE_RATE` (197)** (configures the shared ctx — Piper rides it); `getRate`/`RATE_K`; `TTS_TEST_LINE`; all text-prep (`splitSentences`/`normalizeForTTS`/`packLongUnit`/`unitGap`/`PAUSE_*`).
 
-### Write it up
-Use the established audit format (bold finding → mechanism w/ file:line → **Remedy** → Effort → Status) — model on **`AUDIT_playthrough_v1.214.md`** (this repo, earned explicit praise: direct answers table up top, regression scorecard vs the prior run, honest "what this can't claim"). Name it `AUDIT_playtest_v1.224.md`. `.tnd` saves are gitignored (local only); the audit `.md` is committable.
+**LEAVE ALONE (ambiguous, out of scope):** `ENGINE_K` (40) + its Save-handler write `store.set(ENGINE_K,"piper")` (1890) — vestigial engine key, NOT Cartesia code; only touch it if doing a broader engine-key cleanup. ~20 comment-only "Cartesia" mentions can optionally be cleaned to zero the grep count.
+
+**Verification gate (ALL before commit):** `node --check tts.js` → `node dev/run-tests.js` (ALL GREEN, 750) → grep `-i cartesia tts.js` ≈ 0 → Voice Settings modal opens WITHOUT a throw (removed panels left null-refs last time — the failure class) → **a real narration test in the browser** (engine tests do NOT exercise live audio; a mistakenly-removed shared piece only shows here). Then bump version + CACHE, commit, push, update checkWithFable #4. Do NOT touch `vendor/piper/*`.
 
 ---
 
-## This session (v1.216 → v1.224, all pushed)
+## #9 — TTS / voice rework (the big thread)
 
-| Ver | What |
-|---|---|
-| 1.216 | **F2** stale-combat clear on `[LOCATION:]` world-move (+ `[COMBAT_END:fled/truce/disengaged]` prompt nudge) · **F3** all-arcs-done → `[ACT_COMPLETE:]` nudge in the skeleton block. From the v1.214 ToA playthrough audit. |
-| 1.217 | **`character_library` rename** — the bare `library` was ambiguous (character vs blueprint). `Char`→`Character` on the identifiers, UI labels qualified per-domain. Server contract untouched (`/api/characters`). Deferred: the generic `mode==="library"` cloud-source toggle (a `"cloud"` rename is the clean fix if it ever bugs). |
-| 1.218 | **`spell_bible.js`** + live anti-drift injection (option A: preventive, every turn, known spells). Base-name keyed; `spellBibleLookup` w/ emergent overlay hook. |
-| 1.219 | **`[SPELL_DEF:]`** write-once tag — GM canonizes an invented spell into `worldState.capabilityBible` (lookup prefers overlay). |
-| 1.220 | **`ability_bible.js`** — abilities folded in; `capabilityLookup` resolves an ability-that-is-a-spell (Hunter's Mark) to its spell canon, no dup. |
-| 1.221 | **Player click-card** (`showCapabilityCard`) + **`bible_study.html`** viewer — one shared pure renderer `bibleCardHTML` (helpers.js), two hosts. |
-| 1.222 | **MERGED** `spell_bible`+`ability_bible` → **one `capability_bible.js`** (`CAPABILITY_BIBLE`, kind-tagged). User call: spells & abilities have no intrinsic difference, `kind` is cosmetic. Entities (item/creature/profession) stay separate `*_bible` files. |
-| 1.223 | **`category`** LIST (traditions: `arcane/divine/primal/necromantic/martial`) on every entry — the gate to limit an enemy caster (a cleric → `capabilitiesByCategory("divine")`). Turn Undead = `["divine","necromantic"]`. Rendered as card chips. `[SPELL_DEF:]` takes `category=a,b`. |
-| 1.224 | **Fixed attribute set** — every entry carries all of cost/range/targets/duration/save/damage, `"N/A"` where inapplicable. Cards always show 6 uniform rows; `capBibleLine()` injects one LABELED COMPLETE line so the GM can query any attribute and never get empty (the Death-Sight-duration problem). |
-| 1.225 | **Full spell coverage** — all 91 game spells authored (was 18-spell starter). Every class 100% (Necromancer 0/23 → 23/23). 114 entries (90 spells + 24 abilities). Coverage-guard test. Known: `blink` name-collision (Sorcerer ability vs Trickster spell; ability wins). |
+**Ratified design (full detail in TODO #9 + checkWithFable #4). All user-approved:**
+1. Cartesia removed; engine picker removed; **Piper is THE engine**; Native kept ONLY as the silent runtime fallback (load-window + iOS-audio-suspend), called directly, never via getEngine.
+2. **Voice binds to the NAMED character, stored ON THE SHEET** (`charSheet.voiceId`) — portable like portrait / core-memories (#63). No migration (absent = narrator). An imported voice not in the curated set snaps to narrator (guard, tested).
+3. Voice Settings menu = narrator + global TTS only. Per-character voice = a control on the character sheet next to the portrait. NPCs tier: sheeted NPC carries a voice, sheetless NPC = narrator.
+4. **Narrator voice = per-CAMPAIGN** (rides sync like `proseAuthor`) **+ authorable in the blueprint editor.** NOT built yet — resolvePiperVoice already reads `worldState.piperVoice`; the device→campaign move + the blueprint field are pending.
+5. **Speaker hook = cheap LLM POST-PASS** (option C) run CONCURRENTLY with the post-turn action-suggestion call, mapping `{speaker,text}` spans → each speaker's `charSheet.voiceId`, unassigned → narrator. NOT drift surface (output post-process). **NOT built — the big remaining piece; design it with the user before building.**
 
-**Key files:** `capability_bible.js` (the registry + `capBaseName`/`capabilityLookup`/`capabilitiesByCategory`); `api.js` (`buildSpellBibleBlock`/`buildAbilityBibleBlock`/`capBibleLine`, `[SPELL_DEF:]` in applyMuts, F2 in the `[LOCATION:]` handler, F3 in `buildSkeletonBlock`); `helpers.js` (`bibleCardHTML`); `ui.js` (`showCapabilityCard`); `bible_study.html` (satellite viewer, NOT in the SW shell). Full design + roadmap in **TODO #10**.
+**BUILT this session:**
+- v1.395 — curated 19-voice `PIPER_VOICES` set (from `voice_picker.html`). Dropped `mike`/`norman` (in the rhasspy manifest the picker used, but NOT in the vendored vits-web runtime catalog → would fail to download). Default = `en_US-libritts_r-medium`. `resolvePiperVoice` snaps stale prefs to default.
+- v1.396 — `TTS.voices()`/`voiceLabel`/`voiceKnown`/`voiceDefault` + `TTS.characterVoiceId(char)` resolver.
+- v1.397 — sheet voice control (`csVoiceControlHtml`/`csWireVoice` in ui-sheets.js) on player + companion/NPC sheets (gated on charSheet).
+- v1.398 — Voice Settings simplified (Cartesia + engine picker removed). Cartesia code left dormant → the sweep above.
 
----
+**PENDING (build order):** dead-code sweep → narrator per-campaign move + blueprint field → LLM speaker post-pass.
 
-## Next in value (after the audit)
-1. **Whatever the money test surfaces.** If the GM ignores bible bounds → per-provider reinforcement / a stronger STYLE line, not more data.
-2. **Enemy-caster consumer** — wire `capabilitiesByCategory` into a GM prompt block / enemy statblock so a rolled caster actually draws from its tradition. The data + gate function are ready; nothing consumes them for enemies yet. (TODO #10.)
-3. **Bible remaining:** companion spell canon (their spells live on `charSheet.spells`); `item_bible` + `[ITEM_DEF:]`; `creature_bible` (must ABSORB `worldState.bestiary`, not become a 2nd monster home). (Spell coverage is DONE, v1.225.) Eventual editor deferred until blueprint-bundled bibles create demand.
-4. **Open, unanswered:** reclassify Arcane Bolt (and the sorcerer at-will "abilities") `kind:"ability"`→`"spell"`? The user never called it — left as-is. One-line change. (`category:["arcane"]` regardless, since category is a separate axis.)
-5. **Older backlog:** #30 usage-meter undercount (~⅓ silently $0 — find the unpriced model id, prefix-match); #33 action buttons append + input clear ×.
+**Satellite tool `voice_picker.html`:** auditions all 30 English Piper voices via pre-rendered samples; exports a `PIPER_VOICES` block. Known minor bug: it lists voices the vits-web runtime can't fetch (mike/norman) — filter it to the runtime catalog if revisited. Multi-speaker goldmine noted on #9 ⑦: libritts_r = 904 voices from one 75MB download; a per-speaker browser + custom sample text (#9 ⑧ — the "no more meteorological events" wish) are deferred enhancements.
 
 ---
 
-## Standing rules / don't get burned
-- **Every commit is gated on the test suite** — `.git/hooks/pre-commit` runs `dev/run-tests.js` (**now 234 assertions**, headless node, ~1s) and BLOCKS on red. Hook isn't tracked — after a fresh clone: `cp dev/pre-commit .git/hooks/pre-commit`.
-- **ES5 only** (`var`, no arrows/template-literals/`const`); **bump `APP_VERSION` (globals.js) + `CACHE` (sw.js) on every game-code commit**; **update the TODO row in the same commit as the fix** (user rule).
-- **Bible canon is VOLATILE-half only** (`buildSpell/AbilityBibleBlock` read `worldState.character.spells/abilities` live). Never let it leak into the STABLE (cached) half — an engine test canaries this. `capabilityLookup` is THE lookup: overlay (`worldState.capabilityBible`) wins over `CAPABILITY_BIBLE`; keyed by **base name** (parenthetical stripped, lowercased) so it overlays the `SPELLS`/`ABILS` strings and `[SPELL_USED:]` matcher with no refactor.
-- **Preview loads stale by default** — the SW serves cache-first. To load a new version in the preview: unregister service workers + `caches.delete` all + reload (I did this every verify this session). A `CACHE` bump alone isn't enough for the *already-open* page.
-- **OneDrive can serve stale files** — project lives under OneDrive; `git diff` before committing if anything smells off (the v1.177 dropped-TODO-rows incident). The test gate does NOT check docs.
-- **Save extraction gotcha:** an oversized `preview_eval` return auto-saves to a tool-results file (path in the error) — use the whole-blob base64 round-trip, don't hand-copy chunks (a chunk I hand-copied truncated once).
-- **Memory holds live feedback norms** (auto-loaded): a question is not an action; don't begin work while a flagged question is unanswered ("proceed" ≠ resolving an open fork); Clarity above Brevity in naming; end update replies with the version line. Honor them.
-- **File menus are generated** (`buildFileMenus()` in ui.js); Blueprint Designer + `bible_study.html` are **satellite pages, no menu entry**, NOT in the SW app shell; the designer versions separately (`BP_DESIGNER_VERSION`).
-- **Read `CLAUDE.md` first** for architecture — this file is only "where we left off."
+## Other work streams (all shipped/closed this session)
 
-## Deploy
-- **Cloudflare Pages** auto-deploys on push to `master` (static, output = repo root). Poll `globals.js?nc=<ts>` for `APP_VERSION`.
-- **Server:** `cd ..\traffic-and-dragons-server && flyctl deploy --ha=false` (separate SIBLING repo).
+- **#76 Table Talk → help agent (v1.387):** rebuilt as an out-of-character help desk (`table-talk.js`, `buildTableTalkPrompt`). App help from the rendered File menu, capability-bible rules lookup, engine-stored campaign facts, memoryTOC + RAG, its own rolling history. Never mutates state (no applyMuts/logTranscript). Absorbs #74. Fixed a real leak (v1.388): a TT question could replay as a story turn via `lastAction`/Retry — now guarded, with a source-level TT-isolation contract in run-tests.js.
+- **#73 Campaign clock (v1.389):** `clock.js` — scalar minutes-since-epoch; `[TIME_ADVANCE:]`/`[SCHEDULE:]`/`[SCHEDULE_RESOLVED:]`/`[SCHEDULE_CANCEL:]`; `buildClockBlock()` shared by the game prompt AND Table Talk. Jump-safe firing (threshold `now≥due`, never `==`). Day# on the membar (v1.390). DEFERRED fast-follow: named in-world calendar + clock-authoritative time-of-day + retiring `[TIME:]`. Drift surface — logged in checkWithFable #3.
+- **#1 Multiplayer:** hot-seat build COMPLETE (user ran the multi-human session, "it works"). Q5 (Car Mode) resolved → D13 (visual hand-off suffices, no audio cue; voice-input hazards delegated to #77/#78). Only Q7 (networked co-op) remains — a later XL pass.
+- **Closures filed:** #74 (closed by #76), #79 (Day# membar), #8 (spell tooltips built then closed), #4 (moved to L5/L6), #22 (content sanitization — was already ROW CLOSED). Audio items #7+#13 moved to Long-term-goals **L7 "Audio Library"**.
+- **New rows:** #77 (TTS input proofreading/nonsense filter — also owns the multiplayer voice-misattribution case), #78 (Car Mode numbered-suggestion read-back), #80 (click-a-spell → "Cast X." — done), #81 (inventory item bible — design-first; the display-vs-GM-injection fork sets the tier), #82 (inventory tooltips — blocked on #81; surface already built by #83), #83 (mobile long-press tooltip — done; hold-to-peek, centered popup).
+- **Spell side-panel (v1.391–v1.394):** tooltips from the capability bible + click-to-cast + mobile long-press tooltip (centered, hold-to-peek). "No description available for: X" fallback for un-bibled items/spells.
 
-<!-- Prior handoffs (07-04/05/06: memory-engine day, designer arc, whole-engine audit) are in git history if needed. -->
+---
+
+## Conventions / decisions locked this session (IMPORTANT)
+
+- **Claude is the SOLE writer of TODO.md** (user decision 2026-07-20). The user no longer hand-edits it — they tell Claude, Claude edits. This fixed a 3× clobber where the user's concurrent edits dropped Claude's uncommitted TODO changes. Commit TODO edits PROMPTLY (shared OneDrive working tree). Memory: `todo-edits-through-claude`.
+- **The voice rework is logged in `todo_checkWithFable.md #4`** at the user's explicit request — TTS is NOT drift surface, but the user wants Fable to double-check the whole rework when available. Keep annotating it there as pieces land.
+- **TODO row style:** every row opens with a plain-language TLDR; carries Effort + Tier. Drift-surface work is Fable-tier (this rework is Sonnet-tier — TTS is output, not the anti-drift stack).
+
+## Standing verification norms (every code change)
+
+- Bump `APP_VERSION` (globals.js) + `CACHE` (sw.js) on every game-code commit. Satellite-only changes (voice_picker, DOC/*) don't bump APP_VERSION but do bump CACHE if sw.js changed.
+- `node dev/run-tests.js` must be ALL GREEN (pre-commit hook enforces it). Currently 750 assertions.
+- Browser-verify anything observable via the preview (localhost:3000); hard-refresh past the SW cache (unregister SW + clear caches except piper). Satellites are served network-first (voice_picker is in the sw.js allowlist).
+- Commit + push at each checkpoint. Stage files EXPLICITLY (never `git add -A` — shared working tree).
+- ES5 only (var; no arrow/const/let) — a pre-commit hook blocks violations, even in scratch `.js` files.
+
+## Gotchas seen this session
+- OneDrive occasionally throws a transient EPERM on file write → just retry the edit.
+- CRLF warnings on every `git add` are normal (LF working tree; git converts).
+- Emoji render as tofu boxes in the headless preview Chromium — fine on real devices; don't chase them.
+- `dev/run-tests.js` prints a wall of `[sound]`/`[migrate]`/`[camps] QuotaExceeded` noise — EXPECTED harness output; only the final `ALL GREEN — N assertions` line matters.
+
+## Awaiting the user (open threads)
+- **Next #9 step:** the user was deciding between the dead-code sweep (in flight) and lining up the narrator-per-campaign + blueprint piece as a follow-up Sonnet task. The LLM speaker post-pass needs a design conversation before building.
+- The #73 named-calendar / time-of-day fast-follow is planned, not started.
+- voice_picker catalog-filter fix (mike/norman-class mismatch) — parked, offered.
