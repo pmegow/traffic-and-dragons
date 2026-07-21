@@ -41,6 +41,24 @@ Fable session can audit it in one pass.
     `▶ Test` button next to the sheet voice dropdown auditions the currently-selected voice (first
     test of an undownloaded voice triggers its one-time Piper download, same as the settings Test).
     Live-verified: button passes the selected voiceId (and "" for narrator).
+  - v1.402 — **free a voice's OPFS slot on reassignment (+ Regenerate-Sheet button dropped):** new
+    public `TTS.releaseVoiceIfUnused(voiceId)` — when a character's sheet voice CHANGES, `csWireVoice`
+    (ui-sheets.js) captures the old id, updates `char.voiceId`, then calls release. Release deletes the
+    old voice from OPFS **only if `_voiceAssignedTo(old).length === 0`** — that scan covers every
+    character sheet AND the narrator (`resolvePiperVoice()`), so a voice still used by another party
+    member OR the narrator is protected automatically (the user's stated requirement: "this check
+    protects the narrator from losing its voice"). Guards: falsy id → no-op; not in the LRU keys →
+    no-op WITHOUT wasm init (an un-downloaded voice costs nothing). Removal reuses the exact
+    `_piperInit → _piperSerial → mod.remove` + LRU/`_piperDownloaded` cleanup path as the shipped
+    `_piperDeleteVoice`. Non-fatal (catch keeps the voice), console-attributed. Rationale: with voices
+    bound to characters, resident downloads self-track to ~narrator + party (≤5), so the cap-10 ceiling
+    is rarely approached. UI change (non-TTS): the **Regenerate Sheet** button was removed (footgun,
+    re-rolled a good sheet); **Generate** stays (only in-game path to a joiner's charSheet). No new
+    tests (UI-gated + reuses tested LRU/OPFS machinery); 750 green; live: v1.402 loads clean,
+    release exposed, empty/non-resident calls safe no-ops, no console errors. **Fable: confirm the
+    narrator-protection (`_voiceAssignedTo` including `resolvePiperVoice()`) can't be defeated by a
+    stale/empty worldState at call time, and that reusing `mod.remove` off the audition path can't race
+    a concurrent download of the SAME id (both ride `_piperSerial` — verify that serialization holds).**
   - v1.401 — **downloaded-voice cap 4 → 10 + eviction warning:** `PIPER_VOICE_CAP` raised (per-
     character voices need more resident room). Before a USER-initiated audition (`testVoice`, the
     single path behind both Test buttons) would evict a resident voice, a confirm modal names the
