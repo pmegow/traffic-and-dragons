@@ -195,6 +195,157 @@ async function generateActions(msgEl){
     worldState.lastActions=acts.slice(0,3);saveAll();
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
 }
+// ── #9: LLM speaker post-pass — who says which line ──────────────────────────────────────────
+// A post-turn hook like generateActions above: after the narration is committed, ask a cheap
+// model which sentence belongs to which character, so dialogue narrates in that character's own
+// voice instead of the narrator's. Output post-processing only — no applyMuts, no memory tier, no
+// system-prompt contact (an engine test asserts buildSysPrompt is byte-identical either way).
+//
+// Why INDICES and not {speaker,text} spans (the shape originally sketched): binding model-returned
+// TEXT back to synthesis units means substring-matching against the source, which fails silently
+// into wrong-voice output the moment the model paraphrases or renormalizes whitespace. The units
+// are already deterministic — splitSentences is what _speakPiper itself will iterate — so we hand
+// them over numbered and take back an index map. A bad index is then structurally detectable.
+var SPEAKER_TIMEOUT_MS=4000;   // fuse: narration WAITS for the map (user call), but never forever —
+                               // an unbounded wait turns one hung request into a silent turn.
+var SPEAKER_MAX_UNITS=60;      // runaway guard: past this the prompt isn't worth the tokens
+
+// The only characters that can sound different are the ones the player deliberately gave a voice.
+// Everyone else is the narrator, so they never need to reach the model at all — which is what
+// keeps this cheap and makes it free for players who don't use per-character voices.
+function speakerCastList(){
+  var out=[],seen={};
+  if(!worldState)return out;
+  var c=worldState.character;
+  if(c&&c.name&&c.voiceId){out.push({name:c.name,voiceId:c.voiceId});seen[c.name]=1;}
+  var ns=worldState.npcs||[],i;
+  for(i=0;i<ns.length;i++){
+    var n=ns[i];
+    if(n&&n.name&&!seen[n.name]&&n.charSheet&&n.charSheet.voiceId){out.push({name:n.name,voiceId:n.charSheet.voiceId});seen[n.name]=1;}
+  }
+  return out;
+}
+// Gate: no voiced cast, or no dialogue to attribute, means no call. Straight double quotes and the
+// curly pair only — an apostrophe is not dialogue, and treating it as such would fire this on
+// every turn.
+function speakerPassNeeded(clean,cast){
+  if(!cast||!cast.length)return false;
+  if(!clean||!/["“”]/.test(clean))return false;
+  return true;
+}
+function buildSpeakerPrompt(units,cast){
+  var names=cast.map(function(c){return c.name;}).join(", ");
+  var lines="",i;
+  for(i=0;i<units.length;i++)lines+=i+": "+units[i].text+"\n";
+  return "CAST (these names only): "+names+"\n\n"
+    +"NUMBERED LINES:\n"+lines+"\n"
+    +"Return ONLY a JSON object mapping line numbers to the character SPEAKING that line aloud.\n"
+    +"Rules:\n"
+    +"- Include a line ONLY when a listed cast member is the one speaking those words aloud.\n"
+    +"- Omit narration, description, and any line spoken by someone not in the cast.\n"
+    +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard.\n"
+    +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"
+    +'Example: {"3":"'+(cast[0]?cast[0].name:"Name")+'"}';
+}
+var SPEAKER_SYS="You label which lines of prose are spoken aloud by which named character. You reply with a JSON object and nothing else.";
+
+// Parse + HARDEN. Everything that can't be trusted is dropped here rather than at speak time:
+// out-of-range indices (would mis-bind), names not in the cast (would resolve to a voice nobody
+// assigned or, worse, a same-named other character). If nothing survives, return null — no map is
+// strictly better than a wrong one, because a wrong one is audible and looks like a broken feature.
+function parseSpeakerMap(txt,unitCount,cast){
+  if(!txt)return null;
+  var known={},i;
+  for(i=0;i<(cast||[]).length;i++)known[cast[i].name]=1;
+  var raw=String(txt).replace(/```(?:json)?/gi,"").trim();
+  var a=raw.indexOf("{"),b=raw.lastIndexOf("}");
+  if(a<0||b<a)return null;
+  var obj;
+  try{obj=JSON.parse(raw.slice(a,b+1));}catch(e){return null;}
+  if(!obj||typeof obj!=="object"||obj instanceof Array)return null;
+  var s={},kept=0;
+  Object.keys(obj).forEach(function(k){
+    var idx=parseInt(k,10),nm=obj[k];
+    if(isNaN(idx)||idx<0||idx>=unitCount)return;        // out of range — would mis-bind
+    if(typeof nm!=="string"||!known[nm])return;         // not a voiced cast member
+    s[idx]=nm;kept++;
+  });
+  return kept?{n:unitCount,s:s}:null;
+}
+
+// Stored NAMES -> live voice ids. Deliberately resolved at speak time, not at write time, so
+// rebinding a character's voice retroactively re-voices every past turn they speak in.
+// The `n` check is the splitter fuse — see the test for why it exists.
+function speakerVoiceMap(sp,text){
+  if(!sp||!sp.s||typeof TTS==="undefined"||!TTS._textPrep)return null;
+  var units=TTS._textPrep.splitSentences(text,null,true);
+  if(units.length!==sp.n){
+    console.warn("[speakers] unit count moved ("+sp.n+" stored, "+units.length+" now) — dropping the speaker map for this passage; it will narrate in one voice");
+    return null;
+  }
+  var out=null;
+  Object.keys(sp.s).forEach(function(k){
+    var ch=_speakerChar(sp.s[k]);
+    if(!ch)return;
+    var vid=TTS.characterVoiceId(ch);
+    if(!vid)return;
+    if(!out)out={};
+    out[parseInt(k,10)]=vid;
+  });
+  return out;
+}
+// Alias-tolerant lookup: the model may write "Belor" for the sheet filed as "Sheriff Belor Hemlock".
+function _speakerChar(name){
+  var nm=(typeof resolveNpcName==="function")?resolveNpcName(name):name;
+  if(!worldState)return null;
+  var c=worldState.character;
+  if(c&&c.name===nm)return c;
+  var ns=worldState.npcs||[],i;
+  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].name===nm&&ns[i].charSheet)return ns[i].charSheet;
+  return null;
+}
+
+// The call itself. Resolves to a {n,s} map or null; NEVER rejects and never throws into the turn —
+// narration is more important than voice assignment, so every failure path here is "narrate flat".
+function assignSpeakers(clean){
+  var cast=speakerCastList();
+  if(!speakerPassNeeded(clean,cast))return Promise.resolve(null);
+  if(typeof TTS==="undefined"||!TTS._textPrep)return Promise.resolve(null);
+  var units=TTS._textPrep.splitSentences(clean,null,true);
+  if(!units.length||units.length>SPEAKER_MAX_UNITS)return Promise.resolve(null);
+  var call=callGM(buildSpeakerPrompt(units,cast),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
+    .then(function(txt){return parseSpeakerMap(txt,units.length,cast);})
+    .catch(function(e){console.warn("[speakers] pass failed — narrating in one voice:",e&&e.message);return null;});
+  var fuse=new Promise(function(res){setTimeout(function(){res("__timeout__");},SPEAKER_TIMEOUT_MS);});
+  return Promise.race([call,fuse]).then(function(r){
+    if(r==="__timeout__"){console.warn("[speakers] no answer in "+SPEAKER_TIMEOUT_MS+"ms — starting narration without voice assignment");return null;}
+    return r;
+  });
+}
+// Narration entry point for a committed turn (#9). Narration WAITS for the speaker map (user call
+// 2026-07-21) — but only the AUDIO waits: the prose is already on screen and the turn is already
+// saved, so nothing the player looks at is held up. The wait is fused inside assignSpeakers, so a
+// hung request costs a flat-voiced read rather than a silent turn.
+//
+// Muted is treated as "not a user of this feature": speakResponse would discard the result anyway,
+// so paying for a map every turn while the player can't hear it is waste. The consequence, stated
+// plainly: turns narrated while muted keep no map, so replaying them later reads in one voice.
+function narrateWithSpeakers(clean,narEl,entry){
+  if(typeof TTS==="undefined")return;
+  if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;
+  assignSpeakers(clean).then(function(sp){
+    if(sp){
+      stampTranscriptSpeakers(entry,sp);
+      if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
+      saveAll();
+    }
+    TTS.speakResponse(clean,sp?speakerVoiceMap(sp,clean):null);
+  }).catch(function(e){
+    // Belt and braces — assignSpeakers already swallows its own failures. Narration must happen.
+    console.warn("[speakers] narration hand-off failed, reading in one voice:",e&&e.message);
+    TTS.speakResponse(clean);
+  });
+}
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
   var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i;
@@ -829,7 +980,7 @@ function commitGmTurn(resp,opts){
   sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
   saveAll();
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-  if(typeof TTS!=="undefined")TTS.speakResponse(clean);
+  narrateWithSpeakers(clean,narEl,worldState.transcript[worldState.transcript.length-1]);/* #9: narration waits for the speaker map (fused) — see below */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   return narEl;
@@ -974,7 +1125,7 @@ async function rerollLast(){
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-    if(typeof TTS!=="undefined")TTS.speakResponse(clean);
+    narrateWithSpeakers(clean,narEl,worldState.transcript[worldState.transcript.length-1]);/* #9 */
     saveAll();
     generateActions(narEl);
   }catch(e){

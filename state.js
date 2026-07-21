@@ -152,6 +152,18 @@ function logTranscript(role,text,raw){if(!worldState||!text)return;if(!worldStat
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
   if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}}
   worldState.transcript.push(_e);}
+// #9: stamp the speaker map onto a GM entry AFTER the fact — the post-pass resolves 1-4s after
+// logTranscript already wrote the entry. Additive field, exactly like .e/.m/.v above.
+// The invalidate is LOAD-BEARING, not housekeeping: the transcript compression memo keys on
+// (length, last-entry ref, last-entry .x), and adding a field changes none of them — so without it
+// the next saveCore re-serves the stale compressed blob and every speaker map is silently lost at
+// the localStorage boundary (engine-tested).
+function stampTranscriptSpeakers(entry,sp){
+  if(!entry||!sp||!worldState||!worldState.transcript)return false;
+  entry.sp=sp;
+  if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
+  return true;
+}
 // Schema migrations for worldState — fills fields added by later versions. Runs on every
 // load AND on save import (importSave previously skipped these — audit #15). Operates on
 // the global worldState; returns true if anything was modified.

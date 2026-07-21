@@ -589,7 +589,9 @@ var TTS = (function() {
 
   // ── Public speak entry points ───────────────────────────────────────────────
 
-  function speak(text, voiceId) {
+  // voices (#9): optional {unitIndex: voiceId} for per-unit speaker voices. Piper synthesizes
+  // unit by unit anyway (see _speakPiper), so this rides that loop; every other path ignores it.
+  function speak(text, voiceId, voices) {
     if (!text || !text.trim()) return;
     var trimmed = text.trim();
     _lastSpokenText = trimmed;
@@ -618,18 +620,19 @@ var TTS = (function() {
       if (typeof carMode !== "undefined" && carMode) { _queue.push({ text: trimmed, native: true }); if (!_playing) _drain(); }
       return;
     }
+    if (voices) item.voices = voices;
     _queue.push(item);
     if (!_playing) _drain();
   }
 
-  function speakResponse(cleanText) {
+  function speakResponse(cleanText, voices) {
     if (!isOn() && !(typeof carMode !== "undefined" && carMode)) return;
     var trimmed = cleanText.trim();
     // Rank 17/18: record ONLY here (narration, not Test/other speak() callers), and persist onto
     // worldState so ⏮ survives a reload — it rides the existing saveAll cycles (no save call here).
     _lastNarration = trimmed;
     if (typeof worldState !== "undefined" && worldState && worldState.character) worldState.lastNarration = trimmed;
-    speak(trimmed);
+    speak(trimmed, null, voices);
   }
 
   // Reload-tolerant read: in-memory copy first, else the persisted worldState fallback (rank 18).
@@ -659,7 +662,7 @@ var TTS = (function() {
     var item = _queue.shift();
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
-    else if (item.piper) _speakPiper(item.text, item.voiceId);
+    else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
     // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
     // provider enqueues carries .native or .piper, so this is unreachable — but a malformed item
     // must never wedge the queue by leaving _playing latched with nothing scheduled to call back.
@@ -989,7 +992,7 @@ var TTS = (function() {
   // piper_test.html speakAll()): predict → decode → schedule on the shared AudioContext timeline.
   // The epoch guard runs after EVERY await (see section comment above) — this is what makes a
   // stopped/skipped narration safe against an unabortable WASM call resolving late.
-  async function _speakPiper(text, voiceId) {
+  async function _speakPiper(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
@@ -1033,6 +1036,8 @@ var TTS = (function() {
     _crumb(0, false);
 
     _sources = [];
+    var _voiceReady = {};      // #9: per-item memo of which speaker voices are loadable (true) or not (false)
+    _voiceReady[voiceId] = true;   // the passage voice was ensured above
     var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
     var loopDone   = false;
     var activeSrcs = 0;
@@ -1060,11 +1065,32 @@ var TTS = (function() {
       }
       if (_piperEpoch !== myEpoch) return;   // stale — invalidated while waiting on the playhead
 
+      // #9 per-unit speaker voice. Only a voice already resident is used inline; a NEW voice is
+      // downloaded on first encounter (60-115MB), which would stall an already-playing read, so it
+      // is fetched once here and every later unit reuses it. A voice that will not load degrades
+      // THIS passage to the narrator rather than failing the read — and is remembered so the next
+      // unit does not retry the same broken download.
+      var uVoice = (voices && voices[i]) || voiceId;
+      if (uVoice !== voiceId && _voiceReady[uVoice] !== true) {
+        if (_voiceReady[uVoice] === false) { uVoice = voiceId; }
+        else {
+          try {
+            await _piperEnsureVoice(uVoice);
+            if (_piperEpoch !== myEpoch) return;   // stale — a skip/stop ran during the download
+            _voiceReady[uVoice] = true;
+          } catch(e) {
+            if (_piperEpoch !== myEpoch) return;
+            console.warn("[tts piper] speaker voice " + uVoice + " unavailable — this passage uses the narrator voice:", e && e.message);
+            _voiceReady[uVoice] = false; uVoice = voiceId;
+          }
+        }
+      }
+
       var blob;
       try {
         // trailing space: documented static-tail guard; _piperSerial: audit #9 (never concurrent
         // with a prewarm predict or another flow's ensure/download on the shared wasm session)
-        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: voiceId, rate: getRate() }); });
+        blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: uVoice, rate: getRate() }); });
       } catch(e) {
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
         continue;

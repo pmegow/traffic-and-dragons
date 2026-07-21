@@ -73,6 +73,41 @@ Fable session can audit it in one pass.
     unchanged); 750 green. **Fable: confirm the LRU-key proxy can't disagree with the OPFS eviction in a
     way that names the WRONG evictee, and that a narration download silently evicting an assigned voice
     at cap 10 is acceptable (no confirm on that path by design).**
+  - v1.406 — **LLM SPEAKER POST-PASS (#9 ⑤, the last piece of the rework):** after a committed turn,
+    a cheap call maps sentences to speakers so dialogue narrates in each character's own voice.
+    Output post-processing only — no applyMuts, no memory tier, no system-prompt contact (guarded by
+    the v1.404 byte-identity test). Sonnet tier per the ratified design.
+    **Three measurements reshaped the plan before any code:** (a) `speakResponse` fires BEFORE
+    `generateActions`, so the original "run it concurrently to hide the latency" premise was false —
+    narration waits for nothing today, so any dependency ADDS a wait; (b) 5,920ms from `speak()` to
+    first audible sample, warm; (c) `_speakPiper` already predicts PER UNIT under 25s backpressure,
+    so per-unit voice was one line rather than a rearchitecture. User chose to block narration on the
+    map; I added a 4s fuse, because an unbounded wait turns one hung request into a silent turn.
+    **Contract changed from the ratified sketch:** the model returns `{unitIndex: name}`, NOT
+    `{speaker,text}` spans — matching model-returned TEXT back to synthesis units fails silently into
+    wrong-voice output on any paraphrase or whitespace drift, whereas a bad index is structurally
+    detectable. Out-of-range indices and non-cast names are dropped at parse; nothing usable → null,
+    because no map is strictly better than a wrong one (a wrong one is audible).
+    **Persistence:** `sp:{n,s}` stamped on the GM transcript entry — additive, same shape as RAG's
+    `e:{n,l,q}`. `n` is a fuse against a future splitter change silently re-indexing every stored map.
+    Names (not voice ids) are stored and resolved at speak time, so rebinding a character's voice
+    re-voices every past turn they speak in — live-verified.
+    **⚠ THE BUG THIS ALMOST SHIPPED WITH — worth Fable's attention as a CLASS, not just an instance:**
+    `serializeWorldState` memoizes the compressed transcript on (length, last-entry ref, last-entry
+    `.x`). The post-pass stamps `sp` onto an already-written entry 1-4s later, changing NONE of those
+    keys — so the next saveCore would re-serve the stale blob and every speaker map would vanish at the
+    localStorage boundary, with no error, no console line, and correct-looking in-memory state. Found by
+    reading the reroll path's existing `invalidateTranscriptMemo` call and asking why it was there.
+    `stampTranscriptSpeakers` (state.js) owns the invalidation; its test primes the memo before stamping
+    so the guard can genuinely fail. **Fable: are there OTHER deferred/async writers that mutate an
+    existing transcript entry without invalidating? That memo turns any late field-add into silent
+    data loss, and the invalidation is currently a convention rather than something the memo enforces.**
+    **Judgement call to sanity-check:** the pass is skipped entirely while audio is muted, so turns
+    narrated muted keep no map and replay flat later. Rationale: a muted player is a non-user and
+    shouldn't pay per turn. The alternative (always compute, so history is complete) costs every muted
+    player a call per turn for audio they may never play.
+    **Fable: also confirm the 4s fuse can't leave a queued item half-voiced, and that skipping the pass
+    on turns without a `"` can't miss dialogue the model wrote with other quotation conventions.**
   - v1.405 — **legacy engine keys retired (the tail of the #9 cleanup):** removed `ENGINE_K`
     (`tnd_tts_engine_v1`), `NATIVE_K` (`tnd_tts_native_v1`) and `isNative()`. These are TWO
     superseded generations of engine selection — the v1.61 native-vs-cloud boolean, then the v1.301

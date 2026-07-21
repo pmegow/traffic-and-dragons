@@ -319,7 +319,7 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   if(start>0)addMsg("system","… "+start+" earlier entr"+(start===1?"y":"ies")+" omitted — the full story lives in the transcript.");
   for(i=start;i<tr.length;i++){var e=tr[i];
     if(e.r==="player")addMsg("player",escHtml(e.x));
-    else lastNar=addMsg("narrator","<p>"+escProse(e.x)+"</p>",{replayText:e.x,turn:e.t});/* transcript is model/user text — escape on replay (audit E11) */
+    else lastNar=addMsg("narrator","<p>"+escProse(e.x)+"</p>",{replayText:e.x,turn:e.t,sp:e.sp});/* #9: sp rides the entry, so a rebuilt old turn replays with its original voices *//* transcript is model/user text — escape on replay (audit E11) */
   }
   if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
   story.scrollTop=story.scrollHeight;

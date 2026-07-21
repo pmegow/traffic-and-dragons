@@ -4289,6 +4289,101 @@ function runEngineTests(R){
     return TTS.voiceDefault()==="en_US-libritts_r-medium"?true:"default is "+TTS.voiceDefault();
   });
 
+
+  // ── #9: LLM speaker post-pass — who says which line (design in TODO #9) ─────────────────────
+  // Only the PURE halves are testable headless (the callGM round trip is not): cast selection, the
+  // gate that skips the call entirely, response parsing, and the two guards that must degrade to the
+  // narrator rather than mis-voice — an unknown/out-of-range name, and a stale unit count.
+  section("#9 speaker post-pass");
+  function _mkSpeakerWorld(){
+    makeWorld();
+    worldState.character.name="Tess";worldState.character.voiceId="en_US-kristin-medium";
+    worldState.npcs=[
+      {name:"Daeris",status:"ally",charSheet:{name:"Daeris",voiceId:"en_GB-alba-medium"}},
+      {name:"Frizwick",status:"ally",charSheet:{name:"Frizwick"}},
+      {name:"Bystander",status:"neutral"}
+    ];
+  }
+  var _SPK_LINE='The lamplighter drops his pole. "They came through the river gate," he says. Ash drifts past.';
+  t("stampTranscriptSpeakers: the map survives the transcript compression memo (silent-loss guard)",function(){
+    // THE failure this exists for: the post-pass resolves 1-4s AFTER logTranscript already wrote the
+    // entry, so the map is stamped onto an existing object. serializeWorldState memoizes the
+    // compressed transcript on (length, last-entry ref, last-entry .x) — adding a field changes NONE
+    // of those, so without an explicit memo invalidation the next save re-serves the stale blob and
+    // every speaker map is silently lost at the localStorage boundary. Reload, flat narration, no error.
+    makeWorld();
+    logTranscript("gm","He speaks. \"So do I,\" she says.","raw");
+    var e=worldState.transcript[worldState.transcript.length-1];
+    serializeWorldState();                                   // prime the memo with the un-stamped entry
+    stampTranscriptSpeakers(e,{n:2,s:{0:"Daeris"}});
+    var back=parseWorldState(serializeWorldState());
+    var last=back.transcript[back.transcript.length-1];
+    if(!last.sp)return "speaker map lost — the stale memo blob was re-served";
+    return last.sp.s&&last.sp.s[0]==="Daeris"&&last.sp.n===2?true:"map corrupted: "+JSON.stringify(last.sp);
+  });
+  t("speakerCastList: only characters that actually have an assigned voice",function(){
+    _mkSpeakerWorld();
+    var names=speakerCastList().map(function(c){return c.name;}).sort().join(",");
+    return names==="Daeris,Tess"?true:"cast should be exactly the voiced characters, got: "+names;
+  });
+  t("speakerPassNeeded: skipped with no voiced cast, and skipped on prose with no dialogue",function(){
+    _mkSpeakerWorld();
+    if(speakerPassNeeded("Ash drifts past the window.",speakerCastList()))return "fired on a response with no dialogue";
+    if(!speakerPassNeeded(_SPK_LINE,speakerCastList()))return "did not fire on a response WITH dialogue";
+    worldState.character.voiceId="";worldState.npcs[0].charSheet.voiceId="";
+    return !speakerPassNeeded(_SPK_LINE,speakerCastList())?true:"fired with nobody voiced — non-users must pay nothing";
+  });
+  t("parseSpeakerMap: reads fenced JSON and keeps only in-range indices with known names",function(){
+    _mkSpeakerWorld();
+    var cast=speakerCastList();
+    var txt="```json\n{\"1\":\"Daeris\",\"99\":\"Daeris\",\"2\":\"Nobody At All\"}\n```";
+    var m=parseSpeakerMap(txt,4,cast);
+    if(!m)return "usable map rejected";
+    if(m.s[99])return "out-of-range index survived — would mis-bind on replay";
+    if(m.s[2])return "unknown name survived — would resolve to a voice nobody assigned";
+    return (m.s[1]==="Daeris"&&m.n===4)?true:"bad map: "+JSON.stringify(m);
+  });
+  t("parseSpeakerMap: nothing usable yields NO map (a wrong map is worse than none)",function(){
+    _mkSpeakerWorld();var cast=speakerCastList();
+    if(parseSpeakerMap("I could not determine the speakers, sorry.",4,cast))return "prose parsed as a map";
+    if(parseSpeakerMap("{\"0\":\"Nobody\"}",4,cast))return "map of only-unknown names should be null";
+    return parseSpeakerMap("",4,cast)===null?true:"empty response should be null";
+  });
+  t("speakerVoiceMap: resolves stored NAMES to voice ids at replay time",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    if(!vm)return "valid map rejected";
+    return vm[1]==="en_GB-alba-medium"?true:"wrong voice: "+JSON.stringify(vm);
+  });
+  t("speakerVoiceMap: names resolve LIVE, so reassigning a voice re-voices old turns",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    worldState.npcs[0].charSheet.voiceId="en_US-ryan-high";/* player rebound Daeris after the fact */
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    return (vm&&vm[1]==="en_US-ryan-high")?true:"stored map did not follow the reassignment: "+JSON.stringify(vm);
+  });
+  t("speakerVoiceMap: a stale unit count drops the WHOLE map (the splitter-change fuse)",function(){
+    // THE failure this exists for: indices bind to splitSentences output, and this map is persisted
+    // for the life of a campaign. A future MAX_UNIT/pause-tier change would silently re-index every
+    // stored map — confidently WRONG voices on old turns, which reads as a broken feature. A count
+    // mismatch must drop the map and narrate flat instead.
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    var stale=speakerVoiceMap({n:units.length+1,s:{1:"Daeris"}},_SPK_LINE);
+    if(stale)return "stale map applied anyway: "+JSON.stringify(stale);
+    var ok=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    return ok?true:"matching count was also rejected — the fuse is too eager";
+  });
+  t("speakerVoiceMap: a character who LOST their voice degrades to narrator, never a wrong voice",function(){
+    _mkSpeakerWorld();
+    var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
+    delete worldState.npcs[0].charSheet.voiceId;
+    var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
+    var narrator=TTS.resolvePiperVoice();
+    return (!vm||!vm[1]||vm[1]===narrator)?true:"unvoiced character got: "+JSON.stringify(vm);
+  });
+
   // ── #57 reveal-commitment: supersession + merge hints (DOC/todo_57_reveal_commitment.md) ──
   section("#57 reveal-commitment: supersession + merge hints");
   t("extractor supersession: exact match retires to archive and files the replacement",function(){
@@ -4902,7 +4997,7 @@ function runEngineTests(R){
   saveAll=function(){};saveCore=function(){};saveMem=function(){};
   generateActions=function(){};              // async fire-and-forget in prod; inert here
   processPendingCompanionSheets=function(){};
-  TTS={speakResponse:function(){}};
+  TTS={speakResponse:function(){},isOn:function(){return false;}};/* #9: narrateWithSpeakers checks isOn — headless wants narration OFF */
   if(typeof storageAdapter==="undefined")storageAdapter={syncToServer:function(){},syncNow:function(){}};
 
   function eq(got,want,label){if(got===want)return true;return (label||"")+" expected "+JSON.stringify(want)+" got "+JSON.stringify(got);}

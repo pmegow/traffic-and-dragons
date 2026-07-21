@@ -235,7 +235,7 @@ function showUsageModal(){
       +"<td style='"+st+"'>"+n(b.cacheRead)+"</td><td style='"+st+"'>"+n(b.cacheWrite)+"</td><td style='"+st+"'>"+n(b.out)+"</td>"
       +"<td style='"+st+"'>$"+(b.costUSD||0).toFixed(4)+"</td></tr>";
   }
-  var order=["turn","actions","summarize","skeleton","sync","other"],rows="",i;
+  var order=["turn","actions","speakers","summarize","skeleton","sync","other"],rows="",i;
   var kinds=order.filter(function(k){return u.byKind[k];}).concat(Object.keys(u.byKind).filter(function(k){return order.indexOf(k)<0;}));
   for(i=0;i<kinds.length;i++)rows+=row(kinds[i],u.byKind[kinds[i]]);
   if(!kinds.length)rows="<tr><td colspan='8' style='padding:14px;text-align:center;font-size:12px;color:var(--t2);font-style:italic;'>No API calls recorded yet — play a turn.</td></tr>";

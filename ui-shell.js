@@ -26,9 +26,9 @@ function _reflowToasts(){var ts=document.querySelectorAll(".tnd-toast"),i;for(i=
 // confirm → unmute and play; decline → play nothing (the user said no, honor it).
 // Car Mode is exempt — the overlay IS an audio intent, and its own paths already speak with the
 // global toggle off (see speakResponse's carMode clause); asking there would be nagging.
-function requestSpeak(text){
+function requestSpeak(text,voices){
   if(typeof TTS==="undefined"||!text)return;
-  if(TTS.isOn()||(typeof carMode!=="undefined"&&carMode)){TTS.speak(text);return;}
+  if(TTS.isOn()||(typeof carMode!=="undefined"&&carMode)){TTS.speak(text,null,voices);return;}
   var m=modalShell("audio-muted-confirm",
     "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Game audio is muted. Unmute?</div>"
     +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;'>Voice narration is switched off, so this line would play silently. Unmuting turns narration back on for the rest of the session.</div>"
@@ -42,7 +42,7 @@ function requestSpeak(text){
     // toggle() must run inside this click gesture — it creates/resumes the AudioContext and primes
     // the iOS playback session, both of which browsers only permit from a real user gesture.
     TTS.toggle();
-    TTS.speak(text);
+    TTS.speak(text,null,voices);
   });
   document.getElementById("am-cancel").addEventListener("click",function(){m.remove();});
 }
@@ -188,7 +188,12 @@ function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
 if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
 div.innerHTML=html;
-if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){requestSpeak(text);};div.appendChild(rb);})(opts.replayText);}
+if(opts&&opts.sp)div._sp=opts.sp;/* #9: speaker map for this passage; also assignable later, once the post-pass resolves */
+if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){
+  /* resolved HERE, not at render: names -> voices at click time means rebinding a character's voice re-voices every past turn they speak in. */
+  var vm=(div._sp&&typeof speakerVoiceMap==="function")?speakerVoiceMap(div._sp,text):null;
+  requestSpeak(text,vm);
+};div.appendChild(rb);})(opts.replayText);}
 story.appendChild(div);story.scrollTop=story.scrollHeight;trimStoryDom(story);if(isTTMsg&&activeChatTab!=="tabletalk"){var badge=document.getElementById("tab-tt-badge");if(badge)badge.className="tab-badge on";}
 // Bidirectional badge (audit E68 / CLAUDE.md §14): flag the STORY tab when narration arrives while
 // the player is on Table Talk. The narrative tab has no static badge element, so create one lazily.
