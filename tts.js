@@ -1,4 +1,5 @@
-// tts.js — Cartesia streaming TTS (SSE + Web Audio API) + local Piper TTS (WASM, offline, $0)
+// tts.js — local Piper TTS (WASM, offline, $0) over a shared Web Audio scheduler, with the
+// browser's speechSynthesis as the silent fallback voice
 // Depends on: store (state.js), showToast (ui.js)
 //
 // ES5 convention (var, function declarations, no arrows/template literals, no const/let) applies
@@ -12,18 +13,14 @@
 
 var TTS = (function() {
 
-  var KEY_K    = "tnd_cartesia_key_v1";
   var ON_K     = "tnd_tts_on_v1";
-  var VOICE_K  = "tnd_tts_voice_gm_v1";
-  var BANK_K   = "tnd_voice_bank_v1";
-  var NATIVE_K = "tnd_tts_native_v1";   // use the browser's built-in speechSynthesis instead of Cartesia
+  var NATIVE_K = "tnd_tts_native_v1";   // legacy "prefer the browser's built-in speechSynthesis" flag — vestigial (see getEngine)
   var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native voice, stored BY NAME (voice list differs per device)
   var NVOICE_DEFAULT = "Google US English"; // preferred voice when the user hasn't picked one (falls back to OS default if absent)
   var TTS_TEST_LINE = "The lightless mass rotates, and the weapon-notation locks into place.";
 
   // ── Speech rate (Car Mode audit rank 20, todo_carplay.html) ─────────────────────────────────
-  // Applies to native (utterance.rate) and Piper (length_scale / rate, vendored patch r7). Cartesia
-  // is served as-is — no rate knob exists on that path, noted in the settings-modal hint.
+  // Applies to native (utterance.rate) and Piper (length_scale / rate, vendored patch r7).
   var RATE_K = "tnd_tts_rate_v1";
   function getRate() {
     var v = parseFloat(store.get(RATE_K));
@@ -32,11 +29,9 @@ var TTS = (function() {
   }
 
   // ── Engine selection (TODO #41 Phase 4) ─────────────────────────────────────
-  // Explicit engine choice, layered over the implicit native-vs-Cartesia branch that existed
-  // before Piper. ENGINE_K unset (every pre-Phase-4 save/device) MUST reproduce today's behavior
-  // exactly — see getEngine() below. Selection (getEngine) is INTENT; runtime availability
-  // (_cartesiaOk/_piperOk) is a separate ladder that can still downgrade a selected engine to
-  // native for one item — see speak().
+  // Selection (getEngine) is INTENT; runtime availability (_piperOk) is a separate ladder that can
+  // still downgrade the selected engine to native for one item — see speak(). Since the #9 rework
+  // there is only one engine, so ENGINE_K is vestigial (kept so old readers don't NPE).
   var ENGINE_K = "tnd_tts_engine_v1";
 
   // ── Piper voice stable (TODO #41 Phase 4, §5 Q6 — mirrors AUTHORS/proseAuthor) ──────────────
@@ -124,13 +119,9 @@ var TTS = (function() {
     }
   }
 
-  // getEngine() — explicit ENGINE_K wins. When unset (every save/device that predates Phase 4),
-  // LEGACY INFERENCE reproduces today's behavior byte-for-byte so an existing user's TTS doesn't
-  // silently change out from under them: isNative() checked → "native"; else a saved Cartesia key
-  // → "cartesia" (matches _cartesiaOk()'s key requirement); else "native" (today's ultimate
-  // fallback when nothing is configured).
-  // #9 rework (v1.398): Piper is THE engine. Cartesia is removed and the engine picker is gone, so
-  // selection no longer exists — getEngine() is a constant. Native survives ONLY as the automatic
+  // getEngine() — #9 rework (v1.398): Piper is THE engine. The cloud provider is removed and the
+  // engine picker is gone, so selection no longer exists — getEngine() is a constant regardless of
+  // any stored ENGINE_K / native flag (engine-tested). Native survives ONLY as the automatic
   // fallback target (the runtime degradation ladder in speak() + the iOS-audio-suspend path call
   // TTS_PROVIDERS.native directly, NOT via getEngine), so a device/window where Piper can't load
   // still speaks. ENGINE_K is now vestigial (kept only so old callers that read it don't NPE).
@@ -138,12 +129,12 @@ var TTS = (function() {
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
-  // instead of if(engine===...) branches. Provider-specific quirks (Cartesia's voice-bank
-  // requirement, Piper's voiceId resolution) live in that entry's own functions, never in speak().
+  // instead of if(engine===...) branches. Provider-specific quirks (Piper's voiceId resolution)
+  // live in that entry's own functions, never in speak().
   // available()      — runtime usability check (separate from selection; see the ENGINE_K comment).
   // enqueue(text,vId) — builds the _queue item, or returns null/undefined when the provider can't
-  //                     produce one right now (e.g. Cartesia with no voice configured) — speak()
-  //                     preserves the old car-mode-only fallback for that specific case.
+  //                     produce one right now — speak() keeps a car-mode-only native fallback for
+  //                     that case (no current provider returns null; the guard is for future ones).
   // fallbackReason()  — human-readable reason shown by the settings-modal indicator when this
   //                     engine downgrades to native for an item.
   var TTS_PROVIDERS = {
@@ -154,17 +145,6 @@ var TTS = (function() {
       enqueue: function(text) { return { text: text, native: true }; },
       fallbackReason: function() { return ""; }
     },
-    cartesia: {
-      id: "cartesia", label: "Cartesia (cloud, high quality)",
-      hint: "Studio-quality cloud voices. Requires an API key and a saved voice.",
-      available: function() { return _cartesiaOk(); },
-      enqueue: function(text, voiceIdArg) {
-        var voiceId = voiceIdArg || getVoice();
-        if (!voiceId || !getKey()) return null;   // "no Cartesia voice configured" — speak() keeps the car-mode-only fallback
-        return { text: text, voiceId: voiceId };
-      },
-      fallbackReason: function() { return _cartesiaError || (!getKey() ? "no Cartesia key" : "Cartesia unavailable"); }
-    },
     piper: {
       id: "piper", label: "Piper (local, offline, $0)",
       hint: "Synthesizes on-device — free, works offline. First use per voice downloads once (60–115MB by voice), then cached.",
@@ -173,13 +153,6 @@ var TTS = (function() {
       fallbackReason: function() { return _piperError || "Piper engine unavailable"; }
     }
   };
-
-  // ── Voice bank ─────────────────────────────────────────────────────────────
-
-  function getBank() {
-    try { var r = store.get(BANK_K); return r ? JSON.parse(r) : []; } catch(e) { return []; }
-  }
-  function setBank(arr) { store.set(BANK_K, JSON.stringify(arr)); }
 
   // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
   function _piperLruLoad() {
@@ -191,17 +164,14 @@ var TTS = (function() {
     try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) { console.warn("[tts piper] LRU stamp write failed:", e && e.message); }
   }
 
-  var CARTESIA_SSE_URL  = "https://api.cartesia.ai/tts/sse";
-  var CARTESIA_VERSION  = "2026-03-01";
-  var CARTESIA_MODEL    = "sonic-2";
+  // Configures the ONE shared AudioContext (_ensureCtx) every WebAudio path schedules onto — Piper
+  // synthesizes at this rate, so changing it detunes narration.
   var SAMPLE_RATE       = 22050;
 
   // ── Shared text-prep (TODO #41 Phase 1 — harvested from piper_test.html spike) ──────────────
-  // Provider-agnostic normalization + sentence-splitting. Cartesia (_stream, below) deliberately
-  // does NOT use splitSentences — it's a streaming API that handles a whole paragraph in one
-  // request; splitting it multiplies POSTs and breaks cross-sentence prosody (Fable review finding
-  // 2, todo_TTS_piper.md Phase 1). Native DOES use it: Chrome flakes on very long single utterances
-  // and per-sentence units give skip() finer granularity. A future engine (Piper) uses both.
+  // Provider-agnostic normalization + sentence-splitting, used by BOTH engines. Native needs it:
+  // Chrome flakes on very long single utterances, and per-sentence units give skip() finer
+  // granularity. Piper needs it for the same reason plus rhythm (see the pause tiers below).
 
   // Dash handling is per-caller via dashRepl: browser speechSynthesis SWALLOWS em/en-dashes (no
   // audible pause) but DOES honor an ellipsis pause, so the native path (below) passes "... " —
@@ -232,8 +202,7 @@ var TTS = (function() {
   // EVERY comma (splitSentences commaSplit mode) and each unit carries an `end` type mapped to an
   // independently tunable gap below. Full-stop was doubled from the shipped 0.22 by user call
   // ("the way it just runs over a comma is nasty"); comma is a breath, not a stop. Native does
-  // NOT comma-split (its OS voice renders commas itself — validated behavior, don't change);
-  // Cartesia never splits at all (prosody).
+  // NOT comma-split (its OS voice renders commas itself — validated behavior, don't change).
   var PAUSE_COMMA        = 0.15;  // gap after a unit ending in ","  (a breath)
   var PAUSE_COMMA_CLAUSE = 0.22;  // gap after ";" / ":" and mid-sentence wrap pieces (heavier than a breath)
   var PAUSE_FULLSTOP     = 0.44;  // gap after ". ! ? …" (sentence end)
@@ -363,9 +332,6 @@ var TTS = (function() {
   var _audioCtx   = null;   // single persistent context, created on first toggle-on
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
   var _sources    = [];     // scheduled AudioBufferSourceNodes
-  var _abortCtrl  = null;   // AbortController for live fetch
-  var _cartesiaError = "";  // last Cartesia failure reason; once set, speech falls back to native
-  var _cartesiaErrorAt = 0; // when it was recorded — auto-retried after 5 min so one transient blip doesn't downgrade the whole session (audit #27)
   var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
   var _nativeStallT  = null;// pending native stall-watchdog timer — cleared by _stopCurrent so a
                             // skipped chain can't be resurrected by a stale watchdog (v1.334, audit #4)
@@ -374,8 +340,8 @@ var TTS = (function() {
   // ── State ──────────────────────────────────────────────────────────────────
 
   function isOn()     { return store.get(ON_K) === "1"; }
-  function getKey()   { return store.get(KEY_K)   || ""; }
-  function getVoice() { return store.get(VOICE_K) || ""; }
+  // VESTIGIAL (no callers since v1.398 made getEngine() a constant). Kept with ENGINE_K + the
+  // Save-handler writes as one unit — retire the whole legacy engine-key set together, not piecemeal.
   function isNative() { return store.get(NATIVE_K) === "1"; }
   function getNativeVoice() { return store.get(NVOICE_K) || ""; }
   // System voices available to speechSynthesis. May be empty on first call (esp. iOS) until voiceschanged fires.
@@ -383,16 +349,6 @@ var TTS = (function() {
   function _findNativeVoice(name) { if (!name) return null; var vs = _voiceList(), i; for (i = 0; i < vs.length; i++) { if (vs[i].name === name) return vs[i]; } return null; }
   // The voice to actually speak with: the user's saved pick if present, else the preferred default, else OS default (null).
   function _resolveNativeVoice() { return _findNativeVoice(getNativeVoice()) || _findNativeVoice(NVOICE_DEFAULT) || null; }
-  // Cartesia is usable only with a key and no recorded failure. Otherwise speech routes to native.
-  // A recorded failure expires after 5 minutes so Cartesia gets retried automatically.
-  function _cartesiaOk() {
-    if (_cartesiaError && Date.now() - _cartesiaErrorAt > 300000) { _cartesiaError = ""; _updateCartErr(); }
-    return !!getKey() && !_cartesiaError;
-  }
-  // (the old _useNative() = isNative()||!_cartesiaOk() helper is retired — speak() now dispatches
-  // through TTS_PROVIDERS[getEngine()].available(), which reproduces the same check for "cartesia"
-  // and adds "piper"; see the speak() comment for the exact behavior-preservation argument.)
-
   // ── Toggle ─────────────────────────────────────────────────────────────────
 
   function toggle() {
@@ -425,7 +381,7 @@ var TTS = (function() {
   }
 
   // ── iOS context-state discipline (v1.327 — the phone-silence diagnosis) ────────────────────
-  // Two iOS-only facts broke Piper AND Cartesia (both schedule on the shared ctx) while native
+  // Two iOS-only facts broke every WebAudio path (all schedule on the shared ctx) while native
   // (speechSynthesis, no ctx) kept working, and desktop stayed fine:
   //   1. With the voice-ON flag persisted, a fresh page load never runs toggle() — the ctx is
   //      then created when the GM RESPONSE arrives, seconds after the tap, OUTSIDE any gesture.
@@ -527,7 +483,7 @@ var TTS = (function() {
   // ── mediaSession positionState (Car Mode audit rank 23, todo_carplay.html) ─────────────────
   // Cosmetic, best-effort: without it, lock screens / head units show an inert 0:00 scrubber.
   // Piggybacks the _armCtxWatch/_clearCtxWatch lifecycle (same "a WebAudio item is playing" window)
-  // rather than owning its own state — armed alongside the watchdog in _stream/_speakPiper, cleared
+  // rather than owning its own state — armed alongside the watchdog in _speakPiper, cleared
   // everywhere the watchdog is cleared (_drain's empty-queue branch, _stopCurrent). A light 2s poll,
   // never touches _nextStart/_sources, wrapped in try/catch so a missing/odd mediaSession API can
   // never throw into the scheduler.
@@ -646,9 +602,8 @@ var TTS = (function() {
     var prov = TTS_PROVIDERS[engine] || TTS_PROVIDERS.native;
 
     // Runtime degradation ladder — separate from selection (ENGINE_K/getEngine above). A selected
-    // engine that isn't usable RIGHT NOW falls back to native for this item, unconditionally
-    // (matches pre-Phase-4 _useNative() behavior: isNative() OR !_cartesiaOk() went straight to
-    // native, no car-mode gating). Loud per no-silent-failures: warn + surface the reason in the
+    // engine that isn't usable RIGHT NOW falls back to native for this item, unconditionally (no
+    // car-mode gating). Loud per no-silent-failures: warn + surface the reason in the
     // settings modal indicator so the user can see WHY they're hearing the fallback voice.
     if (engine !== "native" && !prov.available()) {
       console.warn("[tts] " + engine + " unavailable (" + prov.fallbackReason() + ") — falling back to native for this line");
@@ -660,10 +615,10 @@ var TTS = (function() {
 
     var item = prov.enqueue(trimmed, voiceId);
     if (!item) {
-      // Provider is "available" but couldn't build an item this turn (Cartesia: no voice
-      // configured). Preserves the exact old semantics: car mode still wants audio via native;
-      // outside car mode this is a silent no-op (the pre-existing "no Cartesia voice configured"
-      // early return).
+      // Provider is "available" but couldn't build an item this turn. No shipped provider does
+      // this today (native and piper always return an item) — the branch is kept as the defined
+      // contract for a future provider: car mode still wants audio, so it degrades to native;
+      // outside car mode it is a no-op.
       if (typeof carMode !== "undefined" && carMode) { _queue.push({ text: trimmed, native: true }); if (!_playing) _drain(); }
       return;
     }
@@ -709,7 +664,10 @@ var TTS = (function() {
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
     else if (item.piper) _speakPiper(item.text, item.voiceId);
-    else _stream(item.text, item.voiceId);
+    // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
+    // provider enqueues carries .native or .piper, so this is unreachable — but a malformed item
+    // must never wedge the queue by leaving _playing latched with nothing scheduled to call back.
+    else { console.warn("[tts] queue item with no engine flag — dropped:", item && item.text); _drain(); }
   }
 
   // ── Native (browser speechSynthesis) path ────────────────────────────────────
@@ -770,160 +728,11 @@ var TTS = (function() {
     }
   }
 
-  // ── Streaming core ──────────────────────────────────────────────────────────
-
-  function _stream(text, voiceId) {
-    var key = getKey();
-    if (!key) { _drain(); return; }
-
-    var ctx = _ensureCtx();
-    // Audit #17 (v1.341): a device where AudioContext can't be created at all used to DROP the
-    // line silently (skip to _drain, no speech, no warning — every narration lost while the
-    // voice toggle showed ON). Fall back to native like every other failure on this path.
-    if (!ctx) { console.warn("[tts] AudioContext unavailable — Cartesia line falls back to native"); _curNative = true; _speakNative(text); return; }
-    // v1.327: gate on the ctx actually RUNNING (handles iOS "interrupted" too — the old
-    // suspended-only check scheduled Cartesia chunks onto a stopped clock = silence).
-    _ctxRunning(ctx).then(function(ok) {
-      if (!ok) { _ctxBlockedLoud("Cartesia"); _curNative = true; _speakNative(text); return; }
-      primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent
-      _armCtxWatch("Cartesia");   // audit #10 — catch a mid-read ctx interruption loudly
-      _armPosState(ctx);   // rank 23 — same lifecycle as the ctx watch above
-      _streamGo(text, voiceId, ctx);
-    });
-  }
-  function _streamGo(text, voiceId, ctx) {
-    var key = getKey();
-
-    _sources = [];
-
-    // Schedule from wherever we left off, but never in the past
-    var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
-    var streamDone = false;
-    var activeSrcs = 0;
-
-    function onAllDone() {
-      _sources   = [];
-      _nextStart = 0;
-      _drain();
-    }
-
-    function scheduleChunk(b64) {
-      // base64 → raw bytes → Int16 → Float32
-      var binary  = atob(b64);
-      var nSamples = binary.length >> 1;  // 2 bytes per s16le sample
-      var f32 = new Float32Array(nSamples);
-      for (var i = 0; i < nSamples; i++) {
-        var lo  = binary.charCodeAt(i * 2)     & 0xFF;
-        var hi  = binary.charCodeAt(i * 2 + 1) & 0xFF;
-        var s16 = (hi << 8) | lo;
-        f32[i]  = (s16 > 32767 ? s16 - 65536 : s16) / 32768.0;
-      }
-
-      var buf = ctx.createBuffer(1, nSamples, SAMPLE_RATE);
-      buf.getChannelData(0).set(f32);
-
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-
-      var startAt = Math.max(nextStart, ctx.currentTime + 0.005);
-      src.start(startAt);
-      nextStart  = startAt + buf.duration;
-      _nextStart = nextStart;
-
-      activeSrcs++;
-      _sources.push(src);
-      src.onended = function() {
-        activeSrcs--;
-        if (streamDone && activeSrcs === 0) onAllDone();
-      };
-    }
-
-    _abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-
-    var fetchOpts = {
-      method: "POST",
-      headers: {
-        "X-API-Key":        key,
-        "Cartesia-Version": CARTESIA_VERSION,
-        "Content-Type":     "application/json"
-      },
-      body: JSON.stringify({
-        model_id:      CARTESIA_MODEL,
-        transcript:    text,
-        voice:         { mode: "id", id: voiceId },
-        output_format: { container: "raw", encoding: "pcm_s16le", sample_rate: SAMPLE_RATE }
-      })
-    };
-    if (_abortCtrl) fetchOpts.signal = _abortCtrl.signal;
-
-    fetch(CARTESIA_SSE_URL, fetchOpts)
-    .then(function(r) {
-      if (!r.ok) throw new Error("Cartesia " + r.status);
-      var reader  = r.body.getReader();
-      var decoder = new TextDecoder();
-      var lineBuf = "";
-
-      function read() {
-        reader.read().then(function(result) {
-          if (result.done) {
-            streamDone = true;
-            if (activeSrcs === 0) onAllDone();
-            return;
-          }
-
-          lineBuf += decoder.decode(result.value, { stream: true });
-          var lines = lineBuf.split("\n");
-          lineBuf = lines.pop();  // keep any incomplete line
-
-          for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].trim();
-            if (!line || line.slice(0, 5) !== "data:") continue;
-            var json = line.slice(5).trim();
-            if (!json) continue;
-            var evt;
-            try { evt = JSON.parse(json); } catch(e) { continue; }
-
-            if (evt.type === "chunk" && evt.data) {
-              scheduleChunk(evt.data);
-            } else if (evt.type === "done") {
-              streamDone = true;
-              if (activeSrcs === 0) onAllDone();
-            } else if (evt.type === "error") {
-              console.warn("[tts] Cartesia error:", evt.message);
-              _cartesiaError = evt.message || "Cartesia error"; _cartesiaErrorAt = Date.now(); _updateCartErr();
-              streamDone = true;
-              if (activeSrcs === 0) onAllDone();
-            }
-          }
-
-          read();
-        }).catch(function(e) {
-          if (e.name !== "AbortError") console.warn("[tts stream]", e.message);
-          streamDone = true;
-          if (activeSrcs === 0) onAllDone();
-        });
-      }
-
-      read();
-    })
-    .catch(function(e) {
-      if (e.name === "AbortError") { _drain(); return; }
-      console.warn("[tts]", e.message);
-      _cartesiaError = e.message || "Cartesia unavailable";  // future lines auto-route to native (retried after 5 min)
-      _cartesiaErrorAt = Date.now();
-      _updateCartErr();
-      _curNative = true;
-      _speakNative(text);                                    // still speak THIS line via native
-    });
-  }
-
   // ── Piper (local WASM) engine — TODO #41 Phase 3/4 ──────────────────────────
   // Vendored, same-origin ORT + vits-web (Phase 2: vendor/piper/, import map in index.html).
   // Dispatched from speak() via TTS_PROVIDERS.piper (Phase 4, above) and from _drain()'s
-  // item.piper branch. Mirrors the shape of _stream() above: a synth-then-schedule loop
-  // feeding the same AudioContext/_sources/_nextStart scheduler, so pause()/skip()/stop() work
-  // unchanged. Unlike Cartesia's fetch (which AbortController can cancel), an in-flight WASM
+  // item.piper branch. A synth-then-schedule loop feeding the shared AudioContext/_sources/
+  // _nextStart scheduler, so pause()/skip()/stop() work unchanged. An in-flight WASM
   // predict() call cannot be aborted — so every await below is followed by an epoch check that
   // silently discards stale work. That silent bail is the ONE sanctioned silent path in this
   // engine: it is not a failure, it is "this result is for a narration turn the user already
@@ -931,8 +740,8 @@ var TTS = (function() {
 
   var _piperMod      = null;  // vits-web module ref, kept warm across turns/synths
   var _piperReady     = false; // true once _piperInit has completed successfully at least once
-  var _piperError     = "";    // last Piper failure reason; mirrors _cartesiaError's shape/semantics
-  var _piperErrorAt   = 0;     // when it was recorded — auto-retried after 5 min, same as Cartesia
+  var _piperError     = "";    // last Piper failure reason; once set, speech falls back to native
+  var _piperErrorAt   = 0;     // when it was recorded — auto-retried after 5 min so one transient blip doesn't downgrade the whole session (audit #27)
   var _piperEpoch     = 0;     // generation counter — bumped by _speakPiper (new synth) and
                                 // _stopCurrent() (skip/stop); a stale await checks this and bails
   var _piperPersistAsked = false;  // one persistent-storage request per session (audit #12) — see _piperEnsureVoiceNow
@@ -985,9 +794,9 @@ var TTS = (function() {
                                          // observed-safe single-read envelope; rebuild cost hides
                                          // off the critical path between turns)
 
-  // Piper failure auto-retries after 5 min — same shape as _cartesiaOk() above. Backs both
-  // TTS_PROVIDERS.piper.available() (speak()'s dispatch) and prewarmPiper (so a known-broken
-  // engine isn't re-attempted on every TTS toggle-on inside the retry window).
+  // Piper failure auto-retries after 5 min, so one transient blip does not downgrade the whole
+  // session (audit #27). Backs TTS_PROVIDERS.piper.available() (speak()'s dispatch) and
+  // prewarmPiper (so a known-broken engine isn't re-attempted on every toggle-on in that window).
   function _piperOk() {
     if (_piperError && Date.now() - _piperErrorAt > 300000) { _piperError = ""; _piperErrorAt = 0; _updatePiperErr(); }
     return !_piperError;
@@ -1188,7 +997,7 @@ var TTS = (function() {
     var myEpoch = ++_piperEpoch;
 
     var ctx = _ensureCtx();
-    // Audit #17 (v1.341): no ctx at all → native fallback, never a silent drop (see _stream).
+    // Audit #17 (v1.341): no ctx at all → native fallback, never a silent drop.
     if (!ctx) { console.warn("[tts piper] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
     // v1.327: require RUNNING (suspended AND iOS "interrupted" both resume-attempted; a ctx that
     // won't run refuses LOUDLY + native fallback instead of scheduling silence).
@@ -1209,7 +1018,7 @@ var TTS = (function() {
       if (_piperEpoch !== myEpoch) return;                 // stale — don't resurrect a skipped item
       console.warn("[tts piper] engine/voice unavailable, falling back to native for this line:", e && e.message);
       _curNative = true;
-      _speakNative(text);                                  // mirror of _stream's catch — still speak THIS line
+      _speakNative(text);                                  // still speak THIS line via native
       return;
     }
 
@@ -1313,7 +1122,7 @@ var TTS = (function() {
                                    // deliberately BEFORE the !anyOk fallback — an all-units-failed session
                                    // is exactly one worth recycling
     if (!anyOk) {
-      // every unit failed to synthesize — loud, then fall back to native for THIS item (mirror of _stream's catch)
+      // every unit failed to synthesize — loud, then fall back to native for THIS item
       _piperError = "all units failed to synthesize";
       _piperErrorAt = Date.now();
       console.warn("[tts piper] " + _piperError);
@@ -1437,7 +1246,7 @@ var TTS = (function() {
       _updatePauseBtn(_paused); return;
     }
     // Piper items never set _curNative (see _drain()), so they fall through to here and pause via
-    // AudioContext suspend/resume — the same branch Cartesia uses. No Piper-specific code needed.
+    // AudioContext suspend/resume — the shared WebAudio branch. No Piper-specific code needed.
     if (!_audioCtx) return;
     if (_audioCtx.state !== "running") {   // v1.327: "suspended" OR iOS "interrupted" → resume; only a running ctx pauses
       _resumeCtx(_audioCtx);
@@ -1474,7 +1283,6 @@ var TTS = (function() {
     _crumbDone();    // a user skip/stop is not a crash — don't let the boot check report it as one
     _clearCtxWatch();   // audit #10 — the item the watchdog guarded is gone
     _clearPosState();   // rank 23 — same lifecycle as the ctx watch above
-    if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} _abortCtrl = null; }
     if (_nativeStallT) { clearTimeout(_nativeStallT); _nativeStallT = null; }   // v1.334: a live watchdog would resurrect the cancelled chain
     if (_nativeUtter) { _nativeUtter.onend = null; _nativeUtter.onerror = null; _nativeUtter = null; }
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
@@ -1502,20 +1310,8 @@ var TTS = (function() {
 
   function _escVal(s) { return (s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 
-  // Red indicator beside the Cartesia API Key label when Cartesia can't be used.
-  function _updateCartErr() {
-    var el = document.getElementById("tts-cart-err");
-    if (!el) return;
-    var msg = "";
-    if (!getKey())            msg = "⚠ no key — using native voice";
-    else if (_cartesiaError)  msg = "⚠ " + _cartesiaError + " — using native voice";
-    el.textContent = msg;
-    el.title = msg;
-    el.style.display = msg ? "inline" : "none";
-  }
-
-  // Red indicator beside the Piper voice label — mirrors _updateCartErr's shape exactly (one
-  // span, error takes priority over the informational "not downloaded yet" note). Deliberately
+  // Red indicator beside the Piper voice label — one span; a real error takes priority over the
+  // informational "not downloaded yet" note. Deliberately
   // synchronous (no await/init here — this file's async surface is confined to the four Piper
   // adapter functions, see the header comment): _piperDownloaded is session-local best-effort
   // memory populated by _piperEnsureVoice/_piperRefreshDownloaded, not a live OPFS query, so
@@ -1653,21 +1449,6 @@ var TTS = (function() {
     });
   }
 
-  function _buildVoiceOptions() {
-    var bank = getBank(), cur = getVoice(), html = "", found = false;
-    if (!bank.length) return "<option value='' disabled selected>— no voices saved yet —</option>";
-    html += "<option value=''>" + (cur ? "— select —" : "— select a voice —") + "</option>";
-    for (var i = 0; i < bank.length; i++) {
-      var sel = (bank[i].id === cur) ? " selected" : "";
-      if (bank[i].id === cur) found = true;
-      html += "<option value='" + _escVal(bank[i].id) + "'" + sel + ">" + _escVal(bank[i].name) + "</option>";
-    }
-    if (cur && !found) {
-      html += "<option value='" + _escVal(cur) + "' selected>(current) " + _escVal(cur.slice(0,8)) + "…</option>";
-    }
-    return html;
-  }
-
   function _buildNativeVoiceOptions() {
     var vs = _voiceList(), html = "", i;
     // show the effective voice as selected: saved pick if any, else the resolved default
@@ -1709,48 +1490,6 @@ var TTS = (function() {
   function _piperVoiceBlurb(id) {
     for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].blurb; }
     return "";
-  }
-
-  function _buildBankRows() {
-    var bank = getBank();
-    if (!bank.length) return "";
-    var html = "<div style='margin-top:8px;border-top:1px solid var(--brd2);padding-top:8px;'>";
-    for (var i = 0; i < bank.length; i++) {
-      html += "<div style='display:flex;align-items:center;gap:6px;padding:4px 0;'>"
-        + "<span style='flex:1;font-size:12px;color:var(--t0);'>" + _escVal(bank[i].name) + "</span>"
-        + "<span style='font-size:10px;color:var(--t2);font-family:var(--font-mono);'>" + _escVal(bank[i].id.slice(0,8)) + "…</span>"
-        + "<button data-bank-del='" + i + "' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;' title='Remove'>&#215;</button>"
-        + "</div>";
-    }
-    return html + "</div>";
-  }
-
-  function _refreshVoiceUI() {
-    var sel = document.getElementById("tts-voice-sel");
-    if (sel) sel.innerHTML = _buildVoiceOptions();
-    var rows = document.getElementById("tts-bank-rows");
-    if (rows) {
-      rows.innerHTML = _buildBankRows();
-      _wireBankDelBtns();
-    }
-  }
-
-  function _wireBankDelBtns() {
-    var rows = document.getElementById("tts-bank-rows");
-    if (!rows) return;
-    var btns = rows.querySelectorAll("[data-bank-del]");
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener("click", (function(idx) {
-        return function() {
-          var bank = getBank();
-          var removed = bank.splice(idx, 1);
-          setBank(bank);
-          // Clear active voice if the deleted entry was selected
-          if (removed.length && removed[0].id === getVoice()) store.del(VOICE_K);
-          _refreshVoiceUI();
-        };
-      })(parseInt(btns[i].getAttribute("data-bank-del"), 10)));
-    }
   }
 
   // #9: audition a specific Piper voice — the shared mechanism behind the Voice Settings Test
@@ -1843,8 +1582,8 @@ var TTS = (function() {
       +   "<span style='font-size:16px;color:var(--t0);font-weight:bold;'>&#128266; Voice Settings</span>"
       +   "<button id='tts-modal-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
       + "</div>"
-      // Rank 20 (todo_carplay.html): speech rate — applies to Native + Piper; Cartesia is served
-      // as-is (no rate knob on that path). Placed ABOVE the engine block since it isn't engine-specific.
+      // Rank 20 (todo_carplay.html): speech rate — applies to Native + Piper. Placed ABOVE the
+      // voice block since it isn't engine-specific.
       + "<div style='margin-bottom:16px;'>"
       +   "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;'>"
       +     "<label style='font-size:12px;color:var(--t2);'>Speech rate</label>"
@@ -1858,7 +1597,6 @@ var TTS = (function() {
       + "<div style='margin-bottom:14px;'>"
       +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
       + "</div>"
-      // #9: Cartesia panel REMOVED (provider dropped). Piper panel is now always shown.
       // ── Piper panel ──
       + "<div id='tts-panel-piper' style='display:block;'>"
       +   "<div style='margin-bottom:20px;'>"
@@ -1896,8 +1634,8 @@ var TTS = (function() {
     _renderPiperSlots();         // #66 slot UI — direct OPFS read, no engine init needed
 
     // v1.327 on-device audio diagnostics: the phone has no console, so the modal SHOWS the shared
-    // AudioContext's state — "running" is the only state that produces sound on the Piper/Cartesia
-    // paths; "suspended"/"interrupted" here IS the silence diagnosis, live-updating on statechange.
+    // AudioContext's state — "running" is the only state that produces sound on the Piper path;
+    // "suspended"/"interrupted" here IS the silence diagnosis, live-updating on statechange.
     function _updateAudioDiag() {
       var d = document.getElementById("tts-audio-diag");
       if (!d) return;
@@ -1953,8 +1691,6 @@ var TTS = (function() {
       var s = document.getElementById("tts-piper-sel");
       testVoice(s ? s.value : resolvePiperVoice());
     });
-
-    // #9: Cartesia "add voice" / voice-bank wiring removed (provider dropped).
 
     document.getElementById("tts-save-btn").addEventListener("click", function() {
       // #9: engine is always Piper; normalize ENGINE_K so any old caller reading it sees "piper".

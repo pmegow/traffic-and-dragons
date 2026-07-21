@@ -81,6 +81,29 @@ Fable session can audit it in one pass.
     it) but not yet ripped; a dead-code sweep is a separate follow-up. 4 old Phase-4 engine-selection
     tests replaced with 3 asserting the constant. **Fable: check that nothing still routes through
     `TTS_PROVIDERS.cartesia` or a stale ENGINE_K, and that the dormant Cartesia code can't be reached.**
+  - v1.403 — **Cartesia DEAD-CODE SWEEP (the dormant provider is gone):** deleted 12 exclusive
+    functions (`getKey`/`getVoice`/`getBank`/`setBank`/`_cartesiaOk`/`_stream`/`_streamGo`/
+    `_updateCartErr`/`_buildVoiceOptions`/`_buildBankRows`/`_wireBankDelBtns`/`_refreshVoiceUI`), its
+    constants (`KEY_K`/`VOICE_K`/`BANK_K`/`CARTESIA_SSE_URL`/`_VERSION`/`_MODEL`/`_cartesiaError`/
+    `_cartesiaErrorAt`/`_abortCtrl`), the `cartesia:` entry in `TTS_PROVIDERS`, and the entire SSE/
+    WebAudio streaming core. **315 lines deleted / 51 added; 71 case-insensitive grep hits → 0.**
+    TWO edits inside SHARED functions, both deliberate: (a) `_drain()` — the `else _stream(...)`
+    third branch became `else { warn; _drain(); }` rather than being dropped outright, because a
+    silent fall-through would leave `_playing` latched with nothing scheduled to call back (a wedged
+    queue = permanent silence, the exact no-silent-failures class); (b) `_stopCurrent()` lost only the
+    `_abortCtrl` abort line. **PROTECTED and verified untouched:** the shared scheduler
+    (`_audioCtx`/`_ensureCtx`/`_sources`/`_nextStart`/`_queue`/`_drain`/`_stopCurrent`/`speak`), the
+    iOS ctx-discipline subsystem, `primeAudioSession`, **`SAMPLE_RATE`** (configures the shared ctx
+    Piper rides), `getRate`, `TTS_TEST_LINE`, all text-prep, and the #66 helpers. Public API
+    unchanged (27 exports, verified in-browser). Left ALONE as one unit for a later legacy-engine-key
+    cleanup: `ENGINE_K` + its Save-handler write + `NATIVE_K` + the now-callerless `isNative()`
+    (annotated VESTIGIAL in place). **Verification:** `node --check` clean; 750 assertions green;
+    Voice Settings opens with zero throws and exactly the 15 expected element ids (the removed-panel
+    null-ref class); and a REAL browser narration — 75MB voice downloaded, 2 buffers scheduled at
+    22050Hz mono totalling 3.1s with the 0.15s comma gap between units, then stop/pause/resume
+    exercised — all with zero console warnings. **Fable: confirm the `_drain()` third-branch change is
+    the right call vs deleting the branch (I chose loud-drain over silent fall-through), and that no
+    protected shared piece lost a caller it silently depended on.**
 - **Ratified design (user, 2026-07-20) — what Fable should sanity-check:**
   1. **Cartesia REMOVED, engine picker REMOVED, Piper the only engine; Native kept as a SILENT
      fallback** (load-window + iOS-audio-suspend). *(Not built yet — see pending.)*
