@@ -106,8 +106,10 @@ _(none yet — `/bugs investigate B11`)_
 ### Action log
 _(none)_
 
+## Completed
+
 ## B12 — Engine bookkeeping still narrated as prose after the B5 fix — two more sightings on v1.378 (a spent-key remark, and inventory expenditures written into the narrative window)
-**Status:** new
+**Status:** ignored
 **Kind:** user-report · **First seen:** 2026-07-19 (v1.378) · **Last seen:** 2026-07-19 (v1.378) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 834, 867
 **Fingerprint:** `user-report · user-report · v1.378 · “no key was spent.” sonnets thinking is leaking into the narrative again`
 **Fingerprint (second arrival):** `user-report · user-report · v1.378 · still adding inventory expenditures to the narrative window`
@@ -138,10 +140,8 @@ STATE: Ammut (Rogue Lv9) HP 53/75, 606 gp — Sandpoint / Charred Barrel, dawn �
 _(none yet — `/bugs investigate B12`)_
 
 ### Action log
-_(none)_
+**2026-07-21** — ignored (was `new`) at the user's direction: not worth pursuing unless it recurs. Reopen trigger on record: **any further sighting of engine bookkeeping narrated as prose** — file it as a new row and cite this one plus B5, since that would make three sightings across two versions after a verified fix and turns "maybe the model had an off turn" into a real regression. The B5 findings remain the starting point.
 
-
-## Completed
 
 ## B8 — Browser password-manager autofill dropdown pops up over the action input when it is clicked (desktop Chrome)
 **Status:** verified
