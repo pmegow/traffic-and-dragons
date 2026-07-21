@@ -4195,10 +4195,12 @@ function runEngineTests(R){
   });
 
   // ── TTS engine selection + Piper voice tiering (TODO #41 Phase 4) ────────────
-  // Keys hardcoded here (not exported by tts.js — ENGINE_K/NATIVE_K/KEY_K/PVOICE_K are private to
-  // the TTS closure) so a rename in tts.js will silently desync these tests from reality; that's
-  // an acceptable trade for not growing the public API just for test access. Every test cleans up
-  // the keys it touches so ordering within/after this section can't leak state.
+  // Key strings hardcoded here. PVOICE_K is still live inside the TTS closure (private, hence the
+  // copy). The other three are DEAD as of v1.405 — tts.js no longer declares or reads the engine
+  // key, the native flag, or the Cartesia key. They stay in these tests ON PURPOSE: they are the
+  // localStorage a long-time user's device still carries, and the assertion is that carrying them
+  // cannot resurrect a retired engine. Every test cleans up the keys it touches so ordering
+  // within/after this section can't leak state.
   section("TTS engine selection (#41 Phase 4)");
   var ENGINE_K_T="tnd_tts_engine_v1", NATIVE_K_T="tnd_tts_native_v1", KEY_K_T="tnd_cartesia_key_v1", PVOICE_K_T="tnd_piper_voice_v1";
   // #9 rework (v1.398): Cartesia removed, engine picker removed — Piper is THE engine. getEngine()

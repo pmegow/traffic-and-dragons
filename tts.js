@@ -14,7 +14,6 @@
 var TTS = (function() {
 
   var ON_K     = "tnd_tts_on_v1";
-  var NATIVE_K = "tnd_tts_native_v1";   // legacy "prefer the browser's built-in speechSynthesis" flag — vestigial (see getEngine)
   var NVOICE_K = "tnd_tts_nvoice_v1";   // chosen native voice, stored BY NAME (voice list differs per device)
   var NVOICE_DEFAULT = "Google US English"; // preferred voice when the user hasn't picked one (falls back to OS default if absent)
   var TTS_TEST_LINE = "The lightless mass rotates, and the weapon-notation locks into place.";
@@ -28,11 +27,9 @@ var TTS = (function() {
     return v;
   }
 
-  // ── Engine selection (TODO #41 Phase 4) ─────────────────────────────────────
+  // ── Engine selection ────────────────────────────────────────────────────────
   // Selection (getEngine) is INTENT; runtime availability (_piperOk) is a separate ladder that can
-  // still downgrade the selected engine to native for one item — see speak(). Since the #9 rework
-  // there is only one engine, so ENGINE_K is vestigial (kept so old readers don't NPE).
-  var ENGINE_K = "tnd_tts_engine_v1";
+  // still downgrade the engine to native for one item — see speak().
 
   // ── Piper voice stable (TODO #41 Phase 4, §5 Q6 — mirrors AUTHORS/proseAuthor) ──────────────
   // The 8 voices validated in the piper_test.html spike. "medium" models run ~60MB, "high" larger;
@@ -120,18 +117,20 @@ var TTS = (function() {
   }
 
   // getEngine() — #9 rework (v1.398): Piper is THE engine. The cloud provider is removed and the
-  // engine picker is gone, so selection no longer exists — getEngine() is a constant regardless of
-  // any stored ENGINE_K / native flag (engine-tested). Native survives ONLY as the automatic
+  // engine picker is gone, so selection no longer exists — getEngine() is a CONSTANT. The two
+  // storage keys that used to drive it (tnd_tts_engine_v1, tnd_tts_native_v1) were retired in
+  // v1.405; an old device still carrying them cannot resurrect a dead engine, which is exactly what
+  // the tests below assert by setting them. Native survives ONLY as the automatic
   // fallback target (the runtime degradation ladder in speak() + the iOS-audio-suspend path call
   // TTS_PROVIDERS.native directly, NOT via getEngine), so a device/window where Piper can't load
-  // still speaks. ENGINE_K is now vestigial (kept only so old callers that read it don't NPE).
+  // still speaks.
   function getEngine() { return "piper"; }
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
   // instead of if(engine===...) branches. Provider-specific quirks (Piper's voiceId resolution)
   // live in that entry's own functions, never in speak().
-  // available()      — runtime usability check (separate from selection; see the ENGINE_K comment).
+  // available()      — runtime usability check (separate from selection; see getEngine above).
   // enqueue(text,vId) — builds the _queue item, or returns null/undefined when the provider can't
   //                     produce one right now — speak() keeps a car-mode-only native fallback for
   //                     that case (no current provider returns null; the guard is for future ones).
@@ -340,9 +339,6 @@ var TTS = (function() {
   // ── State ──────────────────────────────────────────────────────────────────
 
   function isOn()     { return store.get(ON_K) === "1"; }
-  // VESTIGIAL (no callers since v1.398 made getEngine() a constant). Kept with ENGINE_K + the
-  // Save-handler writes as one unit — retire the whole legacy engine-key set together, not piecemeal.
-  function isNative() { return store.get(NATIVE_K) === "1"; }
   function getNativeVoice() { return store.get(NVOICE_K) || ""; }
   // System voices available to speechSynthesis. May be empty on first call (esp. iOS) until voiceschanged fires.
   function _voiceList() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch(e) { return []; } }
@@ -601,7 +597,7 @@ var TTS = (function() {
     var engine = getEngine();
     var prov = TTS_PROVIDERS[engine] || TTS_PROVIDERS.native;
 
-    // Runtime degradation ladder — separate from selection (ENGINE_K/getEngine above). A selected
+    // Runtime degradation ladder — separate from selection (getEngine above). A selected
     // engine that isn't usable RIGHT NOW falls back to native for this item, unconditionally (no
     // car-mode gating). Loud per no-silent-failures: warn + surface the reason in the
     // settings modal indicator so the user can see WHY they're hearing the fallback voice.
@@ -1693,9 +1689,6 @@ var TTS = (function() {
     });
 
     document.getElementById("tts-save-btn").addEventListener("click", function() {
-      // #9: engine is always Piper; normalize ENGINE_K so any old caller reading it sees "piper".
-      store.set(ENGINE_K, "piper");
-      store.set(NATIVE_K, "");
       var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }   // the fallback voice
       var psel = document.getElementById("tts-piper-sel");
       if (psel && psel.value) savePiperVoice(psel.value);   // proseAuthor two-tier save — see savePiperVoice() above

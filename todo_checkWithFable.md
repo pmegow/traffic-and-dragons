@@ -73,6 +73,19 @@ Fable session can audit it in one pass.
     unchanged); 750 green. **Fable: confirm the LRU-key proxy can't disagree with the OPFS eviction in a
     way that names the WRONG evictee, and that a narration download silently evicting an assigned voice
     at cap 10 is acceptable (no confirm on that path by design).**
+  - v1.405 — **legacy engine keys retired (the tail of the #9 cleanup):** removed `ENGINE_K`
+    (`tnd_tts_engine_v1`), `NATIVE_K` (`tnd_tts_native_v1`) and `isNative()`. These are TWO
+    superseded generations of engine selection — the v1.61 native-vs-cloud boolean, then the v1.301
+    Phase-4 engine id whose legacy-inference branch was `isNative()`'s only caller — both orphaned
+    the moment v1.398 made `getEngine()` a constant. Nothing read them since; the Save handler was
+    write-only into them. Deliberately NOT purged from localStorage: the stale values are inert, and
+    `tnd_cartesia_key_v1` is a stored third-party credential whose deletion should be the user's
+    decision rather than a silent side effect. The three `getEngine()` tests keep SETTING all three
+    keys — that is now their whole point (a device carrying them must not resurrect a dead engine),
+    and the test-block comment was rewritten to say so. 755 green; live-verified with the legacy keys
+    seeded: getEngine()===piper, Voice Settings opens clean, Save pins a new narrator voice.
+    **Fable: confirm leaving the orphaned keys (esp. the Cartesia credential) is the right call, and
+    that no non-JS surface (SW, sync blob, server) ever carried these keys.**
   - v1.404 — **blueprint-authored NARRATOR VOICE (+ the per-campaign move, found already built):**
     the "device→campaign move" in the build order was ALREADY DONE — `savePiperVoice` pins
     `worldState.piperVoice` whenever a campaign exists and `resolvePiperVoice` reads the pin ahead of
