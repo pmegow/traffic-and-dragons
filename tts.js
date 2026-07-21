@@ -1809,6 +1809,29 @@ var TTS = (function() {
       _drain();
     });
   }
+  // #9 (user 2026-07-21): when a character's assigned voice CHANGES, free the old one's OPFS slot —
+  // but ONLY if nothing else still uses it. `_voiceAssignedTo` scans every character sheet AND the
+  // narrator, so a voice shared by another party member (or the narrator) is protected automatically;
+  // this is what keeps a voice-swap from ever silently deleting the narrator's voice. Caller updates
+  // char.voiceId FIRST, so the old id no longer counts itself. Resident-gate on the LRU keys avoids
+  // spinning up the wasm engine for a voice that was never downloaded. Housekeeping only — non-fatal.
+  function releaseVoiceIfUnused(voiceId) {
+    if (!voiceId) return;                             // narrator default — owns no per-character slot
+    if (_voiceAssignedTo(voiceId).length) return;     // still used by a character or the narrator
+    if (!_piperLruLoad()[voiceId]) return;            // not resident — nothing to free (no engine init)
+    _piperInit().then(function(mod) {
+      return _piperSerial(function() { return mod.remove(voiceId); });
+    }).then(function() {
+      var lru = _piperLruLoad();
+      delete lru[voiceId];
+      try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) {}
+      delete _piperDownloaded[voiceId];
+      console.info("[tts piper] released voice " + voiceId + " — no character or narrator uses it anymore");
+      if (typeof _renderPiperSlots === "function") _renderPiperSlots();
+    }).catch(function(e) {
+      console.warn("[tts piper] release of unused voice " + voiceId + " failed (kept):", e && e.message);
+    });
+  }
   function showSettingsModal() {
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
     var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
@@ -1966,6 +1989,7 @@ var TTS = (function() {
     replayLast:        replayLast,   // replays the last NARRATION (not Test/other speak() calls), queue-preserving
     showSettingsModal: showSettingsModal,
     testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button
+    releaseVoiceIfUnused: releaseVoiceIfUnused,   // #9: free a voice's OPFS slot on reassignment when nothing (incl. narrator) still uses it
     primeAudioSession:     primeAudioSession,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
     // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to

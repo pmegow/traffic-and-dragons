@@ -77,9 +77,14 @@ function csVoiceControlHtml(char){
 function csWireVoice(char){
   var sel=document.getElementById("cs-voice-sel");if(!sel||!char)return;
   sel.addEventListener("change",function(){
+    var prev=(char.voiceId)||"";/* capture BEFORE overwrite so the release check sees the change */
     var v=sel.value;
     if(v){char.voiceId=v;}else{delete char.voiceId;}
     if(typeof saveAll==="function")saveAll();
+    /* #9 (user 2026-07-21): reassigning this character's voice frees the old one's download slot —
+       but TTS.releaseVoiceIfUnused only deletes it when NO other character and NOT the narrator still
+       use it (char.voiceId is already updated above, so this char no longer counts). */
+    if(prev&&prev!==v&&typeof TTS!=="undefined"&&typeof TTS.releaseVoiceIfUnused==="function")TTS.releaseVoiceIfUnused(prev);
     if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"narrator default"));
   });
   // #9: Test button — auditions the CURRENTLY-selected voice ("" → narrator). First test of an
@@ -439,8 +444,10 @@ function showNpcSheet(name){
   if(memNpc&&memNpc.events&&memNpc.events.length){for(i=memNpc.events.length-1;i>=0;i--)evHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+memNpc.events[i].turn+'</span>'+escHtml(memNpc.events[i].note)+'</div>';}
   var npcSections=csSec("Status",statusBlock||'<span class="cs-none">No data</span>')+(memBlock?csSec("Profile",memBlock):"")+(evHtml?csSec("History",evHtml):"");
 
-  // ── Generate / Regenerate button ──────────────────────────────────────────
-  var genBtnHtml=isParty?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>"+(sheet?"&#8635; Regenerate Sheet":"&#10022; Generate Character Sheet")+"</button></div>":"";
+  // ── Generate button (first-time only) ─────────────────────────────────────
+  // Regenerate was DROPPED (user call 2026-07-21): a footgun that re-rolled a good sheet with no
+  // real use-case. Generate stays — it's the ONLY in-game way a [PARTY_MEMBER:] joiner gets a sheet.
+  var genBtnHtml=(isParty&&!sheet)?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>&#10022; Generate Character Sheet</button></div>":"";
   var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
   var modal=modalShell("npc-modal",/* #14 */
@@ -500,25 +507,11 @@ function showNpcSheet(name){
       document.getElementById("sw-cancel").addEventListener("click",function(){confirm.remove();});
     });
   }
-  // ── Generate / Regenerate ─────────────────────────────────────────────────
+  // ── Generate (first-time only; Regenerate dropped 2026-07-21) ─────────────
   if(document.getElementById("npc-gen-sheet")){
     document.getElementById("npc-gen-sheet").addEventListener("click",function(){
-      var doGen=function(){modal.remove();generateNpcSheet(name,function(){showNpcSheet(name);});};
-      if(!sheet){doGen();return;}/* first-time GENERATE — nothing to lose, no confirm */
-      // REGENERATE rebuilds the whole sheet from a fresh GM call and REPLACES the current one.
-      // Easy to hit by accident (the "Yikes" report) — confirm first. Progression, portrait, and
-      // voice are carried over (generateNpcSheet), but personality/abilities/spells/inventory are
-      // rebuilt, so this is destructive of hand-tuned content.
-      var cf=modalShell("regen-confirm",
-        "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Regenerate "+escHtml(name)+"'s sheet?</div>"
-        +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.5;'>This rebuilds the entire character sheet from scratch (a new GM call) and <b>replaces</b> the current one. Level, HP, XP, portrait, and the assigned voice are kept; personality, abilities, spells, inventory, and relationships are regenerated.</div>"
-        +"<div style='display:flex;gap:10px;justify-content:center;'>"
-        +"<button id='regen-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Regenerate</button>"
-        +"<button id='regen-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
-        +"</div>",
-        {z:500,maxWidth:380,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
-      document.getElementById("regen-ok").addEventListener("click",function(){cf.remove();doGen();});
-      document.getElementById("regen-cancel").addEventListener("click",function(){cf.remove();});
+      /* the button only renders when there is NO sheet — nothing to lose, no confirm */
+      modal.remove();generateNpcSheet(name,function(){showNpcSheet(name);});
     });
   }
   // ── Part ways (remove from party) ─────────────────────────────────────────
