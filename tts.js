@@ -968,7 +968,7 @@ var TTS = (function() {
   // campaign's provider-hopping eventually repeat the eviction risk audit #12 already flags for a
   // SINGLE voice, just at OS-storage scale instead of browser-eviction scale. Cap resident voices;
   // evict least-recently-used on overflow. Re-download on demand is cheap (progress UI already exists).
-  var PIPER_VOICE_CAP = 4;   // user call 2026-07-17 (raised from the triage's 3 with the slot UI)
+  var PIPER_VOICE_CAP = 10;   // user call 2026-07-21 (was 4) — per-character voices need more resident room
   var PIPER_VOICE_LRU_K = "tnd_piper_voice_lru_v1";  // {voiceId: epoch-ms last ensured} — LRU stamps for the cap above
   var _piperPatchRev  = "";                   // TND_VITS_PATCH actually loaded (set by _piperInit)
   // r8 crash-forensics counters. The crumb carries them so the NEXT tab kill (if any) can
@@ -1612,7 +1612,7 @@ var TTS = (function() {
           html += "<div style='padding:6px 10px;border:1px dashed var(--brd);border-radius:6px;margin-bottom:4px;font-size:11px;color:var(--t2);opacity:.6;'>— empty slot —</div>";
         }
       }
-      html += "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Downloading a " + (PIPER_VOICE_CAP + 1) + "th voice replaces the bottom (least-recently used) one.</div>";
+      html += "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Downloading past " + PIPER_VOICE_CAP + " replaces the least-recently-used one — you're warned first, with who it's assigned to.</div>";
       host.innerHTML = html;
       var radios = host.querySelectorAll("input[name='tts-piper-resident']"), r;
       for (r = 0; r < radios.length; r++) {
@@ -1757,10 +1757,57 @@ var TTS = (function() {
   // button AND the character-sheet Test button. Reuses the normal queue/dispatch (stop() pre-empts
   // a wedged _playing latch; _drain runs the epoch guard) so an audition behaves exactly like real
   // narration. A falsy voiceId → the narrator voice (used when a character has no voice assigned).
+  // #66 (user 2026-07-21): before a user-initiated download evicts a resident voice, name the voice
+  // to be deleted AND who it's assigned to, and let them cancel. Residency is proxied by the LRU
+  // keys (stamped on every ensure, deleted on evict) — sync, good enough for a heads-up; the actual
+  // eviction still uses the real OPFS list. Narration-triggered downloads can't block a turn, so
+  // this gates only the audition path (both Test buttons run through testVoice).
+  function _voiceLabelOf(id) { for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].label; } return id; }
+  function _voiceAssignedTo(voiceId) {
+    var who = [];
+    if (typeof worldState === "undefined" || !worldState) return who;
+    var c = worldState.character;
+    if (c && c.voiceId === voiceId) who.push((c.name || "the player") + " (you)");
+    var ns = worldState.npcs || [], i;
+    for (i = 0; i < ns.length; i++) { if (ns[i] && ns[i].charSheet && ns[i].charSheet.voiceId === voiceId) who.push(ns[i].name); }
+    if (resolvePiperVoice() === voiceId) who.push("the narrator");
+    return who;
+  }
+  // Promise<boolean> — true = proceed with the download, false = user cancelled. Only prompts when
+  // downloading newVoiceId would push resident voices past the cap.
+  function _confirmVoiceEviction(newVoiceId) {
+    var resident = Object.keys(_piperLruLoad());
+    if (!newVoiceId || resident.indexOf(newVoiceId) >= 0 || resident.length < PIPER_VOICE_CAP) return Promise.resolve(true);
+    var lru = _piperLruLoad();
+    var evictee = resident.filter(function(id) { return id !== newVoiceId; })
+      .sort(function(a, b) { return (lru[a] || 0) - (lru[b] || 0); })[0];
+    if (!evictee) return Promise.resolve(true);
+    if (typeof modalShell !== "function") return Promise.resolve(true);   // no UI to ask with — don't block
+    var assigned = _voiceAssignedTo(evictee);
+    var assignLine = assigned.length
+      ? "It is assigned to <b>" + assigned.map(function(n){return _escVal(n);}).join(", ") + "</b>."
+      : "It is not assigned to any character.";
+    return new Promise(function(resolve) {
+      var cf = modalShell("voice-evict-confirm",
+        "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Free a voice slot?</div>"
+        + "<div style='font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.5;'>You have " + PIPER_VOICE_CAP + " voices downloaded (the maximum). Getting <b>" + _escVal(_voiceLabelOf(newVoiceId)) + "</b> will delete the least-recently-used one, <b>" + _escVal(_voiceLabelOf(evictee)) + "</b>. " + assignLine + " It re-downloads automatically the next time it's needed.</div>"
+        + "<div style='display:flex;gap:10px;justify-content:center;'>"
+        + "<button id='evict-ok' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:6px;cursor:pointer;font-weight:bold;'>Delete &amp; get it</button>"
+        + "<button id='evict-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:6px;cursor:pointer;'>Cancel</button>"
+        + "</div>",
+        { z: 600, maxWidth: 400, boxPad: "28px 24px", boxExtra: "text-align:center;", wireClose: false });
+      document.getElementById("evict-ok").addEventListener("click", function() { cf.remove(); resolve(true); });
+      document.getElementById("evict-cancel").addEventListener("click", function() { cf.remove(); resolve(false); });
+    });
+  }
   function testVoice(voiceId) {
-    stop();
-    _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: voiceId || resolvePiperVoice() });
-    _drain();
+    var v = voiceId || resolvePiperVoice();
+    _confirmVoiceEviction(v).then(function(ok) {
+      if (!ok) return;
+      stop();
+      _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: v });
+      _drain();
+    });
   }
   function showSettingsModal() {
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
