@@ -1053,6 +1053,7 @@ function normalizeBlueprint(bp){
   if(typeof bp.author!=="string")bp.author="";
   bp.tone=normalizeToneId(bp.tone);
   if(typeof bp.proseAuthor!=="string")bp.proseAuthor="";
+  if(typeof bp.narratorVoice!=="string")bp.narratorVoice=""; // #9 — authored Piper narrator voice id ("" = player's own)
   if(typeof bp.premise!=="string")bp.premise=bp.premise==null?"":String(bp.premise);
   if(typeof bp.startingLocation!=="string")bp.startingLocation="";
   if(typeof bp.startingRegion!=="string")bp.startingRegion="";
@@ -1100,6 +1101,8 @@ function buildBlueprintFromGame(){
     author:     "",
     tone:       normalizeToneId(worldState.tone&&worldState.tone.name||""),
     proseAuthor: worldState.proseAuthor!=null?worldState.proseAuthor:"",
+    narratorVoice: worldState.piperVoice!=null?worldState.piperVoice:"", // #9 — the campaign's narrator pin, not the device default
+
     premise:    sk&&sk.premise||"",
     acts:       acts,
     npcs:       npcs,
@@ -1213,6 +1216,15 @@ function applyBlueprint(bp){
       var _paFound=false,_pai;for(_pai=0;_pai<AUTHORS.length;_pai++){if(AUTHORS[_pai].id===bp.proseAuthor){_paFound=true;break;}}
       if(!_paFound)showToast("Blueprint voice \""+bp.proseAuthor+"\" not recognised — using default.");
     }
+  }
+  // Narrator voice (#9) — the AUDIO twin of the prose voice above, and it follows the same E20 rule:
+  // only a non-empty authored voice pins the campaign, so a blueprint that doesn't care about
+  // narration can't wipe a pin the player already made. Output config only — it is read by
+  // TTS.resolvePiperVoice at speak time and never enters buildSysPrompt (drift-guarded by test).
+  if(bp.narratorVoice){
+    worldState.piperVoice=bp.narratorVoice;
+    if(typeof TTS!=="undefined"&&TTS.voiceKnown&&!TTS.voiceKnown(bp.narratorVoice))
+      showToast("Blueprint narrator voice \""+bp.narratorVoice+"\" isn't in this build's voice set — using the default narrator.");
   }
   // Store blueprint name on worldState for reference
   worldState.blueprintName=bp.name;

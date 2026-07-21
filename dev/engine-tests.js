@@ -833,6 +833,40 @@ function runEngineTests(R){
     if(notes.indexOf("Rusty Dragon")<0)return "first fact missing";
     return notes.indexOf("Half-sister to Tsuto")>=0?true:"later knowledge still dropped: "+notes;
   });
+  // ── #9: blueprint-authored NARRATOR VOICE (mirrors proseAuthor exactly) ──────────────────────
+  t("normalizeBlueprint: narratorVoice defaults to empty string",function(){
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"N",premise:"p",acts:[]});
+    if(bp.narratorVoice!=="")return "not defaulted: "+JSON.stringify(bp.narratorVoice);
+    var bad=normalizeBlueprint({format:"tnd-blueprint-v1",name:"N",premise:"p",acts:[],narratorVoice:{oops:1}});
+    return bad.narratorVoice===""?true:"non-string not coerced: "+JSON.stringify(bad.narratorVoice);
+  });
+  t("buildBlueprintFromGame: exports the campaign narrator pin (worldState.piperVoice)",function(){
+    makeWorld();worldState.tone={name:"High Fantasy",voice:""};worldState.piperVoice="en_US-ryan-high";
+    if(buildBlueprintFromGame().narratorVoice!=="en_US-ryan-high")return "pin not exported";
+    makeWorld();worldState.tone={name:"High Fantasy",voice:""};delete worldState.piperVoice;
+    return buildBlueprintFromGame().narratorVoice===""?true:"unset campaign exported a voice";
+  });
+  t("applyBlueprint: a blueprint narrator voice pins the campaign; empty never clobbers (E20 shape)",function(){
+    makeWorld();worldState.piperVoice="en_US-ryan-high";
+    applyBlueprint({narratorVoice:"",acts:[],npcs:[],locations:[],rules:[]});
+    if(worldState.piperVoice!=="en_US-ryan-high")return "empty voice clobbered the campaign pin: "+JSON.stringify(worldState.piperVoice);
+    applyBlueprint({narratorVoice:"en_GB-cori-high",acts:[],npcs:[],locations:[],rules:[]});
+    return worldState.piperVoice==="en_GB-cori-high"?true:"author voice not applied: "+JSON.stringify(worldState.piperVoice);
+  });
+  t("applyBlueprint: an UNKNOWN narrator voice still resolves to the default (never silent, never broken)",function(){
+    makeWorld();
+    applyBlueprint({narratorVoice:"en_US-not-a-real-voice",acts:[],npcs:[],locations:[],rules:[]});
+    // The pin is recorded (author intent is preserved verbatim, like proseAuthor) but resolution
+    // snaps it to the shipped default, so narration can never be left pointing at a missing model.
+    return TTS.resolvePiperVoice()===TTS.voiceDefault()?true:"unknown voice leaked into resolution: "+TTS.resolvePiperVoice();
+  });
+  t("narrator voice is OUTPUT config — it must not reach the system prompt (drift guard)",function(){
+    makeWorld();worldState.tone={name:"High Fantasy",voice:""};
+    delete worldState.piperVoice;var before=buildSysPrompt();
+    worldState.piperVoice="en_US-ryan-high";var after=buildSysPrompt();
+    if(before.stable!==after.stable)return "STABLE half changed — a voice pin would kill every cache hit";
+    return before.volatile===after.volatile?true:"VOLATILE half changed — the voice leaked into the prompt";
+  });
   t("creatures (v1.176): normalize defaults, validate names, apply seeds worldState.bestiary",function(){
     var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"C",premise:"p",acts:[{title:"A",goal:"g",arcs:[{title:"a",objective:"o"}]}]});
     if(!Array.isArray(bp.creatures))return "creatures not defaulted";

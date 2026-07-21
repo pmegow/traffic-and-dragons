@@ -73,6 +73,26 @@ Fable session can audit it in one pass.
     unchanged); 750 green. **Fable: confirm the LRU-key proxy can't disagree with the OPFS eviction in a
     way that names the WRONG evictee, and that a narration download silently evicting an assigned voice
     at cap 10 is acceptable (no confirm on that path by design).**
+  - v1.404 — **blueprint-authored NARRATOR VOICE (+ the per-campaign move, found already built):**
+    the "device→campaign move" in the build order was ALREADY DONE — `savePiperVoice` pins
+    `worldState.piperVoice` whenever a campaign exists and `resolvePiperVoice` reads the pin ahead of
+    the device default (both engine-tested since the proseAuthor mirror). What shipped here is the
+    BLUEPRINT half: `narratorVoice` added to the blueprint schema (`normalizeBlueprint` coerces a
+    non-string to ""), `buildBlueprintFromGame` exports the campaign pin, and `applyBlueprint` applies
+    it under the SAME E20 rule as `proseAuthor` — **only a non-empty authored voice pins**, so a
+    blueprint with no narration opinion cannot clobber a pin the player already made; an id outside
+    this build's catalog is toasted (`TTS.voiceKnown`) and still resolves to the shipped default.
+    Authoring surfaces: the in-game Export-as-Blueprint modal and the Blueprint Designer (v0.35 —
+    meta field, `BP_SECTIONS`/`_PATCH_TOP` registration, ✨-draft preserves an existing pick; it now
+    loads tts.js and reads the catalog through the public `TTS.voices()` rather than duplicating it).
+    **5 new tests (755 green), one of which is the drift guard:** `buildSysPrompt()` must be
+    byte-identical in BOTH halves with and without `worldState.piperVoice` set — narrator voice is
+    output config and a leak into the stable half would kill every prompt-cache hit. Live-verified the
+    whole round trip (designer → fileOut → normalize → applyBlueprint → resolvePiperVoice) and the
+    silent-blueprint no-clobber case. **Fable: confirm the E20 mirror is the right semantics for an
+    AUDIO setting (a blueprint author arguably has weaker claim to the narrator than to prose voice),
+    and that pinning an unknown-but-recorded id — rather than refusing it — can't strand a campaign
+    if the catalog changes again.**
   - v1.398 — **Voice Settings SIMPLIFIED (Cartesia + engine picker removed):** `getEngine()` is now a
     constant `"piper"` (Native survives only as the runtime fallback target, called directly). The
     modal lost the engine radios + the whole Cartesia panel (key/voice-bank) + their wiring; it's now

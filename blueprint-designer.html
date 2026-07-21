@@ -109,11 +109,12 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="api.js"></script>
 <script src="campaign_generator.js"></script>
 <script src="game.js"></script>
+<script src="tts.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.34";
+var BP_DESIGNER_VERSION="v0.35";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -155,7 +156,7 @@ function collapseAll(){
 function esc(s){return escHtml(s==null?"":s);}
 function blankArc(){return {title:"",objective:"",type:"",dnaHint:"",reward:""};}
 function blankAct(){return {title:"",goal:"",turningPoint:"",reward:"",parallel:false,arcs:[blankArc()]};}
-function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
+function blankBp(){return normalizeBlueprint({format:"tnd-blueprint-v1",name:"",author:"",proseAuthor:"",narratorVoice:"",tone:"",startingLocation:"",startingRegion:"",premise:"",acts:[blankAct()],npcs:[],locations:[],creatures:[],rules:[]});}
 
 function setStatus(msg,cls){var el=document.getElementById("statusline");el.textContent=msg||"";el.className=cls||"";}
 // Dirty marker keeps the blueprint's NAME in the statusline and appends the flag (bug fix
@@ -224,6 +225,10 @@ function render(){
   // Metadata
   var toneOpts="<option value=''>(none)</option>";for(i=0;i<TONES.length;i++){toneOpts+="<option value='"+TONES[i].id+"'"+(bp.tone===TONES[i].id?" selected":"")+">"+esc(TONES[i].nm)+"</option>";}
   var voiceOpts="";for(i=0;i<AUTHORS.length;i++){voiceOpts+="<option value='"+AUTHORS[i].id+"'"+(bp.proseAuthor===AUTHORS[i].id?" selected":"")+">"+esc(AUTHORS[i].nm)+"</option>";}
+  // #9 narrator voice — the audio twin of the prose voice, from the shared TTS catalog. Empty ships
+  // no opinion so the player's own narrator survives the import (applyBlueprint only pins non-empty).
+  var nvList=(typeof TTS!=="undefined"&&TTS.voices)?TTS.voices():[],nVoiceOpts="<option value=''>(player's own narrator)</option>";
+  for(i=0;i<nvList.length;i++){nVoiceOpts+="<option value='"+nvList[i].id+"'"+(bp.narratorVoice===nvList[i].id?" selected":"")+">"+esc(nvList[i].label)+"</option>";}
   h+="<div class='sect'>"+secH("meta","Blueprint"+(bp.name?" — "+esc(bp.name):""));
   if(secOpen.meta!==false){
     h+="<div class='grid2'>"
@@ -231,6 +236,7 @@ function render(){
     +fld("Author (credit)",txt("meta",0,0,"author",bp.author,"who made this campaign"))
     +fld("World tone","<select data-sec='meta' data-i='0' data-j='0' data-k='tone'>"+toneOpts+"</select>")
     +fld("Prose voice (player can override)","<select data-sec='meta' data-i='0' data-j='0' data-k='proseAuthor'>"+voiceOpts+"</select>")
+    +fld("Narrator voice (player can override)","<select data-sec='meta' data-i='0' data-j='0' data-k='narratorVoice'>"+nVoiceOpts+"</select>")
     +fld("Starting location",txt("meta",0,0,"startingLocation",bp.startingLocation,"e.g. Sandpoint"))
     +fld("Starting region",txt("meta",0,0,"startingRegion",bp.startingRegion,"e.g. Varisia"))
     +"</div>"
@@ -669,7 +675,7 @@ function openGenerate(){
         concept:document.getElementById("gen-concept").value.trim(),
         toneId:toneId,toneName:toneName,toneList:_toneIdList(),dna:dna
       },designerModel());
-      draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";
+      draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";draft.narratorVoice=bp.narratorVoice||""; // #9: a generated draft must not silently drop an already-chosen narrator
       if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
       bp=normalizeBlueprint(draft);
       var err=validateBlueprint(bp);
@@ -796,7 +802,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
 // Apply one finding — BOUNDED section replacement: the model returns ONLY the top-level
 // sections it changed, complete and in-schema; we merge, normalize, validate, and ROLL BACK
 // wholesale if the result doesn't validate. Applied findings stay (struck) as the CBB trail.
-var BP_SECTIONS=["name","author","tone","proseAuthor","premise","startingLocation","startingRegion","acts","npcs","creatures","locations","rules"];
+var BP_SECTIONS=["name","author","tone","proseAuthor","narratorVoice","premise","startingLocation","startingRegion","acts","npcs","creatures","locations","rules"];
 var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all button while the batch runs
 // ITEM-LEVEL patch merge (v0.23). The old apply asked the model to return WHOLE sections complete;
 // on a big blueprint (ToA: 11 NPCs / 11 arcs) that response blew past the 3000-token output ceiling
@@ -805,7 +811,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
-var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,premise:1,startingLocation:1,startingRegion:1}; // top-level strings
+var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
 function _findByTitle(arr,t){var i;t=String(t||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].title||"").toLowerCase()===t)return i;}return -1;}
 // Items removed during the CURRENT apply run (section|name). An edit that misses one of these is a

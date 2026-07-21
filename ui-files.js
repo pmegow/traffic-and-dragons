@@ -214,12 +214,18 @@ function exportBlueprint(){
   var connected=storageAdapter.isServerMode();
   var voiceOpts="",vCur=bp.proseAuthor||"",vi;
   for(vi=0;vi<AUTHORS.length;vi++){voiceOpts+="<option value='"+AUTHORS[vi].id+"'"+(AUTHORS[vi].id===vCur?" selected":"")+">"+escHtml(AUTHORS[vi].nm)+(AUTHORS[vi].blurb?" — "+escHtml(AUTHORS[vi].blurb):"")+"</option>";}
+  // #9 narrator voice — the audio twin of the prose voice. "" ships no opinion, so the player's own
+  // narrator survives the import (applyBlueprint's E20 rule). TTS.voices() is the shared catalog.
+  var nvOpts="<option value=''>— none (player's own narrator) —</option>",nvCur=bp.narratorVoice||"",nvList=(typeof TTS!=="undefined"&&TTS.voices)?TTS.voices():[],nvi;
+  for(nvi=0;nvi<nvList.length;nvi++){nvOpts+="<option value='"+nvList[nvi].id+"'"+(nvList[nvi].id===nvCur?" selected":"")+">"+escHtml(nvList[nvi].label)+"</option>";}
   var modal=modalShell("bp-export-modal",/* #14 */
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:16px;'>Export as Blueprint</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Blueprint name</div>"
     +"<input id='bp-export-name' type='text' value='"+bp.name.replace(/'/g,"&#39;")+"' style='width:100%;padding:9px 12px;font-size:14px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'/>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Prose voice <span style='opacity:0.6;'>(player can override)</span></div>"
     +"<select id='bp-export-voice' style='width:100%;padding:9px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'>"+voiceOpts+"</select>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:4px;'>Narrator voice <span style='opacity:0.6;'>(player can override)</span></div>"
+    +"<select id='bp-export-nvoice' style='width:100%;padding:9px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t0);box-sizing:border-box;margin-bottom:12px;'>"+nvOpts+"</select>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:16px;'>Acts: "+(bp.acts.length)+" &nbsp;·&nbsp; NPCs: "+bp.npcs.length+" &nbsp;·&nbsp; Locations: "+bp.locations.length+"</div>"
     +"<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
     +"<button id='bp-export-cancel' style='flex:1;min-width:80px;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Cancel</button>"
@@ -229,9 +235,10 @@ function exportBlueprint(){
     {maxWidth:420,outside:true});
   function getName(){return (document.getElementById("bp-export-name").value||bp.name).trim();}
   function getVoice(){var s=document.getElementById("bp-export-voice");return s?s.value:"";}
+  function getNVoice(){var s=document.getElementById("bp-export-nvoice");return s?s.value:"";}
   document.getElementById("bp-export-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("bp-export-dl").addEventListener("click",function(){
-    bp.name=getName();bp.proseAuthor=getVoice();
+    bp.name=getName();bp.proseAuthor=getVoice();bp.narratorVoice=getNVoice();
     var data=JSON.stringify(bp,null,2);
     var blob=new Blob([data],{type:"application/json"});
     var fname=(bp.name||"blueprint").replace(/[^a-z0-9_\-\s]/gi,"").replace(/\s+/g,"_").toLowerCase()+".blueprint";
@@ -240,7 +247,7 @@ function exportBlueprint(){
   });
   if(connected){
     document.getElementById("bp-export-cloud").addEventListener("click",function(){
-      bp.name=getName();bp.proseAuthor=getVoice();
+      bp.name=getName();bp.proseAuthor=getVoice();bp.narratorVoice=getNVoice();
       var btn=document.getElementById("bp-export-cloud");btn.disabled=true;btn.textContent="Saving…";
       storageAdapter.saveBlueprintToLibrary(bp,function(err){
         if(err){showToast("Blueprint save failed: "+err);btn.disabled=false;btn.textContent="☁ Save to blueprint library";}
