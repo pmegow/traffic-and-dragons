@@ -41,6 +41,20 @@ Fable session can audit it in one pass.
     `▶ Test` button next to the sheet voice dropdown auditions the currently-selected voice (first
     test of an undownloaded voice triggers its one-time Piper download, same as the settings Test).
     Live-verified: button passes the selected voiceId (and "" for narrator).
+  - v1.401 — **downloaded-voice cap 4 → 10 + eviction warning:** `PIPER_VOICE_CAP` raised (per-
+    character voices need more resident room). Before a USER-initiated audition (`testVoice`, the
+    single path behind both Test buttons) would evict a resident voice, a confirm modal names the
+    voice to be deleted AND who it's assigned to — player / each companion with that `charSheet.voiceId`
+    / the narrator (`_voiceAssignedTo`) — with a Cancel. Residency is proxied by the LRU keys
+    (`_piperLruLoad`) for a synchronous heads-up; the actual eviction still runs off the async OPFS
+    list inside the download path, unchanged. Under cap or already-resident → no confirm.
+    Narration-triggered downloads (a turn speaking) deliberately do NOT gate — they can't block a turn
+    and are rare at cap 10 (silent LRU as before). Slot-note grammar fixed ("a 11th voice" → "past 10").
+    Live-verified: 10 resident → auditioning an 11th shows the confirm naming new/evictee/assignee;
+    Cancel aborts; slot UI reads "of 10 slots". No new tests (UI-gated confirm; the LRU/OPFS logic is
+    unchanged); 750 green. **Fable: confirm the LRU-key proxy can't disagree with the OPFS eviction in a
+    way that names the WRONG evictee, and that a narration download silently evicting an assigned voice
+    at cap 10 is acceptable (no confirm on that path by design).**
   - v1.398 — **Voice Settings SIMPLIFIED (Cartesia + engine picker removed):** `getEngine()` is now a
     constant `"piper"` (Native survives only as the runtime fallback target, called directly). The
     modal lost the engine radios + the whole Cartesia panel (key/voice-bank) + their wiring; it's now
