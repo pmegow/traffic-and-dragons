@@ -316,7 +316,8 @@ async function generateNpcSheet(name,doneCb){
     // level-1/xp-0/hp-20 template, so regenerating an advanced companion would silently reset them.
     // Carry the existing sheet's level/xp/hp/maxHp over the freshly-generated (default) values.
     var _prior=wsNpc.charSheet;
-    if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;}
+    if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;
+      if(_prior.voiceId)sheet.voiceId=_prior.voiceId;/* #9: the assigned voice is a SETTING, not LLM content — carry it across a regenerate like portrait/level */}
     // Seed the player↔NPC relationship from live tracking data
     if(!sheet.relationships)sheet.relationships=[];
     if(worldState&&worldState.character){
@@ -502,7 +503,22 @@ function showNpcSheet(name){
   // ── Generate / Regenerate ─────────────────────────────────────────────────
   if(document.getElementById("npc-gen-sheet")){
     document.getElementById("npc-gen-sheet").addEventListener("click",function(){
-      modal.remove();generateNpcSheet(name,function(){showNpcSheet(name);});
+      var doGen=function(){modal.remove();generateNpcSheet(name,function(){showNpcSheet(name);});};
+      if(!sheet){doGen();return;}/* first-time GENERATE — nothing to lose, no confirm */
+      // REGENERATE rebuilds the whole sheet from a fresh GM call and REPLACES the current one.
+      // Easy to hit by accident (the "Yikes" report) — confirm first. Progression, portrait, and
+      // voice are carried over (generateNpcSheet), but personality/abilities/spells/inventory are
+      // rebuilt, so this is destructive of hand-tuned content.
+      var cf=modalShell("regen-confirm",
+        "<div style='font-size:16px;color:var(--t0);margin-bottom:8px;font-weight:bold;'>Regenerate "+escHtml(name)+"'s sheet?</div>"
+        +"<div style='font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.5;'>This rebuilds the entire character sheet from scratch (a new GM call) and <b>replaces</b> the current one. Level, HP, XP, portrait, and the assigned voice are kept; personality, abilities, spells, inventory, and relationships are regenerated.</div>"
+        +"<div style='display:flex;gap:10px;justify-content:center;'>"
+        +"<button id='regen-ok' style='padding:10px 24px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Regenerate</button>"
+        +"<button id='regen-cancel' style='padding:10px 20px;font-size:13px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+        +"</div>",
+        {z:500,maxWidth:380,boxPad:"28px 24px",boxExtra:"text-align:center;",wireClose:false});
+      document.getElementById("regen-ok").addEventListener("click",function(){cf.remove();doGen();});
+      document.getElementById("regen-cancel").addEventListener("click",function(){cf.remove();});
     });
   }
   // ── Part ways (remove from party) ─────────────────────────────────────────
