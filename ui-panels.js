@@ -228,13 +228,11 @@ function spellQuickCast(el){
 var _lpTipEl=null,_lpTimer=null,_lpFired=false,_lpWired=false;
 function _lpClearTimer(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
 function _lpHide(){if(_lpTipEl)_lpTipEl.style.display="none";}
-function _lpShow(text,x,y){
+function _lpShow(text){
   if(!_lpTipEl){_lpTipEl=document.createElement("div");_lpTipEl.className="lp-tip";document.body.appendChild(_lpTipEl);}
   _lpTipEl.textContent=text;_lpTipEl.style.display="block";
-  var w=Math.min(260,(window.innerWidth||320)-20);_lpTipEl.style.maxWidth=w+"px";
-  var left=Math.max(10,Math.min(x-w/2,(window.innerWidth||320)-w-10));
-  _lpTipEl.style.left=left+"px";
-  _lpTipEl.style.top=Math.max(10,y-12)+"px";/* the CSS translateY(-100%) lifts it above the finger */
+  /* Centered on screen (CSS handles left/top/transform) — the finger is on the chip, well clear
+     of the middle, so a center-screen peek is never covered (user call). */
 }
 function _ensureLongPressTips(){
   if(_lpWired||typeof document==="undefined")return;_lpWired=true;
@@ -242,8 +240,7 @@ function _ensureLongPressTips(){
     _lpFired=false;_lpClearTimer();_lpHide();/* a fresh gesture: drop any stale state + hide a shown tip */
     var el=e.target&&e.target.closest?e.target.closest(".has-tip"):null;if(!el)return;
     var tip=el.getAttribute("title")||el.getAttribute("data-tip");if(!tip)return;
-    var t=e.touches&&e.touches[0],x=t?t.clientX:0,y=t?t.clientY:0;
-    _lpTimer=setTimeout(function(){_lpFired=true;_lpShow(tip,x,y);},500);
+    _lpTimer=setTimeout(function(){_lpFired=true;_lpShow(tip);},500);
   },{passive:true});
   document.addEventListener("touchmove",_lpClearTimer,{passive:true});
   // Release hides the tooltip — "hold to peek, lift to dismiss". _lpFired stays set so the
