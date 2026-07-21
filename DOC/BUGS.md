@@ -30,7 +30,7 @@ them here).
 ## Open
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
-**Status:** new
+**Status:** findings-ready
 **Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-21 (v1.406) · **Count:** 2 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
@@ -56,13 +56,41 @@ v1.406 arrival (a005e484), same device, 38 seconds before the B10 audio-device r
 ```
 
 ### Findings
-_(none yet — `/bugs investigate B9`)_
+
+**2026-07-21 — dual-angle investigation (9 Opus `bug-investigator` agents, read-only Read/Grep/Glob), dispatched by /bugs investigate**
+
+_Method: each bug was investigated twice by independent agents that could not see each other's work — **Angle A** traced the code path forward from the evidence and was told NOT to read the audit docs; **Angle B** started from the repo's own record (audits/, DOC/, TODO.md, inline "why" comments) and was told NOT to start from the stack trace. A third agent then merged them, instructed to VERIFY rather than average and to name what each angle missed. Contradictions below were resolved by the merge agent against the code, not split down the middle._
+
+- **Verdict:** `probable-cause` (medium confidence — deliberately not high; see the confound below).
+
+- **Mechanism — two real layers, and the two angles each found one.**
+
+  **Layer 1 — what the crumb proves.** The proof-of-negatives holds under independent check: `_crumb(i,false)` is written at the top of each unit (tts.js:1055); `_crumb(units.length,true)` runs at tts.js:1139 BEFORE the trailing stale check, so even a skip landing on the last unit marks done; `_stopCurrent()` bumps the epoch and calls `_crumbDone()` (tts.js:1303-1305); `pagehide` + `beforeunload` both call `_crumbDone()` (tts.js:420-423). So a deliberate reload, close, tab-switch, skip or stop can NOT produce `done:false`. **An ordering fact neither angle stated:** the `_ctxRunning(ctx)` gate at tts.js:1003 runs BEFORE the first crumb write at tts.js:1036 — a ctx that is not running at read start falls back to native and writes no crumb at all. Therefore a `done:false` crumb proves the AudioContext WAS running when the read began, and the page then ended with neither unload event firing. That leaves a foreground process kill (iOS jetsam) or a force-quit from the app switcher.
+
+  **Layer 2 — why the process was killable.** The repo PRE-REGISTERED the discriminator for exactly this question at tts.js:782-787: death at a similar *cumulative* synth count regardless of read position = cross-session memory ratchet; death tied to one giant read at a low cumulative count = per-read peak. The data: `pc=124 @ i=22/33` after 20 min, `pc=103 @ i=30/31` after 6 min — cumulative counts within 20%, read positions and wall-clock wildly apart, passage lengths ordinary. Per-read peak is further de-ranked because `PIPER_MAX_AHEAD_SEC=25` (tts.js:209) caps resident scheduled PCM at ~2MB, and the v1.322-era per-read signature was "dies at the SAME unit count every read" — `i=22` vs `i=30` is not that. So the controlling variable reads best as **synths-since-page-load**: a monotonic wasm-side accumulator that r8's ORT-session recycle does not release. **This is the SIXTH instance of one class** (v1.320 backpressure → v1.321 manual WAV decode → v1.322 session cache → v1.323 phonemizer reuse → r8/v1.346 session recycle), and the one per-synth resource explicitly exempt from every shipped guard is the retained phonemizer re-driven via `callMain` on every predict (vendor vits-web.js:259-279, exemption stated at vits-web.js:312-314, accepted-unverified at DOC/todo_monores.md:47).
+
+  **⚠ Confidence downgraded on a confound neither angle noticed:** `PIPER_RECYCLE_AFTER=30` (tts.js:791) against reads of 31 and 33 units means `_piperMaybeRecycle` fires roughly once per read, so `_piperSynthsSession` ≈ the read's unit index. "Died at high session age" and "died late in the read" are therefore **the same observation in this data** and cannot be separated. With n=2 and a 20% spread, the cumulative-count reading is the better of two hypotheses, not a settled one.
+
+- **⚠ The v1.406 accelerant (the most actionable finding, and it is self-inflicted).** `tndGetSession` is a SINGLE-slot cache keyed by model filename, and it creates the new session BEFORE releasing the old (vits-web.js:298-305). `predict()` keys it off `c[e.voiceId]` (vits-web.js:221-223). The v1.406 speaker map is **sparse** — `speakerVoiceMap` (game.js:279-296) returns `{unitIndex: voiceId}` only for units a voiced cast member speaks — so `uVoice` at tts.js:1073 **alternates narrator→speaker→narrator** through a dialogue passage. Every alternation therefore performs a full OPFS read of a 60-115MB model into a JS ArrayBuffer plus a fresh `InferenceSession`, while the previous one is still resident. **That is the v1.322 per-sentence class reintroduced at model granularity**, and it fits the v1.406 hit dying at a LOWER cumulative count (103) than the v1.399 hit (124). Same file, tts.js:1074-1087: a first-encountered speaker voice also triggers a 60-115MB `_piperEnsureVoice` download INSIDE a live read.
+
+- **⚠ A separate, independently real defect — "the wedge" (Angle A's find, verified).** tts.js:1063-1065 is `while (_piperEpoch === myEpoch && (nextStart - ctx.currentTime) > 25) await sleep(250)`. Unbounded, no wall-clock cap, keyed on a clock that **stops dead** while the ctx is `suspended`/`interrupted` — a state this file documents as arriving mid-read with no event (tts.js:386, 452-457) — and it cannot distinguish a user pause from an iOS interrupt. `_armCtxWatch` polls every 2s and by explicit design does NOT force-advance (tts.js:457, 463-475). If the ctx never returns to running, that loop spins forever at unit `i`, `loopDone` never becomes true, `_crumb(n,true)` never runs, and **`_playing` stays latched** (tts.js:658) so every later `speakResponse` piles into `_queue` and never plays (tts.js:625) — a literal, permanent "never resumes".
+
+- **Ranking (the merge agent's, stated explicitly rather than averaged):** the wedge alone does NOT produce these reports (a manual reload fires `pagehide` → `done:true`), so it is a co-factor / latent defect unless the user force-quit. The memory-ratchet kill produces the signature directly and is backed by the repo's own pre-registered discriminator and a five-instance history. So: **ratchet first** for the terminal event, **v1.406 session thrash** as the accelerant for the second hit, **the wedge** as a separately shippable defect that best explains the title's "never resumes" and B10's mechanism.
+
+- **Fix sketch (direction only):** (1) close the phonemizer exemption — it is the last unguarded per-synth resource and the class's five prior fixes all bounded something else; (2) **de-thrash the voice switch** — batch/sort units by voice, or hold both sessions deliberately, or (cheapest) release the old session BEFORE creating the new one in `tndGetSession`; (3) hoist `_piperEnsureVoice` for all distinct passage voices OUT of the read loop and pin them against LRU eviction for its duration; (4) give the backpressure loop a wall-clock ceiling and `_armCtxWatch` a gated force-advance so `_playing` cannot latch forever. ⚠ Any `vendor/piper/*` edit MUST bump `PIPER_RUNTIME_REV` (tts.js:758-772) or the permanent SW cache eats the patch.
+
+- **Drift surface:** NO — everything implicated is tts.js + vendor/piper/*, downstream of `cleanTxt` output. But this is scar-tissue code whose regressions are silent and whose primary use case is hands-free Car Mode; `dev/run-tests.js` has no DOM or WebAudio and cannot see any of it. Verification must be a phone soak.
+
+- **Confidence:** medium. **Raisers, in order of value:** (1) whether v1.406's mid-read model reloads measurably raise peak memory vs v1.399 — the only bound that moved recently; (2) a `piper_test.html` soak that varies cumulative synths independently of read length, which is the ONLY way to break the `PIPER_RECYCLE_AFTER=30` confound above; (3) Safari + Mac Web Inspector across a boot-after-kill.
+
+- **Open questions:** does a read with NO speaker map (voice off / no voiced cast) still die at ~100-125 cumulative synths on v1.406? That single comparison separates "my change made it worse" from "my change is irrelevant to the terminal event".
+
 
 ### Action log
 _(none)_
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
-**Status:** new
+**Status:** findings-ready
 **Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-21 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
 **Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8
@@ -76,13 +104,39 @@ Failed to start the audio device
 (no detail body — the reporter captured message only; device: iPhone iOS 18.7 Safari, online, deployed site, v1.406, turn 924)
 
 ### Findings
-_(none yet — `/bugs investigate B10`)_
+
+**2026-07-21 — dual-angle investigation (9 Opus `bug-investigator` agents, read-only Read/Grep/Glob), dispatched by /bugs investigate**
+
+_Method: each bug was investigated twice by independent agents that could not see each other's work — **Angle A** traced the code path forward from the evidence and was told NOT to read the audit docs; **Angle B** started from the repo's own record (audits/, DOC/, TODO.md, inline "why" comments) and was told NOT to start from the stack trace. A third agent then merged them, instructed to VERIFY rather than average and to name what each angle missed. Contradictions below were resolved by the merge agent against the code, not split down the middle._
+
+- **Verdict:** `probable-cause` overall — but the **emitter is root-caused** (high confidence).
+
+- **No injection.** The fence contains one platform string and nothing addressed to an assistant.
+
+- **(1) Why a report exists — ROOT-CAUSED, both angles agree and it verifies.** The string is not in this repo (grep: only DOC/BUGS.md). It is WebKit's rejection reason when the audio destination node fails to START the output device, and the only JS surface that delivers it as a *rejected promise* is `AudioContext.resume()`. This app has exactly **two** `resume()` call sites and **both discard the promise**: tts.js:395 (`_resumeCtx`: `try { return ctx.resume(); } catch(e){}` — a SYNCHRONOUS catch that cannot see an async rejection; all eight callers at :354/:410/:430/:438/:467/:527/:1226/:1274 drop the return) and sound.js:309 (same shape, its own singleton context). A dropped rejection lands in `window.onunhandledrejection` (error-report.js:279-282) and is mailed with `(r.stack)||""`. **Corroboration Angle A missed:** the B11 row in this same tracker carries a full multi-frame stack, proving the pipeline DOES preserve stacks for app-origin errors — so B10's empty detail is *affirmative* evidence of a platform DOMException rather than our own code throwing.
+
+- **(2) Why the device refused, and why audio never came back — PROBABLE, and the merge agent overturned Angle A here.** A's chain required "resume() outside a user gesture → this rejection". **The repo's own field-derived comment contradicts that:** tts.js:384-385 states the iOS gesture denial manifests as "scheduled audio is pure silence, **no error**, no fallback", and TODO.md row 41 records v1.327 being validated against "a suspended ctx whose resume() **lies**" — resolves and does nothing. WebKit *queues* a gesture-blocked resume rather than rejecting it. So this rejection signals a **real CoreAudio / audio-session acquisition failure**, not policy refusal — the same subsystem the repo has fought since v1.321 (tts.js:1105 names WebKit's "decodeAudioData daemon-side retention"; mediaserverd is the daemon that owns the device that here refused to start).
+
+- **That reframing closes the "audio DID die" question.** If the page's audio session cannot start, `speechSynthesis` routes through the same session and is mute too — so the app's whole fallback ladder terminates on the same dead device (tts.js:1003-1005 → `_speakNative`, equally silent). **And nothing in the app can recover it:** tts.js:370-377 rebuilds the context only when `state === "closed"`, sound.js:173 never replaces its context at all, and the ONLY closer in the codebase is a voice toggle off→on (tts.js:363-364 → `_closeCtx` :509-515). On top sits B9's wedge: `_playing` latched means every later narration silently queues behind a phantom.
+
+- **⚠ Structural finding Angle B missed entirely:** `sound.js` owns a **SECOND AudioContext**, created by `Sound.playIfQuiet` from `showToast` (ui-shell.js:57) — i.e. on EVERY toast, at hardware sample rate, **outside any user gesture** (sound.js:307-309). That violates tts.js:166's stated "ONE shared AudioContext every WebAudio path schedules onto" contract, contends for the same iOS audio session narration depends on, has no `interrupted` branch and no gesture-arming equivalent. Worse: sound.js:310 bails BEFORE `_lastAt` is stamped at :333, so the 300ms `playIfQuiet` suppression never engages while the context is dead — **each toast retries `resume()` unthrottled**. `sound.js` is also absent from the CLAUDE.md file map.
+
+- **Counter-evidence the merge agent raised against its own preferred story (worth respecting):** the reportError debounce is 30s with a 10/session cap (error-report.js:30-31), so a *sustained* re-firing source should have mailed several B10s in that page load. The tracker shows **Count: 1** — which favours a ONE-SHOT device-start failure over A's per-toast retry loop. Not decisive (the session may have ended quickly).
+
+- **Fix sketch (direction only, smallest first; only layer 1 ships without a phone repro):** (1) **OBSERVE the rejection** — give `_resumeCtx` one seam that attaches a handler to the promise it already returns, recording reason/ctx-state/caller tag, warning loudly, and surfacing a count on the Voice Settings "Audio:" line; mirror at sound.js:309. **Explicitly NOT a bare `.catch(){}`** — that would "fix" the mailed report while destroying the only signal this class has ever produced. (2) Give a proven-dead context a rebuild path, ONLY inside a user gesture via the existing `_armCtxUnlock`, never from a timer (a timer-born context is born suspended — the exact v1.327 scenario — and orphans the v1.328 primer / re-opens the v1.334 audit #3 dead-primer bug). (3) Break the wedge with a force-advance **gated on observed refusals**, not elapsed time, preserving the audit #4 `_paused` discipline. (4) Separately reviewed: stop `sound.js` owning a second context on iOS.
+
+- **Drift surface:** NO (tts.js / sound.js / error-report.js payload only). Same scar-tissue caveat as B9.
+
+- **Confidence:** medium overall; HIGH on the emitter. **The one measurement that discriminates all three explanations of the 38-second gap:** the `suppressed` count on report 4a3d6c35 in the GAS sheet. `0` ⇒ a single one-shot rejection 38s into the fresh page; `>0` ⇒ rejections were already firing inside the debounce window (favours the per-toast retry).
+
+- **Open questions for the user (cheap, high-value):** did the "🔇 iOS paused game audio" toast appear (tts.js:449/472)? Were UI earcons ALSO silent, or only narration (separates sound.js's context from tts.js's)? Did a **voice toggle off→on** restore audio — the only code path that rebuilds the context — or did it need a reload/app restart? Is this class reachable without a preceding narration death?
+
 
 ### Action log
 _(none)_
 
 ## B11 — summarize() crashes parsing the extractor response when the model returns state tags instead of JSON
-**Status:** new
+**Status:** findings-ready
 **Kind:** crash · **First seen:** 2026-07-19 (v1.383) · **Last seen:** 2026-07-19 (v1.383) · **Count:** 1 · **Campaign:** — · **Turn:** 881
 **Fingerprint:** `crash · summarize · v1.383 · unexpected token 'q', "[quest_step"... is not valid json`
 **Report ids:** 549ca3bf-4893-4f9c-a7a1-dd348204de91
@@ -101,7 +155,35 @@ SyntaxError: Unexpected token 'Q', "[QUEST_STEP"... is not valid JSON
 ```
 
 ### Findings
-_(none yet — `/bugs investigate B11`)_
+
+**2026-07-21 — dual-angle investigation (9 Opus `bug-investigator` agents, read-only Read/Grep/Glob), dispatched by /bugs investigate**
+
+_Method: each bug was investigated twice by independent agents that could not see each other's work — **Angle A** traced the code path forward from the evidence and was told NOT to read the audit docs; **Angle B** started from the repo's own record (audits/, DOC/, TODO.md, inline "why" comments) and was told NOT to start from the stack trace. A third agent then merged them, instructed to VERIFY rather than average and to name what each angle missed. Contradictions below were resolved by the merge agent against the code, not split down the middle._
+
+- **Verdict:** `probable-cause` overall — but split, and **half of it is root-caused at high confidence**.
+
+- **HALF 1 — the throw and its consequences: ROOT-CAUSED.** `summarize()` parses at memory.js:888 via `JSON.parse(repairModelJson(resp))`; the stack's `memory.js:888:24` matches to the column, so the deployed v1.383 file was byte-identical here. `repairModelJson` (api.js:840-847) is **brace-anchored**: fence-strip → `indexOf("{")` slice → `lastIndexOf("}")` trim → trailing-comma/control-char repair. Because the string reaching `JSON.parse` still began with `[QUEST_STEP` (V8 printed a start-anchored window: no leading `...`, error token at index 1), the fence-stripped response contained **no `{` anywhere**. So this was not truncated JSON, not fenced JSON, not JSON-with-a-preamble — it was a response with **zero JSON in it**, precisely the case `repairModelJson` cannot and should not repair.
+
+- **ANSWER TO THIS ROW'S QUESTION: yes, the failure was survived with no memory loss.** `_sumFails` went 0→1; the body line `consecutive fails: 1` is composed only at memory.js:896, proving the LOCAL catch ran. With `1 < 3` the else branch ran: a system message, nothing else. `sessionLog`, `worldState.sessKept`, `memory` and `worldState` were untouched — every writer on the success path (`retainSessionTail` memory.js:739-749, `saveMem`, `saveCore`) sits inside the `try`, after the parse. `applySummaryExtract` was never reached, so no partial filing and no duplicate-chapter hazard on retry. The extractor's tag text has exactly one consumer (`JSON.parse`) and never goes near `applyMuts` — the returned tags were completely inert. Residual cost: one billed 2000-token call (usage is recorded before parsing, api.js:1139).
+
+- **HALF 2 — why the extractor answered in state tags: PROBABLE.** The best-supported account is **self-inflicted instruction replay**, not generic format mimicry. `sendAction` prepends engine notes to the OUTGOING message (`apiTxt=_en+"\n\n"+txt`, game.js:1062) and `commitGmTurn` archives that exact string as the user half of `sessionLog` (game.js:980). `summarize()` rebuilds that archive verbatim into `_sessTxt` with **no sanitisation** — assistant halves at 4000 chars (raw, tags intact), user halves at **500 chars** (memory.js:884) — and appends it LAST under `SESSION:`, with **nothing restating the JSON contract afterwards**.
+
+- **The 500-char slice arithmetic is the sharp edge, and neither angle computed it — the merge agent did.** `buildQuestEscalation` is FIRST in `NOTE_BUILDERS` (api.js:435), ~270 chars, ending in `…or add the next objective via [QUEST_STEP:<Title>|<objective>].]` (api.js:169). `ENGINE_NOTES_PROTOCOL` follows (api.js:452), its first ~157 chars being "the bracketed notes above are engine bookkeeping… Respond to them ONLY by emitting the state tags they call for" — cumulative ~433 chars, **inside the 500-char slice**. So on a quest-escalation turn the user half the extractor reads is **100% engine imperative and 0% player action**, ending in a command to emit exactly `[QUEST_STEP:…]`. **Amplifier:** `buildQuestEscalation` has no latch and no cooldown (QUEST_ESCALATE_TURNS=3), and the unextracted window is only ~2-4 exchanges — so on a campaign with one stuck quest, *every* user line the extractor sees can be that same imperative. **Shape evidence:** the response began at index 0 with a bare tag, which is what the protocol clause prescribes, not the shape of a GM turn (prose first).
+
+- **This is the FOURTH appearance of a class this repo has already named twice** — B5/v1.367, #60b/v1.384, B12 (two v1.378 sightings). #60b's root cause was measured on the **same t881 Runelords corpus** (api.js:951), one version earlier. Both prior fixes bounded the leak inside the gameplay turn; **neither bounded the replay of those imperatives into the one call that demands JSON.**
+
+- **Fix sketch (direction only). Frame: stop replaying the gameplay channel's imperatives into a JSON channel — do NOT teach the parser to swallow tags.** (1) Strip engine notes from the SESSION block and ONLY there (memory.js:884-886) — they are engine-authored and exactly delimited. **Critical refinement neither angle proposed:** keep `buildRecordedFactsBlock`'s input byte-identical (detection string from the *unstripped* window, injected text from the stripped one), otherwise removing names that appear only inside notes silently narrows #57 supersession. (2) Move the schema + "Output ONLY valid JSON" to the END of `extractPrompt`, after `SESSION:` — the discipline already applied at campaign_generator.js:105 and blueprint-designer.html:737 ("constraints LAST — end-of-prompt position is load-bearing, audit #2"). (3) Fail honestly on "no JSON at all" **at the call site, not inside `repairModelJson`** (8 shared call sites). **Explicitly NOT recommended:** tolerant/leading-tag salvage (nothing to salvage); blanket `cleanTxt` on assistant halves (removes tag text that carries NPC names into #57 and `npcDeaths` detection); an in-call re-ask (next-turn retry already covers it).
+
+- **⚠ Drift surface: YES — Fable-tier gate applies to any act step.** Touched: the **summarize memory tier** (extractor prompt + window composition); the **#57 coupling** — `_sessTxt` is ALSO the input to `buildRecordedFactsBlock` (memory.js:885), so changing the window silently changes which NPCs are detected and therefore which `supersededFacts` echoes are possible (this is the drift-silent part); the **engine-note channel** if any wording is touched (it carries quest teeth, condition/mood audits, dead-status and merge nudges, the #60b latch); and `repairModelJson` if widened. NOT touched: applyMuts, tag_table, cleanTxt, transcript serialize/parse, the stable/volatile split.
+
+- **Confidence:** HIGH on the throw + the survived-without-loss answer (determined by code read directly, with every competing explanation disproved at a specific line — adapter dropping sysOverride, `reinforce` priming, empty response, truncation, partial filing, log discarded). MEDIUM on the trigger attribution: the code facts are certain, but that they (rather than plain GM-turn mimicry) produced this output is inference resting on the leading token.
+
+- **⚠ Line-number caution the merge agent flagged:** both angles cited current-HEAD lines as if they matched the v1.383 report. `game.js:867` does NOT (HEAD's 867 is a comment block); `memory.js:888:24` still does. Don't "verify" against the wrong line.
+
+- **The one measurement that would settle it** (from the live save or a fresh `.tnd` export): reconstruct the failing window — did `worldState.questLog[]` have an entry with `allDoneSince` set ≥3 turns before t881, and do the archived user entries around t880-881 begin with `[ENGINE NOTE`? Combine with `worldState.transcript[t880/881].m` for the serving model, and check `memory.chapters` around t881 for a real chapter vs a `(summary failed; raw excerpt)` one — which also converts the survival conclusion from inference to observation.
+
+- **Design forks for the user (not defaults to be chosen silently):** may a crash report carry a short head-of-response snippet so this class is diagnosable in the field, or must crash bodies stay content-free? And should the 3-strike breaker be durable per campaign (`_sumFails` is a page-lifetime global reset by `loadState`, state.js:286, for audit E49) — or is "never trip, never lose a window" the preferred trade?
+
 
 ### Action log
 _(none)_
