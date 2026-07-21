@@ -70,7 +70,9 @@ function csVoiceControlHtml(char){
   for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===cur?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
   return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
     +"<span title='This character speaks in this voice (rides exports and library imports)'>&#128266; Voice</span>"
-    +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select></div>";
+    +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select>"
+    +"<button id='cs-voice-test' type='button' style='flex-shrink:0;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
+    +"</div>";
 }
 function csWireVoice(char){
   var sel=document.getElementById("cs-voice-sel");if(!sel||!char)return;
@@ -79,6 +81,13 @@ function csWireVoice(char){
     if(v){char.voiceId=v;}else{delete char.voiceId;}
     if(typeof saveAll==="function")saveAll();
     if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"narrator default"));
+  });
+  // #9: Test button — auditions the CURRENTLY-selected voice ("" → narrator). First test of an
+  // undownloaded voice triggers its one-time Piper download, same as the Voice Settings Test.
+  var tb=document.getElementById("cs-voice-test");
+  if(tb)tb.addEventListener("click",function(){
+    if(typeof TTS!=="undefined"&&typeof TTS.testVoice==="function")TTS.testVoice(sel.value);
+    else if(typeof showToast==="function")showToast("Voice engine not ready");
   });
 }
 function csSheetSections(c,invOwner){

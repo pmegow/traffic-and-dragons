@@ -1753,6 +1753,15 @@ var TTS = (function() {
     }
   }
 
+  // #9: audition a specific Piper voice — the shared mechanism behind the Voice Settings Test
+  // button AND the character-sheet Test button. Reuses the normal queue/dispatch (stop() pre-empts
+  // a wedged _playing latch; _drain runs the epoch guard) so an audition behaves exactly like real
+  // narration. A falsy voiceId → the narrator voice (used when a character has no voice assigned).
+  function testVoice(voiceId) {
+    stop();
+    _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: voiceId || resolvePiperVoice() });
+    _drain();
+  }
   function showSettingsModal() {
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
     var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
@@ -1872,15 +1881,7 @@ var TTS = (function() {
     });
     document.getElementById("tts-piper-test").addEventListener("click", function() {
       var s = document.getElementById("tts-piper-sel");
-      var voiceId = s ? s.value : resolvePiperVoice();
-      // v1.329: PRE-EMPT — a Test tap should interrupt whatever is (or claims to be) speaking.
-      // stop() also resets a wedged _playing latch (the phone incident: a stranded native
-      // fallback left _playing=true, so Test taps queued silently forever — "does nothing").
-      stop();
-      // Reuses the normal queue/dispatch path (not a bespoke call) so pause/skip/stop and the
-      // epoch guard all apply to the audition exactly as they would to real narration.
-      _queue.push({ text: TTS_TEST_LINE, piper: true, voiceId: voiceId });
-      _drain();
+      testVoice(s ? s.value : resolvePiperVoice());
     });
 
     // #9: Cartesia "add voice" / voice-bank wiring removed (provider dropped).
@@ -1917,6 +1918,7 @@ var TTS = (function() {
     earcon:            earcon,       // kind: "ack" | "ready" — oscillator blips, off the narration scheduler
     replayLast:        replayLast,   // replays the last NARRATION (not Test/other speak() calls), queue-preserving
     showSettingsModal: showSettingsModal,
+    testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button
     primeAudioSession:     primeAudioSession,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
     // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to

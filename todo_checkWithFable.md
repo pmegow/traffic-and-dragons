@@ -36,6 +36,11 @@ Fable session can audit it in one pass.
     (`showNpcSheet`, gated on a charSheet existing — sheetless NPC = no control = narrator tier).
     Writes `char.voiceId`/`charSheet.voiceId`; "" deletes it (narrator default). Live-verified both
     hosts + the sheetless-NPC case. UI only.
+  - v1.399 — **sheet voice Test button:** new public `TTS.testVoice(voiceId)` (falsy → narrator) —
+    the shared audition mechanism (the Voice Settings Test button was refactored to call it too). A
+    `▶ Test` button next to the sheet voice dropdown auditions the currently-selected voice (first
+    test of an undownloaded voice triggers its one-time Piper download, same as the settings Test).
+    Live-verified: button passes the selected voiceId (and "" for narrator).
   - v1.398 — **Voice Settings SIMPLIFIED (Cartesia + engine picker removed):** `getEngine()` is now a
     constant `"piper"` (Native survives only as the runtime fallback target, called directly). The
     modal lost the engine radios + the whole Cartesia panel (key/voice-bank) + their wiring; it's now
