@@ -184,6 +184,29 @@ function updateAbPanel(hl){
   var h="",i;for(i=0;i<abs.length;i++){h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+'"><span class="an">'+escHtml(abs[i].nm)+'</span><span class="ad">'+escHtml(abs[i].ds)+'</span></div>';}/* GM-authored ability text (audit E11) */
   document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
+// #8: side-panel spell tooltip — the description pulled from the capability bible (the SAME
+// canon the GM is fed and the click-card shows; one data source). Returns "" if the spell isn't
+// in the bible, so the title attribute is simply omitted rather than showing an empty box.
+function spellTip(nm){
+  if(typeof capabilityLookup!=="function")return "";
+  var e=capabilityLookup(nm);if(!e)return "";
+  var meta=[];
+  if(e.range&&e.range!=="N/A")meta.push("Range: "+e.range);
+  if(e.duration&&e.duration!=="N/A")meta.push("Duration: "+e.duration);
+  if(e.save&&e.save!=="N/A")meta.push("Save: "+e.save);
+  return (meta.length?meta.join(" · ")+"\n":"")+(e.effect||"");
+}
+// #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;
+// the player still edits/sends). Name rides a data attribute (escHtml'd, so apostrophes like
+// "Hunter's Mark" can't break the handler); appends with a space when the box already has text.
+function spellQuickCast(el){
+  var nm=el&&el.getAttribute("data-cast");if(!nm)return;
+  var inp=document.getElementById("action-input");if(!inp)return;
+  var add="Cast "+nm+".";
+  var cur=String(inp.value||"").replace(/\s+$/,"");
+  inp.value=cur?cur+" "+add:add;
+  inp.focus();
+}
 function updateSpPanel(){
   if(!worldState)return;
   var _ap=activePlayer(),spells=_ap.spells||[];/* P2: follows the spotlight PC */
@@ -195,7 +218,8 @@ function updateSpPanel(){
     tag=sp.lvl===0?"C":String(sp.lvl);
     nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
-    h+="<div class='sp-item"+(sp.used?" used":"")+"'>";
+    var _tip=spellTip(nm);/* #8 bible description */
+    h+="<div class='sp-item"+(sp.used?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\""+(_tip?" title=\""+escHtml(_tip)+"\"":"")+" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast */
     h+="<span class='sp-nm'>["+tag+"] "+escHtml(nm)+"</span>";/* GM-grantable spell names (#22/UA18) */
     if(ds||sp.used)h+="<span class='sp-ds'>"+escHtml(ds||"")+(sp.used?" -- expended":"")+"</span>";
     h+="</div>";
