@@ -59,6 +59,28 @@ function rejectEpithet(owner,idx,ev){
 }
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
 // get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
+// #9: per-character voice control — the AUDIO twin of the portrait, so it sits on the sheet where
+// the character is defined. Writes char.voiceId ("" = narrator default). Shown on any sheet that
+// has a character object to write to (the player always; a companion/NPC only once it HAS a
+// charSheet — a sheetless NPC stays narrator-tier by design). Reads the curated set from TTS.
+function csVoiceControlHtml(char){
+  if(typeof TTS==="undefined"||typeof TTS.voices!=="function")return "";
+  var vs=TTS.voices(),cur=(char&&char.voiceId)||"",i;
+  var opts="<option value=''"+(cur?"":" selected")+">Narrator voice (default)</option>";
+  for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===cur?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
+  return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
+    +"<span title='This character speaks in this voice (rides exports and library imports)'>&#128266; Voice</span>"
+    +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select></div>";
+}
+function csWireVoice(char){
+  var sel=document.getElementById("cs-voice-sel");if(!sel||!char)return;
+  sel.addEventListener("change",function(){
+    var v=sel.value;
+    if(v){char.voiceId=v;}else{delete char.voiceId;}
+    if(typeof saveAll==="function")saveAll();
+    if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"narrator default"));
+  });
+}
 function csSheetSections(c,invOwner){
   var i;
   var statHtml="<div class='cs-stat-grid'>";
@@ -178,6 +200,7 @@ function showCharSheet(){
     +"<div class='cs-xp-lbl'><span>"+c.xp+" XP</span><span>"+(hdr.lvl<10?"Next: "+hdr.nextXP+" XP":"Max level")+"</span></div>"
     +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
     +"</div>"
+    +csVoiceControlHtml(c)/* #9: per-character voice, next to the portrait */
     +"</div></div>"
 
     +csSheetSections(c,"")/* ""=live player sheet — inventory rows get the drop × (#50) */,
@@ -186,6 +209,7 @@ function showCharSheet(){
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   csWireToggles(modal);
+  csWireVoice(c);/* #9 */
 
   // ── PC/NPC toggle on the hero (TODO #1 P1, D1/D2) ─────────────────────────
   document.getElementById("cs-tog-pc").addEventListener("click",function(){
@@ -412,7 +436,7 @@ function showNpcSheet(name){
   var modal=modalShell("npc-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
-    +"<div class='cs-hero-info'>"+heroInfo+"</div></div>"
+    +"<div class='cs-hero-info'>"+heroInfo+(sheet?csVoiceControlHtml(sheet):"")/* #9: voice only when a sheet exists to hold it (sheetless NPC = narrator tier) */+"</div></div>"
     +sheetSections
     +(sheetSections?"<div style='height:1px;background:var(--brd);margin:18px 0;'></div>":"")
     +npcSections
@@ -422,6 +446,7 @@ function showNpcSheet(name){
 
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
   csWireToggles(modal);
+  if(sheet)csWireVoice(sheet);/* #9: writes the companion/NPC charSheet.voiceId */
 
   // ── PC/NPC toggle (TODO #1 P1, D1/D8) ─────────────────────────────────────
   if(document.getElementById("npc-tog-pc")){

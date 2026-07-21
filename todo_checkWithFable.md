@@ -31,6 +31,11 @@ Fable session can audit it in one pass.
     `voiceDefault()` + `TTS.characterVoiceId(char)` — resolves a character's own `voiceId` (in the
     curated set) else falls back to the NARRATOR voice (unassigned = single-voice behavior, today's
     default). 5 new tests.
+  - v1.397 — **sheet voice CONTROL:** `csVoiceControlHtml`/`csWireVoice` (ui-sheets.js) — a Voice
+    dropdown under the hero card on BOTH the player sheet (`showCharSheet`) and companion/NPC sheet
+    (`showNpcSheet`, gated on a charSheet existing — sheetless NPC = no control = narrator tier).
+    Writes `char.voiceId`/`charSheet.voiceId`; "" deletes it (narrator default). Live-verified both
+    hosts + the sheetless-NPC case. UI only.
 - **Ratified design (user, 2026-07-20) — what Fable should sanity-check:**
   1. **Cartesia REMOVED, engine picker REMOVED, Piper the only engine; Native kept as a SILENT
      fallback** (load-window + iOS-audio-suspend). *(Not built yet — see pending.)*
