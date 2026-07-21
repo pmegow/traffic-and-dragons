@@ -4224,6 +4224,34 @@ function runEngineTests(R){
     if(threw)return "threw on worldState===null: "+threw;
     return got==="en_US-ryan-high"?true:"got "+got;
   });
+  // #9 rework: per-character voice resolution — voice lives on the character sheet (charSheet.voiceId),
+  // rides exports/imports like portrait (#63); resolves to the narrator voice when unset or dropped.
+  t("characterVoiceId(): a character's own voiceId (in the curated set) wins",function(){
+    makeWorld();store.del(PVOICE_K_T);delete worldState.piperVoice;
+    return TTS.characterVoiceId({voiceId:"en_US-ryan-high"})==="en_US-ryan-high"?true:"got "+TTS.characterVoiceId({voiceId:"en_US-ryan-high"});
+  });
+  t("characterVoiceId(): unset voice falls back to the NARRATOR voice (single-voice behavior preserved)",function(){
+    makeWorld();store.del(PVOICE_K_T);delete worldState.piperVoice;/* narrator = default libritts_r */
+    var got=TTS.characterVoiceId({name:"Voiceless"});
+    return got==="en_US-libritts_r-medium"?true:"got "+got;
+  });
+  t("characterVoiceId(): a voiceId NO LONGER in the curated set falls back to the narrator (portability guard)",function(){
+    makeWorld();store.del(PVOICE_K_T);delete worldState.piperVoice;
+    // e.g. Morwen imported from a campaign that pinned a dropped voice
+    var got=TTS.characterVoiceId({voiceId:"en_US-amy-medium"});
+    return got==="en_US-libritts_r-medium"?true:"got "+got;
+  });
+  t("characterVoiceId(): a character's voice tracks the NARRATOR when the narrator is repinned",function(){
+    makeWorld();worldState.piperVoice="en_US-ryan-high";/* campaign narrator pin */
+    return TTS.characterVoiceId({name:"Unassigned"})==="en_US-ryan-high"?true:"unassigned char did not follow the narrator pin";
+  });
+  t("voices()/voiceKnown(): the curated catalog is exposed and membership is queryable",function(){
+    var vs=TTS.voices();
+    if(vs.length!==19)return "expected 19 curated voices, got "+vs.length;
+    if(!TTS.voiceKnown("en_US-libritts_r-medium"))return "libritts_r should be known";
+    if(TTS.voiceKnown("en_US-mike-medium"))return "mike was dropped — should not be known";
+    return TTS.voiceDefault()==="en_US-libritts_r-medium"?true:"default is "+TTS.voiceDefault();
+  });
 
   // ── #57 reveal-commitment: supersession + merge hints (DOC/todo_57_reveal_commitment.md) ──
   section("#57 reveal-commitment: supersession + merge hints");

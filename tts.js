@@ -2020,6 +2020,20 @@ var TTS = (function() {
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,
     resolvePiperVoice: resolvePiperVoice,
+    // #9 rework: the curated voice catalog + per-character voice resolution. voices() feeds any
+    // picker UI (character sheet, Voice Settings). characterVoiceId(char) is the per-speaker
+    // resolver — a character's own voiceId (stored on the SHEET, so it rides .char exports /
+    // library imports like portrait/#63) when set AND still in the curated set, else it falls
+    // back to the NARRATOR voice (resolvePiperVoice). An unassigned character simply speaks in
+    // the narrator voice — today's single-voice behavior, preserved until voices are assigned.
+    voices:            function() { return PIPER_VOICES.slice(); },
+    voiceLabel:        function(id) { for (var i=0;i<PIPER_VOICES.length;i++){ if(PIPER_VOICES[i].id===id) return PIPER_VOICES[i].label; } return id||""; },
+    voiceKnown:        _piperVoiceKnown,
+    voiceDefault:      function() { return PIPER_VOICE_DEFAULT; },
+    characterVoiceId:  function(char) {
+      var v = char && char.voiceId;
+      return (v && _piperVoiceKnown(v)) ? v : resolvePiperVoice();
+    },
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,

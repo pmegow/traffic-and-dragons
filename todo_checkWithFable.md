@@ -13,6 +13,53 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
+### 4. Voice / TTS rework — curated Piper set, per-character voice on the sheet (TODO #9)
+
+- **Tier:** Sonnet (TTS is OUTPUT rendering, NOT the drift surface — no applyMuts/memory/prompt-
+  injection contact). **Logged here at the USER's explicit request** ("everything we're doing here
+  needs to be annotated so Fable can double-check us", 2026-07-20), not because policy requires it.
+- **Built by:** Opus 4.8 — 2026-07-20. Design converged with the user across several turns; the
+  full ratified design + build order lives in the **TODO #9 row** (read it first).
+- **Versions / commits:**
+  - v1.395 — curated voice set: `PIPER_VOICES` replaced with the user's 19 picks (from
+    `voice_picker.html`). 2 of 21 picks (`en_US-mike-medium`, `en_US-norman-medium`) DROPPED — in
+    the picker's rhasspy manifest but NOT in the vendored vits-web runtime catalog, so they'd show
+    in the dropdown yet fail to download. Default moved lessac-medium → `en_US-libritts_r-medium`
+    (old default was dropped); `resolvePiperVoice` now snaps any stored pref no longer in the set to
+    the default. 3 existing tests updated + 1 guard test.
+  - v1.396 — per-character voice FOUNDATION: `TTS.voices()`/`voiceLabel()`/`voiceKnown()`/
+    `voiceDefault()` + `TTS.characterVoiceId(char)` — resolves a character's own `voiceId` (in the
+    curated set) else falls back to the NARRATOR voice (unassigned = single-voice behavior, today's
+    default). 5 new tests.
+- **Ratified design (user, 2026-07-20) — what Fable should sanity-check:**
+  1. **Cartesia REMOVED, engine picker REMOVED, Piper the only engine; Native kept as a SILENT
+     fallback** (load-window + iOS-audio-suspend). *(Not built yet — see pending.)*
+  2. **Voice binds to the NAMED character, stored ON THE SHEET (`charSheet.voiceId`)** — portable
+     like portrait / core-memories (#63); the interchangeability contract. **No migration needed:**
+     absent voiceId = narrator fallback (verified by test). An imported voiceId not in the curated
+     set snaps to the narrator (portability guard, tested).
+  3. **Voice Settings menu → narrator + global TTS only; per-character voice → a control on the
+     character sheet, next to the portrait** (its sensory twin). NPCs tier naturally: sheeted NPC
+     carries a voice, incidental NPC → narrator. *(Sheet control + menu simplification NOT built
+     yet.)*
+  4. **Narrator voice = per-CAMPAIGN** (rides the sync blob like `proseAuthor`) **and authorable in
+     the blueprint editor.** *(Not built yet — resolvePiperVoice already reads `worldState.piperVoice`
+     per-campaign; the blueprint field + the device→campaign move are pending.)*
+  5. **Speaker hook = cheap LLM POST-PASS** run concurrently with the action-suggestion call,
+     mapping `{speaker,text}` spans → each speaker's `charSheet.voiceId`, unassigned → narrator.
+     *(Not built yet — the big remaining piece.)*
+- **Files touched so far:** tts.js, globals.js, sw.js, dev/engine-tests.js, voice_picker.html (new
+  satellite), TODO.md, todo_checkWithFable.md.
+- **What to review (Fable):** the mike/norman drop (is pinning the picker to the vits-web catalog the
+  right fix, vs re-vendoring a fuller mirror?); the snap-to-default guard (could it ever wrongly
+  discard a legitimately-pinned voice?); `characterVoiceId` falling to the NARRATOR (vs a distinct
+  default) for unassigned characters; and whether the per-campaign narrator + blueprint-authored
+  narrator interact cleanly with the existing `proseAuthor` per-campaign pattern.
+- **Verification done (Opus):** 751 engine assertions green (+9 across the two versions: catalog
+  membership, default, snap-to-default, per-character resolution incl. portability + narrator-track).
+  Live: Voice Settings dropdown renders exactly 19, default libritts_r, no console errors.
+- **Supporting docs:** TODO.md #9 (full design + build order); voice_picker.html.
+
 ### 3. Campaign clock — new time subsystem, new tags, buildSysPrompt injection, migration (TODO #73)
 
 - **Tier:** Fable (drift surface — a new tag family + `applyMuts`/tag_table write paths, a
