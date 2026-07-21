@@ -45,24 +45,54 @@ var TTS = (function() {
   // per device/origin.
   // size: real model download size (HEAD-checked against HF 2026-07-17, audit #16) — this is the
   // number a user on cellular consents to, so it must be per-voice truth, not a shared "~60MB".
+  // #9 rework (v1.395): the user-curated English voice set (via voice_picker.html). Every id here
+  // is confirmed present in the vendored vits-web runtime catalog — a voice in the picker's rhasspy
+  // manifest but NOT in vits-web (mike, norman) would show in the dropdown yet fail to download, so
+  // those two were dropped. `speakers` > 1 marks the multi-speaker models (one download, many voices
+  // — the #9 ⑦ goldmine; per-speaker selection is a later step). Default is libritts_r (see
+  // resolvePiperVoice) — the old lessac-medium default was dropped from the set.
   var PIPER_VOICES = [
-    { id:"en_US-lessac-medium", label:"Lessac — warm US narrator (default)", size:"60MB",
-      blurb:"Balanced, warm American voice — the house default. First use downloads once (60MB), then cached." },
-    { id:"en_US-ryan-high", label:"Ryan — US male, high quality", size:"115MB",
-      blurb:"Higher-fidelity US male voice (larger model than the mediums). First use downloads once (115MB), then cached." },
-    { id:"en_GB-alan-medium", label:"Alan — British male", size:"60MB",
-      blurb:"UK male voice. First use downloads once (60MB), then cached." },
-    { id:"en_GB-northern_english_male-medium", label:"Northern English male", size:"60MB",
-      blurb:"UK male voice, Northern English accent. First use downloads once (60MB), then cached." },
-    { id:"en_US-hfc_male-medium", label:"HFC male — US", size:"60MB",
-      blurb:"US male voice. First use downloads once (60MB), then cached." },
-    { id:"en_US-amy-medium", label:"Amy — US female", size:"60MB",
-      blurb:"US female voice. First use downloads once (60MB), then cached." },
-    { id:"en_US-hfc_female-medium", label:"HFC female — US", size:"60MB",
-      blurb:"US female voice. First use downloads once (60MB), then cached." },
-    { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, expressive multi-speaker", size:"75MB",
-      blurb:"US voice, more expressive/varied prosody. First use downloads once (75MB), then cached." }
+    { id:"en_GB-alba-medium", label:"Alba — UK female", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_GB-aru-medium", label:"Aru — UK, 12-speaker", size:"73MB", speakers:12,
+      blurb:"Multi-speaker model: 12 distinct voices in one download. First use downloads once (73MB), then cached." },
+    { id:"en_GB-cori-high", label:"Cori — UK, high quality", size:"109MB", speakers:1,
+      blurb:"First use downloads once (109MB), then cached." },
+    { id:"en_GB-jenny_dioco-medium", label:"Jenny — UK female", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_GB-northern_english_male-medium", label:"Northern English male — UK", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_GB-semaine-medium", label:"Semaine — UK, 4-speaker", size:"73MB", speakers:4,
+      blurb:"Multi-speaker model: 4 distinct voices in one download. First use downloads once (73MB), then cached." },
+    { id:"en_GB-southern_english_female-low", label:"Southern English female — UK", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_GB-vctk-medium", label:"VCTK — UK, 109-speaker", size:"73MB", speakers:109,
+      blurb:"Multi-speaker model: 109 distinct voices in one download. First use downloads once (73MB), then cached." },
+    { id:"en_US-arctic-medium", label:"Arctic — US, 18-speaker", size:"73MB", speakers:18,
+      blurb:"Multi-speaker model: 18 distinct voices in one download. First use downloads once (73MB), then cached." },
+    { id:"en_US-danny-low", label:"Danny — US male", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_US-hfc_female-medium", label:"HFC female — US", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_US-hfc_male-medium", label:"HFC male — US", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_US-joe-medium", label:"Joe — US male", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_US-kathleen-low", label:"Kathleen — US female", size:"60MB", speakers:1,
+      blurb:"First use downloads once (60MB), then cached." },
+    { id:"en_US-kristin-medium", label:"Kristin — US female", size:"61MB", speakers:1,
+      blurb:"First use downloads once (61MB), then cached." },
+    { id:"en_US-lessac-high", label:"Lessac — US, high quality", size:"109MB", speakers:1,
+      blurb:"First use downloads once (109MB), then cached." },
+    { id:"en_US-libritts-high", label:"LibriTTS — US, 904-speaker", size:"130MB", speakers:904,
+      blurb:"Multi-speaker model: 904 distinct voices in one download. First use downloads once (130MB), then cached." },
+    { id:"en_US-libritts_r-medium", label:"LibriTTS R — US, 904-speaker (default)", size:"75MB", speakers:904,
+      blurb:"Multi-speaker model: 904 distinct voices in one download. First use downloads once (75MB), then cached." },
+    { id:"en_US-ryan-high", label:"Ryan — US male, high quality", size:"115MB", speakers:1,
+      blurb:"First use downloads once (115MB), then cached." }
   ];
+  var PIPER_VOICE_DEFAULT = "en_US-libritts_r-medium";
+  function _piperVoiceKnown(id){ for(var i=0;i<PIPER_VOICES.length;i++){ if(PIPER_VOICES[i].id===id) return true; } return false; }
   function piperVoiceSize(id) {
     for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].size; }
     return "60–115MB";
@@ -75,7 +105,11 @@ var TTS = (function() {
   // back to the house default voice. Guard every worldState access — tts.js can run pre-game,
   // and worldState itself is `null` until a campaign is loaded (state.js).
   function resolvePiperVoice() {
-    return (typeof worldState !== "undefined" && worldState && worldState.piperVoice) || store.get(PVOICE_K) || "en_US-lessac-medium";
+    // #9 rework: snap a stored preference that is no longer in the curated set (e.g. a dropped
+    // voice from a pre-rework save) to the default, so piperVoiceSize/blurb/dropdown never resolve
+    // an unknown id (which would show "Downloading (undefined)" and no selection).
+    var want = (typeof worldState !== "undefined" && worldState && worldState.piperVoice) || store.get(PVOICE_K) || "";
+    return (want && _piperVoiceKnown(want)) ? want : PIPER_VOICE_DEFAULT;
   }
 
   // Save semantics mirror showProseModal's Save handler exactly (ui.js, PROSE_K precedent):

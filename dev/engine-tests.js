@@ -4189,21 +4189,29 @@ function runEngineTests(R){
     store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.del(KEY_K_T);
     return got==="piper"?true:"got "+got;
   });
+  // v1.395 (#9 rework): voices below MUST be in the curated PIPER_VOICES set — resolvePiperVoice
+  // now snaps an unknown/dropped preference to the default (see the dedicated guard test at the end).
   t("resolvePiperVoice(): worldState.piperVoice (campaign pin) wins over the device default",function(){
-    makeWorld();worldState.piperVoice="en_GB-alan-medium";store.set(PVOICE_K_T,"en_US-amy-medium");
+    makeWorld();worldState.piperVoice="en_US-ryan-high";store.set(PVOICE_K_T,"en_GB-cori-high");
     var got=TTS.resolvePiperVoice();
     store.del(PVOICE_K_T);
-    return got==="en_GB-alan-medium"?true:"got "+got;
+    return got==="en_US-ryan-high"?true:"got "+got;
   });
   t("resolvePiperVoice(): device default wins when worldState.piperVoice is unset",function(){
-    makeWorld();store.set(PVOICE_K_T,"en_US-amy-medium");
+    makeWorld();store.set(PVOICE_K_T,"en_GB-cori-high");
     var got=TTS.resolvePiperVoice();
     store.del(PVOICE_K_T);
-    return got==="en_US-amy-medium"?true:"got "+got;
+    return got==="en_GB-cori-high"?true:"got "+got;
   });
-  t("resolvePiperVoice(): falls through to the house default (lessac) when nothing is set",function(){
+  t("resolvePiperVoice(): falls through to the house default (libritts_r) when nothing is set",function(){
     makeWorld();store.del(PVOICE_K_T);
-    return TTS.resolvePiperVoice()==="en_US-lessac-medium"?true:"got "+TTS.resolvePiperVoice();
+    return TTS.resolvePiperVoice()==="en_US-libritts_r-medium"?true:"got "+TTS.resolvePiperVoice();
+  });
+  t("resolvePiperVoice(): a stored preference NO LONGER in the curated set snaps to the default (#9 guard)",function(){
+    // The FAILURE this guards: a pre-rework save pinned a voice (e.g. amy) that was dropped from
+    // PIPER_VOICES; without the guard, size/blurb/dropdown would resolve an unknown id.
+    makeWorld();worldState.piperVoice="en_US-amy-medium";/* dropped in the rework */
+    return TTS.resolvePiperVoice()==="en_US-libritts_r-medium"?true:"unknown pin not snapped to default: "+TTS.resolvePiperVoice();
   });
   t("resolvePiperVoice(): worldState===null (pre-game) does not throw and still falls through to device default",function(){
     // The FAILURE condition this guards: a naive `worldState.piperVoice` access (no `worldState &&`
