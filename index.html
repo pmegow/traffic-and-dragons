@@ -118,6 +118,12 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .ai{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}.ai.nw{border-color:var(--blue)}
 .an{font-weight:bold;font-size:11px;color:var(--t0);display:block}.ad{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}
 .sp-item{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}
+/* #83: elements whose long-press shows a custom tooltip — kill the native iOS callout + text
+   selection so a long-press can't pop the copy menu instead. */
+.has-tip{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+/* #83: the custom long-press tooltip. pointer-events:none so it never intercepts a touch;
+   white-space:pre-wrap honours the "Range · Duration\n<effect>" line break spellTip builds. */
+.lp-tip{position:fixed;z-index:10001;display:none;max-width:260px;background:var(--modal-bg);color:var(--t0);border:1px solid var(--acc);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.45;white-space:pre-wrap;box-shadow:0 4px 16px rgba(0,0,0,.55);pointer-events:none;transform:translateY(-100%);}
 .sp-item.used{opacity:.35}.sp-nm{font-weight:bold;font-size:11px;color:var(--t0);display:block}.sp-ds{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}
 .qp-item{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px}.qp-item:hover{border-color:var(--acc)}.qp-item.off{border-color:var(--blue)}.qp-nm{color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qp-st{font-size:9px;color:var(--t2);flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}.qp-item.off .qp-st{color:var(--acc)}
 .igold{font-size:13px;font-weight:bold;color:var(--gold);padding:2px 0 6px}

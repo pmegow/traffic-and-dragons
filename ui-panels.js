@@ -24,7 +24,7 @@ function partyMemberVitals(npc){
   };
 }
 var _cpanelWasActive=false;/* TODO #7: module-local previous-state latch — lets syncUI detect the hidden->shown edge (combat just started) instead of firing a sound on every sync while combat persists */
-function syncUI(){if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();var _combatNowActive=!!worldState.combat;if(_combatNowActive){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(_combatNowActive&&!_cpanelWasActive&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: combat starting is an attention event — same glass as quests/level-ups (no toast here, so no window contention) */_cpanelWasActive=_combatNowActive;if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
+function syncUI(){_ensureLongPressTips();/* #83: idempotent — wires the mobile long-press tooltip once */if(!worldState)return;updateHUD();updatePartyPanel();updateQuestPanel();updateInvPanel();updateAbPanel(false);updateSpPanel();updateMemStatus();var _combatNowActive=!!worldState.combat;if(_combatNowActive){document.getElementById("cpanel").classList.add("active");updateCombat();}else{document.getElementById("cpanel").classList.remove("active");}if(_combatNowActive&&!_cpanelWasActive&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: combat starting is an attention event — same glass as quests/level-ups (no toast here, so no window contention) */_cpanelWasActive=_combatNowActive;if(typeof carMode!=="undefined"&&carMode&&typeof _carUpdate==="function")_carUpdate();/* rank 10 (todo_carplay) — keep the car overlay's portrait/party/vitals fresh off the same funnel every other panel uses */}
 function updateQuestPanel(){
   if(!worldState)return;var ql=worldState.questLog||[];
   var live=[];for(var li=0;li<ql.length;li++){if(ql[li].status==="offered"||ql[li].status==="active")live.push(ql[li]);}
@@ -176,7 +176,7 @@ function updateInvPanel(){
   var weps=["sword","blade","axe","bow","staff","crossbow","knife","dagger","spear","mace","hammer","blades"];
   var arm=["armor","chainmail","leather","hide","shield","helm","cloak","mail","scale"];
   document.getElementById("inv-cnt").textContent=inv.length;document.getElementById("inv-gold").textContent=gold+" gp";
-  var h="",i;for(i=0;i<inv.length;i++){var lc=inv[i].toLowerCase(),eq=false,j;for(j=0;j<weps.length;j++){if(lc.indexOf(weps[j])>=0){eq=true;break;}}if(!eq)for(j=0;j<arm.length;j++){if(lc.indexOf(arm[j])>=0){eq=true;break;}}h+='<div class="ii'+(eq?' eq':'')+'" title="'+escHtml(inv[i])+'">'+invItemHtml(inv[i])+'</div>';}
+  var h="",i;for(i=0;i<inv.length;i++){var lc=inv[i].toLowerCase(),eq=false,j;for(j=0;j<weps.length;j++){if(lc.indexOf(weps[j])>=0){eq=true;break;}}if(!eq)for(j=0;j<arm.length;j++){if(lc.indexOf(arm[j])>=0){eq=true;break;}}h+='<div class="ii has-tip'+(eq?' eq':'')+'" title="'+escHtml(itemTip(inv[i]))+'">'+invItemHtml(inv[i])+'</div>';}/* #83: item tooltip (fallback until #81 item bible) + long-press */
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }
 function updateAbPanel(hl){
@@ -185,16 +185,73 @@ function updateAbPanel(hl){
   document.getElementById("ab-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';
 }
 // #8: side-panel spell tooltip — the description pulled from the capability bible (the SAME
-// canon the GM is fed and the click-card shows; one data source). Returns "" if the spell isn't
-// in the bible, so the title attribute is simply omitted rather than showing an empty box.
+// canon the GM is fed and the click-card shows; one data source). #83: a spell with no bible
+// entry (a GM-granted spell, say) falls back to the explicit "no description available" line
+// rather than nothing — most spells ARE covered, so the fallback is rare.
 function spellTip(nm){
-  if(typeof capabilityLookup!=="function")return "";
-  var e=capabilityLookup(nm);if(!e)return "";
-  var meta=[];
-  if(e.range&&e.range!=="N/A")meta.push("Range: "+e.range);
-  if(e.duration&&e.duration!=="N/A")meta.push("Duration: "+e.duration);
-  if(e.save&&e.save!=="N/A")meta.push("Save: "+e.save);
-  return (meta.length?meta.join(" · ")+"\n":"")+(e.effect||"");
+  var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
+  if(e){
+    var meta=[];
+    if(e.range&&e.range!=="N/A")meta.push("Range: "+e.range);
+    if(e.duration&&e.duration!=="N/A")meta.push("Duration: "+e.duration);
+    if(e.save&&e.save!=="N/A")meta.push("Save: "+e.save);
+    var body=(meta.length?meta.join(" · ")+"\n":"")+(e.effect||"");
+    if(body.replace(/\s/g,""))return body;
+  }
+  return "no description available for: "+String(nm||"");
+}
+// #83/#82: inventory item tooltip. The #81 item bible does not exist yet, so there is NO data
+// source and every item falls back to "no description available". When item_bible ships, look it
+// up HERE (itemLookup) and return the real description; keep this fallback for genuine misses.
+function itemTip(nm){
+  // future (#81): var e=(typeof itemLookup==="function")?itemLookup(nm):null; if(e&&e.description)return (e.category?e.category+"\n":"")+e.description;
+  return "no description available for: "+String(nm||"");
+}
+// #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;
+// the player still edits/sends). Name rides a data attribute (escHtml'd, so apostrophes like
+// "Hunter's Mark" can't break the handler); appends with a space when the box already has text.
+function spellQuickCast(el){
+  var nm=el&&el.getAttribute("data-cast");if(!nm)return;
+  var inp=document.getElementById("action-input");if(!inp)return;
+  var add="Cast "+nm+".";
+  var cur=String(inp.value||"").replace(/\s+$/,"");
+  inp.value=cur?cur+" "+add:add;
+  inp.focus();
+}
+// ── #83: long-press → tooltip on mobile ──────────────────────────────────────────────────────
+// On touch there is no hover, so the desktop `title` tooltips (spells #8, inventory) are invisible,
+// and a long-press pops the native text-selection/copy callout. We suppress that callout on
+// .has-tip elements (CSS: -webkit-touch-callout:none + user-select:none) and detect a long-press
+// ourselves: a ~500ms hold shows a custom tooltip carrying the element's OWN title text (one
+// source, two surfaces — native hover on desktop, this on touch). The tap that follows a fired
+// long-press is swallowed in the capture phase so a spell long-press never ALSO casts.
+var _lpTipEl=null,_lpTimer=null,_lpFired=false,_lpWired=false;
+function _lpClearTimer(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
+function _lpHide(){if(_lpTipEl)_lpTipEl.style.display="none";}
+function _lpShow(text,x,y){
+  if(!_lpTipEl){_lpTipEl=document.createElement("div");_lpTipEl.className="lp-tip";document.body.appendChild(_lpTipEl);}
+  _lpTipEl.textContent=text;_lpTipEl.style.display="block";
+  var w=Math.min(260,(window.innerWidth||320)-20);_lpTipEl.style.maxWidth=w+"px";
+  var left=Math.max(10,Math.min(x-w/2,(window.innerWidth||320)-w-10));
+  _lpTipEl.style.left=left+"px";
+  _lpTipEl.style.top=Math.max(10,y-12)+"px";/* the CSS translateY(-100%) lifts it above the finger */
+}
+function _ensureLongPressTips(){
+  if(_lpWired||typeof document==="undefined")return;_lpWired=true;
+  document.addEventListener("touchstart",function(e){
+    _lpFired=false;_lpClearTimer();_lpHide();/* a fresh gesture: drop any stale state + hide a shown tip */
+    var el=e.target&&e.target.closest?e.target.closest(".has-tip"):null;if(!el)return;
+    var tip=el.getAttribute("title")||el.getAttribute("data-tip");if(!tip)return;
+    var t=e.touches&&e.touches[0],x=t?t.clientX:0,y=t?t.clientY:0;
+    _lpTimer=setTimeout(function(){_lpFired=true;_lpShow(tip,x,y);},500);
+  },{passive:true});
+  document.addEventListener("touchmove",_lpClearTimer,{passive:true});
+  document.addEventListener("touchend",_lpClearTimer,{passive:true});
+  document.addEventListener("touchcancel",function(){_lpClearTimer();_lpHide();},{passive:true});
+  // Capture-phase: if a long-press just fired, eat the synthetic click so the tap action
+  // (e.g. spellQuickCast) does NOT also run. One-shot — reset so later real taps pass through.
+  document.addEventListener("click",function(e){if(_lpFired){_lpFired=false;e.stopPropagation();e.preventDefault();}},true);
+  document.addEventListener("scroll",_lpHide,true);
 }
 // #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;
 // the player still edits/sends). Name rides a data attribute (escHtml'd, so apostrophes like
@@ -218,8 +275,8 @@ function updateSpPanel(){
     tag=sp.lvl===0?"C":String(sp.lvl);
     nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
-    var _tip=spellTip(nm);/* #8 bible description */
-    h+="<div class='sp-item"+(sp.used?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\""+(_tip?" title=\""+escHtml(_tip)+"\"":"")+" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast */
+    var _tip=spellTip(nm);/* #8 bible description; #83 always non-empty (fallback) */
+    h+="<div class='sp-item has-tip"+(sp.used?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\" title=\""+escHtml(_tip)+"\" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast + #83 long-press */
     h+="<span class='sp-nm'>["+tag+"] "+escHtml(nm)+"</span>";/* GM-grantable spell names (#22/UA18) */
     if(ds||sp.used)h+="<span class='sp-ds'>"+escHtml(ds||"")+(sp.used?" -- expended":"")+"</span>";
     h+="</div>";
