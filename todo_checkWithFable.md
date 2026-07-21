@@ -66,7 +66,14 @@ Fable session can audit it in one pass.
   correctness under multiple simultaneous crossings; that `parseDuration` can't be fed something that
   advances the clock wildly (no per-turn sanity cap yet — a `[TIME_ADVANCE:9999d]` would apply; is a
   loud-warn cap wanted?); scheduler dedup/substring-removal edge cases.
-- **Supporting docs:** [DOC/DOC_clock.html](DOC/DOC_clock.html); TODO.md #73 row.
+- **Display consumer added (v1.390, TODO #79):** `updateMemStatus` (ui-panels.js) now shows
+  `... | Turn N | Day N | ...` on the membar — the campaign's in-game day. Reads
+  `clockParts(clockNow()).d` (display-only, no writes) and uses the SAME day number the clock block
+  feeds the GM, so player and GM can never see contradictory days. This is NOT drift surface (a pure
+  read), but it is logged here so Fable sees the full footprint of the clock subsystem in one place.
+  Nothing to review beyond confirming the read is display-only and the day number matches
+  `buildClockBlock`. Live-verified: an advanced clock renders "Turn 308 | Day 4", zero console errors.
+- **Supporting docs:** [DOC/DOC_clock.html](DOC/DOC_clock.html); TODO.md #73 + #79 rows.
 
 ### 2. NPC mood / relation separation — schema repair of the character-state tier
 
