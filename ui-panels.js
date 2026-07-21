@@ -246,7 +246,9 @@ function _ensureLongPressTips(){
     _lpTimer=setTimeout(function(){_lpFired=true;_lpShow(tip,x,y);},500);
   },{passive:true});
   document.addEventListener("touchmove",_lpClearTimer,{passive:true});
-  document.addEventListener("touchend",_lpClearTimer,{passive:true});
+  // Release hides the tooltip — "hold to peek, lift to dismiss". _lpFired stays set so the
+  // capture-phase click handler below still swallows the tap that follows a fired long-press.
+  document.addEventListener("touchend",function(){_lpClearTimer();_lpHide();},{passive:true});
   document.addEventListener("touchcancel",function(){_lpClearTimer();_lpHide();},{passive:true});
   // Capture-phase: if a long-press just fired, eat the synthetic click so the tap action
   // (e.g. spellQuickCast) does NOT also run. One-shot — reset so later real taps pass through.
