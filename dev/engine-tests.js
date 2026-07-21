@@ -4167,27 +4167,27 @@ function runEngineTests(R){
   // the keys it touches so ordering within/after this section can't leak state.
   section("TTS engine selection (#41 Phase 4)");
   var ENGINE_K_T="tnd_tts_engine_v1", NATIVE_K_T="tnd_tts_native_v1", KEY_K_T="tnd_cartesia_key_v1", PVOICE_K_T="tnd_piper_voice_v1";
-  t("getEngine() legacy inference: unset ENGINE_K + native flag set → native (pre-Phase-4 behavior preserved)",function(){
+  // #9 rework (v1.398): Cartesia removed, engine picker removed — Piper is THE engine. getEngine()
+  // is now a CONSTANT "piper" regardless of any stored ENGINE_K / native flag / Cartesia key. Native
+  // survives only as the runtime fallback target (called directly, not via getEngine). These replace
+  // the old Phase-4 legacy-inference tests, which encoded the multi-engine selection that's gone.
+  t("getEngine() is constant 'piper' — a stale native flag can't select native",function(){
     store.del(ENGINE_K_T);store.set(NATIVE_K_T,"1");store.del(KEY_K_T);
     var got=TTS.getEngine();
     store.del(NATIVE_K_T);
-    return got==="native"?true:"got "+got;
+    return got==="piper"?true:"got "+got;
   });
-  t("getEngine() legacy inference: unset ENGINE_K + no native flag + Cartesia key present → cartesia",function(){
+  t("getEngine() is constant 'piper' — a stale Cartesia key can't select cartesia (provider removed)",function(){
     store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.set(KEY_K_T,"sk_car_test");
     var got=TTS.getEngine();
     store.del(KEY_K_T);
-    return got==="cartesia"?true:"got "+got;
-  });
-  t("getEngine() legacy inference: unset ENGINE_K + nothing configured → native (ultimate fallback)",function(){
-    store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.del(KEY_K_T);
-    return TTS.getEngine()==="native"?true:"got "+TTS.getEngine();
-  });
-  t("getEngine() explicit ENGINE_K=piper wins over BOTH the native flag and a saved Cartesia key",function(){
-    store.set(NATIVE_K_T,"1");store.set(KEY_K_T,"sk_car_test");store.set(ENGINE_K_T,"piper");
-    var got=TTS.getEngine();
-    store.del(ENGINE_K_T);store.del(NATIVE_K_T);store.del(KEY_K_T);
     return got==="piper"?true:"got "+got;
+  });
+  t("getEngine() is constant 'piper' — even with a stale ENGINE_K=native/cartesia stored",function(){
+    store.set(ENGINE_K_T,"native");var g1=TTS.getEngine();
+    store.set(ENGINE_K_T,"cartesia");var g2=TTS.getEngine();
+    store.del(ENGINE_K_T);
+    return (g1==="piper"&&g2==="piper")?true:"got "+g1+" / "+g2;
   });
   // v1.395 (#9 rework): voices below MUST be in the curated PIPER_VOICES set — resolvePiperVoice
   // now snaps an unknown/dropped preference to the default (see the dedicated guard test at the end).

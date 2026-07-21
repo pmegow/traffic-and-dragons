@@ -36,6 +36,14 @@ Fable session can audit it in one pass.
     (`showNpcSheet`, gated on a charSheet existing — sheetless NPC = no control = narrator tier).
     Writes `char.voiceId`/`charSheet.voiceId`; "" deletes it (narrator default). Live-verified both
     hosts + the sheetless-NPC case. UI only.
+  - v1.398 — **Voice Settings SIMPLIFIED (Cartesia + engine picker removed):** `getEngine()` is now a
+    constant `"piper"` (Native survives only as the runtime fallback target, called directly). The
+    modal lost the engine radios + the whole Cartesia panel (key/voice-bank) + their wiring; it's now
+    speech rate + Piper voice + a device "Fallback voice". ⚠ **Cartesia CODE left dormant** (the
+    provider object + ~60 refs + the SSE/WebAudio streaming) — unreachable (getEngine never returns
+    it) but not yet ripped; a dead-code sweep is a separate follow-up. 4 old Phase-4 engine-selection
+    tests replaced with 3 asserting the constant. **Fable: check that nothing still routes through
+    `TTS_PROVIDERS.cartesia` or a stale ENGINE_K, and that the dormant Cartesia code can't be reached.**
 - **Ratified design (user, 2026-07-20) — what Fable should sanity-check:**
   1. **Cartesia REMOVED, engine picker REMOVED, Piper the only engine; Native kept as a SILENT
      fallback** (load-window + iOS-audio-suspend). *(Not built yet — see pending.)*

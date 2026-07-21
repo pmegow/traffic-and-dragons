@@ -129,13 +129,12 @@ var TTS = (function() {
   // silently change out from under them: isNative() checked → "native"; else a saved Cartesia key
   // → "cartesia" (matches _cartesiaOk()'s key requirement); else "native" (today's ultimate
   // fallback when nothing is configured).
-  function getEngine() {
-    var explicit = store.get(ENGINE_K);
-    if (explicit === "native" || explicit === "cartesia" || explicit === "piper") return explicit;
-    if (isNative()) return "native";
-    if (getKey()) return "cartesia";
-    return "native";
-  }
+  // #9 rework (v1.398): Piper is THE engine. Cartesia is removed and the engine picker is gone, so
+  // selection no longer exists — getEngine() is a constant. Native survives ONLY as the automatic
+  // fallback target (the runtime degradation ladder in speak() + the iOS-audio-suspend path call
+  // TTS_PROVIDERS.native directly, NOT via getEngine), so a device/window where Piper can't load
+  // still speaks. ENGINE_K is now vestigial (kept only so old callers that read it don't NPE).
+  function getEngine() { return "piper"; }
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
@@ -1757,18 +1756,8 @@ var TTS = (function() {
   function showSettingsModal() {
     var inpStyle = "width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t0);font-size:13px;box-sizing:border-box;";
     var smInpStyle = "width:100%;padding:6px 8px;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;color:var(--t0);font-size:12px;box-sizing:border-box;margin-bottom:6px;";
-    // One engine panel at a time (user call 2026-07-16, from the phone screenshot: every option on
-    // screen at once was a mess). A radio picks the engine; only that engine's options render.
-    // All pre-existing element IDs survive inside the panels, so the Save handler and every
-    // _update*/_refresh* helper work unchanged; a hidden panel's controls still carry state.
-    var eng0 = getEngine();
-    function radioRow(id, label) {
-      var checked = (eng0 === id) ? " checked" : "";
-      return "<label style='display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid " + (eng0 === id ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;cursor:pointer;margin-bottom:6px;' data-eng-row='" + id + "'>"
-        + "<input type='radio' name='tts-engine' value='" + id + "'" + checked + " style='accent-color:var(--acc);margin:0;'/>"
-        + "<span style='font-size:13px;color:var(--t0);'>" + label + "</span>"
-        + "</label>";
-    }
+    // #9 rework: Piper is the only engine — no engine picker. The modal is just: speech rate,
+    // audio diagnostics, the Piper voice panel, and the device fallback voice.
     /* #14: modalShell (global, ui-shell.js) — callable from this IIFE at run time */
     var modal = modalShell("tts-modal",
       "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'>"
@@ -1783,45 +1772,16 @@ var TTS = (function() {
       +     "<span id='tts-rate-val' style='font-size:11px;color:var(--t2);'>" + getRate().toFixed(2) + "&times;</span>"
       +   "</div>"
       +   "<input id='tts-rate-sel' type='range' min='0.8' max='1.3' step='0.05' value='" + getRate() + "' style='width:100%;accent-color:var(--acc);'/>"
-      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Native + Piper only. (Cartesia unaffected)</div>"
+      +   "<div style='font-size:11px;color:var(--t2);margin-top:2px;'>Applies to the Piper voice.</div>"
       + "</div>"
-      + "<div style='margin-bottom:16px;'>"
-      +   "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Voice engine</label>"
-      +   radioRow("cartesia", "Cartesia <span style='color:var(--t2);'>(cloud, high quality)</span>")
-      +   radioRow("piper",    "Piper <span style='color:var(--t2);'>(local, offline, free)</span>")
-      +   radioRow("native",   "Native <span style='color:var(--t2);'>(this device's built-in voices)</span>")
-      +   "<div id='tts-engine-hint' style='font-size:11px;color:var(--t2);margin-top:2px;'>" + _escVal(TTS_PROVIDERS[eng0].hint) + "</div>"
-      +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
+      // #9: engine picker REMOVED — Piper is the only engine (Native survives as the silent
+      // fallback below). Keep only the phone-visible audio diagnostics.
+      + "<div style='margin-bottom:14px;'>"
+      +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
       + "</div>"
-      // ── Cartesia panel ──
-      + "<div id='tts-panel-cartesia' style='display:" + (eng0 === "cartesia" ? "block" : "none") + ";'>"
-      +   "<div style='margin-bottom:10px;'>"
-      +     "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'>"
-      +       "<label style='font-size:12px;color:var(--t2);'>Cartesia API Key</label>"
-      +       "<span id='tts-cart-err' style='font-size:11px;color:#e06060;display:none;'></span>"
-      +     "</div>"
-      +     "<input id='tts-key-inp' type='password' placeholder='sk_car_...' autocomplete='one-time-code' value='" + _escVal(getKey()) + "' style='" + inpStyle + "'/>"
-      +   "</div>"
-      +   "<div style='margin-bottom:20px;'>"
-      +     "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;'>"
-      +       "<label style='font-size:12px;color:var(--t2);'>Narrator Voice</label>"
-      +       "<button id='tts-add-btn' style='font-size:11px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);cursor:pointer;padding:2px 8px;'>+ Add</button>"
-      +     "</div>"
-      +     "<select id='tts-voice-sel' style='" + inpStyle + "'>" + _buildVoiceOptions() + "</select>"
-      +     "<div id='tts-add-form' style='display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:6px;padding:10px;'>"
-      +       "<input id='tts-add-name' type='text' placeholder='Voice name (e.g. Gravely Narrator)' style='" + smInpStyle + "'/>"
-      +       "<input id='tts-add-id' type='text' placeholder='Cartesia voice UUID' style='" + smInpStyle + "font-family:var(--font-mono);'/>"
-      +       "<div style='display:flex;gap:6px;'>"
-      +         "<button id='tts-add-save' style='flex:1;padding:6px;background:var(--acc);border:none;border-radius:4px;color:#000;font-size:12px;cursor:pointer;font-family:var(--font);'>Save</button>"
-      +         "<button id='tts-add-cancel' style='padding:6px 10px;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--t2);font-size:12px;cursor:pointer;'>Cancel</button>"
-      +       "</div>"
-      +     "</div>"
-      +     "<div id='tts-bank-rows'>" + _buildBankRows() + "</div>"
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Cartesia is unavailable, narration falls back to your Native voice (set it under Native).</div>"
-      +   "</div>"
-      + "</div>"
+      // #9: Cartesia panel REMOVED (provider dropped). Piper panel is now always shown.
       // ── Piper panel ──
-      + "<div id='tts-panel-piper' style='display:" + (eng0 === "piper" ? "block" : "none") + ";'>"
+      + "<div id='tts-panel-piper' style='display:block;'>"
       +   "<div style='margin-bottom:20px;'>"
       +     "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'>"
       +       "<label style='font-size:12px;color:var(--t2);'>Piper voice</label>"
@@ -1834,24 +1794,24 @@ var TTS = (function() {
       +     "<div id='tts-piper-blurb' style='font-size:11px;color:var(--t2);margin-top:4px;'>" + _escVal(_piperVoiceBlurb(resolvePiperVoice())) + "</div>"
       +     "<div id='tts-piper-runtime' style='font-size:11px;color:var(--t2);margin-top:4px;font-family:var(--font-mono,monospace);'></div>"
       +     "<div id='tts-piper-slots'></div>"   /* #66 slot UI — rendered async by _renderPiperSlots (OPFS read) */
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Piper is unavailable, narration falls back to your Native voice (set it under Native).</div>"
+      +     "<div style='font-size:11px;color:var(--t2);margin-top:6px;'>If Piper can't load (first download, or an unsupported device), narration falls back to the device voice below.</div>"
       +   "</div>"
       + "</div>"
-      // ── Native panel ──
-      + "<div id='tts-panel-native' style='display:" + (eng0 === "native" ? "block" : "none") + ";'>"
+      // ── Fallback (device native) voice — #9: always shown, no longer an engine choice; it is the
+      //    SILENT fallback whenever Piper can't load. ──
+      + "<div id='tts-panel-native' style='display:block;'>"
       +   "<div style='margin-bottom:20px;'>"
-      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Native voice</label>"
+      +     "<label style='font-size:12px;color:var(--t2);display:block;margin-bottom:6px;'>Fallback voice <span style='color:var(--t2);'>(device — used only if Piper is unavailable)</span></label>"
       +     "<div style='display:flex;gap:6px;'>"
       +       "<select id='tts-nvoice-sel' style='" + inpStyle + "flex:1;'>" + _buildNativeVoiceOptions() + "</select>"
       +       "<button id='tts-nvoice-test' style='flex-shrink:0;padding:0 12px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);font-size:12px;cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
       +     "</div>"
-      +     "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Also the shared FALLBACK whenever Cartesia or Piper is unavailable — worth setting even if you use another engine. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
+      +     "<div style='font-size:11px;color:var(--t2);margin-top:4px;'>Worth setting for the rare case Piper can't run. Windows 11 has neural voices (Aria, Guy); on iOS, download Enhanced voices in Settings &#8250; Accessibility &#8250; Spoken Content &#8250; Voices.</div>"
       +   "</div>"
       + "</div>"
       + "<button id='tts-save-btn' style='width:100%;padding:10px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:var(--font);font-size:14px;font-weight:bold;cursor:pointer;'>Save</button>",
       { align: "flex-start", overlayExtra: "overflow-y:auto;", boxBg: "#181818", maxWidth: 480, boxExtra: "margin-top:60px;", closeId: "tts-modal-x", outside: true });
 
-    _updateCartErr();
     _updatePiperErr();
     _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
     _renderPiperSlots();         // #66 slot UI — direct OPFS read, no engine init needed
@@ -1879,14 +1839,7 @@ var TTS = (function() {
       if (_audioCtx && _audioCtx.onstatechange !== _updateAudioDiag) _audioCtx.onstatechange = _updateAudioDiag;
     }, 1000);
 
-    function _setEnginePanels(engine) {
-      var panels = { cartesia: "tts-panel-cartesia", piper: "tts-panel-piper", native: "tts-panel-native" }, k;
-      for (k in panels) { var el = document.getElementById(panels[k]); if (el) el.style.display = (k === engine) ? "block" : "none"; }
-      var rows = modal.querySelectorAll("[data-eng-row]");
-      for (var r = 0; r < rows.length; r++) rows[r].style.borderColor = (rows[r].getAttribute("data-eng-row") === engine) ? "var(--acc)" : "var(--brd)";
-      var hintEl = document.getElementById("tts-engine-hint");
-      if (hintEl) hintEl.textContent = TTS_PROVIDERS[engine].hint;
-    }
+    // #9: _setEnginePanels removed — no engine picker; only the Piper panel + the fallback voice.
     // Rank 20: live-write on drag — takes effect on the NEXT synth call (getRate() reads store live).
     var rateSel = document.getElementById("tts-rate-sel");
     if (rateSel) {
@@ -1896,19 +1849,7 @@ var TTS = (function() {
         if (rv) rv.textContent = parseFloat(this.value).toFixed(2) + "×";
       });
     }
-    var radios = modal.querySelectorAll("input[name='tts-engine']");
-    for (var ri = 0; ri < radios.length; ri++) {
-      radios[ri].addEventListener("change", function() {
-        // Live-writes on change (same pattern the old engine select used) so the choice takes
-        // effect immediately, not just after Save. NATIVE_K stays in lockstep for back-compat —
-        // getEngine() reads ENGINE_K first and only falls through to NATIVE_K when ENGINE_K is unset.
-        store.set(ENGINE_K, this.value);
-        store.set(NATIVE_K, this.value === "native" ? "1" : "");
-        _setEnginePanels(this.value);
-        _updateCartErr();
-        _updatePiperErr();
-      });
-    }
+    // #9: engine-radio wiring removed (no radios). Piper is the engine; the fallback voice is below.
 
     // Native voices may not be ready on modal open (esp. iOS) — repopulate when they load.
     if (window.speechSynthesis) {
@@ -1942,50 +1883,16 @@ var TTS = (function() {
       _drain();
     });
 
-    document.getElementById("tts-add-btn").addEventListener("click", function() {
-      var form = document.getElementById("tts-add-form");
-      form.style.display = form.style.display === "none" ? "block" : "none";
-      if (form.style.display === "block") document.getElementById("tts-add-name").focus();
-    });
-
-    document.getElementById("tts-add-cancel").addEventListener("click", function() {
-      document.getElementById("tts-add-form").style.display = "none";
-    });
-
-    document.getElementById("tts-add-save").addEventListener("click", function() {
-      var name = document.getElementById("tts-add-name").value.trim();
-      var id   = document.getElementById("tts-add-id").value.trim();
-      if (!name || !id) { if (typeof showToast === "function") showToast("Name and voice ID are required."); return; }
-      var bank = getBank();
-      // Replace if same ID already exists
-      var found = false;
-      for (var i = 0; i < bank.length; i++) { if (bank[i].id === id) { bank[i].name = name; found = true; break; } }
-      if (!found) bank.push({ id: id, name: name });
-      bank.sort(function(a, b) { return a.name.localeCompare(b.name); });
-      setBank(bank);
-      // Auto-select the new voice
-      store.set(VOICE_K, id);
-      document.getElementById("tts-add-form").style.display = "none";
-      document.getElementById("tts-add-name").value = "";
-      document.getElementById("tts-add-id").value = "";
-      _refreshVoiceUI();
-    });
-
-    _wireBankDelBtns();
+    // #9: Cartesia "add voice" / voice-bank wiring removed (provider dropped).
 
     document.getElementById("tts-save-btn").addEventListener("click", function() {
-      var key   = document.getElementById("tts-key-inp").value.trim();
-      var voice = document.getElementById("tts-voice-sel").value;
-      if (key) { store.set(KEY_K, key); _cartesiaError = ""; } else store.del(KEY_K);  // a fresh key gets Cartesia retried
-      if (voice) store.set(VOICE_K, voice); else store.del(VOICE_K);
-      var echk = modal.querySelector("input[name='tts-engine']:checked");
-      var engine = echk ? echk.value : getEngine();
-      store.set(ENGINE_K, engine);
-      store.set(NATIVE_K, engine === "native" ? "1" : "");   // back-compat (see the engine-sel change listener)
-      var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }
+      // #9: engine is always Piper; normalize ENGINE_K so any old caller reading it sees "piper".
+      store.set(ENGINE_K, "piper");
+      store.set(NATIVE_K, "");
+      var nvs = document.getElementById("tts-nvoice-sel"); if (nvs) { if (nvs.value) store.set(NVOICE_K, nvs.value); else store.del(NVOICE_K); }   // the fallback voice
       var psel = document.getElementById("tts-piper-sel");
       if (psel && psel.value) savePiperVoice(psel.value);   // proseAuthor two-tier save — see savePiperVoice() above
-      if (engine === "piper" && isOn()) prewarmPiper(resolvePiperVoice());   // §5 Q4 — also pre-warm right after enabling Piper from here
+      if (isOn()) prewarmPiper(resolvePiperVoice());   // §5 Q4 — pre-warm the chosen Piper voice
       modal.remove();
       if (typeof showToast === "function") showToast("Voice settings saved.");
     });
