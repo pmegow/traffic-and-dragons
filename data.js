@@ -234,6 +234,7 @@ var SKILLS=[
   // Craft
   {id:"Smithing",  label:"Smithing",  stats:["STR","INT"], cat:"Craft"},
   {id:"Handcraft", label:"Handcraft", stats:["DEX","INT"], cat:"Craft"},
+  {id:"Explosives",label:"Explosives",stats:["INT","DEX"], cat:"Craft"},
   // Social
   {id:"Persuasion", label:"Persuasion", stats:["CHA"],       cat:"Social"},
   {id:"Deception",  label:"Deception",  stats:["CHA","INT"], cat:"Social"},
