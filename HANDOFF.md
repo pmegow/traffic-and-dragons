@@ -30,24 +30,37 @@ and none of them predict it.
 - **Read position, session age, voice count** — see above.
 - **The ORT session recycle** helps not at all: deaths occur with `rc`=2–3 behind them.
 
-**The remaining candidate:** ORT's own runtime linear memory, which is NOT the InferenceSession that
-`tndRecycleSession` releases. Releasing a session cannot shrink wasm memory that already grew, which
-would explain precisely why the recycle fires and changes nothing.
+**✅ SOLVED as of v1.416 — the blocker below is cleared and the root cause is measured.** ORT's own
+runtime linear memory (NOT the InferenceSession `tndRecycleSession` releases) grows **~7MB per
+distinct input shape and never shrinks**: 170MB → 611MB across a 100-synth desktop soak. At the
+field's `pc`≈120 that is ~1GB, which is where iOS jetsams a tab and where all seven crumbs land.
+**r8's recycle was A/B'd and is measured useless** — identical curves to the byte, confirming the
+field's `rc`=2–3 at every death.
 
-**⛔ The blocker, and the discipline to keep:** ORT's memory is **not observable yet**. Two attempts
-failed — hooking `WebAssembly.Memory` caught zero (these modules declare memory internally rather
-than importing it), and hooking `instantiate`/`instantiateStreaming` also caught zero. **Do not
-patch blind.** That is exactly the trap the r8 comment documents, and it is what falsifying the
-phonemizer hypothesis just saved us from. Next things to try: hook the synchronous
-`WebAssembly.Instance` constructor; instrument inside `piper_test.html` (now on r9); or run
-cross-origin-isolated and use `performance.measureUserAgentSpecificMemory()`.
+**Read `DOC/BUGS.md` ▸ B9 ▸ the 2026-07-22 "ORT MEMORY IS NOW OBSERVABLE" entry before touching
+this.** Three things there change how you work: ① the driver is **distinct input shapes, not synth
+count** — the old soak cycled ~15 sentences and went flat after one pass, which is why every prior
+soak read clean and "N turns worked" is now retired as evidence for this class; ② the 611MB ceiling
+is a harness artifact (the generator cycles 60 lengths), not a natural bound; ③ a second defect
+turned up on the way — the phonemizer reuse latch, **TODO #87**, blocked on field evidence.
 
-**A fix has a falsifiable acceptance test now**, which this class never had: carry `pc` past ~130
-without dying, with read length and voice count varied. No memory graph needed — which is as well,
-since iOS Safari exposes none.
+**How it became observable:** hook all five WebAssembly instantiation entry points, keep the
+exported Memory, read `buffer.byteLength`. The earlier attempts failed because these builds declare
+memory internally rather than importing it, and because the synchronous `new WebAssembly.Instance`
+path bypasses `instantiate`/`instantiateStreaming`. Modules are named by **binary URL** — both
+builds ship minified export names, so there is no `_OrtRun` to match. The probe self-validates
+against r9's independent `tndDiag()` phonemizer figure (both read 16MB).
 
-**Field data is exhausted for diagnosis.** Seven crumbs, one constant, every competing variable
-ruled out by variation. The next useful evidence comes from a fix attempt or a better probe.
+**⚠ One trap worth inheriting:** the first draft retained every Memory it caught, which pins wasm
+memory the app has discarded — the instrument becoming the leak class it was built to watch. It now
+keeps one Memory per kind plus an instantiation COUNT, and that counter is what exposed #87.
+
+**Next step is a fix, and it now has a lab.** Reproducible on a desktop in ~4 minutes via
+`piper_test.html` v0.3 (soak → "vary input shape per synth" ON). Acceptance test: **ORT memory flat
+across 100+ varied-shape synths**, confirmed in the field by `om` on the next crumb. Candidates, all
+unmeasured: bucket/pad phoneme sequences so the shape set is small and closed; tear down and rebuild
+the whole ORT *module* rather than the session; or move synthesis into a discardable worker.
+**Measure them against the harness before shipping one** — the r8 comment's trap has not gone away.
 
 ---
 

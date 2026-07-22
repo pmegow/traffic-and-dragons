@@ -662,7 +662,10 @@ var TTS = (function() {
         store.del(PIPER_CRUMB_K);   // one-shot
         if (!c.done && typeof c.i === "number") {
           var msg = "⚠ Last narration died at sentence " + c.i + "/" + c.n + " (piper " + (c.rev || "?") + ", " + (c.app || "?") +
-                    (typeof c.pc === "number" ? ", " + c.pc + " synths / " + c.up + " min into the session" : "") + ")";
+                    (typeof c.pc === "number" ? ", " + c.pc + " synths / " + c.up + " min into the session" : "") +
+                    // v1.416: the wasm memory at death. This is the B9 number — on a phone the toast
+                    // is the only console there is, so it goes where the user can read it out loud.
+                    (typeof c.om === "number" ? ", ORT " + c.om + "MB" : "") + ")";
           console.warn("[tts piper] " + msg);
           if (typeof showToast === "function") showToast(msg, 8000);
           // #16: the narration-death crumb is the exact "invisible mobile console" class this
@@ -677,6 +680,159 @@ var TTS = (function() {
   // resource the standing audit dimension says to enumerate, and untestable on iOS any other way
   // (Safari exposes no performance.memory, so counters are the ONLY proxy available).
   function _voiceCount() { try { return Object.keys(_piperDownloaded).length; } catch(e) { return -1; } }
+
+  // ── wasm linear-memory probe (v1.416, B9) ──────────────────────────────────────────────────
+  // Installed at LOAD, because it must be in place before any wasm is instantiated (Piper's
+  // engine loads lazily on first narration, so this is early by a wide margin).
+  //
+  // Why it has to be a hook: the B9 ratchet is pinned to cumulative synths (seven crumbs,
+  // pc 114-124), the phonemizer was measured FLAT and ruled out, and the remaining candidate is
+  // ORT's own linear memory — which ORT hands out no reference to, on a platform (iOS Safari)
+  // that exposes no memory API whatsoever. Catching the WebAssembly.Instance on its way out and
+  // keeping its exported Memory is the only view there is. Linear memory grows and never
+  // shrinks, so every megabyte reported here is retained by definition — no GC noise, no settle.
+  //
+  // Two earlier attempts caught nothing, and both failure modes are covered here:
+  //   · hooking WebAssembly.Memory alone — these builds DECLARE memory internally and export it
+  //     rather than importing it, so that constructor is never called (kept for the threaded
+  //     build, where it is);
+  //   · hooking only instantiate/instantiateStreaming — the synchronous `new WebAssembly.
+  //     Instance(module, imports)` path bypasses both.
+  // The probe also records WHAT it caught, so "no number" is always distinguishable from "the
+  // hook never fired" — the ambiguity that stalled this diagnosis twice.
+  //
+  // Modules are named by their binary URL, NOT their exports: both builds ship minified export
+  // names (w,x,y,z…), so there is no _OrtRun or _main to match. "ort" is tested first because
+  // the ORT binary lives under /vendor/piper/ and would otherwise match a "piper" test.
+  //
+  // Self-validating: it catches the phonemizer too, whose memory r9's tndDiag() reports
+  // independently via the Module's own HEAPU8. The two must agree. Verified 2026-07-22 in
+  // piper_test.html: probe phon=16MB, tndDiag phonMB=16 — and ORT measured 170MB → 353MB
+  // across one pass of distinct sentence shapes. Mirror of the block in piper_test.html <head>.
+  (function () {
+    if (typeof WebAssembly === "undefined" || WebAssembly.__tndProbe) return;
+    // ⚠ AT MOST ONE Memory retained PER KIND, always the newest. An instrument must not change
+    // what it measures, and the first draft did: holding every Memory it saw pinned the linear
+    // memory of modules the app had discarded — turning the probe itself into exactly the
+    // v1.323 leak it exists to watch for. Keeping the newest costs nothing (that module is live
+    // and referenced by the app anyway) and the per-kind INSTANCE COUNT below preserves the
+    // signal that mattered: module churn. That counter is how the 2026-07-22 phonemizer-latch
+    // finding surfaced — 11 phonemizer instantiations where the design allows exactly one.
+    var seen = {};   // kind -> {mem, src, n}
+    var anon = 0;
+    function kindOf(src) {
+      var f = String(src || "").split("?")[0].split("/").pop().toLowerCase(), m;
+      if (f.indexOf("ort") !== -1) return "ort";
+      if (f.indexOf("phonem") !== -1) return "phon";
+      // No URL (a raw-bytes instantiate): fall back to the binary's size. ort-wasm-simd.wasm is
+      // ~10.6MB, piper_phonemize.wasm ~0.6MB — an order of magnitude apart, so 4MB is safe.
+      m = /^bytes:(\d+)$/.exec(String(src || ""));
+      if (m) return (+m[1] > 4194304) ? "ort" : "phon";
+      return "wasm" + (++anon);
+    }
+    function srcOf(a) {
+      try {
+        if (!a) return "";
+        if (typeof a.url === "string" && a.url) return a.url;
+        if (typeof a.byteLength === "number") return "bytes:" + a.byteLength;
+        if (a.buffer && typeof a.buffer.byteLength === "number") return "bytes:" + a.buffer.byteLength;
+      } catch (e) {}
+      return "";
+    }
+    function keep(kind, mem, src) {
+      var e = seen[kind];
+      if (e && e.mem === mem) return;            // one instance reaching us through two hooks
+      if (e) { e.mem = mem; e.src = src; e.n++; }
+      else seen[kind] = { mem: mem, src: src, n: 1 };
+    }
+    function note(inst, src) {
+      try {
+        var exp = inst && inst.exports;
+        if (!exp) return;
+        var keys = Object.keys(exp), mem = null, i;
+        for (i = 0; i < keys.length; i++) {
+          if (exp[keys[i]] instanceof WebAssembly.Memory) { mem = exp[keys[i]]; break; }
+        }
+        if (!mem) return;
+        keep(kindOf(src), mem, String(src || "(no source)"));
+      } catch (e) {}
+    }
+    function noteMem(mem) {
+      try { keep("imported", mem, "(constructed)"); } catch (e) {}
+    }
+    function wrapAsync(orig, streaming) {
+      return function (src, imports) {
+        var hint = "", first = src;
+        // instantiateStreaming takes a Response OR a Promise<Response>. Resolving it ourselves
+        // (and passing the derived promise through, which the spec accepts) reads the URL
+        // without racing the instantiation that consumes it.
+        if (streaming && src && typeof src.then === "function") {
+          first = src.then(function (r) { hint = srcOf(r); return r; });
+        } else {
+          hint = srcOf(src);
+        }
+        var p = orig.call(WebAssembly, first, imports);
+        if (!p || typeof p.then !== "function") return p;
+        return p.then(function (r) {
+          note(r && r.instance ? r.instance : r, hint);   // {module,instance} or a bare Instance
+          return r;
+        });
+      };
+    }
+    function wrapCtor(Orig, after) {
+      function Wrapped() {
+        var o = new (Function.prototype.bind.apply(Orig, [null].concat([].slice.call(arguments))))();
+        after(o);
+        return o;
+      }
+      Wrapped.prototype = Orig.prototype;   // keeps `x instanceof WebAssembly.Instance` true
+      return Wrapped;
+    }
+    try { if (WebAssembly.instantiate) WebAssembly.instantiate = wrapAsync(WebAssembly.instantiate, false); } catch (e) {}
+    try { if (WebAssembly.instantiateStreaming) WebAssembly.instantiateStreaming = wrapAsync(WebAssembly.instantiateStreaming, true); } catch (e) {}
+    try { WebAssembly.Instance = wrapCtor(WebAssembly.Instance, function (o) { note(o, ""); }); } catch (e) {}
+    try { WebAssembly.Memory   = wrapCtor(WebAssembly.Memory, noteMem); } catch (e) {}
+    function bytes(kind) {
+      try { return seen[kind] ? seen[kind].mem.buffer.byteLength : 0; } catch (e) { return 0; }
+    }
+    WebAssembly.__tndProbe = {
+      mb:     function (kind) { return bytes(kind) / 1048576; },       // the LIVE module's size
+      count:  function (kind) { return seen[kind] ? seen[kind].n : 0; }, // instantiations ever
+      caught: function () { return Object.keys(seen).length; },
+      list:   function () {
+        var out = [], ks = Object.keys(seen), i;
+        for (i = 0; i < ks.length; i++) {
+          out.push({ kind: ks[i], mb: bytes(ks[i]) / 1048576, n: seen[ks[i]].n, src: seen[ks[i]].src });
+        }
+        return out;
+      }
+    };
+  })();
+
+  // ORT's wasm linear memory in MB, or null when the probe is absent or has caught nothing yet.
+  // null and 0 mean different things and must stay distinguishable: null = "not measured",
+  // 0 = "measured, engine not loaded". Same rule as _phonMem above.
+  function _ortMem() {
+    try {
+      if (!WebAssembly.__tndProbe || !WebAssembly.__tndProbe.caught()) return null;
+      return Math.round(WebAssembly.__tndProbe.mb("ort"));
+    } catch (e) { return null; }
+  }
+
+  // How many phonemizer MODULES this page load has instantiated. By design this is 1: v1.323
+  // caches one and re-drives it via callMain. It rises only when tndPhonemize's reuse path has
+  // thrown and latched `tndPhon.broken` — after which every synth builds a fresh 16MB Emscripten
+  // module, which IS the v1.323 leak class, silently restored for the rest of the page's life
+  // (the latch has no reset, and its only complaint is a console.warn no phone can show).
+  // Reproduced in piper_test.html 2026-07-22 on long synthetic input: "memory access out of
+  // bounds", then 10 modules in the next ~10 synths. Whether it fires on real narration is
+  // unknown — which is exactly why the count rides the crumb.
+  function _phonInstances() {
+    try {
+      if (!WebAssembly.__tndProbe || !WebAssembly.__tndProbe.caught()) return null;
+      return WebAssembly.__tndProbe.count("phon");
+    } catch (e) { return null; }
+  }
 
   // Compact audio snapshot for the crash-report diag block (error-report.js erDiagBlock).
   // r9/B9: the phonemizer's wasm linear memory, read straight from the vendored runtime. This is
@@ -694,8 +850,10 @@ var TTS = (function() {
     } catch (e) { return null; }
   }
   function _piperMemNote() {
-    var m = _phonMem();
-    return m ? (" phonMB=" + m.mb + "/" + m.calls) : "";
+    var m = _phonMem(), o = _ortMem(), pn = _phonInstances();
+    return (m ? (" phonMB=" + m.mb + "/" + m.calls) : "")
+         + (o === null ? "" : " ortMB=" + o)
+         + (pn === null || pn <= 1 ? "" : " phonMods=" + pn);   // >1 means the reuse latch broke
   }
   function diag() {
     var st = _audioCtx ? _audioCtx.state : "none";
@@ -1170,6 +1328,8 @@ var TTS = (function() {
           pc: _piperSynthsTotal, ps: _piperSynthsSession, rc: _piperRecycles,
           vs: _vSwitches, nv: _voiceCount(),
           pm: _pm ? _pm.mb : null, pmc: _pm ? _pm.calls : null,
+          om: _ortMem(), pn: _phonInstances(),   // v1.416: ORT wasm MB + phonemizer module count
+
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
         }));
       } catch(e) {}

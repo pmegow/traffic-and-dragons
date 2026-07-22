@@ -330,8 +330,54 @@ _Method: each bug was investigated twice by independent agents that could not se
   +639s turn t945             +641s read-start 18u pc102 ps22 map6  <-- died at unit 12, pc114
 ```
 
+**2026-07-22 — ⭐⭐ ORT MEMORY IS NOW OBSERVABLE, AND THE RATCHET IS REPRODUCED IN A LAB. Root cause found; B9 moves from field-only to desktop-repeatable.**
+
+- **TLDR:** ORT's wasm linear memory grows ~7MB per synth and never shrinks. Measured on a desktop, 170MB → 611MB in 75 synths. Extrapolated to the field's pc≈120 that is ~1GB, which is where iOS kills a tab — and where all seven crumbs land. The driver is **distinct input shapes**, not synth count, which is why every previous soak read clean. r8's session recycle does nothing, measured side by side.
+
+- **How the memory became visible (the blocker from the last entry, cleared).** ORT hands out no reference to its Emscripten Module and iOS Safari exposes no memory API, so the only handle available is the instantiation itself: hook it, keep the exported `WebAssembly.Memory`, read `buffer.byteLength`. Linear memory grows and never shrinks, so every megabyte it reports is retained by definition — no GC timing, no settle window, and it reads identically on iOS and Chrome. **Why the two earlier attempts caught nothing, both now covered:** hooking `WebAssembly.Memory` alone fails because these builds *declare* memory internally and export it rather than importing it (that constructor is only called in the threaded build); hooking only `instantiate`/`instantiateStreaming` misses the synchronous `new WebAssembly.Instance(module, imports)` path. All five entry points are hooked, and the probe records WHAT it caught, so "no number" is now distinguishable from "the hook never fired" — the ambiguity that stalled this twice.
+
+- **⚠ Modules are named by binary URL, not by exports — the first draft failed here.** Both builds ship with minified export names (the first run saw `w,x,y,z,A,B`), so there is no `_OrtRun` or `_main` to match on. Filename works, with one trap: the ORT binary lives *under* `/vendor/piper/`, so "ort" must be tested before any "piper" test.
+
+- **✅ Self-validated, no new ground truth required.** The probe catches the phonemizer too, whose memory r9's `tndDiag()` reports independently through the Module's own `HEAPU8`. They agree exactly: probe 16MB, `tndDiag` `phonMB=16`. A probe that reproduces a number obtained a completely different way is a probe that can be trusted on the number nobody else can see.
+
+- **📏 THE MEASUREMENT (piper_test.html v0.3, Chrome, lessac-medium, silent synths, no audio scheduling):**
+
+```text
+  synth    6    10    23    28    39    43    47    50    75
+  ortMB  170   245   295   354   424   509   509   509   611     ← grows, never shrinks
+  phonMB  16    16    16    16    16    16    16    16    16     ← flat, as r9 measured
+```
+
+- **⭐ THE DRIVER IS DISTINCT INPUT SHAPES, NOT SYNTHS — and this is why every prior soak was blind.** The harness cycled a fixed list of ~15 sentences. Under that, memory climbed 170→353MB during the first pass and then went **completely flat from synth 23 to synth 41** — all shapes already seen, nothing new to allocate. Real narration supplies a new sentence length almost every sentence. So the pre-v0.3 soak could run 500 synths, report clean, and prove nothing about the field. The harness now has a **"vary input shape per synth"** checkbox, ON by default, and the numbers above are from that mode. **This retires "N turns worked" as evidence for this class permanently** — it is the same trap as v1.320–323, one level up: those fixes were each validated against a benign case.
+
+- **⛔ AND r8'S SESSION RECYCLE IS MEASURED USELESS. A/B, same seed, same text, varied shapes:**
+
+```text
+  synth        10    23    28    39    50    100
+  recycle OFF  245   295   354   424   509    —
+  recycle 30   245   295   354   424   509   611   ← three recycles fired; identical to the byte
+```
+
+  Not "helps a little" — *identical at every sample point*. This confirms in a lab exactly what the field said with `rc`=2–3 at every death. The mechanism is straightforward once seen: `release()` returns the session's allocations to the wasm heap's internal free list, but linear memory that has already grown never shrinks, and the freed space evidently is not reused for the next shape's arena. **A fix must stop the growth or discard the whole wasm instance; releasing a session inside it cannot work, and no amount of tuning `PIPER_RECYCLE_AFTER` will change that.**
+
+- **⚠ Read the 611MB ceiling correctly — it is an artifact of the harness, not a natural bound.** Both arms plateau at 611MB, and they do so because the varied-shape generator cycles **60** word-counts: once all 60 shapes have been allocated for, there is nothing new to allocate and the curve flattens, exactly as the fixed-sentence mode flattened at 15 shapes. So the lab ceiling is set by the size of the shape SET, not by any limit inside ORT. What the run measures cleanly is the **cost per new shape (~7MB) and the fact that nothing ever gives it back**; how far a real session climbs depends on how many distinct sentence lengths it meets. A harness whose shape set keeps growing would be the sharper instrument, and is the obvious next refinement.
+
+- **The arithmetic fits the field, which is the part that matters — with that caveat carried.** ~7MB per new shape from a 170MB base puts a page around 1GB after ~120 synths *if most synths bring a new shape*, which continuously-varying narration prose approximately does. The seven crumbs die at pc = 124 / 103 / 96 / 119 / 118 / 118 / 114. A single mechanism now explains the constant threshold, its independence from read position, session age, uptime, recycles and voice count, *and* why it is a hard process kill rather than an exception — an OOM jetsam runs no handler, which is why only the pre-written crumb ever survived. **This is a strong fit, not a proof:** the phone's own curve is still unmeasured, and `om` on the next crumb is what will confirm or break it.
+
+- **v1.411 stands, reconfirmed:** the phonemizer's own memory held at 16MB for the entire run. That hypothesis was correctly falsified and the r8 author's comment was correctly trusted.
+
+- **⚠ A SECOND, SEPARATE DEFECT FOUND ON THE WAY — the phonemizer reuse latch.** The probe's per-kind instantiation counter (added after the retention fix below) showed **11 phonemizer modules where the design allows exactly one** — and 27 by the end of a 100-synth run, reproducibly, on both A/B arms. The console explains it: `[T&D patch] phonemizer reuse unavailable — per-call instances (upstream behavior): memory access out of bounds`. `tndPhonemize` catches a fault, sets `tndPhon.broken = true`, and **nothing anywhere resets it** — so from the first fault to the end of the page's life every synth builds a fresh 16MB Emscripten module. That is precisely the v1.323 leak class, silently restored, announced only to a console no phone has. **Honest caveat: the fault fired on my synthetic varied text (long word-salad sentences), not on real narration, so the TRIGGER is unproven in the field — but the latch, the absent reset and the silent-downgrade behaviour are all plain in the code and independent of what tripped it.** The crumb now carries the count (`pn`), so the next field crumb answers whether it fires on real prose. Filed as TODO #87.
+
+- **⚠ And a defect in my own instrument, caught and fixed before shipping — worth recording as a pattern.** The first probe retained *every* `Memory` it saw. That pins the linear memory of modules the app has discarded: the instrument had become the exact leak class it was built to watch, and would have made B9 worse on the phones it was meant to diagnose. It now keeps **at most one Memory per kind** (the newest, which the app references anyway) plus a **count** of instantiations — which costs no retention and is strictly more informative, since the count is what exposed the phonemizer latch above.
+
+- **What shipped (v1.416, tts.js only — no vendored edit, so `PIPER_RUNTIME_REV` stays r9 and no cache-delivery step is needed):** the probe, installed at load; `om` (ORT MB) and `pn` (phonemizer module count) on the crash crumb, sampled live mid-read so they survive the kill and reach the boot that reports it; `ortMB=` / `phonMods=` in `TTS.diag()`; and the ORT figure in the narration-death **toast**, because on a phone the toast is the only console there is. `piper_test.html` v0.3 carries the mirrored probe, the varied-shape mode, a wasm verdict line that works on iOS, and a fix for a false "the tab was killed mid-soak" alarm that fired whenever the user pressed Stop.
+
+- **What is now true that was not before:** this bug is reproducible on a desktop in about four minutes, a candidate fix can be A/B'd without a phone, and the acceptance test is measurable rather than merely survivable — **ORT memory must stay flat across 100+ varied-shape synths**, with the field crumb's `om` as confirmation. Field data is no longer the bottleneck and has not been for two entries; the lab now is not either.
+
+- **Not yet done, and deliberately not guessed at:** no fix is attempted here. The candidates (bound the growth via a fixed-shape input strategy — pad phoneme sequences to bucketed lengths so the shape set is small and closed; or tear down and rebuild the whole ORT *module*, not the session; or move synthesis into a worker that can be discarded wholesale) all need measuring against the harness above before any of them ships. That is one session's work now that the number is visible, and it is the right next step.
+
 ### Action log
-_(none)_
+- **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
@@ -465,6 +511,12 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **⚠ Note the emails have STOPPED, and that is a deliberate side effect.** v1.407 attaches a handler to the resume promise, so the rejection is now *handled* — it no longer reaches `window.onunhandledrejection` and no longer mails. It is recorded as a crumb instead. That is the intended trade (attributable local signal over contextless email), but it means **absence of B10 emails from v1.407 onward is NOT evidence the condition stopped.** Watch the ring, not the inbox.
 - **`sound.js` is NOT exonerated as a design problem** — it still owns a second AudioContext created outside any gesture from every toast, against the one-shared-context contract. It simply is not what produced these reports. Keep it as fix-sketch layer 4, on its own merits.
 - **Still unconfirmed:** whether narration audibly stops when this fires. Both refusals were followed by a completed read (`read-done` at +94s), so on this evidence the interrupt/refusal cycle is survivable and the user-visible death remains B9's.
+
+**2026-07-22 — the earcon question, answered by the user: YES, UI earcons play.**
+
+- **What it settles.** `sound.js`'s second AudioContext does successfully start and produce audible output on the device. It is not sitting in the permanently-failed `resume()` retry loop that fix-sketch layer 4 was written against, and it is not silently dead. Combined with the caller tag naming `ctx-watch`, `sound.js` is now excluded as the emitter on two independent lines of evidence — the tag and the audible proof of life.
+- **What it deliberately does NOT settle, stated because this row has twice been damaged by over-reading a small answer** (`suppressed:0`, then the same again): the answer is a general "yes, I hear them", not an observation taken *during* a B10 episode. It does not establish that earcons still play while the context is `interrupted`, and it cannot, since nobody was watching for that at the time. The structural objection to a second gesture-less AudioContext stands on its own merits regardless.
+- **Consequence:** fix-sketch layer 4 drops from "possible emitter, investigate" to "design cleanup, no urgency". Layers 2 and 3 (gesture-gated rebuild; refusal-gated force-advance for the latched-`_playing` wedge) are unaffected and remain the shippable part of this row.
 
 ### Action log
 _(none)_

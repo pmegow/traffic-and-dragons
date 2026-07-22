@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.2)</title>
+<title>Piper TTS — kick-the-tires (v0.3)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -71,6 +71,149 @@
   .metrics span{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
   .hint{font-size:11px;color:var(--dim);margin-top:4px;}
 </style>
+<!-- ══════════════════════════════════════════════════════════════════════════════════════════
+     WASM MEMORY PROBE (v0.3, 2026-07-22 — B9). MUST run before any wasm is instantiated,
+     so it is a classic script in <head>: those execute at parse time, module scripts don't.
+
+     Why this exists: the B9 ratchet is now pinned to cumulative synths (seven field crumbs,
+     pc 114–124), the phonemizer was MEASURED flat and ruled out, and the remaining candidate
+     is ORT's own wasm linear memory. ORT hands out no reference to its Emscripten Module, and
+     iOS Safari exposes no memory API at all — so the ONLY way to see that memory is to catch
+     the WebAssembly.Instance on its way out and keep its exported Memory object. Linear memory
+     can grow but never shrink, so a per-synth leak shows up here as a monotonic climb.
+
+     Two earlier attempts caught nothing, and this is built against both failure modes:
+       · hooking WebAssembly.Memory alone — these modules DECLARE memory internally and export
+         it, they do not import it, so that constructor is never called (kept anyway, for the
+         threaded build, where it is).
+       · hooking only instantiate/instantiateStreaming — the synchronous `new WebAssembly.
+         Instance(module, imports)` path bypasses both.
+     All five entry points are hooked, and the probe RECORDS WHAT IT CAUGHT (kind, export
+     sample) so "no number" is always distinguishable from "the hook never fired".
+
+     Self-validating: it catches the PHONEMIZER too, whose memory r9's tndDiag() reports
+     independently from the Module's own HEAPU8. The two numbers must agree — that is the
+     probe's correctness check, and it needs no new ground truth.
+
+     HARVEST → tts.js: this block is lifted verbatim (see _wasmProbe there). Keep them in step.
+     ══════════════════════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  if (typeof WebAssembly === "undefined" || WebAssembly.__tndProbe) return;
+  // ⚠ AT MOST ONE Memory retained PER KIND, always the newest. An instrument must not change
+  // what it measures, and the first draft did: holding every Memory it saw pinned the linear
+  // memory of modules the app had discarded — the probe becoming the very leak class it exists
+  // to watch. The per-kind INSTANCE COUNT keeps the signal that mattered (module churn); it is
+  // what surfaced the phonemizer-latch finding — 11 instantiations where the design allows one.
+  var seen = {};   // kind -> {mem, src, n}
+  var anon = 0;
+
+  // Name the module from the wasm binary it was built from, NOT from its exports: both of
+  // these builds ship with minified export names (the first run of this probe saw `w,x,y,z`),
+  // so there is no _OrtRun or _main to match on. The filename is unambiguous and stable.
+  // Note "ort" must be tested first — the ORT binary lives UNDER /vendor/piper/, so a naive
+  // substring test for "piper" would claim it.
+  function kindOf(src){
+    var f = String(src || "").split("?")[0].split("/").pop().toLowerCase(), m;
+    if (f.indexOf("ort") !== -1) return "ort";
+    if (f.indexOf("phonem") !== -1) return "phon";
+    // No URL (a raw-bytes instantiate): fall back to the binary's own size. ort-wasm-simd.wasm
+    // is ~10.6MB, piper_phonemize.wasm ~0.6MB — an order of magnitude apart, so 4MB is safe.
+    m = /^bytes:(\d+)$/.exec(String(src || ""));
+    if (m) return (+m[1] > 4194304) ? "ort" : "phon";
+    return "wasm" + (++anon);
+  }
+
+  // What the caller handed WebAssembly — a Response (URL), or a buffer (size). Used only to
+  // name the module; a miss degrades to an indexed label, never to a wrong number.
+  function srcOf(a){
+    try {
+      if (!a) return "";
+      if (typeof a.url === "string" && a.url) return a.url;
+      if (typeof a.byteLength === "number") return "bytes:" + a.byteLength;
+      if (a.buffer && typeof a.buffer.byteLength === "number") return "bytes:" + a.buffer.byteLength;
+    } catch(e){}
+    return "";
+  }
+
+  function keep(kind, mem, src){
+    var e = seen[kind];
+    if (e && e.mem === mem) return;            // one instance reaching us through two hooks
+    if (e){ e.mem = mem; e.src = src; e.n++; }
+    else seen[kind] = { mem: mem, src: src, n: 1 };
+  }
+  function note(inst, src){
+    try {
+      var exp = inst && inst.exports;
+      if (!exp) return;
+      var keys = Object.keys(exp), mem = null, i;
+      for (i = 0; i < keys.length; i++){
+        if (exp[keys[i]] instanceof WebAssembly.Memory){ mem = exp[keys[i]]; break; }
+      }
+      if (!mem) return;
+      keep(kindOf(src), mem, String(src || "(no source)"));
+    } catch(e){}
+  }
+  function noteMem(mem){
+    try { keep("imported", mem, "(constructed)"); } catch(e){}
+  }
+
+  function wrapAsync(orig, streaming){
+    return function(src, imports){
+      var hint = "", first = src;
+      // instantiateStreaming takes a Response OR a Promise<Response>. Resolving it ourselves
+      // (and passing the derived promise straight through, which the spec accepts) is how the
+      // URL is read without racing the instantiation that consumes it.
+      if (streaming && src && typeof src.then === "function"){
+        first = src.then(function(r){ hint = srcOf(r); return r; });
+      } else {
+        hint = srcOf(src);
+      }
+      var p = orig.call(WebAssembly, first, imports);
+      if (!p || typeof p.then !== "function") return p;
+      return p.then(function(r){
+        // instantiate(bytes) resolves {module,instance}; instantiate(Module) resolves an Instance.
+        note(r && r.instance ? r.instance : r, hint);
+        return r;
+      });
+    };
+  }
+  function wrapCtor(Orig, after){
+    function Wrapped(){
+      var o = new (Function.prototype.bind.apply(Orig, [null].concat([].slice.call(arguments))))();
+      after(o);
+      return o;
+    }
+    Wrapped.prototype = Orig.prototype;   // keeps `x instanceof WebAssembly.Instance` true
+    return Wrapped;
+  }
+
+  try { if (WebAssembly.instantiate) WebAssembly.instantiate = wrapAsync(WebAssembly.instantiate, false); } catch(e){}
+  try { if (WebAssembly.instantiateStreaming) WebAssembly.instantiateStreaming = wrapAsync(WebAssembly.instantiateStreaming, true); } catch(e){}
+  try { WebAssembly.Instance = wrapCtor(WebAssembly.Instance, function(o){ note(o, ""); }); } catch(e){}
+  try { WebAssembly.Memory   = wrapCtor(WebAssembly.Memory, noteMem); } catch(e){}
+
+  function bytes(kind){
+    try { return seen[kind] ? seen[kind].mem.buffer.byteLength : 0; } catch(e){ return 0; }
+  }
+  WebAssembly.__tndProbe = {
+    // The LIVE module's linear memory, in MB. 0 (never null) when that kind is not loaded yet,
+    // so a caller can always print a number and "0" honestly means "not loaded".
+    mb:     function(kind){ return bytes(kind) / 1048576; },
+    // How many times a module of this kind has been INSTANTIATED. Design says 1 for each; more
+    // means the app is churning modules, which is a leak in its own right.
+    count:  function(kind){ return seen[kind] ? seen[kind].n : 0; },
+    caught: function(){ return Object.keys(seen).length; },
+    list:   function(){
+      var out = [], ks = Object.keys(seen), i;
+      for (i = 0; i < ks.length; i++){
+        out.push({ kind: ks[i], mb: bytes(ks[i]) / 1048576, n: seen[ks[i]].n, src: seen[ks[i]].src });
+      }
+      return out;
+    }
+  };
+})();
+</script>
 <!-- Import map: redirect the bare "onnxruntime-web" specifier (which vits-web imports
      dynamically) to our VENDORED, SAME-ORIGIN copy. This is the whole trick — it makes
      ORT same-origin so no cross-origin worker/COI is needed. Native browser feature, no bundler. -->
@@ -84,7 +227,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.2</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.3</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -133,7 +276,7 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
   </div>
 
   <div style="margin-top:22px;padding:14px 14px 12px;border:1px solid var(--brd);border-radius:8px;background:var(--bg2)">
-    <label style="margin-top:0">Soak — memory-slope harness <span style="text-transform:none;letter-spacing:0;color:var(--dim)">(v0.2 · the r8/jetsam lesson — duration IS the failure condition)</span></label>
+    <label style="margin-top:0">Soak — memory-slope harness <span style="text-transform:none;letter-spacing:0;color:var(--dim)">(v0.3 · wasm-memory probe — the ratchet is now MEASURED, not inferred)</span></label>
     <div class="row" style="align-items:flex-end">
       <div style="flex:0 0 auto;min-width:110px">
         <label for="soak-n">Synths</label>
@@ -147,6 +290,11 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
         <button id="soak" style="background:none;border:1px solid var(--acc);color:var(--acc)">🔥 Soak (silent synth)</button>
       </div>
     </div>
+    <label class="chk" style="margin-top:12px">
+      <input type="checkbox" id="soak-vary" checked>
+      <span>Vary input shape per synth <span style="color:var(--dim)">(v0.3 — ON is the field condition. OFF cycles the same sentences, which
+        exercises ~15 input shapes and then stops growing: that is why earlier soaks read clean while phones died at ~120 synths.)</span></span>
+    </label>
     <div class="hint">Drives N silent predicts (no audio scheduling — isolates the synth-side accumulators). A/B: recycle 0 vs 30 (the game's
       PIPER_RECYCLE_AFTER). Two instruments, know which you're reading: <b>iOS Safari</b> — no heap API; the signal is the tab SURVIVING,
       and a mid-soak tab kill is reported by the crumb at next load (that crash IS the jetsam repro — the definitive test for the
@@ -413,7 +561,7 @@ $("stop").addEventListener("click", function(){
 });
 
 /* ============================================================================
-   SOAK — memory-slope harness (v0.2, 2026-07-17 — the r8/jetsam lesson)
+   SOAK — memory-slope harness (v0.3, 2026-07-22 — the r8/jetsam lesson + the B9 wasm probe)
    NOT historical scaffold: this is the standing verification tool for the wasm
    memory-ratchet class (Fable_UberAudit.md ▸ monotonic resources). Why it exists:
    v1.320–323 each fixed a PER-SENTENCE accumulator and were each validated against
@@ -435,6 +583,35 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
   } catch(e){}
 })();
 function heapMB(){ return (window.performance && performance.memory && performance.memory.usedJSHeapSize) ? performance.memory.usedJSHeapSize / 1048576 : null; }
+
+// ── wasm linear memory, via the <head> probe (v0.3) ────────────────────────────────────────
+// This is the number performance.memory CANNOT see and the one the B9 ratchet is believed to
+// live in. Grows only, never shrinks, so the slope IS the leak — no GC-timing noise, no settle
+// window needed, and it reads the same on iOS Safari (which has no heap API whatsoever).
+function wasmMB(kind){
+  try { return WebAssembly.__tndProbe ? WebAssembly.__tndProbe.mb(kind) : null; } catch(e){ return null; }
+}
+function wasmLine(){
+  if (!WebAssembly.__tndProbe) return " · wasm probe MISSING";
+  if (!WebAssembly.__tndProbe.caught()) return " · wasm probe caught NOTHING yet";
+  // phonMods > 1 means tndPhonemize's reuse path threw and latched `tndPhon.broken`, after which
+  // every synth builds a fresh 16MB Emscripten module — the v1.323 leak, silently restored. The
+  // latch has no reset and warns only to the console, so this counter is how it becomes visible.
+  var pn = WebAssembly.__tndProbe.count("phon");
+  return " · wasm ort " + wasmMB("ort").toFixed(0) + "MB / phon " + wasmMB("phon").toFixed(0) + "MB" +
+         (pn > 1 ? "  ⚠ phonMods=" + pn + " (reuse latch BROKE — per-call modules)" : "");
+}
+// One-shot inventory — proves the hook fired and names what it caught, so a missing ORT number
+// is never confused with a silent probe (the failure mode of the two earlier attempts).
+function logWasmInventory(){
+  if (!WebAssembly.__tndProbe){ log("wasm probe MISSING — nothing was hooked.", "err"); return; }
+  var l = WebAssembly.__tndProbe.list();
+  if (!l.length){ log("wasm probe caught 0 modules — the hook is installed but never fired.", "err"); return; }
+  for (var i = 0; i < l.length; i++){
+    log("  wasm[" + l[i].kind + "] " + l[i].mb.toFixed(0) + "MB ×" + l[i].n + "  ← " + l[i].src, "hl");
+  }
+}
+
 var _soaking = false;
 
 async function soak(n, recycleEvery){
@@ -445,6 +622,22 @@ async function soak(n, recycleEvery){
   if (recycleEvery > 0 && !canRecycle) log("recycle requested but this vits-web has no tndRecycleSession (pre-r8 build served?) — soaking WITHOUT recycle.", "err");
   var units = splitSentences($("txt").value);
   if (!units.length){ log("no text to soak.", "err"); return; }
+
+  // ── input shape (v0.3) ────────────────────────────────────────────────────────────────────
+  // ORT allocates per distinct input SHAPE (phoneme-count), and wasm linear memory never
+  // shrinks — so what drives the ratchet is how many DISTINCT sentence lengths a session sees,
+  // not how many synths it runs. Real narration supplies a new length almost every sentence.
+  // Cycling a fixed unit list (the pre-v0.3 behavior, still available by unchecking the box)
+  // saturates after one pass and then grows not at all, which made this harness blind to the
+  // very class it was built for. Lengths step 6→65 words so a run covers 60 distinct shapes.
+  var vary = $("soak-vary").checked;
+  var words = $("txt").value.replace(/\s+/g, " ").trim().split(" ");
+  function soakText(i){
+    if (!vary || words.length < 8) return units[i % units.length].text;
+    var n = 6 + (i % 60), out = [], j;
+    for (j = 0; j < n; j++) out.push(words[(i * 7 + j) % words.length]);
+    return out.join(" ") + ".";
+  }
 
   // ⚠ What Chrome's usedJSHeapSize can and cannot see (verified live, 2026-07-17 bring-up):
   // mid-loop samples are dominated by GC TIMING, not retention — a recycle-mode run showed a
@@ -457,15 +650,18 @@ async function soak(n, recycleEvery){
   // memory are the ground-truth instruments for the ratchet class.
   log("SOAK: warm-up synth (session create excluded from the slope)…", "hl");
   try { await synth(units[0].text, voiceId); } catch(e){ log("warm-up synth failed: " + e.message, "err"); return; }
+  logWasmInventory();   // both wasm modules are live now — name them before the baseline
+  var wasm0 = wasmMB("ort");
   if (heapMB() !== null) await new Promise(function(r){ setTimeout(r, 8000); });   // settle before baseline — SAME 8s as the verdict settle, or the asymmetry alone reads as a big negative slope
   var heap0 = heapMB(), tStart = performance.now(), lastHeap = heap0, sinceRecycle = 0;
   var samples = [];
-  log("SOAK: " + n + " silent synths · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
+  log("SOAK: " + n + " silent synths · shapes " + (vary ? "VARIED (field condition)" : "fixed cycle of " + units.length) +
+      " · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
       (heap0 === null ? " · no heap API on this browser — SURVIVAL is the signal" : " · settled baseline " + heap0.toFixed(0) + "MB"), "hl");
 
   for (var i = 0; i < n && _soaking; i++){
     try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false })); } catch(e){}
-    try { await synth(units[i % units.length].text, voiceId); }   // result discarded — synth-side memory only
+    try { await synth(soakText(i), voiceId); }   // result discarded — synth-side memory only
     catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
     sinceRecycle++;
     if (recycleEvery > 0 && canRecycle && sinceRecycle >= recycleEvery){
@@ -475,15 +671,38 @@ async function soak(n, recycleEvery){
     if ((i + 1) % 25 === 0){
       var h = heapMB();
       if (h !== null){ samples.push({ i: i + 1, h: h }); }
-      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")"));
+      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")") + wasmLine());
       if (h !== null) lastHeap = h;
       await new Promise(function(r){ setTimeout(r, 50); });   // let the log paint between batches
     }
   }
   try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true })); } catch(e){}
-  if (!_soaking){ log("soak stopped by user.", "hl"); return; }
+  if (!_soaking){
+    // A user stop is not a tab kill. Without this the crumb stays done:false and the NEXT load
+    // reports "the tab was killed mid-soak — that IS the jetsam repro", which is a false alarm
+    // on the one signal this harness exists to give. Same discipline as tts.js _crumbDone().
+    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: 0, n: n, r: recycleEvery, done: true })); } catch(e){}
+    log("soak stopped by user.", "hl");
+    return;
+  }
 
   var mins = (performance.now() - tStart) / 60000;
+
+  // ── wasm verdict (v0.3) — the ratchet's own instrument, and the only one that reads the
+  // same on iOS as on Chrome. No settle window: linear memory never shrinks, so there is no
+  // GC timing to net out and every megabyte here is RETAINED by definition.
+  var wasm1 = wasmMB("ort");
+  if (wasm0 === null || wasm1 === null){
+    log("SOAK: no wasm probe on this run — the ORT ratchet was NOT measured.", "err");
+  } else {
+    var wslope = (wasm1 - wasm0) / (n / 100);
+    log("SOAK wasm: ORT linear memory " + wasm0.toFixed(0) + "→" + wasm1.toFixed(0) + "MB over " + n +
+        " synths = " + (wslope >= 0 ? "+" : "") + wslope.toFixed(1) + "MB/100 synths" +
+        (wslope > 1 ? " — RATCHET CONFIRMED, this is the B9 accumulator." : " — flat; the ratchet is NOT in ORT's linear memory.") +
+        " · phonemizer " + wasmMB("phon").toFixed(0) + "MB (cross-check against tndDiag phonMB)",
+        wslope > 1 ? "err" : "ok");
+  }
+
   if (heap0 === null){
     log("SOAK COMPLETE: " + n + " synths in " + mins.toFixed(1) + " min — tab SURVIVED, which is the pass signal on this browser (no heap numbers here).", "ok");
   } else {
