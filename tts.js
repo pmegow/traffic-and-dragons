@@ -682,13 +682,20 @@ var TTS = (function() {
   // r9/B9: the phonemizer's wasm linear memory, read straight from the vendored runtime. This is
   // the ONLY view we have of the ratchet — iOS Safari exposes no performance.memory — so it rides
   // every crash report from here on.
-  function _piperMemNote() {
+  // Returns {mb, calls} for the live phonemizer module, or null when it cannot be read (no module
+  // yet, or a runtime older than r9 with no tndDiag). Both the crash crumb and TTS.diag go through
+  // here so the two can never disagree about the same number.
+  function _phonMem() {
     try {
-      if (!_piperMod || typeof _piperMod.tndDiag !== "function") return "";
+      if (!_piperMod || typeof _piperMod.tndDiag !== "function") return null;
       var d = _piperMod.tndDiag();
-      if (!d || !d.phonBytes) return "";
-      return " phonMB=" + (d.phonBytes / 1048576).toFixed(1) + "/" + d.phonCalls;
-    } catch (e) { return ""; }
+      if (!d || !d.phonBytes) return null;
+      return { mb: +(d.phonBytes / 1048576).toFixed(1), calls: d.phonCalls };
+    } catch (e) { return null; }
+  }
+  function _piperMemNote() {
+    var m = _phonMem();
+    return m ? (" phonMB=" + m.mb + "/" + m.calls) : "";
   }
   function diag() {
     var st = _audioCtx ? _audioCtx.state : "none";
@@ -1156,7 +1163,16 @@ var TTS = (function() {
     var _vSwitches = 0;   // voice changes between consecutive units in THIS read
     function _crumb(iDone, done) {
       // pc/up (r8): cumulative synths + minutes since page load — see the counter block above.
-      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, pc: _piperSynthsTotal, ps: _piperSynthsSession, rc: _piperRecycles, vs: _vSwitches, nv: _voiceCount(), up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done })); } catch(e) {}
+      try {
+        var _pm = _phonMem();   // sampled LIVE — the boot that reports this crumb has no engine loaded
+        store.set(PIPER_CRUMB_K, JSON.stringify({
+          i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app,
+          pc: _piperSynthsTotal, ps: _piperSynthsSession, rc: _piperRecycles,
+          vs: _vSwitches, nv: _voiceCount(),
+          pm: _pm ? _pm.mb : null, pmc: _pm ? _pm.calls : null,
+          up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
+        }));
+      } catch(e) {}
     }
     _crumb(0, false);
 
