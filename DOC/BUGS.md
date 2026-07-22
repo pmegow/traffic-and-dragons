@@ -31,10 +31,10 @@ them here).
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-21 (v1.406) · **Count:** 2 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 3 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -106,14 +106,28 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Unchanged by this:** the B9 memory-ratchet analysis (page A's death) and the v1.406 sparse-voice-map session thrash both stand — this evidence speaks to what happened AFTER the kill, not to what caused it.
 
+**2026-07-22 sync — third B9 arrival + second B10 arrival. One inference here CONTRADICTS the 2026-07-21 field-answer entry above; read both.**
+
+- **New data.** B9 #3: `{"i":31,"n":34,"pc":96,"up":20,"done":false}` at 00:24:54Z. B10 #2: identical message and fingerprint, turn **924 again**, `suppressed:0`, at 00:04:59Z. Same iPhone, same v1.406, ~5 h after the first pair.
+
+- **⚠ THE ORDER FLIPPED WITHIN THE PAGE, and it undercuts the B9→B10 arrow I filed yesterday.** Reconstructing from the boot-report rule (narration-death is mailed at the NEXT boot, so "20 min into the session" dates the DEAD page's boot to ~00:04:5x): the B10 rejection at **00:04:59** and the death of the page reported at **00:24:54** belong to the **same page load** — the device rejection fired roughly ONE MINUTE into that page, and the page then performed **96 Piper synths over the following 20 minutes** before dying. **Narration demonstrably kept working after "Failed to start the audio device".**
+
+- **What that does to the analysis.** It breaks the "page A's kill left the device unavailable for page B" story as a general account: here the rejection came FIRST and cost nothing audible. It also re-ranks the emitter **back toward `sound.js`'s second AudioContext** (the structural finding the merge agent surfaced and Angle B missed): a rejection on the earcon context would be exactly this — mailed once, then irrelevant, while narration on tts.js's context carries on for another 20 minutes. That directly weakens my 2026-07-21 reasoning from `suppressed:0`, which de-ranked sound.js. `suppressed:0` still says the rejection did not REPEAT inside 30 s; it never said the rejection mattered. I over-read it.
+
+- **Caveat, stated because the inference is load-bearing:** the same-page identification rests on arithmetic (00:04:59 rejection + 20 min uptime ≈ 00:24:54 boot report), not on a shared session id — the payload carries no page/session identifier. Adding one to `reportError` would make this class trivially correlatable instead of reconstructable, and is worth folding into B10 fix-sketch layer 1.
+
+- **B9's controlling variable, with n=3.** `pc` = 124 / 103 / 96; `up` = 20 / 6 / 20 min; read position `i/n` = 22/33 (67%), 30/31 (97%), 31/34 (91%). **Wall-clock is now ruled out** — a 6-minute session died between two 20-minute ones. The cumulative-synth cluster widened to a 29% spread (96-124), while "dies late in the read" tightened. The `PIPER_RECYCLE_AFTER=30` confound the merge agent identified is NOT broken by this point: with reads of 31-34 units, recycle still fires about once per read, so high session-age and late-in-read remain the same observation. **The soak that varies cumulative synths INDEPENDENTLY of read length is still the only thing that separates them** — and it is now the single highest-value next step for B9.
+
+- **Turn 924 on both B10 arrivals** — the campaign did not advance between them, consistent with play stopping after the first incident and resuming ~5 h later.
+
 ### Action log
 _(none)_
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-21 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924
+**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 (BOTH arrivals)
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
-**Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8
+**Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b
 **Screenshot URL:** —
 _Grounding for the investigator: arrived 2026-07-21T19:07:44Z, **38 seconds after** the B9 v1.406 narration death (19:07:06) from the same device and session — treat the two as one incident until proven otherwise. The message is not a string this repo produces (grep for it); it reads as a WebKit/Core Audio rejection surfaced through the `unhandledrejection` handler wired in error-report.js, i.e. the AudioContext/audio session failing to start rather than app code throwing. Relevant existing machinery: `_ensureCtx`/`_resumeCtx`/`_ctxRunning` and the iOS ctx-state discipline (v1.327), `primeAudioSession`/`_primerSrc` (v1.328, the playback-category session), `_ctxBlockedLoud`, and `_armCtxWatch` (audit #10). The user's field description of this session was "the audio DID die" — audio did not recover afterwards. Worth establishing first: whether the ctx was suspended/interrupted, whether `primeAudioSession` had been called, and whether this is reachable without a preceding narration death._
 
@@ -171,6 +185,20 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **🧩 A consistency check that corroborates the reframing:** page B produced NO narration-death crumb of its own. Crumb writes are gated behind `_ctxRunning` (tts.js:1003 runs before the first `_crumb` at :1036), so a read attempted on a page whose context never ran writes no crumb and falls back to native. The absence of a second crumb is therefore positive evidence that **page B's audio context never ran at all** — matching "the audio DID die" for that whole page load, and matching native being equally mute.
 
 - **Unchanged by this:** the B9 memory-ratchet analysis (page A's death) and the v1.406 sparse-voice-map session thrash both stand — this evidence speaks to what happened AFTER the kill, not to what caused it.
+
+**2026-07-22 sync — third B9 arrival + second B10 arrival. One inference here CONTRADICTS the 2026-07-21 field-answer entry above; read both.**
+
+- **New data.** B9 #3: `{"i":31,"n":34,"pc":96,"up":20,"done":false}` at 00:24:54Z. B10 #2: identical message and fingerprint, turn **924 again**, `suppressed:0`, at 00:04:59Z. Same iPhone, same v1.406, ~5 h after the first pair.
+
+- **⚠ THE ORDER FLIPPED WITHIN THE PAGE, and it undercuts the B9→B10 arrow I filed yesterday.** Reconstructing from the boot-report rule (narration-death is mailed at the NEXT boot, so "20 min into the session" dates the DEAD page's boot to ~00:04:5x): the B10 rejection at **00:04:59** and the death of the page reported at **00:24:54** belong to the **same page load** — the device rejection fired roughly ONE MINUTE into that page, and the page then performed **96 Piper synths over the following 20 minutes** before dying. **Narration demonstrably kept working after "Failed to start the audio device".**
+
+- **What that does to the analysis.** It breaks the "page A's kill left the device unavailable for page B" story as a general account: here the rejection came FIRST and cost nothing audible. It also re-ranks the emitter **back toward `sound.js`'s second AudioContext** (the structural finding the merge agent surfaced and Angle B missed): a rejection on the earcon context would be exactly this — mailed once, then irrelevant, while narration on tts.js's context carries on for another 20 minutes. That directly weakens my 2026-07-21 reasoning from `suppressed:0`, which de-ranked sound.js. `suppressed:0` still says the rejection did not REPEAT inside 30 s; it never said the rejection mattered. I over-read it.
+
+- **Caveat, stated because the inference is load-bearing:** the same-page identification rests on arithmetic (00:04:59 rejection + 20 min uptime ≈ 00:24:54 boot report), not on a shared session id — the payload carries no page/session identifier. Adding one to `reportError` would make this class trivially correlatable instead of reconstructable, and is worth folding into B10 fix-sketch layer 1.
+
+- **B9's controlling variable, with n=3.** `pc` = 124 / 103 / 96; `up` = 20 / 6 / 20 min; read position `i/n` = 22/33 (67%), 30/31 (97%), 31/34 (91%). **Wall-clock is now ruled out** — a 6-minute session died between two 20-minute ones. The cumulative-synth cluster widened to a 29% spread (96-124), while "dies late in the read" tightened. The `PIPER_RECYCLE_AFTER=30` confound the merge agent identified is NOT broken by this point: with reads of 31-34 units, recycle still fires about once per read, so high session-age and late-in-read remain the same observation. **The soak that varies cumulative synths INDEPENDENTLY of read length is still the only thing that separates them** — and it is now the single highest-value next step for B9.
+
+- **Turn 924 on both B10 arrivals** — the campaign did not advance between them, consistent with play stopping after the first incident and resuming ~5 h later.
 
 ### Action log
 _(none)_
