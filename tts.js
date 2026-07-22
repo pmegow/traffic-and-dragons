@@ -745,6 +745,7 @@ var TTS = (function() {
          // Without this the difference is invisible on a phone, and a silent fallback would look
          // exactly like a working fix right up until the tab dies.
          + " eng=" + (_piperFrame ? "frame" : (_piperFrameFailed ? "inpage-fallback" : "inpage"))
+         + (_frameMemPeak ? " ortPeak=" + _frameMemPeak : "")   // v1.419: the high-water mark, which is what a jetsam kill responds to
          + _piperMemNote();
   }
 
@@ -990,7 +991,9 @@ var TTS = (function() {
   // which still works and simply keeps ratcheting; that is strictly no worse than before, and it
   // says so loudly rather than failing silently.
   var _piperFrame     = null;   // the live adapter (null = in-page fallback in use)
-  var _frameMem       = null;   // last {ortMB, phonMB, phonMods} reported by the live frame
+  var _frameMem       = null;
+                                // last {ortMB, phonMB, phonMods, phonCalls} reported by the live frame
+  var _frameMemPeak   = 0;      // v1.419: highest ORT MB this PAGE has ever reached — see _frameRefreshMem
   var _frameSeq       = 0;      // rpc correlation id
   var PIPER_HOST_PATH = "/piper-host.html";
   var PIPER_HOST_READY_MS = 30000;   // see the timeout below — sized for a throttled/frozen tab
@@ -1102,9 +1105,28 @@ var TTS = (function() {
   function _frameRefreshMem() {
     if (!_piperFrame) return Promise.resolve(null);
     return _piperFrame.mem().then(function (m) {
-      if (m) { if (_frameMem && m.phonCalls == null) m.phonCalls = _frameMem.phonCalls; _frameMem = m; }
+      if (m) {
+        if (_frameMem && m.phonCalls == null) m.phonCalls = _frameMem.phonCalls;
+        _frameMem = m;
+        // v1.419 — HIGH-WATER MARK. iOS jetsam kills on PEAK, not on steady state, and the first
+        // post-fix death (2026-07-22, eng:frame, pc=120) reported only 308MB precisely because the
+        // figure was sampled between reads. Whatever spike killed that page was invisible to the
+        // one number we had. This mark survives across respawns on purpose: it is a property of
+        // the PAGE's memory history, not of the current realm, and the question it answers is "how
+        // high did this page ever get" — which is the question the kill asks.
+        if (typeof m.ortMB === "number" && m.ortMB > _frameMemPeak) _frameMemPeak = m.ortMB;
+      }
       return m;
     }, function () { return null; });
+  }
+
+  // Fire-and-forget mid-read memory sample (v1.419, B9). Deliberately NOT awaited: the read must
+  // not wait on a postMessage round trip. It costs nothing to be late — the frame's JS is blocked
+  // while its wasm synthesizes, so this answers just after the current unit finishes, which is
+  // exactly the post-synth sample we want. Errors are already swallowed by _frameRefreshMem.
+  function _frameSampleMem() {
+    if (!_piperFrame) return;
+    try { _frameRefreshMem(); } catch (e) {}
   }
 
   async function _piperInit() {
@@ -1256,14 +1278,60 @@ var TTS = (function() {
   // this point) — the cap is enforced at the moment residency actually grows, not on every ensure.
   // Failures are non-fatal per voice (a locked/in-use OPFS handle shouldn't block narration); the
   // loop advances to the next-oldest candidate instead of retrying the same id forever.
+  // ⛨ THE deletion primitive (v1.419). Do NOT route voice deletion through the vendored
+  // `remove()` — field-confirmed 2026-07-22 on iOS 18.7: the user pressed ✕, got a "🗑 Deleted"
+  // toast, and the voice stayed in the list with the count unchanged. Mechanism: the vendored R()
+  // deletes with `(await dir.getFileHandle(name)).remove()` — a CHROME-ONLY File System Access
+  // extension Safari does not implement — inside a `try { } catch { console.error }` that swallows
+  // the failure and resolves clean. So every delete this app has ever performed on an iPhone was a
+  // no-op that reported success.
+  //
+  // Worse than a dead button: it permanently disabled the cap. `_piperEvictExcess` believed the
+  // removal, dropped the voice's LRU stamp, and decremented its budget — and an unstamped id sorts
+  // as OLDEST, so the next eviction picked the same phantom first and spent its whole budget
+  // re-"removing" files that were never gone. After the first failure the cap could never be
+  // enforced again, which is how 13 voices (~1GB) accumulated against a cap of 10.
+  //
+  // This deletes with `removeEntry()` — the STANDARD FileSystemDirectoryHandle primitive Safari
+  // does implement — and THROWS on failure, so the callers' existing catch blocks finally mean
+  // something. Deliberately local rather than a vendored patch: `vendor/piper/*` is served from a
+  // permanent SW cache and needs a PIPER_RUNTIME_REV bump to deliver, which is the trap that ate
+  // v1.322/v1.323. tts.js already reads OPFS directly (see _piperVoiceComplete), so nothing is lost.
+  async function _piperRemoveVoiceFiles(voiceId) {
+    var rel = ((_piperMod && _piperMod.PATH_MAP) || {})[voiceId];
+    if (!rel) throw new Error("unknown voice id (not in PATH_MAP): " + voiceId);
+    var base = rel.split("/").pop();
+    var dir = await (await navigator.storage.getDirectory()).getDirectoryHandle("piper");
+    // The .onnx is the one that must go — it is the 60-130MB half and the one `stored()` counts.
+    // A missing file is success, not failure: NotFoundError means the goal state already holds.
+    try { await dir.removeEntry(base); }
+    catch (e) { if (!e || e.name !== "NotFoundError") throw e; }
+    // The sibling config is small and its absence is what _piperVoiceComplete uses to force a
+    // re-download, so a failure here is worth surfacing but must not strand the freed .onnx.
+    try { await dir.removeEntry(base + ".json"); }
+    catch (e2) { if (e2 && e2.name !== "NotFoundError") console.warn("[tts piper] removed " + base + " but its .json remains:", e2 && e2.message); }
+  }
+
   async function _piperEvictExcess(mod, keepId) {
     var stored;
-    try { stored = await mod.stored(); } catch(e) { return; }
+    // v1.419: was a silent `return` — a rejecting stored() disabled the cap with no trace at all.
+    try { stored = await mod.stored(); } catch(e) { console.warn("[tts piper] eviction skipped — could not list stored voices:", e && e.message); return; }
     var over = stored.length - PIPER_VOICE_CAP;
     if (over <= 0) return;
     var lru = _piperLruLoad();
-    var candidates = [];
-    for (var i = 0; i < stored.length; i++) { if (stored[i] !== keepId) candidates.push(stored[i]); }
+    var candidates = [], protectedIds = [];
+    for (var i = 0; i < stored.length; i++) {
+      if (stored[i] === keepId) continue;
+      // ⛨ v1.419 — NEVER auto-delete a voice someone is actually using. Until this release
+      // deletion was a no-op, which masked the hazard; the moment it started working, LRU age
+      // alone could silently take the narrator's voice, or the one assigned to a companion, in the
+      // middle of a drive. Recovery is worse than the loss: the next predict() re-fetches
+      // 60-130MB from HuggingFace INSIDE the read, with no toast and no progress, on cellular.
+      // Manual ✕ is unrestricted — that is the user choosing. This guard governs only the
+      // automatic path. (User call 2026-07-22.)
+      if (_voiceAssignedTo(stored[i]).length) { protectedIds.push(stored[i]); continue; }
+      candidates.push(stored[i]);
+    }
     candidates.sort(function(a, b) {
       var at = lru.hasOwnProperty(a) ? lru[a] : 0, bt = lru.hasOwnProperty(b) ? lru[b] : 0;   // unstamped voices count as oldest
       return at - bt;
@@ -1271,7 +1339,7 @@ var TTS = (function() {
     for (var j = 0; j < candidates.length && over > 0; j++) {
       var id = candidates[j];
       try {
-        await mod.remove(id);
+        await _piperRemoveVoiceFiles(id);   // throws on a real failure — see the primitive above
         var lru2 = _piperLruLoad();
         delete lru2[id];
         try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru2)); } catch(e2) {}
@@ -1281,8 +1349,16 @@ var TTS = (function() {
         // Timed toast (#68) — the field test showed sticky lifecycle toasts stacking into spam
         if (typeof showToast === "function") showToast("🗑 Removed narrator voice " + id + " — keeping your " + PIPER_VOICE_CAP + " most recent", 8000);
       } catch(e) {
+        // The LRU stamp is deliberately LEFT IN PLACE on failure. Deleting it was the other half
+        // of the phantom ratchet: an unstamped id sorts oldest and gets re-picked forever.
         console.warn("[tts piper] failed to evict narrator voice " + id + ", keeping it:", e && e.message);
       }
+    }
+    // Over cap with nothing left to take means every remaining voice is in use. Staying over cap
+    // is the correct outcome — but silently doing so is how this bug hid for weeks, so say it.
+    if (over > 0) {
+      console.warn("[tts piper] still " + over + " over the " + PIPER_VOICE_CAP + "-voice cap — the rest are assigned (" + protectedIds.join(", ") + "). Free space by deleting one in Voice Settings.");
+      if (typeof showToast === "function") showToast("⚠ " + (PIPER_VOICE_CAP + over) + " voices downloaded, over the " + PIPER_VOICE_CAP + " cap — the extras are assigned to characters. Delete one in Voice Settings to free space.", 9000);
     }
   }
 
@@ -1372,7 +1448,10 @@ var TTS = (function() {
           pc: _piperSynthsTotal, ps: _piperSynthsSession, rc: _piperRecycles,
           vs: _vSwitches, nv: _voiceCount(),
           pm: _pm ? _pm.mb : null, pmc: _pm ? _pm.calls : null,
-          om: _ortMem(), pn: _phonInstances(),   // v1.416: ORT wasm MB + phonemizer module count
+          // v1.416: ORT wasm MB + phonemizer module count. v1.419 adds `omp`, the PAGE HIGH-WATER
+          // mark: `om` is whatever the last sample said, but iOS kills on PEAK, and the first
+          // post-fix death reported a placid 308MB precisely because nothing sampled mid-read.
+          om: _ortMem(), omp: (_frameMemPeak || null), pn: _phonInstances(),
           eng: _piperFrame ? "frame" : "inpage", // v1.418: was the B9 fix actually active at death?
 
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
@@ -1445,6 +1524,7 @@ var TTS = (function() {
         continue;
       }
       _piperSynthsTotal++; _piperSynthsSession++;   // r8: count BEFORE the stale check — the wasm memory was spent either way
+      _frameSampleMem();   // v1.419 (B9): per-unit high-water sampling — the peak is what kills, and it lives INSIDE the read
       if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
 
       var buf;
@@ -1890,8 +1970,14 @@ var TTS = (function() {
         var at = lru.hasOwnProperty(a) ? lru[a] : 0, bt = lru.hasOwnProperty(b) ? lru[b] : 0;
         return bt - at;   // most recent first — bottom of the list is next to evict
       });
-      var html = "<label style='font-size:12px;color:var(--t2);display:block;margin:10px 0 4px;'>Downloaded voices (" + ids.length + " of " + PIPER_VOICE_CAP + " slots)</label>", i;
-      for (i = 0; i < PIPER_VOICE_CAP; i++) {
+      // v1.419: render EVERY resident voice, not just the first PIPER_VOICE_CAP. The loop used to
+      // stop at the cap, so when the cap broke and 13 voices accumulated, the header honestly said
+      // "13 of 10 slots" while three of them had no row — counted, but with no ✕ to press. And
+      // because the sort is most-recent-first, the hidden three were exactly the stale ones the
+      // user most wanted gone. A number you cannot act on is worse than no number.
+      var rows = Math.max(PIPER_VOICE_CAP, ids.length);
+      var html = "<label style='font-size:12px;color:var(--t2);display:block;margin:10px 0 4px;'>Downloaded voices (" + ids.length + " of " + PIPER_VOICE_CAP + " slots" + (ids.length > PIPER_VOICE_CAP ? " — over cap, delete some" : "") + ")</label>", i;
+      for (i = 0; i < rows; i++) {
         if (i < ids.length) {
           var id = ids[i], nm = id, bi;
           for (bi = 0; bi < PIPER_VOICES.length; bi++) { if (PIPER_VOICES[bi].id === id) { nm = PIPER_VOICES[bi].label; break; } }
@@ -1930,7 +2016,10 @@ var TTS = (function() {
   // the op rides _piperSerial so it can never interleave a download/predict on the shared session.
   function _piperDeleteVoice(id) {
     _piperInit().then(function(mod) {
-      return _piperSerial(function() { return mod.remove(id); });
+      // v1.419: was mod.remove(id) — the vendored path that swallows every failure and resolves
+      // clean, so this button reported "🗑 Deleted" while the file stayed put (field-confirmed on
+      // iOS). _piperRemoveVoiceFiles throws, so the catch below finally has something to catch.
+      return _piperSerial(function() { return _piperRemoveVoiceFiles(id); });
     }).then(function() {
       var lru = _piperLruLoad();
       delete lru[id];

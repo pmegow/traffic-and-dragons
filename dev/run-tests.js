@@ -63,6 +63,58 @@ try {
   }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── VOICE-DELETION TRUTHFULNESS CONTRACT (v1.419) ────────────────────────────────────────
+// Field-confirmed 2026-07-22 on iOS 18.7: pressing ✕ toasted "🗑 Deleted" and deleted nothing.
+// The vendored remove() deletes via `(await dir.getFileHandle(n)).remove()` — a CHROME-ONLY File
+// System Access extension — inside `try { } catch { console.error }`, so on Safari it threw,
+// was swallowed, and resolved clean. Every delete this app ever performed on an iPhone was a
+// no-op that reported success, and eviction inherited it: the loop believed the removal, dropped
+// the voice's LRU stamp, and an unstamped id sorts OLDEST — so the next eviction re-picked the
+// same phantom forever and the cap was permanently dead (13 voices, ~1GB, against a cap of 10).
+//
+// These are SOURCE CONTRACTS, not behavioural tests, and deliberately so: the code needs OPFS,
+// which the headless harness has no way to provide, and the functions are private to the TTS
+// IIFE. They pin the four specific regressions that produced the bug. Each one failing means the
+// silent-no-op class is back.
+try {
+  var _fsD = require("fs"), _pathD = require("path");
+  var _tts = _fsD.readFileSync(_pathD.join(__dirname, "..", "tts.js"), "utf8");
+  // Comments are stripped before matching. These functions DOCUMENT the bad call they replaced
+  // ("was mod.remove(id) — the vendored path that swallows…"), so a naive scan flags the fix
+  // itself. Caught by sabotage-testing the guard rather than by trusting it.
+  var _nc = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _evict = _nc((_tts.match(/async function _piperEvictExcess[\s\S]*?\n  \}\n/) || [""])[0]);
+  var _del   = _nc((_tts.match(/function _piperDeleteVoice[\s\S]*?\n  \}\n/) || [""])[0]);
+  // ① Neither deletion path may go back through the swallowing vendored remove().
+  if (/mod\.remove\(/.test(_evict) || /mod\.remove\(/.test(_del)) {
+    console.error("VOICE DELETE CONTRACT: a deletion path calls the vendored mod.remove(), which swallows every failure and resolves clean — on Safari that reports success while deleting nothing (v1.419). Use _piperRemoveVoiceFiles.");
+    process.exit(1);
+  }
+  // ② The primitive must use the STANDARD removeEntry, not the Chrome-only handle.remove().
+  if (_tts.indexOf("removeEntry(") < 0) {
+    console.error("VOICE DELETE CONTRACT: _piperRemoveVoiceFiles no longer uses removeEntry() — the Chrome-only FileSystemFileHandle.remove() is unimplemented in Safari and fails silently.");
+    process.exit(1);
+  }
+  // ③ Automatic eviction must never take a voice someone is using. Harmless while deletion was a
+  //    no-op; the moment deletion works, LRU age alone can take the narrator's or a companion's
+  //    voice mid-drive, and recovery is a silent 60-130MB refetch inside predict().
+  if (_evict.indexOf("_voiceAssignedTo") < 0) {
+    console.error("VOICE DELETE CONTRACT: _piperEvictExcess no longer consults _voiceAssignedTo — automatic eviction could silently delete an assigned character/narrator voice (user call 2026-07-22).");
+    process.exit(1);
+  }
+  // ④ A failed eviction must KEEP the LRU stamp. Deleting it was the other half of the ratchet.
+  if (/catch\s*\([^)]*\)\s*\{[^}]*delete lru/.test(_evict)) {
+    console.error("VOICE DELETE CONTRACT: _piperEvictExcess drops the LRU stamp on a FAILED eviction — an unstamped id sorts oldest and gets re-picked forever, which is what permanently disabled the cap.");
+    process.exit(1);
+  }
+  // ⑤ The slot list must render every resident voice. Capping the loop at PIPER_VOICE_CAP is why
+  //    3 of 13 voices were counted in the header but had no ✕ to press.
+  if (/for \(i = 0; i < PIPER_VOICE_CAP; i\+\+\)/.test(_tts)) {
+    console.error("VOICE DELETE CONTRACT: _renderPiperSlots caps its row loop at PIPER_VOICE_CAP — over-cap voices become invisible and undeletable (v1.419).");
+    process.exit(1);
+  }
+} catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,

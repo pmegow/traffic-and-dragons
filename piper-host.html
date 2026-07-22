@@ -82,7 +82,7 @@ async function boot() {
 // null (never 0) when the probe is missing or has caught nothing, so "not measured" stays
 // distinguishable from "measured, engine not loaded yet".
 function memReport() {
-  var out = { ortMB: null, phonMB: null, phonMods: null };
+  var out = { ortMB: null, phonMB: null, phonMods: null, phonCalls: null };
   try {
     var p = WebAssembly.__tndProbe;
     if (!p || !p.caught()) return out;
@@ -90,6 +90,12 @@ function memReport() {
     out.phonMB = Math.round(p.mb("phon"));
     out.phonMods = p.count("phon");   // >1 means the phonemizer reuse latch broke (TODO #87)
   } catch (e) {}
+  // v1.419 — the phonemizer's main() re-entry count. It was dropped when synthesis moved into
+  // this realm: the parent's tndDiag() adapter serves phonCalls from the last mem report, and this
+  // report never carried it, so every v1.418 crumb read `pmc:0`. That count is the DENOMINATOR
+  // that made the v1.411 "phonemizer is flat" falsification meaningful — 16MB across N calls says
+  // something, 16MB across 0 says nothing. Read only if the module already exists; never boot.
+  try { if (_mod && typeof _mod.tndDiag === "function") out.phonCalls = (_mod.tndDiag() || {}).phonCalls; } catch (e) {}
   return out;
 }
 
