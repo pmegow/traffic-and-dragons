@@ -139,9 +139,9 @@ _(none)_
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 2 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 (BOTH arrivals)
+**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 4 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 ×2, 925 ×2
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
-**Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b
+**Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b, d9dd00b1-1081-4649-8b1e-230de43979d8, 0ce6970b-7bc1-4644-a297-12dede178bb1
 **Screenshot URL:** —
 _Grounding for the investigator: arrived 2026-07-21T19:07:44Z, **38 seconds after** the B9 v1.406 narration death (19:07:06) from the same device and session — treat the two as one incident until proven otherwise. The message is not a string this repo produces (grep for it); it reads as a WebKit/Core Audio rejection surfaced through the `unhandledrejection` handler wired in error-report.js, i.e. the AudioContext/audio session failing to start rather than app code throwing. Relevant existing machinery: `_ensureCtx`/`_resumeCtx`/`_ctxRunning` and the iOS ctx-state discipline (v1.327), `primeAudioSession`/`_primerSrc` (v1.328, the playback-category session), `_ctxBlockedLoud`, and `_armCtxWatch` (audit #10). The user's field description of this session was "the audio DID die" — audio did not recover afterwards. Worth establishing first: whether the ctx was suspended/interrupted, whether `primeAudioSession` had been called, and whether this is reachable without a preceding narration death._
 
@@ -227,6 +227,23 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **🔍 A prediction this creates, and it is testable without a phone:** `_piperMod` and the ORT session are module-level and are NOT touched by `toggle()`/`_closeCtx()` (neither function references them) — so the Piper wasm state, and any monotonic accumulation inside it, **survives a voice toggle**. `_piperSynthsTotal` (the crumb's `pc`) is likewise per PAGE LOAD, not per toggle. If the ratchet hypothesis is right, deaths should keep landing at `pc` ≈ 96-124 **regardless of how many times the voice is toggled**, and only a full page reload should reset the clock. All three crumbs to date (124 / 103 / 96) are consistent with that. **Cheap corollary worth building either way: a "reset Piper engine" action that tears down `_piperMod`/the ORT session would be both a user-facing mitigation and the diagnostic that confirms the ratchet is wasm-side.**
 
 - **Consequence for triage order:** B10's recoverable half is now the cheapest real win on the board (auto-detect + reuse the existing rebuild), while B9 still needs the independent-variable soak before anyone writes code against it.
+
+**2026-07-22 sync (2) — two more arrivals, 57 s apart. Severity of this row drops sharply; the emitter is now very likely `sound.js`.**
+
+- **New arrivals:** `d9dd00b1` at 00:26:16Z and `0ce6970b` at 00:27:13Z — identical message, **turn 925 both**, `suppressed:0` on each. They land 82 s and 139 s after the 00:24:54Z boot that mailed B9's third crumb.
+
+- **⚠ THE SYMPTOM AND THE REPORT ARE DECOUPLED. Two independent observations now show this rejection firing while narration WORKS:**
+  1. The 00:04:59Z arrival fired ~1 min into a page that then completed **96 Piper synths over 20 minutes** before dying.
+  2. These two arrivals bracket the window in which the user reports that, after a voice toggle, **"the voice works again on the narration play button"**.
+  So "Failed to start the audio device" is **not** the audio-death the user experiences. This row has been mis-titled since it was filed: the title asserts "the session's audio stops entirely", and that is now contradicted by its own evidence.
+
+- **This makes `sound.js`'s second AudioContext the leading emitter** — the structural finding Angle B missed and the merge agent surfaced. The shape fits exactly: `showToast` (ui-shell.js:57) → `Sound.playIfQuiet` → sound.js:307-309 creates/resumes its OWN context, at hardware sample rate, outside any user gesture; iOS refuses to start it; the dropped promise is mailed. Narration is untouched because it runs on tts.js's separate context, which the toggle rebuilds inside a real gesture and which therefore works. Consistent with `suppressed:0` on all four arrivals: this is not a flood, it is one rejection per toast-bearing user action, spaced further apart than the 30 s debounce.
+
+- **Testable consequence, and the cheapest confirmation available:** if this is right, **UI earcons have been silent on that device** for the whole affected period while narration played fine. The user did not know either way when asked (2026-07-22). One listen for the toast 'poke' settles it — and if earcons ARE silent, the emitter is confirmed and this row becomes "a second AudioContext that can never start on iOS", not an audio-death.
+
+- **Correction to my own 2026-07-21 reasoning, second time on this point:** I used `suppressed:0` to de-rank sound.js, then re-ranked it up on the 00:04 evidence, and it is now the leading hypothesis on four arrivals. The lesson worth keeping: `suppressed` measures *repetition inside 30 s*, and I twice tried to make it carry an argument about *causal importance*, which it cannot.
+
+- **Re-triage:** the user-visible "audio died" belongs to B9's death plus the latched-`_playing` wedge (both cleared by the voice toggle). What remains under B10 is a real but low-severity defect that is loud in the crash channel and silent in the UI. Fix-sketch layer 1 (observe the rejection with a caller tag) would have identified the emitter on the first arrival and is still the right first move; layer 4 (should sound.js own a second context on iOS at all?) is now the substantive question rather than an aside.
 
 ### Action log
 _(none)_
