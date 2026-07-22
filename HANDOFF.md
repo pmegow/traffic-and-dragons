@@ -1,180 +1,179 @@
-# Traffic and Dragons — Session Handoff (2026-07-22, late)
-
-> Updated after a further sync: B9's fix is now known to have NEVER completed, and ORT memory is
-> measured NOT to be the predictor. The B9 section below is rewritten accordingly — it is the part
-> that changed most.
+# Traffic and Dragons — Session Handoff (2026-07-22, end of day)
 
 **Deployed:** `v1.424` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722r` (sw.js) · Piper runtime **r9**
 **Tests:** 796 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
 
-`PIPER_RUNTIME_REV` is still **r9** and no `vendor/piper/*` file changed this session — every fix
-below was landed in app code on purpose, to stay clear of the permanent-cache delivery trap.
+`PIPER_RUNTIME_REV` is still **r9** and **no `vendor/piper/*` file changed all session** — every fix
+was landed in app code on purpose, to stay clear of the permanent-cache delivery trap that ate
+v1.322/v1.323.
 
-This session was almost entirely **the voice stack**, and it went further than expected: B10 and
-the voice-cap bug are both root-caused and fixed, B14 is closed, B16 is new-and-fixed — and **B9's
-fix did not work**, which is the most important thing on this page.
+Nine versions, v1.416 → v1.424, almost entirely the voice stack. Four bugs closed, one still open —
+and the open one is why this page is worth reading carefully, because I shipped three fixes for it
+that did not work, and the record of *why* is worth more than the code.
 
-Read `DOC/BUGS.md` first. It is the live record and it is where the reasoning is.
-
----
-
-## ⚠ Pick this up first: B9 — and read this whole section before writing code
-
-**Twelve crumbs, six app versions, and the fix I shipped has never once worked.** Two separate
-reasons, both now measured:
-
-**① The respawn never completed — ANSWERED, and addressed in v1.424.** v1.422 crumbed the stage,
-and the answer came back on its first outing: **every failure is stage `spawn`, "piper host did not
-signal ready within 30s"** — the replacement realm never starts while the old one is alive. Not
-init, not the warm predict; the new iframe never reaches its own `ready` post, which happens before
-any ORT import. So build-then-destroy could never succeed under pressure, and its safety property
-(a failure leaves the working engine in place) was worthless because it never got that far.
-**v1.424 therefore flipped to destroy-then-build**: tear the old realm down, null the pointers,
-then construct into the freed space. A failed rebuild leaves the pointers null and the next read
-re-inits through the ordinary boot path. `_piperInitP` guards the new no-engine window against a
-concurrent second spawn.
-⚠ **UNVERIFIED IN THE FIELD** — no crumb exists for the new ordering yet. The next `respawn-fail`
-(or its absence, with `rc` finally rising above 0) is the test.
-
-**① (original description, kept for context)**
-
-**① (original)** The ring shows it triggering three and four times per session
-with memory never moving — `realm-respawn 527MB after 44 / after 75 / after 100`, the same figure
-each time — and `rc:0` on every report proves it: the counter only increments after a successful
-swap. So the trigger fires, the swap fails, the `catch` keeps the old frame, and the failure went
-to a console no phone has. **v1.422 fixes the blindness, not the bug**: a `respawn-fail` crumb now
-carries the STAGE (`spawn`/`init`/`warm`/`swap`), the reason, and the memory at attempt time, plus
-a per-page count as `rf` on the death crumb.
-**Read the stage first.** `spawn` means the new realm never signalled ready — i.e. the phone could
-not afford a second ORT alongside the old one (~700MB at report 0's numbers), which would indict
-the build-then-destroy ordering. That ordering was chosen for safety, and under memory pressure it
-may be exactly backwards; destroy-then-build, with its brief no-engine window, might be the only
-order that can succeed when it is actually needed. **Do not flip it on a hunch — wait for the
-stage.**
-
-**② ORT memory is NOT the predictor, and this is the bigger finding.** Deaths at `pc` = 104 / 125 /
-105 with ORT at **527 / 433 / 301 MB** — a 226MB spread at the same outcome, one of them below the
-respawn threshold and below what other sessions survived. Across all twelve crumbs `pc` sits in
-**96-125** while memory at death ranges 301-527MB. **Death tracks cumulative synths. It does not
-track ORT linear memory.**
-
-**Five hypotheses are now falsified by measurement, not argument. Do not re-litigate them:** the
-phonemizer (flat at 16MB in lab AND field, `pm:16` with `pmc` tracking `pc` exactly), the r8
-session recycle (identical curves to the byte), ORT session options incl. `enableMemPattern` (no
-effect), input-shape bucketing (still climbed — which also proved the driver is downstream of the
-input shape), and now ORT memory magnitude itself.
-
-**⚠ Also falsified: my own peak sampler.** `omp` equals `om` necessarily, because ORT memory only
-grows — a high-water mark can differ from the current value only if the value can drop, which
-happens solely on a successful respawn. v1.420's headline instrument is inert until ① is fixed. I
-should have seen that before shipping it.
-
-**The open question, stated honestly: what accumulates once per `predict()` that is NOT ORT linear
-memory?** We currently measure nothing else. Worth instrumenting before guessing — total page
-memory rather than just ORT's wasm, decoded-audio/AudioBuffer lifetime, OPFS handles — and worth
-asking whether the kill is memory-driven at all rather than CPU/energy-driven. `nv` spanning 3 to
-12 across three deaths (one at `pc`=105 with only THREE resident voices) also weakens voice-model
-churn as a sole cause, though it may still amplify.
-
-**What NOT to do:** tune `PIPER_RESPAWN_MB` (it targets a variable now measured not to be causal),
-or remove the realm (it works, costs little, and is the only thing that could reclaim if something
-re-implicates memory).
+**Read `DOC/BUGS.md` first.** It is the live record and it is where the reasoning is.
+**Fable:** `todo_checkWithFable.md` **entry 6** is written for you and names what to challenge.
 
 ---
 
-## ✅ B10 — root-caused and FIXED (v1.421), awaiting one confirmation
+## ⚠ B9 — the one still open. Read all of this before writing code.
 
-Two user observations cracked what four report arrivals and nine investigator agents could not:
-**the downgrade toast fires BEFORE the first word of a read**, and **tapping never restores audio —
-only a voice toggle off/on does.**
+Narration dies mid-passage on iPhone and the tab is killed with no unload event, so the only
+evidence that survives is the breadcrumb written before the kill. **Eighteen crumbs, six versions.**
 
-**The mechanism is structural.** `_ensureCtx` replaces the AudioContext only when its state is
-`"closed"`, and an iOS-**interrupted** context is not closed. So it handed the same dead object back
-to every recovery path in the file — the tap-unlock, the 2 s `_armCtxWatch` poll, `visibilitychange`
-and the `_ctxRunning` gate — each of which called `resume()` on it. **iOS never hands an interrupted
-context back; `resume()` rejects on it forever.** That refusal loop, retried every two seconds, IS
-B10's reported error. Not a device fault, not the media daemon, not `sound.js`.
+### The one durable fact
 
-Nothing noticed between turns because `_armCtxWatch` **disarms itself** whenever nothing is playing,
-`visibilitychange` needs a tab switch a notification never produces, and `_armCtxUnlock` is reactive
-— armed only after a read already failed, so by construction it can never save the line that
-discovers the problem.
+**Death tracks cumulative synths: `pc` = 90–125.** Nothing else predicts it. Read position, session
+age, uptime, recycles, resident voice count and — as of today — **memory** all vary freely across
+deaths. ORT linear memory at death ranges **301–624 MB**: a 323 MB spread inside a 17-synth band.
 
-**The fix** (`recoverAudio`) automates the voice toggle, which is the only recovery with field
-evidence behind it: close, rebuild, re-prime. Wired to the tap-unlock **and to `sendAction`** — the
-send tap is a real user gesture landing seconds before narration, so it repairs the context ahead of
-the read instead of after the first line is already lost.
+### Falsified BY MEASUREMENT — do not re-litigate
 
-**Awaiting:** a single tap should now restore the narrator voice with no toggle. If the toggle is
-still needed, the rebuild is not landing in the gesture.
+1. **The phonemizer.** Flat at 16 MB in the lab *and* the field (`pm:16`, `pmc` tracking `pc`
+   exactly). The r8 author's comment rejecting a recycle was right.
+2. **The r8 session recycle.** A/B'd: recycle-every-30 tracked recycle-off *to the byte*.
+3. **ORT session options**, `enableMemPattern` included — the strong prior. No effect, and the
+   options demonstrably reached the runtime.
+4. **Input-shape bucketing.** Padding to 32-phoneme buckets still climbed, which also proved the
+   growth is driven by something *downstream* of the input shape.
+5. **ORT memory magnitude itself** — the newest and most important. Deaths at 301 MB and at 624 MB.
+
+**Voice-model churn is badly weakened too:** two deaths had `vs:0` — zero voice switches in the read
+that killed them.
+
+### Three fixes that did not work, and why that matters more than the code
+
+- **v1.418** moved synthesis into a disposable iframe realm, respawning on measured memory. It was
+  ACTIVE in the field (`eng:"frame"`) and the tab died anyway — **the respawn never triggered**,
+  because memory never reached the 400 MB threshold.
+- **v1.420's peak sampler was inert by construction.** `omp` can only differ from `om` if memory can
+  *drop*, which requires a working respawn. I should have seen that before shipping it.
+- **Then it triggered and never COMPLETED** — `rc:0`, same MB re-reported on every attempt. v1.422 crumbed
+  the reason and the answer arrived on its first outing: **every failure is stage `spawn`, "piper
+  host did not signal ready within 30s".** The replacement realm never starts while the old one is
+  alive; the new iframe never even reaches its own `ready` post, which happens before any ORT import.
+
+### What v1.424 does — UNVERIFIED
+
+Build-then-destroy could never succeed under pressure, so its safety property (a failure leaves the
+working engine in place) was worthless — it never got far enough to need it. **v1.424 flips to
+destroy-then-build:** tear the old realm down, null the pointers, construct into the freed space. A
+failed rebuild leaves the pointers null and the next read re-inits through the ordinary boot path.
+`_piperInitP` guards the resulting no-engine window against a concurrent second spawn.
+
+⚠ **No field data exists for this yet.** The test is the next crumb: **`rc` rising above 0** means it
+finally completes; another `respawn-fail` with a new stage is the next thread.
+
+### The open question, stated honestly
+
+**What accumulates once per `predict()` that is NOT ORT linear memory?** Nothing else is currently
+measured. Candidates never instrumented: total page memory rather than ORT's wasm alone,
+decoded-audio / AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all
+rather than CPU or energy-driven.
+
+### What NOT to do
+
+Do not tune `PIPER_RESPAWN_MB` — it targets a variable measured not to be causal. Do not remove the
+realm: it works, costs little, and is the only thing that could reclaim if something re-implicates
+memory. Do not flip the respawn ordering back; there is a sabotage-proven tripwire against it.
 
 ---
 
-## ✅ Also fixed this session
+## ✅ B10 — root-caused and field-confirmed (v1.421)
 
-**The voice ✕ button never deleted anything** — field-confirmed and now field-confirmed working
-(v1.420). The vendored `remove()` uses `FileSystemFileHandle.remove()`, a Chrome-only extension, in
-a `catch` that only `console.error`s — so on Safari every delete was a no-op that toasted success.
-It also permanently disabled the 10-voice cap: eviction believed the removal, dropped the LRU stamp,
-and an unstamped id sorts oldest, so the next eviction re-picked the same phantom forever. That is
-how 13 voices (~1GB) accumulated. Fixed **locally in tts.js** with the standard `removeEntry()`,
-which throws. Automatic eviction now also refuses to delete an assigned or narrator voice (user call
-— manual ✕ stays unrestricted).
+Two user observations cracked what four report arrivals and nine investigator agents could not: the
+downgrade toast fires **before the first word** of a read, and **tapping never restored audio — only
+a voice toggle off/on did.**
 
-**B16 — a GM turn lost to a network failure** (v1.419): the typed action is handed back on failure,
-turn-start/turn-fail crumbs record in-flight time and backgrounding, and Car Mode finally makes a
-**sound** when a turn fails. The transport retry was deliberately NOT shipped — "Load failed" can
-occur after the request reached the provider, so a blind retry risks double billing.
+**`_ensureCtx` replaces the AudioContext only when its state is `"closed"`, and an iOS-interrupted
+context is not closed.** So it handed the same dead object back to every recovery path — the
+tap-unlock, the 2 s `_armCtxWatch` poll, `visibilitychange`, the `_ctxRunning` gate — each of which
+called `resume()` on it. **iOS never hands an interrupted context back; `resume()` rejects forever.**
+That refusal loop, retried every two seconds, *is* B10's reported error.
 
-**Markdown emphasis was being SPOKEN** (v1.423) — Piper read "asterisk, the text is italic, asterisk". The display path stripped it all along (`escProse` turns `*text*` into `<em>`); the speech path never did. Fixed in `normalizeForTTS`, mirroring escProse so the two cannot drift. ⚠ **Side effect worth knowing:** the markers were also shifting unit boundaries, so speaker maps STORED before v1.423 for passages containing emphasis will now fail their `sp.n` fuse and replay in a single voice. New turns are unaffected; the fuse doing this is correct behaviour, not a regression.
+`recoverAudio` automates the voice toggle (close → rebuild → re-prime), wired to the tap-unlock and
+to `sendAction`. **User-confirmed: a tap now restores the voice with no toggle.**
 
-**B14 — speaker voicing: VERIFIED and closed.** Four rounds; the fix that held was the user's own
-insight that one segmentation was doing two jobs (commas segment for rhythm, quotes for voice).
-Invariant for anyone touching the splitter: **pause boundaries must be a SUPERSET of voice
-boundaries**, and storage stays unit-indexed NAMES resolved at speak time.
+⚠ **Residual:** the interrupt can land *during* the GM call, after the send-gesture repair, so the
+first line of that read still degrades to native. The failure moved from "audio stays broken until
+you toggle" to "you lose one line, then any tap fixes it". **Do not try to repair at read start** —
+a context built outside a gesture is born suspended and `resume()` outside a gesture is refused
+(the v1.327 scenario). Cheapest direction: keep the recovery listener armed persistently while voice
+is on, so any incidental touch during the GM call repairs it first.
+
+**Bonus evidence:** the toast plays a sound through `sound.js`'s *separate* AudioContext — one
+context producing audio while tts.js's was interrupted. The device was never the problem. That
+retires the device-unavailable / media-daemon family permanently.
+
+---
+
+## ✅ Also closed this session
+
+**The voice ✕ button never deleted anything** (v1.420, now field-confirmed working). The vendored
+`remove()` uses `FileSystemFileHandle.remove()` — Chrome-only — inside a catch that only
+`console.error`s, so on Safari every delete was a no-op that toasted success. It had also
+permanently disabled the 10-voice cap: eviction believed the removal, dropped the LRU stamp, and an
+unstamped id sorts *oldest*, so the next eviction re-picked the same phantom forever. That is how 13
+voices (~1 GB) accumulated. Fixed **locally in tts.js** with the standard `removeEntry()`, which
+throws. Automatic eviction now refuses to delete an assigned or narrator voice; manual ✕ stays
+unrestricted (user call).
+
+**B16 — a GM turn lost to a network failure** (v1.419). The typed action comes back on failure;
+turn-start/turn-fail crumbs record in-flight time and backgrounding; Car Mode makes a **sound** when
+a turn fails. The transport retry was deliberately NOT shipped — "Load failed" can occur *after* the
+request reached the provider, so a blind retry risks double billing and two server-side turns.
+
+**B14 — speaker voicing: VERIFIED and closed.** Four rounds. The fix that held was the user's own
+insight that one segmentation was doing two jobs — commas segment for **rhythm**, quotes for
+**voice**. Invariant for anyone touching the splitter: **pause boundaries must be a SUPERSET of
+voice boundaries**, and storage stays unit-indexed NAMES resolved at speak time.
+
+**Markdown emphasis was being spoken aloud** (v1.423) — "asterisk, the text is italic, asterisk".
+`escProse` stripped it for display all along; `normalizeForTTS` never did. ⚠ **Side effect:** the
+markers were also shifting unit boundaries, so speaker maps stored **before v1.423** for passages
+containing emphasis now fail their `sp.n` fuse and replay in a single voice. That is the fuse working
+correctly, not a regression.
 
 ---
 
 ## Open rows
 
-**B16** `fixed` (awaiting field) · **B13** `new` — prose comprehension, engine state was clean ·
-**B15** `new` — credit exhaustion surfacing as a summarize crash; balance topped up, so the failure
-*surface* is the filed issue · **B11** `findings-ready` — `summarize()` throws on a tag-only
+**B16** `fixed`, awaiting field · **B13** `new` — prose comprehension, engine state was clean ·
+**B15** `new` — credit exhaustion surfacing as a summarize crash; the balance is topped up, so the
+failure *surface* is the filed issue · **B11** `findings-ready` — `summarize()` throws on a tag-only
 extractor response; **drift surface, Fable-tier if acted on**.
 
-**TODO #87** (new) — the phonemizer reuse latch fails open into the v1.323 leak, permanently and
-silently, with no reset. Found in a lab (27 modules in a 100-synth soak); **blocked on evidence**,
-since the trigger is unproven on real prose. The crumb now carries `pn`, which decides it. Field
-value so far has been `pn:1`, i.e. it has NOT fired in play.
+**TODO #87** — the phonemizer reuse latch fails open into the v1.323 leak, permanently and silently,
+with no reset. Found in a lab (27 modules in a 100-synth soak); **blocked on evidence**, and the
+field has said `pn:1` on every crumb, i.e. it has never fired in play.
 
 ---
 
-## Gotchas learned this session — these cost real time
+## Gotchas — these cost real time today
 
 - **⚠ `npx serve` caches files in memory.** It served a stale `tts.js` (133,848 bytes vs 139,815 on
   disk) for about an hour, so several "the fix didn't work" readings were testing old code. Caught
   only by fetching the file and diffing its length. **Restart the preview server after edits.**
-- **⚠ Chrome freezes backgrounded preview tabs** — hard enough that an iframe's own script never
-  runs and its `setTimeout` never fires. An unattended soak measures almost nothing (2 synths in 3
-  minutes vs ~3.6 s/synth fronted). Keep the tab fronted or poll it awake.
-- **⚠ Worktree isolation is broken in this repo** — it tries to `mkdir .claude/worktrees`, which
-  already exists, and fails every time. Parallel agents therefore need disjoint **file** ownership,
-  not just disjoint functions. Nearly all voice work lives in `tts.js`, so it does not parallelise
-  into more than one writer; the third lane was a read-only investigator whose output was applied by
-  hand.
-- **⚠ `node -e` from bash eats backticks** — it command-substituted every backticked identifier and
-  gutted a tracker entry, needing a repair commit. This is already in the previous handoff and it
-  still happened. **Patch scripts for docs go in a FILE.**
-- **Sabotage-test every guard.** The first voice-delete tripwire false-positived on the fix's own
-  comment (which quotes the bad call it replaced). It was only caught because the guard itself was
-  sabotage-tested rather than trusted.
+- **⚠ Chrome freezes backgrounded preview tabs** hard enough that an iframe's own script never runs
+  and its `setTimeout` never fires. An unattended soak measures almost nothing.
+- **⚠ Worktree isolation is broken here** — it tries to `mkdir .claude/worktrees`, which already
+  exists, and fails every time. Parallel agents therefore need disjoint **file** ownership, not just
+  disjoint functions.
+- **⚠⚠ `node -e` from bash eats backticks — this bit me THREE times today**, twice needing repair
+  commits, despite already being in the previous handoff. **Patch scripts for docs go in a FILE.**
+  No exceptions, however short the edit looks.
+- **Sabotage-test every guard, and have the sabotage script assert its own target exists.** One
+  sabotage silently changed nothing and "passed" — a false all-clear. Another tripwire
+  false-positived on the fix's own comment, which quoted the bad call it replaced.
+- **Verify the thing that SHIPS, not a simplified version of it.** Every desktop respawn test
+  unregistered the service worker and ran without memory pressure — and the *first* realm starts
+  fine on the phone too. What I verified was single-realm spawning; what ships is a second realm
+  alongside a loaded one. That gap is the whole reason v1.418–v1.422 never worked.
 
 ---
 
 ## Awaiting the user
 
-1. **The B10 toast** — one tap should restore the narrator voice without a toggle.
-2. **A crash crumb carrying `omp`** — the first peak memory reading, and the only thing that moves
-   B9 forward.
-3. **Optional cheap experiment:** delete surplus voices and see whether narration deaths thin out.
-   That tests the voice-churn hypothesis at the cost of a few taps.
+1. **A crash crumb on v1.424.** `rc` above 0 means destroy-then-build works. Another `respawn-fail`
+   with a new stage is the next thread.
+2. Nothing else is blocked. B10's residual and TODO #87 both have documented directions if wanted.
