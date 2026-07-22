@@ -8,8 +8,9 @@ was landed in app code on purpose, to stay clear of the permanent-cache delivery
 v1.322/v1.323.
 
 Nine versions, v1.416 → v1.424, almost entirely the voice stack. Four bugs closed, one still open —
-and the open one is why this page is worth reading carefully, because I shipped three fixes for it
-that did not work, and the record of *why* is worth more than the code.
+and the open one is why this page is worth reading carefully, because **I spent most of the day
+optimising a variable that the final crumb showed is not causal.** The record of how that was
+established is worth more than any of the code.
 
 **Read `DOC/BUGS.md` first.** It is the live record and it is where the reasoning is.
 **Fable:** `todo_checkWithFable.md` **entry 6** is written for you and names what to challenge.
@@ -19,62 +20,80 @@ that did not work, and the record of *why* is worth more than the code.
 ## ⚠ B9 — the one still open. Read all of this before writing code.
 
 Narration dies mid-passage on iPhone and the tab is killed with no unload event, so the only
-evidence that survives is the breadcrumb written before the kill. **Eighteen crumbs, six versions.**
+evidence that survives is the breadcrumb written before the kill. **Twenty crumbs, seven versions.**
+
+### The headline, from the very last crumb of the session
+
+**The tab died at `pc`=107 with NO disposable realm running at all.** That page's first frame spawn
+failed at boot (`piper-frame-fail … did not signal ready within 30s`), so everything ran on the
+in-page fallback — `eng:"inpage"` — and the death was indistinguishable from the realm-based ones.
+
+**Twenty crumbs, two entirely different engine architectures, the same band.** The realm/memory
+axis — which is what v1.418 through v1.424 was built on — looks **orthogonal to what kills the tab.**
+Do not resume that line of work without new evidence pointing back at it.
 
 ### The one durable fact
 
 **Death tracks cumulative synths: `pc` = 90–125.** Nothing else predicts it. Read position, session
-age, uptime, recycles, resident voice count and — as of today — **memory** all vary freely across
-deaths. ORT linear memory at death ranges **301–624 MB**: a 323 MB spread inside a 17-synth band.
+age, uptime, recycles, resident voice count, engine architecture and **memory** all vary freely
+across deaths. ORT linear memory at death spans **301–624 MB**.
 
 ### Falsified BY MEASUREMENT — do not re-litigate
 
-1. **The phonemizer.** Flat at 16 MB in the lab *and* the field (`pm:16`, `pmc` tracking `pc`
-   exactly). The r8 author's comment rejecting a recycle was right.
+1. **The phonemizer.** Flat at 16 MB in the lab *and* the field (`pm:16`, `pmc` tracking `pc`).
 2. **The r8 session recycle.** A/B'd: recycle-every-30 tracked recycle-off *to the byte*.
 3. **ORT session options**, `enableMemPattern` included — the strong prior. No effect, and the
    options demonstrably reached the runtime.
 4. **Input-shape bucketing.** Padding to 32-phoneme buckets still climbed, which also proved the
-   growth is driven by something *downstream* of the input shape.
-5. **ORT memory magnitude itself** — the newest and most important. Deaths at 301 MB and at 624 MB.
+   growth is downstream of the input shape.
+5. **ORT memory magnitude.** Deaths at 301 MB and at 624 MB.
+6. **The isolation architecture itself** — see the headline above.
 
-**Voice-model churn is badly weakened too:** two deaths had `vs:0` — zero voice switches in the read
+**Voice-model churn is nearly dead too:** three deaths had `vs:0` — zero voice switches in the read
 that killed them.
 
 ### Three fixes that did not work, and why that matters more than the code
 
-- **v1.418** moved synthesis into a disposable iframe realm, respawning on measured memory. It was
-  ACTIVE in the field (`eng:"frame"`) and the tab died anyway — **the respawn never triggered**,
-  because memory never reached the 400 MB threshold.
+- **v1.418** moved synthesis into a disposable iframe realm. It was ACTIVE in the field
+  (`eng:"frame"`) and the tab died anyway — **the respawn never triggered**, because memory never
+  reached the 400 MB threshold.
 - **v1.420's peak sampler was inert by construction.** `omp` can only differ from `om` if memory can
   *drop*, which requires a working respawn. I should have seen that before shipping it.
-- **Then it triggered and never COMPLETED** — `rc:0`, same MB re-reported on every attempt. v1.422 crumbed
-  the reason and the answer arrived on its first outing: **every failure is stage `spawn`, "piper
-  host did not signal ready within 30s".** The replacement realm never starts while the old one is
-  alive; the new iframe never even reaches its own `ready` post, which happens before any ORT import.
+- **Then it triggered and never COMPLETED** — `rc:0`, same MB re-reported on every attempt. v1.422
+  crumbed the reason and the answer arrived on its first outing: **every failure is stage `spawn`,
+  "piper host did not signal ready within 30s".** The replacement realm never starts while the old
+  one is alive; the new iframe never even reaches its own `ready` post, which precedes any ORT import.
 
-### What v1.424 does — UNVERIFIED
+**v1.424 flipped to destroy-then-build** on that evidence — tear the old realm down, null the
+pointers, construct into the freed space; `_piperInitP` guards the resulting no-engine window against
+a concurrent second spawn. ⚠ **STILL UNVERIFIED.** The only v1.424 crumb had no realm at all, so
+nothing exercised it. A test needs `eng:"frame"` **and** a `realm-respawn` in the same ring.
 
-Build-then-destroy could never succeed under pressure, so its safety property (a failure leaves the
-working engine in place) was worthless — it never got far enough to need it. **v1.424 flips to
-destroy-then-build:** tear the old realm down, null the pointers, construct into the freed space. A
-failed rebuild leaves the pointers null and the next read re-inits through the ordinary boot path.
-`_piperInitP` guards the resulting no-engine window against a concurrent second spawn.
+### ⚠ An instrumentation blind spot still open — fix this before anything else here
 
-⚠ **No field data exists for this yet.** The test is the next crumb: **`rc` rising above 0** means it
-finally completes; another `respawn-fail` with a new stage is the next thread.
+`_frameRetryUpgrade`, the between-reads self-heal that recovers from a boot-time frame failure,
+**crumbs its SUCCESS but only `console.warn`s its FAILURE.** The last crumb shows no recovery across
+four reads, so the retry either never fired or failed silently every time and we cannot tell which.
+**This is the exact blindness that hid the respawn failure for six versions.** It is a two-line fix.
 
-### The open question, stated honestly
+### The open question, and the cheapest next experiment
 
 **What accumulates once per `predict()` that is NOT ORT linear memory?** Nothing else is currently
-measured. Candidates never instrumented: total page memory rather than ORT's wasm alone,
-decoded-audio / AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all
-rather than CPU or energy-driven.
+measured.
+
+**Do not start by instrumenting ORT again.** The highest-value discriminator costs nothing to run:
+**does a page with narration OFF but the same turn count survive?** That separates "per synth" from
+"per turn", and nothing built so far distinguishes them. If it dies with narration off, the whole
+Piper line is a red herring and the cause is somewhere in the turn loop.
+
+Other never-instrumented candidates: total page memory rather than ORT's wasm alone, decoded-audio /
+AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all rather than CPU or
+energy-driven.
 
 ### What NOT to do
 
 Do not tune `PIPER_RESPAWN_MB` — it targets a variable measured not to be causal. Do not remove the
-realm: it works, costs little, and is the only thing that could reclaim if something re-implicates
+realm: it works, costs little, and is the only thing that CAN reclaim if something re-implicates
 memory. Do not flip the respawn ordering back; there is a sabotage-proven tripwire against it.
 
 ---
@@ -168,12 +187,17 @@ field has said `pn:1` on every crumb, i.e. it has never fired in play.
 - **Verify the thing that SHIPS, not a simplified version of it.** Every desktop respawn test
   unregistered the service worker and ran without memory pressure — and the *first* realm starts
   fine on the phone too. What I verified was single-realm spawning; what ships is a second realm
-  alongside a loaded one. That gap is the whole reason v1.418–v1.422 never worked.
+  alongside a loaded one. That gap is why v1.418–v1.422 never worked.
+- **⭐ The biggest one: check that the variable you are optimising is causal BEFORE building on it.**
+  Six versions went into isolating and recycling ORT memory. The final crumb showed the tab dying
+  identically with no realm at all. The instrumentation was worth it — it is what proved the
+  negative — but four of those versions were fixes for something that was never the cause.
 
 ---
 
 ## Awaiting the user
 
-1. **A crash crumb on v1.424.** `rc` above 0 means destroy-then-build works. Another `respawn-fail`
-   with a new stage is the next thread.
-2. Nothing else is blocked. B10's residual and TODO #87 both have documented directions if wanted.
+1. **Nothing is blocked.** Play when you like.
+2. The next crumb is only decisive for B9 if it carries **`eng:"frame"` plus a `realm-respawn`** —
+   that is the one combination that tests v1.424.
+3. B10's residual, TODO #87, and the `_frameRetryUpgrade` crumb gap all have documented directions.
