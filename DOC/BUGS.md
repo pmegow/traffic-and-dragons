@@ -558,7 +558,7 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **2026-07-22 · v1.420** — per-unit ORT peak sampling (`omp` on the crumb, `ortPeak` in diag); `pmc` restored in frame mode; voice deletion fixed to use the standard `removeEntry()` and THROW (the Chrome-only primitive silently no-opped on Safari, which permanently disabled the 10-voice cap and let 13 accumulate); assigned-voice guard on automatic eviction; over-cap voices now visible and deletable. Four sabotage-proven source tripwires.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
-**Status:** fixed
+**Status:** fixed (core defect verified in the field; one residual, below)
 **Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.407, now as a breadcrumb rather than an email) · **Count:** 4 emails + 2 observed refusals · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 ×2, 925 ×2
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
 **Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b, d9dd00b1-1081-4649-8b1e-230de43979d8, 0ce6970b-7bc1-4644-a297-12dede178bb1
@@ -718,8 +718,21 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **⚠ Process note, recorded because it cost a repair commit.** This entry was first written through an inline `node -e` from bash, which command-substituted every backticked identifier and silently gutted the prose. The handoff already warned about exactly this. Patch scripts for docs go in a FILE, always.
 
+**2026-07-22 — ✅ FIELD-CONFIRMED, and the residual is now named.** User on v1.421: *"definitely crashed BEFORE reading any lines. the toast had a sound. Did NOT need to toggle VO."*
+
+- **✅ The fix works.** "Did not need to toggle" is the confirmation: a single tap rebuilt the context, which is exactly what `recoverAudio` was built to do and what `resume()` could never do. The row's reported symptom — audio stops and stays stopped until a manual voice toggle — is closed.
+
+- **⭐ NEW EVIDENCE, and it settles a question that has been open since this row was filed: "the toast had a sound."** Toasts play through `sound.js`, which owns a SECOND, independent AudioContext (`Sound.playIfQuiet` from `showToast`). So at that instant one context was producing audio while tts.js's was interrupted. **The audio DEVICE was available — iOS had interrupted tts.js's context specifically, not the page's audio session as a whole.** That retires the whole "device unavailable / media daemon" family of explanations permanently, including the daemon-teardown hypothesis filed on 2026-07-21 (already partly withdrawn) and any remaining suspicion of `sound.js` — which is not merely uninvolved, it is the control that proves the device was fine.
+
+- **⚠ THE RESIDUAL: the first line is still lost.** The repair is wired into `sendAction`, deliberately, so it lands BEFORE narration — yet the toast still fired. The explanation that fits the timeline: **the interrupt arrives DURING the GM call**, in the 5-15 s after the send tap. The context is repaired at send, is fine at that moment, and is then taken by iOS while the request is in flight; by read time it is dead again and the first unit degrades to the native voice. So the failure moved from "audio stays broken until you toggle" to "you lose one line, then any tap fixes it" — a real improvement, not a complete one.
+
+- **Why the obvious fix does NOT work, stated so nobody spends a session on it:** repairing at read start is not possible. A context created or rebuilt outside a user gesture is born suspended, and `resume()` outside a gesture is refused on iOS — which is the v1.327 scenario this file already documents. The repair MUST happen in a gesture; the only question is which gesture.
+
+- **Direction for the residual (not implemented).** The send tap is too early. Candidates, cheapest first: ① keep the recovery listener armed PERSISTENTLY while voice is on, rather than only after a failure, so any incidental touch during the GM call (scrolling the previous narration, which the user is usually doing) repairs the context before the read; ② repair on the arrival of the GM response if any gesture has occurred since — needs care, since sticky activation is not something we can query reliably; ③ investigate why the primer's silent loop is not holding the playback-category claim across the call, which is what it exists to do. ① is the smallest and does not depend on guessing at activation state.
+
 ### Action log
 - **2026-07-22 · v1.421** — root-caused and fixed: an iOS-interrupted AudioContext can never be resumed, only REPLACED, and `_ensureCtx` refused to replace anything not `"closed"` — so every recovery path called `resume()` on a context that could never come back, which is what this row was. `recoverAudio` closes + rebuilds + re-primes, wired to the tap-unlock and to the send gesture (the one that lands before narration). Awaiting field confirmation.
+- **2026-07-22 — field-confirmed.** A tap now restores the narrator voice with no toggle (user). Residual: the interrupt can land DURING the GM call, after the send-gesture repair, so the first line of that read still degrades to native. The toast playing a sound also proved `sound.js`'s separate context was live at the same moment — the device was never the problem.
 
 ## B11 — summarize() crashes parsing the extractor response when the model returns state tags instead of JSON
 **Status:** findings-ready
