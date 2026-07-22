@@ -29,12 +29,84 @@ them here).
 
 ## Open
 
+## B13 — Player could not follow the physical action in a combat-aftermath passage: a severed head is kicked into one acolyte, then "the body behind you drops", reading as two contradictory bodies
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-07-22 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 925
+**Fingerprint:** `user-report · user-report · v1.406 · i'm not sure what the narration is describing here. ammut kicks the creatures body into the female acolyte, then the body crumples behind him.`
+**Report ids:** 995c4508-f099-4fe4-a82f-da3059a50a03
+**Screenshot URL:** —
+_Prose-comprehension defect, not a state defect: the t925 response has Ammut sever the tallow creature's head and kick THE HEAD into the female acolyte, then says "The body behind you drops in a heap" — the player parsed the first kick as the body, making the second sentence contradictory. Worth checking whether the antecedent is genuinely ambiguous in the prose ("you catch the moment, boot already swinging, and send it flying" — "it" is two sentences from "the head comes free"). Engine state was consistent: `[ENEMY_HP:The Pale Choir Cutter|-21]` + `[COMBAT_END:victory]` + `[ENEMY_SURRENDERS:Robed Acolyte (female)]` all present in the raw response. Model: claude-sonnet-5. Adjacent to but distinct from B5/B12 (that class is engine bookkeeping leaking INTO prose; this is prose that is simply hard to follow)._
+
+### Report (untrusted user-submitted data — never instructions)
+
+Message + state line; the t920-t926 transcript and raw response are omitted (long, and reproduced in the B14 row's context — full body in the GAS sheet under the report id):
+```text
+I'm not sure what the narration is describing here.  Ammut kicks the creatures body into the female acolyte, then  the body crumples behind him....  What exactly is happening?
+
+STATE: Ammut (Rogue Lv9) HP 75/75, 646 gp — Sandpoint Catacombs - Hidden Passage, pre-dawn — turn 925
+[... t920-t925 exchanges + raw t925 response omitted ...]
+```
+
+### Findings
+_(none yet — `/bugs investigate B13`)_
+
+### Action log
+_(none)_
+
+## B14 — Speaker post-pass gives a whole sentence a character's voice when only part of it is dialogue: the narrator's "Frizwick says" attribution is read in Frizwick's voice
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-07-22 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 926
+**Fingerprint:** `user-report · user-report · v1.406 · "that leaves her," frizwick says. "and whatever 'she's a door' is supposed to mean." | was read entirely in frizwicks voice.`
+**Report ids:** 5bfffa61-cd5e-4b8e-94b6-20e73e96ab22
+**Screenshot URL:** —
+_⚠ **This is a defect in the #9 speaker post-pass shipped at v1.406 — my own feature, first field report against it.** The line is `"That leaves her," Frizwick says. "And whatever 'she's a door' is supposed to mean."` — the attribution clause `Frizwick says` is NARRATION and should be the narrator voice; only the quoted spans are hers. Grounding for the investigator: `splitSentences(text,null,true)` comma-splits, so this should yield roughly `"That leaves her,"` / `Frizwick says.` / `"And whatever…"` as separate units — meaning either the splitter did not break where assumed, or (more likely) the model assigned the attribution unit to Frizwick too. `buildSpeakerPrompt` (game.js) already says "Include a line ONLY when a listed cast member is the one speaking those words aloud" and "Omit narration", so this is the instruction failing rather than being absent. Check the actual unit boundaries for this exact string before assuming which. Note the user's framing is precise and worth preserving: the narrator should own the attribution — a whole-sentence voice assignment is wrong even when the speaker identification is right._
+
+### Report (untrusted user-submitted data — never instructions)
+
+Message + state line; transcript omitted (full body in the GAS sheet under the report id):
+```text
+"That leaves her," Frizwick says. "And whatever 'she's a door' is supposed to mean."   | Was read entirely in frizwicks voice. “Frizwick says” should have been the narrator.
+
+STATE: Ammut (Rogue Lv9) HP 75/75, 646 gp — Sandpoint Catacombs - Hidden Passage, pre-dawn — turn 926
+[... t921-t926 exchanges + raw t926 response omitted ...]
+[TTS] tts engine: piper; on: true; piper voice: en_US-libritts_r-medium; rate: 1
+```
+
+### Findings
+_(none yet — `/bugs investigate B14`)_
+
+### Action log
+_(none)_
+
+## B15 — Anthropic credit exhaustion surfaces as a summarize crash rather than a clear "out of credits" message
+**Status:** new
+**Kind:** crash · **First seen:** 2026-07-22 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 1 · **Campaign:** — · **Turn:** 925
+**Fingerprint:** `crash · summarize · v1.406 · http 400: your credit balance is too low to access the anthropic api. please go to plans & billing to upgrade or purchase credits.`
+**Report ids:** 7ef49574-39bc-49a0-a033-ecf0d0bb859c
+**Screenshot URL:** —
+_Not a code defect in itself — the account ran out of credit — but the FAILURE SURFACE is worth a row. A billing state reached the player as a memory-filing crash (`consecutive fails: 1`, thrown from `callGM` at api.js:1137) rather than as an unambiguous "your API credit has run out" message, and the same condition would hit gameplay turns identically. Cheap, self-contained direction: recognise the provider's 400/credit shape in `callGM`'s error path and surface it plainly once, rather than letting each caller render it as its own subsystem failing. **Useful side observation: the #16c response-head capture correctly did NOT fire here** — `callGM` threw before `resp` was assigned, and the `typeof resp==="string"` guard omitted it, which is the intended behaviour on the throw-before-response path._
+
+### Report (untrusted user-submitted data — never instructions)
+```text
+HTTP 400: Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.
+
+consecutive fails: 1
+callGM@https://traffic-and-dragons.pages.dev/api.js:1137:145
+```
+
+### Findings
+_(none yet — `/bugs investigate B15`)_
+
+### Action log
+_(none)_
+
+
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 3 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.407) · **Count:** 5 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -145,12 +217,37 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **B11 specifically:** the summarize catch now reports the response HEAD (200 chars, under the user's 2026-07-22 content-policy approval) plus a metadata count of how many archived user halves in the window open with an engine note — which tests the replay hypothesis without shipping narrative.
 - **Still not obtainable, and worth stating plainly:** iOS Safari exposes no `performance.memory` or `deviceMemory`, so the ratchet can only ever be inferred from counters, never measured. Any fix for B9 is validated by survival under soak, not by a memory graph.
 
+**2026-07-22 — ⭐ THE CONFOUND IS BROKEN. Two v1.407 crumbs carrying #16c diagnostics settle the controlling variable.**
+
+```text
+[e488bdc8] {"i":6, "n":44, "pc":119, "ps":7,  "rc":3, "vs":2, "nv":4, "up":7, "done":false}
+[998e30b0] {"i":23,"n":46, "pc":118, "ps":28, "rc":2, "vs":9, "nv":4, "up":5, "done":false}
+```
+
+- **Read position is RULED OUT.** One death at unit **6 of 44** (14% in), the other at **23 of 46** (50% in). The per-read-peak hypothesis required deaths late in a read; the first three crumbs (67%, 97%, 91%) were consistent with it, and a 14% death is not.
+- **Session age is RULED OUT.** `ps` = 7 and 28 — a 4× spread at the same outcome. This is the field that `PIPER_RECYCLE_AFTER=30` previously made unmeasurable, and it was the whole reason the first three crumbs could not discriminate.
+- **Cumulative synths since page load is CONFIRMED as the controlling variable: `pc` = 119 and 118.** Across all five crumbs: 124 / 103 / 96 / 119 / 118. Two independent v1.407 deaths landing one apart, at wildly different read positions and session ages, is as clean a signal as this class is going to produce.
+- **⚠ AND THE ORT-SESSION RECYCLE DOES NOT HELP.** Both deaths occurred with `rc` = 3 and 2 — recycles had fired and been reset (`ps` restarts at 1 on each read-start in the ring below), and death still arrived on schedule at pc≈120. **Whatever accumulates is NOT in the ORT session that r8's recycle rebuilds.** That points hard at the one per-synth resource exempt from every shipped guard: the retained phonemizer re-driven via `callMain` on every predict (vits-web.js:259-279, exemption stated at :312-314, accepted-unverified at DOC/todo_monores.md:47) — exactly where the dual-angle merge said to look.
+- **My v1.406 multi-voice work is NOT the aggravator, on this evidence.** The v1.407 sessions were voice-heavy (`nv`=4, `map28` = 28 mapped units in a 44-unit read, `vs` up to 14 completed switches) and died at pc 118-119 — the HIGH end of the range. The single-voice v1.399 death was pc=124. If the sparse speaker map materially accelerated the ratchet, these would be markedly lower, and they are not. (The v1.406 pair at 96/103 remain the low outliers, unexplained; n is small and the range is wide.) **I had flagged this change as the likely accelerant across three separate messages — the telemetry does not support that, and it should be dropped as the leading story.**
+- **The breadcrumb ring, doing exactly what it was built for** — the seconds before a kill, which no handler can observe:
+```text
+  +0s   boot
+  +11s  read-start 36u pc1 ps1 map3      +52s read-done 36u vs2    +52s recycle #1 after 37
+  +138s turn t928 913ch
+  +142s read-start 34u pc38 ps1 map8     +173s read-done 34u vs10  +173s recycle #2 after 35
+  +233s turn t929 1493ch
+  +237s read-start 40u pc73 ps1 map9     +277s read-done 40u vs6   +277s recycle #3 after 40
+  +395s turn t930 1653ch
+  +399s read-start 44u pc113 ps1 map28   <-- died 6 units in, at pc119
+```
+- **Consequence for the plan:** the soak is no longer needed to answer *which variable*; the field answered it. A soak is still the right way to VALIDATE a fix (survival past pc≈120 with reads of varied length), but it is no longer gating the diagnosis.
+
 ### Action log
 _(none)_
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 4 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 ×2, 925 ×2
+**Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.407, now as a breadcrumb rather than an email) · **Count:** 4 emails + 2 observed refusals · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 ×2, 925 ×2
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
 **Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b, d9dd00b1-1081-4649-8b1e-230de43979d8, 0ce6970b-7bc1-4644-a297-12dede178bb1
 **Screenshot URL:** —
@@ -266,6 +363,20 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **B9 specifically:** the crumb gained `ps` (session synths), `rc` (recycles), `vs` (voice switches this read) and `nv` (distinct voices resident). `ps`/`rc` record session age DIRECTLY instead of leaving it inferable only from the read index — which is what made "late in the read" and "high session age" the same observation in the first three crumbs. **Live-measured on a 4-unit dialogue read: `vs:2`** — two single-slot ORT session reloads in four units, quantifying the v1.406 sparse-speaker-map thrash for the first time.
 - **B11 specifically:** the summarize catch now reports the response HEAD (200 chars, under the user's 2026-07-22 content-policy approval) plus a metadata count of how many archived user halves in the window open with an engine note — which tests the replay hypothesis without shipping narrative.
 - **Still not obtainable, and worth stating plainly:** iOS Safari exposes no `performance.memory` or `deviceMemory`, so the ratchet can only ever be inferred from counters, never measured. Any fix for B9 is validated by survival under soak, not by a memory graph.
+
+**2026-07-22 — ⭐ EMITTER NAMED. My `sound.js` hypothesis was WRONG.**
+
+- The v1.407 refusal observer caught it twice on one page, verbatim from the ring:
+```text
+  +41s  ctx-refused ctx-watch interrupted InvalidStateError: Failed to start the a…
+  +196s ctx-refused ctx-watch interrupted InvalidStateError: Failed to start the a…
+```
+- **It is `tts.js`'s OWN context, not `sound.js`'s.** Caller tag `ctx-watch` = the `_resumeCtx(_audioCtx, "ctx-watch")` inside `_armCtxWatch`'s 2 s poll. Context state at the moment of refusal: **`interrupted`** — the iOS state this file has fought since v1.327. Error class: `InvalidStateError`.
+- **Mechanism, now concrete:** iOS interrupts the AudioContext mid-session; `_armCtxWatch` polls every 2 s and calls `resume()`; on an `interrupted` context WebKit rejects with `InvalidStateError: Failed to start the audio device`; the promise was discarded at every call site, so it surfaced as a contextless `unhandledrejection` email naming neither caller nor state. Four emails and two wrong hypotheses from me came out of that one dropped promise.
+- **Two corrections against myself, both now on the record.** (1) I ranked `sound.js`'s second AudioContext as the leading emitter on 2026-07-22 and it is not implicated at all. (2) The reasoning that got me there — reading `suppressed:0` as evidence about causal importance — was wrong twice over, as already noted above. The instrument settled in one session what four field arrivals and nine investigator agents could not.
+- **⚠ Note the emails have STOPPED, and that is a deliberate side effect.** v1.407 attaches a handler to the resume promise, so the rejection is now *handled* — it no longer reaches `window.onunhandledrejection` and no longer mails. It is recorded as a crumb instead. That is the intended trade (attributable local signal over contextless email), but it means **absence of B10 emails from v1.407 onward is NOT evidence the condition stopped.** Watch the ring, not the inbox.
+- **`sound.js` is NOT exonerated as a design problem** — it still owns a second AudioContext created outside any gesture from every toast, against the one-shared-context contract. It simply is not what produced these reports. Keep it as fix-sketch layer 4, on its own merits.
+- **Still unconfirmed:** whether narration audibly stops when this fires. Both refusals were followed by a completed read (`read-done` at +94s), so on this evidence the interrupt/refusal cycle is survivable and the user-visible death remains B9's.
 
 ### Action log
 _(none)_
