@@ -1,6 +1,10 @@
 # Traffic and Dragons — Session Handoff (2026-07-22, late)
 
-**Deployed:** `v1.421` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722o` (sw.js) · Piper runtime **r9**
+> Updated after a further sync: B9's fix is now known to have NEVER completed, and ORT memory is
+> measured NOT to be the predictor. The B9 section below is rewritten accordingly — it is the part
+> that changed most.
+
+**Deployed:** `v1.422` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722p` (sw.js) · Piper runtime **r9**
 **Tests:** 794 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
 
 `PIPER_RUNTIME_REV` is still **r9** and no `vendor/piper/*` file changed this session — every fix
@@ -14,43 +18,52 @@ Read `DOC/BUGS.md` first. It is the live record and it is where the reasoning is
 
 ---
 
-## ⚠ Pick this up first: B9, and read this before touching it
+## ⚠ Pick this up first: B9 — and read this whole section before writing code
 
-**The v1.418 fix shipped, was ACTIVE, and the tab died anyway.** The crumb says so without
-ambiguity: `app:v1.418, eng:"frame", pc:120, rc:0, om:308`.
+**Twelve crumbs, six app versions, and the fix I shipped has never once worked.** Two separate
+reasons, both now measured:
 
-`eng:"frame"` means the disposable iframe realm was running. `rc:0` with `om:308` against a 400MB
-threshold means **the respawn never fired** — the fix was correctly built, correctly active, and
-never had cause to do anything. The tab died at `pc`=120, dead centre of a band now spanning nine
-crumbs and four app versions (124/103/96/119/118/118/114/121/120).
+**① The respawn never completes.** The ring shows it triggering three and four times per session
+with memory never moving — `realm-respawn 527MB after 44 / after 75 / after 100`, the same figure
+each time — and `rc:0` on every report proves it: the counter only increments after a successful
+swap. So the trigger fires, the swap fails, the `catch` keeps the old frame, and the failure went
+to a console no phone has. **v1.422 fixes the blindness, not the bug**: a `respawn-fail` crumb now
+carries the STAGE (`spawn`/`init`/`warm`/`swap`), the reason, and the memory at attempt time, plus
+a per-page count as `rf` on the death crumb.
+**Read the stage first.** `spawn` means the new realm never signalled ready — i.e. the phone could
+not afford a second ORT alongside the old one (~700MB at report 0's numbers), which would indict
+the build-then-destroy ordering. That ordering was chosen for safety, and under memory pressure it
+may be exactly backwards; destroy-then-build, with its brief no-engine window, might be the only
+order that can succeed when it is actually needed. **Do not flip it on a hunch — wait for the
+stage.**
 
-**So the model the fix was built on is falsified.** The lab measured 611MB by 100 synths; the phone
-reports 308MB at ~111. My varied-shape harness swept 60 distinct word-counts, which manufactures
-far more distinct input shapes than real prose does — so the per-shape ratchet is real (measured
-three separate ways) but its FIELD magnitude is roughly half the lab figure and **never reaches a
-lethal level. ORT steady-state linear memory is not what kills the tab.**
+**② ORT memory is NOT the predictor, and this is the bigger finding.** Deaths at `pc` = 104 / 125 /
+105 with ORT at **527 / 433 / 301 MB** — a 226MB spread at the same outcome, one of them below the
+respawn threshold and below what other sessions survived. Across all twelve crumbs `pc` sits in
+**96-125** while memory at death ranges 301-527MB. **Death tracks cumulative synths. It does not
+track ORT linear memory.**
 
-**Do not tune `PIPER_RESPAWN_MB`.** Lowering it would make the fix fire against a variable that is
-not causing the death. Do not rip the realm out either — it works, costs little, and is the only
-thing that can reclaim memory if peak-side evidence later implicates ORT after all.
+**Five hypotheses are now falsified by measurement, not argument. Do not re-litigate them:** the
+phonemizer (flat at 16MB in lab AND field, `pm:16` with `pmc` tracking `pc` exactly), the r8
+session recycle (identical curves to the byte), ORT session options incl. `enableMemPattern` (no
+effect), input-shape bucketing (still climbed — which also proved the driver is downstream of the
+input shape), and now ORT memory magnitude itself.
 
-**What is now instrumented and was not before (v1.420):** ORT memory is sampled **per unit inside
-the read**, and a page high-water mark rides the crumb as **`omp`**. The old `om` was a
-between-reads floor, which is why a page being killed could report a placid 308MB. iOS jetsam
-responds to peak. **The next crash crumb carries the first peak measurement this bug has ever
-produced** — that is the next real evidence, and there is nothing useful to do before it arrives.
+**⚠ Also falsified: my own peak sampler.** `omp` equals `om` necessarily, because ORT memory only
+grows — a high-water mark can differ from the current value only if the value can drop, which
+happens solely on a successful respawn. v1.420's headline instrument is inert until ① is fixed. I
+should have seen that before shipping it.
 
-**Current leading candidate: voice-model churn.** `nv:13` distinct voices in that page load, and
-the fatal read was the most speaker-dense of the session (`map18` vs 3-5 on earlier reads).
-`tndGetSession` is single-slot and creates the new session BEFORE releasing the old, so every voice
-switch re-reads a 60-130MB model with the previous still resident — large transients inside one
-read, invisible to a steady-state number. The user can now delete surplus voices (see below), which
-makes "does it die less with fewer resident voices?" a cheap field experiment.
+**The open question, stated honestly: what accumulates once per `predict()` that is NOT ORT linear
+memory?** We currently measure nothing else. Worth instrumenting before guessing — total page
+memory rather than just ORT's wasm, decoded-audio/AudioBuffer lifetime, OPFS handles — and worth
+asking whether the kill is memory-driven at all rather than CPU/energy-driven. `nv` spanning 3 to
+12 across three deaths (one at `pc`=105 with only THREE resident voices) also weakens voice-model
+churn as a sole cause, though it may still amplify.
 
-**Ruled out by measurement, not argument** — do not re-litigate these: the phonemizer (flat at 16MB
-in lab AND field, `pm:16` at `pmc:121`), the r8 session recycle (identical curves to the byte), ORT
-session options including `enableMemPattern` (no effect), and input-shape bucketing (still climbed,
-which also proved the driver is downstream of the input shape).
+**What NOT to do:** tune `PIPER_RESPAWN_MB` (it targets a variable now measured not to be causal),
+or remove the realm (it works, costs little, and is the only thing that could reclaim if something
+re-implicates memory).
 
 ---
 

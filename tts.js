@@ -803,7 +803,8 @@ var TTS = (function() {
          // Without this the difference is invisible on a phone, and a silent fallback would look
          // exactly like a working fix right up until the tab dies.
          + " eng=" + (_piperFrame ? "frame" : (_piperFrameFailed ? "inpage-fallback" : "inpage"))
-         + (_frameMemPeak ? " ortPeak=" + _frameMemPeak : "")   // v1.419: the high-water mark, which is what a jetsam kill responds to
+         + (_frameMemPeak ? " ortPeak=" + _frameMemPeak : "")
+         + (_frameRespawnFails ? " respawnFails=" + _frameRespawnFails : "")   // v1.419: the high-water mark, which is what a jetsam kill responds to
          + _piperMemNote();
   }
 
@@ -1509,7 +1510,7 @@ var TTS = (function() {
           // v1.416: ORT wasm MB + phonemizer module count. v1.419 adds `omp`, the PAGE HIGH-WATER
           // mark: `om` is whatever the last sample said, but iOS kills on PEAK, and the first
           // post-fix death reported a placid 308MB precisely because nothing sampled mid-read.
-          om: _ortMem(), omp: (_frameMemPeak || null), pn: _phonInstances(),
+          om: _ortMem(), omp: (_frameMemPeak || null), pn: _phonInstances(), rf: (_frameRespawnFails || null),
           eng: _piperFrame ? "frame" : "inpage", // v1.418: was the B9 fix actually active at death?
 
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
@@ -1735,13 +1736,23 @@ var TTS = (function() {
       .then(function () { _frameUpgrading = false; }, function () { _frameUpgrading = false; });
   }
 
-  var _frameRespawning = false;
+  var _frameRespawning  = false;
+  var _frameRespawnFails = 0;   // v1.422: respawn attempts that FAILED this page load — rides the crumb as rf
 
   // The swap itself. Sequential ON PURPOSE — the replacement is built and warmed BEFORE the old
   // one is destroyed, so any failure leaves the working engine in place rather than no engine.
   // Resolves {before, after} in MB.
+  // v1.422 — WHICH STAGE failed. Twelve field crumbs showed the respawn triggering repeatedly
+  // (`realm-respawn 527MB after 44/75/100`) while `rc` stayed 0 and the memory never moved: the
+  // swap was failing every time and saying so only to a console no phone has. A fix that silently
+  // never runs is worse than no fix. This stage marker rides the failure crumb so the next report
+  // distinguishes "the new frame never signalled ready" (the 30s timeout, i.e. the phone could not
+  // afford a second realm — which would indict the build-then-destroy ordering) from "the engine
+  // failed to boot in it" from "the swap itself threw".
+  var _respawnStage = "";
   function _frameRespawnNow(voiceId) {
     var before = null;
+    _respawnStage = "mem";
     // Sample BEFORE the swap, from the live frame — _frameMem may be stale (it is only refreshed
     // between reads), and reporting a null "before" makes the one number that proves this feature
     // works unreadable.
@@ -1750,9 +1761,12 @@ var TTS = (function() {
       return _piperSerial(function () {
         var old = _piperFrame;
         if (!old) throw new Error("no synthesis realm to respawn");
+        _respawnStage = "spawn";   // building a SECOND realm alongside the old one — the suspect step
         return _piperSpawnFrame().then(function (fresh) {
+        _respawnStage = "init";
         return fresh.init()
           .then(function () {
+            _respawnStage = "warm";
             // Warm the replacement so the next read does not pay the session build. ONLY for a
             // voice already on disk: resolvePiperVoice() can name a narrator voice that has never
             // been downloaded, and warming that would kick off a surprise 60-115MB download from a
@@ -1767,6 +1781,7 @@ var TTS = (function() {
               .catch(function (e) { console.warn("[tts piper] respawn warm predict failed (non-fatal):", e && e.message); });
           })
           .then(function () {
+            _respawnStage = "swap";
             _piperFrame = fresh; _piperMod = fresh;
             _piperSynthsSession = 0; _piperRecycles++;
             try { old.destroy(); } catch (e) {}   // the realm dies here — this is what frees the memory
@@ -1797,7 +1812,14 @@ var TTS = (function() {
         return _frameRespawnNow(voiceId);
       })
       .catch(function (e) {
-        console.warn("[tts piper] realm respawn failed — keeping the current engine (memory keeps climbing):", e && e.message);
+        // v1.422: CRUMB IT. This path fired on every field death since v1.418 — three and four
+        // times per session — and left no trace anywhere the phone could report, so the fix
+        // looked like it was working when it had never once completed. `rc` staying 0 was the
+        // only hint, and it took twelve crumbs to notice.
+        _frameRespawnFails++;
+        var why = (e && e.message) || String(e);
+        console.warn("[tts piper] realm respawn FAILED at stage '" + _respawnStage + "' (#" + _frameRespawnFails + ") — keeping the current engine, memory keeps climbing:", why);
+        if (typeof erCrumb === "function") erCrumb("respawn-fail", _respawnStage + " #" + _frameRespawnFails + " " + ((_frameMem && _frameMem.ortMB) || "?") + "MB " + why.slice(0, 40));
       })
       .then(function () { _frameRespawning = false; }, function () { _frameRespawning = false; });
   }
