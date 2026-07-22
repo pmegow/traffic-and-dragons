@@ -253,8 +253,32 @@ function speakerPassNeeded(clean,cast,spans){
 // leaving the model to identify a speaker from the speech alone. Marking instead of extracting
 // keeps both properties: the model sees the attributions, and it can still only answer about
 // spans the engine identified, so it cannot label narration as speech.
+// B14d (user field finding 2026-07-22): the player character is narrated in the SECOND PERSON, so
+// their dialogue is attributed to "you" — "you say", "you tell her" — and never to their name. The
+// CAST list is names only, so the model had no way to connect the two, and the omit-when-unsure
+// rule below then did exactly what it should: it dropped every line the player speaks. Net effect,
+// the one character whose voice a player is most likely to have assigned was the ONE character who
+// could never receive it. The engine knows who "you" is; asking the model to infer it was the bug.
+//
+// Returns the hero's name only when it is genuinely the referent, which takes two conditions:
+//   · they are in the VOICED cast — naming someone the map would later reject helps nothing;
+//   · narration is actually second person. Multiplayer switches the GM to third-person-by-name
+//     (api.js D12, where "you" is forbidden outright), so the binding would be a lie there.
+// Deliberately `worldState.character`, NOT activePlayer(): the display-spotlight pointer never
+// reaches buildSysPrompt before multiplayer P4 (engine-tested), so the GM's "you" is still the
+// hero. Reading the pointer here would desync the voice from the prose the moment P2 spotlights
+// a companion.
+function speakerSecondPersonName(cast){
+  if(typeof worldState==="undefined"||!worldState||!worldState.character)return "";
+  if(typeof playerCount==="function"&&playerCount()>1)return "";
+  var nm=worldState.character.name,i;
+  if(!nm)return "";
+  for(i=0;i<(cast||[]).length;i++)if(cast[i].name===nm)return nm;
+  return "";
+}
 function buildSpeakerPrompt(spans,cast,clean,units){
   var names=cast.map(function(c){return c.name;}).join(", ");
+  var you=speakerSecondPersonName(cast);
   var seen={},marked="",i,u;
   for(i=0;i<(units||[]).length;i++){
     u=units[i];
@@ -267,6 +291,9 @@ function buildSpeakerPrompt(spans,cast,clean,units){
     +"Return ONLY a JSON object mapping each marked number to the cast member who SPEAKS it.\n"
     +"Rules:\n"
     +"- The attribution around a line (said X, X whispered) tells you who is speaking. Use it.\n"
+    /* Must sit BEFORE the omit-when-unsure rule: that rule is what was swallowing these lines,
+       so the binding has to be established before the escape hatch is offered. */
+    +(you?"- The passage is written in second person, and 'you' IS "+you+". A line attributed to you (you say, you tell her, you shout back) is spoken by "+you+".\n":"")
     +"- Use only the names listed in CAST. Omit a line spoken by anyone else.\n"
     +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard aloud.\n"
     +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"

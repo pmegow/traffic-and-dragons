@@ -4281,6 +4281,39 @@ function runEngineTests(R){
     if(prompt.indexOf("said Daeris")<0)return "the attribution clause is absent from the prompt";
     return /\u27e60\u27e7|\[0\]|\{0\}/.test(prompt)?true:"no span marker found in the prompt";
   });
+  t("B14d: the prompt binds second-person 'you' to the player, so the PC's own dialogue can be voiced",function(){
+    // The reported failure: the player character is narrated as "you", never by name, so the
+    // model could not match their lines to the CAST list and correctly omitted them — the PC
+    // was the one character who could never receive an assigned voice.
+    _mkSpeakerWorld();
+    var line='"Hold the line," you snarl, shoving Daeris behind you.';
+    var u=TTS._textPrep.splitSentences(line,null,true);
+    var prompt=buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u);
+    if(prompt.indexOf("'you' IS Tess")<0)return "no second-person binding in the prompt";
+    // Ordering is load-bearing: the binding must precede the omit-when-unsure escape hatch.
+    return prompt.indexOf("'you' IS Tess")<prompt.indexOf("Omit a line if you are unsure")
+      ?true:"the binding lands AFTER the omit rule it exists to pre-empt";
+  });
+  t("B14d: no second-person binding when the player has no assigned voice, or in multiplayer",function(){
+    // Naming someone outside the voiced CAST would invite an answer parseSpeakerMap must reject;
+    // and multiplayer narrates every PC by name in third person (api.js D12), where the claim
+    // that "you" means the hero is simply false.
+    _mkSpeakerWorld();
+    var line='"Hold the line," you snarl, shoving Daeris behind you.';
+    var u=TTS._textPrep.splitSentences(line,null,true);
+    delete worldState.character.voiceId;                       // hero unvoiced → not in the cast
+    if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
+      return "bound 'you' to a player who has no voice assigned";
+    _mkSpeakerWorld();
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",
+      charSheet:{name:"Morwen",voiceId:"en_GB-alba-medium"}});   // second PC → playerCount>1
+    // Asserted, not guarded: an `&&` here would let the whole case pass vacuously if the setup
+    // ever stopped producing a second player.
+    if(playerCount()<=1)return "setup failed — two PCs did not raise playerCount(): "+playerCount();
+    if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
+      return "bound 'you' to the hero while narration is third-person multiplayer";
+    return true;
+  });
   t("B14c: quote parity does not leak across a paragraph break",function(){
     // Standard typography opens each paragraph of continued speech with a quote and only closes
     // the last. Carrying parity across the break inverts every following paragraph.
