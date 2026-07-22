@@ -420,9 +420,39 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Shipped from this session: nothing but the harness.** `piper_test.html` gained a fixed-word-count soak mode (`window.__soakFixedLen`) — kept because the shape-vs-content discriminator is the right instrument even though my first use of it was flawed. No game code changed, so `APP_VERSION` is unbumped by design.
 
+**2026-07-22 — respawn cost MEASURED, and the 9-second figure I quoted was wrong. Candidate 3 is much cheaper than it sounded.**
+
+- **TLDR:** a full fresh realm costs **the same as the session rebuild the app already performs every 30 synths** — about 3.3 s of overhead, with the wasm compile effectively free. The user's cost objection was the right question to ask, and the answer is that this fix does not add a new cost class; it repurposes one already being paid for no benefit.
+
+- **Where the 9 s came from and why it does not apply.** It is the COLD figure behind `prewarmPiper` — first load, network fetch plus wasm compile. A respawn is warm: the module and its compiled wasm are in the browser's caches and the model comes from OPFS. **Measured module import on respawn: 28-36 ms.** I should not have quoted the cold number for the warm path.
+
+- **The measurements** (desktop Chrome, throttled tab where a normal synth is 2.4-3.0 s — read the RATIOS, not the absolutes):
+
+```text
+  in-page, session only (the r8 recycle path that ships today)
+    release()                    20 ms
+    session rebuild + 1 synth  6352 ms   → rebuild overhead ≈ 3347 ms
+
+  fresh REALM (throwaway iframe: own ORT instance, own wasm memory)
+    module import                28-36 ms
+    first synth (wasm instantiate + OPFS model + session + synth)  6115 / 6451 ms
+    total                        6143 / 6487 ms
+```
+
+  **A whole new realm costs the same as rebuilding the session inside the existing one** (6143-6487 vs 6352 ms, identical within this tab's noise). Both are dominated by the same work — reading the ~63MB model out of OPFS and building the InferenceSession. Two consecutive create/destroy cycles gave the same numbers, so it is not a first-run fluke.
+
+- **⭐ Use an IFRAME, not a Worker.** This was measured with a `srcdoc` iframe, and that choice removes the objection I raised against candidate 3 earlier: **workers do not inherit the page's import map, but an iframe has its own document and can carry its own** — so `vits-web.js`'s bare `"onnxruntime-web"` specifier keeps resolving with **no vendored edit and no r10 bump**. A same-origin iframe also reaches OPFS normally and posts audio back over `postMessage`. It is both the cheaper implementation and the one actually measured.
+
+- **The cost comparison that matters, stated plainly.** Today the app already pays ~3.3 s every `PIPER_RECYCLE_AFTER`=30 synths to rebuild a session — a cost the field has tolerated silently for months — **and that rebuild is measured to reclaim nothing** (see the recycle A/B above). Candidate 3 pays the same ~3.3 s, at the same or lower frequency, and actually returns the memory. It is not a new expense; it is the existing expense redirected at something that works.
+
+- **And it need not be on the critical path at all.** Prewarm-and-swap: build the replacement iframe while the old one keeps serving, switch when it signals ready, then remove the old. The player hears nothing. The price is a transient overlap of two ORT instances (old + a fresh 170MB), which is exactly why the trigger should be **measured memory, not a synth count** — respawn when ORT crosses ~400MB, peak ~570MB during the handover, settle back to 170MB. Well under the ~1GB kill line, and it self-adjusts to whatever the prose actually does. That policy is only possible because of the v1.416 probe.
+
+- **⚠ What is NOT established here, so nobody over-reads it.** ① These are desktop numbers from a throttled tab; the iPhone will differ, though the ratio should hold since both paths are dominated by the same OPFS read and session build. ② The probe hooks its own realm, so **the iframe's memory is invisible to the parent** — the claim that destroying the iframe frees its wasm memory rests on the platform guarantee that removing a same-origin iframe tears down its realm, which is solid but was not directly measured. ③ No audio was routed out of the iframe; `postMessage` of a WAV blob is assumed cheap and unmeasured. ④ Nothing was built — this is a cost probe, not a prototype.
+
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
 - **2026-07-22 (measurement only, no version)** — measured and falsified candidates 1 (ORT session options) and 2 (input-shape bucketing); experiment reverted, vendored runtime untouched at r9. Mechanism relocated to output/intermediate shape. Candidate 3 (discardable worker) is the remaining approach.
+- **2026-07-22 (measurement only, no version)** — measured realm-respawn cost: ~3.3 s overhead, same as the session rebuild already shipping, wasm import 28-36 ms. Retracts the 9 s figure. Iframe beats worker (own import map, no vendored edit). Candidate 3 de-risked; not built.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
