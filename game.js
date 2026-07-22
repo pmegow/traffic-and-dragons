@@ -247,16 +247,26 @@ function speakerPassNeeded(clean,cast,spans){
   if(!spans||!spans.length)return false;            // no quoted speech in this passage
   return true;
 }
-function buildSpeakerPrompt(spans,cast){
+// B14c: the model is shown the WHOLE passage with the engine's dialogue spans MARKED, not the
+// quoted fragments in isolation. Extracting the spans removed the very evidence of who is
+// speaking — the attribution clause ("said Ammut") is narration, so it was being stripped out,
+// leaving the model to identify a speaker from the speech alone. Marking instead of extracting
+// keeps both properties: the model sees the attributions, and it can still only answer about
+// spans the engine identified, so it cannot label narration as speech.
+function buildSpeakerPrompt(spans,cast,clean,units){
   var names=cast.map(function(c){return c.name;}).join(", ");
-  var lines="",i;
-  for(i=0;i<spans.length;i++)lines+=i+": "+spans[i].text+"\n";
-  // Only quoted text is offered, so the model CANNOT mislabel narration — it is never shown any.
-  // That is the whole point of assigning voices per span instead of per pause-unit (B14b).
+  var seen={},marked="",i,u;
+  for(i=0;i<(units||[]).length;i++){
+    u=units[i];
+    if(u.spk!==null&&u.spk!==undefined&&!seen[u.spk]){seen[u.spk]=1;marked+="[["+u.spk+"]]";}
+    marked+=u.text+" ";
+  }
+  marked=marked.trim()||String(clean||"");
   return "CAST (these names only): "+names+"\n\n"
-    +"SPOKEN LINES (each is dialogue; identify who says it):\n"+lines+"\n"
-    +"Return ONLY a JSON object mapping each line number to the cast member who SAYS it.\n"
+    +"PASSAGE — each [[n]] marks the start of a line of dialogue:\n"+marked+"\n\n"
+    +"Return ONLY a JSON object mapping each marked number to the cast member who SPEAKS it.\n"
     +"Rules:\n"
+    +"- The attribution around a line (said X, X whispered) tells you who is speaking. Use it.\n"
     +"- Use only the names listed in CAST. Omit a line spoken by anyone else.\n"
     +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard aloud.\n"
     +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"
@@ -335,7 +345,7 @@ function assignSpeakers(clean){
   var spans=speakerSpans(units);
   if(!speakerPassNeeded(clean,cast,spans))return Promise.resolve(null);
   if(!units.length||units.length>SPEAKER_MAX_UNITS)return Promise.resolve(null);
-  var call=callGM(buildSpeakerPrompt(spans,cast),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
+  var call=callGM(buildSpeakerPrompt(spans,cast,clean,units),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
     .then(function(txt){return parseSpeakerMap(txt,spans,units.length,cast);})
     .catch(function(e){console.warn("[speakers] pass failed — narrating in one voice:",e&&e.message);return null;});
   var fuse=new Promise(function(res){setTimeout(function(){res("__timeout__");},SPEAKER_TIMEOUT_MS);});

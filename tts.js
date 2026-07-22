@@ -278,6 +278,30 @@ var TTS = (function() {
   // The clause regex covers every character (same shape packLongUnit uses), so comma mode cannot
   // lose content. Default (native) path: NO comma splits, unchanged unit boundaries — the `end`
   // field is added but paraEnd semantics are byte-identical to Phase 1.
+  // B14c: cut a sentence at every quote transition, so a piece is WHOLLY spoken or WHOLLY narration.
+  // This is the invariant the voice layer depends on: PAUSE boundaries must be a SUPERSET of VOICE
+  // boundaries. The comma/sentence split only breaks at , ; : . ! ? — so when a quote closes
+  // mid-sentence ("Wrong voice" said Ammut.) the unit carried BOTH the speech and the attribution
+  // and the whole thing took one voice. A closing mark ends its piece; an opening mark starts one.
+  function splitQuotePieces(sent, inQ) {
+    var pieces = [], buf = "", cur = !!inQ, k, ch;
+    for (k = 0; k < sent.length; k++) {
+      ch = sent.charAt(k);
+      if (ch === '"' || ch === "\u201c" || ch === "\u201d") {
+        if (cur) { buf += ch; pieces.push({ text: buf, inQ: true }); buf = ""; cur = false; }
+        else { if (buf.trim()) pieces.push({ text: buf, inQ: false }); buf = ch; cur = true; }
+        continue;
+      }
+      buf += ch;
+    }
+    if (buf.trim()) pieces.push({ text: buf, inQ: cur });
+    // Fold a punctuation-only fragment (the "." left over after a closing quote) into the piece
+    // before it — on its own it would become a unit consisting of one full stop.
+    for (k = pieces.length - 1; k > 0; k--)
+      if (!/[A-Za-z0-9]/.test(pieces[k].text)) { pieces[k - 1].text += pieces[k].text; pieces.splice(k, 1); }
+    return { pieces: pieces, inQ: cur };
+  }
+
   function splitSentences(text, dashRepl, commaSplit) {
     var paras = (text || "").split(/\n\s*\n/);
     var out = [];
@@ -293,10 +317,11 @@ var TTS = (function() {
     // why a unit that OPENS a quotation counts as dialogue, while the attribution clause after the
     // closing quote does not. Only DOUBLE quotes toggle: an apostrophe is not a delimiter, so
     // "she's a door" stays one span.
-    var _inQ = false, _inDlg = false, _spanId = -1;
+    var _inDlg = false, _spanId = -1;
     for (var p = 0; p < paras.length; p++) {
       var norm = normalizeForTTS(paras[p], dashRepl);
       if (!norm) continue;
+      var _inQ = false;   // B14c: per-PARAGRAPH, never carried across a break
       var parts = norm.match(/[^.!?…]+[.!?…]+["'”’»)\]]*(?=\s|$)|[^.!?…]+$/g) || [norm];
       if (parts.join("").replace(/\s+/g, "") !== norm.replace(/\s+/g, "")) {
         console.warn("[tts] sentence split would lose text — speaking paragraph unsplit (len " + norm.length + ")");
@@ -307,6 +332,12 @@ var TTS = (function() {
         if (!sent) continue;
         var lastSentence = (i === parts.length - 1);
         var units = [], j, s2;
+        var _qp = splitQuotePieces(sent, _inQ), _pieces = _qp.pieces, _pi;
+        _inQ = _qp.inQ;
+        for (_pi = 0; _pi < _pieces.length; _pi++) {
+        var _piece = _pieces[_pi], _uStart = units.length;
+        sent = _piece.text.trim();
+        if (!sent) continue;
         if (commaSplit) {
           var clauses = mergeDigitClauses(sent.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [sent]);
           // B14: dialogue punctuated INSIDE the quotation ("That leaves her," Frizwick says.) splits
@@ -345,19 +376,17 @@ var TTS = (function() {
           for (j = 0; j < whole.length; j++)
             units.push({ text: whole[j], end: (j === whole.length - 1) ? "sentence" : "clause" });
         }
+        for (j = _uStart; j < units.length; j++) units[j].spk = _piece.inQ ? 0 : null;   // piece-level truth
+        // a piece that is not the sentence's last gets a clause-length gap, not a full stop
+        if (units.length > _uStart && _pi < _pieces.length - 1) units[units.length - 1].end = "clause";
+        }
         if (units.length && lastSentence) units[units.length - 1].end = "para";
         for (j = 0; j < units.length; j++) {
           units[j].paraEnd = (units[j].end === "para");
-          var _st = _inQ, _dlg = false, _decided = false, _uk, _uch;
-          for (_uk = 0; _uk < units[j].text.length; _uk++) {
-            _uch = units[j].text.charAt(_uk);
-            if (_uch === '"' || _uch === "\u201c" || _uch === "\u201d") { _st = !_st; continue; }
-            if (!_decided && /\S/.test(_uch)) { _dlg = _st; _decided = true; }
-          }
-          if (_dlg && !_inDlg) _spanId++;   // a new run of dialogue begins
+          var _dlg = (units[j].spk === 0);   // set from the quote PIECE above, not guessed per unit
+          if (_dlg && !_inDlg) _spanId++;    // a new run of dialogue begins
           _inDlg = _dlg;
           units[j].spk = _dlg ? _spanId : null;
-          _inQ = _st;
           out.push(units[j]);
         }
       }

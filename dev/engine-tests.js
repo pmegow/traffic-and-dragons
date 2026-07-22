@@ -4227,6 +4227,69 @@ function runEngineTests(R){
     }
     return true;
   });
+  // ── B14c: a pause unit must NEVER straddle a quote boundary ─────────────────────────────────
+  // Field report 2026-07-22: misattribution on paragraphs whose dialogue is followed by its
+  // attribution. Root cause is not "looking backwards" — it is that the comma/sentence split only
+  // breaks at , ; : . ! ?, so when a quote closes mid-sentence the unit contains BOTH the end of
+  // the speech and the narrator's attribution, and the whole unit takes one voice.
+  // INVARIANT: pause boundaries must be a SUPERSET of voice boundaries.
+  t("B14c: quote-first — the attribution after a closing quote is its own narration unit",function(){
+    var u=TTS._textPrep.splitSentences('"Damnit. Wrong voice" said Ammut.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(/said Ammut/.test(u[i].text)&&u[i].spk!==null)bad.push(JSON.stringify(u[i].text));
+    return bad.length?"attribution rode inside the dialogue span: "+bad.join(", "):true;
+  });
+  t("B14c: name-first — the opening quote starts a dialogue unit, not a narration one",function(){
+    var u=TTS._textPrep.splitSentences('Ammut said "See, this actually sounds like me".',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++){
+      if(/Ammut said/.test(u[i].text)&&u[i].spk!==null)bad.push("narration tagged dialogue: "+JSON.stringify(u[i].text));
+      if(/See,/.test(u[i].text)&&u[i].spk===null)bad.push("dialogue tagged narration: "+JSON.stringify(u[i].text));
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("B14c: no unit contains BOTH quoted and unquoted content, across a range of shapes",function(){
+    var lines=[
+      '"Damnit. Wrong voice" said Ammut.',
+      'Ammut said "See, this sounds like me".',
+      '"Hold," she said. "Wait."',
+      'He turned. "Go now" she whispered, and vanished.',
+      'Plain narration, no quotes at all.'
+    ];
+    var bad=[],li,i;
+    for(li=0;li<lines.length;li++){
+      var u=TTS._textPrep.splitSentences(lines[li],null,true);
+      for(i=0;i<u.length;i++){
+        var t=u[i].text;
+        // strip the delimiters themselves, then a unit must be wholly inside or wholly outside
+        var q=(t.match(/"/g)||[]).length;
+        var inner=t.replace(/^\s*"/,"").replace(/"\s*[.,;:!?]*\s*$/,"");
+        if(q>0&&/"/.test(inner))bad.push("line "+li+" unit "+i+" straddles: "+JSON.stringify(t));
+      }
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("B14c: the model is shown the ATTRIBUTION, not just the quoted words",function(){
+    // Without surrounding narration the model cannot know who speaks — it was being asked to
+    // identify a speaker from the speech alone, which is guesswork whenever the words do not
+    // name anyone. The passage must reach it with the spans MARKED rather than extracted.
+    _mkSpeakerWorld();
+    var line='"Damnit. Wrong voice" said Daeris.';
+    var u=TTS._textPrep.splitSentences(line,null,true);
+    var spans=speakerSpans(u);
+    var prompt=buildSpeakerPrompt(spans,speakerCastList(),line,u);
+    if(prompt.indexOf("said Daeris")<0)return "the attribution clause is absent from the prompt";
+    return /\u27e60\u27e7|\[0\]|\{0\}/.test(prompt)?true:"no span marker found in the prompt";
+  });
+  t("B14c: quote parity does not leak across a paragraph break",function(){
+    // Standard typography opens each paragraph of continued speech with a quote and only closes
+    // the last. Carrying parity across the break inverts every following paragraph.
+    var u=TTS._textPrep.splitSentences('"First part of the speech.\n\n"Second part of it."',null,true);
+    var second=null,i;
+    for(i=0;i<u.length;i++)if(/Second part/.test(u[i].text))second=u[i];
+    if(!second)return "second paragraph unit not found";
+    return second.spk!==null?true:"continued dialogue in the next paragraph was tagged narration";
+  });
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });
