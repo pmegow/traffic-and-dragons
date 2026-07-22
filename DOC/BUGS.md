@@ -30,7 +30,7 @@ them here).
 ## Open
 
 ## B16 — A GM turn failed outright with a network load error on the deployed site; the turn was lost rather than retried
-**Status:** new
+**Status:** findings-ready
 **Kind:** crash · **First seen:** 2026-07-22 (v1.416) · **Last seen:** 2026-07-22 (v1.416) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 952
 **Fingerprint:** `crash · turn · v1.416 · network: load failed`
 **Report ids:** c779325d-aabf-4243-be9c-7869a7801e94
@@ -58,7 +58,39 @@ PREVIOUS page (ended without unload — see B9):
 ```
 
 ### Findings
-_(none yet — `/bugs investigate B16`)_
+
+**2026-07-22 — read-only investigation (bug-investigator agent), load-bearing claims re-verified against source by the dispatching session.**
+
+- **Verdict:** `root-caused` for the app-side mechanism and state accounting (high confidence, read directly). `needs-live-repro` for WHY the transport failed — memory pressure is plausible but not separable from a plain radio drop on this payload. No injection content; a normal crash body.
+
+- **Mechanism.** `api.js:1134` wraps every fetch rejection as `Error("Network: " + e.message)` — the only site in the repo producing a `Network: ` prefix, and column 129 lands inside that construction. An HTTP status could NOT produce this string: a non-ok response takes `api.js:1136-1137` and throws `"HTTP <status>…"` instead (B15's shape). **There is no retry, no timeout and no AbortController anywhere in api.js** — one fetch, one chance.
+
+- **The caller is `sendAction`, and the other `callGM` users are ruled out by their own report tags.** `ctx:"turn"` is emitted from exactly one place (`game.js:1143`). `generateActions` reports `"actions"` (`game.js:196`); `assignSpeakers` never reports at all (`game.js:377` swallows to a warn and narrates flat, by contract at :366-367); `summarize` has its own catch and reports `"summarize"` (`memory.js:871-922`); `syncCharSheet`/`beginAdventure` never call `reportError`. So a real player turn broke. What the report CANNOT distinguish is Story vs Table Talk vs a silent engine send — a one-line diagnostic gap worth closing.
+
+- **✅ `sessionLog` is NOT poisoned — the memory-integrity worry is answered, and I verified this myself rather than taking it on trust.** `callGM` builds its request body non-mutatingly (`api.js:1113`: `sessionLog.concat([...])`), and the only turn-path push is `game.js:1040` inside `commitGmTurn`, AFTER the await. A failed turn therefore leaves zero orphan user-half: nothing rides into the next request, nothing enters the summarize extraction window, `sessKept` is untouched. **`worldState.turn` likewise does not advance** (`game.js:1012`, also post-await), `applyMuts` never ran, and `_committed` stayed false — so the offered Retry is the safe one, with no E82 double-apply.
+
+- **✅ `busy` is cleared reliably.** `game.js:1145` clears it before the auth-branch return; every other path falls through to `game.js:1147`. A `Network:` message is not the auth shape, so it always takes the fall-through. No stuck lock.
+
+- **⚠ An ORPHAN PLAYER ENTRY is left in the transcript.** `game.js:1105` writes `logTranscript("player", txt)` BEFORE the try block (verified). The catch does not `saveAll`, so it is in-memory at first, but the next save persists it. Consequences traced: RAG is unaffected (`memory.js:507` only admits `r==="gm"` entries as candidates, and the pair lookup reads the entry preceding a GM entry); a retry with the SAME text is deduped by `_isRetryDup` (`game.js:1104`) and simply adopts the orphan. But a retry with DIFFERENT text, or an abandoned turn, leaves two consecutive `player` entries permanently in the sacred transcript, visible in the narrative export and the reload repaint.
+
+- **⚠ Engine notes are silently burned — pre-existing and already documented as accepted.** `buildEngineNotes()` runs before the fetch (`game.js:1122`) and several `NOTE_BUILDERS` consume state at BUILD time: the condition/relationship/mood audits stamp their cooldowns (`api.js:202-206`, `327-328`, `430/432`) and `buildRelationshipDowngradeNudge` shifts its queue (`api.js:304`). Because `worldState.turn` does not advance on failure, the cooldown restarts from here, so a fired audit is skipped for a whole window — and an immediate retry goes out WITHOUT the audit the failed turn was carrying. `api.js:213-214` states this tradeoff explicitly, so B16 is an instance of a known accepted cost, not a new defect. Recorded because it is drift surface.
+
+- **⚠ The player's typed text is cleared from the box** (`game.js:1099` `inp.value=""`) and survives only in the in-memory `lastAction` global (`globals.js:172`, never persisted) and the transcript orphan. If the page is killed between failure and retry — exactly what this device's PREVIOUS page load did — the payload is gone and the player retypes from memory.
+
+- **Recovery today: manual retry works and the failure is visibly surfaced** (spinner removed `game.js:1142`, system message + full-width Retry button `game.js:1220-1226`, `retryLast()` correct because `lastAction` is set and `_committed` is false). What is missing is any AUTOMATIC recovery: no transport retry, no timeout, no backoff.
+
+- **⚠ Car Mode gets no audio on failure — the one sense it exists to serve.** `game.js:1145` calls `carNotify("error", …)`, which sets a visual status string and arms tap-to-retry (`ui-carmode.js:44-49`, consumed at :261-265). Earcons only play for `"sent"` and `"response"` (`ui-carmode.js:54/57`), and `TTS.earcon` knows only `"ack"`/`"ready"` (`tts.js:2213`). Hands-free sequence: ack blip on send → "Thinking…" on a screen nobody is looking at → **permanent silence**.
+
+- **Why the transport failed — honestly unproven.** Circumstantial: `ortMB=531` in the PAGE's own realm (v1.416, pre-iframe — confirmed by the diag lacking v1.418's `eng=` field) on an iPhone near iOS's per-tab ceiling, and `PREVIOUS page (ended without unload)` shows the device was already jetsam-killing this tab. The crumbs bound the page's whole life: boot → one 28-unit read → one turn attempt, which failed. But `online:true` was sampled at REPORT time, later than the failure, and WebKit's "Load failed" fits both memory pressure and a radio drop. **There is no crumb at turn START**, so in-flight duration and any backgrounding are invisible.
+
+- **Fix sketch (direction only, smallest first).** ① Restore `inp.value = txt` in the non-committed catch (`game.js:1145`) and/or persist `lastAction`, so a kill between failure and retry does not erase the payload — must NOT fire on the `_committed` branch or it invites a duplicate action. ② `erCrumb("turn-start"/"turn-fail")` around the await — pure diagnostics, closes the timing gap. ③ A failure earcon for Car Mode (keep it on the oscillator path, off the synthesis queue — B9 neighbourhood). ④ ONE bounded transport-only retry in `callGM`, gated strictly to the fetch-rejection catch and never the `HTTP <status>` path (that is B15's shape and must stay non-retried, or a 401/429 would hammer the provider and mask the key-replacement flow). ⑤ *Separate design question, do not fold in:* deferring the transcript write and `buildEngineNotes()` until after the response would remove both the orphan and the burned-nudge class, but it reverses ordering that UA6/audit #9 deliberately settled.
+
+- **Drift surface:** ①②③ **NO** — input restoration, crumbs and an earcon touch no parser, memory tier or prompt block. ④ **YES, narrowly** — "Load failed" can occur AFTER the request reached the provider, so a blind retry risks double billing and two server-side GM turns (only one is committed, so no state corruption, but non-idempotency is real). ⑤ **YES, squarely** — transcript write ordering (transcript is sacred), engine-note consumption timing, and the UA6 persist-before-display invariant.
+
+- **Confidence:** high on the call path, `busy`, `sessionLog`, turn counter, transcript orphan, note consumption and Car Mode silence (all read directly, and the `sessionLog`/ordering claims independently re-verified). **Low on the underlying transport cause.** What would raise it: shipping ② so the next instance carries in-flight duration and a backgrounding marker, and watching whether turn-scope "Load failed" disappears on v1.418 now that the page realm no longer holds ~531MB of ORT.
+
+- **Open questions.** (1) Story turn, Table Talk, or silent engine send? Undistinguishable today; adding `isTT`/`opts.silent` to the `reportError` detail is one line. (2) Did the request actually reach Anthropic — decides whether ④ is a double-billing risk; answerable from the provider console or by comparing `worldState.usage.turn` counts against transcript GM entries. (3) Was the page backgrounded mid-fetch? (4) Is the orphan player entry acceptable, or must the story compiler (#5) learn to skip it?
+
 
 ### Action log
 _(none)_
