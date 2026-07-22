@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiveKit — findings &amp; verdict — Traffic and Dragons</title>
+<style>
+  :root{
+    --bg:#101010; --panel:#181818; --panel2:#1f1c16;
+    --acc:#b8935a; --txt:#d8d2c8; --dim:#8a8478;
+    --good:#7aa86a; --bad:#c06a5a; --warn:#c9a24b;
+    --border:#2c2c2c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:Georgia,'Times New Roman',serif;
+    line-height:1.65; padding:32px 16px 80px;
+  }
+  .wrap{max-width:880px; margin:0 auto;}
+  header{border-bottom:1px solid var(--acc); padding-bottom:18px; margin-bottom:28px;}
+  h1{font-size:1.9em; color:var(--acc); font-weight:normal; letter-spacing:.5px;}
+  .subtitle{color:var(--dim); font-style:italic; margin-top:6px; font-size:.95em;}
+  .meta{color:var(--dim); font-size:.8em; margin-top:10px; font-family:Consolas,monospace;}
+  h2{
+    color:var(--acc); font-size:1.35em; font-weight:normal;
+    margin:36px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  h3{color:var(--txt); font-size:1.05em; margin:22px 0 8px;}
+  h4{color:#efe8da; font-size:.98em; margin:18px 0 6px;}
+  p{margin:0 0 12px;}
+  strong{color:#efe8da;}
+  em{color:var(--dim);}
+  .tldr{color:var(--txt); font-style:italic; border-left:3px solid var(--acc); padding-left:14px; margin:0 0 10px;}
+  .verdict{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:16px 20px; margin:14px 0 22px;
+  }
+  .verdict .vlabel{
+    font-family:Consolas,monospace; font-size:.72em; letter-spacing:2px;
+    text-transform:uppercase; color:var(--acc); display:block; margin-bottom:6px;
+  }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 22px; margin:14px 0;
+  }
+  .card.hot{border-color:var(--acc);}
+  .cols{display:flex; gap:14px; flex-wrap:wrap; margin:14px 0;}
+  .col{
+    flex:1; min-width:290px; background:var(--panel);
+    border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  }
+  .col h4{
+    font-family:Consolas,monospace; font-size:.75em; letter-spacing:2px;
+    text-transform:uppercase; margin:0 0 10px; font-weight:normal;
+  }
+  .col.today h4{color:var(--good);}
+  .col.other h4{color:var(--warn);}
+  ul{margin:0 0 12px 20px;}
+  li{margin-bottom:7px;}
+  .lean{
+    font-family:Consolas,monospace; font-size:.78em; letter-spacing:1px;
+    padding:2px 10px; border-radius:12px; border:1px solid;
+    font-weight:bold; color:rgba(255,255,255,.4); white-space:nowrap;
+  }
+  .lean.yes{background:#182215; border-color:var(--good);}
+  .lean.wash{background:#28200f; border-color:var(--warn);}
+  .lean.no{background:#261512; border-color:var(--bad);}
+  .lean.acc{background:#251d12; border-color:var(--acc);}
+  .lean-row{display:flex; align-items:center; gap:12px; margin:4px 0 14px; flex-wrap:wrap;}
+  .lean-row .dim{color:var(--dim); font-size:.85em;}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92em;}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{
+    color:var(--acc); font-family:Consolas,monospace; font-size:.78em;
+    letter-spacing:1.5px; text-transform:uppercase; font-weight:normal;
+  }
+  td:first-child{color:#efe8da;}
+  .num{font-family:Consolas,monospace; color:var(--warn); white-space:nowrap;}
+  .tag{font-family:Consolas,monospace; font-size:.85em; color:var(--dim);}
+  code{font-family:Consolas,monospace; font-size:.88em; color:var(--dim);}
+  .scroll{overflow-x:auto;}
+  ol{margin:0 0 12px 22px;}
+  ol li{margin-bottom:9px;}
+  .bottom{
+    background:var(--panel2); border:1px solid var(--acc); border-radius:10px;
+    padding:20px 24px; margin-top:34px;
+  }
+  .bottom h2{margin-top:0; border-bottom:none;}
+  footer{
+    margin-top:40px; padding-top:14px; border-top:1px solid var(--border);
+    color:var(--dim); font-size:.8em; font-family:Consolas,monospace;
+  }
+  @media (max-width:600px){
+    body{padding:20px 10px 60px;}
+    h1{font-size:1.5em;}
+  }
+  ::-webkit-scrollbar{width:6px; height:6px;}
+  ::-webkit-scrollbar-track{background:#0a0a0a;}
+  ::-webkit-scrollbar-thumb{background:#333;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>⚔ LiveKit — findings and verdict</h1>
+  <div class="subtitle">Should Traffic and Dragons adopt LiveKit for realtime audio? Investigation for TODO #84.</div>
+  <div class="meta">Written 2026-07-21 · engine v1.415 · sources: five supervisor research lanes (A–E, aggregated web research) cross-checked against the repo itself (stt.js, tts.js, TODO.md, DOC/DOC_multiplayer.html) · design-only, no code written</div>
+</header>
+
+<div class="verdict">
+  <span class="vlabel">Verdict</span>
+  <p><strong>Do not adopt LiveKit. Close TODO #84 as investigated and declined,</strong> with one narrow re-open trigger (see §8). LiveKit is a competent, well-funded realtime-media platform that solves a problem this project does not have, at a cost model that inverts the project's economics, by way of an architecture change (server + build pipeline + a second runtime) that is larger than the entire feature it would buy.</p>
+  <div class="lean-row">
+    <span class="lean no">DO NOT ADOPT</span>
+    <span class="dim">Confidence: <strong>very high</strong> under current constraints · <strong>high</strong> even if a server and build pipeline are accepted</span>
+  </div>
+  <p><strong>The single strongest argument against this recommendation:</strong> if networked co-op (#1 Q7 — separate devices, live sync) is ever built <em>and</em> it wants live player-to-player voice, LiveKit is genuinely the right tool and a solo developer should not hand-write an SFU. Declining now means re-litigating it later, possibly with sunk-cost bias toward whatever half-measure got built in the meantime. I accept that risk because Q7 is unscoped, because the multiplayer spec's own primary use case is <em>one phone passed around a car</em> (which needs no network at all), and because nothing about declining today forecloses adopting later — there is no partial commitment to strand.</p>
+</div>
+
+<h2>1 · The two readings, kept separate</h2>
+
+<p class="tldr">TLDR: under today's architecture LiveKit is not adoptable at all — this is not a close call and all five lanes agreed on it. Under a hypothetical server-plus-build architecture it becomes possible, but still loses.</p>
+
+<div class="cols">
+  <div class="col today">
+    <h4>Reading A — current constraints</h4>
+    <p><em>No build step, no npm, ES5.1, static hosting on Cloudflare Pages, one small Fly.dev REST sync service, keys in localStorage, browser calls provider directly.</em></p>
+    <ul>
+      <li><strong>LiveKit performs no speech recognition itself.</strong> It is a media router (SFU). STT/TTS live in the Agents framework.</li>
+      <li><strong>Agents requires a persistent server-side worker process</strong> (Python or Node) that registers with LiveKit and receives job assignments. There is no documented browser-only or client-only mode.</li>
+      <li><strong>Access tokens are JWTs that must be signed server-side</strong> with an API secret that can never reach the browser. Even the "just connect a client" path needs a backend.</li>
+      <li>Therefore: <strong>zero benefits are available under this reading. Not "few" — zero.</strong> Every one of the 25 benefits returned across five lanes is tagged <span class="tag">with-server-and-build</span> or collapses to it.</li>
+    </ul>
+    <div class="lean-row"><span class="lean no">NOT ADOPTABLE — STRUCTURAL</span></div>
+  </div>
+  <div class="col other">
+    <h4>Reading B — server + build accepted</h4>
+    <p><em>Hypothetical: the project takes on a bundler, npm dependencies, and an always-on media/agent backend.</em></p>
+    <ul>
+      <li>The capabilities become real: cross-browser mic capture over WebRTC, server-side STT with swappable providers, model-based turn detection, barge-in handling, room/participant primitives.</li>
+      <li>But the decision is no longer "LiveKit or not." It is <strong>"accept a server-and-build architecture" first</strong>, and only then "is LiveKit the best vendor inside it" — and inside that new architecture, a direct Deepgram/AssemblyAI/Whisper integration behind your own token endpoint is cheaper per minute and skips LiveKit's agent-session fee entirely.</li>
+      <li>Keeping Claude as GM inside a LiveKit agent needs the <strong>Python</strong> runtime — the Anthropic plugin is Python-only; the Node/TypeScript agents SDK omits Anthropic. The project's one existing server is Node. That is a second, unrelated runtime to operate.</li>
+    </ul>
+    <div class="lean-row"><span class="lean wash">POSSIBLE, STILL LOSES</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <p><strong>Why Reading A's finding carries so much weight:</strong> the five lanes were deliberately framed differently — Lane A was pitched as "drop-in replacement: capabilities" (a positive framing), Lane E as adversarial risk analysis. They still converged, independently, on the same structural fact. Lane A's own supervisor wrote that the "drop-in replacement" framing "is itself not supported by the research." When a favourably-framed lane refutes its own premise, that is the highest-quality signal in the dataset.</p>
+</div>
+
+<h2>2 · What the repo already does that the research did not know</h2>
+
+<p class="tldr">TLDR: I checked the codebase, and the two problems every lane offered LiveKit to solve are already solved in-repo, at zero cost, without a server — which is the finding that actually decides this.</p>
+
+<p>All five lanes worked from the project summary they were given. That summary described <span class="tag">stt.js</span> as "a thin module over the browser Web Speech API… not Firefox, flaky on iOS." That description is <strong>out of date</strong>. Reading the file changes the analysis materially.</p>
+
+<div class="card hot">
+  <h4>① The iOS Safari / Firefox dictation gap is already closed — shipped, no server, no build</h4>
+  <p><span class="tag">stt.js</span> lines ~281–433 contain a complete cloud fallback: when native <code>SpeechRecognition</code> is absent, it captures audio with <code>getUserMedia</code> + <code>MediaRecorder</code> (mp4 on Safari, webm/opus elsewhere), and POSTs the blob straight to <code>api.openai.com/v1/audio/transcriptions</code> with <code>whisper-1</code>, using the player's own OpenAI key from <code>providerKeys</code>. It is ~150 lines of ES5, dispatches only when native is missing so the native path stays byte-identical, and <code>isSupported()</code> already reports true on iOS when a key is on file.</p>
+  <p><strong>This is precisely the "cheap point-fix alternative" Lane E proposed as the reason to reject LiveKit — and it was built and shipped before the question was asked.</strong> The single most-repeated benefit across all five lanes ("closes the Firefox/iOS Car Mode gap") is therefore not a benefit. It is a re-solve.</p>
+  <p><em>Honest caveats, because this is the load-bearing fact:</em> the path is marked EXPERIMENTAL (todo_carplay rank 7); it needs an OpenAI key, so a player carrying only an Anthropic key still gets no iOS dictation; there is a 15-second recording cap; and there is no auto-endpoint — it is tap-to-start, tap-when-done, versus native's automatic speech-end. Those are real seams, and §8 targets them.</p>
+</div>
+
+<div class="card hot">
+  <h4>② Fantasy proper nouns already have a better answer than keyterm prompting</h4>
+  <p>Lane A's strongest genuine capability claim was custom vocabulary — Deepgram Nova-3 Keyterm Prompting, up to 100 terms, to bias recognition toward invented names. The project shipped <code>sttCorrectNames()</code> / <code>sttWordScore()</code> / <code>sttNameRoster()</code> (helpers.js, v1.330, commit b8fea0f, titled <em>"phonetic name correction — 'Frizwick becomes Physics'"</em>) — post-hoc phonetic correction against the <strong>live campaign roster</strong>, with an explicit tie-guard that refuses to substitute when two roster names score equally ("never guess between people").</p>
+  <p>That is <em>better targeted</em> than a static 100-term list, because it draws from the actual NPCs in this save, not a vocabulary configured at request time. It costs nothing, runs on both the native and cloud paths, and needs no vendor.</p>
+  <p>And TODO <strong>#77</strong> (confirm-before-send read-back) is the designed follow-up. Note what #77 solves that no STT engine can: <strong>speaker misattribution</strong> — in a car with four people, a second player speaking during another's spotlight is silently filed as the spotlight PC's action. A more accurate recognizer transcribes the wrong person's words <em>more accurately</em>. Only a confirmation gate fixes that. The project's own roadmap is aimed at the right layer.</p>
+</div>
+
+<div class="card hot">
+  <h4>③ Multiplayer shipped as hot-seat on one device — the room model has nothing to route</h4>
+  <p>Three lanes (A, C, D) offered "LiveKit rooms are a natural substrate for PARTY_MAX 4." <span class="tag">DOC/DOC_multiplayer.html</span> locked the opposite: <em>"Hot-seat on one device. No networking, no per-device sync… This removes the entire multiplayer server problem from the first pass."</em> D13 (2026-07-20) records the multi-human session and the user's verdict, <em>"it works."</em> Phases P1–P5 are built; the hot-seat build is closed. Only Q7 (networked co-op, separate devices) remains, explicitly deferred and unscoped.</p>
+  <p>Even for Q7, the problem shape is <strong>turn-based text state sync</strong> — a labeled action block, a quest log, per-PC location threads — which is the existing Fly.dev REST service's shape, not media routing. Lane D's own top drawback says this plainly, and adds the sharper point: LiveKit data-channel packets are <strong>never buffered for a disconnected participant</strong>. For a game played in cars, where signal drops, a transport that silently discards state for whoever was in a tunnel is the wrong primitive.</p>
+</div>
+
+<div class="card hot">
+  <h4>④ The cloud-TTS question was decided against, two days before this row was raised</h4>
+  <p>TODO #9 (direction change, user call 2026-07-20): <strong>remove Cartesia entirely — "too expensive to be viable"</strong> — and make Piper THE engine, with native kept only as a silent fallback. Lane C offered "Cartesia already integrated in tts.js could carry over into a LiveKit pipeline" as a benefit. That integration is being deleted, on exactly the cost grounds that LiveKit would reintroduce at a higher rate. Meanwhile the community Piper plugin for LiveKit is unofficial, absent from LiveKit's own 40+ provider list, has no confirmed maintenance history, and disables streaming synthesis — and adopting it would move Piper from client WASM to a server process, trading away the offline, $0, zero-network property the project just spent #9 committing to.</p>
+</div>
+
+<h2>3 · Consolidated benefits, ranked by weight to <em>this</em> game</h2>
+
+<p class="tldr">TLDR: after deduplication and after checking each against the repo, exactly one claimed benefit survives as a real capability this project lacks — and it is the one with a documented open defect.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>#</th><th>Benefit</th><th>Lanes</th><th>Weight here</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>Coordinated turn-taking: barge-in, interruption handling, model-based semantic turn detection, automatic gain control.</strong> Car Mode today stitches tts.js and stt.js as two independent modules with no shared turn contract — the player cannot interrupt narration to speak, and the cloud path has no auto-endpoint at all. LiveKit ships these as first-class pipeline features (AudioTurnDetector, ~300ms min_delay vs ~500–800ms flat VAD).</td>
+    <td>A, C</td>
+    <td><span class="lean wash">REAL GAP, POISONED</span><br><span class="dim">The only benefit naming something the project genuinely lacks. But Lane E found LiveKit's own tracker documenting a barge-in bug that drops the start of a user's utterance <em>specifically when interrupting agent speech</em> — closed "not planned." The one thing LiveKit uniquely offers has an unfixed defect in the exact mechanic Car Mode needs.</span></td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>Provider-swappable STT behind one interface</strong> — string descriptors like <code>deepgram/nova-3:en</code>, no call-site branching. Architecturally the same idea as the project's own PROVIDERS and TTS_PROVIDERS tables.</td>
+    <td>A, B, C</td>
+    <td><span class="lean wash">TRUE, NOT NEEDED</span><br><span class="dim">Three lanes agreed, and the agreement is fair — it <em>is</em> a good fit for how this codebase likes to be built. But the project already demonstrated it can build that table itself, twice, in ES5, in an afternoon. Buying a server to obtain a pattern you already own is not a benefit.</span></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>Cross-browser mic capture via WebRTC</strong>, removing dependence on whichever speech engine the browser ships.</td>
+    <td>A, B, C, D, E</td>
+    <td><span class="lean no">ALREADY SHIPPED</span><br><span class="dim">Unanimous across all five lanes — and superseded by §2①. The project reaches iOS with <code>getUserMedia</code> + <code>MediaRecorder</code> + Whisper, no server, no build, on the player's key. Note the irony: Lane C flagged that <em>no researcher actually tested WebRTC mic capture on iOS Safari</em>. The repo has empirically answered the adjacent question already.</span></td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>Custom vocabulary / keyterm prompting</strong> for invented fantasy proper nouns — a capability class Web Speech API structurally lacks.</td>
+    <td>A</td>
+    <td><span class="lean no">OUT-DESIGNED IN-REPO</span><br><span class="dim">See §2②. Roster-driven phonetic correction beats a static term list for this use case, and #77's read-back also covers misattribution, which no recognizer can. Lane A itself conceded the accuracy premise is unproven — see §6.</span></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td><strong>Rooms/participants as multiplayer substrate</strong>, plus granular publish/subscribe permissions matching one-speaker-at-a-time table play.</td>
+    <td>A, C, D</td>
+    <td><span class="lean no">WRONG PROBLEM</span><br><span class="dim">See §2③. Multiplayer shipped hot-seat; Q7 is a state-sync problem; data channels do not buffer for disconnected players. Lane D's own drawback contradicts its own benefit here — the internal conflict is genuine and it resolves against LiveKit.</span></td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td><strong>Apache-2.0 core, self-hostable, low transport lock-in; well-funded ($100M Series C, Jan 2026); repos active within days of the survey.</strong></td>
+    <td>E</td>
+    <td><span class="lean wash">RISK-REDUCER, NOT A REASON</span><br><span class="dim">Correctly scoped by Lane E itself: portability covers Cloud↔self-host only. The Agents/orchestration layer has no drop-in equivalent, so exiting LiveKit entirely is <em>not</em> cheap. This lowers the downside of adopting; it is not an argument for adopting.</span></td>
+  </tr>
+</table>
+</div>
+
+<p><strong>Dropped in deduplication:</strong> free Build tier (1,000 agent minutes/mo) and pre-connect audio buffering are real but trivial at this scale; multilingual coverage (up to 190 languages) has no stated demand in this project; built-in STT/TTS/LLM failover exists only in the Python SDK — Lane E found the open issue confirming <code>agents-js</code> lacks it, in the language this project actually uses.</p>
+
+<h2>4 · Consolidated drawbacks, ranked by weight to <em>this</em> game</h2>
+
+<p class="tldr">TLDR: one drawback is unconditional and gating; the rest only bite after you have already accepted the gating one.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>#</th><th>Drawback</th><th>Lanes</th><th>Weight here</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>There is no incremental path.</strong> LiveKit does no STT itself; STT lives in Agents; Agents requires an always-on server-side worker; tokens require server-side JWT signing with a secret. Adopting it means a bundler, npm dependency management, ESM, an always-on media backend, and — to keep Claude as GM — a Python runtime alongside the existing Node one. Against 16 plain <code>&lt;script src&gt;</code> ES5.1 files on static hosting.</td>
+    <td>A, B, C, D, E</td>
+    <td><span class="lean no">GATING — DECIDE THIS ALONE</span><br><span class="dim">Unanimous, and Lane E is right that it should be weighted above everything else because it is unconditional: true before a dollar is spent or an outage occurs. This is the whole decision.</span></td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>It inverts who pays.</strong> The project's economics are BYOK end to end — players pay Anthropic, players pay OpenAI for the Whisper fallback, Piper costs nobody anything. LiveKit bills the <em>developer</em> per connected minute (agent session + WebRTC participant minutes + inference), not per minute of speech.</td>
+    <td>B, C, E</td>
+    <td><span class="lean no">BREAKS THE MODEL</span><br><span class="dim">This is the same unit-economics trap <span class="tag">DOC/app_vs_browser.html</span> already reasoned through and rejected for the App Store conversion: "converting doesn't create a business; it creates a billing obligation." The reasoning transfers exactly. See §5.</span></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>Regresses the offline/local-first posture the project deliberately built.</strong> Piper is WASM in the browser, OPFS-cached, offline, $0 — a decision re-ratified 2026-07-20 by deleting Cartesia on cost. Native STT is on-device. Routing voice through a remote room + worker + third-party vendor means the STT and TTS halves end up with opposite connectivity and privacy models.</td>
+    <td>B, C, E</td>
+    <td><span class="lean no">AGAINST A FRESH DECISION</span></td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>Breaking-change churn on exactly the layers this would touch</strong> — Agents v0→v1, client-sdk-js v1→v2, server-sdk-js CommonJS→ESM-only, three migrations in roughly two years, with no published LTS or deprecation policy found.</td>
+    <td>E</td>
+    <td><span class="lean wash">ONGOING TAX</span><br><span class="dim">For a solo maintainer already carrying a 57-handler tag parser, a prompt-cache split, and a nightly ship cadence, each major bump is unplanned work with no user-facing payoff.</span></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td><strong>Multi-speaker transcription for a 4-person table has open bugs.</strong> Diarization operates on a single mixed track by design; GitHub #3657 reports the STT agent transcribing only one participant when several speak; #4567 reports a no-op diarization toggle. No provider publishes accuracy at 3–4 simultaneous speakers.</td>
+    <td>D</td>
+    <td><span class="lean wash">HITS THE CAR CASE</span><br><span class="dim">Downweighted for a reason Lane D flagged honestly: these are dated observations with no confirmed-current status. Downweighted <em>further</em> because hot-seat multiplayer has one mic and one speaker at a time by design — so this only bites in a networked-co-op future that does not exist.</span></td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td><strong>Self-hosting to escape the fees is a worse trade for a solo dev</strong> — TURN relay config with its own certs and bandwidth, 20–40% of users behind symmetric NAT needing it, Redis-coordinated multi-node Go SFU, break-even only around ~500 concurrent sessions.</td>
+    <td>B, D, E</td>
+    <td><span class="lean wash">ESCAPE HATCH IS SHUT</span><br><span class="dim">Three lanes agreed. It closes the obvious "just self-host it for free" rebuttal.</span></td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td><strong>Cloud reliability is imperfect and the failures land on Car Mode's pattern</strong> — status page showing 97.22% trailing-30-day uptime against a 99.9% target; the barge-in drop and phantom interrupted-speech events; EU-region latency reported doubling when deployed.</td>
+    <td>D, E</td>
+    <td><span class="lean wash">SPECIFIC, THINLY SOURCED</span><br><span class="dim">Real signal, but see §6 — the aggregate outage counts come from automated monitors with undisclosed methodology.</span></td>
+  </tr>
+</table>
+</div>
+
+<h3>Where the lanes conflicted</h3>
+<ul>
+  <li><strong>Is LiveKit STT cheap or expensive?</strong> Lane B modelled STT-only at <span class="num">~$0.044–0.058</span>/player-hour and called it small; Lane E modelled a fully-loaded stack at <span class="num">~$4,614/month</span> for one continuously-open session. Both are right about different things, and the resolution is the important part: <strong>the transcription is cheap and the connection is not.</strong> Agent-session and participant minutes accrue for the whole time a player is connected, while actual speech is a few minutes per hour. Lane B's own numbers show the overhead dominating the STT by roughly 10×.</li>
+  <li><strong>Does a script-tag-loadable build exist?</strong> Lane E asserted npm/ESM-only as verified; Lane B explicitly labelled its own version of this an unverified inference and named it the one item it most wanted checked; Lane D's researcher flagged ES5 compatibility as unaddressed by the docs. <em>This, the most-contested fact in the whole dataset, is decision-irrelevant</em> — a perfect UMD bundle would still buy nothing, because the client SDK alone cannot transcribe anything without a room and an agent worker that do not exist. Worth stating plainly so nobody spends an evening checking it.</li>
+  <li><strong>Lane D internally.</strong> Its Topics 1–4 described LiveKit on its own terms and read favourably; only Topic 5 was asked to compare against alternatives, and that framing flipped the verdict to "overkill and cost-inefficient." Lane D's supervisor flagged this honestly. It is a structural bias worth naming: <strong>four of five lanes were never asked what the cheaper option was.</strong></li>
+</ul>
+
+<h2>5 · Cost model</h2>
+
+<p class="tldr">TLDR: the individual per-minute rates are well sourced, the fully-loaded totals are not, and the number that actually decides it is not a rate at all — it is who receives the bill.</p>
+
+<h3>Rates (as found, with sourcing labelled)</h3>
+<div class="scroll">
+<table>
+  <tr><th>Line item</th><th>Rate</th><th>Source quality</th></tr>
+  <tr><td>LiveKit agent session</td><td class="num">$0.01/min</td><td>livekit.com/pricing — <strong>verified</strong>, cited by three lanes</td></tr>
+  <tr><td>LiveKit free tier (Build)</td><td class="num">1,000 agent-min + 5,000 participant-min + $2.50 inference/mo</td><td>livekit.com/pricing — <strong>verified</strong></td>
+  <tr><td>LiveKit Ship tier</td><td class="num">$50/mo + $0.01/min overage</td><td>livekit.com/pricing — <strong>verified</strong></td></tr>
+  <tr><td>Deepgram Nova-3 streaming</td><td class="num">$0.0048–0.0058/min</td><td>deepgram.com/pricing — <strong>verified</strong></td></tr>
+  <tr><td>AssemblyAI streaming</td><td class="num">$0.0025–0.0075/min</td><td>vendor page — <strong>verified</strong>, but bills full session-connection time (~65% overhead on short utterances)</td></tr>
+  <tr><td>OpenAI Realtime STT</td><td class="num">$0.0216/min</td><td>vendor page — <strong>verified</strong></td></tr>
+  <tr><td>"Fully loaded" LiveKit voice stack</td><td class="num">~$0.077–0.083/min</td><td><strong>UNVERIFIED — third-party blog (trtc.io), a competitor.</strong> Flagged as vendor-claim by two lanes. Do not budget from this.</td></tr>
+  <tr><td>Self-host running cost</td><td class="num">"~$5–20/mo" / "$99–200/mo bandwidth"</td><td><strong>UNVERIFIED and mutually inconsistent</strong> across lanes; both self-labelled estimates. Only the qualitative ops burden is asserted here.</td></tr>
+</table>
+</div>
+
+<h3>Per-player-hour, assumptions stated</h3>
+<p>Assumptions, taken from Lane B and stated so they can be challenged: a 60-minute session; <strong>7.5 minutes of actual player speech</strong> in that hour (a text RPG with dictated actions, not a phone call); one player; agent session and participant minutes billed for the full 60 minutes because the room stays open; 1-minute billing rounding ignored.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Path</th><th>Per player-hour</th><th>Who pays</th></tr>
+  <tr><td>Today — native Web Speech STT + Piper TTS</td><td class="num">$0.00</td><td>Nobody</td></tr>
+  <tr><td>Today — iOS cloud fallback (Whisper, 7.5 min of audio at $0.006/min)</td><td class="num">~$0.045</td><td><strong>The player</strong>, on their own OpenAI key</td></tr>
+  <tr><td>LiveKit — STT inference only</td><td class="num">~$0.044–0.058</td><td>The developer</td></tr>
+  <tr><td>LiveKit — agent session (60 min × $0.01)</td><td class="num">~$0.60</td><td>The developer</td></tr>
+  <tr><td>LiveKit — plus WebRTC participant minutes, TTS, egress</td><td class="num">unmodelled</td><td>The developer</td></tr>
+</table>
+</div>
+
+<p><strong>The decisive line in that table is the right-hand column, not the middle one.</strong> Today's marginal cost lands on the player, via their own key, capped by their own usage — the same BYOK arrangement that <span class="tag">app_vs_browser.html</span> identifies as "the <em>only</em> configuration where this project is financially self-sustaining." LiveKit bills the developer for wall-clock connection time. Even generously — free tier absorbing everything, one player, a few sessions a month — the project acquires its first per-minute liability, and the liability grows with player engagement, which is the one variable a hobby project most wants to grow freely.</p>
+
+<p><em>What could not be verified:</em> no lane produced an audited bill, only models. Nobody scoped TTS egress back to the player. Nobody found a single case study of LiveKit used for a small-party, text-first, occasional-voice game — every figure here is extrapolated from voice-agent and enterprise-telephony material. I am not going to build a confident-looking total out of that.</p>
+
+<h2>6 · Evidence quality</h2>
+
+<p class="tldr">TLDR: the one fact the verdict rests on is the best-evidenced thing in the dataset; almost everything favourable to LiveKit is thinner than it reads.</p>
+
+<h4>Verified, and load-bearing</h4>
+<ul>
+  <li>LiveKit performs no STT itself; the Agents framework requires a server-side worker; there is no browser-only mode. <strong>All five lanes, from official docs.</strong> This is the finding the verdict rests on, and it is the strongest evidence present.</li>
+  <li>Tokens are server-signed JWTs; the API secret must never reach the browser. Official docs, two lanes.</li>
+  <li>Anthropic plugin is Python-only; <code>agents-js</code> omits it and also lacks the fallback adapters. Official docs + an open GitHub issue.</li>
+  <li>Published per-minute rates for LiveKit tiers and for Deepgram/AssemblyAI/OpenAI, from vendor pricing pages.</li>
+  <li>Repo-side facts in §2 — I read <span class="tag">stt.js</span>, <span class="tag">helpers.js</span>, <span class="tag">TODO.md</span> and <span class="tag">DOC/DOC_multiplayer.html</span> directly rather than relying on the project summary the lanes were given.</li>
+</ul>
+
+<h4>Vendor claim or single-blog — do not treat as fact</h4>
+<ul>
+  <li>The <span class="num">~$0.077/min</span> fully-loaded figure and the <span class="num">~$4,614/mo</span> derivation both trace to <strong>trtc.io, a competitor's blog</strong>. Flagged as vendor-claim by Lanes C and E.</li>
+  <li>"568+ outages" and third-party incident counts come from automated status aggregators (statusgator, isdown.app) whose definition of "outage" is not disclosed. Lane E said so itself.</li>
+  <li>Self-hosting break-even points (~500 concurrent sessions, 500K–1M participant-min/mo) and the $16K–30K/yr opportunity-cost figure come from consultancy blogs with an interest in the answer.</li>
+  <li>Migration cost figures ($72K, 4–6 weeks, two senior engineers) are enterprise customer-support-agent case studies with telephony and CRM tool-use. Lane C used them only qualitatively and said so; the literal numbers do not transfer to a solo hobbyist.</li>
+  <li>Latency figures (sub-1s cascade, 320–800ms realtime) are from LiveKit's own docs and blog. "Verified" there means "present in official documentation," not independently benchmarked — and no lane found any published latency benchmark using Claude in a LiveKit pipeline.</li>
+</ul>
+
+<h4>Unverified, and it matters</h4>
+<ul>
+  <li><strong>Nobody has ever benchmarked STT accuracy on invented fantasy vocabulary</strong> — not for LiveKit's providers, not for Web Speech API. Lane A said this outright and it undercuts Lane A's own headline benefit. Worse, Web Speech API has <strong>no published WER at all</strong>, so every comparison in this dataset is qualitative on one side and quantitative-but-shaky on the other.</li>
+  <li>Even the best providers do badly on proper nouns generally: AssemblyAI Universal-3.5 Pro reports a <span class="num">24.08%</span> missed-entity rate on names despite <span class="num">4.35%</span> overall WER; a Pipecat benchmark puts Deepgram Flux at <span class="num">50.50%</span> entity error rate. Deepgram's own <span class="num">5.26%</span> WER claim is possibly contradicted by Artificial Analysis at 7–10%.</li>
+  <li>No lane tested WebRTC mic capture on iOS Safari; Lane C explicitly labelled its own iOS benefit an architectural inference.</li>
+  <li>No lane evaluated multi-human-plus-agent rooms for a game party. Lane C called this an extrapolation.</li>
+  <li>The multi-speaker transcription bugs (#3657, #4567) have no confirmed current status; the Node/Anthropic plugin gap may be temporary — Lane C explicitly asked that it not be used to rule LiveKit out permanently, and I have not.</li>
+  <li>No case study of a team migrating <em>off</em> LiveKit exists, so "low lock-in" is architectural reasoning, not observation.</li>
+</ul>
+
+<h4>What every supervisor flagged in dissent, in one line each</h4>
+<div class="scroll">
+<table>
+  <tr><th>Lane</th><th>Its own strongest self-criticism</th></tr>
+  <tr><td>A — capabilities</td><td>"Drop-in replacement" is unsupported by its own research; no current-constraints benefit exists anywhere in the lane; accuracy claims are extrapolation, and a real head-to-head test on fantasy vocabulary should precede any decision.</td></tr>
+  <tr><td>B — cost/ops/reach</td><td>This is not "LiveKit or not," it is "accept server+build, then pick a vendor" — and a direct Deepgram/Whisper integration wins inside that new architecture anyway. Its npm/build-conflict drawback is a reasoned inference it wanted verified.</td></tr>
+  <tr><td>C — whole voice layer</td><td>Every benefit is conditional on server+build; two of its own benefits (iOS gap, multiplayer rooms) are its own architectural inferences, untested by any researcher; the Piper-on-LiveKit path is unverified in practice; cost figures conflict across sources.</td></tr>
+  <tr><td>D — multiplayer fit</td><td>The favourable reading came from topics never asked to compare alternatives; the ES5/no-build question is unresolved and load-bearing; the transcription bugs are dated; and <strong>no case study exists of LiveKit used for a small-party, text-first, occasional-voice RPG</strong> — its single biggest stated uncertainty.</td></tr>
+  <tr><td>E — adversarial</td><td>Its own cost and outage numbers are third-party and unaudited; researchers disagree on whether browser-direct STT keys are sanctioned; lock-in analysis is reasoning, not observation; and the architecture mismatch should be treated as the gating question rather than one item among five.</td></tr>
+</table>
+</div>
+
+<h2>7 · Alternatives considered</h2>
+
+<p class="tldr">TLDR: the do-nothing baseline is genuinely strong here, and the best improvement available is hardening what already ships — not buying infrastructure.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Option</th><th>Outcome</th><th>Why</th></tr>
+  <tr>
+    <td><strong>Do nothing</strong> — native Web Speech + shipped Whisper fallback + roster name correction + Piper TTS</td>
+    <td><span class="lean yes">BASELINE — WINS TODAY</span></td>
+    <td>$0 to the developer, works on every target platform including iOS, no server, no build, no npm, no new runtime, no vendor. The bar LiveKit had to clear, and did not.</td>
+  </tr>
+  <tr>
+    <td><strong>Harden the shipped cloud path</strong> — lift the 15s cap, add an endpoint heuristic or VAD so it is not tap-when-done, ship #77's read-back, then #78's numbered read-back for Car Mode</td>
+    <td><span class="lean yes">RECOMMENDED NEXT MOVE</span></td>
+    <td>Targets the actual remaining seams (no auto-endpoint, garbled names, misattribution) in ES5, in-repo, at zero recurring cost. #77 also solves misattribution, which no STT vendor can.</td>
+  </tr>
+  <tr>
+    <td><strong>Whisper.cpp / Moonshine WASM in-browser</strong></td>
+    <td><span class="lean acc">TRACK AS AN IDEA</span></td>
+    <td>The most architecturally aligned option in the entire dataset: OPFS-cached, offline, $0, no key at all — precisely the Piper pattern the project already runs and just re-committed to in #9. Would close the iOS gap for key-less players too. Loses today only on effort and model size, not on principle. If the voice stack is ever revisited, this is the shape to revisit it in.</td>
+  </tr>
+  <tr>
+    <td><strong>Deepgram / AssemblyAI streaming direct from the browser</strong></td>
+    <td><span class="lean wash">FALLBACK IF WHISPER FAILS</span></td>
+    <td>Keeps BYOK and needs no server, gets streaming interim results and keyterm prompting. Caveat: lanes disagreed on whether browser-direct keys are sanctioned, and AssemblyAI reportedly requires backend token minting. The general "never ship a key to the browser" objection is weaker <em>here</em> than elsewhere, since this project already ships player-owned keys in localStorage by explicit design — but it is not zero.</td>
+  </tr>
+  <tr>
+    <td><strong>Colyseus / PartyKit / plain WebSockets</strong> for networked co-op (#1 Q7)</td>
+    <td><span class="lean acc">RIGHT COMPARISON SET FOR Q7</span></td>
+    <td>Assessed 5–10× cheaper and architecturally closer to a turn-based text game's state-sync problem. When Q7 is scoped, this is the field to evaluate — LiveKit belongs in it only if <em>live voice presence between remote players</em> is a stated requirement.</td>
+  </tr>
+  <tr>
+    <td><strong>LiveKit</strong></td>
+    <td><span class="lean no">LOSES</span></td>
+    <td>Requires the largest architecture change of any option, to deliver two benefits already shipped, one benefit aimed at a decision already made in the opposite direction, and one real capability (turn-taking) with a documented unfixed defect — while inverting who pays.</td>
+  </tr>
+</table>
+</div>
+
+<h2>8 · Smallest next step, and the re-open triggers</h2>
+
+<p class="tldr">TLDR: my recommendation rests on one assumption I have not personally tested, so test that — for the price of one evening and about a cent.</p>
+
+<div class="card hot">
+  <h4>The riskiest assumption in this document</h4>
+  <p><strong>That the shipped Whisper fallback is actually good enough on iPhone Safari in Car Mode.</strong> I verified it exists and read every line of it; I have not seen it run on a phone in a car. TODO #84 itself names "the iPhone Safari + Car Mode path" as the primary use case. If that path is in practice unusable — permission prompts, mp4 recording quirks, the 15-second cap truncating actions, tap-when-done being impossible while driving, latency after upload — then the "gap is already closed" finding weakens, and §7's ranking shifts (though still not toward LiveKit; toward hardening or toward WASM Whisper).</p>
+  <h4>The test</h4>
+  <ol>
+    <li>One iPhone, Safari, an OpenAI key on file, Car Mode, a real campaign with a few awkward NPC names on the roster.</li>
+    <li>Dictate <strong>10 actions</strong> containing campaign proper nouns. Record for each: did the mic button appear (<code>isSupported()</code> true?), tap-to-text latency, raw Whisper output, output after <code>sttCorrectNames</code>, and whether the 15s cap ever truncated.</li>
+    <li>Note explicitly whether tap-when-done is workable one-handed while driving, since that is the seam LiveKit's turn detection would nominally fix.</li>
+  </ol>
+  <p><strong>Cost:</strong> one evening and roughly <span class="num">$0.01</span> of Whisper. <strong>Decides:</strong> whether §2① holds, and which of the three §7 improvement paths to take. <strong>Does not require:</strong> any code, any server, any dependency, or any commitment.</p>
+</div>
+
+<h3>Re-open TODO #84 only if all three become true</h3>
+<ol>
+  <li><strong>Networked co-op (#1 Q7) is greenlit</strong> — separate devices, live sync, explicitly scoped, not the hot-seat build.</li>
+  <li><strong>Live voice presence between remote players is a stated requirement</strong>, not an assumed one. A turn-based text RPG can be networked co-op with no audio transport whatsoever.</li>
+  <li><strong>The project has already accepted a build pipeline and an always-on server for other reasons.</strong> LiveKit must never be the thing that forces that decision; it can only ride one already made.</li>
+</ol>
+<p>Absent all three, this file is the answer, and #84 closes. If they do become true, re-check two things that may have moved: whether <code>agents-js</code> has gained Anthropic support (so a second Python runtime is unnecessary), and whether GitHub #3657 multi-participant transcription is fixed.</p>
+
+<div class="bottom">
+  <h2>Bottom line</h2>
+  <p><strong>LiveKit is a good product aimed at a different problem.</strong> It exists to route live media between many participants and orchestrate voice agents. Traffic and Dragons is a turn-based text game where one person at a time dictates one sentence into a text field, played on one phone passed around a car, funded by every player bringing their own API key.</p>
+  <p>The research was unanimous on the structural point and was, in places, thinner than it read on everything favourable. But the finding that actually settles it did not come from the research at all — it came from reading the repo: <strong>the iOS dictation gap that every lane offered LiveKit to close was closed months ago in about 150 lines of ES5, and the fantasy-name problem has a roster-driven correction pass that a generic vendor could not match.</strong> The project solved its own voice problems with the architecture it already has, twice.</p>
+  <p>The correct next move is not to buy infrastructure. It is to spend one evening confirming the iOS path works in a car, then ship <strong>#77</strong> — because the read-back gate fixes the one failure mode (a second player's words filed as yours, silently) that no amount of transcription accuracy can ever touch.</p>
+</div>
+
+<footer>Traffic and Dragons · DOC/liveKit_findings.html · standalone doc page (not in the SW app shell) · TODO #84 · 2026-07-21 · engine v1.415</footer>
+
+</div>
+</body>
+</html>
