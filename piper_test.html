@@ -634,7 +634,11 @@ async function soak(n, recycleEvery){
   var words = $("txt").value.replace(/\s+/g, " ").trim().split(" ");
   function soakText(i){
     if (!vary || words.length < 8) return units[i % units.length].text;
-    var n = 6 + (i % 60), out = [], j;
+    // window.__soakFixedLen pins the WORD COUNT while the content keeps changing — the
+    // discriminator between "ORT allocates per input SHAPE" and "per call". Flat under this mode
+    // means shape is the driver, which is what makes bucketing/padding a viable fix; growth
+    // under it would kill that whole approach before a line of padding code gets written.
+    var n = (typeof window !== "undefined" && window.__soakFixedLen) || (6 + (i % 60)), out = [], j;
     for (j = 0; j < n; j++) out.push(words[(i * 7 + j) % words.length]);
     return out.join(" ") + ".";
   }

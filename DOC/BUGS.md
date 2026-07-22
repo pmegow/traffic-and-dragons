@@ -387,8 +387,42 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Not yet done, and deliberately not guessed at:** no fix is attempted here. The candidates (bound the growth via a fixed-shape input strategy — pad phoneme sequences to bucketed lengths so the shape set is small and closed; or tear down and rebuild the whole ORT *module*, not the session; or move synthesis into a worker that can be discarded wholesale) all need measuring against the harness above before any of them ships. That is one session's work now that the number is visible, and it is the right next step.
 
+**2026-07-22 — two candidate fixes MEASURED AND FALSIFIED. No code shipped; the harness earned its keep by killing both cheaply.**
+
+- **TLDR:** ORT session options do nothing, and input-shape bucketing does nothing. The second result is the informative one: it holds the INPUT shape to ~10 values and memory still climbs, so **the input shape is not what ORT is allocating against**. That leaves the discardable-worker approach as the only candidate still standing.
+
+- **Method.** Both candidates were driven through `piper_test.html` v0.3 with varied shapes and recycle off — the same arm that produced the baseline `170 → 245 @10 → 295 @23 → 354 @28 → 424 @39 → 509 @50`. The experiment knobs were runtime globals in the vendored file (`__tndSessOpts`, `__tndPadBucket`), so configs could be A/B'd without editing between runs, and **the whole experiment was reverted afterwards** — `vendor/piper/vits/vits-web.js` is untouched at r9.
+
+- **⛔ Candidate 1 — ORT session options. FALSIFIED on both knobs.**
+
+```text
+  arm                                       ortMB by synth
+  baseline (stock)                          245 @10   295 @23
+  enableMemPattern:false                    245 @17   295 @21
+  + enableCpuMemArena:false                 245 @10   245 @19
+```
+
+  `enableMemPattern` was the strong prior — it is the ORT feature that profiles tensor allocation per input shape and pre-allocates for it, which is a description of the measured symptom. It changes nothing. Adding `enableCpuMemArena:false` changes nothing either. **The options genuinely reached the runtime** — ORT normalised the object in place, adding `extra.session.use_ort_model_bytes_directly`, so this is a real null result rather than a flag being silently dropped at the JS layer.
+
+- **⛔ Candidate 2 — bucket the phoneme sequence. FALSIFIED, and it relocates the mechanism.** Padding each phoneme array up to a multiple of 32 while passing the TRUE length in `input_lengths` collapses the input-shape set from hundreds to about ten. Memory still climbed at close to the baseline rate: `170 @6 → 205 @9 → 245 @12`.
+
+  **What that rules out is worth more than the fix would have been.** With the input shape quantised to ~10 values, per-input-shape allocation cannot explain continued growth. The most likely remaining reading is that ORT is allocating against the **output/intermediate** shape: VITS predicts phoneme durations from content, so the generated audio frame count varies from sentence to sentence *regardless* of input length. Nothing on the input side can bucket that. **This also retires the "~7MB per distinct input shape" phrasing from the previous entry** — the per-new-shape cost is real, but the shape that matters is downstream of the input.
+
+- **Padding was checked for audio safety before the memory claim was even considered, and it is not obviously harmful** — durations stayed in range, so the mask does appear to exclude padded positions. Recording the method because it constrains any future attempt: **byte-identity is NOT available as a test.** VITS is stochastic; two unpadded runs of the SAME text differed by ~2% in output size (150,572 vs 147,500 bytes). Padded runs (149,036 / 157,228) sit in that band. Any future padding work needs a perceptual or statistical check, not a checksum.
+
+- **A clean corroboration fell out of that audio test:** four synths of the SAME text left ORT flat at 170MB. Identical input and near-identical output shape means no allocation, which is the same plateau the fixed-sentence soak showed, and it is the control the two falsified arms lacked.
+
+- **⚠ One arm was inconclusive BY CONSTRUCTION and is recorded so nobody re-reads it as evidence.** I ran a "constant length, varying content" arm intending to separate shape from content; it grew (`170 → 245 @2 → 295 @7`). But holding the WORD count fixed does not hold the PHONEME count fixed — different words phonemise to different lengths — so the input shape varied anyway and the arm tested nothing it was designed to test. The clean version of that discriminator is candidate 2's result above.
+
+- **⚠ Harness gotcha that cost real time, for whoever repeats this:** Chrome **freezes backgrounded tabs**, and a soak in an unfocused tab crawls — 2 synths in 3 minutes versus ~3.6 s/synth fronted. An unattended long soak silently measures almost nothing. Keep the tab fronted, or poll it often enough to keep it awake, and never read a synth-rate number taken across a background stretch.
+
+- **Where this leaves the fix.** Candidate 3 — run synthesis in a **worker that gets terminated and respawned** — is now the only one left standing, and its whole virtue is that it does not care what leaks: killing the realm reclaims all of the wasm memory. It also resets the phonemizer latch (TODO #87) for free. Costs are unchanged and real: workers do not inherit the page's import map (so `vits-web.js`'s bare `"onnxruntime-web"` specifier needs an explicit path — a vendored edit, r10), and each respawn pays a ~9 s wasm compile plus a ~60MB model reload from OPFS, which must happen BETWEEN reads and strictly sequentially, since two live ORT instances on a phone is the condition being avoided.
+
+- **Shipped from this session: nothing but the harness.** `piper_test.html` gained a fixed-word-count soak mode (`window.__soakFixedLen`) — kept because the shape-vs-content discriminator is the right instrument even though my first use of it was flawed. No game code changed, so `APP_VERSION` is unbumped by design.
+
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
+- **2026-07-22 (measurement only, no version)** — measured and falsified candidates 1 (ORT session options) and 2 (input-shape bucketing); experiment reverted, vendored runtime untouched at r9. Mechanism relocated to output/intermediate shape. Candidate 3 (discardable worker) is the remaining approach.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready
