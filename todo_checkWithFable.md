@@ -94,6 +94,19 @@ Fable session can audit it in one pass.
     unchanged); 750 green. **Fable: confirm the LRU-key proxy can't disagree with the OPFS eviction in a
     way that names the WRONG evictee, and that a narration download silently evicting an assigned voice
     at cap 10 is acceptable (no confirm on that path by design).**
+  - v1.408/v1.409 — **B14: speaker voicing re-keyed from pause-units to DIALOGUE SPANS.** First field
+    report against the post-pass: `"That leaves her," Frizwick says.` was read entirely in Frizwick's
+    voice. Root cause was NOT the model — the comma split cuts between the comma and the closing
+    quote, so the attribution unit literally began with a quote mark and read as continued speech.
+    v1.408 reattached the closing quote (parity-guarded, so `He said, "Get back."` is untouched).
+    v1.409 fixed the architecture on the user's call: commas segment for PAUSES, quotes segment for
+    VOICE, and the two no longer share a boundary set. `splitSentences` tags each unit with its
+    dialogue span; the model is asked one question per span and never sees narration at all.
+    **Fable: confirm (a) the quote-parity span tagging cannot desync from the units _speakPiper
+    actually synthesizes — they come from the same call, but check the paragraph-level state reset,
+    (b) unbalanced quotes in GM prose degrade to narration rather than swallowing the rest of the
+    passage, and (c) keeping the UNIT-indexed storage format (rather than span-indexed) is the right
+    call for backward compatibility.**
   - v1.406 — **LLM SPEAKER POST-PASS (#9 ⑤, the last piece of the rework):** after a committed turn,
     a cheap call maps sentences to speakers so dialogue narrates in each character's own voice.
     Output post-processing only — no applyMuts, no memory tier, no system-prompt contact (guarded by

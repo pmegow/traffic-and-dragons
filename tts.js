@@ -281,6 +281,19 @@ var TTS = (function() {
   function splitSentences(text, dashRepl, commaSplit) {
     var paras = (text || "").split(/\n\s*\n/);
     var out = [];
+    // #B14b (2026-07-22, user architecture call). Two jobs were being done by ONE segmentation:
+    // the comma split serves PAUSES (rhythm — Piper renders no pause for punctuation inside a
+    // unit, so the scheduled inter-unit gap is the only control we have), and voice assignment
+    // was simply inheriting whatever boundaries prosody happened to produce. When a pause boundary
+    // landed inside a quotation, the narrator's attribution ended up in a character's voice (B14).
+    // So each unit now also carries the DIALOGUE SPAN it belongs to: `spk` = span index while
+    // inside quotation marks, null for narration. Voices key off spans (who speaks), commas keep
+    // keying off rhythm, and the two can no longer corrupt each other.
+    // Span membership is decided by the quote state at a unit's FIRST REAL CHARACTER — which is
+    // why a unit that OPENS a quotation counts as dialogue, while the attribution clause after the
+    // closing quote does not. Only DOUBLE quotes toggle: an apostrophe is not a delimiter, so
+    // "she's a door" stays one span.
+    var _inQ = false, _inDlg = false, _spanId = -1;
     for (var p = 0; p < paras.length; p++) {
       var norm = normalizeForTTS(paras[p], dashRepl);
       if (!norm) continue;
@@ -335,6 +348,16 @@ var TTS = (function() {
         if (units.length && lastSentence) units[units.length - 1].end = "para";
         for (j = 0; j < units.length; j++) {
           units[j].paraEnd = (units[j].end === "para");
+          var _st = _inQ, _dlg = false, _decided = false, _uk, _uch;
+          for (_uk = 0; _uk < units[j].text.length; _uk++) {
+            _uch = units[j].text.charAt(_uk);
+            if (_uch === '"' || _uch === "\u201c" || _uch === "\u201d") { _st = !_st; continue; }
+            if (!_decided && /\S/.test(_uch)) { _dlg = _st; _decided = true; }
+          }
+          if (_dlg && !_inDlg) _spanId++;   // a new run of dialogue begins
+          _inDlg = _dlg;
+          units[j].spk = _dlg ? _spanId : null;
+          _inQ = _st;
           out.push(units[j]);
         }
       }

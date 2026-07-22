@@ -228,33 +228,52 @@ function speakerCastList(){
 // Gate: no voiced cast, or no dialogue to attribute, means no call. Straight double quotes and the
 // curly pair only — an apostrophe is not dialogue, and treating it as such would fire this on
 // every turn.
-function speakerPassNeeded(clean,cast){
-  if(!cast||!cast.length)return false;
-  if(!clean||!/["“”]/.test(clean))return false;
+// Dialogue spans, derived deterministically from the unit tags splitSentences produces. This is
+// the half the ENGINE knows and the model must never be asked to guess: what is inside quotation
+// marks is not a judgement call. The model is left with the one genuine question — who is speaking.
+function speakerSpans(units){
+  var spans=[],by={},i,u;
+  for(i=0;i<(units||[]).length;i++){
+    u=units[i];
+    if(!u||u.spk===null||u.spk===undefined)continue;
+    if(!by[u.spk]){by[u.spk]={id:u.spk,text:"",units:[]};spans.push(by[u.spk]);}
+    by[u.spk].text+=(by[u.spk].text?" ":"")+u.text;
+    by[u.spk].units.push(i);
+  }
+  return spans;
+}
+function speakerPassNeeded(clean,cast,spans){
+  if(!cast||!cast.length)return false;              // nobody has a voice — non-users pay nothing
+  if(!spans||!spans.length)return false;            // no quoted speech in this passage
   return true;
 }
-function buildSpeakerPrompt(units,cast){
+function buildSpeakerPrompt(spans,cast){
   var names=cast.map(function(c){return c.name;}).join(", ");
   var lines="",i;
-  for(i=0;i<units.length;i++)lines+=i+": "+units[i].text+"\n";
+  for(i=0;i<spans.length;i++)lines+=i+": "+spans[i].text+"\n";
+  // Only quoted text is offered, so the model CANNOT mislabel narration — it is never shown any.
+  // That is the whole point of assigning voices per span instead of per pause-unit (B14b).
   return "CAST (these names only): "+names+"\n\n"
-    +"NUMBERED LINES:\n"+lines+"\n"
-    +"Return ONLY a JSON object mapping line numbers to the character SPEAKING that line aloud.\n"
+    +"SPOKEN LINES (each is dialogue; identify who says it):\n"+lines+"\n"
+    +"Return ONLY a JSON object mapping each line number to the cast member who SAYS it.\n"
     +"Rules:\n"
-    +"- Include a line ONLY when a listed cast member is the one speaking those words aloud.\n"
-    +"- Omit narration, description, and any line spoken by someone not in the cast.\n"
-    +"- An attribution clause is NARRATION, not speech. In a line like: ...her,' Frizwick says. — the words 'Frizwick says' are the narrator's, not hers. Label only the words actually spoken aloud.\n"
-    +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard.\n"
+    +"- Use only the names listed in CAST. Omit a line spoken by anyone else.\n"
+    +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard aloud.\n"
     +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"
-    +'Example: {"3":"'+(cast[0]?cast[0].name:"Name")+'"}';
+    +'Example: {"0":'+JSON.stringify(cast[0]?cast[0].name:"Name")+'}';
 }
+
 var SPEAKER_SYS="You label which lines of prose are spoken aloud by which named character. You reply with a JSON object and nothing else.";
 
 // Parse + HARDEN. Everything that can't be trusted is dropped here rather than at speak time:
 // out-of-range indices (would mis-bind), names not in the cast (would resolve to a voice nobody
 // assigned or, worse, a same-named other character). If nothing survives, return null — no map is
 // strictly better than a wrong one, because a wrong one is audible and looks like a broken feature.
-function parseSpeakerMap(txt,unitCount,cast){
+// Takes the model's SPAN answers and expands them to a UNIT-indexed map. Storage format is
+// deliberately unchanged (`{n:<unitCount>, s:{unitIndex:name}}`): maps persisted by earlier
+// versions keep working, speakerVoiceMap needs no change, and the unit-count staleness fuse still
+// guards exactly what it guarded before.
+function parseSpeakerMap(txt,spans,unitCount,cast){
   if(!txt)return null;
   var known={},i;
   for(i=0;i<(cast||[]).length;i++)known[cast[i].name]=1;
@@ -264,14 +283,15 @@ function parseSpeakerMap(txt,unitCount,cast){
   var obj;
   try{obj=JSON.parse(raw.slice(a,b+1));}catch(e){return null;}
   if(!obj||typeof obj!=="object"||obj instanceof Array)return null;
-  var s={},kept=0;
+  var out={},kept=0;
   Object.keys(obj).forEach(function(k){
-    var idx=parseInt(k,10),nm=obj[k];
-    if(isNaN(idx)||idx<0||idx>=unitCount)return;        // out of range — would mis-bind
-    if(typeof nm!=="string"||!known[nm])return;         // not a voiced cast member
-    s[idx]=nm;kept++;
+    var si=parseInt(k,10),nm=obj[k];
+    if(isNaN(si)||si<0||si>=spans.length)return;      // out of range — would mis-bind
+    if(typeof nm!=="string"||!known[nm])return;       // not a voiced cast member
+    var us=spans[si].units,j;
+    for(j=0;j<us.length;j++){out[us[j]]=nm;kept++;}   // every pause-unit inside the span
   });
-  return kept?{n:unitCount,s:s}:null;
+  return kept?{n:unitCount,s:out}:null;
 }
 
 // Stored NAMES -> live voice ids. Deliberately resolved at speak time, not at write time, so
@@ -310,12 +330,13 @@ function _speakerChar(name){
 // narration is more important than voice assignment, so every failure path here is "narrate flat".
 function assignSpeakers(clean){
   var cast=speakerCastList();
-  if(!speakerPassNeeded(clean,cast))return Promise.resolve(null);
   if(typeof TTS==="undefined"||!TTS._textPrep)return Promise.resolve(null);
   var units=TTS._textPrep.splitSentences(clean,null,true);
+  var spans=speakerSpans(units);
+  if(!speakerPassNeeded(clean,cast,spans))return Promise.resolve(null);
   if(!units.length||units.length>SPEAKER_MAX_UNITS)return Promise.resolve(null);
-  var call=callGM(buildSpeakerPrompt(units,cast),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
-    .then(function(txt){return parseSpeakerMap(txt,units.length,cast);})
+  var call=callGM(buildSpeakerPrompt(spans,cast),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
+    .then(function(txt){return parseSpeakerMap(txt,spans,units.length,cast);})
     .catch(function(e){console.warn("[speakers] pass failed — narrating in one voice:",e&&e.message);return null;});
   var fuse=new Promise(function(res){setTimeout(function(){res("__timeout__");},SPEAKER_TIMEOUT_MS);});
   return Promise.race([call,fuse]).then(function(r){

@@ -4365,26 +4365,67 @@ function runEngineTests(R){
   });
   t("speakerPassNeeded: skipped with no voiced cast, and skipped on prose with no dialogue",function(){
     _mkSpeakerWorld();
-    if(speakerPassNeeded("Ash drifts past the window.",speakerCastList()))return "fired on a response with no dialogue";
-    if(!speakerPassNeeded(_SPK_LINE,speakerCastList()))return "did not fire on a response WITH dialogue";
+    var sp=function(t){return speakerSpans(TTS._textPrep.splitSentences(t,null,true));};
+    if(speakerPassNeeded("Ash drifts past the window.",speakerCastList(),sp("Ash drifts past the window.")))return "fired on a response with no dialogue";
+    if(!speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "did not fire on a response WITH dialogue";
     worldState.character.voiceId="";worldState.npcs[0].charSheet.voiceId="";
-    return !speakerPassNeeded(_SPK_LINE,speakerCastList())?true:"fired with nobody voiced — non-users must pay nothing";
+    return !speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE))?true:"fired with nobody voiced — non-users must pay nothing";
   });
-  t("parseSpeakerMap: reads fenced JSON and keeps only in-range indices with known names",function(){
+  // ── B14b: voices are assigned to DIALOGUE SPANS, then carried into the pause split ──────────
+  t("B14b: splitSentences tags dialogue spans, and an attribution clause is NOT one",function(){
+    var u=TTS._textPrep.splitSentences('"That leaves her," Frizwick says. "And whatever is meant."',null,true);
+    var tag=u.map(function(x){return x.spk===null?"narr":"S"+x.spk;}).join(",");
+    // the middle unit is the narrator attributing the line — it must NOT belong to a span
+    var attrib=null,i;for(i=0;i<u.length;i++)if(/Frizwick says/.test(u[i].text))attrib=u[i];
+    if(!attrib)return "attribution unit not found";
+    if(attrib.spk!==null)return "attribution was tagged as dialogue (spk="+attrib.spk+") — this is B14";
+    return /^S0,narr,S1/.test(tag)?true:"unexpected span tags: "+tag;
+  });
+  t("B14b: an apostrophe is not a quote delimiter",function(){
+    var u=TTS._textPrep.splitSentences('"She\'s a door," he said.',null,true);
+    var d=u.filter(function(x){return x.spk!==null;});
+    if(!d.length)return "dialogue span lost entirely";
+    var attrib=null,i;for(i=0;i<u.length;i++)if(/he said/.test(u[i].text))attrib=u[i];
+    return (attrib&&attrib.spk===null)?true:"apostrophe flipped the quote state";
+  });
+  t("B14b: speakerSpans groups every pause-unit of a multi-clause line into ONE span",function(){
+    var u=TTS._textPrep.splitSentences('"Hold the door, watch the stairs, and do not follow me," she said.',null,true);
+    var spans=speakerSpans(u);
+    if(spans.length!==1)return "expected 1 dialogue span, got "+spans.length;
+    if(spans[0].units.length<2)return "the comma split should have produced several units inside the span, got "+spans[0].units.length;
+    var attrib=null,i;for(i=0;i<u.length;i++)if(/she said/.test(u[i].text))attrib=u[i];
+    return (attrib&&attrib.spk===null)?true:"attribution swallowed into the span";
+  });
+  t("parseSpeakerMap: a SPAN answer expands to every unit inside it, and only those",function(){
     _mkSpeakerWorld();
     var cast=speakerCastList();
-    var txt="```json\n{\"1\":\"Daeris\",\"99\":\"Daeris\",\"2\":\"Nobody At All\"}\n```";
-    var m=parseSpeakerMap(txt,4,cast);
+    var line='"Hold the door, watch the stairs," Daeris says. Ash drifts past.';
+    var u=TTS._textPrep.splitSentences(line,null,true),spans=speakerSpans(u);
+    var m=parseSpeakerMap("```json\n{\"0\":\"Daeris\"}\n```",spans,u.length,cast);
     if(!m)return "usable map rejected";
-    if(m.s[99])return "out-of-range index survived — would mis-bind on replay";
-    if(m.s[2])return "unknown name survived — would resolve to a voice nobody assigned";
-    return (m.s[1]==="Daeris"&&m.n===4)?true:"bad map: "+JSON.stringify(m);
+    if(m.n!==u.length)return "n must stay the UNIT count (the staleness fuse keys on it): "+m.n;
+    var i,bad=[];
+    for(i=0;i<u.length;i++){
+      var mapped=!!m.s[i], isDialogue=(u[i].spk!==null);
+      if(mapped!==isDialogue)bad.push(i+":"+JSON.stringify(u[i].text)+" mapped="+mapped);
+    }
+    return bad.length?"voice bled outside the dialogue span -> "+bad.join(" | "):true;
+  });
+  t("parseSpeakerMap: out-of-range span index and unknown name are both dropped",function(){
+    _mkSpeakerWorld();
+    var cast=speakerCastList();
+    var u=TTS._textPrep.splitSentences(_SPK_LINE,null,true),spans=speakerSpans(u);
+    var m=parseSpeakerMap('{"0":"Daeris","99":"Daeris"}',spans,u.length,cast);
+    if(!m)return "valid entry rejected alongside the bad ones";
+    var m2=parseSpeakerMap('{"0":"Nobody At All"}',spans,u.length,cast);
+    return m2===null?true:"unknown name survived: "+JSON.stringify(m2);
   });
   t("parseSpeakerMap: nothing usable yields NO map (a wrong map is worse than none)",function(){
     _mkSpeakerWorld();var cast=speakerCastList();
-    if(parseSpeakerMap("I could not determine the speakers, sorry.",4,cast))return "prose parsed as a map";
-    if(parseSpeakerMap("{\"0\":\"Nobody\"}",4,cast))return "map of only-unknown names should be null";
-    return parseSpeakerMap("",4,cast)===null?true:"empty response should be null";
+    var u=TTS._textPrep.splitSentences(_SPK_LINE,null,true),spans=speakerSpans(u);
+    if(parseSpeakerMap("I could not determine the speakers, sorry.",spans,u.length,cast))return "prose parsed as a map";
+    if(parseSpeakerMap("{\"0\":\"Nobody\"}",spans,u.length,cast))return "map of only-unknown names should be null";
+    return parseSpeakerMap("",spans,u.length,cast)===null?true:"empty response should be null";
   });
   t("speakerVoiceMap: resolves stored NAMES to voice ids at replay time",function(){
     _mkSpeakerWorld();
