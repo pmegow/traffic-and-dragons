@@ -681,139 +681,18 @@ var TTS = (function() {
   // (Safari exposes no performance.memory, so counters are the ONLY proxy available).
   function _voiceCount() { try { return Object.keys(_piperDownloaded).length; } catch(e) { return -1; } }
 
-  // ── wasm linear-memory probe (v1.416, B9) ──────────────────────────────────────────────────
-  // Installed at LOAD, because it must be in place before any wasm is instantiated (Piper's
-  // engine loads lazily on first narration, so this is early by a wide margin).
-  //
-  // Why it has to be a hook: the B9 ratchet is pinned to cumulative synths (seven crumbs,
-  // pc 114-124), the phonemizer was measured FLAT and ruled out, and the remaining candidate is
-  // ORT's own linear memory — which ORT hands out no reference to, on a platform (iOS Safari)
-  // that exposes no memory API whatsoever. Catching the WebAssembly.Instance on its way out and
-  // keeping its exported Memory is the only view there is. Linear memory grows and never
-  // shrinks, so every megabyte reported here is retained by definition — no GC noise, no settle.
-  //
-  // Two earlier attempts caught nothing, and both failure modes are covered here:
-  //   · hooking WebAssembly.Memory alone — these builds DECLARE memory internally and export it
-  //     rather than importing it, so that constructor is never called (kept for the threaded
-  //     build, where it is);
-  //   · hooking only instantiate/instantiateStreaming — the synchronous `new WebAssembly.
-  //     Instance(module, imports)` path bypasses both.
-  // The probe also records WHAT it caught, so "no number" is always distinguishable from "the
-  // hook never fired" — the ambiguity that stalled this diagnosis twice.
-  //
-  // Modules are named by their binary URL, NOT their exports: both builds ship minified export
-  // names (w,x,y,z…), so there is no _OrtRun or _main to match. "ort" is tested first because
-  // the ORT binary lives under /vendor/piper/ and would otherwise match a "piper" test.
-  //
-  // Self-validating: it catches the phonemizer too, whose memory r9's tndDiag() reports
-  // independently via the Module's own HEAPU8. The two must agree. Verified 2026-07-22 in
-  // piper_test.html: probe phon=16MB, tndDiag phonMB=16 — and ORT measured 170MB → 353MB
-  // across one pass of distinct sentence shapes. Mirror of the block in piper_test.html <head>.
-  (function () {
-    if (typeof WebAssembly === "undefined" || WebAssembly.__tndProbe) return;
-    // ⚠ AT MOST ONE Memory retained PER KIND, always the newest. An instrument must not change
-    // what it measures, and the first draft did: holding every Memory it saw pinned the linear
-    // memory of modules the app had discarded — turning the probe itself into exactly the
-    // v1.323 leak it exists to watch for. Keeping the newest costs nothing (that module is live
-    // and referenced by the app anyway) and the per-kind INSTANCE COUNT below preserves the
-    // signal that mattered: module churn. That counter is how the 2026-07-22 phonemizer-latch
-    // finding surfaced — 11 phonemizer instantiations where the design allows exactly one.
-    var seen = {};   // kind -> {mem, src, n}
-    var anon = 0;
-    function kindOf(src) {
-      var f = String(src || "").split("?")[0].split("/").pop().toLowerCase(), m;
-      if (f.indexOf("ort") !== -1) return "ort";
-      if (f.indexOf("phonem") !== -1) return "phon";
-      // No URL (a raw-bytes instantiate): fall back to the binary's size. ort-wasm-simd.wasm is
-      // ~10.6MB, piper_phonemize.wasm ~0.6MB — an order of magnitude apart, so 4MB is safe.
-      m = /^bytes:(\d+)$/.exec(String(src || ""));
-      if (m) return (+m[1] > 4194304) ? "ort" : "phon";
-      return "wasm" + (++anon);
-    }
-    function srcOf(a) {
-      try {
-        if (!a) return "";
-        if (typeof a.url === "string" && a.url) return a.url;
-        if (typeof a.byteLength === "number") return "bytes:" + a.byteLength;
-        if (a.buffer && typeof a.buffer.byteLength === "number") return "bytes:" + a.buffer.byteLength;
-      } catch (e) {}
-      return "";
-    }
-    function keep(kind, mem, src) {
-      var e = seen[kind];
-      if (e && e.mem === mem) return;            // one instance reaching us through two hooks
-      if (e) { e.mem = mem; e.src = src; e.n++; }
-      else seen[kind] = { mem: mem, src: src, n: 1 };
-    }
-    function note(inst, src) {
-      try {
-        var exp = inst && inst.exports;
-        if (!exp) return;
-        var keys = Object.keys(exp), mem = null, i;
-        for (i = 0; i < keys.length; i++) {
-          if (exp[keys[i]] instanceof WebAssembly.Memory) { mem = exp[keys[i]]; break; }
-        }
-        if (!mem) return;
-        keep(kindOf(src), mem, String(src || "(no source)"));
-      } catch (e) {}
-    }
-    function noteMem(mem) {
-      try { keep("imported", mem, "(constructed)"); } catch (e) {}
-    }
-    function wrapAsync(orig, streaming) {
-      return function (src, imports) {
-        var hint = "", first = src;
-        // instantiateStreaming takes a Response OR a Promise<Response>. Resolving it ourselves
-        // (and passing the derived promise through, which the spec accepts) reads the URL
-        // without racing the instantiation that consumes it.
-        if (streaming && src && typeof src.then === "function") {
-          first = src.then(function (r) { hint = srcOf(r); return r; });
-        } else {
-          hint = srcOf(src);
-        }
-        var p = orig.call(WebAssembly, first, imports);
-        if (!p || typeof p.then !== "function") return p;
-        return p.then(function (r) {
-          note(r && r.instance ? r.instance : r, hint);   // {module,instance} or a bare Instance
-          return r;
-        });
-      };
-    }
-    function wrapCtor(Orig, after) {
-      function Wrapped() {
-        var o = new (Function.prototype.bind.apply(Orig, [null].concat([].slice.call(arguments))))();
-        after(o);
-        return o;
-      }
-      Wrapped.prototype = Orig.prototype;   // keeps `x instanceof WebAssembly.Instance` true
-      return Wrapped;
-    }
-    try { if (WebAssembly.instantiate) WebAssembly.instantiate = wrapAsync(WebAssembly.instantiate, false); } catch (e) {}
-    try { if (WebAssembly.instantiateStreaming) WebAssembly.instantiateStreaming = wrapAsync(WebAssembly.instantiateStreaming, true); } catch (e) {}
-    try { WebAssembly.Instance = wrapCtor(WebAssembly.Instance, function (o) { note(o, ""); }); } catch (e) {}
-    try { WebAssembly.Memory   = wrapCtor(WebAssembly.Memory, noteMem); } catch (e) {}
-    function bytes(kind) {
-      try { return seen[kind] ? seen[kind].mem.buffer.byteLength : 0; } catch (e) { return 0; }
-    }
-    WebAssembly.__tndProbe = {
-      mb:     function (kind) { return bytes(kind) / 1048576; },       // the LIVE module's size
-      count:  function (kind) { return seen[kind] ? seen[kind].n : 0; }, // instantiations ever
-      caught: function () { return Object.keys(seen).length; },
-      list:   function () {
-        var out = [], ks = Object.keys(seen), i;
-        for (i = 0; i < ks.length; i++) {
-          out.push({ kind: ks[i], mb: bytes(ks[i]) / 1048576, n: seen[ks[i]].n, src: seen[ks[i]].src });
-        }
-        return out;
-      }
-    };
-  })();
 
-  // ORT's wasm linear memory in MB, or null when the probe is absent or has caught nothing yet.
-  // null and 0 mean different things and must stay distinguishable: null = "not measured",
-  // 0 = "measured, engine not loaded". Same rule as _phonMem above.
+  // ORT's wasm linear memory in MB, or null when it cannot be read. null and 0 mean different
+  // things and must stay distinguishable: null = "not measured", 0 = "measured, engine not
+  // loaded". Same rule as _phonMem above.
+  //
+  // v1.418: synthesis normally runs in the piper-host iframe, whose wasm lives in ITS realm — the
+  // page's own probe cannot see it (hooks are per-realm), so the frame reports its memory back and
+  // we cache it here (`_frameMem`, refreshed after every read). The page probe is still consulted
+  // as the fallback, because the in-page engine path survives for when the frame cannot start.
   function _ortMem() {
     try {
+      if (_piperFrame && _frameMem && typeof _frameMem.ortMB === "number") return _frameMem.ortMB;
       if (!WebAssembly.__tndProbe || !WebAssembly.__tndProbe.caught()) return null;
       return Math.round(WebAssembly.__tndProbe.mb("ort"));
     } catch (e) { return null; }
@@ -829,6 +708,7 @@ var TTS = (function() {
   // unknown — which is exactly why the count rides the crumb.
   function _phonInstances() {
     try {
+      if (_piperFrame && _frameMem && typeof _frameMem.phonMods === "number") return _frameMem.phonMods;
       if (!WebAssembly.__tndProbe || !WebAssembly.__tndProbe.caught()) return null;
       return WebAssembly.__tndProbe.count("phon");
     } catch (e) { return null; }
@@ -859,7 +739,13 @@ var TTS = (function() {
     var st = _audioCtx ? _audioCtx.state : "none";
     return "ctx=" + st + " refusals=" + _ctxRefusals + " playing=" + (_playing ? 1 : 0) + " paused=" + (_paused ? 1 : 0)
          + " q=" + _queue.length + " synths=" + _piperSynthsTotal + "/" + _piperSynthsSession + " recycles=" + _piperRecycles
-         + " voices=" + _voiceCount() + " on=" + (isOn() ? 1 : 0) + _piperMemNote();
+         + " voices=" + _voiceCount() + " on=" + (isOn() ? 1 : 0)
+         // v1.418: WHICH engine is live. "frame" = the disposable realm, i.e. the B9 fix is
+         // actually in play; "inpage" = the fallback, which still narrates but keeps ratcheting.
+         // Without this the difference is invisible on a phone, and a silent fallback would look
+         // exactly like a working fix right up until the tab dies.
+         + " eng=" + (_piperFrame ? "frame" : (_piperFrameFailed ? "inpage-fallback" : "inpage"))
+         + _piperMemNote();
   }
 
   function _syncBtn() {
@@ -1089,8 +975,166 @@ var TTS = (function() {
   // env locks MUST be in place before vits-web's own predict() call, because vits-web
   // unconditionally reassigns wasmPaths/numThreads on every call (vendor/piper/vits/vits-web.js) —
   // Object.defineProperty getters with no-op setters make that clobber a no-op instead of a break.
+  // ── The disposable synthesis realm (v1.418, B9) ────────────────────────────────────────────
+  // Synthesis runs inside a hidden same-origin iframe (piper-host.html) whose whole wasm world —
+  // ORT, the vits-web module, the phonemizer — belongs to ITS realm. Removing the iframe destroys
+  // that realm and returns its linear memory, which is the only thing measured to work: the r8
+  // session recycle, ORT session options and input-shape bucketing were each measured and each
+  // reclaimed nothing (DOC/BUGS.md ▸ B9). Nothing inside a realm can shrink wasm memory that has
+  // already grown.
+  //
+  // The adapter below exposes the SAME method names as the in-page vits-web module, so every
+  // existing call site (predict/stored/download/remove/tndRecycleSession/tndDiag/PATH_MAP) is
+  // untouched and the engine becomes a swappable transport rather than a rewrite. If the frame
+  // cannot start, _piperInit falls back to importing the module in-page — the pre-v1.418 path,
+  // which still works and simply keeps ratcheting; that is strictly no worse than before, and it
+  // says so loudly rather than failing silently.
+  var _piperFrame     = null;   // the live adapter (null = in-page fallback in use)
+  var _frameMem       = null;   // last {ortMB, phonMB, phonMods} reported by the live frame
+  var _frameSeq       = 0;      // rpc correlation id
+  var PIPER_HOST_PATH = "/piper-host.html";
+  var PIPER_HOST_READY_MS = 30000;   // see the timeout below — sized for a throttled/frozen tab
+  var _piperFrameFailed = false;     // fell back to the in-page engine; retried between reads
+  var PIPER_RESPAWN_MB = 400;   // respawn once the frame's ORT memory crosses this. Deaths land at
+                                // ~1GB; a fresh realm is ~170MB, so 400 leaves generous headroom
+                                // even with a prewarmed replacement briefly alive alongside it.
+                                // MEASURED memory, not a synth count — the count was only ever a
+                                // proxy for this, and a bad one (read length varies wildly).
+
+  // One iframe + its RPC channel. Resolves to an adapter object, or rejects — callers own failure.
+  function _piperSpawnFrame() {
+    return new Promise(function (resolve, reject) {
+      var frame = document.createElement("iframe");
+      frame.setAttribute("aria-hidden", "true");
+      frame.setAttribute("title", "Piper synthesis host");
+      frame.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden;";
+      var pending = {}, progress = {}, settled = false, dead = false;
+
+      function onMessage(ev) {
+        if (ev.source !== frame.contentWindow || ev.origin !== location.origin) return;
+        var d = ev.data;
+        if (!d || !d.tnd) return;
+        if (d.tnd === "ready") { if (!settled) { settled = true; resolve(adapter); } return; }
+        if (d.tnd === "progress") { var f = progress[d.id]; if (f) { try { f(d.p); } catch (e) {} } return; }
+        if (d.tnd === "rpc") {
+          var p = pending[d.id];
+          if (!p) return;
+          delete pending[d.id]; delete progress[d.id];
+          if (d.ok) p.resolve(d.result); else p.reject(new Error(d.err || "piper host error"));
+        }
+      }
+      window.addEventListener("message", onMessage);
+
+      function call(op, args, onProgress) {
+        if (dead) return Promise.reject(new Error("piper host was destroyed"));
+        var id = ++_frameSeq;
+        return new Promise(function (res, rej) {
+          pending[id] = { resolve: res, reject: rej };
+          if (onProgress) progress[id] = onProgress;
+          try { frame.contentWindow.postMessage({ tnd: "rpc", id: id, op: op, args: args || {} }, location.origin); }
+          catch (e) { delete pending[id]; delete progress[id]; rej(e); }
+        });
+      }
+
+      var adapter = {
+        _isFrame: true,
+        PATH_MAP: {},
+        TND_VITS_PATCH: "",
+        predict: function (a) {
+          return call("predict", { text: a.text, voiceId: a.voiceId, rate: a.rate })
+            .then(function (r) { return new Blob([r.buf], { type: r.type || "audio/x-wav" }); });
+        },
+        stored:   function ()   { return call("stored"); },
+        download: function (id, cb) { return call("download", { voiceId: id }, cb); },
+        remove:   function (id) { return call("remove", { voiceId: id }); },
+        tndRecycleSession: function () { return call("recycle"); },
+        // Synchronous by contract at the call sites (_phonMem reads it inline), so it serves the
+        // LAST reported values rather than awaiting a round trip. Refreshed by _frameRefreshMem.
+        tndDiag: function () {
+          return { phonBytes: (_frameMem && _frameMem.phonMB != null) ? _frameMem.phonMB * 1048576 : 0,
+                   phonCalls: (_frameMem && _frameMem.phonCalls) || 0,
+                   sessKey: null, patch: adapter.TND_VITS_PATCH };
+        },
+        mem: function () { return call("mem"); },
+        diag: function () { return call("diag"); },
+        // Boots the engine in the frame and copies across the two pieces of static metadata the
+        // page still needs locally: the patch rev (shown in Voice Settings so a phone can prove
+        // which runtime it runs) and PATH_MAP (used by _piperVoiceComplete's direct OPFS check).
+        init: function () {
+          return call("init").then(function (r) {
+            adapter.TND_VITS_PATCH = (r && r.patch) || "r0-unpatched";
+            adapter.PATH_MAP = (r && r.pathMap) || {};
+            return r;
+          });
+        },
+        destroy: function () {
+          dead = true;
+          window.removeEventListener("message", onMessage);
+          // Reject anything still in flight — a destroyed realm will never answer, and a promise
+          // that never settles would wedge the op mutex (_piperSerial) forever.
+          Object.keys(pending).forEach(function (k) {
+            try { pending[k].reject(new Error("piper host destroyed mid-call")); } catch (e) {}
+            delete pending[k];
+          });
+          try { frame.remove(); } catch (e) {}
+        }
+      };
+
+      frame.src = PIPER_HOST_PATH;
+      document.body.appendChild(frame);
+      // Generous on purpose. The frame only has to parse and post "ready" — normally instant —
+      // but a BACKGROUNDED tab is throttled or frozen outright, and Car Mode with the screen off
+      // is exactly that. A tight timeout there would drop us onto the ratcheting engine for the
+      // whole session, which is the failure this feature exists to prevent. Observed live: 15s
+      // was not enough under a frozen tab.
+      setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        try { adapter.destroy(); } catch (e) {}
+        reject(new Error("piper host did not signal ready within " + (PIPER_HOST_READY_MS / 1000) + "s"));
+      }, PIPER_HOST_READY_MS);
+    });
+  }
+
+  // Pull the frame's memory report across and cache it. Everything that reads memory (the crumb,
+  // TTS.diag, the respawn trigger) goes through the cache so one poll serves them all and none of
+  // them can accidentally boot the engine.
+  function _frameRefreshMem() {
+    if (!_piperFrame) return Promise.resolve(null);
+    return _piperFrame.mem().then(function (m) {
+      if (m) { if (_frameMem && m.phonCalls == null) m.phonCalls = _frameMem.phonCalls; _frameMem = m; }
+      return m;
+    }, function () { return null; });
+  }
+
   async function _piperInit() {
     if (_piperMod) return _piperMod;   // warm — already initialized
+    // Preferred path: the disposable realm.
+    try {
+      var fr = await _piperSpawnFrame();
+      await fr.init();            // boots ORT+vits inside the frame; brings back patch rev + PATH_MAP
+      _frameMem = await fr.mem();
+      _piperFrame = fr;
+      _piperMod   = fr;
+      _piperReady = true;
+      _piperPatchRev = fr.TND_VITS_PATCH;
+      if (_piperPatchRev !== PIPER_RUNTIME_REV) console.warn("[tts piper] runtime rev mismatch: loaded " + _piperPatchRev + ", expected " + PIPER_RUNTIME_REV + " — a cache served a stale vendored file");
+      // ORT reports null here by design: importing the module does not instantiate its wasm — the
+      // first InferenceSession does. The number appears from the first synth onward.
+      console.info("[tts piper] synthesis running in a disposable iframe realm (B9), respawn at " + PIPER_RESPAWN_MB + "MB");
+      _updatePiperErr();
+      return _piperMod;
+    } catch (e) {
+      // Loud, never silent: the fallback works but keeps ratcheting, so this line is the only
+      // warning a diagnosis will get that B9's fix is not actually in play on this device.
+      // The fallback must never be PERMANENT. A backgrounded/throttled tab can miss the ready
+      // handshake once, and without this flag that single stall would pin the whole session onto
+      // the ratcheting engine — silently undoing the fix for exactly the hands-free Car Mode case
+      // that motivated it. _piperMaybeRecycle retries between reads, where failure costs nothing.
+      _piperFrameFailed = true;
+      console.warn("[tts piper] synthesis iframe unavailable — falling back to the in-page engine (memory will ratchet, B9; will retry between reads):", e && e.message);
+      if (typeof erCrumb === "function") erCrumb("piper-frame-fail", (e && e.message) || "?");
+    }
     try {
       var ort = await import("onnxruntime-web");   // bare specifier → import map → PIPER_ORT_PATH, same-origin
       Object.defineProperty(ort.env.wasm, "wasmPaths", {
@@ -1329,6 +1373,7 @@ var TTS = (function() {
           vs: _vSwitches, nv: _voiceCount(),
           pm: _pm ? _pm.mb : null, pmc: _pm ? _pm.calls : null,
           om: _ortMem(), pn: _phonInstances(),   // v1.416: ORT wasm MB + phonemizer module count
+          eng: _piperFrame ? "frame" : "inpage", // v1.418: was the B9 fix actually active at death?
 
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
         }));
@@ -1501,6 +1546,12 @@ var TTS = (function() {
   // races in, ITS first predict does the rebuild instead and the warm call is skipped). Loud on
   // both success and failure; failure is non-fatal (next predict rebuilds lazily).
   function _piperMaybeRecycle(voiceId) {
+    // v1.418: when synthesis runs in the disposable realm, memory — not a synth count — decides.
+    // The count was only ever a proxy for memory, and a poor one: read length varies by 5x, so the
+    // same count means wildly different amounts of allocation. This runs BETWEEN reads (same call
+    // site as the r8 recycle), so a respawn never interrupts narration.
+    if (_piperFrame) { _frameMaybeRespawn(voiceId); return; }
+    if (_piperFrameFailed) { _frameRetryUpgrade(); }   // self-heal; falls through to the r8 recycle below
     if (_piperSynthsSession < PIPER_RECYCLE_AFTER) return;
     if (!_piperMod || typeof _piperMod.tndRecycleSession !== "function") return;   // stale pre-r8 runtime — rev-mismatch warn already fired in _piperInit
     var myEpoch = _piperEpoch;
@@ -1516,6 +1567,111 @@ var TTS = (function() {
           .then(function() { _piperSynthsTotal++; _piperSynthsSession++; });
       })
       .catch(function(e) { console.warn("[tts piper] session recycle failed (non-fatal — next predict rebuilds):", e && e.message); });
+  }
+
+  // Respawn the synthesis realm once its ORT memory crosses PIPER_RESPAWN_MB. Sequential by
+  // design — build the replacement, then destroy the old one only after the new one is ready, so
+  // a failure leaves the working engine in place rather than no engine at all. Both are briefly
+  // alive (~170MB for the newcomer), which is why the threshold sits far below the ~1GB kill line.
+  //
+  // Runs off the critical path (between reads) and through _piperSerial, so it cannot overlap a
+  // predict. Every exit is loud; every failure keeps the CURRENT frame.
+  // Self-heal after a fallback. Runs between reads, so a failure costs nothing and simply leaves
+  // the in-page engine in place to try again next time. The page's already-grown ORT memory
+  // cannot be reclaimed (its realm is the page), but every synth from here on happens in a
+  // disposable one — so the ratchet stops climbing even though it does not reset.
+  var _frameUpgrading = false;
+  function _frameRetryUpgrade() {
+    if (_frameUpgrading || _piperFrame) return;
+    _frameUpgrading = true;
+    _piperSpawnFrame()
+      .then(function (fresh) {
+        return fresh.init().then(function () {
+          _piperFrame = fresh; _piperMod = fresh; _piperFrameFailed = false;
+          console.info("[tts piper] synthesis realm recovered — future synths run in a disposable iframe again (B9)");
+          if (typeof erCrumb === "function") erCrumb("piper-frame-recovered", "");
+          return _frameRefreshMem();
+        }).catch(function (e) { try { fresh.destroy(); } catch (e2) {} throw e; });
+      })
+      .catch(function (e) { console.warn("[tts piper] synthesis realm retry failed — staying on the in-page engine:", e && e.message); })
+      .then(function () { _frameUpgrading = false; }, function () { _frameUpgrading = false; });
+  }
+
+  var _frameRespawning = false;
+
+  // The swap itself. Sequential ON PURPOSE — the replacement is built and warmed BEFORE the old
+  // one is destroyed, so any failure leaves the working engine in place rather than no engine.
+  // Resolves {before, after} in MB.
+  function _frameRespawnNow(voiceId) {
+    var before = null;
+    // Sample BEFORE the swap, from the live frame — _frameMem may be stale (it is only refreshed
+    // between reads), and reporting a null "before" makes the one number that proves this feature
+    // works unreadable.
+    return _frameRefreshMem().then(function (m0) {
+      before = m0 && m0.ortMB;
+      return _piperSerial(function () {
+        var old = _piperFrame;
+        if (!old) throw new Error("no synthesis realm to respawn");
+        return _piperSpawnFrame().then(function (fresh) {
+        return fresh.init()
+          .then(function () {
+            // Warm the replacement so the next read does not pay the session build. ONLY for a
+            // voice already on disk: resolvePiperVoice() can name a narrator voice that has never
+            // been downloaded, and warming that would kick off a surprise 60-115MB download from a
+            // background maintenance path. Skipping is free — the next real predict builds the
+            // session anyway. Failure is survivable too, so it never aborts the swap.
+            var warmId = voiceId || resolvePiperVoice();
+            if (!warmId || !_piperDownloaded[warmId]) {
+              console.info("[tts piper] respawn: skipping warm predict — " + warmId + " is not resident (no surprise download)");
+              return null;
+            }
+            return fresh.predict({ text: "ready", voiceId: warmId, rate: getRate() })
+              .catch(function (e) { console.warn("[tts piper] respawn warm predict failed (non-fatal):", e && e.message); });
+          })
+          .then(function () {
+            _piperFrame = fresh; _piperMod = fresh;
+            _piperSynthsSession = 0; _piperRecycles++;
+            try { old.destroy(); } catch (e) {}   // the realm dies here — this is what frees the memory
+            return _frameRefreshMem().then(function (m2) {
+              var after = m2 && m2.ortMB;
+              console.info("[tts piper] realm respawned — ORT " + before + "MB → " + after + "MB");
+              return { before: before, after: after };
+            });
+          })
+          .catch(function (e) {
+            try { fresh.destroy(); } catch (e2) {}   // keep the OLD frame: ratcheting beats silent
+            throw e;
+          });
+        });
+      });
+    });
+  }
+
+  function _frameMaybeRespawn(voiceId) {
+    if (_frameRespawning || !_piperFrame) return;
+    _frameRespawning = true;
+    _frameRefreshMem()
+      .then(function (m) {
+        var mb = m && m.ortMB;
+        if (typeof mb !== "number" || mb < PIPER_RESPAWN_MB) return null;
+        console.info("[tts piper] ORT at " + mb + "MB (≥" + PIPER_RESPAWN_MB + ") — respawning the synthesis realm (B9)");
+        if (typeof erCrumb === "function") erCrumb("realm-respawn", mb + "MB after " + _piperSynthsTotal);
+        return _frameRespawnNow(voiceId);
+      })
+      .catch(function (e) {
+        console.warn("[tts piper] realm respawn failed — keeping the current engine (memory keeps climbing):", e && e.message);
+      })
+      .then(function () { _frameRespawning = false; }, function () { _frameRespawning = false; });
+  }
+
+  // Manual engine reset. Two jobs, both wanted independently of the automatic policy: it is the
+  // user-facing mitigation if narration ever starts feeling heavy mid-drive, and it is the
+  // deterministic way to VERIFY realm teardown actually returns memory (the automatic path only
+  // fires above a threshold that takes ~30 varied synths to reach). Rejects loudly on the in-page
+  // fallback path, where there is no realm to throw away.
+  function respawnEngine() {
+    if (!_piperFrame) return Promise.reject(new Error("synthesis realm not in use (in-page fallback) — nothing to respawn"));
+    return _frameRespawnNow(null);
   }
 
   // ── Car Mode support: earcons + replay (todo_carplay.html ranks 14, 17/18) ─────────────────
@@ -1667,7 +1823,14 @@ var TTS = (function() {
     // means a cache served a stale vendored file (the v1.322/v1.323 delivery trap).
     var rt = document.getElementById("tts-piper-runtime");
     if (rt) rt.textContent = "Piper runtime: " + (_piperPatchRev ? _piperPatchRev + " (loaded)" : PIPER_RUNTIME_REV + " expected — engine loads on first use") + " · app " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?") +
-                             (_piperSynthsTotal ? " · " + _piperSynthsTotal + " synths (" + _piperSynthsSession + " on session)" : "");   // r8: on-phone memory-ratchet forensics
+                             (_piperSynthsTotal ? " · " + _piperSynthsTotal + " synths (" + _piperSynthsSession + " on session)" : "") +   // r8: on-phone memory-ratchet forensics
+                             // v1.418 (B9): the ONE line that says whether the memory fix is live
+                             // on this device. "disposable realm" = synthesis runs in a throwaway
+                             // iframe that gets replaced before memory climbs; "IN-PAGE (memory
+                             // ratchets)" = the fallback, which narrates fine and then dies at
+                             // ~1GB exactly as before. Nothing else on a phone can tell them apart.
+                             (_piperReady ? " · " + (_piperFrame ? "disposable realm" : "IN-PAGE (memory ratchets)") +
+                               (_ortMem() === null ? "" : ", ORT " + _ortMem() + "MB") : "");
   }
 
   // Non-blocking refresh of _piperDownloaded from the REAL on-disk store. v1.331: reads OPFS
@@ -2058,6 +2221,9 @@ var TTS = (function() {
     // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s
     // one-time WASM compile happens off the critical path of the user's first real narration.
     prewarmPiper:      prewarmPiper,
+    // B9 (v1.418): tear down the synthesis realm and build a fresh one. User-facing mitigation
+    // AND the deterministic proof that realm teardown returns the wasm memory.
+    respawnEngine:     respawnEngine,
     // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,

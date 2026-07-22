@@ -142,7 +142,7 @@ _(none)_
 
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.413, runtime r9) · **Count:** 7 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
@@ -449,10 +449,38 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **⚠ What is NOT established here, so nobody over-reads it.** ① These are desktop numbers from a throttled tab; the iPhone will differ, though the ratio should hold since both paths are dominated by the same OPFS read and session build. ② The probe hooks its own realm, so **the iframe's memory is invisible to the parent** — the claim that destroying the iframe frees its wasm memory rests on the platform guarantee that removing a same-origin iframe tears down its realm, which is solid but was not directly measured. ③ No audio was routed out of the iframe; `postMessage` of a WAV blob is assumed cheap and unmeasured. ④ Nothing was built — this is a cost probe, not a prototype.
 
+**2026-07-22 — ⭐ THE FIX IS BUILT (v1.418): synthesis moved into a disposable iframe realm. Status `fixed`, NOT `verified` — read the verification section below before trusting it.**
+
+- **The shape of it.** Everything wasm — ORT, vits-web, the phonemizer — now runs inside a hidden same-origin iframe (`piper-host.html`), driven over postMessage. Destroying the iframe destroys the realm and returns its linear memory, which is the only thing measured to work: releasing anything INSIDE a realm cannot shrink wasm memory that has already grown, which is exactly why the r8 session recycle, ORT session options and input bucketing all reclaimed nothing.
+
+- **Blast radius kept deliberately small.** The frame is exposed through an adapter with **the same method names as the in-page module** (`predict`/`stored`/`download`/`remove`/`tndRecycleSession`/`tndDiag`/`PATH_MAP`), so every existing call site is untouched and the engine becomes a swappable transport rather than a rewrite of `tts.js`'s scar-tissue.
+
+- **Iframe, not worker — and it costs no vendored edit.** Workers do not inherit the page's import map; an iframe carries its own, so vits-web's bare `"onnxruntime-web"` specifier keeps resolving and the vendored runtime is used UNCHANGED at r9. No `PIPER_RUNTIME_REV` bump, so none of the permanent-cache delivery risk that has bitten this area twice.
+
+- **Trigger is MEASURED MEMORY, not a synth count** (`PIPER_RESPAWN_MB`=400). The count was only ever a proxy for memory and a poor one — read length varies ~5x, so the same count means wildly different allocation. Respawn is **build-then-swap-then-destroy**: the replacement is created and warmed while the old one still serves, so a failure leaves the WORKING engine in place rather than no engine. It runs between reads, off the critical path.
+
+- **✅ WHAT WAS VERIFIED LIVE (desktop Chrome, real synthesis):**
+  · synthesis round-trips through the frame — RPC returned a real 81,964-byte WAV;
+  · **all wasm is in the frame and NONE in the page** — the frame's probe reported `phon 16MB, ort 170MB` while the page's probe list was empty;
+  · **⭐ respawn actually reclaims: ORT 424MB → 207MB**, old frame destroyed, frame count back to 1;
+  · memory plumbing reaches the app — `TTS.diag()` reported `ortMB=207 phonMB=16` sourced from the frame;
+  · the loud fallback works, demonstrated involuntarily: a throttled tab missed the ready handshake and the console said so in plain language.
+
+- **⚠ WHAT IS NOT VERIFIED, stated plainly because the difference matters.** Five changes made AFTER that successful run are code-complete and suite-green (786) but were **never exercised in a browser**: the 30s ready timeout, the self-heal retry, the corrected `before` figure, the skip-warm-if-voice-not-resident guard, and the `eng=` reporting. Two environment faults blocked further live testing and both are worth knowing: **the dev server was serving a stale in-memory copy** (133,848 bytes vs 139,815 on disk — every "fix didn't work" reading for an hour was testing old code, only caught by fetching the file and diffing its length), and **Chrome froze the preview tab hard enough that the iframe's own script never ran and its `setTimeout` never fired**. Neither is a product defect; both invalidate any test run through them.
+
+- **⚠ The failure mode to watch, and it is the important one.** If the frame cannot start, narration still works — it silently falls back to the in-page engine and keeps ratcheting, i.e. it looks exactly like a working fix until the tab dies at ~1GB. Three things now make that visible: a loud console warning, a `piper-frame-fail` breadcrumb, `eng=frame|inpage-fallback` on `TTS.diag()` and the crash crumb, and **a plain-language line in Voice Settings** reading either `disposable realm` or `IN-PAGE (memory ratchets)`. The fallback is also no longer permanent — a missed handshake is retried between reads, so one transient stall cannot pin a whole session onto the broken path.
+
+- **`TTS.respawnEngine()` shipped too** — a manual engine reset. It is both the user-facing mitigation if narration ever feels heavy mid-drive and the deterministic way to prove teardown returns memory (the automatic path needs ~30 varied synths to reach its threshold). It is what produced the 424→207 measurement.
+
+- **How to confirm on the phone, in one look:** open Voice Settings after narration has run. `disposable realm` means the fix is live; `IN-PAGE (memory ratchets)` means it is not and B9 is still in play on that device. The next crash crumb also carries `eng` and `om`, so a death report says which engine was running and at what memory.
+
+- **Still open:** no phone soak yet. The acceptance test is unchanged — carry `pc` past ~130 without dying, with ORT memory staying bounded — and it is now checkable from the crumb rather than inferred.
+
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
 - **2026-07-22 (measurement only, no version)** — measured and falsified candidates 1 (ORT session options) and 2 (input-shape bucketing); experiment reverted, vendored runtime untouched at r9. Mechanism relocated to output/intermediate shape. Candidate 3 (discardable worker) is the remaining approach.
 - **2026-07-22 (measurement only, no version)** — measured realm-respawn cost: ~3.3 s overhead, same as the session rebuild already shipping, wasm import 28-36 ms. Retracts the 9 s figure. Iframe beats worker (own import map, no vendored edit). Candidate 3 de-risked; not built.
+- **2026-07-22 · v1.418** — BUILT the fix: synthesis moved into a disposable iframe realm, respawned on measured memory (400MB). Verified live that teardown reclaims (ORT 424→207MB) and that all wasm sits in the frame. Status `fixed`, awaiting a phone soak. Adapter keeps the old module interface, so no call sites and no vendored files changed (still r9).
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** findings-ready

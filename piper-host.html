@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Piper synthesis host</title>
+<!--
+  ══════════════════════════════════════════════════════════════════════════════════════════════
+  piper-host.html — THE DISPOSABLE SYNTHESIS REALM (v1.418, B9)
+
+  NOT a page a human ever opens. tts.js loads this into a hidden same-origin iframe and drives it
+  over postMessage. Everything wasm — ONNX Runtime, the vits-web module, the phonemizer — lives
+  in HERE, so that removing the iframe destroys the whole realm and returns its linear memory.
+
+  WHY THIS EXISTS (DOC/BUGS.md ▸ B9). ORT's wasm linear memory grows per distinct inference shape
+  and never shrinks: measured 170MB → 611MB over 100 varied synths, which reaches ~1GB around the
+  cumulative-synth count where iOS was killing the tab (crumbs at pc 114-124). Three cheaper fixes
+  were measured and falsified first — the r8 InferenceSession recycle (identical curve, to the
+  byte), ORT session options incl. enableMemPattern (no effect), and input-shape bucketing (still
+  climbed, which also proved the driver is downstream of the input shape). Releasing anything
+  INSIDE a realm cannot shrink wasm memory that has already grown. Destroying the realm can.
+
+  WHY AN IFRAME AND NOT A WORKER. Workers do not inherit the page's import map, so vits-web.js's
+  bare `import("onnxruntime-web")` would stop resolving and the vendored file would need editing
+  (and a PIPER_RUNTIME_REV bump, with all the permanent-cache delivery risk that carries). An
+  iframe is its own document and carries its own import map, so the vendored runtime is used
+  UNCHANGED at r9. It is same-origin, so OPFS — where the 60-115MB voice models live — is shared
+  with the app and downloads are not repeated.
+
+  COST, MEASURED (DOC/BUGS.md ▸ B9, 2026-07-22): a full realm respawn costs the same as the
+  session rebuild the app already performed every 30 synths (~3.3s overhead; module import 28-36ms
+  because the wasm is code-cached). The often-quoted ~9s is the COLD first-load figure and does
+  not apply here.
+
+  PROTOCOL. Parent → here: {tnd:"rpc", id, op, args}. Here → parent: {tnd:"ready"} once at load,
+  then {tnd:"rpc", id, ok, result|err} per call and {tnd:"progress", id, p} during a download.
+  `predict` returns its WAV as a TRANSFERRED ArrayBuffer, so the audio is moved rather than copied.
+  ══════════════════════════════════════════════════════════════════════════════════════════════
+-->
+<!-- Must load before any wasm is instantiated: this is how ORT's linear memory becomes readable,
+     and reporting it back is what lets tts.js trigger a respawn on MEASURED memory rather than on
+     a guessed synth count. Same file the app loads — one probe, two realms. -->
+<script src="/wasm-probe.js"></script>
+<!-- The whole reason an iframe works: its own import map. Redirects vits-web.js's bare
+     "onnxruntime-web" specifier to the vendored, same-origin ORT. Keep the ?tnd= rev in lockstep
+     with the import map in index.html — same permanent-cache delivery rule. -->
+<script type="importmap">
+{
+  "imports": {
+    "onnxruntime-web": "/vendor/piper/ort/ort.wasm.min.js?tnd=ort-r1"
+  }
+}
+</script>
+</head>
+<body>
+<script type="module">
+var PIPER_LIB = "/vendor/piper/vits/vits-web.js?tnd=r9";   // keep in lockstep with tts.js PIPER_RUNTIME_REV
+var _mod = null;
+
+// Engine bring-up. Order is load-bearing and mirrors tts.js _piperInit: the ORT env locks must be
+// installed BEFORE vits-web's predict() runs, because that file unconditionally reassigns
+// wasmPaths/numThreads on every call — defineProperty getters with no-op setters turn the clobber
+// into a no-op instead of a break. numThreads=1 forces the NON-threaded ort-wasm-simd.wasm: no
+// worker, no SharedArrayBuffer, no cross-origin isolation requirement.
+async function boot() {
+  if (_mod) return _mod;
+  var ort = await import("onnxruntime-web");
+  Object.defineProperty(ort.env.wasm, "wasmPaths", {
+    get: function () { return "/vendor/piper/ort/"; },
+    set: function (_v) {},
+    configurable: true
+  });
+  Object.defineProperty(ort.env.wasm, "numThreads", {
+    get: function () { return 1; },
+    set: function (_v) {},
+    configurable: true
+  });
+  _mod = await import(PIPER_LIB);
+  return _mod;
+}
+
+// ORT's linear memory in this realm, in MB — the number the whole respawn policy keys off.
+// null (never 0) when the probe is missing or has caught nothing, so "not measured" stays
+// distinguishable from "measured, engine not loaded yet".
+function memReport() {
+  var out = { ortMB: null, phonMB: null, phonMods: null };
+  try {
+    var p = WebAssembly.__tndProbe;
+    if (!p || !p.caught()) return out;
+    out.ortMB = Math.round(p.mb("ort"));
+    out.phonMB = Math.round(p.mb("phon"));
+    out.phonMods = p.count("phon");   // >1 means the phonemizer reuse latch broke (TODO #87)
+  } catch (e) {}
+  return out;
+}
+
+var OPS = {
+  // Returns what the parent needs to mirror the old in-page module's surface without importing it.
+  init: async function () {
+    var m = await boot();
+    return { patch: m.TND_VITS_PATCH || "r0-unpatched", pathMap: m.PATH_MAP || {} };
+  },
+  predict: async function (a) {
+    var m = await boot();
+    var blob = await m.predict({ text: a.text, voiceId: a.voiceId, rate: a.rate });
+    var buf = await blob.arrayBuffer();
+    return { __transfer: [buf], buf: buf, type: blob.type || "audio/x-wav" };
+  },
+  stored: async function () { return await (await boot()).stored(); },
+  download: async function (a, onProgress) {
+    var m = await boot();
+    await m.download(a.voiceId, function (p) { onProgress(p); });
+    return null;
+  },
+  remove: async function (a) { return await (await boot()).remove(a.voiceId); },
+  // Kept so the parent can still exercise the r8 path. Measured NOT to reclaim anything — the
+  // realm teardown is what actually works — but it is cheap and harmless to retain.
+  recycle: async function () {
+    var m = await boot();
+    if (typeof m.tndRecycleSession === "function") await m.tndRecycleSession();
+    return null;
+  },
+  diag: async function () {
+    var d = {};
+    try { if (_mod && typeof _mod.tndDiag === "function") d = _mod.tndDiag() || {}; } catch (e) {}
+    var mem = memReport();
+    d.ortMB = mem.ortMB; d.probePhonMB = mem.phonMB; d.probePhonMods = mem.phonMods;
+    return d;
+  },
+  // Cheap, synchronous-ish memory poll. Deliberately does NOT boot the engine: the respawn policy
+  // asks constantly, and a poll that could trigger a 60MB model load would be its own bug.
+  mem: async function () { return memReport(); }
+};
+
+function reply(id, ok, payload) {
+  var msg = { tnd: "rpc", id: id, ok: ok };
+  var transfer = [];
+  if (ok) {
+    if (payload && payload.__transfer) { transfer = payload.__transfer; delete payload.__transfer; }
+    msg.result = payload;
+  } else {
+    msg.err = payload;
+  }
+  parent.postMessage(msg, location.origin, transfer);
+}
+
+window.addEventListener("message", function (ev) {
+  // Only the embedder, only our own origin. This realm can read OPFS and burn CPU; it takes
+  // instructions from nobody else.
+  if (ev.source !== parent || ev.origin !== location.origin) return;
+  var d = ev.data;
+  if (!d || d.tnd !== "rpc" || !OPS[d.op]) return;
+  var id = d.id;
+  Promise.resolve()
+    .then(function () {
+      return OPS[d.op](d.args || {}, function (p) {
+        try { parent.postMessage({ tnd: "progress", id: id, p: p }, location.origin); } catch (e) {}
+      });
+    })
+    .then(function (result) { reply(id, true, result); },
+          function (e) { reply(id, false, (e && e.message) || String(e)); });
+});
+
+parent.postMessage({ tnd: "ready" }, location.origin);
+</script>
+</body>
+</html>
