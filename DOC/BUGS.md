@@ -149,10 +149,10 @@ _(none)_
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (**v1.421**) · **Count:** 12 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (**v1.423**) · **Count:** 18 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169, 96a3c726-0521-4d1f-8be3-357cef72c916, 5c6e647c-ae74-469f-97e9-182354920eea, 13d38451-2cfe-4952-8c2e-4fadecb407ba, 82fcd440-a94b-4a7f-9a8d-0eb6a2819605, aafcd736-7261-49d3-b701-10f38ed7812e, 686dbb4a-e934-4b3c-9543-4d1c6d844726
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169, 96a3c726-0521-4d1f-8be3-357cef72c916, 5c6e647c-ae74-469f-97e9-182354920eea, 13d38451-2cfe-4952-8c2e-4fadecb407ba, 82fcd440-a94b-4a7f-9a8d-0eb6a2819605, aafcd736-7261-49d3-b701-10f38ed7812e, 686dbb4a-e934-4b3c-9543-4d1c6d844726, 7834781b-a8fd-439d-97c9-c4d29d0dff39, db7dc80e-346f-4604-bcde-7523dd6bdcfa, d58e1a10-b487-4e01-8a09-b02b5e2ee351, 3d6673d0-e8de-4c8f-ae81-7de728cb7c0c, a252a0e5-9fbb-42e7-8a09-78a494bc9a93, 628a8dcd-81af-40a9-b5d3-aa7748e1f33e
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -578,6 +578,31 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Immediate next steps, in order.** ① Crumb the respawn FAILURE reason — a fix that silently never runs is worse than no fix, and this one has been silently never running since v1.418. ② Decide destroy-then-build vs build-then-destroy on the evidence from ①. ③ Stop treating ORT memory as the target until something re-implicates it.
 
+**2026-07-22 — ⭐⭐ THE RESPAWN FAILURE IS NAMED, on the v1.422 instrumentation's FIRST outing. Stage = `spawn`, reason = the ready timeout.**
+
+```text
+  +29s  realm-respawn 429MB after 24
+  +59s  respawn-fail spawn #1 429MB piper host did not signal ready within 3…
+  +203s realm-respawn 429MB after 75
+  +233s respawn-fail spawn #2 429MB piper host did not signal ready within 3…
+  +267s realm-respawn 429MB after 102
+  +297s respawn-fail spawn #3 429MB piper host did not signal ready within 3…
+```
+
+- **Every failure is at stage `spawn`, and every one burns the full 30s `PIPER_HOST_READY_MS` before giving up** (+29→+59, +203→+233, +267→+297 — exactly 30s each). `rf` reached 3 and 2 on the two v1.422/v1.423 reports, so the counter works and the fix is reportable at last.
+
+- **What that means: the REPLACEMENT REALM NEVER STARTS while the old one is alive.** Not init, not the warm predict, not the swap — the new iframe never even posts `ready`, which in `piper-host.html` happens at the END of the module script and BEFORE any ORT import. So this is not an engine failure inside the frame; the frame's document/script never gets far enough to say hello.
+
+- **⚠ Why my desktop testing missed it, stated because it is the methodological lesson.** On desktop I unregistered the service worker before every successful respawn test, and the page was never under memory pressure. On the phone the first frame starts fine (`eng:"frame"` on every report proves it) — it is only the SECOND, concurrent frame that never starts. **The thing I verified was single-realm spawning; the thing that ships is a second realm alongside a loaded one, and I never tested that under pressure.**
+
+- **⭐ THIS IS THE EVIDENCE THE HANDOFF SAID TO WAIT FOR, and it indicts the ordering.** Build-then-destroy was chosen so a failure would leave the working engine in place. But the build cannot succeed while the old realm holds 429-624MB, so the safety property is worthless: it never gets far enough to need it. **Destroy-then-build is now the evidence-backed direction** — free the old realm first, then construct the replacement into the space it vacated. The cost is a brief no-engine window, which is acceptable because respawn runs BETWEEN reads (nothing is playing) and the next read rebuilds lazily anyway.
+
+- **Six more deaths, and the memory spread widens further.** `pc` = 101 / 97 / 107 / 101 / 104 / **90** with ORT at **308 / 301 / 624 / 443 / 429 / 429 MB**. That is a 323MB spread across six deaths clustered in a 17-synth band, including one at 624MB and two at ~301MB. **Eighteen crumbs now say the same thing: death tracks cumulative synths, not memory.** The 90 is the lowest `pc` yet recorded.
+
+- **`vs` ranges 0 to 11 across these six**, including deaths at `vs:0` (no voice switches at all in the fatal read). Combined with `nv` spanning 3-5, **voice-model churn is now very hard to sustain as the cause** — two of these pages died with zero switches in the read that killed them.
+
+- **What stays true:** `pn:1` and `pm:16` on all six (the phonemizer latch has never fired in the field; `pmc` tracks `pc`), and `eng:"frame"` on all six, so the realm itself keeps working — it simply never gets replaced.
+
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
 - **2026-07-22 (measurement only, no version)** — measured and falsified candidates 1 (ORT session options) and 2 (input-shape bucketing); experiment reverted, vendored runtime untouched at r9. Mechanism relocated to output/intermediate shape. Candidate 3 (discardable worker) is the remaining approach.
@@ -587,6 +612,7 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **2026-07-22 · v1.420** — per-unit ORT peak sampling (`omp` on the crumb, `ortPeak` in diag); `pmc` restored in frame mode; voice deletion fixed to use the standard `removeEntry()` and THROW (the Chrome-only primitive silently no-opped on Safari, which permanently disabled the 10-voice cap and let 13 accumulate); assigned-voice guard on automatic eviction; over-cap voices now visible and deletable. Four sabotage-proven source tripwires.
 - **2026-07-22 (field, 3 arrivals)** — the respawn fires but NEVER COMPLETES (`rc:0` with the same MB re-reported each trigger), so the v1.418 fix has been a no-op in a second way. And ORT memory is measured NOT to be the predictor: deaths at pc 104/125/105 with 527/433/301MB. `omp` is uninformative by construction while memory only grows. Next: crumb the respawn failure reason.
 - **2026-07-22 · v1.422** — the respawn failure is no longer silent. A stage marker (`mem`/`spawn`/`init`/`warm`/`swap`) plus the reason and the memory at attempt time ride a `respawn-fail` crumb, and a per-page failure COUNT rides the death crumb as **`rf`** and `TTS.diag()` as `respawnFails`. The next report says WHICH step fails — `spawn` would mean the phone could not afford a second realm alongside the old one, which indicts the build-then-destroy ordering directly.
+- **2026-07-22 (field, 6 arrivals)** — v1.422's crumb answered on its first outing: **stage `spawn`, "piper host did not signal ready within 30s", every time.** The replacement realm never starts while the old one is alive, so build-then-destroy can never succeed under pressure and its safety property is moot. Destroy-then-build is now evidence-backed. Also: `vs:0` on two of these deaths weakens voice churn badly, and the memory spread at death widened to 301-624MB.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
 **Status:** fixed (core defect verified in the field; one residual, below)
