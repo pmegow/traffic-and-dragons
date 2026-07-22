@@ -86,6 +86,26 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **Open questions:** does a read with NO speaker map (voice off / no voiced cast) still die at ~100-125 cumulative synths on v1.406? That single comparison separates "my change made it worse" from "my change is irrelevant to the terminal event".
 
 
+**2026-07-21 (later) — field answers from the user + two measurements taken from the feed. This REORDERS the incident.**
+
+- **⏱ THE TIMELINE WAS BACKWARDS, and it changes the causal arrow.** The narration-death report is NOT mailed when the read dies — it is mailed at the NEXT BOOT, by `loadSettings` reading the crumb the dead page left behind (verified at tts.js:566-579; `store.del` makes it one-shot, and ui-boot.js:234 is the only caller). So the true sequence is:
+  1. **Page A** is reading narration, dies at unit 30/31 with no unload event (process kill / force-quit).
+  2. **Page B** boots at 19:07:04 and mails page A's crumb. This is B9.
+  3. **38.6 s later** (19:07:43), still on page B, `AudioContext.resume()` rejects with "Failed to start the audio device" at turn 924. This is B10.
+  4. User does **File ▸ Clear cache & reload** → **page C** → taps the per-message 🔊 button → **playback resumed normally**.
+
+  So B10 is not the aftermath of a dying read — it is the NEXT page being unable to acquire the audio device at all. **Working hypothesis this creates:** page A's hard kill left the audio session held / mid-teardown in the media daemon, so page B could not start it; by page C the daemon had recovered. That gives B9 → B10 a direction (kill causes device unavailability for the successor page) and is a much better fit than either bug's standalone story.
+
+- **📏 `suppressed = 0` on report 4a3d6c35** (read from the GAS feed — this was the merge agent's "one measurement", and it was already in the payload). No further rejections were swallowed inside the 30 s debounce window. That **de-ranks the per-toast `sound.js` retry loop as the emitter** — a source firing on every toast would have accumulated suppressions and, given the 10/session cap, likely mailed again. It favours a ONE-SHOT device-start failure, consistent with the daemon-teardown hypothesis above. (`suppressed = 0` on the B9 crumb report too.)
+
+- **🖼 No screenshot exists, and none ever will for this class.** Crash reports go through `reportError`, which sends no image; only `sendUserReport` — the manual ⚠ Report bug modal — captures a DOM screenshot (error-report.js:244-262). All three feed reports carry `screenshotUrl: ""`. **So the "did the 🔇 iOS-paused toast appear?" question cannot be answered retrospectively for this incident** — which is itself an argument for B10 fix-sketch layer 1 (enrich the crash payload with ctx state / engine / `_playing` / queue depth), since that is the only way this class becomes self-diagnosing in the field.
+
+- **🔁 Recovery: `Clear cache & reload` → 🔊 → playback resumed.** The failure does NOT survive a page reload, so nothing was permanently broken at the device level. **But the discriminator is still open:** the user did not try a voice toggle off→on (tts.js:363-364 → `_closeCtx`), which is the ONLY in-page path that rebuilds the context. Reload-recovery is equally consistent with the app-level wedge (a dead context never rebuilt, `_playing` latched) and with a transient device failure that had simply passed. Next time this happens, **try the voice toggle first** — if audio returns, the fault is the app's un-rebuilt context and fix-sketch layer 2 is the answer; if it does not, the device was genuinely unavailable and layer 1 + the daemon hypothesis is.
+
+- **🧩 A consistency check that corroborates the reframing:** page B produced NO narration-death crumb of its own. Crumb writes are gated behind `_ctxRunning` (tts.js:1003 runs before the first `_crumb` at :1036), so a read attempted on a page whose context never ran writes no crumb and falls back to native. The absence of a second crumb is therefore positive evidence that **page B's audio context never ran at all** — matching "the audio DID die" for that whole page load, and matching native being equally mute.
+
+- **Unchanged by this:** the B9 memory-ratchet analysis (page A's death) and the v1.406 sparse-voice-map session thrash both stand — this evidence speaks to what happened AFTER the kill, not to what caused it.
+
 ### Action log
 _(none)_
 
@@ -131,6 +151,26 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Open questions for the user (cheap, high-value):** did the "🔇 iOS paused game audio" toast appear (tts.js:449/472)? Were UI earcons ALSO silent, or only narration (separates sound.js's context from tts.js's)? Did a **voice toggle off→on** restore audio — the only code path that rebuilds the context — or did it need a reload/app restart? Is this class reachable without a preceding narration death?
 
+
+**2026-07-21 (later) — field answers from the user + two measurements taken from the feed. This REORDERS the incident.**
+
+- **⏱ THE TIMELINE WAS BACKWARDS, and it changes the causal arrow.** The narration-death report is NOT mailed when the read dies — it is mailed at the NEXT BOOT, by `loadSettings` reading the crumb the dead page left behind (verified at tts.js:566-579; `store.del` makes it one-shot, and ui-boot.js:234 is the only caller). So the true sequence is:
+  1. **Page A** is reading narration, dies at unit 30/31 with no unload event (process kill / force-quit).
+  2. **Page B** boots at 19:07:04 and mails page A's crumb. This is B9.
+  3. **38.6 s later** (19:07:43), still on page B, `AudioContext.resume()` rejects with "Failed to start the audio device" at turn 924. This is B10.
+  4. User does **File ▸ Clear cache & reload** → **page C** → taps the per-message 🔊 button → **playback resumed normally**.
+
+  So B10 is not the aftermath of a dying read — it is the NEXT page being unable to acquire the audio device at all. **Working hypothesis this creates:** page A's hard kill left the audio session held / mid-teardown in the media daemon, so page B could not start it; by page C the daemon had recovered. That gives B9 → B10 a direction (kill causes device unavailability for the successor page) and is a much better fit than either bug's standalone story.
+
+- **📏 `suppressed = 0` on report 4a3d6c35** (read from the GAS feed — this was the merge agent's "one measurement", and it was already in the payload). No further rejections were swallowed inside the 30 s debounce window. That **de-ranks the per-toast `sound.js` retry loop as the emitter** — a source firing on every toast would have accumulated suppressions and, given the 10/session cap, likely mailed again. It favours a ONE-SHOT device-start failure, consistent with the daemon-teardown hypothesis above. (`suppressed = 0` on the B9 crumb report too.)
+
+- **🖼 No screenshot exists, and none ever will for this class.** Crash reports go through `reportError`, which sends no image; only `sendUserReport` — the manual ⚠ Report bug modal — captures a DOM screenshot (error-report.js:244-262). All three feed reports carry `screenshotUrl: ""`. **So the "did the 🔇 iOS-paused toast appear?" question cannot be answered retrospectively for this incident** — which is itself an argument for B10 fix-sketch layer 1 (enrich the crash payload with ctx state / engine / `_playing` / queue depth), since that is the only way this class becomes self-diagnosing in the field.
+
+- **🔁 Recovery: `Clear cache & reload` → 🔊 → playback resumed.** The failure does NOT survive a page reload, so nothing was permanently broken at the device level. **But the discriminator is still open:** the user did not try a voice toggle off→on (tts.js:363-364 → `_closeCtx`), which is the ONLY in-page path that rebuilds the context. Reload-recovery is equally consistent with the app-level wedge (a dead context never rebuilt, `_playing` latched) and with a transient device failure that had simply passed. Next time this happens, **try the voice toggle first** — if audio returns, the fault is the app's un-rebuilt context and fix-sketch layer 2 is the answer; if it does not, the device was genuinely unavailable and layer 1 + the daemon hypothesis is.
+
+- **🧩 A consistency check that corroborates the reframing:** page B produced NO narration-death crumb of its own. Crumb writes are gated behind `_ctxRunning` (tts.js:1003 runs before the first `_crumb` at :1036), so a read attempted on a page whose context never ran writes no crumb and falls back to native. The absence of a second crumb is therefore positive evidence that **page B's audio context never ran at all** — matching "the audio DID die" for that whole page load, and matching native being equally mute.
+
+- **Unchanged by this:** the B9 memory-ratchet analysis (page A's death) and the v1.406 sparse-voice-map session thrash both stand — this evidence speaks to what happened AFTER the kill, not to what caused it.
 
 ### Action log
 _(none)_
