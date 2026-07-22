@@ -296,6 +296,28 @@ var TTS = (function() {
         var units = [], j, s2;
         if (commaSplit) {
           var clauses = mergeDigitClauses(sent.match(/[^,;:]+[,;:]+\s*|[^,;:]+$/g) || [sent]);
+          // B14: dialogue punctuated INSIDE the quotation ("That leaves her," Frizwick says.) splits
+          // between the comma and the closing quote, orphaning that quote onto the ATTRIBUTION —
+          // which then begins with a quote mark and reads as continued speech. That is what made the
+          // #9 speaker post-pass hand the narrator's "Frizwick says" to the character's voice.
+          // Move a CLOSING quote back onto the dialogue it closes. Parity is what distinguishes a
+          // closer from an opener: an ODD number of quote marks so far means we are inside a
+          // quotation, so a leading quote closes it; EVEN means it opens one and must stay put
+          // (`He said, "Get back."` must not become `He said,"` / `Get back."`). Both cases are
+          // engine-tested, as is the invariant that this never changes the UNIT COUNT — persisted
+          // speaker maps key on it, so a count change would silently flatten every past turn.
+          var _qSeen = 0, _qc, _qm;
+          for (_qc = 0; _qc < clauses.length; _qc++) {
+            if (_qc > 0 && (_qSeen % 2) === 1) {
+              _qm = clauses[_qc].match(/^\s*(["\u201d])/);
+              if (_qm) {
+                clauses[_qc - 1] = clauses[_qc - 1].replace(/\s+$/, "") + _qm[1];
+                clauses[_qc]     = clauses[_qc].replace(/^\s*["\u201d]/, "");
+                _qSeen++;   // the moved mark now belongs to the previous clause
+              }
+            }
+            _qSeen += (clauses[_qc].match(/["\u201d]/g) || []).length;
+          }
           for (var c = 0; c < clauses.length; c++) {
             var cl = clauses[c].trim();
             if (!cl) continue;

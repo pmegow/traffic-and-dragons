@@ -243,6 +243,7 @@ function buildSpeakerPrompt(units,cast){
     +"Rules:\n"
     +"- Include a line ONLY when a listed cast member is the one speaking those words aloud.\n"
     +"- Omit narration, description, and any line spoken by someone not in the cast.\n"
+    +"- An attribution clause is NARRATION, not speech. In a line like: ...her,' Frizwick says. — the words 'Frizwick says' are the narrator's, not hers. Label only the words actually spoken aloud.\n"
     +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard.\n"
     +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"
     +'Example: {"3":"'+(cast[0]?cast[0].name:"Name")+'"}';

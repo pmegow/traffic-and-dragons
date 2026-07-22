@@ -54,7 +54,7 @@ _(none yet — `/bugs investigate B13`)_
 _(none)_
 
 ## B14 — Speaker post-pass gives a whole sentence a character's voice when only part of it is dialogue: the narrator's "Frizwick says" attribution is read in Frizwick's voice
-**Status:** new
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-07-22 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 926
 **Fingerprint:** `user-report · user-report · v1.406 · "that leaves her," frizwick says. "and whatever 'she's a door' is supposed to mean." | was read entirely in frizwicks voice.`
 **Report ids:** 5bfffa61-cd5e-4b8e-94b6-20e73e96ab22
@@ -73,10 +73,29 @@ STATE: Ammut (Rogue Lv9) HP 75/75, 646 gp — Sandpoint Catacombs - Hidden Passa
 ```
 
 ### Findings
-_(none yet — `/bugs investigate B14`)_
+
+**2026-07-22 — investigated directly (one measurement settled it), then fixed**
+
+- **Verdict:** `root-caused`. NOT a model error — a SPLITTER defect.
+- **Mechanism.** `splitSentences(text,null,true)` comma-splits on `/[^,;:]+[,;:]+\s*|[^,;:]+$/`. When dialogue is punctuated INSIDE the quotation — `"That leaves her," Frizwick says.` — the comma precedes the closing quote, so the split lands between them and the quote is orphaned onto the NEXT clause. Measured on the reported line:
+```text
+  0: "That leaves her,          <- dialogue
+  1: " Frizwick says.           <- NARRATION, but it begins with a quote mark
+  2: "And whatever 'she's a door' is supposed to mean."
+```
+  Unit 1 is the narrator's attribution, and it literally opens with `"`. The speaker post-pass sees a unit that looks like continued speech and labels it Frizwick — so her voice reads "Frizwick says". The prompt already said "omit narration"; the input made that instruction look wrong.
+- **Fix.** Move a CLOSING quote back onto the dialogue it closes, inside the comma-split branch. Quote PARITY distinguishes a closer from an opener: an odd count so far means we are inside a quotation (so a leading quote closes it and moves), even means it opens one and stays. That inverse case is the dangerous one — without the parity guard, `He said, "Get back."` would become `He said,"` / `Get back."`, corrupting every ordinary dialogue line. Prompt hardened alongside (attributions are narration) as defence in depth, not as the fix.
+- **Invariant protected by test:** the unit COUNT never changes. `speakerVoiceMap` drops a whole map when `splitSentences(text).length !== sp.n`, so a count change would silently flatten every persisted map on every past turn.
+- **Drift surface:** NO — `tts.js` text-prep, downstream of `cleanTxt`.
+- **Verification:** 3 tests written failing-first — the field line, the opening-quote inverse, and the unit-count/no-text-loss invariant across four shapes. 771 green. This is pure string logic with no DOM or audio, so the headless suite (which loads the real tts.js) is the appropriate check; no browser run was needed or claimed.
+- **⚠ Open design question raised by the user mid-fix (2026-07-22):** whether to comma-split AT ALL. Recorded on the row because it could supersede this fix entirely — see the Action log.
+
+
 
 ### Action log
-_(none)_
+**2026-07-22** — fixed in v1.408. Closing quote reattached to its dialogue in the comma-split branch (parity-guarded), speaker prompt hardened. Awaiting live confirmation from the user before `verified`.
+**2026-07-22** — ⚠ user challenged the premise mid-fix: _"I don't think we should split on commas. I can't off the top of my head think of an appropriate time for that."_ There IS a recorded reason — comma-splitting was added for THIS user's own complaint (2026-07-16, "the way it just runs over a comma is nasty"), because Piper renders essentially no pause for punctuation inside a unit, making the scheduled inter-unit gap the only rhythm control available. Removing it is a real fork with a second consequence: whole-sentence units would make per-speaker voicing impossible below sentence granularity, which would make B14's exact symptom WORSE (the whole sentence takes one voice). Put to the user; not acted on.
+
 
 ## B15 — Anthropic credit exhaustion surfaces as a summarize crash rather than a clear "out of credits" message
 **Status:** new

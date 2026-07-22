@@ -4190,6 +4190,43 @@ function runEngineTests(R){
     var joined=out.join(" ").replace(/\s+/g,"");
     return joined===s.replace(/\s+/g,"")?true:"content lost: "+JSON.stringify(out);
   });
+  // ── B14: a comma INSIDE dialogue must not orphan the closing quote onto the attribution ──────
+  t("B14: closing quote stays with the dialogue, so the attribution clause is clean narration",function(){
+    // THE FIELD FAILURE: `\"That leaves her,\" Frizwick says.` comma-split into
+    //   0: \"That leaves her,      1: \" Frizwick says.
+    // Unit 1 is pure NARRATION that begins with a quote mark, so the speaker post-pass read it as
+    // continued speech and gave the narrator's attribution the character's voice (report 5bfffa61).
+    var line='"That leaves her," Frizwick says. "And whatever is supposed to mean."';
+    var u=TTS._textPrep.splitSentences(line,null,true);
+    var texts=u.map(function(x){return x.text;});
+    var attrib=null,i;
+    for(i=0;i<texts.length;i++)if(/Frizwick says/.test(texts[i]))attrib=texts[i];
+    if(attrib===null)return "attribution unit not found in "+JSON.stringify(texts);
+    if(/^["\u201d]/.test(attrib))return "attribution unit still starts with a quote: "+JSON.stringify(attrib);
+    if(texts[0].indexOf('her,"')<0)return "closing quote did not return to the dialogue: "+JSON.stringify(texts[0]);
+    return true;
+  });
+  t("B14: an OPENING quote after a comma must NOT be moved (the inverse case)",function(){
+    // The guard is quote PARITY, not \"starts with a quote\": here the leading quote OPENS speech
+    // and belongs exactly where it is. Moving it would corrupt every `He said, \"...\"` line.
+    var u=TTS._textPrep.splitSentences('He said, "Get back." She ran.',null,true);
+    var texts=u.map(function(x){return x.text;});
+    if(texts[0].replace(/\s+$/,"")!=="He said,")return "opening quote was dragged back: "+JSON.stringify(texts[0]);
+    return /^"Get back\./.test(texts[1])?true:"dialogue unit lost its opening quote: "+JSON.stringify(texts[1]);
+  });
+  t("B14: the fix must not change the UNIT COUNT (stored speaker maps key on it)",function(){
+    // speakerVoiceMap drops a whole map when splitSentences(text).length !== sp.n. Moving a quote
+    // character between units must never change how many units there are, or every persisted map
+    // on every past turn would silently degrade to one voice.
+    var lines=['"Run," she said, "now."','"That leaves her," Frizwick says.','He said, "Go." Then silence.','Plain narration, no quotes at all, just clauses.'];
+    var i;for(i=0;i<lines.length;i++){
+      var n=TTS._textPrep.splitSentences(lines[i],null,true).length;
+      var joined=TTS._textPrep.splitSentences(lines[i],null,true).map(function(x){return x.text;}).join(" ");
+      if(!n)return "line "+i+" produced no units";
+      if(joined.replace(/[\s"\u201d]/g,"")!==lines[i].replace(/[\s"\u201d]/g,""))return "line "+i+" lost non-quote text: "+joined;
+    }
+    return true;
+  });
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });
