@@ -4,7 +4,7 @@
 > measured NOT to be the predictor. The B9 section below is rewritten accordingly — it is the part
 > that changed most.
 
-**Deployed:** `v1.423` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722q` (sw.js) · Piper runtime **r9**
+**Deployed:** `v1.424` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722r` (sw.js) · Piper runtime **r9**
 **Tests:** 796 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
 
 `PIPER_RUNTIME_REV` is still **r9** and no `vendor/piper/*` file changed this session — every fix
@@ -23,7 +23,22 @@ Read `DOC/BUGS.md` first. It is the live record and it is where the reasoning is
 **Twelve crumbs, six app versions, and the fix I shipped has never once worked.** Two separate
 reasons, both now measured:
 
-**① The respawn never completes.** The ring shows it triggering three and four times per session
+**① The respawn never completed — ANSWERED, and addressed in v1.424.** v1.422 crumbed the stage,
+and the answer came back on its first outing: **every failure is stage `spawn`, "piper host did not
+signal ready within 30s"** — the replacement realm never starts while the old one is alive. Not
+init, not the warm predict; the new iframe never reaches its own `ready` post, which happens before
+any ORT import. So build-then-destroy could never succeed under pressure, and its safety property
+(a failure leaves the working engine in place) was worthless because it never got that far.
+**v1.424 therefore flipped to destroy-then-build**: tear the old realm down, null the pointers,
+then construct into the freed space. A failed rebuild leaves the pointers null and the next read
+re-inits through the ordinary boot path. `_piperInitP` guards the new no-engine window against a
+concurrent second spawn.
+⚠ **UNVERIFIED IN THE FIELD** — no crumb exists for the new ordering yet. The next `respawn-fail`
+(or its absence, with `rc` finally rising above 0) is the test.
+
+**① (original description, kept for context)**
+
+**① (original)** The ring shows it triggering three and four times per session
 with memory never moving — `realm-respawn 527MB after 44 / after 75 / after 100`, the same figure
 each time — and `rc:0` on every report proves it: the counter only increments after a successful
 swap. So the trigger fires, the swap fails, the `catch` keeps the old frame, and the failure went

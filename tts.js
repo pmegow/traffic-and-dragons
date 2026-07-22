@@ -1197,8 +1197,16 @@ var TTS = (function() {
     try { _frameRefreshMem(); } catch (e) {}
   }
 
+  var _piperInitP = null;   // v1.424: in-flight init, so concurrent callers share ONE spawn
   async function _piperInit() {
     if (_piperMod) return _piperMod;   // warm — already initialized
+    // v1.424 — destroy-then-build leaves `_piperMod` null for a real interval, and `_piperInit`
+    // is NOT inside the op mutex (_piperEnsureVoice calls it before entering the chain). Without
+    // this guard a read starting during a respawn would spawn a SECOND realm concurrently — the
+    // exact two-realms-at-once condition that made every respawn time out in the first place.
+    // Cleared on both settle paths so a failed init never wedges the engine permanently.
+    if (_piperInitP) return _piperInitP;
+    _piperInitP = (async function () {
     // Preferred path: the disposable realm.
     try {
       var fr = await _piperSpawnFrame();
@@ -1249,6 +1257,11 @@ var TTS = (function() {
       console.warn("[tts piper] init failed:", _piperError);
       throw e;
     }
+    })();
+    // Clear on BOTH settle paths — a failed init must not leave a rejected promise cached as the
+    // permanent answer for every later caller.
+    _piperInitP.then(function () { _piperInitP = null; }, function () { _piperInitP = null; });
+    return _piperInitP;
   }
 
   // Serialization gate (audit #9, v1.339): ONE Piper engine operation (voice ensure/download,
@@ -1770,7 +1783,24 @@ var TTS = (function() {
       return _piperSerial(function () {
         var old = _piperFrame;
         if (!old) throw new Error("no synthesis realm to respawn");
-        _respawnStage = "spawn";   // building a SECOND realm alongside the old one — the suspect step
+        // ⛨ DESTROY FIRST (v1.424). This was build-then-destroy until the field said otherwise:
+        // eighteen crumbs, and EVERY respawn failed at stage `spawn` with "piper host did not
+        // signal ready within 30s". The replacement realm never started while the old one was
+        // alive — it never even reached its own `ready` post, which happens before any ORT import.
+        // Build-then-destroy was chosen so a failure would leave the working engine in place, but
+        // that safety is worthless when the build can never succeed: at 429-624MB resident the
+        // phone simply would not start a second realm, so the fix had never once completed.
+        //
+        // So: free the old realm, THEN construct into the space it vacated. The cost is a window
+        // with no engine at all, which is affordable because this runs BETWEEN reads (nothing is
+        // playing) and `_piperInit` rebuilds lazily on the next predict anyway — that lazy path is
+        // the same one used at boot and is known to work. If the rebuild below fails, the pointers
+        // stay null and the next read simply re-inits, which is strictly better than the old
+        // behaviour of keeping a bloated realm forever.
+        _respawnStage = "destroy";
+        try { old.destroy(); } catch (e) {}
+        _piperFrame = null; _piperMod = null; _frameMem = null;
+        _respawnStage = "spawn";
         return _piperSpawnFrame().then(function (fresh) {
         _respawnStage = "init";
         return fresh.init()
@@ -1793,7 +1823,7 @@ var TTS = (function() {
             _respawnStage = "swap";
             _piperFrame = fresh; _piperMod = fresh;
             _piperSynthsSession = 0; _piperRecycles++;
-            try { old.destroy(); } catch (e) {}   // the realm dies here — this is what frees the memory
+            // (the old realm is already gone — it was destroyed before this one was built)
             return _frameRefreshMem().then(function (m2) {
               var after = m2 && m2.ortMB;
               console.info("[tts piper] realm respawned — ORT " + before + "MB → " + after + "MB");
@@ -1801,7 +1831,12 @@ var TTS = (function() {
             });
           })
           .catch(function (e) {
-            try { fresh.destroy(); } catch (e2) {}   // keep the OLD frame: ratcheting beats silent
+            // There is no old frame to fall back to any more, and that is deliberate. Leave the
+            // pointers null: the next read calls _piperInit, which builds a realm the same way
+            // boot does — a path that works, and now works against FREED memory rather than
+            // against the 429-624MB that made every previous attempt time out.
+            try { fresh.destroy(); } catch (e2) {}
+            _piperFrame = null; _piperMod = null;
             throw e;
           });
         });

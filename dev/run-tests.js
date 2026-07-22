@@ -148,6 +148,35 @@ try {
   }
 } catch (e) { console.error("AUDIO RECOVERY CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── RESPAWN ORDERING CONTRACT (v1.424, B9) ───────────────────────────────────────────────
+// Eighteen field crumbs, and EVERY realm respawn failed at stage `spawn` with "piper host did
+// not signal ready within 30s": the replacement realm never started while the old one was alive.
+// Build-then-destroy was chosen so a failure would leave the working engine in place — but that
+// safety is worthless when the build can never succeed, and it meant the fix had never once
+// completed. The old realm must be destroyed FIRST so the replacement is built into freed memory.
+// Flipping this back reintroduces a fix that silently never runs, which is the worst of both.
+try {
+  var _fsR = require("fs"), _pathR = require("path");
+  var _ttsR = _fsR.readFileSync(_pathR.join(__dirname, "..", "tts.js"), "utf8");
+  var _ncR = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _resp = _ncR((_ttsR.match(/function _frameRespawnNow\(voiceId\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_resp) { console.error("RESPAWN ORDERING CONTRACT: _frameRespawnNow not found."); process.exit(1); }
+  var _destroyAt = _resp.indexOf("old.destroy()"), _spawnAt = _resp.indexOf("_piperSpawnFrame()");
+  if (_destroyAt < 0 || _spawnAt < 0) {
+    console.error("RESPAWN ORDERING CONTRACT: _frameRespawnNow no longer both destroys the old realm and spawns a new one.");
+    process.exit(1);
+  }
+  if (_destroyAt > _spawnAt) {
+    console.error("RESPAWN ORDERING CONTRACT: the old realm is destroyed AFTER the new one is spawned — build-then-destroy. The phone cannot start a second realm at 429-624MB resident; every respawn then times out at stage 'spawn' and the fix never runs (18 field crumbs, v1.424).");
+    process.exit(1);
+  }
+  // The brief no-engine window is only safe because concurrent callers share one init.
+  if (_ttsR.indexOf("_piperInitP") < 0) {
+    console.error("RESPAWN ORDERING CONTRACT: the _piperInit in-flight guard (_piperInitP) is gone — destroy-then-build leaves _piperMod null, so a read starting mid-respawn would spawn a SECOND concurrent realm, recreating the exact condition that made respawns fail.");
+    process.exit(1);
+  }
+} catch (e) { console.error("RESPAWN ORDERING CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,
