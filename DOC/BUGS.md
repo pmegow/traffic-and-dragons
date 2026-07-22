@@ -132,10 +132,10 @@ _(none)_
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.409) · **Count:** 6 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.413, runtime r9) · **Count:** 7 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169, 96a3c726-0521-4d1f-8be3-357cef72c916
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -306,6 +306,27 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **Where that leaves the diagnosis.** The field evidence for the ratchet itself is unchanged and still strong (six crumbs, `pc` 118/119/118 on the last three, independent of read position, session age, recycles and voice count). Something still accumulates once per `predict()`. It is simply not the phonemizer. **The remaining candidate is the ORT runtime's own linear memory** — distinct from the InferenceSession that `tndRecycleSession` releases. Releasing a session cannot shrink wasm memory that has already grown, so the existing recycle would be expected to fail exactly as observed, and every new sentence length is a new shape allocating fresh arena.
 - **⚠ Not yet measurable, and that is the blocker.** Two attempts to get a handle on ORT's memory both failed: hooking `WebAssembly.Memory` caught zero (these modules declare memory internally rather than importing it), and hooking `WebAssembly.instantiate`/`instantiateStreaming` also caught zero. Next things to try, in order of cheapness: hook the synchronous `WebAssembly.Instance` constructor as well; instrument inside `piper_test.html` (the project's own soak harness, now on r9); or run cross-origin-isolated and use `performance.measureUserAgentSpecificMemory()`. **Until ORT memory is observable, any fix here is a guess — which is precisely the trap r8 documented.**
 - **Shipped from this session regardless:** the r9 `tndDiag()` export is permanent, and `TTS.diag()` now appends `phonMB=<size>/<calls>` so the phonemizer figure rides every crash report. It is the only direct view of wasm memory available on a device where iOS exposes none — and it now proves, from the field rather than a lab, that this particular resource stays flat.
+
+**2026-07-22 — seventh crumb, first on runtime r9. Band holds; two instrumentation lessons.**
+
+```text
+[96a3c726] {"i":12,"n":18,"pc":114,"ps":34,"rc":2,"vs":4,"nv":4,"up":11,"done":false}
+```
+
+- **`pc` = 114.** Series now 124 / 103 / 96 / 119 / 118 / 118 / **114** — still inside the band, and the recent five sit 114-124. Nothing here changes the diagnosis; it confirms r9 did not move the threshold (nor should it have — r9 added measurement only, no behaviour).
+- **r9 is confirmed live on the device** (`rev:"r9"` in the crumb), so the vendored delivery worked and future crumbs are from the instrumented runtime.
+- **⚠ INSTRUMENTATION GAP — the phonemizer figure is riding the wrong report.** `TTS.diag()` appends `phonMB` from the live Piper module, but a narration-death report is mailed at the NEXT BOOT, when nothing is loaded — visible in this very report's diag block: `audio ctx=none … synths=0/0 … voices=0`, and no `phonMB` at all. So the one measurement added for B9 cannot appear on the one report kind B9 produces. **It belongs in the crumb**, which is written mid-read while the module is live. Worth fixing before the next fix attempt, since it is the only in-field memory number available.
+- **Explains `ps:34` > `PIPER_RECYCLE_AFTER`=30:** `_piperMaybeRecycle` runs at the END of `_speakPiper`, between reads, so the session counter freely exceeds 30 mid-read and only resets afterwards. Visible in the ring below — `read-start … ps22` then death at ps34. Not a defect, but it means `ps` is not bounded by the constant and should not be read as though it were.
+- **The ring caught the user's own toggle test** (`+154s voice-toggle off` / `+155s voice-toggle on`) — the B10 recovery check from earlier, recorded automatically. Reads continued normally afterwards, which is further evidence the toggle path is clean:
+```text
+  +95s  turn t941 584ch
+  +154s voice-toggle off      +155s voice-toggle on
+  +158s read-start 18u pc2  ps2  map10   +167s read-done 18u vs5
+  +290s turn t942             +292s read-start 18u pc20 ps20 map4   +298s read-done 18u vs2   +298s recycle #1 after 38
+  +430s turn t943             +432s read-start 41u pc39 ps1  map4   +470s read-done 41u vs4   +470s recycle #2 after 42
+  +563s turn t944             +565s read-start 21u pc81 ps1  map2   +578s read-done 21u vs3
+  +639s turn t945             +641s read-start 18u pc102 ps22 map6  <-- died at unit 12, pc114
+```
 
 ### Action log
 _(none)_
