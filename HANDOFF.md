@@ -4,8 +4,8 @@
 > measured NOT to be the predictor. The B9 section below is rewritten accordingly — it is the part
 > that changed most.
 
-**Deployed:** `v1.422` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722p` (sw.js) · Piper runtime **r9**
-**Tests:** 794 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
+**Deployed:** `v1.423` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722q` (sw.js) · Piper runtime **r9**
+**Tests:** 796 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
 
 `PIPER_RUNTIME_REV` is still **r9** and no `vendor/piper/*` file changed this session — every fix
 below was landed in app code on purpose, to stay clear of the permanent-cache delivery trap.
@@ -110,6 +110,8 @@ which throws. Automatic eviction now also refuses to delete an assigned or narra
 turn-start/turn-fail crumbs record in-flight time and backgrounding, and Car Mode finally makes a
 **sound** when a turn fails. The transport retry was deliberately NOT shipped — "Load failed" can
 occur after the request reached the provider, so a blind retry risks double billing.
+
+**Markdown emphasis was being SPOKEN** (v1.423) — Piper read "asterisk, the text is italic, asterisk". The display path stripped it all along (`escProse` turns `*text*` into `<em>`); the speech path never did. Fixed in `normalizeForTTS`, mirroring escProse so the two cannot drift. ⚠ **Side effect worth knowing:** the markers were also shifting unit boundaries, so speaker maps STORED before v1.423 for passages containing emphasis will now fail their `sp.n` fuse and replay in a single voice. New turns are unaffected; the fuse doing this is correct behaviour, not a regression.
 
 **B14 — speaker voicing: VERIFIED and closed.** Four rounds; the fix that held was the user's own
 insight that one segmentation was doing two jobs (commas segment for rhythm, quotes for voice).

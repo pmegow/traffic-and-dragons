@@ -182,6 +182,15 @@ var TTS = (function() {
   function normalizeForTTS(text, dashRepl) {
     if (dashRepl == null) dashRepl = ", ";
     return (text || "")
+      // v1.423 — markdown emphasis. The DISPLAY path has always stripped these (escProse,
+      // helpers.js: `*text*` → `<em>text</em>`), but the SPEECH path never did, so Piper read the
+      // markers aloud: "asterisk, the text is italic, asterisk". Two consumers of the same GM
+      // prose, one of which stripped and one of which did not. Mirrors escProse's regex exactly so
+      // the two cannot drift apart; the trailing sweep then removes any UNPAIRED marker, because
+      // display may legitimately show a lone "*" but there is no reading of it that should ever be
+      // spoken. Runs first so the dash/ellipsis rules below see clean text.
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/\*/g, "")
       .replace(/\s*\.\.\.+\s*/g, "… ")     // literal "..." already in the source → single ellipsis char
       .replace(/\s*--\s*/g, dashRepl)      // spaced ASCII double-hyphen
       .replace(/\s*[—–]\s*/g, dashRepl)    // em / en dash

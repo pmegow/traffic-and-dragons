@@ -6619,6 +6619,35 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // rejection arrived sync or async, so this exercises the actual failure path, not a stand-in.
   // (The _committed branch is unreachable this way — it needs the await to RESOLVE — so its
   // contract is pinned by source placement in the last test instead.)
+  section("markdown emphasis is not spoken aloud");
+  t("normalizeForTTS strips *emphasis* markers — the display has always stripped them, speech never did",function(){
+    // Field report: Piper read "asterisk, the text is italic, asterisk". escProse (helpers.js)
+    // turns *text* into <em>text</em> for display, so the two consumers of the same GM prose
+    // disagreed. Paired markers AND a stray unpaired one must both go — there is no reading of
+    // "*" that should ever be spoken.
+    var n=TTS._textPrep.normalizeForTTS;
+    if(/\*/.test(n("She leans in. *Quietly now.* The door opens.")))return "paired markers survived: "+n("She leans in. *Quietly now.* The door opens.");
+    if(n("*Quietly now.*").indexOf("Quietly now.")<0)return "emphasis content was lost, not just its markers";
+    if(/\*/.test(n("A lone * marker.")))return "unpaired marker survived";
+    return true;
+  });
+  t("stripping emphasis does NOT change the unit count — every stored speaker map depends on it",function(){
+    // splitSentences normalizes BEFORE splitting, and speakerVoiceMap drops a whole map when
+    // splitSentences(text).length !== sp.n. If removing markers shifted unit boundaries, every
+    // passage stored before this change would silently fall back to a single voice.
+    var sp=TTS._textPrep.splitSentences;
+    var pairs=[
+      ['She paused. "Not yet," he said. Then nothing.',   'She paused. *"Not yet,"* he said. Then nothing.'],
+      ['The wind rose, and the door slammed shut.',       'The wind rose, and *the door* slammed shut.'],
+      ['"Go," she said. "Now."',                          '*"Go," she said. "Now."*']
+    ];
+    for(var i=0;i<pairs.length;i++){
+      var a=sp(pairs[i][0],null,true).length, b=sp(pairs[i][1],null,true).length;
+      if(a!==b)return "unit count moved with emphasis present ("+a+" vs "+b+") on: "+pairs[i][1];
+    }
+    return true;
+  });
+
   section("B10 — audio recovery");
   t("TTS.recoverAudio is exported and is safe to call with no AudioContext (it runs on EVERY send)",function(){
     // sendAction calls this on every submit, in every environment — including the headless one
