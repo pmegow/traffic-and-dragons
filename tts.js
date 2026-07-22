@@ -351,7 +351,7 @@ var TTS = (function() {
     var on = !isOn();
     store.set(ON_K, on ? "1" : "");
     if (on) {
-      _resumeCtx(_ensureCtx());  // create/resume NOW, inside the user gesture (v1.327: also revives an iOS-interrupted ctx)
+      _resumeCtx(_ensureCtx(), "toggle-on");  // create/resume NOW, inside the user gesture (v1.327: also revives an iOS-interrupted ctx)
       // v1.328: escalate to a real PLAYBACK audio session for ALL WebAudio narration, not just Car
       // Mode — iOS plays bare WebAudio in the "ambient" category, which the physical ringer/silent
       // switch mutes (while speechSynthesis ignores the switch: the exact native-works/Piper-silent
@@ -364,6 +364,7 @@ var TTS = (function() {
       _closeCtx();
     }
     _syncBtn();
+    if (typeof erCrumb === "function") erCrumb("voice-toggle", on ? "on" : "off");
     if (typeof showToast === "function") showToast(on ? "🔊 Voice on" : "🔇 Voice off");
   }
 
@@ -390,9 +391,26 @@ var TTS = (function() {
   // ctx in-gesture whenever it isn't running (the canonical iOS unlock); visibility-return also
   // retries; and synth entry points VERIFY state==="running" before scheduling — refusing
   // LOUDLY (toast + native fallback) instead of playing silence (no-silent-failures).
-  function _resumeCtx(ctx) {
+  // #16c: every caller used to DROP this promise, so a rejection became a contextless
+  // "unhandledrejection" email naming neither the call site nor the context (B10 cost four
+  // arrivals and two wrong inferences to that gap). Observe it — deliberately NOT a bare
+  // .catch(){}, which would silence the only signal this class has ever produced: the promise
+  // is still returned to callers unchanged, we just attach a reporter alongside.
+  var _ctxRefusals = 0;
+  function _resumeCtx(ctx, tag) {
     if (!ctx) return;
-    if (ctx.state === "suspended" || ctx.state === "interrupted") { try { return ctx.resume(); } catch(e) {} }
+    if (ctx.state === "suspended" || ctx.state === "interrupted") {
+      try {
+        var pr = ctx.resume();
+        if (pr && pr.then) pr.then(null, function(e) {
+          _ctxRefusals++;
+          var why = (e && (e.name + ": " + e.message)) || String(e);
+          console.warn("[tts] AudioContext.resume() REFUSED (" + (tag || "?") + ", state " + ctx.state + "): " + why);
+          if (typeof erCrumb === "function") erCrumb("ctx-refused", (tag || "?") + " " + ctx.state + " " + why.slice(0, 40));
+        });
+        return pr;
+      } catch(e) {}
+    }
   }
   function _armCtxUnlock() {
     // One-shot capture-phase listeners: ANY user tap/keypress re-creates/resumes the ctx
@@ -407,7 +425,7 @@ var TTS = (function() {
       // v1.334 (audit #4): a USER-paused ctx (pause() suspended it deliberately) must stay
       // suspended until they press ▶ — the unlock is for iOS-blocked contexts only. Without
       // this guard any tap resumed paused narration while the bar still showed "paused".
-      if (!_paused) _resumeCtx(_ensureCtx());
+      if (!_paused) _resumeCtx(_ensureCtx(), "tap-unlock");
     };
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("touchend",   fire, true);
@@ -427,7 +445,7 @@ var TTS = (function() {
   if (typeof document !== "undefined") document.addEventListener("visibilitychange", function() {
     // !_paused (v1.334, audit #4): a user pause suspends the same ctx — returning to the tab must
     // not auto-resume it (audio restarted by itself while the button showed ▶, state desync).
-    if (!document.hidden && !_paused && _audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") { _resumeCtx(_audioCtx); _armCtxUnlock(); }
+    if (!document.hidden && !_paused && _audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") { _resumeCtx(_audioCtx, "visibility"); _armCtxUnlock(); }
   });
   // Wait briefly for the ctx to actually reach "running" (resume can settle async); resolves
   // true/false, never throws — callers refuse loudly on false.
@@ -435,7 +453,7 @@ var TTS = (function() {
     return new Promise(function(res) {
       if (!ctx) return res(false);
       if (ctx.state === "running") return res(true);
-      _resumeCtx(ctx);
+      _resumeCtx(ctx, "ctx-running-gate");
       var t0 = Date.now();
       var iv = setInterval(function() {
         if (ctx.state === "running") { clearInterval(iv); res(true); }
@@ -464,7 +482,7 @@ var TTS = (function() {
       if (!_playing || _curNative) { _clearCtxWatch(); return; }
       if (_paused) return;   // a user pause suspends the same ctx deliberately (audit #4)
       if (_audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") {
-        _resumeCtx(_audioCtx);
+        _resumeCtx(_audioCtx, "ctx-watch");
         if (!warned) {
           warned = true;
           _armCtxUnlock();
@@ -524,7 +542,7 @@ var TTS = (function() {
   function primeAudioSession() {
     var ctx = _ensureCtx();
     if (!ctx) return;
-    _resumeCtx(ctx);   // v1.327: covers iOS "interrupted" too
+    _resumeCtx(ctx, "primer");   // v1.327: covers iOS "interrupted" too
     // v1.334 (audit #3): the guard must check the primer is on the CURRENT ctx — a primer left
     // over from a closed/replaced ctx is a dead node, and returning on it would leave the new
     // ctx with no playback-category claim (iOS mute-switch silence back again).
@@ -579,6 +597,19 @@ var TTS = (function() {
         }
       }
     } catch(e) {}
+  }
+
+  // #16c: how many distinct voices this page load has loaded into the wasm side — a monotonic
+  // resource the standing audit dimension says to enumerate, and untestable on iOS any other way
+  // (Safari exposes no performance.memory, so counters are the ONLY proxy available).
+  function _voiceCount() { try { return Object.keys(_piperDownloaded).length; } catch(e) { return -1; } }
+
+  // Compact audio snapshot for the crash-report diag block (error-report.js erDiagBlock).
+  function diag() {
+    var st = _audioCtx ? _audioCtx.state : "none";
+    return "ctx=" + st + " refusals=" + _ctxRefusals + " playing=" + (_playing ? 1 : 0) + " paused=" + (_paused ? 1 : 0)
+         + " q=" + _queue.length + " synths=" + _piperSynthsTotal + "/" + _piperSynthsSession + " recycles=" + _piperRecycles
+         + " voices=" + _voiceCount() + " on=" + (isOn() ? 1 : 0);
   }
 
   function _syncBtn() {
@@ -788,6 +819,9 @@ var TTS = (function() {
   var _piperBootAt        = Date.now();  // page-load timestamp — crumb "min into the session"
   var _piperSynthsTotal   = 0;           // successful predicts since page load (crumb forensics)
   var _piperSynthsSession = 0;           // predicts since the ORT session was (re)built — recycle trigger
+  var _piperRecycles      = 0;           // #16c: ORT-session recycles this page load — with ps below, breaks the
+                                         // PIPER_RECYCLE_AFTER=30 confound that made "late in the read" and
+                                         // "high session age" the same observation in the first three B9 crumbs
   var PIPER_RECYCLE_AFTER = 30;          // recycle between narrations once ≥30 synths on the session
                                          // (~one long turn — keeps the session younger than the
                                          // observed-safe single-read envelope; rebuild cost hides
@@ -1025,17 +1059,24 @@ var TTS = (function() {
     // commaSplit=true: Piper gets its rhythm from scheduled gaps (see the pause tiers above)
     var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
+    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : ""));
 
     // Per-unit crash journal (v1.324) — see _crumbDone/loadSettings. Written BEFORE each unit's
     // synth, so if the tab dies mid-predict the crumb names the killing unit.
+    // #16c: ps/rc break the PIPER_RECYCLE_AFTER confound (session age is now recorded directly
+    // instead of being inferred from the read index); vs/nv test whether the v1.406 sparse
+    // speaker map — which alternates voices and therefore reloads the single-slot ORT session —
+    // is what pushed the second B9 death to a LOWER cumulative synth count than the first.
     var _crumbBase = { n: units.length, rev: _piperPatchRev, app: (typeof APP_VERSION !== "undefined" ? APP_VERSION : "?") };
+    var _vSwitches = 0;   // voice changes between consecutive units in THIS read
     function _crumb(iDone, done) {
       // pc/up (r8): cumulative synths + minutes since page load — see the counter block above.
-      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, pc: _piperSynthsTotal, up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done })); } catch(e) {}
+      try { store.set(PIPER_CRUMB_K, JSON.stringify({ i: iDone, n: _crumbBase.n, rev: _crumbBase.rev, app: _crumbBase.app, pc: _piperSynthsTotal, ps: _piperSynthsSession, rc: _piperRecycles, vs: _vSwitches, nv: _voiceCount(), up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done })); } catch(e) {}
     }
     _crumb(0, false);
 
     _sources = [];
+    var _lastUnitVoice = null;
     var _voiceReady = {};      // #9: per-item memo of which speaker voices are loadable (true) or not (false)
     _voiceReady[voiceId] = true;   // the passage voice was ensured above
     var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
@@ -1071,6 +1112,8 @@ var TTS = (function() {
       // THIS passage to the narrator rather than failing the read — and is remembered so the next
       // unit does not retry the same broken download.
       var uVoice = (voices && voices[i]) || voiceId;
+      if (i > 0 && uVoice !== _lastUnitVoice) _vSwitches++;   // #16c: each switch reloads the single-slot ORT session
+      _lastUnitVoice = uVoice;
       if (uVoice !== voiceId && _voiceReady[uVoice] !== true) {
         if (_voiceReady[uVoice] === false) { uVoice = voiceId; }
         else {
@@ -1136,6 +1179,7 @@ var TTS = (function() {
     }
 
     loopDone = true;
+    if (typeof erCrumb === "function") erCrumb("read-done", units.length + "u vs" + _vSwitches);
     _crumb(units.length, true);   // synth loop completed — playback tail can't be "killed mid-synth"
     if (_piperEpoch !== myEpoch) return;   // stale — a skip() during the final unit must not reach the
                                            // fallback below (it would speak a skipped item via native)
@@ -1201,6 +1245,8 @@ var TTS = (function() {
     var myEpoch = _piperEpoch;
     var n = _piperSynthsSession;
     _piperSynthsSession = 0;
+    _piperRecycles++;
+    if (typeof erCrumb === "function") erCrumb("recycle", "#" + _piperRecycles + " after " + n);
     _piperSerial(function() { return _piperMod.tndRecycleSession(); })
       .then(function() {
         console.info("[tts piper] ORT session recycled after " + n + " synths (iOS memory-ratchet guard) — rebuilding in background");
@@ -1223,7 +1269,7 @@ var TTS = (function() {
     try {
       var ctx = _ensureCtx();   // reuse the shared ctx — creates it only if genuinely absent
       if (!ctx) { console.debug("[tts] earcon '" + kind + "' skipped — no AudioContext"); return; }
-      _resumeCtx(ctx);          // best-effort; does not block — see the state check right below
+      _resumeCtx(ctx, "piper-entry");          // best-effort; does not block — see the state check right below
       if (ctx.state !== "running") { console.debug("[tts] earcon '" + kind + "' skipped — ctx " + ctx.state); return; }
       var t0 = ctx.currentTime;
       function blip(offset, freq, dur) {
@@ -1271,7 +1317,7 @@ var TTS = (function() {
     // AudioContext suspend/resume — the shared WebAudio branch. No Piper-specific code needed.
     if (!_audioCtx) return;
     if (_audioCtx.state !== "running") {   // v1.327: "suspended" OR iOS "interrupted" → resume; only a running ctx pauses
-      _resumeCtx(_audioCtx);
+      _resumeCtx(_audioCtx, "pause-resume");
       _paused = false;
     } else {
       _audioCtx.suspend();
@@ -1754,6 +1800,7 @@ var TTS = (function() {
     // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,
+    diag:              diag,   // #16c: compact audio/piper state for crash-report diagnostics
     resolvePiperVoice: resolvePiperVoice,
     // #9 rework: the curated voice catalog + per-character voice resolution. voices() feeds any
     // picker UI (character sheet, Voice Settings). characterVoiceId(char) is the per-speaker

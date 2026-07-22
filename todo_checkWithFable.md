@@ -13,6 +13,27 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
+### 5. #16c diagnostics — one touch inside `summarize()` (drift surface)
+
+- **Tier:** the change itself is telemetry-only, but it sits INSIDE `summarize()`'s catch, and
+  summarize is named drift surface in CLAUDE.md — so it is logged here rather than assumed safe.
+- **Built by:** Opus 4.8 — 2026-07-22 (v1.407), under a user policy call that crash `detail` MAY
+  carry app-generated content.
+- **What changed:** the existing `reportError("summarize", ...)` call in the catch now composes a
+  richer detail string: the response HEAD (200 chars, whitespace-collapsed) and a count of how many
+  archived user halves in the extraction window begin with `[ENGINE NOTE`. **No change to the
+  extraction prompt, the window composition, `repairModelJson`, the parse, the 3-strike breaker, or
+  any success path.** The gather is wrapped in its own try/catch so a failure inside it degrades the
+  detail string rather than replacing the original error.
+- **Why it exists:** B11 was undiagnosable because the only evidence of what the extractor returned
+  was 11 characters inside a V8 message. The engine-note count tests the replay hypothesis WITHOUT
+  shipping narrative — structure, not story.
+- **Fable: confirm (a) the catch cannot now throw a SECOND error that masks the first, (b) reading
+  `sessionLog`/`sessKeptStart()` inside the catch cannot observe a half-mutated state given every
+  writer sits inside the try, and (c) that shipping a 200-char response head is acceptable given
+  crash bodies were previously content-free — the user approved the policy, but the blast radius
+  (which callers could now leak content) is worth a second look.**
+
 ### 4. Voice / TTS rework — curated Piper set, per-character voice on the sheet (TODO #9)
 
 - **Tier:** Sonnet (TTS is OUTPUT rendering, NOT the drift surface — no applyMuts/memory/prompt-

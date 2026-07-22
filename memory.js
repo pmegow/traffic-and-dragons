@@ -893,7 +893,24 @@ async function summarize(){
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
     // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
     _sumFails++;
-    if(typeof reportError==="function")reportError("summarize",e&&e.message?e.message:"unknown","consecutive fails: "+_sumFails+"\n"+((e&&e.stack)||""));/* #16 */
+    // #16c (user policy call 2026-07-22: crash detail MAY carry app-generated content).
+    // B11 was undiagnosable because the ONLY evidence of what the extractor returned was 11
+    // characters inside a V8 message. The head of the response answers "did it reply in state
+    // tags, and which one" outright. The counts alongside it test the engine-note replay
+    // hypothesis WITHOUT shipping any narrative — how many archived user halves in this window
+    // open with an engine note is structure, not story.
+    var _dbg="consecutive fails: "+_sumFails;
+    try{
+      var _noted=0,_users=0,_di;
+      for(_di=sessKeptStart();_di<sessionLog.length;_di++){
+        if(sessionLog[_di].role!=="user")continue;
+        _users++;
+        if(/^\s*\[ENGINE NOTE/.test(sessionLog[_di].content||""))_noted++;
+      }
+      _dbg+=" | window "+(sessionLog.length-sessKeptStart())+" msgs, "+_noted+"/"+_users+" user halves open with an engine note";
+      if(typeof resp==="string")_dbg+="\nRESPONSE HEAD (200): "+resp.slice(0,200).replace(/\s+/g," ");
+    }catch(_de){_dbg+=" | (context gather failed: "+((_de&&_de.message)||"?")+")";}
+    if(typeof reportError==="function")reportError("summarize",e&&e.message?e.message:"unknown",_dbg+"\n"+((e&&e.stack)||""));/* #16 */
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);

@@ -970,6 +970,7 @@ function commitGmTurn(resp,opts){
     if(worldState.mpEnded&&(worldState.turn-worldState.mpEnded.turn)>=3)worldState.mpEnded=null; // D12 exit reinforcement done — sessionLog now carries second-person turns again (3 not 2: the retained tail holds ~3 exchanges, so the third-person prose must be fully out of the window before the note stops firing)
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
   }
+  if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
   var clean=cleanTxt(resp),dice=diceTxt(resp);
   // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
   // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state

@@ -134,6 +134,17 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Consequence for triage order:** B10's recoverable half is now the cheapest real win on the board (auto-detect + reuse the existing rebuild), while B9 still needs the independent-variable soak before anyone writes code against it.
 
+**2026-07-22 — instrument upgraded (v1.407, #16c). No fix attempted; this is what the channel can now tell us.**
+
+- **Why this came before a fix (user call):** four B10 arrivals and three B9 crumbs produced two reversals from me and still could not name a call site. The reports were not the problem — the instrument was.
+- **The constraint that shaped it:** the GAS sheet is a FIXED 15-column schema in a user-deployed script, so new payload columns mean a redeploy + sheet migration. `detail` is free-form (4000 chars). **Everything below rides in `detail` — zero GAS changes.**
+- **The architectural point:** a process kill runs no handler, so the only evidence that can survive is what was written down BEFORE it. The Piper crumb already proved the pattern; #16c generalizes it to a persisted breadcrumb ring recovered at the next boot.
+- **Now carried by every crash report:** a per-page-load `session` id (correlating two reports is now a lookup, not the timestamp arithmetic that produced a load-bearing and partly wrong inference on 2026-07-21) · `TTS.diag()` — ctx state, **resume refusal count**, `_playing`, queue depth, cumulative/session synths, recycles, resident voices · this page's breadcrumb ring · **the PREVIOUS page's ring when it ended without an unload event** — i.e. the seconds leading up to a B9-class kill.
+- **B10 specifically:** all 8 `_resumeCtx` call sites now pass a caller tag and the rejection is OBSERVED (deliberately not swallowed — a bare `.catch(){}` would have destroyed the only signal this class has ever produced). The next arrival names the call site, the context and the ctx state, which is the whole open question on this row.
+- **B9 specifically:** the crumb gained `ps` (session synths), `rc` (recycles), `vs` (voice switches this read) and `nv` (distinct voices resident). `ps`/`rc` record session age DIRECTLY instead of leaving it inferable only from the read index — which is what made "late in the read" and "high session age" the same observation in the first three crumbs. **Live-measured on a 4-unit dialogue read: `vs:2`** — two single-slot ORT session reloads in four units, quantifying the v1.406 sparse-speaker-map thrash for the first time.
+- **B11 specifically:** the summarize catch now reports the response HEAD (200 chars, under the user's 2026-07-22 content-policy approval) plus a metadata count of how many archived user halves in the window open with an engine note — which tests the replay hypothesis without shipping narrative.
+- **Still not obtainable, and worth stating plainly:** iOS Safari exposes no `performance.memory` or `deviceMemory`, so the ratchet can only ever be inferred from counters, never measured. Any fix for B9 is validated by survival under soak, not by a memory graph.
+
 ### Action log
 _(none)_
 
@@ -245,6 +256,17 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Re-triage:** the user-visible "audio died" belongs to B9's death plus the latched-`_playing` wedge (both cleared by the voice toggle). What remains under B10 is a real but low-severity defect that is loud in the crash channel and silent in the UI. Fix-sketch layer 1 (observe the rejection with a caller tag) would have identified the emitter on the first arrival and is still the right first move; layer 4 (should sound.js own a second context on iOS at all?) is now the substantive question rather than an aside.
 
+**2026-07-22 — instrument upgraded (v1.407, #16c). No fix attempted; this is what the channel can now tell us.**
+
+- **Why this came before a fix (user call):** four B10 arrivals and three B9 crumbs produced two reversals from me and still could not name a call site. The reports were not the problem — the instrument was.
+- **The constraint that shaped it:** the GAS sheet is a FIXED 15-column schema in a user-deployed script, so new payload columns mean a redeploy + sheet migration. `detail` is free-form (4000 chars). **Everything below rides in `detail` — zero GAS changes.**
+- **The architectural point:** a process kill runs no handler, so the only evidence that can survive is what was written down BEFORE it. The Piper crumb already proved the pattern; #16c generalizes it to a persisted breadcrumb ring recovered at the next boot.
+- **Now carried by every crash report:** a per-page-load `session` id (correlating two reports is now a lookup, not the timestamp arithmetic that produced a load-bearing and partly wrong inference on 2026-07-21) · `TTS.diag()` — ctx state, **resume refusal count**, `_playing`, queue depth, cumulative/session synths, recycles, resident voices · this page's breadcrumb ring · **the PREVIOUS page's ring when it ended without an unload event** — i.e. the seconds leading up to a B9-class kill.
+- **B10 specifically:** all 8 `_resumeCtx` call sites now pass a caller tag and the rejection is OBSERVED (deliberately not swallowed — a bare `.catch(){}` would have destroyed the only signal this class has ever produced). The next arrival names the call site, the context and the ctx state, which is the whole open question on this row.
+- **B9 specifically:** the crumb gained `ps` (session synths), `rc` (recycles), `vs` (voice switches this read) and `nv` (distinct voices resident). `ps`/`rc` record session age DIRECTLY instead of leaving it inferable only from the read index — which is what made "late in the read" and "high session age" the same observation in the first three crumbs. **Live-measured on a 4-unit dialogue read: `vs:2`** — two single-slot ORT session reloads in four units, quantifying the v1.406 sparse-speaker-map thrash for the first time.
+- **B11 specifically:** the summarize catch now reports the response HEAD (200 chars, under the user's 2026-07-22 content-policy approval) plus a metadata count of how many archived user halves in the window open with an engine note — which tests the replay hypothesis without shipping narrative.
+- **Still not obtainable, and worth stating plainly:** iOS Safari exposes no `performance.memory` or `deviceMemory`, so the ratchet can only ever be inferred from counters, never measured. Any fix for B9 is validated by survival under soak, not by a memory graph.
+
 ### Action log
 _(none)_
 
@@ -297,6 +319,17 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Design forks for the user (not defaults to be chosen silently):** may a crash report carry a short head-of-response snippet so this class is diagnosable in the field, or must crash bodies stay content-free? And should the 3-strike breaker be durable per campaign (`_sumFails` is a page-lifetime global reset by `loadState`, state.js:286, for audit E49) — or is "never trip, never lose a window" the preferred trade?
 
+
+**2026-07-22 — instrument upgraded (v1.407, #16c). No fix attempted; this is what the channel can now tell us.**
+
+- **Why this came before a fix (user call):** four B10 arrivals and three B9 crumbs produced two reversals from me and still could not name a call site. The reports were not the problem — the instrument was.
+- **The constraint that shaped it:** the GAS sheet is a FIXED 15-column schema in a user-deployed script, so new payload columns mean a redeploy + sheet migration. `detail` is free-form (4000 chars). **Everything below rides in `detail` — zero GAS changes.**
+- **The architectural point:** a process kill runs no handler, so the only evidence that can survive is what was written down BEFORE it. The Piper crumb already proved the pattern; #16c generalizes it to a persisted breadcrumb ring recovered at the next boot.
+- **Now carried by every crash report:** a per-page-load `session` id (correlating two reports is now a lookup, not the timestamp arithmetic that produced a load-bearing and partly wrong inference on 2026-07-21) · `TTS.diag()` — ctx state, **resume refusal count**, `_playing`, queue depth, cumulative/session synths, recycles, resident voices · this page's breadcrumb ring · **the PREVIOUS page's ring when it ended without an unload event** — i.e. the seconds leading up to a B9-class kill.
+- **B10 specifically:** all 8 `_resumeCtx` call sites now pass a caller tag and the rejection is OBSERVED (deliberately not swallowed — a bare `.catch(){}` would have destroyed the only signal this class has ever produced). The next arrival names the call site, the context and the ctx state, which is the whole open question on this row.
+- **B9 specifically:** the crumb gained `ps` (session synths), `rc` (recycles), `vs` (voice switches this read) and `nv` (distinct voices resident). `ps`/`rc` record session age DIRECTLY instead of leaving it inferable only from the read index — which is what made "late in the read" and "high session age" the same observation in the first three crumbs. **Live-measured on a 4-unit dialogue read: `vs:2`** — two single-slot ORT session reloads in four units, quantifying the v1.406 sparse-speaker-map thrash for the first time.
+- **B11 specifically:** the summarize catch now reports the response HEAD (200 chars, under the user's 2026-07-22 content-policy approval) plus a metadata count of how many archived user halves in the window open with an engine note — which tests the replay hypothesis without shipping narrative.
+- **Still not obtainable, and worth stating plainly:** iOS Safari exposes no `performance.memory` or `deviceMemory`, so the ratchet can only ever be inferred from counters, never measured. Any fix for B9 is validated by survival under soak, not by a memory graph.
 
 ### Action log
 _(none)_

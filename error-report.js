@@ -38,6 +38,86 @@ var _erDisabledNote = false; // "reporting not configured" logged once
 var _erCapNote      = false; // "session cap hit" logged once
 var _erInReporter   = false; // reentrancy latch — a bug in HERE must not recurse via window.onerror
 
+// ── #16c: session identity + breadcrumb ring (2026-07-22) ────────────────────────────────────
+// Two gaps this closes, both paid for during the B9/B10 investigation:
+//
+//  (a) NO REPORT COULD BE CORRELATED WITH ANOTHER. Linking a narration death to an audio-device
+//      rejection took arithmetic across timestamps and uptimes; the resulting inference was
+//      load-bearing AND turned out partly wrong. A per-page-load id makes that correlation a
+//      lookup instead of a reconstruction.
+//
+//  (b) A PROCESS KILL RUNS NO HANDLER. window.onerror, unhandledrejection and every .catch die
+//      with the tab, so the ONLY evidence that survives an iOS jetsam kill is what was written
+//      down BEFORE it. The Piper narration crumb already proved that pattern works; this
+//      generalizes it — a bounded ring of recent app events, persisted as it goes, recovered at
+//      the next boot and attached to whatever report that boot files. That is how we get to see
+//      the seconds LEADING UP TO a kill, which no in-page handler can ever observe.
+//
+// Cost discipline (B4 was a real localStorage-quota bug): the ring is CAPPED at ER_CRUMB_MAX
+// short entries, so the key is ~1-2KB and can never grow. Writes are far less frequent than the
+// per-unit Piper crumb this sits alongside.
+// Content discipline: breadcrumbs are EVENT NAMES + small numbers. Never narrative text, never
+// keys/tokens. The user-approved content allowance (2026-07-22) applies to a caller passing a
+// deliberate snippet in `detail`, not to this ring.
+var ER_CRUMB_MAX = 24;
+var ER_CRUMB_K   = "tnd_er_crumbs_v1";
+var ER_BOOT_AT   = Date.now();
+var ER_SESSION_ID = "s" + Math.floor(Math.random() * 1e9).toString(36) + "-" + (ER_BOOT_AT % 100000).toString(36);
+var _erCrumbs     = [];   // this page load
+var _erPrevCrumbs = [];   // the PREVIOUS page's ring, recovered at boot — the pre-death record
+
+// erCrumb(event, data) — record one app event. Deliberately never throws and never reports:
+// this is the diagnostic channel's own plumbing, so a failure here must stay silent-but-local
+// rather than recursing into reportError.
+function erCrumb(evt, data) {
+  try {
+    _erCrumbs.push({
+      t: Math.round((Date.now() - ER_BOOT_AT) / 1000),
+      e: String(evt == null ? "?" : evt).slice(0, 32),
+      d: (data == null ? "" : String(data).slice(0, 80))
+    });
+    while (_erCrumbs.length > ER_CRUMB_MAX) _erCrumbs.shift();
+    if (typeof localStorage !== "undefined") localStorage.setItem(ER_CRUMB_K, JSON.stringify({ s: ER_SESSION_ID, c: _erCrumbs }));
+  } catch (e) {}
+}
+
+function _erRenderCrumbs(list) {
+  if (!list || !list.length) return "  (none)";
+  var out = [], i;
+  for (i = 0; i < list.length; i++) out.push("  +" + list[i].t + "s " + list[i].e + (list[i].d ? " " + list[i].d : ""));
+  return out.join("\n");
+}
+
+// Recover the ring the previous page left behind. One-shot (the key is cleared on read) and
+// session-guarded, so a same-page re-read can never duplicate this page's own crumbs back onto it.
+function erLoadPrevCrumbs() {
+  try {
+    if (typeof localStorage === "undefined") return 0;
+    var raw = localStorage.getItem(ER_CRUMB_K);
+    localStorage.removeItem(ER_CRUMB_K);
+    if (!raw) return 0;
+    var o = JSON.parse(raw);
+    if (o && o.c && o.c.length && o.s !== ER_SESSION_ID) { _erPrevCrumbs = o.c; return _erPrevCrumbs.length; }
+  } catch (e) {}
+  return 0;
+}
+
+// The block appended to EVERY crash detail. Budgeted (ER_DIAG_MAX) so it can never crowd out the
+// caller's own detail, which is the primary evidence.
+var ER_DIAG_MAX = 1600;
+function erDiagBlock() {
+  var s = "";
+  try {
+    s = "\n\n--- diag ---\n"
+      + "session " + ER_SESSION_ID + " · report " + (_erSentCount + 1) + "/" + ER_SESSION_CAP
+      + " · up " + Math.round((Date.now() - ER_BOOT_AT) / 1000) + "s";
+    if (typeof TTS !== "undefined" && TTS.diag) { try { s += "\naudio " + TTS.diag(); } catch (e) {} }
+    s += "\nthis page:\n" + _erRenderCrumbs(_erCrumbs);
+    if (_erPrevCrumbs.length) s += "\nPREVIOUS page (ended without unload — see B9):\n" + _erRenderCrumbs(_erPrevCrumbs);
+  } catch (e) { s = "\n\n--- diag unavailable: " + ((e && e.message) || "?") + " ---"; }
+  return s.slice(0, ER_DIAG_MAX);
+}
+
 // Shared POST core — both report species (crash + user report) go through here.
 // cb(ok, errMsg, body) always fires exactly once; never throws. body = the webhook's parsed JSON
 // response (or null) — GAS reports PER-HALF failures in it ({sheet, email, screenshot}: null=ok,
@@ -89,7 +169,8 @@ function reportError(ctx,msg,detail){
         kind:"crash",
         ctx:String(ctx||"unknown"),
         msg:String(msg||"(no message)").slice(0,500),
-        detail:String(detail||"").slice(0,ER_DETAIL_MAX),
+        detail:(String(detail||"").slice(0,ER_DETAIL_MAX-ER_DIAG_MAX)+erDiagBlock()).slice(0,ER_DETAIL_MAX),
+        session:ER_SESSION_ID,   /* #16c: also inside detail, since the GAS sheet schema is fixed — this field is for a future column */
         app:(typeof APP_VERSION!=="undefined"?APP_VERSION:"?"),
         url:(typeof location!=="undefined"?location.href:"(node)"),
         ua:(typeof navigator!=="undefined"?navigator.userAgent:"(node)"),
@@ -272,6 +353,8 @@ function sendUserReport(text,screenshot,cb){
 
 // ── Global hooks (browser only — the node test runner loads this file with no window) ─────────
 if(typeof window!=="undefined"){
+  erLoadPrevCrumbs();   /* #16c: the previous page's pre-death record — MUST run before any report can fire */
+  erCrumb("boot");
   window.onerror=function(msg,src,line,col,err){
     reportError("window.onerror",msg,(src||"")+":"+(line||0)+":"+(col||0)+"\n"+((err&&err.stack)||""));
     return false; // never swallow — the browser's default console logging still runs

@@ -5632,10 +5632,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(r!=="sent")return "outcome "+r;
     var p=__erSent[0];
     if(p.ctx!=="turn"||p.msg!=="GM error")return "ctx/msg wrong: "+p.ctx+"/"+p.msg;
-    if(p.detail.length!==ER_DETAIL_MAX)return "detail len "+p.detail.length;
+    // #16c: the caller's detail is now clipped to a BUDGET so the appended diag block can never
+    // crowd out the primary evidence; the total still respects ER_DETAIL_MAX.
+    if(p.detail.length>ER_DETAIL_MAX)return "detail exceeds cap: "+p.detail.length;
+    if(p.detail.slice(0,ER_DETAIL_MAX-ER_DIAG_MAX)!==big.slice(0,ER_DETAIL_MAX-ER_DIAG_MAX))return "caller detail not preserved up to its budget";
+    if(p.detail.indexOf("--- diag ---")<0)return "diag block missing from detail";
     if(p.app!==APP_VERSION)return "app "+p.app;
     if(p.camp!=="Test"||p.turn!==5)return "camp/turn "+p.camp+"/"+p.turn;
     return true;
+  });
+  t("#16c: every crash carries the session id, so two reports from one page load can be correlated",function(){
+    makeWorld();__erReset("https://example.test/hook");
+    reportError("a","one","");
+    var p1=__erSent[0];
+    if(!p1.session)return "no session field on the payload";
+    if(p1.detail.indexOf(ER_SESSION_ID)<0)return "session id missing from detail (the GAS schema is fixed — detail is the carrier)";
+    return p1.session===ER_SESSION_ID?true:"session mismatch: "+p1.session;
+  });
+  t("#16c: breadcrumb ring is bounded and rides the next crash report",function(){
+    makeWorld();__erReset("https://example.test/hook");
+    var i;for(i=0;i<ER_CRUMB_MAX+15;i++)erCrumb("evt"+i,"d"+i);
+    if(_erCrumbs.length!==ER_CRUMB_MAX)return "ring not capped: "+_erCrumbs.length;
+    if(_erCrumbs[0].e==="evt0")return "ring kept the OLDEST entry — it must drop from the front";
+    reportError("x","boom","");
+    var d=__erSent[0].detail;
+    if(d.indexOf("evt"+(ER_CRUMB_MAX+14))<0)return "most recent crumb missing from the report";
+    return d.indexOf("this page:")>=0?true:"crumb section missing";
+  });
+  t("#16c: a crumb whose data is huge cannot blow the detail budget",function(){
+    makeWorld();__erReset("https://example.test/hook");
+    var huge=new Array(5000).join("z");
+    erCrumb(huge,huge);
+    reportError("x","boom","");
+    var p2=__erSent[0];
+    return p2.detail.length<=ER_DETAIL_MAX?true:"detail blew the cap via a crumb: "+p2.detail.length;
+  });
+  t("#16c: erCrumb never throws, even with hostile input (it is the diagnostic channel itself)",function(){
+    var threw=null;
+    try{erCrumb(null,null);erCrumb(undefined,{toString:function(){throw new Error("hostile");}});}catch(e){threw=e.message;}
+    return threw===null?true:"erCrumb threw: "+threw;
   });
   t("debounce: 2nd call inside 30s suppressed; count rides the next send then resets",function(){
     __erReset("https://example.test/hook");
