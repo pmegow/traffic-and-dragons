@@ -479,12 +479,64 @@ var TTS = (function() {
         if (pr && pr.then) pr.then(null, function(e) {
           _ctxRefusals++;
           var why = (e && (e.name + ": " + e.message)) || String(e);
-          console.warn("[tts] AudioContext.resume() REFUSED (" + (tag || "?") + ", state " + ctx.state + "): " + why);
+          // v1.421 — a REFUSED resume means this context object is finished, not busy. iOS does
+          // not hand an interrupted AudioContext back; resume() rejects on it forever. Mark it so
+          // recoverAudio() replaces it instead of asking again (which is all this app did, from
+          // four separate call sites, for as long as the bug existed).
+          if (ctx === _audioCtx) _ctxDoomed = true;
+          console.warn("[tts] AudioContext.resume() REFUSED (" + (tag || "?") + ", state " + ctx.state + "): " + why + " — context marked unrecoverable; next user gesture rebuilds it");
           if (typeof erCrumb === "function") erCrumb("ctx-refused", (tag || "?") + " " + ctx.state + " " + why.slice(0, 40));
         });
         return pr;
       } catch(e) {}
     }
+  }
+
+  // ⛨ THE audio recovery path (v1.421). Field-diagnosed 2026-07-22 from two user observations
+  // that together named the mechanism: the downgrade toast fires BEFORE the first word of a read
+  // (so the context died BETWEEN turns, unwatched — `_armCtxWatch` disarms itself whenever
+  // `_playing` is false), and tapping does NOT restore it — only a voice toggle off/on does.
+  //
+  // Why tapping never worked: `_ensureCtx` replaces the context only when it is `"closed"`, and an
+  // iOS-interrupted context is not closed. So it handed the same dead object back to every
+  // recovery path — the tap-unlock, the 2s `_armCtxWatch` poll, `visibilitychange`, and the
+  // `_ctxRunning` gate — each of which called `resume()` on it and was refused. That refusal loop
+  // IS B10 (`ctx-refused ctx-watch interrupted InvalidStateError: Failed to start the audio
+  // device`), arriving every 2 seconds. The toast's "tap anywhere, then it recovers" was a promise
+  // the code could not keep.
+  //
+  // The voice toggle worked because OFF closes the context outright and ON builds a NEW one inside
+  // the gesture. This automates exactly that sequence — deliberately mirroring the one recovery
+  // path with field evidence behind it rather than inventing a cleverer one.
+  //
+  // Safe to call from anywhere. It rebuilds ONLY when the context is proven unrecoverable, so the
+  // common case costs one state check. And a rebuild outside a gesture is still a strict
+  // improvement: a fresh context born suspended CAN be resumed by the next tap, which is precisely
+  // what the doomed one could not. The primer is re-established after the swap, so the v1.334
+  // audit #3 dead-primer trap (a primer node orphaned on a replaced ctx) cannot reopen.
+  var _ctxDoomed = false;
+  function recoverAudio(tag) {
+    // A deliberate user pause suspends this same context; resurrecting it here would restart
+    // audio while the bar still reads paused (the v1.334 audit #4 desync).
+    if (_paused || !_audioCtx) return false;
+    if (!_ctxDoomed && _audioCtx.state !== "interrupted") {
+      if (_audioCtx.state !== "running") _resumeCtx(_audioCtx, tag || "recover");
+      return false;
+    }
+    var was = _audioCtx.state;
+    // Mirror the toggle: tear down the doomed read first. Anything scheduled on the old context
+    // is inaudible by definition, and `_speakPiper` captured that context in a local — letting a
+    // live read keep scheduling onto a closed ctx would throw on every remaining unit.
+    if (_playing) { try { _stopCurrent(); } catch (e) {} _queue = []; _playing = false; }
+    _closeCtx();                       // close() + null + drop the old primer
+    var ctx = _ensureCtx();            // now genuinely builds a new one
+    if (!ctx) return false;
+    _ctxDoomed = false;
+    _resumeCtx(ctx, (tag || "recover") + "-rebuilt");
+    primeAudioSession();               // re-claim the iOS playback category on the NEW context
+    console.warn("[tts] audio context was unrecoverable (" + was + ") — rebuilt in-gesture (" + (tag || "?") + "). This is what a voice off/on did by hand.");
+    if (typeof erCrumb === "function") erCrumb("ctx-rebuilt", (tag || "?") + " from " + was);
+    return true;
   }
   function _armCtxUnlock() {
     // One-shot capture-phase listeners: ANY user tap/keypress re-creates/resumes the ctx
@@ -499,7 +551,10 @@ var TTS = (function() {
       // v1.334 (audit #4): a USER-paused ctx (pause() suspended it deliberately) must stay
       // suspended until they press ▶ — the unlock is for iOS-blocked contexts only. Without
       // this guard any tap resumed paused narration while the bar still showed "paused".
-      if (!_paused) _resumeCtx(_ensureCtx(), "tap-unlock");
+      // v1.421: recoverAudio, not _resumeCtx — this handler is the "tap anywhere and it recovers"
+      // the toast promises, and for an INTERRUPTED context resume() can never deliver it. The
+      // tap is a genuine user gesture, which is exactly where a rebuild is allowed to happen.
+      if (!_paused) recoverAudio("tap-unlock");
     };
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("touchend",   fire, true);
@@ -538,7 +593,10 @@ var TTS = (function() {
   function _ctxBlockedLoud(engineLabel) {
     _armCtxUnlock();
     console.warn("[tts] AudioContext not running (state=" + (_audioCtx ? _audioCtx.state : "none") + ") — " + engineLabel + " line falls back to native; next tap unlocks");
-    if (typeof showToast === "function") showToast("🔇 iOS paused game audio — speaking this line in the native voice; tap anywhere, then it recovers", 6000);
+    // v1.421: the old wording promised "tap anywhere, then it recovers", which was false for an
+    // interrupted context — every tap called resume() and was refused. recoverAudio now rebuilds
+    // on that tap, so the promise is real; the wording says what actually happens.
+    if (typeof showToast === "function") showToast("🔇 iOS paused game audio — this line reads in the native voice. Tap anywhere to restore the narrator voice.", 6000);
   }
 
   // WebAudio stall watchdog (audit #10, v1.339 — the v1.329 native watchdog's missing twin): iOS
@@ -2321,6 +2379,10 @@ var TTS = (function() {
     testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button
     releaseVoiceIfUnused: releaseVoiceIfUnused,   // #9: free a voice's OPFS slot on reassignment when nothing (incl. narrator) still uses it
     primeAudioSession:     primeAudioSession,
+    // v1.421 (B10): repair an iOS-interrupted context. Call from a USER GESTURE — the send tap is
+    // the valuable one, because it lands seconds before narration and so fixes the context BEFORE
+    // the read that would otherwise lose its first line to the native voice.
+    recoverAudio:          recoverAudio,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
     // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to
     // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s

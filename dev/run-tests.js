@@ -115,6 +115,39 @@ try {
   }
 } catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
+// iOS does not hand an interrupted AudioContext back: resume() rejects on it forever, and
+// _ensureCtx only replaces a context that is "closed" — which an interrupted one is not. So for
+// as long as recovery meant "call resume()", it could not work, and the only cure was a manual
+// voice toggle off/on (which closes and rebuilds). Field-diagnosed from two user observations:
+// the downgrade toast fires BEFORE the first word of a read, and tapping never restores it.
+// These pin the three edits that make recovery real. Source contracts — the code needs a live
+// WebAudio implementation the headless harness has no way to provide.
+try {
+  var _fsA = require("fs"), _pathA = require("path");
+  var _ttsA = _fsA.readFileSync(_pathA.join(__dirname, "..", "tts.js"), "utf8");
+  var _gameA = _fsA.readFileSync(_pathA.join(__dirname, "..", "game.js"), "utf8");
+  var _ncA = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  // ① Recovery must REPLACE the context, not ask it to resume.
+  var _rec = _ncA((_ttsA.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_rec || _rec.indexOf("_closeCtx()") < 0 || _rec.indexOf("_ensureCtx()") < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: recoverAudio no longer closes and rebuilds the context — resume() alone can NEVER revive an iOS-interrupted ctx (B10, v1.421).");
+    process.exit(1);
+  }
+  // ② The tap-unlock handler is what the downgrade toast promises. It must rebuild, not resume.
+  var _unlock = _ncA((_ttsA.match(/function _armCtxUnlock\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (_unlock.indexOf("recoverAudio(") < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: _armCtxUnlock no longer calls recoverAudio — 'tap anywhere, then it recovers' becomes a promise the code cannot keep (B10).");
+    process.exit(1);
+  }
+  // ③ The send tap is the only gesture that lands BEFORE the read. Without it the first line of
+  //    every post-interrupt narration is still lost to the native voice.
+  if (_ncA(_gameA).indexOf("TTS.recoverAudio(") < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: sendAction no longer repairs audio on the send gesture — the context stays dead until a read has already failed (B10, v1.421).");
+    process.exit(1);
+  }
+} catch (e) { console.error("AUDIO RECOVERY CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,

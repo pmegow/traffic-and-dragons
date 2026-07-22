@@ -1071,6 +1071,12 @@ function restoreFailedInput(inp,txt){
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
+  // B10/v1.421 — repair the audio context HERE, in the send gesture. iOS interrupts the context
+  // between turns, when nothing is watching (_armCtxWatch disarms itself while !_playing), so the
+  // next read starts on a dead context and loses its first line to the native voice. This tap is a
+  // real user gesture and lands seconds before narration, which makes it the one moment a rebuild
+  // is both permitted and early enough to matter. No-op unless the context is actually broken.
+  if(typeof TTS!=="undefined"&&typeof TTS.recoverAudio==="function")TTS.recoverAudio("send");
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
   if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}

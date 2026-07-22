@@ -619,7 +619,7 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **2026-07-22 · v1.420** — per-unit ORT peak sampling (`omp` on the crumb, `ortPeak` in diag); `pmc` restored in frame mode; voice deletion fixed to use the standard `removeEntry()` and THROW (the Chrome-only primitive silently no-opped on Safari, which permanently disabled the 10-voice cap and let 13 accumulate); assigned-voice guard on automatic eviction; over-cap voices now visible and deletable. Four sabotage-proven source tripwires.
 
 ## B10 — "Failed to start the audio device" unhandled rejection on iPhone, 38s after a narration death — the session's audio stops entirely
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** crash · **First seen:** 2026-07-21 (v1.406) · **Last seen:** 2026-07-22 (v1.407, now as a breadcrumb rather than an email) · **Count:** 4 emails + 2 observed refusals · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 924 ×2, 925 ×2
 **Fingerprint:** `crash · unhandledrejection · v1.406 · failed to start the audio device`
 **Report ids:** 4a3d6c35-ebd6-4371-bafc-82a28b7df4b8, 881311ba-9534-4f37-9905-5d52f7e99e6b, d9dd00b1-1081-4649-8b1e-230de43979d8, 0ce6970b-7bc1-4644-a297-12dede178bb1
@@ -757,8 +757,30 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **What it deliberately does NOT settle, stated because this row has twice been damaged by over-reading a small answer** (`suppressed:0`, then the same again): the answer is a general "yes, I hear them", not an observation taken *during* a B10 episode. It does not establish that earcons still play while the context is `interrupted`, and it cannot, since nobody was watching for that at the time. The structural objection to a second gesture-less AudioContext stands on its own merits regardless.
 - **Consequence:** fix-sketch layer 4 drops from "possible emitter, investigate" to "design cleanup, no urgency". Layers 2 and 3 (gesture-gated rebuild; refusal-gated force-advance for the latched-`_playing` wedge) are unaffected and remain the shippable part of this row.
 
+**2026-07-22 — ⭐⭐ ROOT-CAUSED AND FIXED (v1.421). Two user observations named the mechanism that four report arrivals and nine investigator agents could not.**
+
+- **The observations.** ① The downgrade toast fires BEFORE the first word of a read — so the context died BETWEEN turns, not during one. ② Tapping does NOT restore it; only a voice toggle off/on does.
+
+- **The mechanism, and it is structural.** `_ensureCtx` replaces the AudioContext only when its state is `"closed"` — and an iOS-INTERRUPTED context is not closed. So it handed the same dead object back to every recovery path in the file: the tap-unlock, the 2 s `_armCtxWatch` poll, `visibilitychange`, and the `_ctxRunning` gate. Each of them called `resume()` on it. **iOS does not hand an interrupted context back — `resume()` rejects on it forever.** That refusal loop, retried every two seconds, IS this row: `ctx-refused ctx-watch interrupted InvalidStateError: Failed to start the audio device`. Not a device fault, not the media daemon, not `sound.js`.
+
+- **Why nothing caught it between turns.** `_armCtxWatch` opens with `if (!_playing || _curNative) { _clearCtxWatch(); return; }` — while no narration is playing it is not idle, it is DISARMED. `visibilitychange` needs a tab switch, which a notification tone or a Bluetooth route change does not produce. And `_armCtxUnlock` is purely reactive, armed only after a read has already failed — so by construction it can never save the line that discovers the problem.
+
+- **Why the voice toggle worked.** OFF runs `_closeCtx()` (close + null), ON builds a genuinely new context inside the gesture and re-primes. The user found the only working recovery by hand.
+
+- **The fix (`recoverAudio`)** automates exactly that sequence rather than inventing a cleverer one, because it is the only path with field evidence behind it. A refused `resume()` now marks the context unrecoverable (`_ctxDoomed`); `recoverAudio` then closes and rebuilds it, re-primes for the iOS playback category, and tears down any doomed in-flight read first — the read captured the old context in a local, so letting it keep scheduling onto a closed one would throw on every remaining unit. Wired to the tap-unlock AND to **`sendAction`**, which is the valuable one: the send tap is a real user gesture landing seconds BEFORE narration, so it repairs the context ahead of the read instead of after it has already lost its first line to the native voice.
+
+- **Safe everywhere it is called.** It rebuilds ONLY when the context is proven unrecoverable, so the common case costs one state check. It keeps the `_paused` guard (audit #4 — a deliberate pause must not be resurrected by a stray tap). And a rebuild outside a gesture is still a strict improvement: a fresh context born suspended CAN be resumed by the next tap, which is precisely what the doomed one could not. The primer is re-established after the swap, so the v1.334 audit #3 dead-primer trap cannot reopen.
+
+- **The toast no longer lies.** It promised "tap anywhere, then it recovers" while every tap was being refused. It now states what happens — and the tap now does it.
+
+- **Verification.** Three source tripwires in `dev/run-tests.js`, each sabotage-proven to fire (making `recoverAudio` resume instead of rebuild; reverting the tap-unlock to `_resumeCtx`; deleting the send-gesture repair), plus a behavioural test that `TTS.recoverAudio` cannot throw with no AudioContext — it runs on EVERY send, so a throw there would take the whole turn down with it, a far worse bug than the one being fixed. 794 green. Source contracts because live WebAudio is unreachable in the headless harness.
+
+- **Still needs an ear.** The fix is structural and cannot be exercised without a real iOS interrupt. Confirmation is either the toast ceasing to appear, or appearing once and a single tap genuinely restoring the narrator voice with no toggle.
+
+- **⚠ Process note, recorded because it cost a repair commit.** This entry was first written through an inline `node -e` from bash, which command-substituted every backticked identifier and silently gutted the prose. The handoff already warned about exactly this. Patch scripts for docs go in a FILE, always.
+
 ### Action log
-_(none)_
+- **2026-07-22 · v1.421** — root-caused and fixed: an iOS-interrupted AudioContext can never be resumed, only REPLACED, and `_ensureCtx` refused to replace anything not `"closed"` — so every recovery path called `resume()` on a context that could never come back, which is what this row was. `recoverAudio` closes + rebuilds + re-primes, wired to the tap-unlock and to the send gesture (the one that lands before narration). Awaiting field confirmation.
 
 ## B11 — summarize() crashes parsing the extractor response when the model returns state tags instead of JSON
 **Status:** findings-ready

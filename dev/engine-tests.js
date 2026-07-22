@@ -6619,6 +6619,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // rejection arrived sync or async, so this exercises the actual failure path, not a stand-in.
   // (The _committed branch is unreachable this way — it needs the await to RESOLVE — so its
   // contract is pinned by source placement in the last test instead.)
+  section("B10 — audio recovery");
+  t("TTS.recoverAudio is exported and is safe to call with no AudioContext (it runs on EVERY send)",function(){
+    // sendAction calls this on every submit, in every environment — including the headless one
+    // and any browser where WebAudio is absent. If it can throw, it takes the whole turn with it,
+    // which would be a far worse bug than the one it fixes. It must no-op and say so (false).
+    if(typeof TTS.recoverAudio!=="function")return "recoverAudio not exported: "+typeof TTS.recoverAudio;
+    var r;
+    try{ r=TTS.recoverAudio("test"); }catch(e){ return "threw with no AudioContext: "+(e&&e.message); }
+    return r===false?true:"expected false (nothing to repair), got "+JSON.stringify(r);
+  });
+
   section("B16 — failed-turn recovery");
   function __b16El(id){
     return {id:id,value:"",disabled:false,style:{},className:"",textContent:"",innerHTML:"",onclick:null,
