@@ -120,6 +120,20 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **Turn 924 on both B10 arrivals** — the campaign did not advance between them, consistent with play stopping after the first incident and resuming ~5 h later.
 
+**2026-07-22 — the toggle discriminator, answered by the user. This SPLITS B9 and B10 cleanly.**
+
+- **Field result:** voice toggle OFF→ON restores audio — the per-message 🔊 button plays normally again — **but the narration read still dies.**
+
+- **What the toggle actually does (verified, tts.js:352-370).** OFF runs BOTH recovery actions at once: `stop()` → `_stopCurrent()` (bumps `_piperEpoch`, clears `_sources`), then `_queue=[]`, `_playing=false`, `_paused=false`; and `_closeCtx()` → `stopAudioSessionPrimer()` + `close()` + `_audioCtx=null`. ON then rebuilds inside the user gesture: `_resumeCtx(_ensureCtx())` + `primeAudioSession()`. So it clears the latched-`_playing` wedge AND replaces the AudioContext simultaneously — it does **not** discriminate between those two, and no further field observation can, because they are cleared by the same button.
+
+- **✅ What it DOES settle, decisively: the audio-stops failure is APP-LEVEL and LOCALLY RECOVERABLE.** Nothing was permanently wrong with the device or the media daemon — the app was holding a recoverable state and simply never recovered it. That retires the "process-level device death" framing for this half (and with it the daemon-teardown hypothesis filed on 2026-07-21 for the *audio-stops* symptom; the timeline correction that produced it still stands on its own). **A code path that fixes this already exists and ships — the user just has to know to press it.** That reframes B10 fix-sketch layer 2 from "design a rebuild path" to "detect the state and invoke the rebuild we already have", which is a much smaller and safer change.
+
+- **✅ And it cleanly SEPARATES B9 from B10.** After the toggle the AudioContext is brand new, the queue is empty and `_playing` is false — and the read still dies. So the death is not caused by, and not curable by, anything in the audio layer. **B9 lives in the synthesis/wasm layer; B10 lives in the audio layer.** They can be fixed independently and in either order.
+
+- **🔍 A prediction this creates, and it is testable without a phone:** `_piperMod` and the ORT session are module-level and are NOT touched by `toggle()`/`_closeCtx()` (neither function references them) — so the Piper wasm state, and any monotonic accumulation inside it, **survives a voice toggle**. `_piperSynthsTotal` (the crumb's `pc`) is likewise per PAGE LOAD, not per toggle. If the ratchet hypothesis is right, deaths should keep landing at `pc` ≈ 96-124 **regardless of how many times the voice is toggled**, and only a full page reload should reset the clock. All three crumbs to date (124 / 103 / 96) are consistent with that. **Cheap corollary worth building either way: a "reset Piper engine" action that tears down `_piperMod`/the ORT session would be both a user-facing mitigation and the diagnostic that confirms the ratchet is wasm-side.**
+
+- **Consequence for triage order:** B10's recoverable half is now the cheapest real win on the board (auto-detect + reuse the existing rebuild), while B9 still needs the independent-variable soak before anyone writes code against it.
+
 ### Action log
 _(none)_
 
@@ -199,6 +213,20 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **B9's controlling variable, with n=3.** `pc` = 124 / 103 / 96; `up` = 20 / 6 / 20 min; read position `i/n` = 22/33 (67%), 30/31 (97%), 31/34 (91%). **Wall-clock is now ruled out** — a 6-minute session died between two 20-minute ones. The cumulative-synth cluster widened to a 29% spread (96-124), while "dies late in the read" tightened. The `PIPER_RECYCLE_AFTER=30` confound the merge agent identified is NOT broken by this point: with reads of 31-34 units, recycle still fires about once per read, so high session-age and late-in-read remain the same observation. **The soak that varies cumulative synths INDEPENDENTLY of read length is still the only thing that separates them** — and it is now the single highest-value next step for B9.
 
 - **Turn 924 on both B10 arrivals** — the campaign did not advance between them, consistent with play stopping after the first incident and resuming ~5 h later.
+
+**2026-07-22 — the toggle discriminator, answered by the user. This SPLITS B9 and B10 cleanly.**
+
+- **Field result:** voice toggle OFF→ON restores audio — the per-message 🔊 button plays normally again — **but the narration read still dies.**
+
+- **What the toggle actually does (verified, tts.js:352-370).** OFF runs BOTH recovery actions at once: `stop()` → `_stopCurrent()` (bumps `_piperEpoch`, clears `_sources`), then `_queue=[]`, `_playing=false`, `_paused=false`; and `_closeCtx()` → `stopAudioSessionPrimer()` + `close()` + `_audioCtx=null`. ON then rebuilds inside the user gesture: `_resumeCtx(_ensureCtx())` + `primeAudioSession()`. So it clears the latched-`_playing` wedge AND replaces the AudioContext simultaneously — it does **not** discriminate between those two, and no further field observation can, because they are cleared by the same button.
+
+- **✅ What it DOES settle, decisively: the audio-stops failure is APP-LEVEL and LOCALLY RECOVERABLE.** Nothing was permanently wrong with the device or the media daemon — the app was holding a recoverable state and simply never recovered it. That retires the "process-level device death" framing for this half (and with it the daemon-teardown hypothesis filed on 2026-07-21 for the *audio-stops* symptom; the timeline correction that produced it still stands on its own). **A code path that fixes this already exists and ships — the user just has to know to press it.** That reframes B10 fix-sketch layer 2 from "design a rebuild path" to "detect the state and invoke the rebuild we already have", which is a much smaller and safer change.
+
+- **✅ And it cleanly SEPARATES B9 from B10.** After the toggle the AudioContext is brand new, the queue is empty and `_playing` is false — and the read still dies. So the death is not caused by, and not curable by, anything in the audio layer. **B9 lives in the synthesis/wasm layer; B10 lives in the audio layer.** They can be fixed independently and in either order.
+
+- **🔍 A prediction this creates, and it is testable without a phone:** `_piperMod` and the ORT session are module-level and are NOT touched by `toggle()`/`_closeCtx()` (neither function references them) — so the Piper wasm state, and any monotonic accumulation inside it, **survives a voice toggle**. `_piperSynthsTotal` (the crumb's `pc`) is likewise per PAGE LOAD, not per toggle. If the ratchet hypothesis is right, deaths should keep landing at `pc` ≈ 96-124 **regardless of how many times the voice is toggled**, and only a full page reload should reset the clock. All three crumbs to date (124 / 103 / 96) are consistent with that. **Cheap corollary worth building either way: a "reset Piper engine" action that tears down `_piperMod`/the ORT session would be both a user-facing mitigation and the diagnostic that confirms the ratchet is wasm-side.**
+
+- **Consequence for triage order:** B10's recoverable half is now the cheapest real win on the board (auto-detect + reuse the existing rebuild), while B9 still needs the independent-variable soak before anyone writes code against it.
 
 ### Action log
 _(none)_
