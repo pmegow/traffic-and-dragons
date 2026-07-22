@@ -97,6 +97,8 @@ callGM@https://traffic-and-dragons.pages.dev/api.js:1137:145
 ### Findings
 _(none yet — `/bugs investigate B15`)_
 
+**2026-07-22 — user topped up the API credit.** The triggering CONDITION is cleared, so this will not recur until the balance runs down again. The row stays open on its own merits: what is filed here is the FAILURE SURFACE, not the balance — a billing state still reaches the player as a subsystem crash rather than a plain message, and it would hit gameplay turns the same way. Nothing about the fix direction changes; it just is not urgent.
+
 ### Action log
 _(none)_
 
