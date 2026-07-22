@@ -132,10 +132,10 @@ _(none)_
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.407) · **Count:** 5 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.409) · **Count:** 6 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -270,6 +270,27 @@ _Method: each bug was investigated twice by independent agents that could not se
   +399s read-start 44u pc113 ps1 map28   <-- died 6 units in, at pc119
 ```
 - **Consequence for the plan:** the soak is no longer needed to answer *which variable*; the field answered it. A soak is still the right way to VALIDATE a fix (survival past pc≈120 with reads of varied length), but it is no longer gating the diagnosis.
+
+**2026-07-22 — sixth crumb. The threshold is now nailed down; treat the mechanism as settled and the target as named.**
+
+```text
+[418ceb2f] {"i":15,"n":27,"pc":118,"ps":16,"rc":3,"vs":5,"nv":5,"up":8,"done":false}
+```
+
+- **`pc` across all six: 124 / 103 / 96 / 119 / 118 / 118.** The last three land within one synth of each other, on two different app versions, in three separate sessions.
+- **Everything else keeps varying, and none of it matters.** Read position at death: 67% / 97% / 91% / 14% / 50% / **56%**. Session age `ps`: 7 / 28 / **16**. Recycles `rc`: 2 / 3 / **3**. Uptime: 20 / 6 / 20 / 7 / 5 / **8** min. Six samples, one constant.
+- **⭐ New and useful: `nv` rose to 5 distinct resident voices and the threshold did NOT move.** If the accumulation were per-VOICE (model weights, per-voice ORT state) more voices would kill earlier. It is per-SYNTH. That independently re-confirms the multi-voice work is not the driver, and narrows the target further: a resource consumed once per `predict()` call and never released.
+- **The ring reads like a fuel gauge** — every read completes, `pc` climbs, and the tab dies when it crosses ~118:
+```text
+  +103s read-start  2u  pc1   ps1          +105s read-done  2u vs0
+  +151s turn t933         +153s read-start 32u pc3   ps3 map3    +181s read-done 32u vs6   +181s recycle #1
+  +272s turn t934         +275s read-start 34u pc36  ps1 map8    +307s read-done 34u vs8   +307s recycle #2
+  +371s turn t935         +374s read-start 31u pc71  ps1 map17   +412s read-done 31u vs10  +412s recycle #3
+  +479s turn t936         +481s read-start 27u pc103 ps1 map17   <-- died at unit 15, pc118
+```
+- **Three recycles happened and did not help.** `rc:3` with `ps` resetting to 1 at each read-start proves the ORT session is being rebuilt on schedule and the ratchet climbs straight through it. Whatever leaks is NOT in the session r8 recycles — which leaves the retained phonemizer re-driven via `callMain` on every predict (vits-web.js:259-279), the one per-synth resource explicitly exempt from all five prior fixes in this class.
+- **A fix now has a falsifiable acceptance test, which this class never had before:** a session must carry `pc` past ~130 without dying, with read length and voice count varied. That is measurable in `piper_test.html` and confirmable in the field from the next crumb. No memory graph is needed — and none is available, since iOS Safari exposes no `performance.memory`.
+- **Field data is now EXHAUSTED for diagnosis.** Six samples, one constant, every competing variable ruled out by variation. Further crumbs of this shape add nothing; the next useful evidence comes from a fix attempt.
 
 ### Action log
 _(none)_
