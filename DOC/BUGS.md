@@ -292,6 +292,21 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **A fix now has a falsifiable acceptance test, which this class never had before:** a session must carry `pc` past ~130 without dying, with read length and voice count varied. That is measurable in `piper_test.html` and confirmable in the field from the next crumb. No memory graph is needed — and none is available, since iOS Safari exposes no `performance.memory`.
 - **Field data is now EXHAUSTED for diagnosis.** Six samples, one constant, every competing variable ruled out by variation. Further crumbs of this shape add nothing; the next useful evidence comes from a fix attempt.
 
+**2026-07-22 — ⛔ THE LEADING HYPOTHESIS IS FALSIFIED. The phonemizer is NOT the ratchet. No fix attempted.**
+
+- **Why I measured instead of patching.** The dual-angle merge, and my own summary of it, named the retained phonemizer as the target — the one per-synth resource exempt from all five prior fixes. But r8 had already **considered and rejected** recycling it, in a comment in the vendored file: _"The phonemizer is deliberately NOT recycled — recreating it per turn would reintroduce the v1.323 leak class (Safari collects discarded wasm memories too lazily under pressure)."_ Shipping a recycle patch would have been re-running a rejected approach on reasoning alone, against this project's own rule that a failed fix is a signal to find the mechanism rather than refine the guess.
+- **The measurement (v1.410, runtime r9).** wasm linear memory can only grow, never shrink, so a per-call leak is directly visible. New `tndDiag()` export in the vendored runtime reports the phonemizer module's `HEAPU8.length` plus a count of `main()` re-entries. Driven straight against `mod.predict()` — no queue, no audio, no scheduler:
+
+```text
+  calls:   1     6    11    16    21    26    31    36
+  phonMB: 16    16    16    16    16    16    16    16
+```
+
+- **Flat. Sixteen megabytes, unchanged, across 36 consecutive `callMain` re-entries.** The phonemizer does not accumulate. It is ruled out, and the r8 author's judgement is vindicated — that comment saved a wasted release.
+- **Where that leaves the diagnosis.** The field evidence for the ratchet itself is unchanged and still strong (six crumbs, `pc` 118/119/118 on the last three, independent of read position, session age, recycles and voice count). Something still accumulates once per `predict()`. It is simply not the phonemizer. **The remaining candidate is the ORT runtime's own linear memory** — distinct from the InferenceSession that `tndRecycleSession` releases. Releasing a session cannot shrink wasm memory that has already grown, so the existing recycle would be expected to fail exactly as observed, and every new sentence length is a new shape allocating fresh arena.
+- **⚠ Not yet measurable, and that is the blocker.** Two attempts to get a handle on ORT's memory both failed: hooking `WebAssembly.Memory` caught zero (these modules declare memory internally rather than importing it), and hooking `WebAssembly.instantiate`/`instantiateStreaming` also caught zero. Next things to try, in order of cheapness: hook the synchronous `WebAssembly.Instance` constructor as well; instrument inside `piper_test.html` (the project's own soak harness, now on r9); or run cross-origin-isolated and use `performance.measureUserAgentSpecificMemory()`. **Until ORT memory is observable, any fix here is a guess — which is precisely the trap r8 documented.**
+- **Shipped from this session regardless:** the r9 `tndDiag()` export is permanent, and `TTS.diag()` now appends `phonMB=<size>/<calls>` so the phonemizer figure rides every crash report. It is the only direct view of wasm memory available on a device where iOS exposes none — and it now proves, from the field rather than a lab, that this particular resource stays flat.
+
 ### Action log
 _(none)_
 

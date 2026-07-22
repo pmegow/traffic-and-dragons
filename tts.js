@@ -679,11 +679,22 @@ var TTS = (function() {
   function _voiceCount() { try { return Object.keys(_piperDownloaded).length; } catch(e) { return -1; } }
 
   // Compact audio snapshot for the crash-report diag block (error-report.js erDiagBlock).
+  // r9/B9: the phonemizer's wasm linear memory, read straight from the vendored runtime. This is
+  // the ONLY view we have of the ratchet — iOS Safari exposes no performance.memory — so it rides
+  // every crash report from here on.
+  function _piperMemNote() {
+    try {
+      if (!_piperMod || typeof _piperMod.tndDiag !== "function") return "";
+      var d = _piperMod.tndDiag();
+      if (!d || !d.phonBytes) return "";
+      return " phonMB=" + (d.phonBytes / 1048576).toFixed(1) + "/" + d.phonCalls;
+    } catch (e) { return ""; }
+  }
   function diag() {
     var st = _audioCtx ? _audioCtx.state : "none";
     return "ctx=" + st + " refusals=" + _ctxRefusals + " playing=" + (_playing ? 1 : 0) + " paused=" + (_paused ? 1 : 0)
          + " q=" + _queue.length + " synths=" + _piperSynthsTotal + "/" + _piperSynthsSession + " recycles=" + _piperRecycles
-         + " voices=" + _voiceCount() + " on=" + (isOn() ? 1 : 0);
+         + " voices=" + _voiceCount() + " on=" + (isOn() ? 1 : 0) + _piperMemNote();
   }
 
   function _syncBtn() {
@@ -874,7 +885,7 @@ var TTS = (function() {
   // background (_piperMaybeRecycle). Targets the CROSS-TURN accumulator left after v1.320–323:
   // the cached session's wasm arena + per-shape plan cache grow with every distinct sentence
   // length, wasm memory never shrinks, and iOS killed the tab early in turn 4 of a live drive.
-  var PIPER_RUNTIME_REV = "r8";
+  var PIPER_RUNTIME_REV = "r9";
   var PIPER_LIB_PATH = "/vendor/piper/vits/vits-web.js?tnd=" + PIPER_RUNTIME_REV;
   var PIPER_CRUMB_K  = "tnd_piper_crumb_v1";  // last-read breadcrumb — survives a tab kill, read at boot
   // TODO #66 (v1.347): voice models run 60-115MB each in OPFS — unbounded downloads across a

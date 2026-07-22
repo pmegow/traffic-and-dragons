@@ -254,9 +254,10 @@ async function N(e, m) {
 // native rate knob, but length_scale inversely scales phoneme duration (the standard VITS speed
 // trick). See the `g = i.inference.length_scale / (e.rate || 1)` line in N() above. Falls back to
 // unchanged length_scale when the caller omits rate (e.g. an older cached caller pre-dating this).
-const TND_VITS_PATCH = "r8"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
+const TND_VITS_PATCH = "r9"; // T&D patch revision — surfaced in Voice Settings so a phone can PROVE which build it runs (the tnd-piper-v1 SW cache is permanent; delivery is via the ?tnd= query rev in tts.js PIPER_LIB_PATH)
 const TND_PHON_BASE = "/vendor/piper/phonemize/piper_phonemize"; // T&D r3 — vendored, same-origin (upstream x = jsdelivr CDN)
 const tndPhon = { mod: null, sink: null, broken: false };
+let tndPhonCalls = 0;   // r9: main() re-entries — the denominator for per-synth growth
 const tndLocate = (l) => l.endsWith(".wasm") ? `${TND_PHON_BASE}.wasm?tnd=${TND_DEP_REV}` : l.endsWith(".data") ? `${TND_PHON_BASE}.data?tnd=${TND_DEP_REV}` : l;
 async function tndPhonemize(espeakVoice, input) {
   if (!tndPhon.broken) {
@@ -269,6 +270,7 @@ async function tndPhonemize(espeakVoice, input) {
       return await new Promise((v, rej) => {
         let done = false;
         tndPhon.sink = (l) => { done = true; v(JSON.parse(l).phoneme_ids); };
+        tndPhonCalls++;
         try { tndPhon.mod.callMain(["-l", espeakVoice, "--input", input, "--espeak_data", "/espeak-ng-data"]); }
         catch (e) { if (!done) rej(e); }
         setTimeout(() => { if (!done) rej(new Error("phonemizer reuse produced no output")); }, 8000);
@@ -312,6 +314,16 @@ async function tndGetSession(n2, m2) {
 // predict (or tts.js's background warm call) rebuilds the session from OPFS. The phonemizer is
 // deliberately NOT recycled — recreating it per turn would reintroduce the v1.323 leak class
 // (Safari collects discarded wasm memories too lazily under pressure).
+// T&D r9 (2026-07-22) — B9 instrumentation. Reports the phonemizer's wasm linear memory, which
+// grows only and never shrinks, so a per-callMain leak shows up here as a monotonic climb. Also
+// reports how many times main() has been re-entered, so growth can be expressed PER SYNTH — the
+// unit the six field crumbs are measured in. Cheap, allocation-free, safe to leave shipped.
+function tndDiag() {
+  var phon = 0, heap = null;
+  try { heap = tndPhon.mod && (tndPhon.mod.HEAPU8 || (tndPhon.mod.wasmMemory && new Uint8Array(tndPhon.mod.wasmMemory.buffer))); } catch (e) {}
+  try { phon = heap ? heap.length : 0; } catch (e) {}
+  return { phonBytes: phon, phonCalls: tndPhonCalls, phonBroken: !!tndPhon.broken, sessKey: tndSess.key || null, patch: TND_VITS_PATCH };
+}
 async function tndRecycleSession() {
   if (tndSess.sess) { try { const r = tndSess.sess.release(); if (r && r.then) await r; } catch (e) {} }
   tndSess.sess = null; tndSess.key = null;
@@ -362,6 +374,7 @@ async function P() {
 export {
   TND_VITS_PATCH,
   tndRecycleSession,
+  tndDiag,
   u as HF_BASE,
   B as ONNX_BASE,
   c as PATH_MAP,

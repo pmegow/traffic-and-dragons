@@ -272,7 +272,7 @@ async function loadPiper(){
   // enforces it): the game's SW piper-cache is permanent and keys by URL, so an UN-queried import
   // here could silently serve a years-stale build — the soak would then measure the wrong runtime
   // (the exact v1.322/323 wasted-tries trap this page exists to prevent).
-  _piper = await import("/vendor/piper/vits/vits-web.js?tnd=r8");
+  _piper = await import("/vendor/piper/vits/vits-web.js?tnd=r9");
   log("library loaded (runtime rev " + (_piper.TND_VITS_PATCH || "pre-r3 UNPATCHED") + ").", "ok");
   return _piper;
 }
