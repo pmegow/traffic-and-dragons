@@ -273,7 +273,7 @@ function wireButtons(){
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* page-hide can precede unload on mobile — keepalive (E34) */});
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
-  document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);});
+  document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);stickStoryBottomAfterPanel();/* the reflow drifts the story scroll — re-pin the end */});
   // Swipe right to collapse, swipe left to expand
   (function(){
     var rp=document.getElementById("rpanel"),tx=0;
@@ -283,6 +283,7 @@ function wireButtons(){
       if(Math.abs(dx)<30)return;
       panelCol=dx>0;  // swipe right → collapse, swipe left → expand
       rp.classList.toggle("col",panelCol);
+      stickStoryBottomAfterPanel();   // same reflow as the button path
     },{passive:true});
   })();
   document.getElementById("psh-party").addEventListener("click",function(){secCol.party=!secCol.party;document.getElementById("pss-party").classList.toggle("col",secCol.party);});

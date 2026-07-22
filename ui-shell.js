@@ -185,6 +185,45 @@ function trimStoryDom(story){
   }
 }
 function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");var tn=document.getElementById("tab-narrative"),tt=document.getElementById("tab-tabletalk"),badge=document.getElementById("tab-tt-badge");sn.style.display=tab==="narrative"?"flex":"none";st.style.display=tab==="tabletalk"?"flex":"none";tn.className="chat-tab"+(tab==="narrative"?" active":"");tt.className="chat-tab"+(tab==="tabletalk"?" active":"");if(tab==="tabletalk"&&badge)badge.className="tab-badge";if(tab==="narrative"){var _nnb=tn.querySelector(".tab-narr-badge");if(_nnb)_nnb.className="tab-badge tab-narr-badge";}/* clear the story badge on switch-in (E68) */}
+// Collapsing/expanding the right panel changes the story frame's WIDTH, which re-wraps every
+// paragraph and therefore changes its height — so the reader silently drifts away from the live
+// end of the narrative (a narrower frame wraps TALLER, pushing the bottom down past the viewport).
+// Re-pin the bottom across a panel toggle, with two things that make it behave:
+//   ① Only if they were ALREADY at the bottom. Someone who scrolled up to re-read an earlier turn
+//     and then collapsed the panel for more reading width must not be yanked back to the newest
+//     text. "At the bottom" gets a slack margin — a partly-visible last message still counts.
+//   ② Measure BEFORE the reflow, apply AFTER the CSS width transition finishes. Reading
+//     scrollHeight mid-animation targets a height that is still changing, so the scroll lands
+//     short. transitionend is the real signal; the timer is a fallback for when no transition
+//     runs at all (reduced-motion, a display:none pane, a browser that skips it).
+var PANEL_BOTTOM_SLACK=120;   // px of "close enough to the end" to count as pinned
+var STORY_PANES=["story-narrative","story-tabletalk"];
+function storyAtBottom(el){
+  if(!el)return false;
+  return (el.scrollHeight-el.scrollTop-el.clientHeight)<=PANEL_BOTTOM_SLACK;
+}
+function stickStoryBottomAfterPanel(){
+  var pre={},i,el;
+  for(i=0;i<STORY_PANES.length;i++){
+    el=document.getElementById(STORY_PANES[i]);
+    // a hidden pane measures 0/0/0 and reads as "at bottom" — which is what we want: the inactive
+    // tab should be sitting at its newest message when the player switches to it
+    pre[STORY_PANES[i]]=storyAtBottom(el);
+  }
+  var rp=document.getElementById("rpanel"),done=false;
+  function apply(){
+    if(done)return; done=true;
+    if(rp)rp.removeEventListener("transitionend",onEnd);
+    var j,e2;
+    for(j=0;j<STORY_PANES.length;j++){
+      e2=document.getElementById(STORY_PANES[j]);
+      if(e2&&pre[STORY_PANES[j]])e2.scrollTop=e2.scrollHeight;
+    }
+  }
+  function onEnd(ev){ if(ev&&ev.target!==rp)return; if(!ev||ev.propertyName==="width")apply(); }
+  if(rp)rp.addEventListener("transitionend",onEnd);
+  setTimeout(apply,300);   // > the .2s width transition; harmless if transitionend already fired
+}
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
 if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
 div.innerHTML=html;
