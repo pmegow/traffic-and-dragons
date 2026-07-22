@@ -44,6 +44,11 @@ document.addEventListener("visibilitychange", function() {
 function carNotify(kind, text) {
   if (!carMode) return;
   if (kind === "error") {
+    // B16 — a failed turn used to be AUDIBLY identical to the app still thinking: the ack blip on
+    // send, then permanent silence. In Car Mode the status string reaches nobody (eyes on the road),
+    // so the failure earcon is what tells the driver the turn is over and a tap will retry it.
+    // "fail" is the descending pair (tts.js earcon) — deliberately not readable as a completion.
+    if (typeof TTS !== "undefined" && typeof TTS.earcon === "function") TTS.earcon("fail");
     _carSetStatus(CAR_STR.errorPrefix + text);
     _carRetryArmed = true;
   } else if (kind === "warn") { // final-pass #32 — non-turn failure: same status text, never arms tap-to-retry

@@ -6612,4 +6612,109 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── B16 — a failed GM turn must not eat the player's words, and must leave a trail ──────────
+  // sendAction is async and the harness cannot await. It DOES run fully synchronously when callGM
+  // throws synchronously: the await OPERAND is evaluated before the await can suspend, so the
+  // throw lands in the real catch inside this same tick. The catch body is identical whether the
+  // rejection arrived sync or async, so this exercises the actual failure path, not a stand-in.
+  // (The _committed branch is unreachable this way — it needs the await to RESOLVE — so its
+  // contract is pinned by source placement in the last test instead.)
+  section("B16 — failed-turn recovery");
+  function __b16El(id){
+    return {id:id,value:"",disabled:false,style:{},className:"",textContent:"",innerHTML:"",onclick:null,
+      appendChild:function(){},removeChild:function(){},remove:function(){},focus:function(){},
+      addEventListener:function(){},querySelectorAll:function(){return [];}};
+  }
+  // Host-agnostic element mount. In node there is no `document`, so a stub global is installed and
+  // torn back down to undefined (the engine's `typeof document` guards must stay honest for every
+  // later test). In test.html `window.document` is read-only — assignment would silently no-op —
+  // so the two real elements are created instead. Either way the SAME sendAction runs.
+  var __b16Browser=(typeof document!=="undefined"&&!!document&&typeof document.createElement==="function"&&!!document.body);
+  function __b16Mount(){
+    if(__b16Browser){
+      var a=document.createElement("input");a.id="action-input";document.body.appendChild(a);
+      var b=document.createElement("button");b.id="sendbtn";document.body.appendChild(b);
+      return {input:a,btn:b,unmount:function(){a.parentNode.removeChild(a);b.parentNode.removeChild(b);}};
+    }
+    var els={"action-input":__b16El("action-input"),"sendbtn":__b16El("sendbtn")};
+    document={hidden:false,
+      getElementById:function(id){return els[id]||null;},
+      createElement:function(t){return __b16El(t);},
+      addEventListener:function(){}};
+    return {input:els["action-input"],btn:els["sendbtn"],unmount:function(){document=undefined;}};
+  }
+  // Drive ONE turn whose GM call fails. o.typed = text already sitting in the box when the failure
+  // lands (the in-flight-draft case); o.opts = sendAction opts; o.err = the transport message.
+  function __b16Fail(o){
+    o=o||{};
+    makeWorld();__erReset("https://example.test/hook");_erCrumbs.length=0;
+    var prevCall=callGM,prevBusy=busy,prevTab=activeChatTab,prevBumps=_levelBumpsOwed;
+    var m=__b16Mount();
+    if(o.typed)m.input.value=o.typed;
+    callGM=function(){throw new Error(o.err||"Network: Load failed");};
+    busy=false;_levelBumpsOwed=0;activeChatTab="narrative";
+    try{
+      var p=sendAction(o.txt||"I draw my sword",o.opts);
+      if(p&&typeof p.catch==="function")p.catch(function(){});
+    }finally{
+      var val=m.input.value;m.unmount();
+      callGM=prevCall;busy=prevBusy;activeChatTab=prevTab;_levelBumpsOwed=prevBumps;
+    }
+    return {input:val,report:__erSent[0]||null,crumbs:_erCrumbs.slice(0)};
+  }
+  function __b16Crumb(list,name){var i;for(i=0;i<list.length;i++){if(list[i].e===name)return list[i];}return null;}
+
+  t("restoreFailedInput refills an empty box",function(){
+    var el=__b16El("action-input");
+    var r=restoreFailedInput(el,"I draw my sword");
+    if(r!==true)return "did not report a restore: "+r;
+    return eq(el.value,"I draw my sword","box value");
+  });
+  t("restoreFailedInput refuses to clobber a draft queued while the turn was in flight",function(){
+    var el=__b16El("action-input");el.value="I run for the door";
+    var r=restoreFailedInput(el,"I draw my sword");
+    if(r!==false)return "clobbered the newer draft";
+    return eq(el.value,"I run for the door","box value");
+  });
+  t("a failed turn gives the player their typed action back (B16: it was cleared and lost)",function(){
+    var r=__b16Fail({txt:"I draw my sword and step between them"});
+    return eq(r.input,"I draw my sword and step between them","input box after failure");
+  });
+  t("a SILENT engine send never refills the box — the player never typed that text",function(){
+    var r=__b16Fail({txt:"[engine] introduce the new companion",opts:{silent:true}});
+    return eq(r.input,"","input box after a silent send failed");
+  });
+  t("turn-start and turn-fail crumbs record departure, flight time and background state",function(){
+    var r=__b16Fail({txt:"I draw my sword"});
+    var s=__b16Crumb(r.crumbs,"turn-start"),f=__b16Crumb(r.crumbs,"turn-fail");
+    if(!s)return "no turn-start crumb — nothing records that the request left";
+    if(s.d.indexOf("t5")<0)return "turn-start carries no turn number: "+s.d;
+    if(!f)return "no turn-fail crumb — a page killed after the failure leaves no trace";
+    if(f.d.indexOf("ms")<0)return "turn-fail carries no in-flight duration: "+f.d;
+    if(!/bg\d\d/.test(f.d))return "turn-fail carries no backgrounded state: "+f.d;
+    if(f.d.indexOf("Load failed")<0)return "turn-fail carries no failure tag: "+f.d;
+    return true;
+  });
+  t("the turn crash report says WHICH kind of turn failed (story / tabletalk / silent)",function(){
+    var story=__b16Fail({txt:"I draw my sword"});
+    if(!story.report)return "no crash report sent";
+    if(story.report.detail.indexOf("story")<0)return "story turn not identified: "+story.report.detail;
+    var tt=__b16Fail({txt:"how does resting work?",opts:{ttRetry:true}});
+    if(!tt.report||tt.report.detail.indexOf("tabletalk")<0)return "table talk not identified: "+(tt.report&&tt.report.detail);
+    var sil=__b16Fail({txt:"[engine] intro",opts:{silent:true}});
+    if(!sil.report||sil.report.detail.indexOf("silent")<0)return "silent engine send not identified: "+(sil.report&&sil.report.detail);
+    if(story.report.detail.indexOf("in flight")<0)return "no in-flight duration in the report detail";
+    return true;
+  });
+  t("the restore lives ONLY in the non-committed branch (a committed turn must not re-offer itself)",function(){
+    var src=String(sendAction);
+    var hits=src.split("restoreFailedInput(").length-1;
+    if(hits!==1)return "expected exactly one restoreFailedInput call in sendAction, found "+hits;
+    var iC=src.indexOf("if(_committed){");
+    if(iC<0)return "the _committed branch anchor moved — re-verify this contract by hand";
+    var iE=src.indexOf("else{",iC);
+    if(iE<0)return "no else branch after if(_committed)";
+    return src.indexOf("restoreFailedInput(")>iE?true:"restore sits inside the _committed branch — it would invite a duplicate submit";
+  });
+
 }

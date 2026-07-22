@@ -1677,7 +1677,7 @@ var TTS = (function() {
   // ── Car Mode support: earcons + replay (todo_carplay.html ranks 14, 17/18) ─────────────────
   // Both are exported for ui-carmode.js (typeof-guarded there — this file loads before it).
 
-  // Two tiny WebAudio blips, deliberately OFF the narration scheduler: separate oscillator/gain
+  // Three tiny WebAudio blips, deliberately OFF the narration scheduler: separate oscillator/gain
   // nodes wired straight to ctx.destination, never touching _nextStart/_sources, so they can never
   // shift a scheduled narration start or get swept by stop()/skip(). Quiet (gain ~0.08), <200ms.
   // No-op (console.debug only) if the ctx doesn't exist or isn't running — never throws, never
@@ -1701,6 +1701,11 @@ var TTS = (function() {
         osc.stop(st + dur);
       }
       if (kind === "ready") { blip(0, 660, 0.08); blip(0.1, 880, 0.08); }   // two quick ascending blips
+      // B16 — failure. DESCENDING and below both success tones on purpose: in Car Mode the driver
+      // is not looking at the screen, so this blip is the only thing that says "the turn is over
+      // and it failed" rather than "still thinking". An ascending or same-register pair would be
+      // heard as a completion, which is the exact confusion the earcon exists to remove.
+      else if (kind === "fail") { blip(0, 400, 0.11); blip(0.13, 300, 0.16); }
       else { blip(0, 740, 0.09); }                                          // "ack" — one short blip
     } catch(e) { console.debug("[tts] earcon failed:", e && e.message); }
   }
@@ -2122,6 +2127,17 @@ var TTS = (function() {
       { align: "flex-start", overlayExtra: "overflow-y:auto;", boxBg: "#181818", maxWidth: 480, boxExtra: "margin-top:60px;", closeId: "tts-modal-x", outside: true });
 
     _updatePiperErr();
+    // B9 (v1.419): the "ORT NNNMB" half of the runtime line reads `_frameMem`, which is only
+    // refreshed BETWEEN narration reads — so opening this panel after a prewarm, or any time before
+    // a read has completed, showed no figure at all, and after one it could be stale. That figure is
+    // the only way a phone can tell whether the disposable-realm fix is actually holding memory
+    // down, so ask the live frame for a fresh reading on open and repaint when it lands. `mem` is
+    // the deliberately engine-free poll (piper-host.html) — it reads the wasm probe and never boots
+    // Piper, so opening Voice Settings can't trigger a 60-115MB model load. _frameRefreshMem
+    // resolves null with no side effects when synthesis is on the in-page fallback (no frame to
+    // ask) or the round trip fails, so the line simply keeps whatever it already showed. Async on
+    // purpose: the modal is up long before the postMessage answers, and never waits on it.
+    _frameRefreshMem().then(function (m) { if (m) _updatePiperErr(); });   // _updatePiperErr self-no-ops if the modal was closed meanwhile
     _piperRefreshDownloaded();   // best-effort — only does anything if the engine is already warm
     _renderPiperSlots();         // #66 slot UI — direct OPFS read, no engine init needed
 
@@ -2210,7 +2226,7 @@ var TTS = (function() {
     skip:              skip,
     stop:              stop,
     // Car Mode support (todo_carplay.html) — Lane A (ui-carmode.js) calls both with typeof guards.
-    earcon:            earcon,       // kind: "ack" | "ready" — oscillator blips, off the narration scheduler
+    earcon:            earcon,       // kind: "ack" | "ready" | "fail" — oscillator blips, off the narration scheduler
     replayLast:        replayLast,   // replays the last NARRATION (not Test/other speak() calls), queue-preserving
     showSettingsModal: showSettingsModal,
     testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button

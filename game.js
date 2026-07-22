@@ -1056,6 +1056,18 @@ function mpRefreshSuggestions(){
   for(i=0;i<olds.length;i++){var wrap=olds[i].parentNode;if(wrap&&wrap.parentNode)wrap.parentNode.removeChild(wrap);else if(olds[i].parentNode)olds[i].parentNode.removeChild(olds[i]);}
   generateActions(narEl);
 }
+// B16: hand the player their words back after a FAILED turn. sendAction clears the box at submit,
+// so until now a failure left the typed/spoken action reachable only through the Retry button —
+// and a page killed before that tap (exactly what the reporting device's previous load did) lost
+// it entirely. Worst in hands-free Car Mode, where "just retype it" is not an option.
+// Refuses to clobber: STT auto-listen (or the player) can queue a NEW action while the turn is in
+// flight, and that draft outranks a failed one. Returns true only when it actually restored.
+// Takes the element rather than reading the DOM so the caller's existing reference is reused and
+// the rule stays testable without a document.
+function restoreFailedInput(inp,txt){
+  if(!inp||!txt||String(inp.value||"").trim())return false;
+  inp.value=txt;return true;
+}
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
@@ -1105,6 +1117,12 @@ async function sendAction(override,opts){
   if(!isTT&&!(opts&&opts.silent)&&!_isRetryDup)logTranscript("player",txt);
   var th=addMsg("thinking","The world turns...");
   var _committed=false; // true once applyMuts has mutated state — a Retry after that would double-apply (audit E82)
+  // B16 turn-lifecycle stamps. Nothing recorded when the request LEFT, how long it was in flight,
+  // or whether the page was backgrounded — so a field "Network: Load failed" could not be told
+  // apart from a memory-pressure stall (the B9 class), a dropped radio, or a failure that never
+  // reached the transport at all. _tSent stays 0 until the request actually departs, which is
+  // itself the signal that the throw came from summarize/prompt-build rather than from the wire.
+  var _tSent=0,_hid0=0,_restored=false;
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     // #76: Table Talk is a HELP AGENT with its own prompt builder (table-talk.js) — app help
@@ -1120,6 +1138,8 @@ async function sendAction(override,opts){
     // lastAction/retry keep the clean txt too, so the note never reaches the player.
     var apiTxt=txt;
     if(!isTT&&!(opts&&opts.silent)){var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
+    _tSent=Date.now();_hid0=(typeof document!=="undefined"&&document.hidden)?1:0;
+    if(typeof erCrumb==="function")erCrumb("turn-start","t"+worldState.turn+(isTT?" tt":"")+((opts&&opts.silent)?" sil":"")+" "+String(apiTxt).length+"ch bg"+_hid0);/* pre-increment turn — commitGmTurn's "turn" crumb carries the post-increment one, so the pair brackets the request */
     // #76: TT sends noHistory — the narrative sessionLog is what used to overpower the
     // out-of-character instruction (#74 ②: GM narrated, was corrected, complied, then narrated
     // again next question). Its context now comes from buildTableTalkPrompt instead, including
@@ -1140,12 +1160,23 @@ async function sendAction(override,opts){
     }
     syncUI();
   }catch(e){th.remove();
-    if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")+(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
+    var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
+    if(typeof erCrumb==="function")erCrumb("turn-fail",(_tSent?(Date.now()-_tSent)+"ms":"pre-send")+(_committed?" post":" pre")+" bg"+_hid0+_hid1+" "+String((e&&e.message)||"?").slice(0,28));/* survives a page kill via the crumb ring, unlike the report below */
+    // B16: ctx:"turn" alone could not tell a Story turn from a Table Talk question from a silent
+    // engine send — three very different failures under one fingerprint. Kept in the detail (the
+    // GAS sheet's column schema is fixed) and ctx left alone so existing rows still dedup.
+    if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")
+      +"\n(turn: "+(isTT?"tabletalk":"story")+((opts&&opts.silent)?", silent engine send":"")+(_tSent?", "+(Date.now()-_tSent)+"ms in flight":", failed before send")+")"
+      +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
-    else{var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+    else{if(!_mpResolve&&!(opts&&opts.silent))_restored=restoreFailedInput(inp,txt);/* B16: only here — a committed turn already landed, and a pre-filled box would invite a duplicate submit. Skipped for an assembled multi-PC round (the box is a single-PC surface) and for engine directives the player never typed. */
+      var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("action-input").focus();
-  if(typeof carMode!=="undefined"&&carMode){var _pk=document.getElementById("action-input");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
+  // A non-empty box here normally means STT heard something WHILE the turn was in flight. Since
+  // B16 it can also be the failed action we just put back — and announcing "Heard you" would
+  // overwrite the accurate "Turn failed — tap to retry" the catch just spoke, with a lie.
+  if(typeof carMode!=="undefined"&&carMode&&!_restored){var _pk=document.getElementById("action-input");if(_pk&&_pk.value.trim()&&typeof carNotify==="function")carNotify("info","Heard you — tap to send");}
 }
 function retryLast(){if(lastAction)sendAction(lastAction,{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn

@@ -30,7 +30,7 @@ them here).
 ## Open
 
 ## B16 — A GM turn failed outright with a network load error on the deployed site; the turn was lost rather than retried
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** crash · **First seen:** 2026-07-22 (v1.416) · **Last seen:** 2026-07-22 (v1.416) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 952
 **Fingerprint:** `crash · turn · v1.416 · network: load failed`
 **Report ids:** c779325d-aabf-4243-be9c-7869a7801e94
@@ -93,7 +93,10 @@ PREVIOUS page (ended without unload — see B9):
 
 
 ### Action log
-_(none)_
+- **2026-07-22 · v1.419** — landed the three non-drift-surface fixes from the findings; the transport retry (④) is deliberately NOT shipped. **① The player's typed action is handed back on a failed turn** — `restoreFailedInput` (game.js), called ONLY from the non-committed branch, skipped for an assembled multi-PC round and for silent engine sends, and refusing to clobber a draft queued mid-flight (STT auto-listen can type while a turn is out). **② Turn-lifecycle crumbs** — `turn-start` before the await and `turn-fail` in the catch, carrying in-flight ms, committed/not, and `document.hidden` sampled at BOTH departure and failure; the report `detail` now names story vs tabletalk vs silent send, with `ctx` left as `"turn"` so existing fingerprints still dedup. **③ A failure earcon for Car Mode** — new `"fail"` kind (descending pair, deliberately not readable as a completion), played from `carNotify("error")`, on the plain oscillator path and off the narration scheduler.
+- **2026-07-22 — a regression caught during implementation, worth recording.** The Car Mode tail reads "box is non-empty ⇒ STT heard something mid-turn" and speaks *"Heard you — tap to send"*. After ①, that would have fired on every failure and overwritten the accurate *"Turn failed — tap to retry"* with a lie. Now gated on whether the restore actually happened. A fix that makes the hands-free case WORSE while appearing to help is exactly the class this row exists to prevent.
+- **2026-07-22 — `lastAction` persistence deliberately NOT done.** It would carry the text across a page kill (the residual half of ①), but `lastAction` is read by `ragRetrieve` as the retrieval query, so persisting it changes RAG's input on the first turn after a reload — **drift surface, needs its own review** — and it would require a `saveAll()` in the failure path, which would also flush the orphan transcript entry to disk. Recovery is within the page load only. Worth a follow-up row.
+- **2026-07-22 — test discipline.** 7 assertions (786 → 793), all confirmed failing first. Two contracts were additionally proven to DISCRIMINATE by sabotage: removing the `silent` guard made the silent-send test fail, and moving the restore into the `_committed` branch made the placement test fail; `game.js` was restored and re-verified green after each. The `_committed` branch itself is unreachable headlessly (it needs the await to RESOLVE), so its contract is pinned by a source-placement assertion over `String(sendAction)` rather than by execution — stated because a test that cannot fail proves nothing.
 
 ## B13 — Player could not follow the physical action in a combat-aftermath passage: a severed head is kicked into one acolyte, then "the body behind you drops", reading as two contradictory bodies
 **Status:** new
@@ -580,6 +583,12 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **What to do next, in order.** ① Sample ORT memory **per unit inside the read** and put it in the crumb, so we finally see the peak rather than a between-reads floor. ② Instrument the voice-switch path specifically: log model-load bytes and whether the old session is released before the new one is created (`tndGetSession` creates BEFORE releasing — that ordering is now suspect at 13 resident voices). ③ Land the voice-cap fix once its root cause lands. ④ Only then decide whether the realm's respawn trigger should key off peak instead of steady state.
 
 - **Honest status of the whole B9 line.** The mechanism I documented — ORT allocating per distinct shape, never shrinking — is real and measured. What is now falsified is that it reaches a lethal magnitude in real play. The death is at a stable `pc`≈120 across nine crumbs and four app versions, which still points at something that accumulates per synth; it is simply not the number I was watching.
+
+**2026-07-22 — two instrumentation defects in the v1.418 fix itself, found while landing v1.419. Both blunt the very evidence B9 now depends on.**
+
+- **① `pmc` is always 0 whenever the disposable realm is in use.** In frame mode `_phonMem()` reads the adapter's `tndDiag()`, which serves `phonCalls` from `_frameMem` — but the host's `mem` op returns only `{ortMB, phonMB, phonMods}` and never carries a call count. So the phonemizer's re-entry count, the denominator that made the v1.411 falsification meaningful, silently reads zero on every v1.418 crumb. Visible in the 2026-07-22 crumb as `pm:16, pmc:0`. `pm` itself is unaffected. Cheap fix: include the count in `memReport()`.
+- **② `om` is a between-reads FLOOR, not a peak.** `_ortMem()` serves `_frameMem`, refreshed only by `_frameMaybeRespawn` at the end of a read — so the crumb's memory figure is the value as of the PREVIOUS read, and any spike during the fatal read is invisible. Since iOS jetsam kills on peak, this is now the single most important gap on the row: the fix's own trigger and its own evidence both key off a number that cannot see the moment of death. The crumb already writes per unit, so sampling memory there is cheap.
+- **Neither is a regression in behaviour** — v1.418 narrates correctly and the realm works. Both are regressions in EVIDENCE, which on a bug diagnosed exclusively through crumbs is the more expensive kind.
 
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
