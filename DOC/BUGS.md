@@ -29,6 +29,40 @@ them here).
 
 ## Open
 
+## B16 — A GM turn failed outright with a network load error on the deployed site; the turn was lost rather than retried
+**Status:** new
+**Kind:** crash · **First seen:** 2026-07-22 (v1.416) · **Last seen:** 2026-07-22 (v1.416) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 952
+**Fingerprint:** `crash · turn · v1.416 · network: load failed`
+**Report ids:** c779325d-aabf-4243-be9c-7869a7801e94
+**Screenshot URL:** —
+_Grounding (repo-side facts, not conclusions): `Network: Load failed` is WebKit's generic `fetch()` rejection — DNS/TLS/connection-dropped/backgrounded-radio, NOT an HTTP status (a 4xx/5xx would arrive as the provider's own error text, as on B15). The frame in the detail is `callGM` (api.js), i.e. the gameplay-turn request itself, so this is the turn path and not summarize. `online:true` was recorded at report time, which says the tab believed it had connectivity when the report was SENT — not necessarily when the request failed. iPhone on iOS 18.7; a phone losing its radio mid-request (car, tunnel, handoff) is the obvious first hypothesis and is exactly the Car Mode use case. Worth checking whether a failed turn leaves `busy` latched or the action text recoverable, since the player's typed/spoken input is the thing actually at risk._
+
+_⚠ **Independently notable, and it belongs to B9 rather than to this row:** the attached diag carries the FIRST FIELD MEASUREMENT of ORT wasm memory — `ortMB=531` after only `synths=29/29` with `voices=2` and 3 voice switches in the single completed read. That is far steeper than the desktop curve (~354MB at 29 synths, one voice), which suggests resident voice MODELS and single-slot session reloads on voice switch add substantially on top of the per-shape ratchet. It has a direct consequence for the v1.418 fix: `PIPER_RESPAWN_MB`=400 would be crossed inside a single multi-voice read, so respawns would fire far more often than intended. Flagged to the user at sync; not acted on here._
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Network: Load failed
+
+callGM@https://traffic-and-dragons.pages.dev/api.js:1134:129
+
+--- diag ---
+session s1jt1i6-1bte · report 1/10 · up 113s
+audio ctx=running refusals=0 playing=0 paused=0 q=0 synths=29/29 recycles=0 voices=2 on=1 phonMB=16/29 ortMB=531
+this page:
+  +0s boot
+  +10s read-start 28u pc1 ps1 map5
+  +34s read-done 28u vs3
+PREVIOUS page (ended without unload — see B9):
+  +0s boot
+```
+
+### Findings
+_(none yet — `/bugs investigate B16`)_
+
+### Action log
+_(none)_
+
 ## B13 — Player could not follow the physical action in a combat-aftermath passage: a severed head is kicked into one acolyte, then "the body behind you drops", reading as two contradictory bodies
 **Status:** new
 **Kind:** user-report · **First seen:** 2026-07-22 (v1.406) · **Last seen:** 2026-07-22 (v1.406) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 925
@@ -143,10 +177,10 @@ _(none)_
 
 ## B9 — Piper narration dies mid-passage on iPhone and never resumes; the crash crumb names the killing sentence (class predates the multi-voice work — seen on v1.399 AND v1.406)
 **Status:** fixed
-**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.413, runtime r9) · **Count:** 7 · **Campaign:** — (not carried on this report kind) · **Turn:** —
+**Kind:** crash · **First seen:** 2026-07-21 (v1.399) · **Last seen:** 2026-07-22 (v1.415, runtime r9) · **Count:** 8 · **Campaign:** — (not carried on this report kind) · **Turn:** —
 **Fingerprint:** `crash · narration-death · v1.399 · ⚠ last narration died at sentence 22/33 (piper r8, v1.399, 124 synths / 20 min into the session)`
 **Fingerprint (v1.406 arrival):** `crash · narration-death · v1.406 · ⚠ last narration died at sentence 30/31 (piper r8, v1.406, 103 synths / 6 min into the session)`
-**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169, 96a3c726-0521-4d1f-8be3-357cef72c916
+**Report ids:** 4f6ec7d0-38ea-47cb-804a-0fcb6de17de3, a005e484-7f49-4b62-9714-c7308e6ddf0a, 0e96c428-cbfe-4d4c-a0af-098bfb7446c2, e488bdc8-84b1-4366-82b5-973a1e137529, 998e30b0-a149-456a-bc0f-19bf5487fabc, 418ceb2f-198a-4586-9fbc-7957af429169, 96a3c726-0521-4d1f-8be3-357cef72c916, 5c6e647c-ae74-469f-97e9-182354920eea
 **Screenshot URL:** —
 _⚠ **This report kind can never dedupe by fingerprint**: the message embeds per-incident counters (sentence i/n, synth count, session minutes), so every arrival is textually unique. Filed as ONE row per the documented B4/B6 fingerprint-variance precedent — future syncs should BUMP this row, not file twins._
 _Grounding for the investigator (repo-side facts, not conclusions): the body is the `PIPER_CRUMB_K` breadcrumb written by `_speakPiper` before each unit's synth and read back at next boot by `loadSettings` — `done:false` means the read DIED there rather than being skipped/stopped by the user (`_crumbDone` marks user skip/stop, so this cannot be a false alarm from a tapped skip). `pc`/`up` are the r8 monotonic counters (cumulative synths this page-load / minutes since boot) added for the standing monotonic-resources audit dimension. **Timeline matters for attribution:** the v1.399 hit is from BEFORE the multi-voice speaker post-pass shipped (v1.406), so the class is NOT caused by it — but v1.406 changed the memory profile of a read (multiple voice models resident in one wasm session, and `_piperEnsureVoice` can now run MID-loop on first encounter of a new speaker). Both hits are iOS 18.7 Safari on the deployed site. Note the v1.406 hit reached 103 synths in only 6 minutes vs 124 in 20, i.e. a much denser session. Candidate directions to test, in rough order of suspicion: (a) iOS tab-memory kill under accumulated wasm/PCM pressure — the class `PIPER_MAX_AHEAD_SEC` backpressure was introduced for; (b) a mid-read `_piperEnsureVoice` download stalling the loop long enough for the AudioContext to lapse (v1.406 only); (c) LRU eviction of a voice the current passage is still synthesizing with (v1.406 only, cap 10). (b) and (c) cannot explain the v1.399 hit._
@@ -475,6 +509,17 @@ _Method: each bug was investigated twice by independent agents that could not se
 - **How to confirm on the phone, in one look:** open Voice Settings after narration has run. `disposable realm` means the fix is live; `IN-PAGE (memory ratchets)` means it is not and B9 is still in play on that device. The next crash crumb also carries `eng` and `om`, so a death report says which engine was running and at what memory.
 
 - **Still open:** no phone soak yet. The acceptance test is unchanged — carry `pc` past ~130 without dying, with ORT memory staying bounded — and it is now checkable from the crumb rather than inferred.
+
+**2026-07-22 — eighth crumb, and it is PRE-FIX. Bumped, not re-analysed (user call at sync time).**
+
+```text
+[5c6e647c] {"i":22,"n":28,"rev":"r9","app":"v1.415","pc":121,"ps":47,"rc":2,"vs":1,"nv":4,"pm":16,"pmc":121,"up":32,"done":false}
+```
+
+- **`app`=v1.415, so this page never ran the v1.418 fix.** Worth stating because narration-death crumbs are mailed at the NEXT BOOT — a B9 report can arrive after the update while describing a page that ran the old code. Arrival time does not date the incident; the `app` field does.
+- `pc`=**121**, dead centre of the established band (124/103/96/119/118/118/114/**121**). Nothing new.
+- **The one genuinely useful datum: `pm`=16 at `pmc`=121.** The phonemizer sat at 16MB across 121 `main()` re-entries IN THE FIELD, on the session that died. v1.411 falsified the phonemizer hypothesis in a lab; this confirms it on the device that actually dies, which is the stronger form of the same result. `pn` is absent because the module counter shipped in v1.416, after this page load.
+- **The next B9 arrival is the one that matters**: v1.418 crumbs carry `eng`. `eng:"frame"` would be a death WITH the fix active (new information); `eng:"inpage"` would mean the frame never started and the fix was not in play on that device.
 
 ### Action log
 - **2026-07-22 · v1.416** — made ORT wasm memory observable (probe in tts.js + piper_test.html v0.3), reproduced the ratchet on desktop, A/B'd r8's recycle to no effect, and wired `om`/`pn` into the crash crumb. No fix attempted; root cause identified. 784 assertions green.
