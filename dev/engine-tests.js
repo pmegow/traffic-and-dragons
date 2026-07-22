@@ -5782,6 +5782,56 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(p.camp!=="Test"||p.turn!==5)return "camp/turn "+p.camp+"/"+p.turn;
     return true;
   });
+  // ── B14: the tts bug-report hint must carry the SPEAKER MAP, not just engine settings ────────
+  // Why: four "wrong voice" reports arrived carrying engine/voice/rate and nothing about WHO the
+  // engine thought was speaking, so each one needed the user to describe the line by ear and still
+  // could not separate a splitter bug from a model mislabel. The map is already stored per GM turn.
+  function _ttsHintText(){
+    var h=null,i;
+    for(i=0;i<ER_REPORT_HINTS.length;i++)if(ER_REPORT_HINTS[i].id==="tts")h=ER_REPORT_HINTS[i];
+    if(!h)throw new Error("tts hint missing");
+    return h.gather(worldState);
+  }
+  t("B14 hint: a stamped speaker map renders line by line with who speaks each unit",function(){
+    makeWorld();
+    worldState.character.name="Ammut";worldState.character.voiceId="en_US-kristin-medium";
+    worldState.npcs=[{name:"Frizwick",status:"ally",charSheet:{name:"Frizwick",voiceId:"en_GB-alba-medium"}}];
+    var line='"That leaves her," Frizwick says.';
+    logTranscript("gm",line,"raw");
+    var e=worldState.transcript[worldState.transcript.length-1];
+    var u=TTS._textPrep.splitSentences(line,null,true),spans=speakerSpans(u);
+    var m=parseSpeakerMap('{"0":"Frizwick"}',spans,u.length,speakerCastList());
+    stampTranscriptSpeakers(e,m);
+    var txt=_ttsHintText();
+    if(txt.indexOf("speaker map")<0)return "no speaker map section";
+    if(txt.indexOf("Frizwick")<0)return "the speaker name is absent";
+    if(txt.indexOf("(narrator)")<0)return "the narration unit is not shown as narrator — that is the B14 signal";
+    return txt.indexOf("en_GB-alba-medium")>=0?true:"the resolved voice is absent: "+txt;
+  });
+  t("B14 hint: NO map says so explicitly, rather than looking like a clean turn",function(){
+    makeWorld();
+    logTranscript("gm","Ash drifts past the window.","raw");
+    var txt=_ttsHintText();
+    return /speaker map: NONE/.test(txt)?true:"a turn with no map did not say so: "+txt;
+  });
+  t("B14 hint: a STALE map is reported as stale — the mismatch is itself the finding",function(){
+    makeWorld();
+    logTranscript("gm","\"Hold,\" she said.","raw");
+    var e=worldState.transcript[worldState.transcript.length-1];
+    stampTranscriptSpeakers(e,{n:99,s:{0:"Frizwick"}});   // count that cannot match the text
+    var txt=_ttsHintText();
+    return /STALE/.test(txt)?true:"stale map not flagged: "+txt;
+  });
+  t("B14 hint: the gather never throws, even with a wrecked transcript entry",function(){
+    makeWorld();
+    logTranscript("gm","Some narration.","raw");
+    var e=worldState.transcript[worldState.transcript.length-1];
+    e.sp={n:1,s:null};   // structurally wrong on purpose
+    var threw=null,txt="";
+    try{txt=_ttsHintText();}catch(err){threw=err.message;}
+    if(threw)return "gather threw: "+threw;
+    return txt.length?true:"gather returned nothing";
+  });
   t("#16c: every crash carries the session id, so two reports from one page load can be correlated",function(){
     makeWorld();__erReset("https://example.test/hook");
     reportError("a","one","");

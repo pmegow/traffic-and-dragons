@@ -222,10 +222,41 @@ var ER_REPORT_HINTS=[
     var m="default";
     try{if(typeof providerModels!=="undefined"&&providerModels[p])m=providerModels[p];}catch(e){}
     return "LLM provider: "+p+"; model override: "+m;}},
-  {id:"tts",re:/voice|speech|speak|narrat|tts|piper|audio|sound|mute|silen/i,gather:function(){
+  // B14 (2026-07-22): a "wrong voice" report could say WHAT was heard but never WHO the engine
+  // thought was speaking, so every such report needed the user to describe the line by ear and
+  // still could not distinguish a splitter bug from a model mislabel. The speaker map is already
+  // stored per GM turn (transcript entry `.sp` = {n, s:{unitIndex:name}}) — it was simply never
+  // read back. Render it against the units it maps, so the report shows the attribution line by
+  // line. NOTE the map holds NAMES, not voice ids: names resolve to voices at speak time so that
+  // rebinding a character re-voices past turns, which means this shows the engine's INTENT and the
+  // sheet assignment below is what turns it into sound.
+  {id:"tts",re:/voice|speech|speak|narrat|tts|piper|audio|sound|mute|silen/i,gather:function(w){
     var s="tts: ?";
     try{if(typeof store!=="undefined")s="tts engine: "+(store.get("tnd_tts_engine_v1")||"(legacy-inferred)")+"; on: "+(store.get("tnd_tts_on_v1")==="1")+"; piper voice: "+(store.get("tnd_piper_voice_v1")||"(default)")+"; rate: "+(store.get("tnd_tts_rate_v1")||"1.0");}catch(e){}
-    return s;}},
+    try{
+      var tr=(w&&w.transcript)||[],e=null,i;
+      for(i=tr.length-1;i>=0;i--){if(tr[i]&&tr[i].r==="gm"){e=tr[i];break;}}
+      if(!e)return s+"\nspeaker map: (no GM turn on the transcript)";
+      if(!e.sp)return s+"\nspeaker map: NONE on the last GM turn — the pass was skipped (no voiced cast, no dialogue, muted) or it failed/timed out";
+      var units=(typeof TTS!=="undefined"&&TTS._textPrep)?TTS._textPrep.splitSentences(e.x||"",null,true):[];
+      if(units.length!==e.sp.n)
+        return s+"\nspeaker map: STALE — stored for "+e.sp.n+" units, text now splits into "+units.length+"; it would be dropped at replay (this mismatch is itself the finding)";
+      var out=[],cap=Math.min(units.length,24);
+      for(i=0;i<cap;i++){
+        var who=e.sp.s[i]||"(narrator)";
+        var t=String(units[i].text||"").slice(0,60);
+        out.push("  "+i+"  "+who+"  |  "+t);
+      }
+      if(units.length>cap)out.push("  … "+(units.length-cap)+" more units");
+      // who each name would actually SOUND like, resolved the same way playback resolves it
+      var voices=[],seen={},nm;
+      for(i=0;i<units.length;i++){nm=e.sp.s[i];if(!nm||seen[nm])continue;seen[nm]=1;
+        var vid="?";try{vid=(typeof speakerVoiceMap==="function"&&typeof TTS!=="undefined")?(function(){var vm=speakerVoiceMap(e.sp,e.x);return (vm&&vm[i])||"(unresolved -> narrator)";})():"?";}catch(e2){}
+        voices.push(nm+" -> "+vid);}
+      return s+"\nspeaker map (last GM turn, engine intent):\n"+out.join("\n")
+        +"\nresolved voices: "+(voices.length?voices.join("; "):"(none assigned — all narrator)");
+    }catch(e3){return s+"\nspeaker map: (gather failed: "+((e3&&e3.message)||"?")+")";}
+  }},
   {id:"combat",re:/combat|fight|battle|enemy|foe|attack|initiative|round/i,gather:function(w){
     return "combat state: "+((w&&w.combat)?JSON.stringify(w.combat):"none");}},
   {id:"memory",re:/memor|remember|forgot|forget|drift|hallucinat|contradict|canon|recall/i,gather:function(w){
