@@ -2101,21 +2101,27 @@ var TTS = (function() {
       // user most wanted gone. A number you cannot act on is worse than no number.
       var rows = Math.max(PIPER_VOICE_CAP, ids.length);
       var html = "<label style='font-size:12px;color:var(--t2);display:block;margin:10px 0 4px;'>Downloaded voices (" + ids.length + " of " + PIPER_VOICE_CAP + " slots" + (ids.length > PIPER_VOICE_CAP ? " — over cap, delete some" : "") + ")</label>", i;
+      var rowData = [];   // v1.427: raw {label, assigned} per voice row, indexed by the .pv-row NodeList
+                          // order below — captured here so the long-press dialog uses clean JS values
+                          // and never round-trips names through attribute escaping.
       for (i = 0; i < rows; i++) {
         if (i < ids.length) {
           var id = ids[i], nm = id, bi;
           for (bi = 0; bi < PIPER_VOICES.length; bi++) { if (PIPER_VOICES[bi].id === id) { nm = PIPER_VOICES[bi].label; break; } }
-          // v1.425/v1.426 (user request) — make it OBVIOUS what is safe to delete. A voice no
+          // v1.425-v1.427 (user requests) — make it OBVIOUS what is safe to delete. A voice no
           // character or the narrator uses drops its name to 50% grey; one in use is full-strength
-          // and BOLD. Long-press any row (or hover on desktop) to see exactly who, or UNASSIGNED.
+          // and BOLD. Long-press (or desktop hover) opens a proper dialog with the exact assignee(s)
+          // or UNASSIGNED. The callout-suppression CSS is inline (NOT the `.has-tip` class): has-tip
+          // is claimed by _ensureLongPressTips' document-level handler, which would ALSO fire on a
+          // long-press and pop its own centred tooltip — double UI. Inline gives the same
+          // copy-callout fix (#83) while leaving this row's long-press entirely ours.
           // `_voiceAssignedTo` returns the player/companions/narrator that speak in this voice.
           var assigned = (typeof _voiceAssignedTo === "function") ? _voiceAssignedTo(id) : [];
           var inUse = assigned.length > 0;
           var nameStyle = inUse ? "color:var(--t0);font-weight:700;" : "color:#808080;";
-          // Escape the apostrophe too (a name like "D'anna" would otherwise break out of the
-          // single-quoted data-pv-msg/title attributes below); getAttribute decodes it back.
-          var msg = (_escVal(nm) + (inUse ? " — used by " + _escVal(assigned.join(", ")) : " — UNASSIGNED")).replace(/'/g, "&#39;");
-          html += "<div class='pv-row' data-pv-msg='" + msg + "' title='" + msg + "' style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;'>"
+          rowData.push({ label: nm, assigned: assigned });
+          var title = (_escVal(nm) + (inUse ? " — used by " + _escVal(assigned.join(", ")) : " — UNASSIGNED")).replace(/'/g, "&#39;");
+          html += "<div class='pv-row' title='" + title + "' style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;'>"
             + "<input type='radio' name='tts-piper-resident' value='" + _escVal(id) + "'" + (id === cur ? " checked" : "") + " style='accent-color:var(--acc);margin:0;flex-shrink:0;'/>"
             + "<span style='flex:1;font-size:12px;" + nameStyle + "'>" + _escVal(nm) + "</span>"
             + "<span style='font-size:10px;color:var(--t2);'>" + _escVal(piperVoiceSize(id)) + "</span>"
@@ -2143,31 +2149,48 @@ var TTS = (function() {
       for (d = 0; d < dels.length; d++) {
         dels[d].addEventListener("click", function() { _piperDeleteVoice(this.getAttribute("data-pvoice-del")); });
       }
-      // v1.426 — long-press a voice row to pop who it's assigned to (or UNASSIGNED). Mirrors the
-      // suggested-action long-press (ui-boot.js): 500ms hold, cancelled by a >10px drag, and the
-      // radio / ✕ keep their own tap behaviour so a hold that starts on them is ignored. Wired per
-      // row (rows are rebuilt each render, so listeners never stack).
+      // v1.426/v1.427 — long-press a voice row to OPEN A DIALOG naming its assignee(s) or
+      // UNASSIGNED. Mirrors the suggested-action long-press (ui-boot.js): 500ms hold, cancelled by
+      // a >10px drag; the radio / ✕ keep their own tap behaviour so a hold starting on them is
+      // ignored. `rowData[pr]` aligns with this NodeList because voice rows are emitted before the
+      // empty-slot placeholders and only voice rows carry `.pv-row`. Rows are rebuilt each render,
+      // so listeners never stack.
       var prows = host.querySelectorAll(".pv-row"), pr;
       for (pr = 0; pr < prows.length; pr++) {
-        (function(row) {
+        (function(row, data) {
           var t = null, sx = 0, sy = 0;
           function clr() { if (t) { clearTimeout(t); t = null; } }
           row.addEventListener("pointerdown", function(e) {
             if (e.target && e.target.closest && e.target.closest("input,button")) return;
             sx = e.clientX; sy = e.clientY;
-            t = setTimeout(function() {
-              t = null;
-              if (typeof showToast === "function") showToast("🔊 " + (row.getAttribute("data-pv-msg") || ""), 5000);
-            }, 500);
+            t = setTimeout(function() { t = null; if (data) _pvShowAssignDialog(data.label, data.assigned); }, 500);
           });
           row.addEventListener("pointermove", function(e) { if (t && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) clr(); });
           row.addEventListener("pointerup", clr);
           row.addEventListener("pointercancel", clr);
           row.addEventListener("pointerleave", clr);
           row.addEventListener("contextmenu", function(e) { e.preventDefault(); });
-        })(prows[pr]);
+        })(prows[pr], rowData[pr]);
       }
     });
+  }
+
+  // The long-press dialog (v1.427). A proper modal, not a toast — clearer, dismissible, and stacks
+  // above the Voice Settings modal (z 400 > 300). Content is escHtml'd for its innerHTML context;
+  // label/assignee are campaign-authored NPC names, so this is the same trust boundary the sheet
+  // UI already lives at, closed the same way (escHtml + click-outside/✕).
+  function _pvShowAssignDialog(label, assigned) {
+    if (typeof modalShell !== "function") return;   // ui-shell.js is loaded before this file
+    var esc = (typeof escHtml === "function") ? escHtml : function(s){ return String(s || ""); };
+    var body = (assigned && assigned.length)
+      ? "<div style='font-size:13px;color:var(--t1);line-height:1.6;'>Used by:<br><b style='color:var(--t0);'>" + esc(assigned.join(", ")) + "</b></div>"
+      : "<div style='font-size:13px;color:var(--t1);line-height:1.6;'><b style='color:#808080;'>UNASSIGNED</b><br>No character or the narrator uses this voice — safe to delete.</div>";
+    modalShell("pv-assign-dlg",
+      "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;'>"
+      + "<span style='font-size:15px;color:var(--t0);font-weight:bold;'>&#128266; " + esc(label) + "</span>"
+      + "<button id='pv-dlg-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;'>&#215;</button>"
+      + "</div>" + body,
+      { maxWidth: 340, closeId: "pv-dlg-x", outside: true, z: 400 });
   }
 
   // ✕ handler — engine-load is acceptable here (remove() only touches OPFS, no wasm compile), and
