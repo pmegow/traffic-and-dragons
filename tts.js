@@ -1754,7 +1754,14 @@ var TTS = (function() {
           return _frameRefreshMem();
         }).catch(function (e) { try { fresh.destroy(); } catch (e2) {} throw e; });
       })
-      .catch(function (e) { console.warn("[tts piper] synthesis realm retry failed — staying on the in-page engine:", e && e.message); })
+      .catch(function (e) {
+        console.warn("[tts piper] synthesis realm retry failed — staying on the in-page engine:", e && e.message);
+        // B9: crumb the FAILURE too. The success path crumbs `piper-frame-recovered`; without this
+        // the failure was console-only, so a phone showed neither — leaving "never fired" and "fired
+        // and failed silently every time" indistinguishable across a whole session (the exact blind
+        // spot that hid the respawn failure for six versions). Carry the reason for triage.
+        if (typeof erCrumb === "function") erCrumb("piper-frame-retry-fail", (e && e.message) || "?");
+      })
       .then(function () { _frameUpgrading = false; }, function () { _frameUpgrading = false; });
   }
 
