@@ -624,6 +624,14 @@ _Method: each bug was investigated twice by independent agents that could not se
 
 - **What this should change about the approach.** The realm work produced real wins (it made ORT memory observable, and it is the only thing that CAN reclaim), but as a fix for B9 it has now been contradicted twice: the respawn never completed, and when the realm was absent entirely the death was unchanged. **The next investigation should stop instrumenting ORT and start measuring what else is per-synth** — total page memory rather than ORT's wasm alone, decoded-audio/AudioBuffer lifetime, OPFS handles — or test whether the kill is memory-driven at all. A cheap discriminator worth considering: does a page with narration OFF but the same turn count survive? That separates "per synth" from "per turn".
 
+**2026-07-22 (resolved) — ✅ NOT a v1.424 regression: it was the ~1GB of resident voices. The user cleared the surplus, hard-reloaded, and Voice Settings now reads `disposable realm` on a fresh load.**
+
+- **This settles the (a)-vs-(b) question from the entry below in favour of (b): device/storage pressure.** The boot-spawn failure that was 6/6 on v1.424 is gone once the phone is not holding ~1GB of undeleted voice models — exactly the prediction. The `_piperInitP` guard is exonerated (as the inert-guard analysis argued it should be), and no code change is warranted.
+- **The mechanism, now consistent end to end:** a frame boot compiles the ORT wasm and loads a model; under OPFS/memory pressure that exceeded the 30s ready timeout, so `_piperInit` fell to the in-page engine. With the surplus deleted (the v1.420 delete fix + the v1.425-427 UI that made the surplus visible and safe to clear), the boot completes well inside the window.
+- **⚠ Single confirming observation, but a strong one** — it is the exact experiment the last entry called for, and it flipped the outcome. Worth watching that it stays `frame` as the session lengthens; if it reverts to `inpage` well before ~1GB accumulates again, the threshold is lower than assumed.
+- **⭐ Consequence: the disposable realm is LIVE again, so v1.424's destroy-then-build can finally be tested.** The next crumb carrying `eng:"frame"` AND a `realm-respawn` is the one that shows whether the ordering flip works — `rc` rising above 0 is the pass signal. Until this, no page had a realm to exercise it.
+- **B9's core death is UNCHANGED by any of this.** The tab still dies at `pc`≈90-132 whether the engine is in-page or framed; clearing voices addresses the boot-spawn side quest, not the kill. The narration-OFF-same-turn-count experiment remains the highest-value next step.
+
 **2026-07-22 (later) — ⛔ A SUSPECTED v1.424 REGRESSION: the disposable realm now fails to boot on EVERY page. Five more deaths, all `eng:"inpage"`, all preceded by `piper-frame-fail`.**
 
 ```text
