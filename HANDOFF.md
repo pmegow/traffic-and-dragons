@@ -1,16 +1,19 @@
 # Traffic and Dragons — Session Handoff (2026-07-22, end of day)
 
-**Deployed:** `v1.424` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722r` (sw.js) · Piper runtime **r9**
+**Deployed:** `v1.427` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722u` (sw.js) · Piper runtime **r9**
 **Tests:** 796 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
 
 `PIPER_RUNTIME_REV` is still **r9** and **no `vendor/piper/*` file changed all session** — every fix
 was landed in app code on purpose, to stay clear of the permanent-cache delivery trap that ate
 v1.322/v1.323.
 
-Nine versions, v1.416 → v1.424, almost entirely the voice stack. Four bugs closed, one still open —
-and the open one is why this page is worth reading carefully, because **I spent most of the day
-optimising a variable that the final crumb showed is not causal.** The record of how that was
-established is worth more than any of the code.
+Twelve versions, v1.416 → v1.427, almost entirely the voice stack. Five bugs closed, **B9 still
+open** — and B9 is why this page is worth reading carefully, because **I spent most of the day
+optimising a variable that the field showed is not causal.** The record of how that was established
+is worth more than any of the code.
+
+Last confirmed live (screenshot, v1.426): **`disposable realm · ORT 207MB`, 5 of 10 voice slots** —
+a healthy fresh engine after the ~1GB voice surplus was cleared (see the B9 boot-spawn note below).
 
 **Read `DOC/BUGS.md` first.** It is the live record and it is where the reasoning is.
 **Fable:** `todo_checkWithFable.md` **entry 6** is written for you and names what to challenge.
@@ -20,17 +23,27 @@ established is worth more than any of the code.
 ## ⚠ B9 — the one still open. Read all of this before writing code.
 
 Narration dies mid-passage on iPhone and the tab is killed with no unload event, so the only
-evidence that survives is the breadcrumb written before the kill. **Twenty crumbs, seven versions.**
+evidence that survives is the breadcrumb written before the kill. **Twenty-five crumbs, ten versions.**
 
-### The headline, from the very last crumb of the session
+### The headline: the kill is orthogonal to the whole voice-engine architecture
 
-**The tab died at `pc`=107 with NO disposable realm running at all.** That page's first frame spawn
-failed at boot (`piper-frame-fail … did not signal ready within 30s`), so everything ran on the
-in-page fallback — `eng:"inpage"` — and the death was indistinguishable from the realm-based ones.
+**The tab dies at the same cumulative-synth count whether synthesis runs in the disposable realm or
+in the in-page engine.** Late in the session, six pages ran `eng:"inpage"` (their frame boot timed
+out — see the boot-spawn note next) and died at `pc` 100–132, indistinguishable from the
+realm-based deaths. **Twenty-five crumbs, two entirely different engine architectures, the same
+band.** The realm/memory axis — which is what v1.418 through v1.424 was built on — is **orthogonal
+to what kills the tab.** Do not resume that line of work without new evidence pointing back at it.
 
-**Twenty crumbs, two entirely different engine architectures, the same band.** The realm/memory
-axis — which is what v1.418 through v1.424 was built on — looks **orthogonal to what kills the tab.**
-Do not resume that line of work without new evidence pointing back at it.
+### ✅ Side-quest resolved: the "v1.424 boot-spawn regression" was device pressure, not code
+
+For a stretch, every v1.424 page failed its frame boot (`eng:"inpage"`, 6/6) where every earlier
+page had succeeded (`eng:"frame"`, 0/18) — a stark version-boundary correlation. It is **resolved:
+the user cleared the ~1GB of surplus voices, hard-reloaded, and it reads `disposable realm` again.**
+So a frame boot compiles the ORT wasm + loads a model, and under OPFS pressure that blew the 30s
+ready timeout. The `_piperInitP` guard is exonerated (it is inert for a single spawn). **No code
+change was warranted, and none was made.** ⚠ Single confirming observation — watch it *stays*
+`frame` deep into a long session; a flip back to `inpage` well before ~1GB re-accumulates would mean
+the threshold is lower than assumed.
 
 ### The one durable fact
 
@@ -66,8 +79,11 @@ that killed them.
 
 **v1.424 flipped to destroy-then-build** on that evidence — tear the old realm down, null the
 pointers, construct into the freed space; `_piperInitP` guards the resulting no-engine window against
-a concurrent second spawn. ⚠ **STILL UNVERIFIED.** The only v1.424 crumb had no realm at all, so
-nothing exercised it. A test needs `eng:"frame"` **and** a `realm-respawn` in the same ring.
+a concurrent second spawn. ⚠ **STILL UNVERIFIED, but now UNBLOCKED.** No page had ever had a working
+realm to exercise it — either the respawn never triggered, or the frame boot failed. With the voices
+cleared the realm is live again, so the next crumb carrying `eng:"frame"` **and** a `realm-respawn`
+is the test; **`rc` rising above 0 is the pass signal.** (Note: whether it even matters is in doubt —
+see the headline. It is worth confirming it *completes*, not worth building further on.)
 
 ### ⚠ An instrumentation blind spot still open — fix this before anything else here
 
@@ -153,6 +169,15 @@ markers were also shifting unit boundaries, so speaker maps stored **before v1.4
 containing emphasis now fail their `sp.n` fuse and replay in a single voice. That is the fuse working
 correctly, not a regression.
 
+**Voice-slot UI, so the surplus was safe to clear** (v1.425 → v1.427, all presentational, off the
+drift surface). In Voice Settings' download list, a voice no character or the narrator uses renders
+its name **50% grey**; one in use is **bold**; long-press (500ms, `.qa`-style) opens a real
+`modalShell` dialog naming the assignee(s) or `UNASSIGNED`, with the iOS copy-callout suppressed
+inline (NOT the `.has-tip` class — that is claimed by `_ensureLongPressTips` and would double-fire).
+The dialog path was verified live in the browser (renders, z:400 above the settings modal,
+apostrophe-safe, ✕ closes); the long-press on a real voice row and the callout suppression are
+device-only. This is what let the user see and clear the ~1GB surplus that was starving the frame boot.
+
 ---
 
 ## Open rows
@@ -195,9 +220,17 @@ field has said `pn:1` on every crumb, i.e. it has never fired in play.
 
 ---
 
-## Awaiting the user
+## Where to start next session
 
-1. **Nothing is blocked.** Play when you like.
-2. The next crumb is only decisive for B9 if it carries **`eng:"frame"` plus a `realm-respawn`** —
-   that is the one combination that tests v1.424.
-3. B10's residual, TODO #87, and the `_frameRetryUpgrade` crumb gap all have documented directions.
+1. **The single highest-value move is the narration-OFF experiment** — play a stretch with voice off
+   at the same turn rate and see whether the tab still dies. It costs nothing, needs no code, and it
+   is the ONE thing that separates per-synth from per-turn. Nothing in 25 crumbs distinguishes them,
+   and if it dies with voice off, the entire voice investigation was a red herring and the kill is in
+   the turn loop. **Do this before any more engine work.**
+2. Cheap and worth doing regardless: **crumb `_frameRetryUpgrade`'s failure path** (two lines) — it
+   is the last silent blind spot in the realm lifecycle, the same class that hid the respawn bug.
+3. The realm is live again, so a crumb with **`eng:"frame"` + a `realm-respawn` and `rc>0`** would
+   confirm v1.424's destroy-then-build completes. Worth noting; not worth building on (see headline).
+4. B10's residual and TODO #87 have documented directions if wanted.
+5. **Fable arrives ~2026-07-24** — `todo_checkWithFable.md` entry 6 is written for that pass and
+   flags the two drift-surface touches (the three `sendAction` edits; the v1.423 emphasis strip).
