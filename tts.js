@@ -2105,7 +2105,13 @@ var TTS = (function() {
         if (i < ids.length) {
           var id = ids[i], nm = id, bi;
           for (bi = 0; bi < PIPER_VOICES.length; bi++) { if (PIPER_VOICES[bi].id === id) { nm = PIPER_VOICES[bi].label; break; } }
-          html += "<div style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;'>"
+          // v1.425 (user request) — dim voices NO character uses to 80% value, so the ones safe to
+          // delete read at a glance and the player never has to open sheets hunting for a match.
+          // `_voiceAssignedTo` returns the player/companions/narrator that speak in this voice.
+          var assigned = (typeof _voiceAssignedTo === "function") ? _voiceAssignedTo(id) : [];
+          var dim = assigned.length ? "" : "opacity:.8;";
+          var useTitle = assigned.length ? " title='Used by: " + _escVal(assigned.join(", ")) + "'" : " title='Not used by any character — safe to delete'";
+          html += "<div" + useTitle + " style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;" + dim + "'>"
             + "<input type='radio' name='tts-piper-resident' value='" + _escVal(id) + "'" + (id === cur ? " checked" : "") + " style='accent-color:var(--acc);margin:0;flex-shrink:0;'/>"
             + "<span style='flex:1;font-size:12px;color:var(--t0);'>" + _escVal(nm) + "</span>"
             + "<span style='font-size:10px;color:var(--t2);'>" + _escVal(piperVoiceSize(id)) + "</span>"
