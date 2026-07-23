@@ -2105,15 +2105,19 @@ var TTS = (function() {
         if (i < ids.length) {
           var id = ids[i], nm = id, bi;
           for (bi = 0; bi < PIPER_VOICES.length; bi++) { if (PIPER_VOICES[bi].id === id) { nm = PIPER_VOICES[bi].label; break; } }
-          // v1.425 (user request) — dim voices NO character uses to 80% value, so the ones safe to
-          // delete read at a glance and the player never has to open sheets hunting for a match.
+          // v1.425/v1.426 (user request) — make it OBVIOUS what is safe to delete. A voice no
+          // character or the narrator uses drops its name to 50% grey; one in use is full-strength
+          // and BOLD. Long-press any row (or hover on desktop) to see exactly who, or UNASSIGNED.
           // `_voiceAssignedTo` returns the player/companions/narrator that speak in this voice.
           var assigned = (typeof _voiceAssignedTo === "function") ? _voiceAssignedTo(id) : [];
-          var dim = assigned.length ? "" : "opacity:.8;";
-          var useTitle = assigned.length ? " title='Used by: " + _escVal(assigned.join(", ")) + "'" : " title='Not used by any character — safe to delete'";
-          html += "<div" + useTitle + " style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;" + dim + "'>"
+          var inUse = assigned.length > 0;
+          var nameStyle = inUse ? "color:var(--t0);font-weight:700;" : "color:#808080;";
+          // Escape the apostrophe too (a name like "D'anna" would otherwise break out of the
+          // single-quoted data-pv-msg/title attributes below); getAttribute decodes it back.
+          var msg = (_escVal(nm) + (inUse ? " — used by " + _escVal(assigned.join(", ")) : " — UNASSIGNED")).replace(/'/g, "&#39;");
+          html += "<div class='pv-row' data-pv-msg='" + msg + "' title='" + msg + "' style='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid " + (id === cur ? "var(--acc)" : "var(--brd)") + ";border-radius:6px;margin-bottom:4px;'>"
             + "<input type='radio' name='tts-piper-resident' value='" + _escVal(id) + "'" + (id === cur ? " checked" : "") + " style='accent-color:var(--acc);margin:0;flex-shrink:0;'/>"
-            + "<span style='flex:1;font-size:12px;color:var(--t0);'>" + _escVal(nm) + "</span>"
+            + "<span style='flex:1;font-size:12px;" + nameStyle + "'>" + _escVal(nm) + "</span>"
             + "<span style='font-size:10px;color:var(--t2);'>" + _escVal(piperVoiceSize(id)) + "</span>"
             + "<button data-pvoice-del='" + _escVal(id) + "' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;' title='Delete this voice from the device'>&#215;</button>"
             + "</div>";
@@ -2138,6 +2142,30 @@ var TTS = (function() {
       var dels = host.querySelectorAll("[data-pvoice-del]"), d;
       for (d = 0; d < dels.length; d++) {
         dels[d].addEventListener("click", function() { _piperDeleteVoice(this.getAttribute("data-pvoice-del")); });
+      }
+      // v1.426 — long-press a voice row to pop who it's assigned to (or UNASSIGNED). Mirrors the
+      // suggested-action long-press (ui-boot.js): 500ms hold, cancelled by a >10px drag, and the
+      // radio / ✕ keep their own tap behaviour so a hold that starts on them is ignored. Wired per
+      // row (rows are rebuilt each render, so listeners never stack).
+      var prows = host.querySelectorAll(".pv-row"), pr;
+      for (pr = 0; pr < prows.length; pr++) {
+        (function(row) {
+          var t = null, sx = 0, sy = 0;
+          function clr() { if (t) { clearTimeout(t); t = null; } }
+          row.addEventListener("pointerdown", function(e) {
+            if (e.target && e.target.closest && e.target.closest("input,button")) return;
+            sx = e.clientX; sy = e.clientY;
+            t = setTimeout(function() {
+              t = null;
+              if (typeof showToast === "function") showToast("🔊 " + (row.getAttribute("data-pv-msg") || ""), 5000);
+            }, 500);
+          });
+          row.addEventListener("pointermove", function(e) { if (t && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) clr(); });
+          row.addEventListener("pointerup", clr);
+          row.addEventListener("pointercancel", clr);
+          row.addEventListener("pointerleave", clr);
+          row.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+        })(prows[pr]);
       }
     });
   }
