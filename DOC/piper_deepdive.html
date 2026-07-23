@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piper / iOS Tab-Kill — Deep Dive (B9)</title>
+<style>
+  :root{
+    --bg:#121212; --panel:#181818; --panel2:#1e1e1c; --ink:#e6e2d8; --dim:#a39a88;
+    --acc:#b8935a; --line:#2c2a26;
+    --good:#7aa86a; --good-fill:#182215;
+    --warn:#c9a24b; --warn-fill:#231c0e;
+    --bad:#c0564a; --bad-fill:#241210;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       -webkit-text-size-adjust:100%}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:1.85em;line-height:1.2;margin:0 0 6px;color:#f2ede1;letter-spacing:.2px}
+  h2{font-size:1.28em;margin:44px 0 8px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:1.06em;margin:26px 0 6px;color:#f2ede1}
+  h4{font-size:.98em;margin:16px 0 4px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+  p{margin:8px 0}
+  a{color:var(--acc)}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  code{background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8cdb4}
+  .sub{color:var(--dim);font-size:.95em}
+  .lead{font-size:1.05em;color:#d8d2c4}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .card.hi{border-color:#5a3f3a}
+  .rail{border-left:3px solid var(--acc);padding-left:14px;margin:14px 0}
+  .rail.bad{border-color:var(--bad)} .rail.warn{border-color:var(--warn)} .rail.good{border-color:var(--good)}
+  ul{margin:8px 0 8px 2px;padding-left:20px} li{margin:5px 0}
+  .badge{display:inline-block;font-family:var(--mono);font-weight:700;text-transform:uppercase;
+         font-size:.68em;letter-spacing:1px;color:rgba(255,255,255,.42);border-radius:12px;padding:2px 9px;
+         border:1px solid var(--line);background:#0d0d0d;vertical-align:middle}
+  .b-good{background:var(--good-fill);border-color:var(--good)}
+  .b-warn{background:var(--warn-fill);border-color:var(--warn)}
+  .b-bad{background:var(--bad-fill);border-color:var(--bad)}
+  .src{font-size:.8em;color:#6f6858;font-family:var(--mono);margin-top:5px;word-break:break-word}
+  .kv{font-family:var(--mono);font-size:.82em;color:#c7a978}
+  .hero{background:linear-gradient(180deg,#1c1a16,#161512);border:1px solid var(--line);border-left:4px solid var(--acc);
+        border-radius:12px;padding:18px 20px;margin:18px 0}
+  .facts{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0}
+  .facts div{background:#0e0e0d;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.93em}
+  .facts b{color:var(--acc);font-family:var(--mono)}
+  .rank{display:flex;align-items:baseline;gap:10px;margin-top:8px}
+  .rank .n{font-family:var(--mono);font-size:1.4em;color:var(--acc);font-weight:700;flex:0 0 auto}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9em}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#0e0e0d;color:var(--dim);font-weight:600}
+  .foot{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);color:#6f6858;font-size:.85em}
+  .tag{font-family:var(--mono);font-size:.78em;color:var(--acc);background:#0e0e0d;border:1px solid var(--line);
+       border-radius:6px;padding:1px 7px;margin-right:4px;white-space:nowrap}
+  .win{color:#e6e2d8}
+  .no{color:#c0564a;font-weight:600}
+  .yes{color:#7aa86a;font-weight:600}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Piper narration kills the iOS tab — a from-the-outside deep dive</h1>
+  <p class="sub">Bug <b>B9</b> · assembled 2026-07-23 · engine v1.428 · Piper runtime r9 ·
+     method: a 14-agent research fleet (12 web-research scouts across the Piper / onnxruntime-web / WebKit / Web-Audio
+     stack + 1 code-mapper of our own integration + 1 synthesis organizer). This document is the research writeup
+     <i>and</i> the applied gap audit of our integration.</p>
+
+  <div class="hero">
+    <h4 style="margin-top:0">Why this document exists</h4>
+    <p class="lead">We have "found the solution" to B9 several times and the field has said no every time. The pattern is
+    a fix built on a variable measured <i>from inside our own assumptions</i>. This pass deliberately went outside: learn
+    what the world actually knows about running Piper/ONNX inference in an iOS browser, then hold our integration up
+    against it atomically. The result is convergent and, for the first time, points at a part of the system we have
+    <b>never touched</b> — because our one mitigation cannot reach it.</p>
+  </div>
+
+  <h2>The bug, in facts we have already proven</h2>
+  <p>Narration dies mid-passage on iPhone Safari (iOS 18). The tab is killed by the OS with no <code>pagehide</code> /
+  <code>unload</code> / <code>visibilitychange</code> — a WebContent-process jetsam. Twenty-five field breadcrumbs across ten
+  versions establish, and this document treats as settled:</p>
+  <div class="facts">
+    <div><b>FACT A</b> — Death tracks <b>cumulative synth COUNT</b> (<span class="kv">pc ≈ 90–132</span>), not wall-clock, turns, uptime, or voice switches.</div>
+    <div><b>FACT B</b> — ORT/WASM linear memory at death spans <span class="kv">248–624 MB</span> and is <b>NOT</b> the predictor. Tabs die at 248 MB and at 624 MB alike.</div>
+    <div><b>FACT C</b> — Moving synthesis into a disposable iframe realm that is periodically torn down <b>did not help</b>. Deaths are identical realm-vs-in-page.</div>
+    <div><b>FACT D</b> — The espeak-ng phonemizer is flat at ~16 MB all session.</div>
+    <div><b>FACT E / F</b> — ORT session options (<code>enableMemPattern</code> etc.) and input-shape bucketing both had <b>no effect</b>.</div>
+  </div>
+  <p class="lead">Forced conclusion: <b>something accumulates once per <code>synth()</code> that is not ORT linear memory</b>,
+  and eventually crosses an iOS process-kill threshold. The whole investigation is: <i>what?</i></p>
+
+  <!-- ============================================================= -->
+  <h2>Part 1 — What is actually known about this stack</h2>
+
+  <h3>1.1 Our synthesis unit, precisely</h3>
+  <div class="card">
+    <p>One synth = text → <b>espeak-ng-wasm</b> phonemize → <b>VITS ONNX</b> graph via <b>onnxruntime-web</b> (WASM/CPU EP)
+    → one Float32 PCM output → WAV-encoded <code>ArrayBuffer</code> → <code>Blob</code> → decode to <code>AudioBuffer</code>
+    → <code>AudioBufferSourceNode</code> → scheduled on a single shared <code>AudioContext</code>. This is the same shape
+    as every community port (diffusionstudio/vits-web, mintplex, thewh1teagle/piper-onnx). <span class="badge b-good">high confidence</span></p>
+    <p class="rail"><b>The split that matters:</b> a single GM response is broken by <code>splitSentences(…commaSplit)</code>
+    into <b>multiple</b> speakable units, each its own <code>predict()</code> + its own <code>AudioBuffer</code> +
+    <code>AudioBufferSourceNode</code>. So <span class="kv">pc = 90–132</span> is a <i>floor</i> on the number of Web-Audio
+    buffer creations, not a 1:1. The real per-response audio-object churn is higher. <span class="src">tts.js:1511, 1559–1646</span></p>
+    <p class="rail bad"><b>The architectural fault line:</b> synthesis (ORT + espeak + all wasm) runs inside a hidden same-origin
+    iframe realm (<code>piper-host.html</code>). The <b>entire playback layer</b> — <code>AudioContext</code>, decode,
+    <code>createBufferSource</code>, scheduling, <code>_sources[]</code> — runs in the <b>main page</b>. The disposable-realm
+    respawn only ever tears down synthesis. It has <b>never been able to touch playback.</b>
+    <span class="src">tts.js:414, 1627–1646 · piper-host.html:108–113</span></p>
+  </div>
+
+  <h3>1.2 Why ORT/WASM linear memory is correctly excluded</h3>
+  <div class="card">
+    <ul>
+      <li><b>WebAssembly.Memory only grows, never shrinks</b> (spec-level, engine-agnostic including JSC), and ORT's
+      <code>BFCArena</code> extends in power-of-two chunks and never returns pages by default — but all of that lives
+      <i>inside</i> the single linear-memory buffer whose <code>byteLength</code> we already measured and found
+      non-predictive. The mechanism is real but <b>already captured by the ruled-out metric.</b>
+      <span class="src">MDN Memory.grow · emscripten #19470 · onnxruntime bfc_arena.h</span></li>
+      <li><b>Every publicly documented ORT-web leak is per-session, not per-run:</b> #18165 (~300 MB at session creation,
+      never released, closed not-planned), #21673 (leak persists after <code>session.release()</code>, memlab-confirmed,
+      unfixed). A cached-session build like ours would show these as a <i>one-time jump</i>, not linear-with-count growth —
+      the wrong signature for FACT A. <span class="src">onnxruntime #18165, #21673</span></li>
+      <li>The two most plausible arena-growth triggers were already falsified on-device (FACTS E, F) — jointly excluding
+      shape-varying execution-plan-cache growth as the cause. <span class="badge b-good">high confidence</span></li>
+    </ul>
+  </div>
+
+  <h3>1.3 iOS jetsam — what actually judges the kill</h3>
+  <div class="card">
+    <ul>
+      <li><b>Jetsam is a kernel decision on the WebContent process's TOTAL resident footprint</b> — malloc zones, the JS VM
+      Gigacage, IOSurfaces/GPU-process buffers, JIT code pages, <b>and native Core Audio buffers</b>. A WASM-heap
+      <code>byteLength</code> reading is only one slice. <b>This is exactly why a single-allocator number can be
+      non-predictive while the real footprint climbs.</b> <span class="badge b-good">high confidence</span>
+      <span class="src">docs.webkit.org MemoryInspection · catchmetrics.io WebKit RAM deep-dive</span></li>
+      <li><b>A jetsam kill fires no JS event</b> (WebKit #199854) and there is <b>no JS-reachable early-warning API on
+      iOS</b> — <code>measureUserAgentSpecificMemory</code> and <code>performance.memory</code> are both Chromium-only. The
+      page cannot detect approach or self-throttle. <b>Only "reduce total accumulated footprint" works — never "catch and
+      recover."</b> <span class="src">WebKit #199854 · MDN · caniuse</span></li>
+      <li>The device ceiling is variable and system-load dependent (~200–450 MB on older iPhones to 1 GB+ on newer), and
+      the kill tracks resident footprint at check time, not growth rate — consistent with death-tracks-count and the
+      248–624 MB spread. <span class="badge b-warn">medium confidence</span></li>
+    </ul>
+  </div>
+
+  <h3>1.4 Why the disposable-realm teardown was <i>structurally unable</i> to help (FACT C, explained)</h3>
+  <div class="card hi">
+    <ul>
+      <li><b>iOS Safari shares ONE WebContent process</b> between a page and its same-origin iframes by default (site
+      isolation is opt-in / newer). Our synthesis iframe is same-origin, so <b>it was never a separate process</b> — there
+      was no process footprint to reclaim by destroying it. <span class="src">docs.webkit.org SiteIsolation</span></li>
+      <li>Tearing down a same-realm iframe reclaims only GC-reachable JS/wasm objects inside that realm. It <b>cannot free
+      process-scoped native resources</b> — OS threads, JIT code pages, Gigacage reservations, or native Web Audio objects.
+      If the accumulator is any of those, realm teardown is a <b>no-op by construction</b> — matching the observed result.</li>
+      <li>Independently, the respawn <b>cannot touch the playback layer regardless of process model</b>: the
+      <code>AudioContext</code> and every buffer/source object live in the main page, not the iframe. Even a <i>perfect</i>
+      realm teardown leaves the entire Web-Audio object graph intact. <span class="src">tts.js:414, 1627–1646, 1782–1852</span></li>
+    </ul>
+    <p class="rail bad"><b>This is the pivot of the whole investigation.</b> FACT C was read all session as "memory isn't the
+    cause." The sharper reading: <b>the one thing we can reclaim (the iframe's wasm) is not where the accumulation lives.</b>
+    We have been draining the wrong tank.</p>
+  </div>
+
+  <h3>1.5 The live suspect space — non-linear-memory native accumulators with WebKit precedent</h3>
+  <div class="card">
+    <p><b>Web Audio native object/thread leaks.</b> WebKit has <i>shipped</i> count-gated kills where a JS-collectible
+    audio object pins a native resource GC can't reclaim, invisible to heap/WASM instrumentation:
+    <span class="tag">#198964</span> OfflineAudioContext pinned a thread, crash at ~2028 instances, ~40 KB each;
+    <span class="tag">#224279</span> crash at ~26–60 instances on iOS 14 via an <code>AudioDestinationNode</code> circular
+    ref. <b>Same fingerprint as ours: fixed count, trivial measured memory.</b> Both were fixed on old iOS — so this is
+    precedent, not proof, for iOS 18. <span class="badge b-good">high confidence (as a class)</span></p>
+    <p><b>Gigacage fragmentation.</b> WASM linear memory, typed arrays and SharedArrayBuffer share one protected virtual
+    region that fragments by <b>allocation-event count, not resident bytes</b>; iOS is the documented worst case. Every
+    synth allocates fresh ORT I/O typed arrays + a WAV ArrayBuffer into this cage. <span class="badge b-warn">medium</span>
+    <span class="src">WebKit #269937, #272171, #221530</span></p>
+    <p><b>JIT executable-code pool + OMG tier-up.</b> Repeated <code>session.run()</code> re-exercises the same large wasm
+    functions; JSC retains compiled code + metadata in a process-scoped pool evicted only on best-effort pressure. The
+    closest external analog — <span class="tag">onnxruntime #26827</span> — is a still-open, explicitly
+    <b>count-proportional</b> iOS/WebKit kill after repeated ORT calls, worked around by pinning ort-web to v1.20.x.
+    Caveat: #26827 is JSEP/WebGPU-EP-specific and WebKit 26.x, not our wasm/cpu EP on iOS 18 — mechanism-class evidence,
+    not a direct hit. <span class="badge b-warn">medium</span></p>
+    <p><b>decodeAudioData daemon-side retention</b> is a known iOS class our code was explicitly engineered around (the
+    manual WAV→PCM parse is the primary path <i>specifically</i> to avoid it); the <code>decodeAudioData</code> fallback is
+    annotated in-code as carrying iOS memory risk. <span class="src">tts.js:1446–1452, 1618 · standardized-audio-context #718</span></p>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>Part 2 — Ranked hypotheses for the accumulator</h2>
+
+  <div class="card hi">
+    <div class="rank"><span class="n">H1</span>
+      <div><b>A native Web-Audio resource in the MAIN-PAGE playback layer is retained by WebKit despite our correct JS-side
+      disconnect + dereference, accumulating once per speakable unit.</b> <span class="badge b-warn">confidence: medium — the prime suspect</span></div></div>
+    <h4>Mechanism</h4>
+    <p>Each unit creates an <code>AudioBuffer</code> and an <code>AudioBufferSourceNode</code>, played on the shared
+    <code>AudioContext</code>. WebKit's precedent bugs (#198964, #224279) show that clean-looking JS — proper
+    <code>stop()</code>/<code>disconnect()</code>, one reused context — can still leave a native audio object or thread
+    un-reclaimed, invisible to any JS-heap or WASM-<code>byteLength</code> metric. At ~90–132 responses (more actual
+    buffers, since <code>commaSplit</code> yields several units each) the count crosses the device's native-resource ceiling.</p>
+    <h4>Why it fits <i>all</i> the evidence</h4>
+    <ul>
+      <li><b>Count-not-bytes (FACTS A+B):</b> native audio resources accrue per playback object, uncorrelated with ORT
+      <code>byteLength</code> — the fatal region is the native audio/process pool, not the wasm heap. 248 MB and 624 MB
+      deaths reconcile trivially.</li>
+      <li><b>Realm-teardown-didn't-help (FACT C), decisively:</b> the playback layer lives in the main page, never inside
+      the disposable iframe, so respawn cannot touch it; and the precedent leaks are native/process-scoped, surviving any
+      same-origin realm teardown anyway.</li>
+      <li><b>Session-option & padding nulls (FACTS E,F):</b> those are synthesis-layer levers — expected to do nothing to a
+      playback-layer leak.</li>
+    </ul>
+    <h4>How to test it cheaply</h4>
+    <p>On-device A/B: run the full synth pipeline but <b>bypass playback entirely</b> — synthesize each unit, then discard
+    the WAV right after <code>blob.arrayBuffer()</code> (short-circuit at <code>tts.js:1613</code>): no
+    <code>_wavToAudioBuffer</code>, no <code>createBufferSource</code>, no scheduling. Drive 200+ synths. <b>Survives past
+    132 → the accumulator is in the main-page playback layer.</b></p>
+  </div>
+
+  <div class="card">
+    <div class="rank"><span class="n">H2</span>
+      <div><b>JS-VM Gigacage fragmentation driven by per-synth typed-array churn</b> (ORT I/O tensors + WAV ArrayBuffers) —
+      a process-scoped WebKit region that degrades by allocation-event count. <span class="badge b-warn">confidence: medium</span></div></div>
+    <h4>Mechanism</h4>
+    <p>Every <code>predict()</code> builds fresh int64/float32 input tensors + a Float32 output + a fresh WAV
+    <code>ArrayBuffer</code>; these live in the shared Gigacage alongside wasm memory and SAB. Repeated
+    grow/allocate/free fragments the fixed cage so that at some allocation-event count a request can't be satisfied and
+    total footprint/pressure crosses jetsam — independent of any single pool's instantaneous resident size.</p>
+    <h4>Why it fits</h4>
+    <p>WebKit documents cage exhaustion as allocation-<i>pattern</i>-driven, not resident-byte-driven (#269937) — the
+    native shape is "events, not bytes," matching FACTS A+B. And the cage is process-scoped: destroying the same-origin
+    child realm does not defragment the parent's cage, and the parent page's own WAV/AudioBuffer typed arrays keep
+    churning it regardless (FACT C). iOS is the documented worst case.</p>
+    <h4>How to test</h4>
+    <p>Reuse a single pre-allocated fixed-size I/O buffer across all synths (WebKit's own suggested workaround) and see if
+    the death count moves. Cheaper still: check the deployed iOS WebKit version against the April-2024 #272171 fix landing.</p>
+  </div>
+
+  <div class="card">
+    <div class="rank"><span class="n">H3</span>
+      <div><b>JSC JIT executable-code accumulation — OMG tier-up recompiling hot wasm inference functions</b> into a
+      process-scoped pool not synchronously reclaimed. <span class="badge">confidence: low</span></div></div>
+    <p><b>Why it's ranked low:</b> destroying the iframe <i>should</i> eventually free its JIT code, yet the observed
+    respawn at 624 MB still didn't help — which argues the accumulator is in the parent page or a non-JIT native pool. The
+    count-proportional analog (#26827) is JSEP/WebGPU-specific, not our wasm/cpu EP. <b>Test:</b> pin ort-web to v1.20.x
+    on-device; if the death count shifts, a version-introduced wasm/JIT regression is implicated.</p>
+  </div>
+
+  <div class="card">
+    <div class="rank"><span class="n">H4</span>
+      <div><b>The phonemizer broken-latch trips on real narration</b>, after which every synth builds a fresh ~16 MB
+      Emscripten module for the rest of the page's life. <span class="badge">confidence: low</span></div></div>
+    <p><b>Why low:</b> this lives in the synthesis realm — the iframe respawn <i>should</i> reclaim it, so if the latch were
+    the whole story, FACT C would not hold. <b>Test costs nothing:</b> read the existing crumb's <code>pn</code> field
+    (<code>_phonInstances</code>) across a fatal window. <code>pn&gt;1</code> = the latch fired. The field has said
+    <code>pn:1</code> on every crumb so far, i.e. it has never fired in play.</p>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>Part 3 — Applied gap audit of <i>our</i> integration</h2>
+  <p class="sub">Where our code diverges from best practice or leaves a per-synth resource un-freed. Severity is about the
+  B9 kill specifically. Verified against source line-by-line.</p>
+
+  <div class="card hi">
+    <h3><span class="badge b-bad">severity: high</span> &nbsp;G1 — The safety valve is wired to the wrong sensor</h3>
+    <p>The one cross-turn mitigation, the iframe respawn, fires only when ORT wasm memory crosses
+    <code>PIPER_RESPAWN_MB = 400</code> — i.e. keyed to the <b>proven non-causal metric</b>. A 248 MB death fires
+    <i>below</i> the threshold, so the realm <b>never respawns</b>; a 624 MB death respawns and it doesn't help. We gated
+    our only reclaim on the one number we proved doesn't predict the kill.
+    <span class="src">tts.js:1069 (const), tts.js:1860 (<code>mb &lt; PIPER_RESPAWN_MB → skip</code>)</span></p>
+  </div>
+
+  <div class="card hi">
+    <h3><span class="badge b-bad">severity: high</span> &nbsp;G2 — The most-precedented leak site is the one place we can't reach</h3>
+    <p>The entire playback layer lives in the main page while synthesis is isolated in the disposable iframe. The
+    disposable-realm architecture <b>cannot reclaim native Web-Audio objects</b> (the class with the strongest WebKit
+    precedent for count-gated kills), and no amount of respawn tuning changes that.
+    <span class="src">tts.js:414, 1627–1646 · piper-host.html:108–113</span></p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-bad">severity: high</span> &nbsp;G3 — The in-page fallback has no reclaim path at all</h3>
+    <p>Whenever the iframe fails to spawn/init on iOS, we fall back to the in-page engine, whose only mitigation is a
+    30-synth session recycle the code itself documents does <b>not</b> reclaim the wasm arena/shape cache. It is annotated
+    in-code as <code>"memory will ratchet, B9"</code>. If iOS is silently on this path for a stretch, that's a known-unbounded
+    growth path with no cap. <span class="src">tts.js:1233, 1709–1731 · vits-web.js:309–316, 327–330</span></p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-warn">severity: medium</span> &nbsp;G4 — ORT tensors are never explicitly disposed</h3>
+    <p>Input/output <code>Tensor</code> objects are built fresh every <code>predict()</code> and never <code>.dispose()</code>'d;
+    release relies on JS GC of the wrapper. For the wasm/cpu EP this <i>may</i> be unnecessary, but it is <b>unverified</b>
+    against the prebuilt <code>ort.wasm</code> binary — a per-run resource whose freeing is assumed, not confirmed.
+    <span class="src">vendor/piper/vits/vits-web.js:223–231 · onnxruntime Tensor.dispose docs</span></p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-warn">severity: medium</span> &nbsp;G5 — The decodeAudioData fallback has no telemetry</h3>
+    <p>The <code>decodeAudioData</code> fallback (used per-unit whenever the manual PCM16 parse fails) is annotated in-code
+    as carrying iOS daemon-side retention risk — the exact leak the manual path exists to avoid. There is <b>no counter</b>
+    on how often it fires, so a silent per-unit native-retention path could be active undetected.
+    <span class="src">tts.js:1618, 1446–1452 · standardized-audio-context #718</span></p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-warn">severity: medium</span> &nbsp;G6 — The phonemizer broken-latch has no reset</h3>
+    <p>One <code>callMain</code> failure permanently reverts to per-synth ~16 MB Emscripten-module creation. Reproducible on
+    long synthetic input; behavior on real narration unconfirmed. Instrumented (<code>pn</code> crumb) but not guarded.
+    <span class="src">tts.js:768–782 · vits-web.js:259–297</span></p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge">severity: low</span> &nbsp;G7 — releaseVoiceIfUnused uses the Safari-broken vendored remove()</h3>
+    <p><code>releaseVoiceIfUnused()</code> calls the vendored <code>mod.remove()</code> — the Chrome-only
+    <code>FileSystemFileHandle.remove()</code> in a catch that reports success regardless — while still deleting the
+    in-memory LRU bookkeeping. An OPFS voice-model leak on iOS. Disk, not RAM, so not the jetsam mechanism, but a confirmed
+    resource-not-freed divergence (and it uses the vendored path instead of our own working
+    <code>_piperRemoveVoiceFiles</code> primitive). <span class="src">tts.js:2331–2347 vs 1362–1394</span></p>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>Part 4 — The verdict and the one experiment to run next</h2>
+
+  <div class="hero">
+    <h3 style="margin-top:0">Verdict</h3>
+    <p class="lead">The convergent read of the external evidence and our own code is that <b>we have spent six versions
+    draining a tank the leak isn't in.</b> The strongest, best-precedented, evidence-consistent cause is a
+    <b>native accumulator in the main-page playback layer</b> (H1) — precisely the region our disposable-realm mitigation
+    is architecturally incapable of reclaiming, which is <i>why</i> the realm work never moved the needle (FACT C) and why
+    the fatal byte-count wanders (FACT B).</p>
+    <p><b>But we do not get to declare victory — that is the exact mistake this document exists to break.</b> The next move
+    is not another fix. It is the one cheap test that splits the search space along the axis FACT C already implicated.</p>
+  </div>
+
+  <div class="card hi">
+    <h3>⭐ Cheapest next experiment — bypass playback, keep synthesizing</h3>
+    <p>Run the full synthesis pipeline on-device but <b>bypass the playback layer entirely</b>: synthesize each unit as
+    normal (iframe ORT path unchanged), then short-circuit right after <code>blob.arrayBuffer()</code> at
+    <code>tts.js:1613</code> — skip <code>_wavToAudioBuffer</code>/<code>decodeAudioData</code>, skip
+    <code>createBufferSource</code>/<code>connect</code>/<code>start</code>, skip <code>_sources[]</code>. Drive 200+
+    synths and watch for the kill. A few lines, no new instrumentation.</p>
+    <table>
+      <tr><th>Outcome</th><th>What it proves</th><th>Next</th></tr>
+      <tr><td class="yes">Tab survives past ~132</td><td>The accumulator is in the <b>main-page Web-Audio playback layer</b> (H1).
+        This <i>also</i> independently explains FACT C — the realm never contained the leaking objects.</td>
+        <td>Fix targets native audio-object lifecycle: recycle the <code>AudioContext</code> itself every N units,
+        <code>buffer=null</code> on ended, pooled buffers, count the decodeAudioData fallback.</td></tr>
+      <tr><td class="no">Tab still dies at ~same count, no audio ever played</td><td>The entire playback layer is
+        <b>exonerated</b>; the accumulator is inside the synthesis/wasm chain.</td>
+        <td>Narrow to H2 (single reused I/O typed-array buffer) vs H3 (pin ort-web v1.20.x).</td></tr>
+    </table>
+    <p class="sub">This is the highest-value test because it costs almost nothing, needs no memory API iOS doesn't expose,
+    and cleanly separates "per-synth audio playback" from "per-synth wasm inference" — the split nothing in 25 crumbs has
+    ever made. Note it aligns with, and sharpens, the handoff's existing "narration OFF" idea: narration-off proves
+    <i>per-synth vs per-turn</i>; playback-bypass proves <i>playback vs synthesis</i> while keeping the synth load identical.</p>
+  </div>
+
+  <div class="rail warn">
+    <b>Guardrail for whoever acts on this:</b> H1 is the prime suspect, <b>not</b> a confirmed cause. Do not build a
+    playback-recycler before the bypass test returns. The single most important number this whole document produces is the
+    survival count of that one experiment. Ship the experiment, not the fix.
+  </div>
+
+  <div class="foot">
+    <p><b>Method note.</b> 12 web-research scouts (Sonnet, web-search enabled) covered: Piper pipeline internals · browser-port
+    GitHub issues · ORT-web memory model · ORT-web leak reports · iOS jetsam mechanics · iOS WASM memory · iOS Web-Audio
+    native retention · iOS audio-session limits · production browser-ML long-run patterns · WASM/iframe teardown reclaim ·
+    iOS memory-pressure detection · the "fixed-count kill" pattern. One code-mapper produced the integration map
+    (file:line). One organizer reconciled all 13 into the hypotheses and gaps above. All load-bearing <code>tts.js</code>
+    line references were re-verified against source by the dispatching session before inclusion.</p>
+    <p><b>Key external references cited by the fleet:</b> WebKit bugs #199854 (no unload on kill), #198964 &amp; #224279
+    (count-gated Web-Audio native kills), #269937/#272171 (Gigacage fragmentation), #219780 (GPU-process leak);
+    onnxruntime issues #18165, #21673, #26827; standardized-audio-context #718; CVE-2026-20664 (JSC Memory.grow, iOS 26.4);
+    Apple FB12212129 (AVSpeechSynthesizer per-utterance leak). These are pointers gathered by an automated fleet — treat as
+    leads to verify, not settled citations.</p>
+    <p>Traffic and Dragons · B9 deep dive · see also <code>DOC/BUGS.md</code> (B9 action log) and <code>HANDOFF.md</code>.</p>
+  </div>
+
+</div>
+</body>
+</html>
