@@ -13,41 +13,6 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
-### 6. B9/B10 voice-stack campaign — 9 versions in one session, all by Opus (v1.416 → v1.424)
-
-- **Tier:** mixed. Most of it is `tts.js`/`piper-host.html`/`ui-carmode.js`, which CLAUDE.md places OFF the drift surface (downstream of `cleanTxt`). **Two items touch it and are the ones to audit first:** the `game.js` `sendAction` edits (B16 — input restore, turn crumbs, `TTS.recoverAudio` call) sit in the turn path beside `logTranscript`/`buildEngineNotes`, and the v1.423 emphasis strip changes what `splitSentences` segments, which invalidates speaker maps stored before it.
-- **Built by:** Opus 4.8 — 2026-07-22, across a long interactive session with the user in the loop for every design fork.
-- **Supporting docs:** `DOC/BUGS.md` ▸ **B9** (the full arc — 18 crumbs, five falsified hypotheses), **B10** (root-caused + field-confirmed), **B16**, **B14** (closed); `HANDOFF.md`; TODO **#87**.
-
-**What shipped, in order:**
-
-| Ver | Change |
-|---|---|
-| v1.416 | wasm-memory probe — made ORT's linear memory observable at all (hooks all 5 instantiation entry points; names modules by binary URL because both builds ship minified exports) |
-| v1.418 | synthesis moved into a disposable iframe realm (`piper-host.html`), respawn on measured memory; `wasm-probe.js` extracted so page and frame share one probe |
-| v1.419 | B16 — failed turn returns the player's typed action; turn-start/turn-fail crumbs; Car Mode failure earcon |
-| v1.420 | per-unit ORT peak sampling; **voice deletion fixed** (Chrome-only `handle.remove()` → standard `removeEntry()`, and it now THROWS); assigned-voice guard on automatic eviction |
-| v1.421 | **B10 root-caused** — an iOS-interrupted AudioContext can never be resumed, only replaced; `recoverAudio` + wiring to the tap-unlock and the send gesture |
-| v1.422 | respawn failure made reportable (stage marker + reason + `rf` count) |
-| v1.423 | markdown emphasis was being SPOKEN aloud — display stripped it, speech never did |
-| v1.424 | **destroy-then-build** respawn ordering + `_piperInitP` in-flight init guard |
-
-**⚠ What I would most want a Fable pass to challenge:**
-
-1. **The v1.423 emphasis strip is the one with a data consequence.** `normalizeForTTS` now removes `*` markers, which changes `splitSentences` output — measured 4 vs 5 units on a representative line. Speaker maps stored BEFORE v1.423 for passages containing emphasis now fail their `sp.n` fuse and replay mono-voiced. I judged that acceptable (the fuse is doing its job, new turns unaffected), but it is a silent, permanent degradation of stored data and deserves a second opinion.
-2. **`sendAction` was edited three times** (input restore, crumbs, `recoverAudio`). None touches `applyMuts`, `sessionLog`, the transcript write or engine-note ordering — I verified `sessionLog` is built non-mutatingly via `concat` and only pushed post-await — but it is the turn path, and three separate edits in one session is exactly where an ordering assumption gets broken quietly.
-3. **`_piperInitP` is new concurrency.** Destroy-then-build leaves `_piperMod` null for a real interval, and `_piperInit` sits outside the op mutex. I believe the shared-promise guard closes the double-spawn race, but concurrency added late in a long session is worth a fresh pair of eyes.
-4. **The B9 fix still does not work, and that is not hidden.** As of v1.424 it has never once completed in the field. The ordering flip is evidence-backed (every failure was stage `spawn`) but UNVERIFIED — no field data exists for it yet.
-
-**Things Fable should NOT re-derive (falsified by measurement, not argument):** the phonemizer as the ratchet (flat at 16MB in lab AND field), the r8 session recycle (identical curves to the byte), ORT session options incl. `enableMemPattern` (no effect), input-shape bucketing (still climbed), and **ORT memory magnitude itself** — 18 crumbs show death at `pc` 90-125 while memory at death ranges 301-624MB.
-
-**The open question worth Fable's actual intelligence:** *what accumulates once per `predict()` that is NOT ORT linear memory?* Nothing else is currently measured. `vs:0` on two deaths also undercuts voice-model churn. Candidates never instrumented: total page memory rather than ORT's wasm alone, decoded-audio/AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all rather than CPU/energy.
-
-**Verification done (Opus):** 796 engine assertions green. Every new guard sabotage-proven to fire (voice-delete ×4, audio-recovery ×3, respawn-ordering ×2, emphasis ×2) — with the tree restored and re-verified after each. **Honest gap:** most of this subsystem needs OPFS/WebAudio/a real iOS interrupt, so several contracts are SOURCE tripwires rather than behavioural tests, and they are labelled as such where they live.
-
-**Two process failures worth Fable knowing about, because both produced false confidence:** the dev server served a stale in-memory `tts.js` for ~an hour (133,848 bytes vs 139,815 on disk), so several "the fix didn't work" readings tested old code; and a shell-escaping slip made a sabotage test silently vacuous — it "passed" while changing nothing. Both are why the sabotage scripts now assert their own target exists before mutating.
-
-
 ### 5. #16c diagnostics — one touch inside `summarize()` (drift surface)
 
 - **Tier:** the change itself is telemetry-only, but it sits INSIDE `summarize()`'s catch, and
@@ -461,6 +426,77 @@ Fable session can audit it in one pass.
 ---
 
 ## Reviewed
+
+### 6. B9/B10 voice-stack campaign — 9 versions in one session, all by Opus (v1.416 → v1.424)
+
+**Reviewed by Fable 2026-07-23 — VERDICT: 3 PASS, 1 CONFIRMED FINDING (fixed v1.429). The fresh
+pair of eyes item 3 asked for found exactly what it feared.**
+
+1. **v1.423 emphasis strip — PASS, judgment affirmed.** The regex pair cannot lose text (marker
+   pairs capture $1; the sweep removes only bare `*`) and cannot leak a spoken asterisk; drift vs
+   `escProse` is inaudible by construction since speech strips ALL markers regardless of pairing.
+   The pre-v1.423 speaker-map degradation is the `sp.n` fuse working as designed: mono-voice replay
+   is strictly better than wrong-voice replay, and no migration is feasible without re-running the
+   model against the OLD splitter's unit boundaries. Accept.
+2. **The three `sendAction` edits — PASS.** `recoverAudio` at game.js:1079 is throw-guarded on every
+   path, a no-op for voice-off players (`!_audioCtx` early return) and for healthy contexts, and
+   touches only audio state — it cannot abort or reorder the turn. The crumbs are read-only. 
+   `restoreFailedInput` refuses a non-empty box (STT protection), and is gated on
+   `!_committed && !_mpResolve && !silent` — no path re-invites a double-apply. The load-bearing
+   turn invariants (non-mutating `sessionLog.concat`, push + turn++ post-await inside
+   `commitGmTurn`) were independently re-verified in the B16 investigation and re-checked here.
+3. **`_piperInitP` — CONFIRMED FINDING, fixed v1.429.** The guard closes the double-`_piperInit`
+   race but NOT the read-during-respawn race its own comment claims to close: `_frameRespawnNow`
+   spawns directly and never holds `_piperInitP`, so during the destroy-then-build window (up to
+   the 30s ready timeout under pressure — the field-observed case) both `_piperMod` and
+   `_piperInitP` read cold+idle and a mid-respawn read spawned a SECOND concurrent realm; the
+   pointer-race loser leaked as an orphaned iframe holding a booted ORT engine, and the respawn's
+   unconditional failure-path null could clobber a live realm's pointers on top. Fix (v1.429,
+   tts.js): the respawn publishes its swap as `_frameRespawnP`, `_piperInit` awaits it before the
+   warm check (deadlock-free — verified no `_piperInit` call site runs inside a `_piperSerial` op),
+   and the failure-path null is identity-guarded. Two new sabotage-proven tripwires in the RESPAWN
+   ORDERING CONTRACT. 796 assertions green.
+4. **Destroy-then-build — sound, but do not build on it.** The ordering flip is correctly
+   evidence-backed (every prior failure at stage `spawn`). Superseded in importance by the
+   2026-07-23 external deep dive ([DOC/piper_deepdive.html](DOC/piper_deepdive.html)): the realm
+   axis is orthogonal to the B9 kill, and the entry's own open question — *what accumulates once
+   per predict()?* — now has a ranked answer-path (H1: main-page Web-Audio native accumulation;
+   the realm can never touch the playback layer) and a discriminating experiment (playback bypass
+   at tts.js:1613). The B9 arc continues there, not here.
+
+**Original entry (as filed 2026-07-22):**
+
+- **Tier:** mixed. Most of it is `tts.js`/`piper-host.html`/`ui-carmode.js`, which CLAUDE.md places OFF the drift surface (downstream of `cleanTxt`). **Two items touch it and are the ones to audit first:** the `game.js` `sendAction` edits (B16 — input restore, turn crumbs, `TTS.recoverAudio` call) sit in the turn path beside `logTranscript`/`buildEngineNotes`, and the v1.423 emphasis strip changes what `splitSentences` segments, which invalidates speaker maps stored before it.
+- **Built by:** Opus 4.8 — 2026-07-22, across a long interactive session with the user in the loop for every design fork.
+- **Supporting docs:** `DOC/BUGS.md` ▸ **B9** (the full arc — 18 crumbs, five falsified hypotheses), **B10** (root-caused + field-confirmed), **B16**, **B14** (closed); `HANDOFF.md`; TODO **#87**.
+
+**What shipped, in order:**
+
+| Ver | Change |
+|---|---|
+| v1.416 | wasm-memory probe — made ORT's linear memory observable at all (hooks all 5 instantiation entry points; names modules by binary URL because both builds ship minified exports) |
+| v1.418 | synthesis moved into a disposable iframe realm (`piper-host.html`), respawn on measured memory; `wasm-probe.js` extracted so page and frame share one probe |
+| v1.419 | B16 — failed turn returns the player's typed action; turn-start/turn-fail crumbs; Car Mode failure earcon |
+| v1.420 | per-unit ORT peak sampling; **voice deletion fixed** (Chrome-only `handle.remove()` → standard `removeEntry()`, and it now THROWS); assigned-voice guard on automatic eviction |
+| v1.421 | **B10 root-caused** — an iOS-interrupted AudioContext can never be resumed, only replaced; `recoverAudio` + wiring to the tap-unlock and the send gesture |
+| v1.422 | respawn failure made reportable (stage marker + reason + `rf` count) |
+| v1.423 | markdown emphasis was being SPOKEN aloud — display stripped it, speech never did |
+| v1.424 | **destroy-then-build** respawn ordering + `_piperInitP` in-flight init guard |
+
+**⚠ What I would most want a Fable pass to challenge:**
+
+1. **The v1.423 emphasis strip is the one with a data consequence.** `normalizeForTTS` now removes `*` markers, which changes `splitSentences` output — measured 4 vs 5 units on a representative line. Speaker maps stored BEFORE v1.423 for passages containing emphasis now fail their `sp.n` fuse and replay mono-voiced. I judged that acceptable (the fuse is doing its job, new turns unaffected), but it is a silent, permanent degradation of stored data and deserves a second opinion.
+2. **`sendAction` was edited three times** (input restore, crumbs, `recoverAudio`). None touches `applyMuts`, `sessionLog`, the transcript write or engine-note ordering — I verified `sessionLog` is built non-mutatingly via `concat` and only pushed post-await — but it is the turn path, and three separate edits in one session is exactly where an ordering assumption gets broken quietly.
+3. **`_piperInitP` is new concurrency.** Destroy-then-build leaves `_piperMod` null for a real interval, and `_piperInit` sits outside the op mutex. I believe the shared-promise guard closes the double-spawn race, but concurrency added late in a long session is worth a fresh pair of eyes.
+4. **The B9 fix still does not work, and that is not hidden.** As of v1.424 it has never once completed in the field. The ordering flip is evidence-backed (every failure was stage `spawn`) but UNVERIFIED — no field data exists for it yet.
+
+**Things Fable should NOT re-derive (falsified by measurement, not argument):** the phonemizer as the ratchet (flat at 16MB in lab AND field), the r8 session recycle (identical curves to the byte), ORT session options incl. `enableMemPattern` (no effect), input-shape bucketing (still climbed), and **ORT memory magnitude itself** — 18 crumbs show death at `pc` 90-125 while memory at death ranges 301-624MB.
+
+**The open question worth Fable's actual intelligence:** *what accumulates once per `predict()` that is NOT ORT linear memory?* Nothing else is currently measured. `vs:0` on two deaths also undercuts voice-model churn. Candidates never instrumented: total page memory rather than ORT's wasm alone, decoded-audio/AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all rather than CPU/energy.
+
+**Verification done (Opus):** 796 engine assertions green. Every new guard sabotage-proven to fire (voice-delete ×4, audio-recovery ×3, respawn-ordering ×2, emphasis ×2) — with the tree restored and re-verified after each. **Honest gap:** most of this subsystem needs OPFS/WebAudio/a real iOS interrupt, so several contracts are SOURCE tripwires rather than behavioural tests, and they are labelled as such where they live.
+
+**Two process failures worth Fable knowing about, because both produced false confidence:** the dev server served a stale in-memory `tts.js` for ~an hour (133,848 bytes vs 139,815 on disk), so several "the fix didn't work" readings tested old code; and a shell-escaping slip made a sabotage test silently vacuous — it "passed" while changing nothing. Both are why the sabotage scripts now assert their own target exists before mutating.
 
 ### 1. TODO #23 — per-arc pacing budget + inverse arc-drift detector
 

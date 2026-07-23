@@ -175,6 +175,21 @@ try {
     console.error("RESPAWN ORDERING CONTRACT: the _piperInit in-flight guard (_piperInitP) is gone — destroy-then-build leaves _piperMod null, so a read starting mid-respawn would spawn a SECOND concurrent realm, recreating the exact condition that made respawns fail.");
     process.exit(1);
   }
+  // v1.429 (Fable review, todo_checkWithFable #6.3): _piperInitP alone never covered the respawn
+  // itself — _frameRespawnNow spawns directly and does not hold that guard, so for the whole swap
+  // (up to the 30s ready timeout) _piperMod and _piperInitP both read cold+idle and a mid-respawn
+  // read spawned a SECOND concurrent realm; the pointer-race loser leaked as an orphaned live
+  // engine. The respawn must PUBLISH its swap (_frameRespawnP = p) and _piperInit must WAIT on it.
+  if (_resp.indexOf("_frameRespawnP = p") < 0) {
+    console.error("RESPAWN ORDERING CONTRACT: _frameRespawnNow no longer publishes its swap as _frameRespawnP — _piperInit has nothing to wait on, and a read starting mid-respawn races the swap with a second concurrent realm (v1.429).");
+    process.exit(1);
+  }
+  var _initR = _ncR((_ttsR.match(/async function _piperInit\(\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_initR) { console.error("RESPAWN ORDERING CONTRACT: _piperInit not found."); process.exit(1); }
+  if (_initR.indexOf("await _frameRespawnP") < 0) {
+    console.error("RESPAWN ORDERING CONTRACT: _piperInit no longer awaits _frameRespawnP — a read starting mid-respawn spawns a second concurrent realm and the loser leaks as an orphaned engine (v1.429).");
+    process.exit(1);
+  }
 } catch (e) { console.error("RESPAWN ORDERING CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────

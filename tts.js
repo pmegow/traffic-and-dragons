@@ -1199,11 +1199,24 @@ var TTS = (function() {
 
   var _piperInitP = null;   // v1.424: in-flight init, so concurrent callers share ONE spawn
   async function _piperInit() {
-    if (_piperMod) return _piperMod;   // warm — already initialized
+    // v1.429 (Fable review of v1.424, todo_checkWithFable #6.3): a read starting DURING a realm
+    // respawn must WAIT for the swap, not build its own realm. _piperInitP below only shares the
+    // spawn between _piperInit callers — the respawn spawns directly (_frameRespawnNow →
+    // _piperSpawnFrame), so it never holds _piperInitP, and the destroy stage nulls _piperMod for
+    // the whole swap (up to the 30s ready timeout under pressure). In that window the old guard
+    // pair read as cold+idle and a mid-respawn read raced the respawn with a SECOND concurrent
+    // realm — the exact two-realms-at-once condition v1.424 exists to prevent — and the loser of
+    // the pointer race became an orphaned iframe holding a booted ORT engine. Waiting is safe:
+    // no _piperInit call site runs inside a _piperSerial op (they all init BEFORE entering the
+    // chain — audit #9), so awaiting the serial-op-resident respawn cannot deadlock.
+    if (_frameRespawnP) {
+      try { await _frameRespawnP; } catch (e) { /* respawn failed — pointers are null, build below */ }
+    }
+    if (_piperMod) return _piperMod;   // warm — already initialized (or the respawn just delivered)
     // v1.424 — destroy-then-build leaves `_piperMod` null for a real interval, and `_piperInit`
     // is NOT inside the op mutex (_piperEnsureVoice calls it before entering the chain). Without
-    // this guard a read starting during a respawn would spawn a SECOND realm concurrently — the
-    // exact two-realms-at-once condition that made every respawn time out in the first place.
+    // this guard two concurrent _piperInit callers would each spawn a realm. (The respawn race is
+    // the _frameRespawnP wait above — this promise never covers it.)
     // Cleared on both settle paths so a failed init never wedges the engine permanently.
     if (_piperInitP) return _piperInitP;
     _piperInitP = (async function () {
@@ -1779,13 +1792,14 @@ var TTS = (function() {
   // afford a second realm — which would indict the build-then-destroy ordering) from "the engine
   // failed to boot in it" from "the swap itself threw".
   var _respawnStage = "";
+  var _frameRespawnP = null;   // v1.429: the live swap's promise — _piperInit awaits it instead of double-spawning
   function _frameRespawnNow(voiceId) {
     var before = null;
     _respawnStage = "mem";
     // Sample BEFORE the swap, from the live frame — _frameMem may be stale (it is only refreshed
     // between reads), and reporting a null "before" makes the one number that proves this feature
     // works unreadable.
-    return _frameRefreshMem().then(function (m0) {
+    var p = _frameRefreshMem().then(function (m0) {
       before = m0 && m0.ortMB;
       return _piperSerial(function () {
         var old = _piperFrame;
@@ -1843,12 +1857,24 @@ var TTS = (function() {
             // boot does — a path that works, and now works against FREED memory rather than
             // against the 429-624MB that made every previous attempt time out.
             try { fresh.destroy(); } catch (e2) {}
-            _piperFrame = null; _piperMod = null;
+            // v1.429: null ONLY if the pointers are ours (or already null). The _piperInit wait
+            // makes a third-party claim unreachable, but an unconditional null here would turn
+            // any future regression of that wait into "leak a live realm AND report no engine".
+            if (_piperFrame === null || _piperFrame === fresh) { _piperFrame = null; _piperMod = null; }
             throw e;
           });
         });
       });
     });
+    // v1.429 (Fable review, todo_checkWithFable #6.3): publish the swap as _frameRespawnP so a
+    // read's _piperInit WAITS for it instead of racing it with a second concurrent realm (see the
+    // head of _piperInit — the respawn spawns directly and never holds _piperInitP, so that guard
+    // alone left the two-realms window open). Identity-checked on clear so a future overlapping
+    // caller can never null someone else's live handle.
+    _frameRespawnP = p;
+    var _clearRespawnP = function () { if (_frameRespawnP === p) _frameRespawnP = null; };
+    p.then(_clearRespawnP, _clearRespawnP);
+    return p;
   }
 
   function _frameMaybeRespawn(voiceId) {
