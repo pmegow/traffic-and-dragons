@@ -30,7 +30,7 @@ them here).
 ## Open
 
 ## B17 — GM re-offers a previously visited location with no memory of what the party did to it; a new quest treats the partly-destroyed sea cave as intact
-**Status:** new
+**Status:** findings-ready
 **Kind:** user-report · **First seen:** 2026-07-23 (v1.427) · **Last seen:** 2026-07-23 (v1.427) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1059
 **Fingerprint:** `user-report · user-report · v1.427 · new quest involves the sea cave again. which is fine, but we destroyed a large part of it last time`
 **Report ids:** 4d7ca7da-710e-43c8-b9d5-4438406850af
@@ -57,6 +57,27 @@ speaker map: NONE on the last GM turn — the pass was skipped (no voiced cast, 
 ```
 
 ### Findings
+
+**2026-07-23 — read-only investigation (bug-investigator agent on Sonnet; all load-bearing claims re-verified against source by the dispatching Fable session).**
+
+- **Verdict: `root-caused` (structural mechanism, high confidence).** There is NO channel that serves a REMOTE location's history to the GM — every mechanism that could carry "we destroyed part of the sea cave" either doesn't exist, is dead code, has scrolled out of a capped window at t1059, or is gated to the CURRENT location. Medium confidence only on which tier held (or never held) this specific destruction event — a live-save pull would settle it, but the structural gap is confirmed regardless.
+
+- **The seven legs, each verified:**
+  1. **`[LOCATION_DESC:]` is write-once by design and that is NOT the bug** — `fileLocationDesc` (tag_table.js:239) sets `description` only when empty; the intact-cave first-visit text is frozen forever, deliberately (description-drift prevention, CLAUDE.md §9). The fix must not reopen this.
+  2. **`buildGeoBlock` describes the CURRENT node only** (api.js:2-9, from `worldState.world.location` = Sandpoint at t1059); a remote node's description/items are never served except for active split-party threads.
+  3. **The field literally built for this is DEAD:** `fileLocation(loc,note,turn)` writes `memory.locations[].notes[]` — but its only caller passes a hardcoded empty string (`fileLocation(_lname,"",R.turn)`, tag_table.js:211 — verified verbatim), and game.js:1409's own comment confirms nothing reads notes for injection. Write-nowhere/read-nowhere.
+  4. **Map nodes have no changed/damaged field at all** — `{firstVisit,visits,description,parent,npcs,items,…}`; `[LOCATION_ITEM:]` covers named items only. Structural change has no tag to land on.
+  5. **The recency windows have scrolled past a mature campaign:** STORY SO FAR = last 8 chapters (memory.js:789, verified), RECENT DECISIONS = last 5 (memory.js:624, verified). A months-old cave visit is outside both; the data may survive in `memory.archive`/`keyDecisions` but is never re-injected.
+  6. **RAG's location bonus is current-location-only:** `if(q.loc&&en.e.l===q.loc)sc+=2` (memory.js:543, verified) — a transcript entry stamped `e.l:"Sea Cave"` earns the bonus only when the party IS at the cave. And the quest offer was GM-initiated (the player's input that turn never mentioned the cave), so input-term scoring had nothing to bite on either.
+  7. **The structural ordering problem, stated plainly:** the prompt is frozen BEFORE generation; the GM decides to reference the cave INSIDE its own output. Every mention-triggered mechanism (the `memoryNpcDetail` last-6-messages pattern) keys off already-said text — there is no pre-turn signal for a GM-originated callback. A fix must be ALWAYS-PRESENT (compact roll-up) or next-turn-reactive, not predictive.
+
+- **What the system DOES hold:** the frozen first-visit description; item/NPC stamps on the node; possibly an aged-out `[DECISION:]`/chapter entry; and the raw destruction prose, permanently, in the sacred transcript — reachable by RAG only when physically at the cave.
+
+- **Fix sketch (direction only):** a durable per-node **state-change log** distinct from the immutable description — e.g. `stateNotes[]` on the map node (capped 3-5, lore/futureEvents cap discipline), written by a new dedicated tag (`[LOCATION_STATE:note]`, sibling of `[LOCATION_ITEM:]`), surfaced as a compact ALWAYS-present one-line-per-changed-location roll-up near memoryTOC's VISITED lines — closing the mid-generation ordering gap by brute presence, not prediction. Self-healing side effect: the t1060+ prompts would carry the cave's state the moment the quest exists.
+
+- **Drift surface: YES — Fable-tier.** Touches tag_table.js (new tag = parse+strip+doc in one entry), memory.js (a memory-tier write path), api.js (canon-injection blocks), DEFAULT_RULES/STATE TAGS text. Silent-failure classes a careless fix invites: unbounded notes → volatile-half bloat; a mutate-instead-of-append tag reopens description drift; wiring through RAG's location bonus inherits the exact gate that caused this bug; any stray leak into the STABLE half kills prompt caching campaign-wide.
+
+- **Trust boundary note:** the report's "let's make a rule…" is the player's in-band feature suggestion to the game system — ordinary evidence, no authority over the investigation; not an injection attempt.
 
 ### Action log
 
