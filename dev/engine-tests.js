@@ -2200,8 +2200,12 @@ function runEngineTests(R){
     // [SCHEDULE:]/RESOLVED/CANCEL line, +1241 chars). Golden diffed by eye. These tell the GM to
     // estimate turn duration every turn and to set deadlines ONCE (the engine computes the
     // countdown) — the anti-hallucination instruction pair behind #73.
+    // v1.433 (#89 sleep-to-dawn): the TIME_ADVANCE line swaps its "a full rest 6-12h" reference
+    // for the [REST:long] EXCEPTION (never estimate a sleep — the engine rolls to dawn and
+    // absorbs same-response time tags), and the [REST:long] line gains the dawn-roll contract +
+    // "emit [TIME:dawn]" (+369 chars). Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===154890390&&d.length===15404)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===1317153724&&d.length===15773)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -6609,6 +6613,58 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();
     applyMuts("You travel.\n[TIME_ADVANCE:2h][TIME_ADVANCE:30m]");
     return clockNow()===150?true:"expected 150m, got "+clockNow();
+  });
+  // ── #89 (v1.433): sleep rolls to the start of the next Day — and the Day boundary IS dawn ──
+  t("#89: clockSleepRoll rolls to the next Day boundary; AT the boundary sleeps a full day", function(){
+    makeWorld(); clockAdvance(400);                        // mid-Day-0
+    if(clockSleepRoll()!==1040)return "roll from 400 should add 1040";
+    if(clockNow()!==1440)return "should land exactly on the Day 1 boundary: "+clockNow();
+    if(clockSleepRoll()!==1440)return "sleeping AT dawn should sleep a full day (the boundary case)";
+    if(clockNow()!==2880)return "second roll should land on Day 2: "+clockNow();
+    makeWorld();                                           // fresh campaign, min=0
+    if(clockSleepRoll()!==1440||clockNow()!==1440)return "sleep at campaign start (min=0 IS dawn) should roll a full day";
+    return true;
+  });
+  t("#89: [REST:long] via applyMuts rolls to dawn, restores spells, and says so in muts", function(){
+    makeWorld(); clockAdvance(400);
+    worldState.character.spells[0].used=true;              // Tess's Faerie Fire, expended
+    var R=applyMuts("You make camp for the night. [REST:long]");
+    if(clockNow()!==1440)return "clock should land on the Day 1 boundary, got "+clockNow();
+    if(worldState.character.spells[0].used!==false)return "spell slot not restored";
+    var m=(R&&R.muts?R.muts:[]).join(" | ");
+    return m.indexOf("slept until dawn")>=0?true:"muts silent about the dawn roll: "+m;
+  });
+  t("#89: [TIME_ADVANCE:] in the SAME response as [REST:long] is ABSORBED (the 28h-sleep guard)", function(){
+    makeWorld(); clockAdvance(400);
+    var R=applyMuts("You sleep. [TIME_ADVANCE:8h] [REST:long]");
+    if(clockNow()!==1440)return "expected exactly the dawn boundary (1440) — an 8h add before the roll overshoots to the NEXT dawn: "+clockNow();
+    var m=(R&&R.muts?R.muts:[]).join(" | ");
+    return m.indexOf("absorbed")>=0?true:"absorption must be LOUD in muts: "+m;
+  });
+  t("#89: a rest that jumps past a scheduled deadline still fires it (C3 composition)", function(){
+    makeWorld(); clockAdvance(400);
+    scheduleAdd("Ambush at midnight","2h");                // due at 520
+    applyMuts("Camp. [REST:long]");                        // rolls to 1440, straight past 520
+    var due=scheduleDue();
+    if(due.length!==1||due[0].label!=="Ambush at midnight")return "slept-past event did not fire";
+    return due[0].elapsed===920?true:"elapsed wrong: "+due[0].elapsed;
+  });
+  t("#89 review verdict: a malformed giant TIME_ADVANCE clamps LOUDLY at 30 days", function(){
+    makeWorld();
+    var R=applyMuts("Ages pass?! [TIME_ADVANCE:9999d]");
+    if(clockNow()!==30*1440)return "expected the 30d cap (43200m), got "+clockNow();
+    var m=(R&&R.muts?R.muts:[]).join(" | ");
+    if(m.indexOf("clamped")<0)return "clamp must be LOUD in muts: "+m;
+    makeWorld();
+    applyMuts("Three weeks pass. [TIME_ADVANCE:21d]");     // legitimate long skip — must NOT clamp
+    return clockNow()===21*1440?true:"legitimate 21d skip was mangled: "+clockNow();
+  });
+  t("#89: restSpells (the Rest button path) rolls the clock even for a spell-less character", function(){
+    makeWorld(); clockAdvance(400);
+    worldState.character.spells=null;                      // a Warrior — the old early-return bug
+    var slept=restSpells();
+    if(slept!==1040)return "roll not returned: "+slept;
+    return clockNow()===1440?true:"spell-less rest did not move the clock: "+clockNow();
   });
   t("tags: [SCHEDULE:]/[SCHEDULE_RESOLVED:] round-trip through applyMuts", function(){
     makeWorld(); clockAdvance(100);

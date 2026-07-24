@@ -63,7 +63,7 @@ var TAG_DOC_LINES=[
 "[SUBLOCATION_LEAVE] -- player exits the sub-location back to the parent world location\n",
 "[TIME:time of day] -- update whenever time meaningfully advances (e.g. [TIME:dawn], [TIME:late night]); the world clock does NOT move on its own, so a night's camp, a long journey, or a rest all need this tag or the prompt keeps reporting the old time\n",
 "[WEATHER:description] -- update when the weather changes (e.g. [WEATHER:heavy rain], [WEATHER:clear and cold])\n",
-"[TIME_ADVANCE:N] -- EVERY turn, estimate how long the turn took and emit it so the campaign clock advances. Unit-suffixed: [TIME_ADVANCE:2h], [TIME_ADVANCE:30m], [TIME_ADVANCE:1d 6h]; a bare number is minutes. Minimum one minute. Reference so estimates stay consistent: one combat round ~1 min; a conversation 1-5 min; searching a room 10-30 min; an errand or shopping 30-60 min; travel between places = hours, judge by distance; a full rest 6-12h. You only ESTIMATE the duration -- the engine does all the arithmetic and every countdown; never compute or state elapsed totals or 'days remaining' yourself.\n",
+"[TIME_ADVANCE:N] -- EVERY turn, estimate how long the turn took and emit it so the campaign clock advances. Unit-suffixed: [TIME_ADVANCE:2h], [TIME_ADVANCE:30m], [TIME_ADVANCE:1d 6h]; a bare number is minutes. Minimum one minute. Reference so estimates stay consistent: one combat round ~1 min; a conversation 1-5 min; searching a room 10-30 min; an errand or shopping 30-60 min; travel between places = hours, judge by distance. EXCEPTION -- a full overnight sleep: do NOT estimate its duration; emit [REST:long] instead and the engine rolls the clock forward to dawn itself (any [TIME_ADVANCE:] in the same response is ignored). You only ESTIMATE durations -- the engine does all the arithmetic and every countdown; never compute or state elapsed totals or 'days remaining' yourself.\n",
 "[SCHEDULE:label|when] -- register a future event at now+when (e.g. [SCHEDULE:Winter solstice|11d], [SCHEDULE:Poison wears off|10m]); 'when' is a duration (11d/3h/10m). The engine stores the target and COMPUTES the time remaining every turn -- set it ONCE and never restate the number. [SCHEDULE_RESOLVED:label] when it happens / is dealt with; [SCHEDULE_CANCEL:label] if it will no longer occur. When the CAMPAIGN CLOCK block shows an event under HAPPENING NOW, narrate it (a long-elapsed one already happened during a rest/timeskip -- narrate it as already having occurred) and emit any consequent tag, then [SCHEDULE_RESOLVED:] it.\n",
 "[LOCATION_ITEM:name|placed] -- item left or hidden here (pair with [ITEM_LOST:]); [LOCATION_ITEM:name|taken] -- item removed by NPC/event (player pickup auto-handled by [ITEM_GAINED:])\n",
 "[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] -- emitting it DURING an active fight adds ANOTHER enemy to the same encounter (one tag per distinct foe; a faceless group can be one pooled entry like 'Goblin pack'). [ENEMY_HP:-X] or [ENEMY_HP:Name|-X] -- use the named form whenever more than one enemy is up. [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
@@ -75,7 +75,7 @@ var TAG_DOC_LINES=[
 "[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n",
 "SPELL RANGES ARE PHYSICS: before any cast resolves, judge the distance CONCRETELY against the spell's listed range using the GEOGRAPHY block's location size -- a target in another building, street, or district, or whose current location is unknown, is BEYOND any short-range spell (~120ft or less) no matter how urgent the player's intent; narrate the failed reach and offer what the listed range actually allows\n",
 "[SPELL_DEF:Name|range=X|targets=Y|duration=Z|effect=...|cost=slot|tier=1|category=arcane,divine|magical=yes] -- ONLY when a spell is cast that is NOT already in the CANONICAL SPELL RULES list (one you invented or a homebrew): define its canon ONCE so the engine pins it and it can never drift. '=' per field, '|' between fields; category is a comma-separated tradition list (arcane/divine/primal/necromantic/martial); keep effect free of '|' and ']'. Recorded once, re-injected forever -- do not redefine a spell already listed.\n",
-"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again; narrate HP recovery with [HP:+N] as usual\n",
+"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again, and rolls the campaign clock forward to DAWN of the next day (days run dawn to dawn -- never emit [TIME_ADVANCE:] for the sleep itself); also emit [TIME:dawn] so the scene time matches, and narrate HP recovery with [HP:+N] as usual\n",
 "[FUTURE_EVENT_RESOLVED:what] (when a pending future event occurs)\n",
 "[LORE:fact] [DECISION:description] [FUTURE_EVENT:what|when] [NPC_NOTE:name|note] [NPC_PRONOUN:name|she/her]\n",
 "[NPC_FORGET:name|person or event] -- erase one specific memory from an NPC (emit when the Oubliate spell is cast and the WIS save fails); the engine scrubs that fact from what the NPC knows so it cannot resurface\n",
@@ -230,7 +230,21 @@ var TAG_TABLE=[
 // (2h / 30m / 1d 6h / bare=minutes); clockAdvance does the arithmetic, clamps >=1, monotonic.
 // Multiple occurrences in one response sum (a travel turn may tag legs). A jump here is exactly
 // what scheduleDue()'s threshold check is built to survive (rest 6h past a 1h deadline).
-{t:"TIME_ADVANCE",apply:function(text,R){var ts=text.match(/\[TIME_ADVANCE:([^\]]+)\]/g)||[],i,added=0;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[TIME_ADVANCE:([^\]]+)\]/);if(m)added+=clockAdvance(parseDuration(m[1]));}if(added>0)R.muts.push("Time +"+added+"m ("+clockFmt()+")");}},
+{t:"TIME_ADVANCE",apply:function(text,R){var ts=text.match(/\[TIME_ADVANCE:([^\]]+)\]/g)||[],i;if(!ts.length)return;
+  // #89 (v1.433): a [REST:long] in the same response OWNS the clock — restSpells rolls it to the
+  // next dawn (see the REST entry below), and summing the GM's own sleep-duration estimate on top
+  // would overshoot the boundary (advance 8h, then roll to the NEXT dawn = the 28h-sleep class).
+  // Absorb them LOUDLY — an under-advance is bounded (<1 day, self-correcting next turn); the
+  // alternative over-advance is not.
+  if(/\[REST:\s*long\b[^\]]*\]/i.test(text)){R.muts.push("Time tags absorbed by the rest (the clock rolls to dawn instead)");return;}
+  var want=0;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[TIME_ADVANCE:([^\]]+)\]/);if(m){var _d=parseDuration(m[1]);want+=(_d<1?1:_d);}}/* per-tag minimum 1, as clockAdvance always enforced */
+  // #89 review verdict (todo_checkWithFable #3): cap a single response's advance LOUDLY — a
+  // legitimate "three weeks pass" fits; "9999d" (27 years) is a malformed tag, and applying it
+  // silently was the flagged no-silent-failures class.
+  var capped=false;
+  if(want>CLOCK_MAX_RESPONSE_ADVANCE){console.warn("[clock] TIME_ADVANCE of "+want+"m exceeds the per-response cap ("+CLOCK_MAX_RESPONSE_ADVANCE+"m / 30 days) — clamped. Malformed tag?");capped=true;want=CLOCK_MAX_RESPONSE_ADVANCE;}
+  var added=clockAdvance(want);
+  if(added>0)R.muts.push("Time +"+added+"m ("+clockFmt()+")"+(capped?" ⚠ clamped to 30d — check the tag":""));}},
 // [SCHEDULE:label|when] stores an ABSOLUTE due-time (now+when); the countdown is COMPUTED every
 // turn by buildClockBlock, never stored — the anti-hallucination heart of #73.
 {t:"SCHEDULE",apply:function(text,R){var ss=text.match(/\[SCHEDULE:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE:([^|\]]+)\|([^\]]+)\]/);if(!m)continue;var ev=scheduleAdd(m[1],m[2]);if(ev)R.muts.push("Scheduled: "+ev.label+" ("+fmtGap(ev.dueMin-clockNow())+")");}}},
@@ -497,7 +511,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     if(kk==="range")sdEntry.range=vv;else if(kk==="targets"||kk==="target")sdEntry.targets=vv;else if(kk==="duration")sdEntry.duration=vv;else if(kk==="effect")sdEntry.effect=vv;else if(kk==="cost")sdEntry.cost=vv;else if(kk==="tier")sdEntry.tier=parseInt(vv)||0;else if(kk==="save")sdEntry.save=vv;else if(kk==="dice")sdEntry.dice=vv;else if(kk==="category")sdEntry.category=vv.split(",").map(function(x){return x.trim().toLowerCase();}).filter(Boolean);else if(kk==="magical")sdEntry.isMagical=/^\s*(y|t|1|true)/i.test(vv);}
   worldState.capabilityBible[sdKey]=sdEntry;R.muts.push("Spell canon defined: "+sdName);
 }}},
-{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){restSpells();R.muts.push("Rest: spell slots restored");}}},
+{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _slept=restSpells();/* #89: restSpells owns the dawn roll — one site, both paths (button + tag) */R.muts.push("Rest: spell slots restored"+(_slept?"; slept until dawn (+"+_slept+"m, "+clockFmt()+")":""));}}},
 {t:"LORE",apply:function(text,R){var lores=text.match(/\[LORE:([^\]]+)\]/g)||[];for(var li=0;li<lores.length;li++){var lp=lores[li].match(/\[LORE:([^\]]+)\]/);if(lp)fileLore(lp[1]);}}},
 {t:"DECISION",apply:function(text,R){var decs=text.match(/\[DECISION:([^\]]+)\]/g)||[];for(var di=0;di<decs.length;di++){var dp=decs[di].match(/\[DECISION:([^\]]+)\]/);if(dp)fileDecision(R.turn,dp[1]);}}},
 {t:"FUTURE_EVENT",apply:function(text,R){var fes=text.match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],R.turn);}}},

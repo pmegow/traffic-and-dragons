@@ -1711,12 +1711,25 @@ async function doRender(){
   _rendering=false;
 }
 function restSpells(){
-  if(!worldState||!worldState.character.spells)return;
-  var i;for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}
+  if(!worldState)return 0;
+  // #89 note: the spell-restore is GUARDED per-list rather than gating the whole function — the
+  // old early return meant a spell-less character's (a Warrior's) Rest did NOTHING at all, which
+  // matters now that resting also moves the clock.
+  var i;
+  if(worldState.character.spells){for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}}
   // Also restore party companions' expended spells (audit E84) — a rest is party-wide.
   var pj,ps,_rsParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — no rest slots */
   for(pj=0;pj<_rsParty.length;pj++){var _pn=_rsParty[pj];if(_pn.charSheet.spells){for(ps=0;ps<_pn.charSheet.spells.length;ps++){if(_pn.charSheet.spells[ps].lvl>0)_pn.charSheet.spells[ps].used=false;}}}
-  updateSpPanel();saveCore();showToast("Spell slots restored.");
+  // #89 (v1.433): an overnight rest rolls the campaign clock forward to DAWN of the next day
+  // (the Day boundary IS dawn — ratified 2026-07-23; see clockSleepRoll). This is the ONE roll
+  // site for both rest paths: the topbar Rest button calls here directly, and the GM's
+  // [REST:long] tag handler calls restSpells() — so neither path can double-roll. The same
+  // response's [TIME_ADVANCE:] tags are absorbed by the tag handler (the 28h-sleep guard).
+  var _slept=(typeof clockSleepRoll==="function")?clockSleepRoll():0;
+  if(typeof updateSpPanel==="function")updateSpPanel();/* typeof: the headless engine harness has no panels */
+  saveCore();
+  if(typeof showToast==="function")showToast(_slept?("Rested until dawn — "+clockFmt()+". Spell slots restored."):"Spell slots restored.");
+  return _slept;
 }
 function initAbilities(){
   if(!worldState)return;var c=worldState.character;

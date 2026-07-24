@@ -235,68 +235,6 @@ Fable session can audit it in one pass.
   Live: Voice Settings dropdown renders exactly 19, default libritts_r, no console errors.
 - **Supporting docs:** TODO.md #9 (full design + build order); voice_picker.html.
 
-### 3. Campaign clock — new time subsystem, new tags, buildSysPrompt injection, migration (TODO #73)
-
-- **Tier:** Fable (drift surface — a new tag family + `applyMuts`/tag_table write paths, a
-  `buildSysPrompt` volatile-half injection block, the stable/volatile cache split, and a migration
-  over live save data). **User explicitly directed a non-Fable build now** with this review to follow
-  ("add a note to todo_checkWithFable, THEN go ahead with the implementation", 2026-07-20).
-- **Built by:** Opus 4.8 (NOT Fable) — 2026-07-20.
-- **Design:** converged with the user (both designed independently, then compared — see
-  [DOC/DOC_clock.html](DOC/DOC_clock.html) for the full spec and the decision log C1–C6). TODO #73 row
-  carries the ratified shape.
-- **Version / commit:** v1.389 — `<this commit>` "feat(clock): campaign clock — the engine finally
-  tracks time (#73)".
-- **Trigger / root cause:** #73 — the engine had no concept of a DAY, so in-fiction deadlines
-  hallucinated. Live evidence (2026-07-19 Table Talk): asked "days to the solstice" the GM answered
-  11, then 8, then 94, and emitted invented `[CALENDAR:]`/`[DAYS_TO_SOLSTICE:]` tags for a system that
-  did not exist. Root cause: the GM was asked to REMEMBER and re-state a number.
-- **What changed:**
-  - New `clock.js` (loads after memory.js, before tag_table.js): `worldState.clock={min, schedule}` —
-    ONE scalar (total minutes since epoch), day/hour/min DERIVED, never stored (no carry-desync). The
-    GM does ZERO arithmetic; it emits duration estimates and the engine computes everything.
-  - Tags (tag_table.js, +4 handlers + strip entries + 2 doc lines): `[TIME_ADVANCE:N]` (unit-suffixed,
-    monotonic, clamp ≥1, sums per response), `[SCHEDULE:label|when]` (stores ABSOLUTE dueMin; countdown
-    COMPUTED every turn), `[SCHEDULE_RESOLVED:]`, `[SCHEDULE_CANCEL:]`.
-  - `buildClockBlock()` — one shared pure builder injected VOLATILE-half only (api.js) AND called by
-    Table Talk's `ttStateBlock` (table-talk.js), so #73 makes the solstice answerable in TT (#76) with
-    near-zero change — the promised #76↔#73 coupling.
-  - **Jump-safety (C3, the load-bearing detail):** firing is THRESHOLD (`now ≥ due`), never
-    exact-minute — a 1h deadline slept past by a 6h rest fires on waking. Surfaces DUE events to the GM
-    (C2 surface-don't-mutate); the GM narrates and emits the consequent tag.
-  - Migration (state.js) + fresh-world init (game.js) add the clock. Frozen strip/doc hashes
-    re-baselined (+56 strip chars, +1241 doc chars).
-- **v1 boundary to review:** the user ratified "clock authoritative for time-of-day" (C4) and a named
-  in-world calendar (C5). Both are DEFERRED to a fast-follow (the display / date-projection layer). v1
-  ships the clock as an ELAPSED-time counter and does NOT touch free-text `[TIME:]`/`world.time`. Fable
-  should sanity-check that this split is sound (does it leave a confusing two-time-systems state, or is
-  elapsed-only genuinely clean for the #73 fix?).
-- **Files touched:** clock.js (new), globals.js (version), state.js, game.js, tag_table.js, api.js,
-  table-talk.js, index.html, sw.js, dev/load-engine.js, dev/engine-tests.js, TODO.md, DOC/DOC_clock.html.
-- **Verification done (Opus):** 745 engine assertions green (+14 new clock tests). Failure-cases
-  exercised: JUMP-SAFETY (schedule +60min, advance +360min in one tag → fires, elapsed=300); all-events-
-  crossed-in-one-jump; monotonic clamp; countdown recomputes on advance; STABLE-HALF PURITY (clock data
-  never in the cached stable half + advancing the clock never perturbs stable — the UA5 cache-killer
-  guard); TT surfaces the computed countdown; migration additive; tag round-trips through applyMuts.
-  Frozen doc/strip hashes updated deliberately. Live browser spot-check (v1.389, localhost): the full
-  pipeline confirmed — `[TIME_ADVANCE:6h]` → Day 0 06h00m; `[SCHEDULE:Winter solstice|11d]` → "in 11
-  days"; and the JUMP-SAFETY case live — a watch-change scheduled at +1h, slept past by a 6h rest,
-  fired in HAPPENING NOW narrated as "5 hours ago" (elapsed 300m); Table Talk answered the solstice
-  "in 11 days" from data. Zero console errors.
-- **What to review (Fable):** the C4/C5 deferral soundness; the `[TIME:]` non-change (a stray `[TIME:]`
-  still writes free-text `world.time` — is the coexistence acceptable for v1?); jump-safety threshold
-  correctness under multiple simultaneous crossings; that `parseDuration` can't be fed something that
-  advances the clock wildly (no per-turn sanity cap yet — a `[TIME_ADVANCE:9999d]` would apply; is a
-  loud-warn cap wanted?); scheduler dedup/substring-removal edge cases.
-- **Display consumer added (v1.390, TODO #79):** `updateMemStatus` (ui-panels.js) now shows
-  `... | Turn N | Day N | ...` on the membar — the campaign's in-game day. Reads
-  `clockParts(clockNow()).d` (display-only, no writes) and uses the SAME day number the clock block
-  feeds the GM, so player and GM can never see contradictory days. This is NOT drift surface (a pure
-  read), but it is logged here so Fable sees the full footprint of the clock subsystem in one place.
-  Nothing to review beyond confirming the read is display-only and the day number matches
-  `buildClockBlock`. Live-verified: an advanced clock renders "Turn 308 | Day 4", zero console errors.
-- **Supporting docs:** [DOC/DOC_clock.html](DOC/DOC_clock.html); TODO.md #73 + #79 rows.
-
 ### 2. NPC mood / relation separation — schema repair of the character-state tier
 
 - **Tier:** Fable (drift surface — the `[NPC:]` tag write path in tag_table.js, the roster + NPC-detail
@@ -426,6 +364,100 @@ Fable session can audit it in one pass.
 ---
 
 ## Reviewed
+
+### 3. Campaign clock — new time subsystem, new tags, buildSysPrompt injection, migration (TODO #73)
+
+**Reviewed by Fable 2026-07-23 — VERDICT: PASS on 4 of 5 items, 1 CONFIRMED FINDING (fixed
+v1.433). Review performed as the critical-before-code pass for building #89 on this surface;
+clock.js, both tag handlers, buildClockBlock, the doc lines and the C3 jump-safety machinery
+were read in full.**
+
+1. **C4/C5 deferral soundness — PASS, and #89 improved it.** Elapsed-only v1 is genuinely clean:
+   free-text `[TIME:]` stays the GM-owned scene dressing, the clock stays the arithmetic organ,
+   and no two-time-systems confusion has surfaced in ~70 field turns of the live campaign. The
+   #89 ratification (Day boundary ≡ dawn, `clock%1440==0`) gives the boundary an interpretation
+   WITHOUT shipping C4, and fixes C4's eventual mapping to one line: `(clock%1440)/60 + 6`.
+2. **`[TIME:]` coexistence — ACCEPTABLE for v1.** A stray `[TIME:]` writes free text and nothing
+   else; the v1.433 REST doc line now explicitly glues the two (`[TIME:dawn]` alongside the
+   engine's dawn roll), which was the one place they could visibly disagree.
+3. **Jump-safety under multiple simultaneous crossings — VERIFIED CORRECT.** `scheduleDue()` is a
+   pure threshold filter + oldest-due sort; the existing all-crossed-in-one-jump test covers it,
+   and v1.433 adds the composition case (a dawn roll jumping a deadline fires it, elapsed
+   correct).
+4. **`parseDuration` sanity cap — CONFIRMED FINDING, fixed v1.433.** A `[TIME_ADVANCE:9999d]`
+   (27 years) applied silently — the flagged no-silent-failures class. Now capped at 30
+   days per response with a console.warn + a ⚠ muts line; a legitimate `21d` skip is untouched
+   (both sides engine-tested).
+5. **`scheduleRemove` substring edge — reviewed, risk ACCEPTED with note.** A short label
+   substring can over-remove ("duke" drops every matching event). GM-authored labels plus the
+   muts trail bound the damage; a stricter matcher would trade it for RESOLVED tags silently
+   failing to match paraphrased labels — the worse failure. No change.
+
+**Also built on this surface in the same pass: TODO #89** (sleep rolls to dawn; `[REST:long]`
+reused as the overnight marker instead of a new tag; same-response TIME_ADVANCE absorption;
+the spell-less-character Rest fix). Golden doc hash re-baselined deliberately (+369 chars);
+805 assertions green.
+
+**Original entry (as filed 2026-07-20):**
+- **Tier:** Fable (drift surface — a new tag family + `applyMuts`/tag_table write paths, a
+  `buildSysPrompt` volatile-half injection block, the stable/volatile cache split, and a migration
+  over live save data). **User explicitly directed a non-Fable build now** with this review to follow
+  ("add a note to todo_checkWithFable, THEN go ahead with the implementation", 2026-07-20).
+- **Built by:** Opus 4.8 (NOT Fable) — 2026-07-20.
+- **Design:** converged with the user (both designed independently, then compared — see
+  [DOC/DOC_clock.html](DOC/DOC_clock.html) for the full spec and the decision log C1–C6). TODO #73 row
+  carries the ratified shape.
+- **Version / commit:** v1.389 — `<this commit>` "feat(clock): campaign clock — the engine finally
+  tracks time (#73)".
+- **Trigger / root cause:** #73 — the engine had no concept of a DAY, so in-fiction deadlines
+  hallucinated. Live evidence (2026-07-19 Table Talk): asked "days to the solstice" the GM answered
+  11, then 8, then 94, and emitted invented `[CALENDAR:]`/`[DAYS_TO_SOLSTICE:]` tags for a system that
+  did not exist. Root cause: the GM was asked to REMEMBER and re-state a number.
+- **What changed:**
+  - New `clock.js` (loads after memory.js, before tag_table.js): `worldState.clock={min, schedule}` —
+    ONE scalar (total minutes since epoch), day/hour/min DERIVED, never stored (no carry-desync). The
+    GM does ZERO arithmetic; it emits duration estimates and the engine computes everything.
+  - Tags (tag_table.js, +4 handlers + strip entries + 2 doc lines): `[TIME_ADVANCE:N]` (unit-suffixed,
+    monotonic, clamp ≥1, sums per response), `[SCHEDULE:label|when]` (stores ABSOLUTE dueMin; countdown
+    COMPUTED every turn), `[SCHEDULE_RESOLVED:]`, `[SCHEDULE_CANCEL:]`.
+  - `buildClockBlock()` — one shared pure builder injected VOLATILE-half only (api.js) AND called by
+    Table Talk's `ttStateBlock` (table-talk.js), so #73 makes the solstice answerable in TT (#76) with
+    near-zero change — the promised #76↔#73 coupling.
+  - **Jump-safety (C3, the load-bearing detail):** firing is THRESHOLD (`now ≥ due`), never
+    exact-minute — a 1h deadline slept past by a 6h rest fires on waking. Surfaces DUE events to the GM
+    (C2 surface-don't-mutate); the GM narrates and emits the consequent tag.
+  - Migration (state.js) + fresh-world init (game.js) add the clock. Frozen strip/doc hashes
+    re-baselined (+56 strip chars, +1241 doc chars).
+- **v1 boundary to review:** the user ratified "clock authoritative for time-of-day" (C4) and a named
+  in-world calendar (C5). Both are DEFERRED to a fast-follow (the display / date-projection layer). v1
+  ships the clock as an ELAPSED-time counter and does NOT touch free-text `[TIME:]`/`world.time`. Fable
+  should sanity-check that this split is sound (does it leave a confusing two-time-systems state, or is
+  elapsed-only genuinely clean for the #73 fix?).
+- **Files touched:** clock.js (new), globals.js (version), state.js, game.js, tag_table.js, api.js,
+  table-talk.js, index.html, sw.js, dev/load-engine.js, dev/engine-tests.js, TODO.md, DOC/DOC_clock.html.
+- **Verification done (Opus):** 745 engine assertions green (+14 new clock tests). Failure-cases
+  exercised: JUMP-SAFETY (schedule +60min, advance +360min in one tag → fires, elapsed=300); all-events-
+  crossed-in-one-jump; monotonic clamp; countdown recomputes on advance; STABLE-HALF PURITY (clock data
+  never in the cached stable half + advancing the clock never perturbs stable — the UA5 cache-killer
+  guard); TT surfaces the computed countdown; migration additive; tag round-trips through applyMuts.
+  Frozen doc/strip hashes updated deliberately. Live browser spot-check (v1.389, localhost): the full
+  pipeline confirmed — `[TIME_ADVANCE:6h]` → Day 0 06h00m; `[SCHEDULE:Winter solstice|11d]` → "in 11
+  days"; and the JUMP-SAFETY case live — a watch-change scheduled at +1h, slept past by a 6h rest,
+  fired in HAPPENING NOW narrated as "5 hours ago" (elapsed 300m); Table Talk answered the solstice
+  "in 11 days" from data. Zero console errors.
+- **What to review (Fable):** the C4/C5 deferral soundness; the `[TIME:]` non-change (a stray `[TIME:]`
+  still writes free-text `world.time` — is the coexistence acceptable for v1?); jump-safety threshold
+  correctness under multiple simultaneous crossings; that `parseDuration` can't be fed something that
+  advances the clock wildly (no per-turn sanity cap yet — a `[TIME_ADVANCE:9999d]` would apply; is a
+  loud-warn cap wanted?); scheduler dedup/substring-removal edge cases.
+- **Display consumer added (v1.390, TODO #79):** `updateMemStatus` (ui-panels.js) now shows
+  `... | Turn N | Day N | ...` on the membar — the campaign's in-game day. Reads
+  `clockParts(clockNow()).d` (display-only, no writes) and uses the SAME day number the clock block
+  feeds the GM, so player and GM can never see contradictory days. This is NOT drift surface (a pure
+  read), but it is logged here so Fable sees the full footprint of the clock subsystem in one place.
+  Nothing to review beyond confirming the read is display-only and the day number matches
+  `buildClockBlock`. Live-verified: an advanced clock renders "Turn 308 | Day 4", zero console errors.
+- **Supporting docs:** [DOC/DOC_clock.html](DOC/DOC_clock.html); TODO.md #73 + #79 rows.
 
 ### 6. B9/B10 voice-stack campaign — 9 versions in one session, all by Opus (v1.416 → v1.424)
 

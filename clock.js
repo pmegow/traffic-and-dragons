@@ -22,8 +22,21 @@
 // v1 SCOPE: the clock measures ELAPSED campaign time. Mapping elapsed → an in-world wall-clock
 // date (named months, "3rd of Frostfall") and retiring free-text [TIME:] are the fast-follow —
 // both are the display / date-projection layer. So this file does NOT touch world.time.
+//
+// #89 (v1.433, ratified 2026-07-23): the Day boundary IS dawn — clock%1440==0 ≡ dawn (~6am).
+// This adds an INTERPRETATION to the existing boundary, not a new offset: Day numbers are
+// unmoved, no migration, and the eventual C4 time-of-day mapping becomes (clock%1440)/60 + 6.
+// It exists so an overnight sleep can "roll forward to the start of the next Day" and "wake at
+// dawn" as ONE operation (clockSleepRoll below). Days run dawn-to-dawn — the adventuring day.
 
 var MIN_PER_HOUR=60, MIN_PER_DAY=1440;
+
+// #89: a single GM response may not advance the clock more than this (30 days). A legitimate
+// long skip ("three weeks pass") fits comfortably; anything larger is almost certainly a
+// malformed tag ("9999d" = 27 years), and applying it SILENTLY was the exact no-silent-failures
+// class the #73 Fable review flagged (todo_checkWithFable #3 — "a [TIME_ADVANCE:9999d] would
+// apply; is a loud-warn cap wanted?"). Verdict: yes — clamp LOUDLY (warn + muts note).
+var CLOCK_MAX_RESPONSE_ADVANCE=30*MIN_PER_DAY;
 
 // Lazily ensure the clock exists (migrateWorldState also adds it; this guards direct callers and
 // any pre-migration path). Never throws, never mutates time.
@@ -63,6 +76,20 @@ function parseDuration(str){
     total+= mm[2]==="d"?v*MIN_PER_DAY : mm[2]==="h"?v*MIN_PER_HOUR : v;
   }
   return any?total:0;
+}
+
+// #89: an overnight sleep — roll forward to the next Day boundary, which IS dawn (see header).
+// Returns the minutes added (1..1440): bedding down 10 minutes before dawn sleeps 10 minutes
+// ("the rest of the night"); sleeping AT dawn exactly sleeps a full day to the next dawn
+// (1440-0=1440 — the boundary case falls out of the formula, no special case). Monotonic by
+// construction (the roll is always ≥1). ONE call site per rest path: restSpells() owns it, so
+// the Rest button and the GM's [REST:long] tag (whose handler calls restSpells) can never
+// double-roll.
+function clockSleepRoll(){
+  var c=clockEnsure();if(!c)return 0;
+  var r=MIN_PER_DAY-(c.min%MIN_PER_DAY);
+  c.min+=r;
+  return r;
 }
 
 // DERIVED human view of an elapsed-minutes value — {d, h, m}. Never stored.
@@ -144,7 +171,7 @@ function buildClockBlock(){
   var c=clockEnsure();if(!c)return "";
   var due=scheduleDue(), pending=schedulePending();
   if(c.min===0 && !due.length && !pending.length)return "";   // nothing has happened yet
-  var s="CAMPAIGN CLOCK: "+clockFmt(c.min)+".\n";
+  var s="CAMPAIGN CLOCK: "+clockFmt(c.min)+" (days run dawn to dawn — 00h00m elapsed-of-day is dawn, ~6am).\n";
   if(pending.length){
     s+="UPCOMING (computed from the clock — never invent or restate these numbers):\n";
     var i;for(i=0;i<pending.length;i++)s+="  - "+pending[i].label+" ("+fmtGap(pending[i].dueMin-c.min)+")\n";
