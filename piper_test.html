@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.3)</title>
+<title>Piper TTS — kick-the-tires (v0.4)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -227,7 +227,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.3</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.4</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -294,6 +294,14 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
       <input type="checkbox" id="soak-vary" checked>
       <span>Vary input shape per synth <span style="color:var(--dim)">(v0.3 — ON is the field condition. OFF cycles the same sentences, which
         exercises ~15 input shapes and then stops growing: that is why earlier soaks read clean while phones died at ~120 synths.)</span></span>
+    </label>
+    <label class="chk" style="margin-top:8px">
+      <input type="checkbox" id="soak-unbounded">
+      <span>UNBOUNDED shapes <span style="color:var(--dim)">(v0.4 — the B9 grow-event hypothesis. The vary mode above cycles only 60 word-counts,
+        so ORT stops allocating after ~60 synths — which is exactly why a phone survived 500 harness synths while the game dies at ~100:
+        real narration brings a NEW phoneme-length nearly every sentence, i.e. a fresh multi-MB arena-GROWTH EVENT per synth, forever.
+        This appends the synth index as digits so ~every synth is a new length. Prediction: an iPhone dies ~90-130 synths in THIS mode.
+        If it does, B9's controlling variable is memory-grow-event count — not synths, not bytes.)</span></span>
     </label>
     <div class="hint">Drives N silent predicts (no audio scheduling — isolates the synth-side accumulators). A/B: recycle 0 vs 30 (the game's
       PIPER_RECYCLE_AFTER). Two instruments, know which you're reading: <b>iOS Safari</b> — no heap API; the signal is the tab SURVIVING,
@@ -631,16 +639,25 @@ async function soak(n, recycleEvery){
   // saturates after one pass and then grows not at all, which made this harness blind to the
   // very class it was built for. Lengths step 6→65 words so a run covers 60 distinct shapes.
   var vary = $("soak-vary").checked;
+  // v0.4 (B9): UNBOUNDED shapes. The vary mode below cycles 60 word-counts, so after ~60 synths
+  // every shape has been allocated for and ORT performs no further memory-GROWTH events — which
+  // is why a phone survived 500 harness synths while the game dies at ~100: real narration
+  // supplies a new phoneme-length nearly every sentence, a fresh arena-growth event per synth,
+  // forever. Appending the synth index as digits makes ~every synth a new length, matching the
+  // field condition. An iPhone dying at ~90-130 in THIS mode pins B9's controlling variable to
+  // grow-event count — not synth count, not resident bytes.
+  var unbounded = $("soak-unbounded") && $("soak-unbounded").checked;
   var words = $("txt").value.replace(/\s+/g, " ").trim().split(" ");
   function soakText(i){
-    if (!vary || words.length < 8) return units[i % units.length].text;
+    if (!vary && !unbounded) return units[i % units.length].text;
+    if (words.length < 8) return units[i % units.length].text;
     // window.__soakFixedLen pins the WORD COUNT while the content keeps changing — the
     // discriminator between "ORT allocates per input SHAPE" and "per call". Flat under this mode
     // means shape is the driver, which is what makes bucketing/padding a viable fix; growth
     // under it would kill that whole approach before a line of padding code gets written.
     var n = (typeof window !== "undefined" && window.__soakFixedLen) || (6 + (i % 60)), out = [], j;
     for (j = 0; j < n; j++) out.push(words[(i * 7 + j) % words.length]);
-    return out.join(" ") + ".";
+    return out.join(" ") + (unbounded ? " " + i : "") + ".";
   }
 
   // ⚠ What Chrome's usedJSHeapSize can and cannot see (verified live, 2026-07-17 bring-up):
@@ -659,7 +676,7 @@ async function soak(n, recycleEvery){
   if (heapMB() !== null) await new Promise(function(r){ setTimeout(r, 8000); });   // settle before baseline — SAME 8s as the verdict settle, or the asymmetry alone reads as a big negative slope
   var heap0 = heapMB(), tStart = performance.now(), lastHeap = heap0, sinceRecycle = 0;
   var samples = [];
-  log("SOAK: " + n + " silent synths · shapes " + (vary ? "VARIED (field condition)" : "fixed cycle of " + units.length) +
+  log("SOAK: " + n + " silent synths · shapes " + (unbounded ? "UNBOUNDED (grow-event hypothesis — ~every synth a NEW length)" : vary ? "VARIED (60-shape cycle — saturates after ~60 synths)" : "fixed cycle of " + units.length) +
       " · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
       (heap0 === null ? " · no heap API on this browser — SURVIVAL is the signal" : " · settled baseline " + heap0.toFixed(0) + "MB"), "hl");
 
