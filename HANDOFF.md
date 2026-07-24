@@ -1,103 +1,90 @@
-# Traffic and Dragons — Session Handoff (2026-07-24, end of a 9-hour day)
+# Traffic and Dragons — Session Handoff (2026-07-24, the #90 build session)
 
-**Deployed:** `v1.434` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260724a` (sw.js) · Piper runtime **r9** (no vendored file touched all day, again on purpose)
-**Tests:** 805 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
-**Harness:** piper_test.html at **v0.10** (network-first in the SW — deploys instantly, versions independently)
-**Model note:** this session ran on **Fable** (arrived a day early); the Fable review queue was opened and two entries closed.
+**Deployed:** `v1.435` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260724b` (sw.js) · Piper runtime **r9** (no vendored file touched)
+**Tests:** 810 assertions, all green · **Branch:** master, both repos committed and pushed, trees clean
+**New Fly app:** **`tnd-tts`** (https://tnd-tts.fly.dev) — deployed, live-verified, smoke-test secret UNSET
+**Model note:** built by Fable (the row's "annotate for Fable" tier note is moot — no annotation needed).
 
-Seven engine versions (v1.428 → v1.434), seven harness versions (v0.4 → v0.10), and the headline:
-**B9 IS ROOT-CAUSED AND CLOSED**, with the interim fix shipped and the real fix designed and mandated.
+One version, one feature, fully landed:
+**TODO #90 M1 — SERVER-SIDE TTS SHIPPED AND LIVE-VERIFIED. The B9 fix is now architectural, not a tourniquet.**
 
 ---
 
-## ⭐ B9 — ROOT CAUSE FOUND, GOVERNOR SHIPPED, SERVER-TTS MANDATED
+## ⭐ #90 M1 — what shipped
 
-**The verdict, after ~35 deaths and a day of on-device experiments run live with the user:**
-**iOS kills the WebContent process after a CUMULATIVE budget of heavy synthesis work per page load**
-— the energy assassin. ~100 game-unit synths ≈ ~29 large harness synths ≈ ~2 minutes of sustained wasm
-inference, then the kill, deterministically. Not memory (deaths at ORT 248-624MB; idle at the fatal
-level survived twice; a same-index death arrived at a different memory state), not grows (geometric,
-~10 per session, final grow completed 4 synths before a death), not playback (bypass run died with
-zero audio objects), not turns (narration-off survived 10+), not rate (75s sprint = 20min paced),
-not the realm (in-page deaths identical). The full falsification chain — every hypothesis, every
-instrument, every pre-registered prediction and its honest outcome — is in **DOC/BUGS.md ▸ B9**,
-which is now effectively a case study in eliminative diagnosis. Also read **DOC/piper_deepdive.html**
-(the 14-agent external research pass that reframed the investigation mid-day).
+**D1–D5 all ratified at build start** (user, 2026-07-24): D1 session-token auth · D2 second Fly app
+`tnd-tts` · D3 degrade toast once per session · D4 Kokoro benchmark-gated (→ **new row #91**) ·
+D5 3GB volume. Full as-built record: TODO.md ▸ completed #90.
 
-**Shipped — the work-budget governor (v1.434, tts.js, off drift surface):** Piper reads stop STARTING
-at 40 synths/60s per page and stop MID-READ at 75/100s (remainder queued on the native voice); the
-page latches GOVERNED with a loud 🔋 toast; a reload resets the budget. The tab stops dying because
-the work stops happening. `cpu`/`gv` ride the crash crumb; 2 sabotage-proven tripwires (GOVERNOR
-CONTRACT). **A future death crumb with `gv:1` means the constants are too high for that device —
-lower them, don't re-diagnose.**
+**Server half** (server repo `tts/`, deploy `cd tts && flyctl deploy --ha=false`): `POST /api/tts`
+{text, voiceId, rate} → audio/wav. Warm piper daemon per (voice,rate) — LRU 3, 10min idle kill,
+2 timeout strikes = kill+respawn; the `--json-input` stdout path-print is the completion signal
+(FIFO stays aligned across timeouts — a timed-out pending entry deliberately stays queued).
+Voices download HF→volume on first use behind an allowlist mirroring `PIPER_VOICES`. Auth =
+proxy `/auth/me` with a 10-min memo (one auth round trip per read). `TTS_TEST_SECRET` ops lever
+exists for deploy smoke tests (DEV_LOGIN_SECRET pattern) — **currently UNSET; set → verify →
+unset, never leave it**.
 
-**Mandated — server-side TTS (TODO #90, user "GO" 2026-07-24):** the governor's native fallback is
-"awful" (user, correctly). The close: `POST /api/tts` on the Fly server — self-hosted Piper first
-(same 19 voices, identical audio, zero client work, Car Mode safe), **Kokoro-82M** behind the same
-endpoint as the quality upgrade (better than Piper mediums + voice blending for per-character
-voices). Design + the five decisions to ratify (auth, topology, fallback UX, Kokoro benchmark gate,
-volume size): **DOC/DOC_server_tts.html**. Two-repo change; the server repo is at
-`C:\Users\hannu\Projects\traffic-and-dragons-server` (outside this tree). **Build in a fresh
-session; get D1-D5 answers first.**
+**Client half** (tts.js, off drift surface): `TTS_LADDER = server → piper → native`; `getEngine()`
+RESOLVES ("server" when connected+healthy, else "piper" — offline devices byte-identical to #9;
+the 3 constant-piper engine tests pass unchanged). `_speakServer` = the `_speakPiper` unit loop
+with predict()→fetch (same splitter/speaker maps/manual WAV decode/scheduler/backpressure/shared
+epoch). Unit failure → the WHOLE remainder hands down the ladder via the queue (the governor's
+handoff pattern) + 60s retry memo. `prewarmServer()` health probe wakes the auto-stopped machine.
+The governor meters ONLY the local tier and stays forever. `storageAdapter.authHeader()` exposes
+the header, never the token. Voice Settings shows a server-tier status line.
 
-**The instruments that got us here (all deployed, all still useful):**
-- Harness v0.4-v0.10: unbounded-shapes mode, per-grow ring with pre-commit IN-FLIGHT marker, the
-  IDLE test, `synthCPU` accounting, and **self-emailing death reports** (error-report.js loaded in
-  the harness; deaths auto-mail with ctx `piper-harness-death`, 📮 button for manual state).
-  ⚠ Standing sync rule: `piper-harness-*` reports are B9 evidence, never new bug rows; harness
-  reports from LOCALHOST are test artifacts (three are ledgered, one with an invented synthCPU
-  value — do not cite them as field data).
-- Game-side: bypass experiment (Admin ▸ 🧪 checkbox, v1.431), bypass-death boot report + the
-  unload-stamped er-ring (v1.432 — `erPrevDirty()` finally DETECTS dirty ends instead of asserting).
+**Live verification (deployed site + deployed app, failure conditions exercised):**
+- Cold first synth incl. the 75MB HF voice download: **3.3s** (inside the 10s unit timeout);
+  warm units **201–823ms** for 3–13s of audio (~6× realtime; RTF ≈ 0.16). WAV = 22050Hz mono
+  PCM16, parsed by `_wavToAudioBuffer`.
+- Auth gate: no token → 401; unknown voiceId → 400; retired test secret → 401 after unset.
+- Browser end-to-end on traffic-and-dragons.pages.dev @v1.435: `getEngine()`="server", 4 units →
+  4 POSTs → 4 scheduled sources, playback completed.
+- **Failure condition:** unreachable server → ONE fetch, ONE loud degrade at the failing unit,
+  remainder ACTUALLY synthesized by local Piper (in-page voice download → 4 local synths →
+  played). Memo steered selection to "piper", retry after 60s confirmed via backdate test.
+- Instrumented fetch-count run closed an anomaly: doubled console warns were the Browser pane's
+  console-capture duplicating EVERY line (download %s too) — not a double degrade.
 
-## Also shipped today
+**Guards:** +5 engine tests (resolution, D1 no-token, degrade window + backdated retry, D3 single
+toast, enqueue shape) + a 4-point SERVER TTS source contract in run-tests.js (zero-wasm, no
+governor contact, remainder handoff, ladder order).
 
-- **v1.428** — `_frameRetryUpgrade` failure crumb (the last silent realm blind spot).
-- **v1.429** — Fable review of todo_checkWithFable **#6** (3 PASS, 1 finding): the v1.424
-  `_piperInitP` guard did NOT cover the read-during-respawn race; fixed (`_frameRespawnP` publish +
-  await), 2 sabotage-proven tripwires. Entry 6 moved to Reviewed.
-- **v1.433** — **TODO #89 built by Fable**: sleep rolls the clock to DAWN (the Day boundary IS dawn,
-  `clock%1440==0` ≈ 6am, ratified). `[REST:long]` reused as the overnight marker (no new tag);
-  same-response TIME_ADVANCE absorbed (the 28h-sleep guard); 30d/response advance cap (loud); the
-  spell-less-character Rest fix. Golden doc hash re-baselined (+369 chars). **todo_checkWithFable #3
-  (campaign clock) reviewed and moved to Reviewed** (4 PASS, 1 finding fixed = the cap).
-- **v1.430-432** — the B9 experiment chain (playback hygiene + ctx recycle, falsified by design;
-  the evidence plumbing that made the root cause findable).
-- **Docs:** DOC/piper_deepdive.html (the external deep dive) · DOC/DOC_server_tts.html (R1 design).
-- **/bugs**: B17 filed + investigated (`findings-ready`) — GM re-offers a location with no memory
-  of its destruction; root cause = NO channel serves a remote location's history (LOCATION_DESC is
-  write-once by design; locations[].notes is dead code; RAG's location bonus is current-location-
-  only; recency windows scrolled past). Fix sketch: `[LOCATION_STATE:]` + capped stateNotes[] +
-  always-present roll-up. **Drift surface, Fable-tier, design conversation wanted before code.**
+## Field watch
+
+- **Server tier on the user's phone** — the real B9 validation: connected + voice on, expect
+  NO `piper-*` death crumbs and NO governor latches (server reads spend no budget). A
+  `tts-server-degrade` crumb names any server failure with its unit + reason.
+- **First read of a voice not yet on the server volume** pays its HF download inside the unit
+  timeout (libritts_r took ~2s on Fly's pipe; the 109–130MB "high" models will take longer —
+  if one ever times out, the read degrades gracefully and the NEXT read finds it cached).
+- **B9 governor watch continues for the offline tier** (`gv:1` on a death = lower the constants).
 
 ## Open rows / queues
 
-- **TODO #90** — server TTS. THE next build. Fresh session, D1-D5 first.
-- **B17** — `findings-ready`, Fable-tier, wants a short design talk (location-state tag semantics).
-- **TODO #88** — suggestion-button punctuation (S, Sonnet, backlog).
-- **Fable review queue** — entries **5, 4, 2** pending (6 and 3 closed today); order 5 → 2 → 4.
-- **B9 watch** — field validation of the governor: expect `piper-governor` crumbs and NO
-  narration-death crumbs; `gv:1` on a death = lower the budget constants.
-- **B13 / B15 / B16** — unchanged from the last handoff.
+- **#91 (NEW)** — Kokoro M2, gated on the D4 Fly CPU benchmark (run it on the tnd-tts box).
+- **B17** — `findings-ready`, Fable-tier, wants its short design talk (location-state semantics).
+- **#88** — suggestion-button punctuation (S, Sonnet, backlog).
+- **Fable review queue** — entries 5, 2, 4 (order 5 → 2 → 4).
+- **B13 / B15 / B16** — unchanged.
 
-## Gotchas that cost time today
+## Gotchas from this session
 
-- **⚠ A satellite's "counter" can be a pre-filled INPUT.** The "survived 500 synths" reading was the
-  soak's target field; the run had actually died at 29 and the boot forensics knew. Cost: a whole
-  analytic arc built and retracted. The record shows both — worth reading as a lesson in premise-checking.
-- **⚠ Self-mailing instruments mail their own test data.** The v0.10 preview verification auto-sent
-  its planted crumb; it arrived looking like a field death with an invented synthCPU. Ledgered
-  do-not-cite. When an instrument reports automatically, its verification runs become plausible
-  fakes — ledger them at birth.
-- **⚠ The unload stamp defeated its own test** — planting a dirty ring for the kill-simulation got
-  clobbered by the stamp firing on navigation. Silence the guard to test the guard.
-- **The v1.424 respawn-ordering tripwire caught MY refactor** during the entry-6 fix (moving code
-  out of the function it greps). The guards guard the guardsman; keep them.
+- **⚠ PowerShell 5.1 mangles native args containing spaces + quotes** — a curl `-d '{json with
+  spaces}'` split into multiple args and each word became a URL (HTTP 000 spray). Body-from-file
+  (`-d "@file"`) is the reliable form.
+- **⚠ The Write tool can serialize `\x00`-style escapes as RAW control bytes** — tts/index.js
+  landed with a literal NUL in a regex class and git/grep saw a binary file. Hex-dump to confirm,
+  byte-level replace to fix.
+- **⚠ The Browser pane duplicates console lines** — treat doubled warns as capture noise until an
+  instrumented counter says otherwise (this session's fetch counter settled it).
+- The pane's network monitor does NOT record cross-origin `fetch()` — Fly logs are the authority
+  for "did the request land".
 
 ## Where to start next session
 
-1. **TODO #90 (server TTS)** — read DOC/DOC_server_tts.html, get D1-D5 ratified, build M1.
-   Server repo: `C:\Users\hannu\Projects\traffic-and-dragons-server`; deploy `flyctl deploy --ha=false`.
-2. Or **B17's design talk** (short) if the user wants the location-history fix first.
-3. Watch the feed for `piper-governor` / `gv:1` crumbs — one constant-tune may be wanted.
-4. Fable queue entries 5, 2, 4 whenever there's slack.
+1. **B17 design talk** (short) — the location-history fix wants a decision on tag semantics.
+2. **#91 Kokoro benchmark** whenever there's slack — one SSH session on the tnd-tts box decides M2.
+3. Watch the feed for `tts-server-degrade` / `piper-governor` / death crumbs per Field watch.
+4. Fable queue 5 → 2 → 4.
