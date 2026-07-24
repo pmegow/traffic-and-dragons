@@ -36,9 +36,18 @@
 <body>
 <div class="wrap">
 
-<h1>Fable Review — Action Plan</h1>
+<h1>Fable Review — Action Plan &amp; Outcome</h1>
 <p class="sub">Written 2026-07-24 (the #90 build session, running on Fable) · queue source:
 <code>todo_checkWithFable.md</code> · standing order: <b>entry 5 → 2 → 4</b> · engine v1.438</p>
+
+<div class="card" style="border-color:var(--good);">
+<b>OUTCOME (same day, v1.439) — the plan below was EXECUTED via the delegated-evidence workflow:</b>
+six parallel Opus agents gathered evidence against the briefs; Fable adjudicated all three entries
+(now in <code>todo_checkWithFable.md</code> ▸ Reviewed), fixed <b>10 confirmed defects</b>
+failing-test-first (8 new engine tests, 818 green), filed <b>#93</b> (splitter edges) and corrected
+<b>#92</b> (the server-adopt path consumes blobs raw — the row's tolerance claim was wrong).
+The queue is empty. The performance review of the delegation itself is at the bottom of this page.
+</div>
 
 <div class="card">
 <b>Charter.</b> Three entries await Fable review. This plan triages every sub-item in them into
@@ -278,8 +287,87 @@ dated, with findings); confirmed fixes get their own commits with failing-test-f
 this file is then updated or retired — it is a plan, not a record.</span>
 </div>
 
-<p class="sub">Traffic and Dragons · plan authored by the v1.435–438 Fable session while the user
-plays · supersedes nothing; <code>todo_checkWithFable.md</code> remains the queue of record.</p>
+<h2>Performance review — Opus as the evidence layer (run of 2026-07-24)</h2>
+
+<div class="card">
+<b>The experiment as ratified:</b> Fable plans → Opus agents execute in parallel → Fable reviews →
+Fable writes this. Six briefs (A–F), dispatched simultaneously, model "opus" via the agent harness
+(the harness resolves the alias; which Opus generation served each agent is not verifiable from
+here — Opus 5 released the same day). Constraints per brief: evidence only, no verdicts, no repo
+edits, file:line citations, honest failure reporting.
+</div>
+
+<h3>The receipts</h3>
+<table>
+<tr><th>Brief</th><th>Scope</th><th>Tokens</th><th>Tool calls</th><th>Wall clock</th><th>Confirmed findings it fed</th></tr>
+<tr><td>A</td><td>summarize() catch — 9 live probes</td><td>132,584</td><td>23</td><td>5.2 min</td><td>F8 (masking ×2, pre-try throw, strike-counter reset)</td></tr>
+<tr><td>B</td><td>mood/relation consumer sweep</td><td>154,502</td><td>32</td><td>4.8 min</td><td>F1 scale (25 readers, 11 raw checks), F2 import side, F3, F4</td></tr>
+<tr><td>C</td><td>adversarial parses + B3, live engine</td><td>125,209</td><td>32</td><td>6.1 min</td><td>F1 mechanism ("slain" invisible), F5; core semantics PASS proof</td></tr>
+<tr><td>D</td><td>heal-marker sync lifecycle</td><td>124,961</td><td>25</td><td>3.4 min</td><td>F7 (both re-fire paths incl. the un-asked scenario d), the (a) residue</td></tr>
+<tr><td>E</td><td>transcript-memo mutator matrix</td><td>147,797</td><td>22</td><td>3.6 min</td><td>★ answered; #92 adopt-path correction; rc-adjacency fragility</td></tr>
+<tr><td>F</td><td>4 TTS checks + splitter adversarials</td><td>157,655</td><td>41</td><td>8.3 min</td><td>F10, F11, F12; #93's three edge behaviors with observed outputs</td></tr>
+<tr><td colspan="2"><b>Total (parallel)</b></td><td><b>842,708</b></td><td><b>175</b></td><td><b>~8.3 min wall</b></td><td><b>10 fixed + 2 filed</b></td></tr>
+</table>
+
+<h3>Quality assessment</h3>
+<ul>
+<li><b>Accuracy: excellent, externally validated.</b> Every fix was written failing-test-first, and
+all 8 tests failed on v1.438 <i>exactly as the evidence predicted</i> — the strongest possible
+check on delegated claims. Every Edit target quoted by an agent matched the working tree
+byte-for-byte. No fabrication detected anywhere in ~843k tokens of output.</li>
+<li><b>Instruction adherence: complete.</b> All six stayed evidence-only (the permitted "gap
+found / no gap found" factual framing was used correctly, never a verdict), zero repo edits
+(verified via git status), scratch scripts confined to the scratchpad.</li>
+<li><b>Honesty under uncertainty: the standout trait.</b> Brief C labeled its map-suppression probe
+INCONCLUSIVE and flagged a hand-built pre-state as unproven-by-tag-path; D marked the CAS
+question UNDETERMINED with the reason; A reported which probes it could not make throw. Nothing
+was rounded up to certainty.</li>
+<li><b>Initiative within scope: high, and it paid.</b> The best finding of the run — scenario (d),
+new campaigns born marker-less wiping their own correct data — was OUTSIDE brief D's requested
+matrix; the agent found it while tracing and reported it as such. B expanded to the writer side
+unprompted; C added producibility probes; F proved the narrator gap <i>reachable</i> (menu gating)
+rather than merely present.</li>
+<li><b>Weaknesses: minor.</b> Verbosity beyond need (~20% of the token bill is prose polish a
+tighter output format would trim); one agent's "17 files" sweep quietly grew its own scope
+(correctly, but a stricter brief would have said so); depth occasionally exceeded the question
+(E's enforcement sketch bordered on design, though it stayed labeled as mechanics).</li>
+</ul>
+
+<h3>Economics — measured, not estimated</h3>
+<ul>
+<li><b>Raw tokens: the prediction held.</b> ~843k Opus + a Fable adjudication/fix share vs. an
+estimated 400–500k Fable-solo: total tokens roughly <b>2×</b>, exactly as forecast. Anyone selling
+delegation as a raw-token saver is wrong.</li>
+<li><b>Fable-quota savings: real and large.</b> Fable's share collapsed to brief-writing,
+six result ingests, verdicts, and the fix package (which any path would have paid). The scarce
+resource — the one that historically ran out mid-session — was spent almost entirely on judgment.</li>
+<li><b>The unforecast win: this was BETTER review, not just cheaper review.</b> 175 tool calls of
+sweep-and-probe depth — 9 hostile-state probes on one catch block, a 25-site consumer census, live
+adversarial parse batteries — is more mechanical thoroughness than a solo time-boxed pass would
+realistically perform. At least three findings (scenario d, the "slain"-invisible class at its true
+scale, the #92 adopt-path correction) plausibly survive a solo review unfound. Ten confirmed
+defects from a queue previously believed "probably fine" is the number that matters.</li>
+<li><b>Wall clock:</b> all six briefs landed within ~8 minutes of dispatch, in parallel, while the
+user played. A solo pass is hours, serialized.</li>
+</ul>
+
+<h3>Verdict on the workflow</h3>
+<div class="card">
+<b>Adopt it as the standard review pattern.</b> The division that worked: Fable writes tight
+per-item protocols with explicit output contracts and no-verdict rules; Opus executes them in
+parallel with tools; Fable adjudicates against evidence it can spot-check, and the
+failing-test-first discipline doubles as the delegation's lie detector. <b>Keep verdicts and
+drift-surface fixes on Fable</b> — nothing in this run argues for relaxing the 2026-07-09 decree,
+and the run's own value came precisely from the judgment layer having pristine evidence to judge.
+Two refinements for next time: ① a terser mandated output format (tables + quotes only, prose
+budget ~500 words) to cut the ~20% verbosity tax; ② briefs should state scope-growth rules
+explicitly ("sweep whatever the question touches; say so when you do") since the agents' instincts
+there were good but unauthorized.
+</div>
+
+<p class="sub">Traffic and Dragons · plan + outcome + performance review, 2026-07-24 ·
+<code>todo_checkWithFable.md</code> remains the queue of record (now empty); fixes landed as
+v1.439; agent transcripts persist in the session task files.</p>
 </div>
 </body>
 </html>
