@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.7)</title>
+<title>Piper TTS — kick-the-tires (v0.8)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -282,10 +282,15 @@
   }
 }
 </script>
+<!-- v0.8: the app's error-report pipeline (GAS webhook → email + sheet). Loaded so the boot
+     forensics can EMAIL a death report automatically instead of the user screen-grabbing it,
+     and so the 📮 button can mail ad-hoc state. Self-contained (typeof-guards TTS/worldState),
+     and its window.onerror wiring means harness crashes mail themselves too. -->
+<script src="error-report.js"></script>
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.7</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.8</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -346,6 +351,7 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
       </div>
       <div style="flex:1 1 auto">
         <button id="soak" style="background:none;border:1px solid var(--acc);color:var(--acc)">🔥 Soak (silent synth)</button>
+        <button id="email-report" style="background:none;border:1px solid var(--dim);color:var(--dim);margin-left:8px" title="Emails the probe state, grow log and live soak crumb through the app's webhook — no screen-grabbing">📮 Email report</button>
       </div>
     </div>
     <label class="chk" style="margin-top:12px">
@@ -648,17 +654,23 @@ $("stop").addEventListener("click", function(){
    ============================================================================ */
 var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
 (function(){   // boot forensics — a soak that died (tab kill) reports itself at next load
+  // v0.8: and EMAILS itself. The user was screen-grabbing these reports off the phone; the app's
+  // own webhook pipeline (error-report.js, loaded in <head>) already mails to the inbox, so a
+  // detected death now auto-sends msg+detail through it — zero clicks. The report arrives with
+  // ctx "piper-harness-death"; at /bugs sync these are B9 evidence, not new rows.
+  var deathMsg = null, detail = [];
   try {
     var c = localStorage.getItem(SOAK_CRUMB_K);
     if (c){
       c = JSON.parse(c); localStorage.removeItem(SOAK_CRUMB_K);
-      if (!c.done && c.idle != null) log("⚠⚠ last soak DIED WHILE IDLE — killed " + c.idle + "s after synthesis STOPPED at " + c.mb + "MB "
+      if (!c.done && c.idle != null) deathMsg = "⚠⚠ last soak DIED WHILE IDLE — killed " + c.idle + "s after synthesis STOPPED at " + c.mb + "MB "
         + "(" + c.i + " synths had run). No synthesis was executing. The kill is LEVEL-TRIGGERED — a delayed memory watchdog reacting to the "
-        + "resident footprint — and the per-synth work is exonerated. (v0.7 idle test)", "err");
-      else if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
+        + "resident footprint — and the per-synth work is exonerated. (v0.7 idle test)";
+      else if (!c.done) deathMsg = "⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
         + (c.g != null ? ", grow-events " + c.g + (c.gd != null && c.gd !== c.g ? "/" + c.gd : "") : "")
         + (c.mb ? ", ORT " + c.mb + "MB" : "")
-        + ") — the tab was killed mid-soak. That IS the jetsam repro.", "err");
+        + ") — the tab was killed mid-soak. That IS the jetsam repro.";
+      if (deathMsg){ log(deathMsg, "err"); detail.push("crumb: " + JSON.stringify(c)); }
     }
     // v0.6: the per-grow log survives the kill independently (written synchronously by the wasm
     // probe's grow wrapper, INCLUDING a pre-commit "-1 = in flight" marker). A trailing -1 means
@@ -668,14 +680,20 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
       localStorage.removeItem("tnd_grow_log_v1");
       try {
         var gL = JSON.parse(gRaw), rows = (gL.ring || []).map(function(e){
-          return "synth " + (e[0] === -1 ? "(pre-soak)" : "#" + e[0]) + ": +" + e[1] + " pages → " + (e[2] === -1 ? "⚠ IN FLIGHT (killed mid-grow?)" : e[2] + "MB");
+          return "synth " + (e[0] === -1 ? "(pre-soak)" : "#" + e[0]) + ": +" + Math.round(e[1]) + " pages → " + (e[2] === -1 ? "⚠ IN FLIGHT (killed mid-grow?)" : e[2] + "MB");
         });
         if (rows.length){
           var midGrow = gL.ring.length && gL.ring[gL.ring.length - 1][2] === -1;
-          log("GROW LOG (" + gL.k + ", last " + rows.length + " grows of the previous page):\n  " + rows.join("\n  ")
-            + (midGrow ? "\n  ⭐ the final grow never completed — the kill landed MID-GROW. That is the mechanism, caught in the act." : ""), midGrow ? "err" : "hl");
+          var gTxt = "GROW LOG (" + gL.k + ", last " + rows.length + " grows of the previous page):\n  " + rows.join("\n  ")
+            + (midGrow ? "\n  ⭐ the final grow never completed — the kill landed MID-GROW. That is the mechanism, caught in the act." : "");
+          log(gTxt, midGrow ? "err" : "hl");
+          detail.push(gTxt);
         }
       } catch(eG){}
+    }
+    if (deathMsg && typeof reportError === "function"){
+      var r = reportError("piper-harness-death", deathMsg, detail.join("\n\n"));
+      log(r === "sent" ? "📮 death report EMAILED automatically (no screen-grab needed)." : "📮 death report NOT emailed: " + r, r === "sent" ? "hl" : "err");
     }
   } catch(e){}
 })();
@@ -866,6 +884,18 @@ async function soak(n, recycleEvery){
   }
 }
 
+// v0.8: manual report — mails the live harness state through the app's webhook (error-report.js).
+// The 30s debounce and 10/session cap are reportError's own; the outcome is surfaced honestly.
+$("email-report").addEventListener("click", function(){
+  if (typeof reportError !== "function"){ log("error-report.js did not load — cannot email.", "err"); return; }
+  var p = WebAssembly.__tndProbe, lines = [];
+  try { lines.push("probe: " + JSON.stringify(p ? p.list() : "(probe missing)")); } catch(e){ lines.push("probe: (read failed)"); }
+  try { lines.push("growLog(ort): " + JSON.stringify(p && p.growLog ? p.growLog("ort") : null)); } catch(e){}
+  try { lines.push("soaking: " + _soaking + " · soakIdx " + (window.__soakIdx || 0)); } catch(e){}
+  try { var lc = localStorage.getItem(SOAK_CRUMB_K); if (lc) lines.push("live soak crumb: " + lc); } catch(e){}
+  var r = reportError("piper-harness-manual", "piper_test manual report (" + document.title + ")", lines.join("\n"));
+  log(r === "sent" ? "📮 report emailed." : "📮 report NOT sent: " + r + (r === "debounced" ? " — reportError allows one send per 30s" : ""), r === "sent" ? "hl" : "err");
+});
 $("soak").addEventListener("click", async function(){
   if (_soaking){ _soaking = false; $("soak").textContent = "🔥 Soak (silent synth)"; return; }
   _soaking = true; $("soak").textContent = "■ Stop soak"; $("go").disabled = true;
