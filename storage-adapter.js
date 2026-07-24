@@ -709,6 +709,11 @@ var storageAdapter = (function() {
 
   function hasToken() { return !!_token; }
 
+  // #90: the tnd-tts app (separate origin, no user DB of its own) authenticates with the SAME
+  // session token by proxy-validating it against this server's /auth/me. Expose the assembled
+  // HEADER, not the raw token — callers compose fetches without ever handling the secret itself.
+  function authHeader() { return _token ? { "Authorization": "Bearer " + _token } : {}; }
+
   function whoAmI(cb)                { _apiJson("/auth/me", "GET", null, cb); }
   function getCampaignState(campId, cb) { _apiJson("/api/campaigns/" + encodeURIComponent(campId), "GET", null, cb); }
 
@@ -772,6 +777,7 @@ var storageAdapter = (function() {
     saveCharacterToLibrary:          saveCharacterToLibrary,
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
+    authHeader:            authHeader,           // #90: Authorization header for the tnd-tts app (the header, never the raw token)
     whoAmI:                whoAmI,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,

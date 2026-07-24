@@ -4407,6 +4407,60 @@ function runEngineTests(R){
     makeWorld();worldState.piperVoice="en_US-amy-medium";/* dropped in the rework */
     return TTS.resolvePiperVoice()==="en_US-libritts_r-medium"?true:"unknown pin not snapped to default: "+TTS.resolvePiperVoice();
   });
+
+  // ── Server TTS tier (#90 M1, v1.435) ─────────────────────────────────────────
+  // Selection is by RESOLUTION: getEngine() returns "server" only when a connected storageAdapter
+  // + a healthy degrade memo say so; a degrade steers reads local for SERVER_TTS_RETRY_MS. The
+  // fetch loop itself needs a browser — these cover the resolution/memo/toast logic headless.
+  section("Server TTS tier (#90)");
+  function _withServerStub(fn){
+    var real=storageAdapter;
+    storageAdapter={isServerMode:function(){return true;},hasToken:function(){return true;},
+                    authHeader:function(){return {"Authorization":"Bearer test-token"};},
+                    syncToServer:function(){},syncNow:function(){}};
+    TTS._serverTest.reset();
+    try{return fn();}
+    finally{storageAdapter=real;TTS._serverTest.reset();}
+  }
+  t("getEngine() resolves to 'server' when connected with a token",function(){
+    return _withServerStub(function(){
+      var got=TTS.getEngine();
+      return got==="server"?true:"got "+got;
+    });
+  });
+  t("getEngine() stays 'piper' with server mode but NO token (D1: unconnected players use the local ladder)",function(){
+    var real=storageAdapter;
+    storageAdapter={isServerMode:function(){return true;},hasToken:function(){return false;},
+                    syncToServer:function(){},syncNow:function(){}};
+    TTS._serverTest.reset();
+    var got=TTS.getEngine();
+    storageAdapter=real;
+    return got==="piper"?true:"got "+got;
+  });
+  t("a degrade steers selection to 'piper' for the retry window, then the server is retried",function(){
+    return _withServerStub(function(){
+      TTS._serverTest.degrade("test failure");
+      var during=TTS.getEngine();
+      TTS._serverTest.backdate(61000);   // the test can't wait a real 60s — age the memo instead
+      var after=TTS.getEngine();
+      return (during==="piper"&&after==="server")?true:"during="+during+" after="+after;
+    });
+  });
+  t("degrade toasts once per session (D3) but warns/records every time",function(){
+    return _withServerStub(function(){
+      __toasts.length=0;
+      TTS._serverTest.degrade("first failure");
+      TTS._serverTest.degrade("second failure");
+      var n=0,i;for(i=0;i<__toasts.length;i++){if(__toasts[i].indexOf("Server narration unavailable")>=0)n++;}
+      if(n!==1)return "expected exactly 1 toast, got "+n;
+      return TTS._serverTest.ok()?"second degrade did not stick in the memo":true;
+    });
+  });
+  t("server provider enqueue shape {server:true, voiceId} — rides the same piper voice resolution",function(){
+    makeWorld();
+    var it=TTS._serverTest.provider().enqueue("Hello there.");
+    return (it&&it.server===true&&!it.piper&&!it.native&&typeof it.voiceId==="string")?true:"bad item: "+JSON.stringify(it);
+  });
   t("resolvePiperVoice(): worldState===null (pre-game) does not throw and still falls through to device default",function(){
     // The FAILURE condition this guards: a naive `worldState.piperVoice` access (no `worldState &&`
     // guard) throws on `null.piperVoice`, since state.js initializes worldState=null and tts.js can

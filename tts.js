@@ -116,15 +116,88 @@ var TTS = (function() {
     }
   }
 
-  // getEngine() — #9 rework (v1.398): Piper is THE engine. The cloud provider is removed and the
-  // engine picker is gone, so selection no longer exists — getEngine() is a CONSTANT. The two
-  // storage keys that used to drive it (tnd_tts_engine_v1, tnd_tts_native_v1) were retired in
-  // v1.405; an old device still carrying them cannot resurrect a dead engine, which is exactly what
-  // the tests below assert by setting them. Native survives ONLY as the automatic
-  // fallback target (the runtime degradation ladder in speak() + the iOS-audio-suspend path call
-  // TTS_PROVIDERS.native directly, NOT via getEngine), so a device/window where Piper can't load
-  // still speaks.
-  function getEngine() { return "piper"; }
+  // getEngine() — #9 rework (v1.398): the engine PICKER is gone; selection is RESOLVED, never
+  // stored. #90 (v1.435) adds the server tier on top: a connected, healthy TTS server wins,
+  // otherwise Piper is THE local engine exactly as before — so on any offline/unconnected device
+  // this still resolves to the same constant "piper" it has been since the rework. The retired
+  // storage keys (tnd_tts_engine_v1, tnd_tts_native_v1) still cannot resurrect anything —
+  // engine-tested. Native survives ONLY as the automatic fallback target (the runtime ladder in
+  // speak() + the iOS-audio-suspend path call TTS_PROVIDERS.native directly, NOT via getEngine),
+  // so a device where neither the server nor Piper can run still speaks.
+  function getEngine() { return _serverTtsOk() ? "server" : "piper"; }
+
+  // ── Server TTS tier (#90 M1, v1.435 — the B9 architectural close) ────────────────────────────
+  // Synthesis moved OFF the phone: POST /api/tts on the tnd-tts Fly app (server repo, tts/) runs
+  // the SAME curated Piper voices server-side and returns one WAV per speakable unit — zero
+  // client wasm work, so the iOS energy assassin (DOC/BUGS.md ▸ B9) has nothing to kill. Local
+  // Piper + the v1.434 governor remain the offline tier forever; the governor never meters this
+  // tier (there is no client work to budget).
+  var TTS_SERVER_URL = "https://tnd-tts.fly.dev";
+  var TTS_URL_K = "tnd_tts_url_v1";   // dev override — point a local build at a local tts server
+  function _ttsServerUrl() { return store.get(TTS_URL_K) || TTS_SERVER_URL; }
+  var SERVER_TTS_TIMEOUT_MS = 10000;  // worst real unit ≈ 15s audio at ~2× realtime ≈ 7.5s synth + RTT;
+                                      // also absorbs the auto-stopped Fly machine's cold boot when
+                                      // prewarmServer didn't get to pay it first
+  var SERVER_TTS_RETRY_MS   = 60000;  // after a degrade, reads use the local ladder this long, then
+                                      // the next read tries the server again (retries are silent —
+                                      // D3 toasts the DEGRADE once per session, not the recovery)
+  var _serverTtsErr     = "";
+  var _serverTtsErrAt   = 0;
+  var _serverTtsToasted = false;
+
+  // D1 (ratified 2026-07-24): the server tier exists only for connected players — server mode +
+  // token, both via storageAdapter (typeof-guarded: the headless test loader may stub it with a
+  // shape that has neither method). Offline/unconnected play is unchanged by design, so a false
+  // here is SILENT — the loud path is _serverTtsDegrade, which only fires when a configured
+  // server actually fails.
+  function _serverTtsOk() {
+    if (typeof storageAdapter === "undefined" || typeof storageAdapter.isServerMode !== "function" ||
+        typeof storageAdapter.hasToken !== "function") return false;
+    if (!storageAdapter.isServerMode() || !storageAdapter.hasToken()) return false;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+    if (_serverTtsErr) {
+      if (Date.now() - _serverTtsErrAt < SERVER_TTS_RETRY_MS) return false;
+      _serverTtsErr = ""; _serverTtsErrAt = 0;   // retry window over — the next read tries the server again
+    }
+    return true;
+  }
+
+  function _serverTtsDegrade(reason) {
+    _serverTtsErr = String(reason || "server TTS failed");
+    _serverTtsErrAt = Date.now();
+    console.warn("[tts server] degraded to the local ladder for " + Math.round(SERVER_TTS_RETRY_MS / 1000) + "s: " + _serverTtsErr);
+    if (typeof erCrumb === "function") erCrumb("tts-server-degrade", _serverTtsErr.slice(0, 80));
+    _updateServerLine();
+    if (!_serverTtsToasted) {   // D3 (ratified): once per session — the governor/B10 toast pattern
+      _serverTtsToasted = true;
+      if (typeof showToast === "function") showToast("☁ Server narration unavailable (" + _serverTtsErr + ") — continuing with the on-device voice. It retries automatically.", 8000);
+    }
+  }
+
+  function _serverTtsHeaders() {
+    var h = { "Content-Type": "application/json" };
+    try {
+      if (typeof storageAdapter !== "undefined" && typeof storageAdapter.authHeader === "function") {
+        var a = storageAdapter.authHeader();
+        for (var k in a) h[k] = a[k];
+      }
+    } catch (e) {}
+    return h;
+  }
+
+  // Fire-and-forget health probe: wakes the auto-stopped Fly machine so the first read's unit 0
+  // doesn't pay the cold boot, and refreshes the availability memo LOUDLY if the server is gone.
+  // Wired where prewarmPiper is wired (toggle-on + boot), whenever the server tier is selected.
+  function prewarmServer() {
+    if (!_serverTtsOk()) return;
+    try {
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var tid = ctrl ? setTimeout(function() { ctrl.abort(); }, 8000) : null;
+      fetch(_ttsServerUrl() + "/health", ctrl ? { signal: ctrl.signal } : {})
+        .then(function(r) { if (tid) clearTimeout(tid); if (!r.ok) _serverTtsDegrade("health check HTTP " + r.status); })
+        .catch(function(e) { if (tid) clearTimeout(tid); _serverTtsDegrade("health check failed: " + ((e && e.message) || e)); });
+    } catch (e) {}
+  }
 
   // ── TTS_PROVIDERS — the provider table (mirrors the LLM PROVIDERS shape in globals.js) ───────
   // One entry per engine. speak() resolves getEngine() → this table → availability → enqueue(),
@@ -150,8 +223,20 @@ var TTS = (function() {
       available: function() { return _piperOk(); },
       enqueue: function(text) { return { text: text, piper: true, voiceId: resolvePiperVoice() }; },
       fallbackReason: function() { return _piperError || "Piper engine unavailable"; }
+    },
+    server: {
+      id: "server", label: "Server (cloud Piper — #90)",
+      hint: "Synthesizes on the Traffic and Dragons server with the same Piper voices — zero work on this device (the B9 close). Requires the server connection; degrades to local Piper, then native.",
+      available: function() { return _serverTtsOk(); },
+      enqueue: function(text) { return { text: text, server: true, voiceId: resolvePiperVoice() }; },
+      fallbackReason: function() { return _serverTtsErr || "server tier unavailable (not connected)"; }
     }
   };
+
+  // #90: the runtime ladder, top tier first. speak() walks DOWN from getEngine()'s resolution to
+  // the first available tier; _speakServer hands a failed read's remainder one rung down the same
+  // ladder mid-read. Native is the floor (its available() is always true, so the walk terminates).
+  var TTS_LADDER = ["server", "piper", "native"];
 
   // ── Piper voice LRU (#66) — cap resident voice models, evict oldest-stamped on overflow ────────
   function _piperLruLoad() {
@@ -472,7 +557,9 @@ var TTS = (function() {
       // split reported from the phone with ctx state=running). The primer's silent loop, started
       // in-gesture, claims playback category: mute-switch-immune + consistent BT routing.
       primeAudioSession();
-      if (getEngine() === "piper") prewarmPiper(resolvePiperVoice());  // §5 Q4 — off the critical path of the first real line
+      var _eng = getEngine();
+      if (_eng === "server") prewarmServer();   // #90: wake the auto-stopped Fly machine off the critical path
+      else if (_eng === "piper") prewarmPiper(resolvePiperVoice());  // §5 Q4 — off the critical path of the first real line
     } else {
       stop();
       _closeCtx();
@@ -771,7 +858,9 @@ var TTS = (function() {
       // landed inside the FIRST narration of every returning session — exactly what prewarm
       // (§5 Q4) exists to prevent. Boot prewarm is download-gated (see prewarmPiper): it warms
       // engine+voice only when the voice is already on disk; never a surprise 60MB download.
-      if (getEngine() === "piper") prewarmPiper(resolvePiperVoice(), true);
+      var _engB = getEngine();
+      if (_engB === "server") prewarmServer();   // #90: warm the server instead — no wasm compile to pay at all
+      else if (_engB === "piper") prewarmPiper(resolvePiperVoice(), true);
     }
     // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
     // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
@@ -906,20 +995,19 @@ var TTS = (function() {
     var trimmed = text.trim();
     _lastSpokenText = trimmed;
 
+    // Runtime degradation ladder (#90): server → piper → native, walked DOWN from getEngine()'s
+    // resolution to the first available tier. getEngine() already folds server availability in,
+    // so the walk mostly covers the race where a tier degrades between resolution and enqueue —
+    // and it keeps every step loud per no-silent-failures (warn + the settings-modal indicators).
     var engine = getEngine();
-    var prov = TTS_PROVIDERS[engine] || TTS_PROVIDERS.native;
-
-    // Runtime degradation ladder — separate from selection (getEngine above). A selected
-    // engine that isn't usable RIGHT NOW falls back to native for this item, unconditionally (no
-    // car-mode gating). Loud per no-silent-failures: warn + surface the reason in the
-    // settings modal indicator so the user can see WHY they're hearing the fallback voice.
-    if (engine !== "native" && !prov.available()) {
-      console.warn("[tts] " + engine + " unavailable (" + prov.fallbackReason() + ") — falling back to native for this line");
-      if (engine === "piper") _updatePiperErr();
-      _queue.push({ text: trimmed, native: true });
-      if (!_playing) _drain();
-      return;
+    var li = TTS_LADDER.indexOf(engine); if (li < 0) li = TTS_LADDER.length - 1;
+    while (li < TTS_LADDER.length - 1 && !TTS_PROVIDERS[TTS_LADDER[li]].available()) {
+      console.warn("[tts] " + TTS_LADDER[li] + " unavailable (" + TTS_PROVIDERS[TTS_LADDER[li]].fallbackReason() + ") — falling back to " + TTS_LADDER[li + 1] + " for this line");
+      if (TTS_LADDER[li] === "piper") _updatePiperErr();
+      li++;
     }
+    engine = TTS_LADDER[li];
+    var prov = TTS_PROVIDERS[engine];
 
     var item = prov.enqueue(trimmed, voiceId);
     if (!item) {
@@ -972,6 +1060,7 @@ var TTS = (function() {
     var item = _queue.shift();
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
+    else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
     else if (item.piper) _speakPiper(item.text, item.voiceId, item.voices);
     // #9 sweep: the third branch (the removed cloud provider) is gone. Every item a
     // provider enqueues carries .native or .piper, so this is unreachable — but a malformed item
@@ -1604,6 +1693,140 @@ var TTS = (function() {
     } catch (e) { return null; }
   }
 
+  // ── Server tier read loop (#90 M1) ───────────────────────────────────────────────────────────
+  // The _speakPiper unit loop with predict() replaced by fetch(/api/tts): same splitter, same
+  // per-unit speaker map, same manual WAV decode, same scheduler/backpressure/pause tiers, same
+  // shared epoch (one skip/stop invalidates whichever engine is mid-read). ZERO wasm work — the
+  // governor never meters this tier. On ANY unit failure the read hands its REMAINDER (failed
+  // unit included) one rung down the ladder via the queue — the governor's own mid-read handoff
+  // pattern — and _serverTtsDegrade steers the next SERVER_TTS_RETRY_MS of reads local, so a
+  // dead server costs ONE timeout, never a per-unit stall crawl.
+  async function _speakServer(text, voiceId, voices) {
+    var myEpoch = ++_piperEpoch;
+
+    var ctx = _ensureCtx();
+    if (!ctx) { console.warn("[tts server] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
+    var ctxOk = await _ctxRunning(ctx);
+    if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited
+    if (!ctxOk) { _ctxBlockedLoud("Server TTS"); _curNative = true; _speakNative(text); return; }
+    primeAudioSession();
+    _armCtxWatch("Server TTS");
+    _armPosState(ctx);
+
+    var units = splitSentences(text, null, true);   // identical prep to local Piper — the audio IS Piper audio
+    if (!units.length) { _drain(); return; }
+
+    _sources = [];
+    var nextStart  = Math.max(_nextStart, ctx.currentTime + 0.05);
+    var loopDone   = false;
+    var activeSrcs = 0;
+    var anyOk      = false;
+    var handedOff  = false;
+
+    function onAllDone() {
+      _sources   = [];
+      _nextStart = 0;
+      _drain();
+    }
+
+    for (var i = 0; i < units.length; i++) {
+      if (_piperEpoch !== myEpoch) return;
+      // Same backpressure as _speakPiper — here it bounds decoded-PCM memory only (no synth to
+      // pace), and it keeps pause() semantics identical: a suspended ctx freezes the playhead,
+      // which parks this loop too.
+      while (_piperEpoch === myEpoch && (nextStart - ctx.currentTime) > PIPER_MAX_AHEAD_SEC) {
+        await new Promise(function(res) { setTimeout(res, 250); });
+      }
+      if (_piperEpoch !== myEpoch) return;
+
+      var u = units[i];
+      var uVoice = (voices && voices[i]) || voiceId;   // per-unit speaker map, same ids as local Piper
+      var ab = null, failReason = "", tid = null;
+      try {
+        var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, SERVER_TTS_TIMEOUT_MS);
+        var opts = { method: "POST", headers: _serverTtsHeaders(),
+                     body: JSON.stringify({ text: u.text, voiceId: uVoice, rate: getRate() }) };
+        if (ctrl) opts.signal = ctrl.signal;
+        var res = await fetch(_ttsServerUrl() + "/api/tts", opts);
+        if (tid) clearTimeout(tid);
+        if (_piperEpoch !== myEpoch) return;
+        if (!res.ok) {
+          failReason = "HTTP " + res.status;
+          try { var j = await res.json(); if (j && j.error) failReason += " — " + j.error; } catch (e0) {}
+          if (_piperEpoch !== myEpoch) return;
+        } else {
+          ab = await res.arrayBuffer();
+          if (_piperEpoch !== myEpoch) return;
+        }
+      } catch (e) {
+        if (tid) clearTimeout(tid);
+        if (_piperEpoch !== myEpoch) return;
+        failReason = (e && e.name === "AbortError") ? ("timeout after " + SERVER_TTS_TIMEOUT_MS + "ms")
+                                                    : ((e && e.message) || "network error");
+      }
+
+      if (failReason) {
+        // Hand the WHOLE remainder (this unit included) down the ladder — already-scheduled
+        // server audio plays out first, then _drain picks the remainder up on local Piper
+        // (which itself degrades to native if it can't run). Mirrors the governor's handoff.
+        var _remText = units.slice(i).map(function(ru) { return ru.text; }).join(" ");
+        if (_remText) _queue.unshift({ text: _remText, piper: true, voiceId: voiceId });
+        handedOff = true;
+        _serverTtsDegrade("unit " + (i + 1) + "/" + units.length + ": " + failReason);
+        break;
+      }
+
+      var buf;
+      try {
+        buf = _wavToAudioBuffer(ab, ctx);   // v1.321 manual PCM16 parse — same daemon-retention bypass
+        if (!buf) {
+          _decodeFallbacks++;
+          console.warn("[tts server] manual WAV parse failed on unit " + (i + 1) + "/" + units.length + " — falling back to decodeAudioData (da=" + _decodeFallbacks + ")");
+          buf = await ctx.decodeAudioData(ab);
+        }
+        if (_piperEpoch !== myEpoch) return;
+      } catch (e1) {
+        console.warn("[tts server] decode failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e1 && e1.message);
+        continue;
+      }
+
+      anyOk = true;
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
+      src.start(startAt);
+      _ctxSynths++;   // B9 H1: playback sources on the current ctx — same accounting as local Piper
+      nextStart  = startAt + buf.duration + unitGap(u);
+      _nextStart = nextStart;
+
+      activeSrcs++;
+      _sources.push(src);
+      src.onended = (function(mySrc) { return function() {
+        activeSrcs--;
+        try { mySrc.disconnect(); } catch (e) {}
+        try { mySrc.buffer = null; } catch (e) {}   // Safari #718 — detach or the decoded PCM is retained
+        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
+        if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
+      }; })(src);
+    }
+
+    loopDone = true;
+    if (_piperEpoch !== myEpoch) return;
+    if (!anyOk && !handedOff) {
+      // can't normally happen (the first failure hands off) — defined behavior anyway: loud + native
+      console.warn("[tts server] no unit produced audio and nothing was handed off — falling back to native for this line");
+      _curNative = true;
+      _speakNative(text);
+      return;
+    }
+    if (activeSrcs === 0) {
+      if (handedOff) _drain();   // nothing scheduled by us — go straight to the remainder item
+      else onAllDone();
+    }
+  }
+
   // Synthesize + schedule one narration item through Piper. Sequential per-unit loop (mirrors
   // piper_test.html speakAll()): predict → decode → schedule on the shared AudioContext timeline.
   // The epoch guard runs after EVERY await (see section comment above) — this is what makes a
@@ -2210,6 +2433,26 @@ var TTS = (function() {
   // adapter functions, see the header comment): _piperDownloaded is session-local best-effort
   // memory populated by _piperEnsureVoice/_piperRefreshDownloaded, not a live OPFS query, so
   // opening the settings modal never forces an engine load just to paint this indicator.
+  // #90: the server-tier line in Voice Settings — off (not connected) / active / degraded-with-
+  // reason. Self-no-ops when the modal isn't open (same contract as _updatePiperErr).
+  function _updateServerLine() {
+    if (typeof document === "undefined") return;   // headless engine tests exercise the degrade path
+    var el = document.getElementById("tts-server-line");
+    if (!el) return;
+    var msg, col = "var(--t2)";
+    if (typeof storageAdapter === "undefined" || typeof storageAdapter.isServerMode !== "function" ||
+        !storageAdapter.isServerMode() || !storageAdapter.hasToken()) {
+      msg = "☁ Server narration: off — connect to the server to synthesize in the cloud instead of on this device.";
+    } else if (_serverTtsErr) {
+      msg = "☁ Server narration: unavailable (" + _serverTtsErr + ") — using the on-device engine; retries automatically.";
+      col = "#e0a060";
+    } else {
+      msg = "☁ Server narration: active — voices synthesize on the server (no on-device load).";
+    }
+    el.textContent = msg;
+    el.style.color = col;
+  }
+
   function _updatePiperErr() {
     var el = document.getElementById("tts-piper-err");
     if (!el) return;
@@ -2563,6 +2806,7 @@ var TTS = (function() {
       // fallback below). Keep only the phone-visible audio diagnostics.
       + "<div style='margin-bottom:14px;'>"
       +   "<div id='tts-audio-diag' style='font-size:11px;color:var(--t2);font-family:var(--font-mono,monospace);'></div>"
+      +   "<div id='tts-server-line' style='font-size:11px;color:var(--t2);margin-top:4px;'></div>"   /* #90: server-tier status */
       + "</div>"
       // ── Piper panel ──
       + "<div id='tts-panel-piper' style='display:block;'>"
@@ -2597,6 +2841,7 @@ var TTS = (function() {
       { align: "flex-start", overlayExtra: "overflow-y:auto;", boxBg: "#181818", maxWidth: 480, boxExtra: "margin-top:60px;", closeId: "tts-modal-x", outside: true });
 
     _updatePiperErr();
+    _updateServerLine();   // #90: server-tier status (off / active / degraded-with-reason)
     // B9 (v1.419): the "ORT NNNMB" half of the runtime line reads `_frameMem`, which is only
     // refreshed BETWEEN narration reads — so opening this panel after a prewarm, or any time before
     // a read has completed, showed no figure at all, and after one it could be stale. That figure is
@@ -2711,6 +2956,8 @@ var TTS = (function() {
     // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s
     // one-time WASM compile happens off the critical path of the user's first real narration.
     prewarmPiper:      prewarmPiper,
+    // #90: server-tier health probe — wakes the auto-stopped Fly machine off the critical path.
+    prewarmServer:     prewarmServer,
     // B9 (v1.418): tear down the synthesis realm and build a fresh one. User-facing mitigation
     // AND the deterministic proof that realm teardown returns the wasm memory.
     respawnEngine:     respawnEngine,
@@ -2750,7 +2997,16 @@ var TTS = (function() {
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,
-                 pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } }
+                 pauses: function() { return { comma: PAUSE_COMMA, clause: PAUSE_COMMA_CLAUSE, fullstop: PAUSE_FULLSTOP, paragraph: PAUSE_PARAGRAPH }; } },
+    // #90: server-tier internals, exported ONLY for the headless engine tests (same contract as
+    // _textPrep). backdate() exists because the retry-window test can't wait a real 60s.
+    _serverTest: {
+      ok:       function() { return _serverTtsOk(); },
+      degrade:  function(reason) { _serverTtsDegrade(reason); },
+      backdate: function(ms) { _serverTtsErrAt -= ms; },
+      reset:    function() { _serverTtsErr = ""; _serverTtsErrAt = 0; _serverTtsToasted = false; },
+      provider: function() { return TTS_PROVIDERS.server; }
+    }
   };
 
 })();

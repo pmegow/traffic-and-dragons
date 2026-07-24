@@ -267,6 +267,42 @@ try {
   }
 } catch (e) { console.error("GOVERNOR CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── SERVER TTS TIER CONTRACT (v1.435, #90 M1) ────────────────────────────────────────────
+// The server tier exists to do ZERO client synthesis work (the B9 close: nothing for the iOS
+// energy assassin to kill) and to fail DOWN the ladder, never into a stall. These pin the three
+// properties a refactor could quietly lose — each regression would only show up as late-session
+// tab deaths or wedged reads on a phone, weeks later.
+try {
+  var _fsS = require("fs"), _pathS = require("path");
+  var _ncS = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _ttsS = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "tts.js"), "utf8"));
+  var _spS = (_ttsS.match(/async function _speakServer\([\s\S]*?\n  \}\n/) || [""])[0];
+  if (!_spS) { console.error("SERVER TTS CONTRACT: _speakServer not found."); process.exit(1); }
+  // ① Zero wasm: the server loop must never touch the local engine — no predict, no init, no
+  //    voice download. One such call re-spends the iOS energy budget the tier exists to spare.
+  if (/predict\(|_piperInit\(|_piperEnsureVoice\(/.test(_spS)) {
+    console.error("SERVER TTS CONTRACT: _speakServer touches the local wasm engine (predict/_piperInit/_piperEnsureVoice) — the server tier must do ZERO client synthesis work or B9 returns (v1.435).");
+    process.exit(1);
+  }
+  // ② The governor meters LOCAL work only. A governor gate here would silence the server tier
+  //    exactly when it is most needed (late session, budget spent).
+  if (_spS.indexOf("_piperGovern") >= 0) {
+    console.error("SERVER TTS CONTRACT: _speakServer consults the governor — the work budget meters local wasm synthesis only; gating the server tier on it disables the B9 fix late-session (v1.435).");
+    process.exit(1);
+  }
+  // ③ Mid-read failure hands the REMAINDER down the ladder via the queue (the governor's
+  //    handoff pattern). Losing it turns one dead server into a per-unit timeout crawl.
+  if (!/_queue\.unshift\(\{ text: _remText, piper: true/.test(_spS)) {
+    console.error("SERVER TTS CONTRACT: the mid-read remainder handoff (_queue.unshift({piper:true…})) is gone from _speakServer — a server failure mid-read must continue the read on local Piper, not stall or drop it (v1.435).");
+    process.exit(1);
+  }
+  // ④ The ladder order itself: server on top, native the floor.
+  if (_ttsS.indexOf('var TTS_LADDER = ["server", "piper", "native"]') < 0) {
+    console.error("SERVER TTS CONTRACT: TTS_LADDER is no longer server → piper → native — the tier order is the ratified #90 design (server first for connected players, native the always-available floor).");
+    process.exit(1);
+  }
+} catch (e) { console.error("SERVER TTS CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,
