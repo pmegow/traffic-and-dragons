@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.6)</title>
+<title>Piper TTS — kick-the-tires (v0.7)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -285,7 +285,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.6</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.7</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -352,6 +352,14 @@ Townsfolk move in stunned clots, hauling salvage from collapsed storefronts; the
       <input type="checkbox" id="soak-vary" checked>
       <span>Vary input shape per synth <span style="color:var(--dim)">(v0.3 — ON is the field condition. OFF cycles the same sentences, which
         exercises ~15 input shapes and then stops growing: that is why earlier soaks read clean while phones died at ~120 synths.)</span></span>
+    </label>
+    <label class="chk" style="margin-top:8px">
+      <input type="checkbox" id="soak-idle">
+      <span>IDLE test <span style="color:var(--dim)">(v0.7 — the delayed-watchdog discriminator. The v0.6 grow ring showed the final grow COMPLETING
+        at synth #25 (354MB) and the kill landing at #29 — BETWEEN grows, seconds after the crossing. This mode stops synthesizing the moment
+        ORT reaches ≥350MB and just sits, heartbeating a crumb. Tab dies while IDLE → the kill is a delayed memory watchdog reacting to the
+        LEVEL — synthesis is fully exonerated and B9 is pure footprint management. Survives idle → the per-synth work on top of the level is
+        the trigger.)</span></span>
     </label>
     <label class="chk" style="margin-top:8px">
       <input type="checkbox" id="soak-unbounded">
@@ -644,7 +652,10 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
     var c = localStorage.getItem(SOAK_CRUMB_K);
     if (c){
       c = JSON.parse(c); localStorage.removeItem(SOAK_CRUMB_K);
-      if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
+      if (!c.done && c.idle != null) log("⚠⚠ last soak DIED WHILE IDLE — killed " + c.idle + "s after synthesis STOPPED at " + c.mb + "MB "
+        + "(" + c.i + " synths had run). No synthesis was executing. The kill is LEVEL-TRIGGERED — a delayed memory watchdog reacting to the "
+        + "resident footprint — and the per-synth work is exonerated. (v0.7 idle test)", "err");
+      else if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
         + (c.g != null ? ", grow-events " + c.g + (c.gd != null && c.gd !== c.g ? "/" + c.gd : "") : "")
         + (c.mb ? ", ORT " + c.mb + "MB" : "")
         + ") — the tab was killed mid-soak. That IS the jetsam repro.", "err");
@@ -767,9 +778,28 @@ async function soak(n, recycleEvery){
     try { if (p){ gd = p.growTick("ort"); g = p.grows("ort"); gl = p.growLog ? p.growLog("ort") : []; } } catch(e){}
     return { g: g, gd: gd, mb: Math.round(wasmMB("ort") || 0), gl: gl };
   }
+  // v0.7: the IDLE test — stop synthesizing once ORT crosses the observed fatal step (354MB on
+  // this device; trigger just under at 350) and sit heartbeating. The v0.6 ring proved the kill
+  // lands BETWEEN grows, seconds after the crossing — this separates "delayed watchdog reacting
+  // to the LEVEL" (dies while idle) from "per-synth work on top of the level" (survives idle).
+  var idleTest = $("soak-idle") && $("soak-idle").checked;
+  var IDLE_AT_MB = 350;
   for (var i = 0; i < n && _soaking; i++){
     window.__soakIdx = i + 1;   // v0.6: stamps each grow-ring entry with the synth it happened DURING
     var gs = _growSnap();
+    if (idleTest && gs.mb >= IDLE_AT_MB){
+      log("IDLE TEST: ORT reached " + gs.mb + "MB after " + i + " synths — synthesis STOPPED, sitting idle with a 5s heartbeat. " +
+          "Keep the tab frontmost and WAIT. Death while idle = level-triggered watchdog (synthesis exonerated); " +
+          "several minutes of survival = the per-synth work is the trigger (press Stop, then rerun without idle to confirm the contrast).", "hl");
+      var idleStart = performance.now(), idleNextLog = 30;
+      while (_soaking){
+        var idleSec = Math.round((performance.now() - idleStart) / 1000);
+        try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i, n: n, r: recycleEvery, done: false, idle: idleSec, g: gs.g, gd: gs.gd, mb: gs.mb })); } catch(e){}
+        if (idleSec >= idleNextLog){ log("  idle " + idleSec + "s at " + gs.mb + "MB — still alive", "hl"); idleNextLog += 30; }
+        await new Promise(function(r){ setTimeout(r, 5000); });
+      }
+      break;   // user pressed Stop — the post-loop done:true crumb below records a clean end
+    }
     try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb, gl: gs.gl })); } catch(e){}
     try { await synth(soakText(i), voiceId); }   // result discarded — synth-side memory only
     catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
