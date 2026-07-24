@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fable Review — Action Plan</title>
+<style>
+  :root{ --bg:#121212; --panel:#181818; --ink:#e6e2d8; --dim:#a39a88; --acc:#b8935a; --line:#2c2a26;
+         --good:#7aa86a; --warn:#c9a24b; --bad:#c0564a; --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:1.7em;margin:0 0 6px;color:#f2ede1}
+  h2{font-size:1.25em;margin:38px 0 8px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:1.02em;margin:22px 0 6px;color:#f2ede1}
+  p{margin:8px 0} ul{margin:8px 0;padding-left:20px} li{margin:6px 0}
+  code{font-family:var(--mono);font-size:.86em;background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8cdb4}
+  .sub{color:var(--dim);font-size:.95em}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:12px 0}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9em}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#0e0e0d;color:var(--dim)}
+  /* Verdict-badge standard (CLAUDE.md, user-approved 2026-07-12): muted fill, full-brightness rim,
+     bold mono uppercase text at 40% white. */
+  .pill{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;
+        font-family:var(--mono);font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);white-space:nowrap}
+  .p-review{background:#322a13;border:1px solid var(--warn)}
+  .p-check {background:#2e2517;border:1px solid var(--acc)}
+  .p-harden{background:#301512;border:1px solid var(--bad)}
+  .p-ignore{background:#1d1d1d;border:1px solid #6a675f}
+  .p-done  {background:#182215;border:1px solid var(--good)}
+  .rail{border-left:3px solid var(--acc);padding-left:14px;margin:12px 0}
+  .rail.warn{border-color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Fable Review — Action Plan</h1>
+<p class="sub">Written 2026-07-24 (the #90 build session, running on Fable) · queue source:
+<code>todo_checkWithFable.md</code> · standing order: <b>entry 5 → 2 → 4</b> · engine v1.438</p>
+
+<div class="card">
+<b>Charter.</b> Three entries await Fable review. This plan triages every sub-item in them into
+<span class="pill p-review">review</span> (read the code, exercise the failure condition),
+<span class="pill p-check">check</span> (cheap targeted verification, minutes),
+<span class="pill p-harden">harden</span> (a small fix is warranted if the review confirms),
+<span class="pill p-ignore">ignore</span> (accept with recorded rationale — no work), or
+<span class="pill p-done">superseded</span> (this session's v1.435–438 work, done BY Fable, already
+re-plumbed or re-verified the area). Ground rules: review verdicts land back in
+<code>todo_checkWithFable.md</code> (move entries to Reviewed); any confirmed fix follows the full
+drift-policy dance (failing test first, sabotage-proven tripwire, version bump).
+<b>Not in scope:</b> B17 (that's a design conversation, not a review) and the v1.435–438 work itself
+(built by Fable; the queue's whole premise is auditing non-Fable builds).
+</div>
+
+<h2>Triage summary</h2>
+<table>
+<tr><th>Order</th><th>Entry</th><th>True tier</th><th>Verdict-shaping fact</th><th>Est. effort</th></tr>
+<tr><td>1st</td><td><b>5 — #16c diagnostics inside <code>summarize()</code></b></td><td>Drift-adjacent (telemetry in a drift-surface catch)</td><td>Small and bounded; three named questions, all answerable by reading one catch block</td><td>~30–45 min</td></tr>
+<tr><td>2nd</td><td><b>2 — NPC mood/relation separation</b></td><td><b>Drift surface proper</b> (tag write path, prompt render, extractor, live-save migration)</td><td>The only entry with a migration that already ran over real save data; highest stakes, gets the deepest pass</td><td>~2–3 h</td></tr>
+<tr><td>3rd</td><td><b>4 — Voice/TTS rework (#9)</b></td><td>Sonnet by policy (output rendering); logged at user request</td><td>Largest entry, largest ignore-fraction: today's v1.435–438 server-TTS + recovery work re-touched half its flagged code with Fable eyes</td><td>~1–1.5 h after ignores</td></tr>
+</table>
+<p class="sub">Total: one focused session. New review debt from today: <b>none</b> — v1.435–438 were
+built by Fable, so the queue does not grow.</p>
+
+<h2>Entry 5 — #16c diagnostics: one touch inside <code>summarize()</code>'s catch (v1.407, Opus)</h2>
+<p class="sub">Priority first: smallest entry, sits on the most sensitive function. Three named asks.</p>
+<table>
+<tr><th>Item</th><th>Triage</th><th>Plan</th></tr>
+<tr>
+  <td>(a) Can the enriched catch throw a SECOND error that masks the first?</td>
+  <td><span class="pill p-review">review</span></td>
+  <td>Read the catch in memory.js. The gather is claimed to sit in its own try/catch — verify the
+  claim covers <i>everything</i> new (the response-head slice, the engine-note count loop, the
+  string concat), and that the inner catch degrades to the ORIGINAL error string. Then sabotage it:
+  make the gather throw (e.g. poison <code>sessionLog</code> with a non-string entry in a scratch
+  test) and assert the reported error is still the extractor's, not the gather's.</td>
+</tr>
+<tr>
+  <td>(b) Can reading <code>sessionLog</code>/<code>sessKeptStart()</code> inside the catch observe half-mutated state?</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>Enumerate the writers between <code>summarize()</code>'s try start and the throw sites
+  (retainSessionTail, sessKept updates, applySummaryExtract). The claim is every writer sits inside
+  the try <i>after</i> the parse — confirm ordering by reading, no test needed unless it's false.</td>
+</tr>
+<tr>
+  <td>(c) 200-char response-head policy — blast radius of content-bearing crash details</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>User-ratified policy (2026-07-22): crash <code>detail</code> MAY carry app-generated content.
+  One 5-minute enumeration of <code>reportError</code> callers to confirm no OTHER caller silently
+  gained content-shipping as a side effect — then accept. No design re-litigation.</td>
+</tr>
+</table>
+
+<h2>Entry 2 — NPC mood/relation separation (v1.379–383, Opus) — THE deep pass</h2>
+<p class="sub">Genuine drift surface: <code>[NPC:]</code> write path, roster/detail renders, the
+summarize extractor spec, and a repair migration that has already run over the live t1130 Runelords
+save. Field evidence since 2026-07-19 shows no regression — which lowers urgency, not depth.</p>
+
+<table>
+<tr><th>Item</th><th>Triage</th><th>Plan</th></tr>
+<tr>
+  <td>① Consumer audit of <code>attitude</code> — the flagged "likeliest missed consumer" gap</td>
+  <td><span class="pill p-review">review</span></td>
+  <td>The entry's own map covers 9 <code>npc.status</code> readers + 2 <code>attitude</code> readers
+  but admits the UI sweep was partial. Do the full sweep: grep <code>attitude</code> and
+  <code>\.status</code> across ui-*.js, game.js, api.js, memory.js, table-talk.js — for each reader,
+  ask "does it assume relation-shaped data?" Special attention: sidebar world-state panel and
+  <code>generateNpcSheet</code>'s prompt context (a relation word fed as 'mood' into sheet
+  generation would bake the old corruption into a new sheet).</td>
+</tr>
+<tr>
+  <td>② Regex loosening <code>+</code>→<code>*</code> on tag slots 2/3</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>Write 3–4 adversarial parses in a scratch run (NOT shipped tests unless one fails):
+  <code>[NPC:X||]</code>, <code>[NPC:X| |ally]</code>, <code>[NPC:X|||]</code>, a pipe-in-name case.
+  Assert: empty = leave-unchanged, whitespace ≠ a real value, nothing writes garbage. The frozen
+  strip/doc hashes already pin the strip side — trust them, verify only the parse side.</td>
+</tr>
+<tr>
+  <td>③ Empty status × the B3 death path</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>Empty status is now common; B3's <code>npcDeadStatus()</code> and the four raw
+  <code>/\bdead\b/i.test(n.status||"")</code> checks in game.js must all be falsy-safe (they look
+  it — <code>||""</code> — but exercise one: dead-flagged NPC with empty status must still render
+  DECEASED and refuse status writes). One test if any doubt survives reading.</td>
+</tr>
+<tr>
+  <td>④ The <code>memory.attitudeSpec</code> marker — can it re-fire and wipe CORRECT values?</td>
+  <td><span class="pill p-review">review</span></td>
+  <td>The v1.383 heal cleared 48 live values under a spec-version marker. Verify the guard is
+  write-once (marker present → never re-clears), including the cross-device case: an OLD device
+  pushing a pre-marker memory blob over a healed one — does the marker ride the sync blob, and what
+  happens on merge? This is the entry's one plausible data-loss residue.</td>
+</tr>
+<tr>
+  <td>⑤ Disposition-vs-mood split; "empty is honest" end-state</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>Design judgments, user-ratified, argued from live data (wrong beats absent), and field-quiet
+  for 5 days. Affirm in the verdict, change nothing.</td>
+</tr>
+<tr>
+  <td>⑥ Deferred stamped-list schema + the 9-reader map</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>The deferral reasoning is sound (rewriting 9 un-reviewed readers to buy a refinement).
+  Leave deferred; the map is recorded so the sweep is never repeated.</td>
+</tr>
+<tr>
+  <td>⑦ Two known same-category stragglers: party card defaults mood to <code>"ally"</code>
+  (ui-panels.js:65); blueprint export writes status into <code>role</code> (game.js:1041)</td>
+  <td><span class="pill p-harden">harden</span></td>
+  <td>Both are the SAME bug class the entry fixed, left by scope discipline. If review ① confirms
+  no hidden coupling: fix the party-card default (render from present parts, no invented "ally") in
+  the same review commit — it is user-visible and 5 lines. The blueprint <code>role</code> mapping
+  can wait for the schema work (export-only, cosmetic); note it, don't fix.</td>
+</tr>
+</table>
+
+<h2>Entry 4 — Voice/TTS rework #9 (v1.395–1.409, Opus) — largest ignore-fraction</h2>
+<p class="sub">Off the drift surface by policy; logged at the user's request. Two weeks of field use
+plus today's Fable rework (v1.435–438) discharge most asks. One question in it is genuinely
+first-rate and gets real time.</p>
+
+<table>
+<tr><th>Item</th><th>Triage</th><th>Plan</th></tr>
+<tr>
+  <td>★ v1.406 — the transcript-memo invalidation CLASS: "are there OTHER deferred/async writers
+  that mutate an existing transcript entry without invalidating? The invalidation is a convention,
+  not something the memo enforces."</td>
+  <td><span class="pill p-review">review</span> <span class="pill p-harden">harden</span></td>
+  <td><b>The best question in the whole queue — a silent-data-loss class.</b> Sweep every mutator of
+  an existing transcript entry (<code>sp</code> stamping, <code>rc</code> retcon marks, RAG
+  <code>e</code> backfill, anything else) against <code>invalidateTranscriptMemo</code> call sites.
+  Then make the convention STRUCTURAL: the cheapest honest fix is a single
+  <code>mutateTranscriptEntry(i, fn)</code> accessor that owns invalidation, or a memo key that
+  hashes the fields late writers touch. <b>Sequencing note: do this review BEFORE or WITH TODO #92</b>
+  (sync-payload compression) — #92 rides <code>serializeWorldState</code>, so one Fable session
+  should own both sides of that boundary.</td>
+</tr>
+<tr>
+  <td>B14 (v1.408/409): (a) span-tagging desync from synthesized units; (b) unbalanced quotes
+  swallowing the passage</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>Both come from the same <code>splitSentences</code> call so desync is structurally unlikely,
+  and B14c already pins paragraph-reset parity. Add two adversarial inputs to a scratch run: an
+  unbalanced-quote paragraph and a quote-spanning-3-paragraphs monologue; assert degrade-to-narration,
+  never swallowed text. (c) unit-indexed storage: affirm — the <code>sp.n</code> fuse already
+  proved itself in the field (v1.423 splitter change degraded old maps to mono-voice, exactly as
+  designed).</td>
+</tr>
+<tr>
+  <td>v1.402 — narrator-protection vs stale worldState; <code>mod.remove</code> racing a concurrent
+  download of the same voice</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>Two reads: ① <code>_voiceAssignedTo</code> with <code>worldState=null</code> (pre-game) must
+  still count the narrator via <code>resolvePiperVoice()</code>'s device-default fallback — confirm.
+  ② Verify remove and ensure/download both genuinely ride <code>_piperSerial</code> with no
+  unserialized OPFS touch between check and delete.</td>
+</tr>
+<tr>
+  <td>v1.406 — 4s fuse half-voiced items; non-<code>"</code> quotation conventions skipping the pass</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>The fuse path was live-verified at build (null map → flat narration, entry unstamped — no
+  half-state exists to leave). Curly-quote GMs: the splitter already handles <code>“”</code>; the
+  skip heuristic is a cost guard, and a missed pass degrades to narrator voice — inaudible as a
+  failure. Field-watch, not review.</td>
+</tr>
+<tr>
+  <td>v1.401 — LRU-key proxy naming the wrong evictee in the confirm dialog</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>Worst case is a cosmetic misnomer in a confirm dialog on a rare path; the actual eviction
+  runs off the authoritative OPFS list. Not worth Fable minutes.</td>
+</tr>
+<tr>
+  <td>v1.404 — E20 semantics for narrator voice; unknown-id pinning vs refusing</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>Ratified design, drift-guard test already pins prompt byte-identity, catalog-change behavior
+  (snap to default + toast) already field-exercised by the #9 catalog swap itself. Affirm.</td>
+</tr>
+<tr>
+  <td>v1.405 — orphaned legacy keys incl. the Cartesia credential; "no non-JS surface carries them"</td>
+  <td><span class="pill p-check">check</span></td>
+  <td>One grep across sw.js / storage-adapter.js / the server repo for the three key names
+  (2 minutes), then accept — leaving a stored third-party credential untouched was explicitly the
+  user's call to make, and it was recorded as such.</td>
+</tr>
+<tr>
+  <td>v1.398/1.403 — Cartesia removal reachability; <code>_drain()</code> third-branch loud-drain;
+  protected shared pieces losing callers</td>
+  <td><span class="pill p-done">superseded</span></td>
+  <td>This session rebuilt <code>_drain</code>'s dispatch (server branch, <code>_curItem</code>
+  capture, v1.438) and re-exercised the whole queue lifecycle live on the deployed site; grep hits
+  were already 0 at v1.403 and the loud-drain guard is unchanged. Nothing left to review.</td>
+</tr>
+<tr>
+  <td>testVoice / Voice Settings surface; recoverAudio-adjacent machinery; engine selection</td>
+  <td><span class="pill p-done">superseded</span></td>
+  <td>All rewritten by Fable TODAY: <code>testVoice</code> now ladder-routed (#90 contract ⑤),
+  <code>getEngine()</code> re-derived for the server tier with the legacy-key tests passing
+  unchanged, and <code>recoverAudio</code> got the escalation/re-arm/zombie/requeue rework
+  (v1.437–438) with field validation the same day. The 2026-07-20 snapshots of these areas no
+  longer exist to audit.</td>
+</tr>
+<tr>
+  <td>mike/norman drop; snap-to-default; <code>characterVoiceId</code> → narrator fallback</td>
+  <td><span class="pill p-ignore">ignore</span></td>
+  <td>Weeks of daily field use over the curated set; the snap guard is engine-tested; re-vendoring
+  a fuller voice mirror is a feature wish, not a review item. Affirm and close.</td>
+</tr>
+</table>
+
+<h2>Hardening candidates that survive triage</h2>
+<ul>
+  <li><b>H1 — make transcript-memo invalidation structural</b> (entry 4 ★). One accessor or a
+  smarter memo key; kills a silent-data-loss class instead of policing it by convention.
+  <b>Bundle with TODO #92</b> — same boundary, one session, one test bed (the real mature blob).</li>
+  <li><b>H2 — party-card mood default <code>"ally"</code></b> (entry 2 ⑦): render from present
+  parts; 5 lines, user-visible correctness.</li>
+  <li><b>H3 — only if entry-2 ② finds a matching malformed shape:</b> tighten the loosened
+  <code>[NPC:]</code> regex with the specific counterexample as a shipped test.</li>
+</ul>
+
+<h2>Suggested session shape</h2>
+<div class="card">
+<b>One session, three verdicts, strict order.</b>
+① Entry 5 first (30–45 min — small, sensitive, clears fastest).
+② Entry 2 deep pass (2–3 h): consumer sweep → marker/migration audit → adversarial parses → B3
+   interaction → verdict; apply H2 if clean; move entry to Reviewed with the AUDIT_FABLE-style
+   finding + remedy + validation shape (the format that earned the precedent).
+③ Entry 4 (≤1.5 h): spend most of it on the ★ memo-class question; run the cheap checks; write the
+   ignore rationales INTO the verdict so nobody re-derives them.
+④ If time remains, H1 rolls straight into the TODO #92 build — same session, same boundary, same
+   test data.
+<br><br>
+<span class="sub">Every verdict lands in <code>todo_checkWithFable.md</code> (entries → Reviewed,
+dated, with findings); confirmed fixes get their own commits with failing-test-first discipline;
+this file is then updated or retired — it is a plan, not a record.</span>
+</div>
+
+<p class="sub">Traffic and Dragons · plan authored by the v1.435–438 Fable session while the user
+plays · supersedes nothing; <code>todo_checkWithFable.md</code> remains the queue of record.</p>
+</div>
+</body>
+</html>
