@@ -240,6 +240,33 @@ try {
   }
 } catch (e) { console.error("BYPASS EVIDENCE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── WORK-BUDGET GOVERNOR CONTRACT (v1.434, B9 root cause) ─────────────────────────────────
+// iOS kills the WebContent process after a cumulative budget of synthesis work per page load
+// (the energy assassin — DOC/BUGS.md ▸ B9, the three-week diagnosis). The governor is the fix:
+// reads stop STARTING on Piper at the start gate and stop MID-READ at the hard gate, handing
+// narration to the native voice instead of letting iOS kill the tab. Losing either gate brings
+// the deaths back — visible in the field only after real players lose real sessions.
+try {
+  var _fsG = require("fs"), _pathG = require("path");
+  var _ncG = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _ttsG = _ncG(_fsG.readFileSync(_pathG.join(__dirname, "..", "tts.js"), "utf8"));
+  var _spB = (_ttsG.match(/async function _speakPiper\([\s\S]*?\n  \}\n/) || [""])[0];
+  if (!_spB) { console.error("GOVERNOR CONTRACT: _speakPiper not found."); process.exit(1); }
+  var _gStart = _spB.indexOf("_piperGovernStart()"), _gInit = _spB.indexOf("_piperInit()");
+  if (_gStart < 0) {
+    console.error("GOVERNOR CONTRACT: the START gate (_piperGovernStart) is gone from _speakPiper — pages will spend the full iOS energy budget and the B9 tab deaths return (v1.434).");
+    process.exit(1);
+  }
+  if (_gInit >= 0 && _gStart > _gInit) {
+    console.error("GOVERNOR CONTRACT: the START gate runs AFTER engine init — a governed read still boots/spends the wasm engine before falling back (v1.434).");
+    process.exit(1);
+  }
+  if (_spB.indexOf("_piperGovernHard()") < 0) {
+    console.error("GOVERNOR CONTRACT: the HARD mid-read gate (_piperGovernHard) is gone — a long read started just under the start gate can cross the death floor mid-flight (v1.434).");
+    process.exit(1);
+  }
+} catch (e) { console.error("GOVERNOR CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,

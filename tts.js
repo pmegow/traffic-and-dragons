@@ -886,6 +886,8 @@ var TTS = (function() {
          // v1.430 (B9 H1): the playback-layer counters — ctx age in units / recycles / decode fallbacks
          + " ctxSyn=" + _ctxSynths + "/" + AUDIO_CTX_RECYCLE_SYNTHS + " cr=" + _ctxRecycles + " da=" + _decodeFallbacks
          + (_bypassPlayback ? " BYPASS" : "")
+         // v1.434 (B9 root cause): the work budget — cumulative synth CPU + whether the governor latched
+         + " synthCPU=" + Math.round(_piperCpuMs / 1000) + "s" + (_piperGoverned ? " GOVERNED" : "")
          + _piperMemNote();
   }
 
@@ -1095,6 +1097,50 @@ var TTS = (function() {
   // toast is the only instrument we have in a moving car.
   var _piperBootAt        = Date.now();  // page-load timestamp — crumb "min into the session"
   var _piperSynthsTotal   = 0;           // successful predicts since page load (crumb forensics)
+
+  // ⛨ B9 ROOT-CAUSE FIX (v1.434): the WORK-BUDGET GOVERNOR.
+  // Three weeks of instrumentation ended at a mechanism no memory work can touch: iOS kills the
+  // WebContent process after a CUMULATIVE budget of heavy synthesis work PER PAGE LOAD — the
+  // energy assassin. Proven by: 7 harness deaths at EXACTLY the same synth index; idle at the
+  // fatal memory level SURVIVING twice (235s+ at 354MB); resume-after-idle dying at synth 10
+  // with ZERO new memory growth (no refund — cumulative); game deaths at pc 90-132 whether the
+  // work was sprinted (75s) or paced (20min); memory at death spanning 248-624MB (a slice,
+  // never the trigger). Full record: DOC/BUGS.md ▸ B9.
+  // The governor spends LESS than the budget. Two thresholds against the observed floor
+  // (90 synths / ~90-145s synth CPU):
+  //   START gate — a new read will not BEGIN on Piper once the page has done 40 synths or 60s
+  //   of synthesis (a worst-case ~46-unit read from there stays under the floor);
+  //   HARD gate  — a read in progress stops synthesizing at 75 synths / 100s and hands its
+  //   REMAINDER to the native voice via the queue (scheduled Piper audio plays out first).
+  // Once tripped, the page is GOVERNED (latched): narration continues in the NATIVE system
+  // voice — zero wasm work; the OS's own synthesizer is not the assassin's target — and the
+  // player is told LOUDLY. A reload resets the budget (per-page-load accounting), so the next
+  // session starts on Piper again. Quality degrades late-session; the tab stops dying.
+  var PIPER_GOV_START_SYNTHS = 40;
+  var PIPER_GOV_START_CPU_MS = 60000;
+  var PIPER_GOV_HARD_SYNTHS  = 75;
+  var PIPER_GOV_HARD_CPU_MS  = 100000;
+  var _piperCpuMs    = 0;      // cumulative wall-ms inside predict() this page (single-threaded wasm: wall≈CPU)
+  var _piperGoverned = false;  // latched — a spent budget cannot un-spend
+  function _piperGovernLatch(where) {
+    if (_piperGoverned) return;
+    _piperGoverned = true;
+    var msg = "🔋 Piper is resting for this session (iOS energy limit: " + _piperSynthsTotal + " synths / "
+            + Math.round(_piperCpuMs / 1000) + "s of synthesis). Narration continues in the system voice — reloading the page brings Piper back.";
+    console.warn("[tts piper] governor engaged (" + where + "): " + msg);
+    if (typeof showToast === "function") showToast(msg, 8000);
+    if (typeof erCrumb === "function") erCrumb("piper-governor", where + " " + _piperSynthsTotal + "syn " + Math.round(_piperCpuMs / 1000) + "s");
+  }
+  function _piperGovernStart() {
+    if (_piperGoverned) return true;
+    if (_piperSynthsTotal >= PIPER_GOV_START_SYNTHS || _piperCpuMs >= PIPER_GOV_START_CPU_MS) { _piperGovernLatch("read-start"); return true; }
+    return false;
+  }
+  function _piperGovernHard() {
+    if (_piperGoverned) return true;
+    if (_piperSynthsTotal >= PIPER_GOV_HARD_SYNTHS || _piperCpuMs >= PIPER_GOV_HARD_CPU_MS) { _piperGovernLatch("mid-read"); return true; }
+    return false;
+  }
   var _piperSynthsSession = 0;           // predicts since the ORT session was (re)built — recycle trigger
   var _piperRecycles      = 0;           // #16c: ORT-session recycles this page load — with ps below, breaks the
                                          // PIPER_RECYCLE_AFTER=30 confound that made "late in the read" and
@@ -1565,6 +1611,10 @@ var TTS = (function() {
   async function _speakPiper(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
 
+    // B9 governor START gate (v1.434): the page's synthesis budget is near spent — this read
+    // never touches the wasm engine. The tab stops dying because the work stops happening.
+    if (_piperGovernStart()) { _curNative = true; _speakNative(text); return; }
+
     var ctx = _ensureCtx();
     // Audit #17 (v1.341): no ctx at all → native fallback, never a silent drop.
     if (!ctx) { console.warn("[tts piper] AudioContext unavailable — line falls back to native"); _curNative = true; _speakNative(text); return; }
@@ -1631,6 +1681,10 @@ var TTS = (function() {
           // the bypass experiment is armed (undefined serializes away).
           cs: _ctxSynths, cr: _ctxRecycles, da: _decodeFallbacks,
           by: _bypassPlayback ? 1 : undefined,
+          // v1.434 (B9 root cause): cpu = cumulative synth work (the budget the kill tracks);
+          // gv = the governor latched. A death crumb with gv:1 would mean the budget constants
+          // are too high for this device — lower them, don't re-diagnose.
+          cpu: Math.round(_piperCpuMs / 1000), gv: _piperGoverned ? 1 : undefined,
 
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
         }));
@@ -1655,6 +1709,16 @@ var TTS = (function() {
 
     for (var i = 0; i < units.length; i++) {
       if (_piperEpoch !== myEpoch) return;   // stale — stop()/skip() invalidated this loop mid-flight
+      // B9 governor HARD gate (v1.434): a long read crossing the absolute floor mid-flight stops
+      // synthesizing and hands its REMAINDER to the native voice — queued, so the already-
+      // scheduled Piper audio plays out first (onAllDone → _drain picks it up). i>0 always: the
+      // START gate owns the fresh case, and unit 0 completing keeps anyOk semantics intact.
+      if (i > 0 && _piperGovernHard()) {
+        var _remText = units.slice(i).map(function(ru){ return ru.text; }).join(" ");
+        if (_remText) _queue.unshift({ text: _remText, native: true });
+        console.warn("[tts piper] governor: read stopped at unit " + i + "/" + units.length + " — remainder queued on the native voice");
+        break;
+      }
       var u = units[i];
       _crumb(i, false);   // about to synth unit i+1 — a tab kill here names it at next boot
 
@@ -1692,15 +1756,17 @@ var TTS = (function() {
         }
       }
 
-      var blob;
+      var blob, _pt0 = performance.now();
       try {
         // trailing space: documented static-tail guard; _piperSerial: audit #9 (never concurrent
         // with a prewarm predict or another flow's ensure/download on the shared wasm session)
         blob = await _piperSerial(function() { return mod.predict({ text: u.text + " ", voiceId: uVoice, rate: getRate() }); });
       } catch(e) {
+        _piperCpuMs += performance.now() - _pt0;   // v1.434: the work was spent either way (governor budget)
         console.warn("[tts piper] synth failed on unit " + (i + 1) + "/" + units.length + ", skipping:", e && e.message);
         continue;
       }
+      _piperCpuMs += performance.now() - _pt0;      // v1.434: governor budget — cumulative synthesis work
       _piperSynthsTotal++; _piperSynthsSession++;   // r8: count BEFORE the stale check — the wasm memory was spent either way
       _frameSampleMem();   // v1.419 (B9): per-unit high-water sampling — the peak is what kills, and it lives INSIDE the read
       if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
@@ -1787,6 +1853,7 @@ var TTS = (function() {
   // Exported on the public API. Wired to TTS-enable by toggle() and to the settings modal's Save
   // handler (both: only when the selected engine is Piper) — see §5 Q4.
   function prewarmPiper(voiceId, onlyIfDownloaded) {
+    if (_piperGoverned) return;   // v1.434: a governed page speaks native — don't spend budget warming an engine that won't run
     if (!_piperOk()) return;   // known-broken within the retry window — don't hammer it every toggle-on
     var myEpoch = _piperEpoch;
     (async function() {
