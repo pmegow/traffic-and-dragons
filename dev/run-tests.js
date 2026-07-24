@@ -166,6 +166,13 @@ try {
     console.error("AUDIO RECOVERY CONTRACT: the frozen-clock zombie detector is gone — a 'running' ctx with a stalled render clock plays silence forever and no tap can ever fix it (v1.437).");
     process.exit(1);
   }
+  // ⑦ v1.438 (field: tap rebuilt the ctx but left silence + a bar stuck on "Speaking…"): the
+  //    rebuild must REQUEUE the interrupted item — "tap anywhere to resume" has to actually
+  //    resume, and a teardown that tells no one leaves the play bar lying forever.
+  if (_rec.indexOf("_queue.unshift(replayItem)") < 0 || _ncA(_ttsA).indexOf("_curItem = item") < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: the doomed-ctx rebuild no longer requeues the in-flight item (_curItem/replayItem) — a recovery tap discards the narration and strands the play bar on 'Speaking…' (v1.438).");
+    process.exit(1);
+  }
 } catch (e) { console.error("AUDIO RECOVERY CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── RESPAWN ORDERING CONTRACT (v1.424, B9) ───────────────────────────────────────────────

@@ -495,6 +495,8 @@ var TTS = (function() {
   var _queue      = [];
   var _playing    = false;
   var _paused     = false;
+  var _curItem    = null;   // the item _drain last dispatched (v1.438) — a doomed-ctx rebuild
+                            // requeues it so "tap anywhere to resume" re-reads instead of discarding
   var _lastSpokenText  = "";
   var _lastNarration   = "";   // set ONLY by speakResponse (rank 17/18, todo_carplay.html) — narration-
                                 // sourced, unlike _lastSpokenText which every speak() caller (incl. the
@@ -700,15 +702,30 @@ var TTS = (function() {
     // Mirror the toggle: tear down the doomed read first. Anything scheduled on the old context
     // is inaudible by definition, and `_speakPiper` captured that context in a local — letting a
     // live read keep scheduling onto a closed ctx would throw on every remaining unit.
-    if (_playing) { try { _stopCurrent(); } catch (e) {} _queue = []; _playing = false; }
+    // v1.438 (field: the tap rebuilt the ctx but left silence + a bar stuck on "Speaking…"): the
+    // interrupted item is RE-QUEUED on the fresh context below, so the tap actually delivers the
+    // resume the toast promises — a re-read of the item from its top, not a discard. The rest of
+    // the queue is KEPT (v1.421 cleared it, but queued items hold only text — they never touched
+    // the dead ctx; each dispatch captures the CURRENT ctx). And when there is nothing to replay,
+    // the bar is told the truth (_showBar(false)) instead of lying "Speaking…" forever.
+    var replayItem = _playing ? _curItem : null;
+    var wasPlaying = _playing;
+    if (_playing) { try { _stopCurrent(); } catch (e) {} _playing = false; }
     _closeCtx();                       // close() + null + drop the old primer
     var ctx = _ensureCtx();            // now genuinely builds a new one
-    if (!ctx) return false;
+    if (!ctx) { if (wasPlaying) _showBar(false); return false; }
     _ctxDoomed = false;
     _resumeCtx(ctx, (tag || "recover") + "-rebuilt");
     primeAudioSession();               // re-claim the iOS playback category on the NEW context
     console.warn("[tts] audio context was unrecoverable (" + was + ") — rebuilt in-gesture (" + (tag || "?") + "). This is what a voice off/on did by hand.");
     if (typeof erCrumb === "function") erCrumb("ctx-rebuilt", (tag || "?") + " from " + was);
+    if (replayItem) {
+      console.info("[tts] re-reading the interrupted item on the fresh context");
+      _queue.unshift(replayItem);
+      _drain();
+    } else if (wasPlaying) {
+      _showBar(false);
+    }
     return true;
   }
   function _armCtxUnlock() {
@@ -1105,6 +1122,7 @@ var TTS = (function() {
       _playing = false;
       _paused  = false;
       _curNative = false;
+      _curItem = null;    // v1.438: nothing in flight — nothing for a ctx rebuild to replay
       _clearCtxWatch();   // audit #10 — nothing left to guard
       _clearPosState();   // rank 23 — same lifecycle as the ctx watch above
       _showBar(false);
@@ -1116,6 +1134,7 @@ var TTS = (function() {
     _showBar(true);
     _updatePauseBtn(false);
     var item = _queue.shift();
+    _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
     if (item.native) _speakNative(item.text);
     else if (item.server) _speakServer(item.text, item.voiceId, item.voices);
