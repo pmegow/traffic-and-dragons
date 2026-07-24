@@ -4070,6 +4070,25 @@ function runEngineTests(R){
     return ci.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"second migrate mangled stacks: "+ci.join("|");
   });
 
+  // ── B9 H1 playback-layer instrumentation (v1.430) ─────────────────────────────────────────
+  section("TTS B9 H1 (v1.430)");
+  t("diag() carries the H1 playback counters (ctxSyn/cr/da)",function(){
+    var d=TTS.diag();
+    if(d.indexOf("ctxSyn=")<0)return "no ctxSyn in diag: "+d;
+    if(d.indexOf(" cr=")<0)return "no cr in diag: "+d;
+    if(d.indexOf(" da=")<0)return "no da in diag: "+d;
+    return true;
+  });
+  t("setBypassPlayback(true) persists, is loud in diag; (false) clears both",function(){
+    var r=TTS.setBypassPlayback(true);
+    if(r!==true)return "arm did not return true";
+    if(store.get("tnd_tts_bypass_v1")!=="1")return "bypass key not persisted";
+    if(TTS.diag().indexOf("BYPASS")<0)return "armed bypass invisible in diag (silent experiment = the exact blindness class)";
+    TTS.setBypassPlayback(false);
+    if(store.get("tnd_tts_bypass_v1"))return "bypass key not cleared on disarm";
+    return TTS.diag().indexOf("BYPASS")<0?true:"disarmed bypass still shows in diag";
+  });
+
   // ── TTS shared text-prep (TODO #41 Phase 1 — normalizeForTTS/splitSentences/packLongUnit) ──
   section("TTS text-prep (#41 Phase 1)");
   var _tp=TTS._textPrep;

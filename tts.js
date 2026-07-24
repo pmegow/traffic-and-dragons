@@ -414,6 +414,37 @@ var TTS = (function() {
   var _audioCtx   = null;   // single persistent context, created on first toggle-on
   var _nextStart  = 0;      // scheduled playback cursor (AudioContext time)
   var _sources    = [];     // scheduled AudioBufferSourceNodes
+
+  // ── B9 H1 (v1.430): the playback layer is the new prime suspect ─────────────────────────────
+  // 25 crumbs: the tab dies at pc≈90-132 cumulative synths under TWO different synthesis
+  // architectures, at wildly varying ORT memory. The two things those architectures share are
+  // the process and THIS layer — the one AudioContext that lives as long as the page, fed one
+  // AudioBuffer + one AudioBufferSourceNode per synth, ~90-132 times before every death. WebKit
+  // has shipped exactly this fingerprint (count-gated kills at trivial measured memory: WebKit
+  // #198964, #224279). See DOC/piper_deepdive.html H1 and the BUGS.md decision table.
+  // The counters ride the crash crumb so the NEXT death is self-interpreting:
+  //   cs — sources started on the CURRENT context. Death with cs<40 (fresh ctx) → ctx-scoped
+  //        accumulation FALSIFIED, run the bypass experiment. Survival past pc≈150 with cr>0
+  //        → confirmed and fixed.
+  //   cr — deliberate healthy-context recycles this page load.
+  //   da — decodeAudioData fallback firings (deepdive G5): the manual WAV parse exists to avoid
+  //        WebKit's daemon-side decode retention, and its failure path was console-only. da>0
+  //        means the KNOWN leak class has been active and invisible all along.
+  var AUDIO_CTX_RECYCLE_SYNTHS = 40;  // recycle the ctx between reads once ≥N units played on it
+                                      // (deaths start ~90; 40 + a worst-case ~45-unit read stays under)
+  var _ctxSynths       = 0;   // crumb: cs — reset by _ensureCtx whenever a NEW context is built
+  var _ctxRecycles     = 0;   // crumb: cr
+  var _decodeFallbacks = 0;   // crumb: da
+  // The bypass experiment (deepdive Part 4): synthesize every unit normally but discard the WAV
+  // before decode/schedule — full synthesis load, ZERO playback objects. Survives past pc≈150 →
+  // the accumulator is playback-side; dies on schedule → playback exonerated, move to the
+  // narration-OFF discriminator (synthesis vs turn loop). Persisted so a phone tester can arm it
+  // before a session; LOUD (toast at read start + by:1 on every crumb) so it can never be
+  // silently left on.
+  var BYPASS_K = "tnd_tts_bypass_v1";
+  var _bypassPlayback = false;
+  try { _bypassPlayback = store.get(BYPASS_K) === "1"; } catch (e) {}
+  var _bypassToasted = false;
   var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
   var _nativeStallT  = null;// pending native stall-watchdog timer — cleared by _stopCurrent so a
                             // skipped chain can't be resurrected by a stale watchdog (v1.334, audit #4)
@@ -456,6 +487,9 @@ var TTS = (function() {
     try {
       _audioCtx  = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
       _nextStart = 0;
+      _ctxSynths = 0;   // B9 H1 (v1.430): cs counts sources on the CURRENT context — every rebuild
+                        // path (toggle, recoverAudio, recycle) funnels through here, so the reset
+                        // cannot be forgotten by a future rebuild site
     } catch(e) { console.warn("[tts] AudioContext unavailable:", e.message); }
     return _audioCtx;
   }
@@ -530,6 +564,25 @@ var TTS = (function() {
     if (_paused || !_audioCtx) return false;
     if (!_ctxDoomed && _audioCtx.state !== "interrupted") {
       if (_audioCtx.state !== "running") _resumeCtx(_audioCtx, tag || "recover");
+      // B9 H1 (v1.430): recycle a HEALTHY but well-used context. This runs in the same gesture
+      // slot as the B10 repair (sendAction calls recoverAudio on every send), reusing the exact
+      // close→rebuild→re-prime sequence the field already proved (the voice toggle, then B10).
+      // Idle-gated HARD: never while anything is playing, queued, or paused — recycling then
+      // would cut live audio; between reads it is inaudible. If per-source native state is what
+      // jetsam counts (deepdive H1), this caps it below the 90-132 death band forever; if the
+      // next death arrives with cs<40 anyway, the theory is falsified by that one crumb.
+      else if (!_playing && !_queue.length && _ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS) {
+        var used = _ctxSynths;
+        _closeCtx();                     // close() + null + drop the old primer
+        var fresh = _ensureCtx();        // new context, in-gesture; resets _ctxSynths
+        if (!fresh) return false;
+        _ctxRecycles++;
+        _resumeCtx(fresh, (tag || "recover") + "-ctxrecycle");
+        primeAudioSession();             // re-claim the iOS playback category on the NEW context
+        console.info("[tts] playback context recycled after " + used + " units (B9 H1) — recycle #" + _ctxRecycles);
+        if (typeof erCrumb === "function") erCrumb("ctx-recycle", "#" + _ctxRecycles + " after " + used + "u");
+        return true;
+      }
       return false;
     }
     var was = _audioCtx.state;
@@ -814,6 +867,9 @@ var TTS = (function() {
          + " eng=" + (_piperFrame ? "frame" : (_piperFrameFailed ? "inpage-fallback" : "inpage"))
          + (_frameMemPeak ? " ortPeak=" + _frameMemPeak : "")
          + (_frameRespawnFails ? " respawnFails=" + _frameRespawnFails : "")   // v1.419: the high-water mark, which is what a jetsam kill responds to
+         // v1.430 (B9 H1): the playback-layer counters — ctx age in units / recycles / decode fallbacks
+         + " ctxSyn=" + _ctxSynths + "/" + AUDIO_CTX_RECYCLE_SYNTHS + " cr=" + _ctxRecycles + " da=" + _decodeFallbacks
+         + (_bypassPlayback ? " BYPASS" : "")
          + _piperMemNote();
   }
 
@@ -1523,7 +1579,13 @@ var TTS = (function() {
     // commaSplit=true: Piper gets its rhythm from scheduled gaps (see the pause tiers above)
     var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
-    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : ""));
+    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : "") + (_bypassPlayback ? " BYPASS" : ""));
+    // B9 bypass experiment: LOUD, once per page load — an armed experiment must never be
+    // mistaken for broken audio (no-silent-failures), and never silently left on.
+    if (_bypassPlayback && !_bypassToasted) {
+      _bypassToasted = true;
+      if (typeof showToast === "function") showToast("⚠ B9 experiment armed: synthesizing WITHOUT playback — narration is silent on purpose (TTS.setBypassPlayback(false) to disarm)", 8000);
+    }
 
     // Per-unit crash journal (v1.324) — see _crumbDone/loadSettings. Written BEFORE each unit's
     // synth, so if the tab dies mid-predict the crumb names the killing unit.
@@ -1547,6 +1609,12 @@ var TTS = (function() {
           // post-fix death reported a placid 308MB precisely because nothing sampled mid-read.
           om: _ortMem(), omp: (_frameMemPeak || null), pn: _phonInstances(), rf: (_frameRespawnFails || null),
           eng: _piperFrame ? "frame" : "inpage", // v1.418: was the B9 fix actually active at death?
+          // v1.430 (B9 H1): cs = sources on the CURRENT AudioContext (death with cs<40 falsifies
+          // ctx-scoped playback accumulation in one crumb); cr = healthy-ctx recycles; da =
+          // decodeAudioData fallbacks (G5 — 0 is the evidence, so it always rides); by only when
+          // the bypass experiment is armed (undefined serializes away).
+          cs: _ctxSynths, cr: _ctxRecycles, da: _decodeFallbacks,
+          by: _bypassPlayback ? 1 : undefined,
 
           up: Math.round((Date.now() - _piperBootAt) / 60000), done: !!done
         }));
@@ -1621,13 +1689,23 @@ var TTS = (function() {
       _frameSampleMem();   // v1.419 (B9): per-unit high-water sampling — the peak is what kills, and it lives INSIDE the read
       if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
 
+      // B9 bypass experiment (v1.430): full synthesis load, ZERO playback objects — drop the WAV
+      // Blob untouched (no arrayBuffer copy, no decode, no source, no scheduling). anyOk=true so
+      // the all-units-failed native fallback below cannot fire and SPEAK a passage the experiment
+      // is deliberately keeping silent. pc keeps climbing and the crumb keeps writing, so a death
+      // (or survival past pc≈150) under this flag is the H1 discriminator.
+      if (_bypassPlayback) { anyOk = true; continue; }
+
       var buf;
       try {
         var arrBuf = await blob.arrayBuffer();
         if (_piperEpoch !== myEpoch) return;   // stale — discard mid-decode
         buf = _wavToAudioBuffer(arrBuf, ctx);  // v1.321: manual PCM16 parse — bypasses WebKit's decodeAudioData daemon-side retention
         if (!buf) {
-          console.warn("[tts piper] manual WAV parse failed on unit " + (i + 1) + "/" + units.length + " — falling back to decodeAudioData (iOS memory risk)");
+          _decodeFallbacks++;   // v1.430 (deepdive G5): this is the KNOWN daemon-side retention
+                                // path (v1.321) and its only signal was a console no phone has —
+                                // `da` on the crumb finally says whether it fires in the field
+          console.warn("[tts piper] manual WAV parse failed on unit " + (i + 1) + "/" + units.length + " — falling back to decodeAudioData (iOS memory risk, da=" + _decodeFallbacks + ")");
           buf = await ctx.decodeAudioData(arrBuf);
         }
         if (_piperEpoch !== myEpoch) return;   // stale — the guard that matters most: never schedule over the next item
@@ -1642,6 +1720,7 @@ var TTS = (function() {
       src.connect(ctx.destination);
       var startAt = Math.max(nextStart, ctx.currentTime + 0.03);   // never schedule in the past
       src.start(startAt);
+      _ctxSynths++;   // B9 H1 (v1.430): one more source started on the current context (crumb: cs)
       nextStart  = startAt + buf.duration + unitGap(u);   // tiered: comma/clause/fullstop/paragraph (see PAUSE_* above)
       _nextStart = nextStart;
 
@@ -1652,7 +1731,12 @@ var TTS = (function() {
         // Free the played buffer (v1.320): disconnect + drop our reference so the decoded PCM can
         // GC as playback progresses — with the backpressure above, memory stays ~constant however
         // long the passage is. stop()/skip() only need the still-pending sources.
+        // v1.430 (B9 H1): ALSO null the node's buffer ref — Safari is documented to retain a
+        // source's decoded PCM after disconnect unless the buffer is explicitly detached
+        // (standardized-audio-context #718); disconnect+deref alone was the one release step
+        // this path skipped.
         try { mySrc.disconnect(); } catch(e) {}
+        try { mySrc.buffer = null; } catch(e) {}
         var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
         if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
       }; })(src);
@@ -2547,6 +2631,19 @@ var TTS = (function() {
     // B9 (v1.418): tear down the synthesis realm and build a fresh one. User-facing mitigation
     // AND the deterministic proof that realm teardown returns the wasm memory.
     respawnEngine:     respawnEngine,
+    // B9 H1 (v1.430): arm/disarm the playback-bypass experiment — synthesize normally, discard
+    // every WAV before decode/schedule. Persisted (a phone tester arms it before a session);
+    // LOUD when active (read-start toast + BYPASS in diag + by:1 on every crumb). Survival past
+    // pc≈150 under this flag pins the B9 accumulator to the playback layer; a death on the usual
+    // schedule exonerates playback entirely. See the BUGS.md B9 decision table.
+    setBypassPlayback: function(on) {
+      _bypassPlayback = !!on;
+      _bypassToasted = false;
+      try { if (on) store.set(BYPASS_K, "1"); else store.del(BYPASS_K); } catch (e) {}
+      if (typeof showToast === "function") showToast(on ? "⚠ B9 bypass ARMED — narration will be silent" : "B9 bypass disarmed — playback restored");
+      console.info("[tts] B9 playback bypass " + (on ? "ARMED — synths run, nothing plays" : "disarmed"));
+      return _bypassPlayback;
+    },
     // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,

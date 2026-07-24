@@ -192,6 +192,33 @@ try {
   }
 } catch (e) { console.error("RESPAWN ORDERING CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── PLAYBACK RECYCLE CONTRACT (v1.430, B9 H1) ─────────────────────────────────────────────
+// 25 crumbs: the tab dies at pc≈90-132 under two synthesis architectures whose one shared code
+// is the main-page playback layer. The v1.430 response: null the source's buffer on ended (the
+// Safari #718 release step this path skipped) and recycle the AudioContext between reads. The
+// recycle MUST stay idle-gated — firing while audio is playing/queued would cut live narration,
+// and that regression would be inaudible in any headless test.
+try {
+  var _fsP = require("fs"), _pathP = require("path");
+  var _ttsP = _fsP.readFileSync(_pathP.join(__dirname, "..", "tts.js"), "utf8");
+  var _ncP = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  if (_ncP(_ttsP).indexOf("mySrc.buffer = null") < 0) {
+    console.error("PLAYBACK RECYCLE CONTRACT: the onended handler no longer nulls the source's buffer — Safari retains a source's decoded PCM after disconnect unless the buffer is explicitly detached (standardized-audio-context #718, v1.430).");
+    process.exit(1);
+  }
+  var _recA = _ncP((_ttsP.match(/function recoverAudio\(tag\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_recA) { console.error("PLAYBACK RECYCLE CONTRACT: recoverAudio not found."); process.exit(1); }
+  if (_recA.indexOf("_ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS") < 0) {
+    console.error("PLAYBACK RECYCLE CONTRACT: the healthy-context recycle is gone from recoverAudio — per-source native accumulation on the long-lived AudioContext is B9's prime suspect and nothing else caps it (v1.430).");
+    process.exit(1);
+  }
+  var _recCond = _recA.slice(_recA.indexOf("_ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS") - 200, _recA.indexOf("_ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS"));
+  if (_recCond.indexOf("!_playing") < 0 || _recCond.indexOf("_queue.length") < 0) {
+    console.error("PLAYBACK RECYCLE CONTRACT: the ctx recycle lost its idle gate (!_playing / !_queue.length) — recycling with audio live cuts narration mid-word, and no headless test can hear it (v1.430).");
+    process.exit(1);
+  }
+} catch (e) { console.error("PLAYBACK RECYCLE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────
 // Table Talk must NEVER influence gameplay. That guarantee is structural, not prompt-deep: the
 // TT path in sendAction skips applyMuts, the transcript, sessionLog, summarize, engine notes,
