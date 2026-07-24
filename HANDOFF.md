@@ -1,236 +1,103 @@
-# Traffic and Dragons — Session Handoff (2026-07-22, end of day)
+# Traffic and Dragons — Session Handoff (2026-07-24, end of a 9-hour day)
 
-**Deployed:** `v1.427` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260722u` (sw.js) · Piper runtime **r9**
-**Tests:** 796 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
+**Deployed:** `v1.434` (APP_VERSION in globals.js) · CACHE `tnd-v3-20260724a` (sw.js) · Piper runtime **r9** (no vendored file touched all day, again on purpose)
+**Tests:** 805 assertions, all green · **Branch:** master, everything committed and pushed, tree clean
+**Harness:** piper_test.html at **v0.10** (network-first in the SW — deploys instantly, versions independently)
+**Model note:** this session ran on **Fable** (arrived a day early); the Fable review queue was opened and two entries closed.
 
-`PIPER_RUNTIME_REV` is still **r9** and **no `vendor/piper/*` file changed all session** — every fix
-was landed in app code on purpose, to stay clear of the permanent-cache delivery trap that ate
-v1.322/v1.323.
-
-Twelve versions, v1.416 → v1.427, almost entirely the voice stack. Five bugs closed, **B9 still
-open** — and B9 is why this page is worth reading carefully, because **I spent most of the day
-optimising a variable that the field showed is not causal.** The record of how that was established
-is worth more than any of the code.
-
-Last confirmed live (screenshot, v1.426): **`disposable realm · ORT 207MB`, 5 of 10 voice slots** —
-a healthy fresh engine after the ~1GB voice surplus was cleared (see the B9 boot-spawn note below).
-
-**Read `DOC/BUGS.md` first.** It is the live record and it is where the reasoning is.
-**Fable:** `todo_checkWithFable.md` **entry 6** is written for you and names what to challenge.
+Seven engine versions (v1.428 → v1.434), seven harness versions (v0.4 → v0.10), and the headline:
+**B9 IS ROOT-CAUSED AND CLOSED**, with the interim fix shipped and the real fix designed and mandated.
 
 ---
 
-## ⚠ B9 — the one still open. Read all of this before writing code.
+## ⭐ B9 — ROOT CAUSE FOUND, GOVERNOR SHIPPED, SERVER-TTS MANDATED
 
-Narration dies mid-passage on iPhone and the tab is killed with no unload event, so the only
-evidence that survives is the breadcrumb written before the kill. **Twenty-five crumbs, ten versions.**
+**The verdict, after ~35 deaths and a day of on-device experiments run live with the user:**
+**iOS kills the WebContent process after a CUMULATIVE budget of heavy synthesis work per page load**
+— the energy assassin. ~100 game-unit synths ≈ ~29 large harness synths ≈ ~2 minutes of sustained wasm
+inference, then the kill, deterministically. Not memory (deaths at ORT 248-624MB; idle at the fatal
+level survived twice; a same-index death arrived at a different memory state), not grows (geometric,
+~10 per session, final grow completed 4 synths before a death), not playback (bypass run died with
+zero audio objects), not turns (narration-off survived 10+), not rate (75s sprint = 20min paced),
+not the realm (in-page deaths identical). The full falsification chain — every hypothesis, every
+instrument, every pre-registered prediction and its honest outcome — is in **DOC/BUGS.md ▸ B9**,
+which is now effectively a case study in eliminative diagnosis. Also read **DOC/piper_deepdive.html**
+(the 14-agent external research pass that reframed the investigation mid-day).
 
-### The headline: the kill is orthogonal to the whole voice-engine architecture
+**Shipped — the work-budget governor (v1.434, tts.js, off drift surface):** Piper reads stop STARTING
+at 40 synths/60s per page and stop MID-READ at 75/100s (remainder queued on the native voice); the
+page latches GOVERNED with a loud 🔋 toast; a reload resets the budget. The tab stops dying because
+the work stops happening. `cpu`/`gv` ride the crash crumb; 2 sabotage-proven tripwires (GOVERNOR
+CONTRACT). **A future death crumb with `gv:1` means the constants are too high for that device —
+lower them, don't re-diagnose.**
 
-**The tab dies at the same cumulative-synth count whether synthesis runs in the disposable realm or
-in the in-page engine.** Late in the session, six pages ran `eng:"inpage"` (their frame boot timed
-out — see the boot-spawn note next) and died at `pc` 100–132, indistinguishable from the
-realm-based deaths. **Twenty-five crumbs, two entirely different engine architectures, the same
-band.** The realm/memory axis — which is what v1.418 through v1.424 was built on — is **orthogonal
-to what kills the tab.** Do not resume that line of work without new evidence pointing back at it.
+**Mandated — server-side TTS (TODO #90, user "GO" 2026-07-24):** the governor's native fallback is
+"awful" (user, correctly). The close: `POST /api/tts` on the Fly server — self-hosted Piper first
+(same 19 voices, identical audio, zero client work, Car Mode safe), **Kokoro-82M** behind the same
+endpoint as the quality upgrade (better than Piper mediums + voice blending for per-character
+voices). Design + the five decisions to ratify (auth, topology, fallback UX, Kokoro benchmark gate,
+volume size): **DOC/DOC_server_tts.html**. Two-repo change; the server repo is at
+`C:\Users\hannu\Projects\traffic-and-dragons-server` (outside this tree). **Build in a fresh
+session; get D1-D5 answers first.**
 
-### ✅ Side-quest resolved: the "v1.424 boot-spawn regression" was device pressure, not code
+**The instruments that got us here (all deployed, all still useful):**
+- Harness v0.4-v0.10: unbounded-shapes mode, per-grow ring with pre-commit IN-FLIGHT marker, the
+  IDLE test, `synthCPU` accounting, and **self-emailing death reports** (error-report.js loaded in
+  the harness; deaths auto-mail with ctx `piper-harness-death`, 📮 button for manual state).
+  ⚠ Standing sync rule: `piper-harness-*` reports are B9 evidence, never new bug rows; harness
+  reports from LOCALHOST are test artifacts (three are ledgered, one with an invented synthCPU
+  value — do not cite them as field data).
+- Game-side: bypass experiment (Admin ▸ 🧪 checkbox, v1.431), bypass-death boot report + the
+  unload-stamped er-ring (v1.432 — `erPrevDirty()` finally DETECTS dirty ends instead of asserting).
 
-For a stretch, every v1.424 page failed its frame boot (`eng:"inpage"`, 6/6) where every earlier
-page had succeeded (`eng:"frame"`, 0/18) — a stark version-boundary correlation. It is **resolved:
-the user cleared the ~1GB of surplus voices, hard-reloaded, and it reads `disposable realm` again.**
-So a frame boot compiles the ORT wasm + loads a model, and under OPFS pressure that blew the 30s
-ready timeout. The `_piperInitP` guard is exonerated (it is inert for a single spawn). **No code
-change was warranted, and none was made.** ⚠ Single confirming observation — watch it *stays*
-`frame` deep into a long session; a flip back to `inpage` well before ~1GB re-accumulates would mean
-the threshold is lower than assumed.
+## Also shipped today
 
-### The one durable fact
+- **v1.428** — `_frameRetryUpgrade` failure crumb (the last silent realm blind spot).
+- **v1.429** — Fable review of todo_checkWithFable **#6** (3 PASS, 1 finding): the v1.424
+  `_piperInitP` guard did NOT cover the read-during-respawn race; fixed (`_frameRespawnP` publish +
+  await), 2 sabotage-proven tripwires. Entry 6 moved to Reviewed.
+- **v1.433** — **TODO #89 built by Fable**: sleep rolls the clock to DAWN (the Day boundary IS dawn,
+  `clock%1440==0` ≈ 6am, ratified). `[REST:long]` reused as the overnight marker (no new tag);
+  same-response TIME_ADVANCE absorbed (the 28h-sleep guard); 30d/response advance cap (loud); the
+  spell-less-character Rest fix. Golden doc hash re-baselined (+369 chars). **todo_checkWithFable #3
+  (campaign clock) reviewed and moved to Reviewed** (4 PASS, 1 finding fixed = the cap).
+- **v1.430-432** — the B9 experiment chain (playback hygiene + ctx recycle, falsified by design;
+  the evidence plumbing that made the root cause findable).
+- **Docs:** DOC/piper_deepdive.html (the external deep dive) · DOC/DOC_server_tts.html (R1 design).
+- **/bugs**: B17 filed + investigated (`findings-ready`) — GM re-offers a location with no memory
+  of its destruction; root cause = NO channel serves a remote location's history (LOCATION_DESC is
+  write-once by design; locations[].notes is dead code; RAG's location bonus is current-location-
+  only; recency windows scrolled past). Fix sketch: `[LOCATION_STATE:]` + capped stateNotes[] +
+  always-present roll-up. **Drift surface, Fable-tier, design conversation wanted before code.**
 
-**Death tracks cumulative synths: `pc` = 90–125.** Nothing else predicts it. Read position, session
-age, uptime, recycles, resident voice count, engine architecture and **memory** all vary freely
-across deaths. ORT linear memory at death spans **301–624 MB**.
+## Open rows / queues
 
-### Falsified BY MEASUREMENT — do not re-litigate
+- **TODO #90** — server TTS. THE next build. Fresh session, D1-D5 first.
+- **B17** — `findings-ready`, Fable-tier, wants a short design talk (location-state tag semantics).
+- **TODO #88** — suggestion-button punctuation (S, Sonnet, backlog).
+- **Fable review queue** — entries **5, 4, 2** pending (6 and 3 closed today); order 5 → 2 → 4.
+- **B9 watch** — field validation of the governor: expect `piper-governor` crumbs and NO
+  narration-death crumbs; `gv:1` on a death = lower the budget constants.
+- **B13 / B15 / B16** — unchanged from the last handoff.
 
-1. **The phonemizer.** Flat at 16 MB in the lab *and* the field (`pm:16`, `pmc` tracking `pc`).
-2. **The r8 session recycle.** A/B'd: recycle-every-30 tracked recycle-off *to the byte*.
-3. **ORT session options**, `enableMemPattern` included — the strong prior. No effect, and the
-   options demonstrably reached the runtime.
-4. **Input-shape bucketing.** Padding to 32-phoneme buckets still climbed, which also proved the
-   growth is downstream of the input shape.
-5. **ORT memory magnitude.** Deaths at 301 MB and at 624 MB.
-6. **The isolation architecture itself** — see the headline above.
+## Gotchas that cost time today
 
-**Voice-model churn is nearly dead too:** three deaths had `vs:0` — zero voice switches in the read
-that killed them.
-
-### Three fixes that did not work, and why that matters more than the code
-
-- **v1.418** moved synthesis into a disposable iframe realm. It was ACTIVE in the field
-  (`eng:"frame"`) and the tab died anyway — **the respawn never triggered**, because memory never
-  reached the 400 MB threshold.
-- **v1.420's peak sampler was inert by construction.** `omp` can only differ from `om` if memory can
-  *drop*, which requires a working respawn. I should have seen that before shipping it.
-- **Then it triggered and never COMPLETED** — `rc:0`, same MB re-reported on every attempt. v1.422
-  crumbed the reason and the answer arrived on its first outing: **every failure is stage `spawn`,
-  "piper host did not signal ready within 30s".** The replacement realm never starts while the old
-  one is alive; the new iframe never even reaches its own `ready` post, which precedes any ORT import.
-
-**v1.424 flipped to destroy-then-build** on that evidence — tear the old realm down, null the
-pointers, construct into the freed space; `_piperInitP` guards the resulting no-engine window against
-a concurrent second spawn. ⚠ **STILL UNVERIFIED, but now UNBLOCKED.** No page had ever had a working
-realm to exercise it — either the respawn never triggered, or the frame boot failed. With the voices
-cleared the realm is live again, so the next crumb carrying `eng:"frame"` **and** a `realm-respawn`
-is the test; **`rc` rising above 0 is the pass signal.** (Note: whether it even matters is in doubt —
-see the headline. It is worth confirming it *completes*, not worth building further on.)
-
-### ⚠ An instrumentation blind spot still open — fix this before anything else here
-
-`_frameRetryUpgrade`, the between-reads self-heal that recovers from a boot-time frame failure,
-**crumbs its SUCCESS but only `console.warn`s its FAILURE.** The last crumb shows no recovery across
-four reads, so the retry either never fired or failed silently every time and we cannot tell which.
-**This is the exact blindness that hid the respawn failure for six versions.** It is a two-line fix.
-
-### The open question, and the cheapest next experiment
-
-**What accumulates once per `predict()` that is NOT ORT linear memory?** Nothing else is currently
-measured.
-
-**Do not start by instrumenting ORT again.** The highest-value discriminator costs nothing to run:
-**does a page with narration OFF but the same turn count survive?** That separates "per synth" from
-"per turn", and nothing built so far distinguishes them. If it dies with narration off, the whole
-Piper line is a red herring and the cause is somewhere in the turn loop.
-
-Other never-instrumented candidates: total page memory rather than ORT's wasm alone, decoded-audio /
-AudioBuffer lifetime, OPFS handles — and whether the kill is memory-driven at all rather than CPU or
-energy-driven.
-
-### What NOT to do
-
-Do not tune `PIPER_RESPAWN_MB` — it targets a variable measured not to be causal. Do not remove the
-realm: it works, costs little, and is the only thing that CAN reclaim if something re-implicates
-memory. Do not flip the respawn ordering back; there is a sabotage-proven tripwire against it.
-
----
-
-## ✅ B10 — root-caused and field-confirmed (v1.421)
-
-Two user observations cracked what four report arrivals and nine investigator agents could not: the
-downgrade toast fires **before the first word** of a read, and **tapping never restored audio — only
-a voice toggle off/on did.**
-
-**`_ensureCtx` replaces the AudioContext only when its state is `"closed"`, and an iOS-interrupted
-context is not closed.** So it handed the same dead object back to every recovery path — the
-tap-unlock, the 2 s `_armCtxWatch` poll, `visibilitychange`, the `_ctxRunning` gate — each of which
-called `resume()` on it. **iOS never hands an interrupted context back; `resume()` rejects forever.**
-That refusal loop, retried every two seconds, *is* B10's reported error.
-
-`recoverAudio` automates the voice toggle (close → rebuild → re-prime), wired to the tap-unlock and
-to `sendAction`. **User-confirmed: a tap now restores the voice with no toggle.**
-
-⚠ **Residual:** the interrupt can land *during* the GM call, after the send-gesture repair, so the
-first line of that read still degrades to native. The failure moved from "audio stays broken until
-you toggle" to "you lose one line, then any tap fixes it". **Do not try to repair at read start** —
-a context built outside a gesture is born suspended and `resume()` outside a gesture is refused
-(the v1.327 scenario). Cheapest direction: keep the recovery listener armed persistently while voice
-is on, so any incidental touch during the GM call repairs it first.
-
-**Bonus evidence:** the toast plays a sound through `sound.js`'s *separate* AudioContext — one
-context producing audio while tts.js's was interrupted. The device was never the problem. That
-retires the device-unavailable / media-daemon family permanently.
-
----
-
-## ✅ Also closed this session
-
-**The voice ✕ button never deleted anything** (v1.420, now field-confirmed working). The vendored
-`remove()` uses `FileSystemFileHandle.remove()` — Chrome-only — inside a catch that only
-`console.error`s, so on Safari every delete was a no-op that toasted success. It had also
-permanently disabled the 10-voice cap: eviction believed the removal, dropped the LRU stamp, and an
-unstamped id sorts *oldest*, so the next eviction re-picked the same phantom forever. That is how 13
-voices (~1 GB) accumulated. Fixed **locally in tts.js** with the standard `removeEntry()`, which
-throws. Automatic eviction now refuses to delete an assigned or narrator voice; manual ✕ stays
-unrestricted (user call).
-
-**B16 — a GM turn lost to a network failure** (v1.419). The typed action comes back on failure;
-turn-start/turn-fail crumbs record in-flight time and backgrounding; Car Mode makes a **sound** when
-a turn fails. The transport retry was deliberately NOT shipped — "Load failed" can occur *after* the
-request reached the provider, so a blind retry risks double billing and two server-side turns.
-
-**B14 — speaker voicing: VERIFIED and closed.** Four rounds. The fix that held was the user's own
-insight that one segmentation was doing two jobs — commas segment for **rhythm**, quotes for
-**voice**. Invariant for anyone touching the splitter: **pause boundaries must be a SUPERSET of
-voice boundaries**, and storage stays unit-indexed NAMES resolved at speak time.
-
-**Markdown emphasis was being spoken aloud** (v1.423) — "asterisk, the text is italic, asterisk".
-`escProse` stripped it for display all along; `normalizeForTTS` never did. ⚠ **Side effect:** the
-markers were also shifting unit boundaries, so speaker maps stored **before v1.423** for passages
-containing emphasis now fail their `sp.n` fuse and replay in a single voice. That is the fuse working
-correctly, not a regression.
-
-**Voice-slot UI, so the surplus was safe to clear** (v1.425 → v1.427, all presentational, off the
-drift surface). In Voice Settings' download list, a voice no character or the narrator uses renders
-its name **50% grey**; one in use is **bold**; long-press (500ms, `.qa`-style) opens a real
-`modalShell` dialog naming the assignee(s) or `UNASSIGNED`, with the iOS copy-callout suppressed
-inline (NOT the `.has-tip` class — that is claimed by `_ensureLongPressTips` and would double-fire).
-The dialog path was verified live in the browser (renders, z:400 above the settings modal,
-apostrophe-safe, ✕ closes); the long-press on a real voice row and the callout suppression are
-device-only. This is what let the user see and clear the ~1GB surplus that was starving the frame boot.
-
----
-
-## Open rows
-
-**B16** `fixed`, awaiting field · **B13** `new` — prose comprehension, engine state was clean ·
-**B15** `new` — credit exhaustion surfacing as a summarize crash; the balance is topped up, so the
-failure *surface* is the filed issue · **B11** `findings-ready` — `summarize()` throws on a tag-only
-extractor response; **drift surface, Fable-tier if acted on**.
-
-**TODO #87** — the phonemizer reuse latch fails open into the v1.323 leak, permanently and silently,
-with no reset. Found in a lab (27 modules in a 100-synth soak); **blocked on evidence**, and the
-field has said `pn:1` on every crumb, i.e. it has never fired in play.
-
----
-
-## Gotchas — these cost real time today
-
-- **⚠ `npx serve` caches files in memory.** It served a stale `tts.js` (133,848 bytes vs 139,815 on
-  disk) for about an hour, so several "the fix didn't work" readings were testing old code. Caught
-  only by fetching the file and diffing its length. **Restart the preview server after edits.**
-- **⚠ Chrome freezes backgrounded preview tabs** hard enough that an iframe's own script never runs
-  and its `setTimeout` never fires. An unattended soak measures almost nothing.
-- **⚠ Worktree isolation is broken here** — it tries to `mkdir .claude/worktrees`, which already
-  exists, and fails every time. Parallel agents therefore need disjoint **file** ownership, not just
-  disjoint functions.
-- **⚠⚠ `node -e` from bash eats backticks — this bit me THREE times today**, twice needing repair
-  commits, despite already being in the previous handoff. **Patch scripts for docs go in a FILE.**
-  No exceptions, however short the edit looks.
-- **Sabotage-test every guard, and have the sabotage script assert its own target exists.** One
-  sabotage silently changed nothing and "passed" — a false all-clear. Another tripwire
-  false-positived on the fix's own comment, which quoted the bad call it replaced.
-- **Verify the thing that SHIPS, not a simplified version of it.** Every desktop respawn test
-  unregistered the service worker and ran without memory pressure — and the *first* realm starts
-  fine on the phone too. What I verified was single-realm spawning; what ships is a second realm
-  alongside a loaded one. That gap is why v1.418–v1.422 never worked.
-- **⭐ The biggest one: check that the variable you are optimising is causal BEFORE building on it.**
-  Six versions went into isolating and recycling ORT memory. The final crumb showed the tab dying
-  identically with no realm at all. The instrumentation was worth it — it is what proved the
-  negative — but four of those versions were fixes for something that was never the cause.
-
----
+- **⚠ A satellite's "counter" can be a pre-filled INPUT.** The "survived 500 synths" reading was the
+  soak's target field; the run had actually died at 29 and the boot forensics knew. Cost: a whole
+  analytic arc built and retracted. The record shows both — worth reading as a lesson in premise-checking.
+- **⚠ Self-mailing instruments mail their own test data.** The v0.10 preview verification auto-sent
+  its planted crumb; it arrived looking like a field death with an invented synthCPU. Ledgered
+  do-not-cite. When an instrument reports automatically, its verification runs become plausible
+  fakes — ledger them at birth.
+- **⚠ The unload stamp defeated its own test** — planting a dirty ring for the kill-simulation got
+  clobbered by the stamp firing on navigation. Silence the guard to test the guard.
+- **The v1.424 respawn-ordering tripwire caught MY refactor** during the entry-6 fix (moving code
+  out of the function it greps). The guards guard the guardsman; keep them.
 
 ## Where to start next session
 
-1. **The single highest-value move is the narration-OFF experiment** — play a stretch with voice off
-   at the same turn rate and see whether the tab still dies. It costs nothing, needs no code, and it
-   is the ONE thing that separates per-synth from per-turn. Nothing in 25 crumbs distinguishes them,
-   and if it dies with voice off, the entire voice investigation was a red herring and the kill is in
-   the turn loop. **Do this before any more engine work.**
-2. Cheap and worth doing regardless: **crumb `_frameRetryUpgrade`'s failure path** (two lines) — it
-   is the last silent blind spot in the realm lifecycle, the same class that hid the respawn bug.
-3. The realm is live again, so a crumb with **`eng:"frame"` + a `realm-respawn` and `rc>0`** would
-   confirm v1.424's destroy-then-build completes. Worth noting; not worth building on (see headline).
-4. B10's residual and TODO #87 have documented directions if wanted.
-5. **Fable arrives ~2026-07-24** — `todo_checkWithFable.md` entry 6 is written for that pass and
-   flags the two drift-surface touches (the three `sendAction` edits; the v1.423 emphasis strip).
+1. **TODO #90 (server TTS)** — read DOC/DOC_server_tts.html, get D1-D5 ratified, build M1.
+   Server repo: `C:\Users\hannu\Projects\traffic-and-dragons-server`; deploy `flyctl deploy --ha=false`.
+2. Or **B17's design talk** (short) if the user wants the location-history fix first.
+3. Watch the feed for `piper-governor` / `gv:1` crumbs — one constant-tune may be wanted.
+4. Fable queue entries 5, 2, 4 whenever there's slack.

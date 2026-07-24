@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server-Side TTS — Design (R1, the B9 close)</title>
+<style>
+  :root{ --bg:#121212; --panel:#181818; --ink:#e6e2d8; --dim:#a39a88; --acc:#b8935a; --line:#2c2a26;
+         --good:#7aa86a; --warn:#c9a24b; --bad:#c0564a; --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:1.7em;margin:0 0 6px;color:#f2ede1}
+  h2{font-size:1.25em;margin:38px 0 8px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:1.05em;margin:22px 0 6px;color:#f2ede1}
+  p{margin:8px 0} ul{margin:8px 0;padding-left:20px} li{margin:5px 0}
+  code{font-family:var(--mono);font-size:.86em;background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8cdb4}
+  pre{font-family:var(--mono);font-size:.82em;background:#0d0d0d;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;color:#d8cdb4}
+  .sub{color:var(--dim);font-size:.95em}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:12px 0}
+  .rail{border-left:3px solid var(--acc);padding-left:14px;margin:12px 0}
+  .rail.warn{border-color:var(--warn)}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9em}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#0e0e0d;color:var(--dim)}
+  .d{font-family:var(--mono);color:var(--acc);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Server-Side TTS — the B9 architectural close</h1>
+<p class="sub">R1, mandated GO 2026-07-24 · design for a fresh build session · engine v1.434 · see DOC/BUGS.md ▸ B9 for the three-week diagnosis this answers</p>
+
+<div class="card">
+<b>Why this exists.</b> B9's root cause is closed: <b>iOS kills the WebContent process after a cumulative
+budget of heavy synthesis work per page load</b> (the energy assassin) — ~100 game synths / ~2 minutes of
+sustained wasm inference, deterministically, regardless of memory. No client-side arrangement of the work
+survives it; the v1.434 governor keeps tabs alive by degrading to the native voice, which is a tourniquet.
+<b>The fix is to move the work off the phone entirely:</b> synthesize on the Fly server (self-hosted — the
+ownership/cost objection that killed Cartesia/LiveKit does not apply to our own box), stream small WAVs to
+the client, keep the existing playback/queue machinery untouched. Client CPU ≈ zero → nothing for the
+assassin to kill → B9 dead on every device, Car Mode included. The <code>TTS_PROVIDERS</code> table was
+explicitly preserved for exactly this return.
+</div>
+
+<h2>Milestones</h2>
+<table>
+<tr><th>M1</th><td><b>Server Piper.</b> Same 19 curated <code>.onnx</code> voices hosted server-side — identical audio, zero catalog change, zero speaker-map change. Proves the pipe, kills B9.</td></tr>
+<tr><th>M2</th><td><b>Kokoro option.</b> Same endpoint, <code>engine</code> param. Kokoro-82M (Apache-2.0): markedly higher quality, dozens of voice packs, voice <i>blending</i> → per-character voices better than today. Requires one CPU benchmark on Fly before commitment + a new voice-picking pass (voice_picker.html precedent).</td></tr>
+</table>
+
+<h2>Endpoint contract (server repo — lives OUTSIDE this tree)</h2>
+<pre>POST /api/tts
+  body: { text: string,           // ONE speakable unit (the client's existing splitSentences unit)
+          voiceId: string,        // e.g. "en_US-libritts_r-medium" (M1: the curated Piper ids)
+          rate: number,           // 0.5-2.0, default 1.0
+          engine?: "piper"|"kokoro" }   // M2; default piper
+  → 200 audio/wav (22050 Hz mono PCM16) — the exact format _wavToAudioBuffer already parses
+  → 4xx/5xx JSON {error} — client falls down the ladder for THAT unit
+Auth: same session token as /api/state (Authorization header). See D1.</pre>
+<ul>
+  <li><b>Per-unit request/response, not streaming (v1).</b> Units are 1–10s of audio; the client's 25s
+      lookahead + per-unit queue absorb 200–500ms round trips invisibly. Chunked streaming is a later
+      optimization, not a requirement.</li>
+  <li><b>Server implementation:</b> warm <code>piper</code> daemon per active voice (spawn-per-request pays
+      ~1s model load per unit — too slow), LRU of 2–3 warm voices, idle-killed after ~10min. Voices
+      downloaded to the Fly volume on first use (HuggingFace), never baked into the image (19×60MB).</li>
+  <li><b>Cache:</b> optional LRU disk cache keyed (text,voiceId,rate) — replays/re-speaks hit it; low priority.</li>
+</ul>
+
+<h2>Client changes (this repo, tts.js — off the drift surface)</h2>
+<ul>
+  <li>New <code>TTS_PROVIDERS.server</code> entry: <code>available()</code> = online + server connected (+ a
+      health probe memo). <code>_speakServer()</code> = the existing <code>_speakPiper</code> unit loop with
+      <code>predict()</code> replaced by <code>fetch(/api/tts)</code> — same splitter, same speaker maps,
+      same <code>_wavToAudioBuffer</code>, same scheduling, same pause tiers. Most of the loop is reused.</li>
+  <li><b>The ladder (per unit, loud):</b> <span class="d">server → local Piper (governed, v1.434) → native</span>.
+      Connectivity drop mid-read degrades that unit and retries server next read. The governor keeps
+      protecting the local tier; it never touches the server tier (no client work to budget).</li>
+  <li>Voice ids unchanged in M1 → <code>resolvePiperVoice</code>/<code>characterVoiceId</code>/blueprint
+      narrator plumbing untouched. M2 introduces a namespaced catalog (<code>kk_*</code>).</li>
+  <li>Per-unit timeout (~4s) → ladder-fallback for that unit; never a stalled read.</li>
+</ul>
+
+<h2>Decisions to ratify before build</h2>
+<table>
+<tr><th class="d">D1</th><td><b>Auth.</b> Recommend: require the existing GitHub session token; not-connected players simply use the local ladder (offline play unchanged). Alternative (open endpoint + rate limit) invites abuse of our CPU.</td></tr>
+<tr><th class="d">D2</th><td><b>Topology.</b> Recommend: second small Fly app (<code>tnd-tts</code>) in the same server repo, so narration bursts never delay game-state saves. Alternative: same app first, split when measured.</td></tr>
+<tr><th class="d">D3</th><td><b>Fallback UX.</b> When the server tier degrades mid-session, toast once per session or per read? Recommend once per session (the B10/governor toast pattern).</td></tr>
+<tr><th class="d">D4</th><td><b>M2 gate.</b> Kokoro ships only after a Fly CPU benchmark shows ≥1× realtime on the chosen instance; otherwise it waits for a bigger box or stays optional.</td></tr>
+<tr><th class="d">D5</th><td><b>Voice storage quota.</b> Fly volume size for models (19 Piper ≈ 1.2GB + Kokoro ≈ 350MB). Recommend 3GB volume.</td></tr>
+</table>
+
+<h2>Sizing reality check</h2>
+<div class="card">
+Piper medium runs 2–5× realtime on shared x86. A 30-unit read ≈ 60–90s of audio ≈ 15–40s of server CPU,
+spread across the read's duration by the per-unit request pattern. Concurrency = simultaneous narrating
+players ≈ 1–2 today. A <code>shared-cpu-1x</code> handles M1; Kokoro (~4–5× Piper's cost) is what D4's
+benchmark is for.
+</div>
+
+<div class="rail warn">
+<b>What this does NOT change:</b> the local Piper engine, the governor, the native fallback, the voice-slot
+UI, OPFS caching — all stay, as the offline tier. The drift surface is untouched (output rendering only).
+The v1.434 governor remains correct and necessary for the offline tier forever.
+</div>
+
+<p class="sub">Traffic and Dragons · R1 design · build in a fresh session per user call 2026-07-24 · TODO #90 is the build row.</p>
+</div>
+</body>
+</html>
