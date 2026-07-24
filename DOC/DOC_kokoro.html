@@ -33,6 +33,18 @@
 <p class="sub">Spec R1, 2026-07-24 · TODO #91 · gated on the D4 benchmark (ratified 2026-07-24) ·
 builds on the live M1 tnd-tts app (DOC/DOC_server_tts.html) · engine v1.439</p>
 
+<div class="card" style="border-color:var(--bad);">
+<b>⛔ M2.0 RESULT — D4 GATE FAILED (measured on the live box, 2026-07-24). Kokoro does not ship.</b>
+Not close, and <b>not for the reason the spec expected</b>: RAM was a red herring, CPU is the wall.
+Numbers in "M2.0 — benchmark results" below. Headline: Kokoro q8 runs at <b>RTF ≈ 2.1</b> at full
+burst (the bar is ≤1.0), then <b>collapses to RTF 22–34</b> once sustained load exhausts the
+shared-CPU burst balance — one 7-second line took <b>3 minutes 56 seconds</b>. Piper on the same
+box does RTF 0.16. <b>Verdict: M2 is blocked on economics, not on code</b> — every decision below
+(K1–K3, K6) stays valid and rebuildable the day the CPU math changes, but nothing should be built
+against it now. <b>The pragmatic quality upgrade is already in hand</b> — see "The alternative that
+needs no new engine" at the foot of this page.
+</div>
+
 <div class="card">
 <b>Why this exists.</b> M1 proved the pipe: server-side Piper, same 19 voices, B9 dead. Kokoro-82M
 (Apache-2.0, StyleTTS2-derived) is the quality jump behind the SAME endpoint: markedly better prosody
@@ -131,7 +143,63 @@ time × sustained RTF (30 units back-to-back, report median + p95) × RSS before
 RTF — 6× realtime) so the cost of quality is a number, not a vibe.</li>
 </ul>
 
+<h2>M2.0 — benchmark results (the gate, run 2026-07-24)</h2>
+<p class="sub">Script: <code>tts/bench-kokoro.mjs</code> (server repo) · executed on the live
+<code>tnd-tts</code> machine via <code>fly ssh console</code> · <code>kokoro-js</code> +
+<code>onnx-community/Kokoro-82M-v1.0-ONNX</code>, dtype q8, voice af_bella · corpus = 30 real
+narration units (10 short ≈37ch / 10 median ≈102ch / 10 long ≈213ch)</p>
+
+<h3>Run A — 1GB (the shipped config): OOM before a single synthesis</h3>
+<ul>
+<li>Model loaded (cached on the volume) in <b>18.0 s</b>, RSS <b>75 → 273 MB</b>.</li>
+<li>Process was <b>killed during its first warm-up synthesis</b>. Machine memory at the time:
+985 MB total, three warm Piper daemons resident (the live session's), <b>~119 MB free</b>.</li>
+<li>Conclusion: Kokoro cannot coexist with the Piper daemons the app must keep warm on a 1GB box.</li>
+</ul>
+
+<h3>Run B — 2GB (K5's candidate tier): it runs, and the speed is the disqualifier</h3>
+<table>
+<tr><th>Unit</th><th>Chars</th><th>Synth</th><th>Audio</th><th>RTF</th><th></th></tr>
+<tr><td>1–8</td><td>19–45</td><td>4.1–7.7 s</td><td>1.9–3.5 s</td><td><b>2.07 – 2.21</b></td><td>steady state, full burst</td></tr>
+<tr><td>9</td><td>45</td><td>75.3 s</td><td>3.33 s</td><td><b>22.65</b></td><td>⟵ step change</td></tr>
+<tr><td>10</td><td>49</td><td>97.4 s</td><td>3.95 s</td><td><b>24.67</b></td><td></td></tr>
+<tr><td>11</td><td>103</td><td><b>235.8 s</b></td><td>7.0 s</td><td><b>33.68</b></td><td>3 min 56 s for one line</td></tr>
+</table>
+<ul>
+<li>Cold load with headroom: <b>5.9 s</b> (vs 18 s under pressure) — the load itself is fine.</li>
+<li>Run abandoned at unit 11: the verdict was unambiguous and it was competing for the CPU the
+user's live narration needs.</li>
+</ul>
+
+<h3>Mechanism — shared-CPU burst exhaustion (strong hypothesis, evidence-backed)</h3>
+<div class="rail warn">
+Units 1–8 consumed ≈48 s of <i>continuous</i> 100% CPU, then throughput fell off a cliff in a
+single step (2.1 → 22.65) and kept degrading — the signature of a <code>shared-cpu-1x</code> burst
+balance running out and the machine being throttled to its baseline share. It is a step, not a
+ramp, so it is not a memory leak or GC drift; loadavg stayed ~1.0–1.36 throughout (busy, not
+blocked). <b>Piper never trips this</b> because each unit costs ~0.16× realtime — it sips the
+balance and lets it refill between reads. <b>Confirming test if ever needed:</b> idle the box 10
+minutes and re-run — if units 1–8 are fast again, burst is proven.
+</div>
+
+<h3>The comparison that settles it</h3>
+<table>
+<tr><th>Engine (same box, same corpus class)</th><th>RTF</th><th>Meaning</th></tr>
+<tr><td><b>Piper medium</b> (shipped, M1 production logs)</td><td><b>0.16</b></td><td>6× faster than realtime — 200 ms for a 3 s line</td></tr>
+<tr><td><b>Kokoro q8</b>, best case (full burst)</td><td><b>2.1</b></td><td><b>13× Piper's cost</b>; already 2× over the D4 bar</td></tr>
+<tr><td><b>Kokoro q8</b>, sustained (throttled)</td><td><b>22–34</b></td><td>unusable — exceeds the client's 10 s unit timeout on every unit</td></tr>
+</table>
+<p>Even the <i>best</i> Kokoro number fails D4, and the client's 25 s lookahead cannot hide RTF &gt; 1
+— the buffer drains monotonically once synthesis is slower than playback. Quantization down to q4
+would need to buy a <b>2×+</b> speedup just to reach parity with the bar, before the throttle
+question is even asked.</p>
+
 <h2>K5 — Box sizing (decided BY the benchmark, not before)</h2>
+<p class="sub"><b>Resolved by measurement:</b> no RAM tier fixes this. 2 GB makes Kokoro
+<i>run</i>; it does not make it fast. Reaching RTF &lt; 1 with margin needs dedicated cores
+(performance tier, no burst throttling) and probably multi-threaded ORT — a materially different
+cost class that K5 says requires explicit user ratification, and which buys an engine still ~13×
+Piper's cost per second of audio.</p>
 <table>
 <tr><th>Outcome</th><th>Action</th><th>~Cost delta</th></tr>
 <tr><td>Kokoro RSS + 1 warm piper + node ≤ ~800MB and RTF passes</td><td>Stay on shared-cpu-1x / 1GB; drop piper daemon LRU 3→2 when the kokoro model is resident</td><td>$0</td></tr>
@@ -170,7 +238,26 @@ everything else is server-side or output rendering. Tier: benchmark+server = Any
 resolution = annotate for Fable review via /fable-review after build.
 </div>
 
-<p class="sub">Traffic and Dragons · M2 spec R1 · decisions K1–K6 want ratification before M2.1
+<h2>The alternative that needs no new engine (recommended next move)</h2>
+<div class="card" style="border-color:var(--good);">
+<b>Piper's own "high" voices are a quality upgrade already sitting in the shipped catalog</b> —
+<code>en_US-libritts-high</code> (904 speakers, and <b>already downloaded on the server volume</b>),
+<code>en_US-lessac-high</code>, <code>en_US-ryan-high</code>, <code>en_GB-cori-high</code>. Same
+engine, same daemon machinery, same endpoint, no new dependency, no box change, no client work
+beyond a narrator/character voice pick the UI already supports.
+<br><br>
+The honest caveat: a "high" model is a bigger network than a medium, so it costs more CPU per
+second of audio — <b>unmeasured</b>. But the headroom is enormous: Piper medium runs at RTF 0.16,
+so a high model could be <b>6× slower and still clear the D4 bar</b>, where Kokoro needed to get
+<i>2× faster</i> just to reach it.
+<br><br>
+<b>Proposed M2′ (small, cheap, decisive):</b> point the same harness at the piper daemon —
+medium vs high on the identical 30-unit corpus — and get the RTF and quality delta. If high lands
+anywhere under ~0.6, it ships as a voice-catalog preference with zero architecture change, and #91
+closes as "quality upgrade delivered by a different route."
+</div>
+
+<p class="sub">Traffic and Dragons · M2 spec R1 + M2.0 results · decisions K1–K6 want ratification before M2.1
 (K1 and K2 carry recommendations; K4/K5 are self-deciding by measurement) · runtime facts:
 <a style="color:var(--acc)" href="https://www.npmjs.com/package/kokoro-js">kokoro-js</a> ·
 <a style="color:var(--acc)" href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX">Kokoro-82M-v1.0-ONNX</a></p>
