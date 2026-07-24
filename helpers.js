@@ -125,14 +125,18 @@ function currentNodeKey(){
 }
 // Party cap helpers (PARTY_MAX total = players + companions). playerCount is 1 today; multiplayer (#1) will make it dynamic.
 function partyCompanionCap(){return PARTY_MAX-1;}
-function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember&&!/\bdead\b/i.test(worldState.npcs[i].status||""))n++;}return n;}
+/* v1.439 (F1, evidence brief C): npcIsDead, not a raw /\bdead\b/ test — the regex never matched
+   "slain"/"deceased"/"perished" (exactly what the combat kill path writes) and never read the
+   B3 dead FLAG, so a slain companion occupied a party slot forever. Same swap at every former
+   raw-regex site in this file and game.js. */
+function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember&&!npcIsDead(worldState.npcs[i]))n++;}return n;}
 // TODO #1 P1 (multiplayer, D8): players = the hero (unless explicitly demoted via isPC===false —
 // no UI for that until P3's all-NPC rounds exist) + every living party member flagged isPC. Absent
 // flags = exactly 1: the single-player invariant every existing save relies on (DOC_multiplayer
 // "activePlayer() migration" anchor). Same dead-filter as partyCompanionCount above.
 function playerCount(){
   var n=(worldState&&worldState.character&&worldState.character.isPC===false)?0:1;
-  if(worldState&&worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];if(p&&p.partyMember&&p.isPC&&!/\bdead\b/i.test(p.status||""))n++;}}
+  if(worldState&&worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];if(p&&p.partyMember&&p.isPC&&!npcIsDead(p))n++;}}
   return n;
 }
 // TODO #1 P2 (multiplayer, D6/D7): the LIGHT active-player pointer. worldState.activePC names the
@@ -148,7 +152,7 @@ function activePlayer(){
   if(nm&&hero&&nm!==hero.name){
     if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
       if(p&&p.name===nm){
-        if(p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))return p.charSheet;
+        if(p.partyMember&&p.isPC&&p.charSheet&&!npcIsDead(p))return p.charSheet;
         break;
       }}}
     console.warn("[multiplayer] activePC '"+nm+"' is not a living PC party member with a sheet — spotlight returns to "+(hero.name||"the hero"));
@@ -163,7 +167,7 @@ function setActivePC(nm){
   if(typeof worldState==="undefined"||!worldState||!worldState.character)return false;
   if(nm==null||nm===worldState.character.name){delete worldState.activePC;return true;}
   if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
-    if(p&&p.name===nm&&p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))
+    if(p&&p.name===nm&&p.partyMember&&p.isPC&&p.charSheet&&!npcIsDead(p))
       {worldState.activePC=nm;return true;}}}
   console.warn("[multiplayer] setActivePC('"+nm+"') rejected — not a living PC party member with a sheet");
   return false;
@@ -179,7 +183,7 @@ function mpPcOrder(){
   if(typeof worldState==="undefined"||!worldState||!worldState.character)return order;
   if(worldState.character.isPC!==false)order.push(worldState.character.name);
   if(worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
-    if(p&&p.partyMember&&p.isPC&&p.charSheet&&!/\bdead\b/i.test(p.status||""))order.push(p.name);}}
+    if(p&&p.partyMember&&p.isPC&&p.charSheet&&!npcIsDead(p))order.push(p.name);}}
   return order;
 }
 // Drop queue entries whose PC is no longer in the round (demoted/died/parted mid-round) — loud.
@@ -233,7 +237,7 @@ function partySplitMembers(){
   var out=[];
   if(typeof worldState==="undefined"||!worldState||!worldState.npcs)return out;
   var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];
-    if(p&&p.partyMember&&p.charSheet&&p.charSheet.splitLoc&&p.charSheet.splitLoc.location&&!/\bdead\b/i.test(p.status||""))out.push(p);}
+    if(p&&p.partyMember&&p.charSheet&&p.charSheet.splitLoc&&p.charSheet.splitLoc.location&&!npcIsDead(p))out.push(p);}
   return out;
 }
 // Convert a suggested action from 2nd person ("Gather your belongings") to 1st person

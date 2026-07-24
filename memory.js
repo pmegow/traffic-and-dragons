@@ -747,7 +747,9 @@ function retainSessionTail(){
   sessionLog=keep;
   if(typeof worldState!=="undefined"&&worldState)worldState.sessKept=keep.length;
 }
-function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++)total+=sessionLog[i].content.length;return Math.ceil(total/4);}
+/* Entry guards (v1.439, F8 — brief A probe F): a null/malformed sessionLog entry used to throw
+   HERE, before summarize()'s try even existed — no catch, no report, no retry counter. */
+function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];if(_se&&_se.content!=null)total+=String(_se.content).length;}return Math.ceil(total/4);}
 // ── #57 reveal-commitment: knowledge supersession + fork hints ───────────────────
 // Serve-side of leg A (see DOC/todo_57_reveal_commitment.md): the extractor can only retire a
 // fact it can quote EXACTLY, so summarize() hands it the on-file knowledge lines for the NPCs
@@ -910,14 +912,21 @@ async function summarize(){
       _dbg+=" | window "+(sessionLog.length-sessKeptStart())+" msgs, "+_noted+"/"+_users+" user halves open with an engine note";
       if(typeof resp==="string")_dbg+="\nRESPONSE HEAD (200): "+resp.slice(0,200).replace(/\s+/g," ");
     }catch(_de){_dbg+=" | (context gather failed: "+((_de&&_de.message)||"?")+")";}
-    if(typeof reportError==="function")reportError("summarize",e&&e.message?e.message:"unknown",_dbg+"\n"+((e&&e.stack)||""));/* #16 */
+    // v1.439 (F8, brief A probes G/H): extract message/stack DEFENSIVELY — these expressions used
+    // to run inline in the reportError call, so a hostile thrown value (throwing getter, poisoned
+    // toString) masked the ORIGINAL failure with zero reports sent. String() + try make the
+    // reporter unkillable by its own arguments; the same _eMsg serves the retry toast below.
+    var _eMsg="unknown",_eStk="";
+    try{_eMsg=(e&&e.message!=null)?String(e.message):String(e);}catch(_ee){}
+    try{_eStk=(e&&e.stack!=null)?String(e.stack):"";}catch(_ee2){}
+    if(typeof reportError==="function")reportError("summarize",_eMsg,_dbg+"\n"+_eStk);/* #16 */
     if(_sumFails>=3){
-      var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri].role==="assistant")_rawBits.push(sessionLog[_ri].content.slice(0,200));}
+      var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri]&&sessionLog[_ri].role==="assistant")_rawBits.push(String(sessionLog[_ri].content||"").slice(0,200));}/* v1.439 (F8, probes C/E): String() — a non-string content threw OUT of the catch and aborted the archive */
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
       fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
-      retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory saved (raw).");
+      retainSessionTail();saveMem();saveCore();_sumFails=0;addMsg("system","Memory saved (raw).");/* v1.439 (F8, probe J): reset AFTER the saves — resetting first let a repeating quota failure zero the strike counter every pass */
     }else{
-      addMsg("system","Memory filing failed ("+(e&&e.message?e.message:"unknown")+") — will retry next turn.");
+      addMsg("system","Memory filing failed ("+_eMsg+") — will retry next turn.");
     }
   }
 }

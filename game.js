@@ -666,9 +666,10 @@ function migratePendingCompanionSheets(){
   if(!worldState||!worldState.npcs)return;
   var found=false,i;
   for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];
-    /* \bdead\b (AUDIT_FABLE_07_16 #6 sanctioned fix): was /dead/i — the ONLY site without the word
-       boundary, so an "undead" companion read as dead here and was never flagged for a sheet */
-    if(n.partyMember&&!n.charSheet&&!/\bdead\b/i.test(n.status||"")){n.sheetPending=true;found=true;}}
+    /* v1.439 (F1): npcIsDead — the raw regex missed "slain"/"deceased"/"perished" AND the B3 dead
+       flag, so a slain companion kept getting flagged for a sheet. (The AUDIT_FABLE #6 word-boundary
+       fix lives on inside NPC_DEAD_RE — "undead" still reads alive.) */
+    if(n.partyMember&&!n.charSheet&&!npcIsDead(n)){n.sheetPending=true;found=true;}}
   if(!found)return;
   if(typeof busy!=="undefined"&&busy)return;
   processPendingCompanionSheets();
@@ -751,7 +752,7 @@ function coreMemorySnapshot(){
   var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,rels:{},party:{}},i;
   var rl=c.relationships||[];for(i=0;i<rl.length;i++){if(rl[i]&&rl[i].entity)snap.rels[rl[i].entity]=rl[i].descriptor;}
   var ns=worldState.npcs||[];for(i=0;i<ns.length;i++){var n=ns[i];
-    if(n&&n.partyMember)snap.party[n.name]={dead:/\bdead\b/i.test(n.status||""),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null};}
+    if(n&&n.partyMember)snap.party[n.name]={dead:npcIsDead(n),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null};}/* v1.439 (F1): flag+all death words, not just "dead" */
   return snap;
 }
 function fileCoreMemory(kind,who,text){
@@ -782,7 +783,7 @@ function fileCoreMemory(kind,who,text){
     if(!n||!n.charSheet)continue;
     var isSubject=(n.name===who);
     if(!n.partyMember&&!isSubject)continue;
-    if(/\bdead\b/i.test(n.status||"")&&!isSubject)continue;
+    if(npcIsDead(n)&&!isSubject)continue;/* v1.439 (F1): a slain witness is as dead as a "dead" one */
     fileTo(n.charSheet);
   }
   if(filedAny&&typeof Sound!=="undefined")Sound.play("click_glass");/* #7: before the toast — claims the playIfQuiet window */
@@ -807,7 +808,7 @@ function detectCoreMoments(pre){
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember)continue;seen[n.name]=1;
     var p=pre.party[n.name];
     if(!p){fileCoreMemory("party",n.name,n.name+" joined the party"+here+".");continue;}
-    if(!p.dead&&/\bdead\b/i.test(n.status||"")){fileCoreMemory("death",n.name,n.name+" died"+foe+here+".");continue;}
+    if(!p.dead&&npcIsDead(n)){fileCoreMemory("death",n.name,n.name+" died"+foe+here+".");continue;}/* v1.439 (F1): "slain" now fires the death moment */
     if(n.charSheet)cross(p.hp,p.maxHp,n.charSheet.hp,n.charSheet.maxHp,n.name);
   }
   var preNames=Object.keys(pre.party);
@@ -1337,7 +1338,9 @@ function buildBlueprintFromGame(){
   (worldState.npcs||[]).forEach(function(n){
     var mem=memory.npcs&&memory.npcs[n.name];
     var notes=(mem&&mem.knowledge&&mem.knowledge.length)?mem.knowledge.join("; ").slice(0,400):"";
-    npcs.push({name:n.name,role:n.status||"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+    /* v1.439 (F2, brief B): role is RELATION-shaped by both authoring specs (designer + generator) —
+       export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
+    npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
   });
   var locations=[];
   if(memory.map&&memory.map.nodes){
@@ -1404,8 +1407,11 @@ function applyBlueprint(bp){
   if(bp.npcs&&bp.npcs.length){
     var ni;for(ni=0;ni<bp.npcs.length;ni++){
       var n=bp.npcs[ni];
-      worldState.npcs.push({name:n.name,status:n.role||"neutral",rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"});
-      memory.npcs[n.name]={attitude:n.role||"neutral",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
+      /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
+         (mood) and attitude (disposition) too — recreating in one call the exact contamination
+         v1.379-383 separated. Mood/disposition start empty; play fills them. */
+      worldState.npcs.push({name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"});
+      memory.npcs[n.name]={attitude:"",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }
   }
   // Locations — seed memory.locations (metadata only) + memory.map. The map node

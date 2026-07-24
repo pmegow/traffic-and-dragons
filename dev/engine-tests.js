@@ -4408,6 +4408,71 @@ function runEngineTests(R){
     return TTS.resolvePiperVoice()==="en_US-libritts_r-medium"?true:"unknown pin not snapped to default: "+TTS.resolvePiperVoice();
   });
 
+  // ── Fable review fixes (v1.439 — todo_checkWithFable entries 5/2/4, evidence briefs A-F) ──────
+  // Every test here was written FAILING against v1.438 and pins a defect the delegated evidence
+  // pass confirmed at runtime. F-numbers match the verdict record in todo_checkWithFable.md.
+  section("Fable review fixes (v1.439)");
+  t("F1: a SLAIN companion no longer counts against the party cap (raw /\\bdead\\b/ missed 'slain')",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Fallen",partyMember:true,status:"slain",dead:5,charSheet:{name:"Fallen",hp:0,maxHp:10}});
+    worldState.npcs.push({name:"Alive",partyMember:true,status:"",charSheet:{name:"Alive",hp:5,maxHp:10}});
+    return partyCompanionCount()===1?true:"slain companion still occupies a party slot: count="+partyCompanionCount();
+  });
+  t("F1: a companion slain (not 'dead') fires the death defining-moment",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Brave",partyMember:true,status:"",charSheet:{name:"Brave",hp:8,maxHp:10}});
+    var pre=coreMemorySnapshot();
+    worldState.npcs[0].status="slain";worldState.npcs[0].dead=worldState.turn;
+    detectCoreMoments(pre);
+    var cm=worldState.character.coreMemories||[],i;
+    for(i=0;i<cm.length;i++){if(cm[i].kind==="death"&&cm[i].who==="Brave")return true;}
+    return "no death moment filed for a slain companion";
+  });
+  t("F1: dead-FLAGGED companion with empty status reads dead to cap/playerCount/round order",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Gone",partyMember:true,isPC:true,status:"",dead:3,charSheet:{name:"Gone"}});
+    if(partyCompanionCount()!==0)return "cap counts the dead: "+partyCompanionCount();
+    if(playerCount()!==1)return "playerCount counts the dead: "+playerCount();
+    return mpPcOrder().indexOf("Gone")<0?true:"round order includes the dead";
+  });
+  t("F7: blankMemory is born on the current attitude spec — heal cannot wipe new-spec values",function(){
+    memory=blankMemory();
+    memory.npcs["Vera"]={attitude:"wary, testing",knowledge:[],events:[],aliases:[]};
+    healMemory();
+    return memory.npcs["Vera"].attitude==="wary, testing"?true:"new-spec attitude wiped by the heal: '"+memory.npcs["Vera"].attitude+"'";
+  });
+  t("F5: [NPC:Greta|||] cannot write a literal pipe into rel",function(){
+    makeWorld();
+    applyMuts("[NPC:Greta|||]");
+    var n=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Greta")n=worldState.npcs[i];}
+    if(n&&n.rel==="|")return "rel is the literal pipe";
+    return true; /* clean-parse or silent-drop both acceptable; garbage is not */
+  });
+  t("F2: blueprint import does not fan role into mood and disposition",function(){
+    makeWorld();
+    applyBlueprint({name:"T",npcs:[{name:"Guard Captain",role:"ally",notes:""}]});
+    var n=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Guard Captain")n=worldState.npcs[i];}
+    if(!n)return "npc not seeded";
+    if(n.status)return "role leaked into mood: '"+n.status+"'";
+    if(n.rel!=="ally")return "rel lost: '"+n.rel+"'";
+    var m=memory.npcs["Guard Captain"];
+    return (m&&m.attitude==="")?true:"role leaked into attitude: '"+(m&&m.attitude)+"'";
+  });
+  t("F8: sessionTokens survives a malformed sessionLog entry (the pre-try throw class, probe F)",function(){
+    makeWorld();sessionLog=[{role:"user",content:"hello there"},null,{role:"assistant",content:123}];
+    try{var n=sessionTokens();return (typeof n==="number"&&!isNaN(n))?true:"bad count: "+n;}
+    catch(e){return "threw: "+e.message;}
+  });
+  t("F4: [PARTY_MEMBER:|true] creation seeds an EMPTY mood, not the literal 'unknown'",function(){
+    makeWorld();
+    applyMuts("[PARTY_MEMBER:Newcomer|true]");
+    var n=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Newcomer")n=worldState.npcs[i];}
+    if(!n)return "npc not created";
+    if(n.status==="unknown")return "mood minted as the literal 'unknown'";
+    var m=memory.npcs["Newcomer"];
+    return (m&&m.attitude!=="unknown")?true:"attitude minted as the literal 'unknown'";
+  });
+
   // ── Server TTS tier (#90 M1, v1.435) ─────────────────────────────────────────
   // Selection is by RESOLUTION: getEngine() returns "server" only when a connected storageAdapter
   // + a healthy degrade memo say so; a degrade steers reads local for SERVER_TTS_RETRY_MS. The

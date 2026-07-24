@@ -62,7 +62,9 @@ function updateHUD(){
     (worldState.npcs||[]).forEach(function(n){
       if(!n.partyMember)return;
       if(c!==hero&&n.name===c.name)return;/* spotlit companion is in the hero slot */
-      cards.push({name:n.name,vitals:partyMemberVitals(n),status:n.status||"ally",open:(function(nm){return function(){showNpcSheet(nm);};})(n.name)});
+      /* v1.439 (F3, brief B): mood-else-relation-else-nothing — never the invented relation word
+         "ally" in a MOOD slot (the same category error the v1.379 separation fixed) */
+      cards.push({name:n.name,vitals:partyMemberVitals(n),status:n.status||n.rel||"",open:(function(nm){return function(){showNpcSheet(nm);};})(n.name)});
     });
     if(cards.length){
       hudParty.style.display="flex";hudParty.innerHTML="";
@@ -85,7 +87,7 @@ function updateHUD(){
             +"<span style='color:var(--hp);flex-shrink:0;'>"+(pv.hp||0)+"/"+pv.maxHp+"</span>"
             +pmXpHtml;
         }else{
-          card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"ally")+"</span>";
+          card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"")+"</span>";/* v1.439 (F3): card status already resolved mood-else-rel above */
         }
         hudParty.appendChild(card);
       }
@@ -97,7 +99,9 @@ function updateHUD(){
   var sb=document.getElementById("sb-content");if(!sb)return;
   var i;
   // ── NPCs (non-party) ─────────────────────────────────────────────────────
-  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember)npcR+=sr(escHtml(worldState.npcs[i].name),escHtml(worldState.npcs[i].status+" / "+worldState.npcs[i].rel));}
+  /* v1.439 (F3, brief B): present-parts render — the old concat printed "undefined / rel" for an
+     absent mood and a dangling " / " for the now-legal empty one (same fix class as api.js:479) */
+  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember){var _sbBits=[];if(worldState.npcs[i].status)_sbBits.push(worldState.npcs[i].status);if(worldState.npcs[i].rel&&worldState.npcs[i].rel!=="unknown")_sbBits.push(worldState.npcs[i].rel);npcR+=sr(escHtml(worldState.npcs[i].name),escHtml(_sbBits.join(" / ")||"—"));}}
   var qR="",qOffered=0;for(i=0;i<worldState.questLog.length;i++){var _q=worldState.questLog[i];if(_q.status==="offered")qOffered++;qR+="<div class='sb-row' style='cursor:pointer;' onclick='showQuestModal()'><span class='sb-k'>"+escHtml(_q.title)+"</span><span class='sb-v'>"+escHtml(_q.status)+"</span></div>";}
   var questSec=worldState.questLog.length?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;cursor:pointer;" onclick="showQuestModal()">Quests'+(qOffered?' &middot; <span style="color:var(--warn);">⚑ '+qOffered+' opportunit'+(qOffered>1?'ies':'y')+'</span>':'')+'</div>'+qR+'</div>':"";
   // Factions

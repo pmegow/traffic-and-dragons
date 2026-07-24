@@ -2792,12 +2792,17 @@ var TTS = (function() {
   function _voiceLabelOf(id) { for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].label; } return id; }
   function _voiceAssignedTo(voiceId) {
     var who = [];
+    // v1.439 (F10, brief F): the narrator check runs FIRST, before the worldState guard —
+    // resolvePiperVoice() needs no world (device-default fallback), and the old order sat it
+    // BELOW the early return, so on a pre-game page (Voice Settings lives on the API-key and
+    // creation menus too) the narrator's voice counted as unassigned and automatic eviction
+    // could take it. The protection this function exists for was defeatable by page choice.
+    if (resolvePiperVoice() === voiceId) who.push("the narrator");
     if (typeof worldState === "undefined" || !worldState) return who;
     var c = worldState.character;
     if (c && c.voiceId === voiceId) who.push((c.name || "the player") + " (you)");
     var ns = worldState.npcs || [], i;
     for (i = 0; i < ns.length; i++) { if (ns[i] && ns[i].charSheet && ns[i].charSheet.voiceId === voiceId) who.push(ns[i].name); }
-    if (resolvePiperVoice() === voiceId) who.push("the narrator");
     return who;
   }
   // Promise<boolean> — true = proceed with the download, false = user cancelled. Only prompts when
@@ -2856,8 +2861,13 @@ var TTS = (function() {
     if (!voiceId) return;                             // narrator default — owns no per-character slot
     if (_voiceAssignedTo(voiceId).length) return;     // still used by a character or the narrator
     if (!_piperLruLoad()[voiceId]) return;            // not resident — nothing to free (no engine init)
-    _piperInit().then(function(mod) {
-      return _piperSerial(function() { return mod.remove(voiceId); });
+    _piperInit().then(function() {
+      // v1.439 (F11, brief F): _piperRemoveVoiceFiles, NOT the vendored mod.remove() — remove()
+      // swallows every failure and resolves clean (the Chrome-only handle.remove(), the exact
+      // v1.419 silent-no-op class that permanently disabled the cap), and this was the ONE
+      // deletion site still calling it. removeEntry() throws honestly, so the catch below keeps
+      // the LRU stamp on a real failure instead of minting a phantom.
+      return _piperSerial(function() { return _piperRemoveVoiceFiles(voiceId); });
     }).then(function() {
       var lru = _piperLruLoad();
       delete lru[voiceId];

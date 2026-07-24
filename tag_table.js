@@ -299,7 +299,7 @@ var TAG_TABLE=[
 // for every slot" or "lose the write", and inventing is what put relation words like "acquaintance"
 // into mood fields. The write path below ALREADY had the right semantics (`if(npStatus)` = leave
 // unchanged); only the parse couldn't express it.
-{t:"NPC",apply:function(text,R){var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^\]]*))?\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^\]]*))?\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());
+{t:"NPC",apply:function(text,R){var npcs=text.match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^|\]]*))?\]/g)||[];var ni;for(ni=0;ni<npcs.length;ni++){var np=npcs[ni].match(/\[NPC:([^|\]]+)\|([^|\]]*)(?:\|([^|\]]*))?\]/);if(!np)continue;var npName=resolveNpcName(np[1].trim());
   var npStatus=clampNpcMood((np[2]||"").trim()),npRel=clampNpcMood((np[3]||"").trim()),npPron="";
   if(isPronounStr(npRel)){npPron=npRel;npRel="";}
   if(isPronounStr(npStatus)){if(!npPron)npPron=npStatus;npStatus="";}
@@ -539,16 +539,16 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 {t:"FACTION_REL",apply:function(text,R){var frTags=text.match(/\[FACTION_REL:([^|\]]+)\|([^|]+)\|([^\]]+)\]/g)||[];var frti;for(frti=0;frti<frTags.length;frti++){var frp2=frTags[frti].match(/\[FACTION_REL:([^|\]]+)\|([^|]+)\|([^\]]+)\]/);if(!frp2)continue;factionLinkUpsert(frp2[1].trim(),frp2[2].trim(),frp2[3].trim());R.muts.push("FactionRel: "+frp2[1].trim()+" ↔ "+frp2[2].trim()+" ("+frp2[3].trim()+")");}}},
 {t:"PARTY_MEMBER",apply:function(text,R){var pmTags=text.match(/\[PARTY_MEMBER:([^|\]]+)\|([^\]]+)\]/g)||[];var pmi;for(pmi=0;pmi<pmTags.length;pmi++){var pmp=pmTags[pmi].match(/\[PARTY_MEMBER:([^|\]]+)\|([^\]]+)\]/);if(!pmp)continue;var pmName=resolveNpcName(pmp[1].trim()),pmVal=pmp[2].trim().toLowerCase()==="true",pmN=wsNpcByName(pmName);/* #7: shared lookup (object ref replaces the old index) */
   if(pmVal&&!(pmN&&pmN.partyMember)&&partyCompanionCount()>=partyCompanionCap()){
-    if(!pmN){worldState.npcs.push({name:pmName,status:"unknown",rel:"ally",met:R.turn,partyMember:false,portrait:null,aliases:[]});}
+    if(!pmN){worldState.npcs.push({name:pmName,status:"",statusTurn:0,rel:"ally",met:R.turn,partyMember:false,portrait:null,aliases:[]});}/* v1.439 (F4): empty mood seed, matching [NPC:] — "unknown" is not a mood and the heal clears it */
     else pmN.partyMember=false;
-    if(!memory.npcs[pmName])memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],aliases:[],partyMember:false};
+    if(!memory.npcs[pmName])memory.npcs[pmName]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:false};
     if(typeof showToast==="function")showToast("Party full (max "+PARTY_MAX+") — "+pmName+" can't join until someone leaves.");
     R.muts.push("Party full: "+pmName+" not added");continue;
   }
-  if(pmN){pmN.partyMember=pmVal;}else{pmN={name:pmName,status:"unknown",rel:"unknown",met:R.turn,partyMember:pmVal,portrait:null,aliases:[]};worldState.npcs.push(pmN);}
+  if(pmN){pmN.partyMember=pmVal;}else{pmN={name:pmName,status:"",statusTurn:0,rel:"unknown",met:R.turn,partyMember:pmVal,portrait:null,aliases:[]};worldState.npcs.push(pmN);}/* v1.439 (F4): empty mood seed */
   if(pmVal&&!pmN.charSheet)pmN.sheetPending=true;
   else if(!pmVal)delete pmN.sheetPending;
-  if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"unknown",knowledge:[],events:[],aliases:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=R.feGet();R.muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}}},
+  if(memory.npcs[pmName])memory.npcs[pmName].partyMember=pmVal;else memory.npcs[pmName]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:pmVal};if(pmVal&&!memory.npcs[pmName].firstEncounter)memory.npcs[pmName].firstEncounter=R.feGet();R.muts.push(pmVal?"Party: +"+pmName:"Party: -"+pmName);}}},
 {t:"SKILL_SUCCESS",apply:function(text,R){var skSuccs=text.match(/\[SKILL_SUCCESS:([^\]]+)\]/g)||[];var sski;for(sski=0;sski<skSuccs.length;sski++){var sskp=skSuccs[sski].match(/\[SKILL_SUCCESS:([^\]]+)\]/);if(!sskp)continue;var sskid=sskp[1].trim();if(!worldState.character.skills)worldState.character.skills=initSkills();
   if(typeof worldState.character.skills[sskid]!=="number"){var _skl=sskid.toLowerCase(),_ski;for(_ski=0;_ski<SKILLS.length;_ski++){if(SKILLS[_ski].id.toLowerCase()===_skl){sskid=SKILLS[_ski].id;break;}}}
   if(typeof worldState.character.skills[sskid]==="number"){var prevLvl=skillLevel(worldState.character.skills[sskid]);worldState.character.skills[sskid]++;var newLvl=skillLevel(worldState.character.skills[sskid]);if(newLvl>prevLvl){R.muts.push(sskid+": "+SKILL_LEVELS[newLvl]);showToast(sskid+": "+SKILL_LEVELS[newLvl]);}else R.muts.push(sskid+" +1");}}}},

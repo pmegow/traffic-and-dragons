@@ -13,7 +13,42 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
+*(empty — all entries reviewed as of 2026-07-24)*
+
+---
+
+## Reviewed
+
 ### 5. #16c diagnostics — one touch inside `summarize()` (drift surface)
+
+**Reviewed by Fable 2026-07-24 — VERDICT: the v1.407 enrichment itself PASSES all three asks;
+2 CONFIRMED adjacent findings + 2 pre-existing defects, all fixed v1.439.** Evidence gathered by a
+delegated Opus pass (brief A: 9 live probes against the real engine via a stubbed `callGM` +
+captured `_erSend`); verdicts and fixes by Fable. Method note: this was the first run of the
+delegated-evidence workflow — see FABLE_REVIEW_ACTION.html for the performance review.
+
+1. **(a) Masking — CONFIRMED, fixed (F8).** The enrichment block (inner try, memory.js) is
+   correctly contained and survives poisoned state (probes B/D/I). But the `reportError` call's own
+   ARGUMENT evaluation (`e.message`/`e.stack` inline) sat outside every try: a hostile thrown value
+   produced ZERO reports and full masking (probes G/H), and the escaped throw's second report died
+   in the 30s debounce. Fixed: defensive `String()` extraction under try; the same `_eMsg` now
+   serves the retry toast (which had the same hazard). Also fixed the pre-existing unguarded
+   `.slice` in the degraded-chapter loop (probes C/E — threw OUT of the catch, aborting the
+   archive) and the pre-try `sessionTokens()` throw on a malformed entry (probe F — no catch, no
+   report, engine-tested now).
+2. **(b) Half-mutated state — CONFIRMED as a diagnostics-accuracy limit, partially fixed.** Three
+   catch-time states exist (pre-extraction / partial-apply / post-trim-save-failed). Under quota
+   failure the window count reports the POST-trim log ("0 msgs" for a 4-msg window) — accepted:
+   the diagnostics describe live state honestly, and labeling it otherwise would require a
+   snapshot the failure path shouldn't pay for. The REAL defect found alongside: `_sumFails=0` ran
+   BEFORE the saves, so a repeating quota failure reset the 3-strike counter every pass — the
+   breaker was unreachable for that class. Fixed (reset moved after the saves).
+3. **(c) Content policy — AFFIRMED.** Full enumeration: `memory.js` summarize is the ONLY
+   content-bearing `reportError` detail in the repo (9 production sites; everything else
+   mechanical; the universal `erDiagBlock` is mechanical throughout). The user-ratified policy
+   stands; no other caller gained content-shipping.
+
+**Original entry (as filed 2026-07-22):**
 
 - **Tier:** the change itself is telemetry-only, but it sits INSIDE `summarize()`'s catch, and
   summarize is named drift surface in CLAUDE.md — so it is logged here rather than assumed safe.
@@ -35,6 +70,49 @@ Fable session can audit it in one pass.
   (which callers could now leak content) is worth a second look.**
 
 ### 4. Voice / TTS rework — curated Piper set, per-character voice on the sheet (TODO #9)
+
+**Reviewed by Fable 2026-07-24 — VERDICT: 3 CONFIRMED FINDINGS (all fixed v1.439), the ★ memo
+question ANSWERED (convention held; enforcement bundled into #92), splitter edges FILED (#93),
+everything else affirmed-and-closed.** Evidence: delegated Opus briefs E (memo mutator matrix) and
+F (4 checks incl. live splitter adversarials); much of the 2026-07-20 surface was superseded by
+the Fable-built v1.435–438 server-TTS/recovery rework before this review ran.
+
+1. **★ Transcript-memo class — ANSWERED.** Complete mutator sweep: the invalidation convention
+   holds at every site except the RAG lazy `.e` backfill — which is the exception ALREADY ruled
+   accepted (state.js design note), is self-healing, and whose concrete no-append drop windows
+   (Table Talk turns, the suggestion-call save) lose nothing the next retrieval doesn't rebuild.
+   Two structural fragilities recorded for the #92 session (same boundary, one test bed): the
+   retcon `rc` mark is safe only by ADJACENCY to its own append, and `stampTranscriptSpeakers`
+   invalidates a hardcoded `worldState.transcript` rather than the entry's owning array.
+   Enforcement options mapped (generalized stamp accessor vs. revision counter à la
+   `portraitVer`); decision deferred INTO #92 deliberately, not dropped.
+2. **Narrator protection defeatable pre-game — CONFIRMED, fixed (F10).** `_voiceAssignedTo`'s
+   worldState early-return sat ABOVE the narrator check, and Voice Settings lives on the API-key/
+   creation menus where worldState is null — automatic eviction could take the narrator's voice.
+   The narrator check now runs first (needs no world).
+3. **v1.419 silent-delete class regressed in ONE site — CONFIRMED, fixed (F11).**
+   `releaseVoiceIfUnused` still called the vendored swallowing `mod.remove()` and unconditionally
+   deleted the LRU stamp — the exact phantom-ratchet recipe, in the one deletion site the VOICE
+   DELETE CONTRACT didn't cover. Now uses `_piperRemoveVoiceFiles`; contract ① extended to pin it.
+4. **Stale key in the crash reporter — CONFIRMED, fixed (F12).** `ER_REPORT_HINTS` still read the
+   retired `tnd_tts_engine_v1`; every report said "(legacy-inferred)" while the real tier
+   (server/piper) went unrecorded. Now reports `TTS.getEngine()`.
+5. **B14 splitter — evidence gathered, edges FILED as TODO #93.** Live adversarials: NO text loss
+   in any case (8/8), spans deterministic across callers. Three edge behaviors recorded: an
+   unbalanced quote INVERTS parity for the paragraph remainder (the entry's assumed
+   "degrades to narration" is factually wrong — narration gets tagged as dialogue); two speakers
+   in adjacent paragraphs with a closed-then-reopened quote merge into ONE span (one voice for
+   two speakers); a lone `"` fragment can reach synthesis as a unit. All low-frequency, none
+   loses text; they need their own careful test-first session, not a ride-along fix.
+6. **Serialization audit — no gap.** Every OPFS writer (download/remove/evict) rides
+   `_piperSerial`; a same-id remove/download interleave is impossible on the chain. Noted without
+   action: the release path's sync check-then-act window (stale decision, not an interleave).
+7. **Affirmed and closed without changes:** legacy keys clean on every non-JS surface + both
+   repos (the one live JS read was finding 4); the mike/norman drop, snap-to-default, narrator
+   fallback, E20 narrator semantics, LRU-proxy confirm cosmetics, the muted-skip judgment call,
+   and the 4s fuse (live-verified at build; no half-state exists).
+
+**Original entry (as filed 2026-07-20):**
 
 - **Tier:** Sonnet (TTS is OUTPUT rendering, NOT the drift surface — no applyMuts/memory/prompt-
   injection contact). **Logged here at the USER's explicit request** ("everything we're doing here
@@ -237,6 +315,46 @@ Fable session can audit it in one pass.
 
 ### 2. NPC mood / relation separation — schema repair of the character-state tier
 
+**Reviewed by Fable 2026-07-24 — VERDICT: the separation design and core semantics PASS under
+live fire; 5 CONFIRMED finding groups, all fixed v1.439; 3 residues accepted with rationale.**
+Evidence: delegated Opus briefs B (complete consumer sweep — 25 status readers vs the entry's 9),
+C (adversarial parses + B3 composition, run through the real engine), D (heal-marker sync
+lifecycle). Verdicts and fixes by Fable, failing-test-first (8 new engine tests, section "Fable
+review fixes (v1.439)").
+
+1. **Core semantics — PASS, runtime-proven.** Sparse tags leave fields unchanged (incl. the
+   v1.381 no-refresh-on-relation-only contract); the tag never touches attitude under any
+   adversarial form; empty status composes cleanly with the B3 dead guard (falsy short-circuit —
+   nothing written, nothing refused); the DECEASED roster keys on the flag, so an empty-status
+   corpse cannot hide. The "empty is honest" judgment and Option-B split are AFFIRMED.
+2. **The heal marker re-fires on marker-less memory — CONFIRMED, fixed (F7).** Two live paths
+   produced exactly that: `blankMemory()` never carried `attitudeSpec` (every post-v1.383 NEW
+   campaign wiped its first correct dispositions on first reload) and the `.tnd` import whitelist
+   dropped the marker (every import re-fired the clear). Fixed: the marker is born on the blank
+   shape and carried through import. **Accepted residue (scenario a, brief D):** a pre-v1.383
+   device round-tripping the blob writes old-spec values UNDER the surviving marker — permanent
+   mislabels no heal can reach. Single-dev fleet on current code; recorded, not engineered around.
+3. **The raw `/\bdead\b/i` class — CONFIRMED, fixed (F1), and bigger than the entry knew.**
+   Eleven raw string checks (4 in game.js + 7 in helpers.js — the entry's map said four), and the
+   regex never matched `"slain"/"deceased"/"perished"` (what the combat kill path writes) nor read
+   the B3 flag. Runtime-confirmed damage: a slain companion fired no death defining-moment, kept
+   receiving witnessed core memories, stayed sheet-pending, and occupied a party-cap slot forever
+   (plus multiplayer round-order/playerCount). All eleven now route through `npcIsDead()`.
+4. **Blueprint round trip re-contaminated the schema — CONFIRMED, fixed (F2).** Export wrote a
+   MOOD into `role` (known); the import side (missed by the entry) fanned one relation-shaped
+   `role` into status + rel + attitude simultaneously. Export now maps `rel`; import seeds
+   relation only, mood/disposition empty.
+5. **Render/seed hygiene — CONFIRMED, fixed (F3/F4/F5).** Party-card `"ally"` mood default (both
+   sites), the unguarded sidebar `status+" / "+rel` concat ("undefined / …"), the four
+   `PARTY_MEMBER` branches still minting literal `"unknown"` into mood/attitude, and the
+   `[NPC:X|||]` third-slot pipe leak (`rel:"|"` — slot now pipe-excluded like the others).
+6. **Accepted without change:** the name slot's silent drop on `[NPC:|…]` (pre-existing,
+   requires a malformed emission the GM has never produced; noted for the next tag_table pass);
+   relation/pronoun writes landing on dead NPCs (defensible — bonds to the dead legitimately
+   change; the guard protects STATUS, the death canon); `"neutral"` staying in NPC_REL_VOCAB.
+
+**Original entry (as filed 2026-07-19):**
+
 - **Tier:** Fable (drift surface — the `[NPC:]` tag write path in tag_table.js, the roster + NPC-detail
   blocks of `buildSysPrompt`, the summarize extractor's write path, and a migration over live save data)
 - **Built by:** Opus 4.8 (NOT Fable) — 2026-07-19. **User ran out of Fable access mid-session and
@@ -362,8 +480,6 @@ Fable session can audit it in one pass.
   the diagnostic transcript in this session.
 
 ---
-
-## Reviewed
 
 ### 3. Campaign clock — new time subsystem, new tags, buildSysPrompt injection, migration (TODO #73)
 

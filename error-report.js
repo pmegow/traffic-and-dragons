@@ -246,7 +246,10 @@ var ER_REPORT_HINTS=[
   // sheet assignment below is what turns it into sound.
   {id:"tts",re:/voice|speech|speak|narrat|tts|piper|audio|sound|mute|silen/i,gather:function(w){
     var s="tts: ?";
-    try{if(typeof store!=="undefined")s="tts engine: "+(store.get("tnd_tts_engine_v1")||"(legacy-inferred)")+"; on: "+(store.get("tnd_tts_on_v1")==="1")+"; piper voice: "+(store.get("tnd_piper_voice_v1")||"(default)")+"; rate: "+(store.get("tnd_tts_rate_v1")||"1.0");}catch(e){}
+    /* v1.439 (F12, brief F): report the RESOLVED engine tier — the old line read the retired
+       tnd_tts_engine_v1 key (dead since v1.398/v1.405), so every report said "(legacy-inferred)"
+       or a stale value while the actual tier (server vs piper) went unrecorded. */
+    try{if(typeof store!=="undefined")s="tts engine: "+((typeof TTS!=="undefined"&&TTS.getEngine)?TTS.getEngine():"?")+"; on: "+(store.get("tnd_tts_on_v1")==="1")+"; piper voice: "+(store.get("tnd_piper_voice_v1")||"(default)")+"; rate: "+(store.get("tnd_tts_rate_v1")||"1.0");}catch(e){}
     try{
       var tr=(w&&w.transcript)||[],e=null,i;
       for(i=tr.length-1;i>=0;i--){if(tr[i]&&tr[i].r==="gm"){e=tr[i];break;}}

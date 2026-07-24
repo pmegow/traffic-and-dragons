@@ -85,9 +85,12 @@ try {
   var _nc = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
   var _evict = _nc((_tts.match(/async function _piperEvictExcess[\s\S]*?\n  \}\n/) || [""])[0]);
   var _del   = _nc((_tts.match(/function _piperDeleteVoice[\s\S]*?\n  \}\n/) || [""])[0]);
-  // ① Neither deletion path may go back through the swallowing vendored remove().
-  if (/mod\.remove\(/.test(_evict) || /mod\.remove\(/.test(_del)) {
-    console.error("VOICE DELETE CONTRACT: a deletion path calls the vendored mod.remove(), which swallows every failure and resolves clean — on Safari that reports success while deleting nothing (v1.419). Use _piperRemoveVoiceFiles.");
+  var _rel   = _nc((_tts.match(/function releaseVoiceIfUnused[\s\S]*?\n  \}\n/) || [""])[0]);
+  // ① NO deletion path may go back through the swallowing vendored remove(). v1.439 extended to
+  //    releaseVoiceIfUnused — the one site the original contract didn't cover, and exactly where
+  //    the class regressed (found by the entry-4 evidence pass).
+  if (/mod\.remove\(/.test(_evict) || /mod\.remove\(/.test(_del) || /mod\.remove\(/.test(_rel)) {
+    console.error("VOICE DELETE CONTRACT: a deletion path calls the vendored mod.remove(), which swallows every failure and resolves clean — on Safari that reports success while deleting nothing (v1.419/v1.439). Use _piperRemoveVoiceFiles.");
     process.exit(1);
   }
   // ② The primitive must use the STANDARD removeEntry, not the Chrome-only handle.remove().

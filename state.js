@@ -18,7 +18,10 @@ var sessionLog=[];
 // Single source of truth for the empty-memory shape (audit #22). Every reset path
 // (new game, new campaign, import) must use this — the old inline literals drifted
 // (most omitted map/npcGraph/nameIdx and leaned on lazy guards to self-heal).
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],nameIdx:0,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
+/* attitudeSpec:2 at birth (v1.439, F7 — brief D): a memory born WITHOUT the marker re-fires the
+   v1.383 one-time clear on its first loadState and wipes CORRECT new-spec dispositions. New
+   campaigns are born ON the current spec — there is nothing to heal. */
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
