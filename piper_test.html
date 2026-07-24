@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.5)</title>
+<title>Piper TTS — kick-the-tires (v0.6)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -153,7 +153,34 @@
     try {
       if (!mem.__tndGrowWrapped){
         var g0 = mem.grow;
-        mem.grow = function(d){ s.g++; return g0.call(mem, d); };
+        // v0.6: per-GROW ring — the v0.5 field result (3 deaths at EXACTLY synth 29, grow-events
+        // 9-10, not the predicted ~100) falsified count-alignment and re-aimed the question at
+        // the INDIVIDUAL grow: Emscripten grows geometrically (few, LARGE steps), so the next
+        // step from ~300MB is a big commit, and a kill DURING that commit would explain the
+        // deterministic death index, the game's wandering 248-624MB at death, and everything
+        // else. Each entry: [soak-synth-index (-1 = outside a soak), pages requested, MB after].
+        // A death crumb whose ring ends in a large request IS the mechanism caught in the act.
+        mem.grow = function(d){
+          s.g++;
+          // Persist BEFORE the commit with MBafter = -1 ("grow IN FLIGHT"), then update after.
+          // A kill landing DURING the commit leaves the -1 marker in localStorage — the
+          // mechanism caught in the act, readable at next boot. Synchronous writes on purpose:
+          // this fires ~10 times a page, not per synth.
+          var entry = [ (typeof window !== "undefined" && window.__soakIdx != null) ? window.__soakIdx : -1,
+                        d, -1 ];
+          try {
+            s.ring = s.ring || [];
+            s.ring.push(entry);
+            while (s.ring.length > 12) s.ring.shift();
+            if (typeof localStorage !== "undefined") localStorage.setItem("tnd_grow_log_v1", JSON.stringify({ k: kind, ring: s.ring }));
+          } catch(e4){}
+          var r = g0.call(mem, d);
+          try {
+            entry[2] = Math.round(mem.buffer.byteLength / 1048576);
+            if (typeof localStorage !== "undefined") localStorage.setItem("tnd_grow_log_v1", JSON.stringify({ k: kind, ring: s.ring }));
+          } catch(e5){}
+          return r;
+        };
         mem.__tndGrowWrapped = true;
       }
     } catch(e3){}
@@ -232,6 +259,8 @@
       if (b > (e.lastB || 0)){ e.gd = (e.gd || 0) + 1; e.lastB = b; }
       return e.gd || 0;
     },
+    // v0.6: the per-grow ring (last 12) — [soakIdx, pagesRequested, MBafter] per grow.
+    growLog: function(kind){ var e = seen[kind]; return (e && e.ring) ? e.ring.slice() : []; },
     caught: function(){ return Object.keys(seen).length; },
     list:   function(){
       var out = [], ks = Object.keys(seen), i;
@@ -256,7 +285,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.5</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.6</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -618,8 +647,24 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
       if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
         + (c.g != null ? ", grow-events " + c.g + (c.gd != null && c.gd !== c.g ? "/" + c.gd : "") : "")
         + (c.mb ? ", ORT " + c.mb + "MB" : "")
-        + ") — the tab was killed mid-soak. That IS the jetsam repro."
-        + (c.g != null ? " (v0.5: the grow-event count is the number the B9 hypothesis says deaths align on.)" : ""), "err");
+        + ") — the tab was killed mid-soak. That IS the jetsam repro.", "err");
+    }
+    // v0.6: the per-grow log survives the kill independently (written synchronously by the wasm
+    // probe's grow wrapper, INCLUDING a pre-commit "-1 = in flight" marker). A trailing -1 means
+    // the kill landed DURING that grow — the killed-mid-grow hypothesis caught in the act.
+    var gRaw = localStorage.getItem("tnd_grow_log_v1");
+    if (gRaw){
+      localStorage.removeItem("tnd_grow_log_v1");
+      try {
+        var gL = JSON.parse(gRaw), rows = (gL.ring || []).map(function(e){
+          return "synth " + (e[0] === -1 ? "(pre-soak)" : "#" + e[0]) + ": +" + e[1] + " pages → " + (e[2] === -1 ? "⚠ IN FLIGHT (killed mid-grow?)" : e[2] + "MB");
+        });
+        if (rows.length){
+          var midGrow = gL.ring.length && gL.ring[gL.ring.length - 1][2] === -1;
+          log("GROW LOG (" + gL.k + ", last " + rows.length + " grows of the previous page):\n  " + rows.join("\n  ")
+            + (midGrow ? "\n  ⭐ the final grow never completed — the kill landed MID-GROW. That is the mechanism, caught in the act." : ""), midGrow ? "err" : "hl");
+        }
+      } catch(eG){}
     }
   } catch(e){}
 })();
@@ -718,13 +763,14 @@ async function soak(n, recycleEvery){
   // controlling-variable hypothesis says deaths across shape modes align on THIS number, not on
   // the synth count. g = exact (wrapped mem.grow); gd = byteLength-delta lower bound.
   function _growSnap(){
-    var p = WebAssembly.__tndProbe, g = 0, gd = 0;
-    try { if (p){ gd = p.growTick("ort"); g = p.grows("ort"); } } catch(e){}
-    return { g: g, gd: gd, mb: Math.round(wasmMB("ort") || 0) };
+    var p = WebAssembly.__tndProbe, g = 0, gd = 0, gl = [];
+    try { if (p){ gd = p.growTick("ort"); g = p.grows("ort"); gl = p.growLog ? p.growLog("ort") : []; } } catch(e){}
+    return { g: g, gd: gd, mb: Math.round(wasmMB("ort") || 0), gl: gl };
   }
   for (var i = 0; i < n && _soaking; i++){
+    window.__soakIdx = i + 1;   // v0.6: stamps each grow-ring entry with the synth it happened DURING
     var gs = _growSnap();
-    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb })); } catch(e){}
+    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb, gl: gs.gl })); } catch(e){}
     try { await synth(soakText(i), voiceId); }   // result discarded — synth-side memory only
     catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
     sinceRecycle++;
