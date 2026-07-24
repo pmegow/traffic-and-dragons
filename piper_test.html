@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.8)</title>
+<title>Piper TTS — kick-the-tires (v0.9)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -290,7 +290,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.8</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.9</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -754,6 +754,14 @@ async function soak(n, recycleEvery){
   // field condition. An iPhone dying at ~90-130 in THIS mode pins B9's controlling variable to
   // grow-event count — not synth count, not resident bytes.
   var unbounded = $("soak-unbounded") && $("soak-unbounded").checked;
+  // v0.7: the IDLE test — stop synthesizing once ORT crosses the observed fatal step (354MB on
+  // this device; trigger just under at 350) and sit heartbeating. The v0.6 ring proved the kill
+  // lands BETWEEN grows, seconds after the crossing — this separates "delayed watchdog reacting
+  // to the LEVEL" (dies while idle) from "per-synth work on top of the level" (survives idle).
+  // v0.9: declared HERE, before the start-of-soak announce that reads it — it originally sat
+  // just above the for loop, where var-hoisting made the announce read `undefined` and skip.
+  var idleTest = $("soak-idle") && $("soak-idle").checked;
+  var IDLE_AT_MB = 350;
   var words = $("txt").value.replace(/\s+/g, " ").trim().split(" ");
   function soakText(i){
     if (!vary && !unbounded) return units[i % units.length].text;
@@ -783,6 +791,9 @@ async function soak(n, recycleEvery){
   if (heapMB() !== null) await new Promise(function(r){ setTimeout(r, 8000); });   // settle before baseline — SAME 8s as the verdict settle, or the asymmetry alone reads as a big negative slope
   var heap0 = heapMB(), tStart = performance.now(), lastHeap = heap0, sinceRecycle = 0;
   var samples = [];
+  // v0.9: announce the idle test AT START — a user ticking the box saw nothing until ~25 synths
+  // in (the 350MB crossing), which read as "idle mode isn't on" and cost a wasted run.
+  if (idleTest) log("IDLE TEST ARMED — synthesis will STOP at " + IDLE_AT_MB + "MB (~25 synths on this device) and the page will sit heartbeating. Until then it looks like a normal soak. Keep it frontmost throughout.", "hl");
   log("SOAK: " + n + " silent synths · shapes " + (unbounded ? "UNBOUNDED (grow-event hypothesis — ~every synth a NEW length)" : vary ? "VARIED (60-shape cycle — saturates after ~60 synths)" : "fixed cycle of " + units.length) +
       " · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
       (heap0 === null ? " · no heap API on this browser — SURVIVAL is the signal" : " · settled baseline " + heap0.toFixed(0) + "MB"), "hl");
@@ -796,12 +807,7 @@ async function soak(n, recycleEvery){
     try { if (p){ gd = p.growTick("ort"); g = p.grows("ort"); gl = p.growLog ? p.growLog("ort") : []; } } catch(e){}
     return { g: g, gd: gd, mb: Math.round(wasmMB("ort") || 0), gl: gl };
   }
-  // v0.7: the IDLE test — stop synthesizing once ORT crosses the observed fatal step (354MB on
-  // this device; trigger just under at 350) and sit heartbeating. The v0.6 ring proved the kill
-  // lands BETWEEN grows, seconds after the crossing — this separates "delayed watchdog reacting
-  // to the LEVEL" (dies while idle) from "per-synth work on top of the level" (survives idle).
-  var idleTest = $("soak-idle") && $("soak-idle").checked;
-  var IDLE_AT_MB = 350;
+  // (idleTest/IDLE_AT_MB are declared at the top of soak() since v0.9 — the start announce reads them.)
   for (var i = 0; i < n && _soaking; i++){
     window.__soakIdx = i + 1;   // v0.6: stamps each grow-ring entry with the synth it happened DURING
     var gs = _growSnap();
