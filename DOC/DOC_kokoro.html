@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kokoro on the Voice Server — M2 Spec (TODO #91)</title>
+<style>
+  :root{ --bg:#121212; --panel:#181818; --ink:#e6e2d8; --dim:#a39a88; --acc:#b8935a; --line:#2c2a26;
+         --good:#7aa86a; --warn:#c9a24b; --bad:#c0564a; --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:940px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:1.7em;margin:0 0 6px;color:#f2ede1}
+  h2{font-size:1.25em;margin:38px 0 8px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:1.02em;margin:22px 0 6px;color:#f2ede1}
+  p{margin:8px 0} ul{margin:8px 0;padding-left:20px} li{margin:5px 0}
+  code{font-family:var(--mono);font-size:.86em;background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8cdb4}
+  pre{font-family:var(--mono);font-size:.82em;background:#0d0d0d;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;color:#d8cdb4}
+  .sub{color:var(--dim);font-size:.95em}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:12px 0}
+  .rail{border-left:3px solid var(--acc);padding-left:14px;margin:12px 0}
+  .rail.warn{border-color:var(--warn)}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9em}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#0e0e0d;color:var(--dim)}
+  .d{font-family:var(--mono);color:var(--acc);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Kokoro on the Voice Server — the M2 quality upgrade</h1>
+<p class="sub">Spec R1, 2026-07-24 · TODO #91 · gated on the D4 benchmark (ratified 2026-07-24) ·
+builds on the live M1 tnd-tts app (DOC/DOC_server_tts.html) · engine v1.439</p>
+
+<div class="card">
+<b>Why this exists.</b> M1 proved the pipe: server-side Piper, same 19 voices, B9 dead. Kokoro-82M
+(Apache-2.0, StyleTTS2-derived) is the quality jump behind the SAME endpoint: markedly better prosody
+than Piper mediums, ~24–50 voice packs, and voice <b>blending</b> (style vectors are small tensors —
+a weighted average of two packs is a new voice), which is the real prize for per-character casting.
+Self-hosted on our own box, so the ownership decision that killed Cartesia/LiveKit stays intact.
+<b>D4 (ratified):</b> M2 ships only after a Fly CPU benchmark shows ≥1× realtime on the chosen
+instance; "near real-time on common CPUs" is the ecosystem's claim, not a measurement of a
+shared-cpu-1x — the gate exists because nobody has run it there.
+</div>
+
+<h2>K1 — Runtime: in-process <code>kokoro-js</code> (recommended)</h2>
+<table>
+<tr><th></th><th>A · kokoro-js in-process (Node, transformers.js/ONNX)</th><th>B · Python sidecar (kokoro pip + torch)</th><th>C · kokoro-onnx (Python, no torch)</th></tr>
+<tr><td>Image</td><td>npm dep; no new runtime; model (~90–330MB by quant) → volume</td><td>+torch ≈ 2GB image; second runtime</td><td>+python + onnxruntime ≈ mid</td></tr>
+<tr><td>Protocol</td><td><b>None — a function call.</b> No daemon, no stdin framing, no FIFO alignment</td><td>A second daemon protocol (the piper machinery again, in python)</td><td>Same daemon cost as B</td></tr>
+<tr><td>Perf</td><td>onnxruntime CPU EP; quant ladder fp32→q4 to buy speed</td><td>Reference impl; likely fastest, heaviest</td><td>Comparable to A</td></tr>
+<tr><td>Risk</td><td>Inference blocks the event loop → MUST run in a <code>worker_thread</code></td><td>RAM + image weight on a 1GB box</td><td>Two runtimes for no protocol win</td></tr>
+</table>
+<p><b>Recommendation: A.</b> One runtime, no protocol surface, and the quant ladder gives the
+benchmark three chances to pass. The worker_thread isolation is non-negotiable — a 2s synth on the
+main thread would stall every concurrent piper request's I/O. B is the fallback ONLY if A fails the
+benchmark at every acceptable quant.</p>
+
+<h2>K2 — Routing: the voice id IS the engine selector</h2>
+<div class="rail">
+Kokoro ids are namespaced <code>kk_*</code> (e.g. <code>kk_af_bella</code>, <code>kk_bm_george</code>).
+The server routes on the prefix: <code>kk_</code> → kokoro, else → piper. The M1 <code>engine</code>
+param stays accepted for compatibility but is redundant — one source of truth, no way for the
+param and the id to disagree. Allowlist discipline identical to M1: a curated
+<code>KOKORO_VOICES</code> list mirrored client/server; unknown ids 400 before any download.
+</div>
+<pre>POST /api/tts   (unchanged shape)
+  { text, voiceId: "kk_af_bella", rate }         → 200 audio/wav (24000 Hz mono PCM16)
+  { text, voiceId: "kk_mix:af_bella@0.6+af_sky@0.4", rate }   → blended style vector (M2.5 — syntax
+                                                    reserved and parsed server-side from day one;
+                                                    the picker UI for it ships later)</pre>
+<p class="sub">Client decode is already rate-agnostic — <code>_wavToAudioBuffer</code> builds the
+buffer at the WAV's own <code>fmt.sampleRate</code> and WebAudio resamples, so 24kHz needs zero
+client decode changes (verified against the v1.439 source).</p>
+
+<h2>K3 — The real client design work: tier-aware voice resolution</h2>
+<div class="card">
+<b>The wrinkle M1 never had:</b> every M1 voice exists on BOTH tiers (same 19 Piper ids locally and
+server-side). A <code>kk_</code> voice exists ONLY on the server. Three shipped code paths break if
+this isn't specified:
+<ul>
+<li><b>The ladder handoff.</b> A server read failing mid-read unshifts its remainder onto local
+Piper with the passage <code>voiceId</code> — a <code>kk_</code> id local Piper cannot load.</li>
+<li><b><code>resolvePiperVoice</code>'s snap guard.</b> A campaign narrator pinned to
+<code>kk_af_bella</code> would be "unknown" to the curated Piper set and silently snapped to the
+Piper default — eating the player's choice on every resolution.</li>
+<li><b><code>characterVoiceId</code> / speaker maps.</b> Same membership test, same wrong snap.</li>
+</ul>
+</div>
+<p><b>Spec:</b> introduce ONE classification helper and thread it through the four touchpoints —
+no scattered prefix checks (the abstraction rule):</p>
+<pre>voiceTier(id)  →  "kokoro" (kk_ prefix) | "piper" (curated set) | null (unknown)
+
+narratorVoice(tier)   — the narrator for a GIVEN tier: the campaign/device pin when its
+                        tier matches, else that tier's default (Piper: libritts_r;
+                        Kokoro: a curated default pack). The pin STORES whatever the
+                        player picked; resolution is per-tier, the pin is never rewritten.
+
+characterVoiceId(char, tier) — the character's own voice when voiceTier(it)===tier,
+                        else narratorVoice(tier). A kk_-bound character on a piper
+                        read speaks in the piper narrator voice — graceful, loud once.</pre>
+<ul>
+<li><code>_speakServer</code> asks for tier "kokoro"-or-"piper" ids untouched (the server speaks
+both); its HANDOFF unshift converts the remainder's voice via <code>narratorVoice("piper")</code>
+when the passage voice is <code>kk_</code> — the existing degrade toast already tells the player.</li>
+<li><code>_speakPiper</code>'s per-unit map lookup runs through <code>characterVoiceId(char,"piper")</code> —
+a stored <code>kk_</code> assignment can never reach <code>predict()</code>.</li>
+<li>The sheet Voice dropdown gains a "Server voices (cloud)" optgroup, shown only when the server
+tier is configured; picking one while unconnected is allowed (it's a preference) with the
+sub-line noting it speaks only on server reads.</li>
+<li>Blueprint <code>narratorVoice</code> validation (<code>TTS.voiceKnown</code>) accepts both
+namespaces; the E20 no-clobber rule unchanged.</li>
+</ul>
+
+<h2>K4 — The D4 benchmark, concretely (the gate)</h2>
+<div class="rail warn">
+<b>Run BEFORE any M2 code is written.</b> A bench script in the server repo (<code>tts/bench-kokoro.mjs</code>,
+dev tool, not routed) executed on the live box via <code>fly ssh console</code> — the same
+shared-cpu-1x that will serve it, not a laptop.
+</div>
+<ul>
+<li><b>Corpus:</b> 30 units at real narration lengths — 10 short (~40 chars), 10 median (~120),
+10 long (~220, the MAX_UNIT ceiling) — from an actual transcript, not lorem ipsum.</li>
+<li><b>Matrix:</b> quantizations <code>q8</code>, <code>fp16</code>, <code>fp32</code> × cold-load
+time × sustained RTF (30 units back-to-back, report median + p95) × RSS before/after.</li>
+<li><b>Pass (D4):</b> sustained median RTF ≥ 1.0× at a quant whose output passes an ear check
+(spot-listen the 30 WAVs — q8 artifacts are the known risk); p95 unit latency ≤ the client's
+10s mid-read timeout with margin; RSS verdict feeds K5.</li>
+<li><b>Comparison row:</b> the same corpus through the resident Piper daemon (M1 measured ~0.16
+RTF — 6× realtime) so the cost of quality is a number, not a vibe.</li>
+</ul>
+
+<h2>K5 — Box sizing (decided BY the benchmark, not before)</h2>
+<table>
+<tr><th>Outcome</th><th>Action</th><th>~Cost delta</th></tr>
+<tr><td>Kokoro RSS + 1 warm piper + node ≤ ~800MB and RTF passes</td><td>Stay on shared-cpu-1x / 1GB; drop piper daemon LRU 3→2 when the kokoro model is resident</td><td>$0</td></tr>
+<tr><td>RTF passes, RSS tight</td><td>2GB shared-cpu-1x</td><td>≈ +$5/mo</td></tr>
+<tr><td>RTF fails on shared</td><td>Benchmark once on performance-1x before declaring M2 blocked; if it passes only there, M2 waits (D4's "bigger box or stays optional") — the always-on cost is a user call, not a default</td><td>≈ +$25+/mo — needs explicit ratification</td></tr>
+</table>
+
+<h2>K6 — Catalog & casting</h2>
+<ul>
+<li><b>English packs only for v1</b> (~24–26 en_US/en_GB voices). Curate exactly like the Piper 19:
+the official pre-rendered samples through a <code>voice_picker.html</code>-style pass; user picks
+the keepers; ships as <code>KOKORO_VOICES</code> (client display + server allowlist). Gender tags
+from day one — the #9⑨ lesson, don't re-create the missing-attribute gap.</li>
+<li><b>Model + packs live on the /data volume</b> (D5's 3GB has room: model ≤330MB even at fp32;
+style vectors are KBs). Download-on-first-use like M1, <code>.part</code>+rename discipline.</li>
+<li><b>Blending is M2.5:</b> the server parses <code>kk_mix:</code> from day one (cheap — it's a
+weighted vector average), but the mixer UI (sliders on the sheet voice control) ships as its own
+small pass after single-pack casting is field-proven.</li>
+</ul>
+
+<h2>Milestones</h2>
+<table>
+<tr><th>M2.0</th><td><b>The benchmark</b> (K4) on the live box. Output: numbers in this doc + the K5 sizing decision + GO/NO-GO. No game code.</td></tr>
+<tr><th>M2.1</th><td>Server: kokoro-js in a worker_thread behind the prefix router (K2); <code>/health</code> reports the kokoro model state; bench numbers re-verified through the real route.</td></tr>
+<tr><th>M2.2</th><td>Client: <code>voiceTier</code>/<code>narratorVoice</code>/<code>characterVoiceId</code> refactor (K3) + engine tests for every fallback edge (kk_ pin on a piper read, handoff conversion, speaker-map snap); curated catalog + picker pass (K6); sheet optgroup.</td></tr>
+<tr><th>M2.3</th><td>Field validation on the phone: a kk_ narrator through real play, degrade ladder exercised, then flip the shipped default? — <b>user call, not automatic</b>.</td></tr>
+<tr><th>M2.5</th><td>Blend mixer UI.</td></tr>
+</table>
+
+<div class="rail warn">
+<b>What M2 does NOT change:</b> the Piper offline tier, the governor, the native floor, the M1
+daemon machinery, the auth/stale-grace path, and the ladder itself (server → piper → native) — a
+kokoro failure degrades exactly like a piper-server failure does today, one rung down, loudly.
+K3 is the only drift-adjacent surface (it touches what voices the SPEAKER MAPS resolve to);
+everything else is server-side or output rendering. Tier: benchmark+server = Any; K3 client
+resolution = annotate for Fable review via /fable-review after build.
+</div>
+
+<p class="sub">Traffic and Dragons · M2 spec R1 · decisions K1–K6 want ratification before M2.1
+(K1 and K2 carry recommendations; K4/K5 are self-deciding by measurement) · runtime facts:
+<a style="color:var(--acc)" href="https://www.npmjs.com/package/kokoro-js">kokoro-js</a> ·
+<a style="color:var(--acc)" href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX">Kokoro-82M-v1.0-ONNX</a></p>
+</div>
+</body>
+</html>
