@@ -654,27 +654,47 @@ var TTS = (function() {
     // audio while the bar still reads paused (the v1.334 audit #4 desync).
     if (_paused || !_audioCtx) return false;
     if (!_ctxDoomed && _audioCtx.state !== "interrupted") {
-      if (_audioCtx.state !== "running") _resumeCtx(_audioCtx, tag || "recover");
-      // B9 H1 (v1.430): recycle a HEALTHY but well-used context. This runs in the same gesture
-      // slot as the B10 repair (sendAction calls recoverAudio on every send), reusing the exact
-      // close→rebuild→re-prime sequence the field already proved (the voice toggle, then B10).
-      // Idle-gated HARD: never while anything is playing, queued, or paused — recycling then
-      // would cut live audio; between reads it is inaudible. If per-source native state is what
-      // jetsam counts (deepdive H1), this caps it below the 90-132 death band forever; if the
-      // next death arrives with cs<40 anyway, the theory is falsified by that one crumb.
-      else if (!_playing && !_queue.length && _ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS) {
-        var used = _ctxSynths;
-        _closeCtx();                     // close() + null + drop the old primer
-        var fresh = _ensureCtx();        // new context, in-gesture; resets _ctxSynths
-        if (!fresh) return false;
-        _ctxRecycles++;
-        _resumeCtx(fresh, (tag || "recover") + "-ctxrecycle");
-        primeAudioSession();             // re-claim the iOS playback category on the NEW context
-        console.info("[tts] playback context recycled after " + used + " units (B9 H1) — recycle #" + _ctxRecycles);
-        if (typeof erCrumb === "function") erCrumb("ctx-recycle", "#" + _ctxRecycles + " after " + used + "u");
-        return true;
+      if (_audioCtx.state === "running") {
+        recoverAudio._stuckCtx = null;   // healthy — clear any pending escalation strike
+        // B9 H1 (v1.430): recycle a HEALTHY but well-used context. This runs in the same gesture
+        // slot as the B10 repair (sendAction calls recoverAudio on every send), reusing the exact
+        // close→rebuild→re-prime sequence the field already proved (the voice toggle, then B10).
+        // Idle-gated HARD: never while anything is playing, queued, or paused — recycling then
+        // would cut live audio; between reads it is inaudible. If per-source native state is what
+        // jetsam counts (deepdive H1), this caps it below the 90-132 death band forever; if the
+        // next death arrives with cs<40 anyway, the theory is falsified by that one crumb.
+        if (!_playing && !_queue.length && _ctxSynths >= AUDIO_CTX_RECYCLE_SYNTHS) {
+          var used = _ctxSynths;
+          _closeCtx();                     // close() + null + drop the old primer
+          var fresh = _ensureCtx();        // new context, in-gesture; resets _ctxSynths
+          if (!fresh) return false;
+          _ctxRecycles++;
+          _resumeCtx(fresh, (tag || "recover") + "-ctxrecycle");
+          primeAudioSession();             // re-claim the iOS playback category on the NEW context
+          console.info("[tts] playback context recycled after " + used + " units (B9 H1) — recycle #" + _ctxRecycles);
+          if (typeof erCrumb === "function") erCrumb("ctx-recycle", "#" + _ctxRecycles + " after " + used + "u");
+          return true;
+        }
+        return false;
       }
-      return false;
+      // Not running, not interrupted — "suspended" and whatever else iOS invents. v1.437
+      // escalation (field: "no amount of clicking got it going — only the toggle did"): a stuck
+      // ctx that already refused one recovery resume is as dead as an interrupted one, iOS just
+      // labels it differently — and the old path resume()d forever, exactly the refusal loop
+      // B10 documented. First recovery attempt tries resume (cheap, usually enough after an app
+      // switch) and RE-ARMS the unlock so the next tap reaches here; a second attempt on the
+      // SAME still-stuck ctx within 30s falls through to the rebuild below (what the 🔊 toggle
+      // does by hand).
+      if (recoverAudio._stuckCtx === _audioCtx && Date.now() - recoverAudio._stuckAt < 30000) {
+        _ctxDoomed = true;
+        console.warn("[tts] ctx still " + _audioCtx.state + " after a recovery resume — escalating to rebuild (v1.437)");
+      } else {
+        recoverAudio._stuckCtx = _audioCtx;
+        recoverAudio._stuckAt = Date.now();
+        _resumeCtx(_audioCtx, tag || "recover");
+        _armCtxUnlock();   // the one-shot was just consumed — without this, later taps do nothing
+        return false;
+      }
     }
     var was = _audioCtx.state;
     // Mirror the toggle: tear down the doomed read first. Anything scheduled on the old context
@@ -768,13 +788,36 @@ var TTS = (function() {
       if (_paused) return;   // a user pause suspends the same ctx deliberately (audit #4)
       if (_audioCtx && _audioCtx.state !== "running" && _audioCtx.state !== "closed") {
         _resumeCtx(_audioCtx, "ctx-watch");
+        _armCtxUnlock();   // v1.437: EVERY poll, not once per freeze — the one-shot handler was
+                           // consumed by the user's first tap and never re-armed while `warned`
+                           // stayed latched, so every later click did nothing (the field report)
         if (!warned) {
           warned = true;
-          _armCtxUnlock();
           console.warn("[tts] AudioContext " + _audioCtx.state + " mid-" + engineLabel + " read — narration frozen; tap unlock armed");
           if (typeof showToast === "function") showToast("🔇 iOS paused game audio mid-narration — tap anywhere to resume", 6000);
         }
-      } else warned = false;
+      } else {
+        warned = false;
+        // v1.437 zombie detector: iOS can hand back a ctx that reports "running" while its render
+        // clock is frozen — no state change, no event, playback silently parked, and every
+        // recovery path trusts state==="running" so taps can never fix it. The audio clock NEVER
+        // stalls on a healthy running ctx, so two consecutive frozen samples (4s) = proven
+        // zombie: mark doomed + arm the unlock — the NEXT tap rebuilds in-gesture (recoverAudio's
+        // _ctxDoomed path). Never an autonomous teardown mid-read.
+        if (_audioCtx && _audioCtx.state === "running") {
+          if (_armCtxWatch._zt === _audioCtx.currentTime) {
+            _armCtxWatch._zn = (_armCtxWatch._zn || 0) + 1;
+            if (_armCtxWatch._zn === 2) {
+              _ctxDoomed = true;
+              _armCtxUnlock();
+              console.warn("[tts] ctx reports running but the audio clock is frozen at " + _audioCtx.currentTime.toFixed(2) + "s — zombie context (v1.437); next tap rebuilds");
+              if (typeof erCrumb === "function") erCrumb("ctx-zombie", "t=" + _audioCtx.currentTime.toFixed(1));
+              if (typeof showToast === "function") showToast("🔇 iOS silenced game audio — tap anywhere to restore the narrator voice.", 6000);
+            }
+          } else _armCtxWatch._zn = 0;
+          _armCtxWatch._zt = _audioCtx.currentTime;
+        }
+      }
     }, 2000);
   }
   function _clearCtxWatch() { if (_ctxWatchT) { clearInterval(_ctxWatchT); _ctxWatchT = null; } }

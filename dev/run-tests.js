@@ -146,6 +146,26 @@ try {
     console.error("AUDIO RECOVERY CONTRACT: sendAction no longer repairs audio on the send gesture — the context stays dead until a read has already failed (B10, v1.421).");
     process.exit(1);
   }
+  // ④ v1.437 (field: "no amount of clicking got it going — only the toggle did"): a stuck ctx
+  //    that refused one recovery resume must ESCALATE to the rebuild — "suspended" and zombie
+  //    states never qualified for it, so taps resume()d forever while only the toggle rebuilt.
+  if (_rec.indexOf("_stuckCtx") < 0 || _rec.indexOf("_ctxDoomed = true") < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: the second-attempt escalation (_stuckCtx → _ctxDoomed) is gone from recoverAudio — a suspended-but-refusing ctx loops resume() forever and only the manual voice toggle recovers (v1.437).");
+    process.exit(1);
+  }
+  // ⑤ v1.437: the watchdog must re-arm the tap unlock EVERY poll — the one-shot handler was
+  //    consumed by the first tap and `warned` stayed latched, so later clicks did nothing.
+  var _watchA = _ncA((_ttsA.match(/function _armCtxWatch\(engineLabel\)[\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_watchA || _watchA.indexOf("_armCtxUnlock()") < 0 || _watchA.indexOf("_armCtxUnlock()") > _watchA.indexOf("if (!warned)")) {
+    console.error("AUDIO RECOVERY CONTRACT: _armCtxWatch no longer re-arms the tap unlock on every poll (before the warned latch) — one tap per freeze gets a recovery attempt and every later tap is inert (v1.437).");
+    process.exit(1);
+  }
+  // ⑥ v1.437: the zombie detector — a ctx reporting "running" with a frozen audio clock is
+  //    invisible to every state-trusting recovery path; only the clock comparison catches it.
+  if (_ttsA.indexOf('erCrumb("ctx-zombie"') < 0) {
+    console.error("AUDIO RECOVERY CONTRACT: the frozen-clock zombie detector is gone — a 'running' ctx with a stalled render clock plays silence forever and no tap can ever fix it (v1.437).");
+    process.exit(1);
+  }
 } catch (e) { console.error("AUDIO RECOVERY CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── RESPAWN ORDERING CONTRACT (v1.424, B9) ───────────────────────────────────────────────
