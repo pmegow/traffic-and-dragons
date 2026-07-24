@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.9)</title>
+<title>Piper TTS — kick-the-tires (v0.10)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -290,7 +290,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.9</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.10</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -664,12 +664,14 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
     if (c){
       c = JSON.parse(c); localStorage.removeItem(SOAK_CRUMB_K);
       if (!c.done && c.idle != null) deathMsg = "⚠⚠ last soak DIED WHILE IDLE — killed " + c.idle + "s after synthesis STOPPED at " + c.mb + "MB "
-        + "(" + c.i + " synths had run). No synthesis was executing. The kill is LEVEL-TRIGGERED — a delayed memory watchdog reacting to the "
+        + "(" + c.i + " synths had run" + (c.cpu != null ? ", synthCPU " + c.cpu + "s" : "") + "). No synthesis was executing. The kill is LEVEL-TRIGGERED — a delayed memory watchdog reacting to the "
         + "resident footprint — and the per-synth work is exonerated. (v0.7 idle test)";
       else if (!c.done) deathMsg = "⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
         + (c.g != null ? ", grow-events " + c.g + (c.gd != null && c.gd !== c.g ? "/" + c.gd : "") : "")
         + (c.mb ? ", ORT " + c.mb + "MB" : "")
-        + ") — the tab was killed mid-soak. That IS the jetsam repro.";
+        + (c.cpu != null ? ", synthCPU " + c.cpu + "s" : "")
+        + ") — the tab was killed mid-soak. That IS the jetsam repro."
+        + (c.cpu != null ? " (v0.10: synthCPU is the number the cumulative-work hypothesis says deaths align on — across the harness AND the game.)" : "");
       if (deathMsg){ log(deathMsg, "err"); detail.push("crumb: " + JSON.stringify(c)); }
     }
     // v0.6: the per-grow log survives the kill independently (written synchronously by the wasm
@@ -728,6 +730,13 @@ function logWasmInventory(){
 }
 
 var _soaking = false;
+// v0.10 (B9): cumulative wall-time spent INSIDE synth() this page load, in ms. The idle test
+// (354MB, 235s idle, ALIVE) killed the level-trigger theory, and a death at 295MB/9-grows at the
+// same synth index killed memory-determinism — the surviving axis is cumulative synthesis WORK
+// (the iOS energy/CPU assassin class). Page-global on purpose: a second soak on the same page
+// continues the count, so the after-idle-resume protocol can test whether the budget is
+// cumulative-per-page. Synthesis is single-threaded CPU-bound wasm, so wall≈CPU.
+var _soakCpuMs = 0;
 
 async function soak(n, recycleEvery){
   var voiceId = $("voice").value;
@@ -818,15 +827,17 @@ async function soak(n, recycleEvery){
       var idleStart = performance.now(), idleNextLog = 30;
       while (_soaking){
         var idleSec = Math.round((performance.now() - idleStart) / 1000);
-        try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i, n: n, r: recycleEvery, done: false, idle: idleSec, g: gs.g, gd: gs.gd, mb: gs.mb })); } catch(e){}
+        try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i, n: n, r: recycleEvery, done: false, idle: idleSec, g: gs.g, gd: gs.gd, mb: gs.mb, cpu: Math.round(_soakCpuMs / 1000) })); } catch(e){}
         if (idleSec >= idleNextLog){ log("  idle " + idleSec + "s at " + gs.mb + "MB — still alive", "hl"); idleNextLog += 30; }
         await new Promise(function(r){ setTimeout(r, 5000); });
       }
       break;   // user pressed Stop — the post-loop done:true crumb below records a clean end
     }
-    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb, gl: gs.gl })); } catch(e){}
+    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb, cpu: Math.round(_soakCpuMs / 1000), gl: gs.gl })); } catch(e){}
+    var _t0 = performance.now();
     try { await synth(soakText(i), voiceId); }   // result discarded — synth-side memory only
     catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
+    _soakCpuMs += performance.now() - _t0;   // v0.10: cumulative synthesis work (crumb: cpu, seconds)
     sinceRecycle++;
     if (recycleEvery > 0 && canRecycle && sinceRecycle >= recycleEvery){
       sinceRecycle = 0;
@@ -835,14 +846,14 @@ async function soak(n, recycleEvery){
     if ((i + 1) % 25 === 0){
       var h = heapMB(), g25 = _growSnap();
       if (h !== null){ samples.push({ i: i + 1, h: h }); }
-      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")") + wasmLine() + "  grows " + g25.g + "/" + g25.gd);
+      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")") + wasmLine() + "  grows " + g25.g + "/" + g25.gd + "  synthCPU " + Math.round(_soakCpuMs / 1000) + "s");
       if (h !== null) lastHeap = h;
       await new Promise(function(r){ setTimeout(r, 50); });   // let the log paint between batches
     }
   }
   var gEnd = _growSnap();
-  try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true, g: gEnd.g, gd: gEnd.gd, mb: gEnd.mb })); } catch(e){}
-  log("SOAK COMPLETE: " + n + " synths survived · grow-events " + gEnd.g + " (delta-counted " + gEnd.gd + ") · ORT " + gEnd.mb + "MB", "hl");
+  try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true, g: gEnd.g, gd: gEnd.gd, mb: gEnd.mb, cpu: Math.round(_soakCpuMs / 1000) })); } catch(e){}
+  log("SOAK COMPLETE: " + n + " synths survived · grow-events " + gEnd.g + " (delta-counted " + gEnd.gd + ") · ORT " + gEnd.mb + "MB · synthCPU " + Math.round(_soakCpuMs / 1000) + "s", "hl");
   if (!_soaking){
     // A user stop is not a tab kill. Without this the crumb stays done:false and the NEXT load
     // reports "the tab was killed mid-soak — that IS the jetsam repro", which is a false alarm
