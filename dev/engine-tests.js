@@ -5917,6 +5917,22 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     try{erCrumb(null,null);erCrumb(undefined,{toString:function(){throw new Error("hostile");}});}catch(e){threw=e.message;}
     return threw===null?true:"erCrumb threw: "+threw;
   });
+  t("v1.432 (B9): erPrevDirty — dirty iff a previous ring exists AND lacks the trailing unload stamp",function(){
+    var keep=_erPrevCrumbs;
+    try{
+      _erPrevCrumbs=[];
+      if(erPrevDirty()!==false)return "empty ring must read clean (no evidence is not evidence of a kill)";
+      _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:9,e:"unload",d:""}];
+      if(erPrevDirty()!==false)return "unload-stamped ring must read clean";
+      _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:40,e:"read-start",d:"39u pc83 ps1"}];
+      if(erPrevDirty()!==true)return "unstamped ring must read DIRTY — this gate is what mails a bypass-run death";
+      // the honest diag label must follow the same verdict
+      if(erDiagBlock().indexOf("ended without unload")<0)return "dirty ring not labeled 'ended without unload' in diag";
+      _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:9,e:"unload",d:""}];
+      if(erDiagBlock().indexOf("ended cleanly")<0)return "clean ring not labeled 'ended cleanly' in diag";
+      return true;
+    }finally{_erPrevCrumbs=keep;}
+  });
   t("debounce: 2nd call inside 30s suppressed; count rides the next send then resets",function(){
     __erReset("https://example.test/hook");
     if(reportError("a","first","")!=="sent")return "first not sent";

@@ -102,6 +102,18 @@ function erLoadPrevCrumbs() {
   return 0;
 }
 
+// v1.432 (B9): did the previous page end WITHOUT an unload event? Until now this was asserted,
+// never detected — the diag block labeled EVERY recovered ring "ended without unload", including
+// clean closes, because nothing ever stamped the ring on the way out. The pagehide/beforeunload
+// hooks below now append a final "unload" crumb, so a ring whose last entry is anything else
+// means the page genuinely died with no handler running (jetsam/purge — the B9 class). This is
+// the gate for the bypass-run boot report in tts.js loadSettings: with the experiment armed,
+// kills land BETWEEN reads (bypass reads finish fast), leave done:true on the Piper crumb, and
+// mailed NOTHING — the experiment's own deaths were invisible (2026-07-23 field lesson).
+function erPrevDirty() {
+  return _erPrevCrumbs.length > 0 && _erPrevCrumbs[_erPrevCrumbs.length - 1].e !== "unload";
+}
+
 // The block appended to EVERY crash detail. Budgeted (ER_DIAG_MAX) so it can never crowd out the
 // caller's own detail, which is the primary evidence.
 var ER_DIAG_MAX = 1600;
@@ -113,7 +125,9 @@ function erDiagBlock() {
       + " · up " + Math.round((Date.now() - ER_BOOT_AT) / 1000) + "s";
     if (typeof TTS !== "undefined" && TTS.diag) { try { s += "\naudio " + TTS.diag(); } catch (e) {} }
     s += "\nthis page:\n" + _erRenderCrumbs(_erCrumbs);
-    if (_erPrevCrumbs.length) s += "\nPREVIOUS page (ended without unload — see B9):\n" + _erRenderCrumbs(_erPrevCrumbs);
+    // v1.432: label honestly — before the unload stamp existed, every recovered ring was
+    // labeled "ended without unload" including clean closes, which overstated the evidence.
+    if (_erPrevCrumbs.length) s += "\nPREVIOUS page (" + (erPrevDirty() ? "ended without unload — see B9" : "ended cleanly") + "):\n" + _erRenderCrumbs(_erPrevCrumbs);
   } catch (e) { s = "\n\n--- diag unavailable: " + ((e && e.message) || "?") + " ---"; }
   return s.slice(0, ER_DIAG_MAX);
 }
@@ -386,6 +400,11 @@ function sendUserReport(text,screenshot,cb){
 if(typeof window!=="undefined"){
   erLoadPrevCrumbs();   /* #16c: the previous page's pre-death record — MUST run before any report can fire */
   erCrumb("boot");
+  // v1.432 (B9): stamp the ring CLEAN on the way out. pagehide/beforeunload run on navigation,
+  // reload and close — but never on a jetsam/purge kill, which is exactly what makes the stamp's
+  // ABSENCE meaningful (erPrevDirty above). Same dual-handler pattern as tts.js's _crumbDone.
+  window.addEventListener("pagehide",     function(){ erCrumb("unload"); });
+  window.addEventListener("beforeunload", function(){ erCrumb("unload"); });
   window.onerror=function(msg,src,line,col,err){
     reportError("window.onerror",msg,(src||"")+":"+(line||0)+":"+(col||0)+"\n"+((err&&err.stack)||""));
     return false; // never swallow — the browser's default console logging still runs

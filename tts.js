@@ -775,6 +775,7 @@ var TTS = (function() {
     }
     // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
     // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
+    var _mailedDeath = false;
     try {
       var c = store.get(PIPER_CRUMB_K);
       if (c) {
@@ -790,8 +791,23 @@ var TTS = (function() {
           if (typeof showToast === "function") showToast(msg, 8000);
           // #16: the narration-death crumb is the exact "invisible mobile console" class this
           // reporting exists for — mail the same forensics the toast shows, plus the raw crumb.
-          if (typeof reportError === "function") reportError("narration-death", msg, JSON.stringify(c));
+          if (typeof reportError === "function") { reportError("narration-death", msg, JSON.stringify(c)); _mailedDeath = true; }
         }
+      }
+    } catch(e) {}
+    // v1.432 (B9): the bypass experiment's own deaths were INVISIBLE — a bypass read finishes
+    // fast (no playback pacing), so a kill lands BETWEEN reads, leaves done:true on the Piper
+    // crumb, and the block above mails nothing (2026-07-23 field lesson: a frontmost armed run
+    // died and the feed stayed empty). With the experiment armed, a previous page that ended
+    // without an unload event is a result either way — mail its ring (rides in the diag block;
+    // read-start entries carry pc) so the run is evidence rather than anecdote. Skipped when the
+    // mid-read path above already mailed: one death, one report.
+    try {
+      if (_bypassPlayback && !_mailedDeath && typeof erPrevDirty === "function" && erPrevDirty() && typeof reportError === "function") {
+        var bmsg = "⚠ B9 bypass run: previous page ended without unload (kill landed between reads) — ring attached, read-start entries carry pc";
+        console.warn("[tts piper] " + bmsg);
+        if (typeof showToast === "function") showToast(bmsg, 8000);
+        reportError("bypass-death", bmsg, "");
       }
     } catch(e) {}
   }
