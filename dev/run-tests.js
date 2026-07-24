@@ -301,6 +301,20 @@ try {
     console.error("SERVER TTS CONTRACT: TTS_LADDER is no longer server → piper → native — the tier order is the ratified #90 design (server first for connected players, native the always-available floor).");
     process.exit(1);
   }
+  // ⑤ v1.436 (field lesson): ▶ Test auditions through the server tier when it's up — a local
+  //    Test on a server-tier page boots the wasm engine and spends governor budget for nothing.
+  var _tvS = _ncS((_ttsS.match(/function testVoice\([\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!/server: true/.test(_tvS)) {
+    console.error("SERVER TTS CONTRACT: testVoice no longer auditions via the server tier — every Test press on a connected page boots the local wasm engine and spends the iOS energy budget the tier exists to spare (v1.436).");
+    process.exit(1);
+  }
+  // ⑥ v1.436: the send-tap prewarm — without it the first unit of nearly every post-idle read
+  //    pays the Fly cold boot and times out into the local ladder (the 🔋-latch field failure).
+  var _gameS = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "game.js"), "utf8"));
+  if (_gameS.indexOf("TTS.prewarmServer()") < 0) {
+    console.error("SERVER TTS CONTRACT: sendAction no longer prewarms the TTS machine on the send gesture — post-idle reads meet a cold Fly machine and degrade to local Piper every turn (v1.436).");
+    process.exit(1);
+  }
 } catch (e) { console.error("SERVER TTS CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── #76 TABLE TALK ISOLATION CONTRACT ────────────────────────────────────────────────────

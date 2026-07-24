@@ -1077,6 +1077,10 @@ async function sendAction(override,opts){
   // real user gesture and lands seconds before narration, which makes it the one moment a rebuild
   // is both permitted and early enough to matter. No-op unless the context is actually broken.
   if(typeof TTS!=="undefined"&&typeof TTS.recoverAudio==="function")TTS.recoverAudio("send");
+  // #90 (v1.436): wake the auto-stopped TTS machine while the GM is thinking — the field lesson:
+  // Fly parks the box after ~2min idle and real turns idle longer than that, so without this the
+  // FIRST unit of nearly every read paid the cold boot and timed out into the local ladder.
+  if(typeof TTS!=="undefined"&&typeof TTS.prewarmServer==="function")TTS.prewarmServer();
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
   if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}

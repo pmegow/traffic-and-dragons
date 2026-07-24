@@ -135,9 +135,13 @@ var TTS = (function() {
   var TTS_SERVER_URL = "https://tnd-tts.fly.dev";
   var TTS_URL_K = "tnd_tts_url_v1";   // dev override — point a local build at a local tts server
   function _ttsServerUrl() { return store.get(TTS_URL_K) || TTS_SERVER_URL; }
-  var SERVER_TTS_TIMEOUT_MS = 10000;  // worst real unit ≈ 15s audio at ~2× realtime ≈ 7.5s synth + RTT;
-                                      // also absorbs the auto-stopped Fly machine's cold boot when
-                                      // prewarmServer didn't get to pay it first
+  var SERVER_TTS_TIMEOUT_MS = 10000;  // worst real unit ≈ 15s audio at ~2× realtime ≈ 7.5s synth + RTT
+  var SERVER_TTS_TIMEOUT_FIRST_MS = 15000;  // unit 0 only (v1.436, the field lesson): the measured
+                                      // worst cold chain — machine resume + auth proxy (possibly
+                                      // cold-starting the GAME server too) + daemon spawn + model
+                                      // load + synth — hit 10.17s and timed out at 10s, degrading
+                                      // nearly every post-idle read. Suspend-mode + the send-tap
+                                      // prewarm make that chain rare; this absorbs the residue
   var SERVER_TTS_RETRY_MS   = 60000;  // after a degrade, reads use the local ladder this long, then
                                       // the next read tries the server again (retries are silent —
                                       // D3 toasts the DEGRADE once per session, not the recovery)
@@ -1009,6 +1013,17 @@ var TTS = (function() {
     engine = TTS_LADDER[li];
     var prov = TTS_PROVIDERS[engine];
 
+    // #90 (v1.436): a CONNECTED page reading below the server tier must be ATTRIBUTABLE — the
+    // field lesson: silently-local reads (offline blip, degrade memo) climbed the governor budget
+    // to the 🔋 latch with no signal anywhere. info + crumb, never a toast (D3 owns the toast).
+    if (engine !== "server" && typeof storageAdapter !== "undefined" &&
+        typeof storageAdapter.isServerMode === "function" && storageAdapter.isServerMode() &&
+        typeof storageAdapter.hasToken === "function" && storageAdapter.hasToken()) {
+      var _skipWhy = _serverTtsErr || ((typeof navigator !== "undefined" && navigator.onLine === false) ? "navigator.onLine=false" : "availability re-check failed");
+      console.info("[tts] connected page reading on '" + engine + "' (server tier skipped: " + _skipWhy + ")");
+      if (typeof erCrumb === "function") erCrumb("tts-server-skip", engine + " " + String(_skipWhy).slice(0, 60));
+    }
+
     var item = prov.enqueue(trimmed, voiceId);
     if (!item) {
       // Provider is "available" but couldn't build an item this turn. No shipped provider does
@@ -1741,10 +1756,11 @@ var TTS = (function() {
 
       var u = units[i];
       var uVoice = (voices && voices[i]) || voiceId;   // per-unit speaker map, same ids as local Piper
+      var uTimeoutMs = (i === 0) ? SERVER_TTS_TIMEOUT_FIRST_MS : SERVER_TTS_TIMEOUT_MS;
       var ab = null, failReason = "", tid = null;
       try {
         var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, SERVER_TTS_TIMEOUT_MS);
+        if (ctrl) tid = setTimeout(function() { ctrl.abort(); }, uTimeoutMs);
         var opts = { method: "POST", headers: _serverTtsHeaders(),
                      body: JSON.stringify({ text: u.text, voiceId: uVoice, rate: getRate() }) };
         if (ctrl) opts.signal = ctrl.signal;
@@ -1762,7 +1778,7 @@ var TTS = (function() {
       } catch (e) {
         if (tid) clearTimeout(tid);
         if (_piperEpoch !== myEpoch) return;
-        failReason = (e && e.name === "AbortError") ? ("timeout after " + SERVER_TTS_TIMEOUT_MS + "ms")
+        failReason = (e && e.name === "AbortError") ? ("timeout after " + uTimeoutMs + "ms")
                                                     : ((e && e.message) || "network error");
       }
 
@@ -2751,6 +2767,16 @@ var TTS = (function() {
   }
   function testVoice(voiceId) {
     var v = voiceId || resolvePiperVoice();
+    // #90 (v1.436): audition through the ladder. A server-tier page must not boot the local wasm
+    // engine (60-115MB download + governor budget) just to test a voice — the audio is identical
+    // Piper either way, and no local download happens, so the eviction question doesn't apply.
+    // A mid-test server failure hands the line down the ladder with v preserved (_speakServer).
+    if (_serverTtsOk()) {
+      stop();
+      _queue.push({ text: TTS_TEST_LINE, server: true, voiceId: v });
+      _drain();
+      return;
+    }
     _confirmVoiceEviction(v).then(function(ok) {
       if (!ok) return;
       stop();
