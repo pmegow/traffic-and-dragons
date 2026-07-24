@@ -2644,6 +2644,7 @@ var TTS = (function() {
       console.info("[tts] B9 playback bypass " + (on ? "ARMED — synths run, nothing plays" : "disarmed"));
       return _bypassPlayback;
     },
+    isBypassPlayback: function() { return _bypassPlayback; },   // v1.431: backs the Admin-menu checkbox's init state
     // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,

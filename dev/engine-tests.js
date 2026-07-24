@@ -4079,13 +4079,15 @@ function runEngineTests(R){
     if(d.indexOf(" da=")<0)return "no da in diag: "+d;
     return true;
   });
-  t("setBypassPlayback(true) persists, is loud in diag; (false) clears both",function(){
+  t("setBypassPlayback(true) persists, is loud in diag; (false) clears both; isBypassPlayback mirrors",function(){
     var r=TTS.setBypassPlayback(true);
     if(r!==true)return "arm did not return true";
     if(store.get("tnd_tts_bypass_v1")!=="1")return "bypass key not persisted";
+    if(TTS.isBypassPlayback()!==true)return "isBypassPlayback false while armed (menu checkbox would init wrong)";
     if(TTS.diag().indexOf("BYPASS")<0)return "armed bypass invisible in diag (silent experiment = the exact blindness class)";
     TTS.setBypassPlayback(false);
     if(store.get("tnd_tts_bypass_v1"))return "bypass key not cleared on disarm";
+    if(TTS.isBypassPlayback()!==false)return "isBypassPlayback true after disarm";
     return TTS.diag().indexOf("BYPASS")<0?true:"disarmed bypass still shows in diag";
   });
 
