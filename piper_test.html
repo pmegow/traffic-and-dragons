@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Piper TTS — kick-the-tires (v0.4)</title>
+<title>Piper TTS — kick-the-tires (v0.5)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
   ⚠ HISTORICAL (2026-07-16, audit #29) — DO NOT TUNE TEXT-PREP HERE. The text-prep below
@@ -140,7 +140,23 @@
     var e = seen[kind];
     if (e && e.mem === mem) return;            // one instance reaching us through two hooks
     if (e){ e.mem = mem; e.src = src; e.n++; }
-    else seen[kind] = { mem: mem, src: src, n: 1 };
+    else seen[kind] = { mem: mem, src: src, n: 1, g: 0, gd: 0, lastB: 0 };
+    var s = seen[kind];
+    if (s.g == null){ s.g = 0; s.gd = 0; s.lastB = 0; }
+    try { s.lastB = mem.buffer.byteLength; } catch(e2){}
+    // v0.5 (B9 grow-event hypothesis): count memory-GROWTH EVENTS, cumulative per kind across
+    // instances. Emscripten's ALLOW_MEMORY_GROWTH path calls the JS mem.grow() from its
+    // emscripten_resize_heap glue, so wrapping the method counts every arena extension these
+    // builds perform. A build growing purely wasm-side would bypass this — the byteLength-delta
+    // sampler (growTick below) catches that case as a LOWER BOUND. The wrapper closes over the
+    // KIND entry, so a respawned instance keeps accumulating into the same counter.
+    try {
+      if (!mem.__tndGrowWrapped){
+        var g0 = mem.grow;
+        mem.grow = function(d){ s.g++; return g0.call(mem, d); };
+        mem.__tndGrowWrapped = true;
+      }
+    } catch(e3){}
   }
   function note(inst, src){
     try {
@@ -203,6 +219,19 @@
     // How many times a module of this kind has been INSTANTIATED. Design says 1 for each; more
     // means the app is churning modules, which is a leak in its own right.
     count:  function(kind){ return seen[kind] ? seen[kind].n : 0; },
+    // v0.5 (B9): memory-GROWTH EVENTS, cumulative per kind. grows() = exact count via the
+    // wrapped mem.grow() (the Emscripten resize path). growTick() = the byteLength-delta
+    // sampler: call it periodically; it increments a lower-bound counter whenever the buffer
+    // has grown since the last tick (catches pure-wasm-side growth the wrapper cannot see).
+    // Read both; if grows() is 0 while growTick's counter climbs, the build grows internally
+    // and the delta counter is the honest number.
+    grows:  function(kind){ var e = seen[kind]; return e ? (e.g || 0) : 0; },
+    growTick: function(kind){
+      var e = seen[kind]; if (!e) return 0;
+      var b = bytes(kind);
+      if (b > (e.lastB || 0)){ e.gd = (e.gd || 0) + 1; e.lastB = b; }
+      return e.gd || 0;
+    },
     caught: function(){ return Object.keys(seen).length; },
     list:   function(){
       var out = [], ks = Object.keys(seen), i;
@@ -227,7 +256,7 @@
 </head>
 <body>
   <h1>Piper TTS — kick-the-tires</h1>
-  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.4</p>
+  <p class="sub">Auditions Piper's real voice on real narration, WITH the sentence-split + punctuation wrapper the demo pages skip. Satellite spike · not in the app shell · v0.5</p>
 
   <label for="txt">Narration to speak</label>
   <textarea id="txt">The wind off the Varisian coast carries ash and something worse. You stand with Morwen and Frizwick outside the Rusty Dragon as dusk bleeds the sky grey, and the smell hits you first — not just woodsmoke, but burnt flesh, charred wool, the reek of a town that's been screaming. Sandpoint's main street is chaos held barely in check.
@@ -586,7 +615,11 @@ var SOAK_CRUMB_K = "tnd_soak_crumb_v1";
     var c = localStorage.getItem(SOAK_CRUMB_K);
     if (c){
       c = JSON.parse(c); localStorage.removeItem(SOAK_CRUMB_K);
-      if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r + ") — the tab was killed mid-soak. That IS the jetsam repro.", "err");
+      if (!c.done) log("⚠ last soak DIED at synth " + c.i + "/" + c.n + " (recycle=" + c.r
+        + (c.g != null ? ", grow-events " + c.g + (c.gd != null && c.gd !== c.g ? "/" + c.gd : "") : "")
+        + (c.mb ? ", ORT " + c.mb + "MB" : "")
+        + ") — the tab was killed mid-soak. That IS the jetsam repro."
+        + (c.g != null ? " (v0.5: the grow-event count is the number the B9 hypothesis says deaths align on.)" : ""), "err");
     }
   } catch(e){}
 })();
@@ -680,8 +713,18 @@ async function soak(n, recycleEvery){
       " · recycle " + (recycleEvery > 0 && canRecycle ? "every " + recycleEvery : "OFF") +
       (heap0 === null ? " · no heap API on this browser — SURVIVAL is the signal" : " · settled baseline " + heap0.toFixed(0) + "MB"), "hl");
 
+  // v0.5 (B9): the grow-event counters ride EVERY per-synth crumb, so a mid-soak kill names not
+  // just the synth it died at but the number of memory-growth events performed by then — the
+  // controlling-variable hypothesis says deaths across shape modes align on THIS number, not on
+  // the synth count. g = exact (wrapped mem.grow); gd = byteLength-delta lower bound.
+  function _growSnap(){
+    var p = WebAssembly.__tndProbe, g = 0, gd = 0;
+    try { if (p){ gd = p.growTick("ort"); g = p.grows("ort"); } } catch(e){}
+    return { g: g, gd: gd, mb: Math.round(wasmMB("ort") || 0) };
+  }
   for (var i = 0; i < n && _soaking; i++){
-    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false })); } catch(e){}
+    var gs = _growSnap();
+    try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: i + 1, n: n, r: recycleEvery, done: false, g: gs.g, gd: gs.gd, mb: gs.mb })); } catch(e){}
     try { await synth(soakText(i), voiceId); }   // result discarded — synth-side memory only
     catch(e){ log("synth failed at #" + (i + 1) + ": " + e.message, "err"); }
     sinceRecycle++;
@@ -690,14 +733,16 @@ async function soak(n, recycleEvery){
       try { await t.tndRecycleSession(); } catch(e){ log("recycle failed: " + e.message, "err"); }
     }
     if ((i + 1) % 25 === 0){
-      var h = heapMB();
+      var h = heapMB(), g25 = _growSnap();
       if (h !== null){ samples.push({ i: i + 1, h: h }); }
-      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")") + wasmLine());
+      log("  #" + (i + 1) + "/" + n + (h === null ? "" : "  heap " + h.toFixed(0) + "MB (" + (h - lastHeap >= 0 ? "+" : "") + (h - lastHeap).toFixed(1) + ")") + wasmLine() + "  grows " + g25.g + "/" + g25.gd);
       if (h !== null) lastHeap = h;
       await new Promise(function(r){ setTimeout(r, 50); });   // let the log paint between batches
     }
   }
-  try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true })); } catch(e){}
+  var gEnd = _growSnap();
+  try { localStorage.setItem(SOAK_CRUMB_K, JSON.stringify({ i: n, n: n, r: recycleEvery, done: true, g: gEnd.g, gd: gEnd.gd, mb: gEnd.mb })); } catch(e){}
+  log("SOAK COMPLETE: " + n + " synths survived · grow-events " + gEnd.g + " (delta-counted " + gEnd.gd + ") · ORT " + gEnd.mb + "MB", "hl");
   if (!_soaking){
     // A user stop is not a tab kill. Without this the crumb stays done:false and the NEXT load
     // reports "the tab was killed mid-soak — that IS the jetsam repro", which is a false alarm
