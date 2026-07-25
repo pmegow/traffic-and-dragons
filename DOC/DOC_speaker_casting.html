@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speaker Casting — the 904-Voice Stable (TODO #95)</title>
+<style>
+  :root{ --bg:#121212; --panel:#181818; --ink:#e6e2d8; --dim:#a39a88; --acc:#b8935a; --line:#2c2a26;
+         --good:#7aa86a; --warn:#c9a24b; --bad:#c0564a; --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:940px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:1.7em;margin:0 0 6px;color:#f2ede1}
+  h2{font-size:1.25em;margin:38px 0 8px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  p{margin:8px 0} ul{margin:8px 0;padding-left:20px} li{margin:5px 0}
+  code{font-family:var(--mono);font-size:.86em;background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8cdb4}
+  pre{font-family:var(--mono);font-size:.82em;background:#0d0d0d;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;color:#d8cdb4}
+  .sub{color:var(--dim);font-size:.95em}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:12px 0}
+  .rail{border-left:3px solid var(--acc);padding-left:14px;margin:12px 0}
+  .rail.warn{border-color:var(--warn)}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9em}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#0e0e0d;color:var(--dim)}
+  .d{font-family:var(--mono);color:var(--acc);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Speaker Casting — the 904-voice stable</h1>
+<p class="sub">Spec R1, 2026-07-24 · TODO #95 · the un-shelving of #9⑦, enabled by server TTS (#90)
+· measured foundation: 3 distinct speakers through ONE warm daemon at RTF 0.15–0.16, live box</p>
+
+<div class="card">
+<b>Why now.</b> When #9⑦ was shelved, per-speaker voices meant patching the vendored wasm runtime
+(the r-rev delivery trap) and auditioning meant downloading models. Server TTS dissolves both: the
+piper daemon already accepts <code>speaker_id</code> per JSON request line (proven — no new daemon,
+no cost change), and audition audio can be synthesized on demand with the user's OWN text — which
+also delivers the #9⑧ custom-sample wish. The default model every device already has
+(<code>en_US-libritts_r-medium</code>, LibriTTS-<b>R</b> = restored/cleaned source audio) carries all
+904 speakers in its existing 75MB. <b>Kokoro's K3 design survives here:</b> a speaker id is exactly
+what a <code>kk_</code> id was — server-renderable, locally only approximable — so the tier-aware
+resolution thinking transfers.
+</div>
+
+<h2>Decisions S1–S5 (all with recommendations; S2 is the only real fork)</h2>
+<table>
+<tr><th class="d">S1</th><td><b>Id format:</b> <code>&lt;modelId&gt;#&lt;speaker&gt;</code>, e.g.
+<code>en_US-libritts_r-medium#204</code>. Split on the LAST <code>#</code>; base id must be in the
+curated catalog; speaker must be an integer in the model's <code>speaker_id_map</code> values
+(0…num_speakers-1). Rides everywhere a voiceId rides today (charSheet.voiceId, worldState.piperVoice,
+speaker maps, blueprints) — strings, no schema change.</td></tr>
+<tr><th class="d">S2</th><td><b>Offline behavior: NO vendored-runtime patch.</b> Local Piper
+(vits-web) can't select speakers unpatched; a patch means a <code>PIPER_RUNTIME_REV</code> bump into
+the permanent-cache delivery trap plus wasm surface the whole B9 arc argues against touching.
+Instead: local reads STRIP <code>#speaker</code> and speak the base model (its default speaker) —
+same voice family, loud console line once per session. Server reads get the real speaker. Revisit
+only if offline speaker fidelity ever becomes a real want.</td></tr>
+<tr><th class="d">S3</th><td><b>Audition surface = <code>speaker_browser.html</code></b>, a NEW
+satellite (single-purpose rule; voice_picker.html stays the model picker). Reads the session token
+from localStorage (same-origin, the blueprint-designer precedent), synthesizes the user's own text
+via <code>POST /api/tts</code> with speaker ids, plays inline. Requires connection; says so plainly
+when absent. Must be added to sw.js's network-first allowlist (the bug_tracker lesson) — or, like
+blueprint-designer, kept OUT of the app shell entirely (recommended).</td></tr>
+<tr><th class="d">S4</th><td><b>Gender metadata:</b> the config's <code>speaker_id_map</code> keys
+ARE LibriTTS reader ids, and LibriTTS publishes per-reader gender. Generate
+<code>libritts_speakers.json</code> ({readerId:{g,spk}} → 904 entries, a few KB) once at build time;
+loaded ONLY by the satellite (the in-game dropdown shows starred voices, so the table never ships
+in the app shell). If the metadata can't be fetched reliably, ship without the gender filter and
+file a follow-up — do not guess genders.</td></tr>
+<tr><th class="d">S5</th><td><b>Starred set:</b> device store (<code>tnd_speaker_stars_v1</code>,
+[{id,label}] with user-editable labels like "Gravelly innkeeper"). Feeds a "★ Cast voices" optgroup
+in the existing sheet Voice dropdown and the Voice Settings narrator dropdown. Device-level on
+purpose — stars are picker convenience; the actual binding (charSheet.voiceId) already rides sheets
+and sync.</td></tr>
+</table>
+
+<h2>Required correctness piece — base-model awareness in the protection layer</h2>
+<div class="rail warn">
+<code>_voiceAssignedTo</code>, the LRU stamps, eviction, and <code>releaseVoiceIfUnused</code> all
+compare voice ids EXACTLY. Under S1, five characters can use <code>…#204/#611/#88…</code> while the
+LRU knows only the base id — so releasing a reassigned voice could delete the ONE model they all
+depend on. Every protection/eviction/download decision must normalize through a
+<code>voiceBaseId()</code> helper first (one helper, used everywhere — no scattered splits). This is
+the #95 equivalent of the F11 class and gets a VOICE DELETE CONTRACT clause.
+</div>
+
+<h2>Build shape (dispatched to Opus agents, disjoint files; Fable integrates + reviews)</h2>
+<table>
+<tr><th>A · Server</th><td>tts/index.js: parse <code>#speaker</code>, validate base against the
+allowlist + speaker range from the model config, pass <code>speaker_id</code> on the JSON line.
+Daemon key stays (base,rate) — speakers share daemons (proven).</td></tr>
+<tr><th>B · Metadata</th><td>Generate <code>libritts_speakers.json</code> from LibriTTS reader
+metadata; verify count/coverage against the 904 map keys; honest gaps over guessed genders.</td></tr>
+<tr><th>C · Satellite</th><td><code>speaker_browser.html</code>: token from localStorage, gender
+filter + paged grid, custom-text audition via the server, star/label, copy-assign flow.</td></tr>
+<tr><th>D · Client core</th><td>tts.js: <code>voiceBaseId</code>/<code>voiceSpeaker</code> helpers,
+S2 strip-on-local, protection-layer normalization, catalog-known logic accepting speaker suffixes;
+ui-sheets.js + Voice Settings: the ★ optgroup from the star store. Engine tests for every edge
+(snap-guard must NOT eat a valid speaker id; base protection under speaker assignments; handoff
+conversion).</td></tr>
+</table>
+
+<p class="sub">Traffic and Dragons · #95 spec R1 · off the drift surface (output rendering);
+post-build /fable-review per the #9 precedent · versions: engine bump on the client commit;
+server deploys independently.</p>
+</div>
+</body>
+</html>
