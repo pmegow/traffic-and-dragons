@@ -4473,6 +4473,37 @@ function runEngineTests(R){
     return (m&&m.attitude!=="unknown")?true:"attitude minted as the literal 'unknown'";
   });
 
+  // ── 2MB sync-payload sentinel (v1.441) — once per CAMPAIGN, persisted ────────
+  section("sync-size sentinel (v1.441)");
+  t("syncSizeWarnOnce: fires once per campaign, then never again for that campaign",function(){
+    store.del("tnd_sync_size_warned_v1");
+    var a=storageAdapter.syncSizeWarnOnce("camp_A");
+    var b=storageAdapter.syncSizeWarnOnce("camp_A");
+    var c=storageAdapter.syncSizeWarnOnce("camp_B");
+    var d=storageAdapter.syncSizeWarnOnce("camp_B");
+    store.del("tnd_sync_size_warned_v1");
+    if(a!==true)return "first camp_A call did not fire";
+    if(b!==false)return "second camp_A call re-fired — the reload nag is back";
+    if(c!==true)return "a DIFFERENT campaign crossing the line was silenced";
+    return d===false?true:"camp_B re-fired";
+  });
+  t("syncSizeWarnOnce: no campId falls back to one shared 'default' slot",function(){
+    store.del("tnd_sync_size_warned_v1");
+    var a=storageAdapter.syncSizeWarnOnce(null);
+    var b=storageAdapter.syncSizeWarnOnce(undefined);
+    store.del("tnd_sync_size_warned_v1");
+    return (a===true&&b===false)?true:"default-slot latch broken: "+a+"/"+b;
+  });
+  t("syncSizeWarnOnce: latch survives QUOTA-DEAD persistence (store's in-memory fallback)",function(){
+    // The failure this pins: the first draft used raw localStorage + fail-open, so a full store
+    // meant one toast PER SYNC — the harness's quota stub caught it. store._m must carry the latch.
+    store.del("tnd_sync_size_warned_v1");
+    var a=storageAdapter.syncSizeWarnOnce("camp_Q");
+    var b=storageAdapter.syncSizeWarnOnce("camp_Q");
+    store.del("tnd_sync_size_warned_v1");
+    return (a===true&&b===false)?true:"latch did not hold under the harness's quota conditions: "+a+"/"+b;
+  });
+
   // ── Server TTS tier (#90 M1, v1.435) ─────────────────────────────────────────
   // Selection is by RESOLUTION: getEngine() returns "server" only when a connected storageAdapter
   // + a healthy degrade memo say so; a degrade steers reads local for SERVER_TTS_RETRY_MS. The

@@ -184,6 +184,24 @@ var storageAdapter = (function() {
   // for the whole session (including the page-hide flush). Abort after SYNC_TIMEOUT_MS so
   // the catch path ALWAYS runs and _syncing always resets.
   var SYNC_TIMEOUT_MS = 20000;
+
+  // v1.441: persisted one-toast-per-campaign gate for the 2MB payload sentinel. Returns true
+  // exactly once per campaign id (recorded as |id| segments). Uses the engine's `store` wrapper,
+  // NOT raw localStorage, on purpose: store falls back to its in-memory map under quota/private
+  // mode, so even when persistence fails the latch holds for the session — a device with full
+  // storage gets at most one toast per page load, never one per sync. (Raw localStorage +
+  // fail-open was the first draft; the harness's quota-simulating stub exposed it re-firing.)
+  var SYNC_SIZE_WARN_K = "tnd_sync_size_warned_v1";
+  function syncSizeWarnOnce(campId) {
+    var id = campId || "default";
+    try {
+      var seen = (typeof store !== "undefined" && store.get(SYNC_SIZE_WARN_K)) || "";
+      if (seen.indexOf("|" + id + "|") >= 0) return false;
+      if (typeof store !== "undefined") store.set(SYNC_SIZE_WARN_K, seen + "|" + id + "|");
+      return true;
+    } catch (e) { return true; }
+  }
+
   function _tFetch(url, opts, ms) {
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
     if (ctrl) opts.signal = ctrl.signal;
@@ -388,7 +406,13 @@ var storageAdapter = (function() {
       if (_syncPayloadBytes > 2*1024*1024 && !_syncSizeWarned) {
         _syncSizeWarned = true;
         console.warn("[storage] sync payload is " + (_syncPayloadBytes/1024/1024).toFixed(1) + " MB");
-        if (typeof showToast === "function") showToast("&#9888; Cloud sync upload is " + (_syncPayloadBytes/1024/1024).toFixed(1) + " MB &mdash; mature campaign; mention it to the dev");
+        // v1.441: the toast is a SENTINEL, not a nag. It fired for real 2026-07-24, the dev was
+        // told, TODO #92 (payload compression) is filed — and a payload PERMANENTLY over the line
+        // re-toasted on every reload because the latch was per page load. Now once per CAMPAIGN,
+        // persisted; the console line + usage telemetry still record every session, and a
+        // different campaign crossing the line later still gets its one announcement.
+        if (syncSizeWarnOnce(worldState.campId) && typeof showToast === "function")
+          showToast("&#9888; Cloud sync upload is " + (_syncPayloadBytes/1024/1024).toFixed(1) + " MB &mdash; mature campaign; mention it to the dev");
       }
     }
     if (beacon) {
@@ -778,6 +802,7 @@ var storageAdapter = (function() {
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
     authHeader:            authHeader,           // #90: Authorization header for the tnd-tts app (the header, never the raw token)
+    syncSizeWarnOnce:      syncSizeWarnOnce,     // v1.441: exposed for the engine tests (once-per-campaign sentinel gate)
     whoAmI:                whoAmI,
     getCampaignState:      getCampaignState,
     pushCampaignState:     pushCampaignState,
