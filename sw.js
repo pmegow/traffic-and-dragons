@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260724i";
+var CACHE = "tnd-v3-20260725a";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -93,7 +93,7 @@ self.addEventListener("fetch", function(e){
   // npc-merge-studio, bug_tracker (#71), speaker_browser + its libritts_speakers.json (#95),
   // and everything under /DOC/. Tested against
   // e.request.url (the FULL URL), hence the path-fragment style.
-  if(/blueprint-designer|todo-viewer|bible_study|piper_test|npc-merge-studio|bug_tracker|voice_picker|speaker_browser|libritts_speakers|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){
+  if(/blueprint-designer|todo-viewer|bible_study|piper_test|npc-merge-studio|bug_tracker|voice_picker|speaker_browser|libritts_speakers|vctk_speakers|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.
