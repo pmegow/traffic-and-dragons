@@ -150,6 +150,7 @@ Type a line, press &#9654; on any speaker, star the keepers.</div>
     <input id="jump" type="text" placeholder="Jump to index&hellip;" autocomplete="off">
     <button id="jumpgo">Go</button>
     <button id="stopall">&#9632; Stop</button>
+    <span id="starcount" style="color:var(--acc);font-weight:bold;white-space:nowrap;"></span>
   </div>
 </div>
 
@@ -1750,7 +1751,27 @@ var SPEAKER_META_INLINE = {
     return { text: p.join(" · "), tip: acousticTip(s) };
   }
 
+  // Live tally of starred voices by gender ("25m / 30f selected"), painted by renderStars so it
+  // tracks every star/unstar/remove for free. A star whose id doesn't resolve to a speaker in
+  // THIS model (foreign/malformed) counts under "?" rather than vanishing from the total.
+  function renderStarCount() {
+    var elc = $("starcount");
+    if (!elc) return;
+    if (!stars.length) { elc.textContent = ""; return; }
+    var m = 0, f = 0, q = 0, pre = BASE_VOICE + "#", i;
+    for (i = 0; i < stars.length; i++) {
+      var id = stars[i].id || "", g = null;
+      if (id.indexOf(pre) === 0) {
+        var idx = parseInt(id.slice(pre.length), 10);
+        if (idx >= 0 && idx < SPEAKERS.length && SPEAKERS[idx]) g = SPEAKERS[idx].g;
+      }
+      if (g === "M") m++; else if (g === "F") f++; else q++;
+    }
+    elc.textContent = m + "m / " + f + "f" + (q ? " / " + q + "?" : "") + " selected";
+  }
+
   function renderStars() {
+    renderStarCount();
     var box = $("starpanel");
     box.innerHTML = "";
     if (!stars.length) {
