@@ -13,7 +13,24 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
-*(empty — all entries reviewed as of 2026-07-24)*
+### 7. TODO #95 speaker casting — four-agent Opus 5 build (v1.440)
+
+- **Tier:** off the drift surface (output rendering), logged per the #9 precedent + the row's own
+  "→ /fable-review" annotation. Built 2026-07-24 by four parallel Opus 5 agents (server pass-through /
+  metadata / speaker_browser.html satellite / tts.js+ui-sheets client core), integrated by Fable
+  (suite re-run 825 green, sw.js allowlist, versions).
+- **What Fable should verify (run via /fable-review):** ① the `voiceBaseId` normalization sweep —
+  D claims every protection/eviction/ensure/display site routes through it (contract ⑦ pins "at
+  most two #-splits in the file"; confirm the two are the right two); ② the S2 strip boundary —
+  `_speakServer` per-unit voices deliberately NOT stripped vs the handoff/local paths stripped
+  (the composite-reaches-predict() failure would be silent wrong-audio); ③ D's deliberate
+  omission of client-side speaker RANGE validation (server-only validation — is a stale star
+  against a re-curated catalog handled loudly enough?); ④ the satellite's token handling +
+  the star-store shape as a cross-surface contract (three writers/readers agree today by
+  discipline, nothing pins it); ⑤ the unstarred-composite display-as-base behavior in the
+  dropdowns (correct, or a silent rewrite risk on the next save?).
+- **Supporting docs:** DOC/DOC_speaker_casting.html (spec S1–S5); the four agent reports in this
+  session's task files; TODO #95 row.
 
 ---
 

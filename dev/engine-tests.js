@@ -6969,4 +6969,166 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return src.indexOf("restoreFailedInput(")>iE?true:"restore sits inside the _committed branch — it would invite a duplicate submit";
   });
 
+  // ── #95 speaker casting ────────────────────────────────────────────────────────────────────
+  // A voiceId may now carry a SPEAKER suffix: "<modelId>#<speaker>" (S1). One model file, many
+  // voices. The whole hazard class is that the OPFS store, the LRU, the download path and the
+  // protection layer know ONLY base model ids — so anything that compares a composite id
+  // EXACTLY is a silent bug: five characters cast on …#204/#611/#88 each look "unassigned"
+  // against the base the LRU holds, and releasing one deletes the ONE model they all depend on
+  // (the F11 class, spec R1 ▸ "Required correctness piece").
+  section("#95 speaker casting");
+  t("voiceBaseId / voiceSpeaker: plain id, composite, trailing #, multi-#, non-numeric suffix",function(){
+    var b=TTS.voiceBaseId,s=TTS.voiceSpeaker;
+    if(typeof b!=="function"||typeof s!=="function")return "voiceBaseId/voiceSpeaker not exported";
+    // no "#" — id unchanged, no speaker
+    if(b("en_US-libritts_r-medium")!=="en_US-libritts_r-medium")return "plain id altered: "+b("en_US-libritts_r-medium");
+    if(s("en_US-libritts_r-medium")!==null)return "plain id reported a speaker: "+s("en_US-libritts_r-medium");
+    // the normal composite
+    if(b("en_US-libritts_r-medium#204")!=="en_US-libritts_r-medium")return "composite base wrong: "+b("en_US-libritts_r-medium#204");
+    if(s("en_US-libritts_r-medium#204")!==204)return "composite speaker wrong: "+JSON.stringify(s("en_US-libritts_r-medium#204"));
+    // speaker 0 is a REAL speaker (falsy integer — the classic off-by-truthiness)
+    if(s("en_US-libritts_r-medium#0")!==0)return "speaker 0 not parsed as 0: "+JSON.stringify(s("en_US-libritts_r-medium#0"));
+    if(b("en_US-libritts_r-medium#0")!=="en_US-libritts_r-medium")return "speaker-0 base wrong";
+    // LAST "#" wins
+    if(b("weird#name#12")!=="weird#name")return "multi-# base wrong: "+b("weird#name#12");
+    if(s("weird#name#12")!==12)return "multi-# speaker wrong: "+JSON.stringify(s("weird#name#12"));
+    // non-numeric suffix is NOT a speaker — the whole string is the base id, so a malformed id can
+    // never be silently truncated into a different, VALID model
+    if(b("en_US-libritts_r-medium#abc")!=="en_US-libritts_r-medium#abc")return "non-numeric suffix truncated: "+b("en_US-libritts_r-medium#abc");
+    if(s("en_US-libritts_r-medium#abc")!==null)return "non-numeric suffix parsed as a speaker";
+    // trailing "#" — empty suffix is non-numeric, same rule
+    if(b("en_US-libritts_r-medium#")!=="en_US-libritts_r-medium#")return "trailing # truncated: "+b("en_US-libritts_r-medium#");
+    if(s("en_US-libritts_r-medium#")!==null)return "trailing # parsed as a speaker";
+    // null/undefined/empty are safe (callers pass unset voiceIds)
+    if(b(null)!==""||b(undefined)!==""||b("")!=="")return "null/undefined/empty not normalized to ''";
+    if(s(null)!==null||s(undefined)!==null)return "null/undefined reported a speaker";
+    return true;
+  });
+  t("snap guard: a valid composite pin is KNOWN and survives — it is never snapped to the default",function(){
+    // The failure this pins: _piperVoiceKnown compared ids exactly, so "…-medium#204" was
+    // unknown, resolvePiperVoice() snapped it to PIPER_VOICE_DEFAULT and characterVoiceId()
+    // fell back to the narrator — every cast voice would silently evaporate on load.
+    if(!TTS.voiceKnown("en_US-libritts_r-medium#204"))return "a valid composite id is not known";
+    if(!TTS.voiceKnown("en_US-libritts_r-medium"))return "the plain base id stopped being known";
+    if(TTS.voiceKnown("no_such-model#204"))return "an UNKNOWN base with a speaker was accepted";
+    if(TTS.voiceKnown("no_such-model"))return "an unknown base was accepted";
+    var pin="en_US-libritts_r-medium#204";
+    var savedWs=(typeof worldState!=="undefined")?worldState:undefined;
+    try{
+      worldState={character:{name:"Tess"},piperVoice:pin};
+      if(TTS.resolvePiperVoice()!==pin)return "resolvePiperVoice snapped a valid composite pin to "+TTS.resolvePiperVoice();
+      worldState.piperVoice="no_such-model#204";
+      if(TTS.resolvePiperVoice()!==TTS.voiceDefault())return "an unknown base was NOT snapped to the default: "+TTS.resolvePiperVoice();
+      worldState.piperVoice=null;
+      if(TTS.characterVoiceId({voiceId:pin})!==pin)return "characterVoiceId dropped a valid composite assignment: "+TTS.characterVoiceId({voiceId:pin});
+      if(TTS.characterVoiceId({voiceId:"no_such-model#7"})!==TTS.voiceDefault())return "characterVoiceId kept an unknown base";
+      if(TTS.characterVoiceId({})!==TTS.voiceDefault())return "an unassigned character no longer falls back to the narrator voice";
+    }finally{ worldState=savedWs; }
+    return true;
+  });
+  t("protection: a character cast on …#204 protects the BASE model from release and eviction",function(){
+    // THE F11-class failure. Narrator on the plain base, a companion on #204: releasing the
+    // narrator's id must find the companion still using that model file and refuse.
+    var savedWs=(typeof worldState!=="undefined")?worldState:undefined;
+    try{
+      worldState={character:{name:"Tess"},npcs:[{name:"Borin",charSheet:{voiceId:"en_US-libritts_r-medium#204"}}],piperVoice:"en_GB-alba-medium"};
+      var who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium");
+      if(who.indexOf("Borin")<0)return "a #204 assignment does not protect the base model: "+JSON.stringify(who);
+      // and the reverse direction: querying by the composite finds the base-id holders too
+      worldState.character.voiceId="en_US-libritts_r-medium";
+      who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium#611");
+      if(who.indexOf("Tess (you)")<0)return "querying by a composite missed the base-id holder: "+JSON.stringify(who);
+      if(who.indexOf("Borin")<0)return "querying by a composite missed another speaker on the same model: "+JSON.stringify(who);
+      // the narrator is protected by base too (a narrator pinned to a speaker still owns the file)
+      worldState={character:{name:"Tess"},npcs:[],piperVoice:"en_US-libritts_r-medium#88"};
+      who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium");
+      if(who.indexOf("the narrator")<0)return "a narrator cast on #88 does not protect the base model: "+JSON.stringify(who);
+      // an unrelated model is still free to evict
+      if(TTS._speakerTest.assignedTo("en_GB-cori-high").length)return "an unassigned model reported as in use";
+      // a falsy id owns no slot (narrator default) — must never match every sheet with no voiceId
+      worldState={character:{name:"Tess"},npcs:[{name:"Borin",charSheet:{}}],piperVoice:null};
+      if(TTS._speakerTest.assignedTo("").length)return "an empty voiceId matched unassigned sheets: "+JSON.stringify(TTS._speakerTest.assignedTo(""));
+    }finally{ worldState=savedWs; }
+    return true;
+  });
+  t("S2: the local Piper path strips #speaker before the engine ever sees it",function(){
+    // vits-web has no speaker surface and patching it is the PIPER_RUNTIME_REV delivery trap, so
+    // local reads speak the base model. A composite reaching predict()/download() would be an
+    // unknown PATH_MAP key: a failed download inside a read, on cellular, mid-drive.
+    var lv=TTS._speakerTest.localVoice;
+    if(lv("en_US-libritts_r-medium#204")!=="en_US-libritts_r-medium")return "local voice not stripped: "+lv("en_US-libritts_r-medium#204");
+    if(lv("en_GB-alba-medium")!=="en_GB-alba-medium")return "a plain id was altered by the local strip: "+lv("en_GB-alba-medium");
+    var src=TTS._speakerTest.speakPiperSrc();
+    if(!/voiceId\s*=\s*_localVoiceId\(voiceId\)/.test(src))return "_speakPiper does not strip its passage voiceId";
+    if(!/uVoice\s*=\s*_localVoiceId\(/.test(src))return "_speakPiper does not strip its per-unit speaker-map voice";
+    var srv=TTS._speakerTest.speakServerSrc();
+    if(/_localVoiceId\(|voiceBaseId\(uVoice\)/.test(srv.slice(0,srv.indexOf("if (failReason)"))))
+      return "_speakServer strips speaker ids before the fetch — the server tier must send them through UNTOUCHED";
+    if(!/piper: true, voiceId: voiceBaseId\(voiceId\)/.test(srv))return "the mid-read handoff item does not strip to the base voice (the remainder runs LOCALLY)";
+    return true;
+  });
+  t("★ Cast voices: a missing or corrupt star store yields NO optgroup and never throws",function(){
+    // Absence is the normal state (nobody has starred anything yet), so this is the one silent-OK
+    // path in the feature. Every shape the store could be found in must degrade to "no optgroup".
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      // last entry: an OBJECT masquerading as an array (length + numeric keys) — the shape that
+      // slips past a bare `if(!arr)` guard and hands the picker a phantom voice
+      var bad=[null,"","not json","{}",'"a string"',"[]",'[{"label":"no id"}]','[null,3,{"id":""}]','{"length":1,"0":{"id":"en_US-libritts_r-medium#9","label":"phantom"}}'];
+      for(var i=0;i<bad.length;i++){
+        if(bad[i]===null)store.del(K);else store.set(K,bad[i]);
+        var list,html;
+        try{ list=TTS.starsList(); html=TTS.starOptionsHtml(""); }
+        catch(e){ return "threw on store value "+JSON.stringify(bad[i])+": "+(e&&e.message); }
+        if(list.length)return "entries survived a corrupt store "+JSON.stringify(bad[i])+": "+JSON.stringify(list);
+        if(html!=="")return "an optgroup was rendered for "+JSON.stringify(bad[i])+": "+html;
+      }
+      // the good shape: rendered, labeled, and the current pick marked selected
+      store.set(K,JSON.stringify([{id:"en_US-libritts_r-medium#204",label:"Gravelly innkeeper"},{id:"en_US-libritts_r-medium#611"}]));
+      var l2=TTS.starsList();
+      if(l2.length!==2)return "valid stars not read: "+JSON.stringify(l2);
+      if(l2[0].label!=="Gravelly innkeeper")return "label lost: "+JSON.stringify(l2[0]);
+      if(l2[1].label!=="en_US-libritts_r-medium#611")return "a label-less star did not fall back to its id: "+JSON.stringify(l2[1]);
+      var h2=TTS.starOptionsHtml("en_US-libritts_r-medium#611");
+      if(h2.indexOf("<optgroup")!==0)return "no optgroup for a valid store: "+h2;
+      if(h2.indexOf("Gravelly innkeeper")<0)return "label not rendered: "+h2;
+      if(!/value='en_US-libritts_r-medium#611' selected/.test(h2))return "the current pick is not selected: "+h2;
+      if((h2.match(/ selected/g)||[]).length!==1)return "more than one option marked selected: "+h2;
+      // a star id with a quote must not break out of value='…'
+      store.set(K,JSON.stringify([{id:"x'y",label:"<b>bold</b>"}]));
+      var h3=TTS.starOptionsHtml("");
+      if(h3.indexOf("value='x'y'")>=0)return "an apostrophe in a star id escaped its attribute: "+h3;
+      if(h3.indexOf("<b>")>=0)return "a star label rendered raw HTML: "+h3;
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
+  t("the Voice Settings dropdown offers the ★ Cast voices optgroup",function(){
+    // S5: the star store is what makes a cast voice PICKABLE at all. (The character-sheet twin
+    // lives in ui-sheets.js, which the DOM-free harness does not load — it is pinned as a source
+    // contract in dev/run-tests.js instead.)
+    var settings=TTS._speakerTest.piperOptionsSrc();
+    if(settings.indexOf("starOptionsHtml")<0)return "the Voice Settings dropdown does not render the star optgroup";
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      store.set(K,JSON.stringify([{id:"en_US-libritts_r-medium#204",label:"Gravelly innkeeper"}]));
+      var html=TTS._speakerTest.piperOptions();
+      if(html.indexOf("Gravelly innkeeper")<0)return "a starred voice is missing from the Voice Settings dropdown";
+      if(html.indexOf("en_GB-alba-medium")<0)return "the curated model list vanished when stars were present";
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
+  t("a composite pick still selects something in the model list when it is not starred",function(){
+    // Losing the star (or arriving from an import) must not leave the dropdown showing nothing —
+    // a select with no selected option silently reports its FIRST option's value on save.
+    var K="tnd_speaker_stars_v1",saved=store.get(K),savedWs=(typeof worldState!=="undefined")?worldState:undefined;
+    try{
+      store.del(K);
+      worldState={character:{name:"Tess"},piperVoice:"en_US-libritts_r-medium#204"};
+      var html=TTS._speakerTest.piperOptions();
+      if((html.match(/ selected/g)||[]).length!==1)return "expected exactly one selected option, got: "+(html.match(/ selected/g)||[]).length;
+      if(!/value='en_US-libritts_r-medium' selected/.test(html))return "the base model is not selected for an unstarred composite pin: "+html;
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); worldState=savedWs; }
+    return true;
+  });
+
 }

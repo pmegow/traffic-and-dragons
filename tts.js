@@ -84,9 +84,62 @@ var TTS = (function() {
       blurb:"First use downloads once (115MB), then cached." }
   ];
   var PIPER_VOICE_DEFAULT = "en_US-libritts_r-medium";
-  function _piperVoiceKnown(id){ for(var i=0;i<PIPER_VOICES.length;i++){ if(PIPER_VOICES[i].id===id) return true; } return false; }
+
+  // ── #95 speaker casting (S1) — the composite voice id ────────────────────────────────────────
+  // A voiceId may carry a SPEAKER suffix: "<modelId>#<speaker>", e.g. "en_US-libritts_r-medium#204".
+  // The multi-speaker models already on disk carry hundreds of voices in ONE file (libritts_r: 904),
+  // so a cast voice costs no extra download. It rides everywhere a voiceId rides today — strings,
+  // no schema change.
+  //
+  // ⛨ These two are THE ONE place a composite id is taken apart. Every known-ness / protection /
+  // LRU / download / eviction decision normalizes through voiceBaseId FIRST, because the OPFS store
+  // and the LRU know only base model ids: five characters cast on …#204/#611/#88 each look
+  // "unassigned" against the base the LRU holds, and releasing one would delete the ONE model file
+  // they all depend on (the F11 class — spec R1 ▸ "Required correctness piece"). No scattered
+  // split("#") anywhere else; the run-tests VOICE DELETE CONTRACT pins that.
+  //
+  // Split on the LAST "#". A NON-NUMERIC suffix (including an empty one, "id#") is not a speaker —
+  // the WHOLE string is then treated as a base id, so a malformed id can never be silently
+  // truncated into a different, valid model; it simply fails the catalog check and snaps to the
+  // default like any other unknown voice.
+  function voiceBaseId(id) {
+    var s = (id == null) ? "" : String(id);
+    var i = s.lastIndexOf("#");
+    if (i < 0) return s;
+    return /^\d+$/.test(s.slice(i + 1)) ? s.slice(0, i) : s;
+  }
+  function voiceSpeaker(id) {
+    var s = (id == null) ? "" : String(id);
+    var i = s.lastIndexOf("#");
+    if (i < 0) return null;
+    var spk = s.slice(i + 1);
+    return /^\d+$/.test(spk) ? parseInt(spk, 10) : null;   // "#0" is a real speaker — never truthiness-tested
+  }
+
+  // S2 (ratified, spec R1): NO vendored-runtime patch. Local Piper (vits-web) cannot select a
+  // speaker unpatched, and patching it means a PIPER_RUNTIME_REV bump into the permanent-cache
+  // delivery trap that ate v1.322/v1.323 — plus wasm surface the whole B9 arc argues against
+  // touching. So the LOCAL path speaks the BASE model (its default speaker): same voice family,
+  // and a composite id reaching predict()/download() would be an unknown PATH_MAP key — i.e. a
+  // failed 60–130MB download inside a live read. The SERVER tier gets the real speaker.
+  // Loud once per session (not per unit — a 40-unit read would spam the console it belongs in).
+  var _speakerLocalNoted = false;
+  function _localVoiceId(id) {
+    var base = voiceBaseId(id);
+    if (base !== id && !_speakerLocalNoted) {
+      _speakerLocalNoted = true;
+      console.info("[tts piper] speaker voices play server-side; local read uses the base voice (" + base + ")");
+    }
+    return base;
+  }
+
+  // #95: known-ness is a property of the BASE. "en_US-libritts_r-medium#204" is a valid pin the
+  // snap guard must NOT eat (it would silently evaporate every cast voice on load); an unknown
+  // base snaps to the default exactly as before, speaker suffix or not.
+  function _piperVoiceKnown(id){ var b=voiceBaseId(id); for(var i=0;i<PIPER_VOICES.length;i++){ if(PIPER_VOICES[i].id===b) return true; } return false; }
   function piperVoiceSize(id) {
-    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].size; }
+    var b = voiceBaseId(id);   // #95: the download is the MODEL — a speaker suffix costs no bytes
+    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === b) return PIPER_VOICES[i].size; }
     return "60–115MB";
   }
   var PVOICE_K = "tnd_piper_voice_v1"; // device-default Piper voice id
@@ -248,7 +301,7 @@ var TTS = (function() {
   }
   function _piperLruStamp(voiceId) {
     var lru = _piperLruLoad();
-    lru[voiceId] = Date.now();
+    lru[voiceBaseId(voiceId)] = Date.now();   // #95: the LRU tracks MODEL FILES — never a speaker id
     try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) { console.warn("[tts piper] LRU stamp write failed:", e && e.message); }
   }
 
@@ -1600,9 +1653,13 @@ var TTS = (function() {
   // callers racing on a missing voice can't both download it.
   async function _piperEnsureVoice(voiceId) {
     var mod = await _piperInit();
-    return _piperSerial(function() { return _piperEnsureVoiceNow(mod, voiceId); });
+    // #95: the download unit is the MODEL. Callers already strip (_localVoiceId), but this is the
+    // download boundary — a composite arriving here would be an unknown PATH_MAP key.
+    var base = voiceBaseId(voiceId);
+    return _piperSerial(function() { return _piperEnsureVoiceNow(mod, base); });
   }
   async function _piperEnsureVoiceNow(mod, voiceId) {
+    voiceId = voiceBaseId(voiceId);   // #95 — belt and braces at the one place that writes OPFS
     // Audit #12 (v1.340): OPFS is best-effort storage — without a persistence grant the browser
     // may evict the 60–115MB voice models under pressure (witnessed live 2026-07-17: a desktop
     // profile dropped a 78MB voice between sessions), turning "downloaded once" into surprise
@@ -1676,7 +1733,7 @@ var TTS = (function() {
   // permanent SW cache and needs a PIPER_RUNTIME_REV bump to deliver, which is the trap that ate
   // v1.322/v1.323. tts.js already reads OPFS directly (see _piperVoiceComplete), so nothing is lost.
   async function _piperRemoveVoiceFiles(voiceId) {
-    var rel = ((_piperMod && _piperMod.PATH_MAP) || {})[voiceId];
+    var rel = ((_piperMod && _piperMod.PATH_MAP) || {})[voiceBaseId(voiceId)];   // #95: files are per MODEL
     if (!rel) throw new Error("unknown voice id (not in PATH_MAP): " + voiceId);
     var base = rel.split("/").pop();
     var dir = await (await navigator.storage.getDirectory()).getDirectoryHandle("piper");
@@ -1691,6 +1748,7 @@ var TTS = (function() {
   }
 
   async function _piperEvictExcess(mod, keepId) {
+    keepId = voiceBaseId(keepId);   // #95: stored() lists MODEL ids — a composite keepId would protect nothing
     var stored;
     // v1.419: was a silent `return` — a rejecting stored() disabled the cap with no trace at all.
     try { stored = await mod.stored(); } catch(e) { console.warn("[tts piper] eviction skipped — could not list stored voices:", e && e.message); return; }
@@ -1849,7 +1907,9 @@ var TTS = (function() {
         // server audio plays out first, then _drain picks the remainder up on local Piper
         // (which itself degrades to native if it can't run). Mirrors the governor's handoff.
         var _remText = units.slice(i).map(function(ru) { return ru.text; }).join(" ");
-        if (_remText) _queue.unshift({ text: _remText, piper: true, voiceId: voiceId });
+        // #95 (S2): the remainder runs LOCALLY, where speaker ids don't exist — strip to the base
+        // model here rather than handing the local loop something it would have to fix anyway.
+        if (_remText) _queue.unshift({ text: _remText, piper: true, voiceId: voiceBaseId(voiceId) });
         handedOff = true;
         _serverTtsDegrade("unit " + (i + 1) + "/" + units.length + ": " + failReason);
         break;
@@ -1911,6 +1971,10 @@ var TTS = (function() {
   // stopped/skipped narration safe against an unabortable WASM call resolving late.
   async function _speakPiper(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
+    // #95 (S2): local Piper speaks the BASE model — strip the passage voice at the door, so every
+    // downstream consumer (ensure/download, predict, the recycle warm-up, _voiceReady, the crumb's
+    // voice-switch count) sees only ids the engine can actually resolve.
+    voiceId = _localVoiceId(voiceId);
 
     // B9 governor START gate (v1.434): the page's synthesis budget is near spent — this read
     // never touches the wasm engine. The tab stops dying because the work stops happening.
@@ -2039,7 +2103,7 @@ var TTS = (function() {
       // is fetched once here and every later unit reuses it. A voice that will not load degrades
       // THIS passage to the narrator rather than failing the read — and is remembered so the next
       // unit does not retry the same broken download.
-      var uVoice = (voices && voices[i]) || voiceId;
+      var uVoice = _localVoiceId((voices && voices[i]) || voiceId);   // #95 (S2): speaker → base model, locally
       if (i > 0 && uVoice !== _lastUnitVoice) _vSwitches++;   // #16c: each switch reloads the single-slot ORT session
       _lastUnitVoice = uVoice;
       if (uVoice !== voiceId && _voiceReady[uVoice] !== true) {
@@ -2154,6 +2218,7 @@ var TTS = (function() {
   // Exported on the public API. Wired to TTS-enable by toggle() and to the settings modal's Save
   // handler (both: only when the selected engine is Piper) — see §5 Q4.
   function prewarmPiper(voiceId, onlyIfDownloaded) {
+    voiceId = _localVoiceId(voiceId);   // #95 (S2): callers pass resolvePiperVoice(), which may now carry a speaker
     if (_piperGoverned) return;   // v1.434: a governed page speaks native — don't spend budget warming an engine that won't run
     if (!_piperOk()) return;   // known-broken within the retry window — don't hammer it every toggle-on
     var myEpoch = _piperEpoch;
@@ -2300,7 +2365,7 @@ var TTS = (function() {
             // been downloaded, and warming that would kick off a surprise 60-115MB download from a
             // background maintenance path. Skipping is free — the next real predict builds the
             // session anyway. Failure is survivable too, so it never aborts the swap.
-            var warmId = voiceId || resolvePiperVoice();
+            var warmId = voiceBaseId(voiceId || resolvePiperVoice());   // #95: _piperDownloaded is keyed by MODEL — a composite would always read "not resident"
             if (!warmId || !_piperDownloaded[warmId]) {
               console.info("[tts piper] respawn: skipping warm predict — " + warmId + " is not resident (no surprise download)");
               return null;
@@ -2540,7 +2605,7 @@ var TTS = (function() {
       isErr = true;
     } else {
       var sel = document.getElementById("tts-piper-sel");
-      var voiceId = sel ? sel.value : resolvePiperVoice();
+      var voiceId = voiceBaseId(sel ? sel.value : resolvePiperVoice());   // #95: _piperDownloaded is keyed by MODEL
       if (voiceId && !_piperDownloaded[voiceId]) msg = "voice not downloaded yet — downloads on first use (" + piperVoiceSize(voiceId) + ", cached)";
     }
     el.textContent = msg;
@@ -2610,7 +2675,7 @@ var TTS = (function() {
     if (!host) return;   // Voice Settings not open — callers fire this unconditionally on residency changes
     _piperOpfsIds().then(function(ids) {
       var lru = _piperLruLoad(), sel = document.getElementById("tts-piper-sel");
-      var cur = sel ? sel.value : resolvePiperVoice();
+      var cur = voiceBaseId(sel ? sel.value : resolvePiperVoice());   // #95: rows are MODEL files — a cast voice highlights its model
       ids.sort(function(a, b) {
         var at = lru.hasOwnProperty(a) ? lru[a] : 0, bt = lru.hasOwnProperty(b) ? lru[b] : 0;
         return bt - at;   // most recent first — bottom of the list is next to evict
@@ -2727,7 +2792,7 @@ var TTS = (function() {
       delete lru[id];
       try { store.set(PIPER_VOICE_LRU_K, JSON.stringify(lru)); } catch(e) {}
       delete _piperDownloaded[id];
-      var stillSelected = (resolvePiperVoice() === id);
+      var stillSelected = (voiceBaseId(resolvePiperVoice()) === voiceBaseId(id));   // #95: a narrator cast on …#204 still needs this MODEL
       if (typeof showToast === "function") showToast("🗑 Deleted narrator voice " + id + (stillSelected ? " — still selected, re-downloads on next use" : ""), 6000);
       _updatePiperErr();
       _renderPiperSlots();
@@ -2766,17 +2831,69 @@ var TTS = (function() {
     } catch (e) {}
   }
 
+  // ── #95 S5: the starred cast ─────────────────────────────────────────────────────────────────
+  // Device-level store written by speaker_browser.html (the audition satellite): [{id,label}] with
+  // user-editable labels ("Gravelly innkeeper"). Device-level ON PURPOSE — stars are picker
+  // convenience; the actual binding (charSheet.voiceId) already rides sheets and sync.
+  //
+  // Absence is the NORMAL state (nobody has starred anything yet), and so is a store written by a
+  // satellite this build may be older than — so a missing/corrupt/foreign-shaped store yields []
+  // with no warn and no toast. That is not a swallowed failure: nothing was supposed to work yet.
+  // Malformed ENTRIES inside a valid array are skipped individually, so one bad row can't cost the
+  // user the rest of their cast.
+  var SPEAKER_STARS_K = "tnd_speaker_stars_v1";
+  function starsList() {
+    var raw;
+    try { raw = store.get(SPEAKER_STARS_K); } catch (e) { return []; }
+    if (!raw) return [];
+    var arr;
+    try { arr = JSON.parse(raw); } catch (e) { return []; }
+    if (Object.prototype.toString.call(arr) !== "[object Array]") return [];
+    var out = [], i, e2;
+    for (i = 0; i < arr.length; i++) {
+      e2 = arr[i];
+      if (!e2 || typeof e2.id !== "string" || !e2.id) continue;
+      out.push({ id: e2.id, label: (typeof e2.label === "string" && e2.label) ? e2.label : e2.id });
+    }
+    return out;
+  }
+  function _isStarred(id) {
+    var st = starsList();
+    for (var i = 0; i < st.length; i++) { if (st[i].id === id) return true; }
+    return false;
+  }
+  // ONE renderer, TWO hosts (Voice Settings here + the character sheet's csVoiceControlHtml in
+  // ui-sheets.js) — the bibleCardHTML precedent. Returns "" when nothing is starred: no optgroup,
+  // no empty header. Values are plain voiceId strings, so every existing save path is unchanged.
+  // Ids and labels come from a user-editable store, so they are escaped for a single-quoted
+  // attribute (_escVal alone leaves ' alone, which would break out of value='…').
+  function _escOpt(s) { return _escVal(s).replace(/'/g, "&#39;"); }
+  function starOptionsHtml(cur) {
+    var st = starsList(), i, html;
+    if (!st.length) return "";
+    html = "<optgroup label='&#9733; Cast voices'>";
+    for (i = 0; i < st.length; i++) {
+      html += "<option value='" + _escOpt(st[i].id) + "'" + (st[i].id === cur ? " selected" : "") + ">" + _escVal(st[i].label) + "</option>";
+    }
+    return html + "</optgroup>";
+  }
+
   function _buildPiperVoiceOptions() {
-    var cur = resolvePiperVoice(), html = "";
+    var cur = resolvePiperVoice(), html = starOptionsHtml(cur);
+    // #95: a composite pick that is NOT starred (star deleted, or an id imported from another
+    // device) still selects its base model, so the select never renders with nothing selected —
+    // which would silently report its FIRST option's value on the next Save.
+    var curBase = _isStarred(cur) ? null : voiceBaseId(cur);
     for (var i = 0; i < PIPER_VOICES.length; i++) {
       var v = PIPER_VOICES[i];
-      html += "<option value='" + v.id + "'" + (v.id === cur ? " selected" : "") + ">" + _escVal(v.label) + "</option>";
+      html += "<option value='" + v.id + "'" + (v.id === curBase ? " selected" : "") + ">" + _escVal(v.label) + "</option>";
     }
     return html;
   }
 
   function _piperVoiceBlurb(id) {
-    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].blurb; }
+    var b = voiceBaseId(id);   // #95: the blurb describes the MODEL download, which a speaker shares
+    for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === b) return PIPER_VOICES[i].blurb; }
     return "";
   }
 
@@ -2789,25 +2906,43 @@ var TTS = (function() {
   // keys (stamped on every ensure, deleted on evict) — sync, good enough for a heads-up; the actual
   // eviction still uses the real OPFS list. Narration-triggered downloads can't block a turn, so
   // this gates only the audition path (both Test buttons run through testVoice).
-  function _voiceLabelOf(id) { for (var i = 0; i < PIPER_VOICES.length; i++) { if (PIPER_VOICES[i].id === id) return PIPER_VOICES[i].label; } return id; }
+  function _voiceLabelOf(id) {
+    var b = voiceBaseId(id), spk = voiceSpeaker(id);
+    for (var i = 0; i < PIPER_VOICES.length; i++) {
+      // #95: name a cast voice by its star label when it has one, else the model + speaker number —
+      // never a bare composite id in a confirmation dialog the user has to reason about.
+      if (PIPER_VOICES[i].id === b) return PIPER_VOICES[i].label + (spk === null ? "" : " · speaker " + spk);
+    }
+    return id;
+  }
+  // ⛨ #95 (the F11 class): every comparison here is BY BASE MODEL. A character cast on
+  // "…-medium#204" depends on exactly the same file as one on "…-medium" — so the model is in use
+  // and neither automatic eviction nor a release-on-reassign may delete it. Compared EXACTLY (as
+  // this did before speaker ids existed), five characters spread across #204/#611/#88 would each
+  // read as "unassigned" against the base id the LRU holds, and swapping any ONE of their voices
+  // would silently delete the model all five speak through — mid-drive, recovered only by a silent
+  // 60–130MB refetch inside a read.
   function _voiceAssignedTo(voiceId) {
-    var who = [];
+    var who = [], want = voiceBaseId(voiceId);
+    if (!want) return who;   // the narrator default owns no slot — and must never match every unassigned sheet
     // v1.439 (F10, brief F): the narrator check runs FIRST, before the worldState guard —
     // resolvePiperVoice() needs no world (device-default fallback), and the old order sat it
     // BELOW the early return, so on a pre-game page (Voice Settings lives on the API-key and
     // creation menus too) the narrator's voice counted as unassigned and automatic eviction
     // could take it. The protection this function exists for was defeatable by page choice.
-    if (resolvePiperVoice() === voiceId) who.push("the narrator");
+    if (voiceBaseId(resolvePiperVoice()) === want) who.push("the narrator");
     if (typeof worldState === "undefined" || !worldState) return who;
     var c = worldState.character;
-    if (c && c.voiceId === voiceId) who.push((c.name || "the player") + " (you)");
+    if (c && c.voiceId && voiceBaseId(c.voiceId) === want) who.push((c.name || "the player") + " (you)");
     var ns = worldState.npcs || [], i;
-    for (i = 0; i < ns.length; i++) { if (ns[i] && ns[i].charSheet && ns[i].charSheet.voiceId === voiceId) who.push(ns[i].name); }
+    for (i = 0; i < ns.length; i++) { if (ns[i] && ns[i].charSheet && ns[i].charSheet.voiceId && voiceBaseId(ns[i].charSheet.voiceId) === want) who.push(ns[i].name); }
     return who;
   }
   // Promise<boolean> — true = proceed with the download, false = user cancelled. Only prompts when
   // downloading newVoiceId would push resident voices past the cap.
   function _confirmVoiceEviction(newVoiceId) {
+    newVoiceId = voiceBaseId(newVoiceId);   // #95: residency is per MODEL — auditioning …#204 of a
+                                            // model already on disk downloads nothing and must not prompt
     var resident = Object.keys(_piperLruLoad());
     if (!newVoiceId || resident.indexOf(newVoiceId) >= 0 || resident.length < PIPER_VOICE_CAP) return Promise.resolve(true);
     var lru = _piperLruLoad();
@@ -2859,6 +2994,10 @@ var TTS = (function() {
   // spinning up the wasm engine for a voice that was never downloaded. Housekeeping only — non-fatal.
   function releaseVoiceIfUnused(voiceId) {
     if (!voiceId) return;                             // narrator default — owns no per-character slot
+    // ⛨ #95: the caller hands us the character's OLD voiceId, which may be a composite. What can be
+    // freed is the MODEL FILE, and only if nothing (any speaker of it, or the narrator) still uses
+    // it — see _voiceAssignedTo. Comparing composites here is the F11-class data-loss bug.
+    voiceId = voiceBaseId(voiceId);
     if (_voiceAssignedTo(voiceId).length) return;     // still used by a character or the narrator
     if (!_piperLruLoad()[voiceId]) return;            // not resident — nothing to free (no engine init)
     _piperInit().then(function() {
@@ -3085,9 +3224,24 @@ var TTS = (function() {
     // back to the NARRATOR voice (resolvePiperVoice). An unassigned character simply speaks in
     // the narrator voice — today's single-voice behavior, preserved until voices are assigned.
     voices:            function() { return PIPER_VOICES.slice(); },
-    voiceLabel:        function(id) { for (var i=0;i<PIPER_VOICES.length;i++){ if(PIPER_VOICES[i].id===id) return PIPER_VOICES[i].label; } return id||""; },
+    // #95: a starred cast voice is named by its user label; an unstarred composite falls back to
+    // "<model> · speaker N" (see _voiceLabelOf) rather than a raw id in a toast.
+    voiceLabel:        function(id) {
+      if (!id) return "";
+      var st = starsList(), i;
+      for (i = 0; i < st.length; i++) { if (st[i].id === id) return st[i].label; }
+      return _voiceLabelOf(id);
+    },
     voiceKnown:        _piperVoiceKnown,
     voiceDefault:      function() { return PIPER_VOICE_DEFAULT; },
+    // #95 (S1) — THE composite-id helpers. Everything that touches OPFS/LRU/download/eviction
+    // normalizes through voiceBaseId; nothing else may split on "#".
+    voiceBaseId:       voiceBaseId,
+    voiceSpeaker:      voiceSpeaker,
+    // #95 (S5) — the starred cast: the store reader and the shared optgroup renderer, used by BOTH
+    // voice pickers (Voice Settings here, csVoiceControlHtml in ui-sheets.js).
+    starsList:         starsList,
+    starOptionsHtml:   starOptionsHtml,
     characterVoiceId:  function(char) {
       var v = char && char.voiceId;
       return (v && _piperVoiceKnown(v)) ? v : resolvePiperVoice();
@@ -3104,6 +3258,18 @@ var TTS = (function() {
       backdate: function(ms) { _serverTtsErrAt -= ms; },
       reset:    function() { _serverTtsErr = ""; _serverTtsErrAt = 0; _serverTtsToasted = false; },
       provider: function() { return TTS_PROVIDERS.server; }
+    },
+    // #95: internals exported ONLY for the headless engine tests (same contract as _textPrep).
+    // The two *Src() readers exist because the strip/pass-through rules live INSIDE async read
+    // loops that need OPFS, a wasm engine and a live AudioContext — none of which the DOM-free
+    // harness can provide — so the property is asserted against the function source instead.
+    _speakerTest: {
+      assignedTo:      function(id) { return _voiceAssignedTo(id); },
+      localVoice:      function(id) { return _localVoiceId(id); },
+      piperOptions:    function() { return _buildPiperVoiceOptions(); },
+      piperOptionsSrc: function() { return String(_buildPiperVoiceOptions); },
+      speakPiperSrc:   function() { return String(_speakPiper); },
+      speakServerSrc:  function() { return String(_speakServer); }
     }
   };
 

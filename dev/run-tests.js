@@ -116,6 +116,52 @@ try {
     console.error("VOICE DELETE CONTRACT: _renderPiperSlots caps its row loop at PIPER_VOICE_CAP — over-cap voices become invisible and undeletable (v1.419).");
     process.exit(1);
   }
+  // ⑥ #95 speaker casting: a voiceId may now carry a "#<speaker>" suffix, but OPFS and the LRU
+  //    know only BASE model ids. If any deletion decision compared composites, five characters
+  //    cast on …#204/#611/#88 would each read as "unassigned" against the base id the LRU holds —
+  //    so releasing one voice would delete the ONE model file all five speak through, mid-drive,
+  //    recovered only by a silent 60-130MB refetch inside a read. Same class as ③, one level of
+  //    indirection deeper, and equally invisible until it costs a user their voices.
+  var _assign = _nc((_tts.match(/function _voiceAssignedTo\([\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_assign) {
+    console.error("VOICE DELETE CONTRACT: _voiceAssignedTo not found — the protection layer's anchor moved; re-verify clauses ③ and ⑥ by hand.");
+    process.exit(1);
+  }
+  if (_assign.indexOf("voiceBaseId") < 0) {
+    console.error("VOICE DELETE CONTRACT: _voiceAssignedTo compares voice ids without voiceBaseId — a character cast on '<model>#204' would not protect <model>, and eviction/release could delete the model file every speaker of it depends on (#95, the F11 class).");
+    process.exit(1);
+  }
+  if (_rel.indexOf("voiceBaseId") < 0) {
+    console.error("VOICE DELETE CONTRACT: releaseVoiceIfUnused does not normalize through voiceBaseId — reassigning a character off '<model>#204' would look up a composite the LRU/OPFS never held, or free a model other speakers still use (#95).");
+    process.exit(1);
+  }
+  if (_evict.indexOf("voiceBaseId") < 0) {
+    console.error("VOICE DELETE CONTRACT: _piperEvictExcess does not normalize through voiceBaseId — a composite keepId protects nothing, so the cap can evict the voice just downloaded (#95).");
+    process.exit(1);
+  }
+  // ⑦ #95: ONE helper, used everywhere. A scattered split("#") is how a base/composite mismatch
+  //    creeps back into a single call site nobody re-audits.
+  var _splits = (_nc(_tts).match(/\.split\("#"\)|lastIndexOf\("#"\)/g) || []).length;
+  if (_splits > 2) {
+    console.error("VOICE DELETE CONTRACT: tts.js takes voice ids apart on '#' in more than the two sanctioned places (voiceBaseId/voiceSpeaker) — every protection/eviction/download decision must normalize through the ONE helper (#95 spec R1).");
+    process.exit(1);
+  }
+  // ⑧ #95 (S2): the LOCAL read path must strip the speaker before the engine sees it. vits-web has
+  //    no speaker surface, so a composite reaching predict()/download() is an unknown PATH_MAP key —
+  //    a failed 60-130MB fetch inside a live read. (The SERVER path passes it through on purpose.)
+  var _spk = (_tts.match(/async function _speakPiper\([\s\S]*?\n  \}\n/) || [""])[0];
+  if (!/voiceId = _localVoiceId\(voiceId\)/.test(_spk) || !/uVoice = _localVoiceId\(/.test(_spk)) {
+    console.error("VOICE DELETE CONTRACT: _speakPiper no longer strips speaker suffixes (_localVoiceId) from its passage voice AND its per-unit speaker map — local Piper cannot select a speaker, so the composite id reaches predict()/download() as an unknown model (#95 S2).");
+    process.exit(1);
+  }
+  // ⑨ #95 (S5): both voice pickers must offer the starred cast, or an assigned speaker voice is
+  //    unreachable without hand-editing localStorage. ui-sheets.js is not loaded by the DOM-free
+  //    engine harness, so its half is pinned here.
+  var _sheets = _nc(_fsD.readFileSync(_pathD.join(__dirname, "..", "ui-sheets.js"), "utf8"));
+  if (_sheets.indexOf("starOptionsHtml") < 0) {
+    console.error("VOICE DELETE CONTRACT: csVoiceControlHtml (ui-sheets.js) no longer renders the ★ Cast voices optgroup — a starred speaker voice becomes unassignable from the character sheet (#95 S5).");
+    process.exit(1);
+  }
 } catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────

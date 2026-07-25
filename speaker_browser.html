@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Speaker Browser — the 904-voice stable</title>
+<!--
+  speaker_browser.html (TODO #95, spec S3) — the audition / casting tool for the 904 speakers
+  inside en_US-libritts_r-medium.
+
+  SATELLITE PAGE: opened directly like blueprint-designer.html and bible_study.html. It is
+  deliberately OUTSIDE the SW app shell (sw.js untouched) — nothing here is needed offline, and
+  staying out of the shell is the recommended half of S3.
+
+  DEPLOYMENT ASSUMPTION: served same-origin with the game, so localStorage carries the session
+  token the game already stored. This page NEVER asks for credentials — no token means a banner
+  telling you to connect in the game.
+
+  Every ▶ is ONE real POST /api/tts on the TTS server. Nothing is pre-rendered and nothing is
+  cached client-side.
+
+  SECURITY: server-derived strings (error bodies) and user-entered labels are inserted via
+  textContent — never innerHTML. Keep it that way when editing.
+-->
+<style>
+  :root{--bg:#121212;--card:#181818;--card2:#1c1c1c;--line:#2c2a26;--ink:#e6e2d8;--dim:#a39a88;
+        --dim2:#6f695e;--acc:#b8935a;--good:#7aa86a;--bad:#c0564a;
+        --mono:Consolas,"SF Mono",Menlo,ui-monospace,monospace;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#0d0d0d;}
+  ::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+  .wrap{max-width:900px;margin:0 auto;padding:26px 18px 90px;}
+  h1{font-size:21px;margin:0 0 4px;color:var(--acc);}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 16px;}
+  h2.sect{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--acc);
+          border-bottom:1px solid var(--line);padding-bottom:6px;margin:30px 0 12px;}
+
+  .banner{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);
+          border-radius:8px;padding:12px 14px;margin:0 0 16px;font-size:13.5px;color:var(--dim);}
+  .banner.bad{border-left-color:var(--bad);}
+  .banner b{color:var(--ink);}
+  .note{color:var(--dim2);font-size:12.5px;margin:8px 0 0;}
+
+  .bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+       padding:10px 0 12px;margin-bottom:10px;}
+  .bar .lbl{font-size:12px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase;
+            display:block;margin-bottom:5px;}
+  input[type=text]{font-family:inherit;font-size:14px;background:var(--card2);color:var(--ink);
+                   border:1px solid var(--line);border-radius:8px;padding:9px 12px;outline:none;}
+  input[type=text]:focus{border-color:var(--acc);}
+  #line{width:100%;}
+  .row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+  .filt{display:flex;gap:6px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:13px;background:#222;color:var(--ink);
+         border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;}
+  button:hover{border-color:var(--acc);color:var(--acc);}
+  button:disabled{opacity:.35;cursor:default;}
+  button:disabled:hover{border-color:var(--line);color:var(--ink);}
+  .filt button.on{background:var(--acc);border-color:var(--acc);color:#111;font-weight:700;}
+  .filt button.on:hover{color:#111;}
+  #jump{width:150px;}
+  .spacer{flex:1;}
+
+  .rows{margin-top:4px;}
+  .r{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);
+     border:1px solid var(--line);border-radius:9px;margin:6px 0;flex-wrap:wrap;}
+  .r.starred{border-color:#4a4132;background:var(--card2);}
+  .r.hit{border-color:var(--acc);}
+  .r .idx{font-family:var(--mono);font-size:13.5px;color:var(--acc);font-weight:700;min-width:62px;}
+  .r .rd{font-size:13px;color:var(--dim);min-width:96px;}
+  .r .g{font-family:var(--mono);font-size:11.5px;color:var(--dim2);min-width:22px;text-align:center;}
+  .r .st{font-size:12.5px;color:var(--dim);flex:1;min-width:120px;word-break:break-word;}
+  .r .st.err{color:var(--bad);}
+  button.play{min-width:38px;font-size:14px;}
+  button.play.on{background:var(--acc);border-color:var(--acc);color:#111;}
+  button.play.on:hover{color:#111;}
+  button.star{min-width:34px;font-size:14px;line-height:1;}
+  button.star.on{color:var(--acc);border-color:#4a4132;}
+
+  .pager{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 0;
+         color:var(--dim);font-size:12.5px;}
+
+  .stars{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .sr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;
+      border-bottom:1px solid #232120;}
+  .sr:last-child{border-bottom:none;}
+  .sr .sid{font-family:var(--mono);font-size:12px;color:var(--acc);min-width:210px;
+           word-break:break-all;}
+  .sr input[type=text]{flex:1;min-width:170px;font-size:13px;padding:6px 10px;}
+  .sr .msg{font-size:12px;color:var(--good);min-width:52px;}
+  .empty{color:var(--dim2);font-style:italic;font-size:13.5px;}
+
+  footer{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);
+         color:var(--dim2);font-size:12.5px;line-height:1.7;}
+  code{font-family:var(--mono);font-size:.9em;color:var(--dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Speaker Browser</h1>
+<div class="sub">Audition and cast the 904 speakers inside <code>en_US-libritts_r-medium</code>.
+Type a line, press &#9654; on any speaker, star the keepers.</div>
+
+<div id="conn"></div>
+<div id="metanote"></div>
+
+<div class="bar">
+  <label class="lbl" for="line">Audition line</label>
+  <input id="line" type="text" spellcheck="false" autocomplete="off">
+  <div class="row2">
+    <div class="filt" id="filt"></div>
+    <span class="spacer"></span>
+    <input id="jump" type="text" placeholder="Jump to index&hellip;" autocomplete="off">
+    <button id="jumpgo">Go</button>
+    <button id="stopall">&#9632; Stop</button>
+  </div>
+</div>
+
+<div class="rows" id="rows"></div>
+<div class="pager" id="pager"></div>
+
+<h2 class="sect">&#9733; Starred</h2>
+<div class="stars" id="starpanel"></div>
+
+<footer id="foot"></footer>
+
+</div>
+<script>
+(function () {
+  "use strict";
+
+  // ── CONFIG ─────────────────────────────────────────────────────────────────────────────────
+  var TTS_SERVER_DEFAULT = "https://tnd-tts.fly.dev";
+  var TTS_URL_K   = "tnd_tts_url_v1";        // dev override, same key tts.js reads
+  var TOKEN_K     = "tnd_server_tok_v1";     // written by the game's Connect to server flow
+  var STARS_K     = "tnd_speaker_stars_v1";  // [{id,label}] — the in-game dropdown reads this
+  var BASE_VOICE  = "en_US-libritts_r-medium";
+  var SPEAKER_N   = 904;                     // speakers in the base model (fixed by the model)
+  var META_URL    = "./libritts_speakers.json";
+  var DEFAULT_LINE = "The gate was already open, and the mist had not yet lifted.";
+  var PAGE_SIZE   = 60;
+  var RATE        = 1.0;
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+  function serverUrl() {
+    var u = lsGet(TTS_URL_K);
+    u = (u && String(u).trim()) || TTS_SERVER_DEFAULT;
+    return u.replace(/\/+$/, "");
+  }
+  function token() { var t = lsGet(TOKEN_K); return (t && String(t).trim()) || ""; }
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt !== undefined && txt !== null) n.textContent = String(txt);
+    return n;
+  }
+
+  // ── Connection banner ──────────────────────────────────────────────────────────────────────
+  var HAVE_TOKEN = !!token();
+
+  function renderConn() {
+    var box = $("conn");
+    box.innerHTML = "";
+    var b = el("div", "banner" + (HAVE_TOKEN ? "" : " bad"));
+    if (HAVE_TOKEN) {
+      b.appendChild(el("span", null, "Connected. Auditions synthesize on "));
+      var c = el("code", null, serverUrl());
+      b.appendChild(c);
+      b.appendChild(el("span", null, " using your game session."));
+    } else {
+      b.appendChild(el("b", null, "Not connected"));
+      b.appendChild(el("span", null,
+        " — open the game, File ▸ Admin ▸ Connect to server, then reload this page."));
+      var n = el("div", "note", "Auditions are disabled until then. Starring still works — it is a local list.");
+      b.appendChild(n);
+    }
+    box.appendChild(b);
+  }
+
+  // ── Speaker table ──────────────────────────────────────────────────────────────────────────
+  // SPEAKERS is always the full 0..SPEAKER_N-1 range, one entry per piper index. Metadata, when
+  // it loads, decorates entries with a LibriTTS reader id + gender. Anything the metadata does
+  // not cover stays visible as an unknown — never hidden, never guessed.
+  var SPEAKERS = [];
+  var META_OK  = false;
+  var metaMsg  = "";
+  var metaWarn = false;
+
+  (function seed() {
+    for (var i = 0; i < SPEAKER_N; i++) SPEAKERS.push({ spk: i, reader: null, g: "?" });
+  })();
+
+  function normGender(v) {
+    var s = String(v == null ? "" : v).trim().toLowerCase();
+    if (s === "f" || s === "female" || s === "w" || s === "woman") return "F";
+    if (s === "m" || s === "male" || s === "man") return "M";
+    return "?";
+  }
+  function pick(o, keys) {
+    for (var i = 0; i < keys.length; i++) {
+      if (o && Object.prototype.hasOwnProperty.call(o, keys[i]) && o[keys[i]] !== null && o[keys[i]] !== "") {
+        return o[keys[i]];
+      }
+    }
+    return undefined;
+  }
+  function asIndex(v) {
+    if (v === undefined || v === null || v === "") return -1;
+    var n = Number(v);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 0) return -1;
+    return n;
+  }
+
+  // Accepts the shapes the metadata generator could plausibly emit; anything else is refused
+  // with a visible note rather than silently mis-cast.
+  //   { "1034": {g:"F", spk:0}, ... }        (the S4 shape)
+  //   { "1034": 0, ... }                     (reader -> index, gender unknown)
+  //   { "1034": "F", ... }                   (reader -> gender; index taken from file order)
+  //   [ {readerId:"1034", g:"F", spk:0}, ...]
+  //   { speakers: <any of the above> }
+  function parseMeta(raw) {
+    if (!raw || typeof raw !== "object") return { ok: false, why: "not a JSON object or array" };
+    var inner = pick(raw, ["speakers", "readers", "data"]);
+    if (!Array.isArray(raw) && inner && typeof inner === "object") raw = inner;
+
+    var out = [], orderIdx = 0, orderUsed = false, bad = 0, i, k, reader, v, spk, g;
+
+    function take(readerKey, val, ord) {
+      var rd = readerKey, sp = -1, gd = "?";
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        if (rd === null) rd = pick(val, ["readerId", "reader_id", "reader", "id", "name"]);
+        sp = asIndex(pick(val, ["spk", "speaker", "speaker_id", "speakerId", "index", "idx", "i", "sid"]));
+        gd = normGender(pick(val, ["g", "gender", "sex"]));
+      } else if (typeof val === "number") {
+        sp = asIndex(val);
+      } else if (typeof val === "string") {
+        var maybe = asIndex(val);
+        if (maybe >= 0 && /^\d+$/.test(val.trim())) sp = maybe;
+        else gd = normGender(val);
+      }
+      if (sp < 0) { sp = ord; orderUsed = true; }          // fall back to file order
+      if (sp < 0 || sp >= SPEAKER_N) { bad++; return; }
+      out.push({ spk: sp, reader: (rd === undefined || rd === null) ? null : String(rd), g: gd });
+    }
+
+    if (Array.isArray(raw)) {
+      for (i = 0; i < raw.length; i++) take(null, raw[i], orderIdx++);
+    } else {
+      var keys = Object.keys(raw);
+      if (!keys.length) return { ok: false, why: "empty object" };
+      for (i = 0; i < keys.length; i++) { k = keys[i]; take(k, raw[k], orderIdx++); }
+    }
+    if (!out.length) return { ok: false, why: "no usable entries" };
+    return { ok: true, list: out, bad: bad, orderUsed: orderUsed };
+  }
+
+  function applyMeta(res) {
+    var seen = {}, dup = 0, applied = 0, i, e;
+    for (i = 0; i < res.list.length; i++) {
+      e = res.list[i];
+      if (seen[e.spk]) { dup++; continue; }
+      seen[e.spk] = 1;
+      SPEAKERS[e.spk].reader = e.reader;
+      SPEAKERS[e.spk].g = e.g;
+      applied++;
+    }
+    META_OK = true;
+    var parts = ["Speaker metadata loaded — " + applied + " of " + SPEAKER_N + " speakers described."];
+    if (applied < SPEAKER_N) parts.push((SPEAKER_N - applied) + " show as unknown (?).");
+    if (dup) parts.push(dup + " duplicate index entries ignored.");
+    if (res.bad) parts.push(res.bad + " entries dropped (index missing or out of range).");
+    if (res.orderUsed) parts.push("Some indices were taken from file order because no explicit speaker index was present — verify a few auditions against the reader ids.");
+    metaWarn = !!(dup || res.bad || res.orderUsed || applied < SPEAKER_N);
+    metaMsg = parts.join(" ");
+  }
+
+  function renderMetaNote() {
+    var box = $("metanote");
+    box.innerHTML = "";
+    if (!metaMsg) return;
+    var b = el("div", "banner" + (metaWarn ? " bad" : ""));
+    b.appendChild(el("span", null, metaMsg));
+    box.appendChild(b);
+  }
+
+  function loadMeta(done) {
+    var fin = function (msg, warn) { metaMsg = msg; metaWarn = !!warn; renderMetaNote(); done(); };
+    if (typeof fetch !== "function") { fin("No fetch support — showing all " + SPEAKER_N + " speakers by piper index.", true); return; }
+    fetch(META_URL, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (j) {
+      var res = parseMeta(j);
+      if (!res.ok) { fin("libritts_speakers.json could not be read (" + res.why + ") — showing all " + SPEAKER_N + " speakers by piper index, no gender filter.", true); return; }
+      applyMeta(res);
+      renderMetaNote();
+      done();
+    })["catch"](function (e) {
+      fin("libritts_speakers.json not loaded (" + ((e && e.message) || e) + ") — showing all " +
+          SPEAKER_N + " speakers by piper index, no gender filter. Serve this page over http:// if you opened it from file://.", true);
+      done();
+    });
+  }
+
+  // ── Stars ──────────────────────────────────────────────────────────────────────────────────
+  // CONTRACT: localStorage["tnd_speaker_stars_v1"] = [{id:"<model>#<idx>", label:"<user text>"}]
+  var stars = [];
+
+  function loadStars() {
+    stars = [];
+    var raw = lsGet(STARS_K);
+    if (!raw) return;
+    var arr;
+    try { arr = JSON.parse(raw); } catch (e) { console.warn("[speaker_browser] stars unreadable, starting empty:", e); return; }
+    if (!Array.isArray(arr)) { console.warn("[speaker_browser] stars not an array, starting empty"); return; }
+    for (var i = 0; i < arr.length; i++) {
+      var it = arr[i];
+      if (!it) continue;
+      var id = (typeof it === "string") ? it : it.id;
+      if (!id || typeof id !== "string") continue;
+      stars.push({ id: id, label: String((it && it.label) || "") });
+    }
+  }
+  function saveStars() {
+    if (!lsSet(STARS_K, JSON.stringify(stars))) {
+      alert("Could not save stars — localStorage is full or blocked. Your latest change was NOT stored.");
+    }
+  }
+  function idFor(spk) { return BASE_VOICE + "#" + spk; }
+  function starPos(id) {
+    for (var i = 0; i < stars.length; i++) if (stars[i].id === id) return i;
+    return -1;
+  }
+  function defaultLabel(s) {
+    var t = "Speaker " + s.spk;
+    if (s.reader) t += " · reader " + s.reader;
+    if (s.g === "F" || s.g === "M") t += " (" + s.g + ")";
+    return t;
+  }
+  function toggleStar(s) {
+    var id = idFor(s.spk), p = starPos(id);
+    if (p >= 0) stars.splice(p, 1);
+    else stars.push({ id: id, label: defaultLabel(s) });
+    saveStars();
+    renderStars();
+  }
+
+  // ── Audition ───────────────────────────────────────────────────────────────────────────────
+  var curAudio = null, curUrl = null, curCtl = null, curSpk = null, gen = 0;
+  var rowEls = {};   // spk -> {btn, st, row}  (current page only)
+
+  function setPlayUI(spk, mode) {
+    var r = rowEls[spk];
+    if (!r) return;
+    if (mode === "load") { r.btn.className = "play on"; r.btn.textContent = "…"; }
+    else if (mode === "play") { r.btn.className = "play on"; r.btn.textContent = "■"; }
+    else { r.btn.className = "play"; r.btn.textContent = "▶"; }
+  }
+  function setStatus(spk, text, isErr) {
+    var r = rowEls[spk];
+    if (!r) return;
+    r.st.className = "st" + (isErr ? " err" : "");
+    r.st.textContent = text || "";
+  }
+
+  function stopAudition() {
+    gen++;                                  // invalidates any in-flight response
+    if (curCtl) { try { curCtl.abort(); } catch (e) {} curCtl = null; }
+    if (curAudio) { try { curAudio.pause(); } catch (e) {} curAudio.onended = null; curAudio.onerror = null; curAudio = null; }
+    if (curUrl) { try { URL.revokeObjectURL(curUrl); } catch (e) {} curUrl = null; }
+    // Clear the stopped row's status too — a superseded audition must not leave a stale
+    // "synthesizing…" behind. Error paths call stopAudition FIRST and write the message after,
+    // so a real failure still shows.
+    if (curSpk !== null) { setPlayUI(curSpk, "idle"); setStatus(curSpk, "", false); curSpk = null; }
+  }
+
+  function auditionText() {
+    var t = $("line").value;
+    t = (t === undefined || t === null) ? "" : String(t).trim();
+    return t || DEFAULT_LINE;
+  }
+
+  function audition(s) {
+    if (!HAVE_TOKEN) return;
+    var was = (curSpk === s.spk);
+    stopAudition();
+    if (was) return;                        // second press on the playing row = stop
+
+    var my = gen, spk = s.spk, vid = idFor(spk), text = auditionText();
+    curSpk = spk;
+    setPlayUI(spk, "load");
+    setStatus(spk, "synthesizing…", false);
+
+    var ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    curCtl = ctl;
+    var opts = {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+      body: JSON.stringify({ text: text, voiceId: vid, rate: RATE })
+    };
+    if (ctl) opts.signal = ctl.signal;
+
+    fetch(serverUrl() + "/api/tts", opts).then(function (res) {
+      if (my !== gen) return null;
+      if (!res.ok) {
+        return res.text().then(function (body) {
+          var detail = "";
+          try { var j = JSON.parse(body); if (j && j.error) detail = String(j.error); } catch (e) {}
+          if (!detail && body) detail = String(body).slice(0, 200);
+          throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+        }, function () { throw new Error("HTTP " + res.status); });
+      }
+      return res.blob();
+    }).then(function (blob) {
+      if (my !== gen || !blob) return;
+      curUrl = URL.createObjectURL(blob);
+      curCtl = null;
+      var a = new Audio(curUrl);
+      curAudio = a;
+      a.onended = function () { if (my === gen) { setStatus(spk, "", false); stopAudition(); } };
+      a.onerror = function () {
+        if (my !== gen) return;
+        setStatus(spk, "playback failed (the browser could not decode the audio)", true);
+        stopAudition();
+      };
+      var p = a.play();
+      if (p && typeof p["catch"] === "function") {
+        p["catch"](function (e) {
+          if (my !== gen) return;
+          setStatus(spk, "playback blocked: " + ((e && e.message) || e), true);
+          stopAudition();
+        });
+      }
+      setPlayUI(spk, "play");
+      setStatus(spk, "playing…", false);
+    })["catch"](function (e) {
+      if (my !== gen) return;
+      var msg = (e && e.name === "AbortError") ? "cancelled" : ((e && e.message) || String(e));
+      console.warn("[speaker_browser] audition " + vid + " failed:", msg);
+      stopAudition();                       // resets the button; the message below survives it
+      setStatus(spk, msg, true);
+    });
+  }
+
+  // ── Grid ───────────────────────────────────────────────────────────────────────────────────
+  var filter = "all", page = 0, hitSpk = null;
+
+  function filtered() {
+    if (!META_OK || filter === "all") return SPEAKERS;
+    return SPEAKERS.filter(function (s) { return s.g === filter; });
+  }
+  function counts() {
+    var c = { all: SPEAKERS.length, F: 0, M: 0, "?": 0 }, i;
+    for (i = 0; i < SPEAKERS.length; i++) c[SPEAKERS[i].g === "F" ? "F" : SPEAKERS[i].g === "M" ? "M" : "?"]++;
+    return c;
+  }
+
+  function renderFilters() {
+    var box = $("filt");
+    box.innerHTML = "";
+    if (!META_OK) return;                   // S4: no metadata, no gender filter — never guess
+    var c = counts();
+    var defs = [["all", "All"], ["F", "F"], ["M", "M"], ["?", "?"]];
+    defs.forEach(function (d) {
+      var b = el("button", filter === d[0] ? "on" : "", d[1] + " " + c[d[0]]);
+      b.onclick = function () { filter = d[0]; page = 0; hitSpk = null; stopAudition(); renderRows(); };
+      box.appendChild(b);
+    });
+  }
+
+  function renderRows() {
+    var list = filtered(), total = list.length;
+    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (page > pages - 1) page = pages - 1;
+    if (page < 0) page = 0;
+    var start = page * PAGE_SIZE, end = Math.min(total, start + PAGE_SIZE);
+
+    var box = $("rows");
+    box.innerHTML = "";
+    rowEls = {};
+
+    if (!total) {
+      box.appendChild(el("div", "empty", "No speakers match this filter."));
+    }
+
+    for (var i = start; i < end; i++) {
+      (function (s) {
+        var starred = starPos(idFor(s.spk)) >= 0;
+        var row = el("div", "r" + (starred ? " starred" : "") + (hitSpk === s.spk ? " hit" : ""));
+
+        var pb = el("button", "play", "▶");
+        pb.title = HAVE_TOKEN ? "Audition this speaker (one server call)" : "Connect in the game to audition";
+        pb.disabled = !HAVE_TOKEN;
+        pb.onclick = function () { audition(s); };
+
+        var sb = el("button", "star" + (starred ? " on" : ""), starred ? "★" : "☆");
+        sb.title = starred ? "Remove from starred" : "Add to starred";
+        sb.onclick = function () { toggleStar(s); renderRows(); };
+
+        row.appendChild(pb);
+        row.appendChild(el("div", "idx", "#" + s.spk));
+        row.appendChild(el("div", "rd", s.reader ? "reader " + s.reader : "—"));
+        row.appendChild(el("div", "g", s.g));
+        var st = el("div", "st", "");
+        row.appendChild(st);
+        row.appendChild(sb);
+        box.appendChild(row);
+
+        rowEls[s.spk] = { btn: pb, st: st, row: row };
+        if (curSpk === s.spk) { setPlayUI(s.spk, curAudio ? "play" : "load"); }
+      })(list[i]);
+    }
+
+    var pg = $("pager");
+    pg.innerHTML = "";
+    var prev = el("button", "", "← Prev");
+    prev.disabled = (page <= 0);
+    prev.onclick = function () { page--; hitSpk = null; renderRows(); window.scrollTo(0, 0); };
+    var next = el("button", "", "Next →");
+    next.disabled = (page >= pages - 1);
+    next.onclick = function () { page++; hitSpk = null; renderRows(); window.scrollTo(0, 0); };
+    pg.appendChild(prev);
+    pg.appendChild(next);
+    pg.appendChild(el("span", null, "Page " + (page + 1) + " / " + pages +
+      (total ? " · showing " + (start + 1) + "–" + end + " of " + total : "") +
+      (META_OK && filter !== "all" ? " (filtered)" : "")));
+
+    renderFilters();
+  }
+
+  function jumpTo(q) {
+    q = String(q || "").replace(/^#/, "").trim();
+    if (!q) return;
+    var list = filtered(), i, pos = -1;
+    var n = Number(q);
+    if (/^\d+$/.test(q)) {
+      for (i = 0; i < list.length; i++) if (list[i].spk === n) { pos = i; break; }
+    }
+    if (pos < 0) {                          // not an index in view — try reader id
+      for (i = 0; i < list.length; i++) if (list[i].reader && String(list[i].reader) === q) { pos = i; break; }
+    }
+    if (pos < 0) {
+      alert("No speaker " + q + " in the current filter. Indices run 0–" + (SPEAKER_N - 1) + ".");
+      return;
+    }
+    page = Math.floor(pos / PAGE_SIZE);
+    hitSpk = list[pos].spk;
+    renderRows();
+    var r = rowEls[hitSpk];
+    if (r && r.row.scrollIntoView) r.row.scrollIntoView({ block: "center" });
+  }
+
+  // ── Starred panel ──────────────────────────────────────────────────────────────────────────
+  function copyId(id, msgEl) {
+    function ok() { msgEl.textContent = "copied"; setTimeout(function () { msgEl.textContent = ""; }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(id).then(ok, function () { window.prompt("Copy this voice id:", id); });
+    } else {
+      window.prompt("Copy this voice id:", id);
+    }
+  }
+
+  function renderStars() {
+    var box = $("starpanel");
+    box.innerHTML = "";
+    if (!stars.length) {
+      box.appendChild(el("div", "empty",
+        "Nothing starred yet. Press ☆ on a speaker to keep it — the game's voice dropdown reads this list."));
+      return;
+    }
+    stars.forEach(function (item, idx) {
+      var r = el("div", "sr");
+
+      var pb = el("button", "play", "▶");
+      pb.disabled = !HAVE_TOKEN;
+      pb.title = HAVE_TOKEN ? "Audition" : "Connect in the game to audition";
+      pb.onclick = function () {
+        var m = /#(\d+)$/.exec(item.id);
+        if (!m) { alert("This starred id has no speaker index: " + item.id); return; }
+        var spk = Number(m[1]);
+        if (spk >= 0 && spk < SPEAKER_N) audition(SPEAKERS[spk]);
+        else alert("Speaker index out of range: " + item.id);
+      };
+
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = item.label || "";
+      inp.placeholder = "Label (e.g. Gravelly innkeeper)";
+      inp.oninput = function () { stars[idx].label = inp.value; saveStars(); };
+
+      var msg = el("span", "msg", "");
+      var cb = el("button", "", "copy id");
+      cb.onclick = function () { copyId(item.id, msg); };
+      var xb = el("button", "", "✕");
+      xb.title = "Remove from starred";
+      xb.onclick = function () { stars.splice(idx, 1); saveStars(); renderStars(); renderRows(); };
+
+      r.appendChild(pb);
+      r.appendChild(el("div", "sid", item.id));
+      r.appendChild(inp);
+      r.appendChild(cb);
+      r.appendChild(msg);
+      r.appendChild(xb);
+      box.appendChild(r);
+    });
+  }
+
+  // ── Footer ─────────────────────────────────────────────────────────────────────────────────
+  function renderFooter() {
+    var f = $("foot");
+    f.innerHTML = "";
+    f.appendChild(el("div", null,
+      "Auditions synthesize on the server — every ▶ is one real /api/tts call, nothing is pre-rendered."));
+    f.appendChild(el("div", null,
+      "In game, speaker voices play server-side; offline play falls back to the base voice (" + BASE_VOICE + ")."));
+    f.appendChild(el("div", null,
+      "Stars live in this browser only (localStorage · " + STARS_K + "). TODO #95 · satellite page, outside the app shell."));
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────────────────────
+  $("line").value = DEFAULT_LINE;
+  $("jumpgo").onclick = function () { jumpTo($("jump").value); };
+  $("jump").onkeydown = function (e) { if (e.key === "Enter" || e.keyCode === 13) jumpTo($("jump").value); };
+  $("stopall").onclick = function () { stopAudition(); };
+  window.addEventListener("beforeunload", function () { stopAudition(); });
+
+  renderConn();
+  renderFooter();
+  loadStars();
+  renderStars();
+  renderRows();
+  loadMeta(function () { renderRows(); });
+})();
+</script>
+</body>
+</html>

@@ -67,7 +67,17 @@ function csVoiceControlHtml(char){
   if(typeof TTS==="undefined"||typeof TTS.voices!=="function")return "";
   var vs=TTS.voices(),cur=(char&&char.voiceId)||"",i;
   var opts="<option value=''"+(cur?"":" selected")+">Narrator voice (default)</option>";
-  for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===cur?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
+  /* #95 (S5): the "★ Cast voices" optgroup — the starred speaker ids from the audition satellite
+     (device store tnd_speaker_stars_v1, read by TTS.starsList). Same renderer as the Voice Settings
+     dropdown; "" when nothing is starred, which is the normal state. The values are ordinary
+     voiceId strings, so the save path below is unchanged. */
+  opts+=(typeof TTS.starOptionsHtml==="function")?TTS.starOptionsHtml(cur):"";
+  /* #95: a composite pick that is NOT starred still selects its base model, so the select never
+     renders with nothing selected (a select with no selection reports its FIRST option on save). */
+  var starHit=false,st=(typeof TTS.starsList==="function")?TTS.starsList():[];
+  for(i=0;i<st.length;i++){if(st[i].id===cur)starHit=true;}
+  var curBase=starHit?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
+  for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===curBase?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
   return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
     +"<span title='This character speaks in this voice (rides exports and library imports)'>&#128266; Voice</span>"
     +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select>"
