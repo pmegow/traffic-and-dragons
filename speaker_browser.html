@@ -1634,6 +1634,7 @@ var VCTK_META_INLINE = {
     if (!lsSet(STARS_K, JSON.stringify(stars))) {
       alert("Could not save stars — localStorage is full or blocked. Your latest change was NOT stored.");
     }
+    schedulePushStars();   // #95.5: every real edit mirrors to the cloud bench (no-op when offline)
   }
 
   // >>> STARS PORTABILITY — pure core, no DOM / no storage / no globals. dev/run-tests.js
@@ -1716,6 +1717,73 @@ var VCTK_META_INLINE = {
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
     starioNote("Exported " + stars.length + " star" + (stars.length === 1 ? "" : "s") + ".");
   }
+  // ── Cloud bench sync (#95.5) ───────────────────────────────────────────────
+  // Stars mirror through the GAME server's /api/prefs/speaker_stars — NOT the TTS app
+  // (prefs live beside the user account; tnd-tts has no user DB). This page is the bench's
+  // only real editor: every local change pushes (debounced, whole-list LWW), and boot adopts
+  // the cloud copy when its rev moved past the local marker. A page with no token behaves
+  // exactly as before — local bench, Export/Import as the manual bridge. Push failures are
+  // LOUD (starioNote + warn): a player must never believe an unsynced bench synced.
+  var GAME_SERVER_DEFAULT = "https://traffic-and-dragons-server.fly.dev";
+  var GAME_URL_K  = "tnd_server_url_v1";        // written by the game's Connect flow
+  var STARS_REV_K = "tnd_speaker_stars_rev_v1"; // last server rev this origin has seen
+  function gameServerUrl() {
+    var u = lsGet(GAME_URL_K);
+    u = (u && String(u).trim()) || GAME_SERVER_DEFAULT;
+    return u.replace(/\/+$/, "");
+  }
+  var _pushTimer = null, _pushGen = 0;
+  function schedulePushStars() {
+    if (!token()) return;
+    if (_pushTimer) clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(pushStarsNow, 1500);
+  }
+  function pushStarsNow() {
+    if (_pushTimer) { clearTimeout(_pushTimer); _pushTimer = null; }
+    var my = ++_pushGen;
+    fetch(gameServerUrl() + "/api/prefs/speaker_stars", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+      body: JSON.stringify({ value: stars })
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (my !== _pushGen) return;          // a newer push superseded this response
+        if (!res.ok) throw new Error((res.d && res.d.error) || "HTTP error");
+        if (res.d && typeof res.d.rev === "number") lsSet(STARS_REV_K, String(res.d.rev));
+        starioNote("Cloud bench updated (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
+      })
+      .catch(function (e) {
+        if (my !== _pushGen) return;
+        console.warn("[speaker_browser] cloud star push failed:", e && e.message);
+        starioNote("⚠ Cloud push failed — stars saved on this device only.");
+      });
+  }
+  function pullStarsOnBoot() {
+    if (!token()) return;
+    fetch(gameServerUrl() + "/api/prefs/speaker_stars", {
+      headers: { "Authorization": "Bearer " + token() }
+    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) {
+        var rev = (d && typeof d.rev === "number") ? d.rev : 0;
+        var localRev = parseInt(lsGet(STARS_REV_K), 10); if (isNaN(localRev)) localRev = 0;
+        if (rev > 0 && Array.isArray(d.value) && rev !== localRev) {
+          stars = [];
+          for (var i = 0; i < d.value.length; i++) {
+            var it = d.value[i];
+            if (it && typeof it.id === "string" && it.id) stars.push({ id: it.id, label: String(it.label || "") });
+          }
+          lsSet(STARS_K, JSON.stringify(stars));
+          lsSet(STARS_REV_K, String(rev));
+          renderStars();
+          renderRows();
+          starioNote("Cloud bench loaded (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
+        } else if (rev === 0 && stars.length) {
+          pushStarsNow();                     // first contact: seed the cloud with this bench
+        }
+      })
+      .catch(function (e) { console.warn("[speaker_browser] cloud star pull failed:", e && e.message); });
+  }
+
   function importStarsFile(file) {
     var rd = new FileReader();
     rd.onerror = function () { alert("Import failed: could not read " + (file && file.name ? file.name : "the file") + "."); };
@@ -2364,7 +2432,9 @@ var VCTK_META_INLINE = {
     }
     f.appendChild(el("div", null,
       "Stars live in this browser's localStorage (" + STARS_K + ") — per device AND per origin. " +
-      "Star where the game runs, or use Export / Import (beside the Starred header) to carry the bench across. " +
+      (HAVE_TOKEN
+        ? "Connected pages mirror the bench to your account, so other connected devices adopt it automatically. "
+        : "Not-connected pages keep it local — Export / Import (beside the Starred header) is the manual bridge. ") +
       "TODO #95 · satellite page, outside the app shell."));
   }
 
@@ -2385,6 +2455,7 @@ var VCTK_META_INLINE = {
   renderConn();
   buildModelSelect();
   loadStars();
+  pullStarsOnBoot();   // #95.5: adopt (or seed) the cloud bench — async, repaints on adopt
   // Everything else (sub line, rows, stars, footer, metadata load and its repaint) is the model
   // activation path — booting is just activating the first model.
   activateModel(MODELS[0].id);

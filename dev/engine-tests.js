@@ -543,6 +543,40 @@ function runEngineTests(R){
     return ids.indexOf("live")>=0&&ids.indexOf("local")>=0?true:"kept set wrong: "+ids.join(",");
   });
 
+  // ── #95.5: star-bench cloud sync — the pure adopt/seed/none decision ─────────
+  // The bench is per-origin localStorage; this plan is what keeps a cloud copy from ever
+  // blanking a device (corrupt cloud row) and a device from re-seeding over a live cloud bench.
+  section("star-bench cloud sync (#95.5)");
+  t("server rev moved past the local marker → ADOPT (the phone-gets-the-desktop-bench case)",function(){
+    var p=storageAdapter.speakerStarsPlan('[{"id":"m#1","label":"A"}]',"3",{value:[{id:"m#2"}],rev:5});
+    if(p.action!=="adopt")return "expected adopt, got "+p.action;
+    return eq(p.rev,5);
+  });
+  t("rev equal to the marker → NONE (no pointless rewrite of an in-sync bench)",function(){
+    return eq(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"5",{value:[{id:"m#1"}],rev:5}).action,"none");
+  });
+  t("server never written + local bench exists → SEED (one-time migration of a pre-feature bench)",function(){
+    return eq(storageAdapter.speakerStarsPlan('[{"id":"m#1","label":"A"}]',null,{value:null,rev:0}).action,"seed");
+  });
+  t("server never written + no local bench → NONE (two empty stores have nothing to say)",function(){
+    if(storageAdapter.speakerStarsPlan("[]",null,{value:null,rev:0}).action!=="none")return "empty list seeded";
+    if(storageAdapter.speakerStarsPlan(null,null,{value:null,rev:0}).action!=="none")return "missing store seeded";
+    return true;
+  });
+  t("rev>0 but the cloud value is NOT an array → NONE, never adopt (a corrupt cloud row must not blank a device)",function(){
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"1",{value:null,rev:4}).action!=="none")return "adopted a null cloud value";
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"1",{value:"junk",rev:4}).action!=="none")return "adopted a string cloud value";
+    return true;
+  });
+  t("corrupt local JSON counts as NO local bench — it can't seed garbage, and can't block an adopt",function(){
+    if(storageAdapter.speakerStarsPlan("not json{{","0",{value:null,rev:0}).action!=="none")return "corrupt local store seeded the cloud";
+    return eq(storageAdapter.speakerStarsPlan("not json{{","0",{value:[{id:"m#1"}],rev:2}).action,"adopt");
+  });
+  t("garbage rev inputs degrade to 0, never throw (missing marker, non-numeric marker, absent server rev)",function(){
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"weird",{value:[{id:"m#2"}],rev:1}).action!=="adopt")return "non-numeric marker did not degrade to 0";
+    return eq(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',null,{}).action,"seed");
+  });
+
   // ── CAS 409 self-heal (the Halvard turn-0 false positive, 2026-07-13) ────────
   section("CAS 409 self-heal");
   t("self-conflict at turn 0 heals (the beacon-outran-the-ack incident)",function(){

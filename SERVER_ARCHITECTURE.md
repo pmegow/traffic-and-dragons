@@ -35,7 +35,7 @@ Fable_UberAudit.md rows UA19/UA28/UA32/UA33, Known issues #5 and #7.
 | **Hosting** | Fly.dev app `traffic-and-dragons-server`, region `ord`, one 256MB shared-CPU VM, `auto_stop_machines`, **`min_machines_running = 0`** (cold starts — the documented "waking server up" UX and half the 2026-07-03 dead-host pain), deployed `--ha=false`. |
 | **Monitoring** | `/health` does a real SQLite read (dead/corrupt volume fails the check, not just a dead process) and is pinged every 15 min by `.github/workflows/server-health.yml` in the game repo — verified present. Good bones. |
 
-### 1.2 Endpoints (complete enumeration — 18 routes)
+### 1.2 Endpoints (complete enumeration — 20 routes)
 
 | Route | Auth | Purpose | Notes |
 |---|---|---|---|
@@ -54,6 +54,7 @@ Fable_UberAudit.md rows UA19/UA28/UA32/UA33, Known issues #5 and #7.
 | `PUT /api/campaigns/:id/portrait` | session | store PC portrait + NPC portrait map | `if (!body.portrait) → 400` means a portrait can never be **cleared** through this endpoint |
 | `GET/POST /api/characters`, `DELETE /api/characters/:slug` | session | character library | slug = name, upsert by (user, slug) |
 | `GET/POST /api/blueprints`, `DELETE /api/blueprints/:slug` | session | blueprint library | `public` column dormant by decision (community sharing scrapped) |
+| `GET/PUT /api/prefs/:key` | session | account-level pref blobs (#95.5 — star-bench sync) | Key allowlist (`speaker_stars` only today); value must be a JSON array ≤100KB; `rev` increments per write (clients adopt on rev change — whole-value LWW, no tombstones) |
 
 **`GET /api/messages` — documented in CLAUDE.md §22, DOES NOT EXIST in the code.** Doc drift
 (§1.6).

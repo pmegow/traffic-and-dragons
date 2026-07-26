@@ -36,6 +36,7 @@ var storageAdapter = (function() {
       if (url && tok) {
         _serverUrl = url;
         _token     = tok;
+        syncSpeakerStars(null);   // #95.5: fire-and-forget bench adopt on boot (function is hoisted)
       }
     } catch(e) {}
   }
@@ -106,6 +107,7 @@ var storageAdapter = (function() {
       if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) {} }
       _popup = null;
       setServer(serverUrl, sessionId);
+      syncSpeakerStars(null);   // #95.5: fresh connect — adopt (or seed) the cloud star bench
       if (typeof _popupCb === "function") {
         _popupCb(null, { username: username, avatarUrl: avatarUrl });
         _popupCb = null;
@@ -702,6 +704,58 @@ var storageAdapter = (function() {
       .catch(function(e) { if (cb) cb(e.message); });
   }
 
+  // ── Speaker-star bench sync (#95.5) ──────────────────────────────────────
+  // The star bench is per-origin localStorage (the #95.4 field bug: starred on file://,
+  // invisible on pages.dev), so connected devices mirror it through the account-level
+  // /api/prefs/speaker_stars blob. The GAME is a READER: it adopts the cloud bench when the
+  // server rev moved past the local marker, and pushes ONLY the one-time seed when the server
+  // has never been written (migrating a bench that predates the feature). All real edits come
+  // from speaker_browser.html, the bench's sole editor — whole-list LWW, no tombstones.
+  var SPEAKER_STARS_KEY     = "tnd_speaker_stars_v1";
+  var SPEAKER_STARS_REV_KEY = "tnd_speaker_stars_rev_v1";
+
+  // Pure decision core (engine-tested): given the local store strings and the server's
+  // {value, rev}, decide adopt / seed / none. Malformed local JSON counts as "no local bench"
+  // so a corrupt store can never block adopting the good cloud copy — and a rev>0 answer whose
+  // value is NOT an array (a corrupt cloud row) is never adopted, so it can't blank a device.
+  function speakerStarsPlan(localJson, localRevRaw, srv) {
+    var srvRev = (srv && typeof srv.rev === "number" && isFinite(srv.rev)) ? srv.rev : 0;
+    var srvHasList = !!(srv && Object.prototype.toString.call(srv.value) === "[object Array]");
+    var localRev = parseInt(localRevRaw, 10); if (isNaN(localRev) || localRev < 0) localRev = 0;
+    var hasLocal = false;
+    try {
+      var a = JSON.parse(localJson || "[]");
+      hasLocal = Object.prototype.toString.call(a) === "[object Array]" && a.length > 0;
+    } catch (e) {}
+    if (srvRev > 0 && !srvHasList) return { action: "none" };
+    if (srvRev > 0 && srvRev !== localRev) return { action: "adopt", rev: srvRev };
+    if (srvRev === 0 && hasLocal) return { action: "seed" };
+    return { action: "none" };
+  }
+
+  function syncSpeakerStars(cb) {
+    if (!_serverUrl || !_token) { if (cb) cb("Not connected"); return; }
+    _apiJson("/api/prefs/speaker_stars", "GET", null, function(e, d) {
+      if (e) { console.warn("[stars] cloud bench pull failed:", e); if (cb) cb(e); return; }
+      var plan = speakerStarsPlan(store.get(SPEAKER_STARS_KEY), store.get(SPEAKER_STARS_REV_KEY), d);
+      if (plan.action === "adopt") {
+        store.set(SPEAKER_STARS_KEY, JSON.stringify(d.value));
+        store.set(SPEAKER_STARS_REV_KEY, String(plan.rev));
+        console.info("[stars] adopted cloud star bench — " + d.value.length + " star(s), rev " + plan.rev);
+        if (cb) cb(null, "adopted");
+      } else if (plan.action === "seed") {
+        var mine = [];
+        try { mine = JSON.parse(store.get(SPEAKER_STARS_KEY) || "[]"); } catch (e2) { mine = []; }
+        _apiJson("/api/prefs/speaker_stars", "PUT", { value: mine }, function(e3, d3) {
+          if (e3) { console.warn("[stars] cloud bench seed failed:", e3); if (cb) cb(e3); return; }
+          if (d3 && typeof d3.rev === "number") store.set(SPEAKER_STARS_REV_KEY, String(d3.rev));
+          console.info("[stars] seeded cloud star bench — " + mine.length + " star(s)");
+          if (cb) cb(null, "seeded");
+        });
+      } else { if (cb) cb(null, "none"); }
+    });
+  }
+
   // ── Character library ────────────────────────────────────────────────────
 
   function listCharacterLibrary(cb)         { _apiJson("/api/characters", "GET", null, cb); }
@@ -801,6 +855,8 @@ var storageAdapter = (function() {
     saveCharacterToLibrary:          saveCharacterToLibrary,
     deleteCharacterFromLibrary:      deleteCharacterFromLibrary,
     hasToken:              hasToken,             // "am I connected" without touching the token key (audit B9)
+    speakerStarsPlan:      speakerStarsPlan,     // #95.5: exposed for the engine tests (pure decision core)
+    syncSpeakerStars:      syncSpeakerStars,     // #95.5: star-bench cloud adopt/seed
     authHeader:            authHeader,           // #90: Authorization header for the tnd-tts app (the header, never the raw token)
     syncSizeWarnOnce:      syncSizeWarnOnce,     // v1.441: exposed for the engine tests (once-per-campaign sentinel gate)
     whoAmI:                whoAmI,

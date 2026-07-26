@@ -208,6 +208,15 @@ try {
     _failSP("the Export/Import buttons (or the hidden file input) are gone from the page");
   if (!/mergeStars\(stars,/.test(_sbSP)) _failSP("the import handler no longer merges through mergeStars — a raw assignment would REPLACE the bench");
   if (!/parseStarsImport\(rd\.result\)/.test(_sbSP)) _failSP("the import handler no longer validates through parseStarsImport");
+  // #95.5 cloud-sync wiring (the plan core is engine-tested in engine-tests.js; these pin the
+  // call sites the DOM-free harness cannot execute):
+  if (!/function saveStars\(\)[\s\S]{0,400}schedulePushStars\(\)/.test(_sbSP))
+    _failSP("saveStars no longer schedules a cloud push — local edits silently stop mirroring (#95.5)");
+  if (!/pullStarsOnBoot\(\)/.test(_sbSP.slice(_sbSP.indexOf("// ── Boot"))))
+    _failSP("boot no longer pulls the cloud bench — other devices' stars never arrive (#95.5)");
+  var _saSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  if ((_saSP.match(/syncSpeakerStars\(null\)/g) || []).length < 2)
+    _failSP("storage-adapter no longer syncs the star bench on BOTH boot (autoConnect) and fresh connect (onAuth) (#95.5)");
 } catch (e) { console.error("STARS PORTABILITY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
