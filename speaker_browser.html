@@ -180,7 +180,13 @@ Type a line, press &#9654; on any speaker, star the keepers.</div>
 <div class="rows" id="rows"></div>
 <div class="pager" id="pager"></div>
 
-<h2 class="sect">&#9733; Starred</h2>
+<h2 class="sect" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span>&#9733; Starred</span>
+  <span id="stario-msg" style="flex:1;text-align:right;font-size:12px;font-weight:normal;color:var(--good);text-transform:none;letter-spacing:0;"></span>
+  <button id="star-export" title="Download the starred list as a .json file — move your cast to another device or origin">&#11015; Export</button>
+  <button id="star-import" title="Merge stars from an exported .json file — never deletes what is already here">&#11014; Import</button>
+</h2>
+<input id="star-import-file" type="file" accept=".json,application/json" style="display:none">
 <div class="stars" id="starpanel"></div>
 
 <footer id="foot"></footer>
@@ -1629,6 +1635,102 @@ var VCTK_META_INLINE = {
       alert("Could not save stars — localStorage is full or blocked. Your latest change was NOT stored.");
     }
   }
+
+  // >>> STARS PORTABILITY — pure core, no DOM / no storage / no globals. dev/run-tests.js
+  // extracts THIS SLICE by these markers and exercises its failure conditions headlessly
+  // (STARS PORTABILITY CONTRACT) — keep it dependency-free or that contract fails the build.
+  // Why this exists: the star store is per-origin localStorage, so a bench starred on file://
+  // is invisible to pages.dev (and desktop is invisible to the phone). Export/Import is the
+  // bridge. Accepts BOTH transport shapes: the wrapped export file
+  // {type:"tnd-cast-voices",stars:[…]} and the raw store array [{id,label},…] (what a hand
+  // console-copy of the store produces).
+  function parseStarsImport(text) {
+    var data;
+    try { data = JSON.parse(String(text)); }
+    catch (e) { return { ok: false, err: "not a JSON file (" + ((e && e.message) || e) + ")" }; }
+    var arr = null;
+    if (Array.isArray(data)) arr = data;
+    else if (data && Array.isArray(data.stars)) arr = data.stars;
+    if (!arr) return { ok: false, err: "no star list found — expected a tnd-cast-voices export file." };
+    var out = [], i, it, id;
+    for (i = 0; i < arr.length; i++) {
+      it = arr[i];
+      if (!it) continue;
+      id = (typeof it === "string") ? it : it.id;
+      if (!id || typeof id !== "string") continue;
+      out.push({ id: id, label: String((it && it.label) || "") });
+    }
+    if (!out.length) return { ok: false, err: "the file contains no usable stars." };
+    return { ok: true, stars: out };
+  }
+  // Merge, never replace: every existing star survives, imported ids append in file order, and
+  // on an id collision the imported label wins ONLY when non-empty (an empty label must never
+  // wipe a curated one). Prototype-safe maps (star ids come from a user-supplied file). Returns
+  // fresh objects — callers may assign the result straight to the store.
+  function mergeStars(existing, imported) {
+    var out = [], pos = Object.create(null), addedNow = Object.create(null);
+    var added = 0, relabeled = 0, i, e2, im;
+    for (i = 0; i < existing.length; i++) {
+      e2 = existing[i];
+      if (!e2 || !e2.id || pos[e2.id] !== undefined) continue;
+      pos[e2.id] = out.length;
+      out.push({ id: e2.id, label: String(e2.label || "") });
+    }
+    for (i = 0; i < imported.length; i++) {
+      im = imported[i];
+      if (!im || !im.id) continue;
+      if (pos[im.id] === undefined) {
+        pos[im.id] = out.length;
+        addedNow[im.id] = true;
+        added++;
+        out.push({ id: im.id, label: String(im.label || "") });
+      } else if (im.label && out[pos[im.id]].label !== String(im.label)) {
+        out[pos[im.id]].label = String(im.label);
+        if (!addedNow[im.id]) relabeled++;
+      }
+    }
+    return { stars: out, added: added, relabeled: relabeled };
+  }
+  // <<< STARS PORTABILITY
+
+  var _starioTimer = null;
+  function starioNote(text) {
+    var m = $("stario-msg");
+    if (!m) return;
+    m.textContent = text;
+    if (_starioTimer) clearTimeout(_starioTimer);
+    _starioTimer = setTimeout(function () { m.textContent = ""; }, 8000);
+  }
+  function exportStars() {
+    if (!stars.length) { alert("Nothing starred yet — nothing to export."); return; }
+    var stamp = new Date().toISOString().slice(0, 10);
+    var payload = { type: "tnd-cast-voices", v: 1, exported: stamp, count: stars.length, stars: stars };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "tnd-cast-voices_" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    starioNote("Exported " + stars.length + " star" + (stars.length === 1 ? "" : "s") + ".");
+  }
+  function importStarsFile(file) {
+    var rd = new FileReader();
+    rd.onerror = function () { alert("Import failed: could not read " + (file && file.name ? file.name : "the file") + "."); };
+    rd.onload = function () {
+      var res = parseStarsImport(rd.result);
+      if (!res.ok) { alert("Import failed: " + res.err); return; }
+      var merged = mergeStars(stars, res.stars);
+      stars = merged.stars;
+      saveStars();
+      renderStars();
+      renderRows();
+      starioNote("Imported: " + merged.added + " added, " + merged.relabeled + " relabeled — " + stars.length + " total.");
+    };
+    rd.readAsText(file);
+  }
   function idFor(spk) { return MODEL_ID + "#" + spk; }
   // Split "<model>#<index>" on the LAST # — a model id is free to contain one. Returns null for
   // anything that is not a well-formed voice id; callers must treat null as "cannot resolve",
@@ -2261,7 +2363,9 @@ var VCTK_META_INLINE = {
         (ACOUSTICS.generated ? " · " + ACOUSTICS.generated : "") + "."));
     }
     f.appendChild(el("div", null,
-      "Stars live in this browser only (localStorage · " + STARS_K + "). TODO #95 · satellite page, outside the app shell."));
+      "Stars live in this browser's localStorage (" + STARS_K + ") — per device AND per origin. " +
+      "Star where the game runs, or use Export / Import (beside the Starred header) to carry the bench across. " +
+      "TODO #95 · satellite page, outside the app shell."));
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────────────────────
@@ -2269,6 +2373,13 @@ var VCTK_META_INLINE = {
   $("jumpgo").onclick = function () { jumpTo($("jump").value); };
   $("jump").onkeydown = function (e) { if (e.key === "Enter" || e.keyCode === 13) jumpTo($("jump").value); };
   $("stopall").onclick = function () { stopAudition(); };
+  $("star-export").onclick = exportStars;
+  $("star-import").onclick = function () { $("star-import-file").click(); };
+  $("star-import-file").onchange = function () {
+    var f = this.files && this.files[0];
+    this.value = "";                      // reset first so the SAME file can be re-imported later
+    if (f) importStarsFile(f);
+  };
   window.addEventListener("beforeunload", function () { stopAudition(); });
 
   renderConn();

@@ -164,6 +164,52 @@ try {
   }
 } catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── STARS PORTABILITY CONTRACT (#95.4, v1.443) ───────────────────────────────────────────
+// The star store is per-origin localStorage, so Export/Import in speaker_browser.html is the
+// ONLY bridge for the bench across origins and devices (the star-origin field bug, HANDOFF
+// 2026-07-26: bench starred on file://, game on pages.dev saw nothing). The parse/merge core is
+// pure and sits between ASCII markers in the page; the DOM-free harness cannot load a satellite,
+// so extract that slice here and exercise the FAILURE conditions — a malformed file must refuse
+// loudly, and a merge must never lose or clobber a curated star.
+try {
+  var _fsSP = require("fs"), _pathSP = require("path");
+  var _sbSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "speaker_browser.html"), "utf8");
+  var _mSP = _sbSP.match(/\/\/ >>> STARS PORTABILITY[\s\S]*?\/\/ <<< STARS PORTABILITY/);
+  var _failSP = function (msg) { console.error("STARS PORTABILITY CONTRACT: " + msg); process.exit(1); };
+  if (!_mSP) _failSP("markers missing in speaker_browser.html — the headless-tested slice is gone.");
+  var _sp = new Function(_mSP[0] + "\nreturn { parse: parseStarsImport, merge: mergeStars };")();
+  // parse — every refusal must carry a reason (no-silent-failures), every tolerance must hold
+  if (_sp.parse("not json").ok) _failSP("garbage text parsed as ok");
+  if (_sp.parse("{}").ok) _failSP("an object with no star list parsed as ok");
+  if (_sp.parse('"a string"').ok) _failSP("a bare JSON string parsed as ok");
+  if (_sp.parse("[]").ok) _failSP("an empty list imported as ok — the user would get a silent no-op instead of a reason");
+  if (_sp.parse('[{"label":"no id"},null,7,{"id":""}]').ok) _failSP("a list with zero usable entries parsed as ok");
+  var _wSP = _sp.parse('{"type":"tnd-cast-voices","v":1,"stars":[{"id":"m#1","label":"A"},{"label":"skip"},"m#2"]}');
+  if (!_wSP.ok || _wSP.stars.length !== 2) _failSP("wrapped export shape rejected, or bad entries not skipped: " + JSON.stringify(_wSP));
+  if (_wSP.stars[1].id !== "m#2" || _wSP.stars[1].label !== "") _failSP("bare-string star entry not tolerated: " + JSON.stringify(_wSP.stars));
+  var _bSP = _sp.parse('[{"id":"m#1","label":"A"}]');
+  if (!_bSP.ok || _bSP.stars.length !== 1) _failSP("raw store-array shape (the console-copy path) rejected");
+  // merge — collision, label and dedupe semantics
+  var _g1 = _sp.merge(
+    [{ id: "a", label: "A" }, { id: "b", label: "B" }],
+    [{ id: "b", label: "B2" }, { id: "b", label: "" }, { id: "c", label: "" }, { id: "c", label: "C" }]
+  );
+  if (_g1.stars.length !== 3) _failSP("merge lost or duplicated ids: " + JSON.stringify(_g1.stars));
+  if (_g1.stars[0].label !== "A") _failSP("an uninvolved existing star was changed by a merge");
+  if (_g1.stars[1].label !== "B2") _failSP("an imported non-empty label did not win its collision (or the later empty label won)");
+  if (_g1.stars[2].id !== "c" || _g1.stars[2].label !== "C") _failSP("an in-file duplicate did not settle on its non-empty label");
+  if (_g1.added !== 1 || _g1.relabeled !== 1) _failSP("summary counters lie: added=" + _g1.added + " relabeled=" + _g1.relabeled + " (expected 1/1)");
+  var _g2 = _sp.merge([{ id: "a", label: "Curated" }], [{ id: "a", label: "" }]);
+  if (_g2.stars[0].label !== "Curated" || _g2.relabeled !== 0) _failSP("an empty imported label wiped a curated one");
+  var _g3 = _sp.merge([], [{ id: "__proto__", label: "hostile" }, { id: "constructor", label: "x" }]);
+  if (_g3.stars.length !== 2 || _g3.added !== 2) _failSP("prototype-key star ids corrupted the merge: " + JSON.stringify(_g3.stars));
+  // the UI half: the buttons must exist and the import path must route through the tested core
+  if (_sbSP.indexOf('id="star-export"') < 0 || _sbSP.indexOf('id="star-import"') < 0 || _sbSP.indexOf('id="star-import-file"') < 0)
+    _failSP("the Export/Import buttons (or the hidden file input) are gone from the page");
+  if (!/mergeStars\(stars,/.test(_sbSP)) _failSP("the import handler no longer merges through mergeStars — a raw assignment would REPLACE the bench");
+  if (!/parseStarsImport\(rd\.result\)/.test(_sbSP)) _failSP("the import handler no longer validates through parseStarsImport");
+} catch (e) { console.error("STARS PORTABILITY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
 // iOS does not hand an interrupted AudioContext back: resume() rejects on it forever, and
 // _ensureCtx only replaces a context that is "closed" — which an interrupted one is not. So for

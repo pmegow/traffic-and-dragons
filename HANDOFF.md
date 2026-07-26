@@ -8,6 +8,11 @@
 
 ## ⚠ OPEN FIELD BUG — pick this up FIRST
 
+**✅ RESOLVED 2026-07-26 (v1.443): hypothesis 1 confirmed** — game on pages.dev, browser launched from
+file://, stars in the wrong origin's localStorage. No code defect. Fix: Export/Import buttons in
+speaker_browser.html (merge-never-replace; STARS PORTABILITY CONTRACT in run-tests.js). Full record:
+TODO #95 row, ¶ #95.4. Cross-device auto-sync of the bench = open design fork (user call pending).
+
 **The ★ Cast voices optgroup is NOT appearing in the game's Voice Settings dropdown** (user screenshot,
 end of session: only the 19 base models listed). Undiagnosed — context ran out. Ranked hypotheses:
 1. **Origin mismatch (most likely):** stars live in `tnd_speaker_stars_v1` on the ORIGIN where the
