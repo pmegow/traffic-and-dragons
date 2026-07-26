@@ -2213,7 +2213,10 @@ function runEngineTests(R){
     // entries — source grew exactly 56 chars = "TIME_ADVANCE|"(13)+"SCHEDULE|"(9)+
     // "SCHEDULE_RESOLVED|"(18)+"SCHEDULE_CANCEL|"(16). Stripping these keeps the clock/scheduler
     // brackets out of the player-facing prose (and out of the transcript).
-    if(__djb2(_CT_TAGS.source)!==-1586017263||_CT_TAGS.source.length!==985)return "_CT_TAGS diverged from the frozen literal";
+    // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
+    // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
+    // the transcript's clean text, polluting RAG excerpts and the narrative export.
+    if(__djb2(_CT_TAGS.source)!==1645986938||_CT_TAGS.source.length!==989)return "_CT_TAGS diverged from the frozen literal";
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
@@ -2238,8 +2241,11 @@ function runEngineTests(R){
     // for the [REST:long] EXCEPTION (never estimate a sleep — the engine rolls to dawn and
     // absorbs same-response time tags), and the [REST:long] line gains the dawn-roll contract +
     // "emit [TIME:dawn]" (+369 chars). Golden diffed by eye.
+    // v1.447 (#96): the one [SAY:] voice-attribution doc line (+522 chars). Golden diffed by eye.
+    // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
+    // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1317153724&&d.length===15773)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===1259906480&&d.length===16295)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -4328,60 +4334,10 @@ function runEngineTests(R){
     }
     return bad.length?bad.join(" | "):true;
   });
-  t("B14c: the model is shown the ATTRIBUTION, not just the quoted words",function(){
-    // Without surrounding narration the model cannot know who speaks — it was being asked to
-    // identify a speaker from the speech alone, which is guesswork whenever the words do not
-    // name anyone. The passage must reach it with the spans MARKED rather than extracted.
-    _mkSpeakerWorld();
-    var line='"Damnit. Wrong voice" said Daeris.';
-    var u=TTS._textPrep.splitSentences(line,null,true);
-    var spans=speakerSpans(u);
-    var prompt=buildSpeakerPrompt(spans,speakerCastList(),line,u);
-    if(prompt.indexOf("said Daeris")<0)return "the attribution clause is absent from the prompt";
-    return /\u27e60\u27e7|\[0\]|\{0\}/.test(prompt)?true:"no span marker found in the prompt";
-  });
-  t("B14d: the prompt binds second-person 'you' to the player, so the PC's own dialogue can be voiced",function(){
-    // The reported failure: the player character is narrated as "you", never by name, so the
-    // model could not match their lines to the CAST list and correctly omitted them — the PC
-    // was the one character who could never receive an assigned voice.
-    _mkSpeakerWorld();
-    var line='"Hold the line," you snarl, shoving Daeris behind you.';
-    var u=TTS._textPrep.splitSentences(line,null,true);
-    var prompt=buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u);
-    if(prompt.indexOf("'you' IS Tess")<0)return "no second-person binding in the prompt";
-    // Ordering is load-bearing: the binding must precede the omit-when-unsure escape hatch.
-    return prompt.indexOf("'you' IS Tess")<prompt.indexOf("Omit a line if you are unsure")
-      ?true:"the binding lands AFTER the omit rule it exists to pre-empt";
-  });
-  t("B14d: no second-person binding when the player is UNCASTABLE, or in multiplayer",function(){
-    // Naming someone outside the voiced CAST would invite an answer parseSpeakerMap must reject;
-    // and multiplayer narrates every PC by name in third person (api.js D12), where the claim
-    // that "you" means the hero is simply false. (#95.7 sharpened the first case: an unassigned
-    // hero is now ADMITTED via gender-matched auto-cast, so "unvoiced" alone no longer excludes
-    // them — only a hero nobody can cast, e.g. with the bench deliberately cleared, stays out.)
-    _mkSpeakerWorld();
-    var line='"Hold the line," you snarl, shoving Daeris behind you.';
-    var u=TTS._textPrep.splitSentences(line,null,true);
-    delete worldState.character.voiceId;                       // hero unassigned…
-    var K="tnd_speaker_stars_v1",saved=store.get(K);
-    try{
-      if(worldState.character.gender!=="M"&&worldState.character.gender!=="F")worldState.character.gender="M";
-      if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")<0)
-        return "an auto-castable hero lost the 'you' binding (#95.7 admits them)";
-      store.set(K,"[]");                                       // …and now truly uncastable
-      if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
-        return "bound 'you' to a player nobody can cast";
-    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
-    _mkSpeakerWorld();
-    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",
-      charSheet:{name:"Morwen",voiceId:"en_GB-alba-medium"}});   // second PC → playerCount>1
-    // Asserted, not guarded: an `&&` here would let the whole case pass vacuously if the setup
-    // ever stopped producing a second player.
-    if(playerCount()<=1)return "setup failed — two PCs did not raise playerCount(): "+playerCount();
-    if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
-      return "bound 'you' to the hero while narration is third-person multiplayer";
-    return true;
-  });
+  // (B14c "marked attribution" and both B14d "'you' IS <hero>" prompt tests deleted with the
+  // LLM post-pass at v1.447 — there is no speaker prompt left to build. Their surviving concern
+  // lives in the #96 [SAY:] section: the GM names the PC directly in the tag, in every narration
+  // mode including multiplayer third-person, so no second-person inference exists to get wrong.)
   t("B14c: quote parity does not leak across a paragraph break",function(){
     // Standard typography opens each paragraph of continued speech with a quote and only closes
     // the last. Carrying parity across the break inverts every following paragraph.
@@ -4645,7 +4601,7 @@ function runEngineTests(R){
   // Only the PURE halves are testable headless (the callGM round trip is not): cast selection, the
   // gate that skips the call entirely, response parsing, and the two guards that must degrade to the
   // narrator rather than mis-voice — an unknown/out-of-range name, and a stale unit count.
-  section("#9 speaker post-pass");
+  section("#96 [SAY:] dialogue attribution");
   function _mkSpeakerWorld(){
     makeWorld();
     worldState.character.name="Tess";worldState.character.voiceId="en_US-kristin-medium";
@@ -4672,30 +4628,10 @@ function runEngineTests(R){
     if(!last.sp)return "speaker map lost — the stale memo blob was re-served";
     return last.sp.s&&last.sp.s[0]==="Daeris"&&last.sp.n===2?true:"map corrupted: "+JSON.stringify(last.sp);
   });
-  t("speakerCastList: only characters that actually have an assigned voice",function(){
-    _mkSpeakerWorld();
-    var names=speakerCastList().map(function(c){return c.name;}).sort().join(",");
-    return names==="Daeris,Tess"?true:"cast should be exactly the voiced characters, got: "+names;
-  });
-  t("speakerPassNeeded: skips no-dialogue prose; auto-cast admits the unassigned (#95.7); skips when nobody is castable",function(){
-    _mkSpeakerWorld();
-    var sp=function(t){return speakerSpans(TTS._textPrep.splitSentences(t,null,true));};
-    if(speakerPassNeeded("Ash drifts past the window.",speakerCastList(),sp("Ash drifts past the window.")))return "fired on a response with no dialogue";
-    if(!speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "did not fire on a response WITH dialogue";
-    // #95.7 DELIBERATE invariant change: an unassigned but GENDERED character is auto-castable
-    // from the bench (the default bench serves here), so the pass still fires — that is the
-    // feature, not a cost leak. Muted players pay nothing regardless: narrateWithSpeakers gates
-    // on TTS.isOn() BEFORE assignSpeakers, which remains the non-user cost fence.
-    worldState.character.voiceId="";worldState.npcs[0].charSheet.voiceId="";
-    var K="tnd_speaker_stars_v1",saved=store.get(K);
-    try{
-      if(worldState.character.gender!=="M"&&worldState.character.gender!=="F")worldState.character.gender="M";
-      if(!speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "auto-cast did not admit an unassigned gendered character";
-      store.set(K,"[]");   // the true zero-cost case: bench deliberately cleared → nobody castable
-      if(speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "fired with nobody castable — non-users must pay nothing";
-    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
-    return true;
-  });
+  // (speakerCastList/speakerPassNeeded/buildSpeakerPrompt/parseSpeakerMap tests deleted with the
+  // #9 LLM post-pass at v1.447 — attribution now derives from the GM's own [SAY:] tags below.
+  // There is no cast admission and no per-turn model call left to gate; the non-user cost fence
+  // is narrateWithSpeakers' TTS.isOn() check, and derivation itself is free.)
   // ── B14b: voices are assigned to DIALOGUE SPANS, then carried into the pause split ──────────
   t("B14b: splitSentences tags dialogue spans, and an attribution clause is NOT one",function(){
     var u=TTS._textPrep.splitSentences('"That leaves her," Frizwick says. "And whatever is meant."',null,true);
@@ -4721,36 +4657,59 @@ function runEngineTests(R){
     var attrib=null,i;for(i=0;i<u.length;i++)if(/she said/.test(u[i].text))attrib=u[i];
     return (attrib&&attrib.spk===null)?true:"attribution swallowed into the span";
   });
-  t("parseSpeakerMap: a SPAN answer expands to every unit inside it, and only those",function(){
+  t("#96: a [SAY:] tag expands to every unit inside its span, and only those (storage shape intact)",function(){
     _mkSpeakerWorld();
-    var cast=speakerCastList();
-    var line='"Hold the door, watch the stairs," Daeris says. Ash drifts past.';
-    var u=TTS._textPrep.splitSentences(line,null,true),spans=speakerSpans(u);
-    var m=parseSpeakerMap("```json\n{\"0\":\"Daeris\"}\n```",spans,u.length,cast);
-    if(!m)return "usable map rejected";
+    var raw='The lamp gutters. [SAY:Daeris]"Hold the door, watch the stairs," Daeris says. Ash drifts past. [HP:-2]';
+    var clean=cleanTxt(raw);
+    if(clean.indexOf("[SAY:")>=0)return "[SAY:] leaked into the displayed prose";
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived from a tagged line";
+    var u=TTS._textPrep.splitSentences(clean,null,true);
     if(m.n!==u.length)return "n must stay the UNIT count (the staleness fuse keys on it): "+m.n;
     var i,bad=[];
     for(i=0;i<u.length;i++){
       var mapped=!!m.s[i], isDialogue=(u[i].spk!==null);
       if(mapped!==isDialogue)bad.push(i+":"+JSON.stringify(u[i].text)+" mapped="+mapped);
     }
-    return bad.length?"voice bled outside the dialogue span -> "+bad.join(" | "):true;
+    if(bad.length)return "voice bled outside the dialogue span -> "+bad.join(" | ");
+    for(i in m.s)if(m.s[i]!=="Daeris")return "wrong name bound: "+m.s[i];
+    return true;
   });
-  t("parseSpeakerMap: out-of-range span index and unknown name are both dropped",function(){
+  t("#96: two IDENTICAL lines by different speakers bind in order, one each",function(){
+    var raw='[SAY:Daeris]"Run for the gate," she says. He echoes her, harder. [SAY:Frizwick]"Run for the gate," he says.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived";
+    var u=TTS._textPrep.splitSentences(clean,null,true),seen=[],last=null,i;
+    for(i=0;i<u.length;i++){var nm=m.s[i]||null;if(nm&&nm!==last)seen.push(nm);last=nm;}
+    return seen.join(",")==="Daeris,Frizwick"?true:"in-order duplicate binding failed: "+seen.join(",");
+  });
+  t("#96: the PC's own line binds by NAME (with a reserved descriptor payload) and resolves to their voice",function(){
+    // The old post-pass needed a special 'you IS Tess' prompt binding (B14d); with authoring-time
+    // tags the GM names the PC directly, in every narration mode incl. multiplayer third-person.
     _mkSpeakerWorld();
-    var cast=speakerCastList();
-    var u=TTS._textPrep.splitSentences(_SPK_LINE,null,true),spans=speakerSpans(u);
-    var m=parseSpeakerMap('{"0":"Daeris","99":"Daeris"}',spans,u.length,cast);
-    if(!m)return "valid entry rejected alongside the bad ones";
-    var m2=parseSpeakerMap('{"0":"Nobody At All"}',spans,u.length,cast);
-    return m2===null?true:"unknown name survived: "+JSON.stringify(m2);
+    var raw='[SAY:Tess|whisper]"Hold the line," you snarl, shoving Daeris behind you.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "the reserved |descriptor payload broke the parse";
+    var k=Object.keys(m.s);
+    if(!k.length||m.s[k[0]]!=="Tess")return "PC line not bound by name: "+JSON.stringify(m.s);
+    var vm=speakerVoiceMap(m,clean);
+    return (vm&&vm[parseInt(k[0],10)]==="en_US-kristin-medium")?true:"PC voice not resolved from the map: "+JSON.stringify(vm);
   });
-  t("parseSpeakerMap: nothing usable yields NO map (a wrong map is worse than none)",function(){
-    _mkSpeakerWorld();var cast=speakerCastList();
-    var u=TTS._textPrep.splitSentences(_SPK_LINE,null,true),spans=speakerSpans(u);
-    if(parseSpeakerMap("I could not determine the speakers, sorry.",spans,u.length,cast))return "prose parsed as a map";
-    if(parseSpeakerMap("{\"0\":\"Nobody\"}",spans,u.length,cast))return "map of only-unknown names should be null";
-    return parseSpeakerMap("",spans,u.length,cast)===null?true:"empty response should be null";
+  t("#96: everything untrustworthy is DROPPED, never guessed (a wrong map is worse than none)",function(){
+    _mkSpeakerWorld();
+    var clean='He nods. "Fine," he says.';
+    if(deriveSpeakerMapFromTags('He nods. "Fine," he says.',clean)!==null)return "a map appeared without any [SAY:] tag";
+    if(deriveSpeakerMapFromTags('[SAY:Daeris]He nods without a word.','He nods without a word.')!==null)return "a tag with NO quote after it produced a map";
+    if(deriveSpeakerMapFromTags('[SAY:Daeris]"Nothing resembling this exists in the clean text."',clean)!==null)return "an unmatchable quote opening produced a map";
+    if(deriveSpeakerMapFromTags('[SAY:  ]"Fine," he says.',clean)!==null)return "a blank speaker name produced a map";
+    if(deriveSpeakerMapFromTags("",clean)!==null)return "an empty raw produced a map";
+    // unknown names pass THROUGH the deriver on purpose — speakerVoiceMap drops them at speak
+    // time (same division of labor the post-pass had between parse and resolve)
+    var m=deriveSpeakerMapFromTags('[SAY:Some Guard]"Fine," he says.',clean);
+    if(!m)return "an unknown-but-named speaker was rejected at derive time (should defer to speak time)";
+    return speakerVoiceMap(m,clean)===null?true:"an unknown name resolved to a voice";
   });
   t("speakerVoiceMap: resolves stored NAMES to voice ids at replay time",function(){
     _mkSpeakerWorld();
@@ -6061,8 +6020,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var line='"That leaves her," Frizwick says.';
     logTranscript("gm",line,"raw");
     var e=worldState.transcript[worldState.transcript.length-1];
-    var u=TTS._textPrep.splitSentences(line,null,true),spans=speakerSpans(u);
-    var m=parseSpeakerMap('{"0":"Frizwick"}',spans,u.length,speakerCastList());
+    // the map comes from the #96 producer — the same path a real turn takes since v1.447
+    var m=deriveSpeakerMapFromTags('[SAY:Frizwick]"That leaves her," Frizwick says.',line);
+    if(!m)return "setup failed — deriveSpeakerMapFromTags returned no map";
     stampTranscriptSpeakers(e,m);
     var txt=_ttsHintText();
     if(txt.indexOf("speaker map")<0)return "no speaker map section";

@@ -195,54 +195,20 @@ async function generateActions(msgEl){
     worldState.lastActions=acts.slice(0,3);saveAll();
   }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
 }
-// ── #9: LLM speaker post-pass — who says which line ──────────────────────────────────────────
-// A post-turn hook like generateActions above: after the narration is committed, ask a cheap
-// model which sentence belongs to which character, so dialogue narrates in that character's own
-// voice instead of the narrator's. Output post-processing only — no applyMuts, no memory tier, no
-// system-prompt contact (an engine test asserts buildSysPrompt is byte-identical either way).
+// ── #96: dialogue attribution via [SAY:] tags — deterministic, no second model call ──────────
+// The GM names each line's speaker AT AUTHORING TIME with [SAY:Name] placed just before the
+// quote (tag_table: stripped from display like every state tag; no state mutation). This
+// replaced the #9 LLM post-pass at v1.447 — the GM knew who spoke while writing, and the
+// post-pass paid a second model call to reconstruct that knowledge from the finished prose
+// (field evidence 2026-07-26: it misbound lines WITH explicit attribution). Attribution now
+// travels inside the response itself: no 400-token speakers call, no wait fuse, no unit cap,
+// and muted turns keep their maps (derivation is free). Storage format is UNCHANGED
+// ({n:<unitCount>, s:{unitIndex:name}}) — stampTranscriptSpeakers, speakerVoiceMap, the replay
+// button, and the sp.n splitter fuse all behave exactly as before; only the map's PRODUCER
+// moved from a model call to the pure function below.
 //
-// Why INDICES and not {speaker,text} spans (the shape originally sketched): binding model-returned
-// TEXT back to synthesis units means substring-matching against the source, which fails silently
-// into wrong-voice output the moment the model paraphrases or renormalizes whitespace. The units
-// are already deterministic — splitSentences is what _speakPiper itself will iterate — so we hand
-// them over numbered and take back an index map. A bad index is then structurally detectable.
-var SPEAKER_TIMEOUT_MS=4000;   // fuse: narration WAITS for the map (user call), but never forever —
-                               // an unbounded wait turns one hung request into a silent turn.
-var SPEAKER_MAX_UNITS=60;      // runaway guard: past this the prompt isn't worth the tokens
-
-// The only characters that can sound different are the ones the player deliberately gave a voice.
-// Everyone else is the narrator, so they never need to reach the model at all — which is what
-// keeps this cheap and makes it free for players who don't use per-character voices.
-function speakerCastList(){
-  var out=[],seen={};
-  if(!worldState)return out;
-  // #95.7: a character is castable with an ASSIGNED voice OR a gender-matched auto-cast pick
-  // from the star bench — before this, an unassigned sheriff never even entered the cast, so
-  // his lines were never attributed and the auto-cast fallback could never fire. The returned
-  // voiceId is an admission ticket only: speakerVoiceMap re-resolves via characterVoiceId at
-  // speak time, so a later manual pin retroactively re-voices past turns unchanged.
-  function castVoice(ch){
-    if(!ch)return null;
-    if(ch.voiceId)return ch.voiceId;
-    return (typeof TTS!=="undefined"&&TTS.autoCastVoiceId)?TTS.autoCastVoiceId(ch):null;
-  }
-  var c=worldState.character,cv=c&&c.name?castVoice(c):null;
-  if(cv){out.push({name:c.name,voiceId:cv});seen[c.name]=1;}
-  var ns=worldState.npcs||[],i;
-  for(i=0;i<ns.length;i++){
-    var n=ns[i];
-    if(!n||!n.name||seen[n.name]||!n.charSheet)continue;
-    var nv=castVoice(n.charSheet);
-    if(nv){out.push({name:n.name,voiceId:nv});seen[n.name]=1;}
-  }
-  return out;
-}
-// Gate: no voiced cast, or no dialogue to attribute, means no call. Straight double quotes and the
-// curly pair only — an apostrophe is not dialogue, and treating it as such would fire this on
-// every turn.
-// Dialogue spans, derived deterministically from the unit tags splitSentences produces. This is
-// the half the ENGINE knows and the model must never be asked to guess: what is inside quotation
-// marks is not a judgement call. The model is left with the one genuine question — who is speaking.
+// Dialogue spans, derived deterministically from the unit tags splitSentences produces — what
+// is inside quotation marks is the ENGINE's knowledge, never a judgement call.
 function speakerSpans(units){
   var spans=[],by={},i,u;
   for(i=0;i<(units||[]).length;i++){
@@ -254,93 +220,45 @@ function speakerSpans(units){
   }
   return spans;
 }
-function speakerPassNeeded(clean,cast,spans){
-  if(!cast||!cast.length)return false;              // nobody has a voice — non-users pay nothing
-  if(!spans||!spans.length)return false;            // no quoted speech in this passage
-  return true;
-}
-// B14c: the model is shown the WHOLE passage with the engine's dialogue spans MARKED, not the
-// quoted fragments in isolation. Extracting the spans removed the very evidence of who is
-// speaking — the attribution clause ("said Ammut") is narration, so it was being stripped out,
-// leaving the model to identify a speaker from the speech alone. Marking instead of extracting
-// keeps both properties: the model sees the attributions, and it can still only answer about
-// spans the engine identified, so it cannot label narration as speech.
-// B14d (user field finding 2026-07-22): the player character is narrated in the SECOND PERSON, so
-// their dialogue is attributed to "you" — "you say", "you tell her" — and never to their name. The
-// CAST list is names only, so the model had no way to connect the two, and the omit-when-unsure
-// rule below then did exactly what it should: it dropped every line the player speaks. Net effect,
-// the one character whose voice a player is most likely to have assigned was the ONE character who
-// could never receive it. The engine knows who "you" is; asking the model to infer it was the bug.
-//
-// Returns the hero's name only when it is genuinely the referent, which takes two conditions:
-//   · they are in the VOICED cast — naming someone the map would later reject helps nothing;
-//   · narration is actually second person. Multiplayer switches the GM to third-person-by-name
-//     (api.js D12, where "you" is forbidden outright), so the binding would be a lie there.
-// Deliberately `worldState.character`, NOT activePlayer(): the display-spotlight pointer never
-// reaches buildSysPrompt before multiplayer P4 (engine-tested), so the GM's "you" is still the
-// hero. Reading the pointer here would desync the voice from the prose the moment P2 spotlights
-// a companion.
-function speakerSecondPersonName(cast){
-  if(typeof worldState==="undefined"||!worldState||!worldState.character)return "";
-  if(typeof playerCount==="function"&&playerCount()>1)return "";
-  var nm=worldState.character.name,i;
-  if(!nm)return "";
-  for(i=0;i<(cast||[]).length;i++)if(cast[i].name===nm)return nm;
-  return "";
-}
-function buildSpeakerPrompt(spans,cast,clean,units){
-  var names=cast.map(function(c){return c.name;}).join(", ");
-  var you=speakerSecondPersonName(cast);
-  var seen={},marked="",i,u;
-  for(i=0;i<(units||[]).length;i++){
-    u=units[i];
-    if(u.spk!==null&&u.spk!==undefined&&!seen[u.spk]){seen[u.spk]=1;marked+="[["+u.spk+"]]";}
-    marked+=u.text+" ";
+// The producer (#96). Pure: RAW response + CLEAN text in, {n,s} map or null out. Each [SAY:] tag
+// captures the opening of the quote that FOLLOWS it in the raw text; the dialogue span whose text
+// starts with that opening (normalized) takes the name, consumed in order so repeated identical
+// lines bind one-to-one. Everything untrustworthy is dropped rather than guessed: a tag with no
+// following quote, or an opening no span matches, contributes nothing — an unmatched line
+// narrates in the narrator voice, never a guessed one. Unknown speaker names pass through here
+// on purpose; speakerVoiceMap already drops names that resolve to no character, so a tagged
+// one-off ("Guard") degrades to narrator at speak time instead of mis-binding.
+var SAY_TAG_RE=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;   // [SAY:Name] — the |descriptor payload is reserved (delivery styles, later)
+function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"").toLowerCase();}
+function deriveSpeakerMapFromTags(raw,clean){
+  if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
+  SAY_TAG_RE.lastIndex=0;
+  var tags=[],m;
+  while((m=SAY_TAG_RE.exec(raw))){
+    var nm=String(m[1]).replace(/^\s+|\s+$/g,"");
+    if(nm)tags.push({name:nm,start:m.index,from:SAY_TAG_RE.lastIndex});
   }
-  marked=marked.trim()||String(clean||"");
-  return "CAST (these names only): "+names+"\n\n"
-    +"PASSAGE — each [[n]] marks the start of a line of dialogue:\n"+marked+"\n\n"
-    +"Return ONLY a JSON object mapping each marked number to the cast member who SPEAKS it.\n"
-    +"Rules:\n"
-    +"- The attribution around a line (said X, X whispered) tells you who is speaking. Use it.\n"
-    /* Must sit BEFORE the omit-when-unsure rule: that rule is what was swallowing these lines,
-       so the binding has to be established before the escape hatch is offered. */
-    +(you?"- The passage is written in second person, and 'you' IS "+you+". A line attributed to you (you say, you tell her, you shout back) is spoken by "+you+".\n":"")
-    +"- Use only the names listed in CAST. Omit a line spoken by anyone else.\n"
-    +"- Omit a line if you are unsure. Omission is correct and costs nothing; a wrong name is heard aloud.\n"
-    +"- Use the exact cast spelling. No commentary, no markdown, JSON object only.\n"
-    +'Example: {"0":'+JSON.stringify(cast[0]?cast[0].name:"Name")+'}';
-}
-
-var SPEAKER_SYS="You label which lines of prose are spoken aloud by which named character. You reply with a JSON object and nothing else.";
-
-// Parse + HARDEN. Everything that can't be trusted is dropped here rather than at speak time:
-// out-of-range indices (would mis-bind), names not in the cast (would resolve to a voice nobody
-// assigned or, worse, a same-named other character). If nothing survives, return null — no map is
-// strictly better than a wrong one, because a wrong one is audible and looks like a broken feature.
-// Takes the model's SPAN answers and expands them to a UNIT-indexed map. Storage format is
-// deliberately unchanged (`{n:<unitCount>, s:{unitIndex:name}}`): maps persisted by earlier
-// versions keep working, speakerVoiceMap needs no change, and the unit-count staleness fuse still
-// guards exactly what it guarded before.
-function parseSpeakerMap(txt,spans,unitCount,cast){
-  if(!txt)return null;
-  var known={},i;
-  for(i=0;i<(cast||[]).length;i++)known[cast[i].name]=1;
-  var raw=String(txt).replace(/```(?:json)?/gi,"").trim();
-  var a=raw.indexOf("{"),b=raw.lastIndexOf("}");
-  if(a<0||b<a)return null;
-  var obj;
-  try{obj=JSON.parse(raw.slice(a,b+1));}catch(e){return null;}
-  if(!obj||typeof obj!=="object"||obj instanceof Array)return null;
-  var out={},kept=0;
-  Object.keys(obj).forEach(function(k){
-    var si=parseInt(k,10),nm=obj[k];
-    if(isNaN(si)||si<0||si>=spans.length)return;      // out of range — would mis-bind
-    if(typeof nm!=="string"||!known[nm])return;       // not a voiced cast member
-    var us=spans[si].units,j;
-    for(j=0;j<us.length;j++){out[us[j]]=nm;kept++;}   // every pause-unit inside the span
-  });
-  return kept?{n:unitCount,s:out}:null;
+  if(!tags.length)return null;
+  var units=TTS._textPrep.splitSentences(clean,null,true);
+  var spans=speakerSpans(units);
+  if(!spans.length)return null;
+  var out={},kept=0,used={},i,j,k;
+  for(i=0;i<tags.length;i++){
+    var seg=raw.slice(tags[i].from,i+1<tags.length?tags[i+1].start:raw.length);
+    var q=/["“]([^"”]{1,120})/.exec(seg);
+    if(!q)continue;                                   // tag with no quote after it — dropped
+    var key=_sayNorm(q[1]).slice(0,60);
+    if(!key)continue;
+    for(j=0;j<spans.length;j++){
+      if(used[j])continue;
+      if(_sayNorm(spans[j].text).indexOf(key)!==0)continue;
+      used[j]=1;
+      var us=spans[j].units;
+      for(k=0;k<us.length;k++){out[us[k]]=tags[i].name;kept++;}
+      break;
+    }
+  }
+  return kept?{n:units.length,s:out}:null;
 }
 
 // Stored NAMES -> live voice ids. Deliberately resolved at speak time, not at write time, so
@@ -375,47 +293,22 @@ function _speakerChar(name){
   return null;
 }
 
-// The call itself. Resolves to a {n,s} map or null; NEVER rejects and never throws into the turn —
-// narration is more important than voice assignment, so every failure path here is "narrate flat".
-function assignSpeakers(clean){
-  var cast=speakerCastList();
-  if(typeof TTS==="undefined"||!TTS._textPrep)return Promise.resolve(null);
-  var units=TTS._textPrep.splitSentences(clean,null,true);
-  var spans=speakerSpans(units);
-  if(!speakerPassNeeded(clean,cast,spans))return Promise.resolve(null);
-  if(!units.length||units.length>SPEAKER_MAX_UNITS)return Promise.resolve(null);
-  var call=callGM(buildSpeakerPrompt(spans,cast,clean,units),SPEAKER_SYS,400,null,{noHistory:true,kind:"speakers"})
-    .then(function(txt){return parseSpeakerMap(txt,spans,units.length,cast);})
-    .catch(function(e){console.warn("[speakers] pass failed — narrating in one voice:",e&&e.message);return null;});
-  var fuse=new Promise(function(res){setTimeout(function(){res("__timeout__");},SPEAKER_TIMEOUT_MS);});
-  return Promise.race([call,fuse]).then(function(r){
-    if(r==="__timeout__"){console.warn("[speakers] no answer in "+SPEAKER_TIMEOUT_MS+"ms — starting narration without voice assignment");return null;}
-    return r;
-  });
-}
-// Narration entry point for a committed turn (#9). Narration WAITS for the speaker map (user call
-// 2026-07-21) — but only the AUDIO waits: the prose is already on screen and the turn is already
-// saved, so nothing the player looks at is held up. The wait is fused inside assignSpeakers, so a
-// hung request costs a flat-voiced read rather than a silent turn.
-//
-// Muted is treated as "not a user of this feature": speakResponse would discard the result anyway,
-// so paying for a map every turn while the player can't hear it is waste. The consequence, stated
-// plainly: turns narrated while muted keep no map, so replaying them later reads in one voice.
-function narrateWithSpeakers(clean,narEl,entry){
+// Narration entry point for a committed turn. Attribution derives SYNCHRONOUSLY from the
+// response's own [SAY:] tags (#96) — nothing waits on a network call anymore, and derivation is
+// free, so the map is stamped even while MUTED (the old post-pass skipped muted turns to save a
+// model call, which left their replays voiceless forever; that limitation is gone). Every
+// failure path is "narrate flat": a throw here must never cost the read itself.
+function narrateWithSpeakers(clean,raw,narEl,entry){
   if(typeof TTS==="undefined")return;
-  if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;
-  assignSpeakers(clean).then(function(sp){
-    if(sp){
-      stampTranscriptSpeakers(entry,sp);
-      if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
-      saveAll();
-    }
-    TTS.speakResponse(clean,sp?speakerVoiceMap(sp,clean):null);
-  }).catch(function(e){
-    // Belt and braces — assignSpeakers already swallows its own failures. Narration must happen.
-    console.warn("[speakers] narration hand-off failed, reading in one voice:",e&&e.message);
-    TTS.speakResponse(clean);
-  });
+  var sp=null;
+  try{sp=deriveSpeakerMapFromTags(raw,clean);}catch(e){console.warn("[speakers] tag derivation failed — narrating in one voice:",e&&e.message);}
+  if(sp){
+    stampTranscriptSpeakers(entry,sp);
+    if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
+    saveAll();
+  }
+  if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;   // muted: map kept, no read
+  TTS.speakResponse(clean,sp?speakerVoiceMap(sp,clean):null);
 }
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
@@ -1053,7 +946,7 @@ function commitGmTurn(resp,opts){
   sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
   saveAll();
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-  narrateWithSpeakers(clean,narEl,worldState.transcript[worldState.transcript.length-1]);/* #9: narration waits for the speaker map (fused) — see below */
+  narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96: map derives from the response's own [SAY:] tags */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   return narEl;
@@ -1239,7 +1132,7 @@ async function rerollLast(){
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
     var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-    narrateWithSpeakers(clean,narEl,worldState.transcript[worldState.transcript.length-1]);/* #9 */
+    narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96 */
     saveAll();
     generateActions(narEl);
   }catch(e){

@@ -3339,7 +3339,9 @@ var TTS = (function() {
       // #95.7: no assigned voice → gender-matched auto-cast from the star bench, else narrator
       return autoCastVoiceId(char) || resolvePiperVoice();
     },
-    // #95.7: exported so speakerCastList (game.js) can admit unassigned-but-castable characters
+    // #95.7: the gender-matched fallback characterVoiceId uses; exported for the engine tests
+    // (the #96 [SAY:] map resolves through characterVoiceId at speak time, so this is where an
+    // unassigned speaker's voice comes from)
     autoCastVoiceId:   autoCastVoiceId,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
