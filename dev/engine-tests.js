@@ -7132,16 +7132,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/piper: true, voiceId: voiceBaseId\(voiceId\)/.test(srv))return "the mid-read handoff item does not strip to the base voice (the remainder runs LOCALLY)";
     return true;
   });
-  t("★ Cast voices: a missing or corrupt star store yields NO optgroup and never throws",function(){
-    // Absence is the normal state (nobody has starred anything yet), so this is the one silent-OK
-    // path in the feature. Every shape the store could be found in must degrade to "no optgroup".
+  t("★ Cast voices: default bench semantics — never-written serves the starter cast, '[]' stays cleared (#95.6)",function(){
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      store.del(K);
+      var d=TTS.starsList();
+      if(d.length<10)return "a never-written store did not serve the default bench: "+d.length+" entries";
+      if(!/^en_(US|GB)-[a-z_]+-medium#\d+$/.test(d[0].id))return "default bench id malformed: "+d[0].id;
+      if(TTS.starOptionsHtml("").indexOf("<optgroup")!==0)return "no optgroup for the default bench";
+      var before=d.length;
+      d.push({id:"mutant#1",label:"x"});
+      if(TTS.starsList().length!==before)return "callers can mutate the shared default bench (copies not fresh)";
+      store.set(K,"[]");
+      if(TTS.starsList().length!==0)return "a deliberately cleared bench ('[]') resurrected the defaults";
+      if(TTS.starOptionsHtml("")!=="")return "optgroup rendered for a cleared bench";
+      store.set(K,JSON.stringify([{id:"m#9",label:"Mine"}]));
+      var l=TTS.starsList();
+      if(l.length!==1||l[0].label!=="Mine")return "a stored real bench did not fully replace the defaults: "+JSON.stringify(l);
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
+  t("★ Cast voices: a corrupt star store yields NO optgroup and never throws",function(){
+    // Corrupt/foreign shapes still degrade silently to [] — only a NEVER-WRITTEN store serves
+    // the default bench (#95.6), so every malformed value must keep yielding "no optgroup".
     var K="tnd_speaker_stars_v1",saved=store.get(K);
     try{
       // last entry: an OBJECT masquerading as an array (length + numeric keys) — the shape that
       // slips past a bare `if(!arr)` guard and hands the picker a phantom voice
-      var bad=[null,"","not json","{}",'"a string"',"[]",'[{"label":"no id"}]','[null,3,{"id":""}]','{"length":1,"0":{"id":"en_US-libritts_r-medium#9","label":"phantom"}}'];
+      var bad=["not json","{}",'"a string"',"[]",'[{"label":"no id"}]','[null,3,{"id":""}]','{"length":1,"0":{"id":"en_US-libritts_r-medium#9","label":"phantom"}}'];
       for(var i=0;i<bad.length;i++){
-        if(bad[i]===null)store.del(K);else store.set(K,bad[i]);
+        store.set(K,bad[i]);
         var list,html;
         try{ list=TTS.starsList(); html=TTS.starOptionsHtml(""); }
         catch(e){ return "threw on store value "+JSON.stringify(bad[i])+": "+(e&&e.message); }

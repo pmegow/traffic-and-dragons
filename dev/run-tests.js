@@ -217,6 +217,24 @@ try {
   var _saSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "storage-adapter.js"), "utf8");
   if ((_saSP.match(/syncSpeakerStars\(null\)/g) || []).length < 2)
     _failSP("storage-adapter no longer syncs the star bench on BOTH boot (autoConnect) and fresh connect (onAuth) (#95.5)");
+  // ── DEFAULT BENCH CONTRACT (#95.6) ── the starter cast is duplicated in tts.js and
+  // speaker_browser.html (the satellite is self-contained — no shared file possible), so the two
+  // copies MUST stay byte-identical or new players see different benches in the game vs the browser.
+  var _ttsSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "tts.js"), "utf8");
+  var _benchRe = /\/\/ >>> DEFAULT STAR BENCH[\s\S]*?\/\/ <<< DEFAULT STAR BENCH/;
+  var _bTts = _ttsSP.match(_benchRe), _bSb = _sbSP.match(_benchRe);
+  if (!_bTts || !_bSb) _failSP("DEFAULT STAR BENCH markers missing (tts.js: " + !!_bTts + ", speaker_browser: " + !!_bSb + ")");
+  var _benchOf = function (slice) {
+    return new Function(slice + "\nreturn (typeof DEFAULT_SPEAKER_STARS !== 'undefined') ? DEFAULT_SPEAKER_STARS : DEFAULT_STARS;")();
+  };
+  var _dTts = _benchOf(_bTts[0]), _dSb = _benchOf(_bSb[0]);
+  if (JSON.stringify(_dTts) !== JSON.stringify(_dSb))
+    _failSP("the two DEFAULT STAR BENCH copies have drifted apart (tts.js: " + _dTts.length + " entries, speaker_browser.html: " + _dSb.length + ") — edit both or new players see different benches");
+  if (_dTts.length < 10) _failSP("the default bench shrank to " + _dTts.length + " entries — suspicious, confirm intentional");
+  for (var _bi = 0; _bi < _dTts.length; _bi++) {
+    if (!/^[A-Za-z0-9_-]+#\d+$/.test(_dTts[_bi].id) || typeof _dTts[_bi].label !== "string" || !_dTts[_bi].label)
+      _failSP("default bench entry " + _bi + " malformed: " + JSON.stringify(_dTts[_bi]));
+  }
 } catch (e) { console.error("STARS PORTABILITY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────

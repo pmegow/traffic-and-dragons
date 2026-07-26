@@ -2836,16 +2836,80 @@ var TTS = (function() {
   // user-editable labels ("Gravelly innkeeper"). Device-level ON PURPOSE — stars are picker
   // convenience; the actual binding (charSheet.voiceId) already rides sheets and sync.
   //
-  // Absence is the NORMAL state (nobody has starred anything yet), and so is a store written by a
-  // satellite this build may be older than — so a missing/corrupt/foreign-shaped store yields []
-  // with no warn and no toast. That is not a swallowed failure: nothing was supposed to work yet.
-  // Malformed ENTRIES inside a valid array are skipped individually, so one bad row can't cost the
-  // user the rest of their cast.
+  // A NEVER-WRITTEN store serves the DEFAULT BENCH below (#95.6) — new players start with a
+  // curated cast instead of an empty dropdown. A stored "[]" is different: the user deliberately
+  // cleared their bench, and it stays empty. Corrupt/foreign-shaped stores still yield [] with no
+  // warn and no toast (not a swallowed failure: nothing was supposed to work yet), and malformed
+  // ENTRIES inside a valid array are skipped individually, so one bad row can't cost the user the
+  // rest of their cast.
+  //
+  // >>> DEFAULT STAR BENCH (#95.6) — the 52-voice starter cast (curated by the dev, 2026-07-26).
+  // An IDENTICAL copy lives in speaker_browser.html (self-contained satellite, no shared file
+  // possible) — the DEFAULT BENCH CONTRACT in dev/run-tests.js asserts the two arrays are
+  // byte-identical, so edit BOTH copies or the build fails.
+  var DEFAULT_SPEAKER_STARS = [
+    { id: "en_US-libritts_r-medium#1", label: "Speaker 1 · reader 8699 (F)" },
+    { id: "en_US-libritts_r-medium#3", label: "Speaker 3 · reader 6701 (M)" },
+    { id: "en_US-libritts_r-medium#7", label: "Speaker 7 · reader 1638 (M)" },
+    { id: "en_US-libritts_r-medium#9", label: "Speaker 9 · reader 6544 (F)" },
+    { id: "en_US-libritts_r-medium#10", label: "Speaker 10 · reader 3615 (F)" },
+    { id: "en_US-libritts_r-medium#50", label: "Speaker 50 · reader 7874 (M)" },
+    { id: "en_US-libritts_r-medium#52", label: "Speaker 52 · reader 2053 (F)" },
+    { id: "en_US-libritts_r-medium#54", label: "Speaker 54 · reader 16 (F)" },
+    { id: "en_US-libritts_r-medium#56", label: "Speaker 56 · reader 1923 (F)" },
+    { id: "en_US-libritts_r-medium#64", label: "Speaker 64 · reader 3003 (F)" },
+    { id: "en_US-libritts_r-medium#65", label: "Speaker 65 · reader 7739 (F)" },
+    { id: "en_US-libritts_r-medium#71", label: "Speaker 71 · reader 2299 (M)" },
+    { id: "en_US-libritts_r-medium#72", label: "Speaker 72 · reader 7188 (M)" },
+    { id: "en_US-libritts_r-medium#75", label: "Speaker 75 · reader 8684 (F)" },
+    { id: "en_US-libritts_r-medium#116", label: "Speaker 116 · reader 2156 (M)" },
+    { id: "en_US-libritts_r-medium#114", label: "Speaker 114 · reader 5802 (M)" },
+    { id: "en_US-libritts_r-medium#107", label: "Speaker 107 · reader 6696 (F)" },
+    { id: "en_US-libritts_r-medium#98", label: "Speaker 98 · reader 192 (F)" },
+    { id: "en_US-libritts_r-medium#93", label: "Speaker 93 · reader 7434 (F)" },
+    { id: "en_US-libritts_r-medium#90", label: "Speaker 90 · reader 6694 (M)" },
+    { id: "en_US-libritts_r-medium#89", label: "Speaker 89 · reader 6575 (M)" },
+    { id: "en_US-libritts_r-medium#26", label: "Speaker 26 · reader 28 (F)" },
+    { id: "en_US-libritts_r-medium#25", label: "Speaker 25 · reader 339 (F)" },
+    { id: "en_US-libritts_r-medium#120", label: "Speaker 120 · reader 1093 (F)" },
+    { id: "en_US-libritts_r-medium#123", label: "Speaker 123 · reader 6877 (M)" },
+    { id: "en_US-libritts_r-medium#174", label: "Speaker 174 · reader 6981 (M)" },
+    { id: "en_US-libritts_r-medium#153", label: "Speaker 153 · reader 126 (F)" },
+    { id: "en_US-libritts_r-medium#129", label: "Speaker 129 · reader 688 (F)" },
+    { id: "en_US-libritts_r-medium#126", label: "Speaker 126 · reader 288 (F)" },
+    { id: "en_US-libritts_r-medium#111", label: "Speaker 111 · reader 2010 (F)" },
+    { id: "en_US-libritts_r-medium#805", label: "Speaker 805 · reader 17 (M)" },
+    { id: "en_GB-vctk-medium#1", label: "Speaker 1 · reader p236 · English (F)" },
+    { id: "en_GB-vctk-medium#2", label: "Speaker 2 · reader p264 · Scottish (F)" },
+    { id: "en_GB-vctk-medium#8", label: "Speaker 8 · reader p283 · Irish (F)" },
+    { id: "en_GB-vctk-medium#9", label: "Speaker 9 · reader p286 · English (M)" },
+    { id: "en_GB-vctk-medium#11", label: "Speaker 11 · reader p276 · English (F)" },
+    { id: "en_GB-vctk-medium#13", label: "Speaker 13 · reader p281 · Scottish (M)" },
+    { id: "en_GB-vctk-medium#20", label: "Speaker 20 · reader p284 · Scottish (M)" },
+    { id: "en_GB-vctk-medium#73", label: "Speaker 73 · reader s5 · British (F)" },
+    { id: "en_GB-vctk-medium#17", label: "Speaker 17 · reader p238 · NorthernIrish (F)" },
+    { id: "en_GB-vctk-medium#61", label: "Speaker 61 · reader p292 · NorthernIrish (M)" },
+    { id: "en_GB-vctk-medium#78", label: "Speaker 78 · reader p293 · NorthernIrish (F)" },
+    { id: "en_GB-vctk-medium#63", label: "Speaker 63 · reader p280 · Unknown (F)" },
+    { id: "en_GB-vctk-medium#87", label: "Speaker 87 · reader p248 · Indian (F)" },
+    { id: "en_GB-vctk-medium#46", label: "Speaker 46 · reader p313 · Irish (F)" },
+    { id: "en_GB-vctk-medium#67", label: "Speaker 67 · reader p298 · Irish (M)" },
+    { id: "en_GB-vctk-medium#5", label: "Speaker 5 · reader p247 · Scottish (M)" },
+    { id: "en_GB-vctk-medium#55", label: "Speaker 55 · reader p275 · Scottish (M)" },
+    { id: "en_GB-vctk-medium#79", label: "Speaker 79 · reader p252 · Scottish (M)" },
+    { id: "en_GB-vctk-medium#29", label: "Speaker 29 · reader p334 · American (M)" },
+    { id: "en_GB-vctk-medium#4", label: "Speaker 4 · reader p259 · English (M)" },
+    { id: "en_GB-vctk-medium#76", label: "Speaker 76 · reader p254 · English (M)" }
+  ];
+  // <<< DEFAULT STAR BENCH
   var SPEAKER_STARS_K = "tnd_speaker_stars_v1";
   function starsList() {
     var raw;
     try { raw = store.get(SPEAKER_STARS_K); } catch (e) { return []; }
-    if (!raw) return [];
+    if (!raw) {
+      // never written on this origin → the default bench (fresh copies — callers may mutate)
+      return DEFAULT_SPEAKER_STARS.map(function (s) { return { id: s.id, label: s.label }; });
+    }
     var arr;
     try { arr = JSON.parse(raw); } catch (e) { return []; }
     if (Object.prototype.toString.call(arr) !== "[object Array]") return [];
