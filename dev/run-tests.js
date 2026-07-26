@@ -201,6 +201,16 @@ try {
   if (_g1.added !== 1 || _g1.relabeled !== 1) _failSP("summary counters lie: added=" + _g1.added + " relabeled=" + _g1.relabeled + " (expected 1/1)");
   var _g2 = _sp.merge([{ id: "a", label: "Curated" }], [{ id: "a", label: "" }]);
   if (_g2.stars[0].label !== "Curated" || _g2.relabeled !== 0) _failSP("an empty imported label wiped a curated one");
+  // #95.7 — gender rides the schema with the same never-wipe-a-correction semantics as labels
+  var _wG = _sp.parse('[{"id":"m#1","label":"A","g":"F"},{"id":"m#2","label":"B","g":"x"}]');
+  if (!_wG.ok || _wG.stars[0].g !== "F" || _wG.stars[1].g !== "") _failSP("parse does not carry/validate the g field: " + JSON.stringify(_wG.stars));
+  var _mgG = _sp.merge(
+    [{ id: "a", label: "A", g: "M" }, { id: "b", label: "B", g: "F" }],
+    [{ id: "a", label: "A", g: "" }, { id: "b", label: "B", g: "M" }, { id: "c", label: "C", g: "F" }]
+  );
+  if (_mgG.stars[0].g !== "M") _failSP("an empty imported g wiped a curated gender correction");
+  if (_mgG.stars[1].g !== "M") _failSP("a known imported g did not win its collision");
+  if (_mgG.stars[2].g !== "F") _failSP("a new star's g was dropped in the merge");
   var _g3 = _sp.merge([], [{ id: "__proto__", label: "hostile" }, { id: "constructor", label: "x" }]);
   if (_g3.stars.length !== 2 || _g3.added !== 2) _failSP("prototype-key star ids corrupted the merge: " + JSON.stringify(_g3.stars));
   // the UI half: the buttons must exist and the import path must route through the tested core
@@ -234,6 +244,9 @@ try {
   for (var _bi = 0; _bi < _dTts.length; _bi++) {
     if (!/^[A-Za-z0-9_-]+#\d+$/.test(_dTts[_bi].id) || typeof _dTts[_bi].label !== "string" || !_dTts[_bi].label)
       _failSP("default bench entry " + _bi + " malformed: " + JSON.stringify(_dTts[_bi]));
+    // #95.7: every curated default is gendered — auto-casting can draw from the whole starter set
+    if (_dTts[_bi].g !== "M" && _dTts[_bi].g !== "F")
+      _failSP("default bench entry " + _bi + " has no gender — it would be dead weight for auto-casting: " + JSON.stringify(_dTts[_bi]));
   }
 } catch (e) { console.error("STARS PORTABILITY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 

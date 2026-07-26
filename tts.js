@@ -2848,58 +2848,58 @@ var TTS = (function() {
   // possible) — the DEFAULT BENCH CONTRACT in dev/run-tests.js asserts the two arrays are
   // byte-identical, so edit BOTH copies or the build fails.
   var DEFAULT_SPEAKER_STARS = [
-    { id: "en_US-libritts_r-medium#1", label: "Speaker 1 · reader 8699 (F)" },
-    { id: "en_US-libritts_r-medium#3", label: "Speaker 3 · reader 6701 (M)" },
-    { id: "en_US-libritts_r-medium#7", label: "Speaker 7 · reader 1638 (M)" },
-    { id: "en_US-libritts_r-medium#9", label: "Speaker 9 · reader 6544 (F)" },
-    { id: "en_US-libritts_r-medium#10", label: "Speaker 10 · reader 3615 (F)" },
-    { id: "en_US-libritts_r-medium#50", label: "Speaker 50 · reader 7874 (M)" },
-    { id: "en_US-libritts_r-medium#52", label: "Speaker 52 · reader 2053 (F)" },
-    { id: "en_US-libritts_r-medium#54", label: "Speaker 54 · reader 16 (F)" },
-    { id: "en_US-libritts_r-medium#56", label: "Speaker 56 · reader 1923 (F)" },
-    { id: "en_US-libritts_r-medium#64", label: "Speaker 64 · reader 3003 (F)" },
-    { id: "en_US-libritts_r-medium#65", label: "Speaker 65 · reader 7739 (F)" },
-    { id: "en_US-libritts_r-medium#71", label: "Speaker 71 · reader 2299 (M)" },
-    { id: "en_US-libritts_r-medium#72", label: "Speaker 72 · reader 7188 (M)" },
-    { id: "en_US-libritts_r-medium#75", label: "Speaker 75 · reader 8684 (F)" },
-    { id: "en_US-libritts_r-medium#116", label: "Speaker 116 · reader 2156 (M)" },
-    { id: "en_US-libritts_r-medium#114", label: "Speaker 114 · reader 5802 (M)" },
-    { id: "en_US-libritts_r-medium#107", label: "Speaker 107 · reader 6696 (F)" },
-    { id: "en_US-libritts_r-medium#98", label: "Speaker 98 · reader 192 (F)" },
-    { id: "en_US-libritts_r-medium#93", label: "Speaker 93 · reader 7434 (F)" },
-    { id: "en_US-libritts_r-medium#90", label: "Speaker 90 · reader 6694 (M)" },
-    { id: "en_US-libritts_r-medium#89", label: "Speaker 89 · reader 6575 (M)" },
-    { id: "en_US-libritts_r-medium#26", label: "Speaker 26 · reader 28 (F)" },
-    { id: "en_US-libritts_r-medium#25", label: "Speaker 25 · reader 339 (F)" },
-    { id: "en_US-libritts_r-medium#120", label: "Speaker 120 · reader 1093 (F)" },
-    { id: "en_US-libritts_r-medium#123", label: "Speaker 123 · reader 6877 (M)" },
-    { id: "en_US-libritts_r-medium#174", label: "Speaker 174 · reader 6981 (M)" },
-    { id: "en_US-libritts_r-medium#153", label: "Speaker 153 · reader 126 (F)" },
-    { id: "en_US-libritts_r-medium#129", label: "Speaker 129 · reader 688 (F)" },
-    { id: "en_US-libritts_r-medium#126", label: "Speaker 126 · reader 288 (F)" },
-    { id: "en_US-libritts_r-medium#111", label: "Speaker 111 · reader 2010 (F)" },
-    { id: "en_US-libritts_r-medium#805", label: "Speaker 805 · reader 17 (M)" },
-    { id: "en_GB-vctk-medium#1", label: "Speaker 1 · reader p236 · English (F)" },
-    { id: "en_GB-vctk-medium#2", label: "Speaker 2 · reader p264 · Scottish (F)" },
-    { id: "en_GB-vctk-medium#8", label: "Speaker 8 · reader p283 · Irish (F)" },
-    { id: "en_GB-vctk-medium#9", label: "Speaker 9 · reader p286 · English (M)" },
-    { id: "en_GB-vctk-medium#11", label: "Speaker 11 · reader p276 · English (F)" },
-    { id: "en_GB-vctk-medium#13", label: "Speaker 13 · reader p281 · Scottish (M)" },
-    { id: "en_GB-vctk-medium#20", label: "Speaker 20 · reader p284 · Scottish (M)" },
-    { id: "en_GB-vctk-medium#73", label: "Speaker 73 · reader s5 · British (F)" },
-    { id: "en_GB-vctk-medium#17", label: "Speaker 17 · reader p238 · NorthernIrish (F)" },
-    { id: "en_GB-vctk-medium#61", label: "Speaker 61 · reader p292 · NorthernIrish (M)" },
-    { id: "en_GB-vctk-medium#78", label: "Speaker 78 · reader p293 · NorthernIrish (F)" },
-    { id: "en_GB-vctk-medium#63", label: "Speaker 63 · reader p280 · Unknown (F)" },
-    { id: "en_GB-vctk-medium#87", label: "Speaker 87 · reader p248 · Indian (F)" },
-    { id: "en_GB-vctk-medium#46", label: "Speaker 46 · reader p313 · Irish (F)" },
-    { id: "en_GB-vctk-medium#67", label: "Speaker 67 · reader p298 · Irish (M)" },
-    { id: "en_GB-vctk-medium#5", label: "Speaker 5 · reader p247 · Scottish (M)" },
-    { id: "en_GB-vctk-medium#55", label: "Speaker 55 · reader p275 · Scottish (M)" },
-    { id: "en_GB-vctk-medium#79", label: "Speaker 79 · reader p252 · Scottish (M)" },
-    { id: "en_GB-vctk-medium#29", label: "Speaker 29 · reader p334 · American (M)" },
-    { id: "en_GB-vctk-medium#4", label: "Speaker 4 · reader p259 · English (M)" },
-    { id: "en_GB-vctk-medium#76", label: "Speaker 76 · reader p254 · English (M)" }
+    { id: "en_US-libritts_r-medium#1", label: "Speaker 1 · reader 8699 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#3", label: "Speaker 3 · reader 6701 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#7", label: "Speaker 7 · reader 1638 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#9", label: "Speaker 9 · reader 6544 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#10", label: "Speaker 10 · reader 3615 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#50", label: "Speaker 50 · reader 7874 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#52", label: "Speaker 52 · reader 2053 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#54", label: "Speaker 54 · reader 16 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#56", label: "Speaker 56 · reader 1923 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#64", label: "Speaker 64 · reader 3003 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#65", label: "Speaker 65 · reader 7739 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#71", label: "Speaker 71 · reader 2299 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#72", label: "Speaker 72 · reader 7188 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#75", label: "Speaker 75 · reader 8684 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#116", label: "Speaker 116 · reader 2156 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#114", label: "Speaker 114 · reader 5802 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#107", label: "Speaker 107 · reader 6696 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#98", label: "Speaker 98 · reader 192 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#93", label: "Speaker 93 · reader 7434 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#90", label: "Speaker 90 · reader 6694 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#89", label: "Speaker 89 · reader 6575 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#26", label: "Speaker 26 · reader 28 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#25", label: "Speaker 25 · reader 339 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#120", label: "Speaker 120 · reader 1093 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#123", label: "Speaker 123 · reader 6877 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#174", label: "Speaker 174 · reader 6981 (M)", g: "M" },
+    { id: "en_US-libritts_r-medium#153", label: "Speaker 153 · reader 126 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#129", label: "Speaker 129 · reader 688 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#126", label: "Speaker 126 · reader 288 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#111", label: "Speaker 111 · reader 2010 (F)", g: "F" },
+    { id: "en_US-libritts_r-medium#805", label: "Speaker 805 · reader 17 (M)", g: "M" },
+    { id: "en_GB-vctk-medium#1", label: "Speaker 1 · reader p236 · English (F)", g: "F" },
+    { id: "en_GB-vctk-medium#2", label: "Speaker 2 · reader p264 · Scottish (F)", g: "F" },
+    { id: "en_GB-vctk-medium#8", label: "Speaker 8 · reader p283 · Irish (F)", g: "F" },
+    { id: "en_GB-vctk-medium#9", label: "Speaker 9 · reader p286 · English (M)", g: "M" },
+    { id: "en_GB-vctk-medium#11", label: "Speaker 11 · reader p276 · English (F)", g: "F" },
+    { id: "en_GB-vctk-medium#13", label: "Speaker 13 · reader p281 · Scottish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#20", label: "Speaker 20 · reader p284 · Scottish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#73", label: "Speaker 73 · reader s5 · British (F)", g: "F" },
+    { id: "en_GB-vctk-medium#17", label: "Speaker 17 · reader p238 · NorthernIrish (F)", g: "F" },
+    { id: "en_GB-vctk-medium#61", label: "Speaker 61 · reader p292 · NorthernIrish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#78", label: "Speaker 78 · reader p293 · NorthernIrish (F)", g: "F" },
+    { id: "en_GB-vctk-medium#63", label: "Speaker 63 · reader p280 · Unknown (F)", g: "F" },
+    { id: "en_GB-vctk-medium#87", label: "Speaker 87 · reader p248 · Indian (F)", g: "F" },
+    { id: "en_GB-vctk-medium#46", label: "Speaker 46 · reader p313 · Irish (F)", g: "F" },
+    { id: "en_GB-vctk-medium#67", label: "Speaker 67 · reader p298 · Irish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#5", label: "Speaker 5 · reader p247 · Scottish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#55", label: "Speaker 55 · reader p275 · Scottish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#79", label: "Speaker 79 · reader p252 · Scottish (M)", g: "M" },
+    { id: "en_GB-vctk-medium#29", label: "Speaker 29 · reader p334 · American (M)", g: "M" },
+    { id: "en_GB-vctk-medium#4", label: "Speaker 4 · reader p259 · English (M)", g: "M" },
+    { id: "en_GB-vctk-medium#76", label: "Speaker 76 · reader p254 · English (M)", g: "M" }
   ];
   // <<< DEFAULT STAR BENCH
   var SPEAKER_STARS_K = "tnd_speaker_stars_v1";
@@ -2908,18 +2908,45 @@ var TTS = (function() {
     try { raw = store.get(SPEAKER_STARS_K); } catch (e) { return []; }
     if (!raw) {
       // never written on this origin → the default bench (fresh copies — callers may mutate)
-      return DEFAULT_SPEAKER_STARS.map(function (s) { return { id: s.id, label: s.label }; });
+      return DEFAULT_SPEAKER_STARS.map(function (s) { return { id: s.id, label: s.label, g: s.g }; });
     }
     var arr;
     try { arr = JSON.parse(raw); } catch (e) { return []; }
     if (Object.prototype.toString.call(arr) !== "[object Array]") return [];
-    var out = [], i, e2;
+    var out = [], i, e2, lbl;
     for (i = 0; i < arr.length; i++) {
       e2 = arr[i];
       if (!e2 || typeof e2.id !== "string" || !e2.id) continue;
-      out.push({ id: e2.id, label: (typeof e2.label === "string" && e2.label) ? e2.label : e2.id });
+      lbl = (typeof e2.label === "string" && e2.label) ? e2.label : e2.id;
+      out.push({ id: e2.id, label: lbl, g: _starGender(e2.g, lbl) });
     }
     return out;
+  }
+  // #95.7: a star's gender — the STRUCTURED field when valid (mutable in the speaker browser,
+  // because published voice metadata is sometimes wrong), else derived from the trailing "(F)"/
+  // "(M)" the auto-generated labels carry (covers benches written before the field existed).
+  // "" = unknown: such a star is pickable by hand but never auto-cast.
+  function _starGender(g, label) {
+    if (g === "M" || g === "F") return g;
+    var m = /\((F|M)\)\s*$/.exec(String(label || ""));
+    return m ? m[1] : "";
+  }
+  // #95.7: gender-matched auto-cast — an unassigned character speaks a bench voice of their own
+  // gender instead of the narrator (the "grizzled sheriff reads as a young woman" fix). The pick
+  // is a DETERMINISTIC name-hash over the gender-filtered bench: stable across turns and reloads
+  // with no state write. Editing the bench may re-deal unassigned characters (documented — pin a
+  // voice on the sheet to make it permanent); explicit assignments always win and never move.
+  // NB/unknown gender or an empty matching pool returns null — the caller keeps today's narrator
+  // fallback, because guessing is exactly the failure this feature removes.
+  function autoCastVoiceId(char) {
+    var g = char && char.gender;
+    if (g !== "M" && g !== "F") return null;
+    var pool = [], st = starsList(), i;
+    for (i = 0; i < st.length; i++) { if (st[i].g === g) pool.push(st[i].id); }
+    if (!pool.length) return null;
+    var nm = String(char.name || ""), h = 0;
+    for (i = 0; i < nm.length; i++) h = (h * 31 + nm.charCodeAt(i)) >>> 0;
+    return pool[h % pool.length];
   }
   function _isStarred(id) {
     var st = starsList();
@@ -3308,8 +3335,12 @@ var TTS = (function() {
     starOptionsHtml:   starOptionsHtml,
     characterVoiceId:  function(char) {
       var v = char && char.voiceId;
-      return (v && _piperVoiceKnown(v)) ? v : resolvePiperVoice();
+      if (v && _piperVoiceKnown(v)) return v;
+      // #95.7: no assigned voice → gender-matched auto-cast from the star bench, else narrator
+      return autoCastVoiceId(char) || resolvePiperVoice();
     },
+    // #95.7: exported so speakerCastList (game.js) can admit unassigned-but-castable characters
+    autoCastVoiceId:   autoCastVoiceId,
     // Internal — exported ONLY for the headless engine tests (dev/engine-tests.js) and for the
     // later Piper provider phases (TODO #41) to reuse. Not a supported external call surface.
     _textPrep: { normalizeForTTS: normalizeForTTS, splitSentences: splitSentences, packLongUnit: packLongUnit, unitGap: unitGap,

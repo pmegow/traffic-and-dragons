@@ -216,12 +216,24 @@ var SPEAKER_MAX_UNITS=60;      // runaway guard: past this the prompt isn't wort
 function speakerCastList(){
   var out=[],seen={};
   if(!worldState)return out;
-  var c=worldState.character;
-  if(c&&c.name&&c.voiceId){out.push({name:c.name,voiceId:c.voiceId});seen[c.name]=1;}
+  // #95.7: a character is castable with an ASSIGNED voice OR a gender-matched auto-cast pick
+  // from the star bench — before this, an unassigned sheriff never even entered the cast, so
+  // his lines were never attributed and the auto-cast fallback could never fire. The returned
+  // voiceId is an admission ticket only: speakerVoiceMap re-resolves via characterVoiceId at
+  // speak time, so a later manual pin retroactively re-voices past turns unchanged.
+  function castVoice(ch){
+    if(!ch)return null;
+    if(ch.voiceId)return ch.voiceId;
+    return (typeof TTS!=="undefined"&&TTS.autoCastVoiceId)?TTS.autoCastVoiceId(ch):null;
+  }
+  var c=worldState.character,cv=c&&c.name?castVoice(c):null;
+  if(cv){out.push({name:c.name,voiceId:cv});seen[c.name]=1;}
   var ns=worldState.npcs||[],i;
   for(i=0;i<ns.length;i++){
     var n=ns[i];
-    if(n&&n.name&&!seen[n.name]&&n.charSheet&&n.charSheet.voiceId){out.push({name:n.name,voiceId:n.charSheet.voiceId});seen[n.name]=1;}
+    if(!n||!n.name||seen[n.name]||!n.charSheet)continue;
+    var nv=castVoice(n.charSheet);
+    if(nv){out.push({name:n.name,voiceId:nv});seen[n.name]=1;}
   }
   return out;
 }

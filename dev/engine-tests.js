@@ -4353,16 +4353,25 @@ function runEngineTests(R){
     return prompt.indexOf("'you' IS Tess")<prompt.indexOf("Omit a line if you are unsure")
       ?true:"the binding lands AFTER the omit rule it exists to pre-empt";
   });
-  t("B14d: no second-person binding when the player has no assigned voice, or in multiplayer",function(){
+  t("B14d: no second-person binding when the player is UNCASTABLE, or in multiplayer",function(){
     // Naming someone outside the voiced CAST would invite an answer parseSpeakerMap must reject;
     // and multiplayer narrates every PC by name in third person (api.js D12), where the claim
-    // that "you" means the hero is simply false.
+    // that "you" means the hero is simply false. (#95.7 sharpened the first case: an unassigned
+    // hero is now ADMITTED via gender-matched auto-cast, so "unvoiced" alone no longer excludes
+    // them — only a hero nobody can cast, e.g. with the bench deliberately cleared, stays out.)
     _mkSpeakerWorld();
     var line='"Hold the line," you snarl, shoving Daeris behind you.';
     var u=TTS._textPrep.splitSentences(line,null,true);
-    delete worldState.character.voiceId;                       // hero unvoiced → not in the cast
-    if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
-      return "bound 'you' to a player who has no voice assigned";
+    delete worldState.character.voiceId;                       // hero unassigned…
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      if(worldState.character.gender!=="M"&&worldState.character.gender!=="F")worldState.character.gender="M";
+      if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")<0)
+        return "an auto-castable hero lost the 'you' binding (#95.7 admits them)";
+      store.set(K,"[]");                                       // …and now truly uncastable
+      if(buildSpeakerPrompt(speakerSpans(u),speakerCastList(),line,u).indexOf("'you' IS")>=0)
+        return "bound 'you' to a player nobody can cast";
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
     _mkSpeakerWorld();
     worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",
       charSheet:{name:"Morwen",voiceId:"en_GB-alba-medium"}});   // second PC → playerCount>1
@@ -4668,13 +4677,24 @@ function runEngineTests(R){
     var names=speakerCastList().map(function(c){return c.name;}).sort().join(",");
     return names==="Daeris,Tess"?true:"cast should be exactly the voiced characters, got: "+names;
   });
-  t("speakerPassNeeded: skipped with no voiced cast, and skipped on prose with no dialogue",function(){
+  t("speakerPassNeeded: skips no-dialogue prose; auto-cast admits the unassigned (#95.7); skips when nobody is castable",function(){
     _mkSpeakerWorld();
     var sp=function(t){return speakerSpans(TTS._textPrep.splitSentences(t,null,true));};
     if(speakerPassNeeded("Ash drifts past the window.",speakerCastList(),sp("Ash drifts past the window.")))return "fired on a response with no dialogue";
     if(!speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "did not fire on a response WITH dialogue";
+    // #95.7 DELIBERATE invariant change: an unassigned but GENDERED character is auto-castable
+    // from the bench (the default bench serves here), so the pass still fires — that is the
+    // feature, not a cost leak. Muted players pay nothing regardless: narrateWithSpeakers gates
+    // on TTS.isOn() BEFORE assignSpeakers, which remains the non-user cost fence.
     worldState.character.voiceId="";worldState.npcs[0].charSheet.voiceId="";
-    return !speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE))?true:"fired with nobody voiced — non-users must pay nothing";
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      if(worldState.character.gender!=="M"&&worldState.character.gender!=="F")worldState.character.gender="M";
+      if(!speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "auto-cast did not admit an unassigned gendered character";
+      store.set(K,"[]");   // the true zero-cost case: bench deliberately cleared → nobody castable
+      if(speakerPassNeeded(_SPK_LINE,speakerCastList(),sp(_SPK_LINE)))return "fired with nobody castable — non-users must pay nothing";
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
   });
   // ── B14b: voices are assigned to DIALOGUE SPANS, then carried into the pause split ──────────
   t("B14b: splitSentences tags dialogue spans, and an attribution clause is NOT one",function(){
@@ -7149,6 +7169,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       store.set(K,JSON.stringify([{id:"m#9",label:"Mine"}]));
       var l=TTS.starsList();
       if(l.length!==1||l[0].label!=="Mine")return "a stored real bench did not fully replace the defaults: "+JSON.stringify(l);
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
+  t("#95.7: star gender — the structured field wins, the trailing label parenthetical is the legacy fallback",function(){
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      store.set(K,JSON.stringify([{id:"a#1",label:"Voice (F)",g:"M"},{id:"a#2",label:"Voice (F)"},{id:"a#3",label:"Angry (M)an"},{id:"a#4",label:"Plain",g:"junk"}]));
+      var l=TTS.starsList();
+      if(l[0].g!=="M")return "explicit g did not win over the label parenthetical: "+l[0].g;
+      if(l[1].g!=="F")return "trailing (F) not derived for a pre-field bench: "+l[1].g;
+      if(l[2].g!=="")return "a NON-trailing (M) was wrongly treated as gender: "+l[2].g;
+      if(l[3].g!=="")return "junk g survived validation: "+l[3].g;
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
+  t("#95.7: auto-cast is gender-matched and deterministic; unknown gender or an empty pool DECLINES",function(){
+    // Declining matters as much as picking: guessing a voice for an ungendered character is
+    // exactly the grizzled-sheriff-as-young-woman failure this feature exists to remove.
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      store.set(K,JSON.stringify([{id:"m#1",label:"A",g:"M"},{id:"m#2",label:"B",g:"F"},{id:"m#3",label:"C (M)"}]));
+      var v1=TTS.autoCastVoiceId({name:"Sheriff Hemlock",gender:"M"});
+      if(v1!=="m#1"&&v1!=="m#3")return "male character did not get a male star: "+v1;
+      if(TTS.autoCastVoiceId({name:"Sheriff Hemlock",gender:"M"})!==v1)return "pick is not deterministic across calls";
+      if(TTS.autoCastVoiceId({name:"Shalelu",gender:"F"})!=="m#2")return "female character did not get the female star";
+      if(TTS.autoCastVoiceId({name:"Mysterious One",gender:"NB"})!==null)return "an NB character was auto-cast from a binary pool";
+      if(TTS.autoCastVoiceId({name:"Nameless"})!==null)return "a gender-less character was auto-cast";
+      store.set(K,JSON.stringify([{id:"m#2",label:"B",g:"F"}]));
+      if(TTS.autoCastVoiceId({name:"Sheriff",gender:"M"})!==null)return "an empty male pool still produced a pick";
+      var cv=TTS.characterVoiceId({name:"Sheriff",gender:"F",voiceId:"en_GB-alba-medium"});
+      if(cv!=="en_GB-alba-medium")return "an explicit assignment lost to auto-cast: "+cv;
+      store.set(K,"[]");
+      if(TTS.autoCastVoiceId({name:"Sheriff",gender:"M"})!==null)return "a deliberately cleared bench still auto-cast";
     }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
     return true;
   });
