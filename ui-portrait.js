@@ -119,6 +119,18 @@ async function showPortraitModal(refreshFn,opts){
   var getOff=opts&&opts.getOffset?opts.getOffset:function(){return worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};};
   var setOff=opts&&opts.setOffset?opts.setOffset:function(x,y,zoom){worldState.character.portraitOffset={x:x,y:y,zoom:zoom};saveAll();};
   var c=opts&&opts.subject?opts.subject:worldState.character;
+  // WRITER for the appearance field, same caller-supplied-seam pattern as get/setPortrait above.
+  // It exists because writing through `c` was wrong twice over (bug report 2026-07-27, "Replace
+  // appearance doesn't replace"): ① for a sheet-less party member `c` is a THROWAWAY object
+  // literal built by showNpcSheet, so the text was written to garbage and lost silently; and
+  // ② nothing repainted the sheet underneath, so even a correct write looked like a no-op until
+  // the sheet was closed and reopened. Returning false means "refused, and I already said why" —
+  // the caller then leaves the generated text on screen instead of discarding it.
+  var setAppear=opts&&opts.setAppearance?opts.setAppearance:function(text){
+    worldState.character.appear=text;saveAll();
+    if(typeof showCharSheet==="function"&&document.getElementById("cs-modal"))showCharSheet();/* separate element from #portrait-modal, so this repaints the sheet WITHOUT closing this modal */
+    return true;
+  };
   /* #11③ DIVERGENCE PRESERVED: this portrait path defaults an UNSET gender to "androgynous"
      (every other image site defaults unset to "male") — expressed via the explicit 2nd arg,
      deliberately NOT unified. Local renamed so it can't shadow the helper. */
@@ -258,8 +270,16 @@ async function showPortraitModal(refreshFn,opts){
     var disc=document.createElement("button");disc.textContent="Discard";disc.style.cssText=sec;
     box.appendChild(hd);box.appendChild(p);box.appendChild(repl);if(c.appear)box.appendChild(app);box.appendChild(disc);
     status.appendChild(box);
-    repl.addEventListener("click",function(){c.appear=desc;saveAll();status.innerHTML="";if(typeof showToast==="function")showToast("Appearance updated from portrait.");});
-    app.addEventListener("click",function(){c.appear=(c.appear?c.appear+" ":"")+desc;saveAll();status.innerHTML="";if(typeof showToast==="function")showToast("Appended to appearance.");});
+    // On a REFUSAL (false) the panel deliberately stays up — the description cost a vision call
+    // and clearing it would throw the user's work away along with the write.
+    repl.addEventListener("click",function(){
+      if(setAppear(desc)===false)return;
+      status.innerHTML="";if(typeof showToast==="function")showToast("Appearance updated from portrait.");
+    });
+    app.addEventListener("click",function(){
+      if(setAppear((c.appear?c.appear+" ":"")+desc)===false)return;
+      status.innerHTML="";if(typeof showToast==="function")showToast("Appended to appearance.");
+    });
     disc.addEventListener("click",function(){status.innerHTML="";});
   }
   // ── Shared: generate / img2img ───────────────────────────────────────────

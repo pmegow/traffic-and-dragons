@@ -572,7 +572,22 @@ function showNpcSheet(name){
       setPortrait:function(url){if(wsNpc.charSheet){wsNpc.charSheet.portrait=url;wsNpc.portrait=null;}else wsNpc.portrait=url;storageAdapter.markPortraitDirty();saveAll();},/* mark dirty on removal too (E28) */
       getOffset:npcGetOff,
       setOffset:npcSetOff,
-      subject:npcSubject
+      subject:npcSubject,
+      // npcSubject is a THROWAWAY literal when this NPC has no charSheet (see its declaration),
+      // so the old `c.appear=desc` wrote the description into an object that was discarded the
+      // moment the modal closed — a silent total loss. Route the write to the real home, and when
+      // there is no home say so instead of pretending: without a charSheet nothing would ever
+      // READ an appearance anyway (the sheet renders it from charSheet, and doRender pulls party
+      // descriptions from charSheet too), so a "successful" write would be a second silent lie.
+      setAppearance:function(text){
+        if(!wsNpc.charSheet){
+          showToast("No character sheet for "+name+" yet — use ✦ Generate Character Sheet first, then the appearance has somewhere to live.",6000);
+          return false;
+        }
+        wsNpc.charSheet.appear=text;saveAll();
+        var _m=document.getElementById("npc-modal");if(_m){_m.remove();showNpcSheet(name);}/* repaint so the Appearance row shows the new text immediately */
+        return true;
+      }
     };
     document.getElementById("npc-avatar-btn").addEventListener("click",function(){var img=document.getElementById("npc-portrait-img");if(img&&img._wasDragged&&img._wasDragged())return;showPortraitModal(refreshNpcAvatar,npcPortOpts);});
   }

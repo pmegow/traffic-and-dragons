@@ -361,6 +361,35 @@ try {
   }
 } catch (e) { console.error("PLAYBACK RECYCLE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── APPEARANCE WRITE CONTRACT (v1.460) ────────────────────────────────────────────────────
+// "Replace appearance doesn't replace" (bug report 2026-07-27). Two defects behind one symptom:
+// ① showNpcSheet builds `npcSubject` as a THROWAWAY object literal when the NPC has no
+//    charSheet, and the modal wrote `c.appear = desc` straight onto it — so for a sheet-less
+//    party member the description went into an object that was discarded on close. Silent,
+//    total loss, with a success toast on top.
+// ② Nothing repainted the sheet under the modal, so even the CORRECT player write looked like a
+//    no-op until the sheet was closed and reopened.
+// The fix is a caller-supplied `setAppearance` seam (same shape as get/setPortrait). These pin it:
+// a raw `c.appear=` write returning would silently restore defect ①.
+try {
+  var _fsAW = require("fs"), _pathAW = require("path");
+  var _failAW = function (m) { console.error("APPEARANCE WRITE CONTRACT: " + m); process.exit(1); };
+  var _pmAW = _fsAW.readFileSync(_pathAW.join(__dirname, "..", "ui-portrait.js"), "utf8");
+  var _shAW = _fsAW.readFileSync(_pathAW.join(__dirname, "..", "ui-sheets.js"), "utf8");
+  if (/\bc\.appear\s*=/.test(_pmAW))
+    _failAW("ui-portrait.js writes c.appear directly again — for a sheet-less NPC `c` is a throwaway literal, so the description is lost silently (the original bug).");
+  if (_pmAW.indexOf("opts.setAppearance") < 0)
+    _failAW("the setAppearance seam is gone from showPortraitModal — callers can no longer route the write to a durable home.");
+  if (!/setAppear\(desc\)\s*===\s*false/.test(_pmAW))
+    _failAW("the Replace handler no longer honours a refusal — a rejected write would clear the panel and discard a description that cost a vision call.");
+  if (_shAW.indexOf("setAppearance:") < 0)
+    _failAW("showNpcSheet no longer supplies setAppearance — the NPC path falls back to the default writer, which targets the PLAYER (the v1.43 cross-subject class).");
+  if (!/wsNpc\.charSheet\.appear\s*=\s*text/.test(_shAW))
+    _failAW("the NPC writer no longer targets wsNpc.charSheet.appear — that is the only durable home for a companion's appearance.");
+  if (_shAW.indexOf("No character sheet for") < 0)
+    _failAW("the sheet-less refusal message is gone — writing would silently no-op instead of telling the user to generate a sheet (no-silent-failures).");
+} catch (e) { console.error("APPEARANCE WRITE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── UNLOAD STAMP CONTRACT (v1.432; re-homed from the BYPASS EVIDENCE CONTRACT at v1.455) ──
 // The pagehide/beforeunload hooks append a final "unload" crumb, which is the ONLY thing that
 // lets erPrevDirty tell a jetsam kill from a clean close. Lose it and every recovered ring is
