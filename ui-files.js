@@ -35,7 +35,10 @@ function exportToFolder(type,blob,filename){
   }).then(function(w){
     return w.write(blob).then(function(){return w.close();});
   }).then(function(){
-    showToast("Saved to "+sub+"/"+filename);
+    // Name the WHOLE path, campaign folder included — "Saved to renders/x.jpg" left the user
+    // guessing which folder that was (field request 2026-07-27).
+    var _fn=(_campFolderHandle&&_campFolderHandle.name)?_campFolderHandle.name+"/":"";
+    showToast("Saved to "+_fn+sub+"/"+filename);
     return true;
   }).catch(function(e){
     showToast("Folder write failed: "+e.message);
@@ -132,16 +135,46 @@ function shareImageFile(blob,filename){
     });
   });
 }
+// Name the file after what it actually IS. buildFilename says .jpg, but fal returns whatever the
+// model produced — a .jpg that is really a PNG confuses the OS and the restore path alike.
+function _renderFilenameFor(blob,filename){
+  var t=((blob&&blob.type)||"").toLowerCase(),ext="";
+  if(t.indexOf("png")>=0)ext="png";
+  else if(t.indexOf("webp")>=0)ext="webp";
+  else if(t.indexOf("jpeg")>=0||t.indexOf("jpg")>=0)ext="jpg";
+  if(!ext)return filename;
+  return String(filename).replace(/\.(jpe?g|png|webp)$/i,"")+"."+ext;
+}
 // The one funnel for saving a render. Records a pointer describing WHERE it went, so a later load
 // knows what is restorable ("renders") and what is only a record ("share"/"download").
+//
+// ORDER MATTERS, and the first version had it wrong (field report 2026-07-27): it tried the share
+// sheet first, but DESKTOP Chrome implements navigator.share too, so a user who had deliberately
+// configured a campaign folder got the Windows share UI instead of their folder. A configured
+// folder is an explicit instruction — it always wins. The share sheet is reserved for a browser
+// with NO folder picker at all (iOS Safari), where it is the only route to the Photos app; on a
+// desktop with no folder chosen, a plain download is the predictable thing rather than a surprise
+// share dialog. Capability check, never UA sniffing.
 function saveRenderImage(blob,filename,turn){
-  return shareImageFile(blob,filename).then(function(shared){
-    if(shared){recordRenderPointer(filename,turn,"share");return "share";}
-    return _ensureFolderPerm().then(function(){
+  filename=_renderFilenameFor(blob,filename);
+  return _ensureFolderPerm().then(function(haveFolder){
+    if(haveFolder){
       return exportToFolder("render",blob,filename).then(function(toFolder){
         recordRenderPointer(filename,turn,toFolder?"renders":"download");
         return toFolder?"folder":"download";
       });
+    }
+    if(typeof window!=="undefined"&&window.showDirectoryPicker){
+      _downloadBlob(blob,filename);
+      showToast("Saved to your downloads: "+filename+" — File ▸ Set campaign folder to keep renders with the campaign");
+      recordRenderPointer(filename,turn,"download");
+      return "download";
+    }
+    return shareImageFile(blob,filename).then(function(shared){
+      if(shared){recordRenderPointer(filename,turn,"share");return "share";}
+      _downloadBlob(blob,filename);
+      recordRenderPointer(filename,turn,"download");
+      return "download";
     });
   });
 }
