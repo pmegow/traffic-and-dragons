@@ -227,6 +227,12 @@ try {
   var _saSP = _fsSP.readFileSync(_pathSP.join(__dirname, "..", "storage-adapter.js"), "utf8");
   if ((_saSP.match(/syncSpeakerStars\(null\)/g) || []).length < 2)
     _failSP("storage-adapter no longer syncs the star bench on BOTH boot (autoConnect) and fresh connect (onAuth) (#95.5)");
+  // #95.7 adopt-path fix: a cloud pull must derive gender exactly like loadStars, or an adopted
+  // bench lands g-less and every ⚥ select reads "?" until the next reload (the 2026-07-26
+  // screenshot bug). Pin the derivation inside the adopt loop itself.
+  var _pullSP = (_sbSP.match(/function pullStarsOnBoot\(\)[\s\S]*?\n  \}\n/) || [""])[0];
+  if (!/stars\.push\(\{ id: it\.id, label: lbl, g: starG\(/.test(_pullSP))
+    _failSP("pullStarsOnBoot no longer derives g via starG — a cloud adopt lands a g-less bench (#95.7)");
   // ── DEFAULT BENCH CONTRACT (#95.6) ── the starter cast is duplicated in tts.js and
   // speaker_browser.html (the satellite is self-contained — no shared file possible), so the two
   // copies MUST stay byte-identical or new players see different benches in the game vs the browser.

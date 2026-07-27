@@ -131,18 +131,24 @@
          color:var(--dim);font-size:12.5px;}
 
   .stars{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
-  .sr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;
+  /* One row per star (#96 follow-up, user call 2026-07-26): nowrap + shrinkable, ellipsized
+     text columns instead of the old min-width+wrap combo that pushed ✕ onto its own line.
+     Below 700px the row is allowed to wrap again — ellipsis alone can't save a phone width. */
+  .sr{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;padding:7px 0;
       border-bottom:1px solid #232120;}
   .sr:last-child{border-bottom:none;}
-  .sr .sid{font-family:var(--mono);font-size:12px;color:var(--acc);min-width:210px;
-           word-break:break-all;}
-  .sr .smeta{font-size:12px;color:var(--dim2);min-width:150px;word-break:break-word;}
+  .sr .sid{font-family:var(--mono);font-size:12px;color:var(--acc);flex:0 1 auto;min-width:60px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sr .smeta{font-size:12px;color:var(--dim2);flex:1 1 120px;min-width:60px;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* Which model a star belongs to, shown only when it is NOT the active one. Plain text, no
      chip border — a border here would read as clickable (project convention). */
   .sr .mtag{font-family:var(--mono);font-size:11px;color:var(--dim2);letter-spacing:.08em;
             text-transform:uppercase;white-space:nowrap;}
-  .sr input[type=text]{flex:1;min-width:170px;font-size:13px;padding:6px 10px;}
-  .sr .msg{font-size:12px;color:var(--good);min-width:52px;}
+  .sr input[type=text]{flex:1 1 140px;min-width:90px;font-size:13px;padding:6px 10px;}
+  .sr select,.sr button{flex:0 0 auto;}
+  .sr .msg{font-size:12px;color:var(--good);white-space:nowrap;}
+  @media (max-width:700px){ .sr{flex-wrap:wrap;} .sr .sid{min-width:150px;} }
   .empty{color:var(--dim2);font-style:italic;font-size:13.5px;}
 
   footer{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);
@@ -1855,7 +1861,11 @@ var VCTK_META_INLINE = {
           stars = [];
           for (var i = 0; i < d.value.length; i++) {
             var it = d.value[i];
-            if (it && typeof it.id === "string" && it.id) stars.push({ id: it.id, label: String(it.label || "") });
+            if (!it || typeof it.id !== "string" || !it.id) continue;
+            var lbl = String(it.label || "");
+            // #95.7 fix: the adopt path must derive gender exactly like loadStars, or a cloud
+            // pull lands a g-less bench and every ⚥ select reads "?" until the next reload
+            stars.push({ id: it.id, label: lbl, g: starG(it.g, lbl) });
           }
           lsSet(STARS_K, JSON.stringify(stars));
           lsSet(STARS_REV_K, String(rev));
@@ -2321,14 +2331,8 @@ var VCTK_META_INLINE = {
   }
 
   // ── Starred panel ──────────────────────────────────────────────────────────────────────────
-  function copyId(id, msgEl) {
-    function ok() { msgEl.textContent = "copied"; setTimeout(function () { msgEl.textContent = ""; }, 1600); }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(id).then(ok, function () { window.prompt("Copy this voice id:", id); });
-    } else {
-      window.prompt("Copy this voice id:", id);
-    }
-  }
+  // ("copy id" removed 2026-07-26, user call — it was the manual-assignment escape hatch from
+  // before the ★ optgroups listed the bench in both in-game pickers; it had served its purpose.)
 
   // STARS ARE GLOBAL ACROSS MODELS. The store already holds full "<model>#<idx>" ids, so a star
   // is resolved against ITS OWN model's speaker table, not the active one. A model the user has
@@ -2423,14 +2427,13 @@ var VCTK_META_INLINE = {
       });
       gsel.onchange = function () { stars[idx].g = gsel.value; saveStars(); };
 
-      var msg = el("span", "msg", "");
-      var cb = el("button", "", "copy id");
-      cb.onclick = function () { copyId(item.id, msg); };
       var xb = el("button", "", "✕");
       xb.title = "Remove from starred";
       xb.onclick = function () { stars.splice(idx, 1); saveStars(); renderStars(); renderRows(); };
 
       r.appendChild(pb);
+      // the full voice id still shows in the row (and in the label input's context) — "copy id"
+      // itself was retired 2026-07-26 (user call): the ★ optgroups made manual id-pasting obsolete
       r.appendChild(el("div", "sid", item.id));
       var sm = starMeta(item.id);
       if (sm.tag) r.appendChild(el("span", "mtag", sm.tag));
@@ -2441,8 +2444,6 @@ var VCTK_META_INLINE = {
       }
       r.appendChild(inp);
       r.appendChild(gsel);
-      r.appendChild(cb);
-      r.appendChild(msg);
       r.appendChild(xb);
       box.appendChild(r);
     });
