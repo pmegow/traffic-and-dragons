@@ -291,7 +291,7 @@ async function generateNpcSheet(name,doneCb){
     if(memNpc.knowledge&&memNpc.knowledge.length)ctx+="Known facts: "+memNpc.knowledge.join("; ")+"\n";
     if(memNpc.events&&memNpc.events.length){ctx+="Event log:\n";for(i=0;i<memNpc.events.length;i++)ctx+="  Turn "+memNpc.events[i].turn+": "+memNpc.events[i].note+"\n";}
   }
-  var prompt="Generate a full D&D-style character sheet for a party member NPC. Use the game world, tone, and lore you already know. "
+  var prompt="Generate a full D&D-style character sheet for an NPC of this world (they may be a townsperson, an official, a merchant — not necessarily an adventurer; choose class and stats that fit who they actually are). Use the game world, tone, and lore you already know. "
     +"Be creative but strictly consistent with all known facts listed below.\n\nKnown information:\n"+ctx+"\n"
     +"Output ONLY a single valid JSON object — no markdown, no code fences, no commentary:\n"
     +'{"gender":"M/F/NB","age":"age as string","appear":"full physical description","mark":"distinguishing mark or empty string","backstory":"2-3 sentence backstory consistent with known events",'
@@ -370,7 +370,11 @@ function showNpcSheet(name){
   var memNpc=memory&&memory.npcs?memory.npcs[name]:null;
   if(!wsNpc&&!memNpc)return;
   var isParty=!!(wsNpc&&wsNpc.partyMember);
-  var sheet=isParty&&wsNpc&&wsNpc.charSheet?wsNpc.charSheet:null;
+  /* #96 follow-up (2026-07-26): the sheet renders for ANY NPC that has one — it was party-gated,
+     which hid the voice control (and the sheet itself) from every non-party NPC, so a townsfolk
+     speaker could never be cast ("Ameiko has a voice, why not Hemlock?"). Party-only features
+     (portrait editing, Part ways, Play-as, Export) keep their own isParty gates below. */
+  var sheet=wsNpc&&wsNpc.charSheet?wsNpc.charSheet:null;
 
   var initials=csInitials(name);
   var portrait=npcPortrait(wsNpc); // charSheet-first (#3 dedupe) — also fixes companions whose portrait arrived in the blob but not the separate store (known issue #6)
@@ -457,7 +461,7 @@ function showNpcSheet(name){
   // ── Generate button (first-time only) ─────────────────────────────────────
   // Regenerate was DROPPED (user call 2026-07-21): a footgun that re-rolled a good sheet with no
   // real use-case. Generate stays — it's the ONLY in-game way a [PARTY_MEMBER:] joiner gets a sheet.
-  var genBtnHtml=(isParty&&!sheet)?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>&#10022; Generate Character Sheet</button></div>":"";
+  var genBtnHtml=(wsNpc&&!sheet)?"<div style='margin-top:16px;'><button id='npc-gen-sheet' style='display:block;width:100%;padding:11px 14px;font-size:13px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>&#10022; Generate Character Sheet</button></div>":"";/* #96: any roster NPC can get a sheet — a sheet (with gender) is what voice casting resolves against */
   var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
   var modal=modalShell("npc-modal",/* #14 */

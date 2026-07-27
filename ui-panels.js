@@ -101,7 +101,11 @@ function updateHUD(){
   // ── NPCs (non-party) ─────────────────────────────────────────────────────
   /* v1.439 (F3, brief B): present-parts render — the old concat printed "undefined / rel" for an
      absent mood and a dangling " / " for the now-legal empty one (same fix class as api.js:479) */
-  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember){var _sbBits=[];if(worldState.npcs[i].status)_sbBits.push(worldState.npcs[i].status);if(worldState.npcs[i].rel&&worldState.npcs[i].rel!=="unknown")_sbBits.push(worldState.npcs[i].rel);npcR+=sr(escHtml(worldState.npcs[i].name),escHtml(_sbBits.join(" / ")||"—"));}}
+  /* #96 follow-up (2026-07-26): non-party rows are CLICKABLE → showNpcSheet — before this there
+     was NO UI path to a non-party NPC's sheet at all, so one could never be generated and voice
+     casting had nothing to resolve against ("why does Hemlock read as the narrator?"). Same
+     data-npc + delegated-binding pattern as the party rows below (escHtml covers the attribute). */
+  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember){var _sbBits=[];if(worldState.npcs[i].status)_sbBits.push(worldState.npcs[i].status);if(worldState.npcs[i].rel&&worldState.npcs[i].rel!=="unknown")_sbBits.push(worldState.npcs[i].rel);npcR+='<div class="sb-row sb-npc-row" data-npc="'+escHtml(worldState.npcs[i].name)+'" style="cursor:pointer;" title="Open '+escHtml(worldState.npcs[i].name)+'’s sheet"><span class="sb-k">'+escHtml(worldState.npcs[i].name)+'</span><span class="sb-v">'+escHtml(_sbBits.join(" / ")||"—")+'</span></div>';}}
   var qR="",qOffered=0;for(i=0;i<worldState.questLog.length;i++){var _q=worldState.questLog[i];if(_q.status==="offered")qOffered++;qR+="<div class='sb-row' style='cursor:pointer;' onclick='showQuestModal()'><span class='sb-k'>"+escHtml(_q.title)+"</span><span class='sb-v'>"+escHtml(_q.status)+"</span></div>";}
   var questSec=worldState.questLog.length?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;cursor:pointer;" onclick="showQuestModal()">Quests'+(qOffered?' &middot; <span style="color:var(--warn);">⚑ '+qOffered+' opportunit'+(qOffered>1?'ies':'y')+'</span>':'')+'</div>'+qR+'</div>':"";
   // Factions
@@ -113,6 +117,7 @@ function updateHUD(){
     +questSec;
   // ── Party section — built programmatically to avoid onclick string escaping ──
   var partySec=document.getElementById("sb-party-sec");
+  Array.prototype.forEach.call(sb.querySelectorAll(".sb-npc-row[data-npc]"),function(r){r.addEventListener("click",function(){showNpcSheet(r.getAttribute("data-npc"));});});/* #96: non-party NPC rows open the sheet (offers Generate when none exists) */
   var playerBtn=document.createElement("button");playerBtn.className="sb-party-btn sb-pb-player";playerBtn.textContent=hero.name;/* P2: hero-anchored — always the hero's sheet, whoever holds the spotlight */playerBtn.addEventListener("click",showCharSheet);partySec.appendChild(playerBtn);
   for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].partyMember){(function(nm){var btn=document.createElement("button");btn.className="sb-party-btn";btn.textContent=nm;btn.addEventListener("click",function(){showNpcSheet(nm);});partySec.appendChild(btn);})(worldState.npcs[i].name);}}
 }
