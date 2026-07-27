@@ -29,8 +29,22 @@ var CAR_STR = {
   voiceUnavailable: "Voice input not available in this browser",
   retrying: "Retrying…",
   sending: "Sending…",
-  errorPrefix: "⚠ "
+  errorPrefix: "⚠ ",
+  // #78 — numbered options (CAR_MODE.md Phase 2)
+  readingOptions: "Your options…",
+  gettingOptions: "Getting your options…",
+  noOptions: "No suggestions — just say what you do",
+  noOptionsYet: "No options to repeat yet"
 };
+// #78 — how long the mic is HELD after narration while the suggestions (a SECOND, async LLM call
+// — see generateActions) are still in flight. The doc's Phase 2 predates #14/v1.110, which moved
+// the options out of GM prose entirely, so on a short turn the read would otherwise be asked for
+// before the options exist. User ruling 2026-07-27: hold, then fall back loudly.
+var CAR_OPT_WAIT_MS = 3000;
+var CAR_OPT_POLL_MS = 300;
+var _carOptRead     = false;   // options already spoken for the CURRENT turn
+var _carOptDeadline = 0;       // 0 = not yet waiting; else the give-up timestamp
+var _carOptTimer    = null;
 
 // rank 5 — re-acquire the wake lock when the tab regains visibility while carMode is still on
 // (the lock auto-releases whenever the document is hidden, per spec). Single persistent
@@ -61,7 +75,84 @@ function carNotify(kind, text) {
   } else if (kind === "response") {
     if (typeof TTS !== "undefined" && typeof TTS.earcon === "function") TTS.earcon("ready");
     _carRetryArmed = false;
+    _carOptReset();   // #78: a new turn's narration is starting — its options have not been read
   }
+}
+
+// ── #78: numbered options ────────────────────────────────────────────────────
+// Reset per turn. Called on carNotify("response") (a fresh GM turn) and on entering Car Mode.
+function _carOptReset() {
+  _carOptRead = false;
+  _carOptDeadline = 0;
+  if (_carOptTimer) { clearTimeout(_carOptTimer); _carOptTimer = null; }
+}
+// THE single source for what the options are, per CAR_MODE.md: the live .qa buttons on the newest
+// narration. Deliberately not worldState.lastActions — the DOM copy is already punctuated (#88)
+// and is exactly what the screen shows, so spoken / displayed / submitted can never disagree.
+// While generateActions is still in flight its placeholder buttons carry no data-action, so this
+// returns [] — which IS the "not ready yet" signal the hold below waits on.
+function _carActions() {
+  var out = [], story = document.getElementById("story-narrative");
+  if (!story) return out;
+  var nars = story.querySelectorAll(".msg.narrator");
+  if (!nars.length) return out;
+  var btns = nars[nars.length - 1].querySelectorAll("button.qa"), i, a;
+  for (i = 0; i < btns.length; i++) { a = btns[i].getAttribute("data-action"); if (a) out.push(a); }
+  return out;
+}
+// Speak the menu now. Cancels any live listen first — the mic must never hear our own read
+// (CAR_MODE.md's listen-vs-speak rule). Returns false when there is nothing to say.
+function _carReadOptions() {
+  var acts = _carActions();
+  if (!acts.length) return false;
+  if (typeof TTS === "undefined" || typeof TTS.speak !== "function") return false;
+  if (typeof STT !== "undefined") { if (typeof STT.cancel === "function") STT.cancel(); else if (STT.stop) STT.stop(); }
+  TTS.speak(buildOptionsSpeech(acts));
+  _carSetStatus(CAR_STR.readingOptions);
+  return true;
+}
+// The options step of the post-narration loop. Returns TRUE when it has taken over this cycle —
+// either by speaking (whose own queue-drain re-enters _carAutoMic, and _carOptRead is set by then,
+// so the mic follows) or by scheduling another poll. Returns false to let the mic open now.
+function _carOptionsStep() {
+  if (_carOptRead) return false;
+  if (_carReadOptions()) { _carOptRead = true; return true; }
+  if (!_carOptDeadline) _carOptDeadline = Date.now() + CAR_OPT_WAIT_MS;
+  if (Date.now() < _carOptDeadline) {
+    _carSetStatus(CAR_STR.gettingOptions);
+    if (_carOptTimer) clearTimeout(_carOptTimer);
+    _carOptTimer = setTimeout(function() { _carOptTimer = null; if (carMode) _carAutoMic(); }, CAR_OPT_POLL_MS);
+    return true;
+  }
+  // Gave up — generateActions failed or is pathologically slow. Say so out loud rather than
+  // opening the mic in silence (the driver would not know whether to expect a menu).
+  _carOptRead = true;
+  if (typeof TTS !== "undefined" && typeof TTS.speak === "function") { TTS.speak(CAR_STR.noOptions); return true; }
+  return false;
+}
+// CROSS-LANE HOOK (same contract style as carNotify): stt.js hands every final transcript here
+// FIRST. Returns true when Car Mode consumed it as a command — the caller must then NOT send it
+// as a turn. Parsing lives here, not in stt.js, so Car Mode semantics stay in the Car Mode lane.
+function carVoiceCommand(text) {
+  if (!carMode || typeof parseCarCommand !== "function") return false;
+  var acts = _carActions();
+  var cmd = parseCarCommand(text, acts.length);
+  if (!cmd) return false;
+  // Consumed: clear the field or _carTap's parked-utterance branch re-sends the command word
+  // later as a free-form action.
+  var inp = document.getElementById("action-input");
+  if (inp) inp.value = "";
+  if (cmd.kind === "repeatAll") { _carDoReplay(); return true; }
+  if (cmd.kind === "repeat") {
+    if (!_carReadOptions()) { carNotify("warn", CAR_STR.noOptionsYet); }
+    return true;
+  }
+  var pick = acts[cmd.n - 1];
+  if (!pick) { carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  if (typeof busy !== "undefined" && busy) { carNotify("info", CAR_STR.heardTapToSend); if (inp) inp.value = pick; return true; }
+  carNotify("sent");
+  if (typeof sendAction === "function") sendAction(typeof toFirstPerson === "function" ? toFirstPerson(pick) : pick);
+  return true;
 }
 
 function _carAcquireWakeLock() {
@@ -95,6 +186,7 @@ function showCarMode() {
   var ov = document.getElementById("car-overlay");
   if (!ov) return;
   carMode = true;
+  _carOptReset();   // #78: entering mid-campaign, the on-screen options have not been READ aloud yet
   ov.style.display = "flex";
   closeAllMenus();
   if (typeof TTS !== "undefined") TTS.primeAudioSession();
@@ -351,6 +443,10 @@ function _carAutoMic() {
   // behavior) whenever the pref isn't wired up yet or hasn't been set, per the contract.
   var autoOn = (typeof STT === "undefined" || typeof STT.isAutoListen !== "function" || STT.isAutoListen());
   if (!autoOn) return;
+  // #78 — read the numbered menu BEFORE opening the mic. Returns true when it spoke or is still
+  // waiting on the suggestion call; either way this cycle ends here and the next queue-drain
+  // re-enters with _carOptRead set, so the mic opens after the driver has heard their choices.
+  if (_carOptionsStep()) return;
   setTimeout(function() {
     if (!carMode || (typeof busy !== "undefined" && busy) || (typeof STT !== "undefined" && STT.isListening())) return;
     _carStartMic();

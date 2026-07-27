@@ -51,8 +51,16 @@ existing auto-send then fires `sendAction(null)` on the final transcript. The re
 
 The options are already in the DOM as `.qa` buttons (`data-action`). Two layers:
 
-1. **TTS side:** today `speakResponse()` reads the raw `*You could A; B; or C.*` line. Car Mode reads
-   it as **"Option 1: A. Option 2: B. Option 3: C."** so the player has stable handles.
+1. **TTS side:** Car Mode speaks **"Option 1: A. Option 2: B. Option 3: C."** so the player has
+   stable handles.
+   > ⚠ **Stale premise, corrected 2026-07-27 (v1.456).** This line used to read "today
+   > `speakResponse()` reads the raw `*You could A; B; or C.*` line" — true when written, but
+   > **#14 (v1.110) removed that line from GM prose entirely**. Suggestions now arrive from a
+   > *second, async* LLM call (`generateActions`) that resolves *after* narration has already
+   > started, so on a short turn the narration drains before the options exist. Phase 2 is
+   > therefore not "reformat a line we already speak" — it is a separate spoken passage plus a
+   > **hold**: after narration, wait up to `CAR_OPT_WAIT_MS` (3s) for the options, read them,
+   > *then* open the mic; if they never come, say so aloud and listen anyway.
 2. **STT side:** parse the transcript for an ordinal/number — `one|two|three|first|second|third|last|
    option N|number N` — and map to the Nth `.qa` button's `data-action`. If no number matches, treat
    the whole transcript as a free-form action (the GM handles arbitrary input fine).
@@ -136,7 +144,7 @@ that's where iOS will surprise us.
 | Phase | Scope | Est. |
 |---|---|---|
 | **1 — Close the loop** | `TTS._drain()` onComplete → `STT.start()` → existing auto-send. A bare 🚗 toggle that forces TTS-on + STT-auto. Prove the hands-free turn cycle end-to-end. | M |
-| **2 — Numbered options** | `speakResponse()` reads "Option N: …"; STT number-word → `.qa` match; free-speech fallback. | M |
+| **2 — Numbered options** | ✅ **SHIPPED v1.456 (#78).** Car Mode speaks "Option N: …" after narration (holding the mic up to 3s for the async suggestion call, then a spoken fallback); STT number-word → `.qa` match; free-speech fallback; `repeat` re-reads options, `repeat everything`/⏮ replays the scene. | M |
 | **3 — Car Mode shell + CarPlay audio** | Dedicated minimal UI (on the phone), oversized controls, local voice commands (repeat/pause/resume/exit), settings save+restore. **`navigator.mediaSession`** for CarPlay/lock-screen Now-Playing + steering-wheel controls; audio interruption/resume handling. | M |
 | **4 — Robustness** | Mishear recovery, retry caps, optional barge-in, **real-device (Android Chrome + iOS) testing**. | M–L |
 

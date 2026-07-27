@@ -267,6 +267,58 @@ function punctuateAction(s){
   if(!s)return s;
   return /[.!?…]["'”’)\]]?$/.test(s)?s:s+".";
 }
+// ── #78 Car Mode: numbered options — the two PURE pieces (engine-tested) ────────────────────
+// buildOptionsSpeech renders the spoken menu; parseCarCommand recognizes what the driver said
+// back. Both live here (not ui-carmode.js) so the DOM-free harness can exercise them.
+//
+// "Option 1: …" rather than a bare list — the number is the handle the driver speaks back, so it
+// has to lead. Each action is punctuated first (#88) so splitSentences gives clean pause
+// boundaries between options instead of running them together.
+function buildOptionsSpeech(acts) {
+  if (!acts || !acts.length) return "";
+  var out = [], i, a;
+  for (i = 0; i < acts.length; i++) {
+    a = String(acts[i] || "").replace(/^\s+|\s+$/g, "");
+    if (!a) continue;
+    out.push("Option " + (out.length + 1) + ": " + punctuateAction(a));
+  }
+  return out.join(" ");
+}
+// THE FALSE-POSITIVE RULE: a command must be the WHOLE utterance, never a substring. "I attack the
+// second guard" and "repeat the ritual" are ACTIONS — matching a bare /second|repeat/ anywhere in
+// the transcript would silently eat real turns, which is far worse than missing a command (the
+// driver just repeats themselves). So every pattern below is anchored ^…$ over the trimmed,
+// punctuation-stripped text, with only a short filler prefix ("uh", "let's", "I'll take") allowed.
+// Returns {kind:"pick",n} (1-based) | {kind:"repeat"} (options only) | {kind:"repeatAll"} | null.
+var CAR_CMD_FILLER = /^(?:uh+|um+|ok(?:ay)?|so|well|hey|please|lets|i(?:ll| will| want to| wanna)?(?: take| do| pick| choose| go with)?|give me|do|take|pick|choose|go with|the)\s+/;
+var CAR_ORDINALS = { one: 1, two: 2, three: 3, four: 4, first: 1, second: 2, third: 3, fourth: 4, "1": 1, "2": 2, "3": 3, "4": 4 };
+function parseCarCommand(text, optionCount) {
+  var t = String(text == null ? "" : text).toLowerCase();
+  // apostrophes are DELETED, not spaced — spacing them splits "let's"→"let s" and "I'll"→"I ll",
+  // which is exactly the filler the strip below is trying to remove
+  t = t.replace(/['’]/g, "").replace(/[.,!?;:"”“]+/g, " ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+  if (!t) return null;
+  var prev = null, guard = 0;
+  while (t !== prev && guard++ < 4) { prev = t; t = t.replace(CAR_CMD_FILLER, ""); }   // strip stacked filler
+  // "the second one" → "second". Anchored to ORDINALS only: a blanket /\s+one$/ strip would turn
+  // "choice one" into "choice" and lose a legitimate pick.
+  t = t.replace(/^(first|second|third|fourth|last)\s+one$/, "$1");
+  if (!t) return null;
+  // full-scene replay must be tested BEFORE the options replay — "repeat everything" also
+  // starts with "repeat", and the more specific phrase has to win
+  if (/^(?:repeat|read|say|play)\s+(?:it\s+|that\s+|the\s+)?(?:everything|all|scene|story|narration|again from the start)$/.test(t)
+      || /^(?:repeat|read)\s+everything$/.test(t) || /^everything again$/.test(t)) return { kind: "repeatAll" };
+  if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)
+      || /^(?:what are )?(?:my )?(?:the )?(?:options|choices)(?: again)?$/.test(t)
+      || /^repeat (?:the )?(?:options|choices)$/.test(t)) return { kind: "repeat" };
+  var n = null, m;
+  if (CAR_ORDINALS[t] !== undefined) n = CAR_ORDINALS[t];
+  else if ((m = /^(?:option|number|choice)\s+(\w+)$/.exec(t)) && CAR_ORDINALS[m[1]] !== undefined) n = CAR_ORDINALS[m[1]];
+  else if (/^last$/.test(t)) n = optionCount || 0;
+  if (!n) return null;
+  if (optionCount && n > optionCount) return null;   // "four" with 3 options is not a pick — let it be an action
+  return { kind: "pick", n: n };
+}
 // bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
 // HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
 // (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
@@ -348,6 +400,12 @@ function sttLev(a,b){
 var STT_COMMON={about:1,after:1,again:1,against:1,ahead:1,all:1,along:1,also:1,always:1,and:1,any:1,anyone:1,anything:1,are:1,around:1,ask:1,attack:1,away:1,back:1,bag:1,be:1,before:1,begin:1,behind:1,below:1,beside:1,best:1,better:1,between:1,blade:1,block:1,body:1,both:1,bow:1,bread:1,break:1,bring:1,but:1,buy:1,call:1,camp:1,can:1,care:1,carefully:1,carry:1,cast:1,catch:1,cave:1,chase:1,check:1,city:1,climb:1,close:1,come:1,could:1,count:1,cover:1,cut:1,dagger:1,dark:1,day:1,deal:1,defend:1,did:1,dig:1,do:1,dodge:1,does:1,done:1,door:1,down:1,drag:1,draw:1,drink:1,drop:1,each:1,east:1,eat:1,edge:1,end:1,enter:1,even:1,ever:1,every:1,eyes:1,face:1,far:1,fast:1,fight:1,find:1,fire:1,first:1,fix:1,flee:1,floor:1,follow:1,food:1,foot:1,forest:1,forward:1,from:1,front:1,gate:1,get:1,give:1,go:1,goes:1,going:1,gold:1,good:1,grab:1,great:1,ground:1,guard:1,hand:1,has:1,have:1,head:1,hear:1,heal:1,held:1,help:1,her:1,here:1,hide:1,high:1,hill:1,him:1,his:1,hit:1,hold:1,home:1,horse:1,house:1,how:1,hurry:1,if:1,inn:1,inside:1,into:1,is:1,it:1,its:1,jump:1,just:1,keep:1,key:1,kill:1,knife:1,know:1,last:1,lead:1,leave:1,left:1,let:1,light:1,like:1,listen:1,little:1,lock:1,long:1,look:1,loot:1,low:1,make:1,man:1,many:1,map:1,mark:1,market:1,may:1,me:1,men:1,might:1,mine:1,more:1,most:1,mount:1,move:1,much:1,must:1,my:1,near:1,need:1,never:1,new:1,next:1,night:1,no:1,north:1,not:1,nothing:1,now:1,off:1,old:1,on:1,once:1,one:1,only:1,open:1,other:1,our:1,out:1,outside:1,over:1,own:1,pass:1,path:1,pay:1,pick:1,place:1,plan:1,point:1,potion:1,pull:1,push:1,put:1,quick:1,quiet:1,quietly:1,read:1,ready:1,rest:1,return:1,ride:1,ridge:1,right:1,river:1,road:1,rock:1,roll:1,room:1,rope:1,run:1,said:1,same:1,save:1,say:1,scout:1,search:1,see:1,sell:1,send:1,set:1,shield:1,ship:1,shoot:1,shop:1,short:1,should:1,show:1,side:1,signal:1,sit:1,sleep:1,slow:1,slowly:1,small:1,sneak:1,so:1,some:1,someone:1,something:1,soon:1,south:1,speak:1,spell:1,stab:1,stand:1,start:1,stay:1,steal:1,step:1,still:1,stone:1,stop:1,street:1,strike:1,such:1,swim:1,sword:1,take:1,talk:1,tavern:1,tell:1,than:1,that:1,the:1,their:1,them:1,then:1,there:1,these:1,they:1,think:1,this:1,those:1,three:1,through:1,throw:1,time:1,to:1,together:1,told:1,too:1,torch:1,toward:1,town:1,track:1,trade:1,trail:1,tree:1,try:1,turn:1,two:1,under:1,until:1,up:1,upon:1,us:1,use:1,very:1,view:1,village:1,wait:1,wake:1,walk:1,wall:1,want:1,warn:1,watch:1,water:1,way:1,we:1,weapon:1,wear:1,well:1,went:1,were:1,west:1,what:1,when:1,where:1,which:1,while:1,who:1,why:1,will:1,window:1,with:1,within:1,without:1,woman:1,wood:1,woods:1,word:1,work:1,would:1,yes:1,yet:1,you:1,your:1};
 // Function words that may not LEAD a bigram (joining "the"+noun makes phantom names); "a" is
 // deliberately allowed — "a mutt" → Ammut is a real recognizer split.
+// #78 (2026-07-27): the menu/ordinal vocabulary joins STT_COMMON. The list already protected
+// one/two/three/first/last/again but NOT second/third/option/repeat — so a roster holding
+// "Theros" silently rewrote a spoken "third" into a name, eating the driver's pick (and, before
+// Car Mode existed, mangling any ordinary "take the third door"). These are plain English words;
+// by this table's own rule they are (almost) never a mangled fantasy name.
+"second third fourth option options number choice choices repeat everything scene story".split(" ").forEach(function(w){ STT_COMMON[w]=1; });
 var STT_BIGRAM_NOLEAD={the:1,to:1,of:1,in:1,on:1,at:1,is:1,it:1,and:1,or:1,for:1,with:1,my:1,we:1,he:1,she:1,they:1,i:1};
 // One roster word ↔ one transcript candidate. Returns a match quality (lower = better) or -1.
 function sttWordScore(candRaw,nameWord){

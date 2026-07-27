@@ -205,6 +205,19 @@ var STT = (function() {
     var carModeOn = (typeof carMode !== "undefined" && carMode);
     var autoOn = isAutoSend() || carModeOn;
     var text = el ? el.value.trim() : "";
+
+    // #78 — Car Mode voice commands ("two" / "repeat" / "repeat everything") get first refusal on
+    // every final transcript. MUST sit above BOTH gates below: the busy branch would park a
+    // command as if it were an action, and the rank-8 short-transcript gate (<3 chars) would eat
+    // a spoken "1"/"2" outright AND clear the field. carVoiceCommand returns true only when it
+    // fully handled the utterance; anything it declines falls through as a normal action.
+    if (carModeOn && _gotFinal && text && typeof carVoiceCommand === "function") {
+      var _consumed = false;
+      try { _consumed = carVoiceCommand(text); }
+      catch (e) { console.warn("[stt] car voice command failed — treating as a normal action:", e && e.message); }
+      if (_consumed) { if (el) el.blur(); return; }
+    }
+
     var canSend = autoOn && _gotFinal && el && text && typeof sendAction === "function";
 
     if (!canSend) {

@@ -78,6 +78,64 @@ function runEngineTests(R){
       ?eq(punctuateAction("(Say nothing.)"),"(Say nothing.)"):"quote-closed case altered";
   });
   t("punctuateAction: trailing whitespace trimmed before the mark is appended",function(){return eq(punctuateAction("Search the crates   "),"Search the crates.");});
+  // ── #78 Car Mode numbered options: the two pure pieces ──────────────────────────────────
+  t("buildOptionsSpeech: numbers each option, punctuates it, skips blanks, empty→\"\"",function(){
+    var s=buildOptionsSpeech(["Search the crates","Ask about the letter?","Charge in!"]);
+    if(s!=="Option 1: Search the crates. Option 2: Ask about the letter? Option 3: Charge in!")return "wrong speech: "+s;
+    // a blank entry must not consume a number — the driver's "two" has to match the SECOND thing they heard
+    if(buildOptionsSpeech(["Run","","Hide"])!=="Option 1: Run. Option 2: Hide.")return "blank entry consumed a number: "+buildOptionsSpeech(["Run","","Hide"]);
+    return eq(buildOptionsSpeech([]),"")===true?eq(buildOptionsSpeech(null),""):"empty list did not yield empty string";
+  });
+  t("parseCarCommand: picks by ordinal, digit, word and 'option N' — with filler stripped",function(){
+    var want=[["two",2],["Two.",2],["second",2],["the second one",2],["option 2",2],["number three",3],["choice one",1],
+              ["uh, two",2],["okay let's do three",3],["I'll take option 1",1],["give me the third one",3],["3",3],["last",3]];
+    for(var i=0;i<want.length;i++){
+      var r=parseCarCommand(want[i][0],3);
+      if(!r||r.kind!=="pick"||r.n!==want[i][1])return JSON.stringify(want[i][0])+" → "+JSON.stringify(r)+", wanted pick "+want[i][1];
+    }
+    return true;
+  });
+  t("parseCarCommand: a real ACTION containing a number word is NEVER a pick (the eat-the-turn failure)",function(){
+    // This is the case that matters: a substring match here silently swallows a player's turn.
+    var actions=["I attack the second guard","repeat the ritual","tell her about the first murder","take the third vial and run",
+                 "say again to the innkeeper that we paid","one of the guards is lying","search the room for options",
+                 "ask what my choices are worth","two guards block the door"];
+    for(var i=0;i<actions.length;i++){
+      var r=parseCarCommand(actions[i],3);
+      if(r)return JSON.stringify(actions[i])+" was eaten as "+JSON.stringify(r)+" — it is a free-form action";
+    }
+    return true;
+  });
+  t("parseCarCommand: repeat vs repeat-everything are distinct, and the specific phrase wins",function(){
+    var opts=["repeat","again","say again","repeat that","one more time","options","choices","what are my options","repeat the options"];
+    for(var i=0;i<opts.length;i++){var r=parseCarCommand(opts[i],3);if(!r||r.kind!=="repeat")return JSON.stringify(opts[i])+" → "+JSON.stringify(r)+", wanted repeat";}
+    var alls=["repeat everything","read everything","repeat the scene","repeat it all","everything again"];
+    for(i=0;i<alls.length;i++){var r2=parseCarCommand(alls[i],3);if(!r2||r2.kind!=="repeatAll")return JSON.stringify(alls[i])+" → "+JSON.stringify(r2)+", wanted repeatAll";}
+    return true;
+  });
+  t("parseCarCommand: an out-of-range number is an ACTION, not a pick; empty/garbage yields null",function(){
+    if(parseCarCommand("four",3))return "'four' picked with only 3 options — must fall through to free-form";
+    if(parseCarCommand("option 9",3))return "'option 9' picked with only 3 options";
+    var r=parseCarCommand("four",4);
+    if(!r||r.n!==4)return "'four' should pick with 4 options: "+JSON.stringify(r);
+    if(parseCarCommand("",3)||parseCarCommand(null,3)||parseCarCommand("   ",3))return "empty input produced a command";
+    return parseCarCommand("the",3)===null?true:"bare filler produced a command";
+  });
+  t("#78: name-correction must not EAT a spoken command word (the 'third'→'Theros' class)",function(){
+    // Found live while building: sttCorrectNames runs BEFORE the Car Mode interceptor, and
+    // STT_COMMON protected one/two/three/first/last but not second/third/option/repeat — so a
+    // roster containing "Theros" rewrote a spoken "third" into a name and the pick vanished.
+    // Also a pre-existing wart for ordinary play ("take the third door").
+    var roster=[{word:"Theros"},{word:"Drew"},{word:"Tui"},{word:"Wan"},{word:"Morwen"},{word:"Frizwick"},{word:"Sandpoint"}];
+    var cmds=["one","two","three","four","first","second","third","fourth","option two","number three","repeat","again","options","choices","repeat everything","last"];
+    for(var i=0;i<cmds.length;i++){
+      var corrected=sttCorrectNames(cmds[i],roster);
+      if(!parseCarCommand(corrected,4))return JSON.stringify(cmds[i])+" was corrected to "+JSON.stringify(corrected)+" and is no longer a command";
+    }
+    // the inverse must still hold — protecting these words cannot break real name snapping
+    var fixed=sttCorrectNames("more when and physics wait at sand point",roster);
+    return fixed==="Morwen and Frizwick wait at Sandpoint"?true:"name correction broke: "+fixed;
+  });
   t("punctuateAction: idempotent (running it twice is identical to once) and empty stays empty",function(){
     var once=punctuateAction("Draw steel"),twice=punctuateAction(once);
     return eq(once,twice)===true?eq(punctuateAction(""),""):"not idempotent: "+once+" -> "+twice;
