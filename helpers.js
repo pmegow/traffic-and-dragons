@@ -267,6 +267,26 @@ function punctuateAction(s){
   if(!s)return s;
   return /[.!?…]["'”’)\]]?$/.test(s)?s:s+".";
 }
+// ── #30: saved-render POINTERS — the pure list op (engine-tested) ───────────────────────────
+// A pointer is {f:filename, t:turn, k:kind} where kind is "renders" (written into the campaign
+// folder → RESTORABLE on a later load), "share" (handed to the OS share sheet → the file is in
+// Photos, which a web page can never read back) or "download" (browser downloads folder → path
+// unknown to us). Only "renders" can ever be restored; the others are an honest record of what
+// was saved where. Re-saving the same filename REPLACES its pointer (a re-render of the same
+// turn overwrites the same file on disk, so two pointers would be a lie).
+function renderPointerAdd(list, ptr, cap) {
+  var out = [], i, e;
+  if (!ptr || !ptr.f) return (list || []).slice();
+  for (i = 0; i < (list || []).length; i++) {
+    e = list[i];
+    if (!e || !e.f || e.f === ptr.f) continue;      // drop the superseded pointer for this file
+    out.push(e);
+  }
+  out.push({ f: String(ptr.f), t: (typeof ptr.t === "number" ? ptr.t : 0), k: String(ptr.k || "download") });
+  cap = cap || 60;
+  if (out.length > cap) out = out.slice(out.length - cap);   // oldest fall off the front
+  return out;
+}
 // ── #78 Car Mode: numbered options — the two PURE pieces (engine-tested) ────────────────────
 // buildOptionsSpeech renders the spoken menu; parseCarCommand recognizes what the driver said
 // back. Both live here (not ui-carmode.js) so the DOM-free harness can exercise them.

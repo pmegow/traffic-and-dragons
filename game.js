@@ -1559,11 +1559,18 @@ async function doRender(){
       b.addEventListener("mouseout",function(){b.style.background="var(--bg2)";});
       return b;
     }
-    var saveBtn=mkBtn("↓ Save","Save image to disk");
+    // #30: one funnel — share sheet (the only route to the phone's Photos app) → campaign folder
+    // → download. The click is the user gesture a lapsed folder permission needs, so the re-grant
+    // prompt can only happen from here. The turn is stamped now, since the pointer is what lets a
+    // later load re-attach this image to THIS narration frame.
+    var saveBtn=mkBtn("↓ Save","Save image (Photos on a phone, campaign folder on desktop)");
     saveBtn.addEventListener("click",function(){
       if(!imageUrl)return;
+      var _rt=worldState?worldState.turn:0;
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
-        var fname=buildFilename("render");exportToFolder("render",blob,fname);
+        var fname=buildFilename("render");
+        if(typeof saveRenderImage==="function")return saveRenderImage(blob,fname,_rt);
+        return exportToFolder("render",blob,fname);
       }).catch(function(){window.open(imageUrl,"_blank");});
     });
     // ✨ Enhance: second img2img pass over the FINISHED render — a hard cinematic relight/regrade

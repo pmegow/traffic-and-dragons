@@ -19,13 +19,16 @@ function buildFilename(type){
   if(type==="portrait") return base+"_portrait.png";
   return base+"_t"+turn;
 }
+function _downloadBlob(blob,filename){
+  var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+// Returns a Promise<bool>: true = written into the campaign folder (restorable later), false =
+// fell back to a browser download (path unknown to us). Existing callers ignore the return value,
+// so adding it is backward compatible.
 function exportToFolder(type,blob,filename){
-  if(!_campFolderHandle){
-    var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
-    return;
-  }
+  if(!_campFolderHandle){ _downloadBlob(blob,filename); return Promise.resolve(false); }
   var sub=_SUBFOLDERS[type]||"misc";
-  _campFolderHandle.getDirectoryHandle(sub,{create:true}).then(function(dir){
+  return _campFolderHandle.getDirectoryHandle(sub,{create:true}).then(function(dir){
     return dir.getFileHandle(filename,{create:true});
   }).then(function(fh){
     return fh.createWritable();
@@ -33,10 +36,159 @@ function exportToFolder(type,blob,filename){
     return w.write(blob).then(function(){return w.close();});
   }).then(function(){
     showToast("Saved to "+sub+"/"+filename);
+    return true;
   }).catch(function(e){
     showToast("Folder write failed: "+e.message);
-    var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+    _downloadBlob(blob,filename);
+    return false;
   });
+}
+
+// ── #30: the campaign folder must SURVIVE A RELOAD ───────────────────────────────────────────
+// _campFolderHandle was a plain var, so every reload (including File ▸ Clear cache & reload)
+// silently dropped it and the next save reverted to a download with no warning — the user picked
+// a folder once and quietly stopped getting files there. File System Access handles ARE
+// structured-cloneable, so IndexedDB can hold one across sessions. Permission does NOT survive:
+// a restored handle comes back in the "prompt" state and re-granting needs a USER GESTURE, so we
+// restore the handle at boot but only ask for permission inside a click (see _ensureFolderPerm).
+var FS_IDB="tnd_fs_v1", FS_IDB_STORE="handles", FS_IDB_KEY="campFolder";
+var _campFolderPending=null;   // restored but not yet re-permissioned
+function _idbOpen(){
+  return new Promise(function(res,rej){
+    if(typeof indexedDB==="undefined"||!indexedDB){rej(new Error("no indexedDB"));return;}
+    var rq=indexedDB.open(FS_IDB,1);
+    rq.onupgradeneeded=function(){var db=rq.result;if(!db.objectStoreNames.contains(FS_IDB_STORE))db.createObjectStore(FS_IDB_STORE);};
+    rq.onsuccess=function(){res(rq.result);};
+    rq.onerror=function(){rej(rq.error||new Error("indexedDB open failed"));};
+  });
+}
+function _idbSet(key,val){
+  return _idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(FS_IDB_STORE,"readwrite");
+    tx.objectStore(FS_IDB_STORE).put(val,key);
+    tx.oncomplete=function(){res(true);};tx.onerror=function(){rej(tx.error);};
+  });});
+}
+function _idbGet(key){
+  return _idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(FS_IDB_STORE,"readonly");
+    var rq=tx.objectStore(FS_IDB_STORE).get(key);
+    rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};
+  });});
+}
+function persistCampaignFolder(){
+  if(!_campFolderHandle)return Promise.resolve(false);
+  return _idbSet(FS_IDB_KEY,_campFolderHandle).catch(function(e){
+    console.warn("[files] could not persist the campaign folder handle — it will not survive a reload:",e&&e.message);
+    return false;
+  });
+}
+// Boot path. Never prompts (no gesture available); a handle whose permission has lapsed is parked
+// in _campFolderPending for the first save/restore that DOES have a gesture.
+function restoreCampaignFolder(){
+  return _idbGet(FS_IDB_KEY).then(function(h){
+    if(!h)return false;
+    if(!h.queryPermission){_campFolderHandle=h;updateCampFolderUI();return true;}
+    return h.queryPermission({mode:"readwrite"}).then(function(p){
+      if(p==="granted"){_campFolderHandle=h;updateCampFolderUI();return true;}
+      _campFolderPending=h;
+      console.info("[files] campaign folder restored but needs re-permission — will ask on the next save");
+      return false;
+    });
+  }).catch(function(e){console.warn("[files] campaign folder restore failed:",e&&e.message);return false;});
+}
+// Call from inside a user gesture. Resolves true when a usable folder handle is live.
+function _ensureFolderPerm(){
+  if(_campFolderHandle)return Promise.resolve(true);
+  if(!_campFolderPending||!_campFolderPending.requestPermission)return Promise.resolve(false);
+  var h=_campFolderPending;
+  return h.requestPermission({mode:"readwrite"}).then(function(p){
+    if(p!=="granted")return false;
+    _campFolderHandle=h;_campFolderPending=null;updateCampFolderUI();
+    return true;
+  }).catch(function(){return false;});
+}
+
+// ── #30: image saving that reaches the right place per platform ──────────────────────────────
+// A web page CANNOT write to the iOS Photos app or the Windows Pictures folder directly. The two
+// reachable primitives are the OS share sheet (Web Share Level 2 — the ONLY route to Photos) and
+// a folder/download on desktop. Order: share when the device offers it, else the campaign folder,
+// else a download.
+function canShareFiles(){
+  return !!(typeof navigator!=="undefined"&&navigator.share&&navigator.canShare&&typeof File==="function");
+}
+function shareImageFile(blob,filename){
+  return new Promise(function(res){
+    if(!canShareFiles()){res(false);return;}
+    var file;
+    try{file=new File([blob],filename,{type:blob.type||"image/jpeg"});}catch(e){res(false);return;}
+    var ok=false;
+    try{ok=navigator.canShare({files:[file]});}catch(e2){ok=false;}
+    if(!ok){res(false);return;}
+    navigator.share({files:[file],title:filename}).then(function(){res(true);}).catch(function(e3){
+      // AbortError = the user dismissed the sheet. That is a DECISION, not a failure — falling
+      // back to a download here would hand them a file they just declined to save.
+      res(!!(e3&&e3.name==="AbortError"));
+    });
+  });
+}
+// The one funnel for saving a render. Records a pointer describing WHERE it went, so a later load
+// knows what is restorable ("renders") and what is only a record ("share"/"download").
+function saveRenderImage(blob,filename,turn){
+  return shareImageFile(blob,filename).then(function(shared){
+    if(shared){recordRenderPointer(filename,turn,"share");return "share";}
+    return _ensureFolderPerm().then(function(){
+      return exportToFolder("render",blob,filename).then(function(toFolder){
+        recordRenderPointer(filename,turn,toFolder?"renders":"download");
+        return toFolder?"folder":"download";
+      });
+    });
+  });
+}
+function recordRenderPointer(filename,turn,kind){
+  if(!worldState)return;
+  if(typeof renderPointerAdd!=="function")return;
+  worldState.renders=renderPointerAdd(worldState.renders||[],{f:filename,t:(typeof turn==="number"?turn:(worldState.turn||0)),k:kind},typeof RENDER_PTR_CAP==="number"?RENDER_PTR_CAP:60);
+  if(typeof saveAll==="function")saveAll();
+}
+// Re-attach saved renders to the narration frames they belong to, after a reload/clear-cache.
+// ONLY "renders" pointers are restorable: a shared image lives in Photos, which a web page can
+// never read back, and a download's path is unknown to us. A file that no longer exists is
+// skipped silently — the row's explicit requirement. Resolves with the number restored.
+function restoreSavedRenders(){
+  if(!worldState||!worldState.renders||!worldState.renders.length)return Promise.resolve(0);
+  if(!_campFolderHandle)return Promise.resolve(0);
+  var ptrs=[],i;
+  for(i=0;i<worldState.renders.length;i++)if(worldState.renders[i]&&worldState.renders[i].k==="renders")ptrs.push(worldState.renders[i]);
+  if(!ptrs.length)return Promise.resolve(0);
+  return _campFolderHandle.getDirectoryHandle(_SUBFOLDERS.render,{create:false}).then(function(dir){
+    var done=0;
+    function step(n){
+      if(n>=ptrs.length)return done;
+      var p=ptrs[n];
+      return dir.getFileHandle(p.f,{create:false}).then(function(fh){return fh.getFile();}).then(function(file){
+        if(_attachRestoredRender(file,p))done++;
+      }).catch(function(){/* gone from disk — skip this one, exactly as specified */})
+        .then(function(){return step(n+1);});
+    }
+    return Promise.resolve(step(0));
+  }).catch(function(){return 0;});
+}
+function _attachRestoredRender(file,ptr){
+  var story=document.getElementById("story-narrative");
+  if(!story)return false;
+  var frame=story.querySelector('.msg.narrator[data-turn="'+ptr.t+'"]');
+  if(!frame)return false;                                   // that turn isn't on screen — nothing to attach to
+  if(frame.querySelector('img.restored-render[data-f="'+ptr.f+'"]'))return false;   // already there
+  var img=document.createElement("img");
+  img.className="restored-render";
+  img.setAttribute("data-f",ptr.f);
+  img.alt="Saved render, turn "+ptr.t;
+  img.style.cssText="display:block;max-width:100%;border-radius:8px;margin-top:10px;";
+  img.src=URL.createObjectURL(file);
+  img.onload=function(){setTimeout(function(){URL.revokeObjectURL(img.src);},0);};
+  frame.appendChild(img);
+  return true;
 }
 function _slugFolderName(s){return(s||"Campaign").replace(/[^a-zA-Z0-9_\-]/g,"_");}
 function _openCampaignSubfolder(rootHandle,campName){
@@ -44,6 +196,8 @@ function _openCampaignSubfolder(rootHandle,campName){
   return rootHandle.getDirectoryHandle(slug,{create:true}).then(function(sub){
     _campRootHandle=rootHandle;
     _campFolderHandle=sub;
+    _campFolderPending=null;
+    persistCampaignFolder();   // #30: survive the next reload
     updateCampFolderUI();
     return sub;
   });
@@ -107,7 +261,10 @@ function renameCampaignFolder(newName){
   }).catch(function(e){showToast("Folder rename failed: "+e.message);});
 }
 function clearCampaignFolder(){
-  _campFolderHandle=null;_campRootHandle=null;
+  _campFolderHandle=null;_campRootHandle=null;_campFolderPending=null;
+  // #30: forget the PERSISTED handle too — otherwise "cleared" would silently un-clear itself on
+  // the next reload, which is exactly the kind of lie the persistence was added to remove.
+  _idbSet(FS_IDB_KEY,null).catch(function(){});
   updateCampFolderUI();
   showToast("Campaign folder cleared.");
 }

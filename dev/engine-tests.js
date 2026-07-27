@@ -78,6 +78,43 @@ function runEngineTests(R){
       ?eq(punctuateAction("(Say nothing.)"),"(Say nothing.)"):"quote-closed case altered";
   });
   t("punctuateAction: trailing whitespace trimmed before the mark is appended",function(){return eq(punctuateAction("Search the crates   "),"Search the crates.");});
+  // ── #30 saved-render pointers ────────────────────────────────────────────────────────────
+  t("renderPointerAdd: appends, records the kind, and never stores image bytes",function(){
+    var l=renderPointerAdd([],{f:"camp_t3.jpg",t:3,k:"renders"},60);
+    if(l.length!==1)return "not appended: "+JSON.stringify(l);
+    if(l[0].f!=="camp_t3.jpg"||l[0].t!==3||l[0].k!=="renders")return "pointer shape wrong: "+JSON.stringify(l[0]);
+    // the whole point of a POINTER: three small fields, nothing resembling a data URL
+    return Object.keys(l[0]).sort().join(",")==="f,k,t"?true:"unexpected fields: "+Object.keys(l[0]);
+  });
+  t("renderPointerAdd: re-saving the SAME file replaces its pointer (a re-render overwrites on disk)",function(){
+    var l=renderPointerAdd([],{f:"a.jpg",t:1,k:"download"},60);
+    l=renderPointerAdd(l,{f:"b.jpg",t:2,k:"renders"},60);
+    l=renderPointerAdd(l,{f:"a.jpg",t:1,k:"renders"},60);   // same file, now saved to the folder
+    if(l.length!==2)return "duplicate pointer for one file: "+JSON.stringify(l);
+    var a=null,i;for(i=0;i<l.length;i++)if(l[i].f==="a.jpg")a=l[i];
+    if(!a||a.k!=="renders")return "the newer kind did not win: "+JSON.stringify(a);
+    return l[l.length-1].f==="a.jpg"?true:"the re-saved file should move to the end (newest): "+JSON.stringify(l);
+  });
+  t("renderPointerAdd: capped from the FRONT — this list rides the sync blob and must not grow forever",function(){
+    var l=[],i;
+    for(i=0;i<12;i++)l=renderPointerAdd(l,{f:"r"+i+".jpg",t:i,k:"renders"},5);
+    if(l.length!==5)return "cap not enforced: "+l.length;
+    if(l[0].f!=="r7.jpg"||l[4].f!=="r11.jpg")return "wrong window kept (oldest must drop): "+l.map(function(p){return p.f;}).join(",");
+    return true;
+  });
+  t("renderPointerAdd: junk in cannot corrupt the list",function(){
+    var base=renderPointerAdd([],{f:"good.jpg",t:1,k:"renders"},60);
+    if(renderPointerAdd(base,null,60).length!==1)return "null pointer changed the list";
+    if(renderPointerAdd(base,{t:5},60).length!==1)return "a pointer with no filename was stored";
+    var l=renderPointerAdd([{f:"keep.jpg",t:1,k:"renders"},null,{t:9}],{f:"new.jpg",t:2,k:"share"},60);
+    if(l.length!==2)return "malformed EXISTING entries were not dropped: "+JSON.stringify(l);
+    var n=l[l.length-1];
+    return (n.k==="share"&&typeof n.t==="number")?true:"new pointer malformed: "+JSON.stringify(n);
+  });
+  t("renderPointerAdd: a missing turn/kind degrades to sane defaults rather than undefined",function(){
+    var l=renderPointerAdd([],{f:"x.jpg"},60);
+    return (l[0].t===0&&l[0].k==="download")?true:"defaults wrong: "+JSON.stringify(l[0]);
+  });
   // ── #78 Car Mode numbered options: the two pure pieces ──────────────────────────────────
   t("buildOptionsSpeech: numbers each option, punctuates it, skips blanks, empty→\"\"",function(){
     var s=buildOptionsSpeech(["Search the crates","Ask about the letter?","Charge in!"]);

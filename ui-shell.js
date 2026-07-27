@@ -225,7 +225,8 @@ function stickStoryBottomAfterPanel(){
   setTimeout(apply,300);   // > the .2s width transition; harmless if transitionend already fired
 }
 function addMsg(type,html,opts){var isTTMsg=(type==="tabletalk");var story=document.getElementById(isTTMsg?"story-tabletalk":"story-narrative");var div=document.createElement("div");div.className="msg "+type;
-if(type==="narrator"&&opts&&opts.turn!=null)html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
+if(type==="narrator"&&opts&&opts.turn!=null){html="<div class='msg-turn'>Turn "+opts.turn+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
+  div.setAttribute("data-turn",opts.turn);}/* #30: machine-readable twin of the marker above — restoreSavedRenders finds a turn's frame by attribute instead of parsing "Turn N" out of display text */
 div.innerHTML=html;
 if(opts&&opts.sp)div._sp=opts.sp;/* #9: speaker map for this passage; also assignable later, once the post-pass resolves */
 if(opts&&opts.replayText&&typeof TTS!=="undefined"){(function(text){var rb=document.createElement("button");rb.className="tts-replay";rb.title="Replay";rb.innerHTML="&#128266;";rb.onclick=function(){

@@ -355,6 +355,18 @@ function initState(saved){
     addMsg("system","Welcome back, "+worldState.character.name+".");
     addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
     initReplaySession();
+    // #30: bring back the campaign folder (a plain var until now, so every reload silently
+    // dropped it), THEN re-attach any saved renders to the turns they belong to. Ordered and
+    // chained — restoreSavedRenders needs the handle. Both fail soft: no folder, no permission,
+    // or a deleted file just means fewer images, never an error path for the player.
+    if(typeof restoreCampaignFolder==="function"){
+      restoreCampaignFolder().then(function(ok){
+        if(ok&&typeof restoreSavedRenders==="function")return restoreSavedRenders();
+        return 0;
+      }).then(function(n){
+        if(n)console.info("[files] restored "+n+" saved render"+(n===1?"":"s")+" into the narrative");
+      }).catch(function(e){console.warn("[files] render restore skipped:",e&&e.message);});
+    }
     if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
     if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
     // rank 13 (todo_carplay) — restore Car Mode across a reload/tab-reclaim mid-drive; flag
