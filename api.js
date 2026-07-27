@@ -443,9 +443,15 @@ function buildSayComplianceNudge(){
   var last=null,i;
   for(i=sessionLog.length-1;i>=0;i--){if(sessionLog[i]&&sessionLog[i].role==="assistant"){last=String(sessionLog[i].content||"");break;}}
   if(!last)return"";
-  if(last.indexOf("[SAY:")>=0)return"";
-  if((last.match(/["“”]/g)||[]).length<2)return"";/* no quoted dialogue — nothing was mis-voiced */
-  return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's. From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
+  var quoteChars=(last.match(/["“”]/g)||[]).length;
+  if(quoteChars<2)return"";/* no quoted dialogue — nothing was mis-voiced */
+  var sayCount=(last.match(/\[SAY:/g)||[]).length;
+  // Partial compliance counts as non-compliance (Fable review entry 7): each tagged speech accounts
+  // for ~2 quote chars, so tags present but >=2 untagged quote-pairs of slack means lines shipped
+  // mis-voiced. The +4 slack keeps a compliant response with a scare quote / inch marks silent.
+  if(sayCount>0&&quoteChars<2*sayCount+4)return"";
+  var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
+  return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
 var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
@@ -1156,7 +1162,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
 }
 
 // The vision prompt behind "🔍 Describe appearance from image" (portrait modal + creation wizard).
-// Hoisted to a named constant so it is greppable and testable, like SPEAKER_SYS/TAG_REINFORCE.
+// Hoisted to a named constant so it is greppable and testable, like TAG_REINFORCE.
 //
 // ⚠ WHY THE DURABILITY RULE IS LOAD-BEARING (user field note 2026-07-27: "spilling from beneath an
 // olive coloured hood" is too specific): char.appear is not a caption, it is CANON with two

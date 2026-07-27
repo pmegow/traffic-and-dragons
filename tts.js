@@ -2929,10 +2929,13 @@ var TTS = (function() {
 
   function _buildPiperVoiceOptions() {
     var cur = resolvePiperVoice(), html = starOptionsHtml(cur);
-    // #95: a composite pick that is NOT starred (star deleted, or an id imported from another
-    // device) still selects its base model, so the select never renders with nothing selected —
-    // which would silently report its FIRST option's value on the next Save.
-    var curBase = _isStarred(cur) ? null : voiceBaseId(cur);
+    // #95 (v1.462, Fable review entry 7): a composite pick that is NOT starred (star deleted, or an
+    // id imported from another device) renders as its OWN selected option, full composite value.
+    // Selecting only its base model — the pre-v1.462 behavior — meant an untouched Save silently
+    // rewrote composite -> base (speaker discarded, persisted AND synced) under a "saved" toast.
+    var comp = (!_isStarred(cur) && voiceSpeaker(cur) !== null) ? cur : null;
+    if (comp) html += "<option value='" + _escOpt(comp) + "' selected>" + _escVal(_voiceLabelOf(comp)) + "</option>";
+    var curBase = (comp || _isStarred(cur)) ? null : voiceBaseId(cur);
     for (var i = 0; i < PIPER_VOICES.length; i++) {
       var v = PIPER_VOICES[i];
       html += "<option value='" + v.id + "'" + (v.id === curBase ? " selected" : "") + ">" + _escVal(v.label) + "</option>";

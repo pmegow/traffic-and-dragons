@@ -169,6 +169,13 @@ var storageAdapter = (function() {
   function logoutFromServer(cb) {
     var url = _serverUrl, tok = _token;
     setServer(null, null);   // clear local state immediately
+    // v1.462 (Fable review entry 7, brief B): the prefs rev markers are ACCOUNT-scoped state on a
+    // device key. Left behind, a later login as a different account can read its cloud rev as
+    // "already seen" (marker collision -> plan says none) and this device's old bench then pushes
+    // into the new account's row on the next edit. Clear the markers, keep the bench itself —
+    // local stars are device data; the next boot pull re-adopts whatever the account holds.
+    store.del(SPEAKER_STARS_REV_KEY);
+    store.del("tnd_speaker_gender_overrides_rev_v1");
     if (!url) { if (cb) cb(); return; }
     // Send the token so the server can actually invalidate the session — without the
     // Authorization header logout was client-side amnesia only (audit #25). Timed + status-checked
@@ -719,7 +726,15 @@ var storageAdapter = (function() {
   // so a corrupt store can never block adopting the good cloud copy — and a rev>0 answer whose
   // value is NOT an array (a corrupt cloud row) is never adopted, so it can't blank a device.
   function speakerStarsPlan(localJson, localRevRaw, srv) {
-    var srvRev = (srv && typeof srv.rev === "number" && isFinite(srv.rev)) ? srv.rev : 0;
+    // Server-rev coercion (v1.462, Fable review entry 7): a numeric-STRING rev (proxy/serializer
+    // drift) means the number it encodes, and a present-but-unreadable rev is an UNKNOWN server
+    // state — act on nothing. Before this, any non-number rev read as "never written" and the
+    // plan SEEDED, overwriting a live cloud bench. Only a genuinely absent rev may read as 0.
+    var revRaw = srv ? srv.rev : 0, srvRev = 0;
+    if (typeof revRaw === "number" && isFinite(revRaw)) srvRev = revRaw;
+    else if (typeof revRaw === "string" && /^\s*\d+\s*$/.test(revRaw)) srvRev = parseInt(revRaw, 10);
+    else if (revRaw !== undefined && revRaw !== null) return { action: "none" };
+    if (srvRev < 0) srvRev = 0;
     var srvHasList = !!(srv && Object.prototype.toString.call(srv.value) === "[object Array]");
     var localRev = parseInt(localRevRaw, 10); if (isNaN(localRev) || localRev < 0) localRev = 0;
     var hasLocal = false;

@@ -702,6 +702,32 @@ function runEngineTests(R){
     if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"weird",{value:[{id:"m#2"}],rev:1}).action!=="adopt")return "non-numeric marker did not degrade to 0";
     return eq(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',null,{}).action,"seed");
   });
+  t("logout clears the account-scoped prefs rev markers, keeps the bench (v1.462, Fable review entry 7)",function(){
+    // Brief B: the rev markers are ACCOUNT state on device keys — surviving a logout, they can
+    // collide with a different account's rev ("already seen" -> plan says none) and this device's
+    // old bench then pushes into the new account's row on its next edit. The bench itself stays:
+    // local stars are device data, and the next boot pull re-adopts whatever the account holds.
+    store.set("tnd_speaker_stars_rev_v1","7");
+    store.set("tnd_speaker_gender_overrides_rev_v1","3");
+    store.set("tnd_speaker_stars_v1",'[{"id":"m#1","label":"A","g":"F"}]');
+    try{
+      storageAdapter.logoutFromServer();
+      if(store.get("tnd_speaker_stars_rev_v1")!=null)return "stars rev marker survived logout";
+      if(store.get("tnd_speaker_gender_overrides_rev_v1")!=null)return "gender-override rev marker survived logout";
+      if(store.get("tnd_speaker_stars_v1")==null)return "the bench itself was deleted — local stars are device data";
+    }finally{ store.del("tnd_speaker_stars_v1"); store.del("tnd_speaker_stars_rev_v1"); store.del("tnd_speaker_gender_overrides_rev_v1"); }
+    return true;
+  });
+  t("a rev the client can't read as a number NEVER seeds over a live cloud row (v1.462, Fable review entry 7)",function(){
+    // Brief B, task 7: a STRING rev ("5" — a proxy/serializer drift) read as "never written" and
+    // the plan SEEDED, overwriting the live rev-5 cloud bench. A numeric string must mean the
+    // number it encodes; a present-but-unreadable rev is an UNKNOWN server state — act on nothing.
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"1",{value:[{id:"m#2"}],rev:"5"}).action!=="adopt")return "string rev '5' was not adopted (read as never-written -> would seed over the live row)";
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"5",{value:[{id:"m#2"}],rev:"5"}).action!=="none")return "string rev equal to the marker should be none";
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"0",{value:[{id:"m#2"}],rev:"abc"}).action!=="none")return "unreadable rev 'abc' still acted (must be none)";
+    if(storageAdapter.speakerStarsPlan('[{"id":"m#1"}]',"0",{value:[{id:"m#2"}],rev:Infinity}).action!=="none")return "Infinity rev still acted (must be none)";
+    return true;
+  });
 
   // ── CAS 409 self-heal (the Halvard turn-0 false positive, 2026-07-13) ────────
   section("CAS 409 self-heal");
@@ -4818,6 +4844,24 @@ function runEngineTests(R){
     for(i in m.s)if(m.s[i]!=="Daeris")return "wrong name bound: "+m.s[i];
     return true;
   });
+  t("#96: markdown emphasis and em-dashes INSIDE a quoted line do not break its binding (_sayNorm mirrors the unit pipeline)",function(){
+    // Fable review entry 7, brief E (Z2/Z3): splitSentences runs normalizeForTTS on the clean text
+    // (emphasis stripped, em-dash -> ", "), but the deriver's SEGMENT text was raw — so a dash or
+    // *emphasis* inside the quote made the 48-char key unfindable and the line narrated flat
+    // (markdown: whole map null; em-dash: only the post-dash comma unit bound, line half-voiced).
+    var raw='[SAY:Daeris]"*Hold* the door," she says.';
+    var m=deriveSpeakerMapFromTags(raw,cleanTxt(raw));
+    if(!m||m.s[0]!=="Daeris")return "markdown inside the quote dropped the binding: "+JSON.stringify(m&&m.s);
+    raw='[SAY:Daeris]"Hold the door—and the stairs," she says.';
+    var clean=cleanTxt(raw);
+    m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "em-dash inside the quote dropped the whole map";
+    var u=TTS._textPrep.splitSentences(clean,null,true),i;
+    for(i=0;i<u.length;i++){
+      if(u[i].spk!==null&&u[i].spk!==undefined&&m.s[i]!=="Daeris")return "dialogue unit "+i+" ("+JSON.stringify(u[i].text)+") lost its voice: "+(m.s[i]||"(narrator)");
+    }
+    return true;
+  });
   t("#96: two IDENTICAL lines by different speakers bind in order, one each",function(){
     var raw='[SAY:Daeris]"Run for the gate," she says. He echoes her, harder. [SAY:Frizwick]"Run for the gate," he says.';
     var clean=cleanTxt(raw);
@@ -5226,6 +5270,14 @@ function runEngineTests(R){
       if(buildSayComplianceNudge()!=="")return "fired on a response with no dialogue";
       sessionLog=[{role:"assistant",content:'She smiles. "Fine." '},{role:"user",content:"GM: was that a real offer?"}];
       if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not find the newest ASSISTANT message past a trailing user message";
+      // Fable review entry 7, brief D (3c): ONE tag anywhere used to silence the nudge, so a
+      // response tagging 3 of 5 speeches shipped with two lines mis-voiced and no correction.
+      // Partial compliance (>=2 untagged quote-pairs of slack) must fire; a compliant response
+      // with a scare quote / inch marks must NOT (the slack absorbs non-dialogue quote chars).
+      sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says. [SAY:Morwen]"Fine," Morwen answers. [SAY:Ammut]"Pack light," you say. "No torches," the sheriff warns. "And no songs," the innkeeper adds.'}];
+      if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not fire on 3-of-5 partial compliance";
+      sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says. The sign calls it a "shortcut".'}];
+      if(buildSayComplianceNudge()!=="")return "fired on a compliant response with one scare-quoted word";
     }finally{ sessionLog=saved; }
     return true;
   });
@@ -7421,16 +7473,23 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
     return true;
   });
-  t("a composite pick still selects something in the model list when it is not starred",function(){
-    // Losing the star (or arriving from an import) must not leave the dropdown showing nothing —
-    // a select with no selected option silently reports its FIRST option's value on save.
+  t("an unstarred composite pick renders as ITS OWN selected option — an untouched Save must not rewrite it to the base",function(){
+    // v1.462 (Fable review entry 7, brief A / filed item 5): selecting only the BASE model row for
+    // an unstarred composite meant psel.value was the base on open, so a no-op Save silently
+    // persisted composite -> base (speaker discarded, locally AND via the sync blob). The pick now
+    // renders as an explicit option carrying the full composite value, labeled honestly.
     var K="tnd_speaker_stars_v1",saved=store.get(K),savedWs=(typeof worldState!=="undefined")?worldState:undefined;
     try{
       store.del(K);
       worldState={character:{name:"Tess"},piperVoice:"en_US-libritts_r-medium#204"};
       var html=TTS._speakerTest.piperOptions();
       if((html.match(/ selected/g)||[]).length!==1)return "expected exactly one selected option, got: "+(html.match(/ selected/g)||[]).length;
-      if(!/value='en_US-libritts_r-medium' selected/.test(html))return "the base model is not selected for an unstarred composite pin: "+html;
+      if(!/value='en_US-libritts_r-medium#204' selected/.test(html))return "the composite is not the selected option's VALUE (a Save would rewrite it): "+html;
+      if(html.indexOf("speaker 204")<0)return "the composite option is not labeled with its speaker number: "+html;
+      // a plain base pick keeps the old behavior: the model row itself is selected
+      worldState={character:{name:"Tess"},piperVoice:"en_GB-alba-medium"};
+      var h2=TTS._speakerTest.piperOptions();
+      if(!/value='en_GB-alba-medium' selected/.test(h2))return "a plain base pick no longer selects its model row: "+h2;
     }finally{ if(saved==null)store.del(K);else store.set(K,saved); worldState=savedWs; }
     return true;
   });

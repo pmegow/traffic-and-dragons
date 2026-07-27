@@ -13,7 +13,162 @@ Fable session can audit it in one pass.
 
 ## Pending Fable review
 
+*(empty — nothing queued)*
+
+---
+
+## Reviewed
+
 ### 7. TODO #95 speaker casting — four-agent Opus 5 build (v1.440)
+
+**Reviewed by Fable 2026-07-27 — scope WIDENED on the user's call to the full arc v1.440→v1.461
+(#95.4 export/import → superseded by #95.8 · #95.5 prefs/LWW cloud sync · #95.6 default bench ·
+#95.7 gendered auto-cast · #95.8 overrides + Push/Pull · #96 [SAY:] + its three field fixes).
+VERDICT: all five filed items adjudicated (①②③ PASS, ④ token-half PASS, ⑤ CONFIRMED);
+6 CONFIRMED defects fixed v1.462 + 6 cheap hardens; 1 NEW unsafe deriver class filed into #93;
+residues accepted with rationale below.** Evidence: five parallel Opus briefs A–E (voice identity /
+sync protocol / bench+casting / SAY drift surface / deriver runtime probes); verdicts and fixes by
+Fable, failing-test-first — 861 assertions green (858 → 861), 7 new source-contract clauses, every
+new guard sabotage-proven (scratch-mutation, never git-checkout), the F2 fix additionally
+live-verified through the real page (flip → starred row's `g` updated; unstarred row correctly
+untouched).
+
+**The five filed items:**
+
+1. **① `voiceBaseId` sweep — PASS.** Measured exactly 2 raw `#`-splits in tts.js, both inside the
+   sanctioned helpers (`voiceBaseId`/`voiceSpeaker`); all 26 protection/eviction/download/display/
+   routing sites normalize; ui-sheets delegates through `TTS.voiceBaseId`; no other game file
+   touches `#` on a voice id. Harden shipped: contract ⑦'s regex only saw the exact double-quoted
+   `split`/`lastIndexOf` spellings — now also catches `indexOf` and single-quoted variants
+   (dodge-by-spelling closed, sabotage-proven both ways).
+2. **② S2 strip boundary — PASS.** The composite reaches the server fetch body intact (pinned by
+   the existing source test); exactly ONE server→local-Piper edge exists (the unit-failure
+   handoff) and it strips via `voiceBaseId`; all five `predict()`/`download()` sites take a
+   normalized id. **Accepted residue:** the handoff drops the per-unit voices map, so a
+   multi-speaker passage's remainder reads mono-voice locally after a server failure — the
+   remainder is re-joined and re-split, so stored indices could not survive anyway; safe direction.
+3. **③ server-only range validation — PASS with a recorded residue.** The server range-checks
+   against the model's own `num_speakers` with proper 400s; the client's failure chain is loud
+   ONCE (toast + amber status + console + crumbs). Residue: a PERSISTENT stale composite (only
+   reachable via a future catalog re-curation) re-trips the 60s retry loop for the whole session,
+   console-only after the first toast, and each occurrence downgrades the rest of that passage.
+   Accepted while the catalogs are pinned; revisit if a re-curation ever happens.
+4. **④ satellite token + star-store contract — token half PASS, store half FIXED/HARDENED.** The
+   token never reaches a URL, the DOM, or a log; it is hand-rolled because the satellite cannot
+   load storage-adapter.js (structural, fine). The store's cross-surface shape was held by
+   discipline with real gaps — see F2/F4/F5 and the residues.
+5. **⑤ display-as-base — the filed fear was RIGHT (F1, fixed).** A non-starred composite narrator
+   voice rendered with its BASE model row selected, so an untouched Voice Settings **Save
+   silently rewrote composite→base** — persisted to `worldState.piperVoice` AND synced, under a
+   "saved" toast. Both dropdown hosts now render the composite as its OWN selected option
+   (honest `_voiceLabelOf` label); the sheet's Test button now auditions the real voice instead
+   of the base. The old pinned rendering test was re-baselined deliberately to assert the
+   composite VALUE is what's selected.
+
+**Confirmed defects fixed (v1.462, each red-first):**
+
+- **F1** — ⑤ above (tts.js `_buildPiperVoiceOptions` + ui-sheets `csVoiceControlHtml`).
+- **F2** — a main-table ⚥ gender correction on an **already-starred** voice wrote the override
+  store but never the star's own `g` — and the star's `g` is the ONLY channel the game's
+  auto-cast reads (the #95.8 row's "starred panel reads the corrected value" claim was false for
+  this case). The correction now propagates to the matching star row (`"?"` reverts to the
+  published `gMeta`), rides `saveStars` → cloud. Contract-pinned; live-verified in the real page.
+- **F3** — `_sayNorm` did not mirror `normalizeForTTS`, but the deriver's UNITS come out of
+  `splitSentences` post-normalized: an em-dash, `*emphasis*`, or `...` inside a quoted line made
+  its 48-char key unfindable — the line narrated flat (markdown: whole map null) or half-voiced
+  (em-dash: only the post-dash unit bound). Segment text now runs through the same
+  `normalizeForTTS` before `_sayNorm`. Safe-direction loss, but the audible partial-voicing class
+  was common GM prose.
+- **F4** — the satellite boot race (brief B, task 4): on a fresh device the DEFAULTS are on
+  screen while the boot GET is in flight, and an edit inside that window could land its debounced
+  PUT **before** the GET resolved — replacing an established rev>0 cloud bench with the defaults
+  (the stale GET then re-adopted the old bench with a lagging marker). Scheduled pushes now DEFER
+  until both boot pulls settle, and a successful adopt cancels any pending push timer (the other
+  leg: a queued pre-adopt edit re-PUTting over what was just adopted). Both contract-pinned.
+- **F5** — `speakerStarsPlan` read any non-`number` server rev as "never written" and SEEDED,
+  overwriting a live cloud row (a string `"5"` from a proxy/serializer drift was enough).
+  Numeric strings now coerce; a present-but-unreadable rev is an UNKNOWN server state → `none`.
+  The deliberately-pinned `{}`→seed semantics (absent rev = missing row) were kept.
+- **F6** — `buildSayComplianceNudge`'s all-or-nothing check: ONE `[SAY:` anywhere silenced it, so
+  a response tagging 3 of 5 speeches shipped two mis-voiced lines with no correction. Now fires
+  while ≥2 untagged quote-pairs of slack remain (`quoteChars >= 2*sayCount+4`), which keeps a
+  compliant response with a scare quote / inch marks silent. Note text distinguishes partial from
+  total non-compliance.
+
+**Hardens shipped alongside:** manual Pull's corrupt-cloud case now says "cloud bench unreadable
+(rev N) — kept this device's stars" instead of the inviting-a-Push "no bench yet"; the gender half
+of a manual Pull fails loudly (starioNote, was console-only on a clicked button); pending debounced
+pushes flush on `visibilitychange(hidden)`/`beforeunload` (an edit inside the 1.5s window used to
+strand on-device forever — marker already matched, so no later boot re-pushed it); **logout clears
+the two account-scoped prefs rev markers** (left behind, a different account's login could collide
+markers and push the old bench into the new account's row — engine-tested, red-proven; the bench
+itself stays, it's device data); contract-⑦ regex extension (①); the dangling `SPEAKER_SYS`
+comment removed (api.js).
+
+**Filed into #93 (not ride-along fixed — cross-assignment classes need their own test-first
+session):** the NEW W1/Z1 segment-collision class (quote-blind segment matching lets narration in
+speaker A's segment capture speaker B's identically-worded later line — well-formed quotes, no
+parity fault needed); the sharpened ① evidence (a `[SAY:]` tag CONVERTS a parity fault from
+silent-flat into audible wrong-voice; a following tag bounds the over-reach but mis-hands the
+remainder; paragraph breaks confine it; a stray CLOSING quote is equally unsafe); the curly-quote
+parity edge (the counter counts `["”]` but never `“` — **zero** curly quotes in 13,505 GM quote
+chars across every corpus, so theoretical; recorded, not fixed); and the untested-shapes list.
+
+**Affirmed clean (no change):** the stamp-ordering/memo-invalidation class — the pre-stamp
+`saveAll` window is exactly what `invalidateTranscriptMemo` closes, verified with a negative
+control (the entry-4/entry-6 class holds for the #96 writer); SAY registry discipline (parse-less
+row, strip everywhere it should strip and nowhere it shouldn't, doc line campaign-constant in the
+stable half, both frozen hashes re-baselined in ONE deliberate commit `a636fc3`, stable half
+byte-identical whether the nudge fires or not — the nudge rides the engine-note channel and never
+touches `buildSysPrompt`); the `sp.n` fuse and stale-name replay (whole-map drop on count drift,
+per-index drop on unresolvable names, no path to a wrong voice); zero dangling references to the
+five deleted post-pass functions; `pinAutoCastVoices` ordering (pin → `saveAll` on both turn
+paths, no overwrite of a human assignment, NB/sheet-less skip); auto-cast determinism across
+process reloads; the #95.6 default/cleared/corrupt truth table as claimed.
+
+**Accepted residues (rationale):** RAG's entity index now harvests speaker names from `[SAY:]`
+tags in the raw — affirmed as enrichment (speakers ARE present-scene entities; cap 12 unchanged);
+muted players still derive+stamp+pin+save (no model call, no synthesis — the write is cheap,
+deterministic, and stabilizes the eventual unmute; extends the documented muted-stamp rationale);
+the pin also writes the PLAYER's own `voiceId` (correct — sheet-editable, rides the blob; recorded
+here since the #96b note only mentions NPCs); companions joining via `[PARTY_MEMBER:]` get no
+creation-time voice stamp (first-speech pin covers them); nameless-but-gendered characters hash to
+`pool[0]` (sheet characters have names); an unknown-BASE pinned voiceId silently re-deals through
+auto-cast rather than narrator (reachable only by catalog removal; bounded, deterministic);
+case-variant `[SAY:]` names degrade silently to narrator (GM uses registered names — 18/18 in the
+field fixture; resolveNpcName is case-sensitive engine-wide, not worth a local fold); the
+satellite's `loadStars` accepts bare-string entries and defaults labels to `""` where the game
+uses the id (no writer produces those shapes; both CLOUD readers drop them; noted, not unified);
+an empty-string star store aliases to never-written (no writer can produce it — `saveStars`
+minimum is `"[]"`); Pull-replaces-without-confirm (user-ratified #95.8 semantics); engine-note
+text riding the suggestion call's `Player:` history lines (pre-existing for all 13 builders — a
+future nit, not a SAY defect); lowercase `[say:]` neither strips nor warns (pre-existing
+class-wide: `__tagUnknownScan` is uppercase-only — queued for the next tag_table pass, SAY at 3
+chars sits exactly on the scan's `{2,}` boundary); the satellite reads its token once per load
+(documented in-page); UNDETERMINED and left so: post-v1.449 field emission rate (no post-#96
+corpus in the repo — the server `session_log` evidence stands), non-Claude `[SAY:]` behavior
+(SAY is deliberately not in TAG_REINFORCE until a money-test says otherwise).
+
+**Receipts (delegated-evidence workflow, run 2):**
+
+| Brief | Theme | Tokens | Tool calls | Wall | Fed |
+|---|---|---|---|---|---|
+| A | voice identity | 183,539 | 43 | 466s | ①②③⑤ verdicts, F1, H-regex |
+| B | sync protocol | 157,251 | 35 | 412s | ④, F2, F4, F5, all Pull/logout hardens |
+| C | bench + casting | 149,891 | 28 | 359s | pin/persistence/bench affirmations + 6 residues |
+| D | SAY drift surface | 171,130 | 46 | 565s | drift-surface PASS block, F6, the quote census |
+| E | deriver probes | 151,932 | 30 | 449s | F3, the #93 fold, stamp verification |
+
+~814k subagent tokens / 182 tool calls total, all five briefs fully parallel (wall = the slowest,
+~9.4 min). Delegate quality: all five held the no-verdict contract, labeled UNDETERMINED honestly
+(A: field frequency of the ⑤ precondition; B: race likelihood; D: post-cutover emission rate),
+and declared scope growth explicitly; brief E's independent discovery of W1 — it was asked only to
+classify failure *directions* and went hunting for shapes beyond its list — was the run's best
+single find. Next-run note: brief B carried one task too many (7); split per-prefs-key next time.
+Also worth keeping: the F2 live flip-with-restore verification pattern (sandboxed preview origin,
+snapshot → exercise → restore) for satellite DOM logic the headless suite can't execute.
+
+**Original entry (as filed 2026-07-24):**
 
 - **Tier:** off the drift surface (output rendering), logged per the #9 precedent + the row's own
   "→ /fable-review" annotation. Built 2026-07-24 by four parallel Opus 5 agents (server pass-through /
@@ -31,10 +186,6 @@ Fable session can audit it in one pass.
   dropdowns (correct, or a silent rewrite risk on the next save?).
 - **Supporting docs:** DOC/DOC_speaker_casting.html (spec S1–S5); the four agent reports in this
   session's task files; TODO #95 row.
-
----
-
-## Reviewed
 
 ### 5. #16c diagnostics — one touch inside `summarize()` (drift surface)
 

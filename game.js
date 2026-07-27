@@ -237,16 +237,20 @@ function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/
 function deriveSpeakerMapFromTags(raw,clean){
   if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
   SAY_TAG_RE.lastIndex=0;
+  // Segment text must pass through the SAME character rewrites the units underwent (splitSentences
+  // runs normalizeForTTS: emphasis stripped, em/en-dash -> ", ", "..." -> "…") or a dash/markdown
+  // inside a quoted line makes its 48-char key unfindable and the line narrates flat.
+  var segNorm=function(t){return _sayNorm(TTS._textPrep.normalizeForTTS(t));};
   var segs=[],m,prevEnd=0,prevName=null,sawTag=false;
   while((m=SAY_TAG_RE.exec(raw))){
     sawTag=true;
-    segs.push({name:prevName,text:_sayNorm(raw.slice(prevEnd,m.index))});
+    segs.push({name:prevName,text:segNorm(raw.slice(prevEnd,m.index))});
     var nm=String(m[1]).replace(/^\s+|\s+$/g,"");
     prevName=nm||null;                                // [SAY: ] with a blank name owns its segment as narrator
     prevEnd=SAY_TAG_RE.lastIndex;
   }
   if(!sawTag)return null;
-  segs.push({name:prevName,text:_sayNorm(raw.slice(prevEnd))});
+  segs.push({name:prevName,text:segNorm(raw.slice(prevEnd))});
   var units=TTS._textPrep.splitSentences(clean,null,true);
   var out={},kept=0,si=0,off=0,i;
   for(i=0;i<units.length;i++){

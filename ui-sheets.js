@@ -72,11 +72,15 @@ function csVoiceControlHtml(char){
      dropdown; "" when nothing is starred, which is the normal state. The values are ordinary
      voiceId strings, so the save path below is unchanged. */
   opts+=(typeof TTS.starOptionsHtml==="function")?TTS.starOptionsHtml(cur):"";
-  /* #95: a composite pick that is NOT starred still selects its base model, so the select never
-     renders with nothing selected (a select with no selection reports its FIRST option on save). */
+  /* #95 (v1.462, Fable review entry 7): an unstarred composite renders as its OWN selected option
+     (full composite value, honest label) — selecting only the base model mis-described the voice
+     and made the Test button audition the WRONG one. The Voice Settings twin had the worse version
+     of the same bug (an untouched Save rewrote composite -> base); keep the two renderers aligned. */
   var starHit=false,st=(typeof TTS.starsList==="function")?TTS.starsList():[];
   for(i=0;i<st.length;i++){if(st[i].id===cur)starHit=true;}
-  var curBase=starHit?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
+  var isComp=!starHit&&cur&&typeof TTS.voiceBaseId==="function"&&TTS.voiceBaseId(cur)!==cur;
+  if(isComp)opts+="<option value='"+escHtml(cur)+"' selected>"+escHtml(typeof TTS.voiceLabel==="function"?TTS.voiceLabel(cur):cur)+"</option>";
+  var curBase=(starHit||isComp)?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
   for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===curBase?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
   return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
     +"<span title='This character speaks in this voice (rides exports and library imports)'>&#128266; Voice</span>"

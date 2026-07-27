@@ -140,8 +140,10 @@ try {
     process.exit(1);
   }
   // ⑦ #95: ONE helper, used everywhere. A scattered split("#") is how a base/composite mismatch
-  //    creeps back into a single call site nobody re-audits.
-  var _splits = (_nc(_tts).match(/\.split\("#"\)|lastIndexOf\("#"\)/g) || []).length;
+  //    creeps back into a single call site nobody re-audits. v1.462 (Fable review entry 7): the
+  //    net also catches indexOf and single-quoted variants — the old regex only saw the exact
+  //    double-quoted split/lastIndexOf spellings, so a dodge-by-spelling passed silently.
+  var _splits = (_nc(_tts).match(/\.split\(["']#["']\)|lastIndexOf\(["']#["']\)|(?:[^t]|^)indexOf\(["']#["']\)/g) || []).length;
   if (_splits > 2) {
     console.error("VOICE DELETE CONTRACT: tts.js takes voice ids apart on '#' in more than the two sanctioned places (voiceBaseId/voiceSpeaker) — every protection/eviction/download decision must normalize through the ONE helper (#95 spec R1).");
     process.exit(1);
@@ -207,6 +209,22 @@ try {
     _failSP("applyMetaInto no longer applies gender overrides — corrections vanish on every metadata load (#95.8)");
   if (!/_gOverrides\[key\] = gsel\.value/.test(_sbSP))
     _failSP("the main-table gender select no longer writes the override store (#95.8)");
+  // v1.462 (Fable review entry 7, brief B): ① a cloud adopt must cancel any pending debounced
+  // push — a queued pre-adopt edit re-PUTting after the adopt is one leg of the boot race that
+  // can overwrite an established cloud bench; ② scheduled pushes must DEFER while a boot pull is
+  // in flight (the other leg: an edit in the defaults-visible window lands its PUT before the
+  // GET resolves and replaces a rev>0 cloud bench with the defaults); ③ a main-table gender
+  // correction must reach an already-starred voice's OWN g field — the star's g is the only
+  // channel to the game's auto-cast, so without propagation the fix shows in the tally while
+  // casting keeps the stale gender.
+  if (!/function adoptCloudStars\([\s\S]{0,260}_pushTimer/.test(_sbSP))
+    _failSP("adoptCloudStars no longer cancels a pending debounced push — a queued pre-adopt edit would re-PUT over the adopted bench (v1.462)");
+  if (!/function adoptCloudGOv\([\s\S]{0,260}_govTimer/.test(_sbSP))
+    _failSP("adoptCloudGOv no longer cancels a pending debounced push (v1.462)");
+  if (!/_bootPull/.test(_sbSP) || !/function schedulePushStars\(\)[\s\S]{0,200}_bootPull/.test(_sbSP))
+    _failSP("the boot-pull push deferral is gone — an edit in the defaults-visible window can PUT over a live cloud bench before the boot pull resolves (v1.462)");
+  if (!/_gOverrides\[key\] = gsel\.value[\s\S]{0,700}stars\[[A-Za-z0-9_]+\]\.g/.test(_sbSP))
+    _failSP("the main-table gender select no longer propagates to a starred row's g — auto-casting keeps the stale gender (v1.462)");
   // ── DEFAULT BENCH CONTRACT (#95.6) ── the starter cast is duplicated in tts.js and
   // speaker_browser.html (the satellite is self-contained — no shared file possible), so the two
   // copies MUST stay byte-identical or new players see different benches in the game vs the browser.

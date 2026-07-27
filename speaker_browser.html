@@ -1816,8 +1816,22 @@ var VCTK_META_INLINE = {
       .catch(function (e) { cb((e && e.message) || "fetch failed"); });
   }
   var _pushTimer = null, _pushGen = 0;
+  // v1.462 (Fable review entry 7): while a boot pull is in flight the bench on screen may be the
+  // DEFAULTS (fresh device) — a debounced push landing before the GET resolves would replace an
+  // established rev>0 cloud bench with them. Scheduled pushes therefore DEFER until both boot
+  // pulls settle; a successful adopt also cancels any pending timer, so a queued pre-adopt edit
+  // can never re-PUT over the bench that was just adopted.
+  var _bootPull = 0, _pushDeferred = false, _govDeferred = false;
+  function _bootPullDone() {
+    _bootPull--;
+    if (_bootPull <= 0) {
+      if (_pushDeferred) { _pushDeferred = false; schedulePushStars(); }
+      if (_govDeferred) { _govDeferred = false; schedulePushGOv(); }
+    }
+  }
   function schedulePushStars() {
     if (!token()) return;
+    if (_bootPull > 0) { _pushDeferred = true; return; }
     if (_pushTimer) clearTimeout(_pushTimer);
     _pushTimer = setTimeout(pushStarsNow, 1500);
   }
@@ -1840,6 +1854,7 @@ var VCTK_META_INLINE = {
   // g-less bench and the ⚥ selects read "?" until the next reload.
   function adoptCloudStars(d, note) {
     if (!d || !Array.isArray(d.value)) return false;
+    if (_pushTimer) { clearTimeout(_pushTimer); _pushTimer = null; }   // v1.462: a pre-adopt edit's queued push must not re-PUT over what we just adopted
     stars = [];
     for (var i = 0; i < d.value.length; i++) {
       var it = d.value[i];
@@ -1856,12 +1871,14 @@ var VCTK_META_INLINE = {
   }
   function pullStarsOnBoot() {
     if (!token()) return;
+    _bootPull++;   // v1.462: hold scheduled pushes until this pull settles (defaults-window race)
     _prefGet("speaker_stars", function (err, d) {
-      if (err) { console.warn("[speaker_browser] cloud star pull failed:", err); return; }
+      if (err) { console.warn("[speaker_browser] cloud star pull failed:", err); _bootPullDone(); return; }
       var rev = (d && typeof d.rev === "number") ? d.rev : 0;
       var localRev = parseInt(lsGet(STARS_REV_K), 10); if (isNaN(localRev)) localRev = 0;
       if (rev > 0 && rev !== localRev) adoptCloudStars(d, true);
       else if (rev === 0 && stars.length) pushStarsNow();   // first contact: seed the cloud
+      _bootPullDone();
     });
   }
   // Gender overrides: same protocol, second key. Push is debounced off saveGOv; boot pull is
@@ -1869,6 +1886,7 @@ var VCTK_META_INLINE = {
   var _govTimer = null, _govGen = 0;
   function schedulePushGOv() {
     if (!token()) return;
+    if (_bootPull > 0) { _govDeferred = true; return; }   // v1.462: same deferral as the bench
     if (_govTimer) clearTimeout(_govTimer);
     _govTimer = setTimeout(pushGOvNow, 1500);
   }
@@ -1887,6 +1905,7 @@ var VCTK_META_INLINE = {
   }
   function adoptCloudGOv(d) {
     if (!d || !Array.isArray(d.value)) return false;
+    if (_govTimer) { clearTimeout(_govTimer); _govTimer = null; }   // v1.462: same as adoptCloudStars
     _gOverrides = {};
     for (var i = 0; i < d.value.length; i++) {
       var it = d.value[i];
@@ -1901,12 +1920,14 @@ var VCTK_META_INLINE = {
   }
   function pullGOvOnBoot() {
     if (!token()) return;
+    _bootPull++;
     _prefGet("speaker_gender_overrides", function (err, d) {
-      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); return; }
+      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); _bootPullDone(); return; }
       var rev = (d && typeof d.rev === "number") ? d.rev : 0;
       var localRev = parseInt(lsGet(GOV_REV_K), 10); if (isNaN(localRev)) localRev = 0;
       if (rev > 0 && rev !== localRev) adoptCloudGOv(d);
       else if (rev === 0 && govToArray().length) pushGOvNow();
+      _bootPullDone();
     });
   }
   // The manual buttons (#95.8, replacing file Export/Import — user call): Push writes this
@@ -1920,10 +1941,15 @@ var VCTK_META_INLINE = {
     if (!token()) { alert("Not connected — open the game, File ▸ Admin ▸ Connect to server, then reload this page."); return; }
     _prefGet("speaker_stars", function (err, d) {
       if (err) { starioNote("⚠ Cloud pull failed: " + err); return; }
-      if (!adoptCloudStars(d, true)) starioNote("Cloud has no bench yet — nothing to pull.");
+      if (!adoptCloudStars(d, true)) {
+        // v1.462: a rev>0 row whose value isn't an array is a CORRUPT cloud row, not an empty one —
+        // saying "no bench yet" would invite a Push that overwrites whatever the row was.
+        var _rev = (d && typeof d.rev === "number") ? d.rev : 0;
+        starioNote(_rev > 0 ? "⚠ Cloud bench unreadable (rev " + _rev + ") — kept this device's stars." : "Cloud has no bench yet — nothing to pull.");
+      }
     });
     _prefGet("speaker_gender_overrides", function (err, d) {
-      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); return; }
+      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); starioNote("⚠ Gender-fix pull failed: " + err); return; }   // v1.462: the user clicked Pull — a half-failure must not be console-only
       adoptCloudGOv(d);
     });
   }
@@ -2300,6 +2326,12 @@ var VCTK_META_INLINE = {
             else delete _gOverrides[key];
             saveGOv();
             applyGenderOverrides(MSTATE[MODEL_ID]);
+            // v1.462 (Fable review entry 7): the star's OWN g is the only channel the game's
+            // auto-cast reads, so a correction on an already-starred voice must land there too —
+            // before this, the tally showed the fix while casting kept the stale gender.
+            // Removing the override ("?") reverts the star to the published value.
+            var sp2 = starPos(key);
+            if (sp2 >= 0) { stars[sp2].g = (gsel.value === "M" || gsel.value === "F") ? gsel.value : starG(sp.gMeta, stars[sp2].label); saveStars(); }
             renderRows();       // filters/counts re-derive from the corrected value
             renderStars();      // the tally and star annotations follow immediately
           };
@@ -2602,7 +2634,13 @@ var VCTK_META_INLINE = {
   $("stopall").onclick = function () { stopAudition(); };
   $("star-push").onclick = pushToCloud;
   $("star-pull").onclick = pullFromCloud;
-  window.addEventListener("beforeunload", function () { stopAudition(); });
+  // v1.462 (Fable review entry 7): an edit inside the 1.5s debounce window used to be stranded on
+  // this device when the tab closed — the marker already equaled the cloud rev, so no later boot
+  // would seed or re-push it. Flush pending pushes when the page hides or unloads (game's syncNow
+  // pattern); fetch during unload is best-effort, visibilitychange(hidden) is the reliable hook.
+  function _flushPendingPushes() { if (_pushTimer) pushStarsNow(); if (_govTimer) pushGOvNow(); }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") _flushPendingPushes(); });
+  window.addEventListener("beforeunload", function () { stopAudition(); _flushPendingPushes(); });
 
   renderConn();
   buildModelSelect();
