@@ -26,6 +26,7 @@ pre code{background:none;padding:0;}
 .lean{display:inline-block;border-radius:12px;padding:2px 10px;font-family:Consolas,monospace;font-weight:bold;text-transform:uppercase;font-size:.78em;letter-spacing:1px;color:rgba(255,255,255,.4);}
 .lean.rec{background:#182215;border:1px solid var(--good);}
 .lean.open{background:#26200e;border:1px solid var(--warn);}
+.lean.ruled{background:#182215;border:1px solid var(--good);}
 .grid td{text-align:center;}
 .grid td.new{color:var(--good);}
 .grid td.empty{color:var(--bad);}
@@ -35,17 +36,18 @@ em{color:var(--t1);}
 <body>
 <main>
 <h1>Class Bible — character progression</h1>
-<div class="sub">Spec R1 (iteration 1 of N), 2026-07-27 · TODO #72 · scope ruled 2026-07-18 (one
-definitive source; <code>CLSS</code> migrated then DELETED) · every number below measured from the
-live engine via <code>dev/load-engine.js</code>, not from memory</div>
+<div class="sub">Spec R2, 2026-07-27 (R1 same day; all four forks RULED by the user) · TODO #72 ·
+scope ruled 2026-07-18 (one definitive source; <code>CLSS</code> migrated then DELETED) · every
+current-state number measured from the live engine via <code>dev/load-engine.js</code></div>
 
-<div class="box warn"><b>What this iteration is:</b> the ground truth of creation-time progression
-as it exists today, the proposed <code>class_bible.js</code> shape, and the design forks — each
-carrying a recommendation. It deliberately contains <b>no authored content yet</b> (no new spells,
-no archetype features): content authoring is iterations 2+, class by class, after the shape and
-the three open forks are ratified.</div>
+<div class="box good"><b>R2 status:</b> the shape is ratified. C1 schema + C3 archetype spine
+stand as drafted; the user ruled <b>C2 = picks</b>, <b>C4 = EXTEND the table, C4b = to L20</b>
+(overriding the soft-cap recommendation — the full classic arc), <b>C5 = creation-only
+familiarity seeds</b>. This revision bakes the rulings in: the level grid below now runs 1–20,
+and the authoring bill is restated honestly for that scope. Next gate: the user reviews this
+grid, then iteration 2 authors <b>Rogue 1–20</b> end-to-end as the template.</div>
 
-<h2>Part I — What character creation actually specs today (measured)</h2>
+<h2>Part I — What character creation actually specs today (measured, unchanged from R1)</h2>
 
 <h3>The level grid as shipped</h3>
 <table class="grid">
@@ -64,8 +66,7 @@ the three open forks are ratified.</div>
 </tr>
 </table>
 <p>Every level: HP = <code>ceil(hd/2)+1+CON_mod</code> (min 1), from <code>checkLevelUp</code>.
-XP table dead-ends at 64,000 (L10); past that, XP accrues and buys nothing. The live Runelords
-save sits at ~51k — the ceiling is months away, not years.</p>
+XP table dead-ends at 64,000 (L10). The live Runelords save sits at ~51k.</p>
 
 <h3>The seven class-keyed tables the bible absorbs (or references)</h3>
 <table>
@@ -86,110 +87,109 @@ only needs a name in the class bible plus one capability entry, and the GM sees 
 automatically. The archetype layer is the genuinely empty half: 27 archetypes with a description
 and nothing else.</div>
 
-<h2>Part II — The <code>class_bible.js</code> shape</h2>
+<h2>Part II — Decisions (all RULED)</h2>
 
 <div class="dec"><b>C1 — Schema: one entry per class, a per-level dict, archetypes nested with
-their own levels.</b> <span class="lean rec">RECOMMENDED</span>
+their own levels.</b> <span class="lean ruled">STANDS (R1)</span>
 <pre><code>CLASS_BIBLE = { "Rogue": {
   id:"Rogue", hd:8, prime:"DEX", gear:"…", desc:"…",
   statPriority:["DEX","INT","CON","WIS","CHA","STR"],
   abilities:[ "Sneak Attack", "Evasion", "Lockpick" ],   // names -> capability_bible
-  spellTiers:{},            // caster classes: {tierUnlockedAtLevel} + pick counts (C2)
+  skillSeeds:[ "stealth", "lockpicking" ],               // C5: creation-only Familiar seeds
+  spellTiers:{ 2:5, 3:7, 4:9, 5:11, 6:15 },              // C2: tier -> unlock level (casters)
   levels:{                  // CLASS features by level — names -> capability_bible
-    2:{features:["Cunning Action"]}, 5:{features:["Uncanny Dodge"]},
-    7:{features:["Evasion (Improved)"]}, 9:{features:["Blindsense"]} },
+    2:{features:["Cunning Action"]}, 5:{features:["Uncanny Dodge"]}, … },
   archetypes:[ { id:"arcanetrickster", nm:"Arcane Trickster", desc:"…",
     spells:{...},           // the ARCH_SPELLS grant, folded in
-    levels:{ 3:{features:["Mage Hand Legerdemain"]},     // the identity ability, NAMED
-             6:{features:["…"]}, 10:{features:["…"]} }   // authored in iterations 2+
+    levels:{ 3:{features:["Mage Hand Legerdemain"]}, 6:{…}, 10:{…},
+             14:{…}, 18:{…}, 20:{features:["<capstone>"]} }
   }, … ] } }</code></pre>
 Features become <b>named capability_bible entries</b> where they are actives or lookup-worthy
 passives (the racial_caps precedent) — which also fixes the <code>nm:"Lv9"</code> naming bug
-structurally: the sheet lists "Blindsense", and the GM gets its canon injected. Pure-flavor
-passives may stay prose. A coverage-guard test (again the racial_caps precedent) blocks a bible
-name with no capability entry from shipping.</div>
+structurally. Pure-flavor passives may stay prose. A coverage-guard test blocks a bible name with
+no capability entry from shipping.</div>
 
-<div class="dec"><b>C2 — Spell progression model.</b> <span class="lean open">OPEN FORK</span><br>
-(a) <b>auto-grant</b> whole tiers at unlock levels — zero UI, zero choice;<br>
-(b) <b>picks</b> — reuse the creation spell-picker at unlock levels (<code>SPELL_PICK_LIMITS</code>
-pattern: N picks per tier), choice preserved;<br>
-(c) hybrid — auto cantrips, picks for T1+.<br>
-<b>Recommendation: (b) picks.</b> The picker modal already exists and is field-proven at creation;
-choice is the fun half of levelling; and auto-grant would dump 5-6 spells at once on a caster
-level. Proposed unlock rhythm (full casters): T2 picks at L5, T3 at L7, T4 at L9 — which
-finally makes Necromancer T4 and the AT's Oubliate reachable by progression, exactly what the
-tier-open-endedness note in CLAUDE.md always intended. Content cost: most classes need T4 (and a
-few need deeper T2/T3 benches) authored — that is iterations 2+, and every new spell is one
-class-bible name + one capability entry.</div>
+<div class="dec"><b>C2 — Spell growth = PICKS at tier-unlock levels.</b>
+<span class="lean ruled">RULED 2026-07-27</span><br>
+Reuse the creation spell-picker at each unlock level (<code>SPELL_PICK_LIMITS</code>-style pick
+counts, per tier). Unlock rhythm for full casters under the L20 grid: <b>T2@L5 · T3@L7 · T4@L9 ·
+T5@L11 · T6@L15</b>. Necromancer T4 and the Arcane Trickster's Oubliate finally become reachable
+by progression. <b>Spell content caps at T6</b> as authored scope — the tier system stays
+open-ended beyond that (GM-grantable, per the standing CLAUDE.md note), but T7+ is not part of
+the #72 authoring bill. Half-casters (Ranger/Paladin) run one tier behind at each step; exact
+per-class pick counts are template-iteration material.</div>
 
-<div class="dec"><b>C3 — Fill the dead levels with an ARCHETYPE spine: L3 identity → L6 feature →
-L10 capstone.</b> <span class="lean rec">RECOMMENDED</span><br>
-Class features already own L2/5/7/9; stat bumps own L4/8. Giving archetypes L3/6/10 interleaves
-the two tracks so <b>every level grants something</b>, and L10 stops being an empty finale:
+<div class="dec"><b>C3 + C4/C4b — The 1–20 grid: table EXTENDED to L20, archetype spine
+throughout.</b> <span class="lean ruled">RULED 2026-07-27 (C4b = L20, the full classic arc)</span><br>
+Three tracks interleave so <b>every level 2–20 grants something</b>: class features at
+2/5/7/9/11/13/15/17, archetype rows at 3/6/10/14/18 + <b>capstone at 20</b>, stat bumps at
+4/8/12/16/19 (the D&amp;D-familiar cadence).
 <table class="grid">
-<tr><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L9</th><th>L10</th></tr>
-<tr><td>class</td><td>arch identity<br>+ spells</td><td>bump</td><td>class<br><span class="new">+T2 picks</span></td>
-<td class="new"><b>arch feature</b></td><td>class<br><span class="new">+T3 picks</span></td><td>bump</td>
-<td>class<br><span class="new">+T4 picks</span></td><td class="new"><b>arch CAPSTONE</b></td></tr>
+<tr><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th></tr>
+<tr><td>class</td><td>arch identity<br>+ spells</td><td>bump</td><td>class <span class="new">+T2</span></td>
+<td class="new">arch</td><td>class <span class="new">+T3</span></td><td>bump</td><td>class <span class="new">+T4</span></td>
+<td class="new">arch</td><td class="new">class +T5</td></tr>
+<tr><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th></th></tr>
+<tr><td class="new">bump</td><td class="new">class</td><td class="new">arch</td><td class="new">class +T6</td>
+<td class="new">bump</td><td class="new">class</td><td class="new">arch</td><td class="new">bump</td>
+<td class="new"><b>arch CAPSTONE</b></td><td></td></tr>
 </table>
-Authoring cost, stated honestly: 27 archetypes × (named identity + L6 feature + L10 capstone)
-= <b>~81 authored features</b>, plus the spell-bench expansion. This is the iterative bulk, and
-it is per-class shippable — one class can go fully live while eight still run the legacy grid.</div>
+<b>XP curve 11–20 (draft numbers, template-iteration material):</b> continue the current curve's
+shape toward the classic ~355k@20 — e.g. 85k · 100k · 120k · 140k · 165k · 195k · 225k · 265k ·
+305k · 355k. <code>getLvl</code>'s clamp moves to 20; <code>STAT_BUMP_LEVELS</code> becomes
+<code>[4,8,12,16,19]</code>.<br><br>
+<b>The honest authoring bill at L20 scope:</b> 9 classes × 4 new class features (L11/13/15/17)
+= <b>36</b> · 27 archetypes × 6 rows (named identity + L6/10/14/18 + capstone) = <b>162</b> ·
+T5+T6 spell benches across 6 caster classes ≈ <b>50–60</b> new capability entries · the XP curve.
+≈ <b>250–260 authored entries</b>, every one shippable per-class, every one auto-served to the GM
+by the existing bible injection. This is the iterative bulk the process was named for.</div>
 
-<div class="dec"><b>C4 — The L10 / 64k XP ceiling.</b> <span class="lean open">OPEN FORK</span><br>
-(a) <b>soft-cap</b>: L10 stays max; past 64k, every further ~20k XP banks an <b>epic boon</b>
-(small GM-offered list — the prestige shape);<br>
-(b) <b>extend the table</b> to L12 or beyond — more levels, more authoring, bigger balance
-surface;<br>
-(c) <b>deliberate end</b> — campaigns conclude at L10, XP past it is score.<br>
-<b>Recommendation: (a) soft-cap with boons.</b> It keeps the authored balance surface bounded at
-10 levels, mature campaigns (the product's proven strength) keep earning something, and boons can
-reference the capability bible like everything else. (c) fights the evidence — the live campaign
-is at t1188 and nowhere near done; (b) is the biggest authoring bill for the least distinct
-payoff.</div>
+<div class="dec"><b>C5 — Skills: creation-only familiarity seeds.</b>
+<span class="lean ruled">RULED 2026-07-27</span><br>
+Each class seeds <b>Familiar rank (1 success) in 2-3 signature skills at creation</b> —
+<code>skillSeeds</code> in the schema (Rogue: Stealth, Lockpicking; per-class lists are template
+material). One-time seed at <code>confirmChar</code>; the usage-driven system is otherwise
+untouched, and <b>existing saves are untouched</b> (seeds are creation-only — the C6 invariant
+holds; no retroactive grant). Per-level skill grants stay explicitly out of scope.</div>
 
-<div class="dec"><b>C5 — Skills stay usage-driven; classes touch them only at creation, if at
-all.</b> <span class="lean open">OPEN FORK — scope question</span><br>
-The 37-skill system levels by <i>doing</i> (success counts vs <code>SKILL_THRESHOLDS</code>) —
-orthogonal to XP and working in the field. Options: leave untouched (recommended for v1);
-or classes seed starting <i>Familiar</i> ranks in 2-3 signature skills (a Rogue starts Familiar in
-Stealth/Lockpicking — one-time creation seed, zero ongoing coupling). Anything deeper (per-level
-skill grants) would collide with the usage philosophy and is <b>not</b> recommended in any
-iteration.</div>
-
-<div class="dec"><b>C6 — Landing sequence (already ruled + the invariant).</b>
-<span class="lean rec">RATIFIED 2026-07-18</span><br>
+<div class="dec"><b>C6 — Landing sequence (ruled 2026-07-18) + the invariant.</b>
+<span class="lean ruled">RATIFIED</span><br>
 ① <code>classDef(id)</code> becomes THE lookup, collapsing ~30 hand-rolled loops — pure refactor,
 shippable alone. ② The backing store swaps to <code>CLASS_BIBLE</code> inside that one helper.
 ③ <code>CLSS</code> deleted. <b>Invariant test at every step: an existing character's derived
 values must not move</b> — load the live save before/after and assert identical hit die, features,
 archetype list, stat priority. Mid-campaign characters must not retroactively gain or lose
-anything; new grants apply only at their NEXT level-up. ⛨ Drift surface at step ② onward
-(level-up write path + char sheet + the bible-injection blocks): Fable builds those steps.</div>
+anything; new grants apply only at their NEXT level-up (Ammut at L9 sees the new world first at
+L10 — the archetype row — then T5 picks at L11). ⛨ Drift surface at step ② onward: Fable builds
+those steps.</div>
 
-<h2>Part III — Iteration plan</h2>
+<h2>Part III — Iteration plan (updated for the L20 ruling)</h2>
 <table>
 <tr><th>It.</th><th>Deliverable</th><th>Gate</th></tr>
-<tr><td>1</td><td><b>This spec</b> — shape + forks</td><td>user rules on C2 / C4 / C5</td></tr>
-<tr><td>2</td><td><b>One class authored end-to-end as the template</b> — recommend <b>Rogue</b>
-(the live campaign's class: richest field validation, and Ammut is L9 → immediately exercises the
-L9/T4 + L10-capstone rows). All three archetypes, full spell bench, every feature named into the
-capability bible</td><td>user reviews the content; template locks the authoring format</td></tr>
+<tr><td>1</td><td>Spec R1 → <b>R2</b> (this doc) — shape + all four forks ruled</td><td>✅ done;
+user sanity-checks the 1–20 grid + draft XP curve</td></tr>
+<tr><td>2</td><td><b>Rogue 1–20 authored end-to-end as the template</b> — all three archetypes
+(6 rows each), the full spell bench for Arcane Trickster through T6, class features L11/13/15/17,
+skill seeds, every feature named into the capability bible. Rogue is the live campaign's class:
+Ammut at L9 exercises the new rows immediately</td><td>user reviews content; template locks the
+authoring format</td></tr>
 <tr><td>3</td><td><code>classDef()</code> refactor + invariant tests (C6 ①) — independent, safe,
-Sonnet-tier</td><td>865-suite + save-invariant green</td></tr>
+Sonnet-tier</td><td>suite + save-invariant green</td></tr>
 <tr><td>4</td><td>Store swap + <code>checkLevelUp</code> reads the grid + spell-picker-at-unlock +
-<code>CLSS</code> deleted (C6 ②③) — Fable</td><td>invariant test on the live save; field level-up</td></tr>
+XP table to 20 + <code>CLSS</code> deleted (C6 ②③) — Fable</td><td>invariant test on the live
+save; a field level-up</td></tr>
 <tr><td>5</td><td>Remaining 8 classes authored (Sonnet data entry, Fable review), shippable
 per-class</td><td>coverage guard: every bible name resolves in the capability bible</td></tr>
 </table>
 
-<div class="box"><b>Explicitly deferred / out of scope for the bible:</b> multiclassing (no design
-exists and nothing in the engine wants it); per-level skill grants beyond the C5 creation seed;
-companion progression changes (<code>checkCompanionLevelUp</code> keeps its silent auto-level —
-it reads the same feature tables, so it inherits the bible for free at step C6-②).</div>
+<div class="box"><b>Explicitly deferred / out of scope:</b> multiclassing; per-level skill grants;
+T7+ spell content (open-ended, GM-grantable); companion progression changes
+(<code>checkCompanionLevelUp</code> reads the same tables and inherits the bible for free at
+C6-②); epic boons (superseded by the L20 ruling — if 355k is ever reached in the field, reopen
+as its own row).</div>
 
-<div class="sub" style="margin-top:34px">Traffic and Dragons · class bible spec R1 ·
-supersedes nothing (first spec on this surface) · TODO #72 carries the findings + ruling ·
+<div class="sub" style="margin-top:34px">Traffic and Dragons · class bible spec R2 ·
+R1 2026-07-27 (same day) · TODO #72 carries the findings + rulings ·
 versions: doc-only, no engine bump.</div>
 </main>
 </body>
