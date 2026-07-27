@@ -5023,6 +5023,28 @@ function runEngineTests(R){
     if(!worldState.consumableNudged||worldState.consumableNudged["|blasting charge"]!==100)return "cooldown latch not written: "+JSON.stringify(worldState.consumableNudged);
     return buildConsumableNudge()===""?true:"re-fired on an empty queue";
   });
+  t("#96: SAY-compliance nudge fires on untagged dialogue, silent on compliance / no dialogue / empty log",function(){
+    // The channel that closes the field gap (2026-07-26: 3/3 live responses dialogue-heavy, zero
+    // [SAY:] tags): momentum from the GM's own untagged sessionLog beats a doc line, so the
+    // correction rides an engine note. It must also go SILENT the moment compliance starts, or
+    // it becomes permanent prompt noise.
+    var saved=sessionLog;
+    try{
+      sessionLog=[];
+      if(buildSayComplianceNudge()!=="")return "fired on an empty session log";
+      sessionLog=[{role:"user",content:"I ask her."},{role:"assistant",content:'She nods. "We leave at dawn," she says. "Pack light."'}];
+      var n=buildSayComplianceNudge();
+      if(n.indexOf("VOICE TAGS MISSING")<0)return "did not fire on untagged dialogue: "+JSON.stringify(n);
+      if(n.indexOf("[SAY:Character Name]")<0)return "the note does not show the exact tag form";
+      sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says.'}];
+      if(buildSayComplianceNudge()!=="")return "fired even though the GM is complying";
+      sessionLog=[{role:"assistant",content:"The rain hammers the shutters all night. Nobody speaks."}];
+      if(buildSayComplianceNudge()!=="")return "fired on a response with no dialogue";
+      sessionLog=[{role:"assistant",content:'She smiles. "Fine." '},{role:"user",content:"GM: was that a real offer?"}];
+      if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not find the newest ASSISTANT message past a trailing user message";
+    }finally{ sessionLog=saved; }
+    return true;
+  });
   t("cooldown: latched item is not re-queued inside the window, re-queues after it",function(){
     __consWorld();
     worldState.consumableNudged={"|blasting charge":98};/* fired 2 turns ago */

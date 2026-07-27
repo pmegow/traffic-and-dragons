@@ -432,7 +432,22 @@ function buildMoodAudit(){
   worldState.lastMoodAudit=worldState.turn;
   return "[ENGINE NOTE — MOOD CHECK (not a player action): the tracker's record of how each party member is FEELING is below, with its age. For EACH: if it still matches how you are actually writing them, leave it alone — do NOT re-emit an unchanged mood. If it has gone stale, or was never set, emit [NPC:Name|new mood|] — the empty third slot updates the mood WITHOUT touching their relationship. Mood is 2-4 words for their CURRENT emotional state ONLY; never a relationship word (ally/companion/acquaintance), which the engine tracks separately.\n"+lines.join("\n")+"]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit];
+// #96 compliance nudge (field finding 2026-07-26, same night as the cutover): the [SAY:] duty is
+// new and the sessionLog is full of the GM's own UNTAGGED dialogue — momentum beats a doc line
+// (the prompt-channel lesson: an instruction that loses to the GM's recent output needs a new
+// CHANNEL, not a better position). Fires while the newest GM response contains quoted dialogue
+// but no [SAY:] tag; goes silent the moment compliance starts. Live evidence: 3/3 recent field
+// responses were dialogue-heavy with zero tags — every line read in the narrator's voice.
+function buildSayComplianceNudge(){
+  if(typeof sessionLog==="undefined"||!sessionLog||!sessionLog.length)return"";
+  var last=null,i;
+  for(i=sessionLog.length-1;i>=0;i--){if(sessionLog[i]&&sessionLog[i].role==="assistant"){last=String(sessionLog[i].content||"");break;}}
+  if(!last)return"";
+  if(last.indexOf("[SAY:")>=0)return"";
+  if((last.match(/["“”]/g)||[]).length<2)return"";/* no quoted dialogue — nothing was mis-voiced */
+  return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's. From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
+}
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
