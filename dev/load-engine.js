@@ -16,9 +16,12 @@
 // stt.js). Each engine file depends only on files earlier in the list.
 var fs = require("fs"), path = require("path");
 var ROOT = path.join(__dirname, "..");
-var FILES = ["globals.js", "error-report.js", "compress.js", "data.js", "capability_bible.js", "helpers.js",
+var FILES = ["globals.js", "error-report.js", "compress.js", "data.js", "capability_bible.js", "class_bible.js", "helpers.js",
   "state.js", "storage-adapter.js", "memory.js", "clock.js", "tag_table.js", "api.js",
   "table-talk.js", "campaign_generator.js", "game.js", "tts.js", "sound.js"];
+// class_bible.js (#72): NOT in index.html's shell yet — the engine doesn't read it until the C6
+// sequence. It loads HERE so the structural tests + the BIBLE EDITOR CONTRACT see it; position
+// (after capability_bible) mirrors where it will slot into the real load order at C6-②.
 
 var geval = eval; // indirect eval → runs in global scope, so the engine's `var`s become node globals
 

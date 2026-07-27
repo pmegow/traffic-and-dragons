@@ -168,11 +168,15 @@ those steps.</div>
 <tr><th>It.</th><th>Deliverable</th><th>Gate</th></tr>
 <tr><td>1</td><td>Spec R1 → <b>R2</b> (this doc) — shape + all four forks ruled</td><td>✅ done;
 user sanity-checks the 1–20 grid + draft XP curve</td></tr>
-<tr><td>2</td><td><b>Rogue 1–20 authored end-to-end as the template</b> — all three archetypes
-(6 rows each), the full spell bench for Arcane Trickster through T6, class features L11/13/15/17,
-skill seeds, every feature named into the capability bible. Rogue is the live campaign's class:
-Ammut at L9 exercises the new rows immediately</td><td>user reviews content; template locks the
-authoring format</td></tr>
+<tr><td>2</td><td><b>REDEFINED by the user, then SHIPPED v1.464:</b> instead of Rogue-first, the
+<b>full skeleton with fill-phase blanks</b> (class_bible.js — 9 classes, 27 archetypes, 234 level
+slots, 36 seeded / 198 blank, XP 1–20) plus <b>bible_editor.html</b>, the dev-only authoring
+satellite (kept separate from the read-only bible_study because the bibles may become
+player-facing). Editor exports the regenerated file + capability-addition snippets; the
+BIBLE EDITOR CONTRACT byte-pins the format, the coverage guard forces spell mechanics to land
+with their names. <b>The fill phase is now the user's, in the editor</b> — Rogue first is still
+the recommended order (Ammut at L9 exercises the new rows immediately)</td><td>✅ shipped;
+content review happens per-class as fills land</td></tr>
 <tr><td>3</td><td><code>classDef()</code> refactor + invariant tests (C6 ①) — independent, safe,
 Sonnet-tier</td><td>suite + save-invariant green</td></tr>
 <tr><td>4</td><td>Store swap + <code>checkLevelUp</code> reads the grid + spell-picker-at-unlock +

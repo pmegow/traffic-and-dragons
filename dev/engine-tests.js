@@ -229,6 +229,71 @@ function runEngineTests(R){
   t("bibleCardHTML escapes an apostrophe name (no attr break)",function(){var h=bibleCardHTML("Hunter's Mark",capabilityLookup("Hunter's Mark"));return h.indexOf("Hunter&#39;s Mark")>=0?true:"apostrophe not escaped";});
 
   // ── 3. NPC name resolution (the v1.143 anti-fork engine) ─────────────────────
+  // ── class bible skeleton (#72, v1.464 — data only, NOT engine-wired until C6) ──
+  section("class bible (#72)");
+  t("structure: 9 classes matching CLSS, 3 archetypes each matching ARCHETYPES (both directions)",function(){
+    var ids=Object.keys(CLASS_BIBLE);
+    if(ids.length!==CLSS.length)return "class count "+ids.length+" vs CLSS "+CLSS.length;
+    var i,miss=[];
+    for(i=0;i<CLSS.length;i++){if(!CLASS_BIBLE[CLSS[i].id])miss.push(CLSS[i].id);}
+    if(miss.length)return "CLSS classes missing from the bible: "+miss.join(", ");
+    for(i=0;i<ids.length;i++){
+      var e=CLASS_BIBLE[ids[i]],legacy=ARCHETYPES[ids[i]]||[];
+      if(e.archetypes.length!==3)return ids[i]+" has "+e.archetypes.length+" archetypes";
+      for(var j=0;j<3;j++)if(e.archetypes[j].id!==legacy[j].id)return ids[i]+" archetype "+j+" id drifted: "+e.archetypes[j].id+" vs "+legacy[j].id;
+    }
+    return true;
+  });
+  t("the level grids match spec R2: class 2/5/7/9/11/13/15/17, archetype 3/6/10/14/18/20",function(){
+    var CL="2,5,7,9,11,13,15,17",AL="3,6,10,14,18,20",k;
+    for(k in CLASS_BIBLE){
+      var e=CLASS_BIBLE[k];
+      var got=Object.keys(e.levels).sort(function(a,b){return a-b;}).join(",");
+      if(got!==CL)return k+" class levels: "+got;
+      for(var i=0;i<e.archetypes.length;i++){
+        var ag=Object.keys(e.archetypes[i].levels).sort(function(a,b){return a-b;}).join(",");
+        if(ag!==AL)return k+"/"+e.archetypes[i].id+" arch levels: "+ag;
+      }
+    }
+    return true;
+  });
+  t("the Lv9 naming bug is dead in the bible: seeded features carry their REAL names",function(){
+    var f=CLASS_BIBLE.Warrior.levels["9"].features[0];
+    if(!f||f.nm!=="Indomitable (x2)")return "Warrior L9: "+JSON.stringify(f);
+    f=CLASS_BIBLE.Rogue.levels["2"].features[0];
+    if(!f||f.nm!=="Cunning Action")return "Rogue L2: "+JSON.stringify(f);
+    for(var k in CLASS_BIBLE)for(var l in CLASS_BIBLE[k].levels)
+      for(var i=0;i<CLASS_BIBLE[k].levels[l].features.length;i++)
+        if(/^Lv\d+$/.test(CLASS_BIBLE[k].levels[l].features[i].nm))return k+" L"+l+" still carries a level-number name";
+    return true;
+  });
+  t("XP curve: 20 strictly-ascending levels, first 10 the shipped XP_LEVELS verbatim, L20=355k",function(){
+    if(CLASS_XP_LEVELS.length!==20)return "length "+CLASS_XP_LEVELS.length;
+    for(var i=0;i<10;i++)if(CLASS_XP_LEVELS[i]!==XP_LEVELS[i])return "L"+(i+1)+" diverges from the shipped table: "+CLASS_XP_LEVELS[i]+" vs "+XP_LEVELS[i];
+    for(i=1;i<20;i++)if(CLASS_XP_LEVELS[i]<=CLASS_XP_LEVELS[i-1])return "not ascending at L"+(i+1);
+    return eq(CLASS_XP_LEVELS[19],355000);
+  });
+  t("coverage guard: every spell NAME in the bible resolves in the capability bible (the racial_caps rule)",function(){
+    // The fill-phase discipline this test enforces: a new spell lands in class_bible AND its
+    // capability entry merges in the SAME commit (the editor exports both) — a name with no
+    // mechanics would inject nothing to the GM and drift from turn one.
+    var bad=[],k;
+    function scan(owner,sp){if(!sp)return;for(var t in sp)for(var i=0;i<sp[t].length;i++)if(!capabilityLookup(sp[t][i]))bad.push(owner+" T"+t+": "+sp[t][i]);}
+    for(k in CLASS_BIBLE){scan(k,CLASS_BIBLE[k].spells);for(var a=0;a<CLASS_BIBLE[k].archetypes.length;a++)scan(k+"/"+CLASS_BIBLE[k].archetypes[a].id,CLASS_BIBLE[k].archetypes[a].spells);}
+    return bad.length?bad.length+" unresolved: "+bad.slice(0,5).join(" | "):true;
+  });
+  t("casters carry spellTiers per the C2 ruling; full casters unlock T2@5 T3@7 T4@9 T5@11 T6@15",function(){
+    var FULL=["Sorcerer","Cleric","Druid","Necromancer"],i;
+    for(i=0;i<FULL.length;i++){
+      var st=CLASS_BIBLE[FULL[i]].spellTiers;
+      if(!st)return FULL[i]+" has no spellTiers";
+      if(st["2"]!==5||st["3"]!==7||st["4"]!==9||st["5"]!==11||st["6"]!==15)return FULL[i]+" tiers: "+JSON.stringify(st);
+      for(var t in st)if(!CLASS_BIBLE[FULL[i]].spells[t])return FULL[i]+" missing spells array for unlockable T"+t;
+    }
+    if(!CLASS_BIBLE.Ranger.spellTiers||!CLASS_BIBLE.Paladin.spellTiers)return "half-casters lost their draft tiers";
+    if(CLASS_BIBLE.Warrior.spellTiers)return "Warrior grew spellTiers";
+    return true;
+  });
   section("resolveNpcName");
   t("parenthetical variant resolves to canonical",function(){memory=blankMemory();memory.npcs["Morwen Zethran"]={attitude:"ally",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Morwen (Ammut's wife)"),"Morwen Zethran");});
   t("honorific + surname resolves",function(){memory=blankMemory();memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Hemlock"),"Sheriff Belor Hemlock");});

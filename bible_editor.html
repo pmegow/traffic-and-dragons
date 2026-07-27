@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bible Editor — class bible authoring (dev tool)</title>
+<!-- ─── BIBLE EDITOR (TODO #72) ────────────────────────────────────────────────────────────────
+  The DEV-ONLY authoring surface for class_bible.js. Deliberately separate from bible_study.html
+  (user call 2026-07-27): bible_study stays the read-only viewer because the bibles may become
+  PLAYER-FACING later, and players must never find a mutable surface there.
+
+  A browser page cannot write repo files, so the flow is the blueprint-designer pattern:
+  edit here → export a regenerated class_bible.js → the file lands via commit (which keeps the
+  round-trip contract + engine tests as the gate). New capability entries authored here export
+  as a PASTE-READY snippet — capability_bible.js is hand-commented and is never regenerated
+  wholesale by machine.
+
+  The serializer between the ASCII markers below is THE canonical writer of class_bible.js:
+  the BIBLE EDITOR CONTRACT (dev/run-tests.js) evals it and byte-compares its output for the
+  pristine on-disk data against the on-disk file. If this page and the file ever disagree about
+  the format, the build fails loudly.
+
+  Work-in-progress edits persist to localStorage (tnd_bible_editor_draft_v1) so a closed tab
+  loses nothing; Export or Discard clears the draft.
+──────────────────────────────────────────────────────────────────────────────────────────── -->
+<style>
+:root{--bg:#111;--bg2:#181818;--bg3:#1f1f1f;--t0:#ddd;--t1:#aaa;--t2:#777;--acc:#b8935a;--good:#7aa86a;--pend:#5a8ab8;--bad:#b85a5a;--brd:#2a2a2a;}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--t0);font:14px/1.5 Georgia,serif;margin:0;}
+#bar{position:sticky;top:0;z-index:5;background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#bar h1{font-size:16px;color:var(--acc);margin:0 14px 0 0;}
+button{font-family:Georgia,serif;font-size:13px;background:var(--bg3);color:var(--t0);border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;}
+button:hover{border-color:var(--acc);}
+button.primary{border-color:var(--acc);color:var(--acc);}
+#tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0;}
+#tabs button.on{border-color:var(--acc);color:var(--acc);background:#221c12;}
+main{max-width:1080px;margin:0 auto;padding:14px 16px 90px;}
+h2{color:var(--acc);font-size:17px;margin:26px 0 8px;border-bottom:1px solid var(--brd);padding-bottom:4px;}
+h3{color:var(--t1);font-size:14px;margin:18px 0 6px;letter-spacing:.5px;}
+input[type=text],input[type=number],textarea,select{background:var(--bg3);color:var(--t0);border:1px solid #3a3a3a;border-radius:5px;padding:5px 8px;font:13px Georgia,serif;}
+input:focus,textarea:focus{outline:none;border-color:var(--acc);}
+textarea{width:100%;resize:vertical;}
+.row{display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap;}
+.lbl{width:96px;color:var(--t1);font-size:12.5px;flex-shrink:0;}
+.feat{display:flex;gap:6px;margin:3px 0;align-items:center;}
+.feat input.nm{width:220px;}
+.feat input.ds{flex:1;min-width:200px;}
+.badge{width:14px;text-align:center;cursor:pointer;font-size:13px;flex-shrink:0;}
+.badge.ok{color:var(--good);cursor:default;}
+.badge.pend{color:var(--pend);}
+.badge.miss{color:var(--t2);}
+.x{color:var(--bad);cursor:pointer;border:none;background:none;font-size:14px;padding:0 4px;}
+.lvl{border:1px solid var(--brd);border-radius:8px;padding:8px 12px;margin:8px 0;background:var(--bg2);}
+.lvl .lv{color:var(--acc);font-weight:bold;margin-right:8px;}
+.lvl.blank{border-style:dashed;}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid #3a3a3a;border-radius:12px;padding:2px 4px 2px 10px;margin:2px;font-size:12.5px;}
+.arch{border:1px solid var(--brd);border-radius:8px;padding:10px 14px;margin:10px 0;background:var(--bg2);}
+.arch h4{margin:0 0 6px;color:var(--t0);font-size:15px;}
+.muted{color:var(--t2);font-size:12px;}
+#prog{margin-left:auto;color:var(--t1);font-size:12.5px;}
+#draftnote{color:var(--pend);font-size:12.5px;}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:20;}
+#modal .box{background:var(--bg2);border:1px solid var(--acc);border-radius:10px;padding:18px 22px;max-width:640px;width:92%;max-height:86vh;overflow:auto;}
+#modal h3{margin-top:0;color:var(--acc);}
+#xp input{width:86px;}
+.tierhead{color:var(--acc);font-size:13px;margin:8px 0 2px;}
+</style>
+<script src="data.js"></script>
+<script src="capability_bible.js"></script>
+<script src="helpers.js"></script>
+<script src="class_bible.js"></script>
+</head>
+<body>
+<div id="bar">
+  <h1>Bible Editor <span class="muted">dev tool — exports ride commits</span></h1>
+  <button class="primary" id="exp-bible">⬇ Export class_bible.js</button>
+  <button id="exp-adds">⬇ Capability additions (<span id="addn">0</span>)</button>
+  <button id="discard">Discard draft</button>
+  <span id="draftnote"></span>
+  <span id="prog"></span>
+</div>
+<div id="tabs"></div>
+<main id="main"></main>
+<div id="modal"><div class="box" id="modal-box"></div></div>
+
+<script>
+// >>> BIBLE SERIALIZER
+// THE canonical writer of class_bible.js. The BIBLE EDITOR CONTRACT (dev/run-tests.js) evals
+// this slice and byte-compares serializeClassBible(<on-disk data>) against the on-disk file —
+// header included — so editor and file can never silently disagree about the format.
+function serializeClassBible(bible, xp) {
+  var header = [
+    "// ─── CLASS BIBLE (TODO #72) ─────────────────────────────────────────────────────────────────",
+    "// THE single definitive source for character progression: classes, per-level features,",
+    "// archetype spines (L3 identity / 6 / 10 / 14 / 18 / L20 capstone), spell tier lists, skill",
+    "// seeds, and the 1-20 XP curve. Spec: DOC/DOC_class_bible.html (R2 — all forks ruled",
+    "// 2026-07-27: picks at tier-unlock levels; table extended to L20; creation-only skill seeds).",
+    "//",
+    "// ⚠ NOT WIRED INTO THE ENGINE YET. Until the C6 sequence lands (classDef() lookup → store",
+    "// swap → CLSS deleted), the game still reads CLSS/CLASS_FEATURES/ABILS/ARCHETYPES/ARCH_SPELLS/",
+    "// STAT_PRIORITY/SPELLS. This file is loaded by the satellites (bible_editor.html) and the",
+    "// engine-test harness only. Divergence from the legacy tables during the fill phase is",
+    "// EXPECTED (this file runs ahead); the legacy tables remain engine truth until C6-②.",
+    "//",
+    "// FORMAT RULES (the editor depends on them):",
+    "//  · The data between the >>> <<< markers is machine-REGENERATED by bible_editor.html's",
+    "//    exporter — no hand comments inside the markers (they would be lost on export).",
+    "//  · Serialization is canonical: JSON.stringify(obj, null, 2). The BIBLE EDITOR CONTRACT",
+    "//    (dev/run-tests.js) byte-compares a fresh serialize against this region, so a hand edit",
+    "//    that breaks canonical form fails the build instead of silently fighting the editor.",
+    "//  · Feature shape {nm, ds}: nm is the capability_bible key once the feature is authored",
+    "//    there (the racial_caps pattern — mechanics live in ONE place); ds is legacy/summary",
+    "//    prose. Empty features arrays are FILL-PHASE blanks, not errors.",
+    "//  · spellTiers maps tier → unlock level (C2). Empty spell-tier arrays are fill-phase",
+    "//    blanks. Half-caster (Ranger/Paladin) tiers are DRAFT pending the fill phase.",
+    "//  · CLASS_XP_LEVELS 1-10 = the shipped XP_LEVELS verbatim; 11-20 = spec R2 draft numbers.",
+    ""
+  ].join("\n");
+  return header +
+    "// >>> CLASS BIBLE DATA\n" +
+    "var CLASS_XP_LEVELS = " + JSON.stringify(xp) + ";\n" +
+    "var CLASS_BIBLE = " + JSON.stringify(bible, null, 2) + ";\n" +
+    "// <<< CLASS BIBLE DATA\n";
+}
+// <<< BIBLE SERIALIZER
+
+(function () {
+  var DRAFT_K = "tnd_bible_editor_draft_v1";
+  var BIBLE, XP, ADD = {}, activeCls = null;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return escHtml(String(s == null ? "" : s)); }
+  function deep(o) { return JSON.parse(JSON.stringify(o)); }
+
+  // ── draft persistence ─────────────────────────────────────────────────────
+  var _saveT = null;
+  function saveDraft() {
+    if (_saveT) clearTimeout(_saveT);
+    _saveT = setTimeout(function () {
+      try {
+        localStorage.setItem(DRAFT_K, JSON.stringify({ b: BIBLE, x: XP, a: ADD, t: Date.now() }));
+        $("draftnote").textContent = "draft saved " + new Date().toLocaleTimeString();
+      } catch (e) { $("draftnote").textContent = "⚠ draft save failed: " + e.message; }
+    }, 600);
+  }
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(DRAFT_K);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || !d.b || !d.x) return false;
+      BIBLE = d.b; XP = d.x; ADD = d.a || {};
+      $("draftnote").textContent = "resumed draft from " + new Date(d.t).toLocaleString();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ── resolution state of a name: ok (capability bible) / pend (addition) / miss ──
+  function resolveState(nm) {
+    if (!nm) return "miss";
+    if (ADD[nm]) return "pend";
+    return (typeof capabilityLookup === "function" && capabilityLookup(nm)) ? "ok" : "miss";
+  }
+  function badgeFor(nm) {
+    var st = resolveState(nm);
+    var tip = st === "ok" ? "resolves in capability_bible" : st === "pend" ? "pending addition (in this draft's export)" : "no capability entry — click to define";
+    return "<span class='badge " + st + "' data-nm='" + esc(nm) + "' title='" + tip + "'>" + (st === "ok" ? "✓" : st === "pend" ? "●" : "○") + "</span>";
+  }
+
+  // ── progress line ─────────────────────────────────────────────────────────
+  function progress() {
+    var blanks = 0, slots = 0, k;
+    for (k in BIBLE) {
+      var e = BIBLE[k], l;
+      for (l in e.levels) { slots++; if (!e.levels[l].features.length) blanks++; }
+      e.archetypes.forEach(function (a) { for (var al in a.levels) { slots++; if (!a.levels[al].features.length) blanks++; } });
+    }
+    $("prog").textContent = (slots - blanks) + " / " + slots + " level slots filled · " + Object.keys(ADD).length + " capability additions";
+    $("addn").textContent = Object.keys(ADD).length;
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  function tabs() {
+    var h = "", k;
+    for (k in BIBLE) h += "<button data-cls='" + esc(k) + "'" + (k === activeCls ? " class='on'" : "") + ">" + esc(k) + "</button>";
+    h += "<button data-cls='__xp'" + (activeCls === "__xp" ? " class='on'" : "") + ">XP curve</button>";
+    $("tabs").innerHTML = h;
+    var bs = $("tabs").querySelectorAll("button"), i;
+    for (i = 0; i < bs.length; i++) bs[i].onclick = function () { activeCls = this.getAttribute("data-cls"); render(); };
+  }
+
+  function featRow(f, path) {
+    return "<div class='feat'>" + badgeFor(f.nm) +
+      "<input class='nm' type='text' value='" + esc(f.nm) + "' data-p='" + path + "' data-f='nm' placeholder='Feature name'>" +
+      "<input class='ds' type='text' value='" + esc(f.ds) + "' data-p='" + path + "' data-f='ds' placeholder='summary prose (optional once the name resolves)'>" +
+      "<button class='x' data-del='" + path + "' title='remove'>✕</button></div>";
+  }
+  function levelBlock(levels, base, label) {
+    var h = "", ks = Object.keys(levels).sort(function (a, b) { return a - b; });
+    ks.forEach(function (lv) {
+      var fs = levels[lv].features, path = base + "." + lv;
+      h += "<div class='lvl" + (fs.length ? "" : " blank") + "'><span class='lv'>L" + lv + "</span>" +
+        (fs.length ? "" : "<span class='muted'>blank — fill phase</span>");
+      fs.forEach(function (f, i) { h += featRow(f, path + "." + i); });
+      h += "<div><button data-add='" + path + "'>+ feature</button></div></div>";
+    });
+    return "<h3>" + label + "</h3>" + h;
+  }
+  function chipList(arr, path, resolvable) {
+    var h = "";
+    arr.forEach(function (nm, i) {
+      h += "<span class='chip'>" + (resolvable ? badgeFor(nm) : "") + esc(nm) +
+        "<button class='x' data-chipdel='" + path + "." + i + "'>✕</button></span>";
+    });
+    h += "<input type='text' style='width:170px' placeholder='+ add, then Enter' data-chipadd='" + path + "'>";
+    return h;
+  }
+
+  function render() {
+    tabs(); progress();
+    if (activeCls === "__xp") { renderXp(); return; }
+    var e = BIBLE[activeCls];
+    if (!e) { $("main").innerHTML = "<p class='muted'>Pick a class above.</p>"; return; }
+    var h = "<h2>" + esc(e.nm) + " <span class='muted'>d" + e.hd + " · " + esc(e.prime) + "</span></h2>";
+    h += "<div class='row'><span class='lbl'>desc</span><textarea rows='2' data-core='desc'>" + esc(e.desc) + "</textarea></div>";
+    h += "<div class='row'><span class='lbl'>gear</span><textarea rows='2' data-core='gear'>" + esc(e.gear) + "</textarea></div>";
+    h += "<div class='row'><span class='lbl'>hit die</span><input type='number' style='width:70px' data-core='hd' value='" + e.hd + "'>" +
+         "<span class='lbl' style='width:auto'>prime</span><input type='text' style='width:70px' data-core='prime' value='" + esc(e.prime) + "'>" +
+         "<span class='lbl' style='width:auto'>stat priority</span><input type='text' style='width:260px' data-core='statPriority' value='" + esc(e.statPriority.join(", ")) + "'></div>";
+    h += "<div class='row'><span class='lbl'>skill seeds</span><input type='text' style='width:340px' data-core='skillSeeds' value='" + esc(e.skillSeeds.join(", ")) + "' placeholder='2-3 signature skills, comma-separated (C5)'><span class='muted'>creation-only Familiar seeds</span></div>";
+    h += "<h3>Starting abilities</h3>";
+    e.abilities.forEach(function (a, i) { h += featRow(a, "ab." + i); });
+    h += "<div><button data-add='ab'>+ ability</button></div>";
+    if (e.spellTiers) {
+      h += "<h3>Spell tier unlocks <span class='muted'>(tier → level; C2 picks)</span></h3><div class='row'>";
+      Object.keys(e.spellTiers).sort(function (a, b) { return a - b; }).forEach(function (t) {
+        h += "<span class='lbl' style='width:auto'>T" + t + " @ L</span><input type='number' style='width:60px' data-tier='" + t + "' value='" + e.spellTiers[t] + "'>";
+      });
+      h += "</div>";
+    }
+    if (e.spells) {
+      h += "<h3>Spells by tier <span class='muted'>(names — mechanics live in capability_bible)</span></h3>";
+      Object.keys(e.spells).sort(function (a, b) { var x = a === "cantrips" ? -1 : +a, y = b === "cantrips" ? -1 : +b; return x - y; }).forEach(function (t) {
+        h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + (e.spells[t].length ? "" : " <span class='muted'>— blank, fill phase</span>") + "</div>";
+        h += "<div>" + chipList(e.spells[t], "sp." + t, true) + "</div>";
+      });
+    }
+    h += levelBlock(e.levels, "lv", "Class features by level");
+    h += "<h2>Archetypes</h2>";
+    e.archetypes.forEach(function (a, ai) {
+      h += "<div class='arch'><h4>" + esc(a.nm) + "</h4>";
+      h += "<div class='row'><span class='lbl'>desc</span><textarea rows='2' data-arch='" + ai + "' data-f='desc'>" + esc(a.desc) + "</textarea></div>";
+      if (a.spells) {
+        Object.keys(a.spells).sort(function (x, y) { var p = x === "cantrips" ? -1 : +x, q = y === "cantrips" ? -1 : +y; return p - q; }).forEach(function (t) {
+          h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + "</div><div>" + chipList(a.spells[t], "asp." + ai + "." + t, true) + "</div>";
+        });
+      }
+      h += levelBlock(a.levels, "al." + ai, "Archetype levels (identity L3 · features · capstone L20)");
+      h += "</div>";
+    });
+    $("main").innerHTML = h;
+    wire();
+  }
+
+  function renderXp() {
+    var h = "<h2>XP curve (1–20) <span class='muted'>L1–10 shipped verbatim · L11–20 draft (spec R2)</span></h2><div id='xp'>";
+    XP.forEach(function (v, i) {
+      h += "<div class='row'><span class='lbl'>L" + (i + 1) + "</span><input type='number' data-xp='" + i + "' value='" + v + "'" + (i === 0 ? " disabled" : "") + "></div>";
+    });
+    h += "</div>";
+    $("main").innerHTML = h;
+    var ins = $("main").querySelectorAll("input[data-xp]"), i;
+    for (i = 0; i < ins.length; i++) ins[i].onchange = function () {
+      XP[+this.getAttribute("data-xp")] = parseInt(this.value, 10) || 0; saveDraft();
+    };
+  }
+
+  // ── path resolution for edits: paths address into the ACTIVE class entry ──
+  function target(path) {
+    var p = path.split("."), e = BIBLE[activeCls];
+    if (p[0] === "ab") return { arr: e.abilities, i: +p[1] };
+    if (p[0] === "lv") return { arr: e.levels[p[1]].features, i: +p[2] };
+    if (p[0] === "al") return { arr: e.archetypes[+p[1]].levels[p[2]].features, i: +p[3] };
+    if (p[0] === "sp") return { arr: e.spells[p[1]], i: +p[2] };
+    if (p[0] === "asp") return { arr: e.archetypes[+p[1]].spells[p[2]], i: +p[3] };
+    return null;
+  }
+
+  function wire() {
+    var m = $("main"), i;
+    var texts = m.querySelectorAll("input[data-p],textarea[data-p]");
+    for (i = 0; i < texts.length; i++) texts[i].onchange = function () {
+      var t = target(this.getAttribute("data-p"));
+      if (t) { t.arr[t.i][this.getAttribute("data-f")] = this.value; saveDraft(); render(); }
+    };
+    var dels = m.querySelectorAll("button[data-del]");
+    for (i = 0; i < dels.length; i++) dels[i].onclick = function () {
+      var t = target(this.getAttribute("data-del"));
+      if (t) { t.arr.splice(t.i, 1); saveDraft(); render(); }
+    };
+    var adds = m.querySelectorAll("button[data-add]");
+    for (i = 0; i < adds.length; i++) adds[i].onclick = function () {
+      var p = this.getAttribute("data-add").split("."), e = BIBLE[activeCls], arr;
+      if (p[0] === "ab") arr = e.abilities;
+      else if (p[0] === "lv") arr = e.levels[p[1]].features;
+      else arr = e.archetypes[+p[1]].levels[p[2]].features;
+      arr.push({ nm: "", ds: "" }); saveDraft(); render();
+    };
+    var chipdels = m.querySelectorAll("button[data-chipdel]");
+    for (i = 0; i < chipdels.length; i++) chipdels[i].onclick = function () {
+      var t = target(this.getAttribute("data-chipdel"));
+      if (t) { t.arr.splice(t.i, 1); saveDraft(); render(); }
+    };
+    var chipadds = m.querySelectorAll("input[data-chipadd]");
+    for (i = 0; i < chipadds.length; i++) chipadds[i].onkeydown = function (ev) {
+      if (ev.key !== "Enter" || !this.value.trim()) return;
+      var t = target(this.getAttribute("data-chipadd") + ".0");
+      if (t) { t.arr.push(this.value.trim()); saveDraft(); render(); }
+    };
+    var cores = m.querySelectorAll("[data-core]");
+    for (i = 0; i < cores.length; i++) cores[i].onchange = function () {
+      var f = this.getAttribute("data-core"), e = BIBLE[activeCls], v = this.value;
+      if (f === "hd") e.hd = parseInt(v, 10) || e.hd;
+      else if (f === "statPriority" || f === "skillSeeds") e[f] = v.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      else e[f] = v;
+      saveDraft();
+    };
+    var tiers = m.querySelectorAll("input[data-tier]");
+    for (i = 0; i < tiers.length; i++) tiers[i].onchange = function () {
+      BIBLE[activeCls].spellTiers[this.getAttribute("data-tier")] = parseInt(this.value, 10) || 0; saveDraft();
+    };
+    var archs = m.querySelectorAll("textarea[data-arch]");
+    for (i = 0; i < archs.length; i++) archs[i].onchange = function () {
+      BIBLE[activeCls].archetypes[+this.getAttribute("data-arch")][this.getAttribute("data-f")] = this.value; saveDraft();
+    };
+    var badges = m.querySelectorAll(".badge");
+    for (i = 0; i < badges.length; i++) badges[i].onclick = function () {
+      var nm = this.getAttribute("data-nm");
+      if (!nm) return;
+      var st = resolveState(nm);
+      if (st === "ok") { showCard(nm, capabilityLookup(nm)); }
+      else if (st === "pend") { defineCapability(nm, ADD[nm]); }
+      else defineCapability(nm, null);
+    };
+  }
+
+  // ── capability card preview + the define form (the fixed 6-attribute set) ──
+  function showCard(nm, entry) {
+    $("modal-box").innerHTML = (typeof bibleCardHTML === "function" ? bibleCardHTML(nm, entry) :
+      "<pre>" + esc(JSON.stringify(entry, null, 2)) + "</pre>") +
+      "<div style='margin-top:12px'><button id='m-close'>Close</button></div>";
+    $("modal").style.display = "flex";
+    $("m-close").onclick = closeModal;
+  }
+  function closeModal() { $("modal").style.display = "none"; }
+  function defineCapability(nm, existing) {
+    var d = existing || { kind: "ability", tier: 1, cost: "N/A", isMagical: false, category: ["martial"], range: "N/A", targets: "N/A", duration: "N/A", effect: "", dice: "N/A", save: "N/A" };
+    function fld(label, id, val, wide) {
+      return "<div class='row'><span class='lbl'>" + label + "</span><input type='text' id='cap-" + id + "' style='" + (wide ? "flex:1" : "width:200px") + "' value='" + esc(val) + "'></div>";
+    }
+    var h = "<h3>Define capability: " + esc(nm) + "</h3>" +
+      "<p class='muted'>The fixed attribute set — every entry carries all six of cost/range/targets/duration/save/dice, \"N/A\" where inapplicable (v1.224 rule). Exported as a paste-ready snippet; merged into capability_bible.js at commit.</p>" +
+      "<div class='row'><span class='lbl'>kind</span><select id='cap-kind'><option" + (d.kind === "spell" ? " selected" : "") + ">spell</option><option" + (d.kind === "ability" ? " selected" : "") + ">ability</option></select>" +
+      "<span class='lbl' style='width:auto'>tier</span><input type='number' id='cap-tier' style='width:60px' value='" + d.tier + "'>" +
+      "<span class='lbl' style='width:auto'>magical</span><select id='cap-mag'><option value='true'" + (d.isMagical ? " selected" : "") + ">true</option><option value='false'" + (!d.isMagical ? " selected" : "") + ">false</option></select></div>" +
+      fld("category", "cat", (d.category || []).join(", ")) +
+      fld("cost", "cost", d.cost) + fld("range", "range", d.range) + fld("targets", "targets", d.targets) +
+      fld("duration", "duration", d.duration) + fld("dice", "dice", d.dice) + fld("save", "save", d.save) +
+      "<div class='row'><span class='lbl'>effect</span><textarea id='cap-effect' rows='3'>" + esc(d.effect) + "</textarea></div>" +
+      "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-save'>Save to additions</button>" +
+      (existing ? "<button id='m-drop'>Remove addition</button>" : "") +
+      "<button id='m-close'>Cancel</button></div>";
+    $("modal-box").innerHTML = h;
+    $("modal").style.display = "flex";
+    $("m-close").onclick = closeModal;
+    $("m-save").onclick = function () {
+      ADD[nm] = {
+        kind: document.getElementById("cap-kind").value,
+        tier: parseInt(document.getElementById("cap-tier").value, 10) || 1,
+        cost: document.getElementById("cap-cost").value || "N/A",
+        isMagical: document.getElementById("cap-mag").value === "true",
+        category: document.getElementById("cap-cat").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+        range: document.getElementById("cap-range").value || "N/A",
+        targets: document.getElementById("cap-targets").value || "N/A",
+        duration: document.getElementById("cap-duration").value || "N/A",
+        effect: document.getElementById("cap-effect").value,
+        dice: document.getElementById("cap-dice").value || "N/A",
+        save: document.getElementById("cap-save").value || "N/A"
+      };
+      closeModal(); saveDraft(); render();
+    };
+    if (existing) $("m-drop").onclick = function () { delete ADD[nm]; closeModal(); saveDraft(); render(); };
+  }
+
+  // ── exports ───────────────────────────────────────────────────────────────
+  function download(name, text) {
+    var b = new Blob([text], { type: "text/plain" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = name; a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+  }
+  $("exp-bible").onclick = function () { download("class_bible.js", serializeClassBible(BIBLE, XP)); };
+  $("exp-adds").onclick = function () {
+    var ks = Object.keys(ADD);
+    if (!ks.length) { alert("No capability additions in this draft."); return; }
+    var out = "// capability_bible additions from bible_editor — PASTE into CAPABILITY_BIBLE in\n" +
+      "// capability_bible.js (hand-commented file; never machine-regenerated wholesale).\n" +
+      "// " + ks.length + " entr" + (ks.length === 1 ? "y" : "ies") + ", exported " + new Date().toISOString() + "\n";
+    ks.sort().forEach(function (k) { out += JSON.stringify(k) + ": " + JSON.stringify(ADD[k], null, 2) + ",\n"; });
+    download("capability_additions.js.txt", out);
+  };
+  $("discard").onclick = function () {
+    if (!confirm("Discard the local draft and reload from class_bible.js on disk?")) return;
+    localStorage.removeItem(DRAFT_K); location.reload();
+  };
+
+  // ── boot ──────────────────────────────────────────────────────────────────
+  if (!loadDraft()) { BIBLE = deep(CLASS_BIBLE); XP = CLASS_XP_LEVELS.slice(); }
+  activeCls = Object.keys(BIBLE)[0];
+  render();
+})();
+</script>
+</body>
+</html>
