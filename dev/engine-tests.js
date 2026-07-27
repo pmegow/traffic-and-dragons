@@ -2368,8 +2368,8 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==1645986938||_CT_TAGS.source.length!==989)return "_CT_TAGS diverged from the frozen literal";
-    return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";
+    if(__djb2(_CT_TAGS.source)!==1129418282||_CT_TAGS.source.length!==1001)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|" */
+    return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
@@ -2397,7 +2397,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1259906480&&d.length===16295)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";
+    return (__djb2(d)===-1634278882&&d.length===16673)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188) */
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -3516,6 +3516,57 @@ function runEngineTests(R){
     var R2=applyMuts("[ENEMY_SURRENDERS]");
     if(worldState.combat!==null)return "all-surrendered did not close";
     return R2.muts.join(" ").indexOf("surrender")>=0?true:"outcome not surrender: "+R2.muts.join(" | ");
+  });
+  // ── ENEMY_SLAIN (v1.463, the t1188 trafficker-ambush field finding) ──────────
+  // The GM narrated four stealth kills but its only vocabulary was a damage NUMBER, so it emitted
+  // honest dice damage (-8/-11/-19/-14) against 18-HP foes and only one died — panel said four
+  // living, prose said one. ENEMY_SLAIN is the missing outcome word: the GM asserts the death,
+  // the engine does the arithmetic (zero hp, down:"slain") — same no-arithmetic philosophy as the
+  // clock, same outcome-tag shape as ENEMY_SURRENDERS.
+  t("ENEMY_SLAIN:Name zeroes the foe, marks slain, clears engaged, writes a muts line",function(){
+    __twoFoes();
+    applyMuts("[ENEMY_HP:Grukk|-2]");/* Grukk engaged at 8/10 */
+    var R=applyMuts('[ENEMY_SLAIN:Grukk] The blade finds his throat.');
+    var g=worldState.combat.foes[1];
+    if(g.hp!==0)return "hp not zeroed: "+g.hp;
+    if(g.down!=="slain")return "not marked slain: "+g.down;
+    if(worldState.combat.engaged!==null)return "engaged not cleared: "+worldState.combat.engaged;
+    return R.muts.join(" ").indexOf("Grukk slain")>=0?true:"muts line missing: "+R.muts.join(" | ");
+  });
+  t("ENEMY_SLAIN: unknown name warns + mutates nothing; bare form warns + mutates nothing; already-down is a quiet no-op",function(){
+    __twoFoes();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      applyMuts("[ENEMY_SLAIN:Ogre]");
+      if(worldState.combat.foes[0].hp!==12||worldState.combat.foes[1].hp!==10)return "unknown name mutated a foe";
+      applyMuts("[ENEMY_SLAIN]");/* named-only by design — a malformed bare tag must never wipe the encounter */
+      if(worldState.combat.foes[0].hp!==12||worldState.combat.foes[1].hp!==10)return "bare form mutated a foe";
+      var R1=applyMuts("[ENEMY_SLAIN:Grukk]");
+      var R2=applyMuts("[ENEMY_SLAIN:Grukk]");/* re-emission */
+      if(R2.muts.join(" ").indexOf("slain")>=0)return "re-slaying a corpse wrote a second muts line";
+    }finally{console.warn=_w;}
+    var nf=warns.filter(function(m){return m.indexOf("ENEMY_SLAIN target not found")>=0;}).length;
+    var bare=warns.filter(function(m){return m.indexOf("bare ENEMY_SLAIN")>=0;}).length;
+    return nf===1&&bare===1?true:"warns wrong (not-found "+nf+", bare "+bare+"): "+warns.join(" / ");
+  });
+  t("ENEMY_SLAIN strips from display, incl. the bare form (never leaks to the story)",function(){
+    var c=cleanTxt('[ENEMY_SLAIN:Trafficker (2)] He folds. [ENEMY_SLAIN] Done.');
+    return c.indexOf("[ENEMY_SLAIN")<0?true:"leaked: "+c;
+  });
+  t("FIELD t1188: five traffickers, dice damage + ENEMY_SLAIN asserts — tracker matches the prose (one living)",function(){
+    makeWorld();
+    applyMuts("[COMBAT_START:Trafficker (1)|18|13|4|1d8|steady][COMBAT_START:Trafficker (2)|18|13|4|1d8|steady][COMBAT_START:Trafficker (3)|18|13|4|1d8|steady][COMBAT_START:Trafficker (4)|18|13|4|1d8|steady][COMBAT_START:Trafficker (5)|18|13|4|1d8|steady]");
+    /* the ambush response, as the GM SHOULD write it with the new vocabulary: dice damage where
+       dice matter, ENEMY_SLAIN where the narration commits to a kill */
+    applyMuts("[ENEMY_HP:Trafficker (1)|-8][ENEMY_SLAIN:Trafficker (1)][ENEMY_HP:Trafficker (2)|-11][ENEMY_SLAIN:Trafficker (2)][ENEMY_HP:Trafficker (3)|-19][ENEMY_HP:Trafficker (5)|-14][ENEMY_SLAIN:Trafficker (5)]");
+    var f=worldState.combat.foes,living=[],i;
+    for(i=0;i<f.length;i++)if(!f[i].down&&f[i].hp>0)living.push(f[i].name);
+    if(living.length!==1||living[0]!=="Trafficker (4)")return "living should be exactly Trafficker (4): "+JSON.stringify(living);
+    if(worldState.combat===null)return "closed with a foe still up";
+    /* the survivor goes down too -> all-down auto-close fires as victory, same response */
+    var R=applyMuts("[ENEMY_SLAIN:Trafficker (4)]");
+    if(worldState.combat!==null)return "all-slain did not auto-close";
+    return R.muts.join(" ").indexOf("victory")>=0?true:"outcome not victory: "+R.muts.join(" | ");
   });
   t("COMBAT_END closes mid-encounter regardless of foe states",function(){
     __twoFoes();

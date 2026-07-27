@@ -27,8 +27,8 @@
 // UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ACT_COMPLETE","SAY","ACTIONS","RETCON"];
-var TAG_STRIP_BARE=["ENEMY_SURRENDERS","SUBLOCATION_LEAVE"];
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ACT_COMPLETE","SAY","ACTIONS","RETCON"];
+var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
 // RETCON: consumed at logTranscript time (RAG de-index), not a state mutation.
@@ -68,7 +68,7 @@ var TAG_DOC_LINES=[
 "[TIME_ADVANCE:N] -- EVERY turn, estimate how long the turn took and emit it so the campaign clock advances. Unit-suffixed: [TIME_ADVANCE:2h], [TIME_ADVANCE:30m], [TIME_ADVANCE:1d 6h]; a bare number is minutes. Minimum one minute. Reference so estimates stay consistent: one combat round ~1 min; a conversation 1-5 min; searching a room 10-30 min; an errand or shopping 30-60 min; travel between places = hours, judge by distance. EXCEPTION -- a full overnight sleep: do NOT estimate its duration; emit [REST:long] instead and the engine rolls the clock forward to dawn itself (any [TIME_ADVANCE:] in the same response is ignored). You only ESTIMATE durations -- the engine does all the arithmetic and every countdown; never compute or state elapsed totals or 'days remaining' yourself.\n",
 "[SCHEDULE:label|when] -- register a future event at now+when (e.g. [SCHEDULE:Winter solstice|11d], [SCHEDULE:Poison wears off|10m]); 'when' is a duration (11d/3h/10m). The engine stores the target and COMPUTES the time remaining every turn -- set it ONCE and never restate the number. [SCHEDULE_RESOLVED:label] when it happens / is dealt with; [SCHEDULE_CANCEL:label] if it will no longer occur. When the CAMPAIGN CLOCK block shows an event under HAPPENING NOW, narrate it (a long-elapsed one already happened during a rest/timeskip -- narrate it as already having occurred) and emit any consequent tag, then [SCHEDULE_RESOLVED:] it.\n",
 "[LOCATION_ITEM:name|placed] -- item left or hidden here (pair with [ITEM_LOST:]); [LOCATION_ITEM:name|taken] -- item removed by NPC/event (player pickup auto-handled by [ITEM_GAINED:])\n",
-"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] -- emitting it DURING an active fight adds ANOTHER enemy to the same encounter (one tag per distinct foe; a faceless group can be one pooled entry like 'Goblin pack'). [ENEMY_HP:-X] or [ENEMY_HP:Name|-X] -- use the named form whenever more than one enemy is up. [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
+"[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] -- emitting it DURING an active fight adds ANOTHER enemy to the same encounter (one tag per distinct foe; a faceless group can be one pooled entry like 'Goblin pack'). [ENEMY_HP:-X] or [ENEMY_HP:Name|-X] -- use the named form whenever more than one enemy is up. [ENEMY_SLAIN:Name] -- when your narration kills a foe OUTRIGHT (stealth kill, execution, coup de grace, environmental death), assert it with this tag; the engine zeroes them. Never invent a damage number to 'cover' a narrated kill -- [ENEMY_HP:] is for dice damage, which may leave the foe standing; a foe the engine still shows alive whom your prose declared dead is a desync. [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
 "[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N] -- always emit alongside COMBAT_START; use official D&D stats\n",
 "[COMBAT_IMMUNE:fire,poison] [COMBAT_RESIST:cold,lightning] [COMBAT_VULN:thunder] -- omit entirely if none; comma-separated damage types only\n",
 "CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n",
@@ -456,6 +456,23 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     worldState.combat.engaged=foe.name;
     if(foe.hp<=0){foe.down="slain";worldState.combat.engaged=null;}
   }}},
+// v1.463 (t1188 trafficker ambush): the GM's only way to kill a foe was a damage NUMBER, so a
+// narrated stealth execution emitted honest dice damage (-8 vs 18 hp) and the foe stayed up —
+// prose said one living, tracker said four. ENEMY_SLAIN is the missing OUTCOME word: the GM
+// asserts the death, the engine does the arithmetic (the clock's no-arithmetic philosophy;
+// ENEMY_SURRENDERS' outcome-tag shape). NAMED ONLY by design — a malformed bare tag must never
+// wipe an encounter, so bare warns + no-ops (it IS stripped, via TAG_STRIP_BARE, so it can't
+// leak to the story either). Placed before COMBAT_END so an all-slain response auto-closes.
+{t:"ENEMY_SLAIN",nc:1,apply:function(text,R){
+  if(!worldState.combat)return;
+  var kT=text.match(/\[ENEMY_SLAIN:([^\]]+)\]/g)||[];var ki;
+  for(ki=0;ki<kT.length;ki++){var km=kT[ki].match(/\[ENEMY_SLAIN:([^\]]+)\]/);if(!km)continue;
+    var kfoe=combatFoeByName(km[1]);
+    if(!kfoe){console.warn("[combat] ENEMY_SLAIN target not found: "+km[1].trim()+" — no mutation");continue;}
+    if(kfoe.down||kfoe.hp<=0)continue;/* already down — re-emission, quiet no-op */
+    kfoe.hp=0;kfoe.down="slain";R.muts.push(kfoe.name+" slain");
+    if(worldState.combat.engaged===kfoe.name)worldState.combat.engaged=null;}
+  if(/\[ENEMY_SLAIN\]/.test(text))console.warn("[combat] bare ENEMY_SLAIN unsupported — name the foe ([ENEMY_SLAIN:Name]); no mutation");}},
 // UA2 resolved as IMPLEMENT (user call 2026-07-10): the former phantom becomes a real beat.
 // Sits between ENEMY_HP and COMBAT_ROUND so COMBAT_END's all-down close sees surrender state
 // emitted in the same response. Named form yields one foe; bare form yields all living.
