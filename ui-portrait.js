@@ -127,10 +127,19 @@ async function showPortraitModal(refreshFn,opts){
   // the sheet was closed and reopened. Returning false means "refused, and I already said why" —
   // the caller then leaves the generated text on screen instead of discarding it.
   var setAppear=opts&&opts.setAppearance?opts.setAppearance:function(text){
-    worldState.character.appear=text;saveAll();
-    if(typeof showCharSheet==="function"&&document.getElementById("cs-modal"))showCharSheet();/* separate element from #portrait-modal, so this repaints the sheet WITHOUT closing this modal */
-    return true;
+    worldState.character.appear=text;saveAll();return true;
   };
+  // The sheet UNDERNEATH this modal is a static render — it paints its Appearance row once, when
+  // it opens (ui-sheets.js). So an edit made here never showed until the sheet was closed and
+  // reopened; that, not the write, was the "Replace appearance doesn't replace" report.
+  // Repainting at CLOSE rather than per-write (user's call 2026-07-27, and the better design):
+  // this modal sits at z-index 400 over the sheet's 300, so a mid-flow repaint is invisible
+  // anyway, and one repaint on the way out covers EVERY edit made here — appearance, portrait,
+  // and framing — instead of only the one handler that remembered to ask for it.
+  var refreshSheet=opts&&opts.refreshSheet?opts.refreshSheet:function(){
+    if(typeof showCharSheet==="function"&&document.getElementById("cs-modal"))showCharSheet();
+  };
+  var _pmDirty=false;   // only repaint if something actually changed — a look-and-leave close must not reset the sheet's scroll
   /* #11③ DIVERGENCE PRESERVED: this portrait path defaults an UNSET gender to "androgynous"
      (every other image site defaults unset to "male") — expressed via the explicit 2nd arg,
      deliberately NOT unified. Local renamed so it can't shadow the helper. */
@@ -185,11 +194,14 @@ async function showPortraitModal(refreshFn,opts){
     +(hasPortrait?"<button id='pm-upd' style='"+BA+"'>&#10024; Update from Character Sheet</button>":"")
     // ── Result ─────────────────────────────────────────────────────────────
     +"<div id='pm-status' style='margin-top:14px;'></div>",
-    {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:420,boxExtra:"margin:20px 0 40px;",closeId:"pm-x",outside:true});
+    {z:400,align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:420,boxExtra:"margin:20px 0 40px;",closeId:"pm-x",outside:true,onClose:function(){pmClose();}});
 
-  function pmClose(){modal.remove();}
+  // THE single exit. Routed through modalShell's onClose above as well, so the × button and an
+  // outside-click repaint too — not just the three internal callers below. (pmClose is a hoisted
+  // function declaration, so naming it in the opts object above is safe.)
+  function pmClose(){modal.remove();if(_pmDirty)refreshSheet();}
   var pmImg=document.getElementById("pm-preview-img");
-  if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y,zoom){setOff(x,y,zoom);if(refreshFn)refreshFn();});
+  if(pmImg)wirePortraitDrag(pmImg,getOff,function(x,y,zoom){setOff(x,y,zoom);_pmDirty=true;if(refreshFn)refreshFn();});
   if(document.getElementById("pm-zoom-in"))document.getElementById("pm-zoom-in").addEventListener("click",function(){if(pmImg&&pmImg._zoomBy)pmImg._zoomBy(1.2);});
   if(document.getElementById("pm-zoom-out"))document.getElementById("pm-zoom-out").addEventListener("click",function(){if(pmImg&&pmImg._zoomBy)pmImg._zoomBy(0.83);});
   if(document.getElementById("pm-save-portrait")){
@@ -201,7 +213,7 @@ async function showPortraitModal(refreshFn,opts){
   }
   if(document.getElementById("pm-remove-portrait")){
     document.getElementById("pm-remove-portrait").addEventListener("click",function(){
-      setPort(null);if(refreshFn)refreshFn();pmClose();
+      setPort(null);_pmDirty=true;if(refreshFn)refreshFn();pmClose();
     });
   }
 
@@ -230,10 +242,10 @@ async function showPortraitModal(refreshFn,opts){
       useBtn.disabled=true;useBtn.textContent="Applying…";
       // Uploaded images are already a compressed data: URL — commit directly (no double-compress).
       // fal.ai results are http(s) URLs — fetch, then compress before storing.
-      if(imgUrl.indexOf("data:")===0){setPort(imgUrl);if(refreshFn)refreshFn();pmClose();return;}
+      if(imgUrl.indexOf("data:")===0){setPort(imgUrl);_pmDirty=true;if(refreshFn)refreshFn();pmClose();return;}
       fetch(imgUrl).then(function(r){return r.blob();}).then(function(blob){
         var fr=new FileReader();
-        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){setPort(compressed);if(refreshFn)refreshFn();pmClose();});};
+        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){setPort(compressed);_pmDirty=true;if(refreshFn)refreshFn();pmClose();});};
         fr.readAsDataURL(blob);
       }).catch(function(){useBtn.disabled=false;useBtn.textContent="Apply";});
     });
@@ -274,10 +286,12 @@ async function showPortraitModal(refreshFn,opts){
     // and clearing it would throw the user's work away along with the write.
     repl.addEventListener("click",function(){
       if(setAppear(desc)===false)return;
+      _pmDirty=true;
       status.innerHTML="";if(typeof showToast==="function")showToast("Appearance updated from portrait.");
     });
     app.addEventListener("click",function(){
       if(setAppear((c.appear?c.appear+" ":"")+desc)===false)return;
+      _pmDirty=true;
       status.innerHTML="";if(typeof showToast==="function")showToast("Appended to appearance.");
     });
     disc.addEventListener("click",function(){status.innerHTML="";});

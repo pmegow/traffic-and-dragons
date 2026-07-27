@@ -388,6 +388,16 @@ try {
     _failAW("the NPC writer no longer targets wsNpc.charSheet.appear — that is the only durable home for a companion's appearance.");
   if (_shAW.indexOf("No character sheet for") < 0)
     _failAW("the sheet-less refusal message is gone — writing would silently no-op instead of telling the user to generate a sheet (no-silent-failures).");
+  // v1.461: the sheet under the modal is a STATIC render (its Appearance row paints once, at
+  // open), so an edit here is invisible until it is rebuilt. Repaint on CLOSE — the modal sits at
+  // z-index 400 over the sheet's 300, so a per-write repaint is both invisible and wasteful, and
+  // one exit covers appearance + portrait + framing alike. These pin the whole mechanism.
+  if (!/function pmClose\(\)\{modal\.remove\(\);if\(_pmDirty\)refreshSheet\(\);\}/.test(_pmAW))
+    _failAW("pmClose no longer repaints the sheet — every edit made in the portrait modal goes invisible until the sheet is closed and reopened (the original report).");
+  if (!/onClose:function\(\)\{pmClose\(\);\}/.test(_pmAW))
+    _failAW("the modal's onClose no longer routes through pmClose — the x button and outside-click would skip the repaint, so only the three internal close paths would refresh.");
+  if ((_pmAW.match(/_pmDirty=true/g) || []).length < 6)
+    _failAW("a write path in the portrait modal stopped marking the sheet stale — that edit will not repaint on close. Expected 6 (appearance replace/append, portrait remove/url/file, framing drag).");
 } catch (e) { console.error("APPEARANCE WRITE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── UNLOAD STAMP CONTRACT (v1.432; re-homed from the BYPASS EVIDENCE CONTRACT at v1.455) ──

@@ -585,8 +585,14 @@ function showNpcSheet(name){
           return false;
         }
         wsNpc.charSheet.appear=text;saveAll();
-        var _m=document.getElementById("npc-modal");if(_m){_m.remove();showNpcSheet(name);}/* repaint so the Appearance row shows the new text immediately */
         return true;
+      },
+      // Repaint on CLOSE, not per write (v1.461): the portrait modal covers this sheet at a
+      // higher z-index, so a mid-flow rebuild is invisible AND would tear down the modal's own
+      // parent while the user is still working in it. One rebuild on the way out shows every
+      // edit — appearance, portrait, framing.
+      refreshSheet:function(){
+        var _m=document.getElementById("npc-modal");if(_m){_m.remove();showNpcSheet(name);}
       }
     };
     document.getElementById("npc-avatar-btn").addEventListener("click",function(){var img=document.getElementById("npc-portrait-img");if(img&&img._wasDragged&&img._wasDragged())return;showPortraitModal(refreshNpcAvatar,npcPortOpts);});
