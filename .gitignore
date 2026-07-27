@@ -17,6 +17,11 @@ audits/AUDIT_FABLE_*.md
 # Personal save files
 *.tnd
 
+# Campaign export folder (File System Access target — saves, renders, narratives written by the
+# game itself). Live play output, never source. Was merely untracked until 2026-07-27, which meant
+# it showed in every `git status` and one stray `git add -A` would have committed it.
+Campaigns/
+
 # Personal Claude Code settings (hooks + launch.json ARE committed)
 .claude/settings.local.json
 

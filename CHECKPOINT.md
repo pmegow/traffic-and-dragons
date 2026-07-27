@@ -78,10 +78,10 @@ anything.**
 | `dev/corpus_playtest_v1258.json.endstate.json` | ignored | ” |
 | `dev/corpus_playtest_v1271.json.endstate.json` | ignored | ” |
 | `dev/corpus_tagsoak_v1241.json.endstate.json` | ignored | ” |
-| `diagnostic_playthru.tnd` (root) | ignored | Personal save — cited by `audits/AUDIT_PLAYTHRU.md` |
-| `haikuPlaythrough.tnd` (root) | ignored | Personal save — cited by `audits/AUDIT_haiku_v1.230.md` |
-| `playtest_v1.224.tnd` (root) | ignored | Personal save — cited by `audits/AUDIT_playtest_v1.224.md` |
-| `playthrough_v1.214.tnd` (root) | ignored | Personal save — cited by `audits/AUDIT_playthrough_v1.214.md` |
+| `testRuns/diagnostic_playthru.tnd` | ignored | Personal save — cited by `audits/AUDIT_PLAYTHRU.md`. *(Was at root; moved 2026-07-27, citation updated.)* |
+| `testRuns/haikuPlaythrough.tnd` | ignored | Personal save. **Correction:** the first draft of this file claimed `audits/AUDIT_haiku_v1.230.md` cites it — it does not; that audit carries no `.tnd` link at all. This save has **no citation anywhere**. *(Was at root; moved 2026-07-27.)* |
+| `testRuns/playtest_v1.224.tnd` | ignored | Personal save — cited by `audits/AUDIT_playtest_v1.224.md`. *(Was at root; moved 2026-07-27, citation updated.)* |
+| `testRuns/playthrough_v1.214.tnd` | ignored | Personal save — cited by `audits/AUDIT_playthrough_v1.214.md`. *(Was at root; moved 2026-07-27, citation updated.)* |
 | `testRuns/Rise_of_the_Runelords_t308.tnd` | ignored | **The mature-save test bed** (AUDIT_t308.md, the RAG/#92 evidence base). Hard to regenerate. |
 | `testRuns/Rise_of_the_Runelords_t343.tnd` | ignored | ” |
 
@@ -238,3 +238,53 @@ Recommended to **keep at root** if the docs move: `CLAUDE.md`, `TODO.md`, `HANDO
 `vendor/` (8) · `.claude/` (8) · `.github/` (1)
 
 *Section totals: 30 + 8 + 3 + 8 + 6 + 2 + 3 + 17 = **77 root** · + 97 subdirectory = **174 tracked**.*
+*(78 root once `CHECKPOINT.md` itself was committed at `3649c01`.)*
+
+---
+
+## 8. Housekeeping applied — 2026-07-27 (items 1–4)
+
+Ran after the user confirmed a full copy of the project directory exists on a separate drive.
+**Root went 78 → 62 tracked files.** All moves were `git mv`, so history is preserved (git recorded
+every one as a rename, not a delete+add). Nothing in §4's invariant list broke.
+
+| Item | What moved | Where |
+|---|---|---|
+| 1 | 13 reference docs | root → `DOC/` (21 → 34 files) |
+| 2 | `Campaigns/` | now gitignored — no longer in `git status` |
+| 3 | 4 personal `.tnd` saves | root → `testRuns/` (gitignored, plain `mv`) |
+| 4 | 3 `.blueprint` fixtures | root → new `samples/` |
+
+**Kept at root deliberately:** `CLAUDE.md`, `TODO.md`, `HANDOFF.md`, `todo_checkWithFable.md`,
+`CHECKPOINT.md` · all 30 engine JS · the app host/PWA set · all 8 satellites + their 6 icons ·
+`libritts_speakers.json` / `vctk_speakers.json`.
+
+**Reference repairs (34 total), all verified by a link checker that resolves every relative link
+in every tracked `.md`/`.html`:**
+
+- 11 inbound links from `TODO.md` (7) and `CLAUDE.md` (4) → `DOC/…`
+- 9 outbound links from `DOC/Fable_UberAudit.md` (8) and `DOC/HANDOFF_batch_v1260.md` (1) → `../TODO.md`, `../audits/…`
+- 2 in `audits/AUDIT_FABLE_07_16_2026.md` (gitignored, fixed on disk anyway)
+- 3 `.tnd` citations in `audits/AUDIT_PLAYTHRU.md`, `AUDIT_playtest_v1.224.md`, `AUDIT_playthrough_v1.214.md`
+- 1 blueprint link + 2 "in repo root" prose fixes in `TODO.md`
+- 1 **runnable** `node -e` command in `DOC/DOC_Module_to_Blueprint.html` that reads
+  `tomb_of_annihilation.blueprint` — copy-paste-able from repo root, so the path had to move with the file
+- 1 `.claude/skills/fable-review/SKILL.md` reference to `FABLE_REVIEW_ACTION.html`
+- 3 **pre-existing** broken links found in the sweep: `DOC/BUGS.md` linked to `DOC/piper_deepdive.html`
+  and `DOC/DOC_server_tts.html` from *inside* `DOC/`, resolving to `DOC/DOC/…`. Fixed while here.
+
+**Deliberately NOT touched:** `DOC/UI_SEAM_MAP.md` lines 237–260 look like `src="globals.js"`
+references but sit inside a ` ```html ` code block documenting index.html's script order — content,
+not links. A naive path rewrite would have corrupted the document.
+
+**Verification run after the moves** — all green: link checker `78 links, 0 broken` ·
+`ALL GREEN — 861 assertions passed` · `TODO.md tables OK (334 lines)` · `node --check` on sw.js and
+globals.js · all **37** `APP_SHELL` entries exist on disk · all **30** `index.html` script srcs exist ·
+all 8 satellites still at root (the SW network-first regex matches them by name).
+
+**No version bump:** no game code changed — `APP_VERSION` stays `v1.462`, `CACHE` stays
+`tnd-v3-20260727i`. The service worker's shell is byte-identical in content and path.
+
+**Still open (unchanged by housekeeping):** the two `.claude/worktrees/` checkouts are confirmed
+safe to delete (§2) but were left alone — they were not part of items 1–4. The `#72` local-server
+commit decision also stands.

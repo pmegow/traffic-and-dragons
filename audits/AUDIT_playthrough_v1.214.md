@@ -4,7 +4,7 @@
 
 **Mandate:** complete **Act 1** in ≤100 turns, focus on goal completion, add ≥1 party member, then save + audit.
 
-**Result:** ✅ **Act 1 completed at turn 36 of 100.** All four Act-1 arcs completed, all five quests closed and archived, three party members recruited (all sheeted + leveled), rewards paid throughout. Save: [playthrough_v1.214.tnd](../playthrough_v1.214.tnd).
+**Result:** ✅ **Act 1 completed at turn 36 of 100.** All four Act-1 arcs completed, all five quests closed and archived, three party members recruited (all sheeted + leveled), rewards paid throughout. Save: [playthrough_v1.214.tnd](../testRuns/playthrough_v1.214.tnd).
 
 **Cost:** $1.54 · 37 turn calls · 0 turn errors · 0 console errors.
 
