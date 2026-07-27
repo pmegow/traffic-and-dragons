@@ -4154,17 +4154,9 @@ function runEngineTests(R){
     if(d.indexOf(" da=")<0)return "no da in diag: "+d;
     return true;
   });
-  t("setBypassPlayback(true) persists, is loud in diag; (false) clears both; isBypassPlayback mirrors",function(){
-    var r=TTS.setBypassPlayback(true);
-    if(r!==true)return "arm did not return true";
-    if(store.get("tnd_tts_bypass_v1")!=="1")return "bypass key not persisted";
-    if(TTS.isBypassPlayback()!==true)return "isBypassPlayback false while armed (menu checkbox would init wrong)";
-    if(TTS.diag().indexOf("BYPASS")<0)return "armed bypass invisible in diag (silent experiment = the exact blindness class)";
-    TTS.setBypassPlayback(false);
-    if(store.get("tnd_tts_bypass_v1"))return "bypass key not cleared on disarm";
-    if(TTS.isBypassPlayback()!==false)return "isBypassPlayback true after disarm";
-    return TTS.diag().indexOf("BYPASS")<0?true:"disarmed bypass still shows in diag";
-  });
+  // (the setBypassPlayback/isBypassPlayback test went with the B9 playback-bypass EXPERIMENT
+  // itself in #97/v1.455 — the diagnostic answered its question and #90's server tier closed
+  // B9 architecturally, so there is no lever left to assert on.)
 
   // ── TTS shared text-prep (TODO #41 Phase 1 — normalizeForTTS/splitSentences/packLongUnit) ──
   section("TTS text-prep (#41 Phase 1)");
@@ -6187,7 +6179,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:9,e:"unload",d:""}];
       if(erPrevDirty()!==false)return "unload-stamped ring must read clean";
       _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:40,e:"read-start",d:"39u pc83 ps1"}];
-      if(erPrevDirty()!==true)return "unstamped ring must read DIRTY — this gate is what mails a bypass-run death";
+      if(erPrevDirty()!==true)return "unstamped ring must read DIRTY — this gate is what labels a real kill in the crash diag";
       // the honest diag label must follow the same verdict
       if(erDiagBlock().indexOf("ended without unload")<0)return "dirty ring not labeled 'ended without unload' in diag";
       _erPrevCrumbs=[{t:1,e:"boot",d:""},{t:9,e:"unload",d:""}];

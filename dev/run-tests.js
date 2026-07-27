@@ -361,26 +361,22 @@ try {
   }
 } catch (e) { console.error("PLAYBACK RECYCLE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
-// ── BYPASS EVIDENCE CONTRACT (v1.432, B9) ─────────────────────────────────────────────────
-// A bypass-run kill lands BETWEEN reads (bypass reads finish fast), leaves done:true on the
-// Piper crumb, and mails nothing — the experiment's deaths were invisible until the boot
-// report closed that (2026-07-23 field lesson). Both halves must survive: the unload stamp
-// (without it every clean close reads as a kill → false bypass-death mails) and the boot
-// report itself (without it the blind spot silently returns).
+// ── UNLOAD STAMP CONTRACT (v1.432; re-homed from the BYPASS EVIDENCE CONTRACT at v1.455) ──
+// The pagehide/beforeunload hooks append a final "unload" crumb, which is the ONLY thing that
+// lets erPrevDirty tell a jetsam kill from a clean close. Lose it and every recovered ring is
+// labeled "ended without unload" again — the overstated-evidence bug v1.432 fixed.
+// (The contract's second half — the bypass-run boot report in tts.js — was removed with the
+// B9 experiment itself in #97/v1.455. This half guards a LIVE consumer: the diag label in
+// erDiagBlock, error-report.js.)
 try {
   var _fsB = require("fs"), _pathB = require("path");
   var _ncB = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
   var _erB = _ncB(_fsB.readFileSync(_pathB.join(__dirname, "..", "error-report.js"), "utf8"));
   if (_erB.indexOf('erCrumb("unload")') < 0) {
-    console.error("BYPASS EVIDENCE CONTRACT: the pagehide/beforeunload unload stamp is gone from error-report.js — erPrevDirty can no longer distinguish a kill from a clean close, so every normal quit while the bypass is armed would mail a false death (v1.432).");
+    console.error("UNLOAD STAMP CONTRACT: the pagehide/beforeunload unload stamp is gone from error-report.js — erPrevDirty can no longer distinguish a kill from a clean close, so every recovered ring would again be labeled 'ended without unload' in the crash diag (v1.432).");
     process.exit(1);
   }
-  var _ttsB = _ncB(_fsB.readFileSync(_pathB.join(__dirname, "..", "tts.js"), "utf8"));
-  if (_ttsB.indexOf('reportError("bypass-death"') < 0) {
-    console.error("BYPASS EVIDENCE CONTRACT: the bypass-run boot report is gone from tts.js loadSettings — between-reads kills during the B9 experiment become invisible again (v1.432).");
-    process.exit(1);
-  }
-} catch (e) { console.error("BYPASS EVIDENCE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
+} catch (e) { console.error("UNLOAD STAMP CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
 // ── WORK-BUDGET GOVERNOR CONTRACT (v1.434, B9 root cause) ─────────────────────────────────
 // iOS kills the WebContent process after a cumulative budget of synthesis work per page load

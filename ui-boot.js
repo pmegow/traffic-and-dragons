@@ -76,11 +76,6 @@ function buildFileMenus(){
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
       +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
-      /* B9 (v1.431): the playback-bypass EXPERIMENT — synthesizes every unit, discards the audio.
-         One tap on the phone instead of a console call. Deliberately loud downstream: tts.js
-         toasts at arm/disarm AND at read start, stamps by:1 on every crash crumb, and persists
-         the flag — so it can't be mistaken for broken audio or silently left on. */
-      +chk(p+"b9bypass","&#129514; B9 test: synth without audio",0)
       +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
       +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
       +sep(true)
@@ -193,7 +188,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","font-lg","legacy-cb","autosend","autolisten","sound-cb","b9bypass"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
+  ["adult-cb","font-lg","legacy-cb","autosend","autolisten","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -251,14 +246,6 @@ function wireButtons(){
   eachMenuEl("autolisten",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setAutoListen)STT.setAutoListen(el.checked);});});
   if(typeof STT!=="undefined")STT.loadSettings();
   if(typeof STT!=="undefined"&&typeof STT.isAutoListen==="function"){var _alOn=STT.isAutoListen();eachMenuEl("autolisten",function(el){el.checked=_alOn;});}
-  // B9 (v1.431): the playback-bypass experiment toggle — routes to TTS.setBypassPlayback (which
-  // toasts, persists, and stamps by:1 on the crash crumb; see the B9 decision table in BUGS.md).
-  // Checked state mirrors across all three menus, initialized from the persisted flag.
-  eachMenuEl("b9bypass",function(el){el.addEventListener("change",function(){
-    if(typeof TTS!=="undefined"&&TTS.setBypassPlayback)TTS.setBypassPlayback(el.checked);
-    eachMenuEl("b9bypass",function(o){if(o!==el)o.checked=el.checked;});
-  });});
-  if(typeof TTS!=="undefined"&&typeof TTS.isBypassPlayback==="function"){var _byOn=TTS.isBypassPlayback();eachMenuEl("b9bypass",function(el){el.checked=_byOn;});}
   // Suggested-action buttons: plain tap = fill input (editable); long-press (~500ms) = execute the turn.
   // (Ctrl/Cmd-click is handled in sendSuggestedAction.) Delegated so it covers dynamically-added buttons.
   (function(){

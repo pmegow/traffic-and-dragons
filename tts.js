@@ -579,16 +579,6 @@ var TTS = (function() {
   var _ctxSynths       = 0;   // crumb: cs — reset by _ensureCtx whenever a NEW context is built
   var _ctxRecycles     = 0;   // crumb: cr
   var _decodeFallbacks = 0;   // crumb: da
-  // The bypass experiment (deepdive Part 4): synthesize every unit normally but discard the WAV
-  // before decode/schedule — full synthesis load, ZERO playback objects. Survives past pc≈150 →
-  // the accumulator is playback-side; dies on schedule → playback exonerated, move to the
-  // narration-OFF discriminator (synthesis vs turn loop). Persisted so a phone tester can arm it
-  // before a session; LOUD (toast at read start + by:1 on every crumb) so it can never be
-  // silently left on.
-  var BYPASS_K = "tnd_tts_bypass_v1";
-  var _bypassPlayback = false;
-  try { _bypassPlayback = store.get(BYPASS_K) === "1"; } catch (e) {}
-  var _bypassToasted = false;
   var _nativeUtter   = null;// current SpeechSynthesisUtterance (native path)
   var _nativeStallT  = null;// pending native stall-watchdog timer — cleared by _stopCurrent so a
                             // skipped chain can't be resurrected by a stale watchdog (v1.334, audit #4)
@@ -981,7 +971,6 @@ var TTS = (function() {
     }
     // Crash forensics (v1.324): if the last Piper read never finished and was never user-stopped,
     // the tab died mid-read (the iOS kill class). Surface it LOUDLY — the phone has no console.
-    var _mailedDeath = false;
     try {
       var c = store.get(PIPER_CRUMB_K);
       if (c) {
@@ -997,23 +986,8 @@ var TTS = (function() {
           if (typeof showToast === "function") showToast(msg, 8000);
           // #16: the narration-death crumb is the exact "invisible mobile console" class this
           // reporting exists for — mail the same forensics the toast shows, plus the raw crumb.
-          if (typeof reportError === "function") { reportError("narration-death", msg, JSON.stringify(c)); _mailedDeath = true; }
+          if (typeof reportError === "function") reportError("narration-death", msg, JSON.stringify(c));
         }
-      }
-    } catch(e) {}
-    // v1.432 (B9): the bypass experiment's own deaths were INVISIBLE — a bypass read finishes
-    // fast (no playback pacing), so a kill lands BETWEEN reads, leaves done:true on the Piper
-    // crumb, and the block above mails nothing (2026-07-23 field lesson: a frontmost armed run
-    // died and the feed stayed empty). With the experiment armed, a previous page that ended
-    // without an unload event is a result either way — mail its ring (rides in the diag block;
-    // read-start entries carry pc) so the run is evidence rather than anecdote. Skipped when the
-    // mid-read path above already mailed: one death, one report.
-    try {
-      if (_bypassPlayback && !_mailedDeath && typeof erPrevDirty === "function" && erPrevDirty() && typeof reportError === "function") {
-        var bmsg = "⚠ B9 bypass run: previous page ended without unload (kill landed between reads) — ring attached, read-start entries carry pc";
-        console.warn("[tts piper] " + bmsg);
-        if (typeof showToast === "function") showToast(bmsg, 8000);
-        reportError("bypass-death", bmsg, "");
       }
     } catch(e) {}
   }
@@ -1091,7 +1065,6 @@ var TTS = (function() {
          + (_frameRespawnFails ? " respawnFails=" + _frameRespawnFails : "")   // v1.419: the high-water mark, which is what a jetsam kill responds to
          // v1.430 (B9 H1): the playback-layer counters — ctx age in units / recycles / decode fallbacks
          + " ctxSyn=" + _ctxSynths + "/" + AUDIO_CTX_RECYCLE_SYNTHS + " cr=" + _ctxRecycles + " da=" + _decodeFallbacks
-         + (_bypassPlayback ? " BYPASS" : "")
          // v1.434 (B9 root cause): the work budget — cumulative synth CPU + whether the governor latched
          + " synthCPU=" + Math.round(_piperCpuMs / 1000) + "s" + (_piperGoverned ? " GOVERNED" : "")
          + _piperMemNote();
@@ -2010,13 +1983,7 @@ var TTS = (function() {
     // commaSplit=true: Piper gets its rhythm from scheduled gaps (see the pause tiers above)
     var units = splitSentences(text, null, true);
     if (!units.length) { _drain(); return; }
-    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : "") + (_bypassPlayback ? " BYPASS" : ""));
-    // B9 bypass experiment: LOUD, once per page load — an armed experiment must never be
-    // mistaken for broken audio (no-silent-failures), and never silently left on.
-    if (_bypassPlayback && !_bypassToasted) {
-      _bypassToasted = true;
-      if (typeof showToast === "function") showToast("⚠ B9 experiment armed: synthesizing WITHOUT playback — narration is silent on purpose (TTS.setBypassPlayback(false) to disarm)", 8000);
-    }
+    if (typeof erCrumb === "function") erCrumb("read-start", units.length + "u pc" + _piperSynthsTotal + " ps" + _piperSynthsSession + (voices ? " map" + Object.keys(voices).length : ""));
 
     // Per-unit crash journal (v1.324) — see _crumbDone/loadSettings. Written BEFORE each unit's
     // synth, so if the tab dies mid-predict the crumb names the killing unit.
@@ -2042,10 +2009,8 @@ var TTS = (function() {
           eng: _piperFrame ? "frame" : "inpage", // v1.418: was the B9 fix actually active at death?
           // v1.430 (B9 H1): cs = sources on the CURRENT AudioContext (death with cs<40 falsifies
           // ctx-scoped playback accumulation in one crumb); cr = healthy-ctx recycles; da =
-          // decodeAudioData fallbacks (G5 — 0 is the evidence, so it always rides); by only when
-          // the bypass experiment is armed (undefined serializes away).
+          // decodeAudioData fallbacks (G5 — 0 is the evidence, so it always rides).
           cs: _ctxSynths, cr: _ctxRecycles, da: _decodeFallbacks,
-          by: _bypassPlayback ? 1 : undefined,
           // v1.434 (B9 root cause): cpu = cumulative synth work (the budget the kill tracks);
           // gv = the governor latched. A death crumb with gv:1 would mean the budget constants
           // are too high for this device — lower them, don't re-diagnose.
@@ -2135,13 +2100,6 @@ var TTS = (function() {
       _piperSynthsTotal++; _piperSynthsSession++;   // r8: count BEFORE the stale check — the wasm memory was spent either way
       _frameSampleMem();   // v1.419 (B9): per-unit high-water sampling — the peak is what kills, and it lives INSIDE the read
       if (_piperEpoch !== myEpoch) return;   // stale — discard a predict() that resolved after invalidation
-
-      // B9 bypass experiment (v1.430): full synthesis load, ZERO playback objects — drop the WAV
-      // Blob untouched (no arrayBuffer copy, no decode, no source, no scheduling). anyOk=true so
-      // the all-units-failed native fallback below cannot fire and SPEAK a passage the experiment
-      // is deliberately keeping silent. pc keeps climbing and the crumb keeps writing, so a death
-      // (or survival past pc≈150) under this flag is the H1 discriminator.
-      if (_bypassPlayback) { anyOk = true; continue; }
 
       var buf;
       try {
@@ -3289,20 +3247,8 @@ var TTS = (function() {
     // B9 (v1.418): tear down the synthesis realm and build a fresh one. User-facing mitigation
     // AND the deterministic proof that realm teardown returns the wasm memory.
     respawnEngine:     respawnEngine,
-    // B9 H1 (v1.430): arm/disarm the playback-bypass experiment — synthesize normally, discard
-    // every WAV before decode/schedule. Persisted (a phone tester arms it before a session);
-    // LOUD when active (read-start toast + BYPASS in diag + by:1 on every crumb). Survival past
-    // pc≈150 under this flag pins the B9 accumulator to the playback layer; a death on the usual
-    // schedule exonerates playback entirely. See the BUGS.md B9 decision table.
-    setBypassPlayback: function(on) {
-      _bypassPlayback = !!on;
-      _bypassToasted = false;
-      try { if (on) store.set(BYPASS_K, "1"); else store.del(BYPASS_K); } catch (e) {}
-      if (typeof showToast === "function") showToast(on ? "⚠ B9 bypass ARMED — narration will be silent" : "B9 bypass disarmed — playback restored");
-      console.info("[tts] B9 playback bypass " + (on ? "ARMED — synths run, nothing plays" : "disarmed"));
-      return _bypassPlayback;
-    },
-    isBypassPlayback: function() { return _bypassPlayback; },   // v1.431: backs the Admin-menu checkbox's init state
+    // (v1.455: setBypassPlayback/isBypassPlayback — the B9 playback-bypass EXPERIMENT — removed
+    // with #97. It answered its question and #90's server tier closed B9 architecturally.)
     // Engine selection (TODO #41 Phase 4) — public because other surfaces (File menu labels, Car
     // Mode) may reasonably want to know/resolve the active choice, not just the settings modal.
     getEngine:         getEngine,

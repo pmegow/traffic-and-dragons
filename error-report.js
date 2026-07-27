@@ -106,10 +106,9 @@ function erLoadPrevCrumbs() {
 // never detected — the diag block labeled EVERY recovered ring "ended without unload", including
 // clean closes, because nothing ever stamped the ring on the way out. The pagehide/beforeunload
 // hooks below now append a final "unload" crumb, so a ring whose last entry is anything else
-// means the page genuinely died with no handler running (jetsam/purge — the B9 class). This is
-// the gate for the bypass-run boot report in tts.js loadSettings: with the experiment armed,
-// kills land BETWEEN reads (bypass reads finish fast), leave done:true on the Piper crumb, and
-// mailed NOTHING — the experiment's own deaths were invisible (2026-07-23 field lesson).
+// means the page genuinely died with no handler running (jetsam/purge — the B9 class). Its
+// consumer is the diag label in erDiagBlock below; the second consumer (the bypass-run boot
+// report in tts.js) went away with the B9 experiment itself in #97/v1.455.
 function erPrevDirty() {
   return _erPrevCrumbs.length > 0 && _erPrevCrumbs[_erPrevCrumbs.length - 1].e !== "unload";
 }
