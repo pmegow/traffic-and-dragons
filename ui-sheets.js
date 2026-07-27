@@ -326,13 +326,18 @@ async function generateNpcSheet(name,doneCb){
     if(!sheet.storyBeats)sheet.storyBeats=[];
     if(!sheet.skills){sheet.skills={};var sk2;for(sk2=0;sk2<SKILLS.length;sk2++)sheet.skills[SKILLS[sk2].id]=0;}
     sheet.portrait=npcPortrait(wsNpc);wsNpc.portrait=null; // #3 dedupe: the sheet is the portrait's single home now
-    sheet.partyMember=true;
+    sheet.partyMember=!!wsNpc.partyMember;/* v1.453: was a hardcoded `true` — correct while only party members could generate, wrong since v1.452 opened generation to roster NPCs */
     // Preserve earned progression on a REGENERATE (audit E59): the generation prompt uses a
     // level-1/xp-0/hp-20 template, so regenerating an advanced companion would silently reset them.
     // Carry the existing sheet's level/xp/hp/maxHp over the freshly-generated (default) values.
     var _prior=wsNpc.charSheet;
     if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;
       if(_prior.voiceId)sheet.voiceId=_prior.voiceId;/* #9: the assigned voice is a SETTING, not LLM content — carry it across a regenerate like portrait/level */}
+    // #96b (user call 2026-07-26): pin a voice AT CREATION so the character sounds the same from
+    // their very first line. The auto-cast hash is stable, but a bench edit would re-deal an
+    // unpinned voice mid-campaign. A regenerate carried the prior pin just above; only a truly
+    // fresh sheet draws a new one. The player can always re-pin via the sheet's voice dropdown.
+    if(!sheet.voiceId&&typeof TTS!=="undefined"&&TTS.autoCastVoiceId){var _vp=TTS.autoCastVoiceId(sheet);if(_vp)sheet.voiceId=_vp;}
     // Seed the player↔NPC relationship from live tracking data
     if(!sheet.relationships)sheet.relationships=[];
     if(worldState&&worldState.character){

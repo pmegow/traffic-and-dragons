@@ -4717,6 +4717,27 @@ function runEngineTests(R){
     }
     return bad.length?bad.join(" | "):true;
   });
+  t("#96b: first speech PINS the auto-cast pick to the sheet; assigned voices and unpinnables untouched",function(){
+    // The hash is stable but a bench edit re-deals every UNPINNED character (Ameiko changing
+    // voice mid-campaign — the user's exact concern). Pinning on first speech makes the pick
+    // permanent, synced (rides the sheet), and editable in the sheet's voice dropdown.
+    var K="tnd_speaker_stars_v1",saved=store.get(K);
+    try{
+      _mkSpeakerWorld();
+      store.set(K,JSON.stringify([{id:"m#1",label:"A",g:"M"},{id:"m#2",label:"B",g:"F"}]));
+      worldState.npcs[1].charSheet.gender="F";            // Frizwick: sheet, F, no voiceId
+      var sp={n:4,s:{0:"Frizwick",1:"Frizwick",2:"Daeris",3:"Nobody Known"}};
+      if(pinAutoCastVoices(sp)!==true)return "nothing pinned";
+      if(worldState.npcs[1].charSheet.voiceId!=="m#2")return "Frizwick not pinned to the female star: "+worldState.npcs[1].charSheet.voiceId;
+      if(worldState.npcs[0].charSheet.voiceId!=="en_GB-alba-medium")return "Daeris's ASSIGNED voice was overwritten";
+      if(pinAutoCastVoices(sp)!==false)return "re-pinned an already-pinned character (must be a no-op)";
+      delete worldState.npcs[1].charSheet.voiceId;
+      worldState.npcs[1].charSheet.gender="NB";
+      if(pinAutoCastVoices(sp)!==false)return "pinned an NB character from a binary pool (guessing again)";
+      if(worldState.npcs[1].charSheet.voiceId)return "NB character got a voiceId written";
+    }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
+    return true;
+  });
   t("#96: everything untrustworthy is DROPPED, never guessed (a wrong map is worse than none)",function(){
     _mkSpeakerWorld();
     var clean='He nods. "Fine," he says.';

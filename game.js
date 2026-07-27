@@ -299,6 +299,29 @@ function _speakerChar(name){
   return null;
 }
 
+// #96b (user call 2026-07-26): PIN the auto-cast pick on first speech. The name-hash is stable
+// turn to turn, but a bench edit re-deals every unpinned character — Ameiko could change voice
+// mid-campaign. So the first time a sheet-bearing character actually SPEAKS, the auto-cast pick
+// is written to their charSheet.voiceId: permanent, rides the sync blob, and shows in the sheet's
+// voice dropdown where the player can re-pin it. Characters with an assigned voice are untouched;
+// sheet-less names and unknown-gender declines skip (nothing to pin, narrator as before).
+function pinAutoCastVoices(sp){
+  if(!sp||!sp.s||typeof TTS==="undefined"||!TTS.autoCastVoiceId)return false;
+  var seen={},pinned=false,k,nm,ch,v;
+  for(k in sp.s){
+    nm=sp.s[k];
+    if(seen[nm])continue;
+    seen[nm]=1;
+    ch=_speakerChar(nm);
+    if(!ch||ch.voiceId)continue;
+    v=TTS.autoCastVoiceId(ch);
+    if(!v)continue;
+    ch.voiceId=v;
+    pinned=true;
+    console.info("[speakers] pinned voice "+v+" to "+nm+" (auto-cast, now permanent — change it on their sheet)");
+  }
+  return pinned;
+}
 // Narration entry point for a committed turn. Attribution derives SYNCHRONOUSLY from the
 // response's own [SAY:] tags (#96) — nothing waits on a network call anymore, and derivation is
 // free, so the map is stamped even while MUTED (the old post-pass skipped muted turns to save a
@@ -311,6 +334,7 @@ function narrateWithSpeakers(clean,raw,narEl,entry){
   if(sp){
     stampTranscriptSpeakers(entry,sp);
     if(narEl)narEl._sp=sp;   // the per-message replay button reads this at click time
+    try{pinAutoCastVoices(sp);}catch(e2){console.warn("[speakers] voice pinning failed (read unaffected):",e2&&e2.message);}
     saveAll();
   }
   if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;   // muted: map kept, no read
