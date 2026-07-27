@@ -1155,14 +1155,30 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   return prov.parseResponse(data);
 }
 
+// The vision prompt behind "🔍 Describe appearance from image" (portrait modal + creation wizard).
+// Hoisted to a named constant so it is greppable and testable, like SPEAKER_SYS/TAG_REINFORCE.
+//
+// ⚠ WHY THE DURABILITY RULE IS LOAD-BEARING (user field note 2026-07-27: "spilling from beneath an
+// olive coloured hood" is too specific): char.appear is not a caption, it is CANON with two
+// consumers that both treat it as permanent — buildSysPrompt injects it into the character sheet
+// every turn (api.js, "Appearance:"), and doRender feeds it to the image model for the protagonist
+// AND every party member under "describe exactly as written, do not invent appearance". So a
+// garment baked in here means the GM still believes in that hood fifty turns and three outfits
+// later, and every scene render keeps drawing it. Pose/expression/background are the same class of
+// mistake for the same reason, so they are excluded too. A general style REGISTER survives a change
+// of clothes and is genuinely useful to both consumers, so it stays allowed.
+var PORTRAIT_DESC_SYS="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet.\n"
+ +"DESCRIBE ONLY WHAT IS DURABLE. This entry is re-read as canon for the whole campaign, long after the character has changed clothes: face shape and features, hair colour and texture, eye colour, build and bearing, complexion, apparent age, and PERMANENT marks (scars, tattoos, a broken nose, a missing finger).\n"
+ +"DO NOT tie the description to this one image. No specific garments, garment colours, armour pieces or accessories (never 'an olive hood', 'a red cloak', 'a silver brooch'), and no pose, gesture, facial expression, background, weather or lighting.\n"
+ +"A general style REGISTER is fine and useful, because it survives a change of outfit: 'dressed for hard travel', 'carries herself like someone used to armour', 'in the sober cut of a city clerk'. A named colour or a named item is not.\n"
+ +"Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
 async function describePortraitImage(base64Url,charName){
   var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
   if(!key)throw new Error("Needs a Claude (Anthropic) key.");
   var mm=base64Url.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
   if(!mm)throw new Error("Portrait must be a base64 image.");
   var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
-  var sys="You are a character artist's eye for a dark fantasy RPG. Look at the portrait and write a vivid 2-3 sentence physical description for a character sheet: face, hair, eyes, build, complexion, notable marks, and visible clothing or gear. Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
-  var body={model:model,max_tokens:400,system:sys,messages:[{role:"user",content:[
+  var body={model:model,max_tokens:400,system:PORTRAIT_DESC_SYS,messages:[{role:"user",content:[
     {type:"text",text:"Describe this character's appearance for their sheet."+(charName?" Their name is "+charName+".":"")},
     {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
   ]}]};

@@ -4152,6 +4152,31 @@ function runEngineTests(R){
     if(skelRulesTail().indexOf("- Each arc has a type: combat (fights, sieges, hunts)")!==0)return "rules tail anchor moved";
     return skelRulesTail().indexOf("Act 2 is often parallel.")>0?true:"parallel rule lost from the tail";
   });
+  t("PORTRAIT_DESC_SYS: appearance is DURABLE canon — no garments/pose, but a style register is kept",function(){
+    // char.appear is not a caption: buildSysPrompt re-injects it as canon every turn and doRender
+    // hands it to the image model for the PC and every party member ("describe exactly as
+    // written"). So a garment named here outlives every costume change in the story — the field
+    // report was "spilling from beneath an olive coloured hood". These assert the RULE survives,
+    // not the exact wording.
+    var s=PORTRAIT_DESC_SYS;
+    if(/visible clothing or gear/i.test(s))return "the old clothing instruction is still present — the whole point was removing it";
+    if(!/DURABLE/.test(s))return "the durability rule is gone";
+    var durable=["hair","eye","build","complexion","face"],i;
+    for(i=0;i<durable.length;i++)if(s.toLowerCase().indexOf(durable[i])<0)return "durable trait no longer requested: "+durable[i];
+    if(!/permanent marks/i.test(s))return "permanent marks (scars/tattoos) no longer requested";
+    var banned=["garment","pose","expression","background","lighting"];
+    for(i=0;i<banned.length;i++)if(s.toLowerCase().indexOf(banned[i])<0)return "mutable detail no longer excluded: "+banned[i];
+    // the allowance matters too — banning ALL clothing talk would strip a genuinely useful signal
+    if(!/register/i.test(s))return "the general style-register allowance is gone (over-corrected)";
+    return /olive hood/i.test(s)?true:"the concrete negative example was dropped — it is what makes the rule land";
+  });
+  t("describePortraitImage sends the durable-appearance system prompt (both call sites share it)",function(){
+    // the portrait modal (ui-portrait.js) and the creation wizard (char-creation.js) both call
+    // this one function, so the constant reaching the request body is what fixes both surfaces
+    var src=String(describePortraitImage);
+    if(src.indexOf("PORTRAIT_DESC_SYS")<0)return "the request no longer uses PORTRAIT_DESC_SYS — a local prompt would silently diverge from the tested one";
+    return /system:\s*PORTRAIT_DESC_SYS/.test(src)?true:"PORTRAIT_DESC_SYS is referenced but not passed as the system prompt";
+  });
   t("skeletonHasDna detects a dnaHint on any arc",function(){
     if(skeletonHasDna({acts:[{arcs:[{}]},{arcs:[{}]},{arcs:[{}]}]}))return "false positive";
     return skeletonHasDna({acts:[{arcs:[{}]},{arcs:[{},{dnaHint:"x"}]},{arcs:[{}]}]})?true:"missed the dnaHint";
