@@ -64,6 +64,24 @@ function runEngineTests(R){
   t("toFirstPerson: reflexive",function(){return eq(toFirstPerson("Defend yourself"),"Defend myself");});
   t("toFirstPerson: object you after verb",function(){return eq(toFirstPerson("Let the guard follow you"),"Let the guard follow me");});
   t("pronounsForGender",function(){return eq(pronounsForGender("F"),"she/her")===true&&eq(pronounsForGender("NB"),"they/them")===true?eq(pronounsForGender("M"),"he/him"):"NB/F wrong";});
+  // #88: punctuateAction — deterministic terminal punctuation for suggested actions. Idempotent
+  // is the load-bearing property (it re-runs on stored worldState.lastActions every reload).
+  t("punctuateAction: bare phrase gets a period",function(){return eq(punctuateAction("Search the crates"),"Search the crates.");});
+  t("punctuateAction: already-punctuated text is untouched (period/question/exclaim)",function(){
+    return eq(punctuateAction("Ask about the letter?"),"Ask about the letter?")===true
+      &&eq(punctuateAction("Charge in!"),"Charge in!")===true
+      ?eq(punctuateAction("Wait here."),"Wait here."):"one of the three terminal marks was altered";
+  });
+  t("punctuateAction: an ellipsis is left alone, not doubled",function(){return eq(punctuateAction("Trail off into silence…"),"Trail off into silence…");});
+  t("punctuateAction: a quote/paren closing right after the mark still counts as punctuated",function(){
+    return eq(punctuateAction('Ask her, "Where is it?"'),'Ask her, "Where is it?"')===true
+      ?eq(punctuateAction("(Say nothing.)"),"(Say nothing.)"):"quote-closed case altered";
+  });
+  t("punctuateAction: trailing whitespace trimmed before the mark is appended",function(){return eq(punctuateAction("Search the crates   "),"Search the crates.");});
+  t("punctuateAction: idempotent (running it twice is identical to once) and empty stays empty",function(){
+    var once=punctuateAction("Draw steel"),twice=punctuateAction(once);
+    return eq(once,twice)===true?eq(punctuateAction(""),""):"not idempotent: "+once+" -> "+twice;
+  });
   t("escProse escapes markup but keeps *em* and paragraph breaks (E11)",function(){
     var h=escProse("<img src=x onerror=alert(1)> and *bold* text\n\nnext para");
     if(h.indexOf("<img")>=0)return "raw <img leaked into story DOM: "+h;
@@ -225,6 +243,19 @@ function runEngineTests(R){
   t("parseActions: bare pipe-bracket (non-Claude)",function(){var r=parseActions("prose [Fight|Flee|Parley]","prose [Fight|Flee|Parley]");return (r.btns.match(/data-action/g)||[]).length===3&&r.clean==="prose"?true:"clean/btns wrong: "+JSON.stringify(r.clean);});
   t("parseActions: legacy *You could…* line",function(){var r=parseActions("Something happens. *You could fight; flee; or parley*","");return (r.btns.match(/data-action/g)||[]).length===3?true:"btns: "+r.btns;});
   t("parseActions: none → no buttons",function(){var r=parseActions("Just prose.","Just prose.");return eq(r.btns,"");});
+  t("#88: parseActions punctuates each action's data-action (the legacy replay path)",function(){
+    var r=parseActions("prose","prose [ACTIONS:Fight|Flee|Parley]");
+    if(r.btns.indexOf('data-action="Fight."')<0)return "unpunctuated action not punctuated: "+r.btns;
+    return (r.btns.match(/data-action/g)||[]).length===3?true:"button count changed: "+r.btns;
+  });
+  t("#88: buildActionButtons punctuates live AND reload-path suggestions (covers stored worldState.lastActions from before #88)",function(){
+    var h=buildActionButtons(["Search the crates","Ask about the letter?","Charge in!"]);
+    if(h.indexOf('data-action="Search the crates."')<0)return "bare action not punctuated: "+h;
+    if(h.indexOf('data-action="Ask about the letter?"')<0)return "already-punctuated action was altered: "+h;
+    if(h.indexOf('data-action="Charge in!"')<0)return "already-punctuated action was altered: "+h;
+    return (h.match(/data-action/g)||[]).length===3?true:"button count wrong: "+h;
+  });
+  t("#88: buildActionButtons still returns empty string for an empty/missing action list",function(){return eq(buildActionButtons([]),"")===true?eq(buildActionButtons(null),""):"non-empty returned for an empty list";});
 
   // ── 5. applyMuts — the state-tag engine ──────────────────────────────────────
   section("applyMuts");

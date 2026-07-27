@@ -905,7 +905,7 @@ function parseActions(clean,raw){
       clean=clean.replace(match[0],"").trim(); // strip the legacy line from the displayed prose
     }
   }
-  if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){var _ea=escHtml(acts[i]);btns+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}btns+='</div>';}/* escape action text (audit E81) */
+  if(acts.length){btns='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';for(i=0;i<acts.length;i++){var _ea=escHtml(punctuateAction(acts[i]));btns+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}btns+='</div>';}/* escape action text (audit E81); #88: punctuate the legacy pre-[ACTIONS:] replay path too */
   return{clean:clean,btns:btns};
 }
 function bondToast(owner,entity,desc,kind){var p=owner?owner+" bond":"Bond";if(kind==="ended")showToast(p+" ended: "+entity);else showToast(p+(kind==="updated"?" updated":"")+": "+entity+" -- "+desc);}

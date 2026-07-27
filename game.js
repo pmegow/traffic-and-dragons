@@ -187,7 +187,7 @@ async function generateActions(msgEl){
     /* TODO #1 P3 (D4): in a multi-PC round, label whose options these are. Display prefix ONLY —
        data-action stays the bare action (the queue line re-attaches the name at submit). */
     var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";
-    for(i=0;i<3&&i<acts.length;i++){var a=acts[i].trim();btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}
+    for(i=0;i<3&&i<acts.length;i++){var a=punctuateAction(acts[i].trim());btns[i].textContent=_mpPfx+a;btns[i].setAttribute("data-action",a);btns[i].setAttribute("title","Tap to edit · hold or Ctrl-click to send");btns[i].setAttribute("onclick","sendSuggestedAction(this,event)");btns[i].disabled=false;}/* #88: punctuated so a tapped suggestion reads as a real sentence and gets a clean TTS pause boundary */
     // saveAll (not saveCore): this async call finishes AFTER the turn's debounced sync fires,
     // so a local-only save left the server blob holding the PREVIOUS turn's buttons — device B
     // rendered stale actions while the text matched. saveAll re-arms the debounce with the
@@ -343,7 +343,7 @@ function narrateWithSpeakers(clean,raw,narEl,entry){
 function buildActionButtons(acts){
   if(!acts||!acts.length)return"";
   var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">',i;
-  for(i=0;i<acts.length;i++){var _ea=escHtml(acts[i]);h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}/* escape model-authored action text (audit E81) */
+  for(i=0;i<acts.length;i++){var _ea=escHtml(punctuateAction(acts[i]));h+='<button class="qa" title="Tap to edit · hold or Ctrl-click to send" onclick="sendSuggestedAction(this,event)" data-action="'+_ea+'">'+_ea+'</button>';}/* escape model-authored action text (audit E81); #88: punctuate here too, so reload/campLoad also covers pre-#88 stored worldState.lastActions */
   return h+"</div>";
 }
 // Fetch the Character Library once and cache it; legacy candidates are drawn from this (server-side)

@@ -256,6 +256,17 @@ function toFirstPerson(s){
     .replace(/\byou\b/gi,"I"); // remaining "you" = subject
   return out.replace(/^([a-z])/,function(m){return m.toUpperCase();});
 }
+// #88: append terminal punctuation to a suggested action so it reads as a real sentence — and,
+// since v1.409, so splitSentences (which keys pause/voice boundaries off terminal punctuation)
+// treats a tapped-then-sent suggestion the same as any other player line. Deterministic (applied
+// at render, not requested from the model — the model version risks over-punctuating mid-phrase).
+// Idempotent: already-punctuated text — including a trailing "…" or a quote/paren closing right
+// after the mark — passes through untouched, so re-running it on stored data is always safe.
+function punctuateAction(s){
+  s=String(s||"").replace(/\s+$/,"");
+  if(!s)return s;
+  return /[.!?…]["'”’)\]]?$/.test(s)?s:s+".";
+}
 // bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
 // HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
 // (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
