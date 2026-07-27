@@ -106,6 +106,9 @@
   .r .rd{font-size:13px;color:var(--dim);min-width:96px;}
   .r .nm{font-size:12.5px;color:var(--dim2);min-width:118px;word-break:break-word;}
   .r .g{font-family:var(--mono);font-size:11.5px;color:var(--dim2);min-width:22px;text-align:center;}
+  /* #95.8: the gender cell is a select now (mutable override) — keep it as quiet as the old text */
+  .r select.g{font-size:11.5px;padding:1px 2px;min-width:40px;background:#1c1a19;color:var(--dim2);
+              border:1px solid var(--line);border-radius:4px;}
   .r .acc{font-size:12.5px;color:var(--dim);min-width:92px;word-break:break-word;}
   .r .desc{font-size:12.5px;color:var(--dim);flex:1.3;min-width:132px;word-break:break-word;}
   .r .st{font-size:12.5px;color:var(--dim);flex:1;min-width:120px;word-break:break-word;}
@@ -189,10 +192,9 @@ Type a line, press &#9654; on any speaker, star the keepers.</div>
 <h2 class="sect" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
   <span>&#9733; Starred</span>
   <span id="stario-msg" style="flex:1;text-align:right;font-size:12px;font-weight:normal;color:var(--good);text-transform:none;letter-spacing:0;"></span>
-  <button id="star-export" title="Download the starred list as a .json file — move your cast to another device or origin">&#11015; Export</button>
-  <button id="star-import" title="Merge stars from an exported .json file — never deletes what is already here">&#11014; Import</button>
+  <button id="star-push" title="Write this device's bench and gender fixes to your account now (they also auto-push on every edit)">&#11014; Push to cloud</button>
+  <button id="star-pull" title="Replace this device's bench and gender fixes with your account's cloud copy">&#11015; Pull from cloud</button>
 </h2>
-<input id="star-import-file" type="file" accept=".json,application/json" style="display:none">
 <div class="stars" id="starpanel"></div>
 
 <footer id="foot"></footer>
@@ -1525,6 +1527,7 @@ var VCTK_META_INLINE = {
     if (nAcc) parts.push(nAcc + " carry an accent.");
     st.metaWarn = !!(dup || res.bad || res.orderUsed || applied < N);
     st.metaMsg = parts.join(" ");
+    applyGenderOverrides(st);   // #95.8: user corrections sit ON TOP of whatever the table says
   }
 
   // Top-level "acoustics" block, captured before parseMeta descends into .speakers.
@@ -1720,70 +1723,55 @@ var VCTK_META_INLINE = {
     schedulePushStars();   // #95.5: every real edit mirrors to the cloud bench (no-op when offline)
   }
 
-  // >>> STARS PORTABILITY — pure core, no DOM / no storage / no globals. dev/run-tests.js
-  // extracts THIS SLICE by these markers and exercises its failure conditions headlessly
-  // (STARS PORTABILITY CONTRACT) — keep it dependency-free or that contract fails the build.
-  // Why this exists: the star store is per-origin localStorage, so a bench starred on file://
-  // is invisible to pages.dev (and desktop is invisible to the phone). Export/Import is the
-  // bridge. Accepts BOTH transport shapes: the wrapped export file
-  // {type:"tnd-cast-voices",stars:[…]} and the raw store array [{id,label},…] (what a hand
-  // console-copy of the store produces).
-  function parseStarsImport(text) {
-    var data;
-    try { data = JSON.parse(String(text)); }
-    catch (e) { return { ok: false, err: "not a JSON file (" + ((e && e.message) || e) + ")" }; }
-    var arr = null;
-    if (Array.isArray(data)) arr = data;
-    else if (data && Array.isArray(data.stars)) arr = data.stars;
-    if (!arr) return { ok: false, err: "no star list found — expected a tnd-cast-voices export file." };
-    var out = [], i, it, id;
-    for (i = 0; i < arr.length; i++) {
-      it = arr[i];
-      if (!it) continue;
-      id = (typeof it === "string") ? it : it.id;
-      if (!id || typeof id !== "string") continue;
-      out.push({ id: id, label: String((it && it.label) || ""),
-                 g: (it && (it.g === "M" || it.g === "F")) ? it.g : "" });
-    }
-    if (!out.length) return { ok: false, err: "the file contains no usable stars." };
-    return { ok: true, stars: out };
+  // (The file Export/Import pure slice — parseStarsImport/mergeStars — was retired 2026-07-26,
+  // user call: the buttons read/write the SERVER now, and the cloud protocol is whole-list LWW,
+  // so there is nothing left to merge. The .json bridge lived exactly one day; the cloud sync
+  // that replaced it is #95.5.)
+
+  // ── Per-voice gender overrides (#95.8) ─────────────────────────────────────────────────────
+  // Published voice metadata is sometimes WRONG (user field finding), and until now a fix could
+  // only live on a STARRED entry. This map overrides the metadata for ANY voice: keyed by full
+  // voice id, values "M"/"F" only ("?" in the UI = remove the override, fall back to published).
+  // Applied over st.speakers by applyGenderOverrides (each entry keeps its published value in
+  // gMeta), so filters, tallies, star-time stamping and the starred panel all read the corrected
+  // value with no further branching. Mirrors to the account like the bench: transported as an
+  // ARRAY of {id,g} (the prefs endpoint validates arrays), same rev-marker LWW protocol.
+  var GOV_K     = "tnd_speaker_gender_overrides_v1";
+  var GOV_REV_K = "tnd_speaker_gender_overrides_rev_v1";
+  var _gOverrides = {};
+  function loadGOv() {
+    _gOverrides = {};
+    var raw = lsGet(GOV_K);
+    if (!raw) return;
+    var obj;
+    try { obj = JSON.parse(raw); } catch (e) { console.warn("[speaker_browser] gender overrides unreadable, starting empty:", e); return; }
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+    for (var k in obj) { if (obj[k] === "M" || obj[k] === "F") _gOverrides[k] = obj[k]; }
   }
-  // Merge, never replace: every existing star survives, imported ids append in file order, and
-  // on an id collision the imported label wins ONLY when non-empty (an empty label must never
-  // wipe a curated one). Prototype-safe maps (star ids come from a user-supplied file). Returns
-  // fresh objects — callers may assign the result straight to the store.
-  function mergeStars(existing, imported) {
-    var out = [], pos = Object.create(null), addedNow = Object.create(null);
-    var added = 0, relabeled = 0, i, e2, im, tgt;
-    var vg = function (g) { return (g === "M" || g === "F") ? g : ""; };
-    for (i = 0; i < existing.length; i++) {
-      e2 = existing[i];
-      if (!e2 || !e2.id || pos[e2.id] !== undefined) continue;
-      pos[e2.id] = out.length;
-      out.push({ id: e2.id, label: String(e2.label || ""), g: vg(e2.g) });
+  function saveGOv() {
+    if (!lsSet(GOV_K, JSON.stringify(_gOverrides))) {
+      alert("Could not save the gender fix — localStorage is full or blocked. It was NOT stored.");
     }
-    for (i = 0; i < imported.length; i++) {
-      im = imported[i];
-      if (!im || !im.id) continue;
-      if (pos[im.id] === undefined) {
-        pos[im.id] = out.length;
-        addedNow[im.id] = true;
-        added++;
-        out.push({ id: im.id, label: String(im.label || ""), g: vg(im.g) });
-      } else {
-        tgt = out[pos[im.id]];
-        if (im.label && tgt.label !== String(im.label)) {
-          tgt.label = String(im.label);
-          if (!addedNow[im.id]) relabeled++;
-        }
-        // gender mirrors the label rule: a known value wins the collision, an empty one
-        // never wipes a curated correction (mislabeled-voice fixes must survive an import)
-        if (vg(im.g)) tgt.g = vg(im.g);
-      }
-    }
-    return { stars: out, added: added, relabeled: relabeled };
+    schedulePushGOv();
   }
-  // <<< STARS PORTABILITY
+  function govToArray() {
+    var out = [];
+    for (var k in _gOverrides) out.push({ id: k, g: _gOverrides[k] });
+    return out;
+  }
+  function applyGenderOverrides(st) {
+    if (!st || !st.speakers) return;
+    var list = st.speakers, i, s, ov;
+    for (i = 0; i < list.length; i++) {
+      s = list[i];
+      if (s.gMeta === undefined) s.gMeta = s.g;   // remember the published value exactly once
+      ov = _gOverrides[st.m.id + "#" + s.spk];
+      s.g = (ov === "M" || ov === "F") ? ov : s.gMeta;
+    }
+  }
+  function reapplyGenderOverridesEverywhere() {
+    MODELS.forEach(function (m) { applyGenderOverrides(MSTATE[m.id]); });
+  }
 
   var _starioTimer = null;
   function starioNote(text) {
@@ -1792,21 +1780,6 @@ var VCTK_META_INLINE = {
     m.textContent = text;
     if (_starioTimer) clearTimeout(_starioTimer);
     _starioTimer = setTimeout(function () { m.textContent = ""; }, 8000);
-  }
-  function exportStars() {
-    if (!stars.length) { alert("Nothing starred yet — nothing to export."); return; }
-    var stamp = new Date().toISOString().slice(0, 10);
-    var payload = { type: "tnd-cast-voices", v: 1, exported: stamp, count: stars.length, stars: stars };
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "tnd-cast-voices_" + stamp + ".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-    starioNote("Exported " + stars.length + " star" + (stars.length === 1 ? "" : "s") + ".");
   }
   // ── Cloud bench sync (#95.5) ───────────────────────────────────────────────
   // Stars mirror through the GAME server's /api/prefs/speaker_stars — NOT the TTS app
@@ -1823,6 +1796,25 @@ var VCTK_META_INLINE = {
     u = (u && String(u).trim()) || GAME_SERVER_DEFAULT;
     return u.replace(/\/+$/, "");
   }
+  // Shared authed pref transport — stars and gender overrides ride identical GET/PUT shapes.
+  function _prefGet(key, cb) {
+    fetch(gameServerUrl() + "/api/prefs/" + key, { headers: { "Authorization": "Bearer " + token() } })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) { cb(null, d); })
+      .catch(function (e) { cb((e && e.message) || "fetch failed"); });
+  }
+  function _prefPut(key, valueArr, cb) {
+    fetch(gameServerUrl() + "/api/prefs/" + key, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
+      body: JSON.stringify({ value: valueArr })
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error((res.d && res.d.error) || "HTTP error");
+        cb(null, res.d);
+      })
+      .catch(function (e) { cb((e && e.message) || "fetch failed"); });
+  }
   var _pushTimer = null, _pushGen = 0;
   function schedulePushStars() {
     if (!token()) return;
@@ -1832,68 +1824,110 @@ var VCTK_META_INLINE = {
   function pushStarsNow() {
     if (_pushTimer) { clearTimeout(_pushTimer); _pushTimer = null; }
     var my = ++_pushGen;
-    fetch(gameServerUrl() + "/api/prefs/speaker_stars", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() },
-      body: JSON.stringify({ value: stars })
-    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (res) {
-        if (my !== _pushGen) return;          // a newer push superseded this response
-        if (!res.ok) throw new Error((res.d && res.d.error) || "HTTP error");
-        if (res.d && typeof res.d.rev === "number") lsSet(STARS_REV_K, String(res.d.rev));
-        starioNote("Cloud bench updated (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
-      })
-      .catch(function (e) {
-        if (my !== _pushGen) return;
-        console.warn("[speaker_browser] cloud star push failed:", e && e.message);
+    _prefPut("speaker_stars", stars, function (err, d) {
+      if (my !== _pushGen) return;            // a newer push superseded this response
+      if (err) {
+        console.warn("[speaker_browser] cloud star push failed:", err);
         starioNote("⚠ Cloud push failed — stars saved on this device only.");
-      });
+        return;
+      }
+      if (d && typeof d.rev === "number") lsSet(STARS_REV_K, String(d.rev));
+      starioNote("Cloud bench updated (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
+    });
+  }
+  // ONE adopt path for both the rev-gated boot pull and the manual ⬇ Pull button — the #95.7
+  // lesson pinned in run-tests: every adopt loop must derive g via starG or a pull lands a
+  // g-less bench and the ⚥ selects read "?" until the next reload.
+  function adoptCloudStars(d, note) {
+    if (!d || !Array.isArray(d.value)) return false;
+    stars = [];
+    for (var i = 0; i < d.value.length; i++) {
+      var it = d.value[i];
+      if (!it || typeof it.id !== "string" || !it.id) continue;
+      var lbl = String(it.label || "");
+      stars.push({ id: it.id, label: lbl, g: starG(it.g, lbl) });
+    }
+    lsSet(STARS_K, JSON.stringify(stars));
+    if (typeof d.rev === "number") lsSet(STARS_REV_K, String(d.rev));
+    renderStars();
+    renderRows();
+    if (note) starioNote("Cloud bench loaded (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
+    return true;
   }
   function pullStarsOnBoot() {
     if (!token()) return;
-    fetch(gameServerUrl() + "/api/prefs/speaker_stars", {
-      headers: { "Authorization": "Bearer " + token() }
-    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (d) {
-        var rev = (d && typeof d.rev === "number") ? d.rev : 0;
-        var localRev = parseInt(lsGet(STARS_REV_K), 10); if (isNaN(localRev)) localRev = 0;
-        if (rev > 0 && Array.isArray(d.value) && rev !== localRev) {
-          stars = [];
-          for (var i = 0; i < d.value.length; i++) {
-            var it = d.value[i];
-            if (!it || typeof it.id !== "string" || !it.id) continue;
-            var lbl = String(it.label || "");
-            // #95.7 fix: the adopt path must derive gender exactly like loadStars, or a cloud
-            // pull lands a g-less bench and every ⚥ select reads "?" until the next reload
-            stars.push({ id: it.id, label: lbl, g: starG(it.g, lbl) });
-          }
-          lsSet(STARS_K, JSON.stringify(stars));
-          lsSet(STARS_REV_K, String(rev));
-          renderStars();
-          renderRows();
-          starioNote("Cloud bench loaded (" + stars.length + " star" + (stars.length === 1 ? "" : "s") + ").");
-        } else if (rev === 0 && stars.length) {
-          pushStarsNow();                     // first contact: seed the cloud with this bench
-        }
-      })
-      .catch(function (e) { console.warn("[speaker_browser] cloud star pull failed:", e && e.message); });
+    _prefGet("speaker_stars", function (err, d) {
+      if (err) { console.warn("[speaker_browser] cloud star pull failed:", err); return; }
+      var rev = (d && typeof d.rev === "number") ? d.rev : 0;
+      var localRev = parseInt(lsGet(STARS_REV_K), 10); if (isNaN(localRev)) localRev = 0;
+      if (rev > 0 && rev !== localRev) adoptCloudStars(d, true);
+      else if (rev === 0 && stars.length) pushStarsNow();   // first contact: seed the cloud
+    });
+  }
+  // Gender overrides: same protocol, second key. Push is debounced off saveGOv; boot pull is
+  // rev-gated; the manual buttons move both stores together so "the cloud copy" means ONE thing.
+  var _govTimer = null, _govGen = 0;
+  function schedulePushGOv() {
+    if (!token()) return;
+    if (_govTimer) clearTimeout(_govTimer);
+    _govTimer = setTimeout(pushGOvNow, 1500);
+  }
+  function pushGOvNow() {
+    if (_govTimer) { clearTimeout(_govTimer); _govTimer = null; }
+    var my = ++_govGen;
+    _prefPut("speaker_gender_overrides", govToArray(), function (err, d) {
+      if (my !== _govGen) return;
+      if (err) {
+        console.warn("[speaker_browser] gender-override push failed:", err);
+        starioNote("⚠ Cloud push failed — gender fixes saved on this device only.");
+        return;
+      }
+      if (d && typeof d.rev === "number") lsSet(GOV_REV_K, String(d.rev));
+    });
+  }
+  function adoptCloudGOv(d) {
+    if (!d || !Array.isArray(d.value)) return false;
+    _gOverrides = {};
+    for (var i = 0; i < d.value.length; i++) {
+      var it = d.value[i];
+      if (it && typeof it.id === "string" && it.id && (it.g === "M" || it.g === "F")) _gOverrides[it.id] = it.g;
+    }
+    lsSet(GOV_K, JSON.stringify(_gOverrides));   // direct write — saveGOv would re-push what we just pulled
+    if (typeof d.rev === "number") lsSet(GOV_REV_K, String(d.rev));
+    reapplyGenderOverridesEverywhere();
+    renderRows();
+    renderStars();
+    return true;
+  }
+  function pullGOvOnBoot() {
+    if (!token()) return;
+    _prefGet("speaker_gender_overrides", function (err, d) {
+      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); return; }
+      var rev = (d && typeof d.rev === "number") ? d.rev : 0;
+      var localRev = parseInt(lsGet(GOV_REV_K), 10); if (isNaN(localRev)) localRev = 0;
+      if (rev > 0 && rev !== localRev) adoptCloudGOv(d);
+      else if (rev === 0 && govToArray().length) pushGOvNow();
+    });
+  }
+  // The manual buttons (#95.8, replacing file Export/Import — user call): Push writes this
+  // device's truth to the account NOW; Pull REPLACES this device with the account's copy.
+  function pushToCloud() {
+    if (!token()) { alert("Not connected — open the game, File ▸ Admin ▸ Connect to server, then reload this page."); return; }
+    pushStarsNow();
+    pushGOvNow();
+  }
+  function pullFromCloud() {
+    if (!token()) { alert("Not connected — open the game, File ▸ Admin ▸ Connect to server, then reload this page."); return; }
+    _prefGet("speaker_stars", function (err, d) {
+      if (err) { starioNote("⚠ Cloud pull failed: " + err); return; }
+      if (!adoptCloudStars(d, true)) starioNote("Cloud has no bench yet — nothing to pull.");
+    });
+    _prefGet("speaker_gender_overrides", function (err, d) {
+      if (err) { console.warn("[speaker_browser] gender-override pull failed:", err); return; }
+      adoptCloudGOv(d);
+    });
   }
 
-  function importStarsFile(file) {
-    var rd = new FileReader();
-    rd.onerror = function () { alert("Import failed: could not read " + (file && file.name ? file.name : "the file") + "."); };
-    rd.onload = function () {
-      var res = parseStarsImport(rd.result);
-      if (!res.ok) { alert("Import failed: " + res.err); return; }
-      var merged = mergeStars(stars, res.stars);
-      stars = merged.stars;
-      saveStars();
-      renderStars();
-      renderRows();
-      starioNote("Imported: " + merged.added + " added, " + merged.relabeled + " relabeled — " + stars.length + " total.");
-    };
-    rd.readAsText(file);
-  }
   function idFor(spk) { return MODEL_ID + "#" + spk; }
   // Split "<model>#<index>" on the LAST # — a model id is free to contain one. Returns null for
   // anything that is not a well-formed voice id; callers must treat null as "cannot resolve",
@@ -2246,7 +2280,31 @@ var VCTK_META_INLINE = {
         // Name and descriptor cells exist only when the file actually carries those fields, so
         // a file without them produces the exact DOM the page produced before option 2.
         if (HAS_NAME) row.appendChild(el("div", "nm", s.name || ""));
-        row.appendChild(el("div", "g", s.g));
+        // #95.8: the gender cell is a MUTABLE control — published metadata is sometimes wrong,
+        // and the fix must be reachable on ANY voice, not only after starring it. "?" removes
+        // the override (falls back to the published value); an override rides the cloud sync.
+        (function (sp) {
+          var gsel = document.createElement("select");
+          gsel.className = "g";
+          gsel.title = "Voice gender — corrections override the published table and sync to your account"
+            + (sp.gMeta !== undefined && sp.gMeta !== sp.g ? " (published: " + sp.gMeta + ", overridden)" : "");
+          [["", "?"], ["M", "M"], ["F", "F"]].forEach(function (o) {
+            var op = document.createElement("option");
+            op.value = o[0]; op.textContent = o[1];
+            if ((sp.g === "M" || sp.g === "F" ? sp.g : "") === o[0]) op.selected = true;
+            gsel.appendChild(op);
+          });
+          gsel.onchange = function () {
+            var key = MODEL_ID + "#" + sp.spk;
+            if (gsel.value === "M" || gsel.value === "F") _gOverrides[key] = gsel.value;
+            else delete _gOverrides[key];
+            saveGOv();
+            applyGenderOverrides(MSTATE[MODEL_ID]);
+            renderRows();       // filters/counts re-derive from the corrected value
+            renderStars();      // the tally and star annotations follow immediately
+          };
+          row.appendChild(gsel);
+        })(s);
         // Accent verbatim, region (when the file carries one) only as the tooltip — the row
         // stays one plain word wide.
         if (HAS_ACCENT) {
@@ -2530,10 +2588,10 @@ var VCTK_META_INLINE = {
         (ACOUSTICS.generated ? " · " + ACOUSTICS.generated : "") + "."));
     }
     f.appendChild(el("div", null,
-      "Stars live in this browser's localStorage (" + STARS_K + ") — per device AND per origin. " +
+      "Stars and gender fixes live in this browser's localStorage — per device AND per origin. " +
       (HAVE_TOKEN
-        ? "Connected pages mirror the bench to your account, so other connected devices adopt it automatically. "
-        : "Not-connected pages keep it local — Export / Import (beside the Starred header) is the manual bridge. ") +
+        ? "Connected pages mirror both to your account automatically; Push/Pull (beside the Starred header) forces it now. "
+        : "Not-connected pages keep them local — connect in the game to sync across devices. ") +
       "TODO #95 · satellite page, outside the app shell."));
   }
 
@@ -2542,19 +2600,16 @@ var VCTK_META_INLINE = {
   $("jumpgo").onclick = function () { jumpTo($("jump").value); };
   $("jump").onkeydown = function (e) { if (e.key === "Enter" || e.keyCode === 13) jumpTo($("jump").value); };
   $("stopall").onclick = function () { stopAudition(); };
-  $("star-export").onclick = exportStars;
-  $("star-import").onclick = function () { $("star-import-file").click(); };
-  $("star-import-file").onchange = function () {
-    var f = this.files && this.files[0];
-    this.value = "";                      // reset first so the SAME file can be re-imported later
-    if (f) importStarsFile(f);
-  };
+  $("star-push").onclick = pushToCloud;
+  $("star-pull").onclick = pullFromCloud;
   window.addEventListener("beforeunload", function () { stopAudition(); });
 
   renderConn();
   buildModelSelect();
+  loadGOv();           // #95.8: gender fixes load BEFORE the first model activates (applyMetaInto reads them)
   loadStars();
   pullStarsOnBoot();   // #95.5: adopt (or seed) the cloud bench — async, repaints on adopt
+  pullGOvOnBoot();     // #95.8: same protocol for the gender fixes
   // Everything else (sub line, rows, stars, footer, metadata load and its repaint) is the model
   // activation path — booting is just activating the first model.
   activateModel(MODELS[0].id);
