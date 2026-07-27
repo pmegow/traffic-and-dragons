@@ -115,7 +115,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `ANCS` — Ancestry definitions with `stats`, `traits`, `subraces`, optional nested `lineages`, and optional `racial_spells:[{nm,lvl}]` on subraces/lineages
 - `CLSS` — Class definitions: `hd` (hit die), `prime` stat, starting `gear`
 - `ABILS` — Starting class abilities (name + description)
-- `ARCHETYPES` — 3 archetypes per class (24 total)
+- `ARCHETYPES` — 3 archetypes per class (27 total — 9 classes × 3; the old "24" here was stale, corrected 2026-07-27 during the #72 inventory)
 - `CLASS_FEATURES` — Level 2/5/7/9 feature unlocks per class
 - `SPELLS` — Spell lists for Sorcerer, Cleric, Druid, Ranger, Paladin, Necromancer (cantrips + levels 1–3). **Necromancer also has a tier 4** (Rigor Mortis, Possess Thrall, Sleep of the Dead) — tiers are intentionally open-ended; creation only ever offers up to tier 3 (`buildPendingSpellPool` caps `maxSlot` at 3), so higher tiers are GM-grantable / high-level content only.
 - `ARCH_SPELLS` — Extra spell lists for Eldritch Knight and Arcane Trickster archetypes
