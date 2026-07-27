@@ -4697,6 +4697,26 @@ function runEngineTests(R){
     var vm=speakerVoiceMap(m,clean);
     return (vm&&vm[parseInt(k[0],10)]==="en_US-kristin-medium")?true:"PC voice not resolved from the map: "+JSON.stringify(vm);
   });
+  t("#96: the FIELD fixture — multi-span speeches voice fully, and a merged span splits across its two speakers",function(){
+    // Condensed from the real t1170 response that falsified v1 within hours (1 of 4 speeches
+    // voiced): ① a speech is MULTI-SPAN ('"Steady," she says. "First time…"') and v1's
+    // first-quote-only match left every continuation flat; ② the #93 adjacent-paragraph span
+    // merge glued speaker A's last line and speaker B's first line into ONE span, silencing B's
+    // tag entirely. Segment claiming must voice all of it, splitting the merged span mid-way.
+    var raw='[XP:10]\nShe waits.\n\n[SAY:Ammut]"Rough morning," you say. "Quick check. How is everyone."\n\n[SAY:Frizwick]"Stitched and soaked," Frizwick says. "Ten out of ten."\n\n[SAY:Morwen]Morwen huffs a laugh. "Steady," she says. "First time in days my hands are still."';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived from the field fixture";
+    var u=TTS._textPrep.splitSentences(clean,null,true),i,bad=[];
+    var expect=[["rough morning","Ammut"],["quick check","Ammut"],["stitched and soaked","Frizwick"],["ten out of ten","Frizwick"],["steady","Morwen"],["first time in days","Morwen"]];
+    for(i=0;i<u.length;i++){
+      if(u[i].spk===null||u[i].spk===undefined){ if(m.s[i])bad.push("narration unit "+i+" got a voice: "+m.s[i]); continue; }
+      var txt=u[i].text.toLowerCase(),want=null,j;
+      for(j=0;j<expect.length;j++)if(txt.indexOf(expect[j][0])>=0){want=expect[j][1];break;}
+      if(want&&m.s[i]!==want)bad.push("unit "+i+" "+JSON.stringify(u[i].text.slice(0,30))+" got "+(m.s[i]||"(narrator)")+" wanted "+want);
+    }
+    return bad.length?bad.join(" | "):true;
+  });
   t("#96: everything untrustworthy is DROPPED, never guessed (a wrong map is worse than none)",function(){
     _mkSpeakerWorld();
     var clean='He nods. "Fine," he says.';

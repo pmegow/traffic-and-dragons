@@ -220,43 +220,49 @@ function speakerSpans(units){
   }
   return spans;
 }
-// The producer (#96). Pure: RAW response + CLEAN text in, {n,s} map or null out. Each [SAY:] tag
-// captures the opening of the quote that FOLLOWS it in the raw text; the dialogue span whose text
-// starts with that opening (normalized) takes the name, consumed in order so repeated identical
-// lines bind one-to-one. Everything untrustworthy is dropped rather than guessed: a tag with no
-// following quote, or an opening no span matches, contributes nothing — an unmatched line
-// narrates in the narrator voice, never a guessed one. Unknown speaker names pass through here
-// on purpose; speakerVoiceMap already drops names that resolve to no character, so a tagged
-// one-off ("Guard") degrades to narrator at speak time instead of mis-binding.
+// The producer (#96, reworked v1.451 on same-night field evidence). Pure: RAW response + CLEAN
+// text in, {n,s} map or null out. The raw text is cut into SEGMENTS at the [SAY:] tags — each
+// tag owns every character until the next tag — and each dialogue UNIT is located inside those
+// segments with a forward-only cursor, taking its segment's speaker. Unit-level segment claiming
+// (v1) matched only each tag's FIRST quote, which the field falsified within hours: real GM
+// speeches are MULTI-SPAN ('"Steady," she says. "First time in days…"' — continuations narrated
+// flat), and the #93 adjacent-paragraph span merge glued two speakers into ONE span, which both
+// silenced the second speaker's tag AND broke opening-prefix matching. Segments fix all of it:
+// continuations sit inside their tag's segment, and a merged span's units land in DIFFERENT
+// segments and split correctly. Text before the first tag belongs to nobody (narrator), a unit
+// not found in any segment is skipped (clean/raw divergence — narrator, never a guess), and
+// unknown speaker names still pass through: speakerVoiceMap drops what it cannot resolve.
 var SAY_TAG_RE=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;   // [SAY:Name] — the |descriptor payload is reserved (delivery styles, later)
 function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"").toLowerCase();}
 function deriveSpeakerMapFromTags(raw,clean){
   if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
   SAY_TAG_RE.lastIndex=0;
-  var tags=[],m;
+  var segs=[],m,prevEnd=0,prevName=null,sawTag=false;
   while((m=SAY_TAG_RE.exec(raw))){
+    sawTag=true;
+    segs.push({name:prevName,text:_sayNorm(raw.slice(prevEnd,m.index))});
     var nm=String(m[1]).replace(/^\s+|\s+$/g,"");
-    if(nm)tags.push({name:nm,start:m.index,from:SAY_TAG_RE.lastIndex});
+    prevName=nm||null;                                // [SAY: ] with a blank name owns its segment as narrator
+    prevEnd=SAY_TAG_RE.lastIndex;
   }
-  if(!tags.length)return null;
+  if(!sawTag)return null;
+  segs.push({name:prevName,text:_sayNorm(raw.slice(prevEnd))});
   var units=TTS._textPrep.splitSentences(clean,null,true);
-  var spans=speakerSpans(units);
-  if(!spans.length)return null;
-  var out={},kept=0,used={},i,j,k;
-  for(i=0;i<tags.length;i++){
-    var seg=raw.slice(tags[i].from,i+1<tags.length?tags[i+1].start:raw.length);
-    var q=/["“]([^"”]{1,120})/.exec(seg);
-    if(!q)continue;                                   // tag with no quote after it — dropped
-    var key=_sayNorm(q[1]).slice(0,60);
+  var out={},kept=0,si=0,off=0,i;
+  for(i=0;i<units.length;i++){
+    var u=units[i];
+    if(!u||u.spk===null||u.spk===undefined)continue;  // narration keeps the narrator, always
+    var key=_sayNorm(u.text).slice(0,48);
     if(!key)continue;
-    for(j=0;j<spans.length;j++){
-      if(used[j])continue;
-      if(_sayNorm(spans[j].text).indexOf(key)!==0)continue;
-      used[j]=1;
-      var us=spans[j].units;
-      for(k=0;k<us.length;k++){out[us[k]]=tags[i].name;kept++;}
-      break;
+    var j=si,hit=-1;
+    while(j<segs.length){
+      hit=segs[j].text.indexOf(key,j===si?off:0);
+      if(hit>=0)break;
+      j++;
     }
+    if(j>=segs.length)continue;                       // not in any segment — narrator, cursor unmoved
+    si=j;off=hit+key.length;                          // forward-only: repeated identical lines bind in order
+    if(segs[j].name){out[i]=segs[j].name;kept++;}
   }
   return kept?{n:units.length,s:out}:null;
 }
