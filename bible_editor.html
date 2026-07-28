@@ -233,6 +233,60 @@ function serializeCapabilityBible(state) {
 
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
 
+  // ── display-name normalization, applied ON SAVE (user call 2026-07-28) ────
+  // House style is title case with minor words lowercase mid-name — the convention the existing
+  // content already follows ("Circle of the Land", "Lay on Hands", "Speak with Animals"). Applied
+  // to class_bible DISPLAY names only; capability KEYS are lowercase by design (capBaseName
+  // lowercases), which also means a capitalization fix can never break resolution.
+  // Deliberately NOT silent: every rename is listed back, because this rewrites authored text.
+  var TITLE_MINOR = { of: 1, "in": 1, the: 1, a: 1, an: 1, to: 1, and: 1, or: 1, "for": 1, "with": 1, at: 1, by: 1, from: 1, on: 1, into: 1 };
+  function titleCaseName(s) {
+    var i = String(s).indexOf("("), base = (i < 0 ? s : s.slice(0, i)).replace(/\s+$/, ""), tail = (i < 0 ? "" : " " + s.slice(i));
+    var w = base.split(/\s+/);
+    return w.map(function (x, k) {
+      if (/[0-9]/.test(x)) return x;                  // 2d8, 30ft — never touch
+      if (/[A-Z]/.test(x.slice(1))) return x;         // McX / already-deliberate caps — never touch
+      var lo = x.toLowerCase();
+      if (k > 0 && k < w.length - 1 && TITLE_MINOR[lo]) return lo;
+      return lo.charAt(0).toUpperCase() + lo.slice(1);
+    }).join(" ") + tail;
+  }
+  function normalizeClassNames(bible) {
+    var changed = [];
+    function fix(o, key, where) {
+      var t = titleCaseName(o[key]);
+      if (t !== o[key]) { changed.push(where + ": " + o[key] + " → " + t); o[key] = t; }
+    }
+    Object.keys(bible).forEach(function (c) {
+      var e = bible[c];
+      e.abilities.forEach(function (a) { fix(a, "nm", c); });
+      Object.keys(e.levels).forEach(function (l) { e.levels[l].features.forEach(function (f) { fix(f, "nm", c + " L" + l); }); });
+      if (e.spells) Object.keys(e.spells).forEach(function (t) {
+        e.spells[t] = e.spells[t].map(function (s) { var n = titleCaseName(s); if (n !== s) changed.push(c + " T" + t + ": " + s + " → " + n); return n; });
+      });
+      e.archetypes.forEach(function (a) {
+        Object.keys(a.levels).forEach(function (l) { a.levels[l].features.forEach(function (f) { fix(f, "nm", c + "/" + a.id + " L" + l); }); });
+        if (a.spells) Object.keys(a.spells).forEach(function (t) {
+          a.spells[t] = a.spells[t].map(function (s) { var n = titleCaseName(s); if (n !== s) changed.push(c + "/" + a.id + " T" + t + ": " + s + " → " + n); return n; });
+        });
+      });
+    });
+    return changed;
+  }
+  // Called by both save paths. Returns false only if the user cancels after seeing the renames.
+  function applyNameNormalization() {
+    if (!CUR || CUR.typeId !== "class") return true;
+    var changed = normalizeClassNames(CUR.data.bible);
+    if (!changed.length) return true;
+    var msg = "Normalized " + changed.length + " display name" + (changed.length === 1 ? "" : "s") + " to house title case:\n\n" +
+      changed.slice(0, 12).join("\n") + (changed.length > 12 ? "\n…and " + (changed.length - 12) + " more" : "") +
+      "\n\nSave with these applied?";
+    if (!confirm(msg)) return false;
+    note(changed.length + " name(s) normalized");
+    render();
+    return true;
+  }
+
   function loadFromText(src, handle, name) {
     var t = typeOf(src);
     if (!t) throw new Error("not a recognised bible — expected CLASS_BIBLE or CAPABILITY_BIBLE");
@@ -263,6 +317,7 @@ function serializeCapabilityBible(state) {
 
   function saveBible() {
     if (!CUR) return;
+    if (!applyNameNormalization()) return;      // capitalization fixed on save, never silently
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
     if (!CUR.handle) { downloadCopy(); return; }
     var warn = "Overwrite " + CUR.name + " in place?\n\nThis REPLACES the file on disk. It is a tracked file — `git diff` shows exactly what changed and `git checkout` undoes it.";
@@ -283,6 +338,7 @@ function serializeCapabilityBible(state) {
 
   function downloadCopy() {
     if (!CUR) return;
+    if (!applyNameNormalization()) return;      // same rule on the fallback path
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
     var b = new Blob([ser], { type: "text/plain" }), a = document.createElement("a");
     a.href = URL.createObjectURL(b); a.download = CUR.name && CUR.name !== "(unsaved)" ? CUR.name : (CUR.typeId + "_bible.js"); a.click();
@@ -442,32 +498,92 @@ function serializeCapabilityBible(state) {
     capForm(e.key, e.obj, function (o) { e.obj = o; e.dirty = true; markDirty(); renderCap(); });
   }
 
-  // shared 6-attribute form — used by the capability view AND the class view's define flow
-  function capForm(nm, d, onSave, onDrop) {
-    function fld(label, id, val, wide) {
-      return "<div class='row'><span class='lbl'>" + label + "</span><input type='text' id='cap-" + id + "' style='" + (wide ? "flex:1" : "width:220px") + "' value='" + esc(val) + "'></div>";
+  // ── enumerated fields: a typo in one of these breaks BEHAVIOUR, not just display ──────────
+  // category is the enemy-caster tradition gate (capabilitiesByCategory); kind drives the card;
+  // tier drives the pick tiers. Those get HARD dropdowns — no free text, so a typo is impossible.
+  // cost is semi-closed (5 common forms + legitimate one-offs like "1/scene") so it gets a
+  // dropdown WITH a custom escape. Genuinely open fields (range/targets/duration/save/dice, which
+  // carry 29-87 distinct values) stay free text but gain datalist suggestions harvested from the
+  // file that is actually open — the editor learns from the data instead of me hardcoding a guess.
+  var CAP_CATEGORIES = ["arcane", "divine", "primal", "necromantic", "martial", "racial"];
+  var CAP_TIERS = [0, 1, 2, 3, 4, 5, 6];   // 0=cantrip/at-will; 5-6 are reachable via the C2 unlock schedule
+  var CAP_COSTS = ["at-will", "slot", "passive", "per-rest", "per-day"];
+  function fieldSuggestions(field) {
+    var seen = {}, out = [];
+    if (CUR && CUR.typeId === "capability") {
+      CUR.data.entries.forEach(function (e) {
+        var v = e.obj && e.obj[field];
+        if (typeof v === "string" && v && !seen[v]) { seen[v] = 1; out.push(v); }
+      });
     }
+    if (typeof CAPABILITY_BIBLE !== "undefined") {
+      Object.keys(CAPABILITY_BIBLE).forEach(function (k) {
+        var v = CAPABILITY_BIBLE[k][field];
+        if (typeof v === "string" && v && !seen[v]) { seen[v] = 1; out.push(v); }
+      });
+    }
+    return out.sort();
+  }
+
+  // shared attribute form — used by the capability view AND the class view's define flow
+  function capForm(nm, d, onSave, onDrop) {
+    function sel(id, opts, cur, extra) {
+      // A value not in the list must SELECT the escape option, not silently leave option[0]
+      // showing — otherwise the save reads "at-will" while the custom box holds the real cost and
+      // the user's value is discarded without a word (found in live testing, 2026-07-28).
+      var found = false, i;
+      for (i = 0; i < opts.length; i++) if (String(opts[i]) === String(cur)) found = true;
+      var esc2 = String(cur);
+      var h = "<select id='cap-" + id + "'" + (extra || "") + ">";
+      opts.forEach(function (o) {
+        var v = String(o);
+        var on = found ? (v === esc2) : (v === "custom…");
+        h += "<option" + (on ? " selected" : "") + ">" + esc(v) + "</option>";
+      });
+      return { html: h + "</select>", found: found };
+    }
+    function listFld(label, id, val) {
+      var sug = fieldSuggestions(id), dl = "cap-dl-" + id;
+      return "<div class='row'><span class='lbl'>" + label + "</span><input type='text' id='cap-" + id + "' list='" + dl + "' style='width:260px' value='" + esc(val) + "'>" +
+        "<datalist id='" + dl + "'>" + sug.map(function (s) { return "<option value='" + esc(s) + "'>"; }).join("") + "</datalist>" +
+        "<span class='muted'>" + sug.length + " known values</span></div>";
+    }
+    var costSel = sel("cost", CAP_COSTS.concat(["custom…"]), d.cost);
     var h = "<h3>" + esc(nm) + "</h3>" +
-      "<p class='muted'>Fixed attribute set — every entry carries all of cost/range/targets/duration/save/dice, \"N/A\" where inapplicable (v1.224 rule).</p>" +
-      "<div class='row'><span class='lbl'>kind</span><select id='cap-kind'><option" + (d.kind === "spell" ? " selected" : "") + ">spell</option><option" + (d.kind === "ability" ? " selected" : "") + ">ability</option></select>" +
-      "<span class='lbl' style='width:auto'>tier</span><input type='number' id='cap-tier' style='width:60px' value='" + d.tier + "'>" +
-      "<span class='lbl' style='width:auto'>magical</span><select id='cap-mag'><option value='true'" + (d.isMagical ? " selected" : "") + ">true</option><option value='false'" + (!d.isMagical ? " selected" : "") + ">false</option></select></div>" +
-      fld("category", "cat", (d.category || []).join(", ")) +
-      fld("cost", "cost", d.cost) + fld("range", "range", d.range) + fld("targets", "targets", d.targets) +
-      fld("duration", "duration", d.duration) + fld("dice", "dice", d.dice) + fld("save", "save", d.save) +
+      "<p class='muted'>Fixed attribute set — every entry carries all of cost/range/targets/duration/save/dice, \"N/A\" where inapplicable (v1.224 rule). Enumerated fields are dropdowns: a typo in <b>category</b> would silently drop this out of the enemy-caster tradition gate.</p>" +
+      "<div class='row'><span class='lbl'>kind</span>" + sel("kind", ["spell", "ability"], d.kind).html +
+      "<span class='lbl' style='width:auto'>tier</span>" + sel("tier", CAP_TIERS, d.tier).html +
+      "<span class='lbl' style='width:auto'>magical</span>" + sel("mag", ["true", "false"], d.isMagical ? "true" : "false").html + "</div>" +
+      "<div class='row'><span class='lbl'>cost</span>" + costSel.html +
+      "<input type='text' id='cap-cost-custom' style='width:230px;" + (costSel.found ? "display:none" : "") + "' value='" + esc(costSel.found ? "" : (d.cost || "")) + "' placeholder='custom cost'></div>" +
+      "<div class='row'><span class='lbl'>category</span><span id='cap-cats'>" +
+      CAP_CATEGORIES.map(function (c) {
+        var on = (d.category || []).indexOf(c) >= 0;
+        return "<label style='margin-right:12px;color:" + (on ? "var(--acc)" : "var(--t1)") + "'><input type='checkbox' class='capcat' value='" + c + "'" + (on ? " checked" : "") + "> " + c + "</label>";
+      }).join("") + "</span></div>" +
+      listFld("range", "range", d.range) + listFld("targets", "targets", d.targets) +
+      listFld("duration", "duration", d.duration) + listFld("dice", "dice", d.dice) + listFld("save", "save", d.save) +
       "<div class='row'><span class='lbl'>effect</span><textarea id='cap-effect' rows='4'>" + esc(d.effect) + "</textarea></div>" +
+      "<div id='cap-err' style='color:var(--bad);font-size:12.5px'></div>" +
       "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-save'>Save</button>" +
       (onDrop ? "<button id='m-drop'>Remove</button>" : "") + "<button id='m-close'>Cancel</button></div>";
     $("modal-box").innerHTML = h;
     $("modal").style.display = "flex";
+    $("cap-cost").onchange = function () {
+      $("cap-cost-custom").style.display = (this.value === "custom…") ? "" : "none";
+      if (this.value === "custom…") $("cap-cost-custom").focus();
+    };
     $("m-close").onclick = closeModal;
     $("m-save").onclick = function () {
+      var cats = [].map.call($("modal-box").querySelectorAll(".capcat:checked"), function (c) { return c.value; });
+      if (!cats.length) { $("cap-err").textContent = "Pick at least one category — an entry with none can never be drawn by a rolled enemy caster."; return; }
+      var cost = $("cap-cost").value === "custom…" ? ($("cap-cost-custom").value || "N/A") : $("cap-cost").value;
       onSave({
         kind: $("cap-kind").value,
         tier: parseInt($("cap-tier").value, 10) || 0,
-        cost: $("cap-cost").value || "N/A",
+        cost: cost,
         isMagical: $("cap-mag").value === "true",
-        category: $("cap-cat").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+        category: cats,
         range: $("cap-range").value || "N/A",
         targets: $("cap-targets").value || "N/A",
         duration: $("cap-duration").value || "N/A",
@@ -643,7 +759,9 @@ function serializeCapabilityBible(state) {
       if (!nm) return;
       var st = resolveState(nm);
       if (st === "ok") { showCard(nm, capabilityLookup(nm)); return; }
-      capForm(nm, ADD[nm] || { kind: "ability", tier: 1, cost: "N/A", isMagical: false, category: ["martial"], range: "N/A", targets: "N/A", duration: "N/A", save: "N/A", dice: "N/A", effect: "" },
+      // cost defaults to a REAL value: no entry in the bible uses "N/A" for cost, because every
+      // capability costs something (at-will / slot / passive / per-rest / per-day).
+      capForm(nm, ADD[nm] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
         function (o) { ADD[nm] = o; markDirty(); render(); },
         ADD[nm] ? function () { delete ADD[nm]; markDirty(); render(); } : null);
     };
