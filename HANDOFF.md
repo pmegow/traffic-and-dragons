@@ -74,12 +74,15 @@ They came out of design conversation and now govern all 162 remaining archetype 
   player sees nothing. I asked for the `[files]` console line to tell which of two silent branches
   fired and never got it. Either way it's a no-silent-failure violation worth a small fix
   (a "Reconnect folder" affordance).
-- **The unmerged `#72` local-server commit** (`6ba16f5`, on `origin/claude/wizardly-mayer-df87c6`):
-  genuinely absent from master, its server half already deployed. Cherry-pick, keep parked, or
-  abandon. **Not urgent — it is pushed and gc-safe** (I initially reported it at risk; that was
-  wrong, I had only checked it against master).
-- **Two stale worktrees** under `.claude/worktrees/` — both confirmed safe to delete.
-- **`CHECKPOINT.md`** can be deleted; housekeeping landed and is verified.
+- **The unmerged `#72` local-server commit** (`6ba16f5`, on `claude/wizardly-mayer-df87c6` and its
+  `origin/` twin): genuinely absent from master, its server half already deployed. Cherry-pick,
+  keep parked, or abandon. **Not urgent — it is pushed and gc-safe** (I initially reported it at
+  risk; that was wrong, I had only checked it against master). **This is the ONLY cleanup item
+  left**; the branch was deliberately spared when the worktrees went, because it is the one that
+  holds real work.
+
+*(Done 2026-07-28: both stale worktrees removed along with their `.git/worktrees` metadata and the
+fully-merged `worktree-agent-…` branch; `CHECKPOINT.md` deleted — housekeeping landed and verified.)*
 
 ## Gotchas that cost time this session
 
