@@ -156,6 +156,12 @@ var CLASS_BIBLE = {
         "id": "eldritchknight",
         "nm": "Eldritch Knight",
         "desc": "Abjuration and evocation spells. Weapon Bond -- blade returns to hand always.",
+        "spellTiers": {
+          "1": 3,
+          "2": 10,
+          "3": 14,
+          "4": 18
+        },
         "spells": {
           "1": [
             "Shield (+5 AC as reaction)",
@@ -166,6 +172,8 @@ var CLASS_BIBLE = {
             "Misty Step (teleport 30ft)",
             "Mirror Image (3 illusory duplicates)"
           ],
+          "3": [],
+          "4": [],
           "cantrips": [
             "Fire Bolt (d10 fire, 120ft)",
             "Booming Blade (melee + d8 thunder)"
@@ -328,6 +336,12 @@ var CLASS_BIBLE = {
         "id": "arcanetrickster",
         "nm": "Arcane Trickster",
         "desc": "Illusion and enchantment spells. Mage Hand for theft. Distract and confuse.",
+        "spellTiers": {
+          "1": 3,
+          "2": 10,
+          "3": 14,
+          "4": 18
+        },
         "spells": {
           "1": [
             "Charm Person (charmed 1 hour)",

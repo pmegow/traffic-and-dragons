@@ -163,6 +163,51 @@ anything; new grants apply only at their NEXT level-up (Ammut at L9 sees the new
 L10 — the archetype row — then T5 picks at L11). ⛨ Drift surface at step ② onward: Fable builds
 those steps.</div>
 
+<h2>Part II-b — The archetype-level rubric (defined 2026-07-27, v1.465)</h2>
+
+<div class="box"><b>Why a rubric at all:</b> 27 archetypes × 6 rows = 162 authored features. Without
+a defined job per row that is 162 arbitrary decisions and the classes drift apart in feel. Each
+archetype row now has a stated purpose, shown <i>in the editor at the point of authoring</i> —
+class rows deliberately have none, because the class is the chassis and the archetype is the
+character.</div>
+
+<table>
+<tr><th>Row</th><th>Job</th><th>Test for "is this the right feature here?"</th></tr>
+<tr><td><b>L3 — IDENTITY</b></td><td>The signature thing that makes this archetype <i>itself</i>;
+for the caster archetypes, spellcasting comes online (T1)</td><td>Could a player describe their
+character with just this one line?</td></tr>
+<tr><td><b>L6 — REFINEMENT</b></td><td>Deepen the L3 identity — a second application, a resource,
+a real upgrade</td><td>Does it read as "more of the thing I chose"?</td></tr>
+<tr><td><b>L10 — REACH</b></td><td>A NEW capability that broadens what the archetype can do,
+rather than deepening L3 (third-caster T2)</td><td>Does it open a situation that was closed
+before?</td></tr>
+<tr><td><b>L14 — MASTERY</b></td><td>The identity becomes reliable — remove a limitation, or scale
+the core trick (third-caster T3)</td><td>Does the thing that used to sometimes fail now
+land?</td></tr>
+<tr><td><b>L18 — APEX</b></td><td>Powerful and campaign-shaping, one step below the capstone
+(third-caster T4)</td><td>Would a GM plan around a party member having this?</td></tr>
+<tr><td><b>L20 — CAPSTONE</b></td><td>One dramatic defining ability; the thing the character is
+remembered for</td><td>Is it worth 355,000 XP?</td></tr>
+</table>
+
+<div class="dec"><b>C7 — Caster ARCHETYPES are third casters, keyed to their own spine.</b>
+<span class="lean ruled">DEFINED 2026-07-27</span><br>
+The gap this closes: Arcane Trickster and Eldritch Knight both carry spell benches but had
+<b>no unlock schedule</b> — <code>spellTiers</code> was generated only for the six full/half-caster
+classes, so under the C2 picks ruling nothing said when an Arcane Trickster earns T2, and its
+bench (which already reaches T4 / Oubliate) stayed unreachable by progression. Their tiers now key
+to the archetype's <i>own</i> rows, so the caster schedule and the feature spine are the same
+clock:
+<table class="grid">
+<tr><th></th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th></tr>
+<tr><td>Full caster <em>(ruled C2)</em></td><td>create</td><td>L5</td><td>L7</td><td>L9</td><td>L11</td><td>L15</td></tr>
+<tr><td>Half caster <em>(draft)</em></td><td>L3</td><td>L7</td><td>L9</td><td>L13</td><td>—</td><td>—</td></tr>
+<tr><td><b>Third caster</b> <em>(AT / EK)</em></td><td><b>L3</b><br>identity</td><td><b>L10</b><br>reach</td><td><b>L14</b><br>mastery</td><td><b>L18</b><br>apex</td><td>—</td><td>—</td></tr>
+</table>
+Eldritch Knight gains blank T3/T4 arrays for the fill phase (it shipped with T1/T2 only).
+Engine-tested: both caster archetypes must carry the schedule, every unlock level must BE one of
+that archetype's rows, and every unlockable tier must have a spells array.</div>
+
 <h2>Part III — Iteration plan (updated for the L20 ruling)</h2>
 <table>
 <tr><th>It.</th><th>Deliverable</th><th>Gate</th></tr>

@@ -57,6 +57,7 @@ textarea{width:100%;resize:vertical;}
 .arch{border:1px solid var(--brd);border-radius:8px;padding:10px 14px;margin:10px 0;background:var(--bg2);}
 .arch h4{margin:0 0 6px;color:var(--t0);font-size:15px;}
 .muted{color:var(--t2);font-size:12px;}
+.role{color:var(--acc);font-size:11.5px;letter-spacing:.3px;opacity:.85;}
 #prog{margin-left:auto;color:var(--t1);font-size:12.5px;}
 #draftnote{color:var(--pend);font-size:12.5px;}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:20;}
@@ -189,17 +190,29 @@ function serializeClassBible(bible, xp) {
     for (i = 0; i < bs.length; i++) bs[i].onclick = function () { activeCls = this.getAttribute("data-cls"); render(); };
   }
 
+  // The archetype-level RUBRIC (defined 2026-07-27). Each of the six archetype rows has a JOB;
+  // showing it at the point of authoring is what keeps 162 slots from becoming 162 arbitrary
+  // decisions. Class rows deliberately have no rubric — they are the chassis, not the character.
+  var ARCH_ROLE = {
+    "3":  "IDENTITY — the signature thing that makes this archetype itself (and T1 spells, for the caster archetypes)",
+    "6":  "REFINEMENT — deepen the L3 identity: a second application, a resource, a real upgrade",
+    "10": "REACH — a NEW capability that broadens what the archetype can do, rather than deepening L3",
+    "14": "MASTERY — the identity becomes reliable: remove a limitation, or scale the core trick",
+    "18": "APEX — powerful and campaign-shaping, one step below the capstone",
+    "20": "CAPSTONE — one dramatic defining ability; the thing the character is remembered for"
+  };
   function featRow(f, path) {
     return "<div class='feat'>" + badgeFor(f.nm) +
       "<input class='nm' type='text' value='" + esc(f.nm) + "' data-p='" + path + "' data-f='nm' placeholder='Feature name'>" +
       "<input class='ds' type='text' value='" + esc(f.ds) + "' data-p='" + path + "' data-f='ds' placeholder='summary prose (optional once the name resolves)'>" +
       "<button class='x' data-del='" + path + "' title='remove'>✕</button></div>";
   }
-  function levelBlock(levels, base, label) {
+  function levelBlock(levels, base, label, rubric) {
     var h = "", ks = Object.keys(levels).sort(function (a, b) { return a - b; });
     ks.forEach(function (lv) {
       var fs = levels[lv].features, path = base + "." + lv;
       h += "<div class='lvl" + (fs.length ? "" : " blank") + "'><span class='lv'>L" + lv + "</span>" +
+        (rubric && ARCH_ROLE[lv] ? "<span class='role'>" + esc(ARCH_ROLE[lv]) + "</span><br>" : "") +
         (fs.length ? "" : "<span class='muted'>blank — fill phase</span>");
       fs.forEach(function (f, i) { h += featRow(f, path + "." + i); });
       h += "<div><button data-add='" + path + "'>+ feature</button></div></div>";
@@ -250,12 +263,21 @@ function serializeClassBible(bible, xp) {
     e.archetypes.forEach(function (a, ai) {
       h += "<div class='arch'><h4>" + esc(a.nm) + "</h4>";
       h += "<div class='row'><span class='lbl'>desc</span><textarea rows='2' data-arch='" + ai + "' data-f='desc'>" + esc(a.desc) + "</textarea></div>";
+      if (a.spellTiers) {
+        // caster ARCHETYPES (Arcane Trickster, Eldritch Knight) are THIRD casters: their tier
+        // unlocks key to their own spine levels, so the schedule is editable right here.
+        h += "<div class='row'><span class='lbl'>tier unlocks</span>";
+        Object.keys(a.spellTiers).sort(function (x, y) { return x - y; }).forEach(function (t) {
+          h += "<span class='lbl' style='width:auto'>T" + t + " @ L</span><input type='number' style='width:60px' data-atier='" + ai + "." + t + "' value='" + a.spellTiers[t] + "'>";
+        });
+        h += "<span class='muted'>third-caster schedule</span></div>";
+      }
       if (a.spells) {
         Object.keys(a.spells).sort(function (x, y) { var p = x === "cantrips" ? -1 : +x, q = y === "cantrips" ? -1 : +y; return p - q; }).forEach(function (t) {
           h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + "</div><div>" + chipList(a.spells[t], "asp." + ai + "." + t, true) + "</div>";
         });
       }
-      h += levelBlock(a.levels, "al." + ai, "Archetype levels (identity L3 · features · capstone L20)");
+      h += levelBlock(a.levels, "al." + ai, "Archetype levels — each row has a defined job (rubric below)", true);
       h += "</div>";
     });
     $("main").innerHTML = h;
@@ -328,6 +350,11 @@ function serializeClassBible(bible, xp) {
     var tiers = m.querySelectorAll("input[data-tier]");
     for (i = 0; i < tiers.length; i++) tiers[i].onchange = function () {
       BIBLE[activeCls].spellTiers[this.getAttribute("data-tier")] = parseInt(this.value, 10) || 0; saveDraft();
+    };
+    var atiers = m.querySelectorAll("input[data-atier]");
+    for (i = 0; i < atiers.length; i++) atiers[i].onchange = function () {
+      var p = this.getAttribute("data-atier").split(".");
+      BIBLE[activeCls].archetypes[+p[0]].spellTiers[p[1]] = parseInt(this.value, 10) || 0; saveDraft();
     };
     var archs = m.querySelectorAll("textarea[data-arch]");
     for (i = 0; i < archs.length; i++) archs[i].onchange = function () {

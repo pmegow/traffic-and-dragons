@@ -282,6 +282,24 @@ function runEngineTests(R){
     for(k in CLASS_BIBLE){scan(k,CLASS_BIBLE[k].spells);for(var a=0;a<CLASS_BIBLE[k].archetypes.length;a++)scan(k+"/"+CLASS_BIBLE[k].archetypes[a].id,CLASS_BIBLE[k].archetypes[a].spells);}
     return bad.length?bad.length+" unresolved: "+bad.slice(0,5).join(" | "):true;
   });
+  t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
+    // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
+    // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches
+    // T4/Oubliate) was unreachable by progression. Tiers key to the archetype's own rows:
+    // T1@3 identity · T2@10 reach · T3@14 mastery · T4@18 apex.
+    var want={"1":3,"2":10,"3":14,"4":18},found=0,k,i;
+    for(k in CLASS_BIBLE)for(i=0;i<CLASS_BIBLE[k].archetypes.length;i++){
+      var a=CLASS_BIBLE[k].archetypes[i];
+      if(!a.spells)continue;
+      found++;
+      if(!a.spellTiers)return k+"/"+a.id+" has a spell bench but no unlock schedule";
+      for(var t in want)if(a.spellTiers[t]!==want[t])return k+"/"+a.id+" T"+t+"@L"+a.spellTiers[t]+" (want L"+want[t]+")";
+      var lv=CLASS_BIBLE[k].archetypes[i].levels;
+      for(t in a.spellTiers)if(!lv[String(a.spellTiers[t])])return k+"/"+a.id+" unlocks T"+t+" at L"+a.spellTiers[t]+", which is not one of its archetype rows";
+      for(t in want)if(!a.spells[t])return k+"/"+a.id+" missing a spells array for unlockable T"+t;
+    }
+    return found===2?true:"expected exactly 2 caster archetypes, found "+found;
+  });
   t("casters carry spellTiers per the C2 ruling; full casters unlock T2@5 T3@7 T4@9 T5@11 T6@15",function(){
     var FULL=["Sorcerer","Cleric","Druid","Necromancer"],i;
     for(i=0;i<FULL.length;i++){
