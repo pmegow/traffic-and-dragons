@@ -271,7 +271,7 @@ var CLASS_BIBLE = {
       "11": {
         "features": [
           {
-            "nm": "silent stalker",
+            "nm": "Silent Stalker",
             "ds": "moves without making a sound"
           }
         ]
@@ -279,7 +279,7 @@ var CLASS_BIBLE = {
       "13": {
         "features": [
           {
-            "nm": "hide in plain sight",
+            "nm": "Hide in Plain Sight",
             "ds": "can fade into a crowd undetected"
           }
         ]
@@ -295,7 +295,7 @@ var CLASS_BIBLE = {
       "17": {
         "features": [
           {
-            "nm": "summon item",
+            "nm": "Summon Item",
             "ds": "teleports a small item to the hand of the rogue."
           }
         ]
@@ -393,13 +393,13 @@ var CLASS_BIBLE = {
             "Astral Steed",
             "Telepathy",
             "Shrink",
-            "Breath Water",
+            "Breathe Water",
             "Slow"
           ],
           "4": [
             "Oubliate (WIS save or surgically erase ONE specific person or event from the target's memory entirely -- the engine scrubs it from what they know, and they cannot recall it even when reminded)",
             "Charm Monster",
-            "Wall Of Misdirection",
+            "Wall of Misdirection",
             "Confusion",
             "Archmage Hand",
             "Mass Charm",
@@ -411,7 +411,7 @@ var CLASS_BIBLE = {
             "Mage Hand (invisible, 30ft)",
             "Minor Illusion (sound or image, 30ft)",
             "Message (whisper 120ft, target replies)",
-            "flash"
+            "Flash"
           ]
         },
         "levels": {
