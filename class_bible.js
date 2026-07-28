@@ -208,7 +208,7 @@ var CLASS_BIBLE = {
     "hd": 8,
     "prime": "DEX",
     "desc": "Shadow, cunning, and coin",
-    "gear": "short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days)",
+    "gear": "short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days), first aid pack",
     "statPriority": [
       "DEX",
       "INT",
@@ -269,16 +269,36 @@ var CLASS_BIBLE = {
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "silent stalker",
+            "ds": "moves without making a sound"
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "hide in plain sight",
+            "ds": "can fade into a crowd undetected"
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Escape Artist",
+            "ds": "cannot be bound by non magical means"
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "summon item",
+            "ds": "teleports a small item to the hand of the rogue."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -347,7 +367,12 @@ var CLASS_BIBLE = {
             "Charm Person (charmed 1 hour)",
             "Silent Image (visual illusion)",
             "Disguise Self (change appearance)",
-            "Feather Fall (reaction; you and nearby allies drift down safely, no fall damage)"
+            "Feather Fall (reaction; you and nearby allies drift down safely, no fall damage)",
+            "Fog Bank",
+            "Leap",
+            "Grease",
+            "Sleep",
+            "Ventriloquism"
           ],
           "2": [
             "Invisibility (until attack or cast)",
@@ -355,19 +380,38 @@ var CLASS_BIBLE = {
             "Knock (a sharp clang unlocks one locked door, chest, or manacle within 60ft)",
             "Darkness (15ft sphere of magical darkness, blocks darkvision, 60ft)",
             "Shadow Step (teleport 30ft between areas of dim light or darkness)",
-            "Mirror Image (3 illusory duplicates)"
+            "Mirror Image (3 illusory duplicates)",
+            "Blur",
+            "Spider Climb",
+            "Hold Person",
+            "Misty Step"
           ],
           "3": [
             "Blink (at each turn's end roll d20; on 11+ you slip to the ethereal until your next turn -- unhittable, then reappear)",
-            "Lethe's Kiss (touch or 30ft; WIS save or the target loses up to 15 minutes of memory per point of your INT modifier -- recent events simply vanish)"
+            "Lethe's Kiss (touch or 30ft; WIS save or the target loses up to 15 minutes of memory per point of your INT modifier -- recent events simply vanish)",
+            "Fear",
+            "Astral Steed",
+            "Telepathy",
+            "Shrink",
+            "Breath Water",
+            "Slow"
           ],
           "4": [
-            "Oubliate (WIS save or surgically erase ONE specific person or event from the target's memory entirely -- the engine scrubs it from what they know, and they cannot recall it even when reminded)"
+            "Oubliate (WIS save or surgically erase ONE specific person or event from the target's memory entirely -- the engine scrubs it from what they know, and they cannot recall it even when reminded)",
+            "Charm Monster",
+            "Wall Of Misdirection",
+            "Confusion",
+            "Archmage Hand",
+            "Mass Charm",
+            "Implant Memory",
+            "Group Telepathy",
+            "Mirror Image"
           ],
           "cantrips": [
             "Mage Hand (invisible, 30ft)",
             "Minor Illusion (sound or image, 30ft)",
-            "Message (whisper 120ft, target replies)"
+            "Message (whisper 120ft, target replies)",
+            "flash"
           ]
         },
         "levels": {
