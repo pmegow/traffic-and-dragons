@@ -372,22 +372,52 @@ var CLASS_BIBLE = {
         },
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Old Switcheroo",
+                "ds": "Your invisible Mage Hand swaps two objects at 30ft; both holders keep believing they hold what they held."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "It Was Their Idea",
+                "ds": "A suggestion you plant is remembered by the target as their own notion, and defended to others as such."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Seventy-Two Shapes",
+                "ds": "Take the form of any person or creature you have seen; it holds until you choose to drop it."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Never Caught",
+                "ds": "The first time each scene you would be seized or cornered, you simply are not — and they half-remember letting you go."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Story Runs Ahead",
+                "ds": "A rumour you set loose is true by the time it arrives — it creates circumstance, never undoes what happened."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Turnabout",
+                "ds": "CAPSTONE: once, you and another creature exchange place, bonds, condition and blame — and everyone proceeds as though it had always been so."
+              }
+            ]
           }
         }
       }

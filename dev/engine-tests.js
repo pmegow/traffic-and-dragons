@@ -282,6 +282,49 @@ function runEngineTests(R){
     for(k in CLASS_BIBLE){scan(k,CLASS_BIBLE[k].spells);for(var a=0;a<CLASS_BIBLE[k].archetypes.length;a++)scan(k+"/"+CLASS_BIBLE[k].archetypes[a].id,CLASS_BIBLE[k].archetypes[a].spells);}
     return bad.length?bad.length+" unresolved: "+bad.slice(0,5).join(" | "):true;
   });
+  t("an AUTHORED feature is never a bare name: it resolves in capability_bible, or carries summary prose",function(){
+    // The fill-phase invariant. A feature whose name resolves gets its canon injected to the GM
+    // every turn (the whole point of naming features into the bible); a pure-flavor passive may
+    // stay prose-only, per the spec. What must NEVER ship is a name with mechanics NOWHERE — the
+    // sheet would show a word and the GM would know nothing about it. Blanks are fill phase, fine.
+    var bad=[],k,i;
+    function scan(owner,levels){
+      /* fi is LOCAL on purpose: sharing the outer `i` made scan() reset the caller's loop counter
+         to 0 on every blank level, which hung the suite instead of failing it (found v1.466). */
+      for(var lv in levels)for(var fi=0;fi<levels[lv].features.length;fi++){
+        var f=levels[lv].features[fi];
+        if(!f.nm){bad.push(owner+" L"+lv+": nameless feature");continue;}
+        if(!capabilityLookup(f.nm)&&!(f.ds&&f.ds.length))bad.push(owner+" L"+lv+": '"+f.nm+"' has no capability entry AND no prose");
+      }
+    }
+    for(k in CLASS_BIBLE){
+      scan(k,CLASS_BIBLE[k].levels);
+      for(i=0;i<CLASS_BIBLE[k].archetypes.length;i++)scan(k+"/"+CLASS_BIBLE[k].archetypes[i].id,CLASS_BIBLE[k].archetypes[i].levels);
+    }
+    return bad.length?bad.length+" bare: "+bad.slice(0,4).join(" | "):true;
+  });
+  t("the Arcane Trickster is authored end-to-end and every feature carries injectable canon (the template)",function(){
+    // The first fully-authored archetype (v1.466) — the template the other 26 follow. Pinned
+    // because it is the worked example of the whole design: named features that resolve to real
+    // mechanics, spine verb (the SWAP) intact, capstone present at L20.
+    var at=null,i;
+    for(i=0;i<CLASS_BIBLE.Rogue.archetypes.length;i++)if(CLASS_BIBLE.Rogue.archetypes[i].id==="arcanetrickster")at=CLASS_BIBLE.Rogue.archetypes[i];
+    if(!at)return "arcanetrickster missing";
+    var want=["3","6","10","14","18","20"],miss=[];
+    for(i=0;i<want.length;i++){
+      var fs=at.levels[want[i]]&&at.levels[want[i]].features;
+      if(!fs||!fs.length){miss.push("L"+want[i]+" empty");continue;}
+      if(!capabilityLookup(fs[0].nm))miss.push("L"+want[i]+" '"+fs[0].nm+"' has no capability entry");
+    }
+    if(miss.length)return miss.join(" | ");
+    if(at.levels["20"].features[0].nm!=="Turnabout")return "capstone drifted: "+at.levels["20"].features[0].nm;
+    // every AT feature is arcane-tradition, so an enemy arcane caster could draw them (the category gate)
+    for(i=0;i<want.length;i++){
+      var e=capabilityLookup(at.levels[want[i]].features[0].nm);
+      if(e.category.indexOf("arcane")<0)return "L"+want[i]+" is not tagged arcane: "+JSON.stringify(e.category);
+    }
+    return true;
+  });
   t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
     // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
     // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches

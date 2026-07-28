@@ -204,6 +204,34 @@ ability.</p>
 <p><em>If unsure whether a feature is L10 or L18, ask what it touches — not how big the number
 is.</em></p>
 
+<div class="box warn"><b>The enforceability ceiling — the SECOND test, added 2026-07-28 after it
+caught a capstone.</b> Blast radius says where a feature goes; this says whether it can exist at
+all. <b>A feature's radius must not exceed the engine's vocabulary for enforcing it.</b><br><br>
+The case study: a proposed Arcane Trickster capstone erased the character's involvement in a past
+event — "every witness, record and consequence reorganizes around your absence". It cannot be
+built. <code>worldState.transcript</code> is <b>immutable by decree</b> (never trimmed or
+restructured), the only de-index tool marks <b>exactly two entries</b> (<code>[RETCON:]</code> →
+the correcting GM entry plus the one before it, <code>state.js</code>), and the event also lives in
+<code>chapters</code> · <code>eventHistory</code> · <code>lore</code> · <code>keyDecisions</code> ·
+<code>npcs[].knowledge</code> · <code>npcs[].events</code> · <code>npcGraph</code> ·
+<code>quests</code> · <code>storyBeats</code> · and <code>coreMemories</code> fanned across every
+party member's sheet. RAG would then re-serve the original scene <b>non-deterministically</b>
+(≤3 excerpts chosen by entity score), so the erasure would fail silently, turns later, and read to
+the player as a broken ability.<br><br>
+<b>The usable rule: GENERATIVE is cheap, SUBTRACTIVE is expensive.</b> Creating facts is what the
+engine does natively — new lore, new NPC knowledge, new circumstance. <i>Un</i>writing them has
+almost no vocabulary: <code>[NPC_FORGET:]</code> scrubs ONE named NPC's knowledge of ONE string,
+and that is the whole toolkit. Oubliate works precisely because its radius equals its tag's radius.
+<br><br>
+<b>The survivable form of "they forget":</b> scope it to what people KNOW, not to the record.
+Current-state blocks outrank RAG excerpts by design (the excerpt header says so), so NPC knowledge
+is enforceable where world-history is not. A forward-looking clause ("from now on, no one forms a
+durable memory of your part") costs the engine nothing at all.<br><br>
+<em>If you ever want literal event erasure, it is a real feature with a real price — an
+<code>[EVENT_ERASE:]</code> tag that marks a turn RANGE <code>rc</code>, fans forgets across
+witnesses, and substring-scrubs the summary tiers, transcript still sacred. That is a Fable-tier
+drift-surface session of its own, not a ride-along.</em></div>
+
 <h3>Why these level numbers</h3>
 <p>3 · 6 · 10 · 14 · 18 · 20 interleave with class rows (2/5/7/9/11/13/15/17) and stat bumps
 (4/8/12/16/19) so <b>no level is ever empty</b>. The gaps run 3-4-4-4-<b>2</b>: a deliberately
