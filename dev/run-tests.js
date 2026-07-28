@@ -273,6 +273,43 @@ try {
   }
   // the editor is a satellite: it must never be reachable from the game's own UI surface
   if (_bePage.indexOf("id=\"bible-editor-link\"") >= 0) _failBE("unexpected in-game link marker");
+
+  // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
+  // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
+  // entries re-emit as their original source lines and every comment survives in place. Without
+  // this pin, a serializer change could silently reformat 175 entries and bury the real diff.
+  var _capSerialize = new Function(_serM[0] + "\nreturn serializeCapabilityBible;")();
+  var _capSrc = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "capability_bible.js"), "utf8").replace(/\r\n/g, "\n");
+  var _capLines = _capSrc.split("\n"), _cs = -1, _ce = -1, _ci;
+  for (_ci = 0; _ci < _capLines.length; _ci++) if (/^var\s+CAPABILITY_BIBLE\s*=\s*\{/.test(_capLines[_ci])) { _cs = _ci; break; }
+  for (_ci = _cs + 1; _ci < _capLines.length; _ci++) if (/^\};/.test(_capLines[_ci])) { _ce = _ci; break; }
+  if (_cs < 0 || _ce < 0) _failBE("capability_bible.js data block not found — the editor's parser keys on `var CAPABILITY_BIBLE={` and a column-0 `};`");
+  var _capVals = new Function(_capSrc + "\nreturn CAPABILITY_BIBLE;")();
+  var _capEntries = [], _lead = [];
+  for (_ci = _cs + 1; _ci < _ce; _ci++) {
+    var _cl = _capLines[_ci], _cm = _cl.match(/^\s*"([^"]+)"\s*:\s*\{/);
+    if (_cm) { _capEntries.push({ key: _cm[1], line: _cl, obj: _capVals[_cm[1]], lead: _lead, dirty: false }); _lead = []; }
+    else _lead.push(_cl);
+  }
+  var _capOut = _capSerialize({ prefix: _capLines.slice(0, _cs + 1).join("\n") + "\n", suffix: "\n" + _capLines.slice(_ce).join("\n"), entries: _capEntries });
+  if (_capOut !== _capSrc) {
+    var _cd = 0; while (_cd < _capOut.length && _capOut[_cd] === _capSrc[_cd]) _cd++;
+    _failBE("an UNEDITED capability_bible open→save is not a no-op — first divergence at char " + _cd +
+      " (…" + JSON.stringify(_capSrc.slice(Math.max(0, _cd - 40), _cd + 40)) + "). Saving would reformat entries the user never touched.");
+  }
+  if (!_capEntries.length) _failBE("the capability parser found ZERO entries — the format assumption (one entry per line) has broken");
+  // ...and the same again with EVERY entry marked dirty, which is what forces emit() to run. The
+  // no-op check above only exercises the raw-line path, so on its own it leaves the emitter — the
+  // code that actually writes your edits — completely untested (found by sabotage, 2026-07-28).
+  // emit() is byte-faithful to the hand-written style for all 175 entries today; pinning that
+  // means an editor save can never silently reformat the file around the line you changed.
+  var _capDirty = _capEntries.map(function (e) { return { key: e.key, line: e.line, obj: e.obj, lead: e.lead, dirty: true }; });
+  var _capOut2 = _capSerialize({ prefix: _capLines.slice(0, _cs + 1).join("\n") + "\n", suffix: "\n" + _capLines.slice(_ce).join("\n"), entries: _capDirty });
+  if (_capOut2 !== _capSrc) {
+    var _cd2 = 0; while (_cd2 < _capOut2.length && _capOut2[_cd2] === _capSrc[_cd2]) _cd2++;
+    _failBE("serializeCapabilityBible's emit() no longer reproduces the file's own entry format — an edited save would reformat every entry it touches. First divergence at char " + _cd2 +
+      " (…" + JSON.stringify(_capSrc.slice(Math.max(0, _cd2 - 40), _cd2 + 40)) + "\n     vs …" + JSON.stringify(_capOut2.slice(Math.max(0, _cd2 - 40), _cd2 + 40)) + ")");
+  }
 } catch (e) { console.error("BIBLE EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
