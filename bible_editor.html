@@ -172,6 +172,7 @@ function serializeCapabilityBible(state) {
   var CUR = null;        // {typeId, data, handle, name, dirty}
   var ADD = {}, activeCls = null, capFilter = "";
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
+  var _lastHandle = null;      // last bible handle seen, permissioned or not — the picker's startIn seed
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return escHtml(String(s == null ? "" : s)); }
@@ -297,13 +298,30 @@ function serializeCapabilityBible(state) {
     render();
   }
 
+  // The picker should open where the bibles LIVE, not in Downloads (user call 2026-07-28). Two
+  // mechanisms, because neither alone covers a cold start:
+  //   · id     — Chrome persists the last-used directory PER PICKER ID, so once a bible has been
+  //              opened from the project folder every later open starts there, across sessions.
+  //   · startIn— seeded with the last bible handle we hold (a FILE handle opens its containing
+  //              directory), which covers the case where the id memory is cleared but IndexedDB
+  //              still has the handle. Falls back to "documents", since the project lives under
+  //              it — closer than the browser's default, which is Downloads.
+  // A stale/revoked handle in startIn can make the picker throw, so the call retries once WITHOUT
+  // it rather than leaving the button dead.
+  function pickerOpts(withStart) {
+    var o = { id: "tnd-bible", types: [{ description: "Bible source", accept: { "text/javascript": [".js"] } }], multiple: false };
+    if (withStart) o.startIn = _lastHandle || "documents";
+    return o;
+  }
   function openBible() {
     if (!HAS_FSA) { $("file-input").click(); return; }
-    window.showOpenFilePicker({
-      types: [{ description: "Bible source", accept: { "text/javascript": [".js"] } }],
-      multiple: false
+    window.showOpenFilePicker(pickerOpts(true))["catch"](function (e) {
+      if (e && e.name === "AbortError") throw e;                 // user cancelled — not a retry case
+      console.warn("[bible] picker rejected the startIn hint, retrying without it:", e && e.message);
+      return window.showOpenFilePicker(pickerOpts(false));
     }).then(function (hs) {
       var h = hs[0];
+      _lastHandle = h;                                          // seeds the next picker's startIn
       return h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
         loadFromText(txt, h, h.name);
         _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
@@ -811,6 +829,8 @@ function serializeCapabilityBible(state) {
   // lesson), so a lapsed handle is parked and re-granted inside the Reconnect click.
   if (HAS_FSA) _idbGet(FS_KEY).then(function (h) {
     if (!h || !h.queryPermission) return;
+    _lastHandle = h;   // set REGARDLESS of permission: startIn is only a location hint, so a
+                       // lapsed handle still points the picker at the right folder
     return h.queryPermission({ mode: "readwrite" }).then(function (p) {
       if (p === "granted") { CUR.handle = h; CUR.name = h.name; }
       else _pendingHandle = h;
