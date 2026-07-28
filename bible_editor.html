@@ -259,7 +259,10 @@ function serializeClassBible(bible, xp) {
       });
     }
     h += levelBlock(e.levels, "lv", "Class features by level");
-    h += "<h2>Archetypes</h2>";
+    // The authoring test that matters more than balance in THIS engine: features are injected as
+    // canon every turn, so a numeric-only feature is invisible to the GM while a narratable one
+    // gets reached for unprompted. Stated here because this is where the 162 slots get filled.
+    h += "<h2>Archetypes</h2><p class='muted' style='margin:-4px 0 10px'>Each feature becomes a sentence the GM knows every turn — write things it can start a scene with, not bare numbers. Blast radius sets the level: yourself (L3–6) → the scene (L10–14) → the world (L18) → the story (L20).</p>";
     e.archetypes.forEach(function (a, ai) {
       h += "<div class='arch'><h4>" + esc(a.nm) + "</h4>";
       h += "<div class='row'><span class='lbl'>desc</span><textarea rows='2' data-arch='" + ai + "' data-f='desc'>" + esc(a.desc) + "</textarea></div>";
