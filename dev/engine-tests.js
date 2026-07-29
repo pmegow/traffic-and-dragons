@@ -494,7 +494,7 @@ function runEngineTests(R){
     // Extra Attack / Indomitable(x2) leave the ladder entirely (the attack upgrade returns at L11
     // as Double Attack). L15/L17 stay blank — not specified, and a blank is a fill-phase slot,
     // not an error. All martial/mundane: a Warrior's chassis is craft, never magic.
-    var want={"2":"Action Surge","5":"Indomitable","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack","15":"Iron Constitution"};
+    var want={"2":"Action Surge","5":"Stunning Blow","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack","15":"Iron Constitution","17":"Unstoppable"};
     var L=CLASS_BIBLE.Warrior.levels,miss=[],lv;
     for(lv in want){
       var fs=L[lv]&&L[lv].features;
@@ -517,6 +517,16 @@ function runEngineTests(R){
     // Iron Constitution's exception IS the feature — an auto-pass with no failure case is unplayable.
     var ic=capabilityLookup("Iron Constitution");
     if(!/natural 1/i.test(ic.effect))return "Iron Constitution lost its natural-1 exception: "+ic.effect.slice(0,100);
+    // Stunning Blow is a TRADE (stun instead of damage) with a save and a per-target limit — all
+    // three are the shape of the feature, so all three must reach the GM.
+    var sb=capabilityLookup("Stunning Blow");
+    if(!/CON/i.test(sb.save))return "Stunning Blow lost its CON save: "+sb.save;
+    if(!/forgo|instead|rather than/i.test(sb.effect))return "Stunning Blow lost the damage-for-stun trade";
+    if(!/per target|only once|once per/i.test(sb.cost+" "+sb.effect))return "Stunning Blow lost its once-per-target limit";
+    // Unstoppable must be BOUNDED by having hit points, else it reads as immunity even while downed.
+    var un=capabilityLookup("Unstoppable");
+    if(!/hit points|while you stand|conscious/i.test(un.effect))return "Unstoppable is unbounded — it must depend on still having HP: "+un.effect.slice(0,100);
+    if(!/stun/i.test(un.effect)||!/prone/i.test(un.effect))return "Unstoppable lost its control-effect list";
     // Taunt must be BOUNDED. An unbounded forced-target is unenforceable and would read as broken.
     var tt=capabilityLookup("Taunt");
     if(/permanent|always on|indefinit/i.test(tt.duration))return "Taunt duration is unbounded: "+tt.duration;

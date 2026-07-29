@@ -67,8 +67,8 @@ var CLASS_BIBLE = {
       "5": {
         "features": [
           {
-            "nm": "Indomitable",
-            "ds": "Reroll a failed saving throw, once per rest."
+            "nm": "Stunning Blow",
+            "ds": "Forgo a hit's damage to stun instead — CON save negates. Any foe can be caught by it only once; they never fall for the same blow twice."
           }
         ]
       },
@@ -113,7 +113,12 @@ var CLASS_BIBLE = {
         ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Unstoppable",
+            "ds": "While you have hit points nothing takes you out of the fight — no stun, paralysis, restraint, prone, disarm, or forced movement. You can be killed; you cannot be handled."
+          }
+        ]
       }
     },
     "archetypes": [
