@@ -318,6 +318,22 @@ try {
   if (_bePage.indexOf("This tab has UNSAVED EDITS") < 0)
     _failBE("openBible lost its unsaved-edits guard — opening replaces the tab's contents");
 
+  // ── DEAD HANDLE PURGE (v1.487) ───────────────────────────────────────────────────────
+  // Root cause of "I have not once been able to save": the FSA handle is persisted in
+  // IndexedDB and restored on every boot, so once it went dead, relaunching the page brought
+  // the SAME unusable handle back — forever. There was no delete path at all. A save failure
+  // must now purge it from IndexedDB and from memory, or the loop returns.
+  // NOT indexOf("function _idbDel") — that substring survives a rename to _idbDelUNUSED, so the
+  // clause read as coverage while catching nothing (caught by sabotage, 2026-07-28). Pin the exact
+  // signature AND that the body actually deletes from the store.
+  if (!/function _idbDel\(k\)/.test(_bePage) || !/objectStore\(FS_STORE\)\["delete"\]\(k\)/.test(_bePage))
+    _failBE("_idbDel is gone or no longer deletes — without it a dead file handle is cached in IndexedDB and restored on every launch");
+  var _saveFn = _bePage.slice(_bePage.indexOf("function saveBible"), _bePage.indexOf("function downloadCopy"));
+  if (_saveFn.indexOf("_idbDel(FS_KEY)") < 0)
+    _failBE("saveBible no longer purges the persisted handle on failure — the dead handle will resurrect on the next launch");
+  if (_saveFn.indexOf("CUR.handle = null") < 0)
+    _failBE("saveBible no longer drops the dead in-memory handle — the UI would keep claiming 'saves in place'");
+
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
   // entries re-emit as their original source lines and every comment survives in place. Without

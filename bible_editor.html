@@ -233,6 +233,10 @@ function serializeCapabilityBible(state) {
   }
   function _idbPut(k, v) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readwrite"); tx.objectStore(FS_STORE).put(v, k); tx.oncomplete = function () { res(true); }; tx.onerror = function () { rej(tx.error); }; }); }); }
   function _idbGet(k) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readonly"); var rq = tx.objectStore(FS_STORE).get(k); rq.onsuccess = function () { res(rq.result || null); }; rq.onerror = function () { rej(rq.error); }; }); }); }
+  // Without a delete, a handle that has gone DEAD is cached forever and restored on every boot —
+  // so closing the tab and relaunching resurrects the exact handle that cannot write, which is
+  // what made saving look permanently broken (user, 2026-07-28: "it's always blocked somehow").
+  function _idbDel(k) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readwrite"); tx.objectStore(FS_STORE)["delete"](k); tx.oncomplete = function () { res(true); }; tx.onerror = function () { rej(tx.error); }; }); }); }
 
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
 
@@ -354,13 +358,26 @@ function serializeCapabilityBible(state) {
       note("saved → " + CUR.name);
       render();
     })["catch"](function (e) {
-      // A stale/dead handle cannot be repaired from here — re-reading the file does NOT clear it
-      // (measured 2026-07-28: reload-from-disk, edit, immediate save still refused). The only
-      // thing that works is a brand-new handle from the picker, so say exactly that.
-      alert("Save failed: " + (e && e.message) +
-        "\n\nIf this mentions state changing since it was read from disk, the file handle is dead — " +
-        "press 📂 Open bible… and pick the file again to mint a fresh one.\n\n" +
-        "Falling back to a download; move it over the original yourself.");
+      // A dead handle cannot be repaired here — re-reading does NOT clear it (measured
+      // 2026-07-28: reload-from-disk, edit, immediate save, still refused). The trap was that the
+      // handle is PERSISTED in IndexedDB and restored on every boot, so relaunching the page
+      // resurrected the same unusable handle and saving looked permanently broken. So: discard it
+      // in both places, drop the UI's "saves in place" claim, and send the user to the picker.
+      var dead = e && (e.name === "InvalidStateError" || /changed since it was read from disk/i.test(e.message || ""));
+      if (dead) {
+        CUR.handle = null;
+        _pendingHandle = null;
+        _idbDel(FS_KEY)["catch"](function (e2) { console.warn("[bible] could not purge the dead handle:", e2 && e2.message); });
+        console.info("[bible] dead file handle discarded (IndexedDB purged) — it will not come back on the next launch");
+        fileLine();
+        alert("Save failed — this file handle is dead.\n\n" + (e && e.message) + "\n\n" +
+          "It has been DISCARDED, including the copy kept for next launch, so it will stop coming " +
+          "back. Press 📂 Open bible… and pick " + CUR.name + " again to mint a working one.\n\n" +
+          "Your current version is downloading now so nothing is lost.");
+        downloadCopy();
+        return;
+      }
+      alert("Save failed: " + (e && e.message) + "\n\nFalling back to a download; move it over the original yourself.");
       downloadCopy();
     });
   }
