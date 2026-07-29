@@ -438,9 +438,14 @@ function serializeCapabilityBible(state) {
   }
 
   // ── resolution badges (class mode) ────────────────────────────────────────
+  // ADD is keyed the way the BIBLE is keyed — capBaseName (lowercased, parenthetical stripped).
+  // Keying it by the display name shipped entries that capabilityLookup could never find.
+  function addKey(nm) {
+    return (typeof capBaseName === "function") ? capBaseName(nm) : String(nm || "").toLowerCase().trim();
+  }
   function resolveState(nm) {
     if (!nm) return "miss";
-    if (ADD[nm]) return "pend";
+    if (ADD[addKey(nm)]) return "pend";
     return (typeof capabilityLookup === "function" && capabilityLookup(nm)) ? "ok" : "miss";
   }
   function badgeFor(nm) {
@@ -562,6 +567,30 @@ function serializeCapabilityBible(state) {
   }
 
   // shared attribute form — used by the capability view AND the class view's define flow
+  // >>> CAP VALIDATOR
+  // Schema validation for a capability entry. The define form used to accept anything, and four
+  // real draft entries proved what that costs: three were category:["martial"] with
+  // isMagical:true (contradictory — martial means no caster tradition draws it), and two were
+  // keyed with capitals, which capabilityLookup can NEVER find since capBaseName lowercases —
+  // they would have sat in the file looking authored and resolved for nothing. Errors block the
+  // save; warnings are shown but do not. Extracted between markers so run-tests.js can pin it.
+  function capIssues(nm, o) {
+    var errors = [], warns = [];
+    var cats = o.category || [];
+    if (!cats.length) errors.push("Pick at least one category — an entry with none can never be drawn by a rolled enemy caster.");
+    if (o.isMagical && cats.length === 1 && cats[0] === "martial")
+      errors.push("magical + martial only is contradictory: martial means no caster tradition draws it. Pick arcane/divine/primal/necromantic, or set magical=false.");
+    if (!o.effect || !String(o.effect).trim())
+      errors.push("effect is empty — this entry would inject nothing to the GM and render a blank card.");
+    if (String(nm || "") !== String(nm || "").toLowerCase().trim())
+      warns.push("key normalized to \"" + String(nm || "").toLowerCase().trim() + "\" — lookups lowercase, so a capitalized key would never resolve.");
+    if (!o.cost || o.cost === "N/A")
+      warns.push("cost is N/A — cost is one of the two real axes (with magical); prefer passive / at-will / per-rest / a real limit.");
+    if (/\b\d*d\d+\b/.test(o.effect || "") && (!o.dice || o.dice === "N/A"))
+      warns.push("the effect text names dice but the dice field is N/A — that split is exactly how Fire Bolt drifted (#101). Put the numbers in dice.");
+    return { errors: errors, warns: warns };
+  }
+  // <<< CAP VALIDATOR
   function capForm(nm, d, onSave, onDrop) {
     function sel(id, opts, cur, extra) {
       // A value not in the list must SELECT the escape option, not silently leave option[0]
@@ -612,9 +641,8 @@ function serializeCapabilityBible(state) {
     $("m-close").onclick = closeModal;
     $("m-save").onclick = function () {
       var cats = [].map.call($("modal-box").querySelectorAll(".capcat:checked"), function (c) { return c.value; });
-      if (!cats.length) { $("cap-err").textContent = "Pick at least one category — an entry with none can never be drawn by a rolled enemy caster."; return; }
       var cost = $("cap-cost").value === "custom…" ? ($("cap-cost-custom").value || "N/A") : $("cap-cost").value;
-      onSave({
+      var draft = {
         kind: $("cap-kind").value,
         tier: parseInt($("cap-tier").value, 10) || 0,
         cost: cost,
@@ -626,7 +654,21 @@ function serializeCapabilityBible(state) {
         save: $("cap-save").value || "N/A",
         dice: $("cap-dice").value || "N/A",
         effect: $("cap-effect").value
-      });
+      };
+      // Errors block; warnings are stated and the save proceeds on the NEXT click (never silent).
+      var iss = capIssues(nm, draft);
+      if (iss.errors.length) {
+        $("cap-err").innerHTML = iss.errors.map(function (m) { return "✗ " + esc(m); }).join("<br>");
+        return;
+      }
+      if (iss.warns.length && !this._warned) {
+        this._warned = true;
+        $("cap-err").innerHTML = "<span style='color:var(--warn,#c9a227)'>" +
+          iss.warns.map(function (m) { return "⚠ " + esc(m); }).join("<br>") +
+          "<br><b>Save again to accept.</b></span>";
+        return;
+      }
+      onSave(draft);
       closeModal();
     };
     if (onDrop) $("m-drop").onclick = function () { onDrop(); closeModal(); };
@@ -797,9 +839,10 @@ function serializeCapabilityBible(state) {
       if (st === "ok") { showCard(nm, capabilityLookup(nm)); return; }
       // cost defaults to a REAL value: no entry in the bible uses "N/A" for cost, because every
       // capability costs something (at-will / slot / passive / per-rest / per-day).
-      capForm(nm, ADD[nm] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
-        function (o) { ADD[nm] = o; markDirty(); render(); },
-        ADD[nm] ? function () { delete ADD[nm]; markDirty(); render(); } : null);
+      var ak = addKey(nm);
+      capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
+        function (o) { ADD[ak] = o; markDirty(); render(); },
+        ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null);
     };
   }
   function showCard(nm, entry) {

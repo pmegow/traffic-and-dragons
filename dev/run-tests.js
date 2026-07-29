@@ -274,6 +274,42 @@ try {
   // the editor is a satellite: it must never be reachable from the game's own UI surface
   if (_bePage.indexOf("id=\"bible-editor-link\"") >= 0) _failBE("unexpected in-game link marker");
 
+  // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
+  // The define form accepted anything until four real draft entries showed the cost: three were
+  // category:["martial"] with isMagical:true (contradictory), and two were keyed with capitals,
+  // which capabilityLookup can never find. Pin every clause, and sabotage-prove it: a validator
+  // that never rejects reads as coverage while catching nothing.
+  var _valM = _bePage.match(/\/\/ >>> CAP VALIDATOR[\s\S]*?\/\/ <<< CAP VALIDATOR/);
+  if (!_valM) _failBE("the CAP VALIDATOR markers are gone from bible_editor.html");
+  var _capIssues = new Function(_valM[0] + "\nreturn capIssues;")();
+  var _okEntry = function (o) {
+    var b = { kind: "ability", tier: 1, cost: "at-will", isMagical: false, category: ["martial"],
+      range: "melee", targets: "1 creature", duration: "instantaneous", save: "N/A", dice: "N/A",
+      effect: "A clean strike that lands where it hurts." };
+    for (var k in (o || {})) b[k] = o[k];
+    return b;
+  };
+  var _vCase = function (label, nm, patch, wantErr, wantWarn) {
+    var r = _capIssues(nm, _okEntry(patch));
+    if (!!r.errors.length !== wantErr) _failBE("cap validator: " + label + " — errors " + JSON.stringify(r.errors));
+    if (wantWarn !== undefined && !!r.warns.length !== wantWarn) _failBE("cap validator: " + label + " — warns " + JSON.stringify(r.warns));
+  };
+  _vCase("a clean entry passes", "power strike", {}, false, false);
+  _vCase("no category is rejected", "power strike", { category: [] }, true);
+  _vCase("magical + martial-only is rejected", "power strike", { isMagical: true }, true);
+  _vCase("magical + a real tradition passes", "power strike", { isMagical: true, category: ["arcane"] }, false);
+  _vCase("magical + martial AND arcane passes (a spellblade is both)", "power strike", { isMagical: true, category: ["martial", "arcane"] }, false);
+  _vCase("empty effect is rejected", "power strike", { effect: "   " }, true);
+  _vCase("a capitalized key warns", "Power Strike", {}, false, true);
+  _vCase("cost N/A warns", "power strike", { cost: "N/A" }, false, true);
+  _vCase("dice in the prose but N/A in the field warns", "power strike", { effect: "Deals 2d6 fire." }, false, true);
+  _vCase("dice in the prose WITH a dice field passes clean", "power strike", { effect: "Deals 2d6 fire.", dice: "2d6 fire" }, false, false);
+  // the four real draft entries that filed this: every one must be caught
+  if (!_capIssues("Fog Bank", _okEntry({ isMagical: true, category: ["martial"], cost: "N/A", effect: "Fills an area with thick fog obscuring vision." })).errors.length)
+    _failBE("cap validator: the real 'Fog Bank' draft entry (magical+martial) was not caught");
+  if (!_capIssues("Poisoner", _okEntry({ cost: "N/A", effect: "Creates potent poisons from common ingredients." })).warns.length)
+    _failBE("cap validator: the real 'Poisoner' draft entry (capital key, cost N/A) raised nothing");
+
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
   // entries re-emit as their original source lines and every comment survives in place. Without
