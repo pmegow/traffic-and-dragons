@@ -241,22 +241,52 @@ var CLASS_BIBLE = {
         },
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Weapon Bond",
+                "ds": "Your bonded blade always returns to your hand — thrown, disarmed, stolen, oceans apart; it comes when called."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Spellblade",
+                "ds": "Your spells flow through the steel — casting and striking are one motion, a slash that carries the spell."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Sundering Stroke",
+                "ds": "Your blade cuts magic itself: sever an enchantment, cut a summoning from its anchor, part a wall of flame."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Soul Steal",
+                "ds": "Your blade drinks the soul of what it cuts, taking one of the victim's abilities for 4 hours — three held at once, nothing new until one expires or is released."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Standing Ward",
+                "ds": "You can ward a place — castle, bridge, village: no magic enters unbidden while you keep it, and you know every arcane trespass."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Blade Keeps Faith",
+                "ds": "Once, when death takes you, it doesn't — the bond pulls you back; you wake, blade in hand, wherever the blade lies."
+              }
+            ]
           }
         }
       }

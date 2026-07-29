@@ -396,6 +396,44 @@ function runEngineTests(R){
     var ph=capabilityLookup("The Plan Holds");
     return /never the steps/i.test(ph.effect)?true:"The Plan Holds lost its forward-only clause";
   });
+  t("the Eldritch Knight is authored end-to-end — WARRIOR COMPLETE; its features are arcane, not martial",function(){
+    // Sixth authored archetype (v1.477). Spine THE BOND. Unlike Champion/Battle Master this one
+    // is MAGICAL (isMagical:true, category arcane) — an enemy arcane caster could draw these, the
+    // category gate the Trickster established. L10/L14 were SWAPPED from the drafted slate (user
+    // call: cut magic at REACH, drink souls at MASTERY) — the order is pinned so it can't drift back.
+    var ek=null,i;
+    for(i=0;i<CLASS_BIBLE.Warrior.archetypes.length;i++)if(CLASS_BIBLE.Warrior.archetypes[i].id==="eldritchknight")ek=CLASS_BIBLE.Warrior.archetypes[i];
+    if(!ek)return "eldritchknight missing";
+    var want=["3","6","10","14","18","20"],miss=[];
+    for(i=0;i<want.length;i++){
+      var fs=ek.levels[want[i]]&&ek.levels[want[i]].features;
+      if(!fs||!fs.length){miss.push("L"+want[i]+" empty");continue;}
+      var e=capabilityLookup(fs[0].nm);
+      if(!e){miss.push("L"+want[i]+" '"+fs[0].nm+"' has no capability entry");continue;}
+      if(!e.isMagical)miss.push("L"+want[i]+" '"+fs[0].nm+"' is not magical (the EK bonds spell to steel)");
+      if(e.category.indexOf("arcane")<0)miss.push("L"+want[i]+" '"+fs[0].nm+"' not arcane: "+JSON.stringify(e.category));
+    }
+    if(miss.length)return miss.join(" | ");
+    if(ek.levels["10"].features[0].nm!=="Sundering Stroke")return "L10 drifted (cut magic at REACH): "+ek.levels["10"].features[0].nm;
+    if(ek.levels["14"].features[0].nm!=="Soul Steal")return "L14 drifted (drink souls at MASTERY): "+ek.levels["14"].features[0].nm;
+    if(ek.levels["20"].features[0].nm!=="The Blade Keeps Faith")return "capstone drifted: "+ek.levels["20"].features[0].nm;
+    // Soul Steal's whole shape is its limits — 3 slots, 4 hours, and no new theft while full.
+    var ss=capabilityLookup("Soul Steal");
+    if(!/4 hours/i.test(ss.duration))return "Soul Steal lost its 4-hour window: "+ss.duration;
+    if(!/three/i.test(ss.effect)||!/expires or (you )?releas/i.test(ss.effect))return "Soul Steal lost the 3-slot / hold-until-released rule";
+    return true;
+  });
+  t("every class is either fully authored or fully blank — no half-authored archetype ships",function(){
+    // Guards the fill discipline: an archetype with SOME rows filled is a half-finished thought
+    // that reads to the GM as a character with gaps. Six or zero, never in between.
+    var bad=[],k,i;
+    for(k in CLASS_BIBLE)for(i=0;i<CLASS_BIBLE[k].archetypes.length;i++){
+      var a=CLASS_BIBLE[k].archetypes[i],n=0,lv;
+      for(lv in a.levels)if(a.levels[lv].features&&a.levels[lv].features.length)n++;
+      if(n!==0&&n!==6)bad.push(k+"/"+a.id+" has "+n+"/6 rows filled");
+    }
+    return bad.length?bad.join(" | "):true;
+  });
   t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
     // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
     // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches
