@@ -310,19 +310,11 @@ try {
   if (!_capIssues("Poisoner", _okEntry({ cost: "N/A", effect: "Creates potent poisons from common ingredients." })).warns.length)
     _failBE("cap validator: the real 'Poisoner' draft entry (capital key, cost N/A) raised nothing");
 
-  // ── SAVE STALENESS CONTRACT (v1.485) ─────────────────────────────────────────────────
-  // The user could not save AT ALL: every commit in this session rewrote class_bible.js, which
-  // left their file handle permanently stale and made createWritable throw. The save path now
-  // re-reads the file first (which both refreshes the handle and detects the change), and this
-  // pins the decision it makes — including that an OLDER timestamp still counts as changed.
-  var _stM = _bePage.match(/\/\/ >>> SAVE STALENESS[\s\S]*?\/\/ <<< SAVE STALENESS/);
-  if (!_stM) _failBE("the SAVE STALENESS markers are gone from bible_editor.html");
-  var _changed = new Function(_stM[0] + "\nreturn diskChangedSinceLoad;")();
-  if (_changed(0, 12345)) _failBE("staleness: an unknown baseline (mtime 0) must not prompt");
-  if (_changed(1000, 1000)) _failBE("staleness: an untouched file must not prompt");
-  if (!_changed(1000, 2000)) _failBE("staleness: a NEWER file on disk must prompt");
-  if (!_changed(2000, 1000)) _failBE("staleness: an OLDER file on disk must ALSO prompt — a sync client or git checkout can restore a back-dated mtime, and > would clobber it silently");
-  // the editor must guard a dirty draft on the paths that REPLACE it (open + reconnect + reload)
+  // The mtime-based staleness pre-check was REMOVED at v1.486 (user call): re-reading the file
+  // does not clear a dead FSA handle — measured, reload-from-disk then an immediate save still
+  // refused — so the check added a prompt and no cure. Kept from that work: the unsaved-edits
+  // guard on openBible, which fixed a real silent-data-loss path (opening replaced the tab's
+  // contents wordlessly) and is unrelated to the save failure.
   if (_bePage.indexOf("This tab has UNSAVED EDITS") < 0)
     _failBE("openBible lost its unsaved-edits guard — opening replaces the tab's contents");
 
