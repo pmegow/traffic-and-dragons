@@ -494,7 +494,7 @@ function runEngineTests(R){
     // Extra Attack / Indomitable(x2) leave the ladder entirely (the attack upgrade returns at L11
     // as Double Attack). L15/L17 stay blank — not specified, and a blank is a fill-phase slot,
     // not an error. All martial/mundane: a Warrior's chassis is craft, never magic.
-    var want={"2":"Action Surge","5":"Indomitable","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack"};
+    var want={"2":"Action Surge","5":"Indomitable","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack","15":"Iron Constitution"};
     var L=CLASS_BIBLE.Warrior.levels,miss=[],lv;
     for(lv in want){
       var fs=L[lv]&&L[lv].features;
@@ -510,6 +510,13 @@ function runEngineTests(R){
     var ca=capabilityLookup("Counter Attack");
     if(!/d20/.test(ca.dice)||!/(under|less than|below) your (character )?level/i.test(ca.effect+" "+ca.dice))
       return "Counter Attack lost its roll-under-level rule: "+ca.dice+" / "+ca.effect.slice(0,80);
+    // v1.483 balance: HALF damage, not none — the trade the user wanted (eat a little to deal a lot).
+    // At L20 this fires on 95% of incoming melee, so "no damage" made a Warrior effectively immune.
+    if(!/half/i.test(ca.effect))return "Counter Attack must halve damage, not negate it: "+ca.effect.slice(0,100);
+    if(/take no damage|no damage from it/i.test(ca.effect))return "Counter Attack still negates damage entirely";
+    // Iron Constitution's exception IS the feature — an auto-pass with no failure case is unplayable.
+    var ic=capabilityLookup("Iron Constitution");
+    if(!/natural 1/i.test(ic.effect))return "Iron Constitution lost its natural-1 exception: "+ic.effect.slice(0,100);
     // Taunt must be BOUNDED. An unbounded forced-target is unenforceable and would read as broken.
     var tt=capabilityLookup("Taunt");
     if(/permanent|always on|indefinit/i.test(tt.duration))return "Taunt duration is unbounded: "+tt.duration;

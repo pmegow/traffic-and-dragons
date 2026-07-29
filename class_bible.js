@@ -100,12 +100,17 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Counter Attack",
-            "ds": "Roll d20 against each melee attack on you; under your level, the attack is countered — no damage, and you answer with a strike of your own."
+            "ds": "Roll d20 against each melee attack on you; under your level you counter — half damage taken, and you answer with a strike of your own."
           }
         ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Iron Constitution",
+            "ds": "Every Constitution save succeeds automatically except on a natural 1. Your body has stopped negotiating."
+          }
+        ]
       },
       "17": {
         "features": []
