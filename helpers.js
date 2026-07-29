@@ -125,6 +125,17 @@ function classDef(id){
   return null;
 }
 function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
+/* #101 (v1.479): the ONE picker-description line, derived from the capability bible at render
+   time — replaces the mechanics-bearing parentheticals that used to ride inside spell display
+   names (a second copy of dice/range that could, and did, drift from the canon). Empty string
+   for unknown names — callers keep their own fallback. */
+function spellPickDesc(nm){
+  var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
+  if(!e||!e.effect)return"";
+  var s=e.effect;
+  if(s.length>140)s=s.slice(0,140).replace(/\s+\S*$/,"")+"…";
+  return s;
+}
 function pbSp(){var t=0,i;for(i=0;i<STATS.length;i++){t+=(PBC[cs.bs[STATS[i]]]||0);}return t;}
 function getToneNm(){if(!cs.tone)return"Unspecified";if(cs.tone==="custom")return"Custom";var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].nm;}return"Unspecified";}
 function getToneVc(){if(!cs.tone)return"";if(cs.tone==="custom"){var el=document.getElementById("tone-ct");return el?el.value.trim():"";}var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].vc;}return"";}

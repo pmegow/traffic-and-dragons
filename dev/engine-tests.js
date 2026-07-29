@@ -190,43 +190,68 @@ function runEngineTests(R){
 
   section("capcapability_bible (TODO #10)");
   t("capBaseName strips the display parenthetical and lowercases",function(){return eq(capBaseName("Fire Bolt (d10 fire, 120ft)"),"fire bolt");});
-  t("Fire Bolt is d8 everywhere — canon AND every display string (v1.478 balance call)",function(){
-    // A cantrip at d10 out-damaged tier-1 spells. The mechanics live in capability_bible (the ONE
-    // canon the GM is injected with); the display strings in data.js/class_bible are sugar, but a
-    // sheet reading "d10" beside a canon saying "d8" is exactly the silent divergence this project
-    // forbids — so both move, and old saves are healed by migrateSpellDisplayNames.
+  t("Fire Bolt canon is d8 (v1.478 balance call) — dice AND prose",function(){
     var e=capabilityLookup("fire bolt");
     if(!/1d8 fire/.test(e.dice)||/d10/.test(e.dice))return "canon dice: "+e.dice;
-    if(/1d10|d10/.test(e.effect))return "canon effect still says d10: "+e.effect;
-    var bad=[];
-    function scanList(owner,l){for(var i=0;i<(l||[]).length;i++)if(/Fire Bolt/.test(l[i])&&/d10/.test(l[i]))bad.push(owner+": "+l[i]);}
-    scanList("SPELLS.Sorcerer",SPELLS.Sorcerer.cantrips);
-    scanList("ARCH_SPELLS.eldritchknight",ARCH_SPELLS.eldritchknight.cantrips);
-    for(var k in CLASS_BIBLE){
-      if(CLASS_BIBLE[k].spells)scanList("CLASS_BIBLE."+k,CLASS_BIBLE[k].spells.cantrips);
-      for(var a=0;a<CLASS_BIBLE[k].archetypes.length;a++){
-        var ar=CLASS_BIBLE[k].archetypes[a];
-        if(ar.spells)scanList("CLASS_BIBLE."+k+"/"+ar.id,ar.spells.cantrips);
-      }
-    }
-    return bad.length?bad.join(" | "):true;
+    return /1d10|d10/.test(e.effect)?"canon effect still says d10: "+e.effect:true;
   });
-  t("a legacy save's old 'Fire Bolt (d10 …)' string still resolves, and migration heals the label",function(){
-    // Two independent guarantees. ① capBaseName ignores the parenthetical, so an un-migrated save
-    // never loses its canon (it just reads d8 from the bible). ② the display label is healed on
-    // load, so the SHEET stops disagreeing with the canon.
+  t("#101: every spell LIST entry is a bare name that resolves in the bible — no mechanics in labels",function(){
+    // The user's question that filed this: "isn't the point of a bible that it exists in ONE
+    // place?" 66 of the legacy labels embedded dice/range in the display name — a second copy of
+    // the mechanics that could (and did, Fire Bolt d10) drift from the canon. Now the lists carry
+    // bare names ONLY; descriptions everywhere derive from capabilityLookup at render time.
+    var bad=[];
+    function scan(owner,l){for(var i=0;i<(l||[]).length;i++){
+      if(l[i].indexOf("(")>=0)bad.push(owner+" carries mechanics: "+l[i]);
+      else if(!capabilityLookup(l[i]))bad.push(owner+" does not resolve: "+l[i]);
+    }}
+    for(var c in SPELLS)for(var t in SPELLS[c])scan("SPELLS."+c+"."+t,SPELLS[c][t]);
+    for(var a in ARCH_SPELLS)for(var t2 in ARCH_SPELLS[a])scan("ARCH_SPELLS."+a+"."+t2,ARCH_SPELLS[a][t2]);
+    for(var k in CLASS_BIBLE){
+      if(CLASS_BIBLE[k].spells)for(var t3 in CLASS_BIBLE[k].spells)scan("CB."+k+"."+t3,CLASS_BIBLE[k].spells[t3]);
+      for(var ai=0;ai<CLASS_BIBLE[k].archetypes.length;ai++){var ar=CLASS_BIBLE[k].archetypes[ai];
+        if(ar.spells)for(var t4 in ar.spells)scan("CB."+k+"/"+ar.id+"."+t4,ar.spells[t4]);}
+    }
+    return bad.length?bad.length+" bad: "+bad.slice(0,4).join(" | "):true;
+  });
+  t("#101: migration strips a resolvable label to its bare name; an unresolvable custom keeps its info",function(){
+    // ① "Fire Bolt (d10 fire, 120ft)" resolves via capBaseName → the label becomes "Fire Bolt"
+    //   and the SHEET reads the bible like everything else. ② a GM-granted custom spell whose
+    //   parenthetical is its ONLY mechanics is left alone — stripping it would destroy data.
     if(!capabilityLookup("Fire Bolt (d10 fire, 120ft)"))return "legacy display string stopped resolving";
     makeWorld();
-    worldState.character.spells=[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false},{nm:"Ray of Frost (d8 cold, slows target)",lvl:0,used:false}];
+    worldState.character.spells=[
+      {nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false},
+      {nm:"Ray of Frost (d8 cold, slows target)",lvl:0,used:false},
+      {nm:"Zargle's Custom Zap (9d9 chaos)",lvl:1,used:false},
+      {nm:"Fog Bank",lvl:1,used:false}];
     worldState.npcs.push({name:"Sparks",status:"ally",rel:"companion",partyMember:true,
       charSheet:{name:"Sparks",cls:"Sorcerer",level:3,hp:12,maxHp:12,gold:0,stats:{STR:8,DEX:12,CON:12,INT:16,WIS:10,CHA:10},
         inventory:[],abilities:[],spells:[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false}],conditions:[],relationships:[],
         saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
     migrateWorldState();
-    if(worldState.character.spells[0].nm!=="Fire Bolt (d8 fire, 120ft)")return "player label not healed: "+worldState.character.spells[0].nm;
-    if(worldState.character.spells[1].nm!=="Ray of Frost (d8 cold, slows target)")return "an unrelated spell was rewritten";
+    var sp=worldState.character.spells;
+    if(sp[0].nm!=="Fire Bolt")return "resolvable label not stripped: "+sp[0].nm;
+    if(sp[1].nm!=="Ray of Frost")return "second resolvable label not stripped: "+sp[1].nm;
+    if(sp[2].nm!=="Zargle's Custom Zap (9d9 chaos)")return "custom spell's only mechanics were destroyed: "+sp[2].nm;
+    if(sp[3].nm!=="Fog Bank")return "bare name was touched: "+sp[3].nm;
     var sh=worldState.npcs[worldState.npcs.length-1].charSheet;
-    return sh.spells[0].nm==="Fire Bolt (d8 fire, 120ft)"?true:"companion label not healed: "+sh.spells[0].nm;
+    return sh.spells[0].nm==="Fire Bolt"?true:"companion label not stripped: "+sh.spells[0].nm;
+  });
+  t("#101: spellPickDesc derives the picker description from the bible; unknown → empty",function(){
+    var d=spellPickDesc("Fire Bolt");
+    if(!/1d8/.test(d))return "Fire Bolt desc lost the dice: "+d;
+    if(d.length>160)return "desc not truncated: "+d.length+" chars";
+    return spellPickDesc("Totally Unknown Spell")===""?true:"unknown spell should yield empty";
+  });
+  t("#101: grantSpellsFromList dedupes by BASE name — a legacy label can't double-grant",function(){
+    // The pickArchetype hazard: a save holding "Fire Bolt (d10 fire, 120ft)" meeting the now-bare
+    // grant list "Fire Bolt" used exact-string dedupe and would have granted a duplicate.
+    var c={spells:[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:true}]};
+    grantSpellsFromList(c,["Fire Bolt","Ray of Frost"],0);
+    if(c.spells.length!==2)return "expected 2 spells, got "+c.spells.length+": "+c.spells.map(function(s){return s.nm;}).join(", ");
+    if(c.spells[0].used!==true)return "existing spell's used flag was disturbed";
+    return c.spells[1].nm==="Ray of Frost"?true:"new grant wrong: "+c.spells[1].nm;
   });
   t("lookup resolves a full SPELLS display string to its canonical entry",function(){var e=capabilityLookup("Fire Bolt (d10 fire, 120ft)");return e&&e.range==="120ft"&&e.tier===0?true:"got "+JSON.stringify(e);});
   t("lookup is case-insensitive on the bare name",function(){var e=capabilityLookup("MESSAGE");return e&&e.range==="120ft"?true:"message not resolved: "+JSON.stringify(e);});

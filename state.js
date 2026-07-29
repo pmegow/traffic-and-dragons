@@ -179,18 +179,25 @@ function stampTranscriptSpeakers(entry,sp){
    checkLegacyCharacter (the legacy-pool draw) call it directly. Returns true if anything moved. */
 var CLASS_RENAMES={"Berserker":"Primal"};
 var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller"};
-/* Spell DISPLAY labels that drifted from the capability_bible canon. The canon is the only thing
-   the GM is ever injected with (capBaseName strips the parenthetical, so an un-migrated save has
-   always read correctly) — but the SHEET renders the stored nm verbatim, so a stale label means
-   the player sees "d10" while the GM plays "d8". Exact-string map, display half only. */
-var SPELL_NM_RENAMES={"Fire Bolt (d10 fire, 120ft)":"Fire Bolt (d8 fire, 120ft)"};
+/* #101 (v1.479, generalizing the v1.478 Fire Bolt point-fix): spell display labels used to embed
+   mechanics in a parenthetical — "Fire Bolt (d10 fire, 120ft)" — a second copy of dice/range that
+   could drift from the capability_bible canon (the only thing the GM's canon block ever reads;
+   capBaseName strips the parenthetical on lookup, so an un-migrated save always PLAYED right —
+   it just displayed wrong). Now: any stored label whose base name RESOLVES in the bible strips to
+   the bare name, and every display derives from the bible at render time. A label that does NOT
+   resolve keeps its parenthetical untouched — for a GM-granted custom spell that text is the only
+   mechanics anywhere, and destroying it would be silent data loss. */
 function migrateSpellDisplayNames(c){
   if(!c||!c.spells)return false;var hit=false,i;
   for(i=0;i<c.spells.length;i++){
-    var nm=c.spells[i]&&c.spells[i].nm;
-    if(nm&&SPELL_NM_RENAMES[nm]){c.spells[i].nm=SPELL_NM_RENAMES[nm];hit=true;}
+    var sp=c.spells[i];if(!sp||!sp.nm)continue;
+    var idx=sp.nm.indexOf("(");if(idx<1)continue;
+    if(typeof capabilityLookup==="function"&&capabilityLookup(sp.nm)){
+      var bare=sp.nm.slice(0,idx).trim();
+      if(bare&&bare!==sp.nm){sp.nm=bare;hit=true;}
+    }
   }
-  if(hit)console.info("[migrate] spell label(s) re-synced to the capability bible on "+(c.name||"character"));
+  if(hit)console.info("[migrate] #101: spell labels stripped to bible bare names on "+(c.name||"character"));
   return hit;
 }
 function migrateCharClassNames(c){

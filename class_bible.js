@@ -224,19 +224,19 @@ var CLASS_BIBLE = {
         },
         "spells": {
           "1": [
-            "Shield (+5 AC as reaction)",
-            "Absorb Elements (halve element dmg)",
-            "Magic Missile (3x d4+1, auto-hit)"
+            "Shield",
+            "Absorb Elements",
+            "Magic Missile"
           ],
           "2": [
-            "Misty Step (teleport 30ft)",
-            "Mirror Image (3 illusory duplicates)"
+            "Misty Step",
+            "Mirror Image"
           ],
           "3": [],
           "4": [],
           "cantrips": [
-            "Fire Bolt (d8 fire, 120ft)",
-            "Booming Blade (melee + d8 thunder)"
+            "Fire Bolt",
+            "Booming Blade"
           ]
         },
         "levels": {
@@ -514,10 +514,10 @@ var CLASS_BIBLE = {
         },
         "spells": {
           "1": [
-            "Charm Person (charmed 1 hour)",
-            "Silent Image (visual illusion)",
-            "Disguise Self (change appearance)",
-            "Feather Fall (reaction; you and nearby allies drift down safely, no fall damage)",
+            "Charm Person",
+            "Silent Image",
+            "Disguise Self",
+            "Feather Fall",
             "Fog Bank",
             "Leap",
             "Grease",
@@ -525,20 +525,20 @@ var CLASS_BIBLE = {
             "Ventriloquism"
           ],
           "2": [
-            "Invisibility (until attack or cast)",
-            "Shadow Blade (2d8 psychic weapon)",
-            "Knock (a sharp clang unlocks one locked door, chest, or manacle within 60ft)",
-            "Darkness (15ft sphere of magical darkness, blocks darkvision, 60ft)",
-            "Shadow Step (teleport 30ft between areas of dim light or darkness)",
-            "Mirror Image (3 illusory duplicates)",
+            "Invisibility",
+            "Shadow Blade",
+            "Knock",
+            "Darkness",
+            "Shadow Step",
+            "Mirror Image",
             "Blur",
             "Spider Climb",
             "Hold Person",
             "Misty Step"
           ],
           "3": [
-            "Blink (at each turn's end roll d20; on 11+ you slip to the ethereal until your next turn -- unhittable, then reappear)",
-            "Lethe's Kiss (touch or 30ft; WIS save or the target loses up to 15 minutes of memory per point of your INT modifier -- recent events simply vanish)",
+            "Blink",
+            "Lethe's Kiss",
             "Fear",
             "Astral Steed",
             "Telepathy",
@@ -547,7 +547,7 @@ var CLASS_BIBLE = {
             "Slow"
           ],
           "4": [
-            "Oubliate (WIS save or surgically erase ONE specific person or event from the target's memory entirely -- the engine scrubs it from what they know, and they cannot recall it even when reminded)",
+            "Oubliate",
             "Charm Monster",
             "Wall of Misdirection",
             "Confusion",
@@ -558,9 +558,9 @@ var CLASS_BIBLE = {
             "Mirror Image"
           ],
           "cantrips": [
-            "Mage Hand (invisible, 30ft)",
-            "Minor Illusion (sound or image, 30ft)",
-            "Message (whisper 120ft, target replies)",
+            "Mage Hand",
+            "Minor Illusion",
+            "Message",
             "Flash"
           ]
         },
@@ -660,30 +660,30 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Magic Missile (3x d4+1, auto-hit)",
-        "Shield (+5 AC as reaction)",
-        "Thunderwave (2d8, pushes 10ft)",
-        "Chromatic Orb (3d8, choose element)"
+        "Magic Missile",
+        "Shield",
+        "Thunderwave",
+        "Chromatic Orb"
       ],
       "2": [
-        "Misty Step (teleport 30ft, bonus action)",
-        "Scorching Ray (3x 2d6 fire)",
-        "Hold Person (paralyze humanoid)",
-        "Invisibility (until attack or cast)"
+        "Misty Step",
+        "Scorching Ray",
+        "Hold Person",
+        "Invisibility"
       ],
       "3": [
-        "Fireball (8d6 fire, 20ft radius)",
-        "Counterspell (negate a spell)",
-        "Fly (60ft fly speed, 10 min)"
+        "Fireball",
+        "Counterspell",
+        "Fly"
       ],
       "4": [],
       "5": [],
       "6": [],
       "cantrips": [
-        "Fire Bolt (d8 fire, 120ft)",
-        "Ray of Frost (d8 cold, slows target)",
-        "Mage Hand (telekinesis, 30ft)",
-        "Prestidigitation (minor magical tricks)"
+        "Fire Bolt",
+        "Ray of Frost",
+        "Mage Hand",
+        "Prestidigitation"
       ]
     },
     "levels": {
@@ -847,19 +847,19 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Hunter's Mark (d6 bonus damage, track target)",
-        "Cure Wounds (d8+WIS heal)",
-        "Ensnaring Strike (restrain on hit)",
-        "Hail of Thorns (d10 AoE on hit)"
+        "Hunter's Mark",
+        "Cure Wounds",
+        "Ensnaring Strike",
+        "Hail of Thorns"
       ],
       "2": [
-        "Pass Without Trace (+10 Stealth, party)",
-        "Spike Growth (2d4 per 5ft moved)",
-        "Silence (no sound in 20ft sphere)"
+        "Pass Without Trace",
+        "Spike Growth",
+        "Silence"
       ],
       "3": [
-        "Conjure Barrage (3d8 weapon AoE)",
-        "Lightning Arrow (4d8 lightning)"
+        "Conjure Barrage",
+        "Lightning Arrow"
       ],
       "4": []
     },
@@ -1178,20 +1178,20 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Divine Smite (+2d8 radiant on hit)",
-        "Cure Wounds (d8+CHA heal)",
-        "Bless (+d4 attacks and saves, 3 targets)",
-        "Shield of Faith (+2 AC, 10 min)"
+        "Divine Smite",
+        "Cure Wounds",
+        "Bless",
+        "Shield of Faith"
       ],
       "2": [
-        "Aid (+5 max HP to 3 allies)",
-        "Magic Weapon (+1 to weapon, 1 hour)",
-        "Find Steed (summon a warhorse)"
+        "Aid",
+        "Magic Weapon",
+        "Find Steed"
       ],
       "3": [
-        "Revivify (resurrect within 1 min)",
-        "Dispel Magic (end one spell)",
-        "Aura of Vitality (2d6 heal as bonus action)"
+        "Revivify",
+        "Dispel Magic",
+        "Aura of Vitality"
       ],
       "4": []
     },
@@ -1358,29 +1358,29 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Healing Word (d4+WIS, bonus action)",
-        "Bless (+d4 attacks and saves, 3 targets)",
-        "Guiding Bolt (4d6 radiant, next attack has advantage)",
-        "Shield of Faith (+2 AC, 10 min)"
+        "Healing Word",
+        "Bless",
+        "Guiding Bolt",
+        "Shield of Faith"
       ],
       "2": [
-        "Spiritual Weapon (d8+WIS, bonus action attack)",
-        "Hold Person (paralyze humanoid)",
-        "Lesser Restoration (cure disease or condition)"
+        "Spiritual Weapon",
+        "Hold Person",
+        "Lesser Restoration"
       ],
       "3": [
-        "Spirit Guardians (3d8 radiant aura)",
-        "Revivify (resurrect within 1 min)",
-        "Dispel Magic (end one spell)"
+        "Spirit Guardians",
+        "Revivify",
+        "Dispel Magic"
       ],
       "4": [],
       "5": [],
       "6": [],
       "cantrips": [
-        "Sacred Flame (d8 radiant, DEX save)",
-        "Guidance (+d4 to one ability check)",
-        "Spare the Dying (stabilize at 0 HP)",
-        "Thaumaturgy (minor divine display)"
+        "Sacred Flame",
+        "Guidance",
+        "Spare the Dying",
+        "Thaumaturgy"
       ]
     },
     "levels": {
@@ -1546,29 +1546,29 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Entangle (restrain in 20ft square)",
-        "Healing Word (d4+WIS, bonus action)",
-        "Thunderwave (2d8, push 10ft)",
-        "Faerie Fire (reveal invisible, grants advantage)"
+        "Entangle",
+        "Healing Word",
+        "Thunderwave",
+        "Faerie Fire"
       ],
       "2": [
-        "Moonbeam (2d10 radiant, move each turn)",
-        "Barkskin (AC cannot be less than 16)",
-        "Pass Without Trace (+10 Stealth, party)"
+        "Moonbeam",
+        "Barkskin",
+        "Pass Without Trace"
       ],
       "3": [
-        "Call Lightning (3d10 lightning each turn)",
-        "Conjure Animals (summon beasts)",
-        "Plant Growth (difficult terrain, 100ft)"
+        "Call Lightning",
+        "Conjure Animals",
+        "Plant Growth"
       ],
       "4": [],
       "5": [],
       "6": [],
       "cantrips": [
-        "Produce Flame (d8 fire, 30ft)",
-        "Shillelagh (staff becomes d8+WIS)",
-        "Druidcraft (nature minor tricks)",
-        "Thorn Whip (d6, pull 10ft)"
+        "Produce Flame",
+        "Shillelagh",
+        "Druidcraft",
+        "Thorn Whip"
       ]
     },
     "levels": {
@@ -1734,39 +1734,39 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Inflict Wounds (3d10 necrotic, melee touch)",
-        "Ray of Sickness (d8 necrotic + poisoned condition, 60ft)",
-        "False Life (gain d4+4 temporary HP)",
-        "Cause Fear (WIS save or frightened; concentration, 60ft)",
-        "Bleed (target bleeds from every orifice for 1d4 necrotic per turn, 1d10 turns or until cancelled, 30ft)"
+        "Inflict Wounds",
+        "Ray of Sickness",
+        "False Life",
+        "Cause Fear",
+        "Bleed"
       ],
       "2": [
-        "Ray of Enfeeblement (target STR attacks deal half damage; concentration, 60ft)",
-        "Blindness (CON save or blinded for 1 minute)",
-        "Shadow Step (teleport 30ft between areas of dim light or darkness)",
-        "Shackles of Bone (skeletal arms erupt from earth and wall to pin the target prone or against a surface; restrained until a STR check snaps the bones, 60ft)",
-        "Rot (target festers with necrotic sores for 1d6 per turn, 1d10 turns or until cancelled; the greater Bleed, 30ft)"
+        "Ray of Enfeeblement",
+        "Blindness",
+        "Shadow Step",
+        "Shackles of Bone",
+        "Rot"
       ],
       "3": [
-        "Vampiric Touch (3d6 necrotic melee; regain HP equal to half damage dealt; concentration)",
-        "Speak with Dead (ask a corpse up to 5 questions from its last memories)",
-        "Wave of Scarabs (3d6 necrotic in a 30ft directional cone from caster; DEX save for half)",
-        "Bestow Curse (WIS save or suffer disadvantage on one ability, vulnerability to one damage type, or lose action on roll of 1-4; concentration)",
-        "Miasma (10x10ft cloud of despair, +1ft per INT modifier; creatures inside are wracked with grief and hopelessness -- WIS save or act at disadvantage while within)",
-        "Death Walk (step between the worlds of living and dead; move unimpeded through creatures, obstacles, and difficult terrain up to INT feet, ignoring attacks of opportunity)"
+        "Vampiric Touch",
+        "Speak with Dead",
+        "Wave of Scarabs",
+        "Bestow Curse",
+        "Miasma",
+        "Death Walk"
       ],
       "4": [
-        "Rigor Mortis (CON save or the target seizes rigid and incapacitated for 1d4 turns + caster level)",
-        "Possess Thrall (project your mind into one of your thralls, seeing and speaking through it; your own body lies in suspended animation for 1 turn per INT point or until you withdraw)",
-        "Sleep of the Dead (feign death on yourself or a creature you touch -- indistinguishable from a true corpse; lasts caster level + INT + INT modifier turns or until cancelled; a self-cast always gets the full duration)"
+        "Rigor Mortis",
+        "Possess Thrall",
+        "Sleep of the Dead"
       ],
       "5": [],
       "6": [],
       "cantrips": [
-        "Chill Touch (d8 necrotic, 120ft; target cannot regain HP until your next turn)",
-        "Toll the Dead (WIS save or d8 necrotic; d12 if target is already wounded, 60ft)",
-        "Bone Whisper (touch a skull or bone fragment -- sense an echo of its final moments)",
-        "Grave Touch (CON save or target has disadvantage on their next attack, 30ft)"
+        "Chill Touch",
+        "Toll the Dead",
+        "Bone Whisper",
+        "Grave Touch"
       ]
     },
     "levels": {

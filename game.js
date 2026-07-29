@@ -627,7 +627,7 @@ function pickArchetype(idx){
   // Grant the archetype/class spell list even if the character already owns RACIAL spells (audit E21):
   // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
   // Trickster, leaving them with no AT spells. Append what's missing (dedupe by name).
-  var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src){if(!c.spells)c.spells=[];var i,_have={};for(i=0;i<c.spells.length;i++)_have[c.spells[i].nm]=1;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)if(!_have[src.cantrips[i]])c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}if(src[1]){for(i=0;i<src[1].length;i++)if(!_have[src[1][i]])c.spells.push({nm:src[1][i],lvl:1,used:false});}}
+  var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src){grantSpellsFromList(c,src.cantrips,0);grantSpellsFromList(c,src[1],1);}/* #101: base-name dedupe — a legacy label can't double-grant its bare twin */
   var m=document.getElementById("arch-modal");if(m)m.remove();addMsg("system","Archetype: "+arch.nm);updateAbPanel(true);initSpells();syncUI();saveAll();
   maybeShowLevelBump(); // a jump that crossed both 3 and 4/8 owes a stat bump next (E1)
 }
@@ -1697,11 +1697,24 @@ function initAbilities(){
     c.abilities=abs;}
   updateAbPanel(false);
 }
+// #101: THE spell-grant — appends what's missing from a list, deduped by capBaseName so a
+// legacy parenthetical label ("Fire Bolt (d10 fire, 120ft)") and its bare twin ("Fire Bolt")
+// are the same spell. Existing entries (and their used flags) are never touched.
+function grantSpellsFromList(c,list,lvl){
+  if(!list||!list.length)return;
+  if(!c.spells)c.spells=[];
+  var i,have={};
+  for(i=0;i<c.spells.length;i++)have[capBaseName(c.spells[i].nm)]=1;
+  for(i=0;i<list.length;i++){
+    var b=capBaseName(list[i]);
+    if(!have[b]){c.spells.push({nm:list[i],lvl:lvl,used:false});have[b]=1;}
+  }
+}
 function initSpells(){
   if(!worldState)return;var c=worldState.character;
   if(!c.spells||!c.spells.length){
     var src=SPELLS[c.cls]||(c.archetype?ARCH_SPELLS[c.archetype]:null);
-    if(src){if(!c.spells)c.spells=[];var i,sl,maxSlot=c.level>=5?3:c.level>=3?2:1;if(src.cantrips){for(i=0;i<src.cantrips.length;i++)c.spells.push({nm:src.cantrips[i],lvl:0,used:false});}for(sl=1;sl<=maxSlot;sl++){if(src[sl]){for(i=0;i<src[sl].length;i++)c.spells.push({nm:src[sl][i],lvl:sl,used:false});}}}}
+    if(src){var sl,maxSlot=c.level>=5?3:c.level>=3?2:1;grantSpellsFromList(c,src.cantrips,0);for(sl=1;sl<=maxSlot;sl++)grantSpellsFromList(c,src[sl],sl);}}
   updateSpPanel();
 }
 // #50a (v1.274, user-ratified "allow both directions, loud"): the sync audit may now emit item

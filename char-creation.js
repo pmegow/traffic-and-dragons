@@ -422,7 +422,7 @@ function showCreationSpellPick(){
     html+="<div style='margin-bottom:20px;'><div class='slab'>"+lbl+" <span style='font-size:9px;color:var(--t2);font-weight:normal;'>("+hint+")</span></div>";
     spells.forEach(function(sp,idx){
       var nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
-      var ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
+      var ds=spellPickDesc(sp.nm)||(sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"");/* #101: description from the bible; parenthetical only as fallback for pool entries with no canon */
       html+="<div id='spc-"+tier+"-"+idx+"' class='sc sr-c' onclick='toggleSpellPick(\""+tier+"\","+idx+")' style='text-align:left;padding:10px 14px;margin-bottom:6px;cursor:pointer;'><div class='nm' style='margin-bottom:2px;'>"+nm+"</div>"+(ds?"<div style='font-size:11px;color:var(--t1);'>"+ds+"</div>":"")+"</div>";
     });
     html+="</div>";
