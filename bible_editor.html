@@ -319,10 +319,14 @@ function serializeCapabilityBible(state) {
     if (withStart) o.startIn = _lastHandle || "documents";
     return o;
   }
+  // ⚠⚠ ACTIVATION ORDERING — THE RULE THIS FILE KEPT BREAKING ⚠⚠
+  // showOpenFilePicker() and requestPermission() require TRANSIENT USER ACTIVATION, and
+  // alert()/confirm()/prompt() CONSUME it (HTML spec). So any modal placed before them makes
+  // them fail — the picker simply never opens. A confirm() added ahead of the picker at v1.485
+  // deadlocked the whole editor: the picker was the only route to a working handle, so once the
+  // stored handle went bad there was no way back and every Save fell through to a download.
+  // RULE: gesture-requiring calls FIRST, questions AFTER.
   function openBible() {
-    // Opening REPLACES what is in the tab with the file's contents. Without this guard a dirty
-    // draft died silently — the same silent-data-loss class the reconnect path already guards.
-    if (CUR && CUR.dirty && !confirm("Open a bible file?\n\nThis tab has UNSAVED EDITS, and opening replaces them with the file's contents.\n\nCancel, then ⬇ Download copy first if you want to keep them.")) return;
     if (!HAS_FSA) { $("file-input").click(); return; }
     window.showOpenFilePicker(pickerOpts(true))["catch"](function (e) {
       if (e && e.name === "AbortError") throw e;                 // user cancelled — not a retry case
@@ -332,9 +336,15 @@ function serializeCapabilityBible(state) {
       var h = hs[0];
       _lastHandle = h;                                          // seeds the next picker's startIn
       return h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
+        // Asked HERE, not before the picker: activation is already spent on the picker, and
+        // nothing is at risk until there is actually a file to load.
+        if (CUR && CUR.dirty && !confirm("Replace this tab with " + h.name + "?\n\nThere are UNSAVED EDITS here and loading the file discards them.\n\nCancel keeps them — ⬇ Download copy writes them to a file.")) {
+          note("open cancelled — your unsaved edits are untouched");
+          return;
+        }
         loadFromText(txt, h, h.name);
         _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
-        note("opened " + h.name);
+        note("opened " + h.name + " — Save now writes in place");
       });
     })["catch"](function (e) {
       if (e && e.name === "AbortError") return;      // user cancelled the picker — not an error
@@ -342,11 +352,40 @@ function serializeCapabilityBible(state) {
     });
   }
 
+  // Save, in TWO stages, because of the activation rule above.
+  // Stage 1 (this function) spends the click's activation on requestPermission if that is what is
+  // missing — no modal may run before it. Permission does NOT survive a browser restart, so on
+  // every fresh launch the restored handle is merely "prompt" and CUR.handle is null; the old code
+  // read that as "no handle" and SILENTLY dumped a download instead of asking for permission. That
+  // is why saving "always" ended up in Downloads (user, 2026-07-28).
   function saveBible() {
     if (!CUR) return;
+    if (CUR.handle) { writeInPlace(); return; }
+    if (_pendingHandle && _pendingHandle.requestPermission) {
+      var ph = _pendingHandle;
+      ph.requestPermission({ mode: "readwrite" }).then(function (p) {
+        if (p !== "granted") {
+          alert("Save needs write permission for " + ph.name + ", and it was declined.\n\nDownloading a copy instead so nothing is lost.");
+          downloadCopy(); return;
+        }
+        _pendingHandle = null; CUR.handle = ph; CUR.name = ph.name; fileLine();
+        note("write access re-granted for " + ph.name);
+        writeInPlace();
+      })["catch"](function (e) {
+        alert("Could not re-grant write permission: " + (e && e.message) + "\n\nDownloading a copy instead.");
+        downloadCopy();
+      });
+      return;
+    }
+    alert("No file is open from disk, so Save cannot write in place.\n\n" +
+      "Press 📂 Open bible… and pick the file — after that Save overwrites it directly.\n\n" +
+      "Downloading a copy meanwhile so nothing is lost.");
+    downloadCopy();
+  }
+  // Stage 2: the actual write. Modals are fine from here — activation is already spent.
+  function writeInPlace() {
     if (!applyNameNormalization()) return;      // capitalization fixed on save, never silently
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
-    if (!CUR.handle) { downloadCopy(); return; }
     var warn = "Overwrite " + CUR.name + " in place?\n\nThis REPLACES the file on disk. It is a tracked file — `git diff` shows exactly what changed and `git checkout` undoes it.";
     if (CUR.typeId === "capability") warn += "\n\nUntouched entries and all comments are preserved verbatim; only entries you edited are rewritten.";
     if (!confirm(warn)) return;

@@ -315,8 +315,9 @@ try {
   // refused — so the check added a prompt and no cure. Kept from that work: the unsaved-edits
   // guard on openBible, which fixed a real silent-data-loss path (opening replaced the tab's
   // contents wordlessly) and is unrelated to the save failure.
-  if (_bePage.indexOf("This tab has UNSAVED EDITS") < 0)
-    _failBE("openBible lost its unsaved-edits guard — opening replaces the tab's contents");
+  // Pinned by BEHAVIOUR, not by prose: the guard must live inside openBible and be conditional on
+  // CUR.dirty. (An earlier version pinned the exact sentence and failed the build the moment the
+  // wording was improved — a contract should catch a missing guard, not a reworded one.)
 
   // ── DEAD HANDLE PURGE (v1.487) ───────────────────────────────────────────────────────
   // Root cause of "I have not once been able to save": the FSA handle is persisted in
@@ -333,6 +334,34 @@ try {
     _failBE("saveBible no longer purges the persisted handle on failure — the dead handle will resurrect on the next launch");
   if (_saveFn.indexOf("CUR.handle = null") < 0)
     _failBE("saveBible no longer drops the dead in-memory handle — the UI would keep claiming 'saves in place'");
+
+  // ── USER-ACTIVATION ORDERING (v1.488) ────────────────────────────────────────────────
+  // showOpenFilePicker() and requestPermission() need transient user activation, and
+  // alert/confirm/prompt CONSUME it. A confirm() placed ahead of the picker at v1.485 meant the
+  // picker never opened — and since the picker is the ONLY route to a fresh handle, the editor
+  // deadlocked: every Save fell through to a download and nothing could restore it. Pin the order.
+  function _slice(from, to) { var i = _bePage.indexOf(from); var j = _bePage.indexOf(to, i + 1); return (i < 0 || j < 0) ? "" : _bePage.slice(i, j); }
+  function _at(hay, re) { var m = hay.match(re); return m ? hay.indexOf(m[0]) : -1; }
+  var _ob = _slice("function openBible", "function saveBible");
+  if (!_ob) _failBE("could not isolate openBible");
+  var _obPick = _at(_ob, /showOpenFilePicker/), _obAsk = _at(_ob, /(confirm|alert|prompt)\(/);
+  if (_obPick < 0) _failBE("openBible no longer calls showOpenFilePicker");
+  if (_obAsk >= 0 && _obAsk < _obPick)
+    _failBE("openBible asks a modal question BEFORE showOpenFilePicker — that consumes user activation and the picker will never open (the v1.485 deadlock)");
+  if (!/CUR\.dirty[\s\S]{0,120}confirm\(/.test(_ob) || !/UNSAVED EDITS/i.test(_ob))
+    _failBE("openBible lost its unsaved-edits guard — loading a file would silently discard the tab's edits");
+  var _sb = _slice("function saveBible", "function writeInPlace");
+  if (!_sb) _failBE("could not isolate saveBible (writeInPlace split gone?)");
+  // NOT /requestPermission/ — that substring survives in the `_pendingHandle.requestPermission`
+  // existence guard, so deleting the actual CALL still passed (caught by sabotage). Require an
+  // invocation with its options object.
+  var _sbPerm = _at(_sb, /requestPermission\(\{/), _sbAsk = _at(_sb, /(confirm|alert|prompt)\(/);
+  if (_sbPerm < 0) _failBE("saveBible no longer re-grants write permission — a fresh browser launch always lands in Downloads instead");
+  if (_sbAsk >= 0 && _sbAsk < _sbPerm)
+    _failBE("saveBible asks a modal question BEFORE requestPermission — that consumes user activation and the permission prompt will fail");
+  // and the no-handle path must never dump a download without saying why
+  if (/if \(!CUR\.handle\) \{ downloadCopy\(\); return; \}/.test(_bePage))
+    _failBE("saveBible silently downloads when there is no handle — it must explain and point at 📂 Open bible…");
 
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
