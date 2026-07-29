@@ -91,6 +91,7 @@ textarea{width:100%;resize:vertical;}
   <button class="primary" id="open">📂 Open bible…</button>
   <button class="primary" id="save" disabled>💾 Save (overwrite)</button>
   <button id="download">⬇ Download copy</button>
+  <button class="primary" id="saveas">💾 Save as… (always works)</button>
   <button id="reload">↻ Reload from disk</button>
   <button id="exp-adds">⬇ Capability additions (<span id="addn">0</span>)</button>
   <button id="clr-adds" style="display:none">⌫ Clear merged (<span id="clrn">0</span>)</button>
@@ -174,7 +175,8 @@ function serializeCapabilityBible(state) {
   var CUR = null;        // {typeId, data, handle, name, dirty}
   var ADD = {}, activeCls = null, capFilter = "";
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
-  var _lastHandle = null;      // last bible handle seen, permissioned or not — the picker's startIn seed
+  var _lastHandle = null;
+  var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return escHtml(String(s == null ? "" : s)); }
@@ -335,7 +337,7 @@ function serializeCapabilityBible(state) {
     }).then(function (hs) {
       var h = hs[0];
       _lastHandle = h;                                          // seeds the next picker's startIn
-      return h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
+      return h.getFile().then(function (f) { _openedMtime = f.lastModified; return f.text(); }).then(function (txt) {
         // Asked HERE, not before the picker: activation is already spent on the picker, and
         // nothing is at risk until there is actually a file to load.
         if (CUR && CUR.dirty && !confirm("Replace this tab with " + h.name + "?\n\nThere are UNSAVED EDITS here and loading the file discards them.\n\nCancel keeps them — ⬇ Download copy writes them to a file.")) {
@@ -382,6 +384,37 @@ function serializeCapabilityBible(state) {
       "Downloading a copy meanwhile so nothing is lost.");
     downloadCopy();
   }
+  // ── Save as… — the path that CANNOT go stale ───────────────────────────────
+  // A handle minted by showSaveFilePicker and written inside the SAME user gesture has no window
+  // in which the file can change underneath it, so it cannot hit the InvalidStateError that has
+  // made in-place saving unreliable on this machine. One extra click (confirm the filename),
+  // and it always works. No modal may precede the picker — activation rule above.
+  function saveAsBible() {
+    if (!CUR) return;
+    if (!HAS_FSA) { downloadCopy(); return; }
+    var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);   // serialize BEFORE the picker: no modals allowed first
+    window.showSaveFilePicker({
+      id: "tnd-bible",
+      suggestedName: CUR.name && CUR.name !== "(unsaved)" ? CUR.name : (CUR.typeId + "_bible.js"),
+      types: [{ description: "Bible source", accept: { "text/javascript": [".js"] } }]
+    }).then(function (h) {
+      return h.createWritable().then(function (w) {
+        return w.write(ser).then(function () { return w.close(); });
+      }).then(function () {
+        CUR.handle = h; CUR.name = h.name; CUR.dirty = false;
+        _pendingHandle = null;
+        if (_saveT) { clearTimeout(_saveT); _saveT = null; }
+        try { localStorage.removeItem(DRAFT_K); } catch (e) {}
+        _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
+        note("saved → " + h.name);
+        render();
+      });
+    })["catch"](function (e) {
+      if (e && e.name === "AbortError") { note("save as… cancelled"); return; }
+      alert("Save as… failed: " + (e && e.message) + "\n\nFalling back to a download.");
+      downloadCopy();
+    });
+  }
   // Stage 2: the actual write. Modals are fine from here — activation is already spent.
   function writeInPlace() {
     if (!applyNameNormalization()) return;      // capitalization fixed on save, never silently
@@ -409,6 +442,20 @@ function serializeCapabilityBible(state) {
       // in both places, drop the UI's "saves in place" claim, and send the user to the picker.
       var dead = e && (e.name === "InvalidStateError" || /changed since it was read from disk/i.test(e.message || ""));
       if (dead) {
+        // DIAGNOSTIC, not a fix: re-read the file and report whether it actually changed since we
+        // opened it. If the timestamps match, "the file changed" is a false explanation and the
+        // rejection is about something else entirely — which is the fact still missing.
+        var _h = CUR.handle;
+        if (_h && _h.getFile) {
+          _h.getFile().then(function (f) {
+            var moved = _openedMtime && f.lastModified !== _openedMtime;
+            console.warn("[bible][diag] handle rejected the write. opened=" +
+              (_openedMtime ? new Date(_openedMtime).toISOString() : "unknown") +
+              " nowOnDisk=" + new Date(f.lastModified).toISOString() +
+              " size=" + f.size + " → file " + (moved ? "DID change since open" : "did NOT change since open") +
+              (moved ? "" : "  ⇐ so the 'file changed' story is wrong and the cause is elsewhere"));
+          })["catch"](function (e2) { console.warn("[bible][diag] could not re-read the file:", e2 && e2.message); });
+        }
         CUR.handle = null;
         _pendingHandle = null;
         _idbDel(FS_KEY)["catch"](function (e2) { console.warn("[bible] could not purge the dead handle:", e2 && e2.message); });
@@ -433,7 +480,7 @@ function serializeCapabilityBible(state) {
     if (!CUR.handle) { alert("No file handle — this bible was not opened from disk (or the permission lapsed).\n\nUse 📂 Open bible… to pick it up again."); return; }
     if (CUR.dirty && !confirm("Reload " + CUR.name + " from disk?\n\nUnsaved edits in this tab will be REPLACED by the file's current contents.")) return;
     var _h = CUR.handle, _n = CUR.name;
-    _h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
+    _h.getFile().then(function (f) { _openedMtime = f.lastModified; return f.text(); }).then(function (txt) {
       loadFromText(txt, _h, _n);
       note("reloaded " + _n + " from disk");
     })["catch"](function (e) {
@@ -466,7 +513,7 @@ function serializeCapabilityBible(state) {
     h.requestPermission({ mode: "readwrite" }).then(function (p) {
       if (p !== "granted") { note("permission declined — Save will download instead"); return; }
       _pendingHandle = null;
-      h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
+      h.getFile().then(function (f) { _openedMtime = f.lastModified; return f.text(); }).then(function (txt) {
         var hadDraft = CUR && CUR.dirty;
         if (hadDraft && !confirm("Re-open " + h.name + " from disk?\n\nYour unsaved draft edits will be replaced by the file's contents.")) {
           CUR.handle = h; render(); return;       // keep the draft, just re-attach the handle
@@ -963,6 +1010,7 @@ function serializeCapabilityBible(state) {
     try { localStorage.removeItem(DRAFT_K); } catch (e) {}
     location.reload();
   };
+  $("saveas").onclick = saveAsBible;
   $("reload").onclick = reloadFromDisk;
   $("clr-adds").onclick = function () {
     var merged = mergedAdds();
@@ -1013,6 +1061,7 @@ function serializeCapabilityBible(state) {
     attach: function (handle, name) { CUR.handle = handle; CUR.name = name || handle.name; _pendingHandle = null; fileLine(); },
     loadFromText: loadFromText,
     saveBible: saveBible,
+    saveAsBible: saveAsBible,
     markDirty: markDirty,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
