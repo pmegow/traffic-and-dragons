@@ -362,6 +362,14 @@ try {
   // and the no-handle path must never dump a download without saying why
   if (/if \(!CUR\.handle\) \{ downloadCopy\(\); return; \}/.test(_bePage))
     _failBE("saveBible silently downloads when there is no handle — it must explain and point at 📂 Open bible…");
+  // A successful save must CANCEL the pending debounced draft write before clearing the draft key.
+  // Otherwise the timer fires ~600ms later and writes the draft straight back, so the next launch
+  // restores a phantom "unsaved" draft for work that was saved — measured through the test hook.
+  var _wp = _slice("function writeInPlace", "function downloadCopy");
+  if (!_wp) _failBE("could not isolate writeInPlace");
+  var _clr = _at(_wp, /clearTimeout\(_saveT\)/), _rm = _at(_wp, /removeItem\(DRAFT_K\)/);
+  if (_clr < 0) _failBE("writeInPlace no longer cancels the pending draft debounce — a saved file will reopen as a phantom dirty draft");
+  if (_rm >= 0 && _clr > _rm) _failBE("writeInPlace cancels the draft debounce AFTER clearing the draft key — the timer still resurrects it");
 
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched

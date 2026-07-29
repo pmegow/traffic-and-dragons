@@ -393,6 +393,11 @@ function serializeCapabilityBible(state) {
       return w.write(ser).then(function () { return w.close(); });
     }).then(function () {
       CUR.dirty = false;
+      // Cancel the pending debounced draft write FIRST. Without this it fires ~600ms later and
+      // writes the draft straight back after the save just cleared it — so every subsequent
+      // launch restored a phantom "unsaved" draft for work that WAS saved, which is why the
+      // editor always opened dirty (measured through the test hook, 2026-07-28).
+      if (_saveT) { clearTimeout(_saveT); _saveT = null; }
       try { localStorage.removeItem(DRAFT_K); } catch (e) {}
       note("saved → " + CUR.name);
       render();
@@ -997,6 +1002,20 @@ function serializeCapabilityBible(state) {
   render();
   // restore a previously-opened file handle. Permission does NOT survive a reload (the #30
   // lesson), so a lapsed handle is parked and re-granted inside the Reconnect click.
+  // ── TEST HOOK (dev-only satellite) ────────────────────────────────────────
+  // The save path could not be exercised by any harness, because the file picker is an OS dialog
+  // needing a real user gesture — which is exactly how four bad "fixes" shipped unverified. This
+  // exposes the internals so an automated check can drive the ACTUAL load → edit → save code
+  // against a real FileSystemFileHandle (an OPFS handle needs no picker and no gesture), and read
+  // the bytes back. bible_editor.html is a dev tool that never ships to players.
+  window.__bibleTest = {
+    getCUR: function () { return CUR; },
+    attach: function (handle, name) { CUR.handle = handle; CUR.name = name || handle.name; _pendingHandle = null; fileLine(); },
+    loadFromText: loadFromText,
+    saveBible: saveBible,
+    markDirty: markDirty,
+    serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
+  };
   if (HAS_FSA) _idbGet(FS_KEY).then(function (h) {
     if (!h || !h.queryPermission) return;
     _lastHandle = h;   // set REGARDLESS of permission: startIn is only a location hint, so a
