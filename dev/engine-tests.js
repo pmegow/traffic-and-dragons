@@ -190,6 +190,44 @@ function runEngineTests(R){
 
   section("capcapability_bible (TODO #10)");
   t("capBaseName strips the display parenthetical and lowercases",function(){return eq(capBaseName("Fire Bolt (d10 fire, 120ft)"),"fire bolt");});
+  t("Fire Bolt is d8 everywhere — canon AND every display string (v1.478 balance call)",function(){
+    // A cantrip at d10 out-damaged tier-1 spells. The mechanics live in capability_bible (the ONE
+    // canon the GM is injected with); the display strings in data.js/class_bible are sugar, but a
+    // sheet reading "d10" beside a canon saying "d8" is exactly the silent divergence this project
+    // forbids — so both move, and old saves are healed by migrateSpellDisplayNames.
+    var e=capabilityLookup("fire bolt");
+    if(!/1d8 fire/.test(e.dice)||/d10/.test(e.dice))return "canon dice: "+e.dice;
+    if(/1d10|d10/.test(e.effect))return "canon effect still says d10: "+e.effect;
+    var bad=[];
+    function scanList(owner,l){for(var i=0;i<(l||[]).length;i++)if(/Fire Bolt/.test(l[i])&&/d10/.test(l[i]))bad.push(owner+": "+l[i]);}
+    scanList("SPELLS.Sorcerer",SPELLS.Sorcerer.cantrips);
+    scanList("ARCH_SPELLS.eldritchknight",ARCH_SPELLS.eldritchknight.cantrips);
+    for(var k in CLASS_BIBLE){
+      if(CLASS_BIBLE[k].spells)scanList("CLASS_BIBLE."+k,CLASS_BIBLE[k].spells.cantrips);
+      for(var a=0;a<CLASS_BIBLE[k].archetypes.length;a++){
+        var ar=CLASS_BIBLE[k].archetypes[a];
+        if(ar.spells)scanList("CLASS_BIBLE."+k+"/"+ar.id,ar.spells.cantrips);
+      }
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("a legacy save's old 'Fire Bolt (d10 …)' string still resolves, and migration heals the label",function(){
+    // Two independent guarantees. ① capBaseName ignores the parenthetical, so an un-migrated save
+    // never loses its canon (it just reads d8 from the bible). ② the display label is healed on
+    // load, so the SHEET stops disagreeing with the canon.
+    if(!capabilityLookup("Fire Bolt (d10 fire, 120ft)"))return "legacy display string stopped resolving";
+    makeWorld();
+    worldState.character.spells=[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false},{nm:"Ray of Frost (d8 cold, slows target)",lvl:0,used:false}];
+    worldState.npcs.push({name:"Sparks",status:"ally",rel:"companion",partyMember:true,
+      charSheet:{name:"Sparks",cls:"Sorcerer",level:3,hp:12,maxHp:12,gold:0,stats:{STR:8,DEX:12,CON:12,INT:16,WIS:10,CHA:10},
+        inventory:[],abilities:[],spells:[{nm:"Fire Bolt (d10 fire, 120ft)",lvl:0,used:false}],conditions:[],relationships:[],
+        saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
+    migrateWorldState();
+    if(worldState.character.spells[0].nm!=="Fire Bolt (d8 fire, 120ft)")return "player label not healed: "+worldState.character.spells[0].nm;
+    if(worldState.character.spells[1].nm!=="Ray of Frost (d8 cold, slows target)")return "an unrelated spell was rewritten";
+    var sh=worldState.npcs[worldState.npcs.length-1].charSheet;
+    return sh.spells[0].nm==="Fire Bolt (d8 fire, 120ft)"?true:"companion label not healed: "+sh.spells[0].nm;
+  });
   t("lookup resolves a full SPELLS display string to its canonical entry",function(){var e=capabilityLookup("Fire Bolt (d10 fire, 120ft)");return e&&e.range==="120ft"&&e.tier===0?true:"got "+JSON.stringify(e);});
   t("lookup is case-insensitive on the bare name",function(){var e=capabilityLookup("MESSAGE");return e&&e.range==="120ft"?true:"message not resolved: "+JSON.stringify(e);});
   t("Message canon pins the range (the drift case)",function(){var e=capabilityLookup("message");return e&&e.range==="120ft"&&/does not reach beyond 120ft/i.test(e.effect)?true:"drift guard missing: "+JSON.stringify(e&&e.effect);});

@@ -235,7 +235,7 @@ var CLASS_BIBLE = {
           "3": [],
           "4": [],
           "cantrips": [
-            "Fire Bolt (d10 fire, 120ft)",
+            "Fire Bolt (d8 fire, 120ft)",
             "Booming Blade (melee + d8 thunder)"
           ]
         },
@@ -680,7 +680,7 @@ var CLASS_BIBLE = {
       "5": [],
       "6": [],
       "cantrips": [
-        "Fire Bolt (d10 fire, 120ft)",
+        "Fire Bolt (d8 fire, 120ft)",
         "Ray of Frost (d8 cold, slows target)",
         "Mage Hand (telekinesis, 30ft)",
         "Prestidigitation (minor magical tricks)"

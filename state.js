@@ -179,6 +179,20 @@ function stampTranscriptSpeakers(entry,sp){
    checkLegacyCharacter (the legacy-pool draw) call it directly. Returns true if anything moved. */
 var CLASS_RENAMES={"Berserker":"Primal"};
 var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller"};
+/* Spell DISPLAY labels that drifted from the capability_bible canon. The canon is the only thing
+   the GM is ever injected with (capBaseName strips the parenthetical, so an un-migrated save has
+   always read correctly) — but the SHEET renders the stored nm verbatim, so a stale label means
+   the player sees "d10" while the GM plays "d8". Exact-string map, display half only. */
+var SPELL_NM_RENAMES={"Fire Bolt (d10 fire, 120ft)":"Fire Bolt (d8 fire, 120ft)"};
+function migrateSpellDisplayNames(c){
+  if(!c||!c.spells)return false;var hit=false,i;
+  for(i=0;i<c.spells.length;i++){
+    var nm=c.spells[i]&&c.spells[i].nm;
+    if(nm&&SPELL_NM_RENAMES[nm]){c.spells[i].nm=SPELL_NM_RENAMES[nm];hit=true;}
+  }
+  if(hit)console.info("[migrate] spell label(s) re-synced to the capability bible on "+(c.name||"character"));
+  return hit;
+}
 function migrateCharClassNames(c){
   if(!c)return false;var hit=false;
   if(CLASS_RENAMES[c.cls]){console.info("[migrate] #100 class rename: "+(c.name||"character")+" "+c.cls+" → "+CLASS_RENAMES[c.cls]);c.cls=CLASS_RENAMES[c.cls];hit=true;}
@@ -188,9 +202,11 @@ function migrateCharClassNames(c){
 function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
-  /* #100: class rename — player + every NPC sheet (companions AND former companions keep working) */
+  /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
+     companions keep working). Both are display-half heals; the injected canon was never wrong. */
   if(migrateCharClassNames(c))_mig=true;
-  if(worldState.npcs){var _cri;for(_cri=0;_cri<worldState.npcs.length;_cri++){if(worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet&&migrateCharClassNames(worldState.npcs[_cri].charSheet))_mig=true;}}
+  if(migrateSpellDisplayNames(c))_mig=true;
+  if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;}}
   if(typeof c.level!=="number"||isNaN(c.level)){c.level=1;_mig=true;}if(typeof c.xp!=="number"||isNaN(c.xp)){c.xp=0;_mig=true;}
   if(typeof c.maxHp!=="number"||isNaN(c.maxHp)){c.maxHp=(typeof c.hp==="number"&&!isNaN(c.hp)&&c.hp>0)?c.hp:8;_mig=true;}// heal maxHp FIRST (audit E71) — else a NaN maxHp drives hp to NaN on the next [HP:] tag, every load
   if(typeof c.hp!=="number"||isNaN(c.hp)){c.hp=c.maxHp||8;_mig=true;}if(typeof c.gold!=="number"||isNaN(c.gold)){c.gold=0;_mig=true;}
