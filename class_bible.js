@@ -837,12 +837,12 @@ var CLASS_BIBLE = {
       }
     ]
   },
-  "Berserker": {
-    "id": "Berserker",
-    "nm": "Berserker",
+  "Primal": {
+    "id": "Primal",
+    "nm": "Primal",
     "hd": 12,
     "prime": "STR",
-    "desc": "Rage, fury, no mercy",
+    "desc": "Rage, beast, and storm",
     "gear": "great axe, hide armor, war paint, iron flask, travel rations (3 days)",
     "statPriority": [
       "STR",
@@ -916,7 +916,7 @@ var CLASS_BIBLE = {
     "archetypes": [
       {
         "id": "totem",
-        "nm": "Totem Warrior",
+        "nm": "Totemborn",
         "desc": "Spirit animal bond. Bear for resistance, Eagle for mobility, Wolf for pack tactics.",
         "levels": {
           "3": {
@@ -966,7 +966,7 @@ var CLASS_BIBLE = {
       },
       {
         "id": "stormherald",
-        "nm": "Storm Herald",
+        "nm": "Stormcaller",
         "desc": "Aura of lightning, thunder, or arctic cold. Living storm of destruction.",
         "levels": {
           "3": {

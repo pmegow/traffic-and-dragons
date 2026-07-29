@@ -385,6 +385,62 @@ function runEngineTests(R){
     return s&&s.cls!=="Bard"?true:"unknown cls was accepted verbatim";
   });
 
+  // ── Primal rename (#100, v1.473): Berserker the CLASS becomes Primal ─────────
+  // The class spans rage/beast/weather; "Berserker" survives only as its rage
+  // archetype (id frenzy). Archetype IDS never change — they ride on saved
+  // characters (character.archetype) — only display nms do: Totem Warrior →
+  // Totemborn, Storm Herald → Stormcaller. migrateCharClassNames is the one
+  // rename function; migrateWorldState (saves/.tnd/server pulls) and the .char
+  // import funnel both call it.
+  section("Primal rename (#100)");
+  t("data: Primal is the class (hd 12, STR); Berserker is no longer a class id",function(){
+    var d=classDef("Primal");if(!d||d.hd!==12||d.prime!=="STR")return "Primal def wrong: "+JSON.stringify(d);
+    if(classDef("Berserker")!==null)return "Berserker still resolves as a class";
+    var a=ARCHETYPES.Primal||[],nms=a.map(function(x){return x.nm;}).join(",");
+    if(nms!=="Totemborn,Berserker,Stormcaller")return "archetype nms: "+nms;
+    var ids=a.map(function(x){return x.id;}).join(",");
+    if(ids!=="totem,frenzy,stormherald")return "archetype IDS moved (they ride on saves!): "+ids;
+    if(!CLASS_FEATURES.Primal||!ABILS.Primal||!STAT_PRIORITY.Primal)return "a class-keyed table missed the rename";
+    if(CLASS_FEATURES.Berserker||ABILS.Berserker||STAT_PRIORITY.Berserker||ARCHETYPES.Berserker)return "a table still carries the Berserker key";
+    return CLASS_BIBLE.Primal&&!CLASS_BIBLE.Berserker?true:"class bible missed the rename";
+  });
+  t("migrateCharClassNames: cls + display nms rename; archetype ids and the rage nm untouched",function(){
+    var c={cls:"Berserker",archetype:"stormherald",archetypeNm:"Storm Herald"};
+    if(!migrateCharClassNames(c))return "no change reported";
+    if(c.cls!=="Primal"||c.archetypeNm!=="Stormcaller"||c.archetype!=="stormherald")return JSON.stringify(c);
+    var c2={cls:"Primal",archetype:"frenzy",archetypeNm:"Berserker"};
+    if(migrateCharClassNames(c2))return "false positive on the rage archetype nm";
+    var c3={cls:"Warrior"};if(migrateCharClassNames(c3))return "false positive on Warrior";
+    var c4={cls:"Berserker",archetype:"totem",archetypeNm:"Totem Warrior"};
+    migrateCharClassNames(c4);
+    return c4.cls==="Primal"&&c4.archetypeNm==="Totemborn"?true:"totem rename: "+JSON.stringify(c4);
+  });
+  t("migrateWorldState renames the player AND companion sheets (the save/import/server chokepoint)",function(){
+    makeWorld();
+    worldState.character.cls="Berserker";worldState.character.archetype="totem";worldState.character.archetypeNm="Totem Warrior";
+    worldState.npcs.push({name:"Grok",status:"ally",rel:"companion",partyMember:true,
+      charSheet:{name:"Grok",cls:"Berserker",archetype:"stormherald",archetypeNm:"Storm Herald",level:3,hp:20,maxHp:20,gold:0,
+        stats:{STR:16,DEX:10,CON:14,INT:8,WIS:10,CHA:8},inventory:[],abilities:[],spells:[],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
+    if(!migrateWorldState())return "migrate reported no change";
+    var c=worldState.character;
+    if(c.cls!=="Primal"||c.archetypeNm!=="Totemborn")return "player not migrated: "+c.cls+"/"+c.archetypeNm;
+    var sh=worldState.npcs[worldState.npcs.length-1].charSheet;
+    return sh.cls==="Primal"&&sh.archetypeNm==="Stormcaller"?true:"companion not migrated: "+sh.cls+"/"+sh.archetypeNm;
+  });
+  t("derived-value invariant: the migrated character keeps hd 12, features, and stat priority",function(){
+    // The #72 rule: an existing character's derived values must not move across a rename.
+    makeWorld();worldState.character.cls="Berserker";migrateWorldState();
+    var d=classDef(worldState.character.cls);
+    if(!d||d.hd!==12||d.prime!=="STR")return "hit die / prime moved";
+    if(!CLASS_FEATURES[worldState.character.cls])return "level features unreachable";
+    return STAT_PRIORITY[worldState.character.cls]?true:"stat priority unreachable";
+  });
+  t("guessCompanionClass: berserk/barbarian/primal prose all land on Primal",function(){
+    if(guessCompanionClass("a berserker of the north")!=="Primal")return "berserk missed";
+    if(guessCompanionClass("barbarian raider")!=="Primal")return "barbarian missed";
+    return guessCompanionClass("primal warrior of the steppe")==="Primal"?true:"primal missed";
+  });
+
   section("resolveNpcName");
   t("parenthetical variant resolves to canonical",function(){memory=blankMemory();memory.npcs["Morwen Zethran"]={attitude:"ally",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Morwen (Ammut's wife)"),"Morwen Zethran");});
   t("honorific + surname resolves",function(){memory=blankMemory();memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Hemlock"),"Sheriff Belor Hemlock");});

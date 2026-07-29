@@ -413,6 +413,24 @@ function serializeCapabilityBible(state) {
         ADD = d.a || {};
         console.info("[bible] migrated a v1 draft (class bible) to the v2 shape");
       } else return false;
+      // #100 (v1.473): drafts hold a FULL copy of the parsed bible, so a draft saved before the
+      // Berserker→Primal class rename would silently write the old class back over the renamed
+      // file on the next save. Heal in place — never discard (this may be a long fill session).
+      if (CUR.typeId === "class" && CUR.data.bible && CUR.data.bible.Berserker && !CUR.data.bible.Primal) {
+        var _p = CUR.data.bible.Berserker, _nb = {};
+        Object.keys(CUR.data.bible).forEach(function (k) { // rebuild in place so the class keeps its position (a clean diff on the next save)
+          if (k === "Berserker") _nb.Primal = _p; else _nb[k] = CUR.data.bible[k];
+        });
+        CUR.data.bible = _nb;
+        _p.id = "Primal"; _p.nm = "Primal";
+        if (_p.desc === "Rage, fury, no mercy") _p.desc = "Rage, beast, and storm";
+        (_p.archetypes || []).forEach(function (a) {
+          if (a.nm === "Totem Warrior") a.nm = "Totemborn";
+          if (a.nm === "Storm Herald") a.nm = "Stormcaller";
+        });
+        console.info("[bible] #100: draft healed — Berserker class renamed Primal (archetype ids untouched)");
+        note("draft healed: Berserker → Primal (#100 rename)");
+      }
       activeCls = (CUR.typeId === "class") ? Object.keys(CUR.data.bible)[0] : null;
       note("resumed draft from " + new Date(d.t).toLocaleString());
       return true;

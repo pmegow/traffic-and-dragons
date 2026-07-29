@@ -170,9 +170,27 @@ function stampTranscriptSpeakers(entry,sp){
 // Schema migrations for worldState — fills fields added by later versions. Runs on every
 // load AND on save import (importSave previously skipped these — audit #15). Operates on
 // the global worldState; returns true if anything was modified.
+/* #100 (v1.473): the Berserker CLASS was renamed Primal (the class spans rage/beast/weather;
+   "Berserker" survives as its rage archetype). Display nms tightened: Totem Warrior→Totemborn,
+   Storm Herald→Stormcaller. Archetype IDS (totem/frenzy/stormherald) NEVER change — they ride
+   on character.archetype, and renaming them would orphan every saved pick. This is THE rename
+   function: migrateWorldState (saves / .tnd imports / server pulls) applies it to the player +
+   every companion sheet; showCharImportPreview (the .char file + library import funnel) and
+   checkLegacyCharacter (the legacy-pool draw) call it directly. Returns true if anything moved. */
+var CLASS_RENAMES={"Berserker":"Primal"};
+var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller"};
+function migrateCharClassNames(c){
+  if(!c)return false;var hit=false;
+  if(CLASS_RENAMES[c.cls]){console.info("[migrate] #100 class rename: "+(c.name||"character")+" "+c.cls+" → "+CLASS_RENAMES[c.cls]);c.cls=CLASS_RENAMES[c.cls];hit=true;}
+  if(c.archetypeNm&&ARCHETYPE_NM_RENAMES[c.archetypeNm]){c.archetypeNm=ARCHETYPE_NM_RENAMES[c.archetypeNm];hit=true;}
+  return hit;
+}
 function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
+  /* #100: class rename — player + every NPC sheet (companions AND former companions keep working) */
+  if(migrateCharClassNames(c))_mig=true;
+  if(worldState.npcs){var _cri;for(_cri=0;_cri<worldState.npcs.length;_cri++){if(worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet&&migrateCharClassNames(worldState.npcs[_cri].charSheet))_mig=true;}}
   if(typeof c.level!=="number"||isNaN(c.level)){c.level=1;_mig=true;}if(typeof c.xp!=="number"||isNaN(c.xp)){c.xp=0;_mig=true;}
   if(typeof c.maxHp!=="number"||isNaN(c.maxHp)){c.maxHp=(typeof c.hp==="number"&&!isNaN(c.hp)&&c.hp>0)?c.hp:8;_mig=true;}// heal maxHp FIRST (audit E71) — else a NaN maxHp drives hp to NaN on the next [HP:] tag, every load
   if(typeof c.hp!=="number"||isNaN(c.hp)){c.hp=c.maxHp||8;_mig=true;}if(typeof c.gold!=="number"||isNaN(c.gold)){c.gold=0;_mig=true;}

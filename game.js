@@ -380,6 +380,7 @@ function checkLegacyCharacter(){
   }
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
+  migrateCharClassNames(pick);/* #100: server-library entries may predate the Berserker→Primal rename — heal before the cls string reaches the GM prompt */
   // Capture the FULL identity so the legacy NPC is portrayed consistently — same person, gender,
   // relationships and gear as in their own tale (fixes #18: Ammut forgot his wives + got mis-gendered).
   worldState.pendingLegacy={
@@ -472,7 +473,7 @@ function buildCompanionSheetPrompt(npcName){
 // Deterministic class guess from what the story already established about the NPC (rel/status/knowledge).
 function guessCompanionClass(text){
   var t=(text||"").toLowerCase();
-  var map=[[/necromancer|death.?mage/,"Necromancer"],[/sorcer|wizard|mage|arcanist|witch|warlock/,"Sorcerer"],[/cleric|priest|healer|acolyte|chaplain/,"Cleric"],[/druid|shaman/,"Druid"],[/paladin|knight|templar/,"Paladin"],[/berserk|barbarian/,"Berserker"],[/ranger|hunter|tracker|scout|archer/,"Ranger"],[/rogue|thief|assassin|smuggler|spy|burglar|cutpurse/,"Rogue"]],i;
+  var map=[[/necromancer|death.?mage/,"Necromancer"],[/sorcer|wizard|mage|arcanist|witch|warlock/,"Sorcerer"],[/cleric|priest|healer|acolyte|chaplain/,"Cleric"],[/druid|shaman/,"Druid"],[/paladin|knight|templar/,"Paladin"],[/berserk|barbarian|primal/,"Primal"],[/ranger|hunter|tracker|scout|archer/,"Ranger"],[/rogue|thief|assassin|smuggler|spy|burglar|cutpurse/,"Rogue"]],i;
   for(i=0;i<map.length;i++){if(map[i][0].test(t))return map[i][1];}
   return "Warrior";
 }

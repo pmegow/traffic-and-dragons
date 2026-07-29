@@ -300,7 +300,7 @@ async function generateNpcSheet(name,doneCb){
     +"Output ONLY a single valid JSON object — no markdown, no code fences, no commentary:\n"
     +'{"gender":"M/F/NB","age":"age as string","appear":"full physical description","mark":"distinguishing mark or empty string","backstory":"2-3 sentence backstory consistent with known events",'
     +'"ancestry":"Human/Elf/Dwarf/Gnome/Tiefling/Hollow-Born/Half-Blood","subraceNm":"specific subrace name",'
-    +'"cls":"Warrior/Rogue/Sorcerer/Ranger/Berserker/Paladin/Cleric/Druid","archetypeNm":"archetype or empty string",'
+    +'"cls":"Warrior/Rogue/Sorcerer/Ranger/Primal/Paladin/Cleric/Druid","archetypeNm":"archetype or empty string",'
     +'"stats":{"STR":10,"DEX":10,"CON":10,"INT":10,"WIS":10,"CHA":10},'
     +'"hp":20,"maxHp":20,"gold":10,"level":1,"xp":0,'
     +'"trait":"personality trait","flaw":"character flaw","motivation":"core motivation",'
