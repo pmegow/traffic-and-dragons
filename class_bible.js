@@ -382,7 +382,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Silent Stalker",
-            "ds": "moves without making a sound"
+            "ds": "moves without making a sound."
           }
         ]
       },
@@ -390,7 +390,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Hide in Plain Sight",
-            "ds": "can fade into a crowd undetected"
+            "ds": "can fade into a crowd undetected."
           }
         ]
       },
@@ -398,7 +398,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Escape Artist",
-            "ds": "cannot be bound by non magical means"
+            "ds": "cannot be bound by non magical means."
           }
         ]
       },
