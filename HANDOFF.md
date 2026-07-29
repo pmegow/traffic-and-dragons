@@ -65,15 +65,12 @@ They came out of design conversation and now govern all 162 remaining archetype 
 
 ## Open, waiting on YOU (not code)
 
-- **#78** Car Mode numbered options — needs a real drive. **#94** the piper-high ear check.
-- **#9 field watch** — does the GM actually emit `[ENEMY_SLAIN:]`? Emission is doc-line-only; if a
-  narrated kill still leaves a foe standing, the SAY-compliance-nudge pattern (engine-note channel)
-  is the named next step and it's small.
-- **#30 render restore** — a render vanished on reload. Diagnosed, **not fixed**: the campaign-folder
-  permission does not survive a browser session, so `restoreSavedRenders()` never runs and the
-  player sees nothing. I asked for the `[files]` console line to tell which of two silent branches
-  fired and never got it. Either way it's a no-silent-failure violation worth a small fix
-  (a "Reconnect folder" affordance).
+*(Corrected 2026-07-28: #94, #9, and #30 are DONE and marked so in TODO.md — the list below
+carried them stale. #30 closed field-confirmed with nothing outstanding; #9's tag shipped with
+the t1188 fixture; #94's speed half was answered by field logs.)*
+
+- **#78** Car Mode numbered options — code shipped and closed; the one uncovered piece is
+  real-device mic accuracy in a moving car (CAR_MODE.md's standing risk).
 - **The unmerged `#72` local-server commit** (`6ba16f5`, on `claude/wizardly-mayer-df87c6` and its
   `origin/` twin): genuinely absent from master, its server half already deployed. Cherry-pick,
   keep parked, or abandon. **Not urgent — it is pushed and gc-safe** (I initially reported it at
