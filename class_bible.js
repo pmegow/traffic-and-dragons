@@ -308,22 +308,52 @@ var CLASS_BIBLE = {
         "desc": "Use objects and magic items as a bonus action. Fast Hands. Supreme Sneak.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Legerdemain",
+                "ds": "Anything within arm's reach you can already have taken — victims discover the loss later, not now."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "No Lock Holds",
+                "ds": "Locks, knots, seals, and traps open for you; a lock is a suggestion, not a barrier."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Casing Eye",
+                "ds": "One look at a room and you know where the valuables are, who holds the keys, and every way out."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Shirt Off Your Back",
+                "ds": "You can steal what is worn, held, or watched — a sword from a hand, a ring mid-handshake."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Word of the Score",
+                "ds": "Rumor of every treasure, vault, and hidden thing finds its way to you wherever you go."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Impossible Theft",
+                "ds": "Once, steal a thing no hand should hold — a god's flame, a house's luck, a word from a language."
+              }
+            ]
           }
         }
       },

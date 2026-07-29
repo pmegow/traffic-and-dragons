@@ -346,6 +346,26 @@ function runEngineTests(R){
     var aod=capabilityLookup("Angel of Death");
     return aod&&aod.range==="150ft"?true:"Angel of Death must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
   });
+  t("the Thief is authored end-to-end: six rows, every feature carries injectable canon, all martial",function(){
+    // Third authored archetype (v1.475, slate approved 2026-07-28): spine verb THE TAKE.
+    // Mundane craft like the Assassin — isMagical:false, category martial.
+    var th=null,i;
+    for(i=0;i<CLASS_BIBLE.Rogue.archetypes.length;i++)if(CLASS_BIBLE.Rogue.archetypes[i].id==="thief")th=CLASS_BIBLE.Rogue.archetypes[i];
+    if(!th)return "thief missing";
+    var want=["3","6","10","14","18","20"],miss=[];
+    for(i=0;i<want.length;i++){
+      var fs=th.levels[want[i]]&&th.levels[want[i]].features;
+      if(!fs||!fs.length){miss.push("L"+want[i]+" empty");continue;}
+      var e=capabilityLookup(fs[0].nm);
+      if(!e){miss.push("L"+want[i]+" '"+fs[0].nm+"' has no capability entry");continue;}
+      if(e.isMagical)miss.push("L"+want[i]+" '"+fs[0].nm+"' flagged magical (thief is craft)");
+      if(e.category.indexOf("martial")<0)miss.push("L"+want[i]+" '"+fs[0].nm+"' not martial: "+JSON.stringify(e.category));
+    }
+    if(miss.length)return miss.join(" | ");
+    if(th.levels["20"].features[0].nm!=="The Impossible Theft")return "capstone drifted: "+th.levels["20"].features[0].nm;
+    var it=capabilityLookup("The Impossible Theft");
+    return /never unwrites|creates a possession/i.test(it.effect)?true:"capstone lost its enforceability-ceiling clause (generative, never subtractive)";
+  });
   t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
     // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
     // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches
