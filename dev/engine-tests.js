@@ -366,6 +366,36 @@ function runEngineTests(R){
     var it=capabilityLookup("The Impossible Theft");
     return /never unwrites|creates a possession/i.test(it.effect)?true:"capstone lost its enforceability-ceiling clause (generative, never subtractive)";
   });
+  t("Champion and Battle Master are authored end-to-end: six rows each, all resolve, all martial",function(){
+    // Fourth + fifth authored archetypes (v1.476). Champion spine = THE FEAT; Battle Master
+    // spine = THE READ. Both mundane craft (isMagical:false, martial). Eldritch Knight is
+    // deliberately absent — still under user review.
+    var want=["3","6","10","14","18","20"],miss=[],i,k;
+    var caps={champion:"The Challenge",battlemaster:"The Plan Holds"};
+    for(k in caps){
+      var a=null;
+      for(i=0;i<CLASS_BIBLE.Warrior.archetypes.length;i++)if(CLASS_BIBLE.Warrior.archetypes[i].id===k)a=CLASS_BIBLE.Warrior.archetypes[i];
+      if(!a){miss.push(k+" missing");continue;}
+      for(i=0;i<want.length;i++){
+        var fs=a.levels[want[i]]&&a.levels[want[i]].features;
+        if(!fs||!fs.length){miss.push(k+" L"+want[i]+" empty");continue;}
+        var e=capabilityLookup(fs[0].nm);
+        if(!e){miss.push(k+" L"+want[i]+" '"+fs[0].nm+"' has no capability entry");continue;}
+        if(e.isMagical||e.category.indexOf("martial")<0)miss.push(k+" L"+want[i]+" '"+fs[0].nm+"' not mundane-martial");
+      }
+      if(a.levels["20"].features.length&&a.levels["20"].features[0].nm!==caps[k])miss.push(k+" capstone drifted: "+a.levels["20"].features[0].nm);
+    }
+    if(miss.length)return miss.join(" | ");
+    // A Call to Arms: the user-authored dice (5d10 soldiers, level 2d6) and the one-army-at-a-time
+    // limit must ride in the injected canon — the limit is what stops re-roll fishing.
+    var ca=capabilityLookup("A Call to Arms");
+    if(!ca||!/5d10/.test(ca.dice)||!/2d6/.test(ca.dice))return "A Call to Arms dice drifted: "+JSON.stringify(ca&&ca.dice);
+    if(!/one such army at a time|disbands the old/i.test(ca.effect))return "A Call to Arms lost the one-army limit clause";
+    // The Plan Holds: forward-only — the ceiling clause (steps succeed; the world complicates
+    // the aftermath, never the steps) must survive in the effect text.
+    var ph=capabilityLookup("The Plan Holds");
+    return /never the steps/i.test(ph.effect)?true:"The Plan Holds lost its forward-only clause";
+  });
   t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
     // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
     // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches

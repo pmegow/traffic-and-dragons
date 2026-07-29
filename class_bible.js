@@ -108,22 +108,52 @@ var CLASS_BIBLE = {
         "desc": "Critical hits on 19-20. Superior Athlete. Remarkable endurance in battle.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Telling Blow",
+                "ds": "Your strikes land where they hurt most — wounds you deal are graver than they have any right to be, and foes remember them."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Peak of the Body",
+                "ds": "Any feat of raw athleticism a human could dream of, you can do: leap the chasm, kick down the oak door, carry the ox."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Last One Standing",
+                "ds": "Pain, exhaustion, and wounds do not slow you — you fight at full strength until the fight is done, and you don't drop while anyone needs you standing."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "One Against Many",
+                "ds": "Surrounded is where you're strongest: every attacker is in your reach, numbers grant them nothing, and a room of soldiers is a queue."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Strength of Legend",
+                "ds": "Feats beyond mortal — hold the falling gate, bend the portcullis. Bards argue over which stories are true; all of them are."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Challenge",
+                "ds": "Once, call out any creature by name: it must meet you alone in the circle, and nothing outside may touch what happens within."
+              }
+            ]
           }
         }
       },
@@ -133,22 +163,52 @@ var CLASS_BIBLE = {
         "desc": "Maneuver dice to trip, disarm, feint, and rally allies in combat.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Read",
+                "ds": "One look at a fighter and you know their style, their training, and the mistake they will make."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Wordless Command",
+                "ds": "Your allies fight as though rehearsed — a glance repositions a companion; the party has a plan even when there was no time to make one."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Turning Move",
+                "ds": "Once per combat, call the moment that turns the fight — trip, disarm, feint, rally — and it succeeds; named foes contest."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Battlefield Is a Board",
+                "ds": "You see the whole engagement at once: where reinforcements enter, when morale breaks, what each combatant does next."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "A Call to Arms",
+                "ds": "Conscript 5d10 locals into an army under your command — each soldier level 2d6, armed to their station. One army at a time; a new one disbands the old."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Plan Holds",
+                "ds": "Once, lay the plan out loud: as long as it's followed, each step succeeds as described — until the objective, an abandoned step, or a betrayal."
+              }
+            ]
           }
         }
       },
