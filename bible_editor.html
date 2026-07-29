@@ -290,11 +290,12 @@ function serializeCapabilityBible(state) {
     return true;
   }
 
-  function loadFromText(src, handle, name) {
+  function loadFromText(src, handle, name, mtime) {
     var t = typeOf(src);
     if (!t) throw new Error("not a recognised bible — expected CLASS_BIBLE or CAPABILITY_BIBLE");
     var data = BIBLE_TYPES[t].parse(src);
-    CUR = { typeId: t, data: data, handle: handle || null, name: name || "(unsaved)", dirty: false };
+    // mtime is what makes a disk change DETECTABLE before the write instead of after it fails.
+    CUR = { typeId: t, data: data, handle: handle || null, name: name || "(unsaved)", dirty: false, loadedMtime: mtime || 0 };
     activeCls = (t === "class") ? Object.keys(data.bible)[0] : null;
     capFilter = "";
     render();
@@ -316,6 +317,9 @@ function serializeCapabilityBible(state) {
     return o;
   }
   function openBible() {
+    // Opening REPLACES what is in the tab with the file's contents. Without this guard a dirty
+    // draft died silently — the same silent-data-loss class the reconnect path already guards.
+    if (CUR && CUR.dirty && !confirm("Open a bible file?\n\nThis tab has UNSAVED EDITS, and opening replaces them with the file's contents.\n\nCancel, then ⬇ Download copy first if you want to keep them.")) return;
     if (!HAS_FSA) { $("file-input").click(); return; }
     window.showOpenFilePicker(pickerOpts(true))["catch"](function (e) {
       if (e && e.name === "AbortError") throw e;                 // user cancelled — not a retry case
@@ -324,10 +328,13 @@ function serializeCapabilityBible(state) {
     }).then(function (hs) {
       var h = hs[0];
       _lastHandle = h;                                          // seeds the next picker's startIn
-      return h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
-        loadFromText(txt, h, h.name);
-        _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
-        note("opened " + h.name);
+      return h.getFile().then(function (f) {
+        var mt = f.lastModified;
+        return f.text().then(function (txt) {
+          loadFromText(txt, h, h.name, mt);
+          _idbPut(FS_KEY, h)["catch"](function (e) { console.warn("[bible] handle not persisted:", e && e.message); });
+          note("opened " + h.name);
+        });
       });
     })["catch"](function (e) {
       if (e && e.name === "AbortError") return;      // user cancelled the picker — not an error
@@ -335,6 +342,17 @@ function serializeCapabilityBible(state) {
     });
   }
 
+  // >>> SAVE STALENESS
+  // Did the file move under us since this tab read it? Compared with !== rather than > ON PURPOSE:
+  // "newer" is the common case (a commit, another session), but a sync client or a git checkout can
+  // restore an OLDER timestamp, and that is still not the file we read — > would sail past it and
+  // clobber. mtime 0 means we never observed one (a draft restored from localStorage), and an
+  // unknown baseline must not raise a scary prompt it cannot justify.
+  function diskChangedSinceLoad(loadedMtime, diskMtime) {
+    if (!loadedMtime) return false;
+    return diskMtime !== loadedMtime;
+  }
+  // <<< SAVE STALENESS
   function saveBible() {
     if (!CUR) return;
     if (!applyNameNormalization()) return;      // capitalization fixed on save, never silently
@@ -343,14 +361,34 @@ function serializeCapabilityBible(state) {
     var warn = "Overwrite " + CUR.name + " in place?\n\nThis REPLACES the file on disk. It is a tracked file — `git diff` shows exactly what changed and `git checkout` undoes it.";
     if (CUR.typeId === "capability") warn += "\n\nUntouched entries and all comments are preserved verbatim; only entries you edited are rewritten.";
     if (!confirm(warn)) return;
-    CUR.handle.createWritable().then(function (w) {
+    // Read the file FIRST, always. Two jobs: (1) detect a disk change before the write so we can
+    // explain it and offer a choice, instead of letting createWritable throw an opaque
+    // InvalidStateError after the fact; (2) the read itself refreshes the handle's cached
+    // snapshot, which is what the browser was rejecting. Without this, a file rewritten by a git
+    // operation or an editor commit leaves the handle permanently unable to save — the state the
+    // user hit repeatedly on 2026-07-28 while this session kept committing class_bible.js.
+    CUR.handle.getFile().then(function (f) {
+      if (diskChangedSinceLoad(CUR.loadedMtime, f.lastModified)) {
+        var when = new Date(f.lastModified).toLocaleTimeString();
+        if (!confirm(CUR.name + " CHANGED ON DISK at " + when + ", after this tab read it.\n\n" +
+          "Something else wrote it — a git operation, another session, or a code change.\n\n" +
+          "OK  = overwrite the disk file with YOUR version (it is tracked; `git diff` shows what you replaced)\n" +
+          "Cancel = keep the disk file, and use ↻ Reload from disk to pick it up")) {
+          throw { __userCancelled: true };
+        }
+      }
+      return CUR.handle.createWritable();
+    }).then(function (w) {
       return w.write(ser).then(function () { return w.close(); });
     }).then(function () {
       CUR.dirty = false;
       try { localStorage.removeItem(DRAFT_K); } catch (e) {}
       note("saved → " + CUR.name);
       render();
+      // re-baseline: what we just wrote is now the newest thing on disk
+      return CUR.handle.getFile().then(function (f) { CUR.loadedMtime = f.lastModified; });
     })["catch"](function (e) {
+      if (e && e.__userCancelled) { note("save cancelled — the file on disk is newer"); return; }
       // The FSA API refuses createWritable() when the file changed on disk after this handle last
       // read it — its raw wording ("state cached in an interface object") explains nothing. That
       // case is not a failure, it is the browser REFUSING TO LET A STALE EDITOR CLOBBER A NEWER
@@ -358,12 +396,16 @@ function serializeCapabilityBible(state) {
       // Say so, and offer the only correct recovery: re-read the file first.
       var stale = e && (e.name === "InvalidStateError" || /changed since it was read from disk/i.test(e.message || ""));
       if (stale) {
-        alert("Save refused — " + CUR.name + " CHANGED ON DISK after this editor read it.\n\n" +
-          "The browser is protecting the newer file from being overwritten by this older view. " +
-          "That usually means a git operation, another session, or a code change touched it.\n\n" +
-          "Press ↻ Reload from disk to pick up the current file (your unsaved edits in this tab are " +
-          "replaced), or ⬇ Download copy and merge by hand.");
-        note("save refused — the file on disk is newer; use ↻ Reload from disk");
+        // We already re-read the file immediately above, which normally clears this. Still failing
+        // means the handle itself is beyond saving from here (the file moved/was replaced, or
+        // something outside the browser holds it) — so send the user to the one thing that always
+        // works: 📂 Open bible…, which mints a brand-new handle inside their own click.
+        alert("Save still refused after re-reading " + CUR.name + ".\n\n" +
+          "This handle cannot write the file any more — it was probably replaced rather than edited " +
+          "in place (a git checkout, a sync client, or an external tool).\n\n" +
+          "⬇ Download copy FIRST if you have edits worth keeping (re-opening replaces them), then " +
+          "📂 Open bible… and pick the file again — that mints a fresh handle and Save will work.");
+        note("save refused even after a re-read — re-open the file with 📂 Open bible…");
         return;
       }
       alert("Save failed: " + (e && e.message) + "\n\nFalling back to a download; move it over the original yourself.");
@@ -377,9 +419,13 @@ function serializeCapabilityBible(state) {
     if (!CUR) { alert("No bible open."); return; }
     if (!CUR.handle) { alert("No file handle — this bible was not opened from disk (or the permission lapsed).\n\nUse 📂 Open bible… to pick it up again."); return; }
     if (CUR.dirty && !confirm("Reload " + CUR.name + " from disk?\n\nUnsaved edits in this tab will be REPLACED by the file's current contents.")) return;
-    CUR.handle.getFile().then(function (f) { return f.text(); }).then(function (txt) {
-      loadFromText(txt, CUR.handle, CUR.name);
-      note("reloaded " + CUR.name + " from disk");
+    var _h = CUR.handle, _n = CUR.name;
+    _h.getFile().then(function (f) {
+      var mt = f.lastModified;
+      return f.text().then(function (txt) {
+        loadFromText(txt, _h, _n, mt);
+        note("reloaded " + _n + " from disk");
+      });
     })["catch"](function (e) {
       alert("Reload failed: " + (e && e.message) + "\n\nIf the permission lapsed, press Reconnect (or re-open the file).");
     });
@@ -410,12 +456,17 @@ function serializeCapabilityBible(state) {
     h.requestPermission({ mode: "readwrite" }).then(function (p) {
       if (p !== "granted") { note("permission declined — Save will download instead"); return; }
       _pendingHandle = null;
-      h.getFile().then(function (f) { return f.text(); }).then(function (txt) {
-        var hadDraft = CUR && CUR.dirty;
-        if (hadDraft && !confirm("Re-open " + h.name + " from disk?\n\nYour unsaved draft edits will be replaced by the file's contents.")) {
-          CUR.handle = h; render(); return;       // keep the draft, just re-attach the handle
-        }
-        loadFromText(txt, h, h.name); note("reconnected " + h.name);
+      h.getFile().then(function (f) {
+        var mt = f.lastModified;
+        return f.text().then(function (txt) {
+          var hadDraft = CUR && CUR.dirty;
+          if (hadDraft && !confirm("Re-open " + h.name + " from disk?\n\nYour unsaved draft edits will be replaced by the file's contents.")) {
+            // Keep the draft, re-attach the handle — and record the mtime we just observed, so the
+            // save path knows this draft is being written OVER a newer file and can say so.
+            CUR.handle = h; CUR.loadedMtime = mt; render(); return;
+          }
+          loadFromText(txt, h, h.name, mt); note("reconnected " + h.name);
+        });
       });
     })["catch"](function (e) { console.warn("[bible] reconnect failed:", e && e.message); });
   }
