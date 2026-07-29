@@ -406,7 +406,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Summon Item",
-            "ds": "teleports a small item to the hand of the rogue."
+            "ds": "Teleports a small item to the hand of the rogue.  Works on any item within 30 feet if the rogue knows it's location.  Does NOT require line of sight."
           }
         ]
       }
