@@ -400,7 +400,7 @@ function checkLegacyCharacter(){
 var _levelBumpsOwed=0; // stat bumps owed from a multi-level jump; drained by sbConfirm
 function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
-  var oldLvl=c.level,i,cls=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===c.cls){cls=CLSS[i];break;}}
+  var oldLvl=c.level,i,cls=classDef(c.cls);/* #72 C6 ①: THE class lookup */
   if(!c.abilities)c.abilities=[];
   var totalHp=0,bumpsOwed=0,newFeatures=[];
   while(c.level<newLvl){
@@ -429,7 +429,7 @@ function checkCompanionLevelUp(cs){
   if(!cs||typeof cs.xp!=="number")return;
   if(typeof cs.level!=="number"||cs.level<1)cs.level=1;
   var newLvl=getLvl(cs.xp);if(newLvl<=cs.level)return;
-  var oldLvl=cs.level,i,cls=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}
+  var oldLvl=cs.level,cls=classDef(cs.cls);/* #72 C6 ①: THE class lookup */
   while(cs.level<newLvl){
     cs.level++;
     var conMod=cs.stats&&typeof cs.stats.CON==="number"?Math.floor((cs.stats.CON-10)/2):0;
@@ -459,7 +459,7 @@ function buildCompanionSheetPrompt(npcName){
   if(kn)known+="Known facts: "+kn+"\n";
   var ev=(mem.events||[]).slice(-8).join("; ");if(ev.length>1500)ev=ev.slice(0,1500)+"…";
   if(ev)known+="Recent events: "+ev+"\n";
-  var clsIds=[],i;for(i=0;i<CLSS.length;i++)clsIds.push(CLSS[i].id);
+  var clsIds=classDefs().map(function(cd){return cd.id;});/* #72 C6 ① */
   var msg="Create a character sheet for "+npcName+", an NPC who has just joined the party as a companion.\n\n"
     +"WHAT IS KNOWN ABOUT "+npcName+":\n"+known+"\n"
     +"The player character is "+c.name+", a level "+c.level+" "+c.cls+". "+npcName+"'s level MUST be exactly "+c.level+".\n"
@@ -479,7 +479,7 @@ function guessCompanionClass(text){
 // Class-baseline HP: level 1 = hit die + CON mod, then the same per-level gain the level-up
 // systems use (ceil(hd/2)+1+CON mod, min 1) — keeps generated companions on the engine's curve.
 function companionBaselineHp(clsId,level,conMod){
-  var cls=null,i;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===clsId){cls=CLSS[i];break;}}
+  var cls=classDef(clsId);/* #72 C6 ①: THE class lookup */
   var hd=cls?cls.hd:10,hp=Math.max(1,hd+conMod),l;
   for(l=2;l<=level;l++)hp+=hpGainPerLevel(hd,conMod);/* #11②: shared formula */
   return hp;
@@ -509,7 +509,7 @@ function normalizeCompanionSheet(raw,npcName){
   if(raw.gender==="M"||raw.gender==="F"||raw.gender==="NB")s.gender=raw.gender;
   var strF=["age","appear","trait","flaw","motivation"];
   for(i=0;i<strF.length;i++){if(typeof raw[strF[i]]==="string"&&raw[strF[i]])s[strF[i]]=raw[strF[i]];}
-  if(typeof raw.cls==="string"){for(i=0;i<CLSS.length;i++){if(CLSS[i].id.toLowerCase()===raw.cls.trim().toLowerCase()){s.cls=CLSS[i].id;break;}}}
+  if(typeof raw.cls==="string"){var cd=classDef(raw.cls);if(cd)s.cls=cd.id;}/* #72 C6 ①: classDef's CI+trim fallback = the old loop */
   if(raw.stats&&typeof raw.stats==="object"){var ks=["STR","DEX","CON","INT","WIS","CHA"];for(i=0;i<ks.length;i++){var v=parseInt(raw.stats[ks[i]]);if(!isNaN(v))s.stats[ks[i]]=Math.max(3,Math.min(20,v));}}
   if(typeof raw.gold==="number"&&raw.gold>=0)s.gold=Math.min(10000,Math.floor(raw.gold));
   if(raw.inventory&&raw.inventory.length)s.inventory=sanitizeModelInventory(raw.inventory,12);/* #50d: model arrays arrive verbatim — stack duplicates on arrival, never push raw */

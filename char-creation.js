@@ -57,13 +57,13 @@ function closeLineagePopup(){var pop=document.getElementById("lineage-popup");if
 function hideAncDetail(){var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail"),fw=document.getElementById("flex-wrap");if(gw)gw.style.display="block";if(det)det.style.display="none";if(fw)fw.style.display="none";buildAncGrid();}
 function buildFlexPick(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||a.fc===0)return;var lim=a.fc,lbl=document.getElementById("flex-lbl");if(lbl)lbl.textContent="Choose "+lim+" stat"+(lim>1?"s":"")+" for +1 ("+cs.fp.length+"/"+lim+"):";var fg=document.getElementById("flex-grid");if(!fg)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],isSel=cs.fp.indexOf(s)>=0,isFull=!isSel&&cs.fp.length>=lim;h+='<div class="fp'+(isSel?" sel":"")+(isFull?" dis":"")+'" onclick="pickFlex(\''+s+'\')">'+s+'</div>';}fg.innerHTML=h;}
 function pickFlex(s){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a)return;var idx=cs.fp.indexOf(s);if(idx>=0)cs.fp.splice(idx,1);else if(cs.fp.length<a.fc)cs.fp.push(s);buildFlexPick();buildStatGrid();}
-function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i;for(i=0;i<CLSS.length;i++){var c=CLSS[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
-function pickCls(idx){cs.cls=CLSS[idx].id;
+function buildClsGrid(){var el=document.getElementById("cls-grid");if(!el)return;var h="",i,defs=classDefs();/* #72 C6 ① */for(i=0;i<defs.length;i++){var c=defs[i];h+='<div class="sc'+(cs.cls===c.id?" sel":"")+'" onclick="pickCls('+i+')"><div class="nm">'+c.id+'</div><div class="sb">'+c.desc+'</div><div class="sb">d'+c.hd+' HP &middot; '+c.prime+'</div></div>';}el.innerHTML=h;}
+function pickCls(idx){var def=classDefs()[idx];/* #72 C6 ① */cs.cls=def.id;
   // Re-map already-rolled stats onto the new class's STAT_PRIORITY (audit E57) — keeps the rolled
   // numbers (no re-roll fishing) but re-prioritizes them, so switching class after rolling can't
   // leave a Sorcerer with INT as a dump stat. Point-buy mode (cs.rolled false) is untouched.
   if(cs.rolled){var _vals=STATS.map(function(s){return cs.bs[s];}).sort(function(a,b){return b-a;});var _prio=STAT_PRIORITY[cs.cls]||STATS,_vi;for(_vi=0;_vi<_prio.length;_vi++)cs.bs[_prio[_vi]]=_vals[_vi];}
-  buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[CLSS[idx].id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+CLSS[idx].gear+'<br><span style="font-size:11px;color:#555;">Prime: '+CLSS[idx].prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
+  buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[def.id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+def.gear+'<br><span style="font-size:11px;color:#555;">Prime: '+def.prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
 function buildStatGrid(){var fs=getFin();var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}var bst=[];if(a){if(a.fc>0)bst=cs.fp.slice();else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++)bst.push(keys[i]);}}var has=cs.rolled||cs.statMode==="pb";var el=document.getElementById("stat-grid");if(!el)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],base=cs.bs[s],fin=fs[s],bon=fin-base,ib=bst.indexOf(s)>=0;h+='<div class="sbox'+(ib?" bst":"")+'"><div class="sn">'+s+'</div><div class="sv">'+(has?base:"--")+'</div><div class="sf">'+(has&&bon>0?fin+" (+"+bon+")":"&nbsp;")+'</div><div class="sm">'+(has?smod(fin):"")+'</div></div>';}el.innerHTML=h;}
 function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=STAT_PRIORITY[cs.cls]||STATS;for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
 function setStatMode(m){cs.statMode=m;cs.rolled=false;if(m==="pb"){var i;for(i=0;i<STATS.length;i++)cs.bs[STATS[i]]=8;}document.getElementById("mode-roll").className=m==="roll"?"active":"";document.getElementById("mode-pb").className=m==="pb"?"active":"";document.getElementById("roll-sec").style.display=m==="roll"?"block":"none";document.getElementById("pb-sec").style.display=m==="pb"?"block":"none";if(m==="pb")buildPBCtrls();buildStatGrid();}
@@ -189,7 +189,7 @@ function buildReview(){
     if(typeof _renderCompanionSlots==="function")_renderCompanionSlots();
     return;
   }
-  var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
+  var i,cls=classDef(cs.cls),anc=null;/* #72 C6 ① */for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP();if(!rvGoldRolled){rvGold=15+droll(10);rvGoldRolled=true;}
   var dispNm=cs.name||(document.getElementById("char-name")?document.getElementById("char-name").value.trim():"");
   var init=csInitials(dispNm);/* #15③: canonical (helpers.js) */
@@ -280,7 +280,7 @@ function confirmChar(){
   }
   if(!enteredName){showToast("Enter a character name first.");return;}
   cs.name=enteredName;
-  var i,cls=null,anc=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){cls=CLSS[i];break;}}for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
+  var i,cls=classDef(cs.cls),anc=null;/* #72 C6 ① */for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){anc=ANCS[i];break;}}
   var fs=getFin(),hp=getMHP(),subnm=getSubNm();
   var alignEl=document.getElementById("char-alignment"),statedAlign=alignEl?alignEl.value:"Chaotic Neutral";
   var slEl=document.getElementById("rv-start-level"),startLvl=slEl?parseInt(slEl.value)||1:1;
@@ -483,7 +483,7 @@ function _csContext(){
   if(tone)ctx+="World tone: "+tone.nm+(tone.vc?" — "+tone.vc:"")+"\n";
   var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
   if(anc)ctx+="Ancestry: "+(getSubNm()||anc.nm)+"\n";/* cs.subraceNm is never set — use getSubNm() so subrace/lineage reaches the AI-assist context (audit E58) */
-  var cls=cs.cls?CLSS.filter(function(c){return c.id===cs.cls;})[0]:null;
+  var cls=classDef(cs.cls);/* #72 C6 ①: null input → null, same as the old guard */
   if(cls)ctx+="Class: "+cls.id+"\n";
   if(cs.name)ctx+="Name: "+cs.name+"\n";
   if(cs.gender)ctx+="Gender: "+genderLabel(cs.gender)+"\n";

@@ -355,6 +355,36 @@ function runEngineTests(R){
     if(CLASS_BIBLE.Warrior.spellTiers)return "Warrior grew spellTiers";
     return true;
   });
+  // ── classDef (#72 C6 ①, v1.472): THE class lookup ────────────────────────────
+  // After this step NOTHING outside classDefs()/classDef() reads CLSS directly, so
+  // C6 ②'s store swap (CLSS → CLASS_BIBLE) is an edit inside those two functions.
+  // These tests pin the ① contract; they get rewritten at ② when the store moves.
+  section("classDef (#72 C6 ①)");
+  t("classDefs() IS the CLSS table (same array — index/grid call sites stay byte-identical)",function(){
+    return classDefs()===CLSS?true:"classDefs() returned a different array";
+  });
+  t("classDef resolves every canonical id to its own CLSS entry (object identity)",function(){
+    for(var i=0;i<CLSS.length;i++)if(classDef(CLSS[i].id)!==CLSS[i])return CLSS[i].id+" did not resolve to its own entry";
+    return true;
+  });
+  t("classDef trims + case-folds as a FALLBACK (the normalizeCompanionSheet model-output path)",function(){
+    var d=classDef("  rogue ");if(!d||d.id!=="Rogue")return "' rogue ' resolved to "+(d&&d.id);
+    d=classDef("WARRIOR");return d&&d.id==="Warrior"?true:"'WARRIOR' resolved to "+(d&&d.id);
+  });
+  t("classDef returns null for unknown/absent input — callers keep their own fallbacks (getMHP 8, hd 10)",function(){
+    if(classDef("Bard")!==null)return "unknown class resolved";
+    if(classDef(null)!==null||classDef(undefined)!==null||classDef("")!==null)return "empty input resolved";
+    return true;
+  });
+  t("normalizeCompanionSheet canonicalizes a lowercased model cls via classDef (site behavior pinned)",function(){
+    makeWorld();
+    var s=normalizeCompanionSheet({cls:" necromancer "},"Testy");
+    if(!s)return "normalize returned null";
+    if(s.cls!=="Necromancer")return "cls came back as "+JSON.stringify(s.cls);
+    s=normalizeCompanionSheet({cls:"Bard"},"Testy");
+    return s&&s.cls!=="Bard"?true:"unknown cls was accepted verbatim";
+  });
+
   section("resolveNpcName");
   t("parenthetical variant resolves to canonical",function(){memory=blankMemory();memory.npcs["Morwen Zethran"]={attitude:"ally",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Morwen (Ammut's wife)"),"Morwen Zethran");});
   t("honorific + surname resolves",function(){memory=blankMemory();memory.npcs["Sheriff Belor Hemlock"]={attitude:"neutral",knowledge:[],events:[],aliases:[]};return eq(resolveNpcName("Hemlock"),"Sheriff Belor Hemlock");});

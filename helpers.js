@@ -105,7 +105,26 @@ function getFin(){
   else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++){b[keys[i]]=(b[keys[i]]||8)+a.stats[keys[i]];}}
   return b;
 }
-function getMHP(){var i,c=null;for(i=0;i<CLSS.length;i++){if(CLSS[i].id===cs.cls){c=CLSS[i];break;}}if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
+// ── classDef (#72 C6 ①, v1.472): THE class lookup ─────────────────────────────
+// classDefs()/classDef() are the ONLY readers of the CLSS table — every former
+// hand-rolled `for(i…) if(CLSS[i].id===…)` loop routes through here, so C6 ②'s
+// store swap (CLSS → CLASS_BIBLE) becomes an edit inside these two functions and
+// nowhere else. classDef matches the canonical id exactly first, then falls back
+// to a trimmed case-insensitive scan (normalizeCompanionSheet feeds it raw model
+// output; for canonical ids the fallback never fires, so engine behavior at the
+// old exact-match sites is unchanged). Returns null when nothing matches —
+// callers keep their own fallbacks (getMHP's 8, companionBaselineHp's hd 10).
+function classDefs(){return CLSS;}
+function classDef(id){
+  var L=classDefs(),i;
+  for(i=0;i<L.length;i++){if(L[i].id===id)return L[i];}
+  if(typeof id==="string"&&id){
+    var n=id.trim().toLowerCase();
+    for(i=0;i<L.length;i++){if(L[i].id.toLowerCase()===n)return L[i];}
+  }
+  return null;
+}
+function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
 function pbSp(){var t=0,i;for(i=0;i<STATS.length;i++){t+=(PBC[cs.bs[STATS[i]]]||0);}return t;}
 function getToneNm(){if(!cs.tone)return"Unspecified";if(cs.tone==="custom")return"Custom";var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].nm;}return"Unspecified";}
 function getToneVc(){if(!cs.tone)return"";if(cs.tone==="custom"){var el=document.getElementById("tone-ct");return el?el.value.trim():"";}var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].vc;}return"";}
