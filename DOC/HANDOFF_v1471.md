@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-07-29.** Session handoffs are ephemeral: this one is preserved as a record
+> of the 2026-07-28 session. Its one open item (the unmerged 6ba16f5 branch) was merged into
+> TODO.md as row 72b at archival. Open work lives ONLY in TODO.md.
+
 # Traffic and Dragons — Session Handoff (2026-07-28: the review, the housekeeping, and #72 gets real)
 
 **Deployed:** `v1.471` (globals.js) · CACHE `tnd-v3-20260728e` (sw.js) · Piper runtime **r9** (untouched)

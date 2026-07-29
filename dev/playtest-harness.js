@@ -70,7 +70,7 @@
 // - Actions are picked randomly from the live `.qa` buttons each turn (same as a real player
 //   tapping a suggestion), not scripted — this is what makes it a fair drift test.
 // - Re-running this on an OLD save (pre-v1.137, no skeleton dnaHints) vs. a FRESH campaign is a
-//   good A/B: the fresh campaign is the best case for Remedy A (see HANDOFF.md).
+//   good A/B: the fresh campaign is the best case for Remedy A (see DOC/ archived handoffs).
 
 (function(){
   var PT_KEY="tnd_pt_corpus_v1";
