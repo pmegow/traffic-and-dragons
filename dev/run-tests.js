@@ -416,6 +416,73 @@ try {
   }
 } catch (e) { console.error("BIBLE EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── VOICE LAB CONTRACT (v1.492, author de-branding experiment) ───────────────────────────
+// author_voice_lab.html tests whether 12 shared attribute dials re-create each author's voice
+// with NO author name in the prompt (DOC/DOC_author_voice.md). The page's pure core (attrs,
+// baselines, prompt builders) is marker-delimited and evaluated here; the clauses below keep the
+// lab in lockstep with data.js AUTHORS and keep the dial prompt genuinely name-free.
+try {
+  var _fsVL = require("fs"), _pathVL = require("path");
+  var _failVL = function (msg) { console.error("VOICE LAB CONTRACT: " + msg); process.exit(1); };
+  var _pageVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "author_voice_lab.html"), "utf8");
+  // ① The pure core is extractable and DOM/fetch-free (the testability seam).
+  var _mVL = _pageVL.match(/\/\* >>> VOICE LAB CORE[\s\S]*?\*\/([\s\S]*?)\/\* <<< VOICE LAB CORE \*\//);
+  if (!_mVL || _mVL[1].length < 1000) _failVL("core markers missing — the pure logic block is the node-test seam; do not remove or rename the markers.");
+  var _coreVL = _mVL[1];
+  if (/document\.|window\.|fetch\(|localStorage/.test(_coreVL)) _failVL("core block touches DOM/fetch/localStorage — it must stay pure so this contract can execute it.");
+  var _labVL = (new Function(_coreVL +
+    "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt};"))();
+  // ② 12 attributes, 5 non-empty bands each; band mapping covers 1..10.
+  if (_labVL.attrs.length !== 12) _failVL("expected 12 attributes, found " + _labVL.attrs.length + " — update DOC/DOC_author_voice.md and this contract together if the space changes.");
+  _labVL.attrs.forEach(function (a) {
+    if (!a.bands || a.bands.length !== 5 || a.bands.some(function (b) { return !b || b.length < 10; })) _failVL("attribute '" + a.id + "' does not have 5 real band texts.");
+    if (_labVL.band(a, 1) !== a.bands[0] || _labVL.band(a, 5) !== a.bands[2] || _labVL.band(a, 10) !== a.bands[4]) _failVL("band mapping broken for '" + a.id + "' (1/5/10 must hit bands 0/2/4).");
+  });
+  // ③ Two-way lockstep with data.js AUTHORS: every author has baseline+flavor; no orphan baselines.
+  var _dataVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "data.js"), "utf8");
+  var _segVL = _dataVL.slice(_dataVL.indexOf("var AUTHORS"), _dataVL.indexOf("];", _dataVL.indexOf("var AUTHORS")));
+  var _idsVL = [], _namesVL = [], _reVL = /\{id:"(\w+)",nm:"([^"]+)"/g, _mmVL;
+  while ((_mmVL = _reVL.exec(_segVL))) { _idsVL.push(_mmVL[1]); _namesVL.push(_mmVL[2]); }
+  if (_idsVL.length < 10) _failVL("could not parse AUTHORS from data.js (found " + _idsVL.length + " ids) — the parse regex needs updating.");
+  _idsVL.forEach(function (id) {
+    var b = _labVL.base[id];
+    if (!b) _failVL("author '" + id + "' (data.js) has NO baseline — a new author needs ratings in the same commit.");
+    _labVL.attrs.forEach(function (a) {
+      var v = b[a.id];
+      if (typeof v !== "number" || v < 1 || v > 10 || v % 1 !== 0) _failVL("baseline " + id + "." + a.id + " = " + v + " — must be an integer 1..10.");
+    });
+    if (Object.keys(b).length !== 12) _failVL("baseline '" + id + "' has stray keys beyond the 12 attributes.");
+    if (!_labVL.flavor[id] || _labVL.flavor[id].length < 80) _failVL("author '" + id + "' has no flavor reference passage.");
+  });
+  Object.keys(_labVL.base).forEach(function (id) { if (_idsVL.indexOf(id) < 0) _failVL("baseline '" + id + "' has no matching author in data.js — remove it or fix the id."); });
+  // ④ The dial prompt is genuinely name-free for EVERY author at baseline (the whole point).
+  var _tokensVL = [];
+  _namesVL.forEach(function (nm) { nm.split(/[^A-Za-z]+/).forEach(function (t) { if (t.length >= 3) _tokensVL.push(t.toLowerCase()); }); });
+  _idsVL.forEach(function (id) {
+    var p = _labVL.rewrite(_labVL.directive(_labVL.base[id]), _labVL.passage, _labVL.dev[id] || []);
+    var low = (p.system + "\n" + p.user).toLowerCase();
+    _tokensVL.forEach(function (t) {
+      if (new RegExp("\\b" + t + "\\b").test(low)) _failVL("dial prompt for '" + id + "' contains author-name token '" + t + "' — the no-name guarantee is broken.");
+    });
+    if (low.indexOf("never name, reference, or imitate-by-name") < 0) _failVL("dial prompt lost the never-name guard clause.");
+    if (p.user.indexOf(_labVL.passage) < 0) _failVL("dial prompt does not embed the passage verbatim.");
+  });
+  // ⑤ The control prompt embeds the real vc (the control arm works).
+  var _ctlVL = _labVL.control("VOICE DIRECTIVE SENTINEL", _labVL.passage);
+  if (_ctlVL.user.indexOf("VOICE DIRECTIVE SENTINEL") < 0 || _ctlVL.user.indexOf(_labVL.passage) < 0) _failVL("control prompt does not embed the vc directive + passage.");
+  // ⑥ The v1.360 class: the satellite must be in sw.js's network-first allowlist or the SW pins it
+  //    stale. Check the REGEX LITERAL itself, not the whole file — a comment mention must not
+  //    satisfy this (sabotage S3 proved indexOf-on-the-file was vacuous exactly that way).
+  var _swVL = _fsVL.readFileSync(_pathVL.join(__dirname, "..", "sw.js"), "utf8");
+  var _swReVL = _swVL.match(/if\(\/([^\n]+?)\/\.test\(e\.request\.url\)\)/);
+  if (!_swReVL) _failVL("could not locate sw.js's network-first regex — the fetch-handler shape changed; update this contract.");
+  if (_swReVL[1].indexOf("author_voice_lab") < 0) _failVL("author_voice_lab is missing from sw.js's network-first REGEX — the SW will pin the page stale (the v1.360 bug_tracker lesson).");
+  // ⑦ The browser seam + stub mode exist (satellite testability rule, 2026-07-29).
+  if (_pageVL.indexOf("__voiceLabTest") < 0) _failVL("the window.__voiceLabTest seam is gone — satellites with logic must stay drivable.");
+  if (_pageVL.indexOf("stub=1") < 0) _failVL("stub mode (?stub=1) is gone — UI verification without a key depends on it.");
+  console.log("[voice-lab] contract OK — " + _idsVL.length + " authors × 12 dials, prompts name-free");
+} catch (e) { console.error("VOICE LAB CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
 // iOS does not hand an interrupted AudioContext back: resume() rejects on it forever, and
 // _ensureCtx only replaces a context that is "closed" — which an interrupted one is not. So for

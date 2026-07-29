@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Author Voice Lab — Traffic and Dragons</title>
+<style>
+:root{
+  --font:Georgia,serif;--font-mono:monospace;
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;
+  --brd:#2c2f3a;--brd2:#3c4050;
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  --acc:#b8935a;--acc-dim:rgba(184,147,90,.35);--acc-faint:rgba(184,147,90,.08);
+  --dng:#c04040;--grn:#3a7a5a;
+  --r:6px;--rl:10px;
+}
+html,body{background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;margin:0;padding:0}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 80px}
+h1{color:var(--acc);font-size:1.5em;margin:0 0 2px;letter-spacing:.5px}
+.sub{color:var(--t1);font-size:.86em;margin-bottom:18px}
+.hypo{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:var(--r);
+  padding:10px 14px;font-size:.88em;color:var(--t1);margin-bottom:18px;line-height:1.5}
+.hypo b{color:var(--t0)}
+.panel{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;margin-bottom:18px}
+.panel h2{color:var(--acc);font-size:.95em;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono)}
+textarea#passage{width:100%;box-sizing:border-box;background:var(--bg0);color:var(--t0);border:1px solid var(--brd2);
+  border-radius:var(--r);padding:10px 12px;font-family:var(--font);font-size:.95em;line-height:1.55;min-height:120px;resize:vertical}
+textarea#passage:focus{outline:1px solid var(--acc-dim)}
+.meta-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:.82em;color:var(--t1);margin-top:8px}
+.meta-row a{color:var(--acc);cursor:pointer;text-decoration:underline}
+select,input[type=password]{background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);padding:4px 8px;font-size:.92em}
+.keyok{color:var(--grn)}.keybad{color:var(--dng)}
+/* author rows */
+details.author{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);margin-bottom:12px;overflow:hidden}
+details.author[open]{border-color:var(--acc-dim)}
+details.author>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:12px;padding:12px 16px;user-select:none}
+details.author>summary::-webkit-details-marker{display:none}
+summary .chev{color:var(--acc);font-family:var(--font-mono);font-size:.85em;transition:transform .15s;display:inline-block}
+details[open] summary .chev{transform:rotate(90deg)}
+summary .nm{color:var(--acc);font-size:1.08em;font-weight:bold}
+summary .blurb{color:var(--t1);font-size:.85em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+summary .prof{font-family:var(--font-mono);font-size:.7em;letter-spacing:1px;text-transform:uppercase;
+  background:#221515;border:1px solid var(--dng);color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-weight:bold}
+.body{padding:4px 16px 16px;border-top:1px solid var(--brd)}
+.flavor{background:var(--bg0);border:1px solid var(--brd);border-radius:var(--r);padding:10px 14px;margin:12px 0;
+  font-size:.92em;line-height:1.55;color:var(--t0);font-style:italic}
+.flavor .cap{display:block;font-style:normal;font-family:var(--font-mono);font-size:.72em;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+.lab-row{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap}
+.sliders{display:flex;gap:6px;flex:1;min-width:0;justify-content:space-between;background:var(--bg2);
+  border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px 8px}
+.sl{display:flex;flex-direction:column;align-items:center;gap:4px;width:34px}
+.sl .val{font-family:var(--font-mono);font-size:.8em;color:var(--acc);min-height:1.1em}
+.sl input[type=range]{writing-mode:vertical-lr;direction:rtl;width:22px;height:120px;margin:0;accent-color:var(--acc);cursor:pointer}
+.sl .lbl{font-family:var(--font-mono);font-size:.68em;color:var(--t1);letter-spacing:.5px}
+.sl.moved .val{color:#e8c88a;font-weight:bold}
+.actions{display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:170px}
+button{font-family:var(--font);border-radius:var(--r);cursor:pointer;font-size:.92em;padding:8px 14px}
+button.primary{background:var(--acc);color:#000;border:1px solid var(--acc);font-weight:bold}
+button.primary:hover{background:#caa76b}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc-dim)}
+button.ghost:hover{background:var(--acc-faint)}
+button:disabled{opacity:.4;cursor:default}
+.actions label{font-size:.8em;color:var(--t1);display:flex;gap:6px;align-items:center;cursor:pointer}
+.actions .reset{font-size:.78em;color:var(--t2);text-align:center;cursor:pointer;text-decoration:underline}
+.actions .reset:hover{color:var(--t1)}
+.devices{font-size:.78em;color:var(--t2);margin-top:8px;line-height:1.4}
+.devices b{color:var(--t1);font-weight:normal}
+.outs{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.out{flex:1;min-width:280px;background:var(--bg0);border:1px solid var(--brd);border-radius:var(--r);padding:10px 14px}
+.out .cap{font-family:var(--font-mono);font-size:.72em;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px}
+.out .txt{font-size:.92em;line-height:1.55;white-space:pre-wrap;min-height:2em;color:var(--t0)}
+.out .txt.empty{color:var(--t2);font-style:italic}
+.out .stat{font-family:var(--font-mono);font-size:.72em;color:var(--t2);margin-top:8px}
+.out .stat.err{color:var(--dng)}
+.footer{color:var(--t2);font-size:.78em;margin-top:26px;font-family:var(--font-mono)}
+@media (max-width:820px){.lab-row{flex-direction:column}.actions{flex-direction:row;flex-wrap:wrap;align-items:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚗ Author Voice Lab</h1>
+  <div class="sub">De-branding experiment — can 12 shared attribute dials re-create each author's voice without the name? · <span id="ver"></span></div>
+  <div class="hypo"><b>Hypothesis (2026-07-29):</b> each author's voice decomposes into a common set of rated attributes,
+    adjustable from a baseline. <b>Method:</b> per author, compare three rewrites of the same neutral passage —
+    <b>Test prose</b> (dials only, no name in the prompt), dials <b>+ signature devices</b> (still no name), and the
+    <b>author-name control</b> (the shipped <code>vc</code> directive). Judge against the flavor reference.
+    Full analysis: <code>DOC/DOC_author_voice.md</code>.</div>
+
+  <div class="panel">
+    <h2>Neutral test passage</h2>
+    <textarea id="passage"></textarea>
+    <div class="meta-row">
+      <span><a id="restore-passage">restore default passage</a></span>
+      <span id="key-status"></span>
+      <span id="key-entry" style="display:none">session key: <input type="password" id="key-input" placeholder="sk-ant-…" size="24"></span>
+      <span>model: <select id="model-sel"></select></span>
+      <span id="stub-note" style="display:none;color:var(--acc)">STUB MODE — model calls are faked</span>
+    </div>
+  </div>
+
+  <div id="rows"></div>
+  <div class="footer">author_voice_lab.html · read-only against data.js (AUTHORS untouched) · slider tweaks persist locally (tnd_voicelab_v1) · open directly or from the deployed site</div>
+</div>
+
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script>
+/* >>> VOICE LAB CORE — pure logic, node-tested by run-tests.js (VOICE LAB CONTRACT). No DOM, no fetch, no window here. */
+
+var VOICE_ATTRS=[
+ {id:"cadence",lbl:"Cad",nm:"Cadence",bands:[
+  "Very short, clipped sentences — most under twelve words. Deliberate fragments are welcome.",
+  "Short, economical sentences; an occasional longer one for contrast.",
+  "Mixed, natural sentence lengths with a controlled rhythm.",
+  "Longer, flowing sentences that stay clear and complete — never run-ons.",
+  "Long, musical, clause-rich sentences; let the prose breathe and roll."]},
+ {id:"ornament",lbl:"Orn",nm:"Ornament",bands:[
+  "Plain, transparent word choice. No flourish; if a word is not pulling weight, cut it.",
+  "Mostly plain diction with a rare, carefully chosen vivid word.",
+  "Moderately colored diction — vivid but never showy.",
+  "Rich, ornamented diction; lush word choice is part of the voice.",
+  "Baroque, decadent diction — opulent vocabulary on full display."]},
+ {id:"formality",lbl:"For",nm:"Formality",bands:[
+  "Modern, conversational register — contractions and contemporary idiom even in a fantasy world.",
+  "Relaxed contemporary register with light formality.",
+  "Neutral, timeless register — neither slangy nor archaic.",
+  "Elevated, formal register with a mythic or old-fashioned cast.",
+  "Antiquarian, ceremonious diction — formal to the point of the archaic."]},
+ {id:"momentum",lbl:"Mom",nm:"Momentum",bands:[
+  "Unhurried and contemplative; let scenes sit. Never rush a moment.",
+  "Measured pace with room for stillness.",
+  "Steady forward motion.",
+  "Page-turner pace — every paragraph pulls toward the next.",
+  "Breakneck, relentless momentum; short paragraphs, constant motion."]},
+ {id:"darkness",lbl:"Drk",nm:"Darkness",bands:[
+  "Warm and hopeful undertone; the world is fundamentally kind.",
+  "Lightly shadowed — trouble exists but does not dominate.",
+  "Balanced light and dark; consequences are real.",
+  "Grim undertone — menace and loss color the scene.",
+  "Bleak, dread-soaked; doom presses on every line."]},
+ {id:"humor",lbl:"Hum",nm:"Humor",bands:[
+  "No jokes. Fully severe.",
+  "A rare flicker of dry wit.",
+  "Regular quiet humor woven through.",
+  "Frequent jokes — gallows humor is load-bearing.",
+  "Comedy-first: every scene is funny even when it is horrifying."]},
+ {id:"irony",lbl:"Iro",nm:"Irony",bands:[
+  "Completely earnest and sincere; no cynicism.",
+  "Mostly sincere with a knowing edge.",
+  "A wry, skeptical undertone.",
+  "Cynical and sardonic; undercut sentiment when it appears.",
+  "Corrosively ironic — world-weary, trusts nothing, punctures everything."]},
+ {id:"interiority",lbl:"Int",nm:"Interiority",bands:[
+  "Stay external — camera-eye narration, actions and surfaces only.",
+  "Mostly external with brief glimpses of thought.",
+  "Regular access to the viewpoint's thoughts and reactions.",
+  "Deep interiority — the inner voice runs alongside every event.",
+  "Obsessive interiority — the narration IS the inner voice, fixating and circling."]},
+ {id:"sensory",lbl:"Sen",nm:"Sensory",bands:[
+  "Spare, almost abstract — minimal physical description.",
+  "A few plain, concrete details where they matter.",
+  "Solid sensory grounding — sight, sound, smell where useful.",
+  "Dense sensory texture; the physical world is vivid and close.",
+  "Saturated sensory writing — every surface has temperature, weight, and smell."]},
+ {id:"figuration",lbl:"Fig",nm:"Figuration",bands:[
+  "NO similes, NO metaphors. Literal language only.",
+  "At most one plain figure of speech per scene.",
+  "Occasional apt metaphor, always controlled.",
+  "Metaphor is a regular instrument of the voice.",
+  "Figurative language everywhere — imagery is how this voice thinks."]},
+ {id:"grandeur",lbl:"Gra",nm:"Grandeur",bands:[
+  "Understate everything; flat affect. Report the extraordinary like routine.",
+  "Restrained delivery; drama stays quiet.",
+  "Allow moments their natural weight — neither deflated nor inflated.",
+  "Bold, dramatic delivery; a little grandiosity is welcome.",
+  "Theatrical, operatic delivery — swagger and spectacle, a little too much on purpose."]},
+ {id:"grit",lbl:"Grt",nm:"Grit",bands:[
+  "Keep it clean — violence and squalor happen offstage or abstractly.",
+  "Implied grit; consequences noted without lingering.",
+  "Honest physicality — blood and dirt exist and are named.",
+  "Visceral — violence is fast, ugly, and specific.",
+  "Unflinching viscera — mud, blood, stink, and pain in full detail."]}
+];
+
+/* Baselines rated from each author's shipped vc directive (see DOC/DOC_author_voice.md). 1-10. */
+var VOICE_BASELINES={
+ gaiman:      {cadence:4,ornament:3,formality:5,momentum:4,darkness:6,humor:4,irony:3,interiority:5,sensory:4,figuration:3,grandeur:2,grit:3},
+ abercrombie: {cadence:1,ornament:1,formality:3,momentum:8,darkness:9,humor:6,irony:9,interiority:7,sensory:5,figuration:1,grandeur:1,grit:9},
+ dinniman:    {cadence:2,ornament:2,formality:1,momentum:10,darkness:5,humor:10,irony:8,interiority:6,sensory:4,figuration:3,grandeur:4,grit:6},
+ clines:      {cadence:3,ornament:1,formality:3,momentum:9,darkness:4,humor:3,irony:3,interiority:4,sensory:5,figuration:2,grandeur:2,grit:4},
+ leguin:      {cadence:6,ornament:3,formality:8,momentum:2,darkness:4,humor:2,irony:1,interiority:6,sensory:5,figuration:6,grandeur:3,grit:2},
+ howard:      {cadence:5,ornament:5,formality:6,momentum:9,darkness:6,humor:1,irony:1,interiority:2,sensory:9,figuration:6,grandeur:8,grit:8},
+ cook:        {cadence:2,ornament:1,formality:3,momentum:5,darkness:7,humor:4,irony:7,interiority:5,sensory:3,figuration:1,grandeur:1,grit:6},
+ wells:       {cadence:3,ornament:2,formality:2,momentum:6,darkness:3,humor:6,irony:6,interiority:10,sensory:3,figuration:2,grandeur:1,grit:3},
+ muir:        {cadence:8,ornament:9,formality:4,momentum:6,darkness:7,humor:8,irony:8,interiority:6,sensory:8,figuration:8,grandeur:9,grit:7},
+ abnett:      {cadence:2,ornament:2,formality:4,momentum:9,darkness:7,humor:2,irony:3,interiority:3,sensory:7,figuration:2,grandeur:3,grit:8},
+ rice:        {cadence:9,ornament:9,formality:6,momentum:2,darkness:6,humor:1,irony:1,interiority:9,sensory:10,figuration:8,grandeur:8,grit:5},
+ poe:         {cadence:9,ornament:9,formality:9,momentum:3,darkness:10,humor:1,irony:2,interiority:10,sensory:7,figuration:7,grandeur:7,grit:5},
+ lovecraft:   {cadence:8,ornament:8,formality:10,momentum:2,darkness:10,humor:1,irony:1,interiority:7,sensory:5,figuration:5,grandeur:6,grit:4}
+};
+
+/* Layer 2 — signature devices (generic clauses, deliberately author-name-free). */
+var VOICE_DEVICES={
+ gaiman:["Allow exactly one uncanny image per scene, and state the impossible as flatly as the ordinary."],
+ abercrombie:["Use deliberate sentence fragments for impact.","Land one bleak joke at the grimmest moment."],
+ dinniman:["Undercut EVERY dramatic beat with a wisecrack or gallows joke.","Snark at the game's own stats, glyphs, and rules as if they were fair targets."],
+ clines:["Reveal the strange one piece at a time — never all at once.","End on a small hook that makes the next move feel urgent."],
+ leguin:["Develop ONE quiet extended metaphor across the whole scene."],
+ howard:["One vivid image per sentence, never stacked clauses.","Power sentences with strong, concrete verbs of motion."],
+ cook:["Report horror and sorcery like a bored veteran who has seen worse."],
+ wells:["Drop wry asides in quick parentheticals.","Convey feeling through observation and understatement — never by naming the emotion."],
+ muir:["Slam the sublime and the profane together in the same breath.","Puncture a gothic sentence with one sudden crude or anachronistic joke."],
+ abnett:["Track space precisely — distances, angles, who moves where."],
+ rice:["Confessional intimacy — the viewpoint feels everything intensely and remembers everything.","Describe beauty and horror with the same reverence."],
+ poe:["Build unease through repetition and mounting cadence.","Let the narration rationalize while it unravels."],
+ lovecraft:["Describe by implication — the thing glimpsed at the edge of comprehension, never shown.","At most one archaic weird adjective per beat, never stacked."]
+};
+
+var TEST_PASSAGE="You follow the sergeant down the stairs into the cellar. The air is cold and smells of earth. Three barrels stand against the far wall, and one of them has been opened. Inside it there is salt, and under the salt there is a hand, severed at the wrist, wearing a silver ring. The sergeant looks at it for a while. \"That ring belonged to the magistrate,\" she says. \"He was wearing it at the festival two nights ago.\" Something moves behind the barrels — a rat, probably, though it sounds heavier. You draw your sword. The sergeant lifts her lantern, and the light reaches the back of the cellar, where someone has drawn a spiral on the stone in chalk. The chalk is still wet. You hear the door close at the top of the stairs.";
+
+/* Flavor references — ORIGINAL passages (nothing quoted from any book), the same cellar moment
+   rendered per flavor, so reference vs. generated output compare directly. */
+var VOICE_FLAVOR={
+ gaiman:"The hand in the barrel wore a silver ring, and the salt had kept it perfect. That was the thing about salt, the sergeant said. It kept things. Somewhere above you, quietly, the door decided to close.",
+ abercrombie:"A hand in the salt. Magistrate's ring still on it. Waste of good salt. The sergeant looked like she wanted to be sick, and you knew better than to promise her this would be the worst thing today. It wouldn't.",
+ dinniman:"So there's a severed hand in the pickle barrel, because of course there is. New quest: figure out which cellar-lurking psycho collects magistrates. The scratching behind the barrels got louder, and you reminded yourself — out loud, like an idiot — that rats don't weigh forty pounds.",
+ clines:"The barrel was full of salt. Under the salt was a hand, cut clean at the wrist, and the ring on it belonged to a man who'd been alive two days ago. One fact at a time. The chalk spiral on the wall was still wet. Behind you, the door clicked shut.",
+ leguin:"Under the salt lay a man's hand, wearing its silver ring, as the earth wears the winter: patiently, without complaint. The sergeant said nothing for a long while. What is kept is not saved, you thought. The lantern-light moved on the wall like water.",
+ howard:"You ripped the sword free as something heavy stirred behind the barrels. Lantern-fire leapt across wet stone, across the chalk spiral, across the salt-crusted hand of a murdered man. The cellar breathed cold on your neck like a tomb, and above you the door boomed shut.",
+ cook:"There was a hand in the third barrel. Magistrate's, going by the ring. Nobody screamed. You've dug enough graves that a spare hand is just inventory. The chalk on the far wall was fresh, which was worth more worry than the hand. Then the door shut itself. Naturally.",
+ wells:"The hand in the barrel was, honestly, about par for this week. The sergeant kept her voice level (her lantern hand wasn't). You didn't mention that the chalk was still wet. She'd seen it. Everyone was being very, very calm about the door closing upstairs.",
+ muir:"Behold the magistrate — or the part of him deemed worth pickling — one elegant hand couched in salt like a relic in a reliquary, silver ring gleaming with frankly unearned dignity. The chalk spiral glistened, freshly drawn. Someone had gone to enormous ceremonial trouble down here, and someone else had just shut your only door. Rude.",
+ abnett:"Cellar, four metres by six. Three barrels on the north wall, one open, one hostile unknown behind them. The hand in the salt was days old; the chalk spiral, minutes. You marked the distance to the stairs — eight paces — as the door above thudded shut and made the count irrelevant.",
+ rice:"The lantern made the salt glitter like crushed pearl, and the hand rising from it was beautiful still — pale, patrician, the silver ring bright as a wedding morning. You felt the old ache rise: that even horror, here, insisted on loveliness. The wet chalk gleamed. The dark leaned closer, tender as a lover, and the door sighed shut.",
+ poe:"It was the ring — the ring, I say — that fixed your eye and would not release it, gleaming from its bed of salt as though the dead man's finger yet crooked in accusation. Still wet — the spiral on the stone was still wet. And above, softly, deliberately, with the patience of a thing that has waited long — the door drew closed.",
+ lovecraft:"No mere vandal had traced that spiral; its geometry was subtly, hatefully wrong, after the fashion of certain antediluvian carvings best left undescribed. The hand in the salt was a small horror, a human horror. What troubled you was the sound behind the barrels — too heavy for a rat — and the growing conviction that the cellar was older than the house above it. The door closed."
+};
+
+function voiceBand(attr,v){
+  var i=Math.max(0,Math.min(4,Math.ceil(v/2)-1));
+  return attr.bands[i];
+}
+function buildStyleDirective(vals){
+  var lines=[];
+  for(var i=0;i<VOICE_ATTRS.length;i++){
+    var a=VOICE_ATTRS[i];var v=vals[a.id];
+    lines.push("- "+a.nm+" "+v+"/10 — "+voiceBand(a,v));
+  }
+  return lines.join("\n");
+}
+function buildRewritePrompt(directive,passage,devices){
+  var sys="You are a precise prose stylist for a text fantasy RPG narrator.";
+  var user="Rewrite the PASSAGE below.\n"
+    +"Hard rules:\n"
+    +"- Preserve every fact, event, name, and beat exactly; change ONLY the prose style.\n"
+    +"- Keep the same grammatical person and tense as the original.\n"
+    +"- Target length within 25% of the original.\n"
+    +"- Output ONLY the rewritten passage — no preamble, no commentary, no quotation marks around the whole.\n"
+    +"- Never name, reference, or imitate-by-name any real author or book. The dials below fully define the voice.\n\n"
+    +"THE VOICE — twelve dials, each 1-10:\n"+directive+"\n"
+    +"Where dials pull against each other, blend them; the dial text overrides your defaults.\n";
+  if(devices&&devices.length){
+    user+="\nSIGNATURE MOVES (apply alongside the dials):\n";
+    for(var i=0;i<devices.length;i++)user+="- "+devices[i]+"\n";
+  }
+  user+="\nPASSAGE:\n"+passage;
+  return {system:sys,user:user};
+}
+function buildControlPrompt(vc,passage){
+  var sys="You are a precise prose stylist for a text fantasy RPG narrator.";
+  var user="Rewrite the PASSAGE below.\n"
+    +"Hard rules:\n"
+    +"- Preserve every fact, event, name, and beat exactly; change ONLY the prose style.\n"
+    +"- Keep the same grammatical person and tense as the original.\n"
+    +"- Target length within 25% of the original.\n"
+    +"- Output ONLY the rewritten passage — no preamble, no commentary.\n\n"
+    +"THE VOICE:\n"+vc+"\n"
+    +"\nPASSAGE:\n"+passage;
+  return {system:sys,user:user};
+}
+/* <<< VOICE LAB CORE */
+
+/* ── UI + transport (browser only) ─────────────────────────────────────────── */
+(function(){
+  var STORE_K="tnd_voicelab_v1";
+  var stub=/[?&]stub=1/.test(location.search)||location.hash==="#stub"; /* #stub survives static-server clean-URL redirects that drop ?queries (npx serve) */
+  var state={};   // authorId -> {attrId:val}
+  var busyRow=null;
+
+  function loadTweaks(){try{var s=localStorage.getItem(STORE_K);return s?JSON.parse(s)||{}:{};}catch(e){return{};}}
+  function saveTweaks(t){try{localStorage.setItem(STORE_K,JSON.stringify(t));}catch(e){}}
+  var tweaks=loadTweaks();
+
+  function resolveKey(){
+    try{var pk=localStorage.getItem("tnd_provider_keys_v1");if(pk){var m=JSON.parse(pk)||{};if(m.anthropic)return m.anthropic;}}catch(e){}
+    try{var k=localStorage.getItem("tnd_ak_v1");if(k)return k;}catch(e2){}
+    return "";
+  }
+  var storedKey=resolveKey();
+  function activeKey(){
+    var manual=document.getElementById("key-input").value;
+    return manual||storedKey;
+  }
+
+  function authorList(){
+    var out=[];
+    for(var i=0;i<AUTHORS.length;i++){var a=AUTHORS[i];if(a.id)out.push(a);}
+    return out;
+  }
+  function valsFor(id){
+    if(!state[id]){
+      var base=VOICE_BASELINES[id]||{};var v={};
+      for(var i=0;i<VOICE_ATTRS.length;i++){var aid=VOICE_ATTRS[i].id;v[aid]=(tweaks[id]&&tweaks[id][aid])||base[aid]||5;}
+      state[id]=v;
+    }
+    return state[id];
+  }
+
+  /* transport — swappable for tests/stub */
+  function realTransport(prompt,model){
+    var key=activeKey();
+    if(!key)return Promise.reject(new Error("No API key — open the game once on this browser, or paste a session key above."));
+    var prov=PROVIDERS.anthropic;
+    return fetch(prov.endpoint,{method:"POST",headers:prov.headers(key),body:JSON.stringify({
+      model:model,max_tokens:700,system:prompt.system,messages:[{role:"user",content:prompt.user}]
+    })}).then(function(r){return r.json();}).then(function(j){
+      if(j.error)throw new Error(j.error.message||"API error");
+      var txt=prov.parseResponse(j);
+      var u=prov.parseUsage?prov.parseUsage(j):null;
+      return {text:txt,usage:u};
+    });
+  }
+  function stubTransport(prompt){
+    return new Promise(function(res){setTimeout(function(){
+      res({text:"[STUB REWRITE] "+prompt.user.slice(prompt.user.indexOf("PASSAGE:")+9,prompt.user.indexOf("PASSAGE:")+129)+" …",usage:{in:1200,out:150}});
+    },400);});
+  }
+  var transport=stub?stubTransport:realTransport;
+
+  function run(author,mode){
+    if(busyRow)return;
+    var id=author.id;
+    var vals=valsFor(id);
+    var passage=document.getElementById("passage").value;
+    var model=document.getElementById("model-sel").value;
+    var prompt,outSel;
+    if(mode==="control"){prompt=buildControlPrompt(author.vc,passage);outSel="ctl";}
+    else{
+      var dev=document.getElementById("dev-"+id).checked?(VOICE_DEVICES[id]||[]):null;
+      prompt=buildRewritePrompt(buildStyleDirective(vals),passage,dev);outSel="dial";
+    }
+    var txtEl=document.getElementById(outSel+"-"+id);
+    var statEl=document.getElementById(outSel+"-stat-"+id);
+    busyRow=id;setButtons(id,true);
+    txtEl.className="txt";txtEl.textContent="…";statEl.className="stat";statEl.textContent="calling "+model+" …";
+    transport(prompt,model).then(function(r){
+      txtEl.textContent=r.text;
+      statEl.textContent=r.usage?("in "+(r.usage.in||"?")+" tok · out "+(r.usage.out||"?")+" tok"):"done";
+      busyRow=null;setButtons(id,false);
+    }).catch(function(e){
+      txtEl.className="txt empty";txtEl.textContent="(no output)";
+      statEl.className="stat err";statEl.textContent="✗ "+e.message;
+      busyRow=null;setButtons(id,false);
+    });
+  }
+  function setButtons(id,disabled){
+    document.getElementById("test-"+id).disabled=disabled;
+    document.getElementById("ctlbtn-"+id).disabled=disabled;
+  }
+
+  function renderRow(author){
+    var id=author.id;
+    var vals=valsFor(id);
+    var d=document.createElement("details");d.className="author";d.id="row-"+id;
+    var html="";
+    html+='<summary><span class="chev">▶</span><span class="nm">'+author.nm+'</span>';
+    if(author.profane)html+='<span class="prof">18+</span>';
+    html+='<span class="blurb">'+author.blurb+'</span></summary>';
+    html+='<div class="body">';
+    html+='<div class="flavor"><span class="cap">Flavor reference — the target, same scene (original text)</span>'+(VOICE_FLAVOR[id]||"(no reference authored)")+'</div>';
+    html+='<div class="lab-row"><div class="sliders" id="sliders-'+id+'">';
+    for(var i=0;i<VOICE_ATTRS.length;i++){
+      var a=VOICE_ATTRS[i];
+      html+='<div class="sl" id="sl-'+id+'-'+a.id+'"><span class="val" id="val-'+id+'-'+a.id+'">'+vals[a.id]+'</span>'
+        +'<input type="range" min="1" max="10" step="1" value="'+vals[a.id]+'" data-author="'+id+'" data-attr="'+a.id+'" title="'+a.nm+'">'
+        +'<span class="lbl">'+a.lbl+'</span></div>';
+    }
+    html+='</div><div class="actions">';
+    html+='<button class="primary" id="test-'+id+'">Test prose</button>';
+    html+='<label><input type="checkbox" id="dev-'+id+'"> + signature devices</label>';
+    html+='<button class="ghost" id="ctlbtn-'+id+'">Author-name control</button>';
+    html+='<span class="reset" id="reset-'+id+'">reset sliders to baseline</span>';
+    html+='</div></div>';
+    var devs=VOICE_DEVICES[id]||[];
+    if(devs.length)html+='<div class="devices"><b>Signature devices:</b> '+devs.join(" · ")+'</div>';
+    html+='<div class="outs">';
+    html+='<div class="out"><div class="cap">Dial rewrite (no name in prompt)</div><div class="txt empty" id="dial-'+id+'">(not run yet)</div><div class="stat" id="dial-stat-'+id+'"></div></div>';
+    html+='<div class="out"><div class="cap">Author-name control</div><div class="txt empty" id="ctl-'+id+'">(not run yet)</div><div class="stat" id="ctl-stat-'+id+'"></div></div>';
+    html+='</div></div>';
+    d.innerHTML=html;
+    document.getElementById("rows").appendChild(d);
+
+    document.getElementById("test-"+id).addEventListener("click",function(){run(author,"dial");});
+    document.getElementById("ctlbtn-"+id).addEventListener("click",function(){run(author,"control");});
+    document.getElementById("reset-"+id).addEventListener("click",function(){
+      var base=VOICE_BASELINES[id]||{};
+      for(var i=0;i<VOICE_ATTRS.length;i++){var aid=VOICE_ATTRS[i].id;setSlider(id,aid,base[aid]||5);}
+      delete tweaks[id];saveTweaks(tweaks);
+    });
+    var inputs=d.querySelectorAll('input[type="range"]');
+    for(var j=0;j<inputs.length;j++){
+      inputs[j].addEventListener("input",function(ev){
+        var el=ev.target;setSlider(el.getAttribute("data-author"),el.getAttribute("data-attr"),parseInt(el.value,10),true);
+      });
+    }
+    markMoved(id);
+  }
+  function setSlider(id,attr,v,fromUi){
+    valsFor(id)[attr]=v;
+    document.getElementById("val-"+id+"-"+attr).textContent=v;
+    if(!fromUi){var inp=document.querySelector('#sl-'+id+'-'+attr+' input');if(inp)inp.value=v;}
+    if(fromUi){tweaks[id]=tweaks[id]||{};tweaks[id][attr]=v;saveTweaks(tweaks);}
+    markMoved(id);
+  }
+  function markMoved(id){
+    var base=VOICE_BASELINES[id]||{};var vals=valsFor(id);
+    for(var i=0;i<VOICE_ATTRS.length;i++){
+      var aid=VOICE_ATTRS[i].id;
+      var el=document.getElementById("sl-"+id+"-"+aid);
+      if(el)el.className="sl"+(vals[aid]!==(base[aid]||5)?" moved":"");
+    }
+  }
+
+  /* boot */
+  document.getElementById("ver").textContent="engine "+(typeof APP_VERSION!=="undefined"?APP_VERSION:"?");
+  var pas=document.getElementById("passage");pas.value=TEST_PASSAGE;
+  document.getElementById("restore-passage").addEventListener("click",function(){pas.value=TEST_PASSAGE;});
+  var ms=document.getElementById("model-sel");
+  var models=(typeof PROVIDERS!=="undefined"&&PROVIDERS.anthropic&&PROVIDERS.anthropic.models)||[];
+  for(var i=0;i<models.length;i++){var o=document.createElement("option");o.value=models[i];o.textContent=models[i];ms.appendChild(o);}
+  if(typeof PROVIDERS!=="undefined"&&PROVIDERS.anthropic)ms.value=PROVIDERS.anthropic.defaultModel;
+  var ks=document.getElementById("key-status");
+  if(stub){document.getElementById("stub-note").style.display="";ks.textContent="";}
+  else if(storedKey){ks.innerHTML='API key: <span class="keyok">found (…'+storedKey.slice(-4)+')</span>';}
+  else{ks.innerHTML='API key: <span class="keybad">none found</span>';document.getElementById("key-entry").style.display="";}
+  var list=authorList();
+  for(var r=0;r<list.length;r++)renderRow(list[r]);
+
+  /* test seam */
+  window.__voiceLabTest={
+    attrs:VOICE_ATTRS,baselines:VOICE_BASELINES,devices:VOICE_DEVICES,flavor:VOICE_FLAVOR,
+    passage:TEST_PASSAGE,buildStyleDirective:buildStyleDirective,buildRewritePrompt:buildRewritePrompt,
+    buildControlPrompt:buildControlPrompt,band:voiceBand,
+    vals:valsFor,setSlider:setSlider,run:run,authors:authorList,
+    setTransport:function(fn){transport=fn;},
+    getOutputs:function(id){return{dial:document.getElementById("dial-"+id).textContent,ctl:document.getElementById("ctl-"+id).textContent};}
+  };
+})();
+</script>
+</body>
+</html>
