@@ -71,6 +71,7 @@ These are the lab's starting positions, expected to be tuned by ear.
 | Rice | 9 | 9 | 6 | 2 | 6 | 1 | 1 | 9 | 10 | 8 | 8 | 5 |
 | Poe | 9 | 9 | 9 | 3 | 10 | 1 | 2 | 10 | 7 | 7 | 7 | 5 |
 | Lovecraft | 8 | 8 | 10 | 2 | 10 | 1 | 1 | 7 | 5 | 5 | 6 | 4 |
+| Moorcock | 7 | 7 | 8 | 6 | 8 | 1 | 3 | 6 | 7 | 6 | 8 | 6 |
 
 ## Layer 2 — signature devices per author
 
@@ -89,6 +90,7 @@ These are the lab's starting positions, expected to be tuned by ear.
 | Rice | confessional intimacy; describe beauty and horror with the same reverence |
 | Poe | repetition and mounting cadence; the narrator rationalizes while unraveling |
 | Lovecraft | describe by implication — the thing glimpsed, never shown; one archaic weird adjective per beat, never stacked |
+| Moorcock | every triumph carries the visible seed of its price; feverish dreamlike intensity at sorcery |
 
 ## The test instrument
 
@@ -103,8 +105,14 @@ author so comparison is direct), the 12 attribute sliders at baseline, and three
 3. **Author-name control** — rewrites using the real shipped `vc` directive. The control arm.
 
 Judge by comparing 1 (and 1+2) against the flavor reference and the control. Slider tweaks
-persist per author in `tnd_voicelab_v1`; Reset returns to baseline. `?stub=1` fakes the model
-call for UI testing without a key.
+persist per author in `tnd_voicelab_v1`; Reset returns to baseline. `?stub=1` (or `#stub`) fakes
+the model call for UI testing without a key. A final **Custom** row starts all dials at 5 with no
+target — move one dial at a time to learn what each attribute does (dial-rewrite only; no
+control arm, since there is no author to control against). Slider labels are spelled out in full
+and every slider/label tooltip shows the current band's meaning live (user calls 2026-07-30:
+clarity over brevity; tooltips on all actions).
+
+Moorcock added 2026-07-30 (user request) — rated like the rest, entry appended to `AUTHORS`.
 
 **Note on content DNA:** `AUTHORS` also carries `contentDNA` (story-shape directives — arc
 structure, NPC texture, ending flavor). That is a SEPARATE de-branding problem: contentDNA text

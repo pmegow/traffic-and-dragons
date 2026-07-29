@@ -47,12 +47,12 @@ summary .prof{font-family:var(--font-mono);font-size:.7em;letter-spacing:1px;tex
 .flavor .cap{display:block;font-style:normal;font-family:var(--font-mono);font-size:.72em;letter-spacing:1px;
   text-transform:uppercase;color:var(--t2);margin-bottom:6px}
 .lab-row{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap}
-.sliders{display:flex;gap:6px;flex:1;min-width:0;justify-content:space-between;background:var(--bg2);
+.sliders{display:flex;flex-wrap:wrap;gap:6px 4px;flex:1;min-width:0;justify-content:space-between;background:var(--bg2);
   border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px 8px}
-.sl{display:flex;flex-direction:column;align-items:center;gap:4px;width:34px}
+.sl{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1 0 68px}
 .sl .val{font-family:var(--font-mono);font-size:.8em;color:var(--acc);min-height:1.1em}
 .sl input[type=range]{writing-mode:vertical-lr;direction:rtl;width:22px;height:120px;margin:0;accent-color:var(--acc);cursor:pointer}
-.sl .lbl{font-family:var(--font-mono);font-size:.68em;color:var(--t1);letter-spacing:.5px}
+.sl .lbl{font-family:var(--font-mono);font-size:.7em;color:var(--t1);letter-spacing:.3px;text-align:center;white-space:nowrap}
 .sl.moved .val{color:#e8c88a;font-weight:bold}
 .actions{display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:170px}
 button{font-family:var(--font);border-radius:var(--r);cursor:pointer;font-size:.92em;padding:8px 14px}
@@ -197,8 +197,12 @@ var VOICE_BASELINES={
  abnett:      {cadence:2,ornament:2,formality:4,momentum:9,darkness:7,humor:2,irony:3,interiority:3,sensory:7,figuration:2,grandeur:3,grit:8},
  rice:        {cadence:9,ornament:9,formality:6,momentum:2,darkness:6,humor:1,irony:1,interiority:9,sensory:10,figuration:8,grandeur:8,grit:5},
  poe:         {cadence:9,ornament:9,formality:9,momentum:3,darkness:10,humor:1,irony:2,interiority:10,sensory:7,figuration:7,grandeur:7,grit:5},
- lovecraft:   {cadence:8,ornament:8,formality:10,momentum:2,darkness:10,humor:1,irony:1,interiority:7,sensory:5,figuration:5,grandeur:6,grit:4}
+ lovecraft:   {cadence:8,ornament:8,formality:10,momentum:2,darkness:10,humor:1,irony:1,interiority:7,sensory:5,figuration:5,grandeur:6,grit:4},
+ moorcock:    {cadence:7,ornament:7,formality:8,momentum:6,darkness:8,humor:1,irony:3,interiority:6,sensory:7,figuration:6,grandeur:8,grit:6}
 };
+
+/* The Custom row starts here — a neutral vector for learning the dials one at a time. */
+var CUSTOM_BASELINE={cadence:5,ornament:5,formality:5,momentum:5,darkness:5,humor:5,irony:5,interiority:5,sensory:5,figuration:5,grandeur:5,grit:5};
 
 /* Layer 2 — signature devices (generic clauses, deliberately author-name-free). */
 var VOICE_DEVICES={
@@ -214,7 +218,8 @@ var VOICE_DEVICES={
  abnett:["Track space precisely — distances, angles, who moves where."],
  rice:["Confessional intimacy — the viewpoint feels everything intensely and remembers everything.","Describe beauty and horror with the same reverence."],
  poe:["Build unease through repetition and mounting cadence.","Let the narration rationalize while it unravels."],
- lovecraft:["Describe by implication — the thing glimpsed at the edge of comprehension, never shown.","At most one archaic weird adjective per beat, never stacked."]
+ lovecraft:["Describe by implication — the thing glimpsed at the edge of comprehension, never shown.","At most one archaic weird adjective per beat, never stacked."],
+ moorcock:["Let every triumph carry the visible seed of its price.","Feverish, dreamlike intensity at moments of sorcery."]
 };
 
 var TEST_PASSAGE="You follow the sergeant down the stairs into the cellar. The air is cold and smells of earth. Three barrels stand against the far wall, and one of them has been opened. Inside it there is salt, and under the salt there is a hand, severed at the wrist, wearing a silver ring. The sergeant looks at it for a while. \"That ring belonged to the magistrate,\" she says. \"He was wearing it at the festival two nights ago.\" Something moves behind the barrels — a rat, probably, though it sounds heavier. You draw your sword. The sergeant lifts her lantern, and the light reaches the back of the cellar, where someone has drawn a spiral on the stone in chalk. The chalk is still wet. You hear the door close at the top of the stairs.";
@@ -234,7 +239,8 @@ var VOICE_FLAVOR={
  abnett:"Cellar, four metres by six. Three barrels on the north wall, one open, one hostile unknown behind them. The hand in the salt was days old; the chalk spiral, minutes. You marked the distance to the stairs — eight paces — as the door above thudded shut and made the count irrelevant.",
  rice:"The lantern made the salt glitter like crushed pearl, and the hand rising from it was beautiful still — pale, patrician, the silver ring bright as a wedding morning. You felt the old ache rise: that even horror, here, insisted on loveliness. The wet chalk gleamed. The dark leaned closer, tender as a lover, and the door sighed shut.",
  poe:"It was the ring — the ring, I say — that fixed your eye and would not release it, gleaming from its bed of salt as though the dead man's finger yet crooked in accusation. Still wet — the spiral on the stone was still wet. And above, softly, deliberately, with the patience of a thing that has waited long — the door drew closed.",
- lovecraft:"No mere vandal had traced that spiral; its geometry was subtly, hatefully wrong, after the fashion of certain antediluvian carvings best left undescribed. The hand in the salt was a small horror, a human horror. What troubled you was the sound behind the barrels — too heavy for a rat — and the growing conviction that the cellar was older than the house above it. The door closed."
+ lovecraft:"No mere vandal had traced that spiral; its geometry was subtly, hatefully wrong, after the fashion of certain antediluvian carvings best left undescribed. The hand in the salt was a small horror, a human horror. What troubled you was the sound behind the barrels — too heavy for a rat — and the growing conviction that the cellar was older than the house above it. The door closed.",
+ moorcock:"The ring gleamed from its bed of salt like the last jewel of a drowned empire, and you knew, with the weary certainty of one who has read omens before, that it had not been hidden here to be forgotten. The spiral on the stone was fresh. Old powers were moving again, indifferent to the small lives they would spend in the moving. Above you the door swung shut, and it sounded like fate."
 };
 
 function voiceBand(attr,v){
@@ -347,7 +353,8 @@ function buildControlPrompt(vc,passage){
     var prompt,outSel;
     if(mode==="control"){prompt=buildControlPrompt(author.vc,passage);outSel="ctl";}
     else{
-      var dev=document.getElementById("dev-"+id).checked?(VOICE_DEVICES[id]||[]):null;
+      var devEl=document.getElementById("dev-"+id);
+      var dev=(devEl&&devEl.checked)?(VOICE_DEVICES[id]||[]):null;
       prompt=buildRewritePrompt(buildStyleDirective(vals),passage,dev);outSel="dial";
     }
     var txtEl=document.getElementById(outSel+"-"+id);
@@ -365,12 +372,20 @@ function buildControlPrompt(vc,passage){
     });
   }
   function setButtons(id,disabled){
-    document.getElementById("test-"+id).disabled=disabled;
-    document.getElementById("ctlbtn-"+id).disabled=disabled;
+    var t=document.getElementById("test-"+id);if(t)t.disabled=disabled;
+    var c=document.getElementById("ctlbtn-"+id);if(c)c.disabled=disabled;
   }
+  function sliderTitle(a,v){return a.nm+" "+v+"/10 — "+voiceBand(a,v);}
 
+  var TIPS={
+    test:"Rewrite the neutral passage using ONLY the twelve dial values — no author name reaches the model. This is the de-branding hypothesis test.",
+    dev:"Also send this author's signature-device clauses (still no name in the prompt) — tests the two-layer model when dials alone fall short.",
+    ctl:"Rewrite using the shipped author-name directive (vc) — the control arm to judge the dial rewrite against.",
+    reset:"Return all twelve dials to this author's rated baseline and clear your saved tweaks for this row."
+  };
   function renderRow(author){
     var id=author.id;
+    var isCustom=!!author.custom;
     var vals=valsFor(id);
     var d=document.createElement("details");d.className="author";d.id="row-"+id;
     var html="";
@@ -378,33 +393,38 @@ function buildControlPrompt(vc,passage){
     if(author.profane)html+='<span class="prof">18+</span>';
     html+='<span class="blurb">'+author.blurb+'</span></summary>';
     html+='<div class="body">';
-    html+='<div class="flavor"><span class="cap">Flavor reference — the target, same scene (original text)</span>'+(VOICE_FLAVOR[id]||"(no reference authored)")+'</div>';
+    if(isCustom){
+      html+='<div class="flavor"><span class="cap">Free play — no target</span>All dials start at 5. Move ONE dial to an extreme, run Test prose, and read what changed — the fastest way to learn what each attribute does. Hover any slider for its current setting’s meaning.</div>';
+    }else{
+      html+='<div class="flavor"><span class="cap">Flavor reference — the target, same scene (original text)</span>'+(VOICE_FLAVOR[id]||"(no reference authored)")+'</div>';
+    }
     html+='<div class="lab-row"><div class="sliders" id="sliders-'+id+'">';
     for(var i=0;i<VOICE_ATTRS.length;i++){
       var a=VOICE_ATTRS[i];
       html+='<div class="sl" id="sl-'+id+'-'+a.id+'"><span class="val" id="val-'+id+'-'+a.id+'">'+vals[a.id]+'</span>'
-        +'<input type="range" min="1" max="10" step="1" value="'+vals[a.id]+'" data-author="'+id+'" data-attr="'+a.id+'" title="'+a.nm+'">'
-        +'<span class="lbl">'+a.lbl+'</span></div>';
+        +'<input type="range" min="1" max="10" step="1" value="'+vals[a.id]+'" data-author="'+id+'" data-attr="'+a.id+'" title="'+sliderTitle(a,vals[a.id]).replace(/"/g,"&quot;")+'">'
+        +'<span class="lbl" title="'+sliderTitle(a,vals[a.id]).replace(/"/g,"&quot;")+'">'+a.nm+'</span></div>';
     }
     html+='</div><div class="actions">';
-    html+='<button class="primary" id="test-'+id+'">Test prose</button>';
-    html+='<label><input type="checkbox" id="dev-'+id+'"> + signature devices</label>';
-    html+='<button class="ghost" id="ctlbtn-'+id+'">Author-name control</button>';
-    html+='<span class="reset" id="reset-'+id+'">reset sliders to baseline</span>';
+    html+='<button class="primary" id="test-'+id+'" title="'+TIPS.test+'">Test prose</button>';
+    if(!isCustom)html+='<label title="'+TIPS.dev+'"><input type="checkbox" id="dev-'+id+'"> + signature devices</label>';
+    if(!isCustom)html+='<button class="ghost" id="ctlbtn-'+id+'" title="'+TIPS.ctl+'">Author-name control</button>';
+    html+='<span class="reset" id="reset-'+id+'" title="'+TIPS.reset+'">'+(isCustom?'reset dials to 5':'reset sliders to baseline')+'</span>';
     html+='</div></div>';
-    var devs=VOICE_DEVICES[id]||[];
+    var devs=isCustom?[]:(VOICE_DEVICES[id]||[]);
     if(devs.length)html+='<div class="devices"><b>Signature devices:</b> '+devs.join(" · ")+'</div>';
     html+='<div class="outs">';
     html+='<div class="out"><div class="cap">Dial rewrite (no name in prompt)</div><div class="txt empty" id="dial-'+id+'">(not run yet)</div><div class="stat" id="dial-stat-'+id+'"></div></div>';
-    html+='<div class="out"><div class="cap">Author-name control</div><div class="txt empty" id="ctl-'+id+'">(not run yet)</div><div class="stat" id="ctl-stat-'+id+'"></div></div>';
+    if(!isCustom)html+='<div class="out"><div class="cap">Author-name control</div><div class="txt empty" id="ctl-'+id+'">(not run yet)</div><div class="stat" id="ctl-stat-'+id+'"></div></div>';
     html+='</div></div>';
     d.innerHTML=html;
     document.getElementById("rows").appendChild(d);
 
     document.getElementById("test-"+id).addEventListener("click",function(){run(author,"dial");});
-    document.getElementById("ctlbtn-"+id).addEventListener("click",function(){run(author,"control");});
+    var ctlEl=document.getElementById("ctlbtn-"+id);
+    if(ctlEl)ctlEl.addEventListener("click",function(){run(author,"control");});
     document.getElementById("reset-"+id).addEventListener("click",function(){
-      var base=VOICE_BASELINES[id]||{};
+      var base=VOICE_BASELINES[id]||CUSTOM_BASELINE;
       for(var i=0;i<VOICE_ATTRS.length;i++){var aid=VOICE_ATTRS[i].id;setSlider(id,aid,base[aid]||5);}
       delete tweaks[id];saveTweaks(tweaks);
     });
@@ -419,7 +439,11 @@ function buildControlPrompt(vc,passage){
   function setSlider(id,attr,v,fromUi){
     valsFor(id)[attr]=v;
     document.getElementById("val-"+id+"-"+attr).textContent=v;
-    if(!fromUi){var inp=document.querySelector('#sl-'+id+'-'+attr+' input');if(inp)inp.value=v;}
+    var cell=document.getElementById("sl-"+id+"-"+attr);
+    var inp=cell?cell.querySelector("input"):null;
+    if(!fromUi&&inp)inp.value=v;
+    var a=null;for(var i=0;i<VOICE_ATTRS.length;i++)if(VOICE_ATTRS[i].id===attr){a=VOICE_ATTRS[i];break;}
+    if(a&&cell){var tt=sliderTitle(a,v);if(inp)inp.title=tt;var lb=cell.querySelector(".lbl");if(lb)lb.title=tt;}
     if(fromUi){tweaks[id]=tweaks[id]||{};tweaks[id][attr]=v;saveTweaks(tweaks);}
     markMoved(id);
   }
@@ -446,6 +470,7 @@ function buildControlPrompt(vc,passage){
   else{ks.innerHTML='API key: <span class="keybad">none found</span>';document.getElementById("key-entry").style.display="";}
   var list=authorList();
   for(var r=0;r<list.length;r++)renderRow(list[r]);
+  renderRow({id:"custom",nm:"Custom",blurb:"Free play — move one dial at a time to learn what each attribute does.",custom:true});
 
   /* test seam */
   window.__voiceLabTest={
