@@ -91,7 +91,9 @@ textarea{width:100%;resize:vertical;}
   <button class="primary" id="open">📂 Open bible…</button>
   <button class="primary" id="save" disabled>💾 Save (overwrite)</button>
   <button id="download">⬇ Download copy</button>
+  <button id="reload">↻ Reload from disk</button>
   <button id="exp-adds">⬇ Capability additions (<span id="addn">0</span>)</button>
+  <button id="clr-adds" style="display:none">⌫ Clear merged (<span id="clrn">0</span>)</button>
   <button id="discard">Discard draft</button>
   <span id="draftnote"></span>
   <span id="prog"></span>
@@ -349,9 +351,48 @@ function serializeCapabilityBible(state) {
       note("saved → " + CUR.name);
       render();
     })["catch"](function (e) {
+      // The FSA API refuses createWritable() when the file changed on disk after this handle last
+      // read it — its raw wording ("state cached in an interface object") explains nothing. That
+      // case is not a failure, it is the browser REFUSING TO LET A STALE EDITOR CLOBBER A NEWER
+      // FILE, which is exactly right when a git pull / another session / a code change moved it.
+      // Say so, and offer the only correct recovery: re-read the file first.
+      var stale = e && (e.name === "InvalidStateError" || /changed since it was read from disk/i.test(e.message || ""));
+      if (stale) {
+        alert("Save refused — " + CUR.name + " CHANGED ON DISK after this editor read it.\n\n" +
+          "The browser is protecting the newer file from being overwritten by this older view. " +
+          "That usually means a git operation, another session, or a code change touched it.\n\n" +
+          "Press ↻ Reload from disk to pick up the current file (your unsaved edits in this tab are " +
+          "replaced), or ⬇ Download copy and merge by hand.");
+        note("save refused — the file on disk is newer; use ↻ Reload from disk");
+        return;
+      }
       alert("Save failed: " + (e && e.message) + "\n\nFalling back to a download; move it over the original yourself.");
       downloadCopy();
     });
+  }
+
+  // Re-read the open file from disk, replacing what is in the tab. The recovery for a stale handle
+  // (see saveBible) and the way to pick up a file that changed underneath you mid-session.
+  function reloadFromDisk() {
+    if (!CUR) { alert("No bible open."); return; }
+    if (!CUR.handle) { alert("No file handle — this bible was not opened from disk (or the permission lapsed).\n\nUse 📂 Open bible… to pick it up again."); return; }
+    if (CUR.dirty && !confirm("Reload " + CUR.name + " from disk?\n\nUnsaved edits in this tab will be REPLACED by the file's current contents.")) return;
+    CUR.handle.getFile().then(function (f) { return f.text(); }).then(function (txt) {
+      loadFromText(txt, CUR.handle, CUR.name);
+      note("reloaded " + CUR.name + " from disk");
+    })["catch"](function (e) {
+      alert("Reload failed: " + (e && e.message) + "\n\nIf the permission lapsed, press Reconnect (or re-open the file).");
+    });
+  }
+
+  // Additions whose name now RESOLVES in the shipped bible: the define-form flow exists only to
+  // author capabilities that are MISSING, so once one is merged its staged copy is dead weight
+  // that keeps reporting itself in the header count forever (found in use, 2026-07-28 — three of
+  // four staged additions had shipped at v1.468 and the count still read 4).
+  function mergedAdds() {
+    var out = [], k;
+    for (k in ADD) if (typeof capabilityLookup === "function" && capabilityLookup(k)) out.push(k);
+    return out;
   }
 
   function downloadCopy() {
@@ -472,6 +513,11 @@ function serializeCapabilityBible(state) {
     $("fileline").innerHTML = h;
     if ($("reconn")) $("reconn").onclick = reconnect;
     $("save").disabled = false;
+    // surface merged additions as a one-click cleanup, never an automatic deletion of authored data
+    var merged = mergedAdds();
+    $("clr-adds").style.display = merged.length ? "" : "none";
+    $("clrn").textContent = merged.length;
+    $("clr-adds").title = merged.length ? "Already in capability_bible: " + merged.join(", ") : "";
   }
   function progress() {
     if (!CUR) { $("prog").textContent = ""; return; }
@@ -860,6 +906,18 @@ function serializeCapabilityBible(state) {
     if (!confirm("Discard the local draft and reload?")) return;
     try { localStorage.removeItem(DRAFT_K); } catch (e) {}
     location.reload();
+  };
+  $("reload").onclick = reloadFromDisk;
+  $("clr-adds").onclick = function () {
+    var merged = mergedAdds();
+    if (!merged.length) return;
+    if (!confirm("Clear " + merged.length + " staged addition(s) already in capability_bible?\n\n" +
+      merged.join("\n") + "\n\nThese were merged into the bible, so the staged copies do nothing. " +
+      "Additions NOT yet in the bible are kept.")) return;
+    merged.forEach(function (k) { delete ADD[k]; });
+    console.info("[bible] cleared merged additions: " + merged.join(", "));
+    note("cleared " + merged.length + " already-merged addition(s)");
+    markDirty(); render();
   };
   $("exp-adds").onclick = function () {
     var ks = Object.keys(ADD);
