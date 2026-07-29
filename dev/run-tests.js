@@ -431,7 +431,7 @@ try {
   var _coreVL = _mVL[1];
   if (/document\.|window\.|fetch\(|localStorage/.test(_coreVL)) _failVL("core block touches DOM/fetch/localStorage — it must stay pure so this contract can execute it.");
   var _labVL = (new Function(_coreVL +
-    "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt};"))();
+    "; return {attrs: VOICE_ATTRS, base: VOICE_BASELINES, dev: VOICE_DEVICES, flavor: VOICE_FLAVOR, dist: VOICE_DISTILLED, passage: TEST_PASSAGE, band: voiceBand, directive: buildStyleDirective, rewrite: buildRewritePrompt, control: buildControlPrompt, distPrompt: buildDistilledPrompt};"))();
   // ② 12 attributes, 5 non-empty bands each; band mapping covers 1..10.
   if (_labVL.attrs.length !== 12) _failVL("expected 12 attributes, found " + _labVL.attrs.length + " — update DOC/DOC_author_voice.md and this contract together if the space changes.");
   _labVL.attrs.forEach(function (a) {
@@ -453,19 +453,25 @@ try {
     });
     if (Object.keys(b).length !== 12) _failVL("baseline '" + id + "' has stray keys beyond the 12 attributes.");
     if (!_labVL.flavor[id] || _labVL.flavor[id].length < 80) _failVL("author '" + id + "' has no flavor reference passage.");
+    if (!_labVL.dist[id] || _labVL.dist[id].length < 100) _failVL("author '" + id + "' has no DISTILLED directive — the third arm needs one per author (same-commit rule).");
   });
   Object.keys(_labVL.base).forEach(function (id) { if (_idsVL.indexOf(id) < 0) _failVL("baseline '" + id + "' has no matching author in data.js — remove it or fix the id."); });
   // ④ The dial prompt is genuinely name-free for EVERY author at baseline (the whole point).
   var _tokensVL = [];
   _namesVL.forEach(function (nm) { nm.split(/[^A-Za-z]+/).forEach(function (t) { if (t.length >= 3) _tokensVL.push(t.toLowerCase()); }); });
   _idsVL.forEach(function (id) {
-    var p = _labVL.rewrite(_labVL.directive(_labVL.base[id]), _labVL.passage, _labVL.dev[id] || []);
-    var low = (p.system + "\n" + p.user).toLowerCase();
-    _tokensVL.forEach(function (t) {
-      if (new RegExp("\\b" + t + "\\b").test(low)) _failVL("dial prompt for '" + id + "' contains author-name token '" + t + "' — the no-name guarantee is broken.");
+    var _arms = [
+      { kind: "dial", p: _labVL.rewrite(_labVL.directive(_labVL.base[id]), _labVL.passage, _labVL.dev[id] || []) },
+      { kind: "distilled", p: _labVL.distPrompt(_labVL.dist[id], _labVL.passage) }
+    ];
+    _arms.forEach(function (arm) {
+      var low = (arm.p.system + "\n" + arm.p.user).toLowerCase();
+      _tokensVL.forEach(function (t) {
+        if (new RegExp("\\b" + t + "\\b").test(low)) _failVL(arm.kind + " prompt for '" + id + "' contains author-name token '" + t + "' — the no-name guarantee is broken.");
+      });
+      if (low.indexOf("never name, reference, or imitate-by-name") < 0) _failVL(arm.kind + " prompt lost the never-name guard clause.");
+      if (arm.p.user.indexOf(_labVL.passage) < 0) _failVL(arm.kind + " prompt does not embed the passage verbatim.");
     });
-    if (low.indexOf("never name, reference, or imitate-by-name") < 0) _failVL("dial prompt lost the never-name guard clause.");
-    if (p.user.indexOf(_labVL.passage) < 0) _failVL("dial prompt does not embed the passage verbatim.");
   });
   // ⑤ The control prompt embeds the real vc (the control arm works).
   var _ctlVL = _labVL.control("VOICE DIRECTIVE SENTINEL", _labVL.passage);

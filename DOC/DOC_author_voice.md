@@ -102,7 +102,15 @@ author so comparison is direct), the 12 attribute sliders at baseline, and three
    the slider values (no author name anywhere in the prompt). The hypothesis test.
 2. **+ devices checkbox** — appends the layer-2 device clauses (still no name). Tests the
    two-layer refinement.
-3. **Author-name control** — rewrites using the real shipped `vc` directive. The control arm.
+3. **Distilled (name-free)** — added 2026-07-30 after the first Muir field run: the dial arm
+   lost clearly to the control, and the diagnosis is that **a name is a POINTER into the model's
+   absorbed corpus, while a dial list is a DESCRIPTION it must average** (the averaging was
+   visible: Ornament 9 + Grandeur 9 drowned Humor 8; twice the prompt tokens, worse output).
+   This arm tests description-as-gestalt — one coherent hand-authored name-free paragraph per
+   voice (`VOICE_DISTILLED`), same never-name guard, richer than the dial bands. If it closes
+   the gap, the SHIPPING artifact is a distilled directive (with dials as the editing UI that
+   regenerates it), not a dial list sent raw.
+4. **Author-name control** — rewrites using the real shipped `vc` directive. The control arm.
 
 Judge by comparing 1 (and 1+2) against the flavor reference and the control. Slider tweaks
 persist per author in `tnd_voicelab_v1`; Reset returns to baseline. `?stub=1` (or `#stub`) fakes
