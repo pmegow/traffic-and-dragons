@@ -67,32 +67,42 @@ var CLASS_BIBLE = {
       "5": {
         "features": [
           {
-            "nm": "Extra Attack",
-            "ds": "attack twice per action."
+            "nm": "Indomitable",
+            "ds": "Reroll a failed saving throw, once per rest."
           }
         ]
       },
       "7": {
         "features": [
           {
-            "nm": "Indomitable",
-            "ds": "reroll a failed save, once per rest."
+            "nm": "Resilience",
+            "ds": "You recover 1 hit point per level every hour — a Warrior who walks off a battlefield is whole by nightfall, with no healer."
           }
         ]
       },
       "9": {
         "features": [
           {
-            "nm": "Indomitable (x2)",
-            "ds": "twice per rest."
+            "nm": "Taunt",
+            "ds": "Make yourself the only thing worth killing: for 3 rounds every foe who heard you attacks you instead of your companions."
           }
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Double Attack",
+            "ds": "You attack twice on your turn, and may split the two attacks between different targets."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "Counter Attack",
+            "ds": "Roll d20 against each melee attack on you; under your level, the attack is countered — no damage, and you answer with a strike of your own."
+          }
+        ]
       },
       "15": {
         "features": []

@@ -321,8 +321,11 @@ function runEngineTests(R){
     return true;
   });
   t("the Lv9 naming bug is dead in the bible: seeded features carry their REAL names",function(){
-    var f=CLASS_BIBLE.Warrior.levels["9"].features[0];
-    if(!f||f.nm!=="Indomitable (x2)")return "Warrior L9: "+JSON.stringify(f);
+    /* Fixture moved off Warrior L9 at v1.482: the user's authored ladder legitimately replaced
+       Indomitable(x2) with Taunt there. Pinned to a class not yet re-authored so the canary
+       measures the naming bug, not the fill phase. The general scan below is the real guard. */
+    var f=CLASS_BIBLE.Primal.levels["9"].features[0];
+    if(!f||f.nm!=="Brutal Critical")return "Primal L9: "+JSON.stringify(f);
     f=CLASS_BIBLE.Rogue.levels["2"].features[0];
     if(!f||f.nm!=="Cunning Action")return "Rogue L2: "+JSON.stringify(f);
     for(var k in CLASS_BIBLE)for(var l in CLASS_BIBLE[k].levels)
@@ -484,6 +487,32 @@ function runEngineTests(R){
     var ss=capabilityLookup("Soul Steal");
     if(!/4 hours/i.test(ss.duration))return "Soul Steal lost its 4-hour window: "+ss.duration;
     if(!/three/i.test(ss.effect)||!/expires or (you )?releas/i.test(ss.effect))return "Soul Steal lost the 3-slot / hold-until-released rule";
+    return true;
+  });
+  t("Warrior CLASS rows are the user's authored ladder, and every one carries injectable canon",function(){
+    // User-specified slate 2026-07-28. Two deliberate displacements: Indomitable moves L7→L5, and
+    // Extra Attack / Indomitable(x2) leave the ladder entirely (the attack upgrade returns at L11
+    // as Double Attack). L15/L17 stay blank — not specified, and a blank is a fill-phase slot,
+    // not an error. All martial/mundane: a Warrior's chassis is craft, never magic.
+    var want={"2":"Action Surge","5":"Indomitable","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack"};
+    var L=CLASS_BIBLE.Warrior.levels,miss=[],lv;
+    for(lv in want){
+      var fs=L[lv]&&L[lv].features;
+      if(!fs||!fs.length){miss.push("L"+lv+" empty");continue;}
+      if(fs[0].nm!==want[lv]){miss.push("L"+lv+" is '"+fs[0].nm+"', want '"+want[lv]+"'");continue;}
+      var e=capabilityLookup(fs[0].nm);
+      if(!e){miss.push("L"+lv+" '"+fs[0].nm+"' has no capability entry");continue;}
+      if(e.isMagical||e.category.indexOf("martial")<0)miss.push("L"+lv+" '"+fs[0].nm+"' is not mundane-martial");
+    }
+    if(L["5"].features[0]&&L["5"].features[0].nm==="Extra Attack")miss.push("Extra Attack still occupies L5");
+    if(miss.length)return miss.join(" | ");
+    // Counter Attack's whole shape is the level threshold — it must reach the GM, not live in a comment.
+    var ca=capabilityLookup("Counter Attack");
+    if(!/d20/.test(ca.dice)||!/(under|less than|below) your (character )?level/i.test(ca.effect+" "+ca.dice))
+      return "Counter Attack lost its roll-under-level rule: "+ca.dice+" / "+ca.effect.slice(0,80);
+    // Taunt must be BOUNDED. An unbounded forced-target is unenforceable and would read as broken.
+    var tt=capabilityLookup("Taunt");
+    if(/permanent|always on|indefinit/i.test(tt.duration))return "Taunt duration is unbounded: "+tt.duration;
     return true;
   });
   t("every class is either fully authored or fully blank — no half-authored archetype ships",function(){
