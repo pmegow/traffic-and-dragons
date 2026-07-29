@@ -109,7 +109,10 @@ author so comparison is direct), the 12 attribute sliders at baseline, and three
    This arm tests description-as-gestalt — one coherent hand-authored name-free paragraph per
    voice (`VOICE_DISTILLED`), same never-name guard, richer than the dial bands. If it closes
    the gap, the SHIPPING artifact is a distilled directive (with dials as the editing UI that
-   regenerates it), not a dial list sent raw.
+   regenerates it), not a dial list sent raw. **Initial field verdict (user, 2026-07-30): very
+   positive** — the distilled shape is tracking toward confirmation; full per-voice ear pass
+   still pending. Integration feature scope filed the same day in TODO #104: editable picker
+   display names, a shared signature-device registry with a dropdown for custom voices.
 4. **Author-name control** — rewrites using the real shipped `vc` directive. The control arm.
 
 Judge by comparing 1 (and 1+2) against the flavor reference and the control. Slider tweaks
