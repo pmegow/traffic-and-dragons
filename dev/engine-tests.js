@@ -325,6 +325,27 @@ function runEngineTests(R){
     }
     return true;
   });
+  t("the Assassin is authored end-to-end: six rows, every feature carries injectable canon, all martial",function(){
+    // Second authored archetype (v1.474, user-directed slate 2026-07-28): spine verb THE ENDING.
+    // Mundane throughout — legend-grade craft, not spellwork — so isMagical:false and category
+    // martial (an enemy martial could draw these; no caster tradition ever should).
+    var as=null,i;
+    for(i=0;i<CLASS_BIBLE.Rogue.archetypes.length;i++)if(CLASS_BIBLE.Rogue.archetypes[i].id==="assassin")as=CLASS_BIBLE.Rogue.archetypes[i];
+    if(!as)return "assassin missing";
+    var want=["3","6","10","14","18","20"],miss=[];
+    for(i=0;i<want.length;i++){
+      var fs=as.levels[want[i]]&&as.levels[want[i]].features;
+      if(!fs||!fs.length){miss.push("L"+want[i]+" empty");continue;}
+      var e=capabilityLookup(fs[0].nm);
+      if(!e){miss.push("L"+want[i]+" '"+fs[0].nm+"' has no capability entry");continue;}
+      if(e.isMagical)miss.push("L"+want[i]+" '"+fs[0].nm+"' is flagged magical (assassin is craft)");
+      if(e.category.indexOf("martial")<0)miss.push("L"+want[i]+" '"+fs[0].nm+"' not martial: "+JSON.stringify(e.category));
+    }
+    if(miss.length)return miss.join(" | ");
+    if(as.levels["20"].features[0].nm!=="The Inevitable End")return "capstone drifted: "+as.levels["20"].features[0].nm;
+    var aod=capabilityLookup("Angel of Death");
+    return aod&&aod.range==="150ft"?true:"Angel of Death must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
+  });
   t("archetype CASTERS (Arcane Trickster, Eldritch Knight) are THIRD casters keyed to their own spine levels",function(){
     // The gap this closes: both had spell benches but NO unlock schedule — under the C2 picks
     // ruling nothing said when an Arcane Trickster earns T2, so its bench (which already reaches

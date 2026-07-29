@@ -333,22 +333,52 @@ var CLASS_BIBLE = {
         "desc": "Automatic crit against surprised targets. Perfect disguise. Infiltration Expertise.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The First Blow Is the Last",
+                "ds": "Your first strike against an unsuspecting target is an automatic critical hit; against ordinary folk the fight is over before it begins."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Master Poisoner",
+                "ds": "Any food, drink, or weapon can be lethally poisoned in moments, improvised and creative — onset and symptoms are yours to design."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Sure Shot",
+                "ds": "Once per combat, declare an impossible ranged shot — ricochet, bank shot, needle-threading, extreme distance — it hits, critically. If you can see it, you can kill it."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "A Natural Death",
+                "ds": "Your kills wear whatever face you choose — a fall, a fever, a stopped heart; no one reads murder in them unless you want them to."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Angel of Death",
+                "ds": "Once per day, nothing bars your approach to a target within 150 feet — walls gap, wards seam, guards look away. The kill and the leaving are still yours."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Inevitable End",
+                "ds": "Once, name a target: their death becomes when, not if — the story bends toward the ending you chose, supplying opportunity but never the kill itself."
+              }
+            ]
           }
         }
       },
