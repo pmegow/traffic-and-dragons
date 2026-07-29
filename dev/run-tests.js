@@ -370,6 +370,13 @@ try {
   var _clr = _at(_wp, /clearTimeout\(_saveT\)/), _rm = _at(_wp, /removeItem\(DRAFT_K\)/);
   if (_clr < 0) _failBE("writeInPlace no longer cancels the pending draft debounce — a saved file will reopen as a phantom dirty draft");
   if (_rm >= 0 && _clr > _rm) _failBE("writeInPlace cancels the draft debounce AFTER clearing the draft key — the timer still resurrects it");
+  // Save as... clears the draft too, so it needs the SAME cancel — a gap found by dev/sabotage.js
+  // when a mutation aimed at writeInPlace landed on this copy instead and nothing caught it.
+  var _sa = _slice("function saveAsBible", "function writeInPlace");
+  if (!_sa) _failBE("could not isolate saveAsBible");
+  var _saClr = _at(_sa, /clearTimeout\(_saveT\)/), _saRm = _at(_sa, /removeItem\(DRAFT_K\)/);
+  if (_saRm >= 0 && _saClr < 0) _failBE("saveAsBible clears the draft but never cancels the pending debounce — the draft resurrects after a Save as...");
+  if (_saRm >= 0 && _saClr > _saRm) _failBE("saveAsBible cancels the draft debounce AFTER clearing the key — the timer still resurrects it");
 
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
