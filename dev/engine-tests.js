@@ -2891,6 +2891,22 @@ function runEngineTests(R){
     if(__djb2(_CT_TAGS.source)!==1129418282||_CT_TAGS.source.length!==1001)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|" */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
+  // #106 cause ①: the TIME_ADVANCE reference used to price ACTIONS ("a conversation 1-5 min"),
+  // so ~46% of turns were billed ~4 minutes and an in-game day took ~200 turns. It now prices
+  // SCENES. The frozen hash below catches any edit; this guards the specific clauses that must
+  // survive one, because each is load-bearing and losing one fails silently:
+  //   • "EVERY turn"          — the only thing pushing back on cause ② (a tagless turn = 0 min)
+  //   • the [REST:long] carve-out — without it sleep is double-counted (the #89 28h-sleep class)
+  //   • the no-arithmetic line — the anti-hallucination heart of #73; the GM must never restate totals
+  t("the TIME_ADVANCE reference charges whole scenes and keeps its load-bearing clauses",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("CHARGE THE WHOLE SCENE")<0)return "scene-level framing gone — the reference reverted to action-scale (#106 cause 1)";
+    if(d.indexOf("EVERY turn")<0)return "the every-turn instruction is gone — nothing fights the silent-zero";
+    if(d.indexOf("[REST:long] instead")<0)return "the sleep carve-out is gone — an overnight would be double-counted (#89)";
+    if(d.indexOf("never compute or state elapsed totals")<0)return "the no-arithmetic clause is gone — that is the anti-hallucination heart of #73";
+    // the old action-scale anchor must NOT still be sitting there contradicting the new framing
+    return d.indexOf("a conversation 1-5 min")<0?true:"the old action-scale conversation value survived the rescale";
+  });
   t("derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",function(){
     // Frozen v1.241; updated v1.263 (UA25 doc line), v1.264 (UA26 combat lines), v1.265
     // (UA38-① exits clause), v1.266 (UA39-② range-physics rule), v1.267 (#46-B cause arg on
@@ -2917,7 +2933,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1634278882&&d.length===16673)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188) */
+    return (__djb2(d)===-1271027224&&d.length===17350)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated) */
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
