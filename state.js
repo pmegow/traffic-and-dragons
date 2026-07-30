@@ -160,6 +160,12 @@ function logTranscript(role,text,raw,taMin){if(!worldState||!text)return;if(!wor
      and because it lands at PUSH time, transcript.length changes and the compression memo
      misses on its own (no invalidateTranscriptMemo needed; that trap is post-stamp only). */
   if(role==="gm"&&typeof taMin==="number"&&isFinite(taMin))_e.ta=Math.max(0,Math.round(taMin));
+  /* #106b: the ABSOLUTE clock when this turn was narrated, so a transcript rebuilt on reload can
+     caption each past turn with the time it actually happened. Distinct from .ta on purpose:
+     .ta is what the turn CHARGED (the diagnostic, and not derivable across gaps or imports),
+     .ck is WHEN it was (the display anchor). Entries older than this field simply render with
+     no timestamp — the caption degrades to the bare turn number rather than guessing. */
+  if(role==="gm"&&typeof clockNow==="function")_e.ck=clockNow();
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
   if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}}
   worldState.transcript.push(_e);}

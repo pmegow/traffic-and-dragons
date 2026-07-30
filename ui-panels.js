@@ -355,7 +355,10 @@ function updateMemStatus(){if(!worldState)return;var dot=document.getElementById
 // clock block feeds the GM (clockParts(clockNow()).d) so player and GM never see a contradictory
 // day. Elapsed since the clock's epoch (campaign start / migration), so a save that predates the
 // clock reads "Day 0" until time is advanced — accurate, not a bug.
-var dayPart=(typeof clockNow==="function"&&typeof clockParts==="function")?" | Day "+clockParts(clockNow()).d:"";
+// #106b: the wall-clock time rides alongside the day, via the SAME clockStamp() the turn caption
+// uses — one formatter, so the session bar and the story frames can never disagree about the hour.
+var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
+  ((typeof clockNow==="function"&&typeof clockParts==="function")?" | Day "+clockParts(clockNow()).d:"");
 txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();}
 // Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags
 // the local turn or syncs are failing. Called from updateMemStatus (every turn) AND directly

@@ -2156,6 +2156,40 @@ function runEngineTests(R){
     var en=round.transcript[round.transcript.length-1];
     return en.ta===180?true:"after round trip .ta: "+en.ta;
   });
+  // ── #106b: player-facing time of day ──────────────────────────────────────
+  t("clockTimeOfDay projects elapsed minutes onto a wall clock with dawn=6am",function(){
+    if(clockTimeOfDay(0)!=="6:00 am")return "dawn: "+clockTimeOfDay(0);
+    if(clockTimeOfDay(360)!=="12:00 pm")return "noon: "+clockTimeOfDay(360);
+    if(clockTimeOfDay(1043)!=="11:23 pm")return "the live save's Day 1 offset: "+clockTimeOfDay(1043);
+    // past midnight the calendar day rolls but the adventuring Day does NOT — dawn-to-dawn
+    if(clockTimeOfDay(1200)!=="2:00 am")return "post-midnight wrap: "+clockTimeOfDay(1200);
+    if(clockTimeOfDay(1439)!=="5:59 am")return "last minute before dawn: "+clockTimeOfDay(1439);
+    // the projection is per-day, so day 3 at the same offset reads the same clock face
+    return clockTimeOfDay(3*1440+360)==="12:00 pm"?true:"day 3 noon: "+clockTimeOfDay(3*1440+360);
+  });
+  t("clockStamp pairs the GM-visible day number with the wall clock",function(){
+    if(clockStamp(0)!=="Day 0, 6:00 am")return "epoch: "+clockStamp(0);
+    if(clockStamp(2483)!=="Day 1, 11:23 pm")return "live save t1265: "+clockStamp(2483);
+    return clockStamp(1440)==="Day 1, 6:00 am"?true:"day boundary: "+clockStamp(1440);
+  });
+  t("logTranscript stamps .ck so a REBUILT past turn shows the time it actually happened",function(){
+    makeWorld();
+    worldState.clock={min:2483,schedule:[]};
+    logTranscript("gm","The tide turns.","The tide turns.",30);
+    var en=worldState.transcript[0];
+    if(en.ck!==2483)return "gm .ck: "+en.ck;
+    if(clockStamp(en.ck)!=="Day 1, 11:23 pm")return "stamp from entry: "+clockStamp(en.ck);
+    logTranscript("player","I wait");
+    return worldState.transcript[1].ck===undefined?true:"player entry got a .ck stamp";
+  });
+  t("the player-facing clock stamp NEVER reaches the system prompt (display only)",function(){
+    makeWorld();
+    worldState.clock={min:2483,schedule:[]};
+    var p=buildSysPrompt();
+    var joined=p.stable+"\n"+p.volatile;
+    if(joined.indexOf("11:23 pm")>=0)return "wall-clock time leaked into the prompt";
+    return joined.indexOf("pm")>=0&&/\d:\d\d\s?[ap]m/.test(joined)?"a clock face leaked into the prompt":true;
+  });
   t("flag off → ragRetrieve returns the empty string",function(){
     makeWorld();worldState.turn=40;
     worldState.transcript=[{t:2,r:"player",x:"hi"},{t:3,r:"gm",x:"Bram waves.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:4,r:"gm",x:"a"},{t:5,r:"gm",x:"b"},{t:6,r:"gm",x:"c"},{t:7,r:"gm",x:"d"}];

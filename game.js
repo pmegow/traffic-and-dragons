@@ -984,7 +984,7 @@ function commitGmTurn(resp,opts){
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre));
   sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
   saveAll();
-  var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
+  var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
   narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96: map derives from the response's own [SAY:] tags */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
@@ -1170,8 +1170,12 @@ async function rerollLast(){
     }
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
-    var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */
-    narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96 */
+    /* #106b: a re-roll re-narrates the SAME turn and never re-runs applyMuts, so the moment is
+       unchanged — take the stamp off the existing transcript entry (same entry the speaker pass
+       below uses) rather than re-reading the clock. */
+    var _rrEnt=worldState.transcript[worldState.transcript.length-1];
+    var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(_rrEnt?_rrEnt.ck:null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
+    narrateWithSpeakers(clean,resp,narEl,_rrEnt);/* #96 */
     saveAll();
     generateActions(narEl);
   }catch(e){

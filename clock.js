@@ -106,6 +106,31 @@ function clockFmt(min){
   return "Day "+p.d+", "+hm+" elapsed";
 }
 
+// ── Player-facing time of day (#106b) ───────────────────────────────────────────────────────
+// The clock counts ELAPSED minutes, but players read a wall clock. The mapping was already
+// fixed by #89 and written into this file's header: clock%1440==0 IS dawn (~6am), so
+// time-of-day = (clock%1440) + 6h, wrapped at midnight. This is that documented projection
+// and nothing more — no new state, no stored time-of-day, so it cannot desync from the counter.
+//
+// Wrapping is intentional and correct: an adventuring Day runs dawn-to-dawn, so 20h into Day 3
+// is 2am on the calendar morning AFTER Day 3 began, while still being Day 3. Hour 0 renders as
+// 12 (midnight/noon), matching how a person reads a clock.
+var DAWN_OFFSET_MIN=6*MIN_PER_HOUR;
+function clockTimeOfDay(min){
+  var t=Math.max(0,Math.floor(Number(min==null?clockNow():min)||0));
+  var tod=((t%MIN_PER_DAY)+DAWN_OFFSET_MIN)%MIN_PER_DAY;
+  var h24=Math.floor(tod/MIN_PER_HOUR), m=tod%MIN_PER_HOUR;
+  var ap=h24<12?"am":"pm", h=h24%12; if(h===0)h=12;
+  return h+":"+(m<10?"0":"")+m+" "+ap;
+}
+// "Day 1, 11:23 pm" — the ONE player-facing stamp, shared by the turn caption and the session
+// bar so the two surfaces can never disagree. Day number is clockParts().d, the SAME number the
+// clock block feeds the GM (a save predating the clock reads Day 0 until time advances).
+function clockStamp(min){
+  var v=(min==null?clockNow():min);
+  return "Day "+clockParts(v).d+", "+clockTimeOfDay(v);
+}
+
 // Render a positive minute-gap as the coarsest natural phrase: "in 7 days", "in 3 hours",
 // "in 6 minutes". Countdown ONLY — the engine computes this every turn from due−now so the GM
 // never remembers it.
