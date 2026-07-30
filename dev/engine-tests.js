@@ -2115,6 +2115,47 @@ function runEngineTests(R){
     if(en.e.l!=="Ashfen")return "location: "+en.e.l;
     return en.e.q[0]==="The Toll"?true:"quest: "+JSON.stringify(en.e.q);
   });
+  // ── #105b: the clock keeps its receipt ────────────────────────────────────
+  // Per-turn elapsed time was computed and thrown away (applyMuts built a "Time +Xm" muts line
+  // that no call site captured), so the ONLY record was the running total clock.min. That made
+  // "where did the time go" unanswerable and hid the silent-zero class below. `.ta` is an
+  // additive GM-entry field in the .m/.v/.sp family, stamped AT WRITE TIME — which is also why
+  // it needs no memo invalidation (a push changes transcript.length, so the compression memo
+  // misses on its own; the .sp post-stamp trap does not apply here).
+  t("logTranscript stamps .ta (minutes the clock moved) on GM entries only",function(){
+    makeWorld();
+    logTranscript("player","I haggle with the smith",null,7);
+    logTranscript("gm","Chask names his price.","Chask names his price.",7);
+    if(worldState.transcript[0].ta!==undefined)return "player entry got a .ta stamp";
+    return worldState.transcript[1].ta===7?true:"gm .ta: "+worldState.transcript[1].ta;
+  });
+  t("a turn that advances no time stamps .ta:0 — the silent-zero is RECORDED, not absent",function(){
+    makeWorld();
+    logTranscript("gm","Nothing takes any time at all.","Nothing takes any time at all.",0);
+    var en=worldState.transcript[0];
+    if(!("ta" in en))return "no .ta key at all — a zero-advance turn must be distinguishable from a pre-feature entry";
+    return en.ta===0?true:"expected 0, got "+en.ta;
+  });
+  t("commitGmTurn measures the REAL clock delta, so a [REST:long] dawn roll is counted too",function(){
+    makeWorld();
+    worldState.clock={min:100,schedule:[]};
+    var pre=clockNow();
+    applyMuts("You bed down. [TIME_ADVANCE:45m]");
+    var delta=clockNow()-pre;
+    if(delta!==45)return "TIME_ADVANCE delta: "+delta;
+    // the rest path rolls to the next dawn — measuring the clock (not parsing the tag) catches it
+    var pre2=clockNow();
+    applyMuts("You sleep until morning. [REST:long]");
+    var delta2=clockNow()-pre2;
+    return delta2===(1440-(pre2%1440))?true:"rest roll delta: "+delta2+" (expected "+(1440-(pre2%1440))+")";
+  });
+  t("the .ta stamp survives the localStorage compression round trip",function(){
+    makeWorld();
+    logTranscript("gm","A long walk to the coast.","A long walk to the coast.",180);
+    var round=parseWorldState(serializeWorldState(worldState));
+    var en=round.transcript[round.transcript.length-1];
+    return en.ta===180?true:"after round trip .ta: "+en.ta;
+  });
   t("flag off → ragRetrieve returns the empty string",function(){
     makeWorld();worldState.turn=40;
     worldState.transcript=[{t:2,r:"player",x:"hi"},{t:3,r:"gm",x:"Bram waves.",e:{n:["Bram"],l:"Ashfen",q:[]}},{t:4,r:"gm",x:"a"},{t:5,r:"gm",x:"b"},{t:6,r:"gm",x:"c"},{t:7,r:"gm",x:"d"}];

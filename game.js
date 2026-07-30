@@ -957,6 +957,7 @@ function commitGmTurn(resp,opts){
   var _cmPre=coreMemorySnapshot();/* #40: pre-state for the defining-moments diff */
   var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
   var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
+  var _clkPre=(typeof clockNow==="function")?clockNow():null;/* #105b: pre-state for the per-turn time receipt */
   applyMuts(resp);
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
@@ -977,7 +978,10 @@ function commitGmTurn(resp,opts){
   // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
   // narration lost. With history+state saved first, a display throw leaves them
   // consistent and reload REPLAYS the missed narration from the transcript.
-  logTranscript("gm",clean,resp);
+  /* #105b: the time receipt. Read the clock AFTER every mutation (TIME_ADVANCE, and the [REST:long]
+     dawn roll that restSpells owns) so the stamp is what the clock ACTUALLY did this turn, not what
+     the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
+  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre));
   sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
   saveAll();
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn});/* escProse: escape model output before it hits the story DOM (audit E11) */

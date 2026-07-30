@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20260730c";
+var CACHE = "tnd-v3-20260730d";
 // Dedicated persistent cache for the vendored Piper/ORT assets (DOC/todo_TTS_piper.md Phase 2).
 // Versioned by VENDORED-CONTENT version, deliberately NOT by deploy — bump ~never (the files are
 // frozen). This is what lets the ~20MB of wasm survive the activate purge below, which runs on
@@ -93,7 +93,7 @@ self.addEventListener("fetch", function(e){
   // npc-merge-studio, bug_tracker (#71), author_voice_lab (#104), speaker_browser + its libritts_speakers.json (#95),
   // and everything under /DOC/. Tested against
   // e.request.url (the FULL URL), hence the path-fragment style.
-  if(/blueprint-designer|todo-viewer|bible_study|bible_editor|class_bible|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|speaker_browser|libritts_speakers|vctk_speakers|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){/* class_bible here ONLY until C6-② wires it into the app shell — then REMOVE it from this regex or every load re-downloads it (the Netlify bandwidth class) */
+  if(/blueprint-designer|todo-viewer|bible_study|bible_editor|class_bible|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|speaker_browser|libritts_speakers|vctk_speakers|timeline_day1|\/test\.html(?:$|[?#])|\/DOC\//.test(e.request.url)){/* class_bible here ONLY until C6-② wires it into the app shell — then REMOVE it from this regex or every load re-downloads it (the Netlify bandwidth class) */
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.

@@ -150,8 +150,16 @@ function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapte
 // transcript. When the GM emits the tag, mark the correcting entry AND the immediately preceding
 // GM entry (the likely superseded narration) so ragRetrieve never serves either as episodic
 // truth. `rc` rides at the top level of the entry — additive, invisible to everything but retrieval.
-function logTranscript(role,text,raw){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text).trim()};if(role==="gm"&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
+function logTranscript(role,text,raw,taMin){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text).trim()};if(role==="gm"&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
   if(role==="gm"&&typeof _lastTurnModel!=="undefined"&&_lastTurnModel)_e.m=_lastTurnModel;/* #45: attribute the narration to the model that wrote it (additive, like .e) */
+  /* #105b: minutes the campaign clock actually moved on this turn. Stamped even when ZERO — a
+     no-[TIME_ADVANCE:] turn is the silent-failure class this field exists to expose, so absence
+     of movement must be RECORDED, not inferred from a missing key (a missing key can't be told
+     apart from a pre-feature entry). Measured as a clock delta by the caller rather than parsed
+     from the tag, so a [REST:long] dawn roll is captured too. Additive, like .e/.m/.v/.sp —
+     and because it lands at PUSH time, transcript.length changes and the compression memo
+     misses on its own (no invalidateTranscriptMemo needed; that trap is post-stamp only). */
+  if(role==="gm"&&typeof taMin==="number"&&isFinite(taMin))_e.ta=Math.max(0,Math.round(taMin));
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
   if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}}
   worldState.transcript.push(_e);}

@@ -1,0 +1,284 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Day 1 Timeline &mdash; Rise of the Runelords (Ammut)</title>
+<style>:root{--acc:#b8935a;--bg:#141414;--pan:#1b1b1b;--tx:#ddd;--dim:#8a8a8a;--good:#7aa86a;--bad:#c0614a;--warn:#c09a3e}
+*{box-sizing:border-box}
+body{margin:0;padding:28px 20px 60px;background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:1.5em;margin:0 0 4px;color:var(--acc);font-weight:600}
+h2{font-size:1.05em;margin:34px 0 10px;color:var(--acc);font-weight:600;border-bottom:1px solid #2c2c2c;padding-bottom:6px}
+.sub{color:var(--dim);font-size:.9em;margin-bottom:22px}
+.cards{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0}
+.card{flex:1 1 190px;background:var(--pan);border:1px solid #2c2c2c;border-radius:10px;padding:14px 16px}
+.card .k{color:var(--dim);font-size:.75em;text-transform:uppercase;letter-spacing:1px}
+.card .v{font-size:1.7em;font-weight:600;color:var(--acc);margin-top:4px;font-variant-numeric:tabular-nums}
+.card .s{color:var(--dim);font-size:.82em;margin-top:2px}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em/1.6 ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4)}
+.lean.bad{background:#2a1512;border:1px solid var(--bad)}
+.lean.warn{background:#2a2312;border:1px solid var(--warn)}
+.note{background:var(--pan);border-left:3px solid var(--acc);padding:12px 16px;margin:14px 0;border-radius:0 8px 8px 0}
+.note.alert{border-left-color:var(--bad)}
+.note p{margin:0 0 8px}.note p:last-child{margin:0}
+.tw{overflow-x:auto;border:1px solid #2c2c2c;border-radius:10px;background:var(--pan)}
+table{border-collapse:collapse;width:100%;font-size:.9em}
+th{position:sticky;top:0;background:#232323;color:var(--dim);text-align:left;font-size:.76em;text-transform:uppercase;letter-spacing:1px;padding:9px 12px;font-weight:600;white-space:nowrap}
+td{padding:7px 12px;border-top:1px solid #262626;vertical-align:top}
+tr:hover td{background:#202020}
+.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.big{font-weight:600;color:var(--acc)}.dim{color:var(--dim)}
+.b{display:inline-block;font:600 .72em/1.5 ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.5px;padding:1px 7px;border-radius:9px;color:rgba(255,255,255,.45)}
+.b-conversation{background:#1a2029;border:1px solid #4a6d99}
+.b-combat{background:#2a1512;border:1px solid var(--bad)}
+.b-search{background:#221c12;border:1px solid var(--warn)}
+.b-travel{background:#182215;border:1px solid var(--good)}
+.b-errand{background:#231a26;border:1px solid #8a5fa8}
+.b-jump{background:#2b2416;border:1px solid var(--acc)}
+.b-other{background:#202020;border:1px solid #555}
+code{background:#242424;padding:1px 5px;border-radius:4px;font-size:.9em;color:var(--acc)}</style></head><body><div class="wrap">
+<h1>Day 1 &mdash; minute-by-minute timeline</h1>
+<div class="sub">Rise of the Runelords (Ammut) &middot; turns 1050&ndash;1265 &middot; source save <code>Ammut_t1265.tnd</code> &middot; generated 2026-07-30</div>
+<div class="cards">
+<div class="card"><div class="k">Turns in Day 1</div><div class="v">216</div><div class="s">t1050 &rarr; t1265</div></div>
+<div class="card"><div class="k">Clock actually advanced</div><div class="v">1043</div><div class="s">minutes &mdash; 17h 23m &middot; 4.8 min/turn</div></div>
+<div class="card"><div class="k">Narration describes</div><div class="v">2332</div><div class="s">minutes &mdash; 38h 52m &middot; 10.8 min/turn</div></div>
+<div class="card"><div class="k">Shortfall</div><div class="v">1289</div><div class="s">minutes unbilled &middot; <span class="lean bad">2.24&times;</span></div></div>
+</div>
+<div class="note alert">
+<p><strong>Read this before trusting the numbers.</strong> The engine does not store per-turn time. <code>[TIME_ADVANCE:]</code> is stripped before the transcript is written, and the <code>"Time +Xm"</code> line the parser builds is discarded &mdash; <code>applyMuts()</code> returns it and the call site never captures the return. The only value that persists is the single running total <code>worldState.clock.min</code>.</p>
+<p>So the <strong>per-turn minutes below are reconstructed</strong>, not recorded: every turn&rsquo;s narration was read and priced under the exact reference scale the GM itself is given. The <strong>1043-minute actual</strong> figure IS real &mdash; it is the difference between the Day 1 dawn boundary (clock 1440) and the stored clock (2483). Treat individual rows as estimates; treat the totals as directional.</p>
+</div>
+<h2>Where the time went</h2>
+<div class="tw"><table><thead><tr><th>Basis</th><th class="n">Turns</th><th class="n">Minutes</th><th class="n">Avg/turn</th><th class="n">Share</th></tr></thead><tbody>
+<tr><td><span class="b b-jump">jump</span></td><td class="n">5</td><td class="n">555</td><td class="n">111.0</td><td class="n dim">24%</td></tr>
+<tr><td><span class="b b-search">search</span></td><td class="n">46</td><td class="n">534</td><td class="n">11.6</td><td class="n dim">23%</td></tr>
+<tr><td><span class="b b-travel">travel</span></td><td class="n">17</td><td class="n">508</td><td class="n">29.9</td><td class="n dim">22%</td></tr>
+<tr><td><span class="b b-conversation">conversation</span></td><td class="n">100</td><td class="n">430</td><td class="n">4.3</td><td class="n dim">18%</td></tr>
+<tr><td><span class="b b-errand">errand</span></td><td class="n">6</td><td class="n">205</td><td class="n">34.2</td><td class="n dim">9%</td></tr>
+<tr><td><span class="b b-other">other</span></td><td class="n">13</td><td class="n">62</td><td class="n">4.8</td><td class="n dim">3%</td></tr>
+<tr><td><span class="b b-combat">combat</span></td><td class="n">29</td><td class="n">38</td><td class="n">1.3</td><td class="n dim">2%</td></tr>
+</tbody></table></div>
+<h2>Two separate causes, both real</h2>
+<div class="note"><p><span class="lean warn">Cause 1</span> &nbsp;<strong>The scale is priced per action, not per scene.</strong> Conversation accounts for <strong>100 of 216 turns</strong> &mdash; nearly half of all play &mdash; and the reference scale prices it at 1&ndash;5 minutes. At ~4 minutes a turn, a 16-hour waking day needs roughly 200 turns to fill, which is exactly what you are seeing. The scale times the words spoken, not the scene that contains them: the walk over, the waiting, and the aftermath are all free.</p></div>
+<div class="note"><p><span class="lean bad">Cause 2</span> &nbsp;<strong>The clock silently loses time it is never told about.</strong> The narration describes 2332 minutes; the clock recorded 1043. Even allowing for error in the reconstruction, a 2.24&times; gap is structural rather than noise. The mechanism is the first line of the handler: <code>if(!ts.length)return;</code> &mdash; a turn carrying no <code>[TIME_ADVANCE:]</code> tag advances <strong>zero</strong> minutes, with no warning and no floor. <code>clockAdvance</code> has exactly one caller, so nothing backstops it.</p>
+<p><strong>The visible symptom:</strong> the stored clock reads Day 1, 17h23m elapsed &mdash; about 11pm &mdash; while <code>world.time</code> says <em>&ldquo;early morning&rdquo;</em> and the t1263 narration has &ldquo;Sandpoint waking up around you both.&rdquo; The story slept; the clock did not. The five <span class="b b-jump">jump</span> turns alone carry 555 narrated minutes the clock had no way to receive.</p></div>
+<h2>Line items &mdash; all 216 turns</h2>
+<div class="sub">Running total starts at Day 1 dawn (clock 1440). The real clock reached 17h 23m into Day 1; the reconstruction reaches 38h 52m.</div>
+<div class="tw"><table><thead><tr><th class="n">Turn</th><th class="n">Min</th><th>Basis</th><th>What happened</th><th class="n">Running</th></tr></thead><tbody>
+<tr><td class="n">1050</td><td class="n big">40</td><td><span class="b b-jump">jump</span></td><td>Dress, go down for breakfast, send Frizwick to fetch Korunn (back in 20 min)</td><td class="n dim">0h 40m</td></tr>
+<tr><td class="n">1051</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Korunn sits, brief exchange about trust before the charm</td><td class="n dim">0h 43m</td></tr>
+<tr><td class="n">1052</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Ask permission to charm her; short tense exchange</td><td class="n dim">0h 46m</td></tr>
+<tr><td class="n">1053</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Charm lands; Korunn admits she once held the Third's seat</td><td class="n dim">0h 49m</td></tr>
+<tr><td class="n">1054</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Korunn describes 'Aunt' and the spiral mark on her collarbone</td><td class="n dim">0h 52m</td></tr>
+<tr><td class="n">1055</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Ask about Karzoug/Thassilon connection to the spiral mark</td><td class="n dim">0h 55m</td></tr>
+<tr><td class="n">1056</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Korunn recalls Aunt's odd talk of 'debts' and the word Thassilon</td><td class="n dim">0h 58m</td></tr>
+<tr><td class="n">1057</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Ask if Aunt named the cave; Korunn recalls the 'opens for blood' door</td><td class="n dim">1h 01m</td></tr>
+<tr><td class="n">1058</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Kiss her cheek, let charm fade, thank her; brief aftermath talk</td><td class="n dim">1h 06m</td></tr>
+<tr><td class="n">1059</td><td class="n big">12</td><td><span class="b b-conversation">conversation</span></td><td>Reassure Korunn, leave her with Vessa, gather the wives to discuss the door</td><td class="n dim">1h 18m</td></tr>
+<tr><td class="n">1060</td><td class="n big">1</td><td><span class="b b-other">other</span></td><td>OOC question: tally of blasting charges carried</td><td class="n dim">1h 19m</td></tr>
+<tr><td class="n">1061</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Morwen agrees to teach demolitions; Frizwick names Chask as the source</td><td class="n dim">1h 24m</td></tr>
+<tr><td class="n">1062</td><td class="n big">30</td><td><span class="b b-errand">errand</span></td><td>Walk to Chask's smithy through the market quarter, ask about charges</td><td class="n dim">1h 54m</td></tr>
+<tr><td class="n">1063</td><td class="n big">90</td><td><span class="b b-jump">jump</span></td><td>Pay for four charges; realize the tide window turned hours ago</td><td class="n dim">3h 24m</td></tr>
+<tr><td class="n">1064</td><td class="n big">90</td><td><span class="b b-errand">errand</span></td><td>Downtime prepping and packing gear while waiting on the tide</td><td class="n dim">4h 54m</td></tr>
+<tr><td class="n">1065</td><td class="n big">30</td><td><span class="b b-travel">travel</span></td><td>Hike the cliff trail north; Frizwick finds a hidden fault-line passage</td><td class="n dim">5h 24m</td></tr>
+<tr><td class="n">1066</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Descend into the dark fault passage, following old smoke smell</td><td class="n dim">5h 39m</td></tr>
+<tr><td class="n">1067</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Continue through narrowing passage into a worked stone chamber</td><td class="n dim">5h 54m</td></tr>
+<tr><td class="n">1068</td><td class="n big">5</td><td><span class="b b-jump">jump</span></td><td>Call the others down; they climb in over a few minutes</td><td class="n dim">5h 59m</td></tr>
+<tr><td class="n">1069</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Split tasks: Daeris/Morwen study shrine, player+Frizwick sweep passage</td><td class="n dim">6h 09m</td></tr>
+<tr><td class="n">1070</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Frizwick sweeps passage, finds and disarms an old deadfall trap</td><td class="n dim">6h 24m</td></tr>
+<tr><td class="n">1071</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Flirty banter exchange while Frizwick continues sweeping</td><td class="n dim">6h 27m</td></tr>
+<tr><td class="n">1072</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Check rubble for hidden seams; passage ends in a natural dead end</td><td class="n dim">6h 42m</td></tr>
+<tr><td class="n">1073</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Return to shrine; Morwen and Daeris reveal a second and third buried bone</td><td class="n dim">6h 57m</td></tr>
+<tr><td class="n">1074</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Daeris reassesses: the door may be a threshold, this shrine the real payment site</td><td class="n dim">7h 02m</td></tr>
+<tr><td class="n">1075</td><td class="n big">20</td><td><span class="b b-search">search</span></td><td>Search shrine walls, uncover a mortared-shut low archway</td><td class="n dim">7h 22m</td></tr>
+<tr><td class="n">1076</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Check the archway for traps (clean) and begin working stones loose</td><td class="n dim">7h 37m</td></tr>
+<tr><td class="n">1077</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Daeris senses the space beyond; party works a stone loose in the wall</td><td class="n dim">7h 47m</td></tr>
+<tr><td class="n">1078</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Final stone worked free, gap opens, cold air, cautious banter</td><td class="n dim">7h 57m</td></tr>
+<tr><td class="n">1079</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Creep through short passage into shrine room, find wrapped body on slab</td><td class="n dim">8h 07m</td></tr>
+<tr><td class="n">1080</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Daeris and Morwen join, examine wrapped body and cracked spiral rune</td><td class="n dim">8h 12m</td></tr>
+<tr><td class="n">1081</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Slowly unwrap brittle cloth, revealing a metal lattice fused in the chest</td><td class="n dim">8h 27m</td></tr>
+<tr><td class="n">1082</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Check slab underside and corners for hidden mechanism; none found</td><td class="n dim">8h 37m</td></tr>
+<tr><td class="n">1083</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Morwen explains the lattice is instrumentation, not decoration</td><td class="n dim">8h 42m</td></tr>
+<tr><td class="n">1084</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Morwen studies the lattice with her kit, theorizes it drained a soul</td><td class="n dim">8h 57m</td></tr>
+<tr><td class="n">1085</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Daeris explains what a soul-conduit body implies about Karzoug's origins</td><td class="n dim">9h 02m</td></tr>
+<tr><td class="n">1086</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Frizwick finds a second, blood-stained slab across the chamber</td><td class="n dim">9h 17m</td></tr>
+<tr><td class="n">1087</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Morwen traces the blood groove's bearing toward the sea cave</td><td class="n dim">9h 32m</td></tr>
+<tr><td class="n">1088</td><td class="n big">20</td><td><span class="b b-search">search</span></td><td>Chisel through the mortared archway, revealing a descending passage</td><td class="n dim">9h 52m</td></tr>
+<tr><td class="n">1089</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Descend the slope; find a recently-disturbed wrapped body and fresh carving</td><td class="n dim">10h 02m</td></tr>
+<tr><td class="n">1090</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Message spell to Morwen; Daeris notes the passage is still in use</td><td class="n dim">10h 07m</td></tr>
+<tr><td class="n">1091</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Edge deeper past the body to a black pool and a second spiral door; something shifts</td><td class="n dim">10h 17m</td></tr>
+<tr><td class="n">1092</td><td class="n big">2</td><td><span class="b b-other">other</span></td><td>Retreat and watch the black water in a tense standoff</td><td class="n dim">10h 19m</td></tr>
+<tr><td class="n">1093</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Spectral hand splashes the water; drowned creature surges up and attacks</td><td class="n dim">10h 20m</td></tr>
+<tr><td class="n">1094</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Daeris's sacred flame cracks the creature's shoulder plate; player dodges its lunge</td><td class="n dim">10h 21m</td></tr>
+<tr><td class="n">1095</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Blade and thrown knives tear into the creature's ruined shoulder</td><td class="n dim">10h 22m</td></tr>
+<tr><td class="n">1096</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Frizwick and player finish off the drowned creature</td><td class="n dim">10h 23m</td></tr>
+<tr><td class="n">1097</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Search the drowned creature's corpse; find a tarnished spiral disc</td><td class="n dim">10h 33m</td></tr>
+<tr><td class="n">1098</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Wade across the black pool to examine the smaller spiral door</td><td class="n dim">10h 43m</td></tr>
+<tr><td class="n">1099</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Morwen and Daeris debate the second door's nature and danger</td><td class="n dim">10h 48m</td></tr>
+<tr><td class="n">1100</td><td class="n big">3</td><td><span class="b b-other">other</span></td><td>Press blood to the spiral; the door grinds open</td><td class="n dim">10h 51m</td></tr>
+<tr><td class="n">1101</td><td class="n big">5</td><td><span class="b b-search">search</span></td><td>Peer down carved steps into a chamber with a golden spiral floor inlay</td><td class="n dim">10h 56m</td></tr>
+<tr><td class="n">1102</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Descend cautiously to the round chamber; find eight wall alcoves</td><td class="n dim">11h 11m</td></tr>
+<tr><td class="n">1103</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Examine the alcoves; find a preserved robed figure in the eighth</td><td class="n dim">11h 26m</td></tr>
+<tr><td class="n">1104</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Unveil the preserved Third's corpse and check alcove markings</td><td class="n dim">11h 36m</td></tr>
+<tr><td class="n">1105</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Retrieve hidden list from robe; find alcove numbering, no Third marked</td><td class="n dim">11h 46m</td></tr>
+<tr><td class="n">1106</td><td class="n big">10</td><td><span class="b b-conversation">conversation</span></td><td>Decode oilcloth list revealing line of Thirds including Korunn</td><td class="n dim">11h 56m</td></tr>
+<tr><td class="n">1107</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Examine brackets, Morwen deciphers cipher as summoning anchor</td><td class="n dim">12h 06m</td></tr>
+<tr><td class="n">1108</td><td class="n big">10</td><td><span class="b b-other">other</span></td><td>Debate burning the anchor, then set the corpse alight</td><td class="n dim">12h 16m</td></tr>
+<tr><td class="n">1109</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Confirm floor calmed, find hidden gap; Daeris insists on warding</td><td class="n dim">12h 26m</td></tr>
+<tr><td class="n">1110</td><td class="n big">15</td><td><span class="b b-other">other</span></td><td>Ward the chamber threshold before entering the fault gap</td><td class="n dim">12h 41m</td></tr>
+<tr><td class="n">1111</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Squeeze through gap into hand-dug sloping tunnel</td><td class="n dim">12h 51m</td></tr>
+<tr><td class="n">1112</td><td class="n big">5</td><td><span class="b b-travel">travel</span></td><td>Creep up tunnel toward firelight and voices</td><td class="n dim">12h 56m</td></tr>
+<tr><td class="n">1113</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Eavesdrop on traffickers discussing the Spire and short counts</td><td class="n dim">13h 01m</td></tr>
+<tr><td class="n">1114</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Continue listening, traffickers mention Aunt and the tally</td><td class="n dim">13h 06m</td></tr>
+<tr><td class="n">1115</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Message-relay plan: Morwen/Daeris retreat, Friz and I gather intel</td><td class="n dim">13h 09m</td></tr>
+<tr><td class="n">1116</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Relay messages to Morwen and Friz, settle in to watch</td><td class="n dim">13h 12m</td></tr>
+<tr><td class="n">1117</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Eavesdrop further, hear of Aunt's spiral scar and the count</td><td class="n dim">13h 17m</td></tr>
+<tr><td class="n">1118</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Listen as guard describes fearing to say Aunt's name</td><td class="n dim">13h 22m</td></tr>
+<tr><td class="n">1119</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Signal Friz, agree to kill talkers and find the counter</td><td class="n dim">13h 24m</td></tr>
+<tr><td class="n">1120</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Sneak-attack kills the older trafficker with a blade to the skull</td><td class="n dim">13h 25m</td></tr>
+<tr><td class="n">1121</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Frizwick and I finish off the younger trafficker</td><td class="n dim">13h 26m</td></tr>
+<tr><td class="n">1122</td><td class="n big">5</td><td><span class="b b-search">search</span></td><td>Loot bodies for coin and tally sheet, push toward count-keeper</td><td class="n dim">13h 31m</td></tr>
+<tr><td class="n">1123</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Message Morwen, scout the lantern-lit chamber with the count-keeper</td><td class="n dim">13h 36m</td></tr>
+<tr><td class="n">1124</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Rush and threaten the count-keeper at knifepoint</td><td class="n dim">13h 37m</td></tr>
+<tr><td class="n">1125</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Interrogate count-keeper about Aunt and the Spire</td><td class="n dim">13h 40m</td></tr>
+<tr><td class="n">1126</td><td class="n big">5</td><td><span class="b b-other">other</span></td><td>Knock out count-keeper, bind him, prep to hunt the next voice</td><td class="n dim">13h 45m</td></tr>
+<tr><td class="n">1127</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Sneak attack kills the young man stacking crates</td><td class="n dim">13h 46m</td></tr>
+<tr><td class="n">1128</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Search body, find keys and list; examine crates and strongbox</td><td class="n dim">13h 56m</td></tr>
+<tr><td class="n">1129</td><td class="n big">5</td><td><span class="b b-other">other</span></td><td>Pick the cold strongbox's hidden lock</td><td class="n dim">14h 01m</td></tr>
+<tr><td class="n">1130</td><td class="n big">5</td><td><span class="b b-other">other</span></td><td>Open strongbox revealing vial and letter</td><td class="n dim">14h 06m</td></tr>
+<tr><td class="n">1131</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Frizwick banters back, notices dead trafficker, strongbox vial and letter</td><td class="n dim">14h 08m</td></tr>
+<tr><td class="n">1132</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Player startles Frizwick with cold hand; she comes over to look at the find</td><td class="n dim">14h 10m</td></tr>
+<tr><td class="n">1133</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Read trafficker's letter with Frizwick; captives called 'stock' in the ledger</td><td class="n dim">14h 14m</td></tr>
+<tr><td class="n">1134</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Interrogate bound count-keeper about the vial; he explains it subdues captives</td><td class="n dim">14h 18m</td></tr>
+<tr><td class="n">1135</td><td class="n big">3</td><td><span class="b b-other">other</span></td><td>Send Frizwick to check the barred door; player executes the count-keeper</td><td class="n dim">14h 21m</td></tr>
+<tr><td class="n">1136</td><td class="n big">2</td><td><span class="b b-other">other</span></td><td>Frizwick heads off to fetch Morwen and Daeris; player left alone with corpse</td><td class="n dim">14h 23m</td></tr>
+<tr><td class="n">1137</td><td class="n big">8</td><td><span class="b b-search">search</span></td><td>Search count-keeper's body; find ledger and cipher tally, no extra keys</td><td class="n dim">14h 31m</td></tr>
+<tr><td class="n">1138</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Listen at the barred door, overhear two captives talking about Aunt</td><td class="n dim">14h 35m</td></tr>
+<tr><td class="n">1139</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Wait by the door as Frizwick returns with Morwen and Daeris</td><td class="n dim">14h 38m</td></tr>
+<tr><td class="n">1140</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Recap overheard voices to the party; Daeris senses a containment circle beyond the door</td><td class="n dim">14h 43m</td></tr>
+<tr><td class="n">1141</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Party positions for ambush, lifts the bar, door swings open on the Broken Thing</td><td class="n dim">14h 45m</td></tr>
+<tr><td class="n">1142</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Broken Thing breaks the circle, fight opens with Daeris's flame and Morwen's knife</td><td class="n dim">14h 46m</td></tr>
+<tr><td class="n">1143</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Frizwick lands the finishing blow, killing the Broken Thing</td><td class="n dim">14h 47m</td></tr>
+<tr><td class="n">1144</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Approach chained captives, pick the padlocks, ask who Aunt is</td><td class="n dim">14h 52m</td></tr>
+<tr><td class="n">1145</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Freed woman recognizes 'north quarter' and mentions Sandpoint's garrison</td><td class="n dim">14h 55m</td></tr>
+<tr><td class="n">1146</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Ask about flowers left at the garrison; captives say it wasn't Aunt's doing</td><td class="n dim">14h 58m</td></tr>
+<tr><td class="n">1147</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Ask about missing captive Yassa; captives describe her being dragged off</td><td class="n dim">15h 01m</td></tr>
+<tr><td class="n">1148</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Leave freed captives with Daeris/Morwen, head deeper down the passage with Frizwick</td><td class="n dim">15h 11m</td></tr>
+<tr><td class="n">1149</td><td class="n big">8</td><td><span class="b b-travel">travel</span></td><td>Follow drag marks 30 yards into a hollow, spot the Deep Thing over Yassa's remains</td><td class="n dim">15h 19m</td></tr>
+<tr><td class="n">1150</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Shout to flank; Deep Thing attacks, player lands a sneak attack, Frizwick is clawed</td><td class="n dim">15h 20m</td></tr>
+<tr><td class="n">1151</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Finish off the Deep Thing as Daeris and Morwen arrive</td><td class="n dim">15h 21m</td></tr>
+<tr><td class="n">1152</td><td class="n big">5</td><td><span class="b b-other">other</span></td><td>Check Frizwick's wound; Daeris heals the claw gashes</td><td class="n dim">15h 26m</td></tr>
+<tr><td class="n">1153</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Daeris begins the Speak with Dead ritual on Yassa's body</td><td class="n dim">15h 31m</td></tr>
+<tr><td class="n">1154</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Yassa's spirit answers: Aunt wears a body and feeds the Spire</td><td class="n dim">15h 32m</td></tr>
+<tr><td class="n">1155</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Yassa's spirit describes the Spire as Karzoug's throat</td><td class="n dim">15h 33m</td></tr>
+<tr><td class="n">1156</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Yassa's spirit reveals the Spire's location north past the goblin roads</td><td class="n dim">15h 34m</td></tr>
+<tr><td class="n">1157</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Yassa's spirit describes how captives are chained and carried the last mile</td><td class="n dim">15h 35m</td></tr>
+<tr><td class="n">1158</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Daeris ends the ritual, lets Yassa's corpse rest</td><td class="n dim">15h 38m</td></tr>
+<tr><td class="n">1159</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Search Yassa's body, carry captives back through tunnel to boat</td><td class="n dim">15h 53m</td></tr>
+<tr><td class="n">1160</td><td class="n big">60</td><td><span class="b b-travel">travel</span></td><td>Row the skiff back from the sea cave to Sandpoint</td><td class="n dim">16h 53m</td></tr>
+<tr><td class="n">1161</td><td class="n big">10</td><td><span class="b b-conversation">conversation</span></td><td>Bring captives to garrison, brief Hemlock on the rescue</td><td class="n dim">17h 03m</td></tr>
+<tr><td class="n">1162</td><td class="n big">8</td><td><span class="b b-conversation">conversation</span></td><td>Tell Hemlock about Aunt, the Spire, and the wagon route</td><td class="n dim">17h 11m</td></tr>
+<tr><td class="n">1163</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Hemlock reveals the mystery flowers left at the garrison</td><td class="n dim">17h 16m</td></tr>
+<tr><td class="n">1164</td><td class="n big">10</td><td><span class="b b-conversation">conversation</span></td><td>Find Morwen and Daeris at the Rusty Dragon to plan road watch</td><td class="n dim">17h 26m</td></tr>
+<tr><td class="n">1165</td><td class="n big">8</td><td><span class="b b-conversation">conversation</span></td><td>Walk to the temple; Zantus examines Frizwick's wound</td><td class="n dim">17h 34m</td></tr>
+<tr><td class="n">1166</td><td class="n big">8</td><td><span class="b b-conversation">conversation</span></td><td>Zantus reports on the freed captives' condition, heals Frizwick</td><td class="n dim">17h 42m</td></tr>
+<tr><td class="n">1167</td><td class="n big">20</td><td><span class="b b-errand">errand</span></td><td>Group heads to the bathhouse and settles into the hot water</td><td class="n dim">18h 02m</td></tr>
+<tr><td class="n">1168</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Hold Daeris close in the bath, quiet reassurance</td><td class="n dim">18h 06m</td></tr>
+<tr><td class="n">1169</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Kiss Daeris; she opens up about believing in good days</td><td class="n dim">18h 10m</td></tr>
+<tr><td class="n">1170</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Vibe-check the party in the bath; Daeris reflects on 'good' now</td><td class="n dim">18h 14m</td></tr>
+<tr><td class="n">1171</td><td class="n big">4</td><td><span class="b b-conversation">conversation</span></td><td>Playful banter, decide to grab food and head to the Dragon</td><td class="n dim">18h 18m</td></tr>
+<tr><td class="n">1172</td><td class="n big">30</td><td><span class="b b-errand">errand</span></td><td>Dry off, buy meat pies, head toward the Rusty Dragon</td><td class="n dim">18h 48m</td></tr>
+<tr><td class="n">1173</td><td class="n big">20</td><td><span class="b b-conversation">conversation</span></td><td>Send word to Hemlock, drink at the Dragon awaiting news</td><td class="n dim">19h 08m</td></tr>
+<tr><td class="n">1174</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Hemlock recaps Caul's confession before the interrogation</td><td class="n dim">19h 13m</td></tr>
+<tr><td class="n">1175</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Hurry with Hemlock to the garrison cells to question Caul</td><td class="n dim">19h 23m</td></tr>
+<tr><td class="n">1176</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Caul describes the thing at the Spire and its whereabouts</td><td class="n dim">19h 28m</td></tr>
+<tr><td class="n">1177</td><td class="n big">8</td><td><span class="b b-conversation">conversation</span></td><td>Threaten Caul, have Hemlock hold him, plan the moonrise raid</td><td class="n dim">19h 36m</td></tr>
+<tr><td class="n">1178</td><td class="n big">60</td><td><span class="b b-travel">travel</span></td><td>Trek three miles up the north road to scout the mill camp</td><td class="n dim">20h 36m</td></tr>
+<tr><td class="n">1179</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Split up and scout the camp's perimeter for lookouts</td><td class="n dim">20h 51m</td></tr>
+<tr><td class="n">1180</td><td class="n big">3</td><td><span class="b b-combat">combat</span></td><td>Assign targets and stalk toward the card-playing bandits</td><td class="n dim">20h 54m</td></tr>
+<tr><td class="n">1181</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Dagger throw drops the crossbow guard before he can fire</td><td class="n dim">20h 55m</td></tr>
+<tr><td class="n">1182</td><td class="n big">8</td><td><span class="b b-search">search</span></td><td>Search bodies for bolts, find a route map, check on Frizwick</td><td class="n dim">21h 03m</td></tr>
+<tr><td class="n">1183</td><td class="n big">8</td><td><span class="b b-search">search</span></td><td>Loot the lookout's body; find Frizwick already done</td><td class="n dim">21h 11m</td></tr>
+<tr><td class="n">1184</td><td class="n big">5</td><td><span class="b b-search">search</span></td><td>Daeris loots the crossbow guard, finds a letter naming Caul</td><td class="n dim">21h 16m</td></tr>
+<tr><td class="n">1185</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Assigning crossbow duty and ambush target order before the attack</td><td class="n dim">21h 18m</td></tr>
+<tr><td class="n">1186</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Restating ambush plan, sneaking into firelight position, counting down</td><td class="n dim">21h 20m</td></tr>
+<tr><td class="n">1187</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Ambush executed: three traffickers killed in seconds</td><td class="n dim">21h 21m</td></tr>
+<tr><td class="n">1188</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Turning on the fourth trafficker standing alone at the fire</td><td class="n dim">21h 22m</td></tr>
+<tr><td class="n">1189</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Opening interrogation of trafficker &quot;Four&quot;, mention of Aunt</td><td class="n dim">21h 24m</td></tr>
+<tr><td class="n">1190</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Pressing Four about leaking info and Aunt's visit</td><td class="n dim">21h 26m</td></tr>
+<tr><td class="n">1191</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Asking Four's name and whether he's lying</td><td class="n dim">21h 27m</td></tr>
+<tr><td class="n">1192</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Learning Four's name is Caster and questioning cargo shortfall</td><td class="n dim">21h 28m</td></tr>
+<tr><td class="n">1193</td><td class="n big">1</td><td><span class="b b-conversation">conversation</span></td><td>Pressing Caster on what he's actually been hauling</td><td class="n dim">21h 29m</td></tr>
+<tr><td class="n">1194</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Confronting Caster about willful ignorance, then releasing him</td><td class="n dim">21h 31m</td></tr>
+<tr><td class="n">1195</td><td class="n big">5</td><td><span class="b b-errand">errand</span></td><td>Caster stripped of cloak/boots and sent off; wagon canvas checked</td><td class="n dim">21h 36m</td></tr>
+<tr><td class="n">1196</td><td class="n big">15</td><td><span class="b b-search">search</span></td><td>Freeing captives from wagon and finding hidden false-bottom compartment</td><td class="n dim">21h 51m</td></tr>
+<tr><td class="n">1197</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Cutting captives free, briefing Hemlock's men on the relay stone</td><td class="n dim">21h 54m</td></tr>
+<tr><td class="n">1198</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Discussing north fork route and warning Hemlock away from it</td><td class="n dim">21h 57m</td></tr>
+<tr><td class="n">1199</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Walking and speculating with the party about who's stealing wagons</td><td class="n dim">22h 07m</td></tr>
+<tr><td class="n">1200</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Continuing march toward ridge, theorizing about Shalelu</td><td class="n dim">22h 17m</td></tr>
+<tr><td class="n">1201</td><td class="n big">45</td><td><span class="b b-travel">travel</span></td><td>Hard march to beat nightfall, approaching the ridge</td><td class="n dim">23h 02m</td></tr>
+<tr><td class="n">1202</td><td class="n big">20</td><td><span class="b b-travel">travel</span></td><td>Final push to reach the tunnel mouth as darkness falls</td><td class="n dim">23h 22m</td></tr>
+<tr><td class="n">1203</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Checking tunnel entrance for traps, examining old carved stonework</td><td class="n dim">23h 32m</td></tr>
+<tr><td class="n">1204</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Solo scouting into the tunnel, spotting a crouched figure ahead</td><td class="n dim">23h 42m</td></tr>
+<tr><td class="n">1205</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Silently messaging the crouched figure, revealed to be Shalelu</td><td class="n dim">23h 44m</td></tr>
+<tr><td class="n">1206</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Calling Morwen and Daeris forward to join at the corpse site</td><td class="n dim">23h 47m</td></tr>
+<tr><td class="n">1207</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Examining the throat wound on the corpse with the group</td><td class="n dim">23h 50m</td></tr>
+<tr><td class="n">1208</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Asking Shalelu how far she's explored into the tunnel</td><td class="n dim">23h 53m</td></tr>
+<tr><td class="n">1209</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Asking Shalelu to accompany the party for a while</td><td class="n dim">23h 55m</td></tr>
+<tr><td class="n">1210</td><td class="n big">5</td><td><span class="b b-travel">travel</span></td><td>Scouting ahead alone toward the tunnel fork, counting paces</td><td class="n dim">24h 00m</td></tr>
+<tr><td class="n">1211</td><td class="n big">10</td><td><span class="b b-travel">travel</span></td><td>Moving to the fork and setting an ambush, hearing something drag in the dark</td><td class="n dim">24h 10m</td></tr>
+<tr><td class="n">1212</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Retreat from left branch, whisper ambush plan to the group</td><td class="n dim">24h 13m</td></tr>
+<tr><td class="n">1213</td><td class="n big">3</td><td><span class="b b-other">other</span></td><td>Cast mage hand + silent image to bait creature into the open</td><td class="n dim">24h 16m</td></tr>
+<tr><td class="n">1214</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Ambush signal, sneak attack lands on creature's neck</td><td class="n dim">24h 17m</td></tr>
+<tr><td class="n">1215</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Dodge lunge, cut hamstring, Morwen looses an arrow</td><td class="n dim">24h 18m</td></tr>
+<tr><td class="n">1216</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Crippling blow drops creature, Daeris burns it with flame</td><td class="n dim">24h 19m</td></tr>
+<tr><td class="n">1217</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Finish off the creature, note it resembles a made-thing</td><td class="n dim">24h 21m</td></tr>
+<tr><td class="n">1218</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Group discusses the grafted creature, spots a workshop theory</td><td class="n dim">24h 24m</td></tr>
+<tr><td class="n">1219</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Sneak alone toward flickering light, listen past the bend</td><td class="n dim">24h 34m</td></tr>
+<tr><td class="n">1220</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Ease up to gap, observe workshop with two cultists and abomination</td><td class="n dim">24h 44m</td></tr>
+<tr><td class="n">1221</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Retreat, message the group the workshop layout and plan</td><td class="n dim">24h 49m</td></tr>
+<tr><td class="n">1222</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Set ambush positions, sneak back to check tables for survivors</td><td class="n dim">24h 59m</td></tr>
+<tr><td class="n">1223</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Assess two live workers and one still-twitching abomination</td><td class="n dim">25h 00m</td></tr>
+<tr><td class="n">1224</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Stealth-kill both cultist workers in seconds</td><td class="n dim">25h 01m</td></tr>
+<tr><td class="n">1225</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Mercy-kill the twitching abomination on the table</td><td class="n dim">25h 11m</td></tr>
+<tr><td class="n">1226</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Loot bodies for keys, papers, robes; check fault passage exit</td><td class="n dim">25h 21m</td></tr>
+<tr><td class="n">1227</td><td class="n big">5</td><td><span class="b b-travel">travel</span></td><td>Regroup at fork, prep to light demolition charge</td><td class="n dim">25h 26m</td></tr>
+<tr><td class="n">1228</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Light charge, retreat, workshop collapses in the blast</td><td class="n dim">25h 28m</td></tr>
+<tr><td class="n">1229</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Regroup after blast, banter with Morwen via message</td><td class="n dim">25h 31m</td></tr>
+<tr><td class="n">1230</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Shalelu describes right fork; player scouts ahead alone</td><td class="n dim">25h 34m</td></tr>
+<tr><td class="n">1231</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Scout 50 paces down tunnel, hear something breathing, return</td><td class="n dim">25h 44m</td></tr>
+<tr><td class="n">1232</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Report breathing sound, plan to investigate with Frizwick</td><td class="n dim">25h 49m</td></tr>
+<tr><td class="n">1233</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Take remaining charges from Morwen, farewells before entering</td><td class="n dim">25h 52m</td></tr>
+<tr><td class="n">1234</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Message Morwen a goodbye; kiss Frizwick for luck</td><td class="n dim">25h 57m</td></tr>
+<tr><td class="n">1235</td><td class="n big">10</td><td><span class="b b-search">search</span></td><td>Feel along wall, trace spiral carving to its edges</td><td class="n dim">26h 07m</td></tr>
+<tr><td class="n">1236</td><td class="n big">3</td><td><span class="b b-other">other</span></td><td>Press and push against the carved seam trying to force it open</td><td class="n dim">26h 10m</td></tr>
+<tr><td class="n">1237</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Door won't budge; something huge approaches through the tunnel</td><td class="n dim">26h 12m</td></tr>
+<tr><td class="n">1238</td><td class="n big">1</td><td><span class="b b-combat">combat</span></td><td>Light charge, throw it, sprint for the ridge as thing gives chase</td><td class="n dim">26h 13m</td></tr>
+<tr><td class="n">1239</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Throws charge into tunnel, explosion rocks the passage as they flee</td><td class="n dim">26h 15m</td></tr>
+<tr><td class="n">1240</td><td class="n big">2</td><td><span class="b b-combat">combat</span></td><td>Signals clear, throws final charges, twin blast seals the tunnel</td><td class="n dim">26h 17m</td></tr>
+<tr><td class="n">1241</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Casts Message to signal clear; binds Frizwick's claw wound</td><td class="n dim">26h 22m</td></tr>
+<tr><td class="n">1242</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Waves Morwen and Daeris over; Daeris heals Frizwick's wound</td><td class="n dim">26h 27m</td></tr>
+<tr><td class="n">1243</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Debriefs on the two buried, uncontained horrors and their meaning</td><td class="n dim">26h 30m</td></tr>
+<tr><td class="n">1244</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Decides to head back to Sandpoint for rest; Shalelu invited along</td><td class="n dim">26h 33m</td></tr>
+<tr><td class="n">1245</td><td class="n big">180</td><td><span class="b b-travel">travel</span></td><td>Descends the ridge toward Sandpoint as daylight fades to grey</td><td class="n dim">29h 33m</td></tr>
+<tr><td class="n">1246</td><td class="n big">30</td><td><span class="b b-travel">travel</span></td><td>Continues walk into Sandpoint, gate torches and Rusty Dragon glow ahead</td><td class="n dim">30h 03m</td></tr>
+<tr><td class="n">1247</td><td class="n big">30</td><td><span class="b b-errand">errand</span></td><td>Reports the workshop, spiral, and two entities to Sheriff Hemlock</td><td class="n dim">30h 33m</td></tr>
+<tr><td class="n">1248</td><td class="n big">15</td><td><span class="b b-conversation">conversation</span></td><td>Settles into bathhouse tubs, pours wine, checks Frizwick's wound</td><td class="n dim">30h 48m</td></tr>
+<tr><td class="n">1249</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Pulls Frizwick into the tub; asks what's troubling Morwen</td><td class="n dim">30h 53m</td></tr>
+<tr><td class="n">1250</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Shifts hand on Daeris, asks Shalelu her plans</td><td class="n dim">30h 56m</td></tr>
+<tr><td class="n">1251</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Asks Daeris what she wants for the night; Shalelu decides to stay</td><td class="n dim">30h 59m</td></tr>
+<tr><td class="n">1252</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Requests a private room from the bathhouse attendant</td><td class="n dim">31h 04m</td></tr>
+<tr><td class="n">1253</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Bars the private room door, drops the towel with Daeris</td><td class="n dim">31h 06m</td></tr>
+<tr><td class="n">1254</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Traces Daeris's jaw, takes the lead in the private bath</td><td class="n dim">31h 09m</td></tr>
+<tr><td class="n">1255</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Intimate moment begins with Daeris in the bath</td><td class="n dim">31h 14m</td></tr>
+<tr><td class="n">1256</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Continues intimacy with Daeris in the water</td><td class="n dim">31h 17m</td></tr>
+<tr><td class="n">1257</td><td class="n big">3</td><td><span class="b b-conversation">conversation</span></td><td>Rhythm builds between Ammut and Daeris</td><td class="n dim">31h 20m</td></tr>
+<tr><td class="n">1258</td><td class="n big">10</td><td><span class="b b-conversation">conversation</span></td><td>Climax passes; water cools as night grows late</td><td class="n dim">31h 30m</td></tr>
+<tr><td class="n">1259</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Washes Daeris's hair; she asks not to let this be the only time</td><td class="n dim">31h 35m</td></tr>
+<tr><td class="n">1260</td><td class="n big">2</td><td><span class="b b-conversation">conversation</span></td><td>Quiet exchange, Daeris says she just wanted to say his name</td><td class="n dim">31h 37m</td></tr>
+<tr><td class="n">1261</td><td class="n big">60</td><td><span class="b b-jump">jump</span></td><td>Daeris decides to stay another hour before facing the world again</td><td class="n dim">32h 37m</td></tr>
+<tr><td class="n">1262</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Thanks Daeris for being his; lingering embrace in the water</td><td class="n dim">32h 42m</td></tr>
+<tr><td class="n">1263</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Final deep kiss; dressing begins as dawn approaches</td><td class="n dim">32h 47m</td></tr>
+<tr><td class="n">1264</td><td class="n big">5</td><td><span class="b b-conversation">conversation</span></td><td>Reassures Daeris her debts are paid; they finish dressing</td><td class="n dim">32h 52m</td></tr>
+<tr><td class="n">1265</td><td class="n big">360</td><td><span class="b b-jump">jump</span></td><td>Regroups with Morwen and Frizwick, heads to the Dragon at dawn</td><td class="n dim">38h 52m</td></tr>
+</tbody></table></div>
+</div></body></html>
