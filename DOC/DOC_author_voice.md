@@ -109,10 +109,44 @@ author so comparison is direct), the 12 attribute sliders at baseline, and three
    This arm tests description-as-gestalt — one coherent hand-authored name-free paragraph per
    voice (`VOICE_DISTILLED`), same never-name guard, richer than the dial bands. If it closes
    the gap, the SHIPPING artifact is a distilled directive (with dials as the editing UI that
-   regenerates it), not a dial list sent raw. **Initial field verdict (user, 2026-07-30): very
-   positive** — the distilled shape is tracking toward confirmation; full per-voice ear pass
-   still pending. Integration feature scope filed the same day in TODO #104: editable picker
-   display names, a shared signature-device registry with a dropdown for custom voices.
+   regenerates it), not a dial list sent raw. Integration feature scope filed 2026-07-30 in
+   TODO #104: editable picker display names, a shared signature-device registry with a dropdown
+   for custom voices.
+
+## Ear-test results (running log, 2026-07-30)
+
+| Voice | Verdict | Personification footer? | Genre handle? |
+|---|---|---|---|
+| Muir | distilled passes | **yes** ("a cathedral with a whoopee cushion in the crypt") | no — idiosyncratic tonal collision |
+| Lovecraft | **fantastic** — best result so far | **no** (ends on an adjective cap) | **yes** — cosmic horror |
+| Poe | fine | **no** (ends on a sentence-length rule) | **yes** — gothic |
+
+**Hypothesis 1 — "the narrator-personification footer is what replaces the name" — FALSIFIED**
+(2026-07-30). It was proposed after noticing only 7 of 14 directives carry such a closer; the
+first two footer-less voices tested came back *fantastic* and *fine*. The footer is at best a
+compensation technique, not the mechanism.
+
+**Hypothesis 2 (current) — a description works when it resolves to something the model already
+represents richly WITHOUT the name; the usual carrier of that is GENRE.** "Cosmic dread, vast
+indifferent forces, antiquarian diction, describe by implication" points at cosmic horror — a
+named category with a huge body of independent work (imitators, Call-of-Cthulhu-style gaming,
+a whole genre vocabulary). The genre IS the pointer, so no personal pointer is needed. Muir's
+"baroque gothic punctured by an anachronistic joke" has no genre name, so its description must
+carry the whole load alone — which is why it needed the extra scaffolding to land. Consistent
+with the measurements: Lovecraft and Poe were the only two voices whose distilled text came out
+SHORTER than their pointer-stripped `vc` (0.95× and 1.11×) — they needed the least compensation.
+
+Sub-finding to watch (Lovecraft *fantastic* vs Poe merely *fine*, both genre-coded): Lovecraft's
+markers are largely **lexical** (antiquarian diction, weird adjectives, implication over
+description) while Poe's are largely **rhythmic** (mounting cadence, repetition, psychological
+unraveling). Prose description may specify vocabulary far better than it specifies rhythm.
+
+**Discriminating test for Hypothesis 2 — run Wells against Rice.** They are orthogonal on the
+two variables: Wells HAS a footer but no genre handle; Rice has NO footer but a strong genre
+handle (vampire gothic romance). Hypothesis 1 predicts Wells lands and Rice falls; Hypothesis 2
+predicts the reverse. If Hypothesis 2 holds, the voices needing authoring effort are the
+genre-less ones — Muir, Wells, Dinniman, Gaiman, Clines — and the shipping question becomes how
+to give an idiosyncratic voice a synthetic "genre handle," not whether to write footers.
 4. **Author-name control** — rewrites using the real shipped `vc` directive. The control arm.
 
 Judge by comparing 1 (and 1+2) against the flavor reference and the control. Slider tweaks
