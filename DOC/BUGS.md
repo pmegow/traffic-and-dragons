@@ -30,7 +30,8 @@ them here).
 ## Open
 
 ## B17 — GM re-offers a previously visited location with no memory of what the party did to it; a new quest treats the partly-destroyed sea cave as intact
-**Status:** findings-ready
+**Status:** promoted → [TODO.md](../TODO.md) #105
+**➜ Promoted to the backlog 2026-07-30 (user call: "That's important").** The build now lives at **TODO.md #105**; this row is retained as the field record and the root-cause investigation (the seven legs below are the evidence base — do not duplicate them into the TODO row). Close this row when #105 ships.
 **Kind:** user-report · **First seen:** 2026-07-23 (v1.427) · **Last seen:** 2026-07-23 (v1.427) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1059
 **Fingerprint:** `user-report · user-report · v1.427 · new quest involves the sea cave again. which is fine, but we destroyed a large part of it last time`
 **Report ids:** 4d7ca7da-710e-43c8-b9d5-4438406850af
