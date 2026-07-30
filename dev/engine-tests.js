@@ -2168,9 +2168,24 @@ function runEngineTests(R){
     return clockTimeOfDay(3*1440+360)==="12:00 pm"?true:"day 3 noon: "+clockTimeOfDay(3*1440+360);
   });
   t("clockStamp pairs the GM-visible day number with the wall clock",function(){
-    if(clockStamp(0)!=="Day 0, 6:00 am")return "epoch: "+clockStamp(0);
-    if(clockStamp(2483)!=="Day 1, 11:23 pm")return "live save t1265: "+clockStamp(2483);
-    return clockStamp(1440)==="Day 1, 6:00 am"?true:"day boundary: "+clockStamp(1440);
+    if(clockStamp(0)!=="Day 1, 6:00 am")return "epoch: "+clockStamp(0);
+    if(clockStamp(2483)!=="Day 2, 11:23 pm")return "live save t1265: "+clockStamp(2483);
+    return clockStamp(1440)==="Day 2, 6:00 am"?true:"day boundary: "+clockStamp(1440);
+  });
+  // #106c: the campaign's first day is Day 1, not Day 0 (user call 2026-07-30). The 1-based
+  // number is a LABEL — clockParts stays a 0-based elapsed decomposition, because conflating
+  // "days elapsed" with "which day is it" is how off-by-ones reach stored data.
+  t("the campaign's first day is Day 1 on BOTH the player and GM surfaces",function(){
+    makeWorld();
+    if(clockDayNumber(0)!==1)return "epoch day number: "+clockDayNumber(0);
+    if(clockDayNumber(1439)!==1)return "last minute of day one: "+clockDayNumber(1439);
+    if(clockDayNumber(1440)!==2)return "first minute of day two: "+clockDayNumber(1440);
+    // the two labels must never disagree — player stamp and GM clock block, same instant
+    var gm=clockFmt(2483), player=clockStamp(2483);
+    if(gm.indexOf("Day 2,")!==0)return "GM label: "+gm;
+    if(player.indexOf("Day 2,")!==0)return "player label: "+player;
+    // and clockParts stays PURE 0-based — a consumer doing arithmetic must not inherit the label
+    return clockParts(0).d===0&&clockParts(2483).d===1?true:"clockParts.d was made 1-based: "+clockParts(2483).d;
   });
   t("logTranscript stamps .ck so a REBUILT past turn shows the time it actually happened",function(){
     makeWorld();
@@ -2178,7 +2193,7 @@ function runEngineTests(R){
     logTranscript("gm","The tide turns.","The tide turns.",30);
     var en=worldState.transcript[0];
     if(en.ck!==2483)return "gm .ck: "+en.ck;
-    if(clockStamp(en.ck)!=="Day 1, 11:23 pm")return "stamp from entry: "+clockStamp(en.ck);
+    if(clockStamp(en.ck)!=="Day 2, 11:23 pm")return "stamp from entry: "+clockStamp(en.ck);
     logTranscript("player","I wait");
     return worldState.transcript[1].ck===undefined?true:"player entry got a .ck stamp";
   });
@@ -7527,8 +7542,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("clockFmt derives Day/Hh/Mm from the scalar (nothing stored)", function(){
-    makeWorld(); clockAdvance(4*1440 + 14*60 + 30);   // Day 4, 14h30m
-    return /Day 4, 14h 30m elapsed/.test(clockFmt())?true:"got: "+clockFmt();
+    makeWorld(); clockAdvance(4*1440 + 14*60 + 30);   // 4 whole days elapsed → you are ON day 5 (#106c: labels are 1-based)
+    return /Day 5, 14h 30m elapsed/.test(clockFmt())?true:"got: "+clockFmt();
   });
   t("scheduleAdd stores an ABSOLUTE due-time; a duplicate label refreshes, never twins", function(){
     makeWorld(); clockAdvance(100);

@@ -98,12 +98,24 @@ function clockParts(min){
   return { d:Math.floor(t/MIN_PER_DAY), h:Math.floor((t%MIN_PER_DAY)/MIN_PER_HOUR), m:t%MIN_PER_HOUR };
 }
 
-// "Day 4, 14h 30m elapsed" — the elapsed-time label. v1 is elapsed, NOT wall-clock time-of-day
+// The DISPLAY day number — 1-based, because the first day of a campaign is "Day 1" to everyone
+// who is not a programmer (user call 2026-07-30). Deliberately NOT folded into clockParts().d,
+// which stays a pure 0-based decomposition of elapsed time (whole days / hours / minutes) and is
+// what every arithmetic consumer wants; conflating "days elapsed" with "which day is it" is how
+// off-by-ones get baked into stored data. Nothing stored changes — this is a label over the same
+// scalar — so there is no migration and .ck stamps written under the old label still render right.
+// BOTH labels below route through it, so the player UI and the GM's clock block can never differ.
+function clockDayNumber(min){
+  return clockParts(min==null?clockNow():min).d+1;
+}
+
+// "Day 5, 14h 30m elapsed" — the elapsed-time label. v1 is elapsed, NOT wall-clock time-of-day
 // (that's the calendar fast-follow), so the wording says "elapsed" to avoid implying a tod.
 function clockFmt(min){
-  var p=clockParts(min==null?clockNow():min);
+  var v=(min==null?clockNow():min);
+  var p=clockParts(v);
   var hm=(p.h<10?"0":"")+p.h+"h "+(p.m<10?"0":"")+p.m+"m";
-  return "Day "+p.d+", "+hm+" elapsed";
+  return "Day "+clockDayNumber(v)+", "+hm+" elapsed";
 }
 
 // ── Player-facing time of day (#106b) ───────────────────────────────────────────────────────
@@ -123,12 +135,12 @@ function clockTimeOfDay(min){
   var ap=h24<12?"am":"pm", h=h24%12; if(h===0)h=12;
   return h+":"+(m<10?"0":"")+m+" "+ap;
 }
-// "Day 1, 11:23 pm" — the ONE player-facing stamp, shared by the turn caption and the session
-// bar so the two surfaces can never disagree. Day number is clockParts().d, the SAME number the
-// clock block feeds the GM (a save predating the clock reads Day 0 until time advances).
+// "Day 2, 11:23 pm" — the ONE player-facing stamp, shared by the turn caption and the session
+// bar so the two surfaces can never disagree. Day number is clockDayNumber(), the SAME 1-based
+// number clockFmt feeds the GM (a save predating the clock reads Day 1 until time advances).
 function clockStamp(min){
   var v=(min==null?clockNow():min);
-  return "Day "+clockParts(v).d+", "+clockTimeOfDay(v);
+  return "Day "+clockDayNumber(v)+", "+clockTimeOfDay(v);
 }
 
 // Render a positive minute-gap as the coarsest natural phrase: "in 7 days", "in 3 hours",

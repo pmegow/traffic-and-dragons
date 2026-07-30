@@ -43,6 +43,9 @@ code{background:#242424;padding:1px 5px;border-radius:4px;font-size:.9em;color:v
 <div class="card"><div class="k">Narration describes</div><div class="v">2332</div><div class="s">minutes &mdash; 38h 52m &middot; 10.8 min/turn</div></div>
 <div class="card"><div class="k">Shortfall</div><div class="v">1289</div><div class="s">minutes unbilled &middot; <span class="lean bad">2.24&times;</span></div></div>
 </div>
+<div class="note">
+<p><span class="lean warn">Renumbered</span> &nbsp;This report was written while the engine labelled a campaign&rsquo;s first day <strong>Day 0</strong>. As of v1.498 day labels are <strong>1-based</strong>, so the stretch analysed here &mdash; turns 1050&ndash;1265 &mdash; now displays in-game as <strong>Day 2</strong>. No measurement changed: it is the same clock range (1440&ndash;2483 elapsed minutes) and only the label moved. The filename and headings below are left as written so existing links keep working.</p>
+</div>
 <div class="note alert">
 <p><strong>Read this before trusting the numbers.</strong> The engine does not store per-turn time. <code>[TIME_ADVANCE:]</code> is stripped before the transcript is written, and the <code>"Time +Xm"</code> line the parser builds is discarded &mdash; <code>applyMuts()</code> returns it and the call site never captures the return. The only value that persists is the single running total <code>worldState.clock.min</code>.</p>
 <p>So the <strong>per-turn minutes below are reconstructed</strong>, not recorded: every turn&rsquo;s narration was read and priced under the exact reference scale the GM itself is given. The <strong>1043-minute actual</strong> figure IS real &mdash; it is the difference between the Day 1 dawn boundary (clock 1440) and the stored clock (2483). Treat individual rows as estimates; treat the totals as directional.</p>

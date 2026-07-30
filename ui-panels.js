@@ -351,14 +351,16 @@ function activeModelLabel(){
   return String(m).replace(/^claude-/,"").replace(/-20\d{6}$/,"");
 }
 function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var actPart="",sk=worldState.skeleton,i;if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="active"){var at=sk.acts[i].title;actPart=" | "+(/^act\s/i.test(at)?at:"Act "+(i+1)+": "+at);break;}}}var mdl=activeModelLabel();
-// #73 campaign clock: show the in-game day next to the turn counter. Same day number the
-// clock block feeds the GM (clockParts(clockNow()).d) so player and GM never see a contradictory
-// day. Elapsed since the clock's epoch (campaign start / migration), so a save that predates the
-// clock reads "Day 0" until time is advanced — accurate, not a bug.
+// #73 campaign clock: show the in-game day next to the turn counter. Same day number the clock
+// block feeds the GM (clockDayNumber) so player and GM never see a contradictory day. Elapsed
+// since the clock's epoch (campaign start / migration), so a save that predates the clock reads
+// "Day 1" until time is advanced — accurate, not a bug.
 // #106b: the wall-clock time rides alongside the day, via the SAME clockStamp() the turn caption
 // uses — one formatter, so the session bar and the story frames can never disagree about the hour.
+// #106c: the fallback routes through clockDayNumber too, or a missing clockStamp would silently
+// hand the player the 0-based number the rest of the app stopped using.
 var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
-  ((typeof clockNow==="function"&&typeof clockParts==="function")?" | Day "+clockParts(clockNow()).d:"");
+  ((typeof clockDayNumber==="function")?" | Day "+clockDayNumber():"");
 txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();}
 // Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags
 // the local turn or syncs are failing. Called from updateMemStatus (every turn) AND directly
