@@ -2640,6 +2640,46 @@ function runEngineTests(R){
     var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
     return f.length===1&&f[0]==="Rope x4"?true:"got "+JSON.stringify(f);
   });
+  // ── #107: say out loud what actually reached the sheet ────────────────────
+  // Field report: the GM narrated the quartermaster "handing over what's left of the blasting
+  // supplies, a few coils of rope" and the player had no way to tell whether ANY of it landed.
+  // A snapshot-diff at the turn call site (the #40/#46/#61 idiom) — deliberately NOT in the
+  // parser, so syncCharSheet keeps its own #50a correction trail instead of double-toasting.
+  t("#107: a turn that gains items toasts what was collected",function(){
+    makeWorld();__toasts.length=0;
+    var pre=inventorySnapshot();
+    applyMuts("[ITEM_GAINED:Blasting charge][ITEM_GAINED:Rope x3]");
+    var got=toastInventoryGains(pre);
+    if(!got)return "no gains reported";
+    var line=__toasts.join(" | ");
+    if(line.indexOf("Blasting charge")<0)return "single item missing from the toast: "+line;
+    return line.indexOf("Rope x3")>=0?true:"quantity not reported as a delta: "+line;
+  });
+  t("#107: the toast reports the DELTA, not the new stack total",function(){
+    makeWorld();worldState.character.inventory.push("Rope x5");__toasts.length=0;
+    var pre=inventorySnapshot();
+    applyMuts("[ITEM_GAINED:Rope x2]");
+    toastInventoryGains(pre);
+    var line=__toasts.join(" | ");
+    if(line.indexOf("Rope x7")>=0)return "reported the total instead of the delta: "+line;
+    return line.indexOf("Rope x2")>=0?true:"delta not reported: "+line;
+  });
+  t("#107: a turn with no acquisition is SILENT (absence is the diagnostic)",function(){
+    makeWorld();worldState.character.inventory.push("Rope x2");__toasts.length=0;
+    var pre=inventorySnapshot();
+    applyMuts("[ITEM_LOST:Rope][HP:-3]");           // a loss and a hit, but nothing gained
+    var got=toastInventoryGains(pre);
+    if(got)return "reported gains on a turn that gained nothing: "+JSON.stringify(got);
+    return __toasts.length===0?true:"toasted anyway: "+__toasts.join(" | ");
+  });
+  t("#107: the toast has ZERO parser contact — applyMuts alone never fires it",function(){
+    makeWorld();__toasts.length=0;
+    applyMuts("[ITEM_GAINED:Longsword]");
+    // the parser must stay silent; only the turn call site reports. Otherwise syncCharSheet's
+    // audit (which applies many ITEM_GAINED tags at once) would double-toast over its #50a trail.
+    var line=__toasts.join(" | ");
+    return line.indexOf("Collected")<0?true:"the parser toasted on its own: "+line;
+  });
   t("ITEM_LOST 'Rope x2' removes two copies (P14)",function(){
     makeWorld();worldState.character.inventory.push("Rope x3");
     applyMuts("[ITEM_LOST:Rope x2]");
@@ -6257,6 +6297,24 @@ function runEngineTests(R){
     if(iLT<0||iSV<0||iAM<0)return "step missing: "+order.join(" → ");
     if(!(iLT<iSV&&iSV<iAM))return "persist-before-display violated: "+order.join(" → ");
     return logAtAddMsg===2?true:"sessionLog had "+logAtAddMsg+" entries when narrator rendered (want 2)";
+  });
+  // #107 WIRING guard. The unit tests above call toastInventoryGains() directly, so deleting the
+  // call from commitGmTurn left them all green — sabotage caught that as MISSED coverage. This
+  // drives the REAL turn path, which is the only thing that proves a player ever sees the toast.
+  t("#107: a real GM turn that grants an item toasts it (proves the call is WIRED, not just present)",function(){
+    makeWorld();__toasts.length=0;
+    commitGmTurn("The quartermaster hands over the last of the supplies. [ITEM_GAINED:Blasting charge][ITEM_GAINED:Rope x2]",
+                 {userMsg:"I take Hemlock up on the offer",playerTxt:"I take Hemlock up on the offer"});
+    var line=__toasts.join(" | ");
+    if(line.indexOf("Collected")<0)return "a real turn granted items and said nothing: "+JSON.stringify(__toasts);
+    if(line.indexOf("Blasting charge")<0)return "granted item missing from the toast: "+line;
+    return line.indexOf("Rope x2")>=0?true:"quantity missing from the toast: "+line;
+  });
+  t("#107: a real GM turn that grants nothing stays silent",function(){
+    makeWorld();__toasts.length=0;
+    commitGmTurn("Hemlock shakes his head. Nothing changes hands. [HP:-2]",
+                 {userMsg:"I ask again",playerTxt:"I ask again"});
+    return __toasts.join(" | ").indexOf("Collected")<0?true:"toasted on a turn with no acquisition: "+__toasts.join(" | ");
   });
 
   t("(c) turn + nameIdx advance exactly once per normal commit",function(){

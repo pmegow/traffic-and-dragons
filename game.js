@@ -761,6 +761,48 @@ function detectCoreMoments(pre){
   }
 }
 // ── Condition turn-stamps (#46, Phase A) ────────────────────────────────────────────────────
+// ── #107: report what actually reached the sheet ────────────────────────────────────────────
+// FIELD REPORT (2026-07-30): the GM narrated the quartermaster "handing over what's left of the
+// blasting supplies, a few coils of rope, nothing fancy" and the player had no way to know
+// whether any of it became inventory. Narration and sheet are separate channels — the prose can
+// describe an acquisition the tags never made — and until now the sheet changed in silence.
+//
+// Same snapshot-diff idiom as Core Memory / conditions / relationships below, and for the same
+// reason: ZERO parser contact. Deliberately NOT a showToast inside the ITEM_GAINED handler,
+// because syncCharSheet applies a batch of ITEM_GAINED tags during its audit and already owns a
+// louder per-correction trail (#50a) — a handler toast would double-report there. Wired at the
+// TURN call site only, so syncCharSheet is excluded for free (the #40 precedent).
+//
+// Absence is deliberately meaningful: a narrated pickup with NO toast means the tag never fired.
+// That is the signal the player has been missing, so this must never toast speculatively.
+function inventorySnapshot(){
+  if(!worldState||!worldState.character)return null;
+  var m={},inv=worldState.character.inventory||[],i;
+  for(i=0;i<inv.length;i++)m[_invNorm(inv[i])]={label:_invBase(inv[i]),n:_invCount(inv[i])};
+  return m;
+}
+// Diff against a pre-applyMuts snapshot and announce the net gain. Counts are compared per
+// normalized key so a stack going 5→7 reports "x2" (what you just got), never "x7" (what you
+// now hold) — the delta is the answer to "did that land?". Returns the list for testability;
+// null when nothing was gained, so callers can tell "no gains" from "toast suppressed".
+var INV_TOAST_MAX=6;
+function toastInventoryGains(pre){
+  if(!pre)return null;
+  var post=inventorySnapshot();if(!post)return null;
+  var gained=[],k;
+  for(k in post){
+    if(!Object.prototype.hasOwnProperty.call(post,k))continue;
+    var was=pre[k]?pre[k].n:0,now=post[k].n;
+    if(now>was)gained.push(post[k].label+((now-was)>1?" x"+(now-was):""));
+  }
+  if(!gained.length)return null;
+  // A sync-style batch could name dozens; keep the toast readable but never claim it listed all.
+  var shown=gained.slice(0,INV_TOAST_MAX).join(", ");
+  if(gained.length>INV_TOAST_MAX)shown+=" +"+(gained.length-INV_TOAST_MAX)+" more";
+  if(typeof showToast==="function")showToast("🎒 Collected: "+shown);
+  return gained;
+}
+
 // Same snapshot-diff pattern as Core Memory above, same rationale: zero parser contact (the
 // running tag-table soak stays pristine; the stamp moves into the handlers at cutover and this
 // post-pass retires). A condition present after applyMuts but not before gets .turn stamped —
@@ -958,9 +1000,11 @@ function commitGmTurn(resp,opts){
   var _cnPre=conditionSnapshot();/* #46: pre-state for condition turn-stamps */
   var _rlPre=relationshipSnapshot();/* #61: pre-state for relationship stamps + downgrade/audit triggers */
   var _clkPre=(typeof clockNow==="function")?clockNow():null;/* #105b: pre-state for the per-turn time receipt */
+  var _invPre=inventorySnapshot();/* #107: pre-state for the "what did I actually collect" toast */
   applyMuts(resp);
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
+  toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
   if(!o.isOpening){
     detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
     if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
