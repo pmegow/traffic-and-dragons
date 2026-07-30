@@ -2,9 +2,11 @@
 
 > **Research companion (2026-07-30):** [Author Deconstruction Findings.html](Author%20Deconstruction%20Findings.html) —
 > a 60-agent research fan-out (50 Haiku gatherers → 10 Opus synthesizers → Fable synthesis). Headline: all ten
-> groups converged on *voice ships as retrieval, not description*; H2 generalizes to **H2′ (density + disambiguator,
-> genre is one of six handle types)**; rhythm is promptable as countable ops, never adjectives; ranked 12-experiment
-> queue and a five-slot shipping architecture inside.
+> groups converged on *voice ships as retrieval, not description*; the genre-handle hypothesis (Hypothesis 2 above)
+> generalizes to a **density hypothesis** — a directive works when it points at ANY corpus-dense region, and genre
+> is only one of six handle types (genre / form / narrator-role / craft-construct / collision-pitch / exemplar);
+> rhythm is promptable as countable ops, never adjectives; ranked 12-experiment queue and a five-slot shipping
+> architecture inside.
 
 **Problem (user, 2026-07-29):** when the game ships, references to living authors must come out
 of `AUTHORS` (data.js) — but the prose-voice feature is one of the game's most valuable. Can each
