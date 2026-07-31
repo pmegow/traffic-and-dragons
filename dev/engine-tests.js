@@ -1778,6 +1778,54 @@ function runEngineTests(R){
        never-split corpus replays byte-identical, not amnesia about the journey. */
     return true;
   });
+  // ═══ #92: sync payload compression — the wire format IS the disk format ═══
+  section("#92: sync payload compression (pure)");
+  t("compressWorldStateSnapshot: transcript → {__lz}; live object and array untouched; empty passes through",function(){
+    makeWorld();
+    logTranscript("gm","The pier burns.","The pier burns.",5);
+    var ws=worldState;
+    var snap=compressWorldStateSnapshot(ws);
+    if(snap===ws)return "no snapshot taken for a non-empty transcript";
+    if(!snap.transcript||!snap.transcript.__lz)return "transcript not compressed";
+    if(!(ws.transcript instanceof Array)||ws.transcript.length!==1)return "LIVE transcript mutated — the cardinal sin";
+    var back=JSON.parse(LZ.decompressFromUTF16(snap.transcript.__lz));
+    if(back.length!==1||back[0].x!=="The pier burns.")return "round trip lost the entry";
+    var empty={turn:1,transcript:[]};
+    return compressWorldStateSnapshot(empty)===empty?true:"empty transcript should pass through unchanged";
+  });
+  t("inflateWorldStateSnapshot: object-form tolerance — {__lz} inflates, a plain array passes through",function(){
+    makeWorld();
+    logTranscript("gm","A","A",1);logTranscript("gm","B","B",2);
+    var o=JSON.parse(JSON.stringify(compressWorldStateSnapshot(worldState)));/* a pulled server blob */
+    var inf=inflateWorldStateSnapshot(o);
+    if(!(inf.transcript instanceof Array)||inf.transcript.length!==2)return "did not inflate";
+    if(inf.transcript[1].x!=="B")return "inflated content wrong";
+    var plain={turn:3,transcript:[{t:1,r:"gm",x:"A"}]};
+    var p2=inflateWorldStateSnapshot(plain);
+    return (p2.transcript instanceof Array&&p2.transcript.length===1)?true:"plain array mangled";
+  });
+  t("serializeWorldState is a pure veneer over the snapshot — the compression memo is SHARED with the sync path",function(){
+    makeWorld();
+    logTranscript("gm","One scene.","One scene.",5);
+    var c0=serializeWorldState._compressions;
+    serializeWorldState(worldState);          // the saveCore boundary compresses…
+    compressWorldStateSnapshot(worldState);   // …and the sync boundary must reuse that memo
+    var c1=serializeWorldState._compressions;
+    return (c1-c0)===1?true:"compressed "+(c1-c0)+" times for one turn — the memo is not shared";
+  });
+  t("OLD-CLIENT SAFETY: a compressed blob adopted RAW still survives the save→load cycle intact",function(){
+    // A pre-#92 client pulls a compressed blob and assigns it raw (its adopt hop has no inflate).
+    // Its saveCore then stores {__lz} via the plain-stringify passthrough, and its OWN
+    // parseWorldState (shipped v1.227) inflates on the next load — session-transient breakage,
+    // ZERO permanent loss. This property is what makes shipping the compressed wire safe.
+    makeWorld();
+    logTranscript("gm","Ancient scene.","Ancient scene.",9);
+    var pulled=JSON.parse(serializeWorldState(worldState));/* the blob exactly as an old client receives it */
+    if(!pulled.transcript.__lz)return "fixture failed to compress";
+    var oldClientDisk=JSON.stringify(pulled);/* old serializeWorldState passthrough == plain stringify of {__lz} */
+    var reloaded=parseWorldState(oldClientDisk);
+    return (reloaded.transcript instanceof Array&&reloaded.transcript[0].x==="Ancient scene.")?true:"old client lost the record";
+  });
   // ═══ #105 (B17): location state notes — a changed place must never re-serve as intact ═══
   section("#105: location state notes (B17)");
   t("[LOCATION_STATE:] appends a turn-stamped note to the current node (multiple tags all land)",function(){
@@ -6705,6 +6753,32 @@ t("putCampaignPortrait → PUT /api/campaigns/:id/portrait, body passed through 
   if (c.opts.method !== "PUT") return "method " + c.opts.method;
   if (c.opts.headers["Authorization"] !== "Bearer TOK_B9") return "auth header missing";
   return eq(c.opts.body, JSON.stringify({ portrait: null, npcPortraits: { Bandit: "IMG" } }), "portrait payload");
+});
+// ── #92: the wire — both POST paths ship the transcript compressed ─────────
+t("#92: the state POST ships the transcript COMPRESSED, it round-trips, and live state is untouched", function () {
+  worldState = { turn: 7, campId: "campZ", character: { name: "PC" }, npcs: [{ name: "Bandit", portrait: "IMG" }],
+    transcript: [{ t: 1, r: "gm", x: "The pier burns." }, { t: 2, r: "player", x: "I watch." }] };
+  sessionLog = []; memory = {};
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.syncNow(true); // beacon path — builds the identical payload without latching _syncing
+  var c = lastCall(); if (!c) return "no POST fired";
+  var body = JSON.parse(c.opts.body);
+  if (!body.worldState.transcript || !body.worldState.transcript.__lz) return "transcript shipped PLAIN — the 2MB payload class";
+  var back = JSON.parse(LZ.decompressFromUTF16(body.worldState.transcript.__lz));
+  if (back.length !== 2 || back[0].x !== "The pier burns.") return "wire round trip lost entries";
+  if (body.worldState.npcs[0].portrait !== null) return "npc portrait strip regressed";
+  if (!(worldState.transcript instanceof Array)) return "LIVE transcript mutated by the send";
+  return ("baseTurn" in body) ? true : "beacon payload lost the CAS baseTurn";
+});
+t("#92: pushCampaignState compresses its snapshot's transcript the same way", function () {
+  var parts = { worldState: { turn: 3, npcs: [], transcript: [{ t: 1, r: "gm", x: "Old tale." }] }, sessionLog: [], memory: {} };
+  calls.length = 0; nextResponse = okJson({});
+  storageAdapter.pushCampaignState("campZ", parts, function () {});
+  var body = JSON.parse(lastCall().opts.body);
+  if (!body.worldState.transcript || !body.worldState.transcript.__lz) return "push path shipped PLAIN";
+  var back = JSON.parse(LZ.decompressFromUTF16(body.worldState.transcript.__lz));
+  if (back[0].x !== "Old tale.") return "push round trip lost the entry";
+  return (parts.worldState.transcript instanceof Array) ? true : "caller snapshot mutated";
 });
 t("every method rides _tFetch — an abort signal is armed on each request (the #24 timeout)", function () {
   // opts.signal is set by _tFetch itself; a raw fetch re-implementation would lack it.

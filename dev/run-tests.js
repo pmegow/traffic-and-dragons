@@ -489,6 +489,28 @@ try {
   console.log("[voice-lab] contract OK — " + _idsVL.length + " authors × 12 dials, prompts name-free");
 } catch (e) { console.error("VOICE LAB CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── #92 SYNC COMPRESSION CONTRACT (v1.504) ───────────────────────────────────────────────
+// The wire format is the disk format ({__lz} transcript), and the reconcile ADOPT used to
+// consume the pulled blob RAW (worldState = data.worldState — never parseWorldState): shipping
+// a compressed wire without the inflate poisons live state ({__lz}.push throws mid-turn).
+// Source contracts because the reconcile is async and private to the adapter IIFE — the
+// headless harness cannot await it; the pure halves are engine-tested.
+try {
+  var _fsSC = require("fs"), _pathSC = require("path");
+  var _saSC = _fsSC.readFileSync(_pathSC.join(__dirname, "..", "storage-adapter.js"), "utf8");
+  var _ncSC = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _saN = _ncSC(_saSC);
+  if (!/data\.worldState\s*=\s*inflateWorldStateSnapshot\(\s*data\.worldState\s*\)/.test(_saN)) {
+    console.error("SYNC COMPRESSION CONTRACT: the reconcile adopt no longer inflates the pulled blob — a compressed wire poisons live state (#92, the adopt-hop lesson).");
+    process.exit(1);
+  }
+  var _cwsCount = (_saN.match(/worldState:\s*compressWorldStateSnapshot\(/g) || []).length;
+  if (_cwsCount < 2) {
+    console.error("SYNC COMPRESSION CONTRACT: only " + _cwsCount + " of the 2 POST paths (_syncNow payload + pushCampaignState) route worldState through compressWorldStateSnapshot — the 2MB plain-payload class returns (#92).");
+    process.exit(1);
+  }
+} catch (e) { console.error("SYNC COMPRESSION CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── AUDIO RECOVERY CONTRACT (v1.421, B10) ────────────────────────────────────────────────
 // iOS does not hand an interrupted AudioContext back: resume() rejects on it forever, and
 // _ensureCtx only replaces a context that is "closed" — which an interrupted one is not. So for

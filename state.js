@@ -66,27 +66,39 @@ function loadProviderSettings(){
 //     reload, so nothing is lost (audit-row ruling).
 // The LZ-absent degrade path (plain JSON) never touches the memo.
 var _trLzMemo=(typeof WeakMap!=="undefined")?new WeakMap():null;
+// #92: the compressed SNAPSHOT builder — ONE producer for the localStorage boundary
+// (serializeWorldState below) AND the cloud-sync POST paths (storage-adapter), so the wire
+// format and the disk format can never diverge. Returns a NEW top-level object with
+// transcript → {__lz:…}; the live ws and its transcript array are NEVER mutated. Returns ws
+// UNCHANGED (same reference) when there is nothing to compress or LZ is absent — the degrade
+// is today's plain payload, and the memo (shared) means a saveCore-then-sync turn pays for
+// exactly ONE compression.
+function compressWorldStateSnapshot(ws){
+  if(!(ws&&ws.transcript&&ws.transcript.length&&typeof LZ!=="undefined"&&LZ.compressToUTF16))return ws;
+  var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
+  var tr=ws.transcript,len=tr.length,last=tr[len-1],lz=null;
+  var hit=_trLzMemo?_trLzMemo.get(tr):null;
+  if(hit&&hit.len===len&&hit.lastRef===last&&hit.lastX===last.x){lz=hit.lz;}
+  else{
+    lz=LZ.compressToUTF16(JSON.stringify(tr));
+    serializeWorldState._compressions++;
+    if(_trLzMemo)_trLzMemo.set(tr,{len:len,lastRef:last,lastX:last.x,lz:lz});
+  }
+  snap.transcript={__lz:lz};
+  return snap;
+}
 function serializeWorldState(ws){
   ws=(ws===undefined)?worldState:ws;
-  if(ws&&ws.transcript&&ws.transcript.length&&typeof LZ!=="undefined"&&LZ.compressToUTF16){
-    var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
-    var tr=ws.transcript,len=tr.length,last=tr[len-1],lz=null;
-    var hit=_trLzMemo?_trLzMemo.get(tr):null;
-    if(hit&&hit.len===len&&hit.lastRef===last&&hit.lastX===last.x){lz=hit.lz;}
-    else{
-      lz=LZ.compressToUTF16(JSON.stringify(tr));
-      serializeWorldState._compressions++;
-      if(_trLzMemo)_trLzMemo.set(tr,{len:len,lastRef:last,lastX:last.x,lz:lz});
-    }
-    snap.transcript={__lz:lz};
-    return JSON.stringify(snap);
-  }
-  return JSON.stringify(ws);
+  return JSON.stringify(compressWorldStateSnapshot(ws));
 }
 serializeWorldState._compressions=0; // test/diagnostic hook: counts ACTUAL LZ passes (memo hits don't increment)
 serializeWorldState.invalidateTranscriptMemo=function(tr){if(_trLzMemo&&tr)_trLzMemo["delete"](tr);};
-function parseWorldState(str){
-  var o=JSON.parse(str);
+// #92: the object-form inflater — the SAME tolerance parseWorldState has always applied to
+// strings, exposed for consumers that receive an already-PARSED blob. The one that matters:
+// the server reconcile ADOPT (storage-adapter), which consumed the pulled blob raw and would
+// otherwise poison live state with a {__lz} transcript ({__lz}.push throws mid-turn). A plain
+// array passes through untouched; inflate failure takes the UA3 rescue path below.
+function inflateWorldStateSnapshot(o){
   if(o&&o.transcript&&!(o.transcript instanceof Array)&&o.transcript.__lz){
     var _lzBlob=o.transcript.__lz,_ok=false;
     if(typeof LZ!=="undefined"&&LZ.decompressFromUTF16){
@@ -109,6 +121,7 @@ function parseWorldState(str){
   }
   return o;
 }
+function parseWorldState(str){return inflateWorldStateSnapshot(JSON.parse(str));}
 // UA3 recovery: re-inflate a rescued transcript once LZ is healthy again and PREPEND it (rescued
 // entries strictly predate the loss). Overlap-guard: if the current transcript's first entry
 // appears inside the rescue (the stored blob was never overwritten — e.g. the failed session

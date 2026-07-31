@@ -393,7 +393,12 @@ var storageAdapter = (function() {
     // worldState.transcript on load — the DOM copy was the largest payload item and fully
     // derivable. Field kept (as "") so the server never sees an undefined key.
     var payload = JSON.stringify({
-      worldState:    wsStripped,
+      // #92: the transcript ships COMPRESSED ({__lz} — the same form the localStorage boundary
+      // stores, so every reader of either is the same tolerant inflater). The 2MB sentinel fired
+      // for real at t1130; the transcript was the payload. _stripNpcPortraits keeps the
+      // transcript array by reference, so the compression memo is SHARED with saveCore — one
+      // LZ pass per turn serves both boundaries. Degrade (no LZ) = today's plain payload.
+      worldState:    compressWorldStateSnapshot(wsStripped),
       sessionLog:    sessionLog,
       memory:        memory,
       campaignId:    campId,
@@ -585,6 +590,11 @@ var storageAdapter = (function() {
         syncCampaignList(null);
         return;
       }
+      // #92: inflate FIRST, before any consumer — the adopt below assigns this blob RAW to the
+      // live worldState (never through parseWorldState — the adopt-hop lesson), and a {__lz}
+      // transcript would poison every consumer ({__lz}.push throws mid-turn). Top-level fields
+      // (turn/campId/character) are plain either way; inflate failure takes the UA3 rescue path.
+      data.worldState = inflateWorldStateSnapshot(data.worldState);
       // Campaign-identity guard (audit E4, hardened for B7): GET /api/state returns the user's
       // most-recent state for ANY campaign. If a DIFFERENT campaign is active locally, adopting
       // this blob would silently switch campaigns and stomp the active one — and even just
@@ -818,7 +828,7 @@ var storageAdapter = (function() {
   // owns that — the server row doesn't exist yet, so there is nothing to guard against).
   function pushCampaignState(campId, parts, cb) {
     _apiJson("/api/state", "POST", {
-      worldState:    _stripNpcPortraits(parts.worldState),
+      worldState:    compressWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),/* #92: same wire form as _syncNow */
       sessionLog:    parts.sessionLog,
       memory:        parts.memory,
       campaignId:    campId,
