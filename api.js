@@ -19,6 +19,13 @@ function buildGeoBlock(){
   if(wNode&&wNode.size)lines.push("Location size: "+wNode.size+(wNode.travelMins?" (~"+wNode.travelMins+"min to cross)":""));
   if(subNode&&subNode.description)lines.push("Sub-location desc: "+subNode.description);
   if(subNode&&subNode.size)lines.push("Sub-location size: "+subNode.size+(subNode.travelMins?" (~"+subNode.travelMins+"min to cross)":""));
+  // #105 (B17): the state-change record — what the story has durably DONE to this place. Served
+  // beside the frozen first-visit description because that description is write-once by design;
+  // where the two disagree, the change record is the current truth.
+  var chg=[];
+  if(wNode&&wNode.stateNotes)wNode.stateNotes.forEach(function(x){chg.push(x.n+" (t"+x.t+")");});
+  if(subNode&&subNode.stateNotes)subNode.stateNotes.forEach(function(x){chg.push(x.n+" (t"+x.t+")");});
+  if(chg.length)lines.push("CHANGED since first visit (this OVERRIDES the descriptions above where they disagree): "+chg.join("; "));
   // Items
   if(activeNode&&activeNode.items.length){
     var present=activeNode.items.filter(function(it){return!it.taken;});
@@ -58,6 +65,34 @@ function buildGeoBlock(){
       lines.push(sgLine);}
   }
   return"GEOGRAPHY (strict continuity — never contradict):\n"+lines.join("\n")+"\n\n";
+}
+// #105 (B17): the ALWAYS-PRESENT roll-up of materially changed REMOTE locations. The structural
+// trap it defeats: the prompt is frozen BEFORE generation, and the GM decides to reference a
+// distant place INSIDE its own output — so mention-triggered injection (the memoryNpcDetail
+// last-6-messages pattern) can never help; only an always-present compact record can. The
+// current node and its parent are EXCLUDED — buildGeoBlock already serves their notes in place.
+// Most-recent-first, capped at CHANGED_LOC_MAX with a VISIBLE overflow line. Volatile half only
+// (per-turn state — a leak into stable kills prompt caching campaign-wide); ""-clean when no
+// location has ever changed, so untouched saves keep a byte-identical prompt.
+function buildChangedLocationsBlock(){
+  if(!memory.map||!memory.map.nodes)return"";
+  var w=(worldState&&worldState.world)||{};
+  var wKey=w.location,subKey=w.sublocation?w.location+"|"+w.sublocation:null;
+  var rows=[],keys=Object.keys(memory.map.nodes),i,j;
+  for(i=0;i<keys.length;i++){
+    var k=keys[i];if(k===wKey||k===subKey)continue;
+    var nd=memory.map.nodes[k];
+    if(!nd.stateNotes||!nd.stateNotes.length)continue;
+    var latest=0;for(j=0;j<nd.stateNotes.length;j++)if(nd.stateNotes[j].t>latest)latest=nd.stateNotes[j].t;
+    rows.push({k:k,latest:latest,txt:nd.stateNotes.map(function(x){return x.n;}).join("; ")});
+  }
+  if(!rows.length)return"";
+  rows.sort(function(a,b){return b.latest-a.latest;});
+  var shown=rows.slice(0,CHANGED_LOC_MAX),over=rows.length-shown.length;
+  var s="CHANGED LOCATIONS (durable changes the story has made — if any of these places comes up, its CURRENT state is this, not its old description):\n";
+  for(i=0;i<shown.length;i++)s+="  - "+shown[i].k.replace("|"," — ")+": "+shown[i].txt+"\n";
+  if(over>0)s+="  (+"+over+" more changed locations — older changes remain on record)\n";
+  return s+"\n";
 }
 function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules);return"NARRATIVE RULES (STRICTLY ENFORCED -- check EVERY response before outputting):\n"+all.map(function(r,i){return(i+1)+". "+r;}).join("\n")+"\n\n";}
 // #46: one condition, one injected phrase — "Unconscious (until awakened; since t155; from
@@ -686,6 +721,7 @@ function buildSysPrompt(){
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
     +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
+    +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */
   +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
     +ragBlock

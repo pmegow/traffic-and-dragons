@@ -1778,6 +1778,92 @@ function runEngineTests(R){
        never-split corpus replays byte-identical, not amnesia about the journey. */
     return true;
   });
+  // ═══ #105 (B17): location state notes — a changed place must never re-serve as intact ═══
+  section("#105: location state notes (B17)");
+  t("[LOCATION_STATE:] appends a turn-stamped note to the current node (multiple tags all land)",function(){
+    makeWorld();worldState.turn=40;
+    applyMuts("The charges blow. [LOCATION_STATE:the east chamber has collapsed][LOCATION_STATE:the tide pool entrance is blocked by rubble]");
+    var nd=memory.map.nodes["Ashfen"];
+    if(!nd||!nd.stateNotes)return "no stateNotes on the current node";
+    if(nd.stateNotes.length!==2)return "expected 2 notes, got "+nd.stateNotes.length;
+    if(nd.stateNotes[0].n.indexOf("east chamber")<0||nd.stateNotes[0].t!==40)return "first note wrong: "+JSON.stringify(nd.stateNotes[0]);
+    return nd.stateNotes[1].n.indexOf("tide pool")>=0?true:"second note wrong";
+  });
+  t("a re-stated change REFRESHES in place — no twins, and richer text wins",function(){
+    makeWorld();worldState.turn=40;
+    applyMuts("[LOCATION_STATE:the east chamber has collapsed]");
+    worldState.turn=55;
+    applyMuts("[LOCATION_STATE:the east chamber has collapsed, rubble blocks the passage]");
+    var ns=memory.map.nodes["Ashfen"].stateNotes;
+    if(ns.length!==1)return "twinned: "+ns.length+" notes";
+    if(ns[0].t!==55)return "turn not refreshed: "+ns[0].t;
+    return ns[0].n.indexOf("rubble blocks")>=0?true:"superset text did not win: "+ns[0].n;
+  });
+  t("per-node cap evicts the OLDEST note loudly (newest state is the truest state)",function(){
+    makeWorld();var i;
+    for(i=0;i<LOC_STATE_CAP+2;i++){worldState.turn=40+i;applyMuts("[LOCATION_STATE:distinct durable change number "+i+" xyz"+i+"]");}
+    var ns=memory.map.nodes["Ashfen"].stateNotes;
+    if(ns.length!==LOC_STATE_CAP)return "cap not applied: "+ns.length;
+    if(ns[0].n.indexOf("number 0")>=0||ns[0].n.indexOf("number 1")>=0)return "oldest survived the cap: "+ns[0].n;
+    return ns[ns.length-1].n.indexOf("number "+(LOC_STATE_CAP+1))>=0?true:"newest missing";
+  });
+  t("buildGeoBlock serves the current node's changes beside the frozen description (sublocation included)",function(){
+    makeWorld();worldState.turn=40;
+    applyMuts("[LOCATION:Sea Cave]");/* establish the node — LOCATION_DESC stores only on a filed node (pre-existing) */
+    applyMuts("[LOCATION_DESC:A sea cave of gold-veined stone.][LOCATION_STATE:the west wall is blown open]");
+    applyMuts("[SUBLOCATION:Inner Sanctum]");
+    applyMuts("[LOCATION_STATE:the altar is shattered]");
+    var g=buildGeoBlock();
+    if(g.indexOf("A sea cave of gold-veined stone.")<0)return "frozen description gone — write-once must be untouched";
+    if(g.indexOf("west wall is blown open")<0)return "world-node change missing from geo";
+    if(g.indexOf("altar is shattered")<0)return "sublocation change missing from geo";
+    return /OVERRIDES/.test(g)?true:"geo lacks the changes-override-description instruction";
+  });
+  t("buildChangedLocationsBlock: a REMOTE changed location is always-present; the current node is excluded; empty map is byte-clean",function(){
+    makeWorld();
+    if(buildChangedLocationsBlock()!=="")return "untouched world not byte-clean";
+    worldState.turn=40;
+    applyMuts("[LOCATION_STATE:the pier burned to the waterline]");
+    applyMuts("You ride for Greyford. [LOCATION:Greyford]");
+    var b=buildChangedLocationsBlock();
+    if(b.indexOf("Ashfen")<0||b.indexOf("pier burned")<0)return "remote changed location not served: "+b;
+    worldState.turn=41;
+    applyMuts("[LOCATION_STATE:the gatehouse is rubble]");
+    b=buildChangedLocationsBlock();
+    return b.indexOf("gatehouse")<0?true:"current node leaked into the remote roll-up (geo already serves it)";
+  });
+  t("roll-up orders most-recent-first and overflows LOUDLY at CHANGED_LOC_MAX",function(){
+    makeWorld();var i;
+    for(i=0;i<CHANGED_LOC_MAX+3;i++){worldState.turn=40+i;applyMuts("[LOCATION:Ruin "+i+"][LOCATION_STATE:tower "+i+" toppled qq"+i+"]");}
+    worldState.turn=99;applyMuts("[LOCATION:Somewhere Clean]");
+    var b=buildChangedLocationsBlock();
+    var lines=b.split("\n").filter(function(l){return l.indexOf("  - ")===0;});
+    if(lines.length!==CHANGED_LOC_MAX)return "shown "+lines.length+" (want "+CHANGED_LOC_MAX+")";
+    if(lines[0].indexOf("Ruin "+(CHANGED_LOC_MAX+2))<0)return "not most-recent-first: "+lines[0];
+    return /\+\d+ more changed location/.test(b)?true:"overflow is silent — truncation must be visible";
+  });
+  t("the roll-up rides the VOLATILE half only; stable is byte-identical across a LOCATION_STATE mutation",function(){
+    makeWorld();
+    var a=buildSysPrompt();
+    worldState.turn=40;
+    applyMuts("[LOCATION_STATE:the pier burned]");
+    applyMuts("[LOCATION:Greyford]");
+    var b=buildSysPrompt();
+    if(a.stable!==b.stable)return "stable changed after a location-state mutation (cache kill)";
+    if(b.volatile.indexOf("CHANGED LOCATIONS")<0)return "roll-up missing from the volatile half";
+    return a.volatile.indexOf("CHANGED LOCATIONS")<0?true:"untouched world already carried the roll-up";
+  });
+  t("the LOCATION_STATE doc line keeps its load-bearing clauses",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[LOCATION_STATE:")<0)return "doc line missing entirely";
+    if(d.indexOf("MATERIALLY and durably")<0)return "the materiality gate is gone — transient scene dressing would flood the record";
+    if(d.indexOf("never re-emit a change already on the record")<0)return "the no-re-emission clause is gone";
+    return d.indexOf("permanent change record")<0?"the permanence promise is gone — the GM has no reason to trust the record":true;
+  });
+  t("cleanTxt strips [LOCATION_STATE:] (an unstripped tag leaks bookkeeping to the player)",function(){
+    var c=cleanTxt("The wall falls. [LOCATION_STATE:the west wall is blown open] Dust everywhere.");
+    return c.indexOf("LOCATION_STATE")<0?true:"tag leaked: "+c;
+  });
   t("MP-P5 (F2): bare [LOCATION:] moves the PRIMARY thread only — split member untouched; hero/unknown/non-party splits are loud no-ops",function(){
     makeWorld();
     var cs={name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
@@ -2962,7 +3048,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==1129418282||_CT_TAGS.source.length!==1001)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|" */
+    if(__djb2(_CT_TAGS.source)!==-1270499105||_CT_TAGS.source.length!==1016)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   // #106 cause ①: the TIME_ADVANCE reference used to price ACTIONS ("a conversation 1-5 min"),
@@ -3007,7 +3093,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1271027224&&d.length===17350)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated) */
+    return (__djb2(d)===1178830&&d.length===17828)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section) */
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;

@@ -108,6 +108,35 @@ function fileLocationDesc(desc){
   if(!memory.map.nodes[key])return;
   if(!memory.map.nodes[key].description)memory.map.nodes[key].description=desc;
 }
+// #105 (B17): append-only per-node STATE-CHANGE record — what the story has durably DONE to a
+// place, kept separate from the immutable first-visit description (write-once stays sacred; a
+// mutate-in-place channel here would reopen description drift). Near-duplicate notes REFRESH in
+// place instead of twinning (the #29 futureEvents lesson), with the richer text winning; the cap
+// evicts the oldest loudly — newest state is the truest state, and every surviving note rides
+// the prompt every turn, so the record must compress. Creates the node if the location was never
+// formally filed — a note that silently vanished would be this feature failing its own defect.
+function fileLocationState(note,turn){
+  if(!worldState||!worldState.world)return false;
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  var key=currentNodeKey();/* sublocation-aware, same grain as LOCATION_ITEM/LOCATION_SIZE */
+  var txt=String(note==null?"":note).trim();if(!txt)return false;
+  if(txt.length>200){console.warn("[map] LOCATION_STATE note clamped to 200 chars: \""+txt.slice(0,60)+"…\"");txt=txt.slice(0,200);}
+  if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:(key.indexOf("|")>=0?key.split("|")[0]:null),npcs:[],items:[],size:null,travelMins:null};
+  var node=memory.map.nodes[key];
+  if(!node.stateNotes)node.stateNotes=[];
+  var norm=txt.toLowerCase(),i;
+  for(i=0;i<node.stateNotes.length;i++){
+    var ex=String(node.stateNotes[i].n||"").toLowerCase();
+    if(ex.indexOf(norm)>=0||norm.indexOf(ex)>=0){/* containment either way = the same change re-stated */
+      var ref=node.stateNotes.splice(i,1)[0];
+      if(norm.length>ex.length)ref.n=txt;/* the richer statement wins */
+      ref.t=turn;node.stateNotes.push(ref);return true;
+    }
+  }
+  node.stateNotes.push({n:txt,t:turn});
+  if(node.stateNotes.length>LOC_STATE_CAP){var ev=node.stateNotes.shift();console.warn("[map] "+key+" state notes over cap ("+LOC_STATE_CAP+") — evicted oldest: \""+ev.n+"\"");}
+  return true;
+}
 function fileLocationItem(name,action,turn){
   if(!memory.map||!worldState||!worldState.world)return;
   var key=currentNodeKey();/* UA9 */

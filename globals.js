@@ -22,6 +22,8 @@ var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
 var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
 var CONSUMABLE_RE=/\b(potion|elixir|draught|tonic|salve|poultice|scroll|charge|bomb|grenade|flask|vial|phial|dose|ration|torch|dust|powder|oil)s?\b/i; // #60: item base-names that read as per-use consumables even without an " xN" stack (a counted stack qualifies regardless). Deliberately EXCLUDES arrow/bolt — ammo is caught by the xN path when stacked, and per-shot nagging of unstacked ammo would be noise
+var LOC_STATE_CAP=3;        // #105 (B17): max durable state-change notes per map node — the record COMPRESSES (newest state is the truest state); overflow evicts the oldest loudly. Small on purpose: every note rides the volatile prompt every turn via the geo block or the changed-locations roll-up
+var CHANGED_LOC_MAX=10;     // #105: max locations shown in the always-present CHANGED LOCATIONS roll-up (most-recent-first); overflow renders a visible "+N more" line, never silent truncation
 var CONSUMABLE_NUDGE_COOLDOWN=6; // #60: after a consumable check fires for an item, don't re-queue that same item for this many turns — one ignored nudge means the GM decided it wasn't spent; re-nagging every mention would railroad a false decrement (the C2 lesson in reverse)
 // 1600 retains 2-3 exchanges at observed mature-campaign prose sizes (t198: GM turns 1,300-3,100
 // chars ≈ 330-780 tok/exchange); 900 kept only 1, under the 2-3 the #28 spec calls for.
@@ -160,7 +162,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.502";
+var APP_VERSION="v1.503";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
