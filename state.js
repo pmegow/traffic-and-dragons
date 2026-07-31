@@ -199,13 +199,18 @@ function stampTranscriptSpeakers(entry,sp){
 // the global worldState; returns true if anything was modified.
 /* #100 (v1.473): the Berserker CLASS was renamed Primal (the class spans rage/beast/weather;
    "Berserker" survives as its rage archetype). Display nms tightened: Totem Warrior→Totemborn,
-   Storm Herald→Stormcaller. Archetype IDS (totem/frenzy/stormherald) NEVER change — they ride
-   on character.archetype, and renaming them would orphan every saved pick. This is THE rename
-   function: migrateWorldState (saves / .tnd imports / server pulls) applies it to the player +
-   every companion sheet; showCharImportPreview (the .char file + library import funnel) and
+   Storm Herald→Stormcaller; Trickery Domain→Subjugation Domain (#72, 2026-07-31).
+   ARCHETYPE IDS RENAME WITH THEIR NMS (law changed v1.506, user decree — "I don't like the
+   archetype id and name not matching. Let's fix that everywhere."): the id must be a word of
+   its display nm (engine-test-pinned), so a display rename now renames the id too, and
+   ARCHETYPE_ID_RENAMES below is what keeps old saves from orphaning — character.archetype
+   carries the id, and every load/import funnel heals it here. This is THE rename function:
+   migrateWorldState (saves / .tnd imports / server pulls) applies it to the player + every
+   companion sheet; showCharImportPreview (the .char file + library import funnel) and
    checkLegacyCharacter (the legacy-pool draw) call it directly. Returns true if anything moved. */
 var CLASS_RENAMES={"Berserker":"Primal"};
-var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller"};
+var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller","Trickery Domain":"Subjugation Domain"};
+var ARCHETYPE_ID_RENAMES={"totem":"totemborn","frenzy":"berserker","stormherald":"stormcaller","trickery":"subjugation"};
 /* #101 (v1.479, generalizing the v1.478 Fire Bolt point-fix): spell display labels used to embed
    mechanics in a parenthetical — "Fire Bolt (d10 fire, 120ft)" — a second copy of dice/range that
    could drift from the capability_bible canon (the only thing the GM's canon block ever reads;
@@ -231,6 +236,7 @@ function migrateCharClassNames(c){
   if(!c)return false;var hit=false;
   if(CLASS_RENAMES[c.cls]){console.info("[migrate] #100 class rename: "+(c.name||"character")+" "+c.cls+" → "+CLASS_RENAMES[c.cls]);c.cls=CLASS_RENAMES[c.cls];hit=true;}
   if(c.archetypeNm&&ARCHETYPE_NM_RENAMES[c.archetypeNm]){c.archetypeNm=ARCHETYPE_NM_RENAMES[c.archetypeNm];hit=true;}
+  if(c.archetype&&ARCHETYPE_ID_RENAMES[c.archetype]){console.info("[migrate] archetype id "+(c.name||"character")+" "+c.archetype+" → "+ARCHETYPE_ID_RENAMES[c.archetype]+" (id↔nm alignment, v1.506)");c.archetype=ARCHETYPE_ID_RENAMES[c.archetype];hit=true;}
   return hit;
 }
 function migrateWorldState(){

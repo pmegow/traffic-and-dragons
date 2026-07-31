@@ -1085,7 +1085,7 @@ var CLASS_BIBLE = {
     },
     "archetypes": [
       {
-        "id": "totem",
+        "id": "totemborn",
         "nm": "Totemborn",
         "desc": "Spirit animal bond. Bear for resistance, Eagle for mobility, Wolf for pack tactics.",
         "levels": {
@@ -1110,7 +1110,7 @@ var CLASS_BIBLE = {
         }
       },
       {
-        "id": "frenzy",
+        "id": "berserker",
         "nm": "Berserker",
         "desc": "Frenzied rage -- bonus attack every turn. Immune to charm and fear while raging.",
         "levels": {
@@ -1135,7 +1135,7 @@ var CLASS_BIBLE = {
         }
       },
       {
-        "id": "stormherald",
+        "id": "stormcaller",
         "nm": "Stormcaller",
         "desc": "Aura of lightning, thunder, or arctic cold. Living storm of destruction.",
         "levels": {
@@ -1591,9 +1591,9 @@ var CLASS_BIBLE = {
         }
       },
       {
-        "id": "trickery",
-        "nm": "Trickery Domain",
-        "desc": "Deception and illusion. Invoke Duplicity -- create a perfect duplicate of yourself.",
+        "id": "subjugation",
+        "nm": "Subjugation Domain",
+        "desc": "Divine authority made compulsion. The Knee -- your voice carries your god's weight. Yoke the defeated into open, unwilling service.",
         "levels": {
           "3": {
             "features": [

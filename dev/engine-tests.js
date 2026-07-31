@@ -603,35 +603,53 @@ function runEngineTests(R){
     return s&&s.cls!=="Bard"?true:"unknown cls was accepted verbatim";
   });
 
-  // ── Primal rename (#100, v1.473): Berserker the CLASS becomes Primal ─────────
+  // ── Primal rename (#100, v1.473) + archetype id↔nm alignment (user decree 2026-07-31) ──
   // The class spans rage/beast/weather; "Berserker" survives only as its rage
-  // archetype (id frenzy). Archetype IDS never change — they ride on saved
-  // characters (character.archetype) — only display nms do: Totem Warrior →
-  // Totemborn, Storm Herald → Stormcaller. migrateCharClassNames is the one
-  // rename function; migrateWorldState (saves/.tnd/server pulls) and the .char
-  // import funnel both call it.
-  section("Primal rename (#100)");
+  // archetype. THE LAW CHANGED at v1.506: an archetype id must be a word OF its
+  // display nm ("I don't like the archetype id and name not matching. Let's fix
+  // that everywhere.") — so when a display nm renames, the id renames WITH it,
+  // through ARCHETYPE_ID_RENAMES in the same migrateCharClassNames chokepoint
+  // that already heals cls + archetypeNm (saves/.tnd/server pulls via
+  // migrateWorldState; .char/library imports via the preview funnel; the legacy
+  // pool draw). An id left behind by a rename must never orphan a saved pick.
+  section("Primal rename (#100) + archetype id alignment");
   t("data: Primal is the class (hd 12, STR); Berserker is no longer a class id",function(){
     var d=classDef("Primal");if(!d||d.hd!==12||d.prime!=="STR")return "Primal def wrong: "+JSON.stringify(d);
     if(classDef("Berserker")!==null)return "Berserker still resolves as a class";
     var a=ARCHETYPES.Primal||[],nms=a.map(function(x){return x.nm;}).join(",");
     if(nms!=="Totemborn,Berserker,Stormcaller")return "archetype nms: "+nms;
     var ids=a.map(function(x){return x.id;}).join(",");
-    if(ids!=="totem,frenzy,stormherald")return "archetype IDS moved (they ride on saves!): "+ids;
+    if(ids!=="totemborn,berserker,stormcaller")return "archetype ids not aligned to nms: "+ids;
     if(!CLASS_FEATURES.Primal||!ABILS.Primal||!STAT_PRIORITY.Primal)return "a class-keyed table missed the rename";
     if(CLASS_FEATURES.Berserker||ABILS.Berserker||STAT_PRIORITY.Berserker||ARCHETYPES.Berserker)return "a table still carries the Berserker key";
     return CLASS_BIBLE.Primal&&!CLASS_BIBLE.Berserker?true:"class bible missed the rename";
   });
-  t("migrateCharClassNames: cls + display nms rename; archetype ids and the rage nm untouched",function(){
+  t("THE LAW: every archetype id is a word of its own display nm (lowercased, joined)",function(){
+    // The guard that keeps the mismatch class dead: an id like frenzy/"Berserker" or
+    // trickery/"Subjugation Domain" can never ship again. Qualifiers (Domain, Circle of
+    // the, Oath of) may drop from the id, but the id must appear IN the nm.
+    var bad=[],k;
+    for(k in ARCHETYPES)ARCHETYPES[k].forEach(function(a){
+      if(a.nm.toLowerCase().replace(/[^a-z]/g,"").indexOf(a.id)<0)bad.push(k+": "+a.id+" / "+a.nm);
+    });
+    return bad.length?bad.join(" | "):true;
+  });
+  t("migrateCharClassNames: cls, archetype ID, and display nm all rename — no orphaned picks",function(){
     var c={cls:"Berserker",archetype:"stormherald",archetypeNm:"Storm Herald"};
     if(!migrateCharClassNames(c))return "no change reported";
-    if(c.cls!=="Primal"||c.archetypeNm!=="Stormcaller"||c.archetype!=="stormherald")return JSON.stringify(c);
+    if(c.cls!=="Primal"||c.archetypeNm!=="Stormcaller"||c.archetype!=="stormcaller")return JSON.stringify(c);
     var c2={cls:"Primal",archetype:"frenzy",archetypeNm:"Berserker"};
-    if(migrateCharClassNames(c2))return "false positive on the rage archetype nm";
+    if(!migrateCharClassNames(c2)||c2.archetype!=="berserker")return "frenzy id not healed: "+JSON.stringify(c2);
+    if(c2.archetypeNm!=="Berserker")return "rage nm should not move: "+c2.archetypeNm;
     var c3={cls:"Warrior"};if(migrateCharClassNames(c3))return "false positive on Warrior";
     var c4={cls:"Berserker",archetype:"totem",archetypeNm:"Totem Warrior"};
     migrateCharClassNames(c4);
-    return c4.cls==="Primal"&&c4.archetypeNm==="Totemborn"?true:"totem rename: "+JSON.stringify(c4);
+    if(c4.cls!=="Primal"||c4.archetypeNm!=="Totemborn"||c4.archetype!=="totemborn")return "totem rename: "+JSON.stringify(c4);
+    var c5={cls:"Cleric",archetype:"trickery",archetypeNm:"Trickery Domain"};
+    if(!migrateCharClassNames(c5))return "trickery cleric reported no change";
+    if(c5.archetype!=="subjugation"||c5.archetypeNm!=="Subjugation Domain")return "trickery → subjugation: "+JSON.stringify(c5);
+    var c6={cls:"Cleric",archetype:"life",archetypeNm:"Life Domain"};
+    return migrateCharClassNames(c6)?"false positive on an aligned Cleric":true;
   });
   t("migrateWorldState renames the player AND companion sheets (the save/import/server chokepoint)",function(){
     makeWorld();
@@ -641,9 +659,9 @@ function runEngineTests(R){
         stats:{STR:16,DEX:10,CON:14,INT:8,WIS:10,CHA:8},inventory:[],abilities:[],spells:[],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
     if(!migrateWorldState())return "migrate reported no change";
     var c=worldState.character;
-    if(c.cls!=="Primal"||c.archetypeNm!=="Totemborn")return "player not migrated: "+c.cls+"/"+c.archetypeNm;
+    if(c.cls!=="Primal"||c.archetypeNm!=="Totemborn"||c.archetype!=="totemborn")return "player not migrated: "+c.cls+"/"+c.archetypeNm+"/"+c.archetype;
     var sh=worldState.npcs[worldState.npcs.length-1].charSheet;
-    return sh.cls==="Primal"&&sh.archetypeNm==="Stormcaller"?true:"companion not migrated: "+sh.cls+"/"+sh.archetypeNm;
+    return sh.cls==="Primal"&&sh.archetypeNm==="Stormcaller"&&sh.archetype==="stormcaller"?true:"companion not migrated: "+sh.cls+"/"+sh.archetypeNm+"/"+sh.archetype;
   });
   t("derived-value invariant: the migrated character keeps hd 12, features, and stat priority",function(){
     // The #72 rule: an existing character's derived values must not move across a rename.
