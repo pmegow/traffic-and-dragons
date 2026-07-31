@@ -1417,7 +1417,7 @@ var CLASS_BIBLE = {
       "2": {
         "features": [
           {
-            "nm": "Channel Divinity",
+            "nm": "Minor Miracle",
             "ds": "Once per rest you spend your god's authority out loud, and it answers in its own idiom — light in a dark place, a binding broken, a frightened crowd's courage handed back. The god answers the priest, not the request: what arrives is what your deity would give, not what you asked for."
           }
         ]
@@ -1434,7 +1434,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Divine Strike",
-            "ds": "Your god rides your weapon: once per turn a hit carries an extra d8 of your deity's own kind — light, flame, frost, rot — and the wound is unmistakably divine to anyone who looks at the body."
+            "ds": "Your god blesses your weapon: once per turn a hit carries an extra d8 of your deity's own kind — light, flame, frost, rot — and the wound is unmistakably divine to anyone who looks at the body."
           }
         ]
       },
@@ -1593,16 +1593,16 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "The Knee",
-                "ds": "The weight of your god hangs on your voice. Small commands spoken directly — kneel, drop it, wait, speak — land unless the target has real cause to resist, and even then defiance is visible effort. You never puppet a body; you press a will, and its owner is awake for every moment of it."
+                "nm": "The Oath",
+                "ds": "A promise spoken to you binds. The oath-breaker knows the instant they break it, and so do you, wherever you are — and misfortune of your god's choosing dogs them until amends are made. Only words offered willingly can bind; a forced vow is just noise."
               }
             ]
           },
           "6": {
             "features": [
               {
-                "nm": "The Oath",
-                "ds": "A promise spoken to you binds. The oath-breaker knows the instant they break it, and so do you, wherever you are — and misfortune of your god's choosing dogs them until amends are made. Only words offered willingly can bind; a forced vow is just noise."
+                "nm": "The Knee",
+                "ds": "The weight of your god hangs on your voice. Small commands spoken directly — kneel, drop it, wait, speak — land unless the target has real cause to resist, and even then defiance is visible effort. You never puppet a body; you press a will, and its owner is awake for every moment of it."
               }
             ]
           },
