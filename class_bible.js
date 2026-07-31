@@ -1471,12 +1471,7 @@ var CLASS_BIBLE = {
         ]
       },
       "17": {
-        "features": [
-          {
-            "nm": "The Word",
-            "ds": "Once per day you may speak one short command in your god's own voice, and every creature that hears it obeys for one action. Nothing immediately self-destructive can be commanded, and named foes get a WIS save; the rest simply do it, and remember afterwards that they did."
-          }
-        ]
+        "features": []
       }
     },
     "archetypes": [
@@ -1598,48 +1593,48 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "Invoke Duplicity",
-                "ds": "A perfect double of you stands anywhere you can see, and you speak, gesture, and act through it as though you stood there yourself. It casts nothing and takes no wounds — it simply is you, until you let it go."
+                "nm": "The Knee",
+                "ds": "The weight of your god hangs on your voice. Small commands spoken directly — kneel, drop it, wait, speak — land unless the target has real cause to resist, and even then defiance is visible effort. You never puppet a body; you press a will, and its owner is awake for every moment of it."
               }
             ]
           },
           "6": {
             "features": [
               {
-                "nm": "Two Places at Once",
-                "ds": "The double no longer needs your eye on it. Leave it praying at the altar, drinking in the common room, arguing at a gate, and it holds the part for hours while you are somewhere else entirely — and it can carry a conversation without you."
+                "nm": "The Oath",
+                "ds": "A promise spoken to you binds. The oath-breaker knows the instant they break it, and so do you, wherever you are — and misfortune of your god's choosing dogs them until amends are made. Only words offered willingly can bind; a forced vow is just noise."
               }
             ]
           },
           "10": {
             "features": [
               {
-                "nm": "The Blessed Lie",
-                "ds": "Once a day you can put your god's weight behind something untrue: everyone who hears you say it believes it, and goes on believing until they walk into evidence they cannot explain away. It shapes what people are certain of — never what happened."
+                "nm": "The Yoke",
+                "ds": "A defeated or helpless creature can be bound into your service: awake, aware, resentful, and obedient. You give orders and it carries them out hating every step — you see nothing through its eyes and speak nothing through its mouth; it serves, it is not worn. One yoked servant at a time; release it, or die, and it is free."
               }
             ]
           },
           "14": {
             "features": [
               {
-                "nm": "Never the One Who Did It",
-                "ds": "Blame slides off you. Whenever it would land there is already a double, a witness, a story, or an honest mistake in the way, and someone else is credited with your work every time. The record is untouched; what everyone concludes from it is not."
+                "nm": "Nothing Refuses You",
+                "ds": "Your compulsion no longer needs your presence. A command under your seal, or carried by a messenger in your name, binds as though you spoke it eye to eye — distance was the defense, and there is no defense. One such standing command may be abroad at a time."
               }
             ]
           },
           "18": {
             "features": [
               {
-                "nm": "The Long Con",
-                "ds": "You can have been someone else all along — a rank, a house, a membership, a name with a history — and nobody who checks finds the seam: the registrar has your name, the old men remember you, the paperwork is in the drawer where it should be. One such life at a time; taking up a new one lets the old one quietly lapse."
+                "nm": "The Word",
+                "ds": "Once per day you may speak one short command in your god's own voice, and every creature that hears it obeys for one action. Nothing immediately self-destructive can be commanded, and named foes get a WIS save; the rest simply do it, and remember afterwards that they did."
               }
             ]
           },
           "20": {
             "features": [
               {
-                "nm": "The Sacred Lie",
-                "ds": "CAPSTONE, once per campaign. Tell a lie the size of a kingdom — an heir returned, a treaty signed, a god dead — and the world proceeds as though it were true: armies move, markets turn, mourning is declared. It holds until someone with a god's own authority stands up and says otherwise, and even then people will argue about it."
+                "nm": "The Law",
+                "ds": "CAPSTONE, once per campaign. Speak one decree over a place — a city, a valley, a kingdom's road — and it becomes law in the oldest sense: the land itself enforces it. No blood spilled in this valley. No lie spoken in this city. It holds until a god's own authority overturns it, and your name is on it forever."
               }
             ]
           }
