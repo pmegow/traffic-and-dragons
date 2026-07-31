@@ -1778,6 +1778,23 @@ function runEngineTests(R){
        never-split corpus replays byte-identical, not amnesia about the journey. */
     return true;
   });
+  // ═══ #108: meta-knowledge containment — canon blocks are reference, not conversation ═══
+  // ONE rule in DEFAULT_RULES covers all five leak channels (skeleton arcs, bestiary, TOC
+  // KNOWN NPCs/KNOWN OF, seeded NPC bios) instead of five per-channel edits — the Brief E
+  // finding: the stable-half bestiary names Jorgenfist/Mokmurian every turn and t1244/t1263
+  // leaked them into party banter. Delivery is the target, NOT knowledge: Shalelu legitimately
+  // KNOWS Jorgenfist (her seeded bio says so) — she just must not volunteer it as idle chatter.
+  section("#108: meta-knowledge containment");
+  t("the CANON IS NOT CONVERSATION rule is in DEFAULT_RULES with its load-bearing clauses, and reaches the STABLE half",function(){
+    var r=getRulesBlock();
+    if(r.indexOf("CANON IS NOT CONVERSATION")<0)return "the containment rule is missing from the rules block";
+    if(r.indexOf("not things characters spontaneously say")<0)return "the reference-vs-speech clause is gone";
+    if(r.indexOf("reason to know AND a reason to speak now")<0)return "the delivery gate is gone — knowing would equal volunteering again";
+    if(!/idle banter or narrator asides/.test(r))return "the banter/aside prohibition is gone — the exact t1244 leak shape";
+    makeWorld();
+    var p=buildSysPrompt();
+    return p.stable.indexOf("CANON IS NOT CONVERSATION")>=0?true:"rule not in the stable half (rules block moved?)";
+  });
   // ═══ #92: sync payload compression — the wire format IS the disk format ═══
   section("#92: sync payload compression (pure)");
   t("compressWorldStateSnapshot: transcript → {__lz}; live object and array untouched; empty passes through",function(){
