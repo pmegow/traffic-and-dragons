@@ -8205,4 +8205,105 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── B15 / known-issue #11 — credit exhaustion is a BILLING state, not a subsystem crash ─────
+  // Field report: the Anthropic account ran out of credit, the provider answered HTTP 400 with
+  // "Your credit balance is too low…", and callGM's generic `"HTTP "+status+": "+body` throw
+  // reached the player as "Memory filing failed (…)" — i.e. the memory subsystem looked broken.
+  // A gameplay turn would have read exactly as wrongly. callGM is the ONE boundary every caller
+  // passes through, so recognition + plain surfacing belong there; these pin all four halves.
+  //
+  // Why these call providerHttpError directly instead of stubbing fetch: callGM `await`s, and
+  // this harness is synchronous — a continuation after an await lands in a microtask that cannot
+  // run before the test function returns (see the B16 note above, which only works because the
+  // stub throws SYNCHRONOUSLY, before the first suspension point). So the error-shaping step is
+  // an extracted named function — the same extraction rationale as resolveReinforce (api.js) —
+  // and the tests drive the exact function callGM calls, plus a source contract that it does.
+  section("B15 — credit exhaustion surfacing");
+  var __B15_ANTHROPIC="Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.";
+  var __B15_OPENAI="You exceeded your current quota, please check your plan and billing details.";
+  // This section captures toasts for itself: the suite-level __toasts array is orphaned partway
+  // through the file (an earlier IIFE installs its OWN capture stub over showToast and restores
+  // THAT one), so reading __toasts here would silently see nothing forever.
+  var __b15Toasts=[];
+  function __b15Fire(prov,status,message){
+    var prev=showToast;
+    showToast=function(m){__b15Toasts.push(String(m));};
+    try{return providerHttpError(prov,status,message);}finally{showToast=prev;}
+  }
+  function __b15Reset(){__b15Toasts.length=0;_creditToasted=false;}
+
+  t("the provider's credit-exhaustion 400 raises ONE plain-language toast, not a subsystem error",function(){
+    __b15Reset();
+    __b15Fire(PROVIDERS.anthropic,400,__B15_ANTHROPIC);
+    if(__b15Toasts.length!==1)return "expected exactly 1 toast, got "+__b15Toasts.length+": "+JSON.stringify(__b15Toasts);
+    var m=__b15Toasts[0];
+    if(!/credit/i.test(m))return "the toast never says credit — the player still cannot tell what broke: "+m;
+    if(!/plans ?& ?billing/i.test(m))return "the toast gives the player nowhere to go: "+m;
+    if(/HTTP|400/.test(m))return "the toast leaks the raw HTTP shape at the player: "+m;
+    return true;
+  });
+  t("a second credit failure in the same page load does NOT re-toast (a turn plus its summarize retry)",function(){
+    __b15Reset();
+    __b15Fire(PROVIDERS.anthropic,400,__B15_ANTHROPIC);
+    __b15Fire(PROVIDERS.anthropic,400,__B15_ANTHROPIC);
+    __b15Fire(PROVIDERS.openai,429,__B15_OPENAI);
+    return __b15Toasts.length===1?true:"expected 1 toast across 3 credit failures, got "+__b15Toasts.length+": "+JSON.stringify(__b15Toasts);
+  });
+  t("the thrown Error still propagates, led by a clause that makes the caller's own line honest",function(){
+    __b15Reset();
+    var e=__b15Fire(PROVIDERS.anthropic,400,__B15_ANTHROPIC);
+    if(!(e instanceof Error))return "did not return an Error — the callers' catches (and their busy=false) would not run";
+    if(e.message.indexOf("API credit exhausted — ")!==0)return "message does not lead with the plain clause: "+e.message;
+    if(e.message.indexOf("Plans & Billing")<0)return "message drops the provider's own instruction: "+e.message;
+    return true;
+  });
+  t("an ordinary HTTP 400 keeps its exact old shape and never toasts",function(){
+    __b15Reset();
+    var e=__b15Fire(PROVIDERS.anthropic,400,"messages.0.content: field required");
+    if(e.message!=="HTTP 400: messages.0.content: field required")return "the ordinary shape changed: "+e.message;
+    if(__b15Toasts.length)return "a non-billing failure fired the billing toast: "+JSON.stringify(__b15Toasts);
+    var e2=__b15Fire(PROVIDERS.anthropic,500,"");
+    if(e2.message!=="HTTP 500")return "the no-message shape changed: "+e2.message;
+    return __b15Toasts.length===0?true:"a 500 fired the billing toast: "+JSON.stringify(__b15Toasts);
+  });
+  t("OpenAI's quota exhaustion is caught by the SHARED shape — no per-provider branch needed",function(){
+    __b15Reset();
+    var e=__b15Fire(PROVIDERS.openai,429,__B15_OPENAI);
+    if(e.message.indexOf("API credit exhausted — ")!==0)return "openai quota exhaustion unrecognised: "+e.message;
+    __b15Reset();
+    var e2=__b15Fire(PROVIDERS.openai,429,'{"error":{"code":"insufficient_quota"}}');
+    return e2.message.indexOf("API credit exhausted — ")===0?true:"the insufficient_quota code shape unrecognised: "+e2.message;
+  });
+  t("a provider may override detection as DATA (the PROVIDERS idiom), and the override wins both ways",function(){
+    __b15Reset();
+    var fake={id:"fake",creditError:function(status,msg){return status===402;}};
+    var e=__b15Fire(fake,402,"Payment Required");/* the shared regex would NOT match this */
+    if(e.message.indexOf("API credit exhausted — ")!==0)return "provider creditError() ignored: "+e.message;
+    __b15Reset();
+    var e2=__b15Fire(fake,400,__B15_ANTHROPIC);/* override says no — the fallback must not override the override */
+    return e2.message.indexOf("HTTP 400")===0?true:"the shared regex overrode a provider that declared its own detection: "+e2.message;
+  });
+  t("a credit failure still offers Retry — it must not be mistaken for the bad-key flow",function(){
+    // _attachGMErrorUI (game.js) branches on the error MESSAGE: an auth-shaped one swaps Retry for
+    // a paste-a-new-key box. A billing failure must land on the Retry side (the turn is not
+    // committed, so retrying after a top-up is exactly right), and the auth side must still work.
+    __b15Reset();
+    var credit=__b15Fire(PROVIDERS.anthropic,400,__B15_ANTHROPIC).message;
+    var mounted=false;
+    if(typeof document==="undefined"){document={createElement:function(tag){return __b16El(tag);}};mounted=true;}
+    var isKeyBox,isKeyBox2;
+    try{
+      isKeyBox=_attachGMErrorUI(__b16El("gm-err"),function(){},credit);
+      isKeyBox2=_attachGMErrorUI(__b16El("gm-err2"),function(){},"HTTP 401: invalid x-api-key");
+    }finally{ if(mounted)document=undefined; }
+    if(isKeyBox!==false)return "the credit message tripped the invalid-key branch — the player is asked to paste a new key instead of topping up";
+    return isKeyBox2===true?true:"the auth branch stopped recognising an invalid-key error — this change broke the key-replacement flow";
+  });
+  t("callGM's non-ok branch routes through providerHttpError — detection cannot drift back inline",function(){
+    var src=String(callGM);
+    if(src.indexOf("providerHttpError(")<0)return "callGM no longer calls providerHttpError — every caller is back to rendering a billing state as its own crash";
+    if(/throw new Error\("HTTP "/.test(src))return "callGM still builds a raw HTTP error inline, bypassing the shared boundary";
+    return true;
+  });
+
 }

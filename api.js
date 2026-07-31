@@ -1130,6 +1130,45 @@ function _checkStablePurity(stable){
 // engine tests exercise the exact resolution callGM sends — a byte-identity test on the
 // Sonnet path is the guard against the block ever leaking onto the money-tested prompt.
 function resolveReinforce(prov,model){var r=prov&&prov.reinforce;if(typeof r==="function")r=r(model);return r||"";}
+// ── B15 / known-issue #11: an exhausted API balance is a BILLING state, not a broken subsystem ──
+// The field report: the account ran out of credit, Anthropic answered HTTP 400 "Your credit
+// balance is too low to access the Anthropic API…", and the generic `"HTTP "+status+": "+body`
+// throw below reached the player through summarize()'s catch as "Memory filing failed (…)". The
+// player was told the memory system was broken; a gameplay turn would have said "GM error" with
+// equal wrongness. Every caller renders the same condition as ITS OWN component failing, so the
+// recognition has to live at the ONE boundary they all pass through — here.
+//
+// Detection is per-provider DATA, per the PROVIDERS idiom (no `if(provider===…)` anywhere): a
+// provider may carry an optional `creditError(status,message)` and it then OWNS the decision;
+// everything without one falls through to the shared shape below. Matching is on the MESSAGE, not
+// the status, because the status varies by provider for the identical condition (Anthropic 400,
+// OpenAI 429) — a status gate would silently miss the next one.
+var CREDIT_EXHAUSTED_RE=/credit balance is too low|insufficient_quota|exceeded your current quota|billing hard limit/i;
+var CREDIT_EXHAUSTED_TOAST="⚠ Your API credit has run out — top up under Plans & Billing at your provider.";
+var CREDIT_EXHAUSTED_PREFIX="API credit exhausted — ";
+var _creditToasted=false;/* once per page load: a failed turn and the summarize retry that follows it must not double-toast */
+function isCreditExhausted(prov,status,message){
+  if(prov&&typeof prov.creditError==="function"){
+    try{return !!prov.creditError(status,message);}
+    catch(e){console.warn("[credit] "+((prov&&prov.id)||"provider")+".creditError() threw — falling back to the shared shape:",e.message);}
+  }
+  return CREDIT_EXHAUSTED_RE.test(String(message||""));
+}
+// Shapes the Error thrown for every non-ok HTTP response from a provider. Credit exhaustion gets
+// a plain leading clause (so whatever system line the caller prints around e.message reads
+// honestly) plus ONE toast per page load; the error still THROWS, so every caller's catch — and
+// its busy=false, its Retry offer, its #16 report — runs exactly as before. The message must stay
+// free of "key"/"401"/"permission_denied", or _attachGMErrorUI (game.js) would swap the Retry
+// button for a paste-a-new-key box, which is the wrong remedy; an engine test pins that.
+// Any other status keeps the byte-identical "HTTP <status>[: <message>]" shape callers branch on.
+function providerHttpError(prov,status,message){
+  if(isCreditExhausted(prov,status,message)){
+    console.warn("[credit] "+((prov&&prov.id)||"provider")+" refused the request for billing reasons (HTTP "+status+"): "+message);
+    if(!_creditToasted){_creditToasted=true;if(typeof showToast==="function")showToast(CREDIT_EXHAUSTED_TOAST);}
+    return new Error(CREDIT_EXHAUSTED_PREFIX+"top up your provider account (Plans & Billing), then retry. Provider said: "+message);
+  }
+  return new Error("HTTP "+status+(message?": "+message:""));
+}
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
@@ -1158,8 +1197,10 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
   var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}
   var raw;try{raw=await res.text();}catch(e){throw new Error("Read error");}
-  var data;try{data=JSON.parse(raw);}catch(e){throw new Error("HTTP "+res.status+": "+raw.slice(0,200));}
-  if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw new Error("HTTP "+res.status+(_em?": "+_em:""));}
+  // Both non-ok paths route through providerHttpError (B15) — the unparseable-body one too, since
+  // a gateway/HTML error page carrying the billing text must be recognised just the same.
+  var data;try{data=JSON.parse(raw);}catch(e){throw providerHttpError(prov,res.status,raw.slice(0,200));}
+  if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw providerHttpError(prov,res.status,_em);}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
   if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
   return prov.parseResponse(data);
