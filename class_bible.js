@@ -1410,7 +1410,8 @@ var CLASS_BIBLE = {
         "Sacred Flame",
         "Guidance",
         "Spare the Dying",
-        "Thaumaturgy"
+        "Thaumaturgy",
+        "Succor"
       ]
     },
     "levels": {
