@@ -778,7 +778,10 @@ function detectCoreMoments(pre){
 function inventorySnapshot(){
   if(!worldState||!worldState.character)return null;
   var m={},inv=worldState.character.inventory||[],i;
-  for(i=0;i<inv.length;i++)m[_invNorm(inv[i])]={label:_invBase(inv[i]),n:_invCount(inv[i])};
+  // Skip non-string entries (load-time migration deliberately preserves them, and the other two
+  // inventory readers both skip them) — this snapshot runs BEFORE applyMuts, so a throw here
+  // would lose the whole turn and make Retry re-throw forever.
+  for(i=0;i<inv.length;i++){if(typeof inv[i]!=="string")continue;m[_invNorm(inv[i])]={label:_invBase(inv[i]),n:_invCount(inv[i])};}
   return m;
 }
 // Diff against a pre-applyMuts snapshot and announce the net gain. Counts are compared per

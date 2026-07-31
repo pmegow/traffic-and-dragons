@@ -1365,6 +1365,10 @@ function runEngineTests(R){
     worldState.npcs.push({name:"Newcomer",status:"wary",rel:"stranger"});
     memory.chapters.push({turn:worldState.turn,summary:"Things happened."});
     worldState.world.time="midnight";worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    // Fable review 2026-07-30 (entry 8 ④): the clock was the one per-turn mutator this
+    // invariant never exercised — the v1.499 stable-half TIME_ADVANCE rewrite shipped with
+    // only an ad-hoc probe proving it. A clock move + a scheduled event are volatile-only.
+    worldState.clock={min:2483,schedule:[{id:"s1",label:"patrol returns",dueMin:2663,born:2483}]};
     var b=buildSysPrompt().stable;
     return a===b?true:"stable changed after volatile-state mutations (len "+a.length+" vs "+b.length+")";
   });
@@ -1940,6 +1944,21 @@ function runEngineTests(R){
     if(b.indexOf("It is dragging")>=0)return "arc nudge fired on a parallel act";
     return b.indexOf("per act)")>=0?true:"act-turn line should govern a stalled parallel act";
   });
+  // Fable review 2026-07-30 (entry 10): the v1.495 HOOK DELIVERY constraint shipped with no
+  // pin — removing the whole sentence changed zero assertions. Pin its presence and its two
+  // load-bearing clauses for parallel acts. "not currently pursuing" is deliberate: a parallel
+  // act renders EVERY arc [CURRENT], so the original "inactive arcs" had no rendered referent.
+  t("PARALLEL act carries the HOOK DELIVERY constraint (named-NPC delivery, no party-banter leaks)",function(){
+    makeWorld();worldState.actStartTurn=0;worldState.turn=10;
+    worldState.skeleton={premise:"p",acts:[{title:"Sandbox",goal:"g",turningPoint:"tp",status:"active",parallel:true,arcs:[
+      {title:"Lead A",objective:"o",status:"active",startTurn:0},
+      {title:"Lead B",objective:"o",status:"active",startTurn:0}
+    ]}]};
+    var b=buildSkeletonBlock();
+    if(b.indexOf("HOOK DELIVERY:")<0)return "constraint missing from a parallel act";
+    if(b.indexOf("something someone SAYS")<0)return "the delivery rule lost its SAYS clause";
+    return b.indexOf("NOT currently pursuing")>=0?true:"referent regressed to 'inactive arcs' — a parallel act renders every arc CURRENT";
+  });
   t("per-arc nudge fails safe (no fire) when the active arc has no startTurn (pre-v1.296 arc)",function(){
     makeWorld();worldState.actStartTurn=0;worldState.turn=ARC_TURN_BUDGET+300;
     worldState.skeleton={premise:"p",acts:[{title:"Old Save Act",goal:"g",turningPoint:"tp",status:"active",arcs:[
@@ -2156,6 +2175,19 @@ function runEngineTests(R){
     var en=round.transcript[round.transcript.length-1];
     return en.ta===180?true:"after round trip .ta: "+en.ta;
   });
+  // Fable review 2026-07-30 (entry 8 ①): the round trip above starts with a COLD memo, but the
+  // "push-time stamping needs no invalidateTranscriptMemo" claim rests on the WARM case — the
+  // push must change transcript.length so the memo misses on its own. Exercise exactly that.
+  t("a WARM compression memo cannot swallow a freshly pushed .ta entry (the push changes length)",function(){
+    makeWorld();
+    logTranscript("gm","First scene.","First scene.",5);
+    serializeWorldState(worldState);// warm the memo on this transcript array
+    logTranscript("gm","Second scene.","Second scene.",30);
+    var round=parseWorldState(serializeWorldState(worldState));
+    var en=round.transcript[round.transcript.length-1];
+    if(en.x!=="Second scene.")return "warm memo served the stale blob — pushed entry missing";
+    return en.ta===30?true:"warm-memo round trip .ta: "+en.ta;
+  });
   // ── #106b: player-facing time of day ──────────────────────────────────────
   t("clockTimeOfDay projects elapsed minutes onto a wall clock with dawn=6am",function(){
     if(clockTimeOfDay(0)!=="6:00 am")return "dawn: "+clockTimeOfDay(0);
@@ -2203,7 +2235,9 @@ function runEngineTests(R){
     var p=buildSysPrompt();
     var joined=p.stable+"\n"+p.volatile;
     if(joined.indexOf("11:23 pm")>=0)return "wall-clock time leaked into the prompt";
-    return joined.indexOf("pm")>=0&&/\d:\d\d\s?[ap]m/.test(joined)?"a clock face leaked into the prompt":true;
+    // Fable review 2026-07-30 (entry 8 ②): the old form gated the regex on indexOf("pm"),
+    // so an AM-only face ("Day 1, 6:00 am") passed undetected. The regex alone is the check.
+    return /\d:\d\d\s?[ap]m/.test(joined)?"a clock face leaked into the prompt":true;
   });
   t("flag off → ragRetrieve returns the empty string",function(){
     makeWorld();worldState.turn=40;
@@ -6315,6 +6349,38 @@ function runEngineTests(R){
     commitGmTurn("Hemlock shakes his head. Nothing changes hands. [HP:-2]",
                  {userMsg:"I ask again",playerTxt:"I ask again"});
     return __toasts.join(" | ").indexOf("Collected")<0?true:"toasted on a turn with no acquisition: "+__toasts.join(" | ");
+  });
+  // Fable review 2026-07-30 (entry 9): inventorySnapshot runs at the TOP of commitGmTurn, one
+  // line before applyMuts — so a snapshot throw loses the ENTIRE turn (state, transcript,
+  // narration) and Retry re-enters the same snapshot and throws again. The engine's other two
+  // inventory readers (detectGhostConsumables, foldDuplicateInventory) both skip non-strings,
+  // and load-time migration deliberately PRESERVES them — the turn path must survive them too.
+  t("#107: a non-string inventory entry cannot kill the turn (snapshot skips it like every other reader)",function(){
+    makeWorld();__toasts.length=0;
+    worldState.character.inventory.push({nm:"weird object"});
+    var threw=null;
+    try{commitGmTurn("You pocket the coin. [ITEM_GAINED:Copper coin]",{userMsg:"u",playerTxt:"p"});}
+    catch(e){threw=(e&&e.message)||"?";}
+    if(threw)return "commitGmTurn threw before applyMuts could run: "+threw;
+    var tl=worldState.transcript;
+    if(!tl.length||tl[tl.length-1].r!=="gm")return "turn did not commit (no gm transcript entry)";
+    if(worldState.character.inventory.indexOf("Copper coin")<0)return "the gain never landed";
+    return __toasts.join(" | ").indexOf("Copper coin")>=0?true:"gain landed but was not toasted: "+__toasts.join(" | ");
+  });
+  // Fable review 2026-07-30 (entry 8 ①): the four #105b unit tests all call logTranscript
+  // directly — the same wiring hole the #107 guard above names. This drives the REAL turn path
+  // and reads the stamped fields, so corrupting the 4th argument at the game.js call site
+  // (dropping it, passing 0) can no longer leave the battery green.
+  t("#105b WIRING: the real turn path stamps .ta from the measured clock delta (dawn roll included)",function(){
+    makeWorld();
+    worldState.clock={min:100,schedule:[]};
+    commitGmTurn("You search the wreck. [TIME_ADVANCE:45m]",{userMsg:"u",playerTxt:"p"});
+    var en=worldState.transcript[worldState.transcript.length-1];
+    if(en.ta!==45)return ".ta after TIME_ADVANCE: "+en.ta+" (want 45)";
+    if(en.ck!==145)return ".ck after TIME_ADVANCE: "+en.ck+" (want 145)";
+    commitGmTurn("You sleep until morning. [REST:long]",{userMsg:"u2",playerTxt:"p2"});
+    var en2=worldState.transcript[worldState.transcript.length-1];
+    return en2.ta===(1440-145)?true:".ta after the REST dawn roll: "+en2.ta+" (want "+(1440-145)+")";
   });
 
   t("(c) turn + nameIdx advance exactly once per normal commit",function(){

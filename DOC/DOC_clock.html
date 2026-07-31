@@ -86,7 +86,7 @@
     { id, label, dueMin, born }   // fires when clock.min >= dueMin
   ]
 }</code></pre>
-<p>Epoch = 0 = campaign start, resettable via the Sync modal (fast-follow). The v1 clock measures <strong>elapsed campaign time</strong> — "Day 4, 14h 30m since the campaign began" — which is the honest primitive. Mapping elapsed time onto an in-world wall-clock date ("3rd of Frostfall") is the <a href="#calendar">calendar fast-follow</a>.</p>
+<p>Epoch = 0 = campaign start, resettable via the Sync modal (fast-follow). The v1 clock measures <strong>elapsed campaign time</strong> — 4 whole days + 14h 30m renders as "Day 5, 14h 30m elapsed" (day labels are 1-based since v1.498) — which is the honest primitive. Mapping elapsed time onto an in-world wall-clock date ("3rd of Frostfall") is the <a href="#calendar">calendar fast-follow</a>.</p>
 
 <h2 id="tags">Tags</h2>
 <table class="scroll">
@@ -111,7 +111,7 @@
 <h2 id="inject">Injection — one shared builder</h2>
 <div class="card">
 <p><code>buildClockBlock()</code> is a single pure builder injected into the <strong>volatile</strong> half every turn (never the cached stable half — a per-turn counter in the stable block would kill every prompt-cache hit, the UA5 failure). It computes all countdowns from data:</p>
-<pre><code>CAMPAIGN CLOCK: Day 4, 14h 30m elapsed (since the campaign began).
+<pre><code>CAMPAIGN CLOCK: Day 5, 14h 30m elapsed (day labels 1-based since v1.498).
 UPCOMING (computed from the clock — never invent or restate these numbers):
   • Winter solstice — in 7 days
   • Paralysis on Ammut wears off — in 6 minutes

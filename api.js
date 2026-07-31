@@ -769,7 +769,7 @@ function buildSkeletonBlock(){
     // the ending, never teleport past an active crisis or cut a scene.
     var _actTurns=worldState.turn-(worldState.actStartTurn||0);
     if(!_allArcsDone&&!_arcNudged&&_actTurns>ACT_TURN_BUDGET)pacingNote="⚑ PACING — the current act (\""+activeAct.title+"\") has run "+_actTurns+" turns (soft target ~"+ACT_TURN_BUDGET+" per act). Bring the ACTIVE arc to a decisive resolution and move toward the act's turning point; stop opening unrelated detours. (Advance toward the ending — do NOT skip an active crisis or cut a scene mid-stakes; steer, don't teleport.)\n"+pacingNote;
-    if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.\nHOOK DELIVERY: foreshadow inactive arcs ONLY through named NPCs who have a reason to know — a sheriff reporting trouble, a scholar mentioning rumors, a merchant with news from the road. Never drop arc names, locations, or characters into party banter or narrator asides unprompted. The hook must arrive as something someone SAYS to the player, not something the party just knows.";
+    if(activeArcs.length>1)pacingNote+="\nThis act is PARALLEL — multiple arcs are active simultaneously. The player chooses which to pursue. Weave hooks for the others into scenes naturally, but follow the player's lead. Do not force a specific arc order. Run each through its HOW TO RUN THIS ARC directive above.\nHOOK DELIVERY: foreshadow the arcs the party is NOT currently pursuing ONLY through named NPCs who have a reason to know — a sheriff reporting trouble, a scholar mentioning rumors, a merchant with news from the road. Never drop arc names, locations, or characters into party banter or narrator asides unprompted. The hook must arrive as something someone SAYS to the player, not something the party just knows.";
     // Generic type-hint only when the active arc has NO dnaHint — otherwise it contradicts the author
     // sensibility (a generic "investigation → gather clues" line is what flattened campaigns into procedure).
     if(activeArcs.length===1&&!activeArcs[0].dnaHint&&activeArcs[0].type)pacingNote+="\nThe current arc is "+activeArcs[0].type+"-focused. Shape encounters and scenes accordingly: "+(activeArcs[0].type==="investigation"?"clues, interrogation, deduction, piecing together evidence":activeArcs[0].type==="exploration"?"travel, discovery, environmental challenges, mapping unknown territory":activeArcs[0].type==="social"?"politics, alliances, persuasion, betrayal, negotiation":activeArcs[0].type==="combat"?"battles, sieges, hunts, tactical encounters":"varied challenges")+".";
@@ -955,9 +955,13 @@ function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\
 // spacing around it collapses, so all of "A — B", "A - B", "A—B" agree. Spaced words are NOT
 // folded into hyphenated ones ("well worn" stays distinct from "well-worn") — deliberately
 // conservative, since a wrong merge silently destroys a real item.
-function _invNorm(s){return (s||"").replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
-function _invCount(s){var m=(s||"").match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
-function _invBase(s){return (s||"").replace(/\s*x\d+\s*$/i,"").trim();}
+// Non-strings coerce to "" (not just null/undefined): load-time migration deliberately preserves
+// non-string inventory entries, and a primitive that throws on one kills whatever loop touched it —
+// inventorySnapshot sits BEFORE applyMuts in the turn path, so that throw cost the entire turn.
+function _invStr(s){return typeof s==="string"?s:"";}
+function _invNorm(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
+function _invCount(s){var m=_invStr(s).match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
+function _invBase(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").trim();}
 // P14: a quantity baked into an item TAG ("Rope x3") means N of the base item, not one item
 // literally named "Rope x3" — without this, gaining "Rope x3" onto an existing "Rope" stack
 // stepped the count to x2 instead of x4, and losing "Rope x2" removed only one. The x must be

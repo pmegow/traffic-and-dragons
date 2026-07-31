@@ -266,7 +266,8 @@ function migrateWorldState(){
   if(worldState.skeleton&&worldState.skeleton.acts){var _sa,_sr;for(_sa=0;_sa<worldState.skeleton.acts.length;_sa++){var _arcs=worldState.skeleton.acts[_sa].arcs||[];for(_sr=0;_sr<_arcs.length;_sr++){if(_arcs[_sr].status==="active"&&_arcs[_sr].startTurn===undefined){_arcs[_sr].startTurn=worldState.turn;_mig=true;}}}}
   if(!c.aliases){c.aliases=[];_mig=true;}/* #47 epithets — schema field so titles survive PC↔NPC swaps */
   /* #73 campaign clock: the elapsed-time counter + scheduler. min=0 = campaign start. Additive —
-     an old save simply starts its clock at load (Day 0), and buildClockBlock renders nothing until
+     an old save simply starts its clock at load (min 0, labelled Day 1 since the v1.498 1-based
+     relabel), and buildClockBlock renders nothing until
      time is advanced or something is scheduled, so the prompt stays byte-clean for untouched saves. */
   if(!worldState.clock||typeof worldState.clock.min!=="number"||isNaN(worldState.clock.min)){worldState.clock={min:0,schedule:[]};_mig=true;}
   if(!worldState.clock.schedule){worldState.clock.schedule=[];_mig=true;}
