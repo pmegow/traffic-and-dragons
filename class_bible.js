@@ -670,7 +670,10 @@ var CLASS_BIBLE = {
         "ds": "Teleport 30ft. DC15 DEX or arrive off target."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Arcana",
+      "Lore"
+    ],
     "spellTiers": {
       "2": 5,
       "3": 7,
@@ -711,7 +714,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Font of Magic",
-            "ds": "sorcery points for spell slots and metamagic."
+            "ds": "Your magic is not studied, it is LIVED — a reservoir in the blood that refills as you do. You feel your remaining power the way others feel fatigue, and you can always tell when another caster is nearly spent."
           }
         ]
       },
@@ -719,7 +722,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Metamagic",
-            "ds": "Quickened, Twinned, Extended, Subtle spells."
+            "ds": "A spell's shape is yours to bend as you cast it: quicken it into an instant, twin it onto a second target, stretch its reach or duration, or work it with no word or gesture at all — magic indistinguishable from intent."
           }
         ]
       },
@@ -727,7 +730,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Sorcerous Restoration",
-            "ds": "regain 4 sorcery points on short rest."
+            "ds": "Power returns to you the way breath does. Minutes of stillness restore what hours of rest give other casters — a sorcerer who catches their wind is a sorcerer rearmed."
           }
         ]
       },
@@ -735,21 +738,41 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Overchannel",
-            "ds": "maximize spell damage at HP cost."
+            "ds": "Push a spell past its ceiling: maximum possible effect, no roll. The price is paid in your own body — d6 damage per tier of the spell, and those wounds cannot be healed by any means until you next sleep. The power was never free; it was borrowed."
           }
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Arcane Sight",
+            "ds": "You see magic as plainly as light. Every enchantment, ward, curse, and active spell declares itself to your eyes; every illusion is a painting you can see the brushstrokes in; every disguise self announces the face beneath."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "Split Weave",
+            "ds": "Your mind holds two workings at once. Concentration is no longer a single thread — you can sustain two spells simultaneously, and losing one does not shake the other."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Body of Magic",
+            "ds": "The flesh is half power now. Magic sustains you where the body fails — you barely need food, sleep, or air; poison and disease find nothing to grip; and you age at a crawl. The frailty remains: what cuts you still cuts."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Witnessed Once, Worked Once",
+            "ds": "Once per day you may work a spell you do not know but have SEEN worked — friend's blessing or enemy's curse, anything cast in your sight is yours to cast back, once, exactly as it was done."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -759,22 +782,52 @@ var CLASS_BIBLE = {
         "desc": "Dragon ancestry. Bonus HP per level. Elemental affinity. Wings at high level.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Old Blood",
+                "ds": "The dragon in your line wakes. Fine scales harden your skin where armor would sit, one element runs in your veins — flame, frost, storm, or venom, chosen once — and dragons and their kin know you on sight for what you carry."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Elemental Vein",
+                "ds": "Your element cannot harm you, and it answers small requests without a spell: candle-flames bow, frost blooms across a window, sparks leap to your hand. Your spells of that element hit harder than they have any right to."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Presence of the Wyrm",
+                "ds": "The old blood fills a room when you let it. Lesser creatures' nerve breaks under your attention; hardened ones bargain more carefully. It is not charm and it is not fear — it is the older thing both descend from."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Wings",
+                "ds": "They were always there, waiting. Wings tear free when called and fold away to nothing — true flight, your own, in any armor, at any hour."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Wyrmform",
+                "ds": "Once per day, take the shape of the dragon whose blood you carry — the full creature, for a scene: wings, breath, bulk, and the fear that comes with it. What you do wearing it is remembered."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Progenitor's Due",
+                "ds": "CAPSTONE, once per campaign. Speak the true name in your blood and your ancestor ANSWERS — the progenitor dragon itself comes, in the flesh, disposed to treat you as kin. What it does when it arrives is its own will; dragons are not tame. But it came for you, and the world saw it come."
+              }
+            ]
           }
         }
       },
@@ -784,22 +837,52 @@ var CLASS_BIBLE = {
         "desc": "Chaotic unstable power. Random surges. Tides of Chaos for lucky advantage.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Tides of Chaos",
+                "ds": "Chaos likes you. When you gamble — a reckless casting, a mad plan, a coin-flip moment — fortune leans your way. In exchange, your magic sometimes answers with an idea of its own: a surge the GM narrates, wondrous or inconvenient, never nothing."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bend Luck",
+                "ds": "Another's fortune is yours to nudge: steal a stumble from an ally's slip, gift one to an enemy's sure step. A visible flicker of wrongness accompanies it — dice land on edge, bowstrings snap, the horseshoe falls."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Controlled Chaos",
+                "ds": "The surge is no longer blind. When your magic answers with its own idea, it offers TWO — and you choose which one happens. Chaos has stopped happening to you and started negotiating."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Chaos Feeds You",
+                "ds": "Every surge, yours or the world's — wild magic, a miscast, an artifact's tantrum — pours power back into you instead of taking it. Standing in another caster's catastrophe, you are the only one getting stronger."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Unraveling Presence",
+                "ds": "Probability frays around you. Locks slip, arrows curve, the one loose stone finds an enemy's foot; around you the improbable becomes merely uncommon, and it is never on the other side. A GM who plans around you plans in ranges."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Rewrite the Odds",
+                "ds": "CAPSTONE, once per campaign. Name one moment of pure chance — a fall, a storm, a draw, a die — and declare its outcome, however impossible. It happens exactly as spoken. Chance owed you one, and everyone watching learns it paid."
+              }
+            ]
           }
         }
       },
@@ -809,22 +892,52 @@ var CLASS_BIBLE = {
         "desc": "Power from the Shadowfell. Darkvision. Hound of Ill Omen. Shadow Walk.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Eyes of the Dark",
+                "ds": "No darkness is dark to you, mundane or magical — and the dark answers small requests: torches gutter, shadows pool and stretch, a corner is always unlit when you need one. Something on the other side of the dark knows your name now."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Hound of Ill Omen",
+                "ds": "Whisper a name into a shadow and a hound of it steps out to harry that creature. It does not tire, it does not lose the trail, and its quarry sleeps badly until the hound is called off or destroyed. One hound at a time."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Shadow Walk",
+                "ds": "Every shadow is a door. Step into one and out of any other you have stood in before, however far — the cold between them is crossed in a single held breath. What lives in that cold has learned to let you pass."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Shadow Half",
+                "ds": "Your shadow can leave you: a second self of dark that walks, watches, and whispers back what it sees. While it is out you cast a shadow that isn't yours, and the observant will notice. If it is destroyed, you feel it — and it comes back only at nightfall."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Dark Between",
+                "ds": "You can pull others through with you — carry companions along a Shadow Walk, or drag an enemy INTO the cold between and finish the conversation there, in a realm where every advantage is yours. Its native things treat you as one of their lords."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Sovereign of the Night",
+                "ds": "CAPSTONE, once per campaign. From one dusk to the next dawn, the night is YOURS: every shadow a door, every darkness your eyes and ears, every dark thing yours to command. One night to move an army unseen, empty a fortress, or visit every enemy you have at once. Then the sun rises, and the debt is even."
+              }
+            ]
           }
         }
       }
