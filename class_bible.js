@@ -564,7 +564,8 @@ var CLASS_BIBLE = {
             "Telepathy",
             "Shrink",
             "Breathe Water",
-            "Slow"
+            "Slow",
+            "Group Telepathy"
           ],
           "4": [
             "Oubliate",
@@ -574,7 +575,6 @@ var CLASS_BIBLE = {
             "Archmage Hand",
             "Mass Charm",
             "Implant Memory",
-            "Group Telepathy",
             "Mirror Image"
           ],
           "cantrips": [
@@ -1368,7 +1368,10 @@ var CLASS_BIBLE = {
         "ds": "Bonus action. Heal target for d4+WIS modifier HP."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Lore",
+      "First Aid"
+    ],
     "spellTiers": {
       "2": 5,
       "3": 7,
@@ -1381,19 +1384,26 @@ var CLASS_BIBLE = {
         "Healing Word",
         "Bless",
         "Guiding Bolt",
-        "Shield of Faith"
+        "Shield of Faith",
+        "Command",
+        "Sanctuary",
+        "Detect Magic"
       ],
       "2": [
         "Spiritual Weapon",
         "Hold Person",
-        "Lesser Restoration"
+        "Lesser Restoration",
+        "Augury",
+        "Zone of Truth"
       ],
       "3": [
         "Spirit Guardians",
         "Revivify",
         "Dispel Magic"
       ],
-      "4": [],
+      "4": [
+        "Divination"
+      ],
       "5": [],
       "6": [],
       "cantrips": [
@@ -1408,7 +1418,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Channel Divinity",
-            "ds": "powerful divine ability, once per rest."
+            "ds": "Once per rest you spend your god's authority out loud, and it answers in its own idiom — light in a dark place, a binding broken, a frightened crowd's courage handed back. The god answers the priest, not the request: what arrives is what your deity would give, not what you asked for."
           }
         ]
       },
@@ -1416,7 +1426,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Destroy Undead",
-            "ds": "Turn Undead destroys weaker undead outright."
+            "ds": "Undead of lesser standing than you no longer flee when you turn them — they come apart where they stand. Anything older or greater than you still runs, and remembers who made it run."
           }
         ]
       },
@@ -1424,7 +1434,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Divine Strike",
-            "ds": "bonus damage of domain type, once per turn."
+            "ds": "Your god rides your weapon: once per turn a hit carries an extra d8 of your deity's own kind — light, flame, frost, rot — and the wound is unmistakably divine to anyone who looks at the body."
           }
         ]
       },
@@ -1432,21 +1442,41 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Divine Intervention",
-            "ds": "10% chance of deity response."
+            "ds": "You may pray aloud for your god to act directly. Roll d100; under your level it does — plainly, publicly, and in its own way. Answered or not, it will not be asked again for seven days."
           }
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Consecrated Ground",
+            "ds": "A night's rite makes a place yours: nothing unholy crosses the threshold uninvited, and anyone who sleeps inside wakes as though they had rested a week. You hold one consecrated place at a time — raising a new one lets the old go quiet."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Blessing Holds",
+            "ds": "Your boons outlast the danger that prompted them. Any blessing you lay on a companion runs until your next rest instead of fading with the fight — a party that travels with you travels blessed."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Death Waits",
+            "ds": "Once per rest, when you or anyone you can see drops, death is told to wait: they stand at 1 hit point instead of falling. The same creature cannot be spared twice in one day — the second time, the god is not listening."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Word",
+            "ds": "Once per day you may speak one short command in your god's own voice, and every creature that hears it obeys for one action. Nothing immediately self-destructive can be commanded, and named foes get a WIS save; the rest simply do it, and remember afterwards that they did."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -1456,22 +1486,52 @@ var CLASS_BIBLE = {
         "desc": "Master healer. Disciple of Life -- healing spells restore bonus HP. Preserve Life.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Disciple of Life",
+                "ds": "Every healing you work gives back more than it should, and your hands read a body at a touch: what broke it, how long it has, and whether the trouble is wound, poison, sickness, or grief."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Preserve Life",
+                "ds": "Once per rest you can catch someone in the first moments after death — a creature dead less than a minute stands again at 1 hit point, whole enough to walk. What they saw while they were gone is between them and your god."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Cleanse",
+                "ds": "Disease, poison, rot, and afflictions of the body lift where you keep vigil: one night's work cures any single creature, and a plague ends in whatever village you stay in. It mends the body — what corrupts a soul is not your department."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Wound Does Not Take",
+                "ds": "Nothing you have tended goes bad: no fever, no gangrene, no crippling, no scar worse than a clean line. And once per fight you can heal a companion anywhere you can see them, without touch or reaching them."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "No One Dies Today",
+                "ds": "Once per day you may declare it, and for one scene nothing within your sight dies. They fall, they bleed, they surrender — friend and enemy alike — and every one of them wakes up. What you do with a battlefield full of living enemies is your own problem."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Return",
+                "ds": "CAPSTONE, once per campaign. You can ask for one person back and be answered. Whatever remains of them — a body, a scrap, a name — they return whole and themselves, however they died and however long ago. What the god takes for it, it takes from you, and it always takes something."
+              }
+            ]
           }
         }
       },
@@ -1481,22 +1541,52 @@ var CLASS_BIBLE = {
         "desc": "God of battle. War Priest bonus attack. Guided Strike -- +10 to a missed attack.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "War Priest",
+                "ds": "Prayer and blow are one motion. You never have to choose between casting and fighting on a turn, and armor, shield, and weapon never hinder your magic — a spell of yours has been swung as often as spoken."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Guided Strike",
+                "ds": "Once per fight a miss becomes a hit — yours, or any companion's you can see. Your god corrects the swing visibly, and everyone on the field knows whose hand did it."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Line Holds",
+                "ds": "Nobody breaks where you stand. Allies who can see or hear you cannot be routed, frightened, or panicked, and the wounded among them keep their feet as long as you keep yours."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Consecrated Arms",
+                "ds": "Every weapon your party carries counts as blessed while you are in the fight — the ghost, the fiend, the thing that ordinary steel passes straight through takes the blow like anything else. Yours in particular has no bad angles."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The God of Battle Attends",
+                "ds": "Once a day you may call your deity onto the field, and it comes visibly — a wave of standing light, a shadow in armor twelve feet tall — and fights beside you for that encounter, as capable as you are. Everyone present sees it. Word of it travels ahead of you."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Decide the Battle",
+                "ds": "CAPSTONE, once per campaign. In a battle you are fighting in, name the victor and the field goes that way: reinforcements arrive, the flank folds, the champion's horse throws them. The outcome is yours. The cost in the dead is not, and you will be counting it afterwards."
+              }
+            ]
           }
         }
       },
@@ -1506,22 +1596,52 @@ var CLASS_BIBLE = {
         "desc": "Deception and illusion. Invoke Duplicity -- create a perfect duplicate of yourself.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Invoke Duplicity",
+                "ds": "A perfect double of you stands anywhere you can see, and you speak, gesture, and act through it as though you stood there yourself. It casts nothing and takes no wounds — it simply is you, until you let it go."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Two Places at Once",
+                "ds": "The double no longer needs your eye on it. Leave it praying at the altar, drinking in the common room, arguing at a gate, and it holds the part for hours while you are somewhere else entirely — and it can carry a conversation without you."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Blessed Lie",
+                "ds": "Once a day you can put your god's weight behind something untrue: everyone who hears you say it believes it, and goes on believing until they walk into evidence they cannot explain away. It shapes what people are certain of — never what happened."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Never the One Who Did It",
+                "ds": "Blame slides off you. Whenever it would land there is already a double, a witness, a story, or an honest mistake in the way, and someone else is credited with your work every time. The record is untouched; what everyone concludes from it is not."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Long Con",
+                "ds": "You can have been someone else all along — a rank, a house, a membership, a name with a history — and nobody who checks finds the seam: the registrar has your name, the old men remember you, the paperwork is in the drawer where it should be. One such life at a time; taking up a new one lets the old one quietly lapse."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Sacred Lie",
+                "ds": "CAPSTONE, once per campaign. Tell a lie the size of a kingdom — an heir returned, a treaty signed, a god dead — and the world proceeds as though it were true: armies move, markets turn, mourning is declared. It holds until someone with a god's own authority stands up and says otherwise, and even then people will argue about it."
+              }
+            ]
           }
         }
       }
