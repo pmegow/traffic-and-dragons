@@ -1472,7 +1472,12 @@ var CLASS_BIBLE = {
         ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Smite",
+            "ds": "Once per day, name a creature you can see and your god strikes it directly: a single blow equal to 95% of the hit points it has left, delivered in your deity's own idiom — a thunderclap from a storm god, ghostly kraken tentacles from a god of the deep; the GM chooses the manifestation. It is never a killing blow: whatever it hits is left at death's door, and what happens next is up to you."
+          }
+        ]
       }
     },
     "archetypes": [
