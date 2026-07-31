@@ -310,6 +310,38 @@ try {
   if (!_capIssues("Poisoner", _okEntry({ cost: "N/A", effect: "Creates potent poisons from common ingredients." })).warns.length)
     _failBE("cap validator: the real 'Poisoner' draft entry (capital key, cost N/A) raised nothing");
 
+  // ── BIB PICKER CONTRACT (v1.507) ─────────────────────────────────────────────────────
+  // The "+ from bible" tier picker (user request 2026-07-31): its candidate builder is a
+  // pure marker-extracted function so a filter bug can't hide behind the modal UI. Clauses:
+  // spells only, exact tier only (cantrips = 0), already-listed names excluded the way
+  // capBaseName compares (case + display parenthetical), pending ADD entries included,
+  // bib/ADD dupes not doubled — and the page must actually WIRE the button.
+  var _bpM = _bePage.match(/\/\/ >>> BIB PICKER[\s\S]*?\/\/ <<< BIB PICKER/);
+  if (!_bpM) _failBE("the BIB PICKER markers are gone from bible_editor.html");
+  var _bpCands = new Function(_bpM[0] + "\nreturn bibPickCandidates;")();
+  var _bpBib = {
+    "fire bolt": { kind: "spell", tier: 0, category: ["arcane"], effect: "d8 fire" },
+    "bless": { kind: "spell", tier: 1, category: ["divine"], effect: "allies add d4" },
+    "command": { kind: "spell", tier: 1, category: ["divine"], effect: "one-word command" },
+    "hold person": { kind: "spell", tier: 2, category: ["arcane", "divine"], effect: "paralyze" },
+    "power strike": { kind: "ability", tier: 1, category: ["martial"], effect: "+d6 damage" }
+  };
+  var _bpKeys = function (r) { return r.map(function (c) { return c.key; }).join(","); };
+  if (_bpKeys(_bpCands("1", [], _bpBib, {})) !== "bless,command")
+    _failBE("bib picker: tier-1 candidates wrong (spell-only + exact-tier both matter): " + _bpKeys(_bpCands("1", [], _bpBib, {})));
+  if (_bpKeys(_bpCands("cantrips", [], _bpBib, {})) !== "fire bolt")
+    _failBE("bib picker: cantrips must map to tier 0");
+  if (_bpKeys(_bpCands("1", ["Bless"], _bpBib, {})) !== "command")
+    _failBE("bib picker: an already-listed name (display case) was not excluded");
+  if (_bpKeys(_bpCands("1", ["Bless (allies add d4)"], _bpBib, {})) !== "command")
+    _failBE("bib picker: a legacy parenthetical label failed to exclude its bible key");
+  if (_bpKeys(_bpCands("1", [], _bpBib, { "smite": { kind: "spell", tier: 1, effect: "radiant" }, "bless": { kind: "spell", tier: 1, effect: "dupe of the bib entry" } })) !== "bless,command,smite")
+    _failBE("bib picker: pending ADD spells must join the list once, never double a bib key");
+  if (_bePage.indexOf("button[data-bibpick]") < 0 || _bpM[0] === null)
+    _failBE("the + from bible button is rendered but never wired (or the wiring selector changed)");
+  if (!/data-bibpick/.test(_bePage.slice(_bePage.indexOf("function chipList"), _bePage.indexOf("function renderClass"))))
+    _failBE("chipList no longer renders the + from bible button");
+
   // The mtime-based staleness pre-check was REMOVED at v1.486 (user call): re-reading the file
   // does not clear a dead FSA handle — measured, reload-from-disk then an immediate save still
   // refused — so the check added a prompt and no cure. Kept from that work: the unsaved-edits

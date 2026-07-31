@@ -598,6 +598,32 @@ function serializeCapabilityBible(state) {
     return "<span class='badge " + st + "' data-nm='" + esc(nm) + "' title='" + tip + "'>" + (st === "ok" ? "✓" : st === "pend" ? "●" : "○") + "</span>";
   }
 
+  // >>> BIB PICKER
+  // Pure candidate builder for the "+ from bible" tier picker (contract-tested in
+  // dev/run-tests.js — self-contained on purpose, no closure deps). Returns sorted
+  // {key, entry} candidates: every SPELL in the capability bible whose tier matches
+  // the list's tier ("cantrips" = tier 0), plus pending ADD definitions of the same
+  // shape, minus anything already on the list (compared the way capBaseName compares:
+  // lowercased, display parenthetical stripped — so "Fire Bolt (d8)" still excludes
+  // the "fire bolt" key).
+  function bibPickCandidates(tier, existing, bib, addMap) {
+    var want = tier === "cantrips" ? 0 : parseInt(tier, 10);
+    var norm = function (s) { var i = String(s || "").indexOf("("); return (i < 0 ? String(s || "") : String(s).slice(0, i)).replace(/\s+$/, "").toLowerCase(); };
+    var have = {}, seen = {}, out = [], k, i;
+    for (i = 0; i < (existing || []).length; i++) have[norm(existing[i])] = 1;
+    var take = function (key, e) {
+      if (!e || e.kind !== "spell" || e.tier !== want) return;
+      var nk = norm(key);
+      if (have[nk] || seen[nk]) return;
+      seen[nk] = 1; out.push({ key: key, entry: e });
+    };
+    for (k in (bib || {})) take(k, bib[k]);
+    for (k in (addMap || {})) take(k, addMap[k]);
+    out.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+    return out;
+  }
+  // <<< BIB PICKER
+
   var ARCH_ROLE = {
     "3":  "IDENTITY — the signature thing that makes this archetype itself (and T1 spells, for the caster archetypes)",
     "6":  "REFINEMENT — deepen the L3 identity: a second application, a resource, a real upgrade",
@@ -851,12 +877,13 @@ function serializeCapabilityBible(state) {
     });
     return "<h3>" + label + "</h3>" + h;
   }
-  function chipList(arr, path, resolvable) {
+  function chipList(arr, path, resolvable, tier) {
     var h = "";
     arr.forEach(function (nm, i) {
       h += "<span class='chip'>" + (resolvable ? badgeFor(nm) : "") + esc(nm) + "<button class='x' data-chipdel='" + path + "." + i + "'>✕</button></span>";
     });
     h += "<input type='text' style='width:170px' placeholder='+ add, then Enter' data-chipadd='" + path + "'>";
+    if (tier !== undefined) h += " <button data-bibpick='" + path + "' data-bibtier='" + esc(String(tier)) + "' title='pick from the capability bible'>+ from bible</button>";
     return h;
   }
   function renderClass() {
@@ -884,7 +911,7 @@ function serializeCapabilityBible(state) {
       h += "<h3>Spells by tier <span class='muted'>(names — mechanics live in capability_bible)</span></h3>";
       Object.keys(e.spells).sort(function (a, b) { var x = a === "cantrips" ? -1 : +a, y = b === "cantrips" ? -1 : +b; return x - y; }).forEach(function (t) {
         h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + (e.spells[t].length ? "" : " <span class='muted'>— blank</span>") + "</div>";
-        h += "<div>" + chipList(e.spells[t], "sp." + t, true) + "</div>";
+        h += "<div>" + chipList(e.spells[t], "sp." + t, true, t) + "</div>";
       });
     }
     h += levelBlock(e.levels, "lv", "Class features by level");
@@ -901,7 +928,7 @@ function serializeCapabilityBible(state) {
       }
       if (a.spells) {
         Object.keys(a.spells).sort(function (x, y) { var p = x === "cantrips" ? -1 : +x, q = y === "cantrips" ? -1 : +y; return p - q; }).forEach(function (t) {
-          h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + "</div><div>" + chipList(a.spells[t], "asp." + ai + "." + t, true) + "</div>";
+          h += "<div class='tierhead'>" + (t === "cantrips" ? "Cantrips" : "Tier " + t) + "</div><div>" + chipList(a.spells[t], "asp." + ai + "." + t, true, t) + "</div>";
         });
       }
       h += levelBlock(a.levels, "al." + ai, "Archetype levels — each row has a defined job", true);
@@ -980,6 +1007,10 @@ function serializeCapabilityBible(state) {
     for (i = 0; i < archs.length; i++) archs[i].onchange = function () {
       CUR.data.bible[activeCls].archetypes[+this.getAttribute("data-arch")][this.getAttribute("data-f")] = this.value; markDirty();
     };
+    var bps = m.querySelectorAll("button[data-bibpick]");
+    for (i = 0; i < bps.length; i++) bps[i].onclick = function () {
+      bibPicker(this.getAttribute("data-bibpick"), this.getAttribute("data-bibtier"));
+    };
     var badges = m.querySelectorAll(".badge");
     for (i = 0; i < badges.length; i++) badges[i].onclick = function () {
       var nm = this.getAttribute("data-nm");
@@ -992,6 +1023,45 @@ function serializeCapabilityBible(state) {
       capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
         function (o) { ADD[ak] = o; markDirty(); render(); },
         ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null);
+    };
+  }
+  // "+ from bible" picker: checkbox list of every unused capability-bible SPELL of the
+  // list's tier (plus pending ● additions), live name/text filter, add-selected. Names
+  // land in house title case (the keys are lowercase by design).
+  function bibPicker(path, tier) {
+    var t = target(path + ".0");
+    if (!t) return;
+    var cands = bibPickCandidates(tier, t.arr, typeof CAPABILITY_BIBLE !== "undefined" ? CAPABILITY_BIBLE : {}, ADD);
+    var label = tier === "cantrips" ? "Cantrips" : "Tier " + tier;
+    var h = "<h3 style='margin-top:0'>" + label + " spells in the capability bible</h3>";
+    if (!cands.length) {
+      h += "<p class='muted'>Every " + label.toLowerCase() + " spell in the bible is already on this list — or none exist yet at this tier (new spells are authored via the ○ badge define form, or in the capability view).</p>" +
+        "<div style='margin-top:12px'><button id='m-close'>Close</button></div>";
+      $("modal-box").innerHTML = h;
+      $("modal").style.display = "flex";
+      $("m-close").onclick = closeModal;
+      return;
+    }
+    h += "<input type='text' id='bp-filter' style='width:100%;margin-bottom:8px' placeholder='filter by name / effect / tradition'>";
+    cands.forEach(function (c, i) {
+      var cats = (c.entry.category || []).join(", ");
+      h += "<label class='bp-row' style='display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer' data-blob='" + esc((c.key + " " + cats + " " + (c.entry.effect || "")).toLowerCase()) + "'>" +
+        "<input type='checkbox' class='bp-pick' value='" + esc(c.key) + "'>" +
+        "<span><b>" + esc(titleCaseName(c.key)) + "</b> <span class='muted'>(" + esc(cats) + ")</span><br><span class='muted'>" + esc(String(c.entry.effect || "").slice(0, 140)) + "</span></span></label>";
+    });
+    h += "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='bp-add'>Add selected</button><button id='m-close'>Cancel</button></div>";
+    $("modal-box").innerHTML = h;
+    $("modal").style.display = "flex";
+    $("m-close").onclick = closeModal;
+    $("bp-filter").oninput = function () {
+      var q = this.value.toLowerCase(), rows = $("modal-box").querySelectorAll(".bp-row"), i;
+      for (i = 0; i < rows.length; i++) rows[i].style.display = rows[i].getAttribute("data-blob").indexOf(q) < 0 ? "none" : "flex";
+    };
+    $("bp-add").onclick = function () {
+      var picks = [].map.call($("modal-box").querySelectorAll(".bp-pick:checked"), function (c) { return titleCaseName(c.value); });
+      if (picks.length) { picks.forEach(function (nm) { t.arr.push(nm); }); markDirty(); }
+      closeModal();
+      if (picks.length) render();
     };
   }
   function showCard(nm, entry) {
