@@ -1610,32 +1610,32 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "Preserve Life",
-                "ds": "Once per rest you can catch someone in the first moments after death — a creature dead less than a minute stands again at 1 hit point, whole enough to walk. What they saw while they were gone is between them and your god."
+                "nm": "Cleanse",
+                "ds": "Disease, poison, rot, and afflictions of the body lift where you keep vigil: one night's work cures any single creature, and a plague ends in whatever village you stay in. It mends the body — what corrupts a soul is not your department."
               }
             ]
           },
           "10": {
             "features": [
               {
-                "nm": "Cleanse",
-                "ds": "Disease, poison, rot, and afflictions of the body lift where you keep vigil: one night's work cures any single creature, and a plague ends in whatever village you stay in. It mends the body — what corrupts a soul is not your department."
+                "nm": "Preserve Life",
+                "ds": "Once per rest you can catch someone in the first moments after death — a creature dead less than a minute stands again at 1 hit point, whole enough to walk. What they saw while they were gone is between them and your god."
               }
             ]
           },
           "14": {
             "features": [
               {
-                "nm": "The Wound Does Not Take",
-                "ds": "Nothing you have tended goes bad: no fever, no gangrene, no crippling, no scar worse than a clean line. And once per fight you can heal a companion anywhere you can see them, without touch or reaching them."
+                "nm": "Restore Limb",
+                "ds": "A night of prayer over the wounded regrows what was lost: an arm, a leg, an eye, a hand — anything short of a head. The new flesh is whole, strong, and unmistakably a gift; it carries no scar, and everyone who knew the old wound knows exactly who to thank."
               }
             ]
           },
           "18": {
             "features": [
               {
-                "nm": "No One Dies Today",
-                "ds": "Once per day you may declare it, and for one scene nothing within your sight dies. They fall, they bleed, they surrender — friend and enemy alike — and every one of them wakes up. What you do with a battlefield full of living enemies is your own problem."
+                "nm": "Battlefield Miracle",
+                "ds": "Once per day you may declare it, and for one scene no ally within your sight dies. They fall, they bleed, they are dragged from the field — and every one of them wakes up. Your enemies enjoy no such protection."
               }
             ]
           },
@@ -1643,7 +1643,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The Return",
-                "ds": "CAPSTONE, once per campaign. You can ask for one person back and be answered. Whatever remains of them — a body, a scrap, a name — they return whole and themselves, however they died and however long ago. What the god takes for it, it takes from you, and it always takes something."
+                "ds": "CAPSTONE, once per campaign. You can ask for one person back and be answered. Whatever remains of them — a body, a scrap, a name — they return whole and themselves, however they died and however long ago."
               }
             ]
           }
@@ -1720,23 +1720,23 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "The Knee",
-                "ds": "The weight of your god hangs on your voice. Small commands spoken directly — kneel, drop it, wait, speak — land unless the target has real cause to resist, and even then defiance is visible effort. You never puppet a body; you press a will, and its owner is awake for every moment of it."
+                "nm": "The Yoke",
+                "ds": "A defeated or helpless creature can be bound into your service: awake, aware, resentful, and obedient. You give orders and it carries them out hating every step — you see nothing through its eyes and speak nothing through its mouth; it serves, it is not worn. One yoked servant at a time; release it, or die, and it is free."
               }
             ]
           },
           "10": {
             "features": [
               {
-                "nm": "The Yoke",
-                "ds": "A defeated or helpless creature can be bound into your service: awake, aware, resentful, and obedient. You give orders and it carries them out hating every step — you see nothing through its eyes and speak nothing through its mouth; it serves, it is not worn. One yoked servant at a time; release it, or die, and it is free."
+                "nm": "The Knee",
+                "ds": "The weight of your god hangs on your voice. Small commands spoken directly — kneel, drop it, wait, speak — land unless the target has real cause to resist, and even then defiance is visible effort. You never puppet a body; you press a will, and its owner is awake for every moment of it."
               }
             ]
           },
           "14": {
             "features": [
               {
-                "nm": "Nothing Refuses You",
+                "nm": "The Missive",
                 "ds": "Your compulsion no longer needs your presence. A command under your seal, or carried by a messenger in your name, binds as though you spoke it eye to eye — distance was the defense, and there is no defense. One such standing command may be abroad at a time."
               }
             ]
