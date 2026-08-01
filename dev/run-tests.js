@@ -442,6 +442,40 @@ try {
   if (_saRm >= 0 && _saClr < 0) _failBE("saveAsBible clears the draft but never cancels the pending debounce — the draft resurrects after a Save as...");
   if (_saRm >= 0 && _saClr > _saRm) _failBE("saveAsBible cancels the draft debounce AFTER clearing the key — the timer still resurrects it");
 
+  // ── CAP EDIT CONTRACT (v1.512) ───────────────────────────────────────────────────────
+  // The card's ✎ Update Bible flow (user request 2026-08-01, the balance pass): edit a SHIPPED
+  // capability from the class view and write capability_bible.js surgically through its own
+  // handle. The entry mutation is pure and marker-extracted; the FSA plumbing is pinned by
+  // source checks (same approach as the activation-ordering pins — the picker is an OS dialog
+  // no harness can drive).
+  var _cedM = _bePage.match(/\/\/ >>> CAP EDIT[\s\S]*?\/\/ <<< CAP EDIT/);
+  if (!_cedM) _failBE("the CAP EDIT markers are gone from bible_editor.html");
+  var _cedApply = new Function(_cedM[0] + "\nreturn capApplyEdit;")();
+  var _cedEs = [{ key: "a", obj: { effect: "old" }, dirty: false }, { key: "b", obj: { effect: "keep" }, dirty: false }];
+  if (_cedApply(_cedEs, "a", { effect: "new" }) !== true || _cedEs[0].obj.effect !== "new" || _cedEs[0].dirty !== true)
+    _failBE("cap edit: a hit must replace the entry object and stamp dirty (emit() only runs for dirty entries — an undirtied edit writes the OLD line back)");
+  if (_cedEs[1].dirty !== false || _cedEs[1].obj.effect !== "keep")
+    _failBE("cap edit: a hit must not touch other entries");
+  if (_cedApply(_cedEs, "zzz", { effect: "x" }) !== false || _cedEs.length !== 2 || _cedEs[0].obj.effect !== "new")
+    _failBE("cap edit: an unknown key must be refused untouched, never invented");
+  var _cedCard = _slice("function showCard", "// >>> CAP EDIT");
+  if (!_cedCard) _failBE("could not isolate showCard ahead of the CAP EDIT markers");
+  if (_cedCard.indexOf("m-edit") < 0 || _cedCard.indexOf("capForm(") < 0 || _cedCard.indexOf("Update Bible") < 0)
+    _failBE("showCard no longer offers ✎ Update Bible through capForm — the card went back to read-only");
+  var _usc = _slice("function updateShippedCapability", "// ── toolbar");
+  if (!_usc) _failBE("could not isolate updateShippedCapability");
+  if (_at(_usc, /\.detect\(/) < 0 || _at(_usc, /\.detect\(/) > _at(_usc, /\.parse\(/))
+    _failBE("updateShippedCapability no longer verifies the picked file IS the capability bible before parsing — a wrong pick would be clobbered");
+  var _uscConf = _at(_usc, /confirm\(/), _uscPick = _at(_usc, /showOpenFilePicker/);
+  if (_uscPick < 0) _failBE("updateShippedCapability lost its picker path — a first-time update has no way to mint a handle");
+  if (_uscConf >= 0 && _uscConf < _uscPick)
+    _failBE("updateShippedCapability confirms BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
+  if (_usc.indexOf("CAPABILITY_BIBLE[key] = obj") < 0)
+    _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE — badges and cards would show stale values after a successful write");
+  if (_usc.indexOf("createWritable") < 0) _failBE("updateShippedCapability no longer writes anything");
+  if (!/if \(onSave\(draft\) !== false\) closeModal\(\)/.test(_bePage))
+    _failBE("capForm closes unconditionally after onSave again — a failed async Update Bible write would eat the user's edited values");
+
   // v2 (2026-07-28): the editor can now OPEN and OVERWRITE capability_bible.js, which is
   // HAND-COMMENTED. The load-bearing property is that an UNEDITED open→save is a no-op: untouched
   // entries re-emit as their original source lines and every comment survives in place. Without

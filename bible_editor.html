@@ -175,10 +175,11 @@ function serializeCapabilityBible(state) {
 
 (function () {
   var DRAFT_K = "tnd_bible_editor_draft_v1";
-  var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_KEY = "bibleFile";
+  var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_KEY = "bibleFile", FS_CAP_KEY = "capBibleFile";
   var CUR = null;        // {typeId, data, handle, name, dirty}
   var ADD = {}, activeCls = null, capFilter = "";
   var _dragPath = null;  // feature-row path being dragged via its ⋮⋮ grip (null = no drag in flight)
+  var _capHandle = null; // capability_bible.js's OWN handle (the card's Update Bible write path)
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
   var _lastHandle = null;
   var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
@@ -855,8 +856,10 @@ function serializeCapabilityBible(state) {
           "<br><b>" + esc(saveTxt) + " again to accept.</b></span>";
         return;
       }
-      onSave(draft);
-      closeModal();
+      // An async saver (the card's Update Bible write) returns false and closes the modal itself
+      // on success — so a failed disk write never eats the user's edited values. Synchronous
+      // savers return undefined and keep the old close-on-save behaviour.
+      if (onSave(draft) !== false) closeModal();
     };
     if (onDrop) $("m-drop").onclick = function () { onDrop(); closeModal(); };
   }
@@ -1148,10 +1151,87 @@ function serializeCapabilityBible(state) {
     };
   }
   function showCard(nm, entry) {
+    var key = addKey(nm);
     $("modal-box").innerHTML = (typeof bibleCardHTML === "function" ? bibleCardHTML(nm, entry) : "<pre>" + esc(JSON.stringify(entry, null, 2)) + "</pre>") +
-      "<div style='margin-top:12px'><button id='m-close'>Close</button></div>";
+      "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-edit'>✎ Update Bible…</button><button id='m-close'>Close</button></div>";
     $("modal").style.display = "flex";
     $("m-close").onclick = closeModal;
+    // Balance pass straight from the card (user request 2026-08-01): edit the SHIPPED entry's
+    // text and attributes and write capability_bible.js surgically — the class bible stays this
+    // tab's open file. The form is opened on the KEY (lowercase), not the display name, so the
+    // capitalized-key warning never fires on an entry the user did not rename.
+    $("m-edit").onclick = function () {
+      capForm(key, deep(entry), function (o) {
+        updateShippedCapability(key, o, closeModal);
+        return false;   // the write is async — the form closes on SUCCESS only (values survive a failure)
+      }, null, "Update Bible");
+    };
+  }
+
+  // >>> CAP EDIT
+  // Apply ONE entry edit to a parsed capability-bible state (the write behind the card's
+  // Update Bible button). Pure so run-tests.js can pin it: returns true and stamps obj+dirty
+  // when the key exists; false and touches NOTHING when it does not — the caller must refuse
+  // to invent entries (a miss here means the picked file is not the bible the card came from).
+  function capApplyEdit(entries, key, obj) {
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].key === key) { entries[i].obj = obj; entries[i].dirty = true; return true; }
+    }
+    return false;
+  }
+  // <<< CAP EDIT
+  // ── Update Bible from the card ─────────────────────────────────────────────
+  // capability_bible.js gets its OWN handle (FS_CAP_KEY), separate from the tab's open file, so
+  // a balance pass never leaves the class view. The file is read fresh in the SAME promise chain
+  // as the write, so the changed-since-read window that plagued the main Save cannot open here,
+  // and the minimal-diff serializer keeps comments and untouched entries byte-identical.
+  // Gesture-requiring calls (picker / requestPermission) come FIRST, questions after — the
+  // activation rule at the top of this file. On any failure the form stays open with the user's
+  // values: loud alert, nothing lost, and a retry reuses the held handle inside a fresh click.
+  function updateShippedCapability(key, obj, onDone) {
+    if (!HAS_FSA) {
+      alert("Updating capability_bible.js in place needs the File System Access API (Chromium).\n\n" +
+        "Open capability_bible.js in the editor instead — the capability view edits entries directly.\n\nYour values stay in the form.");
+      return;
+    }
+    var got = _capHandle ? Promise.resolve(_capHandle)
+      : window.showOpenFilePicker({ id: "tnd-bible", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }], multiple: false })
+          .then(function (hs) { _capHandle = hs[0]; return hs[0]; });   // held immediately: a failed write retries without re-picking
+    got.then(function (h) {
+      return h.queryPermission({ mode: "readwrite" }).then(function (p) {
+        if (p === "granted") return h;
+        return h.requestPermission({ mode: "readwrite" }).then(function (p2) {
+          if (p2 !== "granted") throw new Error("write permission for " + h.name + " was declined");
+          return h;
+        });
+      });
+    }).then(function (h) {
+      return h.getFile().then(function (f) { return f.text(); }).then(function (src) {
+        if (!BIBLE_TYPES["capability"].detect(src)) {
+          _capHandle = null; _idbDel(FS_CAP_KEY)["catch"](function () {});
+          throw new Error(h.name + " is not the capability bible (no CAPABILITY_BIBLE block) — pick capability_bible.js");
+        }
+        var st = BIBLE_TYPES["capability"].parse(src);
+        if (!capApplyEdit(st.entries, key, obj))
+          throw new Error("\"" + key + "\" is not in " + h.name + " — is that the capability bible this entry came from?");
+        if (!confirm("Update \"" + key + "\" in " + h.name + " in place?\n\nOnly this entry's line is rewritten — comments and untouched entries stay byte-identical. It is a tracked file: `git diff` shows the change, `git checkout` undoes it.")) return null;
+        return h.createWritable().then(function (w) {
+          var ser = serializeCapabilityBible(st);
+          return w.write(ser).then(function () { return w.close(); });
+        }).then(function () { return h; });
+      });
+    }).then(function (h) {
+      if (!h) { note("update cancelled — the form still holds your values"); return; }
+      _capHandle = h;
+      _idbPut(FS_CAP_KEY, h)["catch"](function (e) { console.warn("[bible] cap handle not persisted:", e && e.message); });
+      CAPABILITY_BIBLE[key] = obj;   // the page's badges, cards, tooltips and pickers read this global
+      note("updated \"" + key + "\" in " + h.name);
+      if (onDone) onDone();
+      render();
+    })["catch"](function (e) {
+      if (e && e.name === "AbortError") { note("update cancelled — the form still holds your values"); return; }
+      alert("Update Bible failed: " + (e && e.message) + "\n\nYour edited values are still in the form — nothing is lost. A retry often succeeds now the file handle is held.");
+    });
   }
 
   // ── toolbar ───────────────────────────────────────────────────────────────
@@ -1217,8 +1297,15 @@ function serializeCapabilityBible(state) {
     saveAsBible: saveAsBible,
     markDirty: markDirty,
     moveFeat: moveFeat,
+    setCapHandle: function (h) { _capHandle = h; },
+    updateShippedCapability: updateShippedCapability,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
+  // the capability handle needs no Reconnect ceremony: a lapsed permission is re-granted inside
+  // the Update Bible click itself (the gesture is right there), so restoring the handle is enough
+  if (HAS_FSA) _idbGet(FS_CAP_KEY).then(function (h) {
+    if (h && h.queryPermission) _capHandle = h;
+  })["catch"](function () {});
   if (HAS_FSA) _idbGet(FS_KEY).then(function (h) {
     if (!h || !h.queryPermission) return;
     _lastHandle = h;   // set REGARDLESS of permission: startIn is only a location hint, so a
