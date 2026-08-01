@@ -342,6 +342,38 @@ try {
   if (!/data-bibpick/.test(_bePage.slice(_bePage.indexOf("function chipList"), _bePage.indexOf("function renderClass"))))
     _failBE("chipList no longer renders the + from bible button");
 
+  // ── FEAT MOVE CONTRACT (v1.511) ──────────────────────────────────────────────────────
+  // Drag-to-reorder feature rows (user request 2026-08-01): the array mutation under the ⋮⋮
+  // grips is a pure marker-extracted function. The same-array move is the classic off-by-one —
+  // removing the source first shifts every later index left — so both directions are pinned,
+  // along with the no-op contract (false → the draft is never marked dirty for a non-move).
+  var _fmM = _bePage.match(/\/\/ >>> FEAT MOVE[\s\S]*?\/\/ <<< FEAT MOVE/);
+  if (!_fmM) _failBE("the FEAT MOVE markers are gone from bible_editor.html");
+  var _fmMove = new Function(_fmM[0] + "\nreturn moveFeatItem;")();
+  var _fmN = function (a) { return a.map(function (f) { return f.nm; }).join(","); };
+  var _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }], _fmB = [{ nm: "X" }];
+  if (_fmMove(_fmA, 0, _fmB, 1) !== true || _fmN(_fmA) !== "B,C" || _fmN(_fmB) !== "X,A")
+    _failBE("feat move: cross-list move broken (src " + _fmN(_fmA) + " · dst " + _fmN(_fmB) + ")");
+  _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }];
+  if (_fmMove(_fmA, 0, _fmA, 3) !== true || _fmN(_fmA) !== "B,C,A")
+    _failBE("feat move: same-list DOWNWARD move must adjust for the removed source (got " + _fmN(_fmA) + ")");
+  _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }];
+  if (_fmMove(_fmA, 2, _fmA, 0) !== true || _fmN(_fmA) !== "C,A,B")
+    _failBE("feat move: same-list UPWARD move broken (got " + _fmN(_fmA) + ")");
+  _fmA = [{ nm: "A" }, { nm: "B" }];
+  if (_fmMove(_fmA, 0, _fmA, 1) !== false || _fmN(_fmA) !== "A,B")
+    _failBE("feat move: dropping a row back onto its own position must be a no-op reporting false");
+  if (_fmMove(_fmA, 5, _fmA, 0) !== false || _fmN(_fmA) !== "A,B")
+    _failBE("feat move: an out-of-range source index must be refused");
+  _fmA = [{ nm: "A" }]; _fmB = [];
+  if (_fmMove(_fmA, 0, _fmB, 99) !== true || _fmN(_fmB) !== "A" || _fmA.length !== 0)
+    _failBE("feat move: an over-long destination index must clamp to append (empty-slot drop)");
+  // ...and the page must actually render the grips and route drops through moveFeat
+  if (_bePage.indexOf("data-frow") < 0 || _bePage.indexOf("class='grip'") < 0)
+    _failBE("the feature rows no longer carry the ⋮⋮ grip / data-frow — nothing is draggable");
+  if (!/moveFeat\(/.test(_bePage.slice(_bePage.indexOf("function wireClass"))))
+    _failBE("wireClass never routes a drop through moveFeat — the grips are decoration");
+
   // The mtime-based staleness pre-check was REMOVED at v1.486 (user call): re-reading the file
   // does not clear a dead FSA handle — measured, reload-from-disk then an immediate save still
   // refused — so the check added a prompt and no cure. Kept from that work: the unsaved-edits

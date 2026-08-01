@@ -79,6 +79,10 @@ textarea{width:100%;resize:vertical;}
 .cap .meta{color:var(--t2);font-size:11.5px;}
 .cap .eff{flex:1;color:var(--t1);font-size:12.5px;}
 .cap.edited{border-color:var(--acc);}
+.grip{cursor:grab;color:var(--t2);user-select:none;flex-shrink:0;padding:0 3px;letter-spacing:-2px;font-size:13px;}
+.grip:hover{color:var(--acc);}
+.featlist{border:1px solid transparent;border-radius:6px;}
+.lvl.dropcue,.featlist.dropcue{border-color:var(--acc);background:#221c12;}
 </style>
 <script src="data.js"></script>
 <script src="capability_bible.js"></script>
@@ -174,6 +178,7 @@ function serializeCapabilityBible(state) {
   var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_KEY = "bibleFile";
   var CUR = null;        // {typeId, data, handle, name, dirty}
   var ADD = {}, activeCls = null, capFilter = "";
+  var _dragPath = null;  // feature-row path being dragged via its ⋮⋮ grip (null = no drag in flight)
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
   var _lastHandle = null;
   var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
@@ -711,7 +716,10 @@ function serializeCapabilityBible(state) {
   }
   function editCapEntry(idx) {
     var e = CUR.data.entries[idx];
-    capForm(e.key, e.obj, function (o) { e.obj = o; e.dirty = true; markDirty(); renderCap(); });
+    // e.line is the entry's original source line — present iff it was parsed from the open file,
+    // "" for a not-yet-saved "+ new entry". That IS the exists-in-the-bible test.
+    capForm(e.key, e.obj, function (o) { e.obj = o; e.dirty = true; markDirty(); renderCap(); },
+      null, e.line ? "Update Bible" : "Add to Bible");
   }
 
   // ── enumerated fields: a typo in one of these breaks BEHAVIOUR, not just display ──────────
@@ -766,7 +774,11 @@ function serializeCapabilityBible(state) {
     return { errors: errors, warns: warns };
   }
   // <<< CAP VALIDATOR
-  function capForm(nm, d, onSave, onDrop) {
+  // saveLabel names what the button actually does — "Add to Bible" for an entry the bible does
+  // not have yet, "Update Bible" for one it does (user call 2026-08-01: a bare "Save" said
+  // neither). Falls back to "Save" if a caller passes nothing.
+  function capForm(nm, d, onSave, onDrop, saveLabel) {
+    var saveTxt = saveLabel || "Save";
     function sel(id, opts, cur, extra) {
       // A value not in the list must SELECT the escape option, not silently leave option[0]
       // showing — otherwise the save reads "at-will" while the custom box holds the real cost and
@@ -805,7 +817,7 @@ function serializeCapabilityBible(state) {
       listFld("duration", "duration", d.duration) + listFld("dice", "dice", d.dice) + listFld("save", "save", d.save) +
       "<div class='row'><span class='lbl'>effect</span><textarea id='cap-effect' rows='4'>" + esc(d.effect) + "</textarea></div>" +
       "<div id='cap-err' style='color:var(--bad);font-size:12.5px'></div>" +
-      "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-save'>Save</button>" +
+      "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-save'>" + esc(saveTxt) + "</button>" +
       (onDrop ? "<button id='m-drop'>Remove</button>" : "") + "<button id='m-close'>Cancel</button></div>";
     $("modal-box").innerHTML = h;
     $("modal").style.display = "flex";
@@ -840,7 +852,7 @@ function serializeCapabilityBible(state) {
         this._warned = true;
         $("cap-err").innerHTML = "<span style='color:var(--warn,#c9a227)'>" +
           iss.warns.map(function (m) { return "⚠ " + esc(m); }).join("<br>") +
-          "<br><b>Save again to accept.</b></span>";
+          "<br><b>" + esc(saveTxt) + " again to accept.</b></span>";
         return;
       }
       onSave(draft);
@@ -860,7 +872,7 @@ function serializeCapabilityBible(state) {
     for (i = 0; i < bs.length; i++) bs[i].onclick = function () { activeCls = this.getAttribute("data-cls"); render(); };
   }
   function featRow(f, path) {
-    return "<div class='feat'>" + badgeFor(f.nm) +
+    return "<div class='feat' data-frow='" + path + "'><span class='grip' title='drag to move / reorder'>⋮⋮</span>" + badgeFor(f.nm) +
       "<input class='nm' type='text' value='" + esc(f.nm) + "' data-p='" + path + "' data-f='nm' placeholder='Feature name'>" +
       "<input class='ds' type='text' value='" + esc(f.ds) + "' data-p='" + path + "' data-f='ds' placeholder='summary prose'>" +
       "<button class='x' data-del='" + path + "' title='remove'>✕</button></div>";
@@ -869,7 +881,7 @@ function serializeCapabilityBible(state) {
     var h = "", ks = Object.keys(levels).sort(function (a, b) { return a - b; });
     ks.forEach(function (lv) {
       var fs = levels[lv].features, path = base + "." + lv;
-      h += "<div class='lvl" + (fs.length ? "" : " blank") + "'><span class='lv'>L" + lv + "</span>" +
+      h += "<div class='lvl" + (fs.length ? "" : " blank") + "' data-flist='" + path + "'><span class='lv'>L" + lv + "</span>" +
         (rubric && ARCH_ROLE[lv] ? "<span class='role'>" + esc(ARCH_ROLE[lv]) + "</span><br>" : "") +
         (fs.length ? "" : "<span class='muted'>blank — fill phase</span>");
       fs.forEach(function (f, i) { h += featRow(f, path + "." + i); });
@@ -897,9 +909,9 @@ function serializeCapabilityBible(state) {
          "<span class='lbl' style='width:auto'>prime</span><input type='text' style='width:70px' data-core='prime' value='" + esc(e.prime) + "'>" +
          "<span class='lbl' style='width:auto'>stat priority</span><input type='text' style='width:260px' data-core='statPriority' value='" + esc(e.statPriority.join(", ")) + "'></div>";
     h += "<div class='row'><span class='lbl'>skill seeds</span><input type='text' style='width:340px' data-core='skillSeeds' value='" + esc(e.skillSeeds.join(", ")) + "' placeholder='2-3 signature skills (C5)'><span class='muted'>creation-only Familiar seeds</span></div>";
-    h += "<h3>Starting abilities</h3>";
+    h += "<h3>Starting abilities</h3><div class='featlist' data-flist='ab'>";
     e.abilities.forEach(function (a, i) { h += featRow(a, "ab." + i); });
-    h += "<div><button data-add='ab'>+ ability</button></div>";
+    h += "</div><div><button data-add='ab'>+ ability</button></div>";
     if (e.spellTiers) {
       h += "<h3>Spell tier unlocks <span class='muted'>(tier → level; C2 picks)</span></h3><div class='row'>";
       Object.keys(e.spellTiers).sort(function (a, b) { return a - b; }).forEach(function (t) {
@@ -945,6 +957,30 @@ function serializeCapabilityBible(state) {
     $("main").innerHTML = h + "</div>";
     var ins = $("main").querySelectorAll("input[data-xp]"), i;
     for (i = 0; i < ins.length; i++) ins[i].onchange = function () { CUR.data.xp[+this.getAttribute("data-xp")] = parseInt(this.value, 10) || 0; markDirty(); };
+  }
+  // >>> FEAT MOVE
+  // The array mutation under the ⋮⋮ drag handles (user request 2026-08-01: "switch 9 and 11, or
+  // whatever"). Pure and self-contained so run-tests.js can pin it — the same-array case is the
+  // classic off-by-one (removing the source first shifts every later index left), so the
+  // adjustment lives HERE, not in the drop handler. Returns false on a no-op (drop back onto the
+  // row's own position) so the caller never marks the draft dirty for a move that moved nothing.
+  function moveFeatItem(srcArr, srcIdx, dstArr, dstIdx) {
+    if (!srcArr || !dstArr || srcIdx < 0 || srcIdx >= srcArr.length) return false;
+    if (dstIdx < 0) dstIdx = 0;
+    if (dstIdx > dstArr.length) dstIdx = dstArr.length;
+    if (srcArr === dstArr) {
+      if (dstIdx > srcIdx) dstIdx--;
+      if (dstIdx === srcIdx) return false;
+    }
+    var it = srcArr.splice(srcIdx, 1)[0];
+    dstArr.splice(dstIdx, 0, it);
+    return true;
+  }
+  // <<< FEAT MOVE
+  function moveFeat(srcPath, dstBase, dstIdx) {
+    var s = target(srcPath), d = target(dstBase + ".0");   // ".0" resolves the ARRAY; the index is unused
+    if (!s || !d) return;
+    if (moveFeatItem(s.arr, s.i, d.arr, dstIdx)) { markDirty(); render(); }
   }
   function target(path) {
     var p = path.split("."), e = CUR.data.bible[activeCls];
@@ -1011,6 +1047,52 @@ function serializeCapabilityBible(state) {
     for (i = 0; i < bps.length; i++) bps[i].onclick = function () {
       bibPicker(this.getAttribute("data-bibpick"), this.getAttribute("data-bibtier"));
     };
+    // ── drag-to-reorder (⋮⋮) — the grip arms draggable for ONE gesture, so the row's text
+    // inputs keep normal selection/drag behaviour the rest of the time. Any feature list
+    // ([data-flist]: starting abilities, class levels, archetype levels) accepts the drop;
+    // the insertion index comes from the pointer's Y against the rows already in the target.
+    var grips = m.querySelectorAll(".grip");
+    for (i = 0; i < grips.length; i++) grips[i].onmousedown = function () { this.parentNode.draggable = true; };
+    m.onmouseup = function () {   // a grip click that never became a drag must not leave the row armed
+      var ds = m.querySelectorAll(".feat[draggable=true]"), j;
+      for (j = 0; j < ds.length; j++) ds[j].draggable = false;
+    };
+    var frows = m.querySelectorAll(".feat[data-frow]");
+    for (i = 0; i < frows.length; i++) {
+      frows[i].ondragstart = function (ev) {
+        _dragPath = this.getAttribute("data-frow");
+        ev.dataTransfer.setData("text/plain", _dragPath);   // Firefox refuses to start a drag with no data
+        ev.dataTransfer.effectAllowed = "move";
+        this.style.opacity = ".35";
+      };
+      frows[i].ondragend = function () {
+        this.draggable = false; this.style.opacity = ""; _dragPath = null;
+        var cues = m.querySelectorAll(".dropcue"), j;
+        for (j = 0; j < cues.length; j++) cues[j].classList.remove("dropcue");
+      };
+    }
+    var flists = m.querySelectorAll("[data-flist]");
+    for (i = 0; i < flists.length; i++) {
+      flists[i].ondragover = function (ev) {
+        if (!_dragPath) return;                 // a foreign drag (file, selected text) is not ours
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+        this.classList.add("dropcue");
+      };
+      flists[i].ondragleave = function () { this.classList.remove("dropcue"); };
+      flists[i].ondrop = function (ev) {
+        ev.preventDefault();
+        this.classList.remove("dropcue");
+        if (!_dragPath) return;
+        var rows = this.querySelectorAll(".feat"), idx = rows.length, j, r;
+        for (j = 0; j < rows.length; j++) {
+          r = rows[j].getBoundingClientRect();
+          if (ev.clientY < r.top + r.height / 2) { idx = j; break; }
+        }
+        var p = _dragPath; _dragPath = null;    // clear FIRST — moveFeat's render() detaches the dragged node, so dragend may never fire
+        moveFeat(p, this.getAttribute("data-flist"), idx);
+      };
+    }
     var badges = m.querySelectorAll(".badge");
     for (i = 0; i < badges.length; i++) badges[i].onclick = function () {
       var nm = this.getAttribute("data-nm");
@@ -1022,7 +1104,8 @@ function serializeCapabilityBible(state) {
       var ak = addKey(nm);
       capForm(nm, ADD[ak] || { kind: "ability", tier: 0, cost: "passive", isMagical: false, category: ["martial"], range: "self", targets: "self", duration: "always on", save: "N/A", dice: "N/A", effect: "" },
         function (o) { ADD[ak] = o; markDirty(); render(); },
-        ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null);
+        ADD[ak] ? function () { delete ADD[ak]; markDirty(); render(); } : null,
+        ADD[ak] ? "Update Bible" : "Add to Bible");   // ● staged addition = updating your definition; ○ fresh miss = adding
     };
   }
   // "+ from bible" picker: checkbox list of every unused capability-bible SPELL of the
@@ -1133,6 +1216,7 @@ function serializeCapabilityBible(state) {
     saveBible: saveBible,
     saveAsBible: saveAsBible,
     markDirty: markDirty,
+    moveFeat: moveFeat,
     serialize: function () { return BIBLE_TYPES[CUR.typeId].serialize(CUR.data); }
   };
   if (HAS_FSA) _idbGet(FS_KEY).then(function (h) {
