@@ -11,6 +11,13 @@
 // Fields (null when no sheet / no maxHp, matching each original guard):
 //   name, sheet, hp (raw sheet.hp), maxHp, pct (HUD's clamped 0-100 int), ratio (Car's
 //   raw fraction), cls (sheet.cls || npc.role fallback — the party panel's line 2).
+/* #110 (v1.510): the one MP fragment for every party surface — "MP n/m" in mana blue, or ""
+   for pool-less sheets. Parity rule (user, 2026-07-31): a player can hop control to any party
+   member, so every surface that shows a member's HP shows their mana beside it. */
+function _ppManaHtml(sheet){
+  var mx=(typeof manaMax==="function"&&sheet)?manaMax(sheet):0;
+  return mx>0?" <span style='color:var(--mana);flex-shrink:0;'>MP "+manaCur(sheet)+"/"+mx+"</span>":"";
+}
 function partyMemberVitals(npc){
   var sheet=npc.charSheet||null;
   return {
@@ -90,6 +97,7 @@ function updateHUD(){
             +"<div style='width:48px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;flex-shrink:0;'>"
             +"<div style='width:"+pct+"%;height:100%;background:"+hpClr+";border-radius:3px;'></div></div>"
             +"<span style='color:var(--hp);flex-shrink:0;'>"+(pv.hp||0)+"/"+pv.maxHp+"</span>"
+            +_ppManaHtml(pmSheet)/* #110: card MP chip, blue beside the red HP */
             +pmXpHtml;
         }else{
           card.innerHTML=nameSpan+"<span style='color:var(--t2);'>"+escHtml(pm.status||"")+"</span>";/* v1.439 (F3): card status already resolved mood-else-rel above */
@@ -140,13 +148,13 @@ function updatePartyPanel(){
   h+="<div "+(c===hero?"onclick='showCharSheet()'":"class='party-row' data-npc='"+escHtml(c.name)+"'")+" style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
     +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(c.name)+" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>YOU</span></div>"
     +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(c.cls||"")+"</div>"
-    +"<div style='font-size:10px;color:var(--hp);'>HP "+c.hp+"/"+c.maxHp+"</div>"
+    +"<div style='font-size:10px;'><span style='color:var(--hp);'>HP "+c.hp+"/"+c.maxHp+"</span>"+_ppManaHtml(c)+"</div>"
     +"</div>";
   if(c!==hero){
     h+="<div onclick='showCharSheet()' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
       +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(hero.name)+"</div>"
       +"<div style='font-size:10px;color:var(--t2);'>"+escHtml(hero.cls||"")+"</div>"
-      +"<div style='font-size:10px;color:var(--hp);'>HP "+hero.hp+"/"+hero.maxHp+"</div>"
+      +"<div style='font-size:10px;'><span style='color:var(--hp);'>HP "+hero.hp+"/"+hero.maxHp+"</span>"+_ppManaHtml(hero)+"</div>"
       +"</div>";
   }
   var _ppActLoc=pcEffectiveLoc(c);/* P5: chip reference — where the spotlight PC is */
@@ -160,7 +168,7 @@ function updatePartyPanel(){
     h+="<div class='party-row' data-npc='"+escHtml(m.name)+"' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
       +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+_ppChip+"</div>"
       +(cls?"<div style='font-size:10px;color:var(--t2);'>"+escHtml(cls)+"</div>":"")
-      +(hp!==null?"<div style='font-size:10px;color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</div>":"")
+      +(hp!==null?"<div style='font-size:10px;'><span style='color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</span>"+(pv.sheet?_ppManaHtml(pv.sheet):"")+"</div>":"")
       +"</div>";
   }
   var _pl=document.getElementById("party-list");_pl.innerHTML=h;

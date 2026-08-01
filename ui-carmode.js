@@ -272,7 +272,8 @@ function _carUpdate() {
     }
   }
   var vit = document.getElementById("car-vitals"); // rank 22 — glanceable HP/gold under the party dots
-  if (vit) vit.textContent = "HP " + c.hp + "/" + c.maxHp + " · " + (c.gold != null ? c.gold : 0) + " gp";
+  if (vit) { var _cvMx = (typeof manaMax === "function") ? manaMax(c) : 0; /* #110: MP rides the glance line for casters */
+    vit.textContent = "HP " + c.hp + "/" + c.maxHp + (_cvMx > 0 ? " · MP " + manaCur(c) + "/" + _cvMx : "") + " · " + (c.gold != null ? c.gold : 0) + " gp"; }
   _carUpdateParty();
   _carMediaSession();
 }
@@ -292,7 +293,7 @@ function _carUpdateParty() {
     ratio = pv.ratio;
     col = ratio > 0.5 ? "var(--grn)" : ratio > 0.25 ? "var(--warn)" : "var(--dng)"; /* Car mapping — raw ratio + warn/dng palette; HUD's differs, kept separate (UA21③) */
     html += "<div style='width:36px;height:36px;border-radius:50%;background:"+col+";display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-family:var(--font);font-weight:bold;border:2px solid var(--bg0);' title='"
-      +escHtml(n.name)+" ("+pv.hp+"/"+pv.maxHp+" HP)'>"+escHtml((n.name||"?").slice(0,2))+"</div>";
+      +escHtml(n.name)+" ("+pv.hp+"/"+pv.maxHp+" HP"+(function(){var _cmMx=(typeof manaMax==="function"&&pv.sheet)?manaMax(pv.sheet):0;return _cmMx>0?", "+manaCur(pv.sheet)+"/"+_cmMx+" MP":"";})()+")'>"+escHtml((n.name||"?").slice(0,2))+"</div>";
   }
   el.innerHTML = html;
 }
