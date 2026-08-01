@@ -48,6 +48,11 @@ function updateHUD(){
   document.getElementById("hud-name").textContent=c.name;
   document.getElementById("hud-cls").textContent=(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" Lv"+c.level;
   document.getElementById("hud-hp").textContent=c.hp+"/"+c.maxHp+" HP";
+  /* #110: mana rides beside HP — blue (var(--mana)), hidden entirely for pool-less characters */
+  var _hudMana=document.getElementById("hud-mana");
+  if(_hudMana){var _hmMx=(typeof manaMax==="function")?manaMax(c):0;
+    _hudMana.style.display=_hmMx>0?"":"none";
+    if(_hmMx>0)_hudMana.textContent=manaCur(c)+"/"+_hmMx+" MP";}
   document.getElementById("hud-gold").textContent=(c.gold!=null?c.gold:0)+" gp";/* companion sheets may lack gold */
   document.getElementById("hud-align").textContent=c.actualAlignment||c.statedAlignment||"Neutral";
   document.getElementById("hud-loc").textContent=pcEffectiveLoc(c).location;/* P5: camera follows the spotlight PC (a split PC shows THEIR location) */

@@ -29,6 +29,7 @@
   /* semantic colours */
   --gold:#c8a84a;
   --hp:#e06060;
+  --mana:#4285f4;   /* #110: mana blue — sampled from the user's reference swatch 2026-07-31 */
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
   --warn:#d8a04a;
   --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;
@@ -392,6 +393,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
     </div>
     <div id="hud-stats" style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center;flex:1;justify-content:center;">
       <span style="color:var(--hp);" id="hud-hp"></span>
+      <span style="color:var(--mana);display:none;" id="hud-mana"></span>
       <span style="color:var(--gold);" id="hud-gold"></span>
       <span style="color:var(--t1);" id="hud-align"></span>
       <span style="color:var(--t2);max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="hud-loc"></span>

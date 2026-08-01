@@ -141,7 +141,7 @@ function csSheetSections(c,invOwner){
      (their availability is the mana line above the list, not a per-spell state). */
   if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=(sp2.racial&&sp2.used&&sp2.lvl>0)?'<span style="color:var(--t2);text-decoration:line-through" title="1/day — expended until dawn">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}
     var _shMx=(typeof manaMax==="function")?manaMax(c):0;
-    spellHtml=(_shMx>0?'<div class="cs-v" style="color:var(--acc);margin-bottom:2px;">Mana '+manaCur(c)+' / '+_shMx+' <span style="color:var(--t2);font-size:.85em;">(a cast costs its tier; refills on rest)</span></div>':"")+'<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
+    spellHtml=(_shMx>0?'<div class="cs-v" style="color:var(--mana);margin-bottom:2px;">Mana '+manaCur(c)+' / '+_shMx+' <span style="color:var(--t2);font-size:.85em;">(a cast costs its tier; refills on rest)</span></div>':"")+'<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
   if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a drop × */
     var invRows="",ivi,_canDrop=(invOwner!==undefined);
