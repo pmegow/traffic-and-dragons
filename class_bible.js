@@ -54,7 +54,10 @@ var CLASS_BIBLE = {
         "ds": "No penalty for improvised or unfamiliar arms."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Intimidation",
+      "Endure Pain"
+    ],
     "levels": {
       "2": {
         "features": [
@@ -972,7 +975,11 @@ var CLASS_BIBLE = {
         "ds": "Hit up to 2 targets in range with one action."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Tracking",
+      "Survival",
+      "Stealth"
+    ],
     "spellTiers": {
       "2": 7,
       "3": 9,
@@ -1030,16 +1037,36 @@ var CLASS_BIBLE = {
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Long Hunt",
+            "ds": "Your Hunter's Mark never fades until you release it: you know the direction and freshness of your quarry's trail anywhere in the region, and it cannot lose you by mundane means."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Impossible Shot",
+            "ds": "Once per scene, make the shot no one else would attempt — through the arrow slit, the rope at fifty paces, the apple off the moving cart. Declare it; it lands."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "One with the Wild",
+            "ds": "In natural terrain you cannot be tracked, ambushed, or outpaced, and beasts will not raise a claw against you unprovoked."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Apex Predator",
+            "ds": "Your marked quarry is already dead and its body just hasn't heard: your attacks against it crit on 18-20, it cannot hide from you, and your allies strike it harder for knowing you're on it (+2 to their attacks)."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -1049,22 +1076,52 @@ var CLASS_BIBLE = {
         "desc": "Colossus Slayer on wounded targets. Giant Killer reaction. Defensive multiattack.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bigger They Are",
+                "ds": "Your first strike each round against a wounded or oversized foe deals +2d6 — the larger the target, the surer your point finds the seam."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Read the Beast",
+                "ds": "One look at any creature tells you its strengths, its weaknesses, and how much fight it has left — exact wounds, what it resists, and the move it will make next."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Cull the Herd",
+                "ds": "When a foe drops to your attack, your momentum carries into the next: immediately strike another target in reach or range. The chain breaks only when you miss."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Nowhere Soft to Land",
+                "ds": "Numbers stop meaning anything: foes gain no advantage from surrounding or flanking you, their opportunity strikes miss, and when three or more engage you, it's you who has the advantage."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Slayer of Legends",
+                "ds": "The creatures out of old stories are just bigger quarry: your weapons wound anything however warded, and no aura of terror, majesty, or size makes your hands hesitate."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Last Great Hunt",
+                "ds": "Once, name a single creature the object of your Last Great Hunt: no distance, disguise, or plane hides it from your pursuit, and when you finally close, your killing shot cannot be prevented — only survived."
+              }
+            ]
           }
         }
       },
@@ -1074,22 +1131,52 @@ var CLASS_BIBLE = {
         "desc": "Bond with a beast companion that fights alongside you. Primal bond.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bonded Companion",
+                "ds": "A beast of the wild has chosen you: it fights beside you, shares your instincts, and obeys without words. If it dies, no other will choose you for a year and a day — the wild takes bonds seriously."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Shared Senses",
+                "ds": "Close your eyes and use your companion's: see, hear, and scent through it at any distance you could walk in a day."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Pack of Two",
+                "ds": "You fight as one animal in two bodies: when either of you lands a hit, the other may immediately strike the same target."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Kinship of the Wild",
+                "ds": "Any beast will hear you out: once per scene, ask the wild a favor — a hawk to carry word, wolves to harry a column, rats to empty a granary by dawn."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Companion of Legend",
+                "ds": "Your companion has grown into something from the old stories — dire-sized, cunning as a person, and known by name in three kingdoms. Enemies plan around it now, not you."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Two Hearts, One Life",
+                "ds": "Death cannot part you: when either of you falls, the other may share its own life to pull them back (split your remaining HP). And once — only once — one of you may take the other's death entirely, no matter its cause."
+              }
+            ]
           }
         }
       },
@@ -1099,22 +1186,52 @@ var CLASS_BIBLE = {
         "desc": "Invisible in magical darkness. Extra attack on first round. Dread Ambusher.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Terror in the Dark",
+                "ds": "Foes you strike from darkness or ambush must check their nerve or panic — a camp you hit at night starts breaking before it forms ranks."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "No Light Needed",
+                "ds": "You see perfectly in any darkness, mundane or magical — and darkness likes you back: within 30ft of you torches gutter and lanterns shrink."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Unseen Path",
+                "ds": "Once per round, step from one shadow into another you can see. The dark is a hallway only you have the key to."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Leave No Witness",
+                "ds": "A foe you drop from stealth goes down silently — no cry, no clatter, no alarm — and nothing you do in darkness reveals where you are."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Where Lights Die",
+                "ds": "Night itself takes your side: once per day, drown a battlefield (60ft) in a darkness only you and your allies see through, for a whole scene."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Long Night",
+                "ds": "You are the thing veterans warn recruits about. Once, declare a night yours: until dawn, within a mile, the darkness answers to you — who sleeps, who wakes, who is found, and who never is."
+              }
+            ]
           }
         }
       }
@@ -1149,7 +1266,11 @@ var CLASS_BIBLE = {
         "ds": "CHA check to terrify. Success: enemy shaken (-2 all rolls)."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Endure Pain",
+      "Intimidation",
+      "Survival"
+    ],
     "levels": {
       "2": {
         "features": [
@@ -1184,16 +1305,36 @@ var CLASS_BIBLE = {
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Rage Without End",
+            "ds": "Your rage lasts as long as the fight does, and dropping to 0 HP doesn't end it — you get one more round of fury on your feet before your body files its complaint."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "Shrug It Off",
+            "ds": "While raging, halve all damage that isn't an attack on your mind. Pain is information, and you've stopped reading your mail."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Beast Beneath",
+            "ds": "Your body answers the wild directly: your unarmed strikes and grapples land like a great beast's, and on all fours you outrun horses."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "More Than Mortal",
+            "ds": "Strength and Constitution push past the mortal ceiling (+4 each, caps raised). Doors, chains, and 'impossible' are all suggestions now."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -1203,22 +1344,52 @@ var CLASS_BIBLE = {
         "desc": "Spirit animal bond. Bear for resistance, Eagle for mobility, Wolf for pack tactics.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Totem Spirit",
+                "ds": "A spirit walks in your skin — choose it: Bear (halve all damage while raging), Eagle (no one you charge escapes, no one you flee catches), or Wolf (every ally fighting beside you strikes harder). The totem can be renegotiated only at a sacred site."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Totem Aspect",
+                "ds": "The spirit stays after the rage: Bear hauls like an ox team, Eagle reads a hillside a mile off, Wolf tracks by scent alone at a dead run."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Spirit Walk",
+                "ds": "Sleep, and send your spirit out in the totem's shape for an hour — scout the pass, circle the camp, whisper to your kin in their dreams."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Two Totems",
+                "ds": "A second spirit accepts you: carry both totems' gifts at once. Shamans argue about whether that's allowed. The spirits don't."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Great Spirit's Voice",
+                "ds": "Every beast of your totems' kind within the valley answers your call, and the spirits of the wild deal with you as an equal, not a guest."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Avatar of the Totem",
+                "ds": "Once per day, the totem wears YOU: become the spirit made flesh for a scene — a bear the size of a wagon, an eagle that blots the torchlight, a wolf out of the first winter. Your legend and the spirit's are the same story now."
+              }
+            ]
           }
         }
       },
@@ -1228,22 +1399,52 @@ var CLASS_BIBLE = {
         "desc": "Frenzied rage -- bonus attack every turn. Immune to charm and fear while raging.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Blood Price",
+                "ds": "Wounds feed the fury: every time you're hurt while raging, your next attack hits +2 harder. They can stop you or they can hurt you — not both."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Terrifying Frenzy",
+                "ds": "Your frenzy is a weapon everyone else feels: foes who watch you drop one of their own must check their nerve or give ground."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Furious Leap",
+                "ds": "The gap between you and your prey is never safe: leap your full movement onto any foe, arriving as an attack that puts them on the ground."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Rage Undying",
+                "ds": "Frenzy no longer ends while enemies stand and costs no exhaustion after — and the first time each day you'd drop mid-frenzy, you stand back up at 1 HP, angrier."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Avalanche of One",
+                "ds": "Your charge breaks formations: shield walls scatter, gates crack, cavalry balks. Enemy commanders write their orders around where you might be."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Last Red Day",
+                "ds": "Once, declare the Last Red Day: until the battle ends you cannot die, cannot tire, and cannot be stopped by anything smaller than the battle itself. When it ends you sleep for a week — win or lose."
+              }
+            ]
           }
         }
       },
@@ -1253,22 +1454,52 @@ var CLASS_BIBLE = {
         "desc": "Aura of lightning, thunder, or arctic cold. Living storm of destruction.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Storm Shroud",
+                "ds": "Your rage wears weather — choose it: lightning (attackers take 1d8 back), thunder (your blows throw foes off their feet), or frost (everything near you slows). The sky above you agrees with your mood."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Ride the Wind",
+                "ds": "The storm carries its own: leap gaps no mortal could, and fall from any height into a thunderclap landing that costs you nothing."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Call the Bolt",
+                "ds": "Point at what the sky should hate: once per round, a bolt falls on a foe within 60ft — 3d10 lightning, DEX for half."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Eye of the Storm",
+                "ds": "Allies inside your aura stand in the eye: your weather never touches them, and arrows shot into it are slapped aside by the wind."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Season of Wrath",
+                "ds": "Your rage bends the weather for miles — fog to hide a retreat, a squall to ground the enemy's archers, a killing frost at midsummer. The land keeps your grudges."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Walking Tempest",
+                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find."
+              }
+            ]
           }
         }
       }
@@ -1303,7 +1534,10 @@ var CLASS_BIBLE = {
         "ds": "Detect undead, fiends, and celestials within 60ft."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Persuasion",
+      "Insight"
+    ],
     "spellTiers": {
       "2": 7,
       "3": 9,
@@ -1362,16 +1596,36 @@ var CLASS_BIBLE = {
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Oathlight",
+            "ds": "Your weapon carries your oath without being asked: every hit deals +1d8 radiant, and creatures of darkness find the light sticky — it clings, and marks them for everyone to see."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "The Unbroken Line",
+            "ds": "While you stand, allies within your aura cannot be moved, felled, or made to flee against their will. Lines break where you aren't."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Judgment's Eye",
+            "ds": "Lies rot in your gaze: you always know when you're told a falsehood, and once per scene you may compel one creature to answer a single question truly (CHA negates)."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Saint's Vessel",
+            "ds": "Your body is consecrated ground: hostile magic must overcome your conviction (CHA) to touch you at all, and wherever you sleep counts as hallowed."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -1381,22 +1635,52 @@ var CLASS_BIBLE = {
         "desc": "Hunter of the wicked. Vow of Enmity for advantage. Relentless pursuit. Banishment.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Named Enemy",
+                "ds": "Speak a wrongdoer's name before witnesses: against them you have advantage on everything — striking, tracking, resisting their arts — until justice is done. One name at a time. Choose carefully; the oath remembers."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "No Rest for the Wicked",
+                "ds": "Your named enemy cannot lose you: you sense their direction within a day's ride, and while the hunt is on you need half the sleep and none of the comfort."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Drag Them Back",
+                "ds": "The guilty do not get to leave: once per scene, halt a fleeing foe where it stands — teleport, wings, or terror avail it nothing for one full round."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Sentence Passed",
+                "ds": "Your smites against the named enemy cannot be resisted, reduced, or forgiven — and each one breaks a hold their power has over someone else."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Wrath That Walks",
+                "ds": "Your reputation does half the work now: the corrupt across a region know you are coming, and their servants must check their nerve or abandon them first."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Final Accounting",
+                "ds": "Once, declare the Accounting against your named enemy: neither of you can die, flee, or be aided until one yields or falls. Every debt settles inside that circle."
+              }
+            ]
           }
         }
       },
@@ -1406,22 +1690,52 @@ var CLASS_BIBLE = {
         "desc": "Sacred Weapon -- add CHA to attacks. Holy Nimbus aura. Purity of spirit.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Beacon of Honesty",
+                "ds": "Your presence is an oath others lean on: allies who can see you cannot be charmed or made afraid — and your word, once given, is impossible for you to break, and everyone can feel that it is."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Shield the Weak",
+                "ds": "Once per round, take a blow meant for anyone within reach — and take it better than they would have: half damage to you."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Consecrated Ground",
+                "ds": "Where you plant your feet becomes holy for the scene: undead and fiends must fight their own nature to come within 10ft, and the dying inside it do not slip away."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Gentle Hand",
+                "ds": "Your healing pool doubles, and Lay on Hands now mends minds as well as bodies — madness, despair, and magical corruption end at your touch."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Light Undimmed",
+                "ds": "Your radiance becomes a fact of the region: within your aura all healing is doubled, all darkness is merely shade, and lies stumble on their way out of the mouth."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Call the Dawn",
+                "ds": "Once, when all is lost, call the dawn early: every ally standing with you is healed whole, freed of fear and curse, and cannot fall below 1 HP until the fight ends. The bards will get it wrong. It was better than they say."
+              }
+            ]
           }
         }
       },
@@ -1431,22 +1745,52 @@ var CLASS_BIBLE = {
         "desc": "Nature's warrior. Aura of Warding vs spells. Undying Sentinel at 0 HP.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Green Vow",
+                "ds": "You swore to the life older than the gods: wild places accept you as kin, your smites bloom with thorned light, and once per scene the vines answer you — grasping, tripping, holding fast."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Sap and Stone",
+                "ds": "Poison, rot, and wither slide off you and those at your side, and your body keeps the forest's calendar — you age a year for its ten."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Roots of the World",
+                "ds": "Tree, stone, and stream confide in you — what passed, when, and bleeding or not. Once per day the land opens a path: brush parts, fords surface, cliffs offer stairs."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Undying Green",
+                "ds": "The first time each day you would fall, you don't: life floods back at half strength, and green shoots rise in your footprints. The old life does not let go of its sworn."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Season's Champion",
+                "ds": "The wild rises where you fight: for a scene the terrain takes your side — thorn hedges, sudden bogs, groves that hide your friends and swallow your enemies."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Old Light",
+                "ds": "Once, kindle the Old Light — the sun the first forests grew under: within a mile, corruption burns out of land and folk alike, the wild's dead rise as allies for one battle, and what you plant that day cannot be killed by anything younger than the world."
+              }
+            ]
           }
         }
       }
@@ -1790,7 +2134,11 @@ var CLASS_BIBLE = {
         "ds": "Communicate with beasts. They share what they have sensed."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Nature",
+      "Animal Handling",
+      "Foraging"
+    ],
     "spellTiers": {
       "2": 5,
       "3": 7,
@@ -1859,16 +2207,36 @@ var CLASS_BIBLE = {
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Second Skin",
+            "ds": "Wild Shape is a breath, not a ritual: shift as part of any action, gear melding or staying as you choose, and your beast ceiling keeps climbing with your level."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "Voice of the Land",
+            "ds": "The land within a mile confides in you: ask it what walks, what sickens, what hides. Its answer is always true and always partial — the land has its own sense of humor."
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Root and Branch",
+            "ds": "The green fights for you unasked: difficult terrain never slows you, and once per scene the undergrowth itself restrains everything you name within 30ft."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Shape of the World",
+            "ds": "Your Wild Shape reaches past flesh: elemental bodies — living flame, stone, water, wind — once per day each. The beasts were practice."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -1878,22 +2246,52 @@ var CLASS_BIBLE = {
         "desc": "Ancient magic of terrain. Bonus spells by terrain type. Natural Recovery of spell slots.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Homeground",
+                "ds": "Choose your land — forest, desert, mountain, swamp, or coast. On it you are unmistakable: regain one spent cast per scene, and its creatures treat you as an elder of their own."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Land Provides",
+                "ds": "Your land feeds, hides, and heals your own: foraging always succeeds, camps are never found unless you wish it, and natural rest heals double."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Read the Ley",
+                "ds": "You see the lines of power under any terrain — sacred sites, poisoned ground, buried things. Once per day, borrow a ley line: one spell cast at full strength, free."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "All Ground Is Homeground",
+                "ds": "Every natural terrain now counts as your land, and hostile magic that would blight soil, water, or growing things simply fails within your sight."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Land Remembers",
+                "ds": "Wake the memory of a place for a scene: the drowned village rises walkable, the razed forest stands ghost-green, and what happened there plays out for every eye you choose."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Keeper of the Green",
+                "ds": "One region — a forest, a valley, a coastline — takes you as its keeper: it prospers or withers on your word, warns you of every intrusion, and no power younger than the hills can claim it while you live."
+              }
+            ]
           }
         }
       },
@@ -1903,22 +2301,52 @@ var CLASS_BIBLE = {
         "desc": "Powerful Wild Shape. Combat beast forms. Elemental forms at high level.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "War Shape",
+                "ds": "Your Wild Shape is built for the front line: combat forms beyond your years, shifting instant, and the beast's hide takes the first wounds meant for you (temporary HP on every shift)."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Fang and Focus",
+                "ds": "Your claws and fangs bite through wards meant for steel (they count as magical), and the beast's throat can still carry your casting — roar the spell."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Shapes of the Ice Years",
+                "ds": "The moon shows you older beasts: forms long extinct — cave bears the size of carts, wolves from the first winters. Your shapes now frighten as they fight."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Half-Form",
+                "ds": "Take the middle shape: your hands and voice with the beast's strength and senses — cast, speak, climb, and rend in the same body."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Tide of Shapes",
+                "ds": "Shift without count or cost, flowing form to form mid-motion — bird to bear mid-pounce. Your enemies fight a different animal every round and never the one they planned for."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "The First Beast",
+                "ds": "Once per day, wear the First Beast — the shape all animals remember in their bones. For a scene, everything wild within a mile answers its cry as kin, and nothing mortal that sees it ever quite settles on what it was."
+              }
+            ]
           }
         }
       },
@@ -1928,22 +2356,52 @@ var CLASS_BIBLE = {
         "desc": "Halo of Spores necrotic damage. Symbiotic Entity -- enhanced Wild Shape for combat.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Quiet Bloom",
+                "ds": "Your spores ride every breath within 10ft: foes you choose take 1d6 necrotic each round they linger, and you feel every living and dead thing your cloud touches."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Rot Into Life",
+                "ds": "Death feeds the circle: when a creature dies inside your bloom, choose — take its vigor as your own (temporary HP), or let its corpse serve until scene's end as a spore-walker."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Gardener of Corpses",
+                "ds": "Your spore-walkers persist and multiply — up to three at once — and each bursts when destroyed (2d8 necrotic cloud). Waste nothing; the circle doesn't."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Flesh Is a Season",
+                "ds": "Decay keeps your calendar now: rot stone, wood, and iron with a touch, hold a corpse or harvest fresh indefinitely — and your own green-riddled body no longer bleeds, sickens, or takes poison."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "The Patient Kingdom",
+                "ds": "Everything fungal within a mile is your eyes and hands: word crosses the forest floor in minutes, and ground you claim becomes a slow trap — spoiled stores, sapped strength, dread with no visible source."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "All Things Return",
+                "ds": "Once — only once — when anything dies within your bloom, friend, foe, or you, refuse the death: it is composted, and the creature stands back up whole. The circle takes a year of your life as tithe, and a ring of pale mushrooms marks the spot forever."
+              }
+            ]
           }
         }
       }
@@ -1978,7 +2436,10 @@ var CLASS_BIBLE = {
         "ds": "Sense undead, corpses, and death-taint within 60ft without seeing them. Advantage on Arcana and Lore checks involving undead, curses, or death magic."
       }
     ],
-    "skillSeeds": [],
+    "skillSeeds": [
+      "Arcana",
+      "First Aid"
+    ],
     "spellTiers": {
       "2": 5,
       "3": 7,
@@ -2156,7 +2617,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "Accelerated Decay",
-                "ds": "your touch rots living flesh: 2d8 necrotic and the target ages 1d10 years (CON save halves the damage and refuses the years). What you rot stays rotted -- wounds you deal cannot be magically healed until the next dawn."
+                "ds": "By intention: your touch rots living flesh: 2d8 necrotic and the target ages 1d10 years (CON save halves the damage and refuses the years). What you rot stays rotted -- wounds you deal cannot be magically healed until the next dawn."
               }
             ]
           },
@@ -2219,7 +2680,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "Greater Vessels",
-                "ds": "you bind at 30ft the instant death occurs, and your vessels hold souls indefinitely. An unwilling dying soul may resist (CHA save)."
+                "ds": "Once per day: you bind at 30ft the instant death occurs, and your vessels hold souls indefinitely. An unwilling dying soul may resist (CHA save)."
               }
             ]
           },
