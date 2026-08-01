@@ -581,6 +581,18 @@ function serializeCapabilityBible(state) {
         console.info("[bible] #100: draft healed — Berserker class renamed Primal (archetype ids untouched)");
         note("draft healed: Berserker → Primal (#100 rename)");
       }
+      // Same class of heal (2026-08-01): the Necromancer's Shadow Weaver archetype was renamed
+      // Entropist (id AND nm, the v1.506 alignment law). A draft from before the rename holds a
+      // full bible copy and would silently write the old archetype back over the renamed file.
+      if (CUR.typeId === "class" && CUR.data.bible && CUR.data.bible.Necromancer) {
+        (CUR.data.bible.Necromancer.archetypes || []).forEach(function (a) {
+          if (a.id === "shadowweaver") {
+            a.id = "entropist"; a.nm = "Entropist";
+            console.info("[bible] draft healed — Shadow Weaver archetype renamed Entropist (its level content is kept as-is)");
+            note("draft healed: Shadow Weaver → Entropist");
+          }
+        });
+      }
       activeCls = (CUR.typeId === "class") ? Object.keys(CUR.data.bible)[0] : null;
       note("resumed draft from " + new Date(d.t).toLocaleString());
       return true;

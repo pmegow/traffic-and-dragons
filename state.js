@@ -209,8 +209,8 @@ function stampTranscriptSpeakers(entry,sp){
    companion sheet; showCharImportPreview (the .char file + library import funnel) and
    checkLegacyCharacter (the legacy-pool draw) call it directly. Returns true if anything moved. */
 var CLASS_RENAMES={"Berserker":"Primal"};
-var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller","Trickery Domain":"Subjugation Domain"};
-var ARCHETYPE_ID_RENAMES={"totem":"totemborn","frenzy":"berserker","stormherald":"stormcaller","trickery":"subjugation"};
+var ARCHETYPE_NM_RENAMES={"Totem Warrior":"Totemborn","Storm Herald":"Stormcaller","Trickery Domain":"Subjugation Domain","Shadow Weaver":"Entropist"};
+var ARCHETYPE_ID_RENAMES={"totem":"totemborn","frenzy":"berserker","stormherald":"stormcaller","trickery":"subjugation","shadowweaver":"entropist"};
 /* #101 (v1.479, generalizing the v1.478 Fire Bolt point-fix): spell display labels used to embed
    mechanics in a parenthetical — "Fire Bolt (d10 fire, 120ft)" — a second copy of dice/range that
    could drift from the capability_bible canon (the only thing the GM's canon block ever reads;

@@ -2020,7 +2020,9 @@ var CLASS_BIBLE = {
         "Chill Touch",
         "Toll the Dead",
         "Bone Whisper",
-        "Grave Touch"
+        "Grave Touch",
+        "Mage Hand",
+        "Ray of Frost"
       ]
     },
     "levels": {
@@ -2028,7 +2030,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Undead Thrall",
-            "ds": "your Raise Thrall servant persists permanently until destroyed. Gains bonus HP equal to your INT modifier. Can follow complex multi-step orders."
+            "ds": "your Raise Thrall servant persists permanently until destroyed. Gains bonus HP equal to your INT modifier. Can follow simple multi-step orders, Go to X and perform task Y."
           }
         ]
       },
@@ -2043,30 +2045,50 @@ var CLASS_BIBLE = {
       "7": {
         "features": [
           {
-            "nm": "Necrotic Resilience",
-            "ds": "resistance to necrotic damage, advantage on death saving throws. Undead you control cannot be Turned by Clerics or Paladins."
+            "nm": "Conscript Undead",
+            "ds": "Seize control of any undead creature you can see. INT save for success  (DC 8 + INT modifier + proficiency). Success: under your control for 24 hours. A maximum of level/3 undead may be controled at once."
           }
         ]
       },
       "9": {
         "features": [
           {
-            "nm": "Command Undead",
-            "ds": "attempt to seize control of any undead creature you can see. INT save (DC 8 + INT modifier + proficiency). Success: under your control for 24 hours."
+            "nm": "Necrotic Resilience",
+            "ds": "resistance to necrotic damage, advantage on death saving throws. Undead you control cannot be Turned by Clerics or Paladins."
           }
         ]
       },
       "11": {
-        "features": []
+        "features": [
+          {
+            "nm": "Dark Immunity",
+            "ds": "Immune to all forms of decay, disease, and death or blood magic."
+          }
+        ]
       },
       "13": {
-        "features": []
+        "features": [
+          {
+            "nm": "Dire Phylactery",
+            "ds": "Requires a focus object.  While focused on a target, any loss of hitpoints experienced by the target is stored as mana in the focus object at a rate of 5hp to 1mp.  The mana in the focus object can then be drawn into the necromancer as a mana supply. "
+          }
+        ]
       },
       "15": {
-        "features": []
+        "features": [
+          {
+            "nm": "Vampiric Charm",
+            "ds": "the promise of death's defeat is intoxicating, the target must make a savings throw or become the necromancer's thrall.  A new savings throw may be rolled every dawn."
+          }
+        ]
       },
       "17": {
-        "features": []
+        "features": [
+          {
+            "nm": "Path of the Lich",
+            "ds": "the path to becoming a lich is open to you.  It is one time only and irreversible."
+          }
+        ]
       }
     },
     "archetypes": [
@@ -2076,47 +2098,107 @@ var CLASS_BIBLE = {
         "desc": "Raise up to 3 thralls simultaneously from available corpses with one casting. Thralls gain +2 AC from bone reinforcement. Can animate dead from a distance of 30ft. The path to undeath begins here.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bone Shards",
+                "ds": "Casts shards of bone at the target doing 1d4 per caster level, range of 80 feet."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bone Armor",
+                "ds": "Caster becomes clad in hardened, articulated bone platemail.  "
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bone Structure",
+                "ds": "Caster can create structures of bone which emerge from the ground.  Fails on concecrated earth."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bone Golem",
+                "ds": "Creates a golem made of bone. "
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Army of Bone",
+                "ds": "Summons waves of skeletons to crash against enemy forces, 25 skeletons at a time.  As skeletons fall new ones rise and join the fight.  Continues until the caster breaks concentration. "
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Bone Dragon",
+                "ds": "Summons a bone dragon."
+              }
+            ]
           }
         }
       },
       {
-        "id": "shadowweaver",
-        "nm": "Shadow Weaver",
-        "desc": "Teleport between areas of dim light or darkness within 60ft as a bonus action. Once per rest -- Wraith Form: become incorporeal for 1 round, immune to physical damage and able to pass through walls.",
+        "id": "entropist",
+        "nm": "Entropist",
+        "desc": "Entropy is your weapon: your touch corrodes one nonmagical object per round -- blades pit, ropes fray, doors give way, stone remembers it was sand. Constructs and objects take double damage from your spells.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Accelerated Decay",
+                "ds": "your touch rots living flesh: 2d8 necrotic and the target ages 1d10 years (CON save halves the damage and refuses the years). What you rot stays rotted -- wounds you deal cannot be magically healed until the next dawn."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Rust in the Air",
+                "ds": "your decay no longer needs touch -- corrode objects at 30ft. Once per round when a nonmagical weapon or projectile strikes you, it decays mid-blow: damage halved, the weapon ruined."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Field of Entropy",
+                "ds": "a 30ft radius where everything ends faster: structures sag and crack, potions spoil, food blackens, healing is halved, and objects age a year every round. Concentration, up to 1 minute."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Unraveling",
+                "ds": "decay reaches the immaterial: end one active spell or enchantment you can see, or silence a magic item until dawn -- its virtue rusts like everything else."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Ruin",
+                "ds": "a minute of ritual collapses years into moments on one structure: a fortress gate becomes a breach, a bridge becomes a memory, a siege engine becomes mulch. Consecrated ground resists."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Entropy Incarnate",
+                "ds": "for one scene you are the ending of things: nonliving matter you touch turns to dust outright, hostile magic gutters out within 30ft of you, and living creatures who stand against you age a year and take 4d10 necrotic each round (CON for half). Once per day."
+              }
+            ]
           }
         }
       },
@@ -2126,22 +2208,52 @@ var CLASS_BIBLE = {
         "desc": "Trap a dying creature's soul in a prepared vessel (bone, gem, or bottle). One soul per casting, unlimited vessels. Bound souls answer questions truthfully or can be shattered for a 15ft burst of 3d8 necrotic damage.",
         "levels": {
           "3": {
-            "features": []
+            "features": [
+              {
+                "nm": "Soulfire",
+                "ds": "a bound soul is fuel: consume one to regain mana equal to the soul's level, or to cast your next spell as if one tier higher. The soul is spent forever -- it does not pass on, it burns."
+              }
+            ]
           },
           "6": {
-            "features": []
+            "features": [
+              {
+                "nm": "Greater Vessels",
+                "ds": "you bind at 30ft the instant death occurs, and your vessels hold souls indefinitely. An unwilling dying soul may resist (CHA save)."
+              }
+            ]
           },
           "10": {
-            "features": []
+            "features": [
+              {
+                "nm": "Soul Puppet",
+                "ds": "pour a bound soul into a fresh corpse: the dead walks again with its own memories and skills intact -- a thinking servant, not a shambler. It knows exactly what it owes you."
+              }
+            ]
           },
           "14": {
-            "features": []
+            "features": [
+              {
+                "nm": "Anchored Soul",
+                "ds": "your own soul rides in a prepared vessel: the first time you die, you wake beside it a day later and the vessel shatters. Crafting a new anchor takes a month. This is the apprenticeship for what waits at level 17."
+              }
+            ]
           },
           "18": {
-            "features": []
+            "features": [
+              {
+                "nm": "Reap the Field",
+                "ds": "any creature that dies within 60ft offers you its soul -- no action, no vessel prepared, you ARE the vessel. Battles fill your satchel; armies feed you."
+              }
+            ]
           },
           "20": {
-            "features": []
+            "features": [
+              {
+                "nm": "Judge of the Dead",
+                "ds": "no soul passes within a mile without your leave: the dying linger until you rule, and the dead cannot be raised against you. Once -- only once -- you may spend every soul you hold to call one person truly back to life."
+              }
+            ]
           }
         }
       }
