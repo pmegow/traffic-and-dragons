@@ -275,8 +275,11 @@ function spellQuickCast(el){
 function updateSpPanel(){
   if(!worldState)return;
   var _ap=activePlayer(),spells=_ap.spells||[];/* P2: follows the spotlight PC */
-  var avail=spells.filter(function(s){return !s.used;}).length;
-  document.getElementById("sp-cnt").textContent=avail+"/"+spells.length;
+  /* #110: the header counts MANA, not slots — availability is the pool. The per-spell "used"
+     style now marks only the racial 1/day hard gate; a pooled spell is castable while the
+     pool covers its tier, however many times it was cast today. */
+  var _spMx=(typeof manaMax==="function")?manaMax(_ap):0;
+  document.getElementById("sp-cnt").textContent=_spMx>0?(manaCur(_ap)+"/"+_spMx+" mana"):(spells.length+"");
   var h="",i,sp,tag,nm,ds;
   for(i=0;i<spells.length;i++){
     sp=spells[i];
@@ -284,15 +287,16 @@ function updateSpPanel(){
     nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
     var _tip=spellTip(nm);/* #8 bible description; #83 always non-empty (fallback) */
-    h+="<div class='sp-item has-tip"+(sp.used?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\" title=\""+escHtml(_tip)+"\" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast + #83 long-press */
+    var _gated=sp.racial&&sp.used&&sp.lvl>0;/* the 1/day heritage gate — the one per-spell state left */
+    h+="<div class='sp-item has-tip"+(_gated?" used":"")+"' data-cast=\""+escHtml(nm)+"\" onclick=\"spellQuickCast(this)\" title=\""+escHtml(_tip)+"\" style='cursor:pointer;'>";/* #8 tooltip + #80 click-to-cast + #83 long-press */
     h+="<span class='sp-nm'>["+tag+"] "+escHtml(nm)+"</span>";/* GM-grantable spell names (#22/UA18) */
-    if(ds||sp.used)h+="<span class='sp-ds'>"+escHtml(ds||"")+(sp.used?" -- expended":"")+"</span>";
+    if(ds||_gated)h+="<span class='sp-ds'>"+escHtml(ds||"")+(_gated?" -- 1/day, expended":"")+"</span>";
     h+="</div>";
   }
   if(!h)h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No spells</div>";
   /* P2: restSpells() writes the HERO's spells — hide the button while a companion PC holds the
      spotlight, or resting would restore the wrong sheet (writes stay on their true owner). */
-  else if(_ap===worldState.character)h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore spells)</button>";
+  else if(_ap===worldState.character)h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore mana)</button>";
   document.getElementById("sp-list").innerHTML=h;
 }
 function updateCombat(){

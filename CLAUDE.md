@@ -166,7 +166,8 @@ Campaign list metadata stored in `tnd_camps_v1` — array of lightweight campaig
   inventory[],            // plain strings
   level, xp,
   abilities[],            // {nm, ds}
-  spells[],               // {nm, lvl, used, racial?}
+  spells[],               // {nm, lvl, used, racial?} — used = "cast since rest" (hard gate ONLY for racial 1/day; #110)
+  mana,                   // #110 spend-by-tier pool — current points; max is DERIVED (manaMax), never stored; absent = full
   archetype, archetypeNm,
   statedAlignment, actualAlignment, alignLaw, alignGood,
   deity,
@@ -268,7 +269,7 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 | `[COMBAT_END:outcome]` | Close the WHOLE encounter (`worldState.combat=null`) regardless of foe states. Without the tag, **all foes down auto-closes** — as "surrender" if any foe surrendered, else "victory" |
 | `[ABILITY_GAINED:Name|Desc]` | Append to `character.abilities` (deduplicated) |
 | `[ALIGNMENT:law+1]` / `[ALIGNMENT:good-1]` | Shift `alignLaw`/`alignGood` (-3 to +3), recompute `actualAlignment` |
-| `[SPELL_USED:name]` | Mark matching spell as `used: true` |
+| `[SPELL_USED:name]` | **Mana spend (#110, v1.508)** — deduct the spell's capability-bible tier from `character.mana` via `manaPayCast` (tag_table.js, shared with the companion twin). Racial `1/day` spells bypass the pool and keep the hard `used:true` gate; other spells still stamp `used` but only as informational "cast since rest". Overspend floors at 0 + loud warn — EXCEPT a Necromancer, who overdraws at `MANA_BLOOD_HP` (globals.js) HP per missing point, deducted by the ENGINE (the doc forbids the GM re-emitting `[HP:]` for it — the XP-mirror precedent). Pool math: `manaMax`/`manaCur`/`manaSpellCost` (helpers.js) — base = Σ non-racial spell tiers, +10%/point of the class's `castStat` (CLSS data) over 16, floored; an ABSENT `c.mana` reads as full (that lazy default IS the migration ruling). Refill: `restSpells()` only |
 | `[LORE:fact]` | Append to `memory.lore` (capped at 30) |
 | `[DECISION:desc]` | Append to `memory.keyDecisions` (capped at 30) |
 | `[FUTURE_EVENT:what|when]` | Append to `memory.futureEvents` |

@@ -13,6 +13,7 @@ var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this 
 var CORE_MEMORY_CAP=25;     // #40: defining-moments list cap, PER SHEET since #63 (v1.304) — generous, not infinite; overflow evicts to memory.archive with a loud warn (a full list means the triggers fire too easily, not that we need more storage)
 var RENDER_PTR_CAP=60;      // #30: cap on worldState.renders — POINTERS only ({f,t,k} ≈ 40 bytes), never image bytes. A monotonic per-render list rides the sync blob, so it gets a bound like every other accumulator (standing audit dimension); oldest drop out first. 60 ≈ every render of a long campaign at a realistic render rate, ~2.4KB.
 var CONDITION_AUDIT_TURNS=12;   // #46 audit teeth: a party condition this many turns old (or unstamped/legacy) makes buildConditionAudit fire
+var MANA_BLOOD_HP=3;        // #110: NECROMANCER-ONLY overdraw price — HP paid per mana point cast beyond an empty pool (draft constant, flagged for the balance pass; the engine deducts it, the GM is told never to re-emit [HP:] for it)
 var TT_HISTORY_MAX=6;       // #76: max Table Talk Q/A pairs fed back into the TT prompt (its OWN log — never sessionLog, so TT chatter can't reach story context). Stored list is capped at 2x this.
 var TT_HISTORY_CHARS=3000;  // #76: char budget on that TT history (newest pair always survives)
 var TT_CAP_MATCH_MAX=6;     // #76: max capability-bible entries expanded to full canon per question (the index of ALL names is always sent; only matches get the 6-row detail)
@@ -162,7 +163,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.507";
+var APP_VERSION="v1.508";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

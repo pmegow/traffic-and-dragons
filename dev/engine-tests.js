@@ -663,6 +663,116 @@ function runEngineTests(R){
     var sh=worldState.npcs[worldState.npcs.length-1].charSheet;
     return sh.cls==="Primal"&&sh.archetypeNm==="Stormcaller"&&sh.archetype==="stormcaller"?true:"companion not migrated: "+sh.cls+"/"+sh.archetypeNm+"/"+sh.archetype;
   });
+  // ── mana pool (#110, v1.508) — the spend-by-tier casting economy ─────────────
+  // Design ruled with the user 2026-07-31 (all rulings in the TODO row): base mana =
+  // sum of known non-racial spell tiers · cantrips free · +10% pool per point of the
+  // class's castStat over 16, floored · cost = capability-bible tier (overlay wins,
+  // sp.lvl fallback for customs) · refill = full on rest only · racial 1/day spells
+  // fully OUTSIDE the pool · migration = full pool (implemented as the lazy default:
+  // an absent c.mana READS as full) · overdraw is NECROMANCER-ONLY at MANA_BLOOD_HP
+  // per missing point, deducted by the ENGINE (the doc forbids the GM re-emitting
+  // [HP:] for it — the XP-mirror precedent). The used flag survives as informational
+  // "cast since last rest" (and stays the hard 1/day gate for racial spells).
+  section("mana pool (#110)");
+  function makeCaster(cls,stat,statVal,spells){
+    makeWorld();var c=worldState.character;
+    c.cls=cls;c.stats[stat||"WIS"]=statVal||10;c.spells=spells;c.hp=20;c.maxHp=20;delete c.mana;
+    return c;
+  }
+  t("manaSpellCost: bible tier for known spells, 0 for cantrips and racial grants, sp.lvl fallback for customs",function(){
+    if(manaSpellCost({nm:"Fireball",lvl:3})!==3)return "Fireball should cost its bible tier 3";
+    if(manaSpellCost({nm:"Fire Bolt",lvl:0})!==0)return "cantrips are free";
+    if(manaSpellCost({nm:"Faerie Fire",lvl:1,racial:true})!==0)return "racial grants are outside the pool";
+    return manaSpellCost({nm:"Zargle's Custom Zap",lvl:2})===2?true:"unresolvable custom should fall back to sp.lvl";
+  });
+  t("manaMax: sum of tiers; +10%/point of castStat over 16, floored; no bonus at 16 or below",function(){
+    var sp=[{nm:"Healing Word",lvl:1},{nm:"Bless",lvl:1},{nm:"Spiritual Weapon",lvl:2},{nm:"Spirit Guardians",lvl:3},{nm:"Revivify",lvl:3},{nm:"Sacred Flame",lvl:0}];
+    var c=makeCaster("Cleric","WIS",16,sp);
+    if(manaMax(c)!==10)return "base should be 10 (1+1+2+3+3, cantrip free) at WIS 16, got "+manaMax(c);
+    c.stats.WIS=18;// +20% of 10 = 12
+    if(manaMax(c)!==12)return "WIS 18 should give 12, got "+manaMax(c);
+    c.stats.WIS=17;// +10% of 10 = 11
+    if(manaMax(c)!==11)return "WIS 17 should give 11, got "+manaMax(c);
+    c.stats.WIS=18;c.spells.push({nm:"Guiding Bolt",lvl:1});// base 11 ×1.2 = 13.2 → floor 13
+    return manaMax(c)===13?true:"floor() violated: "+manaMax(c);
+  });
+  t("manaMax keys on the CLASS's castStat, not the spell's tradition — and a statless class gets base only",function(){
+    var sp=[{nm:"Fireball",lvl:3},{nm:"Magic Missile",lvl:1}];
+    var c=makeCaster("Sorcerer","INT",18,sp);
+    if(manaMax(c)!==4)return "Sorcerer INT 18: base 4 ×1.2 = 4.8 → floor 4, got "+manaMax(c);
+    c.stats.INT=10;c.stats.WIS=20;// WIS is not the Sorcerer's casting stat
+    if(manaMax(c)!==4)return "a non-casting stat must never feed the pool";
+    c.cls="Primal";// no castStat
+    return manaMax(c)===4?true:"statless class should get base only, got "+manaMax(c);
+  });
+  t("migration-by-default: a character with no stored mana reads as a FULL pool (the #110 ruling)",function(){
+    var c=makeCaster("Cleric","WIS",10,[{nm:"Bless",lvl:1},{nm:"Revivify",lvl:3}]);
+    return manaCur(c)===4?true:"absent c.mana should read as max (full pool for everyone), got "+manaCur(c);
+  });
+  t("[SPELL_USED:] spends tier from the pool, still stamps the informational used flag",function(){
+    var c=makeCaster("Cleric","WIS",10,[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}]);
+    applyMuts("[SPELL_USED:Spirit Guardians]");
+    if(c.mana!==1)return "pool should be 4−3=1, got "+c.mana;
+    if(c.spells[1].used!==true)return "used flag no longer stamped (it survives as 'cast since rest')";
+    applyMuts("[SPELL_USED:Bless]");
+    return c.mana===0?true:"second cast should empty the pool, got "+c.mana;
+  });
+  t("a racial 1/day cast spends NO mana and keeps its hard used gate",function(){
+    var c=makeCaster("Warrior","INT",10,[{nm:"Faerie Fire",lvl:1,racial:true},{nm:"Shield",lvl:1}]);
+    applyMuts("[SPELL_USED:Faerie Fire]");
+    if(c.spells[0].used!==true)return "racial used gate not stamped";
+    return manaCur(c)===1?true:"racial cast must not touch the pool (max is 1 from Shield alone), got "+manaCur(c);
+  });
+  t("non-Necromancer overspend: pool floors at 0, HP untouched, loud warn",function(){
+    var c=makeCaster("Cleric","WIS",10,[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}]);
+    c.mana=1;var warned=[];var _w=console.warn;console.warn=function(m){warned.push(String(m));};
+    try{applyMuts("[SPELL_USED:Spirit Guardians]");}finally{console.warn=_w;}
+    if(c.mana!==0)return "pool should floor at 0, got "+c.mana;
+    if(c.hp!==20)return "a non-Necromancer must never pay blood, hp "+c.hp;
+    return warned.join("|").indexOf("mana")>=0?true:"no warn on an unpayable cast (silent failure)";
+  });
+  t("NECROMANCER overdraw: missing points are paid in blood at MANA_BLOOD_HP each, pool lands at 0",function(){
+    var c=makeCaster("Necromancer","INT",10,[{nm:"Inflict Wounds",lvl:1},{nm:"Vampiric Touch",lvl:3}]);
+    c.mana=1;
+    applyMuts("[SPELL_USED:Vampiric Touch]");
+    if(c.mana!==0)return "pool should land at 0, got "+c.mana;
+    if(c.hp!==20-2*MANA_BLOOD_HP)return "2 missing points should cost "+(2*MANA_BLOOD_HP)+" HP, hp "+c.hp;
+    c.mana=0;c.hp=3;
+    applyMuts("[SPELL_USED:Inflict Wounds]");// 1 short × MANA_BLOOD_HP, clamps at 0 — blood magic can drop you
+    return c.hp===Math.max(0,3-MANA_BLOOD_HP)?true:"overdraw HP clamp wrong: "+c.hp;
+  });
+  t("[COMPANION_SPELL_USED:] spends from the COMPANION's own pool; the player's is untouched",function(){
+    makeWorld();var c=worldState.character;c.spells=[{nm:"Bless",lvl:1}];c.cls="Cleric";delete c.mana;
+    worldState.npcs.push({name:"Lyra",status:"ally",rel:"companion",partyMember:true,
+      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+        inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true}});
+    applyMuts("[COMPANION_SPELL_USED:Lyra|Spirit Guardians]");
+    var cs=worldState.npcs[0].charSheet;
+    if(cs.mana!==1)return "Lyra's pool should be 4−3=1, got "+cs.mana;
+    return manaCur(c)===1?true:"the player's pool must be untouched, got "+manaCur(c);
+  });
+  t("rest refills every LIVING party pool to max; the dead stay empty (the no-rest-for-the-dead ruling)",function(){
+    makeWorld();var c=worldState.character;c.cls="Cleric";c.spells=[{nm:"Bless",lvl:1},{nm:"Revivify",lvl:3}];c.mana=0;
+    worldState.npcs.push({name:"Lyra",status:"ally",rel:"companion",partyMember:true,
+      charSheet:{name:"Lyra",cls:"Cleric",level:5,hp:20,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+        inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true,mana:0}});
+    worldState.npcs.push({name:"Ghost",status:"dead",rel:"companion",partyMember:true,dead:3,
+      charSheet:{name:"Ghost",cls:"Cleric",level:5,hp:0,maxHp:20,gold:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},
+        inventory:[],abilities:[],spells:[{nm:"Bless",lvl:1}],conditions:[],relationships:[],saveModifiers:[],skills:{},coreMemories:[],partyMember:true,mana:0}});
+    restSpells();
+    if(c.mana!==4)return "player pool not refilled, got "+c.mana;
+    if(worldState.npcs[0].charSheet.mana!==1)return "living companion pool not refilled";
+    return worldState.npcs[1].charSheet.mana===0?true:"dead companion pool wrongly refilled";
+  });
+  t("the sheet prompt carries Mana cur/max in the VOLATILE half; a spend never perturbs the stable half",function(){
+    makeWorld();var c=worldState.character;c.cls="Cleric";c.spells=[{nm:"Bless",lvl:1},{nm:"Spirit Guardians",lvl:3}];delete c.mana;
+    var p1=buildSysPrompt();
+    if(p1.volatile.indexOf("Mana: 4/4")<0)return "volatile half missing 'Mana: 4/4'";
+    applyMuts("[SPELL_USED:Spirit Guardians]");
+    var p2=buildSysPrompt();
+    if(p2.volatile.indexOf("Mana: 1/4")<0)return "spend not reflected: expected 'Mana: 1/4'";
+    return p1.stable===p2.stable?true:"a mana spend perturbed the STABLE half — every cache hit dies";
+  });
   t("derived-value invariant: the migrated character keeps hd 12, features, and stat priority",function(){
     // The #72 rule: an existing character's derived values must not move across a rename.
     makeWorld();worldState.character.cls="Berserker";migrateWorldState();
@@ -3176,7 +3286,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1178830&&d.length===17828)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section) */
+    return (__djb2(d)===-218173848&&d.length===18291)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section) */
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -3431,33 +3541,39 @@ function runEngineTests(R){
     return v==="FIRST"?true:"overwritten: "+v;
   });
 
-  section("expended spells named on the sheet (playtest-F1, v1.239)");
-  t("player sheet names expended spells; clause absent when none are used",function(){
+  section("cast-state on the sheet (playtest-F1 v1.239, re-meant by mana #110 v1.508)");
+  // Playtest-F1's lesson survives the economy change: unavailability must be STATED in the
+  // blocks the GM consults, never implied by omission. Under mana the statements are the
+  // sheet's Mana line + the bible-block header refusal; the per-spell [EXPENDED] marker now
+  // belongs ONLY to the racial 1/day gate (the one hard per-spell limit left).
+  t("player sheet lists every known spell, states the pool, and annotates a spent racial 1/day",function(){
     makeWorld();
-    worldState.character.spells=[{nm:"Charm Person (charmed 1 hour)",lvl:1,used:true},{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    worldState.character.cls="Cleric";delete worldState.character.mana;
+    worldState.character.spells=[{nm:"Faerie Fire",lvl:1,used:true,racial:true},{nm:"Charm Person",lvl:1,used:true},{nm:"Message",lvl:0,used:false}];
     var v=buildSysPrompt().volatile;
-    if(!/Spells EXPENDED[^\n]*Charm Person/.test(v))return "expended clause missing";
-    if(!/Spells available:[^\n]*Message/.test(v))return "available list broken";
-    worldState.character.spells=[{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
-    v=buildSysPrompt().volatile;
-    return v.indexOf("Spells EXPENDED")<0?true:"clause present with nothing expended";
+    if(!/Spells:[^\n]*Charm Person/.test(v))return "a cast spell vanished from the list (omission reads as unavailable canon)";
+    if(!/Faerie Fire \[1\/day — EXPENDED until dawn\]/.test(v))return "spent racial grant not annotated";
+    if(/Charm Person \[1\/day/.test(v))return "the racial annotation leaked onto a pooled spell";
+    return /Mana: \d+\/\d+/.test(v)?true:"Mana line missing from the sheet";
   });
-  t("bible block leads an expended spell's canon line with the [EXPENDED] marker",function(){
+  t("bible block: [EXPENDED] marks ONLY a spent racial 1/day; the header carries the mana refusal",function(){
     makeWorld();
-    worldState.character.spells=[{nm:"Charm Person (charmed 1 hour)",lvl:1,used:true},{nm:"Message (whisper 120ft, target replies)",lvl:0,used:false}];
+    worldState.character.spells=[{nm:"Faerie Fire",lvl:1,used:true,racial:true},{nm:"Charm Person",lvl:1,used:true},{nm:"Message",lvl:0,used:false}];
     var b=buildSpellBibleBlock();
-    if(!/\[EXPENDED[^\]]*\] Charm Person/.test(b))return "marker missing from expended spell's line";
-    if(/\[EXPENDED[^\]]*\] Message/.test(b))return "marker leaked onto an unexpended cantrip";
+    if(!/\[EXPENDED[^\]]*\] Faerie Fire/.test(b))return "marker missing from the spent racial grant";
+    if(/\[EXPENDED[^\]]*\] Charm Person/.test(b))return "marker on a pooled spell — under mana that spell may be castable";
     if(b.indexOf("REFUSE any cast")<0)return "header refusal instruction missing";
+    if(b.indexOf("MANA")<0||b.indexOf("Necromancer")<0)return "header lost the mana refusal / necromancer exception";
     worldState.character.spells[0].used=false;
-    return /\[EXPENDED[^\]]*\] Charm Person/.test(buildSpellBibleBlock())?"marker persists after rest":true;
+    return /\[EXPENDED[^\]]*\] Faerie Fire/.test(buildSpellBibleBlock())?"marker persists after rest":true;
   });
-  t("companion sheet names expended spells too",function(){
+  t("companion sheet lists all spells and states the companion's OWN pool",function(){
     makeWorld();
-    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:14,CHA:10},abilities:[],inventory:[],spells:[{nm:"Cure Wounds (d8+WIS heal)",lvl:1,used:true},{nm:"Bless (allies +d4)",lvl:1,used:false}]}});
+    worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:14,CHA:10},abilities:[],inventory:[],spells:[{nm:"Cure Wounds",lvl:1,used:true},{nm:"Bless",lvl:1,used:false}],mana:1}});
     var v=buildSysPrompt().volatile;
-    if(!/Spells EXPENDED[^\n]*Cure Wounds/.test(v))return "companion expended clause missing";
-    return /Spells available:[^\n]*Bless/.test(v)?true:"companion available list broken";
+    if(!/Spells:[^\n]*Cure Wounds/.test(v))return "companion cast spell vanished from the list";
+    if(!/Spells:[^\n]*Bless/.test(v))return "companion spell list broken";
+    return /Mana: 1\/2/.test(v)?true:"companion Mana line missing or wrong (expected 1/2)";
   });
 
   section("stable-purity tripwire (UA5)");

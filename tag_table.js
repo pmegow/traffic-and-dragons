@@ -75,10 +75,10 @@ var TAG_DOC_LINES=[
 "CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n",
 "[ENEMY_SURRENDERS] (all remaining enemies yield) or [ENEMY_SURRENDERS:Name] (one enemy yields) -- the fight ends for that foe but they LIVE; when a surrendered foe is a speaking character, register them with [NPC:name|status|relation] in the same response so they enter the world properly\n",
 "[ALIGNMENT:law+1] [ALIGNMENT:good-1] (use on morally significant choices only)\n",
-"[SPELL_USED:spellname] (leveled spells only -- cantrips never expend; use exact spell name)\n",
+"[SPELL_USED:spellname] -- emit on EVERY leveled cast (cantrips are free and never expend; use the exact spell name). MANA: casting spends mana equal to the spell's tier -- the sheet shows Mana current/max; never narrate a cast the pool cannot cover. ONE exception: a NECROMANCER may cast beyond an empty pool, and the engine automatically pays their blood price per missing point -- NEVER emit [HP:] for that price (it would double-charge). Racial 1/day spells spend no mana and recharge at dawn.\n",
 "SPELL RANGES ARE PHYSICS: before any cast resolves, judge the distance CONCRETELY against the spell's listed range using the GEOGRAPHY block's location size -- a target in another building, street, or district, or whose current location is unknown, is BEYOND any short-range spell (~120ft or less) no matter how urgent the player's intent; narrate the failed reach and offer what the listed range actually allows\n",
 "[SPELL_DEF:Name|range=X|targets=Y|duration=Z|effect=...|cost=slot|tier=1|category=arcane,divine|magical=yes] -- ONLY when a spell is cast that is NOT already in the CANONICAL SPELL RULES list (one you invented or a homebrew): define its canon ONCE so the engine pins it and it can never drift. '=' per field, '|' between fields; category is a comma-separated tradition list (arcane/divine/primal/necromantic/martial); keep effect free of '|' and ']'. Recorded once, re-injected forever -- do not redefine a spell already listed.\n",
-"[REST:long] when the party completes a full/long rest (a night's sleep) -- restores every expended spell slot for the whole party so 1/day spells can be cast again, and rolls the campaign clock forward to DAWN of the next day (days run dawn to dawn -- never emit [TIME_ADVANCE:] for the sleep itself); also emit [TIME:dawn] so the scene time matches, and narrate HP recovery with [HP:+N] as usual\n",
+"[REST:long] when the party completes a full/long rest (a night's sleep) -- refills every party member's MANA pool and restores 1/day racial spells, and rolls the campaign clock forward to DAWN of the next day (days run dawn to dawn -- never emit [TIME_ADVANCE:] for the sleep itself); also emit [TIME:dawn] so the scene time matches, and narrate HP recovery with [HP:+N] as usual\n",
 "[FUTURE_EVENT_RESOLVED:what] (when a pending future event occurs)\n",
 "[LORE:fact] [DECISION:description] [FUTURE_EVENT:what|when] [NPC_NOTE:name|note] [NPC_PRONOUN:name|she/her]\n",
 "[NPC_FORGET:name|person or event] -- erase one specific memory from an NPC (emit when the Oubliate spell is cast and the WIS save fails); the engine scrubs that fact from what the NPC knows so it cannot resurface\n",
@@ -106,7 +106,7 @@ var TAG_DOC_LINES=[
 "[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName]\n",
 "[COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_RELATIONSHIP_REMOVED:Name|entity]\n",
 "[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n",
-"[COMPANION_SPELL_USED:Name|spellname] -- when a PARTY MEMBER casts a leveled spell (cantrips never expend; use the exact spell name). The player's own casts keep [SPELL_USED:].\n",
+"[COMPANION_SPELL_USED:Name|spellname] -- when a PARTY MEMBER casts a leveled spell (cantrips never expend; use the exact spell name). Same mana economy, spent from THEIR own pool (shown on their party sheet). The player's own casts keep [SPELL_USED:].\n",
 "[PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] -- a party member strikes out on their OWN: they are at that location, away from the party, until you emit [PARTY_SPLIT:Name|rejoin] when they return. Split members move ONLY via this tag -- bare [LOCATION:] moves the main party and NEVER touches them. The player character cannot split (the story camera follows them).\n",
 "Use the companion's exact name as it appears in the party list. Apply the same upkeep rules as for the player.\n",
 "THE MOMENT an NPC agrees to travel with the party — even conditionally or provisionally — you MUST emit [PARTY_MEMBER:name|true] in that same response; never narrate a joining without the tag.\n",
@@ -193,6 +193,29 @@ function combatAttrEntry(tagName,field){
     var starts=R.combatStarts();
     var re=new RegExp("\\["+tagName+":([^\\]]+)\\]","g"),m;
     while((m=re.exec(text))){var foe=combatAttrFoe(starts,m.index);if(!foe)continue;foe[field]=combatDmgList(m[1]);}}};
+}
+/* #110 (v1.508): casting is a MANA spend, not a slot flip. manaPayCast is the ONE payment
+   routine for player and companion casts: racial 1/day spells keep the hard used gate and
+   never touch the pool; everything else pays its tier from the caster's pool (used survives
+   as informational "cast since last rest"). An unpayable cast floors at 0 and WARNS —
+   except a NECROMANCER, who overdraws in blood: MANA_BLOOD_HP per missing point, deducted
+   HERE by the engine (the doc forbids the GM re-emitting [HP:] for it — the XP-mirror
+   precedent, or the price would double-count). */
+function manaPayCast(caster,sp,who,R){
+  if(sp.racial){sp.used=true;R.muts.push(who+"cast: "+sp.nm+" (1/day)");return;}
+  sp.used=true;
+  var cost=manaSpellCost(sp),max=manaMax(caster),cur=manaCur(caster);
+  if(cost<=cur){caster.mana=cur-cost;R.muts.push(who+"cast: "+sp.nm+" (−"+cost+" mana, "+caster.mana+"/"+max+")");return;}
+  var deficit=cost-cur;caster.mana=0;
+  if(caster.cls==="Necromancer"){
+    var blood=deficit*MANA_BLOOD_HP;
+    caster.hp=Math.max(0,(typeof caster.hp==="number"?caster.hp:0)-blood);
+    R.muts.push(who+"BLOOD MAGIC: "+sp.nm+" (−"+cur+" mana, −"+blood+" HP for "+deficit+" missing point"+(deficit>1?"s":"")+")");
+    if(typeof showToast==="function")showToast("🩸 Blood magic: −"+blood+" HP");
+  }else{
+    R.muts.push(who+"cast: "+sp.nm+" (pool SHORT "+deficit+" — paid "+cur+", floored at 0)");
+    console.warn("[tags] SPELL_USED: "+(who||"player ")+sp.nm+" costs "+cost+" but only "+cur+" mana remained — the GM narrated a cast the pool cannot pay (only a Necromancer may overdraw)");
+  }
 }
 var TAG_TABLE=[
 {t:"HP",apply:function(text,R){var hpTags=text.match(/\[HP:\s*([+-]?\d+)[^\]]*\]/g)||[];if(!hpTags.length)return;
@@ -512,7 +535,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 {t:"ABILITY_GAINED",apply:function(text,R){var abs=text.match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[];var abi;for(abi=0;abi<abs.length;abi++){var abp=abs[abi].match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!abp)continue;if(!worldState.character.abilities)worldState.character.abilities=[];var already=false,abj;for(abj=0;abj<worldState.character.abilities.length;abj++){if(worldState.character.abilities[abj].nm===abp[1]){already=true;break;}}if(!already){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
 {t:"ALIGNMENT",apply:function(text,R){var alms=text.match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/gi)||[];var ali;for(ali=0;ali<alms.length;ali++){var ap=alms[ali].match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/i);if(ap){if(!worldState.character.alignLaw)worldState.character.alignLaw=0;if(!worldState.character.alignGood)worldState.character.alignGood=0;if(ap[1].toLowerCase()==="law")worldState.character.alignLaw=Math.max(-3,Math.min(3,worldState.character.alignLaw+parseInt(ap[2])));else worldState.character.alignGood=Math.max(-3,Math.min(3,worldState.character.alignGood+parseInt(ap[2])));var newAl=alignLabel(worldState.character.alignLaw,worldState.character.alignGood);if(newAl!==worldState.character.actualAlignment){R.muts.push("Align: "+newAl);worldState.character.actualAlignment=newAl;}}}}},
 {t:"SPELL_USED",apply:function(text,R){var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;
-var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){sp.used=true;R.muts.push("Spell used: "+sp.nm);break;}}}}}},
+var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){manaPayCast(worldState.character,sp,"",R);break;}}}}}},
 // UA25: the companion twin of SPELL_USED — inserted HERE (not in the companion cluster) so a
 // same-response cast-then-rest resolves rest-last for companions exactly as it does for the
 // player (SPELL_USED runs before REST in table order). Misses warn: a companion cast the
@@ -526,7 +549,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     var cspBase=csp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();
     if(cspBase===csuNm||csp.nm.toLowerCase()===csuNm){csuHit=true;
       if(csp.lvl===0)break;/* cantrips never expend — same rule as the player; matched, so no warn */
-      csp.used=true;R.muts.push(csum[1].trim()+" cast: "+csp.nm);break;}}
+      manaPayCast(csuCs,csp,csum[1].trim()+" ",R);break;}}/* #110: same payment routine, the COMPANION's own pool */
   if(!csuHit)console.warn("[tags] COMPANION_SPELL_USED: "+csum[1].trim()+" knows no spell matching '"+csum[2].trim()+"' — cast not booked");}}},
 {t:"SPELL_DEF",apply:function(text,R){var spellDefs=text.match(/\[SPELL_DEF:([^\]]+)\]/g)||[];var sdi;for(sdi=0;sdi<spellDefs.length;sdi++){
   var sdm=spellDefs[sdi].match(/\[SPELL_DEF:([^\]]+)\]/);if(!sdm)continue;

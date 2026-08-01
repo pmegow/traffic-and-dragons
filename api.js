@@ -553,12 +553,15 @@ function buildSysPrompt(){
       // Playtest-F1 (v1.239): name expended spells EXPLICITLY instead of omitting them — the bible
       // block still injects an omitted spell's canon, so omission read as "available" to the GM
       // (the t31/t35 Charm Person incident). Absence communicates nothing; a stated clause is iron.
-      var pSp="none",pSpUsed=[];if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){if(!pcs.spells[psi].used)ps2.push(pcs.spells[psi].nm);else pSpUsed.push(pcs.spells[psi].nm);}if(ps2.length)pSp=ps2.join(", ");}
+      /* #110 (v1.508): companion availability is their OWN mana pool; racial 1/day stays the
+         one per-spell hard gate. Same restructure as the player sheet. */
+      var pSp="none";if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){var _ps=pcs.spells[psi];ps2.push(_ps.racial&&_ps.used&&_ps.lvl>0?_ps.nm+" [1/day — EXPENDED until dawn]":_ps.nm);}pSp=ps2.join(", ");}
+      var pMx=manaMax(pcs);
       var pSt=pcs.stats?("STR "+pcs.stats.STR+" DEX "+pcs.stats.DEX+" CON "+pcs.stats.CON+" INT "+pcs.stats.INT+" WIS "+pcs.stats.WIS+" CHA "+pcs.stats.CHA):"";
       var pInv=(pcs.inventory&&pcs.inventory.length)?pcs.inventory.join(", "):"none";
       var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+"\n";
       if(pSt)line+="  Stats: "+pSt+"\n";
-      line+="  Abilities: "+pAb+"\n  Spells available: "+pSp+(pSpUsed.length?"\n  Spells EXPENDED (cannot cast until a long rest): "+pSpUsed.join(", "):"")+"\n  Inventory: "+pInv;
+      line+="  Abilities: "+pAb+"\n  Spells: "+pSp+(pMx>0?"\n  Mana: "+manaCur(pcs)+"/"+pMx+(pcs.cls==="Necromancer"?" (Necromancer — may overdraw in blood; the engine deducts it)":""):"")+"\n  Inventory: "+pInv;
       // #46: companion conditions were WRITTEN by [COMPANION_CONDITION:] but never injected —
       // a write-path with no read-path, so they silently rotted (Daeris, Unconscious for ~200
       // turns while narrated awake). Inject with age so stale state is visible and self-corrects.
@@ -592,8 +595,11 @@ function buildSysPrompt(){
     +"\n\n";
   var questBlock=buildQuestBlock();
   var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
-  // Playtest-F1 (v1.239): expended spells are NAMED, not omitted — see the companion-block note above.
-  var spstr="none",spUsed=[];if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){if(!c.spells[i].used)sp2.push(c.spells[i].nm);else spUsed.push(c.spells[i].nm);}if(sp2.length)spstr=sp2.join(", ");}
+  // Playtest-F1 (v1.239): unavailability is NAMED, not omitted. #110 (v1.508): availability is
+  // now the MANA POOL — the sheet lists every known spell, annotates the one remaining hard
+  // gate (racial 1/day), and states the pool. The refusal teeth live in the bible block header.
+  var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){var _sp=c.spells[i];sp2.push(_sp.racial&&_sp.used&&_sp.lvl>0?_sp.nm+" [1/day — EXPENDED until dawn]":_sp.nm);}spstr=sp2.join(", ");}
+  var _mMx=manaMax(c),manaStr=_mMx>0?"Mana: "+manaCur(c)+"/"+_mMx+" — a leveled cast costs its TIER in mana (cantrips free); a spell is castable only while the pool covers it."+(c.cls==="Necromancer"?" NECROMANCER: may cast beyond an empty pool — the engine automatically pays "+MANA_BLOOD_HP+" HP per missing mana point (never emit [HP:] for that price).":"")+"\n":"";
   var nextXP=c.level<10?XP_LEVELS[c.level]:"max";
   var genderDisplay=c.gender==="F"?"female":c.gender==="NB"?"non-binary":"male";
   // #46: injected conditions carry their AGE (engine-stamped turn) + cause when known, and each
@@ -711,7 +717,7 @@ function buildSysPrompt(){
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+c.gold+" gp | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")+(c.deity?"Deity: "+c.deity+"\n":"")/* trailing \n so "Motivation:" doesn't glue to the next line (audit E54) */
-    +"Abilities: "+abilstr+"\nSpells available: "+spstr+(spUsed.length?"\nSpells EXPENDED (cannot cast until a long rest — never treat these as castable): "+spUsed.join(", "):"")+"\nInventory: "+c.inventory.join(", ")+"\n"
+    +"Abilities: "+abilstr+"\nSpells: "+spstr+"\n"+manaStr+"Inventory: "+c.inventory.join(", ")+"\n"
     +condStr+relStr+saveStr+langStr+skillStr
     +buildSpellBibleBlock()
     +buildAbilityBibleBlock()
@@ -836,15 +842,17 @@ function buildSpellBibleBlock(){
     var e=capabilityLookup(sp.nm);if(!e)continue;
     var key=capBaseName(sp.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(sp.nm).replace(/\s*\(.*\)/,"").trim();
-    // Playtest-F1 (v1.239): the expended state must live HERE, in the block the GM provably
+    // Playtest-F1 (v1.239): availability state must live HERE, in the block the GM provably
     // consults at cast time (the money test showed 8 unprompted range holds from these lines,
-    // while a sheet-side "expended" clause alone was ignored — the GM cast a spent slot anyway).
-    // Slot state is as canonical as range: the marker leads the line.
-    if(sp.lvl>0&&sp.used)nm="[EXPENDED — slot already spent; this spell CANNOT be cast again until a long rest] "+nm;
+    // while a sheet-side clause alone was ignored — the GM cast a spent slot anyway).
+    // #110 (v1.508): under the mana economy the only per-spell hard gate left is the racial
+    // 1/day heritage grant — everything else is governed by the pool (the header's mana
+    // refusal + the sheet's Mana line). Non-racial spells never carry the marker now.
+    if(sp.lvl>0&&sp.used&&sp.racial)nm="[EXPENDED — 1/day heritage spell already spent; CANNOT be cast again until dawn] "+nm;
     lines.push(capBibleLine(nm,e));
   }
   if(!lines.length)return"";
-  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]):\n"+lines.join("\n")+"\n\n";
+  return "CANONICAL SPELL RULES (authoritative — these bounds are FIXED; never expand a spell's range, targets, duration, or effect beyond what is written here, honor these over any remembered version when the spell is cast, and REFUSE any cast of a spell marked [EXPENDED]. MANA: a leveled cast costs its Tier from the caster's Mana pool — REFUSE any cast the pool cannot cover; the ONE exception is a Necromancer, who may cast beyond an empty pool at a blood price the engine deducts automatically):\n"+lines.join("\n")+"\n\n";
 }
 // UA25: the companion half of the #10 anti-drift injection. ONE canon line per spell across the
 // whole party: bounds are identical for every caster, so spells the player's own block already

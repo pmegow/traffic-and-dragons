@@ -125,6 +125,40 @@ function classDef(id){
   return null;
 }
 function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
+/* ── mana pool (#110) ──────────────────────────────────────────────────────────────────
+   The spend-by-tier casting economy, design ruled 2026-07-31 (full spec in the TODO row).
+   All three are PURE reads over a character/companion sheet — no state writes here.
+   manaSpellCost: what one cast spends — the capability-bible tier (the [SPELL_DEF:]
+     overlay wins inside capabilityLookup), sp.lvl fallback for customs the bible can't
+     resolve. Cantrips and racial 1/day grants cost 0 — racial heritage is a separate
+     economy (its own used gate, recharged at dawn), NEVER pooled.
+   manaMax: base = sum of manaSpellCost over the known bench (so the pool scales with
+     picks automatically — a player CAN still cast each spell exactly once), then +10%
+     per point of the class's castStat over 16, floored. castStat is CLSS data (#110:
+     keyed per class, not per tradition); a class without one gets base only.
+   manaCur: the stored c.mana clamped into [0, max] — and an ABSENT c.mana reads as
+     FULL, which IS the migration ruling ("full pool for everyone"): old saves need no
+     migration pass, they simply wake up topped up the first time anything reads. */
+function manaSpellCost(sp){
+  if(!sp||sp.racial||sp.lvl===0)return 0;
+  var e=(typeof capabilityLookup==="function")?capabilityLookup(sp.nm):null;
+  if(e&&typeof e.tier==="number"&&isFinite(e.tier))return e.tier;
+  return (typeof sp.lvl==="number"&&isFinite(sp.lvl)&&sp.lvl>0)?sp.lvl:0;
+}
+function manaMax(c){
+  if(!c||!c.spells||!c.spells.length)return 0;
+  var base=0,i;
+  for(i=0;i<c.spells.length;i++)base+=manaSpellCost(c.spells[i]);
+  if(!base)return 0;
+  var d=classDef(c.cls),v=d&&d.castStat&&c.stats?c.stats[d.castStat]:0;
+  if(typeof v==="number"&&v>16)return Math.floor(base*(1+0.10*(v-16)));
+  return base;
+}
+function manaCur(c){
+  var max=manaMax(c);
+  if(!c||typeof c.mana!=="number"||!isFinite(c.mana))return max;
+  return Math.max(0,Math.min(max,c.mana));
+}
 /* #101 (v1.479): the ONE picker-description line, derived from the capability bible at render
    time — replaces the mechanics-bearing parentheticals that used to ride inside spell display
    names (a second copy of dice/range that could, and did, drift from the canon). Empty string

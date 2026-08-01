@@ -79,15 +79,15 @@ var ANCS=[
   {id:"tiefling",nm:"Tiefling",bonus:"+2 CHA, +1 INT",stats:{CHA:2,INT:1},fc:0,desc:"Infernal heritage runs in your veins. Horns, tail, ember eyes. Distrusted in most places. Feared in the right ones.",traits:["Darkvision 60ft","Fire Resistance -- half damage from fire","Hellish Rebuke -- once per day reaction, 2d10 fire damage to attacker","Infernal Legacy -- minor devil-touched abilities as you level"],racial_caps:["Darkvision","Fire Resistance",{cap:"Hellish Rebuke",use:"1/day"}],subraces:[{id:"infernal",nm:"Infernal",desc:"Descended from devils.",racial_caps:[{cap:"Disguise Self",use:"1/day"}]},{id:"abyssal",nm:"Abyssal",desc:"Demon blood.",racial_caps:["Abyssal Fury"]},{id:"fey_tie",nm:"Fey-touched",desc:"Fey and infernal crossed. Unsettling beauty.",racial_caps:[{cap:"Misty Step",use:"1/day"}]}]}
 ];
 var CLSS=[
-  {id:"Warrior",desc:"Weapon master, armor bearer",gear:"hand-and-a-half sword, chainmail, belt knife, travel rations (3 days)",hd:12,prime:"STR"},
-  {id:"Rogue",desc:"Shadow, cunning, and coin",gear:"short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days)",hd:8,prime:"DEX"},
-  {id:"Sorcerer",desc:"Arcane power, fragile body",gear:"carved staff, spell components, grimoire, travel rations (3 days)",hd:6,prime:"INT"},
-  {id:"Ranger",desc:"Hunter and tracker",gear:"recurve bow, hunting knife, leather armor, trail kit, travel rations (3 days)",hd:10,prime:"DEX"},
+  {id:"Warrior",desc:"Weapon master, armor bearer",gear:"hand-and-a-half sword, chainmail, belt knife, travel rations (3 days)",hd:12,prime:"STR",castStat:"INT"},
+  {id:"Rogue",desc:"Shadow, cunning, and coin",gear:"short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days)",hd:8,prime:"DEX",castStat:"INT"},
+  {id:"Sorcerer",desc:"Arcane power, fragile body",gear:"carved staff, spell components, grimoire, travel rations (3 days)",hd:6,prime:"INT",castStat:"INT"},
+  {id:"Ranger",desc:"Hunter and tracker",gear:"recurve bow, hunting knife, leather armor, trail kit, travel rations (3 days)",hd:10,prime:"DEX",castStat:"WIS"},
   {id:"Primal",desc:"Rage, beast, and storm",gear:"great axe, hide armor, war paint, iron flask, travel rations (3 days)",hd:12,prime:"STR"},/* #100: renamed from Berserker — the class spans all three primal aspects; Berserker lives on as its rage archetype */
-  {id:"Paladin",desc:"Holy warrior, oath-bound",gear:"longsword, shield, chainmail, holy symbol, travel rations (3 days)",hd:10,prime:"CHA"},
-  {id:"Cleric",desc:"Divine power, battle priest",gear:"mace, scale armor, shield, holy symbol, prayer beads, travel rations (3 days)",hd:8,prime:"WIS"},
-  {id:"Druid",desc:"Nature magic, wild shape",gear:"wooden staff, leather armor, herbalism kit, totem fetish, travel rations (3 days)",hd:8,prime:"WIS"},
-  {id:"Necromancer",desc:"Death magic, bone and shadow",gear:"skull focus, dark robes, grimoire of the dead, grave dust pouch, travel rations (3 days)",hd:6,prime:"INT"}
+  {id:"Paladin",desc:"Holy warrior, oath-bound",gear:"longsword, shield, chainmail, holy symbol, travel rations (3 days)",hd:10,prime:"CHA",castStat:"CHA"},
+  {id:"Cleric",desc:"Divine power, battle priest",gear:"mace, scale armor, shield, holy symbol, prayer beads, travel rations (3 days)",hd:8,prime:"WIS",castStat:"WIS"},
+  {id:"Druid",desc:"Nature magic, wild shape",gear:"wooden staff, leather armor, herbalism kit, totem fetish, travel rations (3 days)",hd:8,prime:"WIS",castStat:"WIS"},
+  {id:"Necromancer",desc:"Death magic, bone and shadow",gear:"skull focus, dark robes, grimoire of the dead, grave dust pouch, travel rations (3 days)",hd:6,prime:"INT",castStat:"INT"}
 ];
 var ABILS={
   "Warrior":[{nm:"Power Strike",ds:"+d6 bonus damage on a declared attack."},{nm:"Shield Wall",ds:"Reduce incoming damage by 3 until next turn."},{nm:"Weapon Mastery",ds:"No penalty for improvised or unfamiliar arms."}],
