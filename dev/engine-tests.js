@@ -1309,6 +1309,7 @@ function runEngineTests(R){
   // ── store fallback coherence (audit E5/E6) ───────────────────────────────────
   section("store quota fallback (E5/E6)");
   t("quota-failed set rethrows (so saveCore can toast) AND get serves _m, not stale disk",function(){
+    if(typeof global==="undefined")return true; /* browser: window.localStorage can't be stubbed by assignment — node (pre-commit + CI) enforces this contract (test.html parity, review 2026-08-01) */
     var had=("localStorage" in global),real=had?global.localStorage:undefined;
     var backing={"tnd_test_q":"STALE_DISK"};
     global.localStorage={
@@ -1325,6 +1326,7 @@ function runEngineTests(R){
     return got==="FRESH"?true:"get returned "+JSON.stringify(got)+" — stale disk shadowed the _m fallback";
   });
   t("privacy-mode denial (non-quota) stays silent and round-trips via _m",function(){
+    if(typeof global==="undefined")return true; /* browser: host storage not stubbable — node enforces */
     var had=("localStorage" in global),real=had?global.localStorage:undefined;
     global.localStorage={
       getItem:function(){var e=new Error("denied");e.name="SecurityError";throw e;},
@@ -1804,12 +1806,19 @@ function runEngineTests(R){
     var was=Sound.enabled();
     Sound.setEnabled(false);
     if(Sound.play("chime")!==false)return "play() ignored the disabled pref";
-    /* headless: no AudioContext, so preview must return false (honest) — never throw, never true */
+    /* Host-aware (test.html parity, review 2026-08-01): headless has no AudioContext, so
+       preview/play must return false (honest — the modal must not show a false success). A
+       real browser HAS one, so they legitimately return true; there assert honesty's testable
+       shape (a boolean, unknown ids still refused) — strict false stays node-enforced. */
+    var hasAC=(typeof AudioContext!=="undefined")||(typeof webkitAudioContext!=="undefined");
     var pv=Sound.preview("chime");
-    if(pv!==false)return "preview returned "+pv+" with no AudioContext — the modal would show a false success";
+    if(!hasAC&&pv!==false)return "preview returned "+pv+" with no AudioContext — the modal would show a false success";
+    if(hasAC&&typeof pv!=="boolean")return "preview did not report a boolean: "+pv;
     if(Sound.preview("no-such-id")!==false)return "unknown id did not report failure";
     Sound.setEnabled(true);
-    if(Sound.play("chime")!==false)return "play() with no AudioContext should still report false";
+    var pl=Sound.play("chime");
+    if(!hasAC&&pl!==false)return "play() with no AudioContext should still report false";
+    if(hasAC&&typeof pl!=="boolean")return "play() did not report a boolean: "+pl;
     Sound.setEnabled(was);
     return true;
   });
@@ -7647,6 +7656,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return slotGone?true:"incoming slot duplicate survived the switch";
   });
   t("snapshotActiveCamp at quota: returns false, toasts, and STILL flushes the server sync",function(){
+    if(typeof global==="undefined")return true; /* browser: host storage not stubbable — node enforces */
     makeWorld();setActiveCampId("QF1");
     store.set(WSK,'{"turn":9}');
     var had=("localStorage" in global),real=had?global.localStorage:undefined;
@@ -7672,6 +7682,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return toasts.length?true:"no toast — silent failure";
   });
   t("switchToCampaign ABORTS untouched when the outgoing snapshot hits quota",function(){
+    if(typeof global==="undefined")return true; /* browser: host storage not stubbable — node enforces */
     makeWorld();worldState.campId="QA";setActiveCampId("QA");
     var liveBlob=JSON.stringify(worldState);
     store.set(WSK,liveBlob);store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));
@@ -7697,6 +7708,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     // updateCampMeta must never rethrow quota — in production an escape here kills the
     // storageAdapter.syncToServer() call that follows it in saveAll, i.e. the server stops
     // being scheduled at exactly the moment the server copy is the only safe one.
+    if(typeof global==="undefined")return true; /* browser: host storage not stubbable — node enforces */
     makeWorld();worldState.campId="QM";setActiveCampId("QM");
     var had=("localStorage" in global),real=had?global.localStorage:undefined;
     var backing={};

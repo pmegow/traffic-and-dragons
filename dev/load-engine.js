@@ -5,27 +5,26 @@
 // npc-merge-tool.js all require() this file instead of hand-copying the list (the #17 rot
 // class: test.html's copy silently dropped 3 files and showed 55 false-red assertions).
 //
-// TWO DELIBERATE MANUAL COPIES REMAIN (browser pages can't require this file) — keep in step:
-//   • test.html <script> tags — guarded there by a per-file typeof banner that names any
-//     missing file loudly.
+// ONE DELIBERATE MANUAL COPY REMAINS (kept in step by hand):
 //   • dev/engine-tests.js makeWorld() — the browser-hosted twin of makeTestWorld() below.
 //     ⚠ Known gap at time of writing (#19): engine-tests.js makeWorld is MISSING
 //     character.coreMemories:[] (schema field since v1.304) — integrator should add it there.
+// test.html is NO LONGER a manual copy (review 2026-08-01, the #17 rot class — it had silently
+// dropped clock.js/table-talk.js/sound.js): it loads dev/engine-manifest.js and generates its
+// tags + load-guard from it, same source as FILES below.
 //
-// FILES is index.html's load order minus the DOM-wiring files (char-creation.js, ui.js,
-// stt.js). Each engine file depends only on files earlier in the list.
+// FILES is index.html's load order minus the DOM-wiring files (wasm-probe.js, char-creation.js,
+// ui-*.js, stt.js), plus class_bible.js after capability_bible.js (#72: not in index.html's
+// shell until C6-② — it loads here so the structural tests + the BIBLE EDITOR CONTRACT see it,
+// in its eventual real position). Each engine file depends only on files earlier in the list.
+// The index.html relationship is enforced by the ENGINE MANIFEST CONTRACT in run-tests.js.
 var fs = require("fs"), path = require("path");
 var ROOT = path.join(__dirname, "..");
-var FILES = ["globals.js", "error-report.js", "compress.js", "data.js", "capability_bible.js", "class_bible.js", "helpers.js",
-  "state.js", "storage-adapter.js", "memory.js", "clock.js", "tag_table.js", "api.js",
-  "table-talk.js", "campaign_generator.js", "game.js", "tts.js", "sound.js"];
-// class_bible.js (#72): NOT in index.html's shell yet — the engine doesn't read it until the C6
-// sequence. It loads HERE so the structural tests + the BIBLE EDITOR CONTRACT see it; position
-// (after capability_bible) mirrors where it will slot into the real load order at C6-②.
+var FILES = require("./engine-manifest.js").map(function (e) { return e.file; });
 
 var geval = eval; // indirect eval → runs in global scope, so the engine's `var`s become node globals
 
-// loadEngine([upTo]) — geval the canonical list in order. With no arg, loads all 13.
+// loadEngine([upTo]) — geval the canonical list in order. With no arg, loads the full list.
 // upTo = a filename from FILES → loads up to AND INCLUDING it (e.g. "tag_table.js" for
 // tools that don't need the api/game layer). Throws LOUDLY on a missing/unparseable file
 // or an unknown upTo name — a silently shorter engine is exactly the failure class this
