@@ -465,14 +465,27 @@ try {
   var _usc = _slice("function updateShippedCapability", "// ── toolbar");
   if (!_usc) _failBE("could not isolate updateShippedCapability");
   if (_at(_usc, /\.detect\(/) < 0 || _at(_usc, /\.detect\(/) > _at(_usc, /\.parse\(/))
-    _failBE("updateShippedCapability no longer verifies the picked file IS the capability bible before parsing — a wrong pick would be clobbered");
-  var _uscConf = _at(_usc, /confirm\(/), _uscPick = _at(_usc, /showOpenFilePicker/);
-  if (_uscPick < 0) _failBE("updateShippedCapability lost its picker path — a first-time update has no way to mint a handle");
-  if (_uscConf >= 0 && _uscConf < _uscPick)
-    _failBE("updateShippedCapability confirms BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
+    _failBE("updateShippedCapability no longer verifies the picked file IS the capability bible before parsing — a wrong pick would be treated as the bible");
+  var _uscAsk = _at(_usc, /(confirm|alert|prompt)\(/), _uscPick = _at(_usc, /showOpenFilePicker/);
+  if (_uscPick < 0) _failBE("updateShippedCapability lost its file-read path");
+  if (_uscAsk >= 0 && _uscAsk < _uscPick)
+    _failBE("updateShippedCapability prompts BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
   if (_usc.indexOf("CAPABILITY_BIBLE[key] = obj") < 0)
-    _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE — badges and cards would show stale values after a successful write");
-  if (_usc.indexOf("createWritable") < 0) _failBE("updateShippedCapability no longer writes anything");
+    _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE — badges and cards would show stale values after an edit");
+  // ── WRITE-BY-DOWNLOAD (v1.516) ───────────────────────────────────────────────────────
+  // Three field failures (v1.512/514/515) established that FSA WRITES are refused on the
+  // author's machine while READS work, and that the save-dialog workaround minted an EMPTY
+  // bible in the wrong folder. The flow must therefore read + compose + DOWNLOAD, never write
+  // a file handle, and must name the install command — a download the user cannot install is
+  // a silent failure with extra steps.
+  if (/createWritable/.test(_usc))
+    _failBE("updateShippedCapability writes through an FSA handle again — that path is REFUSED on the author's machine (v1.512/514/515); it must download and let dev/install-bible.js install");
+  if (/showSaveFilePicker/.test(_usc))
+    _failBE("updateShippedCapability re-introduced the save dialog — it minted an EMPTY capability_bible.js in the wrong folder (field failure 2026-08-01)");
+  if (_usc.indexOf("URL.createObjectURL") < 0 || !/a\.download\s*=/.test(_usc))
+    _failBE("updateShippedCapability no longer downloads the composed bible — the edit would have nowhere to go");
+  if (_usc.indexOf("install-bible.js capability") < 0)
+    _failBE("updateShippedCapability no longer tells the user the install command — a download nobody installs is a silent failure");
   if (!/if \(onSave\(draft\) !== false\) closeModal\(\)/.test(_bePage))
     _failBE("capForm closes unconditionally after onSave again — a failed async Update Bible write would eat the user's edited values");
 

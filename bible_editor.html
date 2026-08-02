@@ -180,7 +180,6 @@ function serializeCapabilityBible(state) {
   var ADD = {}, activeCls = null, capFilter = "";
   var _dragPath = null;  // feature-row path being dragged via its ⋮⋮ grip (null = no drag in flight)
   var _capHandle = null; // capability_bible.js's OWN handle (the card's Update Bible write path)
-  var _capSaveAsNext = false; // armed when the card write must fall to a save dialog on the NEXT click (fresh activation)
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
   var _lastHandle = null;
   var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
@@ -1201,104 +1200,65 @@ function serializeCapabilityBible(state) {
   // Gesture-requiring calls (picker / requestPermission) come FIRST, questions after — the
   // activation rule at the top of this file. On any failure the form stays open with the user's
   // values: loud alert, nothing lost, and a retry reuses the held handle inside a fresh click.
+  // ── Update Bible from the card: read via FSA, write via DOWNLOAD ──────────
+  // Structural decision 2026-08-01, after three rounds of failed in-place saving (v1.512/514/515).
+  // MEASURED on this machine (Windows + OneDrive tree): FSA reads are reliable, FSA WRITES are
+  // refused with a false "changed since it was read from disk" claim that no re-read, retry or
+  // fresh handle cures — and the save-dialog workaround minted an EMPTY capability_bible.js in
+  // the wrong folder, which the code then read back as the bible. So this flow no longer writes
+  // a file. It reads the real bible (reliable), applies the edit in memory, and DOWNLOADS the
+  // result — a blob and an anchor click, with no handle, permission or swap file to be refused.
+  // `node dev/install-bible.js capability` then validates and installs it. That is the workflow
+  // install-bible.js exists for, and it has never failed here.
   function updateShippedCapability(key, obj, onDone) {
+    // Reported through note(), NOT a modal: alert/confirm consume transient user activation, and
+    // the contract (rightly) pins that nothing prompts ahead of the picker in this function.
     if (!HAS_FSA) {
-      alert("Updating capability_bible.js in place needs the File System Access API (Chromium).\n\n" +
-        "Open capability_bible.js in the editor instead — the capability view edits entries directly.\n\nYour values stay in the form.");
+      note("⚠ reading capability_bible.js needs the File System Access API (Chrome/Edge) — open capability_bible.js in this editor instead; your values stay in the form");
+      console.warn("[bible] no File System Access API — the card's Update Bible cannot read the file here");
       return;
     }
-    var got;
-    if (_capSaveAsNext && typeof window.showSaveFilePicker === "function") {
-      // last attempt hit this machine's FSA ghost — open the save dialog FIRST, before anything
-      // consumes this click's activation (the ordering rule at the top of this file)
-      _capSaveAsNext = false;
-      got = window.showSaveFilePicker({ id: "tnd-bible", suggestedName: "capability_bible.js", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }] })
-        .then(function (h) { _capHandle = h; return h; });
-    } else got = _capHandle ? Promise.resolve(_capHandle)
-      : window.showOpenFilePicker({ id: "tnd-bible", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }], multiple: false })
-          .then(function (hs) { _capHandle = hs[0]; return hs[0]; });   // held immediately: a failed write retries without re-picking
-    var confirmedOK = false;   // once answered, the stale-heal retry never re-asks
-    function capPerm(h) {
-      return h.queryPermission({ mode: "readwrite" }).then(function (p) {
-        if (p === "granted") return h;
-        return h.requestPermission({ mode: "readwrite" }).then(function (p2) {
-          if (p2 !== "granted") throw new Error("write permission for " + h.name + " was declined");
-          return h;
-        });
-      });
+    // gesture-requiring call FIRST — nothing may prompt before the picker (the activation rule)
+    function pick() {
+      return window.showOpenFilePicker({ id: "tnd-bible", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }], multiple: false })
+        .then(function (hs) { return hs[0]; });
     }
-    // One full read → verify → apply → RE-READ → write pass. The re-read exists because the
-    // confirm can sit open for a long time: the write must be based on the file as it is NOW
-    // (a concurrent writer's entries survive — we re-apply onto their version, never over it),
-    // and the fresh getFile renews the handle's snapshot right before createWritable (v1.485).
-    function capWriteOnce(h) {
-      function readApply() {
-        return h.getFile().then(function (f) { return f.text(); }).then(function (src) {
-          if (!BIBLE_TYPES["capability"].detect(src)) {
-            _capHandle = null; _idbDel(FS_CAP_KEY)["catch"](function () {});
-            throw new Error(h.name + " is not the capability bible (no CAPABILITY_BIBLE block) — pick capability_bible.js");
-          }
-          var st = BIBLE_TYPES["capability"].parse(src);
-          if (!capApplyEdit(st.entries, key, obj))
-            throw new Error("\"" + key + "\" is not in " + h.name + " — is that the capability bible this entry came from?");
-          return { src: src, st: st };
-        });
-      }
-      return readApply().then(function (r1) {
-        if (!confirmedOK && !confirm("Update \"" + key + "\" in " + h.name + " in place?\n\nOnly this entry's line is rewritten — comments and untouched entries stay byte-identical. It is a tracked file: `git diff` shows the change, `git checkout` undoes it.")) return null;
-        confirmedOK = true;
-        return readApply().then(function (r2) {
-          var st = (r2.src === r1.src) ? r1.st : r2.st;
-          return h.createWritable().then(function (w) {
-            var ser = serializeCapabilityBible(st);
-            return w.write(ser).then(function () { return w.close(); });
-          }).then(function () { return h; });
-        });
+    // A handle restored from IndexedDB can point at a file that has since been moved or deleted;
+    // reading it then throws NotFoundError and the flow used to die there. A gone file is not an
+    // error to report — it is a reason to ask for the file again (once, loudly in the console).
+    var got = _capHandle
+      ? _capHandle.getFile().then(function () { return _capHandle; })["catch"](function (e) {
+          console.warn("[bible] the remembered capability_bible.js handle is unusable (" + (e && e.name) + ") — asking for the file again");
+          _capHandle = null; _idbDel(FS_CAP_KEY)["catch"](function () {});
+          return pick();
+        })
+      : pick();
+    got.then(function (h) {
+      return h.getFile().then(function (f) { return f.text(); }).then(function (src) {
+        if (!BIBLE_TYPES["capability"].detect(src))
+          throw new Error(h.name + " is not the capability bible (no CAPABILITY_BIBLE block) — pick capability_bible.js from the project folder");
+        var st = BIBLE_TYPES["capability"].parse(src);
+        if (!capApplyEdit(st.entries, key, obj))
+          throw new Error("\"" + key + "\" is not in " + h.name + " — is that the capability bible this entry came from?");
+        _capHandle = h;                       // reads are the reliable half; keep it for next time
+        _idbPut(FS_CAP_KEY, h)["catch"](function () {});
+        var ser = serializeCapabilityBible(st);
+        var b = new Blob([ser], { type: "text/javascript" }), a = document.createElement("a");
+        a.href = URL.createObjectURL(b); a.download = "capability_bible.js"; a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+        CAPABILITY_BIBLE[key] = obj;          // badges/cards/tooltips reflect the edit immediately
+        note("⬇ downloaded capability_bible.js with \"" + key + "\" updated — run: node dev/install-bible.js capability");
+        console.info("[bible] capability edit downloaded (" + key + ") — install with: node dev/install-bible.js capability");
+        alert("Downloaded capability_bible.js with \"" + key + "\" updated.\n\nOnly that entry's line changed — comments and untouched entries are byte-identical.\n\nTo install it, run:\n\n    node dev/install-bible.js capability\n\n(it validates the file and refuses anything broken before replacing the project copy)");
+        if (onDone) onDone();
+        render();
       });
-    }
-    got.then(capPerm).then(capWriteOnce)["catch"](function (e) {
-      // AUTO-HEAL for the stale-handle class: every FSA save REPLACES the file's identity
-      // (safe-write), so a write from the other tool (the necro TMP page) or a sync client kills
-      // this tab's handle. The shared IndexedDB slot holds the last successful writer's handle —
-      // retry the whole pass against it before bothering the user.
-      var stale = e && (e.name === "InvalidStateError" || e.name === "NotFoundError" || /changed since it was read from disk/i.test(e.message || ""));
-      if (!stale) throw e;
-      console.warn("[bible] in-place cap write refused (" + e.name + "): " + e.message);
-      _capHandle = null;
-      note("handle went stale — retrying with the last good handle…");
-      return _idbGet(FS_CAP_KEY).then(function (h2) {
-        if (!h2 || !h2.queryPermission) throw e;
-        return capPerm(h2).then(function () { _capHandle = h2; return capWriteOnce(h2); });
-      })["catch"](function (e2) {
-        var stale2 = e2 && (e2.name === "InvalidStateError" || e2.name === "NotFoundError" || /changed since it was read from disk/i.test(e2.message || ""));
-        if (!stale2) throw e2;
-        // Both handles refused with the false 'changed since read' claim — this machine's known
-        // FSA ghost (v1.485: mtime measured UNCHANGED, still refused; re-measured 2026-08-01).
-        // The one path that has never failed here is a picker-minted handle written in its own
-        // gesture — the 'Save as… (always works)' finding. This click's activation is already
-        // spent (the update confirm ran), so arm the NEXT click to open the save dialog first.
-        console.warn("[bible] IndexedDB-handle retry also refused (" + e2.name + ") — arming the save-dialog fallback");
-        _capHandle = null;
-        _capSaveAsNext = true;
-        alert("In-place saving is being refused by the browser on this machine (the known false 'file changed' claim).\n\nPress Update Bible ONCE MORE: a save dialog will open with capability_bible.js pre-filled — Enter confirms it, and that path always works.\n\nYour edited values are still in the form.");
-        return undefined;
-      });
-    }).then(function (h) {
-      if (h === undefined) return;   // fallback armed and reported — the form stays open
-      if (!h) { note("update cancelled — the form still holds your values"); return; }
-      _capHandle = h;
-      _idbPut(FS_CAP_KEY, h)["catch"](function (e) { console.warn("[bible] cap handle not persisted:", e && e.message); });
-      CAPABILITY_BIBLE[key] = obj;   // the page's badges, cards, tooltips and pickers read this global
-      note("updated \"" + key + "\" in " + h.name);
-      if (onDone) onDone();
-      render();
     })["catch"](function (e) {
       if (e && e.name === "AbortError") { note("update cancelled — the form still holds your values"); return; }
-      _capHandle = null;   // a kept dead handle would make every later click re-fail (the v1.487 lesson)
-      alert("Update Bible failed: " + (e && e.message) + "\n\nYour edited values are still in the form — nothing is lost. The next Update Bible asks for the file again.");
+      _capHandle = null;
+      alert("Update Bible failed: " + (e && e.message) + "\n\nYour edited values are still in the form — nothing is lost.");
     });
   }
-
   // ── toolbar ───────────────────────────────────────────────────────────────
   $("open").onclick = openBible;
   $("save").onclick = saveBible;
