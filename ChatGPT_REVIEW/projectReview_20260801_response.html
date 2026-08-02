@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Response — Traffic and Dragons Engineering Review (2026-08-01)</title>
+  <style>
+    :root {
+      --bg: #111; --panel: #181818; --acc: #b8935a;
+      --t1: #ddd; --t2: #999;
+      --good: #7aa86a; --warn: #b8935a; --bad: #c05050;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--t1);
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      max-width: 980px; margin: 0 auto; padding: 32px 20px 64px;
+      line-height: 1.6;
+    }
+    h1 { line-height: 1.2; color: var(--acc); font-size: 1.6rem; }
+    h2 { margin-top: 2.4rem; color: var(--acc); font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 6px; }
+    h3 { margin-top: 1.8rem; font-size: 1.02rem; color: var(--t1); }
+    .meta { color: var(--t2); font-size: .88rem; margin-top: -8px; }
+    .summary {
+      border-left: 4px solid var(--acc); padding: 14px 18px;
+      background: #1c170f; border-radius: 0 8px 8px 0; margin-top: 1.4rem;
+    }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .92rem; }
+    th, td { border: 1px solid #333; padding: 9px 11px; vertical-align: top; text-align: left; }
+    th { background: #1f1f1f; color: var(--acc); font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .88em; background: #222; padding: 1px 5px; border-radius: 4px; color: #d8c9a8;
+    }
+    pre { background: #1a1a1a; border: 1px solid #2c2c2c; border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    ul, ol { padding-left: 1.4rem; }
+    li { margin-bottom: .35rem; }
+    a { color: var(--acc); }
+    .lean {
+      display: inline-block; font-family: ui-monospace, Consolas, monospace;
+      font-weight: bold; text-transform: uppercase; color: rgba(255,255,255,.4);
+      border-radius: 12px; padding: 2px 10px; font-size: .78em; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .lean.good { background: #182215; border: 1px solid var(--good); }
+    .lean.warn { background: #251d12; border: 1px solid var(--warn); }
+    .lean.bad  { background: #260d0d; border: 1px solid var(--bad); }
+    .evidence {
+      background: #161616; border: 1px solid #2a2a2a; border-radius: 8px;
+      padding: 10px 14px; font-size: .9rem; margin: .8rem 0; color: var(--t2);
+    }
+    .evidence b { color: var(--t1); }
+    .finding-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .disposition { color: var(--t2); font-size: .92rem; font-style: italic; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--acc); }
+  </style>
+</head>
+<body>
+
+  <h1>Response to the ChatGPT Engineering Review</h1>
+  <p class="meta">
+    Review under response: <code>ChatGPT_REVIEW/projectReview_20260801.html</code> ·
+    Response written 2026-08-02 by Claude (Fable 5) ·
+    Method: every factual claim independently re-verified against the working tree at commit <code>ff69782</code>.
+    No fixes have been applied — this document is assessment only.
+  </p>
+
+  <div class="summary">
+    <p><strong>Verdict on the review itself: high quality and factually solid.</strong>
+    All six findings reproduce against the actual codebase — every file it names exists, every
+    mechanism it describes is real, and its verification numbers check out (we re-ran
+    <code>node dev/run-tests.js</code>: <strong>951 assertions, all green</strong>, exactly as claimed;
+    <code>index.html</code> does load exactly 30 scripts; the cited <code>innerHTML</code> sinks are at the
+    stated locations). Notably, the review caught three engine files
+    (<code>clock.js</code>, <code>table-talk.js</code>, <code>sound.js</code>) that our own
+    <code>CLAUDE.md</code> load-order table has not yet documented — it out-performed our internal doc there.</p>
+    <p>One recommendation is disputed on a project constraint the reviewer couldn't have known
+    (native ES modules vs. the supported <code>file://</code> workflow), and two P1s are accurate but
+    represent known, deliberately staged trade-offs rather than oversights. The cache/version finding
+    is the standout: it is real, current, and blocks the next deploy.</p>
+  </div>
+
+  <h2>Verdict summary</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Review finding</th><th>Priority</th><th>Our verdict</th><th>One-line assessment</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td><td>Shell asset changed without <code>APP_VERSION</code>/<code>CACHE</code> bump</td><td>P1</td>
+        <td><span class="lean good">Confirmed</span></td>
+        <td>Real and current — two content commits slipped past our own hard rule. Fix before deploy.</td>
+      </tr>
+      <tr>
+        <td>2</td><td>Long-lived keys in <code>localStorage</code>, no CSP</td><td>P1</td>
+        <td><span class="lean warn">Confirmed · Accepted risk</span></td>
+        <td>Factually right; a consequence of the deliberate BYO-key/no-server architecture. Long-term fix already planned.</td>
+      </tr>
+      <tr>
+        <td>3</td><td>Two <code>innerHTML</code> sinks: legacy <code>narrativeHtml</code> + provider error messages</td><td>P1</td>
+        <td><span class="lean good">Confirmed</span></td>
+        <td>Both sinks verified at the stated lines. Cheap to fix; the legacy-fallback removal aligns with existing direction.</td>
+      </tr>
+      <tr>
+        <td>4</td><td><code>dev/bible-server.js</code>: CORS <code>*</code> on a write-capable localhost service</td><td>P2</td>
+        <td><span class="lean good">Confirmed</span></td>
+        <td>Accurate, including its own fair caveats. A per-run token is cheap and correct.</td>
+      </tr>
+      <tr>
+        <td>5</td><td>Test manifests diverge; no CI test gate</td><td>P2</td>
+        <td><span class="lean good">Confirmed</span></td>
+        <td>Verified: <code>test.html</code> omits 3 files the Node loader includes; only CI workflow is server-health.</td>
+      </tr>
+      <tr>
+        <td>6</td><td>30 eager scripts / global architecture; suggests ES modules + lazy loading</td><td>P3</td>
+        <td><span class="lean warn">Accurate · Counterpoint</span></td>
+        <td>Numbers check out; lazy-loading agreed. Native ES modules break the supported <code>file://</code> workflow — that half is declined.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Finding-by-finding assessment</h2>
+
+  <h3 class="finding-head">1 · Cache/version release mismatch <span class="lean good">Confirmed</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> the last <code>APP_VERSION</code>/<code>CACHE</code> bump is commit <code>719cd4b</code>
+    (v1.518 / <code>tnd-v3-20260801h</code>, Aug&nbsp;1 22:51). Two later content commits —
+    <code>038a57f</code> and <code>ff69782</code> (HEAD) — both modify <code>capability_bible.js</code>,
+    which is precached in the service-worker app shell (<code>sw.js:15</code>). Neither bumps either marker.
+    <code>class_bible.js</code> is unaffected (it rides the network-first regex, <code>sw.js:96</code>) — the
+    review correctly singled out <code>capability_bible.js</code>.
+  </div>
+  <p>This is the review's best finding: real, current, and it violates the project's own hard rule
+  ("bump <code>APP_VERSION</code> on every commit that changes game code — no exceptions"). Installed
+  clients would keep serving the pre-rebalance Necromancer benches indefinitely. The reviewer's deeper
+  point also lands: our existing guard (<code>.claude/hooks/stop-check.js</code>) checks version drift
+  against memory notes, <em>not</em> "shell asset changed without a marker bump" — so the rule has no
+  mechanical teeth today, and a content-only commit is exactly the shape that slips past human discipline.
+  The suggested pre-commit/CI check is the right fix; a generated shell fingerprint is worth evaluating
+  but is a larger change to a deliberately simple deploy story.</p>
+  <p class="disposition">Proposed disposition: bump both markers in the next commit before any deploy;
+  queue a TODO row for a mechanical shell-asset-vs-marker check. (Not done in this session per instruction.)</p>
+
+  <h3 class="finding-head">2 · Browser-side secrets, no CSP <span class="lean warn">Confirmed · Accepted risk</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> <code>_headers</code> sets only <code>Cache-Control</code> rules — no
+    <code>Content-Security-Policy</code> anywhere. Provider keys, the fal.ai key, and the server session
+    token are long-lived <code>localStorage</code> values. Inline <code>onclick=</code> handlers are
+    pervasive (HTML-by-string-concatenation is a documented project convention).
+  </div>
+  <p>Factually correct, and the threat model is stated fairly: any same-origin script injection escalates
+  to credential theft. Context the reviewer couldn't have: this is a <em>deliberate</em> consequence of the
+  no-server, bring-your-own-key architecture, and the long-term remediation it proposes — proxying provider
+  calls through a trusted server under a subscription/session model — is already the stated plan (the
+  <code>PROVIDERS</code> table is explicitly documented as the intended server-side routing table).
+  The near-term "strict CSP + migrate inline handlers" suggestion is honest but underestimates the lift:
+  with hundreds of concatenated inline handlers, a meaningful CSP (no <code>unsafe-inline</code>) is a
+  broad refactor, not a header. A CSP that allowlists <code>unsafe-inline</code> would be security theater.</p>
+  <p>The practical takeaway we accept: <strong>finding 3 is the cheap, real mitigation</strong> — closing
+  the actual injection sinks matters more right now than a CSP that can't yet be made strict. Session-only
+  key storage as an opt-in is a reasonable middle step worth considering.</p>
+  <p class="disposition">Proposed disposition: fold into the existing server-proxy roadmap; consider
+  opt-in session-only key storage; treat CSP as part of the (already-noted) eventual architecture evolution,
+  not a quick win.</p>
+
+  <h3 class="finding-head">3 · Remaining <code>innerHTML</code> injection sinks <span class="lean good">Confirmed</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> ① <code>storage-adapter.js:661</code> — the legacy fallback assigns synced
+    <code>data.narrativeHtml</code> straight into the story pane via <code>innerHTML</code> (fires only for
+    pre-transcript server blobs; the upload side already sends <code>""</code> per audit #18).
+    ② <code>char-creation.js:148</code> — <code>err.message</code> from the portrait-generation catch is
+    rendered via <code>innerHTML</code>; similar <code>err.message</code>-into-<code>innerHTML</code>
+    status lines exist on the neighboring portrait paths.
+  </div>
+  <p>Both claims are accurate. Severity calibration: the <code>narrativeHtml</code> path requires the
+  attacker to control your own server blob (i.e., your account), and the error path requires a hostile or
+  compromised provider response — neither is a drive-by. But combined with finding 2 (keys in
+  <code>localStorage</code>), the review's "high-impact when it does fire" framing is fair. The remedy is
+  cheap and the direction is one the project already committed to: the transcript is the canonical
+  narrative record, so the legacy HTML fallback is a removable vestige (old blobs degrade to the
+  "Previously:" recap path, which is plain-text). Error messages should render via
+  <code>textContent</code> — that is also simply our own no-silent-failures style done safely.
+  The suggestion to add regression tests with script-like payloads matches the house sabotage-testing
+  doctrine and should be part of the fix.</p>
+  <p class="disposition">Proposed disposition: queue as a small hardening TODO — remove the
+  <code>narrativeHtml</code> fallback, sweep <code>err.message</code> render sites to
+  <code>textContent</code>, add a hostile-payload regression test. Drift-surface note: touches the
+  reload/replay path, so it takes the standard Fable-tier review before landing.</p>
+
+  <h3 class="finding-head">4 · Local bible-server write hardening <span class="lean good">Confirmed</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> <code>dev/bible-server.js:24-27</code> sets
+    <code>Access-Control-Allow-Origin: *</code> (needed today because the editor runs from
+    <code>file://</code>, Origin <code>null</code>); it binds <code>127.0.0.1</code> only (line 64) and
+    serves exactly two routes. No write token exists. Its own header comment concedes the shape-vs-intent
+    point the review makes.
+  </div>
+  <p>Accurate, and the review deserves credit for stating its own mitigating facts (loopback binding,
+  validation). The residual risk is real: while the server is running, any webpage open in any browser can
+  fire a cross-origin <code>POST /install</code> at localhost, and validation ensures the payload is a
+  <em>well-formed</em> bible, not <em>your</em> bible. The exposure window is small (dev-only, run on
+  demand, single-user machine) — P2 is the right priority, not P1. The per-run random token is the correct
+  minimal fix and costs a few lines on each side; it also preserves the <code>file://</code> editor
+  workflow, which the "same local origin" half of the suggestion would complicate. Take the token, skip
+  the origin change.</p>
+  <p class="disposition">Proposed disposition: queue a small TODO — per-run token printed at server start,
+  required on <code>POST /install</code>, entered once in the editor. CORS <code>*</code> can then stay
+  for the <code>file://</code> reality.</p>
+
+  <h3 class="finding-head">5 · Test-manifest divergence, no CI gate <span class="lean good">Confirmed</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> <code>test.html</code> loads 16 engine scripts; <code>dev/load-engine.js</code> loads 18 —
+    the browser page omits <code>clock.js</code>, <code>table-talk.js</code>, and <code>sound.js</code>,
+    exactly as claimed. The only GitHub workflow is <code>server-health.yml</code>; the 951-assertion suite
+    runs via local hooks only.
+  </div>
+  <p>Fully accurate, and this finding produced a bonus: while verifying it we found that
+  <strong>our own <code>CLAUDE.md</code> load-order table is stale</strong> — it documents a 25-script
+  order while <code>index.html</code> actually loads 30 (<code>wasm-probe.js</code>, <code>clock.js</code>,
+  <code>table-talk.js</code>, <code>sound.js</code>, plus reordering). The review effectively caught doc
+  drift our process missed. Both recommendations are sound and cheap: a single shared manifest consumed by
+  <code>dev/load-engine.js</code> and <code>test.html</code> kills the divergence class permanently
+  (very much in the house style — same move as <code>tag_table.js</code> and <code>buildFileMenus</code>),
+  and a GitHub Actions job running <code>node dev/run-tests.js</code> makes the suite unbypassable.</p>
+  <p class="disposition">Proposed disposition: queue both (shared manifest + Actions workflow); separately
+  update the <code>CLAUDE.md</code> files/load-order tables to match reality.</p>
+
+  <h3 class="finding-head">6 · Global-script architecture &amp; payload <span class="lean warn">Accurate · Counterpoint</span></h3>
+  <div class="evidence">
+    <b>Verified:</b> 30 <code>&lt;script src&gt;</code> tags in <code>index.html</code>; root-level game JS
+    totals ~1.5&nbsp;MiB (the review's 1.47&nbsp;MiB figure is consistent with the shell subset it measured).
+    Load order is strict and manual; state is global — all as described.
+  </div>
+  <p>The diagnosis is accurate and the incremental framing ("do this gradually, not a rewrite") is
+  appreciated. Two-part response:</p>
+  <ul>
+    <li><strong>Lazy-loading heavy optional surfaces: agreed.</strong> Dynamic script injection after
+    first interactivity is fully compatible with the no-build philosophy, and TTS is the obvious first
+    candidate (the Piper wasm runtime is already deferred; the pattern can extend).</li>
+    <li><strong>Native ES modules: declined on a constraint the reviewer couldn't see.</strong> Opening
+    <code>index.html</code> directly from <code>file://</code> is a documented, supported workflow
+    (dev loop, and the cloud-sync CORS layer explicitly accommodates the <code>null</code> origin).
+    Module scripts are blocked by CORS on <code>file://</code> origins, so an ES-module migration would
+    quietly kill that path. A small application namespace for <em>new</em> seams — the review's own
+    alternative — is the workable half of the suggestion.</li>
+  </ul>
+  <p class="disposition">Proposed disposition: adopt lazy-loading incrementally where a surface is
+  genuinely optional; no ES-module migration while <code>file://</code> remains supported.</p>
+
+  <h2>On the "recommended order"</h2>
+  <p>The review's sequencing is agreed with one emphasis: item 1 is not merely first, it is a
+  <strong>deploy blocker</strong> — the working tree cannot ship until the markers bump, because the
+  newest bible content is invisible to every installed client until they do. Items 2–4 are
+  well-prioritized (cheap real fixes before expensive architectural ones). Item 5 is correctly last and
+  partially declined as above.</p>
+
+  <h2>Side findings surfaced while verifying</h2>
+  <ul>
+    <li><strong><code>CLAUDE.md</code> load-order/files drift</strong> — the documented script table
+    predates <code>wasm-probe.js</code>, <code>clock.js</code>, <code>table-talk.js</code>, and
+    <code>sound.js</code>. Needs a doc pass.</li>
+    <li><strong><code>stop-check.js</code> gap</strong> — the existing hook checks version-vs-memory
+    drift, not shell-asset-vs-marker drift; the class of miss in finding 1 is currently unguarded.</li>
+  </ul>
+
+  <h2>Bottom line</h2>
+  <p>This is a review worth taking seriously: zero hallucinated claims, reproduced verification numbers,
+  correct severity ordering, and one finding (cache/version) that is genuinely urgent. Its two P1
+  security items are accurate statements of a trade-off the project made knowingly, with the cheap half
+  (the <code>innerHTML</code> sinks) being immediately actionable and the expensive half (proxy/CSP)
+  already on the long-term roadmap. The single disputed recommendation — ES modules — fails only on the
+  <code>file://</code> constraint. The reviewer's closing observation is accepted as written: the project
+  turns field failures into safeguards, and findings 1 and 5 are precisely the two places where that
+  discipline exists as a rule but not yet as a mechanism.</p>
+
+  <p class="meta">Nothing in this response modifies code or acts on any finding. All dispositions above
+  are proposals pending the owner's decision; accepted items would land as TODO.md rows per house process.</p>
+
+</body>
+</html>

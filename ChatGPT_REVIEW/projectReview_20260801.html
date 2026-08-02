@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Traffic and Dragons — Engineering Review</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; line-height: 1.55; }
+    h1, h2 { line-height: 1.2; } h2 { margin-top: 2rem; }
+    .summary { border-left: 4px solid #4f8cff; padding: 12px 16px; background: color-mix(in srgb, #4f8cff 10%, transparent); }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .94rem; }
+    th, td { border: 1px solid #8886; padding: 10px; vertical-align: top; text-align: left; }
+    th { background: color-mix(in srgb, #888 16%, transparent); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9em; }
+    ul { padding-left: 1.3rem; }
+  </style>
+</head>
+<body>
+  <h1>Traffic and Dragons — Engineering Review</h1>
+
+  <div class="summary">
+    <p><strong>Overall:</strong> this is a thoughtful, unusually well-defended solo-built game engine. It has excellent operational memory, strong regression discipline, and real attention to mobile failure cases. The primary risks are deployment correctness, browser-side secret exposure, and the accumulating cost of a global-script architecture.</p>
+    <p>Verification performed: 951 engine assertions passed; JavaScript syntax checks passed; a 12-response parser replay completed with zero handler errors.</p>
+  </div>
+
+  <h2>What is done especially well</h2>
+  <ul>
+    <li>The tag system is excellent. One ordered registry drives parsing, stripping, and prompt documentation, avoiding the common parser/prompt drift failure.</li>
+    <li>Save-data resilience is unusually strong: compressed transcripts, corruption rescue, migration logic, quota-aware storage, and loud user-facing failure handling are all present.</li>
+    <li>Cloud sync is designed defensively: debouncing, request timeouts, conflict detection, and a deliberate refusal to overwrite newer server state.</li>
+    <li>The project takes player-facing observability seriously. Breadcrumb/error reporting is a strong answer to the invisible mobile-console problem.</li>
+    <li>Provider, TTS, capability, and campaign-generator abstractions are generally data-driven rather than scattered conditionals.</li>
+    <li>The test culture is a major win. The suite covers hostile/malformed model outputs, migrations, storage failure, sync conflicts, and audio edge cases—not merely happy paths.</li>
+  </ul>
+
+  <h2>Findings</h2>
+  <table>
+    <thead>
+      <tr><th>Priority</th><th>Files</th><th>Problem and why it matters</th><th>Suggested solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>P1</td>
+        <td><code>capability_bible.js</code>, <code>globals.js</code>, <code>sw.js</code></td>
+        <td>The newest commit changes <code>capability_bible.js</code>, which is in the cached live app shell, but does not change <code>APP_VERSION</code> or the service-worker cache name. Because the worker is cache-first, an installed client can continue serving old mechanics indefinitely: its service worker sees no changed script and therefore no reason to install a new shell.</td>
+        <td>Before deployment, bump both markers. Add a pre-commit/CI check that fails when any app-shell asset changes without matching <code>APP_VERSION</code> and cache changes. A generated shell fingerprint would eliminate this manual release hazard.</td>
+      </tr>
+      <tr>
+        <td>P1</td>
+        <td><code>state.js</code>, <code>ui-boot.js</code>, <code>ui-modals.js</code>, <code>_headers</code></td>
+        <td>LLM, image-provider, and sync credentials are long-lived values in <code>localStorage</code>. There is no CSP. Any same-origin script injection is therefore a credential compromise, not only a visual bug.</td>
+        <td>Long-term, proxy provider calls through a trusted server/session model so browser storage never contains durable provider keys. Near-term, add a strict CSP and migrate inline handlers to event listeners; make persistent key storage opt-in and prefer session-only storage by default.</td>
+      </tr>
+      <tr>
+        <td>P1</td>
+        <td><code>storage-adapter.js</code>, <code>char-creation.js</code></td>
+        <td>Normal narration is safely escaped, but two paths still inject untrusted strings with <code>innerHTML</code>: legacy synced <code>narrativeHtml</code> and provider error messages. In combination with stored API keys, this is a high-impact XSS path. The legacy narrative fallback is particularly unnecessary now that transcript replay is canonical.</td>
+        <td>Remove the HTML fallback and migrate old saves to transcript/plain-text replay. Render error messages with <code>textContent</code>. If HTML must survive, use a proven sanitizer and add regression tests containing script-like payloads.</td>
+      </tr>
+      <tr>
+        <td>P2</td>
+        <td><code>dev/bible-server.js</code></td>
+        <td>The local authoring server accepts <code>POST /install</code> from every origin and writes validated content into the real bible. Binding to loopback blocks remote hosts, but any webpage opened while the server is running can attempt browser-mediated writes to localhost. Validation protects file shape, not author intent.</td>
+        <td>Serve the editor from the same local origin and require a per-run random authorization token for write requests. Restrict CORS to that origin; do not use <code>*</code> on a write-capable localhost service.</td>
+      </tr>
+      <tr>
+        <td>P2</td>
+        <td><code>test.html</code>, <code>dev/load-engine.js</code>, <code>.github/workflows/server-health.yml</code></td>
+        <td>The browser test page claims to mirror the engine list but omits <code>clock.js</code>, <code>table-talk.js</code>, and <code>sound.js</code>; the canonical Node loader includes them. The only GitHub workflow monitors server uptime—tests are local-hook only and can be bypassed.</td>
+        <td>Make one shared manifest the source for both Node and browser test loading, then add a GitHub workflow that runs <code>node dev/run-tests.js</code>. Add a browser smoke test that loads the full production script list.</td>
+      </tr>
+      <tr>
+        <td>P3</td>
+        <td><code>index.html</code>, <code>dev/load-engine.js</code></td>
+        <td>The live shell eagerly loads 30 scripts totaling about 1.47 MiB of JavaScript, and runtime state lives in globals with a strict manual load order. The service worker helps repeat loads, but first-launch parsing and main-thread work will increasingly hurt lower-end phones. It also makes refactoring and partial test environments fragile.</td>
+        <td>Keep the no-build philosophy, but introduce native ES modules or a small application namespace for new seams. Lazy-load dev-only and optional surfaces, especially heavy TTS/editor code, after gameplay is interactive. Do this incrementally rather than attempting a rewrite.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Recommended order</h2>
+  <ol>
+    <li>Fix the current cache/version release mismatch before deploying the latest mechanics.</li>
+    <li>Remove unsafe HTML restoration and error rendering.</li>
+    <li>Put an automated test gate in GitHub Actions and unify test/runtime manifests.</li>
+    <li>Harden the local bible authoring server.</li>
+    <li>Plan a gradual module/lazy-load migration around the heaviest surfaces.</li>
+  </ol>
+
+  <p>The project’s strongest quality is that it already learns from field failures and turns them into safeguards. Applying that same discipline to release invalidation and browser trust boundaries would meaningfully raise its production maturity.</p>
+</body>
+</html>
