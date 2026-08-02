@@ -46,9 +46,11 @@ code{background:#222;padding:1px 5px;border-radius:4px;color:var(--acc);font-siz
 .x:hover{border:none;color:#e08080;}
 .hd{display:flex;align-items:center;gap:8px;margin:0 0 2px;}
 </style>
-<script src="data.js"></script>
-<script src="capability_bible.js"></script>
-<script src="helpers.js"></script>
+<!-- Per-open cache-buster — same stale-subresource class as bible_editor (2026-08-02). -->
+<script>
+(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","helpers.js"],i;
+for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
+</script>
 </head>
 <body>
 <div id="bar">

@@ -84,10 +84,15 @@ textarea{width:100%;resize:vertical;}
 .featlist{border:1px solid transparent;border-radius:6px;}
 .lvl.dropcue,.featlist.dropcue{border-color:var(--acc);background:#221c12;}
 </style>
-<script src="data.js"></script>
-<script src="capability_bible.js"></script>
-<script src="helpers.js"></script>
-<script src="class_bible.js"></script>
+<!-- Engine data loads with a per-open cache-buster (2026-08-02): a browser-cached
+     capability_bible.js made every recently-added spell render an ○ "no capability entry"
+     badge — canon silently lied about, mid-triage. The satellite pages are network-first in
+     the SW but their SUBRESOURCES are not, and Chrome caches file:// scripts too; a unique
+     query per open defeats both. Editors open rarely — the extra fetch is noise. -->
+<script>
+(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","helpers.js","class_bible.js"],i;
+for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
+</script>
 </head>
 <body>
 <div id="bar">
