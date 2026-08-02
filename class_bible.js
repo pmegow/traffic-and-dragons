@@ -2366,7 +2366,7 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "Rot Into Life",
+                "nm": "Rot into Life",
                 "ds": "Death feeds the circle: when a creature dies inside your bloom, choose — take its vigor as your own (temporary HP), or let its corpse serve until scene's end as a spore-walker."
               }
             ]
@@ -2473,10 +2473,30 @@ var CLASS_BIBLE = {
       "4": [
         "Rigor Mortis",
         "Possess Thrall",
-        "Sleep of the Dead"
+        "Sleep of the Dead",
+        "Archmage Hand",
+        "Aspect of the Undead",
+        "Blight",
+        "Combine Undead",
+        "Eject Soul",
+        "Exploding Corpse",
+        "Flesh Golem",
+        "Three Sisters",
+        "Travelling Wounds",
+        "Vampiric Courtesan"
       ],
-      "5": [],
-      "6": [],
+      "5": [
+        "Catastrophic Wound",
+        "Charybdis",
+        "Resurrection",
+        "Soul Cage"
+      ],
+      "6": [
+        "Aspect of the Reaper",
+        "Horrid Wilting",
+        "Necrotic Nova",
+        "Vampiric Assault"
+      ],
       "cantrips": [
         "Chill Touch",
         "Toll the Dead",
