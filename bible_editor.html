@@ -249,6 +249,38 @@ function serializeCapabilityBible(state) {
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
   var BIBLE_SRV = "http://127.0.0.1:7373";   // dev/bible-server.js — THE save path when running
 
+  // ── per-run write token (ChatGPT review 2026-08-01) ────────────────────────
+  // The server refuses /install without the token it printed at startup — the guard against a
+  // drive-by page POSTing to localhost while the server runs. Asked for ONCE per browser
+  // session (sessionStorage); a 403 means the server restarted with a fresh token, so re-ask
+  // once and retry. A cancelled prompt aborts the save LOUDLY via the caller's error path.
+  function srvToken(forceAsk) {
+    var k = "tnd_bible_srv_tok_v1", t = null;
+    try { t = sessionStorage.getItem(k); } catch (e) {}
+    if (forceAsk || !t) {
+      t = prompt("bible-server write token (printed in the server's terminal at startup):", t || "");
+      if (t === null) return null;             // user cancelled
+      t = t.trim();
+      try { sessionStorage.setItem(k, t); } catch (e) {}
+    }
+    return t;
+  }
+  // The ONE way this page POSTs /install — sends the token, absorbs a stale-token 403 with a
+  // single re-ask-and-retry. Every save path routes through here (contract-pinned).
+  function srvInstall(body) {
+    var t = srvToken(false);
+    if (t === null) return Promise.reject(new Error("save cancelled — no write token entered (it is printed in the bible-server terminal)"));
+    function post(tok) {
+      return fetch(BIBLE_SRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain", "X-Bible-Token": tok }, body: body });
+    }
+    return post(t).then(function (r) {
+      if (r.status !== 403) return r;
+      var t2 = srvToken(true);                 // stale token (server restarted) — re-ask once
+      if (t2 === null) return r;               // cancelled: let the 403 JSON surface loudly
+      return post(t2);
+    });
+  }
+
   // ── display-name normalization, applied ON SAVE (user call 2026-07-28) ────
   // House style is title case with minor words lowercase mid-name — the convention the existing
   // content already follows ("Circle of the Land", "Lay on Hands", "Speak with Animals"). Applied
@@ -535,7 +567,7 @@ function serializeCapabilityBible(state) {
   function serverSaveBible() {
     if (!applyNameNormalization()) return Promise.resolve("done");   // user declined the rename list
     var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
-    return fetch(BIBLE_SRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: ser })
+    return srvInstall(ser)
       .then(function (r) { return r.json(); })
       .then(function (j) {
         if (!j.ok) {
@@ -1271,7 +1303,7 @@ function serializeCapabilityBible(state) {
       var st = BIBLE_TYPES["capability"].parse(g.text);
       if (!capApplyEdit(st.entries, key, obj))
         throw new Error("\"" + key + "\" is not in capability_bible.js — is this entry's name right?");
-      return fetch(BSRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: serializeCapabilityBible(st) })
+      return srvInstall(serializeCapabilityBible(st))
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j.ok) throw new Error("install-bible REFUSED the file — nothing was written:\n" + j.output);

@@ -188,6 +188,34 @@ code{background:#222;padding:1px 5px;border-radius:4px;color:var(--acc);font-siz
   var STAGED = {};   // key → entry object, merged into the bible on Add-staged
   var SAVED = {};    // key → 1 once the server confirms the install (pill: "saved to bible")
 
+  // Per-run write token (ChatGPT review 2026-08-01) — same contract as bible_editor.html: the
+  // server refuses /install without the token it printed at startup; asked once per browser
+  // session, re-asked on a 403 (server restarted). Cancelling aborts the save loudly.
+  function srvToken(forceAsk) {
+    var k = "tnd_bible_srv_tok_v1", t = null;
+    try { t = sessionStorage.getItem(k); } catch (e) {}
+    if (forceAsk || !t) {
+      t = prompt("bible-server write token (printed in the server's terminal at startup):", t || "");
+      if (t === null) return null;
+      t = t.trim();
+      try { sessionStorage.setItem(k, t); } catch (e) {}
+    }
+    return t;
+  }
+  function srvInstall(body) {
+    var t = srvToken(false);
+    if (t === null) return Promise.reject(new Error("save cancelled — no write token entered (it is printed in the bible-server terminal)"));
+    function post(tok) {
+      return fetch(SERVER + "/install", { method: "POST", headers: { "Content-Type": "text/plain", "X-Bible-Token": tok }, body: body });
+    }
+    return post(t).then(function (r) {
+      if (r.status !== 403) return r;
+      var t2 = srvToken(true);
+      if (t2 === null) return r;
+      return post(t2);
+    });
+  }
+
   function stagedCount() { var n = 0, k; for (k in STAGED) n++; return n; }
   // Compose every staged entry onto the real source. Existing keys are REPLACED in place (their
   // line is re-emitted), new keys are appended — so comments and untouched entries stay
@@ -210,7 +238,7 @@ code{background:#222;padding:1px 5px;border-radius:4px;color:var(--acc);font-siz
     fetch(SERVER + "/bible").then(function (r) { return r.json(); }).then(function (g) {
       if (!g.ok) throw new Error(g.output || "the server could not read capability_bible.js");
       var out = composeBible(g.text);   // parseCap inside throws loudly if the server text is not the bible
-      return fetch(SERVER + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: out })
+      return srvInstall(out)
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j.ok) throw new Error("install-bible REFUSED the file — nothing was written:\n" + j.output);

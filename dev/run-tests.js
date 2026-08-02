@@ -988,6 +988,49 @@ try {
   }
 } catch (e) { console.error("INJECTION SINK CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── BIBLE-SERVER WRITE-AUTH CONTRACT (v1.521, ChatGPT review 2026-08-01) ─────────────────
+// dev/bible-server.js binds loopback, but ANY webpage open while it runs can POST to
+// localhost, and install-bible validates shape, not author intent — so /install requires a
+// per-run random token printed at server startup. These clauses pin the whole chain: token
+// generated, checked before the body is read, refused with 403, and every client page routes
+// through the ONE header-sending helper (a second raw "/install" fetch = a bypass).
+try {
+  var _fsB = require("fs"), _pathB = require("path");
+  var _rootB = _pathB.join(__dirname, "..");
+  var _ncB = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _srvB = _ncB(_fsB.readFileSync(_pathB.join(_rootB, "dev", "bible-server.js"), "utf8"));
+  // ① The token must be RANDOM PER RUN — a constant would be shared by every drive-by page.
+  if (!/TOKEN\s*=\s*crypto\.randomBytes\(/.test(_srvB)) {
+    console.error("BIBLE-SERVER WRITE-AUTH: TOKEN is no longer crypto.randomBytes per run — a static/absent token lets any local webpage write the bible while the server runs.");
+    process.exit(1);
+  }
+  // ② The guard itself, refusing with 403, BEFORE the body is accepted.
+  if (!/req\.headers\[["']x-bible-token["']\]\s*!==\s*TOKEN/.test(_srvB) || !/send\(403/.test(_srvB)) {
+    console.error("BIBLE-SERVER WRITE-AUTH: /install lost the x-bible-token !== TOKEN → 403 guard — writes are open to any local webpage again.");
+    process.exit(1);
+  }
+  if (_srvB.indexOf("x-bible-token") > _srvB.indexOf('var body = ""')) {
+    console.error("BIBLE-SERVER WRITE-AUTH: the token check moved AFTER the body read — refuse before accepting an unauthenticated upload.");
+    process.exit(1);
+  }
+  // ③ CORS must allow the header or the browser preflight silently kills authorized saves.
+  if (!/Access-Control-Allow-Headers[^\n]*X-Bible-Token/.test(_srvB)) {
+    console.error("BIBLE-SERVER WRITE-AUTH: Access-Control-Allow-Headers lost X-Bible-Token — the browser preflight would strip auth and every save 403s.");
+    process.exit(1);
+  }
+  // ④ Each client page has exactly ONE "/install" call — the srvInstall helper that sends the
+  //    token. A second occurrence is a raw fetch bypassing auth (it would 403 at runtime, but
+  //    fail here first, at commit time, with a reason).
+  ["bible_editor.html", "necro_spells_TMP.html"].forEach(function (pg) {
+    var _pgSrc = _ncB(_fsB.readFileSync(_pathB.join(_rootB, pg), "utf8"));
+    var _n = (_pgSrc.match(/\/install"/g) || []).length;
+    if (_n !== 1 || _pgSrc.indexOf("X-Bible-Token") < 0) {
+      console.error("BIBLE-SERVER WRITE-AUTH: " + pg + " must POST /install ONLY through srvInstall (found " + _n + ' "/install" call(s); X-Bible-Token ' + (_pgSrc.indexOf("X-Bible-Token") < 0 ? "MISSING" : "present") + ") — a raw fetch bypasses the write token.");
+      process.exit(1);
+    }
+  });
+} catch (e) { console.error("BIBLE-SERVER WRITE-AUTH CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains
