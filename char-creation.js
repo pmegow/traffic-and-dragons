@@ -145,7 +145,7 @@ async function ftRenderPortrait(){
     };
     reader.readAsDataURL(blob);
   }catch(err){
-    status.innerHTML="<span style='color:var(--red);'>"+err.message+"</span>";
+    status.innerHTML="<span style='color:var(--red);'>"+escHtml(err.message)+"</span>";/* provider/network error text is untrusted — escape (review 2026-08-01) */
   }
   busy=false;
 }
@@ -166,7 +166,7 @@ async function ftDeriveAppearance(){
       status.innerHTML="<span style='color:var(--red);'>Empty description returned.</span>";
     }
   }catch(err){
-    status.innerHTML="<span style='color:var(--red);'>"+(err.message||"Failed")+"</span>";
+    status.innerHTML="<span style='color:var(--red);'>"+escHtml(err.message||"Failed")+"</span>";
   }
   busy=false;
 }

@@ -652,14 +652,19 @@ var storageAdapter = (function() {
         }
         syncUI();
         // Rebuild the story pane from the transcript (audit #18) — the canonical narrative
-        // record. Old blobs without a transcript fall back to their stored narrativeHtml.
+        // record. Old blobs without a transcript degrade to initReplaySession's ESCAPED
+        // fallbacks (last exchange, else "Previously:" recap). The legacy data.narrativeHtml
+        // innerHTML fallback is REMOVED (ChatGPT review 2026-08-01): it was the last sink that
+        // rendered stored content unescaped, and with provider keys in localStorage an injected
+        // blob is credential theft, not a visual bug. The write side has sent "" since audit #18.
         var _rebuilt = false;
         try { if (typeof rebuildNarrativeFromTranscript === "function") _rebuilt = rebuildNarrativeFromTranscript(20, true); } catch(e) { console.warn("[storage] story rebuild after server adopt THREW — pane may show stale content until reload:", e && e.message); }
-        if (!_rebuilt && data.narrativeHtml) {
+        if (!_rebuilt) {
           try {
             var _ne2 = document.getElementById("story-narrative");
-            if (_ne2) { _ne2.innerHTML = data.narrativeHtml; _ne2.scrollTop = _ne2.scrollHeight; }
-          } catch(e) {}
+            if (_ne2) _ne2.innerHTML = "";
+            if (typeof initReplaySession === "function") initReplaySession();
+          } catch(e) { console.warn("[storage] story fallback repaint after server adopt failed:", e && e.message); }
         }
         addMsg("system", "☁ State synced from server (turn " + serverTurn + ").");
       } else if (worldState) {

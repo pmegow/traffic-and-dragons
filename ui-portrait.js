@@ -267,7 +267,7 @@ async function showPortraitModal(refreshFn,opts){
     try{
       var desc=await describePortraitImage(src,c.name);
       showDescribeResult(desc);
-    }catch(err){status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+(err.message||"Failed")+"</span>";}
+    }catch(err){status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+escHtml(err.message||"Failed")+"</span>";}/* escape — untrusted error text (review 2026-08-01) */
     busy=false;
   }
   function showDescribeResult(desc){
@@ -320,7 +320,7 @@ async function showPortraitModal(refreshFn,opts){
       status.innerHTML="<span style='font-size:12px;color:var(--t2);font-style:italic;'>Generating portrait…</span>";
       showResult(await generatePortraitImage(prompt,isImg2Img?pmRefSrc:null),isImg2Img,prompt);/* UA21 ②: shared fetch */
     }catch(err){
-      status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+err.message+"</span>";
+      status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+escHtml(err.message)+"</span>";
     }
     busy=false;
   }
@@ -337,7 +337,7 @@ async function showPortraitModal(refreshFn,opts){
     try{
       showResult(await generatePortraitImage(prompt,isImg2Img?pmRefSrc:null),isImg2Img,prompt);/* UA21 ②: shared fetch */
     }catch(err){
-      status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+err.message+"</span>";
+      status.innerHTML="<span style='font-size:12px;color:var(--red);'>"+escHtml(err.message)+"</span>";
     }
     busy=false;
   }

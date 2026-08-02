@@ -931,6 +931,63 @@ try {
   }
 } catch (e) { console.error("TT ISOLATION CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── INJECTION SINK CONTRACT (v1.520, ChatGPT review 2026-08-01) ──────────────────────────
+// Normal narration is escaped everywhere (escHtml/escProse, audit E11), but the review found
+// two sinks that still rendered UNTRUSTED text via innerHTML: the legacy server-blob
+// narrativeHtml fallback (storage-adapter) and raw err.message error lines (char-creation /
+// ui-portrait). With provider keys in localStorage, any such sink is a credential-theft
+// vector, not a cosmetic bug. Source contracts because the sinks are DOM paths the headless
+// harness can't execute; comments are stripped before matching (the VOICE DELETE precedent —
+// the fix's own comments name the bad pattern).
+try {
+  var _fsX = require("fs"), _pathX = require("path");
+  var _rootX = _pathX.join(__dirname, "..");
+  var _ncX = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  // ① The narrativeHtml innerHTML sink stays dead. The transcript is the canonical record;
+  //    pre-transcript blobs degrade to initReplaySession's escaped fallbacks.
+  var _sadX = _ncX(_fsX.readFileSync(_pathX.join(_rootX, "storage-adapter.js"), "utf8"));
+  if (/innerHTML\s*=\s*[^;\n]*narrativeHtml/.test(_sadX)) {
+    console.error("INJECTION SINK CONTRACT: storage-adapter.js renders narrativeHtml via innerHTML again — server-blob HTML is untrusted; rebuild from the transcript (rebuildNarrativeFromTranscript / initReplaySession) instead.");
+    process.exit(1);
+  }
+  if (_sadX.indexOf("initReplaySession") < 0) {
+    console.error("INJECTION SINK CONTRACT: storage-adapter.js lost the initReplaySession fallback after server adopt — pre-transcript blobs would show an empty story pane silently.");
+    process.exit(1);
+  }
+  // ② No file may concatenate an error's .message into innerHTML unescaped. err.message can
+  //    carry provider/network response text — attacker-influenced on a hostile endpoint.
+  var _uiFilesX = _fsX.readdirSync(_rootX).filter(function (f) { return /\.js$/.test(f) && f !== "sw.js"; });
+  var _sinkHitsX = [];
+  _uiFilesX.forEach(function (f) {
+    _ncX(_fsX.readFileSync(_pathX.join(_rootX, f), "utf8")).split("\n").forEach(function (line, i) {
+      // Inspect the ASSIGNED EXPRESSION only, not the whole physical line — game.js packs an
+      // innerHTML assignment and a legit showToast err.message read into one dense line (first
+      // run's false positive). The statement ends at the first ';' OUTSIDE quotes: a naive
+      // [^;]* stops inside "color:var(--red);" and truncates the expression before
+      // err.message — sabotage caught that as a MISSED clause on the first proof run.
+      var mX, reX = /\.innerHTML\s*=\s*/g;
+      while ((mX = reX.exec(line))) {
+        var exprX = "", qX = "", jX, chX;
+        for (jX = mX.index + mX[0].length; jX < line.length; jX++) {
+          chX = line.charAt(jX);
+          if (qX) { if (chX === "\\") { exprX += chX + line.charAt(jX + 1); jX++; continue; } if (chX === qX) qX = ""; }
+          else if (chX === "'" || chX === '"') qX = chX;
+          else if (chX === ";") break;
+          exprX += chX;
+        }
+        if (/\.message\b/.test(exprX) && exprX.indexOf("escHtml(") < 0) {
+          _sinkHitsX.push(f + ":" + (i + 1) + "  " + line.trim().slice(0, 120));
+        }
+      }
+    });
+  });
+  if (_sinkHitsX.length) {
+    console.error("INJECTION SINK CONTRACT: .message rendered via innerHTML without escHtml() — wrap it (error text is untrusted):");
+    _sinkHitsX.forEach(function (h) { console.error("  - " + h); });
+    process.exit(1);
+  }
+} catch (e) { console.error("INJECTION SINK CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains
@@ -942,6 +999,12 @@ var path=require("path");
 var engine=require("./load-engine.js");
 try{engine.loadEngine();}
 catch(e){console.error(e.message);process.exit(1);}
+// INJECTION SINK CONTRACT ③ (behavioral half): escHtml is the one escape everything above
+// leans on — prove it neutralizes a script payload, don't assume it.
+if (escHtml('<img src=x onerror="alert(1)">&\'"') !== "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;&amp;&#39;&quot;") {
+  console.error("INJECTION SINK CONTRACT: escHtml() no longer neutralizes markup — every escaped render in the app just became a sink.");
+  process.exit(1);
+}
 var geval=eval; // indirect eval → global scope (same loader convention as load-engine.js)
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));
 
