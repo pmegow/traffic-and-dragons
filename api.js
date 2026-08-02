@@ -317,11 +317,52 @@ function buildArcDriftNudge(){
       // the arc's first matching COMPLETED archived quest (failed/declined don't imply the arc is done)
       var mq=null;for(qk=0;qk<qkeys.length;qk++){var aq=memory.quests[qkeys[qk]];if(aq&&aq.status==="completed"&&arcTitleMatch(arc.title,aq.title||qkeys[qk])){mq=aq.title||qkeys[qk];break;}}
       if(!mq)continue;
-      var key=arc.title+"|"+mq,last=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
-      if(last!=null&&(worldState.turn-last)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
+      var key=arc.title+"|"+mq,rec=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
+      if(typeof rec==="number")rec={t:rec,n:1};/* pre-#127 stamp was a bare lastTurn number = one check already sent */
+      if(rec&&(worldState.turn-rec.t)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
       if(!worldState.arcDriftNudged)worldState.arcDriftNudged={};
-      worldState.arcDriftNudged[key]=worldState.turn;
-      return "[ENGINE NOTE — ARC DRIFT CHECK (not a player action): the arc '"+arc.title+"' is still active, but its originating quest '"+mq+"' has already been completed. If this arc's story is genuinely finished, emit [ARC_COMPLETE:"+arc.title+"] with its reward. If real work legitimately remains, that is fine — do NOT force it closed — but keep it converging toward the arc's objective"+(arc.objective?" ('"+arc.objective+"')":"")+" instead of sprawling into new open-ended threads. (This check repeats about every "+ARC_DRIFT_RECHECK+" turns while the arc stays open.)]";
+      var nth=(rec?rec.n:0)+1;
+      worldState.arcDriftNudged[key]={t:worldState.turn,n:nth};
+      // #127-①: the soft note alone had no teeth — the GM can "justify and forget" forever (the
+      // prompt-channel lesson). After two unanswered checks the note becomes a forced fork: one
+      // of the two tags, THIS response. Still never auto-closed (the premature-close worry
+      // stands); [ARC_CONTINUE:] is the sanctioned "it really is still open" answer and resets
+      // the escalation.
+      if(nth>=3){
+        return "[ENGINE NOTE — ARC DRIFT CHECK, FINAL (check #"+nth+", not a player action): the arc '"+arc.title+"' is still active, but its originating quest '"+mq+"' completed long ago, and two previous checks went unanswered. You MUST answer IN THIS RESPONSE with exactly one of: [ARC_COMPLETE:"+arc.title+"] (the story is finished — grant its reward in the same response), or [ARC_CONTINUE:"+arc.title+"|one line naming the concrete work that remains]. Do not leave this check unanswered again.]";
+      }
+      return "[ENGINE NOTE — ARC DRIFT CHECK (not a player action): the arc '"+arc.title+"' is still active, but its originating quest '"+mq+"' has already been completed. If this arc's story is genuinely finished, emit [ARC_COMPLETE:"+arc.title+"] with its reward. If real work legitimately remains, that is fine — do NOT force it closed: answer [ARC_CONTINUE:"+arc.title+"|why] to confirm it, and keep it converging toward the arc's objective"+(arc.objective?" ('"+arc.objective+"')":"")+" instead of sprawling into new open-ended threads. (Repeats about every "+ARC_DRIFT_RECHECK+" turns; after two unanswered checks it becomes a required choice.)]";
+    }
+  }
+  return"";
+}
+// #127-②: quest pressure through the FRONT door. When an arc is ACTIVE but the story has never
+// staged it — no live/offered quest matches its title AND no archived quest does (an archived
+// match means it already ran; that aftermath is buildArcDriftNudge's case) — the GM is told to
+// surface it in-fiction and register it as a [QUEST:|offered]. Field evidence (t1385 live save,
+// 2026-08-02): Act 2's three parallel arcs sat active 507 turns with no matching quest ever
+// offered — the player literally never heard of Jorgenfist; the only "quest pressure" was
+// skeleton content leaking through companion dialogue and suggestion buttons. Re-fires every
+// ARC_DRIFT_RECHECK turns while the arc stays unstaged (a one-shot would just rot silently —
+// the #29 lesson); one arc per turn (first unstaged wins); silent in combat WITHOUT burning the
+// window (the stamp only writes when a note is returned).
+function buildArcStagingNudge(){
+  if(!worldState||worldState.combat||!worldState.skeleton)return"";
+  var sk=worldState.skeleton,ql=worldState.questLog||[],i,j,k;
+  var qkeys=Object.keys((typeof memory!=="undefined"&&memory&&memory.quests)||{});
+  for(i=0;i<(sk.acts||[]).length;i++){var act=sk.acts[i];
+    if(act.status!=="active")continue;
+    for(j=0;j<(act.arcs||[]).length;j++){var arc=act.arcs[j];
+      if(arc.status!=="active")continue;
+      var tracked=false;
+      for(k=0;k<ql.length;k++){if((ql[k].status==="active"||ql[k].status==="offered")&&arcTitleMatch(arc.title,ql[k].title)){tracked=true;break;}}
+      if(!tracked)for(k=0;k<qkeys.length;k++){var aq=memory.quests[qkeys[k]];if(aq&&arcTitleMatch(arc.title,aq.title||qkeys[k])){tracked=true;break;}}
+      if(tracked)continue;
+      var last=worldState.arcStaged&&worldState.arcStaged[arc.title];
+      if(last!=null&&(worldState.turn-last)<ARC_DRIFT_RECHECK)continue;
+      if(!worldState.arcStaged)worldState.arcStaged={};
+      worldState.arcStaged[arc.title]=worldState.turn;
+      return "[ENGINE NOTE — STAGE THIS ARC (not a player action): the arc '"+arc.title+"'"+(arc.objective?" ('"+arc.objective+"')":"")+" is ACTIVE, but the story has never introduced it — the player has no way to know it exists. Over the next few turns, surface it IN-FICTION through the world: a rumor, a messenger, a discovery, a consequence, whatever fits the current scene — never an exposition dump, and never through a companion suddenly knowing things they were not there to learn. When the hook lands, register it with [QUEST:<player-facing title>|offered|<desc>]. (Repeats about every "+ARC_DRIFT_RECHECK+" turns until a matching quest exists.)]";
     }
   }
   return"";
@@ -488,7 +529,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -755,6 +796,12 @@ function buildSkeletonBlock(){
   if(!worldState.skeleton)return"";
   var sk=worldState.skeleton,lines=[],i,j;
   lines.push("CAMPAIGN SKELETON — this is the overarching narrative structure. Every scene, quest, and encounter should serve this story. Do not invent unrelated side-plots that pull away from the current arc.");
+  // #127-③: the knowledge boundary. Field evidence (t1385): companions voiced skeleton facts the
+  // story had never surfaced — the spine (future arcs, villains, act goals) was in scope with no
+  // instruction separating GM planning knowledge from CHARACTER knowledge. A prompt fence alone
+  // is known-imperfect for this class, but it names the rule everything else (staging notes,
+  // suggestion gate) enforces mechanically.
+  lines.push("GM-EYES ONLY: this skeleton is your private planning document. NO character in the world knows it. Companions and NPCs may reference only what the story has surfaced on-screen — never let future arcs, act goals, villain names, or premise secrets reach dialogue, rumor, or suggestion before the fiction reveals them. To bring an upcoming beat into play, STAGE it in the world first (a rumor, a messenger, a discovery), then let characters react to what they actually witnessed.");
   // #23/#43 blueprint fidelity: when the player deliberately loaded an AUTHORED adventure, the acts/arcs
   // below are the load-bearing spine — the failure mode (v1.224 audit) was backstory-driven personalization
   // supplanting the authored plot (an emergent notation-seal subplot displacing the Skinsaw arcs). Steer

@@ -3250,7 +3250,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==-1270499105||_CT_TAGS.source.length!==1016)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text */
+    if(__djb2(_CT_TAGS.source)!==-1140062507||_CT_TAGS.source.length!==1029)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section) */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   // #106 cause ①: the TIME_ADVANCE reference used to price ACTIONS ("a conversation 1-5 min"),
@@ -3295,7 +3295,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-218173848&&d.length===18291)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section) */
+    return (__djb2(d)===1742375949&&d.length===18549)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section) */
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;
@@ -4325,6 +4325,103 @@ function runEngineTests(R){
     makeWorld();var s=buildSysPrompt();
     if(s.stable.indexOf("SPELL RANGES ARE PHYSICS")<0)return "rule missing from stable";
     return s.volatile.indexOf("SPELL RANGES ARE PHYSICS")<0?true:"rule duplicated into volatile";
+  });
+
+  // ── #127: arc lifecycle teeth — staging + drift escalation + knowledge boundary ──────────
+  // Field evidence (t1385 live save, 2026-08-02): Act 2's three parallel arcs sat ACTIVE for 507
+  // turns with no matching quest ever offered — the player never heard of Jorgenfist in-fiction;
+  // meanwhile skeleton spoilers leaked through companion dialogue. Three teeth: ① STAGE THIS ARC
+  // note (front-door quest pressure, re-fires while unstaged), ② drift-check escalation to a
+  // forced [ARC_COMPLETE:]/[ARC_CONTINUE:] fork after two ignored checks, ③ GM-EYES-ONLY
+  // knowledge boundary in the skeleton block.
+  section("arc lifecycle teeth (#127)");
+  function __arcWorld(){
+    makeWorld();
+    worldState.skeleton={premise:"p",acts:[{title:"Act One",status:"active",arcs:[
+      {title:"Arc Alpha",status:"active",objective:"find the alpha"},
+      {title:"Arc Beta",status:"pending",objective:"find the beta"}]}]};
+    worldState.questLog=[];memory.quests={};
+    worldState.arcDriftNudged=null;worldState.arcStaged=null;worldState.combat=null;
+  }
+  t("STAGE note fires for an active never-surfaced arc: names the arc, demands an in-fiction hook + [QUEST:|offered], stamps one-shot",function(){
+    __arcWorld();
+    var n=buildArcStagingNudge();
+    if(!n)return "staging note silent for a 507-turn-class unstaged arc";
+    if(n.indexOf("Arc Alpha")<0||n.indexOf("|offered|")<0)return "note incomplete: "+n.slice(0,120);
+    if(!worldState.arcStaged||worldState.arcStaged["Arc Alpha"]!==worldState.turn)return "one-shot stamp missing";
+    return buildArcStagingNudge()===""?true:"re-fired inside the recheck window";
+  });
+  t("STAGE note re-fires after the recheck window while the arc stays unstaged",function(){
+    __arcWorld();
+    buildArcStagingNudge();
+    worldState.arcStaged["Arc Alpha"]=worldState.turn-ARC_DRIFT_RECHECK;
+    return buildArcStagingNudge()!==""?true:"ignored staging note never re-fired — the silent-rot class again";
+  });
+  t("STAGE note silent when a live quest tracks the arc, when an archived quest matches (drift's case), and in combat",function(){
+    __arcWorld();
+    worldState.questLog=[{title:"Arc Alpha",status:"offered"}];
+    if(buildArcStagingNudge()!=="")return "fired despite a live tracking quest";
+    __arcWorld();
+    memory.quests["Arc Alpha"]={title:"Arc Alpha",status:"completed"};
+    if(buildArcStagingNudge()!=="")return "fired for an already-played arc — that is buildArcDriftNudge's case";
+    __arcWorld();
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:1,maxHp:1}]};
+    return buildArcStagingNudge()===""?true:"fired mid-combat";
+  });
+  t("drift check #1 stays soft and now offers [ARC_CONTINUE:]; check #3 is the FINAL forced fork",function(){
+    __arcWorld();
+    memory.quests["Arc Alpha"]={title:"Arc Alpha",status:"completed"};
+    var n1=buildArcDriftNudge();
+    if(!n1||n1.indexOf("ARC_CONTINUE:Arc Alpha")<0)return "check #1 missing the ARC_CONTINUE answer path: "+String(n1).slice(0,100);
+    if(/FINAL/.test(n1))return "check #1 already escalated";
+    worldState.arcDriftNudged["Arc Alpha|Arc Alpha"]={t:worldState.turn-ARC_DRIFT_RECHECK,n:1};
+    var n2=buildArcDriftNudge();
+    if(!n2||/FINAL/.test(n2))return "check #2 wrong: "+String(n2).slice(0,100);
+    worldState.arcDriftNudged["Arc Alpha|Arc Alpha"]={t:worldState.turn-ARC_DRIFT_RECHECK,n:2};
+    var n3=buildArcDriftNudge();
+    if(!n3||!/FINAL/.test(n3)||n3.indexOf("MUST answer")<0&&n3.indexOf("MUST")<0)return "check #3 did not escalate: "+String(n3).slice(0,120);
+    return true;
+  });
+  t("legacy numeric drift stamp reads as one check already sent (no false-instant escalation)",function(){
+    __arcWorld();
+    memory.quests["Arc Alpha"]={title:"Arc Alpha",status:"completed"};
+    worldState.arcDriftNudged={"Arc Alpha|Arc Alpha":worldState.turn-ARC_DRIFT_RECHECK};
+    var n=buildArcDriftNudge();
+    if(!n)return "silent on a due legacy stamp";
+    if(/FINAL/.test(n))return "legacy stamp escalated straight to FINAL";
+    var rec=worldState.arcDriftNudged["Arc Alpha|Arc Alpha"];
+    return rec&&rec.n===2?true:"stamp not upgraded to {t,n}: "+JSON.stringify(rec);
+  });
+  t("[ARC_CONTINUE:] resets the drift clock + count, records the reason, and logs a muts line",function(){
+    __arcWorld();
+    memory.quests["Arc Alpha"]={title:"Arc Alpha",status:"completed"};
+    worldState.arcDriftNudged={"Arc Alpha|Arc Alpha":{t:worldState.turn-ARC_DRIFT_RECHECK,n:2}};
+    applyMuts("The hunt goes on. [ARC_CONTINUE:Arc Alpha|the lieutenant still holds the pass]");
+    var rec=worldState.arcDriftNudged["Arc Alpha|Arc Alpha"];
+    if(!rec||rec.n!==0||rec.t!==worldState.turn)return "drift stamp not reset: "+JSON.stringify(rec);
+    var arc=worldState.skeleton.acts[0].arcs[0];
+    return arc.continueReason==="the lieutenant still holds the pass"?true:"reason not recorded: "+arc.continueReason;
+  });
+  t("[ARC_CONTINUE:] with an unknown/inactive title warns and mutates nothing",function(){
+    __arcWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ARC_CONTINUE:Arc Beta|not active yet]");applyMuts("[ARC_CONTINUE:No Such Arc]");}
+    finally{console.warn=_w;}
+    if(worldState.skeleton.acts[0].arcs[1].continueReason)return "pending arc mutated";
+    return warns.length>=2?true:"silent no-op — the loud-failure rule";
+  });
+  t("[ARC_CONTINUE:] strips from display text and the doc block documents it",function(){
+    var c=cleanTxt("Onward. [ARC_CONTINUE:Arc Alpha|reason] The road narrows.");
+    if(/ARC_CONTINUE/.test(c))return "tag leaked into display prose: "+c;
+    return buildStateTagsDoc().indexOf("[ARC_CONTINUE:")>=0?true:"doc block missing the tag";
+  });
+  t("skeleton block carries the GM-EYES-ONLY knowledge boundary, in the VOLATILE half only",function(){
+    __arcWorld();
+    var blk=buildSkeletonBlock();
+    if(blk.indexOf("GM-EYES ONLY")<0)return "knowledge boundary missing from the skeleton block";
+    var s=buildSysPrompt();
+    if(s.stable.indexOf("GM-EYES ONLY")>=0)return "boundary leaked into the cached stable half";
+    return s.volatile.indexOf("GM-EYES ONLY")>=0?true:"boundary not in the assembled prompt";
   });
 
   // ── #126: suggestion affordance gate — the t355/2026-08-02 cross-town Message class ──────

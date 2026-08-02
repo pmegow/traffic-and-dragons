@@ -27,7 +27,7 @@
 // UA1 validation era, and it remains the calling convention.
 
 // ── Strip registry (derives cleanTxt's _CT_TAGS/_CT_BARE — order preserved from the originals) ──
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ACT_COMPLETE","SAY","ACTIONS","RETCON"];
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_SPELL_USED","COMPANION_XP","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON"];
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
@@ -100,6 +100,7 @@ var TAG_DOC_LINES=[
 "[CORE_MEMORY:subject|one sentence] -- a PERMANENT defining moment filed onto every present party member's sheet and kept in front of you forever. Use RARELY -- only for moments that must never be forgotten: a wedding, a sworn vow, a betrayal, a life-changing revelation. The engine already auto-files near-death, party joins/leaves, deaths, and weighty bond changes -- never duplicate those. subject = the character the moment is about; name BOTH parties in the sentence so it reads true on every sheet\n",
 "[SAY:Character Name] -- VOICE ATTRIBUTION: place immediately BEFORE every line of spoken dialogue, naming its speaker, e.g. [SAY:Frizwick]\"Don't jinx it,\" Frizwick mutters. Tag EVERY quoted line -- including the player character's own lines (use their character NAME, never 'you'). Use the speaker's exact registered name; omit the tag only for unnamed incidental speakers. The tag is invisible to the player and tells the narrator engine which voice performs the line -- an untagged line is read in the narrator's voice.\n",
 "[ARC_COMPLETE:arc title] -- emit when the current arc's objective is fulfilled; advances to the next arc\n",
+"[ARC_CONTINUE:arc title|why it remains open] -- the OTHER answer to an ARC DRIFT CHECK: the arc is genuinely unfinished. Records your reason and resets the check timer. Every drift check must be answered with this or [ARC_COMPLETE:] -- never left unanswered\n",
 "[ACT_COMPLETE:act title] -- emit when the act's turning point occurs; advances to the next act\n",
 "COMPANION SHEET TAGS — use these (not the player tags) when the event affects a named party member, not the player:\n",
 "[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n",
@@ -648,6 +649,26 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       }
       if(_matched)break;
     }
+  }}},
+{t:"ARC_CONTINUE",apply:function(text,R){var arcCont=text.match(/\[ARC_CONTINUE:([^\]|]+)(?:\|([^\]]*))?\]/);
+  // #127: the GM's explicit "this arc is legitimately still open" answer to an ARC DRIFT CHECK.
+  // Resets that arc's drift clock AND count (the escalation starts over), records the stated
+  // reason on the arc (informational — the GM's own justification, re-readable later). ACTIVE
+  // arcs only: confirming a pending/completed arc "open" is a no-op with a loud warn.
+  if(arcCont&&worldState.skeleton){
+    var _ct=arcCont[1].trim(),_cr=(arcCont[2]||"").trim(),_ci,_cj,_ck,_cfound=false;
+    for(_ci=0;_ci<worldState.skeleton.acts.length&&!_cfound;_ci++){
+      var _carcs=worldState.skeleton.acts[_ci].arcs||[];
+      for(_cj=0;_cj<_carcs.length;_cj++){
+        if(_carcs[_cj].status!=="active"||_carcs[_cj].title.toLowerCase()!==_ct.toLowerCase())continue;
+        _cfound=true;
+        if(_cr)_carcs[_cj].continueReason=_cr;
+        if(worldState.arcDriftNudged){for(_ck in worldState.arcDriftNudged){if(_ck.toLowerCase().indexOf(_ct.toLowerCase()+"|")===0)worldState.arcDriftNudged[_ck]={t:worldState.turn,n:0};}}
+        R.muts.push("Arc continues: "+_carcs[_cj].title+(_cr?" — "+_cr:""));
+        break;
+      }
+    }
+    if(!_cfound)console.warn("[tags] ARC_CONTINUE: no ACTIVE arc titled '"+_ct+"' — no-op (typo, or the arc already completed?)");
   }}},
 {t:"ACT_COMPLETE",apply:function(text,R){var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
   if(actDone&&worldState.skeleton){
