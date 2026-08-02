@@ -180,6 +180,7 @@ function serializeCapabilityBible(state) {
   var ADD = {}, activeCls = null, capFilter = "";
   var _dragPath = null;  // feature-row path being dragged via its ⋮⋮ grip (null = no drag in flight)
   var _capHandle = null; // capability_bible.js's OWN handle (the card's Update Bible write path)
+  var _capSaveAsNext = false; // armed when the card write must fall to a save dialog on the NEXT click (fresh activation)
   var _pendingHandle = null;   // restored but not yet re-permissioned (the #30 pattern)
   var _lastHandle = null;
   var _openedMtime = 0;      // [diag] file timestamp observed when this handle last read the file      // last bible handle seen, permissioned or not — the picker's startIn seed
@@ -1206,7 +1207,14 @@ function serializeCapabilityBible(state) {
         "Open capability_bible.js in the editor instead — the capability view edits entries directly.\n\nYour values stay in the form.");
       return;
     }
-    var got = _capHandle ? Promise.resolve(_capHandle)
+    var got;
+    if (_capSaveAsNext && typeof window.showSaveFilePicker === "function") {
+      // last attempt hit this machine's FSA ghost — open the save dialog FIRST, before anything
+      // consumes this click's activation (the ordering rule at the top of this file)
+      _capSaveAsNext = false;
+      got = window.showSaveFilePicker({ id: "tnd-bible", suggestedName: "capability_bible.js", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }] })
+        .then(function (h) { _capHandle = h; return h; });
+    } else got = _capHandle ? Promise.resolve(_capHandle)
       : window.showOpenFilePicker({ id: "tnd-bible", types: [{ description: "capability_bible.js", accept: { "text/javascript": [".js"] } }], multiple: false })
           .then(function (hs) { _capHandle = hs[0]; return hs[0]; });   // held immediately: a failed write retries without re-picking
     var confirmedOK = false;   // once answered, the stale-heal retry never re-asks
@@ -1255,13 +1263,28 @@ function serializeCapabilityBible(state) {
       // retry the whole pass against it before bothering the user.
       var stale = e && (e.name === "InvalidStateError" || e.name === "NotFoundError" || /changed since it was read from disk/i.test(e.message || ""));
       if (!stale) throw e;
+      console.warn("[bible] in-place cap write refused (" + e.name + "): " + e.message);
       _capHandle = null;
-      note("handle went stale (the file was rewritten elsewhere) — retrying with the last good handle…");
+      note("handle went stale — retrying with the last good handle…");
       return _idbGet(FS_CAP_KEY).then(function (h2) {
         if (!h2 || !h2.queryPermission) throw e;
         return capPerm(h2).then(function () { _capHandle = h2; return capWriteOnce(h2); });
+      })["catch"](function (e2) {
+        var stale2 = e2 && (e2.name === "InvalidStateError" || e2.name === "NotFoundError" || /changed since it was read from disk/i.test(e2.message || ""));
+        if (!stale2) throw e2;
+        // Both handles refused with the false 'changed since read' claim — this machine's known
+        // FSA ghost (v1.485: mtime measured UNCHANGED, still refused; re-measured 2026-08-01).
+        // The one path that has never failed here is a picker-minted handle written in its own
+        // gesture — the 'Save as… (always works)' finding. This click's activation is already
+        // spent (the update confirm ran), so arm the NEXT click to open the save dialog first.
+        console.warn("[bible] IndexedDB-handle retry also refused (" + e2.name + ") — arming the save-dialog fallback");
+        _capHandle = null;
+        _capSaveAsNext = true;
+        alert("In-place saving is being refused by the browser on this machine (the known false 'file changed' claim).\n\nPress Update Bible ONCE MORE: a save dialog will open with capability_bible.js pre-filled — Enter confirms it, and that path always works.\n\nYour edited values are still in the form.");
+        return undefined;
       });
     }).then(function (h) {
+      if (h === undefined) return;   // fallback armed and reported — the form stays open
       if (!h) { note("update cancelled — the form still holds your values"); return; }
       _capHandle = h;
       _idbPut(FS_CAP_KEY, h)["catch"](function (e) { console.warn("[bible] cap handle not persisted:", e && e.message); });
