@@ -702,9 +702,24 @@ var CLASS_BIBLE = {
         "Counterspell",
         "Fly"
       ],
-      "4": [],
-      "5": [],
-      "6": [],
+      "4": [
+        "Ice Storm",
+        "Wall of Fire",
+        "Greater Invisibility",
+        "Banishment",
+        "Polymorph"
+      ],
+      "5": [
+        "Cone of Cold",
+        "Telekinesis",
+        "Wall of Force",
+        "Hold Monster"
+      ],
+      "6": [
+        "Chain Lightning",
+        "Disintegrate",
+        "Globe of Invulnerability"
+      ],
       "cantrips": [
         "Fire Bolt",
         "Ray of Frost",
@@ -1001,7 +1016,12 @@ var CLASS_BIBLE = {
         "Conjure Barrage",
         "Lightning Arrow"
       ],
-      "4": []
+      "4": [
+        "Swift Quiver",
+        "Guardian of Nature",
+        "Locate Creature",
+        "Freedom of Movement"
+      ]
     },
     "levels": {
       "2": {
@@ -1560,7 +1580,12 @@ var CLASS_BIBLE = {
         "Dispel Magic",
         "Aura of Vitality"
       ],
-      "4": []
+      "4": [
+        "Banishment",
+        "Death Ward",
+        "Staggering Smite",
+        "Aura of Life"
+      ]
     },
     "levels": {
       "2": {
@@ -1859,10 +1884,22 @@ var CLASS_BIBLE = {
         "Dispel Magic"
       ],
       "4": [
-        "Divination"
+        "Divination",
+        "Death Ward",
+        "Guardian of Faith",
+        "Freedom of Movement"
       ],
-      "5": [],
-      "6": [],
+      "5": [
+        "Flame Strike",
+        "Mass Cure Wounds",
+        "Greater Restoration",
+        "Resurrection"
+      ],
+      "6": [
+        "Heal",
+        "Blade Barrier",
+        "Heroes' Feast"
+      ],
       "cantrips": [
         "Sacred Flame",
         "Guidance",
@@ -2163,9 +2200,23 @@ var CLASS_BIBLE = {
         "Conjure Animals",
         "Plant Growth"
       ],
-      "4": [],
-      "5": [],
-      "6": [],
+      "4": [
+        "Blight",
+        "Dominate Beast",
+        "Control Water",
+        "Giant Insect"
+      ],
+      "5": [
+        "Insect Plague",
+        "Tree Stride",
+        "Wall of Stone",
+        "Awaken"
+      ],
+      "6": [
+        "Sunbeam",
+        "Wall of Thorns",
+        "Wind Walk"
+      ],
       "cantrips": [
         "Produce Flame",
         "Shillelagh",
