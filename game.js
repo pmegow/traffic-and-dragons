@@ -163,6 +163,162 @@ function parseSuggestionArray(resp){
   var txt=stripCodeFences(resp);
   try{return JSON.parse(txt);}catch(e){var m=txt.match(/\[[\s\S]*\]/);if(!m)throw e;return JSON.parse(m[0]);}
 }
+// ── #126: suggestion affordance gate ──────────────────────────────────────────────────────────
+// The t355 cross-town-Message class RECURRED in the field (2026-08-02: "Send Message to Ameiko
+// checking Sandpoint's quiet" offered on the Magnimar road) despite the un-starved context — the
+// forensic showed the NPC GRAPH block explicitly said "NPCs elsewhere: Ameiko → Sandpoint" and
+// the model built the button anyway. The prompt channel is exhausted for this class, so this is
+// a new CHANNEL: a deterministic validator between model output and rendered buttons. The prompt
+// and its cache split are UNTOUCHED (the v1.288 starvation lesson stands; roster/RAG remain
+// narration context) — they just no longer AUTHORIZE a button target. Authorization is scene-
+// local, derived from data the engine already holds (party, lastSeenAt map stamps, the newest
+// narration, map edges, the bible's range canon). Rules are deliberately NARROW (the B3-refusal
+// style): a tapped suggestion becomes player intent, so a false reject costs a legitimate
+// creative option — the fuzzy off-scene-mention class LOGS but passes until field telemetry
+// earns it a promotion.
+var SUGGESTION_NAME_STOP={the:1,old:1,young:1,lady:1,lord:1,sir:1,sheriff:1,father:1,mother:1,brother:1,sister:1,master:1,captain:1,guard:1};
+// Distinctive-token alternation for an NPC name: buttons say "Ameiko", the roster says "Ameiko
+// Kaijitsu" — match any name token ≥4 chars that isn't a title/stop word.
+function suggestionNameAlt(nm){
+  var toks=String(nm||"").split(/\s+/).filter(function(t){return t.length>=4&&!SUGGESTION_NAME_STOP[t.toLowerCase()];});
+  if(!toks.length)toks=[String(nm||"")];
+  return "("+toks.map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}).join("|")+")";
+}
+// Remote-capable only when the canon SAYS so in distance words; self/touch/Nft/N-A are all
+// scene-scale — they cannot reach someone who is not present.
+function suggestionRangeLocal(rangeStr){
+  return !/mile|unlimited|any distance|anywhere|same plane/i.test(String(rangeStr||""));
+}
+// Does the text INVOKE this capability (vs merely containing its words)? Generic English
+// collides with short spell names ("send a message", "heal up"): a single-word name counts only
+// when Capitalized mid-text (proper-noun signal) or within reach of a casting verb. Multi-word
+// names are distinctive enough on their own. Known leak, deliberate: sentence-INITIAL "Message
+// Ameiko…" reads as ambiguous imperative and passes — the off-scene-mention log still names it.
+function suggestionInvokesCap(text,capName){
+  var esc=String(capName).replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");
+  var m=String(text).match(new RegExp("\\b"+esc+"\\b","i"));
+  if(!m)return false;
+  if(String(capName).indexOf(" ")>=0)return true;
+  var at=String(text).indexOf(m[0]);
+  var midCap=at>0&&/[A-Z]/.test(m[0].charAt(0));
+  var castVerb=/\b(cast|casts|casting|use|uses|using|invoke|invoking|channel)\b[\s\S]{0,24}$/i.test(String(text).slice(0,at));
+  return midCap||castVerb;
+}
+// The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
+// actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
+function buildSceneManifest(){
+  var man={npcs:[],exits:[],caps:[]},i,seen={};
+  function addNpc(nm){var k=String(nm).toLowerCase();if(!seen[k]){seen[k]=1;man.npcs.push(nm);}}
+  var loc=(worldState.world&&worldState.world.location)||"";
+  var sub=(worldState.world&&worldState.world.sublocation)||null;
+  var nodeKey=sub?loc+"|"+sub:loc;
+  var npcs=worldState.npcs||[];
+  for(i=0;i<npcs.length;i++){
+    var n=npcs[i];
+    if(n.dead)continue;
+    if(n.partyMember){addNpc(n.name);continue;}
+    var mn=(typeof memory!=="undefined"&&memory.npcs&&memory.npcs[n.name])||{};
+    var ls=String(mn.lastSeenAt||"");
+    if(ls&&(ls===nodeKey||ls===loc||ls.indexOf(loc+"|")===0))addNpc(n.name);
+  }
+  // Presence by narration: an NPC the GM just wrote into the scene is present even if the map
+  // stamp lags a turn (the forensic's one manifest upgrade).
+  var tr=worldState.transcript;
+  if(tr instanceof Array&&tr.length){
+    var lastGm=null;
+    for(i=tr.length-1;i>=0;i--){if(tr[i]&&tr[i].r!=="player"){lastGm=tr[i];break;}}
+    if(lastGm&&lastGm.x){
+      for(i=0;i<npcs.length;i++){
+        if(npcs[i].dead)continue;
+        if(new RegExp("\\b"+suggestionNameAlt(npcs[i].name)+"\\b","i").test(lastGm.x))addNpc(npcs[i].name);
+      }
+    }
+  }
+  var map=(typeof memory!=="undefined"&&memory.map)||{};
+  (map.edges||[]).forEach(function(ed){
+    if(ed.from===loc&&man.exits.indexOf(ed.to)<0)man.exits.push(ed.to);
+    if(ed.to===loc&&man.exits.indexOf(ed.from)<0)man.exits.push(ed.from);
+  });
+  var c=worldState.character||{};
+  function addCap(nm){
+    var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
+    if(e)man.caps.push({name:capBaseName(nm),range:String(e.range||"")});
+  }
+  (c.spells||[]).forEach(function(s){addCap(s.nm);});
+  (c.abilities||[]).forEach(function(a){addCap(a.nm);});
+  return man;
+}
+// null = passes; {rule,detail} = reject. Narrow, high-precision rules only.
+function validateSuggestion(text,man){
+  var i,j,t=String(text||""),npcs=worldState.npcs||[];
+  var present={};for(i=0;i<man.npcs.length;i++)present[String(man.npcs[i]).toLowerCase()]=1;
+  // ① a scene-scale capability aimed at someone who is not here (THE field case)
+  for(i=0;i<man.caps.length;i++){
+    var cap=man.caps[i];
+    if(!suggestionRangeLocal(cap.range))continue;
+    if(!suggestionInvokesCap(t,cap.name))continue;
+    for(j=0;j<npcs.length;j++){
+      if(present[String(npcs[j].name).toLowerCase()])continue;
+      if(new RegExp("\\b"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
+        return {rule:"local-cap-remote-target",detail:cap.name+" ("+cap.range+") aimed at "+npcs[j].name+", who is not present"};
+    }
+  }
+  // ② casting a bible spell the active character does not own
+  if(/\b(cast|casts|casting)\b/i.test(t)&&typeof CAPABILITY_BIBLE!=="undefined"){
+    var owned={};for(i=0;i<man.caps.length;i++)owned[man.caps[i].name]=1;
+    for(var key in CAPABILITY_BIBLE){
+      if(CAPABILITY_BIBLE[key].kind!=="spell"||owned[key])continue;
+      if(suggestionInvokesCap(t,key))return {rule:"unowned-capability",detail:"casts "+key+", which is not on the active character's sheet"};
+    }
+  }
+  // ③ direct interaction with the DECEASED (B3 stamp) — mere mention stays legal
+  for(j=0;j<npcs.length;j++){
+    if(!npcs[j].dead)continue;
+    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give)\\b[\\s\\S]{0,24}\\b"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
+      return {rule:"dead-npc-interaction",detail:npcs[j].name+" is deceased (t"+npcs[j].dead+")"};
+  }
+  // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
+  // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.
+  for(j=0;j<npcs.length;j++){
+    if(npcs[j].dead||present[String(npcs[j].name).toLowerCase()])continue;
+    if(new RegExp("\\b"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t)){
+      console.info("[actions] off-scene NPC named in a suggestion (allowed, watching): \""+t+"\" → "+npcs[j].name);
+      break;
+    }
+  }
+  return null;
+}
+// Deterministic local fallback — engine-composed from the manifest, so it is valid by
+// construction; skips anything already on offer.
+function suggestionFallback(man,taken){
+  var cands=[],i,j;
+  for(i=0;i<man.exits.length;i++)cands.push("Press on toward "+man.exits[i]+".");
+  for(i=0;i<man.npcs.length;i++)cands.push("Talk things over with "+man.npcs[i]+".");
+  cands.push("Rest and take stock of the situation.");
+  cands.push("Study your surroundings carefully.");
+  for(i=0;i<cands.length;i++){
+    var dup=false;
+    for(j=0;j<taken.length;j++){if(String(taken[j]).toLowerCase()===cands[i].toLowerCase()){dup=true;break;}}
+    if(!dup)return cands[i];
+  }
+  return "Take a moment to consider your next move.";
+}
+// Fail CLOSED: an invalid button is never shown — it is logged loudly (console + #16 crumb)
+// and replaced by a manifest fallback. Valid buttons pass through byte-untouched.
+function applySuggestionGate(acts){
+  if(!acts||!acts.length)return acts;
+  var man=buildSceneManifest(),out=[],i;
+  for(i=0;i<acts.length&&i<3;i++){
+    var t=String(acts[i]||"").trim();
+    var bad=t?validateSuggestion(t,man):{rule:"empty",detail:"blank suggestion"};
+    if(!bad){out.push(t);continue;}
+    var fb=suggestionFallback(man,out.concat(acts));
+    console.warn("[actions] suggestion REJECTED ("+bad.rule+"): \""+t+"\" — "+bad.detail+"; replaced with \""+fb+"\"");
+    if(typeof erCrumb==="function")erCrumb("suggestion-reject",{rule:bad.rule,txt:t.slice(0,80)});
+    out.push(fb);
+  }
+  return out;
+}
 async function generateActions(msgEl){
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
@@ -184,6 +340,7 @@ async function generateActions(msgEl){
     if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
+    acts=applySuggestionGate(acts);/* #126 affordance gate — an impossible button is never rendered (fail closed, loud log) */
     /* TODO #1 P3 (D4): in a multi-PC round, label whose options these are. Display prefix ONLY —
        data-action stays the bare action (the queue line re-attaches the name at submit). */
     var _mpPfx=(typeof playerCount==="function"&&playerCount()>1&&activePlayer()&&activePlayer().name)?activePlayer().name+": ":"";

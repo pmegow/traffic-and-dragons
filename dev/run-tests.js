@@ -1031,6 +1031,53 @@ try {
   });
 } catch (e) { console.error("BIBLE-SERVER WRITE-AUTH CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── ENGINE MANIFEST CONTRACT (ChatGPT review 2026-08-01, finding 5 — the #17 rot class) ──
+// dev/engine-manifest.js is THE ordered engine list; node (load-engine.js) and the browser
+// test page (test.html) both derive from it. These clauses pin the two relationships that
+// used to rot silently: manifest ↔ index.html (an engine file added to the shell but not the
+// manifest = tests quietly stop covering it) and test.html ↔ manifest (a static tag creeping
+// back = the manual-copy class returns).
+try {
+  var _fsM = require("fs"), _pathM = require("path");
+  var _rootM = _pathM.join(__dirname, "..");
+  var _manifest = require("./engine-manifest.js");
+  var _manFiles = _manifest.map(function (e) { return e.file; });
+  // ① Derive the expectation FROM index.html: its <script src> order, minus the DOM-wiring
+  //    files (wasm-probe, char-creation, ui-*, stt), plus class_bible.js right after
+  //    capability_bible.js (#72 — not in the shell until C6-②; drop this insert then).
+  var _idxM = _fsM.readFileSync(_pathM.join(_rootM, "index.html"), "utf8");
+  var _idxScripts = [], _mIdx, _reIdx = /<script src="([^"]+\.js)"/g;
+  while ((_mIdx = _reIdx.exec(_idxM))) if (_mIdx[1].indexOf("/") < 0) _idxScripts.push(_mIdx[1]);
+  var _expected = _idxScripts.filter(function (f) {
+    return !(f === "wasm-probe.js" || f === "char-creation.js" || f === "stt.js" || /^ui-/.test(f));
+  });
+  _expected.splice(_expected.indexOf("capability_bible.js") + 1, 0, "class_bible.js");
+  if (_expected.join("|") !== _manFiles.join("|")) {
+    console.error("ENGINE MANIFEST CONTRACT: dev/engine-manifest.js no longer matches index.html's engine load order.");
+    console.error("  expected (from index.html): " + _expected.join(", "));
+    console.error("  manifest:                   " + _manFiles.join(", "));
+    console.error("  An engine file added to index.html must land in the manifest in the same commit — otherwise the tests silently stop loading it.");
+    process.exit(1);
+  }
+  // ② Every manifest entry carries a load-guard symbol (test.html names missing files by it).
+  var _badSym = _manifest.filter(function (e) { return !e.sym; });
+  if (_badSym.length) {
+    console.error("ENGINE MANIFEST CONTRACT: manifest entries missing a sym (test.html's load guard goes blind): " + _badSym.map(function (e) { return e.file; }).join(", "));
+    process.exit(1);
+  }
+  // ③ test.html generates its tags from the manifest — no static engine tag may creep back.
+  var _thM = _fsM.readFileSync(_pathM.join(_rootM, "test.html"), "utf8");
+  if (_thM.indexOf('src="dev/engine-manifest.js"') < 0 || _thM.indexOf("ENGINE_MANIFEST") < 0) {
+    console.error("ENGINE MANIFEST CONTRACT: test.html no longer loads dev/engine-manifest.js / generates its tags from ENGINE_MANIFEST — the manual-copy rot class (#17) is back.");
+    process.exit(1);
+  }
+  var _staticTags = _manFiles.filter(function (f) { return _thM.indexOf('<script src="' + f + '"') >= 0; });
+  if (_staticTags.length) {
+    console.error("ENGINE MANIFEST CONTRACT: test.html has static engine <script> tags again (" + _staticTags.join(", ") + ") — they shadow the generated list and will rot; remove them (the manifest loop writes every tag).");
+    process.exit(1);
+  }
+} catch (e) { console.error("ENGINE MANIFEST CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains

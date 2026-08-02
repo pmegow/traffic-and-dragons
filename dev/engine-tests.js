@@ -4327,6 +4327,85 @@ function runEngineTests(R){
     return s.volatile.indexOf("SPELL RANGES ARE PHYSICS")<0?true:"rule duplicated into volatile";
   });
 
+  // ── #126: suggestion affordance gate — the t355/2026-08-02 cross-town Message class ──────
+  // The un-starved prompt (UA38/39) did NOT close this class: at 2026-08-02 the buttons offered
+  // "Send Message to Ameiko checking Sandpoint's quiet" on the Magnimar road while the NPC GRAPH
+  // block explicitly said Ameiko was elsewhere. Prompt channel exhausted → deterministic gate:
+  // scene-local manifest authorizes targets; the roster/RAG stay narration-only context.
+  section("suggestion affordance gate (#126)");
+  function __gateWorld(){
+    makeWorld();
+    worldState.world.location="Lost Coast Road";worldState.world.sublocation=null;
+    worldState.character.spells=[{nm:"Message",lvl:0,used:false}];
+    worldState.character.abilities=[];
+    worldState.npcs=[
+      {name:"Morwen Zethran",partyMember:true,status:"steady"},
+      {name:"Frizwick",partyMember:true,status:"watchful"},
+      {name:"Ameiko Kaijitsu",partyMember:false,status:"focused"},
+      {name:"Nualia Tobyn",partyMember:false,status:"dead",dead:5}
+    ];
+    memory.npcs["Ameiko Kaijitsu"]={lastSeenAt:"Sandpoint|Sandpoint - Rusty Dragon",events:[],knowledge:[]};
+    memory.map={nodes:{},edges:[{from:"Lost Coast Road",to:"Magnimar",turn:1},{from:"Sandpoint",to:"Lost Coast Road",turn:1}],lastArrivalFrom:null};
+    worldState.transcript=[{r:"gm",x:"Mist coils over the road. Morwen squints at the signpost while Frizwick shakes rain from his hat.",t:5}];
+  }
+  t("manifest: party + narration-present NPCs in, off-scene roster NPC out, exits from map edges, caps carry bible range",function(){
+    __gateWorld();
+    var man=buildSceneManifest();
+    if(man.npcs.indexOf("Morwen Zethran")<0||man.npcs.indexOf("Frizwick")<0)return "party members missing: "+JSON.stringify(man.npcs);
+    if(man.npcs.indexOf("Ameiko Kaijitsu")>=0)return "off-scene Ameiko authorized as present";
+    if(man.exits.indexOf("Magnimar")<0||man.exits.indexOf("Sandpoint")<0)return "map-edge exits missing: "+JSON.stringify(man.exits);
+    var msg=null,i;for(i=0;i<man.caps.length;i++)if(man.caps[i].name==="message")msg=man.caps[i];
+    return msg&&/120ft/.test(msg.range)?true:"message capability with bible range missing: "+JSON.stringify(man.caps);
+  });
+  t("THE field case: scene-scale Message aimed at an off-scene NPC is rejected",function(){
+    __gateWorld();
+    var bad=validateSuggestion("Send Message to Ameiko checking Sandpoint's quiet",buildSceneManifest());
+    if(!bad)return "the exact 2026-08-02 button passed validation";
+    return bad.rule==="local-cap-remote-target"?true:"wrong rule: "+bad.rule;
+  });
+  t("mentioning an off-scene NPC WITHOUT invoking a capability passes (asking Morwen about Ameiko is legal fiction)",function(){
+    __gateWorld();
+    var v=validateSuggestion("Ask Morwen about Ameiko's disappearance",buildSceneManifest());
+    return v===null?true:"false positive: "+JSON.stringify(v);
+  });
+  t("generic English 'send a message' (lowercase, no cast verb) is NOT the spell — no reject",function(){
+    __gateWorld();
+    var v=validateSuggestion("Send a message ahead to the innkeeper at Magnimar",buildSceneManifest());
+    return v===null?true:"generic-word collision: "+JSON.stringify(v);
+  });
+  t("casting a bible spell the character does not own is rejected",function(){
+    __gateWorld();
+    var bad=validateSuggestion("Cast Fireball at the shapes in the mist",buildSceneManifest());
+    if(!bad)return "unowned Fireball cast passed";
+    return bad.rule==="unowned-capability"?true:"wrong rule: "+bad.rule;
+  });
+  t("direct interaction with a DECEASED-stamped NPC is rejected; a mere mention passes",function(){
+    __gateWorld();
+    var man=buildSceneManifest();
+    var bad=validateSuggestion("Confront Nualia about the raid",man);
+    if(!bad||bad.rule!=="dead-npc-interaction")return "dead-NPC interaction not caught: "+JSON.stringify(bad);
+    var ok=validateSuggestion("Search the wreckage Nualia left behind",man);
+    return ok===null?true:"mention-only false positive: "+JSON.stringify(ok);
+  });
+  t("applySuggestionGate fails CLOSED: invalid button replaced by a deterministic local fallback, valid ones untouched, always 3 out",function(){
+    __gateWorld();
+    var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var out;
+    try{out=applySuggestionGate(["Send Message to Ameiko checking Sandpoint's quiet","Ask Morwen about the signpost","Study the mist for movement"]);}
+    finally{console.warn=_w;}
+    if(out.length!==3)return "expected 3 buttons, got "+out.length;
+    if(/Ameiko/.test(out[0]))return "invalid button rendered: "+out[0];
+    if(out[1]!=="Ask Morwen about the signpost"||out[2]!=="Study the mist for movement")return "valid buttons perturbed: "+JSON.stringify(out);
+    if(!warns.length||!/REJECTED/.test(warns.join(" ")))return "reject was SILENT — no console.warn";
+    return true;
+  });
+  t("remote-capable canon is exempt: a 'mile'-range capability may target the absent",function(){
+    __gateWorld();
+    worldState.character.spells.push({nm:"Group Telepathy",lvl:4,used:false});
+    var v=validateSuggestion("Use Group Telepathy to reach Ameiko",buildSceneManifest());
+    return v===null?true:"remote-capable capability wrongly gated: "+JSON.stringify(v);
+  });
+
   // ── UA26 + UA2: multi-enemy combat + ENEMY_SURRENDERS (MULTI_ENEMY_COMBAT §8) ──
   section("multi-enemy combat (UA26+UA2)");
   function __twoFoes(){
