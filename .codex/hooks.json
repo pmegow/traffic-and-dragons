@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node 'C:\\Users\\hannu\\OneDrive\\Documents\\Projects\\dnd_rpg\\.codex\\hooks\\es5-check.js'",
+            "statusMessage": "ES5 check"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node 'C:\\Users\\hannu\\OneDrive\\Documents\\Projects\\dnd_rpg\\.codex\\hooks\\stop-check.js'"
+          }
+        ]
+      }
+    ]
+  }
+}

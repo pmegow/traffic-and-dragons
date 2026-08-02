@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Necro spell drafts → capability bible (TEMP)</title>
+<!-- TEMP working page (uncommitted): the necro_research.txt shortlist converted to
+     capability-bible form. Every field editable; Add to Bible writes capability_bible.js
+     surgically (same parse/emit as bible_editor.html, same stored file handle — pick the
+     file once in either tool). Edits persist to localStorage (tnd_necro_tmp_v1). -->
+<style>
+:root{--bg:#111;--bg2:#181818;--bg3:#1f1f1f;--t0:#ddd;--t1:#aaa;--t2:#777;--acc:#b8935a;--good:#7aa86a;--pend:#5a8ab8;--bad:#b85a5a;--brd:#2a2a2a;}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--t0);font:14px/1.5 Georgia,serif;margin:0;}
+#bar{position:sticky;top:0;z-index:5;background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+#bar h1{font-size:16px;color:var(--acc);margin:0 10px 0 0;}
+button{font-family:Georgia,serif;font-size:13px;background:var(--bg3);color:var(--t0);border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;}
+button:hover{border-color:var(--acc);}
+button.primary{border-color:var(--acc);color:var(--acc);}
+button:disabled{opacity:.4;cursor:default;}
+main{max-width:1080px;margin:0 auto;padding:14px 16px 90px;}
+input[type=text],textarea,select{background:var(--bg3);color:var(--t0);border:1px solid #3a3a3a;border-radius:5px;padding:5px 8px;font:13px Georgia,serif;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc);}
+textarea{width:100%;resize:vertical;}
+.row{display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap;}
+.lbl{width:82px;color:var(--t1);font-size:12.5px;flex-shrink:0;}
+.card{border:1px solid var(--brd);border-radius:10px;padding:12px 16px;margin:14px 0;background:var(--bg2);}
+.card.inbible{border-color:#3a4a3a;}
+.card.staged{border-color:var(--acc);}
+.state.stg{background:#2a2215;border:1px solid var(--acc);}
+.state.saved{background:#182215;border:1px solid var(--good);}
+code{background:#222;padding:1px 5px;border-radius:4px;color:var(--acc);font-size:12px;}
+.card h3{margin:0 0 2px;color:var(--acc);font-size:16px;}
+.src{color:var(--t2);font-size:11.5px;margin:0 0 8px;}
+.state{font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:2px 10px;border-radius:12px;font-family:ui-monospace,Consolas,monospace;font-weight:bold;color:rgba(255,255,255,.4);margin-left:10px;}
+.state.new{background:#221a2a;border:1px solid var(--pend);}
+.state.have{background:#182215;border:1px solid var(--good);}
+.state.draft{background:#2a2215;border:1px solid var(--acc);}
+#status{color:var(--pend);font-size:12.5px;width:100%;}
+.err{color:var(--bad);font-size:12.5px;}
+.muted{color:var(--t2);font-size:12px;}
+.catlbl{margin-right:11px;font-size:12.5px;}
+.short{width:150px;} .tiny{width:70px;}
+.nmInput{font:16px Georgia,serif;color:var(--acc);width:300px;}
+.x{color:var(--bad);cursor:pointer;border:none;background:none;font-size:16px;padding:0 6px;margin-left:auto;}
+.x:hover{border:none;color:#e08080;}
+.hd{display:flex;align-items:center;gap:8px;margin:0 0 2px;}
+</style>
+<script src="data.js"></script>
+<script src="capability_bible.js"></script>
+<script src="helpers.js"></script>
+</head>
+<body>
+<div id="bar">
+  <h1>Necro drafts → bible <span class="muted">temp tool</span></h1>
+  <button class="primary" id="dl">Add staged to bible (0)</button>
+  <button id="reset">↺ Reset edits to seed</button>
+  <span class="muted" id="counts"></span>
+  <div id="status"><b>Stage</b> queues an entry (instant). <b>Add staged to bible</b> saves them all — validated and installed by the local server. One-time setup per session: run <code>node dev/bible-server.js</code> in a terminal and leave it open.</div>
+</div>
+<main id="main"></main>
+
+<script>
+(function () {
+  var DRAFT_K = "tnd_necro_tmp_v1";
+  var FS_IDB = "tnd_bible_fs_v1", FS_STORE = "handles", FS_CAP_KEY = "capBibleFile"; // SAME store as bible_editor — one pick serves both tools
+  var CAP_ORDER = ["kind","tier","cost","isMagical","category","range","targets","duration","save","dice","effect"];
+  var CATS = ["arcane","divine","primal","necromantic","martial","racial"];
+  var _capHandle = null, _writing = false;
+  var _saveAsNext = false;   // armed when the save-dialog fallback needs a fresh click's activation
+  var _lastGoodSrc = null;   // last successfully-read text of the REAL bible (reads never ghost — only writes do)
+  var _startIn = null;       // a handle that read the real bible — its directory seeds the save dialog
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return escHtml(String(s == null ? "" : s)); }
+  function status(m, bad){ $("status").textContent = m; $("status").style.color = bad ? "var(--bad)" : "var(--pend)"; }
+
+  // ── the 41 research lines in fixed-attribute bible form ────────────────────
+  // src = where the line came from; homebrew/bare lines are drafted here and flagged.
+  var SEED = [
+{key:"death shroud",src:"AD&D 2e (Complete Book of Necromancers), 8th",tier:5,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"5ft aura",duration:"1 minute",save:"CON for half",dice:"2d8 necrotic/round",effect:"A corona of life-draining negative energy surrounds you. Creatures starting their turn within 5ft take 2d8 necrotic (CON for half), and you gain half the damage dealt as temporary hit points."},
+{key:"trap the soul",src:"AD&D 1e (PHB), 8th",tier:5,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","arcane"],range:"touch",targets:"1 creature",duration:"permanent",save:"CHA negates",dice:"N/A",effect:"Imprisons the target's soul inside a prepared gem; the body collapses comatose. Shattering the gem frees the soul. Fails against creatures more powerful than the caster."},
+{key:"animate dead",src:"AD&D 1e (PHB), 5th",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 corpse or pile of bones",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"Raises a corpse as a zombie or bare bones as a skeleton, obedient to your spoken commands until destroyed."},
+{key:"wound conferral",src:"AD&D 2e (Complete Book of Necromancers), 7th",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"touch",targets:"2 creatures",duration:"instantaneous",save:"CON negates",dice:"up to 4d8 transferred",effect:"Transfers wounds from one touched creature onto another: heal the first by up to 4d8, and an unwilling second target takes exactly what was healed (CON negates)."},
+{key:"circle of death",src:"D&D 3.5e (PHB), 6th",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","arcane"],range:"60ft",targets:"20ft radius sphere",duration:"instantaneous",save:"CON for half",dice:"8d6 necrotic",effect:"A sphere of negative energy ripples outward; every living creature inside takes 8d6 necrotic, CON for half."},
+{key:"creeping death",src:"research list (bare name) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"15ft-wide wave",duration:"concentration, 1 minute",save:"CON for half",dice:"3d6 necrotic/round",effect:"A slow wave of decay crawls across the ground, advancing 10ft per round. Everything it passes over withers — 3d6 necrotic (CON for half); ordinary plant life dies outright."},
+{key:"plague of undead",src:"D&D 3.5e (Libris Mortis), 9th",tier:6,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"90ft",targets:"every corpse in a 30ft radius",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"Every corpse within the area rises at once as skeletons and zombies under your command — a battlefield answers you as an army."},
+{key:"kiss of the vampire",src:"D&D 3.5e (Libris Mortis), 5th",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"self",duration:"10 minutes",save:"N/A",dice:"1d6 bite drain",effect:"Take on vampiric traits: a bite that drains 1d6 hit points to heal you, resistance to necrotic damage, and no need to breathe — but healing magic will not touch you while it lasts."},
+{key:"boneblade",src:"D&D 3.5e (Book of Vile Darkness), 3rd",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"1 conjured blade",duration:"10 minutes",save:"N/A",dice:"1d8 slashing",effect:"Conjures a blade of solid bone that fights beside you of its own accord, striking with your attack bonus for 1d8 slashing."},
+{key:"charnel fire",src:"D&D 3.5e (Book of Vile Darkness), 4th",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 corpse",duration:"1 minute",save:"DEX for half",dice:"2d10 fire and necrotic",effect:"Sets a corpse alight with unholy flame. Any creature that touches or strikes the pyre takes 2d10 fire-and-necrotic damage, and the flame leaps hungrily at attackers."},
+{key:"blight",src:"D&D 5e (PHB), 4th",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","primal"],range:"30ft",targets:"1 living creature",duration:"instantaneous",save:"CON for half",dice:"8d8 necrotic",effect:"Moisture and vitality are drawn out of the target — 8d8 necrotic, CON for half. Plant creatures save at disadvantage, and ordinary plants simply die."},
+{key:"create undead",src:"D&D 5e (PHB), 6th",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"10ft",targets:"up to 3 corpses",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"Raises up to three corpses as ghouls that obey your spoken commands; at greater power the dead rise as wights or worse."},
+{key:"harm",src:"D&D 5e (PHB), 6th",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","divine"],range:"60ft",targets:"1 creature",duration:"instantaneous",save:"CON for half",dice:"14d6 necrotic",effect:"Raw negative energy ravages the body — 14d6 necrotic (CON for half), and the target's maximum hit points are reduced by the damage taken until magically restored."},
+{key:"resurrection",src:"D&D 5e (PHB), 7th",tier:5,kind:"spell",cost:"slot",isMagical:true,category:["divine","necromantic"],range:"touch",targets:"1 dead creature",duration:"instantaneous",save:"N/A",dice:"N/A",effect:"Restores a dead creature to life with its body intact, so long as the soul is free and willing. A century in the grave is not too long."},
+{key:"grim tendrils",src:"Pathfinder 2e (core), 1st",tier:1,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"30ft line",duration:"instantaneous",save:"CON for half",dice:"2d4 void + 1 bleed",effect:"Tendrils of void energy race outward in a line — 2d4 negative damage and a lingering bleed; CON for half and no bleed."},
+{key:"vampiric exsanguination",src:"Pathfinder 2e (Necromancer), 9th",tier:6,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"30ft cone",duration:"instantaneous",save:"CON for half",dice:"12d6 drained",effect:"Blood and vitality stream out of every creature in the cone — 12d6 necrotic (CON for half), and you heal half of the total drained."},
+{key:"vampiric maiden",src:"Pathfinder 2e (Necromancer), 6th",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 summoned servant",duration:"concentration, 1 minute",save:"N/A",dice:"2d6 drain per strike",effect:"Summons a spectral maiden who embraces your foes — 2d6 necrotic per strike, healing you for the same amount."},
+{key:"bind undead",src:"Pathfinder 2e (Necromancer), 3rd",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 undead",duration:"24 hours",save:"WIS negates",dice:"N/A",effect:"Seizes lasting control of an undead creature. Mindless undead simply obey; an intelligent one repeats its save at each dawn."},
+{key:"hide from undead",src:"Shadow of the Demon Lord (Necromancy), 1st",tier:1,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","divine"],range:"touch",targets:"up to 4 creatures",duration:"1 hour",save:"WIS (intelligent undead only)",dice:"N/A",effect:"The dead cannot see, hear, or smell the warded. Mindless undead are utterly blind to you; intelligent ones save or lose you. The ward breaks on any warded creature that attacks."},
+{key:"army of the dead",src:"Shadow of the Demon Lord (Necromancy), 6th",tier:6,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"host of undead soldiers",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"The earth gives up its dead: a substantial host of skeletal soldiers claws free of the ground and forms ranks at your command — no corpses required."},
+{key:"age",src:"research list (homebrew) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 living creature",duration:"permanent",save:"CON for half",dice:"2d10 years",effect:"Accelerates the target's age by 2d10 years (CON for half). Pushed beyond its natural span, the body begins to fail."},
+{key:"haunting",src:"Vampire: The Masquerade (Sepulchre Path), 4",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 ghost or spirit",duration:"until dispelled",save:"CHA negates",dice:"N/A",effect:"Binds a ghost to a place or object against its will; it cannot stray more than 60ft from its anchor, and its rage tends to show."},
+{key:"eject soul",src:"research list (bare name) — drafted here",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 creature",duration:"1 minute",save:"CHA negates",dice:"N/A",effect:"Knocks the target's soul clean out of its body. The vacant body stands slack and defenseless while the drifting soul can only watch; the soul snaps back when the spell ends — if the body still lives."},
+{key:"curse of the putrid husk",src:"Call of Cthulhu",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"1 creature",duration:"1 minute",save:"WIS partial",dice:"N/A",effect:"The victim perceives their own flesh rotting off the bone — stunned with horror on a failed WIS save, merely frightened for the duration on a success."},
+{key:"blood armour",src:"Dragon Age RPG (Blood Magic)",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"self",duration:"10 minutes",save:"N/A",dice:"absorbs 15 damage",effect:"Your own spilled blood hardens into crimson plate — +2 AC, and the armor drinks the first 15 points of damage before you feel anything."},
+{key:"hemorrhage",src:"Dragon Age RPG (Blood Magic)",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"1 living creature",duration:"instantaneous",save:"CON for half",dice:"4d6 + 1d4/round bleed",effect:"Ruptures the target's vessels from within — 4d6 necrotic, and they bleed 1d4 per round until tended. CON for half and no bleed."},
+{key:"flesh golem",src:"research list (bare name) — drafted here",tier:5,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"10ft",targets:"1 construct (4+ corpses)",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"Stitches several corpses into one hulking flesh golem bound to your will. It does not tire, does not fear, and does not question."},
+{key:"exploding corpse",src:"research list (bare name) — drafted here",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"1 corpse",duration:"instantaneous",save:"DEX for half",dice:"6d6 in 10ft",effect:"Detonates a corpse in a burst of bone shards and rot — 6d6 damage to everything within 10ft, DEX for half."},
+{key:"image of the reaper",src:"research list (bare name) — drafted here",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"foes within 30ft of the image",duration:"concentration, 1 minute",save:"WIS negates",dice:"N/A",effect:"Manifests the scythed silhouette of Death itself. Foes who behold it are frightened, and one marked foe becomes convinced its hour has come — WIS negates, repeated each round the image stands."},
+{key:"combine undead",src:"research list (bare name) — drafted here",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"2-4 of your undead",duration:"until destroyed",save:"N/A",dice:"N/A",effect:"Fuses two or more of your undead servants into a single greater horror — hit points and strength pooled, and the whole crueler than its parts."},
+{key:"whirl of bones",src:"research list (bare name) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"10ft radius",duration:"concentration, 1 minute",save:"DEX for half",dice:"3d8/round",effect:"Shattered bone orbits you in a grinding storm — 3d8 slashing each round to everything within 10ft, and arrows must find you through the whirl."},
+{key:"siphon life",src:"research list (bare name) — drafted here",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"1 living creature",duration:"instantaneous",save:"CON for half",dice:"3d6 drained",effect:"Drains 3d6 hit points from the target directly into you — what it loses, you gain."},
+{key:"horrid wilting",src:"Neverwinter Nights 2 (Necromancy, 8)",tier:5,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","arcane"],range:"120ft",targets:"30ft radius",duration:"instantaneous",save:"CON for half",dice:"10d8 necrotic",effect:"Sucks the moisture from every living thing in the area — 10d8 necrotic, CON for half. Plant and water-born creatures save at disadvantage."},
+{key:"blood to blood",src:"research list (homebrew) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"60ft",targets:"1 creature",duration:"instantaneous",save:"N/A",dice:"= HP sacrificed",effect:"Open your own veins and the wound appears on your enemy: sacrifice any amount of your hit points, and the target loses exactly that much. No save — blood pays for blood."},
+{key:"hold undead",src:"Planescape: Torment (Priest)",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","divine"],range:"60ft",targets:"up to 3 undead",duration:"concentration, 1 minute",save:"WIS (intelligent undead only)",dice:"N/A",effect:"Paralyzes undead where they stand. Mindless undead get no save; intelligent ones repeat theirs at the end of each round."},
+{key:"wither",src:"research list (homebrew) — drafted here",tier:1,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","primal"],range:"30ft",targets:"plants in a 10ft radius",duration:"instantaneous",save:"CON (plant creatures only)",dice:"4d8 vs plant creatures",effect:"Kills plant life outright — crops blacken, vines slacken, a tree dies from the roots up. Plant creatures instead take 4d8 necrotic, CON for half."},
+{key:"blade of corruption",src:"research list (bare name) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"your weapon",duration:"1 minute",save:"CON vs festering",dice:"+2d6 necrotic per hit",effect:"Your blade weeps black rot: +2d6 necrotic on every hit, and a wounded foe must save (CON) or the cut festers, refusing magical healing for a day."},
+{key:"aspect of the undead",src:"research list (homebrew 'Aspect of X') — drafted here",tier:4,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"self",targets:"self",duration:"10 minutes",save:"N/A",dice:"N/A",effect:"Take on the aspect of an undead creature appropriate to your power — a ghoul's paralyzing claws, a wraith's incorporeal drift, a mummy's dreadful gaze — gaining that creature's signature trait while the aspect holds."},
+{key:"visitation",src:"research list (homebrew) — drafted here",tier:2,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"120ft",targets:"self",duration:"instantaneous",save:"N/A",dice:"N/A",effect:"Step through death's door and out again: vanish and reappear beside any corpse you can sense within range. The fresher the corpse, the surer the arrival."},
+{key:"grim totem",src:"research list (homebrew) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic"],range:"30ft",targets:"1 bone obelisk",duration:"1 round per 2 caster levels",save:"N/A",dice:"N/A",effect:"Raises a six-foot obelisk of fused bone. Each round it stands, it drags one skeleton out of the earth to serve you — one per round, for half your level in rounds."},
+{key:"devil's trap",src:"Supernatural (sigil) — drafted here",tier:3,kind:"spell",cost:"slot",isMagical:true,category:["necromantic","divine"],range:"touch (drawn sigil)",targets:"1 fiend or undead",duration:"until the design is marred",save:"CHA negates",dice:"N/A",effect:"A carefully drawn sigil that snares the first devil, demon, or undead to cross it — held fast within the circle (CHA negates on entry) until any line of the design is broken."}
+  ];
+
+  // ── entries state: seed, or the saved local draft ──────────────────────────
+  var ENTRIES;
+  try { ENTRIES = JSON.parse(localStorage.getItem(DRAFT_K)) || null; } catch (e) { ENTRIES = null; }
+  if (!ENTRIES || !ENTRIES.length) ENTRIES = JSON.parse(JSON.stringify(SEED));
+  // display NAME is the edited field; the bible key is DERIVED from it (capBaseName — lowercase,
+  // parenthetical stripped). SEED and any earlier draft carry a key field — normalize both here
+  // AND on reset (reset reseeds from SEED, which never went through the boot pass).
+  function normalizeEntries() {
+    ENTRIES.forEach(function (en) { if (!en.nm) en.nm = titleCase(en.key || ""); delete en.key; });
+  }
+  normalizeEntries();
+  function keyOf(en) {
+    return (typeof capBaseName === "function") ? capBaseName(en.nm) : String(en.nm || "").toLowerCase().trim();
+  }
+  var _saveT = null;
+  function saveDraft() {
+    if (_saveT) clearTimeout(_saveT);
+    _saveT = setTimeout(function () {
+      try { localStorage.setItem(DRAFT_K, JSON.stringify(ENTRIES)); } catch (e) { status("⚠ local draft save failed: " + e.message, true); }
+    }, 400);
+  }
+
+  // ── capability_bible.js parse / emit — same format contract as bible_editor ─
+  function emit(key, o) {
+    var parts = [], i, k;
+    for (i = 0; i < CAP_ORDER.length; i++) {
+      k = CAP_ORDER[i];
+      if (o[k] === undefined) continue;
+      parts.push(k + ":" + JSON.stringify(o[k]));
+    }
+    return "  " + JSON.stringify(key) + ":{" + parts.join(",") + "}";
+  }
+  function parseCap(src) {
+    var norm = src.replace(/\r\n/g, "\n"), lines = norm.split("\n"), i;
+    var start = -1, end = -1;
+    for (i = 0; i < lines.length; i++) if (/^var\s+CAPABILITY_BIBLE\s*=\s*\{/.test(lines[i])) { start = i; break; }
+    for (i = start + 1; i < lines.length; i++) if (/^\};/.test(lines[i])) { end = i; break; }
+    if (start < 0 || end < 0) throw new Error("could not find the CAPABILITY_BIBLE data block — is that capability_bible.js?");
+    var entries = [], lead = [];
+    for (i = start + 1; i < end; i++) {
+      var l = lines[i], m = l.match(/^\s*"([^"]+)"\s*:\s*\{/);
+      if (m) { entries.push({ key: m[1], line: l, lead: lead, dirty: false }); lead = []; }
+      else lead.push(l);
+    }
+    return { prefix: lines.slice(0, start + 1).join("\n") + "\n", suffix: "\n" + lines.slice(end).join("\n"), entries: entries };
+  }
+  function serializeCap(st) {
+    var out = [], i, e;
+    for (i = 0; i < st.entries.length; i++) {
+      e = st.entries[i];
+      if (e.lead && e.lead.length) out = out.concat(e.lead);
+      var body = e.dirty ? emit(e.key, e.obj) : e.line.replace(/,\s*$/, "");
+      out.push(body + (i === st.entries.length - 1 ? "" : ","));
+    }
+    return st.prefix + out.join("\n") + st.suffix;
+  }
+
+  // ── WRITING: one click, via the local bible-server ────────────────────────
+  // The v1.516 download+command workflow was correct but abysmal to use (the user's word).
+  // A file:// page cannot run install-bible.js itself — but it can talk to localhost. So
+  // `node dev/bible-server.js` (started once per session) serves the current bible text and
+  // accepts the composed result, installing it THROUGH dev/install-bible.js — the same
+  // validation gate as ever. No FSA anywhere: reads and writes are both Node's.
+  var SERVER = "http://127.0.0.1:7373";
+  var STAGED = {};   // key → entry object, merged into the bible on Add-staged
+  var SAVED = {};    // key → 1 once the server confirms the install (pill: "saved to bible")
+
+  function stagedCount() { var n = 0, k; for (k in STAGED) n++; return n; }
+  // Compose every staged entry onto the real source. Existing keys are REPLACED in place (their
+  // line is re-emitted), new keys are appended — so comments and untouched entries stay
+  // byte-identical, exactly as the in-place path did.
+  function composeBible(src) {
+    var st = parseCap(src), k, i, hit;
+    for (k in STAGED) {
+      hit = null;
+      for (i = 0; i < st.entries.length; i++) if (st.entries[i].key === k) hit = st.entries[i];
+      if (hit) { hit.obj = STAGED[k]; hit.dirty = true; }
+      else st.entries.push({ key: k, line: "", lead: [], obj: STAGED[k], dirty: true });
+    }
+    return serializeCap(st);
+  }
+  function addStagedToBible() {
+    var n = stagedCount();
+    if (!n) { status("nothing staged yet — press Stage on the entries you want", true); return; }
+    status("saving " + n + " staged " + (n === 1 ? "entry" : "entries") + " through the local bible server…");
+    $("dl").disabled = true;
+    fetch(SERVER + "/bible").then(function (r) { return r.json(); }).then(function (g) {
+      if (!g.ok) throw new Error(g.output || "the server could not read capability_bible.js");
+      var out = composeBible(g.text);   // parseCap inside throws loudly if the server text is not the bible
+      return fetch(SERVER + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: out })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) throw new Error("install-bible REFUSED the file — nothing was written:\n" + j.output);
+          var keys = Object.keys(STAGED);
+          keys.forEach(function (k) { CAPABILITY_BIBLE[k] = STAGED[k]; SAVED[k] = 1; delete STAGED[k]; });
+          render();
+          status("✓ saved to capability_bible.js: " + keys.join(", ") + "  (validated by install-bible before the write)");
+          console.info("[necro] install output:\n" + j.output);
+        });
+    })["catch"](function (e) {
+      var m = (e && e.message) || "";
+      if (/Failed to fetch|NetworkError|load failed/i.test(m)) {
+        status("✗ the local bible server isn't running. Start it once in a terminal and leave it open:   node dev/bible-server.js   — then click again. (Your staged entries are untouched.)", true);
+      } else {
+        status("✗ " + m + " — nothing was written; your staged entries are untouched.", true);
+      }
+      console.warn("[necro] add-staged failed:", m);
+    }).then(function () { $("dl").disabled = stagedCount() === 0; });
+  }
+  // ── validation (the CAP VALIDATOR rules that matter here) ─────────────────
+  function issues(en) {
+    var errs = [];
+    if (!en.category.length) errs.push("pick at least one category");
+    if (en.isMagical && en.category.length === 1 && en.category[0] === "martial") errs.push("magical + martial-only is contradictory");
+    if (!String(en.effect).trim()) errs.push("effect is empty");
+    if (/\b\d*d\d+\b/.test(en.effect) && (!en.dice || en.dice === "N/A")) errs.push("effect names dice but the dice field is N/A (the #101 drift class)");
+    return errs;
+  }
+  function bibleObj(en) {
+    return { kind: en.kind, tier: en.tier, cost: en.cost || "N/A", isMagical: en.isMagical, category: en.category.slice(),
+      range: en.range || "N/A", targets: en.targets || "N/A", duration: en.duration || "N/A",
+      save: en.save || "N/A", dice: en.dice || "N/A", effect: en.effect };
+  }
+
+  // Staging is pure memory: instant, and it CANNOT fail — no file, no handle, no permission.
+  // The one real save on this page is the Add-staged button, which goes through the server.
+  function stage(idx) {
+    var en = ENTRIES[idx], key = keyOf(en), bad = issues(en), errEl = $("err-" + idx);
+    if (!key) bad.unshift("name is empty");
+    if (bad.length) { errEl.textContent = "✗ " + bad.join(" · "); return; }
+    errEl.textContent = "";
+    STAGED[key] = bibleObj(en);
+    delete SAVED[key];   // re-staging after an edit supersedes the earlier saved state
+    render();
+    status("staged \"" + key + "\" (" + stagedCount() + " staged) — press Add staged to bible when ready.");
+  }
+  function unstage(key) { delete STAGED[key]; render(); status("unstaged \"" + key + "\" (" + stagedCount() + " staged)"); }
+
+  // ── render ──────────────────────────────────────────────────────────────────
+  function inBible(en) { return !!CAPABILITY_BIBLE[keyOf(en)]; }
+  function isStaged(en) { return !!STAGED[keyOf(en)]; }
+  function isSaved(en) { return !!SAVED[keyOf(en)]; }
+  function render() {
+    var h = "", n = 0, have = 0;
+    ENTRIES.forEach(function (en, i) {
+      n++;
+      var got = inBible(en); if (got) have++;
+      var stg = isStaged(en), sav = !stg && isSaved(en);
+      var draft = /drafted here/.test(en.src);
+      h += "<div class='card" + (stg ? " staged" : (sav || got) ? " inbible" : "") + "'>" +
+        "<div class='hd'><input type='text' class='nmInput' data-i='" + i + "' data-f='nm' value='" + esc(en.nm) + "' title='spell name — the bible key derives from it'>" +
+        (sav ? "<span class='state saved'>saved to bible</span>" : "<span class='state " + (got ? "have" : "new") + "'>" + (got ? "in bible" : "new") + "</span>") +
+        (stg ? "<span class='state stg'>staged ✓</span>" : "") +
+        (draft ? "<span class='state draft'>drafted</span>" : "") +
+        "<button class='x' data-del='" + i + "' title='remove from this page only — the bible is untouched'>✕</button></div>" +
+        "<p class='src'>" + esc(en.src) + "</p>" +
+        "<div class='row'><span class='lbl'>kind</span><select data-i='" + i + "' data-f='kind'><option" + (en.kind === "spell" ? " selected" : "") + ">spell</option><option" + (en.kind === "ability" ? " selected" : "") + ">ability</option></select>" +
+        "<span class='lbl' style='width:auto'>tier</span><select data-i='" + i + "' data-f='tier'>" + [0,1,2,3,4,5,6].map(function (t) { return "<option" + (en.tier === t ? " selected" : "") + ">" + t + "</option>"; }).join("") + "</select>" +
+        "<span class='lbl' style='width:auto'>magical</span><select data-i='" + i + "' data-f='isMagical'><option" + (en.isMagical ? " selected" : "") + ">true</option><option" + (!en.isMagical ? " selected" : "") + ">false</option></select>" +
+        "<span class='lbl' style='width:auto'>cost</span><input type='text' class='tiny' data-i='" + i + "' data-f='cost' value='" + esc(en.cost) + "'></div>" +
+        "<div class='row'><span class='lbl'>category</span>" + CATS.map(function (c) {
+          var on = en.category.indexOf(c) >= 0;
+          return "<label class='catlbl' style='color:" + (on ? "var(--acc)" : "var(--t1)") + "'><input type='checkbox' data-i='" + i + "' data-cat='" + c + "'" + (on ? " checked" : "") + "> " + c + "</label>";
+        }).join("") + "</div>" +
+        "<div class='row'><span class='lbl'>range</span><input type='text' class='short' data-i='" + i + "' data-f='range' value='" + esc(en.range) + "'>" +
+        "<span class='lbl' style='width:auto'>targets</span><input type='text' data-i='" + i + "' data-f='targets' style='width:210px' value='" + esc(en.targets) + "'>" +
+        "<span class='lbl' style='width:auto'>duration</span><input type='text' class='short' data-i='" + i + "' data-f='duration' value='" + esc(en.duration) + "'></div>" +
+        "<div class='row'><span class='lbl'>save</span><input type='text' data-i='" + i + "' data-f='save' style='width:220px' value='" + esc(en.save) + "'>" +
+        "<span class='lbl' style='width:auto'>dice</span><input type='text' data-i='" + i + "' data-f='dice' style='width:220px' value='" + esc(en.dice) + "'></div>" +
+        "<div class='row'><span class='lbl'>effect</span><textarea rows='2' data-i='" + i + "' data-f='effect'>" + esc(en.effect) + "</textarea></div>" +
+        "<div class='err' id='err-" + i + "'></div>" +
+        "<div class='row' style='margin-top:8px'><button class='primary' data-add='" + i + "'>Stage</button>" +
+        (stg ? "<button data-unstage='" + esc(keyOf(en)) + "'>unstage</button><span class='muted'>queued — Add staged to bible saves it</span>" : "") +
+        "</div></div>";
+    });
+    $("main").innerHTML = h;
+    var sc = stagedCount();
+    $("counts").textContent = n + " drafts · " + have + " already in bible · " + sc + " staged";
+    $("dl").textContent = "Add staged to bible (" + sc + ")";
+    $("dl").disabled = !sc;
+    wire();
+  }
+  function titleCase(s) {
+    var MINOR = { of:1, "in":1, the:1, a:1, an:1, to:1, and:1, or:1, "for":1, "with":1, at:1, by:1, from:1, on:1, into:1 };
+    var w = String(s || "").split(/\s+/);
+    return w.map(function (x, k) {
+      var lo = x.toLowerCase();
+      if (k > 0 && k < w.length - 1 && MINOR[lo]) return lo;
+      return lo.charAt(0).toUpperCase() + lo.slice(1);
+    }).join(" ");
+  }
+  function wire() {
+    var m = $("main"), i;
+    var flds = m.querySelectorAll("[data-f]");
+    for (i = 0; i < flds.length; i++) flds[i].onchange = function () {
+      var en = ENTRIES[+this.getAttribute("data-i")], f = this.getAttribute("data-f"), v = this.value;
+      if (f === "tier") en.tier = parseInt(v, 10) || 0;
+      else if (f === "isMagical") en.isMagical = (v === "true");
+      else if (f === "nm") { en.nm = v; saveDraft(); render(); return; }   // re-render: the derived key may now collide (or stop colliding) with the bible
+      else en[f] = v;
+      saveDraft();
+    };
+    var dels = m.querySelectorAll("button[data-del]");
+    for (i = 0; i < dels.length; i++) dels[i].onclick = function () {
+      var idx = +this.getAttribute("data-del");
+      if (!confirm("Remove \"" + ENTRIES[idx].nm + "\" from THIS PAGE?\n\nThe capability bible is untouched — this only drops the draft card.")) return;
+      ENTRIES.splice(idx, 1);
+      saveDraft(); render();
+      status("draft removed from the page — the bible was not touched");
+    };
+    var cats = m.querySelectorAll("[data-cat]");
+    for (i = 0; i < cats.length; i++) cats[i].onchange = function () {
+      var en = ENTRIES[+this.getAttribute("data-i")], c = this.getAttribute("data-cat");
+      var at = en.category.indexOf(c);
+      if (this.checked && at < 0) en.category.push(c);
+      if (!this.checked && at >= 0) en.category.splice(at, 1);
+      saveDraft();
+    };
+    var adds = m.querySelectorAll("button[data-add]");
+    for (i = 0; i < adds.length; i++) adds[i].onclick = function () { stage(+this.getAttribute("data-add")); };
+    var uns = m.querySelectorAll("button[data-unstage]");
+    for (i = 0; i < uns.length; i++) uns[i].onclick = function () { unstage(this.getAttribute("data-unstage")); };
+  }
+
+  $("dl").onclick = addStagedToBible;
+  $("reset").onclick = function () {
+    if (!confirm("Throw away every edit on this page and restore the original 41 drafts?\n\n(Entries already written into capability_bible.js are untouched.)")) return;
+    ENTRIES = JSON.parse(JSON.stringify(SEED));
+    normalizeEntries();
+    try { localStorage.removeItem(DRAFT_K); } catch (e) {}
+    render();
+    status("reset to the original drafts");
+  };
+
+  // test seam (house rule: no surface untestable) — drive compose/save without a real server
+  window.__necroTest = {
+    compose: composeBible,
+    staged: function () { return STAGED; },
+    saved: function () { return SAVED; },
+    addStaged: addStagedToBible,
+    entries: function () { return ENTRIES; }
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

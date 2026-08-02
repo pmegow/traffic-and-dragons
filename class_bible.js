@@ -2453,43 +2453,61 @@ var CLASS_BIBLE = {
         "Ray of Sickness",
         "False Life",
         "Cause Fear",
-        "Bleed"
+        "Bleed",
+        "Eldritch Tendrils",
+        "Hide from Undead",
+        "Miasma",
+        "Wither"
       ],
       "2": [
         "Ray of Enfeeblement",
         "Blindness",
         "Shadow Step",
         "Shackles of Bone",
-        "Rot"
+        "Rot",
+        "Blood Armour",
+        "Conscript Undead",
+        "Hemorrhage",
+        "Hold Undead",
+        "Siphon Life",
+        "Visitation"
       ],
       "3": [
         "Vampiric Touch",
         "Speak with Dead",
         "Wave of Scarabs",
         "Bestow Curse",
-        "Miasma",
-        "Death Walk"
+        "Death Walk",
+        "Age",
+        "Blade of Corruption",
+        "Creeping Death",
+        "Devil's Trap",
+        "Dire Cremation",
+        "Grim Totem",
+        "Haunting",
+        "Rigor Mortis",
+        "Whirl of Bones"
       ],
       "4": [
-        "Rigor Mortis",
         "Possess Thrall",
         "Sleep of the Dead",
         "Archmage Hand",
         "Aspect of the Undead",
         "Blight",
-        "Combine Undead",
         "Eject Soul",
         "Exploding Corpse",
         "Flesh Golem",
         "Three Sisters",
         "Travelling Wounds",
-        "Vampiric Courtesan"
+        "Vampiric Courtesan",
+        "Blood to Blood"
       ],
       "5": [
         "Catastrophic Wound",
         "Charybdis",
         "Resurrection",
-        "Soul Cage"
+        "Soul Cage",
+        "Combine Undead"
       ],
       "6": [
         "Aspect of the Reaper",
