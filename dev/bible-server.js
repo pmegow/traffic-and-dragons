@@ -75,6 +75,22 @@ http.createServer(function (req, res) {
   }
 
   send(404, { ok: false, output: "unknown route (this server has /bible and /install only)" });
+}).on("error", function (e) {
+  // Loud, named failure instead of a raw stack (2026-08-02 field confusion): the common case is
+  // a still-running older instance — which after the token change is ALSO a security problem,
+  // because a pre-token server accepts unauthenticated writes.
+  if (e.code === "EADDRINUSE") {
+    console.error("");
+    console.error("✗ port " + PORT + " is already in use — an older bible-server is still running.");
+    console.error("  Find its terminal window and Ctrl+C it, or kill it by PID:");
+    console.error("    netstat -ano | findstr :" + PORT + "     (PID is the last column)");
+    console.error("    taskkill /F /PID <pid>");
+    console.error("  Then run this again. (If the old instance predates the write token, closing it");
+    console.error("  matters doubly — it accepts unauthenticated writes.)");
+    process.exit(1);
+  }
+  console.error("✗ bible-server could not start: " + e.message);
+  process.exit(1);
 }).listen(PORT, "127.0.0.1", function () {
   console.log("bible-server listening on http://127.0.0.1:" + PORT);
   console.log("");
