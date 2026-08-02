@@ -32,7 +32,8 @@ function ok(msg) { console.log("  ✓ " + msg); }
 
 var args = process.argv.slice(2);
 var dryRun = args.indexOf("--dry-run") >= 0;
-args = args.filter(function (a) { return a !== "--dry-run"; });
+var allowUnfill = args.indexOf("--allow-unfill") >= 0;
+args = args.filter(function (a) { return a !== "--dry-run" && a !== "--allow-unfill"; });
 
 // ── pick the source file ────────────────────────────────────────────────────
 var typeKey = "class", explicit = null;
@@ -91,6 +92,30 @@ if (typeKey === "class") {
   if (slots !== 234) die("expected 234 level slots, found " + slots);
   if (ctx.CLASS_XP_LEVELS.length !== 20) die("XP curve is not 20 levels");
   ok("9 classes · 234 slots · " + filled + " filled · XP 1–20");
+  // ── stale-draft clobber guard (2026-08-01) ────────────────────────────────
+  // The editor's localStorage draft holds a FULL bible copy from whenever the tab last loaded
+  // the file. A tab left open across a fill session will happily save an OLD copy wholesale —
+  // the newest Downloads candidate was once a 2-day-old 80/234 file that would have erased the
+  // completed fill. Fewer filled slots than the file being replaced is the signature of exactly
+  // that; refuse it unless the unfill is declared intentional.
+  if (fs.existsSync(path.join(ROOT, "class_bible.js")) && !allowUnfill) {
+    var curCtx = {};
+    vm.createContext(curCtx);
+    try { vm.runInContext(fs.readFileSync(path.join(ROOT, "class_bible.js"), "utf8"), curCtx); } catch (e) { curCtx = null; }
+    if (curCtx && curCtx.CLASS_BIBLE) {
+      var curFilled = 0;
+      Object.keys(curCtx.CLASS_BIBLE).forEach(function (c) {
+        var e = curCtx.CLASS_BIBLE[c], lv;
+        for (lv in e.levels) if (e.levels[lv].features.length) curFilled++;
+        e.archetypes.forEach(function (a) { for (var l in a.levels) if (a.levels[l].features.length) curFilled++; });
+      });
+      if (filled < curFilled)
+        die("the incoming file has FEWER filled level slots (" + filled + ") than the file it would replace (" + curFilled + ") — " +
+            "that is the signature of a STALE editor draft about to erase finished work. " +
+            "If emptying slots is intentional, rerun with --allow-unfill.");
+      ok("fill regression check: " + filled + " ≥ " + curFilled + " (current file)");
+    }
+  }
 } else {
   var keys = Object.keys(ctx.CAPABILITY_BIBLE);
   if (keys.length < 100) die("only " + keys.length + " capability entries — that looks truncated");

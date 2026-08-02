@@ -247,6 +247,7 @@ function serializeCapabilityBible(state) {
   function _idbDel(k) { return _idbOpen().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction(FS_STORE, "readwrite"); tx.objectStore(FS_STORE)["delete"](k); tx.oncomplete = function () { res(true); }; tx.onerror = function () { rej(tx.error); }; }); }); }
 
   var HAS_FSA = (typeof window.showOpenFilePicker === "function");
+  var BIBLE_SRV = "http://127.0.0.1:7373";   // dev/bible-server.js — THE save path when running
 
   // ── display-name normalization, applied ON SAVE (user call 2026-07-28) ────
   // House style is title case with minor words lowercase mid-name — the convention the existing
@@ -368,6 +369,17 @@ function serializeCapabilityBible(state) {
   // is why saving "always" ended up in Downloads (user, 2026-07-28).
   function saveBible() {
     if (!CUR) return;
+    // THE SAVE FUNCTION (v1.518): server-first — one click, validated by dev/install-bible.js
+    // (including the stale-draft fill-regression guard for the class bible). The FSA ladder
+    // below survives only as the fallback for when the server isn't running.
+    serverSaveBible().then(function (r) {
+      if (r === "network") {
+        console.info("[bible] bible-server not running — falling back to the FSA save ladder (start it with: node dev/bible-server.js)");
+        legacySaveBible();
+      }
+    });
+  }
+  function legacySaveBible() {
     if (CUR.handle) { writeInPlace(); return; }
     if (_pendingHandle && _pendingHandle.requestPermission) {
       var ph = _pendingHandle;
@@ -511,6 +523,43 @@ function serializeCapabilityBible(state) {
     var b = new Blob([ser], { type: "text/plain" }), a = document.createElement("a");
     a.href = URL.createObjectURL(b); a.download = CUR.name && CUR.name !== "(unsaved)" ? CUR.name : (CUR.typeId + "_bible.js"); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+  }
+
+  // ── server-first save (v1.518): THE save function ──────────────────────────
+  // POSTs the serialized bible to dev/bible-server.js, which installs it through
+  // dev/install-bible.js — full validation before the tracked file is touched, including the
+  // stale-draft fill-regression guard (a class save with FEWER filled slots than the file on
+  // disk is refused: that is the signature of an old tab draft about to erase finished work).
+  // Resolves "done" (saved, or refused-and-reported) or "network" (server not running — the
+  // caller falls back to the FSA/download ladder).
+  function serverSaveBible() {
+    if (!applyNameNormalization()) return Promise.resolve("done");   // user declined the rename list
+    var ser = BIBLE_TYPES[CUR.typeId].serialize(CUR.data);
+    return fetch(BIBLE_SRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: ser })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) {
+          note("✗ install-bible REFUSED the save — nothing was written (details in an alert + console)");
+          console.warn("[bible] install refused:\n" + j.output);
+          alert("The save was REFUSED — nothing was written:\n\n" + String(j.output || "").slice(0, 700) +
+            "\n\nIf this says 'FEWER filled level slots', this tab is holding a STALE draft — use ↻ Reload from disk (or Discard draft) before re-applying today's edits.");
+          return "done";
+        }
+        CUR.dirty = false;
+        if (_saveT) { clearTimeout(_saveT); _saveT = null; }   // cancel the debounce BEFORE clearing — the phantom-draft rule
+        try { localStorage.removeItem(DRAFT_K); } catch (e) {}
+        note("✓ saved " + CUR.name + " through the bible server (validated by install-bible)");
+        console.info("[bible] server save output:\n" + j.output);
+        render();
+        return "done";
+      })
+      ["catch"](function (e) {
+        var m = (e && e.message) || "";
+        if (/Failed to fetch|NetworkError|load failed/i.test(m)) return "network";
+        note("✗ server save failed: " + m + " — nothing was written");
+        console.warn("[bible] server save failed:", m);
+        return "done";
+      });
   }
 
   function reconnect() {
@@ -1215,7 +1264,7 @@ function serializeCapabilityBible(state) {
     // reads and installs — no picker, no download, no command. Validation still happens in
     // dev/install-bible.js on the Node side. If the server is not up, fall through to the
     // read-and-download flow below, which always works.
-    var BSRV = "http://127.0.0.1:7373";
+    var BSRV = BIBLE_SRV;
     fetch(BSRV + "/bible").then(function (r) { return r.json(); }).then(function (g) {
       if (!g.ok) throw new Error(g.output || "server could not read the bible");
       if (!BIBLE_TYPES["capability"].detect(g.text)) throw new Error("the server's capability_bible.js has no CAPABILITY_BIBLE block — is the project checkout healthy?");
