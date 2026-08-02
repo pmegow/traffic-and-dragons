@@ -1211,6 +1211,39 @@ function serializeCapabilityBible(state) {
   // `node dev/install-bible.js capability` then validates and installs it. That is the workflow
   // install-bible.js exists for, and it has never failed here.
   function updateShippedCapability(key, obj, onDone) {
+    // ONE-CLICK PATH FIRST: if the local bible-server is running (node dev/bible-server.js), it
+    // reads and installs — no picker, no download, no command. Validation still happens in
+    // dev/install-bible.js on the Node side. If the server is not up, fall through to the
+    // read-and-download flow below, which always works.
+    var BSRV = "http://127.0.0.1:7373";
+    fetch(BSRV + "/bible").then(function (r) { return r.json(); }).then(function (g) {
+      if (!g.ok) throw new Error(g.output || "server could not read the bible");
+      if (!BIBLE_TYPES["capability"].detect(g.text)) throw new Error("the server's capability_bible.js has no CAPABILITY_BIBLE block — is the project checkout healthy?");
+      var st = BIBLE_TYPES["capability"].parse(g.text);
+      if (!capApplyEdit(st.entries, key, obj))
+        throw new Error("\"" + key + "\" is not in capability_bible.js — is this entry's name right?");
+      return fetch(BSRV + "/install", { method: "POST", headers: { "Content-Type": "text/plain" }, body: serializeCapabilityBible(st) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) throw new Error("install-bible REFUSED the file — nothing was written:\n" + j.output);
+          CAPABILITY_BIBLE[key] = obj;
+          note("✓ \"" + key + "\" saved to capability_bible.js (validated by install-bible)");
+          console.info("[bible] server install output:\n" + j.output);
+          if (onDone) onDone();
+          render();
+        });
+    })["catch"](function (e) {
+      var m = (e && e.message) || "";
+      if (/Failed to fetch|NetworkError|load failed/i.test(m)) {
+        console.info("[bible] bible-server not running — using the read-and-download flow instead (start it with: node dev/bible-server.js)");
+        legacyDownloadFlow();
+        return;
+      }
+      // note(), not a modal: nothing may consume activation ahead of the legacy path's picker
+      note("✗ Update Bible failed: " + m + " — nothing was written; your values are still in the form");
+      console.warn("[bible] server install failed:", m);
+    });
+    function legacyDownloadFlow() {
     // Reported through note(), NOT a modal: alert/confirm consume transient user activation, and
     // the contract (rightly) pins that nothing prompts ahead of the picker in this function.
     if (!HAS_FSA) {
@@ -1258,6 +1291,7 @@ function serializeCapabilityBible(state) {
       _capHandle = null;
       alert("Update Bible failed: " + (e && e.message) + "\n\nYour edited values are still in the form — nothing is lost.");
     });
+    }   // end legacyDownloadFlow
   }
   // ── toolbar ───────────────────────────────────────────────────────────────
   $("open").onclick = openBible;
