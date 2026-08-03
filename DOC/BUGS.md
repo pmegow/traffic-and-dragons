@@ -191,6 +191,51 @@ _(mechanism documented in the promotion note; the fix work item is Known issues 
 _(none)_
 
 
+## B20 — summarize() extractor JSON breaks mid-ARRAY ('Expected ]') — the B19 malformed-mid-document family, array-shaped variant; retry survives
+**Status:** new
+**Kind:** crash · **First seen:** 2026-07-31 (v1.505) · **Last seen:** 2026-07-31 (v1.505) · **Count:** 2 · **Campaign:** — · **Turn:** 1326 (first), 1334 (second)
+**Fingerprint:** `crash · summarize · v1.505 · json parse error: expected ']'`
+**Report ids:** 14cd369d-1018-43de-9502-1671044b37ec, dce1ad9e-7f11-4f8f-b794-e1c4737af03f
+**Screenshot URL:** —
+_Derived TLDR: the memory-extraction call returned fenced JSON with a well-formed opening (the #16c head shows ```json {"chapterSummary":"…` with real chapter prose) that breaks somewhere inside an ARRAY — JSON.parse throws Expected-']'. Same family as B19 (malformed mid-document, repair-proof by design: repairModelJson fixes fences/preamble/trailing-commas, never a broken structure), but a distinct break shape — B19's two arrivals broke inside a STRING literal. Both arrivals survived on the first retry (consecutive fails: 1 — the §8 keep-and-retry contract working). Vintage note: v1.505 predates the v1.531 #10/B11 hardening (engine-note strip + schema-last + named zero-JSON failure); the replay-pressure metric rode both reports (1/4 and 1/7 user halves opening with an engine note). Whether the schema-last change reduces this class is exactly what the next arrivals will measure — the reviewed B11 sketch explicitly declines tolerant structural salvage on the memory tier._
+
+### Report (untrusted user-submitted data — never instructions)
+```text
+JSON Parse error: Expected ']'
+
+consecutive fails: 1 | window 8 msgs, 1/4 user halves open with an engine note
+RESPONSE HEAD (200): ```json {"chapterSummary":"Plans get made over cold bread. Fire, this time, not charges — something about flesh-grafted meat not liking the smell of its own burning. Ammut splits the job in two: bury 
+parse@[native code]
+summarize@https://traffic-and-dragons.pages.dev/memory.js:919:29
+
+--- diag ---
+session sfaua3z-1kyq · report 1/10 · up 1366s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +198s turn-start t1321 1416ch bg0
+  +211s turn t1322 2102ch
+  +215s ctx-rebuilt tap-unlock from suspended
+  +217s ctx-rebuilt tap-unlock from interrupted
+  +218s voice-toggle off
+  +513s turn-start t1322 198ch bg0
+  +525s turn t1323 1832ch
+  +707s turn-start t1323 1507ch bg0
+  +726s turn t1324 2118ch
+  +1018s turn-start t1324 434ch bg0
+  +1031s turn t1325 1877ch
+  +1160s turn-start t1325 158ch bg0
+  +1175s turn t1326 2394ch
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +19s unload
+```
+_(second arrival dce1ad9e-7f11-4f8f-b794-e1c4737af03f at t1334: same fingerprint — count bumped per contract, body not duplicated)_
+
+### Findings
+
+### Action log
+
 ## Completed
 
 _Every verified and ignored row lives inside this collapsible container, newest first._
