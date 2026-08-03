@@ -8,6 +8,11 @@ node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" || {
   echo "Commit blocked: TODO.md table integrity failed — a cell newline or stray edit broke a table (findings above)." >&2
   exit 1
 }
+node "$(git rev-parse --show-toplevel)/dev/check-shell-markers.js" || {
+  echo "" >&2
+  echo "Commit blocked: staged app-shell files require fresh APP_VERSION and CACHE markers (details above)." >&2
+  exit 1
+}
 node "$(git rev-parse --show-toplevel)/dev/run-tests.js" || {
   echo "" >&2
   echo "Commit blocked: engine tests failed. Open test.html in a browser for the red/green view." >&2
