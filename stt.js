@@ -299,11 +299,19 @@ var STT = (function() {
   // the native block above: start()/stop()/cancel() dispatch into here only when _Rec is
   // null, so native behavior is byte-identical when native recognition exists.
 
+  // ── #113 §4 upgrades (DOC/DOC_whisper_stt.html, user go 2026-08-03) ──────────────
+  var STT_CLOUD_MODEL    = "gpt-4o-mini-transcribe"; // §4b: better noisy-audio WER, half whisper-1's price — verify the id stays current (the PROVIDERS model-string discipline)
+  var STT_CLOUD_FALLBACK = "whisper-1";              // §4b: one retry on any primary-model failure — never a silent dead mic
+  var STT_MAX_RECORD_MS  = 45000; // §4c: hard cap (was 15000) — endpointing below usually stops long before this
+  var STT_SILENCE_MS     = 1500;  // §4c: sustained quiet that ends a take, once speech has been heard
+  var STT_MIN_RECORD_MS  = 1200;  // §4c: never endpoint before this — a slow starter is not silence
+
   var _cloudRec    = null;  // live MediaRecorder instance
   var _cloudStream = null;  // its MediaStream, so we can stop every track on finish
   var _cloudChunks = [];
   var _cloudMime   = "";
-  var _cloudTimer  = null;  // 15s auto-stop
+  var _cloudTimer  = null;  // STT_MAX_RECORD_MS auto-stop (the endpointing backstop)
+  var _nbToasted   = false; // §4d: narrowband-mic warning shown at most once per page load
 
   function _cloudAvailable() {
     return !!(typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
@@ -329,6 +337,19 @@ var STT = (function() {
 
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
       _cloudStream = stream;
+      // §4d mic-path telemetry: the findings doc's suspected dominant car factor is the
+      // Bluetooth hands-free route (telephone-band capture) — make it VISIBLE in the #16
+      // channel instead of inferring it from garbled transcripts. getSettings() is sync+cheap.
+      try {
+        var _tr = stream.getAudioTracks && stream.getAudioTracks()[0];
+        var _ms = (_tr && _tr.getSettings) ? _tr.getSettings() : {};
+        console.info("[stt] mic: sampleRate=" + (_ms.sampleRate || "?") + " ec=" + _ms.echoCancellation + " ns=" + _ms.noiseSuppression + " agc=" + _ms.autoGainControl);
+        if (typeof erCrumb === "function") erCrumb("stt-mic", { sr: _ms.sampleRate || 0, ec: _ms.echoCancellation ? 1 : 0, ns: _ms.noiseSuppression ? 1 : 0, agc: _ms.autoGainControl ? 1 : 0 });
+        if (_ms.sampleRate && _ms.sampleRate <= 16000 && !_nbToasted && typeof carMode !== "undefined" && carMode) {
+          _nbToasted = true;
+          if (typeof showToast === "function") showToast("🎙 The car's hands-free mic is telephone-quality — the phone's own mic hears dictation better.", 6000);
+        }
+      } catch(e) {}
       var mime = "";
       if (typeof MediaRecorder.isTypeSupported === "function") {
         if (MediaRecorder.isTypeSupported("audio/mp4")) mime = "audio/mp4";
@@ -360,10 +381,11 @@ var STT = (function() {
 
       _listening = true;
       _syncBtn();
-      if (typeof carNotify === "function") carNotify("info", "Recording — tap when done");
+      if (typeof carNotify === "function") carNotify("info", "Recording — pause to finish, or tap");
+      _vadStart(stream); // §4c: silence endpointing — no WebAudio → cap-only, exactly the old world
       _cloudTimer = setTimeout(function() {
         if (_listening && _cloudRec) stop();
-      }, 15000);
+      }, STT_MAX_RECORD_MS);
     }).catch(function(e) {
       if (typeof showToast === "function") showToast("Microphone permission denied.");
       if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
@@ -380,7 +402,53 @@ var STT = (function() {
     }
   }
 
+  // ── §4c silence endpointing (VAD-lite) ─────────────────────────────────────────
+  // WebAudio RMS gate: once speech has been heard, STT_SILENCE_MS of quiet ends the take —
+  // the driver stops talking, the app stops listening. The 15s wall was the car's worst UX:
+  // short utterances waited it out, long directives got truncated. ONE lazy AudioContext
+  // singleton (monotonic-resources rule — the Sound.js pattern); the per-recording source/
+  // analyser are disconnected in _vadStop, which every teardown path runs. Degrades safely:
+  // a noisy cabin whose floor never drops below the threshold simply rides to the hard cap —
+  // the pre-§4c behavior with a longer window, never a cut-off.
+  var _vadCtx = null, _vadSrc = null, _vadAnalyser = null, _vadPoll = null, _vadBuf = null;
+  function _vadStart(stream) {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!_vadCtx) _vadCtx = new AC();
+      if (_vadCtx.state === "suspended") { try { _vadCtx.resume(); } catch(e) {} }
+      _vadSrc = _vadCtx.createMediaStreamSource(stream);
+      _vadAnalyser = _vadCtx.createAnalyser();
+      _vadAnalyser.fftSize = 512;
+      _vadSrc.connect(_vadAnalyser);
+      _vadBuf = new Uint8Array(_vadAnalyser.fftSize);
+      var started = Date.now(), spoke = false, quietAt = 0;
+      _vadPoll = setInterval(function() {
+        if (!_listening || !_vadAnalyser) { _vadStop(); return; }
+        _vadAnalyser.getByteTimeDomainData(_vadBuf);
+        var i, sum = 0, d;
+        for (i = 0; i < _vadBuf.length; i++) { d = (_vadBuf[i] - 128) / 128; sum += d * d; }
+        var rms = Math.sqrt(sum / _vadBuf.length), now = Date.now();
+        if (rms > 0.02) { spoke = true; quietAt = 0; }
+        else if (spoke) {
+          if (!quietAt) quietAt = now;
+          if (now - quietAt >= STT_SILENCE_MS && now - started >= STT_MIN_RECORD_MS) {
+            console.info("[stt] endpoint: " + STT_SILENCE_MS + "ms of silence after speech — stopping at " + ((now - started) / 1000).toFixed(1) + "s");
+            _vadStop();
+            if (_listening && _cloudRec) stop();
+          }
+        }
+      }, 100);
+    } catch(e) { console.warn("[stt] VAD unavailable — cap-only endpointing:", e && e.message); }
+  }
+  function _vadStop() {
+    if (_vadPoll) { clearInterval(_vadPoll); _vadPoll = null; }
+    if (_vadSrc) { try { _vadSrc.disconnect(); } catch(e) {} _vadSrc = null; }
+    _vadAnalyser = null; _vadBuf = null;
+  }
+
   function _cloudTeardownStream() {
+    _vadStop(); // §4c: every stop path kills the monitor — nothing accumulates across takes
     if (_cloudTimer) { clearTimeout(_cloudTimer); _cloudTimer = null; }
     if (_cloudStream) {
       try {
@@ -423,25 +491,42 @@ var STT = (function() {
     if (typeof carNotify === "function") carNotify("info", "Transcribing…");
 
     var ext = (mime && mime.indexOf("mp4") >= 0) ? "mp4" : "webm";
+    // §4b: primary model with ONE loud fallback retry — a model-id rot or a 4xx on the newer
+    // endpoint must degrade to yesterday's behavior, never to a silently dead mic.
+    _transcribeOnce(blob, ext, key, STT_CLOUD_MODEL)
+      ["catch"](function(e) {
+        console.warn("[stt] " + STT_CLOUD_MODEL + " failed (" + (e && e.message) + ") — retrying with " + STT_CLOUD_FALLBACK);
+        if (typeof erCrumb === "function") erCrumb("stt-fallback", { m: STT_CLOUD_MODEL, err: String((e && e.message) || "?").slice(0, 40) });
+        return _transcribeOnce(blob, ext, key, STT_CLOUD_FALLBACK);
+      })
+      .then(function(json) {
+        _cloudFinalize(json && json.text ? String(json.text) : "");
+      }).catch(function(e) {
+        if (typeof showToast === "function") showToast("Voice transcription failed.");
+        if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
+        console.warn("[stt] cloud transcription failed:", e);
+        var el = document.getElementById("action-input");
+        if (el) el.focus();
+      });
+  }
+
+  // One transcription request. §4a: the prompt-bias field is the report's cheapest accuracy
+  // win — Whisper decodes toward vocabulary it has been told to expect, so the campaign's
+  // proper nouns (party, roster, places, quests) finally count as words. sttCorrectNames
+  // stays downstream as the second net.
+  function _transcribeOnce(blob, ext, key, model) {
     var form = new FormData();
     form.append("file", blob, "speech." + ext);
-    form.append("model", "whisper-1");
-
-    fetch("https://api.openai.com/v1/audio/transcriptions", {
+    form.append("model", model);
+    var bias = (typeof sttBiasPrompt === "function") ? sttBiasPrompt() : "";
+    if (bias) form.append("prompt", bias);
+    return fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
       headers: { "Authorization": "Bearer " + key },
       body: form
     }).then(function(resp) {
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + model + ")");
       return resp.json();
-    }).then(function(json) {
-      _cloudFinalize(json && json.text ? String(json.text) : "");
-    }).catch(function(e) {
-      if (typeof showToast === "function") showToast("Voice transcription failed.");
-      if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
-      console.warn("[stt] cloud transcription failed:", e);
-      var el = document.getElementById("action-input");
-      if (el) el.focus();
     });
   }
 

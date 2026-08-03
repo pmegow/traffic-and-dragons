@@ -582,6 +582,34 @@ function sttNameRoster(ws,mem){
 // tokens; exact roster words pass through untouched; an ambiguous tie between two DIFFERENT
 // canonical words is skipped (never guess between people). Punctuation/casing of the
 // surrounding text is preserved; substitutions use the roster's canonical casing.
+// ── #113 §4a (DOC/DOC_whisper_stt.html, user go 2026-08-03): the Whisper prompt bias ────────
+// The cloud STT request never told Whisper the campaign's vocabulary, so fantasy nouns decoded
+// to their nearest English homophones (Frizwick→Physics, Morwen→"more when") and the repair
+// fell entirely on sttCorrectNames after the fact. This builds the words the campaign actually
+// uses — party, roster, current place, live quest titles — deduped, budget-capped well under
+// Whisper's ~224-token prompt window. PURE read; "" when no campaign is loaded (creation
+// screen dictation gets no bias, correctly). Caution from the findings doc: a bias can also
+// PULL — it may hallucinate a roster name into unrelated speech; that residual class is #77's
+// confidence-gate territory, not a reason to stay silent about our own vocabulary.
+function sttBiasPrompt(){
+  if(typeof worldState==="undefined"||!worldState)return"";
+  var parts=[],seen={},i;
+  function add(nm){
+    if(!nm)return;
+    var k=String(nm).trim();
+    if(!k||seen[k.toLowerCase()])return;
+    seen[k.toLowerCase()]=1;parts.push(k);
+  }
+  try{
+    if(worldState.character)add(worldState.character.name);
+    var ns=worldState.npcs||[];for(i=0;i<ns.length;i++)add(ns[i]&&ns[i].name);
+    if(worldState.world){add(worldState.world.location);add(worldState.world.sublocation);}
+    var qs=worldState.questLog||[];for(i=0;i<qs.length;i++)add(qs[i]&&qs[i].title);
+  }catch(e){return"";}
+  var s=parts.join(", ");
+  if(s.length>800){s=s.slice(0,800);var cut=s.lastIndexOf(", ");if(cut>0)s=s.slice(0,cut);}/* cap at a clean name boundary */
+  return s;
+}
 function sttCorrectNames(text,roster){
   if(!text||!roster||!roster.length)return text;
   var toks=String(text).split(/(\s+)/),i,r;   // words + separator tokens interleaved

@@ -1115,6 +1115,44 @@ try {
   }
 } catch (e) { console.error("PENDING ACTION CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #113 STT UPGRADES CONTRACT (v1.536 — DOC/DOC_whisper_stt.html §4, user go 2026-08-03) ──
+// stt.js is a DOM-wiring file the headless harness never loads, so the four car-fix wirings
+// are pinned as source contracts (sttBiasPrompt itself is engine-tested in helpers).
+try {
+  var _fsS = require("fs"), _pathS = require("path");
+  var _ncS = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _stt = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "stt.js"), "utf8"));
+  // §4a — the bias rides every transcription request (a silent drop resurrects Frizwick→Physics).
+  if (!/form\.append\("prompt",\s*bias\)/.test(_stt) || _stt.indexOf("sttBiasPrompt") < 0) {
+    console.error("STT UPGRADES: the Whisper prompt-bias append is gone from _transcribeOnce — fantasy nouns decode as homophones again (#113 §4a).");
+    process.exit(1);
+  }
+  // §4b — primary model constant + the loud one-retry fallback path.
+  if (!/STT_CLOUD_MODEL\s*=/.test(_stt) || !/STT_CLOUD_FALLBACK\s*=/.test(_stt) || !/_transcribeOnce\(blob,\s*ext,\s*key,\s*STT_CLOUD_FALLBACK\)/.test(_stt)) {
+    console.error("STT UPGRADES: the model constants / fallback retry are gone — a primary-model failure now means a silently dead mic (#113 §4b).");
+    process.exit(1);
+  }
+  if (/form\.append\("model",\s*"whisper-1"\)/.test(_stt)) {
+    console.error("STT UPGRADES: a hardcoded whisper-1 model append crept back — route through STT_CLOUD_MODEL/STT_CLOUD_FALLBACK.");
+    process.exit(1);
+  }
+  // §4c — the cap runs on the constant (no literal 15000 wall) and every teardown kills the VAD.
+  if (!/},\s*STT_MAX_RECORD_MS\)/.test(_stt) || /,\s*15000\)/.test(_stt)) {
+    console.error("STT UPGRADES: the recording cap no longer runs on STT_MAX_RECORD_MS — the 15s wall is back (#113 §4c).");
+    process.exit(1);
+  }
+  var _tdS = _stt.slice(_stt.indexOf("function _cloudTeardownStream"), _stt.indexOf("function _cloudFinish"));
+  if (_tdS.indexOf("_vadStop()") < 0) {
+    console.error("STT UPGRADES: _cloudTeardownStream no longer stops the VAD monitor — the poll/source leak across takes (monotonic-resources rule).");
+    process.exit(1);
+  }
+  // §4d — the mic-path telemetry that makes the narrowband-BT car case visible in reports.
+  if (_stt.indexOf("getSettings") < 0 || !/erCrumb\("stt-mic"/.test(_stt)) {
+    console.error("STT UPGRADES: the mic getSettings → #16 crumb telemetry is gone — the suspected dominant car factor becomes invisible again (#113 §4d).");
+    process.exit(1);
+  }
+} catch (e) { console.error("STT UPGRADES CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains

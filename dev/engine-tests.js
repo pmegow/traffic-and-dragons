@@ -4430,6 +4430,35 @@ function runEngineTests(R){
     return extractorRespHasJson('Here you go: {"a":1}')?true:"prose-wrapped JSON refused";
   });
 
+  // ── #113 §4a: the Whisper prompt-bias builder ────────────────────────────────────────────
+  // DOC/DOC_whisper_stt.html: the cloud STT request never told Whisper the campaign's
+  // vocabulary, so fantasy nouns decoded to homophones (Frizwick→Physics). sttBiasPrompt
+  // serves the words the campaign actually uses — party, roster, places, quest titles —
+  // deduped and budget-capped (Whisper's prompt window is ~224 tokens).
+  section("STT prompt bias (#113 §4a)");
+  t("bias carries party + roster + location/sublocation + quest titles, deduped",function(){
+    makeWorld();
+    worldState.world.location="Sandpoint";worldState.world.sublocation="Rusty Dragon";
+    worldState.npcs=[{name:"Frizwick"},{name:"Morwen Zethran"},{name:"Frizwick"}];
+    worldState.questLog=[{title:"The Glassworks",status:"active"}];
+    var b=sttBiasPrompt();
+    if(b.indexOf("Tess")<0)return "player name missing";
+    if(b.indexOf("Frizwick")<0||b.indexOf("Morwen Zethran")<0)return "roster missing: "+b;
+    if(b.indexOf("Sandpoint")<0||b.indexOf("Rusty Dragon")<0)return "places missing: "+b;
+    if(b.indexOf("The Glassworks")<0)return "quest title missing: "+b;
+    return (b.match(/Frizwick/g)||[]).length===1?true:"dedupe failed: "+b;
+  });
+  t("bias is budget-capped and safe with no worldState",function(){
+    makeWorld();
+    worldState.npcs=[];for(var i=0;i<200;i++)worldState.npcs.push({name:"Verylongnpcname Number"+i});
+    var b=sttBiasPrompt();
+    if(b.length>820)return "budget blown: "+b.length+" chars";
+    var saved=worldState;worldState=null;
+    var empty=sttBiasPrompt();
+    worldState=saved;
+    return empty===""?true:"no-worldState should yield \"\": "+JSON.stringify(empty);
+  });
+
   // ── #72 C2: spell growth — picks at tier-unlock levels (ruled 2026-07-27) ────────────────
   // Full casters T2@5/T3@7/T4@9/T5@11/T6@15, half casters one behind (T2@7/T3@9/T4@13),
   // third casters (AT/EK) keyed to their archetype rows (T1@3/T2@10/T3@14/T4@18 — C7).
