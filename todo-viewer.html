@@ -157,6 +157,7 @@ var _sections = [];
 var _tasks = [];
 var _dragSrc = null;
 var _fileHandle = null;
+var _startHandle = null; // last-stored TODO handle, kept even when read permission has lapsed — used ONLY as the picker's startIn anchor (startIn needs no permission), so "Select TODO…" opens IN the project directory instead of the browser default
 var _fileName = ""; // name of the file being viewed (File System Access API exposes no directory path)
 var _addSec = -1;   // tasks-section idx the add bar targets; set by the per-section add buttons
 var _editIdx = -1;
@@ -197,6 +198,7 @@ window.addEventListener("DOMContentLoaded", function() {
   loadStoredHandle(function(handle) {
     if (!handle) return;
     _fileHandle = handle;
+    _startHandle = handle; // even if permission lapsed below, the handle still anchors the picker's start directory
     handle.queryPermission({mode:"read"}).then(function(perm) {
       if (perm === "granted") {
         handle.getFile().then(function(f) { readFile(f); }).catch(function() {});
@@ -224,9 +226,25 @@ window.addEventListener("DOMContentLoaded", function() {
 // (the IndexedDB handle made an AUDIT file sticky across sessions).
 function pickFile() {
   if (window.showOpenFilePicker) {
-    window.showOpenFilePicker({types:[{description:"Markdown",accept:{"text/plain":[".md",".txt"]}}]})
+    // Default to the PROJECT directory (user call 2026-08-03): `startIn` on the stored TODO
+    // handle opens the picker in that file's parent folder — the repo root — and needs no
+    // permission grant. `id` makes Chrome remember this picker's last directory on its own,
+    // separately from every other picker on the origin, so even a fresh profile converges on
+    // the project directory after the first open. A stale startIn handle (file moved/renamed)
+    // can reject the CALL itself — retried once without the anchor; a user cancel (AbortError)
+    // stays cancelled.
+    var opts = {id:"tnd-todo", types:[{description:"Markdown",accept:{"text/plain":[".md",".txt"]}}]};
+    if (_startHandle) opts.startIn = _startHandle;
+    window.showOpenFilePicker(opts)
+      ["catch"](function(err) {
+        if (err && err.name === "AbortError") throw err;
+        console.warn("[todo-viewer] picker rejected with the startIn anchor (stale handle?) — retrying without it:", err && err.message);
+        delete opts.startIn;
+        return window.showOpenFilePicker(opts);
+      })
       .then(function(handles) {
         _fileHandle = handles[0];
+        _startHandle = handles[0];
         saveHandle(_fileHandle);
         return _fileHandle.getFile();
       }).then(function(file) {
