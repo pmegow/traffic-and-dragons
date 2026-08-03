@@ -567,8 +567,7 @@ var CLASS_BIBLE = {
             "Telepathy",
             "Shrink",
             "Breathe Water",
-            "Slow",
-            "Group Telepathy"
+            "Slow"
           ],
           "4": [
             "Oubliate",
@@ -578,7 +577,7 @@ var CLASS_BIBLE = {
             "Archmage Hand",
             "Mass Charm",
             "Implant Memory",
-            "Mirror Image"
+            "Group Telepathy"
           ],
           "cantrips": [
             "Mage Hand",
