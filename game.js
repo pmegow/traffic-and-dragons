@@ -192,8 +192,9 @@ function suggestionRangeLocal(rangeStr){
 // Does the text INVOKE this capability (vs merely containing its words)? Generic English
 // collides with short spell names ("send a message", "heal up"): a single-word name counts only
 // when Capitalized mid-text (proper-noun signal) or within reach of a casting verb. Multi-word
-// names are distinctive enough on their own. Known leak, deliberate: sentence-INITIAL "Message
-// Ameiko…" reads as ambiguous imperative and passes — the off-scene-mention log still names it.
+// names are distinctive enough on their own. The sentence-initial "Message Ameiko…" ambiguity
+// this rule can't resolve is closed by rule ④ (#12/B18): verb-adjacent absent-NPC address is
+// rejected on adjacency alone, capitalization-independent.
 function suggestionInvokesCap(text,capName){
   var esc=String(capName).replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");
   var m=String(text).match(new RegExp("\\b"+esc+"\\b","i"));
@@ -276,6 +277,18 @@ function validateSuggestion(text,man){
     if(!npcs[j].dead)continue;
     if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give)\\b[\\s\\S]{0,24}\\b"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
       return {rule:"dead-npc-interaction",detail:npcs[j].name+" is deceased (t"+npcs[j].dead+")"};
+  }
+  // ④ (#12/B18, promoted from the log-only class): a direct-address verb IMMEDIATELY aimed at
+  // an absent NPC — "message Hemlock" from the Sea Cave tunnels (t1114). ADJACENCY is the
+  // precision lever: the verb must sit right on the name (articles/prepositions only between),
+  // so "Ask Morwen about Ameiko" binds to PRESENT Morwen and a trailing absent name never
+  // false-positives, while "message Hemlock" / "Message to Ameiko" are caught regardless of
+  // capitalization (this closes the sentence-initial leak rule ① documented).
+  for(j=0;j<npcs.length;j++){
+    if(npcs[j].dead)continue;/* ③ owns the dead — its message names the real reason */
+    if(present[String(npcs[j].name).toLowerCase()])continue;
+    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give|message|signal|hail|summon|contact|warn|alert|call out to)\\b[ '\"]{0,3}(to |with |the |a )?"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
+      return {rule:"absent-npc-direct-address",detail:npcs[j].name+" is not present in the scene"};
   }
   // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
   // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.

@@ -4502,6 +4502,25 @@ function runEngineTests(R){
     var v=validateSuggestion("Use Group Telepathy to reach Ameiko",buildSceneManifest());
     return v===null?true:"remote-capable capability wrongly gated: "+JSON.stringify(v);
   });
+  t("#12/B18: a direct-address verb aimed at an ABSENT NPC is rejected — the t1114 'message Hemlock' class, capitalization-independent",function(){
+    __gateWorld();
+    worldState.npcs.push({name:"Sheriff Belor Hemlock",partyMember:false,status:"steady"});
+    memory.npcs["Sheriff Belor Hemlock"]={lastSeenAt:"Sandpoint",events:[],knowledge:[]};
+    var man=buildSceneManifest();
+    var bad=validateSuggestion("Message Hemlock about the tunnels",man);
+    if(!bad||bad.rule!=="absent-npc-direct-address")return "the B18 button passed: "+JSON.stringify(bad);
+    var low=validateSuggestion("message Hemlock and ask for reinforcements",man);
+    if(!low||low.rule!=="absent-npc-direct-address")return "lowercase-verb variant passed (the #126 documented leak): "+JSON.stringify(low);
+    return true;
+  });
+  t("#12 precision: verb bound to a PRESENT NPC never fires on a trailing absent name; deferred non-verb forms pass",function(){
+    __gateWorld();
+    var man=buildSceneManifest();
+    if(validateSuggestion("Ask Morwen about Ameiko's disappearance",man)!==null)return "Ask-Morwen-about false positive";
+    if(validateSuggestion("Confront Morwen about the lie",man)!==null)return "present-NPC direct address rejected";
+    if(validateSuggestion("Write a letter to Ameiko for the Magnimar post",man)!==null)return "deferred letter form rejected";
+    return true;
+  });
 
   // ── UA26 + UA2: multi-enemy combat + ENEMY_SURRENDERS (MULTI_ENEMY_COMBAT §8) ──
   section("multi-enemy combat (UA26+UA2)");
