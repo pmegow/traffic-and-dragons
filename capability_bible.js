@@ -245,7 +245,7 @@ var CAPABILITY_BIBLE={
   // seeded class features that carried prose but no injectable canon.
   "action surge":{kind:"ability",tier:1,cost:"per-rest",isMagical:false,category:["martial"],range:"self",targets:"self",duration:"instantaneous",save:"N/A",dice:"N/A",effect:"Once per rest, take one additional action on your turn — a second attack sequence, a dash, a shove, a shout that rallies the line. The surge is a burst of trained speed, not magic."},
   // Indomitable is no longer on the Warrior ladder (v1.484 — replaced at L5 by Stunning Blow), but
-  // the legacy CLASS_FEATURES table still grants it at L7 in live play until C6-②, and it stays a
+  // pre-C6 saves may carry it from the old L7 grant (C6-③ deleted that table), and it stays a
   // perfectly good name for a later class. An unreferenced entry costs nothing; the coverage guard
   // only runs the other way (a bible NAME must resolve, not every entry must be used).
   "indomitable":{kind:"ability",tier:2,cost:"per-rest",isMagical:false,category:["martial"],range:"self",targets:"self",duration:"instantaneous",save:"N/A",dice:"N/A",effect:"Once per rest, reroll a saving throw you have just failed and take the second result. You set your feet against the thing that should have moved you."},

@@ -165,7 +165,7 @@ function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((
      economy (its own used gate, recharged at dawn), NEVER pooled.
    manaMax: base = sum of manaSpellCost over the known bench (so the pool scales with
      picks automatically — a player CAN still cast each spell exactly once), then +10%
-     per point of the class's castStat over 16, floored. castStat is CLSS data (#110:
+     per point of the class's castStat over 16, floored. castStat is class-bible data (#110, C6-② ported it:
      keyed per class, not per tradition); a class without one gets base only.
    manaCur: the stored c.mana clamped into [0, max] — and an ABSENT c.mana reads as
      FULL, which IS the migration ruling ("full pool for everyone"): old saves need no

@@ -18,15 +18,15 @@
 //    preview themselves — never type or paste a real key into eval yourself.
 //
 // 2. Build a minimal valid v10 character and start the game directly (skips the 7-step wizard).
-//    Inspect AUTHORS / TONES / CLSS / ANCS / ABILS live in the page to pick valid ids. Example:
+//    Inspect AUTHORS / TONES / CLASS_BIBLE (via classDefs()) / ANCS live in the page to pick valid ids. Example:
 //      (function(){
 //        var stats={STR:16,DEX:12,CON:14,INT:10,WIS:10,CHA:13};
-//        var hd=CLSS.filter(function(c){return c.id==="Warrior";})[0].hd;
+//        var hd=classDef("Warrior").hd;
 //        var maxHp=hd+Math.floor((stats.CON-10)/2);
 //        var char={name:"Test Name",gender:"M",age:"30",appear:"...",mark:"...",backstory:"...",
 //          ancestry:"human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
 //          cls:"Warrior",stats:stats,hp:maxHp,maxHp:maxHp,gold:40,
-//          inventory:["Longsword","Chainmail"],level:1,xp:0,abilities:ABILS.Warrior.slice(),
+//          inventory:["Longsword","Chainmail"],level:1,xp:0,abilities:classDef("Warrior").abilities.slice().map(function(a){return {nm:a.nm,ds:a.ds,gained:0};}), // C6-③: bible sourcr.slice(),
 //          spells:[],archetype:"",archetypeNm:"",statedAlignment:"True Neutral",
 //          actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",trait:"...",flaw:"...",
 //          motivation:"...",languages:[{name:"Common",broken:false}],skills:initSkills(),

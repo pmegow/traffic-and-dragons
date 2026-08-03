@@ -292,18 +292,17 @@ function runEngineTests(R){
   t("bibleCardHTML escapes an apostrophe name (no attr break)",function(){var h=bibleCardHTML("Hunter's Mark",capabilityLookup("Hunter's Mark"));return h.indexOf("Hunter&#39;s Mark")>=0?true:"apostrophe not escaped";});
 
   // ── 3. NPC name resolution (the v1.143 anti-fork engine) ─────────────────────
-  // ── class bible skeleton (#72, v1.464 — data only, NOT engine-wired until C6) ──
+  // ── class bible skeleton (#72 — THE engine store since C6-②/③, 2026-08-03) ──
   section("class bible (#72)");
-  t("structure: 9 classes matching CLSS, 3 archetypes each matching ARCHETYPES (both directions)",function(){
-    var ids=Object.keys(CLASS_BIBLE);
-    if(ids.length!==CLSS.length)return "class count "+ids.length+" vs CLSS "+CLSS.length;
-    var i,miss=[];
-    for(i=0;i<CLSS.length;i++){if(!CLASS_BIBLE[CLSS[i].id])miss.push(CLSS[i].id);}
-    if(miss.length)return "CLSS classes missing from the bible: "+miss.join(", ");
-    for(i=0;i<ids.length;i++){
-      var e=CLASS_BIBLE[ids[i]],legacy=ARCHETYPES[ids[i]]||[];
-      if(e.archetypes.length!==3)return ids[i]+" has "+e.archetypes.length+" archetypes";
-      for(var j=0;j<3;j++)if(e.archetypes[j].id!==legacy[j].id)return ids[i]+" archetype "+j+" id drifted: "+e.archetypes[j].id+" vs "+legacy[j].id;
+  t("structure: exactly 9 classes, 3 archetypes each, every entry carrying the classDef-served fields",function(){
+    var ids=Object.keys(CLASS_BIBLE),EXPECT=["Warrior","Rogue","Sorcerer","Ranger","Primal","Paladin","Cleric","Druid","Necromancer"];
+    if(ids.join(",")!==EXPECT.join(","))return "class roster/order drifted: "+ids.join(",");
+    for(var i=0;i<ids.length;i++){
+      var e=CLASS_BIBLE[ids[i]];
+      if(e.id!==ids[i])return ids[i]+" key/id mismatch: "+e.id;
+      if(typeof e.hd!=="number"||!e.prime||!e.gear||!e.statPriority||e.statPriority.length!==6)return ids[i]+" missing a classDef-served field";
+      if(!e.abilities||!e.abilities.length)return ids[i]+" has no starting abilities";
+      if((e.archetypes||[]).length!==3)return ids[i]+" has "+(e.archetypes||[]).length+" archetypes";
     }
     return true;
   });
@@ -333,9 +332,10 @@ function runEngineTests(R){
         if(/^Lv\d+$/.test(CLASS_BIBLE[k].levels[l].features[i].nm))return k+" L"+l+" still carries a level-number name";
     return true;
   });
-  t("XP curve: 20 strictly-ascending levels, first 10 the shipped XP_LEVELS verbatim, L20=355k",function(){
+  t("XP curve: 20 strictly-ascending levels, first 10 the legacy curve verbatim (frozen literals — C6-③ deleted XP_LEVELS), L20=355k",function(){
+    var LEGACY=[0,300,900,2700,6500,14000,23000,34000,48000,64000];
     if(CLASS_XP_LEVELS.length!==20)return "length "+CLASS_XP_LEVELS.length;
-    for(var i=0;i<10;i++)if(CLASS_XP_LEVELS[i]!==XP_LEVELS[i])return "L"+(i+1)+" diverges from the shipped table: "+CLASS_XP_LEVELS[i]+" vs "+XP_LEVELS[i];
+    for(var i=0;i<10;i++)if(CLASS_XP_LEVELS[i]!==LEGACY[i])return "L"+(i+1)+" diverges from the shipped table: "+CLASS_XP_LEVELS[i]+" vs "+LEGACY[i];
     for(i=1;i<20;i++)if(CLASS_XP_LEVELS[i]<=CLASS_XP_LEVELS[i-1])return "not ascending at L"+(i+1);
     return eq(CLASS_XP_LEVELS[19],355000);
   });
@@ -675,12 +675,10 @@ function runEngineTests(R){
   t("data: Primal is the class (hd 12, STR); Berserker is no longer a class id",function(){
     var d=classDef("Primal");if(!d||d.hd!==12||d.prime!=="STR")return "Primal def wrong: "+JSON.stringify(d);
     if(classDef("Berserker")!==null)return "Berserker still resolves as a class";
-    var a=ARCHETYPES.Primal||[],nms=a.map(function(x){return x.nm;}).join(",");
+    var a=(classDef("Primal")||{}).archetypes||[],nms=a.map(function(x){return x.nm;}).join(",");/* C6-③: the bible is the only store */
     if(nms!=="Totemborn,Berserker,Stormcaller")return "archetype nms: "+nms;
     var ids=a.map(function(x){return x.id;}).join(",");
     if(ids!=="totemborn,berserker,stormcaller")return "archetype ids not aligned to nms: "+ids;
-    if(!CLASS_FEATURES.Primal||!ABILS.Primal||!STAT_PRIORITY.Primal)return "a class-keyed table missed the rename";
-    if(CLASS_FEATURES.Berserker||ABILS.Berserker||STAT_PRIORITY.Berserker||ARCHETYPES.Berserker)return "a table still carries the Berserker key";
     return CLASS_BIBLE.Primal&&!CLASS_BIBLE.Berserker?true:"class bible missed the rename";
   });
   t("THE LAW: every archetype id is a word of its own display nm (lowercased, joined)",function(){
@@ -688,7 +686,7 @@ function runEngineTests(R){
     // trickery/"Subjugation Domain" can never ship again. Qualifiers (Domain, Circle of
     // the, Oath of) may drop from the id, but the id must appear IN the nm.
     var bad=[],k;
-    for(k in ARCHETYPES)ARCHETYPES[k].forEach(function(a){
+    for(k in CLASS_BIBLE)(CLASS_BIBLE[k].archetypes||[]).forEach(function(a){/* C6-③: scan the bible */
       if(a.nm.toLowerCase().replace(/[^a-z]/g,"").indexOf(a.id)<0)bad.push(k+": "+a.id+" / "+a.nm);
     });
     return bad.length?bad.join(" | "):true;
@@ -837,8 +835,8 @@ function runEngineTests(R){
     makeWorld();worldState.character.cls="Berserker";migrateWorldState();
     var d=classDef(worldState.character.cls);
     if(!d||d.hd!==12||d.prime!=="STR")return "hit die / prime moved";
-    if(!CLASS_FEATURES[worldState.character.cls])return "level features unreachable";
-    return STAT_PRIORITY[worldState.character.cls]?true:"stat priority unreachable";
+    if(!classFeaturesAt(worldState.character.cls,5).length)return "level features unreachable";/* C6-③ */
+    return d.statPriority&&d.statPriority.length===6?true:"stat priority unreachable";
   });
   t("guessCompanionClass: berserk/barbarian/primal prose all land on Primal",function(){
     if(guessCompanionClass("a berserker of the north")!=="Primal")return "berserk missed";
@@ -1121,7 +1119,7 @@ function runEngineTests(R){
     if(s.cls!=="Ranger")return "class guess: "+s.cls+" want Ranger (from 'hunter')";
     if(s.gender!=="F")return "gender from pronouns: "+s.gender;
     if(s.hp!==s.maxHp||s.hp<1)return "hp insane: "+s.hp+"/"+s.maxHp;
-    if(s.xp!==XP_LEVELS[3])return "xp not seeded at band floor: "+s.xp;
+    if(s.xp!==classXpLevels()[3])return "xp not seeded at band floor: "+s.xp;/* C6-③ */
     if(Object.keys(s.skills).length!==SKILLS.length)return "skills map incomplete";
     var arrs=["inventory","abilities","spells","conditions","relationships","saveModifiers","languages","storyBeats"],i;
     for(i=0;i<arrs.length;i++){if(!s[arrs[i]]||typeof s[arrs[i]].length!=="number")return arrs[i]+" missing";}
