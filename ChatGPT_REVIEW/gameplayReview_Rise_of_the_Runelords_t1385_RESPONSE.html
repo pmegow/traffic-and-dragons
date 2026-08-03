@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Response — Gameplay Review, Rise of the Runelords t1385</title>
+<style>
+  :root {
+    --bg: #111; --panel: #181818; --acc: #b8935a;
+    --t1: #ddd; --t2: #999;
+    --good: #7aa86a; --warn: #b8935a; --bad: #c05050;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--t1);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    max-width: 980px; margin: 0 auto; padding: 32px 20px 64px;
+    line-height: 1.6;
+  }
+  h1 { line-height: 1.2; color: var(--acc); font-size: 1.6rem; }
+  h2 { margin-top: 2.4rem; color: var(--acc); font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 6px; }
+  h3 { margin-top: 1.8rem; font-size: 1.02rem; color: var(--t1); }
+  .meta { color: var(--t2); font-size: .88rem; margin-top: -8px; }
+  .summary {
+    border-left: 4px solid var(--acc); padding: 14px 18px;
+    background: #1c170f; border-radius: 0 8px 8px 0; margin-top: 1.4rem;
+  }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .92rem; }
+  th, td { border: 1px solid #333; padding: 9px 11px; vertical-align: top; text-align: left; }
+  th { background: #1f1f1f; color: var(--acc); font-weight: 600; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .88em; background: #222; padding: 1px 5px; border-radius: 4px; color: #d8c9a8;
+  }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin-bottom: .35rem; }
+  a { color: var(--acc); }
+  .lean {
+    display: inline-block; font-family: ui-monospace, Consolas, monospace;
+    font-weight: bold; text-transform: uppercase; color: rgba(255,255,255,.4);
+    border-radius: 12px; padding: 2px 10px; font-size: .78em; letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .lean.good { background: #182215; border: 1px solid var(--good); }
+  .lean.warn { background: #251d12; border: 1px solid var(--warn); }
+  .lean.bad  { background: #260d0d; border: 1px solid var(--bad); }
+  .evidence {
+    background: #161616; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 10px 14px; font-size: .9rem; margin: .8rem 0; color: var(--t2);
+  }
+  .evidence b { color: var(--t1); }
+  .finding-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .disposition { color: var(--t2); font-size: .92rem; font-style: italic; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: #333; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--acc); }
+</style>
+</head>
+<body>
+
+<h1>Response to the ChatGPT Gameplay Review (Rise of the Runelords, t1385)</h1>
+<p class="meta">
+  Review under response: <code>ChatGPT_REVIEW/gameplayReview_Rise_of_the_Runelords_t1385.html</code> ·
+  Response written 2026-08-02 by Claude (Fable 5) ·
+  Method: the reviewed save (<code>t1385</code>) is not on this machine, so every state claim was
+  re-verified against the same campaign's on-disk lineage — the <code>t308</code> and <code>t1265</code>
+  exports — plus the working tree at HEAD (<code>3778590</code>, v1.524) and the project's own incident
+  records. No fixes have been applied — this document is assessment only.
+</p>
+
+<div class="summary">
+  <p><strong>Verdict on the review: excellent observation, one central misdiagnosis.</strong>
+  Every state anomaly the review reports is real — I reproduced each one in the campaign's earlier
+  exports. But its most dramatic finding, the "branch contamination / future knowledge" in
+  <code>storyBeats</code>, is misdiagnosed. Those beats are not an abandoned branch of this campaign:
+  they are the character's <em>previous campaign</em>, carried in when Ammut was imported to start
+  Rise of the Runelords, with turn stamps from that campaign's own counter. The proof is decisive:
+  all 111 "contaminated" beats — including the "future" turn-1391 one — are already present,
+  byte-for-byte, in the <code>t308</code> export made over a thousand turns ago. Nothing time-traveled;
+  the character arrived with a history and the schema has no field to say so.</p>
+  <p>Two of the review's recommendations were independently built before the review was read: the
+  suggestion feasibility gate shipped hours earlier as v1.524 (triggered by the <em>same</em> Ameiko
+  screenshot the review cites), and sync-payload compression shipped July 30 as v1.504 — the 961&nbsp;KB
+  payload the review measured is the fix working, down from 2.37&nbsp;MB at t1265. The review's best
+  novel find is the stale campaign-clock schedule: a deadline that came due at minute 357 has been
+  served to the GM as "happening now" for over a thousand turns, and it exposes a real design gap.</p>
+</div>
+
+<h2>Verdict summary</h2>
+<table>
+  <thead>
+    <tr><th>#</th><th>Review finding</th><th>Priority</th><th>Our verdict</th><th>One-line assessment</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td><td>Suggestion output is not feasibility-validated (the remote <code>Message</code> button)</td><td>P1</td>
+      <td><span class="lean good">Confirmed · Already shipped</span></td>
+      <td>Fixed as v1.524 (#126) from the same field screenshot, hours before this response; the exact button is now a regression test.</td>
+    </tr>
+    <tr>
+      <td>2</td><td>Branch contamination / future knowledge in <code>storyBeats</code></td><td>P1</td>
+      <td><span class="lean warn">Real symptom · Wrong mechanism</span></td>
+      <td>Not a branch — it's the imported character's prior-campaign history missing a campaign stamp. Fix direction changes accordingly.</td>
+    </tr>
+    <tr>
+      <td>3</td><td>NPC identity fragmentation (62 memory keys for 37 world NPCs)</td><td>P1</td>
+      <td><span class="lean good">Confirmed</span></td>
+      <td>Reproduced at t1265 (61/36; Hemlock ×4). Existing alias/merge tools haven't contained accretion; needs teeth.</td>
+    </tr>
+    <tr>
+      <td>4</td><td>Event and clock hygiene leaking stale pressure</td><td>P2</td>
+      <td><span class="lean good">Confirmed (clock) · Partly by design (events)</span></td>
+      <td>The overdue schedule entry is the review's best novel find. The futureEvents half already has deterministic teeth with known latency.</td>
+    </tr>
+    <tr>
+      <td>5</td><td>Core-memory tier over-weighting relationship moments</td><td>P2</td>
+      <td><span class="lean warn">Observation fair · Remedy disputed</span></td>
+      <td>The skew is real and structural, but the "rotating sample" cure would reintroduce the drift class the permanent tier exists to kill.</td>
+    </tr>
+    <tr>
+      <td>6</td><td>Mature-campaign cost and sync transport</td><td>P3</td>
+      <td><span class="lean warn">Numbers confirmed · Half already fixed</span></td>
+      <td>Payload compression shipped v1.504 (their own 961&nbsp;KB reading proves it). The extra suggestion call is a deliberate, documented trade.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Finding-by-finding assessment</h2>
+
+<h3 class="finding-head">1 · Suggestion feasibility validation <span class="lean good">Confirmed · Already shipped</span></h3>
+<div class="evidence">
+  <b>Verified:</b> commit <code>3778590</code> (v1.524, 2026-08-02) implements #126 — the suggestion
+  affordance gate — from the exact field case the review screenshots: "Send Message to Ameiko checking
+  Sandpoint's quiet" offered on the Magnimar road. <code>buildSceneManifest()</code> derives who is
+  present (party + <code>lastSeenAt</code> stamps + newest narration), exits from map edges, and
+  capabilities with bible ranges; <code>validateSuggestion()</code> rejects a scene-scale capability
+  aimed at an absent target; <code>applySuggestionGate()</code> fails closed with a manifest-composed
+  fallback. Eight engine tests were written failing first, including the verbatim reviewed button.
+</div>
+<p>The review and this project converged independently on the same architecture — deterministic
+validation between model output and rendered buttons, fail closed, and the explicit principle that
+roster/RAG context informs narration but does not <em>authorize</em> action targets. The review's
+pre-fix forensics also match ours: the prompt already told the model Ameiko was elsewhere (the NPC
+graph said so), and the model built the button anyway — which is why the fix is a new deterministic
+channel, not another prompt line.</p>
+<p>One deliberate divergence from the review's fuller proposal: it recommends structured action IDs
+rendered from validated data end-to-end. We chose to validate the model's free-text output against
+the scene manifest instead. The reasons are recorded project history: the suggestion call rides the
+main turn's still-warm prompt cache byte-identically, and an earlier "starved" structured version of
+this call shipped canon-violating buttons — suggestion <em>quality</em> depends on the model seeing
+the full narrative context and answering freely. Validation-after beats generation-from-IDs here.
+If telemetry shows the gate's three narrow rules leaking (the watch log already names the known
+ambiguous-imperative leak), promoting toward structured IDs is the escalation path.</p>
+<p class="disposition">Disposition: shipped (v1.524). The review independently validates the design
+call; its "keep RAG for narration, not as authority" phrasing is a better one-liner than ours and
+deserves to live in the #126 row's rationale.</p>
+
+<h3 class="finding-head">2 · "Branch contamination" in storyBeats <span class="lean warn">Real symptom · Wrong mechanism</span></h3>
+<div class="evidence">
+  <b>Verified, and stronger than the review knew:</b> the beats it flags are present in
+  <code>testRuns/Rise_of_the_Runelords_t308.tnd</code> — an export made when this campaign was at
+  turn 308. Indices 0–110 of <code>character.storyBeats</code> (turns "14" through "1391": the Fey
+  Court and Tally Court arcs, the Zethran debt discharges, the Greyvale Compact, the wedding, the
+  three-cord binding) are byte-identical across the t308, t1265, and — per the review's own
+  quotations — t1385 saves. The <em>native</em> Runelords beats begin at index 111 ("Ammut toasts all
+  three partnerships, old and new, while Sandpoint burns", t117). The turn-1391 "future" beat has
+  been in this save since at least turn 308.
+</div>
+<p>So this is not an abandoned branch, import/reload damage, or a mutation bug — the three hypotheses
+the review's (appropriately humble) confidence note offers. It is the system working as designed with
+one missing field. Ammut and Morwen were played through an entire prior campaign (~1,391 turns of it:
+how they met, cleared their bloodline debts, adopted Frizwick, married, and took the name Zethran),
+and the character was then imported to start Rise of the Runelords. <code>storyBeats</code> ride the
+character schema deliberately — carried history on imported characters is a user-ruled feature, and
+residue scans are forbidden from pruning it. What the beats <em>lack</em> is a campaign stamp: a
+foreign beat's turn number silently masquerades as this campaign's timeline, which is exactly how a
+careful external reviewer read turn 1391 in a turn-1385 save as time travel, and read the prior
+campaign's courthouse binding at "1366–1378" as conflicting with this campaign's North Road departure
+at the same numbers. Two independent turn counters, coincidentally overlapping ranges.</p>
+<p>This exact problem was already solved once, for the other permanent tier: core memories carry a
+<code>camp</code> stamp (#63), and a moment from another campaign renders attributed to that campaign
+("— an earlier adventure") instead of showing a meaningless turn number. Story beats never got the
+same treatment. The review's remedy — non-destructive quarantine, never delete — lands close to the
+right answer for the wrong reason; the correct shape is the #63 pattern: stamp new beats with the
+campaign id at write time, and at display/export/consumer boundaries render foreign beats attributed
+by campaign rather than by turn. For existing saves, the import boundary is detectable (the native
+sequence starts where the imported character's first in-this-campaign beat was filed), but any
+heuristic labeling of old data should be conservative and display-layer only.</p>
+<p>One impact correction: the review worries a "future prompt consumer" could treat these beats as
+canon. Today no prompt consumer exists — <code>storyBeats</code> are never injected into the system
+prompt (verified: zero references in <code>api.js</code>; their <code>fileDecision</code> twins fired
+in the <em>old</em> campaign's memory store, not this one). Exposure is the character-sheet display,
+exports, external review — this document's own origin story — and the planned story compiler, which
+reads from the transcript anyway. That lowers the severity from P1 to a solid P2: real, worth fixing,
+not currently distorting play.</p>
+<p class="disposition">Proposed disposition: queue a TODO row — campaign-stamp on new beats +
+campaign-attributed rendering for foreign beats (the #63 core-memory pattern), display/export layer
+only, no pruning. Character schema touch, so it takes the standard review before landing.</p>
+
+<h3 class="finding-head">3 · NPC identity fragmentation <span class="lean good">Confirmed</span></h3>
+<div class="evidence">
+  <b>Verified at t1265:</b> 61 <code>memory.npcs</code> keys against 36 world-roster NPCs — matching
+  the review's 62/37 trajectory at t1385. Hemlock exists under four keys ("Sheriff Belor Hemlock",
+  "Sheriff Hemlock", "Belor Hemlock", "Hemlock"), Ameiko and Shalelu under two each, and the
+  Scarred Man identity is scattered across at least five keys including "The Scarred Stranger
+  (Black-Eyed Man)", "The Scarred Man / The Collector", and "Marta / The Scarred Woman / The
+  Collector".
+</div>
+<p>Accurate, and honestly framed — the review correctly connects fragmentation to retrieval quality
+(RAG scoring is entity-keyed, so origin scenes filed under a variant key score below their true
+relevance) and plausibly to the suggestion failure's inputs. The project has partial machinery here:
+<code>[NPC_ALIAS:]</code> resolution is applied at every storage op, <code>[NPC_MERGE:]</code> absorbs
+duplicates, the RAG layer has a merge-orphan bridge, and the summarize extractor already proposes
+same-NPC merges that queue a GM-confirmed nudge rather than auto-merging (the #57 design — which is,
+nearly verbatim, the review's own "conservative merge-review queue showing proposed merges rather
+than silently merging"). The field evidence says that machinery under-fires: four Hemlock keys
+accreted anyway, because alias registration depends on the GM emitting tags it rarely volunteers,
+and the merge-confirm nudge fires from the extractor's occasional proposals rather than from a
+systematic scan.</p>
+<p>On the stable-ID migration: right call long-term, and the review is right that name-as-join-key
+is the root cause. It is also the single most invasive change on this list — the name key is the join
+across the world roster, memory, the map graph, transcript entity indexes, aliases, and the companion
+tag router, all of which sit squarely on the drift-protection surface. The cheaper, compounding first
+step is to make the existing merge queue systematic: a deterministic variant scan (token-subset
+matching on the roster the way "Sheriff Belor Hemlock" ⊃ "Hemlock") feeding the existing
+GM-confirmed merge channel, so accretion is drained continuously instead of waiting on extractor
+luck. That is an entry in an existing pattern, not a new architecture.</p>
+<p class="disposition">Proposed disposition: queue two TODO rows — near-term deterministic
+variant-scan feeding the #57 merge-confirm channel; long-term stable-ID design conversation
+(Fable-tier, drift surface, migration plan required).</p>
+
+<h3 class="finding-head">4 · Event and clock hygiene <span class="lean good">Confirmed (clock) · Partly by design (events)</span></h3>
+<div class="evidence">
+  <b>Verified:</b> the schedule entry "Tide turns against the return route" (id <code>sch1_357</code>,
+  born minute 207, due minute 357) is present and unresolved in the t1265 save at clock minute 2,483 —
+  and per the review still there at minute 6,005. <code>buildClockBlock()</code> serves every due
+  entry to the GM as "HAPPENING NOW" with its elapsed overdue time, every turn, forever. The only
+  removal paths are GM-emitted <code>[SCHEDULE_RESOLVED:]</code>/<code>[SCHEDULE_CANCEL:]</code> tags.
+  No deterministic expiry, escalation, or acknowledgment mechanism exists.
+</div>
+<p><strong>The clock half is the review's best novel find.</strong> This project has already learned —
+and written down — that the GM rarely emits resolution tags on its own: that lesson is why
+futureEvents grew deterministic teeth (#29: near-duplicate dedup, a 40-turn expiry sweep, and the
+extractor echoing finished items for removal). The scheduler shipped later with the same
+GM-dependent resolution model and none of the engine-side backstop, and this save demonstrates the
+predictable result: a five-and-a-half-thousand-minute-overdue "happening now" injected into every
+prompt across a thousand-plus turns. It is the same failure class, second instance — and by the
+house rule, a second instance means fix the class, not the point. The review's remedy sketch
+(retire-or-escalate overdue schedules after acknowledgment) is the right shape; the #29 machinery is
+the local precedent for how to build it.</p>
+<p>The futureEvents half is weaker: the two "stale" pending events it cites are subject to the
+existing 40-turn expiry sweep and the extractor's resolution echo at the next summarize, so their
+staleness is bounded latency, not unbounded leak — at t1265 the three pending events were all fresh
+and legitimate. That said, the review's sharper idea — resolving events on concrete engine receipts
+(a departure event resolved by the location transition that IS the departure) — is genuinely better
+than expiry for the detectable subset, and worth folding into any scheduler-teeth work. The
+zero-objective quest observation is a confirmed small gap: the #20 quest-lifecycle teeth fire on
+<em>completion</em> (all objectives done) but nothing nudges a new active quest that has no
+objectives at all; a one-line engine note when an active quest has concrete leads and an empty
+checklist is cheap and in-pattern.</p>
+<p class="disposition">Proposed disposition: queue a TODO row for scheduler teeth (expiry/escalation
+on the #29 pattern + receipt-based resolution where deterministically detectable) and a small row
+for the zero-objective quest nudge. Both touch prompt-injection blocks — drift surface, Fable tier.</p>
+
+<h3 class="finding-head">5 · Core-memory weighting <span class="lean warn">Observation fair · Remedy disputed</span></h3>
+<div class="evidence">
+  <b>Verified trajectory:</b> at t1265, 9 of Ammut's 13 core memories were filed after turn 1000,
+  predominantly relationship moments — consistent with the review's 12-of-16 at t1385. The tier is
+  capped at 25 per sheet, each entry one clamped sentence, injected as the DEFINING MOMENTS block
+  every turn.
+</div>
+<p>The observation is accurate and the cause is structural: the engine's triggers are near-death
+crossings, party joins/leaves/deaths, and weighty relationship descriptors — and in a campaign whose
+emotional engine is chosen family (the review's own, correct, story analysis), the weighty-relationship
+trigger dominates the recent fire rate. The disagreement is with the remedy. Replacing always-injected
+moments with "a small rotating/scene-relevant sample" reintroduces precisely the failure the
+permanent tier was built to prevent: state the GM must remember but is only sometimes shown gets
+compressed away, and the model confabulates the gaps. Rotation is how a wedding gets narrated twice.
+The tier's cost is bounded (≤25 one-liners per sheet, deduplicated across witnesses at render), and
+"the engine knows what mattered but not what matters now" is answered by the rest of the volatile
+prompt — quest blocks, clock, geography, engine notes — whose whole job is <em>now</em>.</p>
+<p>Where the review has a real point worth taking: several recorded moments are variations of the
+same already-settled bond, and the render layer already deduplicates same-moment copies across
+witnesses. Extending that idea — same-bond clustering at the <em>view</em> layer, so five milestones
+of one settled bond render as the strongest line rather than five — would concede the review's
+signal-density point without touching what is stored or reintroducing rotation. That is a design
+fork for the owner, not a defect fix.</p>
+<p class="disposition">Proposed disposition: no change to the storage contract or the always-injected
+guarantee. Offer the view-layer same-bond clustering idea to the owner as an optional design
+conversation.</p>
+
+<h3 class="finding-head">6 · Cost and transport <span class="lean warn">Numbers confirmed · Half already fixed</span></h3>
+<div class="evidence">
+  <b>Verified:</b> t1265 usage telemetry — $98.32 total; suggestions ("actions") $34.40 across 1,132
+  calls vs. 1,129 narrative turns; sync 999 posts / 1.91&nbsp;GB cumulative / last payload
+  2,371,157&nbsp;bytes. The review's t1385 figures ($113.61, $41.08/1,252, 1,273 posts / 2.32&nbsp;GB /
+  ~961&nbsp;KB) are the consistent continuation — <em>except</em> the payload, which <b>shrank</b> by
+  60% while the campaign grew 120 turns. That is #92 (v1.504, shipped 2026-07-30): the sync payload
+  now ships the transcript LZ-compressed. The review measured the fix working without knowing it
+  existed.
+</div>
+<p>All numbers check out. Three calibrations:</p>
+<ul>
+  <li><strong>The one-extra-call-per-turn is a purchase, not a leak.</strong> Suggestions were
+  deliberately decoupled from GM prose (#14), and the suggestion call deliberately receives the full
+  turn prompt because the starved mini-prompt version shipped canon-violating buttons — a documented,
+  user-flagged never-regress. Half its input tokens ride the turn's still-warm cache at the 0.1×
+  read rate (7.2M of 14.2M input tokens at t1265 were cache reads). The review's "deterministic
+  local fallbacks when possible" now partially exists — the v1.524 gate composes deterministic
+  fallbacks on rejection — but making the deterministic path <em>primary</em> would re-run the
+  starvation experiment with a worse generator. Declined on evidence.</li>
+  <li><strong>The transport recommendation is half-shipped, half-fair.</strong> Compression landed
+  (v1.504). The remaining idea — delta or content-addressed sync instead of reposting the full blob —
+  is legitimately the next rung and is already noted in the project's sync incident records
+  (alongside the related finding that the page-hide beacon flush silently caps at ~64&nbsp;KB, which
+  deltas would also cure). It is a server-protocol change touching transcript custody: real value,
+  heavyweight, correctly P3.</li>
+  <li><strong>Cumulative bandwidth is mostly historical.</strong> The 2.32&nbsp;GB accrued largely at
+  the pre-compression ~1.9–2.4&nbsp;MB per post; the go-forward rate is less than half that.</li>
+</ul>
+<p class="disposition">Proposed disposition: no action on suggestion-call economics (deliberate,
+documented, watched via the Usage modal). Queue delta-sync as a backlog row linked to the existing
+sync-transport observations; it competes for priority rather than jumping the queue.</p>
+
+<h2>What the review could not have known</h2>
+<ul>
+  <li><strong>The character predates the campaign.</strong> The single fact that reframes the
+  review's biggest finding — Ammut, Morwen, and Frizwick's shared history is an imported prior
+  campaign, and carried history on imports is a user-ruled feature — is invisible inside one save
+  file. The review's confidence note explicitly declined to guess the mechanism and recommended
+  non-destructive handling; that restraint was exactly right, and it is why its remedy stays 80%
+  usable after the rediagnosis.</li>
+  <li><strong>The suggestion-gate race.</strong> The same screenshot that anchored the review's P1
+  triggered #126 internally; the fix shipped hours before this response was written. Convergent
+  independent designs are good evidence the architecture is right.</li>
+  <li><strong>Sync compression shipped two days before the review.</strong> The 961&nbsp;KB payload
+  it read as a problem is the after-picture of the fix.</li>
+</ul>
+
+<h2>On the story and player analysis</h2>
+<p>No corrections — it is perceptive and matches the campaign's recorded evidence: the
+preparation-competence pattern shows in the skill spread, the moral-weight pattern in the decision
+log, and the "emotional safety earned after danger" rhythm in the beat and core-memory cadence. The
+analysis is, if anything, more right than it could prove: the chosen-family thread it identifies as
+the campaign's center is <em>literally</em> a previous campaign continuing — the marriage, the
+adopted sister, the family name all predate Sandpoint. Its framing that relationship material "is
+the campaign's emotional engine, not a distraction" aligns with how the engine already treats it
+(witnessed-by-all defining moments, companion relationship injection), and its Magnimar-arc pacing
+advice — legible lead, room to prepare, real consequences, credible return home — is good GM-craft
+that costs nothing to honor because it describes what the player already steers toward.</p>
+
+<h2>Bottom line</h2>
+<p>This is the second ChatGPT review in two days that earns a serious response. Every observable it
+reports is real and reproduced; its severity ordering is defensible; and its restraint about
+mechanisms it couldn't prove kept its recommendations usable even where its diagnosis was wrong.
+The scorecard: one P1 already fixed by convergent internal work (suggestion gate), one P1 rediagnosed
+from "branch contamination" to "imported history missing a campaign stamp" (fix direction changes,
+severity drops, the no-pruning instinct survives), one P1 confirmed with the remedy already
+half-designed in-project (NPC merge queue; stable IDs as the long game), one genuinely new find (the
+scheduler's missing deterministic teeth — a known failure class in its second instance), one design
+disagreement defended on recorded project history (core-memory rotation), and one P3 whose biggest
+item shipped before the review was read. The pattern across both reviews holds: external eyes are
+best at catching where a rule exists but its mechanism doesn't — the version-bump guard last time,
+the scheduler backstop this time.</p>
+
+<p class="meta">Nothing in this response modifies code or acts on any finding. All dispositions are
+proposals pending the owner's decision; accepted items would land as TODO.md rows per house process.</p>
+
+</body>
+</html>

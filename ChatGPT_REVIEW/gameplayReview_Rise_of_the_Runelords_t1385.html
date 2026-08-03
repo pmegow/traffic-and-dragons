@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gameplay Review — Rise of the Runelords, Turn 1385</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 1040px; margin: 0 auto; padding: 34px 20px 52px; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.18; } h2 { margin-top: 2.2rem; } h3 { margin-top: 1.5rem; }
+    .lead, .note { border-left: 4px solid #4d83d9; padding: 12px 16px; background: color-mix(in srgb, #4d83d9 10%, transparent); }
+    .note { border-color: #bf7a26; background: color-mix(in srgb, #bf7a26 10%, transparent); }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .94rem; }
+    th, td { border: 1px solid #8887; padding: 10px; vertical-align: top; text-align: left; }
+    th { background: color-mix(in srgb, #888 15%, transparent); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9em; }
+    ol, ul { padding-left: 1.35rem; } li + li { margin-top: .45rem; }
+    .priority { font-weight: 700; white-space: nowrap; }
+    .good { color: #208a58; font-weight: 700; } .risk { color: #c64a3f; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Gameplay Review: Rise of the Runelords (Ammut), Turn 1385</h1>
+  <p class="lead"><strong>Scope.</strong> Read-only analysis of <code>Rise_of_the_Runelords_t1385.tnd</code>. I performed three independent passes—recent transcript and chapters, player-choice/relationship evidence, and state/RAG/transport telemetry—then distilled the overlaps below. Preferences are inferred from play choices only, not from the player’s private life.</p>
+
+  <h2>Story and player analysis <small>(under 500 words)</small></h2>
+  <p>This is no longer a straight adaptation of <em>Rise of the Runelords</em>. It uses that campaign’s Varisian spine—Sandpoint, Thassilonian remnants, Karzoug, Magnimar—as a stage for Ammut’s own story: a competent, reckless Half-Fey Arcane Trickster building a chosen family while tracing a spiral-marked conspiracy north.</p>
+  <p>The immediate story is strong and clean. After destroying a Fogscar workshop and the regenerative “Sleeper,” the party has secured a fragile pause in Sandpoint. The final sequence gives each relationship a beat, obtains a credible Magnimar contact (Marisol Hask at the Naos Wick), receives a “weal and woe” augury, and finally puts the party on the North Road. At turn 1385, the road is quiet, the sign points toward Magnimar, and the next dramatic movement is obvious: docks, missing courier, corruption, and the spiral network.</p>
+  <p>The player appears to enjoy three things in combination. First, they enjoy <strong>competence expressed through preparation</strong>: reconnaissance, questioning contacts, checking routes, using traps and explosives, gathering documents, and making hard calls before danger becomes unavoidable. Ammut’s strongest skill pattern—Investigation, Perception, Stealth, Tracking, Deception, and Sleight of Hand—matches the actions actually chosen. Second, they enjoy <strong>agency with moral weight</strong>. The campaign repeatedly turns on deliberate choices: freeing captives, taking responsibility for dangerous operations, reporting honestly to Hemlock, and deciding when to burn, spare, expose, or withdraw. Third, they enjoy <strong>emotional safety earned after danger</strong>. The family’s quiet, intimate, and domestic scenes are not side content; they function as recovery, affirmation, and the reason the external plot matters.</p>
+  <p>The player is not playing as a pure optimizer or a tourist through module content. They use the module as a long-form character drama with investigation and tactical action as its pressure system. The most satisfying future experience will preserve that rhythm: a legible external lead, room to prepare and investigate, real consequences, then a credible return to the relationships that make the risk meaningful.</p>
+
+  <h2>Three-pass evidence</h2>
+  <table>
+    <thead><tr><th>Pass</th><th>Story/player finding</th><th>Technical finding</th></tr></thead>
+    <tbody>
+      <tr><td>1 — Current scene</td><td>The final seven turns are a well-built departure sequence: augury, contact, farewells, travel, then a cautious road scan. The player clearly values grounded transitions and checks danger rather than accepting a cutscene.</td><td>The live action-button system still surfaced an impossible remote <code>Message</code> action to Ameiko/Sandpoint. That is a current player-facing continuity failure, not a lack of spell canon.</td></tr>
+      <tr><td>2 — Decisions and relationships</td><td>Recent decisions alternate between decisive field leadership and deliberate rest/intimacy. The player treats the party’s bonds as canonical stakes, not disposable flavor.</td><td>The active Magnimar quest has no structured objectives despite concrete leads. Two completed future events remain pending: Daeris’s augury and departure from Sandpoint.</td></tr>
+      <tr><td>3 — Long campaign state</td><td>The campaign’s original Runelords structure remains useful as a horizon, but the player’s actual story has become a chosen-family investigation thriller. The engine should support that authored divergence.</td><td>RAG/state data has identity fragmentation, stale clock pressure, a future-branch story beat, and expensive full-state sync/action generation. These can slowly distort a mature campaign.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Technical diagnosis</h2>
+  <p><span class="good">Healthy foundation:</span> the save is substantial but viable: 1,385 turns, 2,767 transcript entries, 1,384 GM entries with entity indexes, 10 chapter summaries, 30 current lore records, 30 current decisions, and only 20 session-log entries after summarization. The transcript is the strongest historical record and the campaign has a coherent current location, party, quest, and progression state.</p>
+
+  <table>
+    <thead><tr><th>Priority</th><th>Evidence in this save</th><th>Player impact</th><th>Recommended improvement</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="priority">P1</td>
+        <td><strong>Suggestion output is not feasibility-validated.</strong> The current scene is on the North Road toward Magnimar, yet a displayed action suggests using <code>Message</code> on remote Ameiko in Sandpoint. The capability bible correctly defines <code>Message</code> as 120 ft; the model ignored prompt-only constraints.</td>
+        <td>The button converts stale memory into player intent. A player who trusts a suggestion is pushed toward impossible magic and broken scene continuity.</td>
+        <td>Implement a deterministic <strong>suggestion affordance surface</strong>: present people, scene objects, explicit exits, and currently usable capabilities only. Require structured action IDs, validate target presence/range/capability availability, render names from validated IDs, and fail closed to safe local fallbacks. Keep RAG for narration, not as authority to create action targets.</td>
+      </tr>
+      <tr>
+        <td class="priority">P1</td>
+        <td><strong>Branch contamination exists in story beats.</strong> The save is at turn 1385 and the transcript ends at 1385, but <code>character.storyBeats</code> contains a turn-1391 event. Several beats at turns 1366–1378 also conflict with the current transcript’s actual events at those same turns.</td>
+        <td>This is future knowledge and alternate-history contamination. It can spoil a later story compiler/export and risks a future prompt consumer treating an abandoned branch as canon.</td>
+        <td>Add a non-destructive chronology integrity pass on load/import: flag beats whose turn exceeds the transcript/world turn, and detect beats that conflict with the surviving transcript branch. Exclude flagged records from all prompt/export consumers; preserve them in a recoverable branch/archive until the player explicitly resolves them.</td>
+      </tr>
+      <tr>
+        <td class="priority">P1</td>
+        <td><strong>NPC identity fragmentation is severe.</strong> Memory has 62 NPC keys for 37 world NPCs. One person appears as <code>Sheriff Belor Hemlock</code>, <code>Sheriff Hemlock</code>, <code>Belor Hemlock</code>, and <code>Hemlock</code>, each with separate memories. Similar variants exist for Ameiko, Morwen, Shalelu, the Scarred Man, and others.</td>
+        <td>RAG can retrieve old or contradictory facts under different names, while action suggestions can resurrect remote people merely because an alias remains prominent. This is a likely contributor to the screenshot failure.</td>
+        <td>Make stable NPC IDs—not display names—the join key across world roster, memory, graph, transcript entity index, and aliases. Until that migration, run a conservative merge-review queue for strong token matches, showing proposed merges rather than silently merging characters.</td>
+      </tr>
+      <tr>
+        <td class="priority">P2</td>
+        <td><strong>Event and clock hygiene is leaking stale pressure.</strong> The augury and departure future events remain unresolved despite appearing in the transcript. The active quest has no objectives. A clock schedule created at minute 357 (“Tide turns against the return route”) is still due at minute 6,005—5,648 minutes late.</td>
+        <td>The GM continues to receive obsolete “pending” and “happening now” material. It can create phantom urgency, repeat completed beats, and leave the player without a legible quest checklist.</td>
+        <td>Use typed, ID-based event records linked to concrete engine receipts: resolve departure on location transition, resolve an augury on its cast/result, and retire or escalate overdue schedules after acknowledgement. Require a new active quest to carry at least one actionable objective; promote Marisol Hask/Fish Alley into the Magnimar quest now.</td>
+      </tr>
+      <tr>
+        <td class="priority">P2</td>
+        <td><strong>Core-memory weighting is becoming relationship-heavy.</strong> 12 of Ammut’s 16 core memories were filed after turn 1000, mostly relationship/intimacy moments. Those are meaningful and should remain recorded, but the always-injected tier is beginning to privilege one emotional register over current plot state.</td>
+        <td>The story can over-index on reassurance and past intimacy when the player wants the Magnimar investigation to move. This would feel like the engine knows what mattered, but cannot prioritize what matters now.</td>
+        <td>Keep every memory in the save, but inject a compact relationship digest: the current bond state plus a small rotating/scene-relevant sample of milestones. Reserve the permanent always-injected tier for irreversible status changes, not multiple variations of an already-settled bond.</td>
+      </tr>
+      <tr>
+        <td class="priority">P3</td>
+        <td><strong>Mature-campaign cost and transport are high.</strong> Reported usage is about $113.61; action suggestions account for $41.08 across 1,252 calls, nearly one extra model call per narrative turn. Cloud sync reports 1,273 posts, 2.32 GB cumulative transfer, and a latest payload near 961 KB.</td>
+        <td>Long sessions become more costly and more vulnerable to mobile latency, sync delay, and quota/network failure—especially when the extra call can generate invalid guidance.</td>
+        <td>After the affordance surface exists, use deterministic local fallbacks when possible and call the model only for genuinely varied/high-ambiguity suggestions. Move cloud sync toward chunked transcript/state deltas or content-addressed snapshots instead of repeatedly posting the full mature memory blob.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Distilled recommendations</h2>
+  <ol>
+    <li><strong>Protect player agency first:</strong> build the validated scene-local suggestion surface. It directly solves the visible bad button and prevents RAG from becoming an untrusted command source.</li>
+    <li><strong>Repair, do not erase, branch-contaminated state:</strong> quarantine future/conflicting story beats and make exports consume only the surviving transcript branch.</li>
+    <li><strong>Make identity and commitments durable:</strong> stabilize NPC IDs, turn concrete promises into typed event records, and link active quest objectives to current leads.</li>
+    <li><strong>Preserve the player’s preferred rhythm:</strong> use the Magnimar arc to alternate investigation/preparation, consequential action, and earned family respite. Do not treat the relationship material as a distraction from the campaign; it is the campaign’s emotional engine.</li>
+    <li><strong>Reduce mature-campaign friction:</strong> spend fewer model calls on unvalidated buttons and stop transmitting the full historical payload on routine sync.</li>
+  </ol>
+
+  <p class="note"><strong>Confidence note.</strong> The state inconsistencies are directly observable in the save. Their historical cause cannot be proven from this file alone: they may arise from an abandoned branch, import/reload behavior, or an earlier mutation path. The recommended repairs are therefore based on protecting the surviving transcript and preventing contaminated records from affecting play, rather than destructively guessing which historical record to delete.</p>
+</body>
+</html>
