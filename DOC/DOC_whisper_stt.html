@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T&D — Whisper STT findings (#113) + input proofreading (#77)</title>
+<style>
+  :root{--bg:#111;--bg2:#181818;--acc:#b8935a;--t1:#ddd;--t2:#999;--brd:#333;
+    --good:#7aa86a;--warn:#b8935a;--bad:#c05050;}
+  body{background:var(--bg);color:var(--t1);font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:28px 18px 60px;line-height:1.65;}
+  h1{color:var(--acc);font-size:22px;line-height:1.25;}
+  h2{color:var(--acc);font-size:16px;margin-top:34px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+  h3{font-size:14px;color:var(--t1);margin-top:22px;}
+  .meta{color:var(--t2);font-size:12px;margin-top:-6px;}
+  .tldr{border-left:4px solid var(--acc);background:#1c170f;padding:12px 16px;border-radius:0 8px 8px 0;margin:18px 0;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--brd);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#1f1f1f;color:var(--acc);}
+  code{font-family:Consolas,ui-monospace,monospace;font-size:.88em;background:#222;padding:1px 5px;border-radius:4px;color:#d8c9a8;}
+  .lean{display:inline-block;font-family:Consolas,ui-monospace,monospace;font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;white-space:nowrap;}
+  .lean.go{background:#182215;border:1px solid var(--good);}
+  .lean.defer{background:#251d12;border:1px solid var(--warn);}
+  .lean.nogo{background:#260d0d;border:1px solid var(--bad);}
+  ul{padding-left:1.3rem;} li{margin-bottom:6px;}
+  .note{color:var(--t2);font-size:12px;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#0a0a0a;} ::-webkit-scrollbar-thumb{background:#333;} ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+
+<h1>Whisper STT — where transcription should run, and why the car is failing</h1>
+<p class="meta">TODO #113 exploration + TODO #77 (input proofreading) design pairing · 2026-08-03 · findings only, no code shipped.
+Grounded in stt.js at v1.535 and the field report "practically unusable in the car."</p>
+
+<div class="tldr">
+<b>TLDR:</b> The car problem is mostly <i>not</i> a "wrong engine" problem — it is four smaller mechanical problems stacked:
+a Bluetooth hands-free mic path that feeds Whisper telephone-grade audio, a fixed 15-second recording window with no
+silence detection, the oldest transcription model OpenAI still serves, and — the cheapest finding in this report —
+<b>we never send Whisper its <code>prompt</code> bias parameter</b>, so it has no idea "Frizwick" or "Sandpoint" are words.
+Recommendation: <span class="lean go">GO</span> on four targeted upgrades to the existing cloud path (§4),
+<span class="lean defer">DEFER</span> self-hosted Whisper until the subscription model makes us the payer,
+<span class="lean nogo">NO-GO</span> on local WASM Whisper — it is the one option that makes the car case <i>worse</i>.
+#77's read-back-confirm should ship <i>after</i> the upgrades, gated on a confidence signal Whisper already returns, so it
+interrupts only when suspicion is earned (§5).
+</div>
+
+<h2>1 · What we run today (the control)</h2>
+<p>stt.js has two fully separate paths:</p>
+<ul>
+<li><b>Native</b> — Web Speech API (<code>webkitSpeechRecognition</code>): Chrome/Edge desktop + Android Chrome. Free, streaming, no key. Not Firefox; <b>not iOS Safari at all</b>.</li>
+<li><b>Cloud fallback</b> — <code>getUserMedia</code> → <code>MediaRecorder</code> (<code>audio/mp4</code> on iOS, webm/opus elsewhere) → hard <b>15s auto-stop</b> → multipart POST to OpenAI <code>/v1/audio/transcriptions</code> with <code>model=whisper-1</code> on the <b>player's own OpenAI key</b> → <code>sttCorrectNames</code> (deterministic roster-phonetic repair) → input box. This is the only path iPhone Safari / Car Mode has.</li>
+</ul>
+<p>The key-ownership property (player pays for their own transcription) was decisive in declining LiveKit and remains a hard constraint worth keeping.</p>
+
+<h2>2 · Why the car specifically is bad — the failure decomposed</h2>
+<table>
+<tr><th>Factor</th><th>Mechanism</th><th>Fixable by switching engines?</th></tr>
+<tr><td><b>Bluetooth hands-free audio</b></td><td>When the phone is paired to the car, iOS routes the microphone through the car's hands-free profile: narrowband (8–16&nbsp;kHz), aggressively DSP'd for phone calls, plus road noise and cabin echo. Whisper's error rate degrades sharply on telephone-band far-field audio — <i>every</i> engine's does. This is very likely the dominant factor.</td><td><b>No.</b> Engine-independent. Partially mitigable (§4d).</td></tr>
+<tr><td><b>15s fixed window, no VAD</b></td><td>No silence detection: short utterances wait out the window or need a manual tap (hostile while driving); long directives get truncated mid-sentence. Either failure reads as "the app didn't hear me."</td><td>No — capture-side. Fixable cheaply (§4c).</td></tr>
+<tr><td><b>No vocabulary bias</b></td><td>The request sends <i>only</i> the model name and the audio. Whisper accepts a <code>prompt</code> parameter (~224 tokens) that biases decoding toward expected vocabulary — we never use it, so fantasy proper nouns decode to their nearest English homophone (Frizwick→Physics, Morwen→"more when"). <code>sttCorrectNames</code> then repairs some of this after the fact, from the outside.</td><td>N/A — a one-line request change (§4a).</td></tr>
+<tr><td><b>Oldest model</b></td><td><code>whisper-1</code> (2022 lineage). OpenAI's 2025 transcribe models (<code>gpt-4o-transcribe</code>, <code>gpt-4o-mini-transcribe</code>) post materially lower word-error rates, especially on noisy audio, at the same endpoint.</td><td>N/A — a model-string change (§4b).</td></tr>
+<tr><td><b>No feedback loop</b></td><td>Nothing is visible/audible until stop → upload → response → auto-send. In a car the driver cannot verify what was heard — which is exactly #77's territory (§5).</td><td>No — UX-side.</td></tr>
+</table>
+
+<h2>3 · The three options (#113's frame), costed</h2>
+
+<h3>① Local WASM Whisper (whisper.cpp / transformers.js — the Piper #41 pattern) <span class="lean nogo">NO-GO</span></h3>
+<ul>
+<li><b>Only phone-feasible models are the worst ones.</b> tiny/base (~75–145&nbsp;MB) are the ceiling for browser WASM on a phone; their noisy-audio accuracy is far below API-side large models. The car case needs the <i>most</i> accuracy headroom; this option supplies the least.</li>
+<li><b>Latency:</b> WASM realtime factors of roughly 1–3× on mobile Safari mean a 12s utterance costs 10–30s of compute before the text exists — after the recording already ended. In-car that is unusable by construction.</li>
+<li><b>Memory:</b> a second ORT/wasm inference stack living beside Piper is exactly the iOS jetsam class the B9 arc spent weeks beating down (wasm linear memory grows and never shrinks; the r8 recycle exists because of it). The monotonic-resources rule says don't add a second ratchet to the same page.</li>
+<li><b>Cost:</b> $0/utterance, one ~100&nbsp;MB download — but the car is an online context; offline STT solves a problem the car doesn't have.</li>
+</ul>
+
+<h3>② Self-hosted Whisper on the Fly box (the #90 tnd-tts pattern) <span class="lean defer">DEFER</span></h3>
+<ul>
+<li><b>Viable:</b> faster-whisper <code>small</code>/<code>medium</code> on CPU fits the existing warm-daemon + volume machinery; auth via the game session token is already built; it removes the OpenAI-key requirement for connected players and mirrors <code>TTS_LADDER</code> cleanly (native → server → cloud-on-player-key).</li>
+<li><b>Costs (our box):</b> <code>small</code> wants ~1–2&nbsp;GB RAM, <code>medium</code> ~3–5&nbsp;GB. On Fly that is roughly a $5–15/mo machine if it rides the auto-stop pattern (with a 2–5s cold-start on first utterance), $15–30/mo kept warm. Not painful, but it buys <i>accuracy no better than the API's mini model</i> while moving the bill from the player to us.</li>
+<li><b>Why defer, not decline:</b> under the subscription model we become the payer anyway and the endpoint slots into the same routing table. Until then, the player-key path costs us $0 and the player fractions of a cent (below). Revisit when the server-proxy work (#115's long-term half) happens.</li>
+</ul>
+
+<h3>③ Status quo + targeted upgrades <span class="lean go">GO</span></h3>
+<p>Keep the architecture (native where it exists, cloud on the player's key elsewhere) and fix the four mechanical failures — see §4.</p>
+
+<h3>Costs, concretely</h3>
+<table>
+<tr><th>Path</th><th>Rate</th><th>Typical 8s utterance</th><th>Heavy car session (100 utterances)</th><th>Who pays</th></tr>
+<tr><td><code>whisper-1</code> (today)</td><td>$0.006/min</td><td>~$0.0008</td><td>~$0.08</td><td>Player (their key)</td></tr>
+<tr><td><code>gpt-4o-transcribe</code></td><td>$0.006/min</td><td>~$0.0008</td><td>~$0.08</td><td>Player</td></tr>
+<tr><td><code>gpt-4o-mini-transcribe</code></td><td><b>$0.003/min</b></td><td>~$0.0004</td><td><b>~$0.04</b></td><td>Player</td></tr>
+<tr><td>Self-hosted (faster-whisper)</td><td>$5–30/mo flat</td><td>—</td><td>—</td><td>Us</td></tr>
+<tr><td>Local WASM</td><td>$0 + ~100MB download</td><td>10–30s latency</td><td>battery + jetsam risk</td><td>Device</td></tr>
+</table>
+<p class="note">Verify current OpenAI pricing/model ids before implementing — same discipline as the PROVIDERS model strings. STT cost is noise next to GM turns either way: a whole month of daily car sessions costs less than two Sonnet turns.</p>
+
+<h2>4 · The recommended upgrades (all to the existing cloud path)</h2>
+<ul>
+<li><b>(a) Send the <code>prompt</code> bias — the biggest accuracy-per-line in the report.</b> Build it from what the engine already knows: party + roster names, current location/sublocation, active quest titles ("Frizwick, Morwen, Ammut, Sandpoint, Thistletop, …"). This attacks the Frizwick→Physics class <i>at decode time</i>, where it is cheap, instead of after the fact. <code>sttCorrectNames</code> stays as the second net. <span class="note">One caution: the prompt biases — it can occasionally hallucinate a roster name into unrelated speech, which is exactly what the #77 confidence gate (§5) exists to catch.</span></li>
+<li><b>(b) Model swap</b> to <code>gpt-4o-mini-transcribe</code> (better noisy-audio WER, half the price), with <code>whisper-1</code> as fallback on error — a PROVIDERS-style constant, not a hardcode.</li>
+<li><b>(c) Silence endpointing (VAD-lite):</b> a WebAudio <code>AnalyserNode</code> energy gate — stop the recorder after ~1.5s of sustained silence, and raise the hard cap from 15s to ~45s. No dependency, no wasm. The driver stops talking; the app stops listening. This also un-truncates long directives.</li>
+<li><b>(d) Mic-path hygiene:</b> audit <code>getUserMedia</code> constraints (<code>echoCancellation</code>/<code>noiseSuppression</code>/<code>autoGainControl</code> — defaults tuned for calls can hurt far-field dictation); log the active input device's sample rate into the #16 breadcrumbs so we can SEE the narrowband-BT case in field reports; add a Car Mode help note ("your car's hands-free mic is telephone-quality — the phone's own mic hears better"). We cannot fully control iOS audio routing; we can at least measure and say it.</li>
+</ul>
+
+<h2>5 · #77 — input proofreading / the read-back-confirm gate</h2>
+<p>The row's ask: a verification pass — the GM reads back what it heard and asks for confirmation before acting, toggleable, because in the car the player cannot see the input box. The row also assigns it the multiplayer voice-misattribution backstop (Q5/D13). Design findings:</p>
+<ul>
+<li><b>Layer it under the upgrades, not instead of them.</b> §4a+b should eliminate most of the garble class this row was filed about. Ship them first, measure (log <code>sttCorrectNames</code> hit rates + correction distances through the existing watch-log pattern), then tune how aggressive the confirm gate must be.</li>
+<li><b>Confidence-gated, not always-on.</b> The row itself worries the pass may irritate ("needs to be played a bit"). Whisper's <code>verbose_json</code> response already carries per-segment <code>avg_logprob</code> and <code>no_speech_prob</code> — a free suspicion signal. Confirm only when: confidence is low, OR <code>sttCorrectNames</code> had to make a far edit, OR the transcript contains an out-of-roster capitalized noun. High-confidence clean transcripts auto-send exactly as today.</li>
+<li><b>The read-back needs no second model call.</b> Speak the transcript itself through the existing TTS ladder ("I heard: <i>Show Corynn the symbol</i> — send it?") and accept spoken <i>yes / no / again</i> via the #78 spoken-pick vocabulary (<code>parseCarCommand</code> already owns this grammar). An LLM "nonsense filter" (Haiku-class, ~$0.0001/utterance) is a possible third layer but should wait for field evidence that the deterministic gates miss things.</li>
+<li><b>Placement:</b> File ▸ Admin toggle per the row; default ON in Car Mode, OFF elsewhere. The confirm moment is also the natural home for the multiplayer misattribution backstop — the spotlight player hears words they didn't say and declines — so no separate speaker-ID machinery is needed unless that ever proves insufficient.</li>
+</ul>
+
+<h2>6 · Go / no-go summary</h2>
+<table>
+<tr><th>Item</th><th>Verdict</th><th>One line</th></tr>
+<tr><td>Local WASM Whisper</td><td><span class="lean nogo">NO-GO</span></td><td>Least accuracy, worst latency, adds a second iOS memory ratchet — wrong on every axis the car cares about.</td></tr>
+<tr><td>Self-hosted Whisper (Fly)</td><td><span class="lean defer">DEFER</span></td><td>Sound pattern, wrong time — buys no accuracy over the API while moving the bill to us; revisit with the subscription proxy.</td></tr>
+<tr><td>§4a prompt bias</td><td><span class="lean go">GO</span></td><td>One request field; attacks the exact reported failure at its source.</td></tr>
+<tr><td>§4b model swap</td><td><span class="lean go">GO</span></td><td>Better in noise, half the price; constant + fallback, verify ids at build time.</td></tr>
+<tr><td>§4c VAD endpointing</td><td><span class="lean go">GO</span></td><td>Kills the 15s wall; no dependencies.</td></tr>
+<tr><td>§4d mic hygiene + telemetry</td><td><span class="lean go">GO</span></td><td>Makes the dominant (BT narrowband) factor visible and partially mitigable.</td></tr>
+<tr><td>#77 confidence-gated read-back</td><td><span class="lean go">GO</span> (after §4, measured)</td><td>Confirm only when suspicion is earned; spoken yes/no; owns the misattribution backstop.</td></tr>
+</table>
+
+<p class="note">Process: per #113's charter this is findings-only — each GO above becomes its own build row on approval.
+Drift-surface note for the build phase: stt.js is outside the drift surface, but #77's read-back touches the Car Mode
+turn-submission flow and the TTS queue; the confirm gate must never inject into sessionLog/transcript until confirmed.</p>
+
+</body>
+</html>
