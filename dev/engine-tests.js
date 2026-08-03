@@ -56,7 +56,7 @@ function runEngineTests(R){
   // ── 2. Pure helpers ──────────────────────────────────────────────────────────
   section("helpers");
   t("skillLevel thresholds",function(){var w=[[0,0],[1,1],[4,1],[5,2],[11,2],[12,3],[25,4],[49,4],[50,5]];for(var i=0;i<w.length;i++){if(skillLevel(w[i][0])!==w[i][1])return "successes "+w[i][0]+" → "+skillLevel(w[i][0])+" want "+w[i][1];}return true;});
-  t("getLvl boundaries",function(){var w=[[0,1],[299,1],[300,2],[899,2],[900,3],[64000,10],[999999,10]];for(var i=0;i<w.length;i++){if(getLvl(w[i][0])!==w[i][1])return "xp "+w[i][0]+" → "+getLvl(w[i][0])+" want "+w[i][1];}return true;});
+  t("getLvl boundaries",function(){var w=[[0,1],[299,1],[300,2],[899,2],[900,3],[64000,10],[84999,10],[85000,11],[999999,20]];for(var i=0;i<w.length;i++){if(getLvl(w[i][0])!==w[i][1])return "xp "+w[i][0]+" → "+getLvl(w[i][0])+" want "+w[i][1];}return true;});/* C6 ②: the curve runs to 20 — 85000 is the L11 gate, the old hard-10 cap is gone */
   t("alignLabel 9-grid corners + center",function(){return eq(alignLabel(0,0),"True Neutral")===true&&eq(alignLabel(2,2),"Lawful Good")===true&&eq(alignLabel(-2,-2),"Chaotic Evil")===true&&eq(alignLabel(0,2),"Neutral Good")===true?eq(alignLabel(2,0),"Lawful Neutral"):"corner mismatch";});
   t("toFirstPerson: possessive",function(){return eq(toFirstPerson("Gather your belongings"),"Gather my belongings");});
   t("toFirstPerson: subject you",function(){return eq(toFirstPerson("You draw your sword"),"I draw my sword");});
@@ -577,13 +577,72 @@ function runEngineTests(R){
   // After this step NOTHING outside classDefs()/classDef() reads CLSS directly, so
   // C6 ②'s store swap (CLSS → CLASS_BIBLE) is an edit inside those two functions.
   // These tests pin the ① contract; they get rewritten at ② when the store moves.
-  section("classDef (#72 C6 ①)");
-  t("classDefs() IS the CLSS table (same array — index/grid call sites stay byte-identical)",function(){
-    return classDefs()===CLSS?true:"classDefs() returned a different array";
+  section("classDef (#72 C6 ②: the store is CLASS_BIBLE)");
+  t("classDefs() serves the CLASS_BIBLE entries, insertion order, memoized (stable identity)",function(){
+    var a=classDefs(),ks=Object.keys(CLASS_BIBLE),i;
+    if(a.length!==ks.length)return "array length "+a.length+" vs "+ks.length+" bible classes";
+    for(i=0;i<ks.length;i++)if(a[i]!==CLASS_BIBLE[ks[i]])return "position "+i+" is not the live "+ks[i]+" entry";
+    return classDefs()===a?true:"not memoized — a fresh array per call breaks identity-based call sites";
   });
-  t("classDef resolves every canonical id to its own CLSS entry (object identity)",function(){
-    for(var i=0;i<CLSS.length;i++)if(classDef(CLSS[i].id)!==CLSS[i])return CLSS[i].id+" did not resolve to its own entry";
+  t("classDef resolves every canonical id to its own CLASS_BIBLE entry (object identity)",function(){
+    for(var k in CLASS_BIBLE)if(classDef(k)!==CLASS_BIBLE[k])return k+" did not resolve to its own entry";
     return true;
+  });
+  // ── THE C6 INVARIANT (DOC_class_bible landing sequence, ruled 2026-07-18) ──────
+  // "An existing character's derived values must not move." These literals were captured
+  // from the LIVE legacy tables (CLSS/STAT_PRIORITY/XP_LEVELS) on 2026-08-03, immediately
+  // before the ② swap — if any of them drifts, a mid-campaign character's hit die, mana
+  // stat, rolled-stat mapping or XP thresholds just moved under them. Content edits to
+  // OTHER bible fields (features, benches, gear) are the sanctioned "new world" and are
+  // deliberately NOT pinned here.
+  t("C6 INVARIANT: hd/prime/castStat/statPriority match the frozen legacy values for all 9 classes",function(){
+    var FROZEN={"Warrior":{"hd":12,"prime":"STR","castStat":"INT","statPriority":["STR","CON","DEX","WIS","CHA","INT"]},"Rogue":{"hd":8,"prime":"DEX","castStat":"INT","statPriority":["DEX","INT","CHA","CON","WIS","STR"]},"Sorcerer":{"hd":6,"prime":"INT","castStat":"INT","statPriority":["INT","DEX","CON","WIS","CHA","STR"]},"Ranger":{"hd":10,"prime":"DEX","castStat":"WIS","statPriority":["DEX","WIS","CON","STR","INT","CHA"]},"Primal":{"hd":12,"prime":"STR","castStat":null,"statPriority":["STR","CON","DEX","WIS","CHA","INT"]},"Paladin":{"hd":10,"prime":"CHA","castStat":"CHA","statPriority":["CHA","STR","CON","WIS","DEX","INT"]},"Cleric":{"hd":8,"prime":"WIS","castStat":"WIS","statPriority":["WIS","CON","STR","CHA","DEX","INT"]},"Druid":{"hd":8,"prime":"WIS","castStat":"WIS","statPriority":["WIS","CON","DEX","INT","CHA","STR"]},"Necromancer":{"hd":6,"prime":"INT","castStat":"INT","statPriority":["INT","CON","DEX","WIS","CHA","STR"]}};
+    for(var k in FROZEN){
+      var d=classDef(k),f=FROZEN[k];
+      if(!d)return k+" vanished from the store";
+      if(d.hd!==f.hd)return k+" hd moved: "+d.hd+" (frozen "+f.hd+") — every level-up HP roll just changed";
+      if(d.prime!==f.prime)return k+" prime moved: "+d.prime;
+      if((d.castStat||null)!==f.castStat)return k+" castStat moved: "+(d.castStat||null)+" (frozen "+f.castStat+") — mana pools just changed (#110)";
+      if(JSON.stringify(d.statPriority)!==JSON.stringify(f.statPriority))return k+" statPriority moved";
+    }
+    return true;
+  });
+  t("C6 INVARIANT: XP thresholds 1-10 are the shipped legacy curve verbatim; 11-20 extend it monotonically",function(){
+    var LEGACY=[0,300,900,2700,6500,14000,23000,34000,48000,64000];
+    var X=classXpLevels();
+    if(X.length!==20)return "curve length "+X.length+" (want 20)";
+    for(var i=0;i<10;i++)if(X[i]!==LEGACY[i])return "threshold for level "+(i+1)+" moved: "+X[i]+" vs legacy "+LEGACY[i]+" — existing characters' levels would shift";
+    for(i=10;i<20;i++)if(!(X[i]>X[i-1]))return "L11-20 curve not monotonic at index "+i;
+    return true;
+  });
+  t("C6 ②: level-ups grant NAMED bible rows — class row at L5, archetype row at L6, none in between",function(){
+    makeWorld();
+    var c=worldState.character;c.level=4;c.xp=2700;c.archetype="champion";c.abilities=[];
+    c.xp=14000;checkLevelUp();/* 4 → 6: crosses 5 (class row) and 6 (archetype row) */
+    if(c.level!==6)return "level "+c.level+" want 6";
+    var nms=c.abilities.map(function(a){return a.nm;});
+    if(nms.indexOf("Stunning Blow")<0)return "L5 class row missing: "+nms.join(", ");
+    var l6=archFeaturesAt("Warrior","champion",6);
+    if(!l6.length)return "fixture rot: Champion has no L6 row in the bible";
+    return nms.indexOf(l6[0].nm)>=0?true:"L6 archetype row ("+l6[0].nm+") missing: "+nms.join(", ");
+  });
+  t("C6 ②: levels 11-20 are REACHABLE — 85000 XP lifts a L10 character to 11 and grants the L11 class row",function(){
+    makeWorld();
+    var c=worldState.character;c.level=10;c.xp=64000;c.abilities=[];
+    c.xp=85000;checkLevelUp();
+    if(c.level!==11)return "level "+c.level+" want 11 (the pre-C6 world capped at 10)";
+    var l11=classFeaturesAt("Warrior",11);
+    if(!l11.length)return "fixture rot: Warrior has no L11 row";
+    for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===l11[0].nm)return true;
+    return "L11 row ("+l11[0].nm+") not granted";
+  });
+  t("C6 ②: companion twin grants the same named rows (incl. archetype when the sheet carries one)",function(){
+    makeWorld();
+    var cs={name:"Bryn",cls:"Warrior",archetype:"champion",level:4,xp:2700,maxHp:30,hp:30,stats:{CON:14},abilities:[]};
+    cs.xp=14000;checkCompanionLevelUp(cs);
+    if(cs.level!==6)return "companion level "+cs.level+" want 6";
+    var nms=cs.abilities.map(function(a){return a.nm;});
+    return nms.indexOf("Stunning Blow")>=0&&nms.length>=2?true:"companion rows missing: "+nms.join(", ");
   });
   t("classDef trims + case-folds as a FALLBACK (the normalizeCompanionSheet model-output path)",function(){
     var d=classDef("  rogue ");if(!d||d.id!=="Rogue")return "' rogue ' resolved to "+(d&&d.id);
@@ -2860,8 +2919,9 @@ function runEngineTests(R){
     if(c.maxHp!==14+9*4)return "maxHp "+c.maxHp+" want "+(14+36)+" (9/level x4)";
     if(c.hp!==14+9*4)return "hp "+c.hp+" want "+(14+36);
     var has=function(nm){for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===nm)return true;return false;};
-    if(!has("Lv2"))return "Lv2 feature (Action Surge) skipped by the jump";
-    return has("Lv5")?true:"Lv5 feature (Extra Attack) missing";
+    /* C6 ②: features arrive NAMED from the bible level rows, not as "LvN" string blobs */
+    if(!has("Action Surge"))return "L2 feature (Action Surge) skipped by the jump";
+    return has("Stunning Blow")?true:"L5 feature (Stunning Blow) missing";
   });
   t("quest block: all-objectives-done quest gets the close-or-extend instruction",function(){
     makeWorld();

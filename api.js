@@ -681,7 +681,7 @@ function buildSysPrompt(){
   // gate (racial 1/day), and states the pool. The refusal teeth live in the bible block header.
   var spstr="none";if(c.spells&&c.spells.length){var sp2=[];for(i=0;i<c.spells.length;i++){var _sp=c.spells[i];sp2.push(_sp.racial&&_sp.used&&_sp.lvl>0?_sp.nm+" [1/day — EXPENDED until dawn]":_sp.nm);}spstr=sp2.join(", ");}
   var _mMx=manaMax(c),manaStr=_mMx>0?"Mana: "+manaCur(c)+"/"+_mMx+" — a leveled cast costs its TIER in mana (cantrips free); a spell is castable only while the pool covers it."+(c.cls==="Necromancer"?" NECROMANCER: may cast beyond an empty pool — the engine automatically pays "+MANA_BLOOD_HP+" HP per missing mana point (never emit [HP:] for that price).":"")+"\n":"";
-  var nextXP=c.level<10?XP_LEVELS[c.level]:"max";
+  var nextXP=c.level<classXpLevels().length?classXpLevels()[c.level]:"max";/* C6 ②: the 1-20 curve */
   var genderDisplay=c.gender==="F"?"female":c.gender==="NB"?"non-binary":"male";
   // #46: injected conditions carry their AGE (engine-stamped turn) + cause when known, and each
   // afflicted sheet gets a cleanup instruction. Root cause of the Daeris incident (t359): a

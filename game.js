@@ -579,8 +579,12 @@ function checkLevelUp(){
     var conMod=c.stats&&typeof c.stats.CON==="number"?Math.floor((c.stats.CON-10)/2):0;
     var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     c.maxHp+=hpGain;c.hp+=hpGain;totalHp+=hpGain;
-    var features=CLASS_FEATURES[c.cls]||{};
-    if(features[c.level]){c.abilities.push({nm:"Lv"+c.level,ds:features[c.level],gained:worldState.turn});newFeatures.push(features[c.level]);}
+    // C6 ②: level rows come from the class bible — class rows (2/5/7/9/11/13/15/17) plus, once
+    // an archetype is committed, its rows (6/10/14/18 + capstone 20). Features are NAMED
+    // ({nm,ds}), not the legacy "Lv5" string blobs. No retroactive grants: only the level being
+    // crossed RIGHT NOW is read (the C6 invariant — Ammut sees the new world at his next level).
+    var _lvFeats=classFeaturesAt(c.cls,c.level).concat(archFeaturesAt(c.cls,c.archetype,c.level)),_lf;
+    for(_lf=0;_lf<_lvFeats.length;_lf++){c.abilities.push({nm:_lvFeats[_lf].nm,ds:_lvFeats[_lf].ds,gained:worldState.turn});newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);}
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
   if(typeof Sound!=="undefined")Sound.play("click_glass");/* #7: the attention sound fires BEFORE the message so it claims the playIfQuiet window (the toast-level poke must not double up) */
@@ -606,8 +610,8 @@ function checkCompanionLevelUp(cs){
     var conMod=cs.stats&&typeof cs.stats.CON==="number"?Math.floor((cs.stats.CON-10)/2):0;
     var hpGain=cls?hpGainPerLevel(cls.hd,conMod):3;/* #11②: shared formula (unknown-class fallback 3 unchanged) */
     cs.maxHp=(cs.maxHp||0)+hpGain;cs.hp=(cs.hp||0)+hpGain;
-    var features=CLASS_FEATURES[cs.cls]||{};
-    if(features[cs.level]){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:"Lv"+cs.level,ds:features[cs.level],gained:worldState?worldState.turn:0});}
+    var _cFeats=classFeaturesAt(cs.cls,cs.level).concat(archFeaturesAt(cs.cls,cs.archetype,cs.level)),_cf;/* C6 ②: bible rows, companion twin of checkLevelUp */
+    for(_cf=0;_cf<_cFeats.length;_cf++){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:_cFeats[_cf].nm,ds:_cFeats[_cf].ds,gained:worldState?worldState.turn:0});}
   }
   addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
   showToast((cs.name||"Companion")+" reached level "+newLvl+"!");
@@ -665,7 +669,7 @@ function buildCompanionSheetStub(npcName){
   var gender=npc.pronouns==="she/her"?"F":npc.pronouns==="they/them"?"NB":"M";
   var hp=companionBaselineHp(cls,lvl,0);
   return {name:npcName,gender:gender,age:"adult",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:null,subraceNm:null,heritageVariant:null,
-    cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,gold:0,inventory:[],level:lvl,xp:XP_LEVELS[lvl-1]||0,
+    cls:cls,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},hp:hp,maxHp:hp,gold:0,inventory:[],level:lvl,xp:classXpLevels()[lvl-1]||0,
     abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:null,
     trait:null,flaw:null,motivation:null,languages:[{name:"Common",broken:false}],skills:initSkills(),conditions:[],relationships:[],saveModifiers:[],
     portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
@@ -687,7 +691,7 @@ function normalizeCompanionSheet(raw,npcName){
   if(raw.abilities&&raw.abilities.length){s.abilities=[];for(i=0;i<raw.abilities.length&&s.abilities.length<6;i++){var ab=raw.abilities[i];if(ab&&typeof ab.nm==="string")s.abilities.push({nm:ab.nm,ds:typeof ab.ds==="string"?ab.ds:"",gained:worldState?worldState.turn:0});}}
   if(raw.spells&&raw.spells.length){s.spells=[];for(i=0;i<raw.spells.length&&s.spells.length<10;i++){var sp=raw.spells[i];if(sp&&typeof sp.nm==="string")s.spells.push({nm:sp.nm,lvl:parseInt(sp.lvl)||0,used:false});}}
   s.level=(worldState&&worldState.character&&worldState.character.level)||1;
-  s.xp=XP_LEVELS[s.level-1]||0;
+  s.xp=classXpLevels()[s.level-1]||0;
   var conMod=Math.floor((s.stats.CON-10)/2);
   var base=companionBaselineHp(s.cls,s.level,conMod);
   var mhp=parseInt(raw.maxHp);
@@ -785,15 +789,20 @@ function migratePendingCompanionSheets(){
   processPendingCompanionSheets();
 }
 function showArchetypeModal(){
-  var c=worldState.character,archs=ARCHETYPES[c.cls]||[];
+  var c=worldState.character,archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
   var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' onclick='pickArchetype("+i+")' style='text-align:left;padding:14px 16px;margin-bottom:10px;'><div class='nm' style='margin-bottom:5px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.5;'>"+archs[i].desc+"</div></div>";}
   /* #14: modalShell (ui-shell.js) — wireClose:false, forced milestone choice (no × / no outside-close) */
   modalShell("arch-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Level 3 Milestone</div><div style='font-size:18px;color:var(--t0);margin-bottom:18px;'>Choose Archetype</div>"+ch,
     {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
 }
 function pickArchetype(idx){
-  var c=worldState.character,archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;var arch=archs[idx];c.archetype=arch.id;c.archetypeNm=arch.nm;
+  var c=worldState.character,archs=(classDef(c.cls)||{}).archetypes||[];if(idx>=archs.length)return;var arch=archs[idx];c.archetype=arch.id;c.archetypeNm=arch.nm;
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:arch.nm,ds:arch.desc,gained:worldState.turn});
+  // C6 ②: the archetype's level rows up to the CURRENT level land with the commitment — normally
+  // just the L3 row, but a jump that crossed 3-6 before the pick catches up here. Dedupe by name
+  // so a re-pick path can never double-grant.
+  var _apLv,_apF,_apHave={},_api;for(_api=0;_api<c.abilities.length;_api++)_apHave[c.abilities[_api].nm]=1;
+  for(_apLv=3;_apLv<=c.level;_apLv++){var _apRows=archFeaturesAt(c.cls,arch.id,_apLv);for(_apF=0;_apF<_apRows.length;_apF++){if(!_apHave[_apRows[_apF].nm]){c.abilities.push({nm:_apRows[_apF].nm,ds:_apRows[_apF].ds,gained:worldState.turn});_apHave[_apRows[_apF].nm]=1;}}}
   // Grant the archetype/class spell list even if the character already owns RACIAL spells (audit E21):
   // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
   // Trickster, leaving them with no AT spells. Append what's missing (dedupe by name).
@@ -1942,7 +1951,7 @@ function initAbilities(){
   if(!c.abilities||!c.abilities.length){
     var abs=[],i,anc=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].nm===c.ancestry||ANCS[i].id===c.ancestry){anc=ANCS[i];break;}}
     if(anc&&anc.subraces&&c.subrace){for(i=0;i<anc.subraces.length;i++){if(anc.subraces[i].id===c.subrace){var rlbl2=c.ancestry==="Half-Blood"?"[Racial] One parent trait":"[Racial] "+anc.subraces[i].nm;var rdesc2=anc.subraces[i].desc;if(c.heritageVariant&&anc.subraces[i].lineages){var rlk2;for(rlk2=0;rlk2<anc.subraces[i].lineages.length;rlk2++){if(anc.subraces[i].lineages[rlk2].id===c.heritageVariant){rdesc2=anc.subraces[i].lineages[rlk2].desc;break;}}}abs.push({nm:rlbl2,ds:rdesc2,gained:0});break;}}}
-    var st=ABILS[c.cls]||[];for(i=0;i<st.length;i++)abs.push({nm:st[i].nm,ds:st[i].ds,gained:0});
+    var st=(classDef(c.cls)||{}).abilities||[];for(i=0;i<st.length;i++)abs.push({nm:st[i].nm,ds:st[i].ds,gained:0});/* C6 ② */
     c.abilities=abs;}
   updateAbPanel(false);
 }

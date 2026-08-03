@@ -308,7 +308,7 @@ function migrateWorldState(){
   // sheet with xp below XP_LEVELS[6] rendered a negative→full XP bar (the Morwen lie) and
   // implied more progress than existed. Floor, don't relevel: the character KEEPS the level
   // they've been played at; progress toward the next one restarts from the floor.
-  function _xpFloor(ch){if(!ch||typeof ch.level!=="number")return;var fl=XP_LEVELS[ch.level-1]||0;if(typeof ch.xp!=="number"||ch.xp<fl){ch.xp=fl;_mig=true;}}
+  function _xpFloor(ch){if(!ch||typeof ch.level!=="number")return;var fl=classXpLevels()[ch.level-1]||0;if(typeof ch.xp!=="number"||ch.xp<fl){ch.xp=fl;_mig=true;}}/* C6 ② */
   _xpFloor(worldState.character);
   for(_pn=0;_pn<worldState.npcs.length;_pn++){if(worldState.npcs[_pn]&&worldState.npcs[_pn].charSheet)_xpFloor(worldState.npcs[_pn].charSheet);}
   // P6 retro-clamp: pre-v1.211 saves carry sentence-length NPC statuses that ride the roster every

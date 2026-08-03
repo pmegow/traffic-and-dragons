@@ -20,7 +20,7 @@ function csHeroHeader(c){
   var genderLbl=genderLabel(c.gender);/* #11③: shared mapping */
   var subnm=c.subraceNm?c.subraceNm+" ":"";
   var clsLine=escHtml(subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":""));/* companion sheets are model-generated (#22/UA18) */
-  var lvl=c.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
+  var lvl=c.level||1,nextXP=lvl<classXpLevels().length?classXpLevels()[lvl]:"max",prevXP=classXpLevels()[lvl-1]||0;/* C6 ② */
   var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
   return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
 }
@@ -413,7 +413,7 @@ function showNpcSheet(name){
   if(sheet){
     var gLbl=genderLabel(sheet.gender);/* #11③: shared mapping */
     var clsLine=escHtml((sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":""));/* model-generated sheet fields (#22/UA18) */
-    var lvl=sheet.level||1,nextXP=lvl<10?XP_LEVELS[lvl]:"max",prevXP=XP_LEVELS[lvl-1]||0;
+    var lvl=sheet.level||1,nextXP=lvl<classXpLevels().length?classXpLevels()[lvl]:"max",prevXP=classXpLevels()[lvl-1]||0;/* C6 ② */
     var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
     // TODO #1 P1 (multiplayer D1/D8): the PC/NPC toggle — radio-style pair, highlighted side =

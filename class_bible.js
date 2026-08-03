@@ -30,6 +30,7 @@ var CLASS_BIBLE = {
     "nm": "Warrior",
     "hd": 12,
     "prime": "STR",
+    "castStat": "INT",
     "desc": "Weapon master, armor bearer",
     "gear": "hand-and-a-half sword, chainmail, belt knife, travel rations (3 days)",
     "statPriority": [
@@ -320,6 +321,7 @@ var CLASS_BIBLE = {
     "nm": "Rogue",
     "hd": 8,
     "prime": "DEX",
+    "castStat": "INT",
     "desc": "Shadow, cunning, and coin",
     "gear": "short blades x2, leather armor, lockpicks, smoke powder, travel rations (3 days), first aid pack",
     "statPriority": [
@@ -644,6 +646,7 @@ var CLASS_BIBLE = {
     "nm": "Sorcerer",
     "hd": 6,
     "prime": "INT",
+    "castStat": "INT",
     "desc": "Arcane power, fragile body",
     "gear": "carved staff, spell components, grimoire, travel rations (3 days)",
     "statPriority": [
@@ -965,6 +968,7 @@ var CLASS_BIBLE = {
     "nm": "Ranger",
     "hd": 10,
     "prime": "DEX",
+    "castStat": "WIS",
     "desc": "Hunter and tracker",
     "gear": "recurve bow, hunting knife, leather armor, trail kit, travel rations (3 days)",
     "statPriority": [
@@ -1529,6 +1533,7 @@ var CLASS_BIBLE = {
     "nm": "Paladin",
     "hd": 10,
     "prime": "CHA",
+    "castStat": "CHA",
     "desc": "Holy warrior, oath-bound",
     "gear": "longsword, shield, chainmail, holy symbol, travel rations (3 days)",
     "statPriority": [
@@ -1825,6 +1830,7 @@ var CLASS_BIBLE = {
     "nm": "Cleric",
     "hd": 8,
     "prime": "WIS",
+    "castStat": "WIS",
     "desc": "Divine power, battle priest",
     "gear": "mace, scale armor, shield, holy symbol, prayer beads, travel rations (3 days)",
     "statPriority": [
@@ -2146,6 +2152,7 @@ var CLASS_BIBLE = {
     "nm": "Druid",
     "hd": 8,
     "prime": "WIS",
+    "castStat": "WIS",
     "desc": "Nature magic, wild shape",
     "gear": "wooden staff, leather armor, herbalism kit, totem fetish, travel rations (3 days)",
     "statPriority": [
@@ -2462,6 +2469,7 @@ var CLASS_BIBLE = {
     "nm": "Necromancer",
     "hd": 6,
     "prime": "INT",
+    "castStat": "INT",
     "desc": "Death magic, bone and shadow",
     "gear": "skull focus, dark robes, grimoire of the dead, grave dust pouch, travel rations (3 days)",
     "statPriority": [

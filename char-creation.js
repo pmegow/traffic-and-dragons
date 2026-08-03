@@ -62,10 +62,10 @@ function pickCls(idx){var def=classDefs()[idx];/* #72 C6 ① */cs.cls=def.id;
   // Re-map already-rolled stats onto the new class's STAT_PRIORITY (audit E57) — keeps the rolled
   // numbers (no re-roll fishing) but re-prioritizes them, so switching class after rolling can't
   // leave a Sorcerer with INT as a dump stat. Point-buy mode (cs.rolled false) is untouched.
-  if(cs.rolled){var _vals=STATS.map(function(s){return cs.bs[s];}).sort(function(a,b){return b-a;});var _prio=STAT_PRIORITY[cs.cls]||STATS,_vi;for(_vi=0;_vi<_prio.length;_vi++)cs.bs[_prio[_vi]]=_vals[_vi];}
-  buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=ARCHETYPES[def.id]||[];var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+def.gear+'<br><span style="font-size:11px;color:#555;">Prime: '+def.prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
+  if(cs.rolled){var _vals=STATS.map(function(s){return cs.bs[s];}).sort(function(a,b){return b-a;});var _prio=(classDef(cs.cls)||{}).statPriority||STATS,_vi;for(_vi=0;_vi<_prio.length;_vi++)cs.bs[_prio[_vi]]=_vals[_vi];}/* C6 ② */
+  buildClsGrid();var gp=document.getElementById("gear-prev");if(!gp)return;var archs=(classDef(def.id)||{}).archetypes||[];/* C6 ② */var archNames=[],ai;for(ai=0;ai<archs.length;ai++)archNames.push(archs[ai].nm);gp.innerHTML='<span style="color:#555;font-size:11px;">STARTING GEAR</span><br>'+def.gear+'<br><span style="font-size:11px;color:#555;">Prime: '+def.prime+'</span>'+(archNames.length?'<br><span style="font-size:11px;color:#555;">Specializations: '+archNames.join(", ")+'</span>':"");}
 function buildStatGrid(){var fs=getFin();var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}var bst=[];if(a){if(a.fc>0)bst=cs.fp.slice();else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++)bst.push(keys[i]);}}var has=cs.rolled||cs.statMode==="pb";var el=document.getElementById("stat-grid");if(!el)return;var h="",si;for(si=0;si<STATS.length;si++){var s=STATS[si],base=cs.bs[s],fin=fs[s],bon=fin-base,ib=bst.indexOf(s)>=0;h+='<div class="sbox'+(ib?" bst":"")+'"><div class="sn">'+s+'</div><div class="sv">'+(has?base:"--")+'</div><div class="sf">'+(has&&bon>0?fin+" (+"+bon+")":"&nbsp;")+'</div><div class="sm">'+(has?smod(fin):"")+'</div></div>';}el.innerHTML=h;}
-function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=STAT_PRIORITY[cs.cls]||STATS;for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
+function rollAllStats(){var rolls=[],i;for(i=0;i<6;i++)rolls.push(r4d6());rolls.sort(function(a,b){return b-a;});var prio=(classDef(cs.cls)||{}).statPriority||STATS;/* C6 ② */for(i=0;i<prio.length;i++)cs.bs[prio[i]]=rolls[i];cs.rolled=true;buildStatGrid();}
 function setStatMode(m){cs.statMode=m;cs.rolled=false;if(m==="pb"){var i;for(i=0;i<STATS.length;i++)cs.bs[STATS[i]]=8;}document.getElementById("mode-roll").className=m==="roll"?"active":"";document.getElementById("mode-pb").className=m==="pb"?"active":"";document.getElementById("roll-sec").style.display=m==="roll"?"block":"none";document.getElementById("pb-sec").style.display=m==="pb"?"block":"none";if(m==="pb")buildPBCtrls();buildStatGrid();}
 function buildPBCtrls(){var fs=getFin(),el=document.getElementById("pb-ctrls");if(!el)return;var h="",i;for(i=0;i<STATS.length;i++){var s=STATS[i],v=cs.bs[s],fv=fs[s],bon=fv-v;h+='<div class="pb-row"><span class="pn">'+s+'</span><input type="range" min="8" max="15" value="'+v+'" onchange="pbChange(this,\''+s+'\')"/><span class="pv">'+v+'</span><span class="pf">'+(bon>0?"->"+fv:"")+'</span></div>';}el.innerHTML=h;var rem=PBM-pbSp(),el2=document.getElementById("pb-rem");if(el2){el2.textContent=rem;el2.style.color=rem<5?"#c04040":"inherit";}}
 function pbChange(sl,s){var val=parseInt(sl.value),prev=PBC[cs.bs[s]]||0,next=PBC[val]||0;if(pbSp()-prev+next>PBM){sl.value=cs.bs[s];return;}cs.bs[s]=val;buildPBCtrls();buildStatGrid();}
@@ -75,13 +75,13 @@ function rvSyncXp(){
   var hintEl=document.getElementById("rv-xp-hint");
   if(!lvlEl||!xpEl)return;
   var lvl=parseInt(lvlEl.value)||1;
-  var floor=XP_LEVELS[lvl-1]||0;
+  var floor=classXpLevels()[lvl-1]||0;
   // Preserve an in-band typed value instead of always resetting to the floor (audit E56) — this
   // fires on every name keystroke via buildReview, which used to wipe a tester's XP override.
-  var cap=lvl<10?XP_LEVELS[lvl]-1:Infinity,cur=parseInt(xpEl.value);
+  var cap=lvl<classXpLevels().length?classXpLevels()[lvl]-1:Infinity,cur=parseInt(xpEl.value);/* C6 ②: band caps follow the 1-20 curve */
   xpEl.value=(!isNaN(cur)&&cur>=floor&&cur<=cap)?cur:floor;
   xpEl.min=floor;
-  if(hintEl)hintEl.textContent="Floor for level "+lvl+": "+floor+" XP"+(lvl<10?" | Next level at: "+XP_LEVELS[lvl]+" XP":"");
+  if(hintEl)hintEl.textContent="Floor for level "+lvl+": "+floor+" XP"+(lvl<classXpLevels().length?" | Next level at: "+classXpLevels()[lvl]+" XP":"");
   var goBtn=document.getElementById("rv-go");
   if(goBtn)goBtn.textContent=lvl>=3?"Assign level perks":"Begin your journey";
   buildDots();
@@ -287,7 +287,7 @@ function confirmChar(){
   // Clamp the starting-XP override into the level's band [floor, next-1] (audit E56) — an unclamped
   // value at/above the next threshold made the first in-play [XP:] jump multiple levels (now safe
   // via E1's loop, but the character should still start inside its own band).
-  var xpEl=document.getElementById("rv-start-xp"),_xpFloor=XP_LEVELS[startLvl-1]||0,_xpCap=startLvl<10?XP_LEVELS[startLvl]-1:Infinity;
+  var xpEl=document.getElementById("rv-start-xp"),_xpFloor=classXpLevels()[startLvl-1]||0,_xpCap=startLvl<classXpLevels().length?classXpLevels()[startLvl]-1:Infinity;/* C6 ② */
   var startXp=xpEl?Math.min(Math.max(parseInt(xpEl.value)||0,_xpFloor),_xpCap):_xpFloor;
   var startLoc;
   if(pendingBlueprint&&pendingBlueprint.startingLocation){startLoc=pendingBlueprint.startingLocation;}
@@ -324,13 +324,13 @@ function confirmChar(){
       else char.abilities.push({nm:_nm,ds:_e.effect||"",gained:0,racial:true});
     }
   }
-  var clsAbs=ABILS[cs.cls]||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}
+  var clsAbs=(classDef(cs.cls)||{}).abilities||[],clsi;for(clsi=0;clsi<clsAbs.length;clsi++){char.abilities.push({nm:clsAbs[clsi].nm,ds:clsAbs[clsi].ds,gained:0});}/* C6 ② */
   // Level-band class features for a high-level start (audit E38). Previously these were added
   // ONLY in pickCreationArch (the level>=3 archetype path), so a level-2 start never received its
   // level-2 feature (Action Surge, Cunning Action, …) — and checkLevelUp only backfills features
   // for levels crossed AFTER creation, so the slot stayed permanently empty. Grant them here for
   // every startLvl>1 (level 1 has no features); pickCreationArch no longer adds them, so no double.
-  if(startLvl>1){var _cf=CLASS_FEATURES[cs.cls]||{},_cfi;for(_cfi=2;_cfi<=startLvl;_cfi++){if(_cf[_cfi])char.abilities.push({nm:"Lv"+_cfi,ds:_cf[_cfi],gained:0});}}
+  if(startLvl>1){var _cfi,_cfF,_cfRows;for(_cfi=2;_cfi<=startLvl;_cfi++){_cfRows=classFeaturesAt(cs.cls,_cfi);for(_cfF=0;_cfF<_cfRows.length;_cfF++)char.abilities.push({nm:_cfRows[_cfF].nm,ds:_cfRows[_cfF].ds,gained:0});}}/* C6 ②: bible class rows, NAMED (archetype rows land at the archetype pick) */
   char._campName=campNameVal;
   if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;
     // Snapshot for perk-flow Back (E2) + revert-safe CON→HP (E55): stats, abilities length, and the
@@ -340,19 +340,19 @@ function confirmChar(){
   else{char._startLoc=startLoc;if(buildPendingSpellPool(char)){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;showCreationSpellPick();}else{startGame(char,getToneNm(),getToneVc(),cs.author||"");}}
 }
 function showCreationArchetype(){
-  var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];
+  var c=pendingChar;if(!c)return;var archs=(classDef(c.cls)||{}).archetypes||[];/* C6 ② */
   document.getElementById("char-screen").style.display="none";
   var wrap=document.createElement("div");wrap.id="creation-arch";wrap.style.cssText="max-width:700px;margin:0 auto;padding:24px 20px;";
   var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' id='arch-card-"+i+"' onclick='selectCreationArch("+i+")' style='text-align:left;padding:16px 18px;margin-bottom:10px;'><div class='nm' style='margin-bottom:6px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.6;'>"+archs[i].desc+"</div></div>";}
-  var featHtml="",features=CLASS_FEATURES[c.cls]||{};
-  for(i=2;i<=c.level;i++){var f=features[i];if(!f)continue;var col=i===3?"var(--acc)":"var(--t0)";var bc=i===3?"var(--acc)":"var(--brd)";featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid "+bc+";border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:"+col+";'>Lv"+i+"</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>"+f+"</span></div>";}
+  var featHtml="";/* C6 ②: preview reads the bible's named class rows */
+  for(i=2;i<=c.level;i++){var _pf=classFeaturesAt(c.cls,i);if(!_pf.length)continue;var col=i===3?"var(--acc)":"var(--t0)";var bc=i===3?"var(--acc)":"var(--brd)";var _pfj,_pfTxt="";for(_pfj=0;_pfj<_pf.length;_pfj++)_pfTxt+=(_pfj?"<br>":"")+"<b>"+_pf[_pfj].nm+"</b> — "+_pf[_pfj].ds;featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid "+bc+";border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:"+col+";'>Lv"+i+"</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>"+_pfTxt+"</span></div>";}
   for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:var(--t0);'>Lv"+STAT_BUMP_LEVELS[i]+": Stat bump</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>+2 to one or +1 to two. Max 20.</span></div>";}
   wrap.innerHTML="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Starting level "+c.level+" -- required</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your archetype</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>You are a <strong style='color:var(--t0);'>"+c.cls+"</strong>. At level 3, every "+c.cls.toLowerCase()+" commits to a path.</p>"+ch+(featHtml?"<div style='border:1px solid var(--brd);border-radius:10px;background:var(--bg1);padding:16px 18px;margin-top:20px;'><div style='font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:10px;'>Abilities at level "+c.level+"</div>"+featHtml+"</div>":"")+"<p id='arch-warn' style='font-size:12px;color:#c04040;min-height:16px;margin-top:12px;'></p><button id='arch-confirm-btn' onclick='confirmCreationArch()' style='width:100%;margin-top:6px;padding:13px;font-size:15px;font-family:var(--font);background:#333;color:#666;border:1px solid #444;border-radius:var(--r);cursor:default;font-weight:bold;' disabled>Choose an archetype above</button>";
   document.body.appendChild(wrap);
   window._selectedArchIdx=-1;
 }
 function selectCreationArch(idx){
-  var archs=ARCHETYPES[pendingChar.cls]||[],i;
+  var archs=(classDef(pendingChar.cls)||{}).archetypes||[],i;/* C6 ② */
   for(i=0;i<archs.length;i++){var el=document.getElementById("arch-card-"+i);if(el){el.style.borderColor=i===idx?"var(--acc)":"var(--brd)";el.style.background=i===idx?"#1e1800":"var(--bg1)";var nm=el.querySelector(".nm");if(nm)nm.style.color=i===idx?"var(--acc)":"var(--t0)";}}
   window._selectedArchIdx=idx;
   var btn=document.getElementById("arch-confirm-btn");
@@ -383,13 +383,16 @@ function syncPerkHp(){
   c.maxHp=pendingPerkBase.maxHp+d;c.hp=pendingPerkBase.hp+d;
 }
 function pickCreationArch(idx){
-  var c=pendingChar;if(!c)return;var archs=ARCHETYPES[c.cls]||[];if(idx>=archs.length)return;
+  var c=pendingChar;if(!c)return;var archs=(classDef(c.cls)||{}).archetypes||[];if(idx>=archs.length)return;/* C6 ② */
   // Idempotent (E2): reset to the snapshot first, so re-entering the archetype screen (via Back)
   // and picking again — the same OR a different archetype — never leaves a stale archetype ability
   // or previously-applied stat bumps behind. Features were granted once in confirmChar (E38).
   restorePerkBase();_cbApplied=[];
   c.archetype=archs[idx].id;c.archetypeNm=archs[idx].nm;
   if(!c.abilities)c.abilities=[];c.abilities.push({nm:archs[idx].nm,ds:archs[idx].desc,gained:0});
+  // C6 ②: a high-level start owes the archetype's rows up to its level (3/6/10…) — granted at the
+  // pick, mirroring in-game pickArchetype. Idempotent under E2's restorePerkBase reset above.
+  var _caLv,_caF;for(_caLv=3;_caLv<=c.level;_caLv++){var _caRows=archFeaturesAt(c.cls,c.archetype,_caLv);for(_caF=0;_caF<_caRows.length;_caF++)c.abilities.push({nm:_caRows[_caF].nm,ds:_caRows[_caF].ds,gained:0});}
   var wrap=document.getElementById("creation-arch"),i;if(wrap)wrap.remove();
   var bumpsNeeded=0;for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)bumpsNeeded++;}
   if(bumpsNeeded>0){pendingBumps=bumpsNeeded;currentBump=1;showCreationStatBump();}

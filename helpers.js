@@ -105,16 +105,27 @@ function getFin(){
   else{var keys=Object.keys(a.stats);for(i=0;i<keys.length;i++){b[keys[i]]=(b[keys[i]]||8)+a.stats[keys[i]];}}
   return b;
 }
-// ── classDef (#72 C6 ①, v1.472): THE class lookup ─────────────────────────────
-// classDefs()/classDef() are the ONLY readers of the CLSS table — every former
-// hand-rolled `for(i…) if(CLSS[i].id===…)` loop routes through here, so C6 ②'s
-// store swap (CLSS → CLASS_BIBLE) becomes an edit inside these two functions and
-// nowhere else. classDef matches the canonical id exactly first, then falls back
-// to a trimmed case-insensitive scan (normalizeCompanionSheet feeds it raw model
-// output; for canonical ids the fallback never fires, so engine behavior at the
-// old exact-match sites is unchanged). Returns null when nothing matches —
-// callers keep their own fallbacks (getMHP's 8, companionBaselineHp's hd 10).
-function classDefs(){return CLSS;}
+// ── classDef (#72 C6 ①→②, v1.472/v1.533): THE class lookup ───────────────────
+// C6 ② LANDED (2026-08-03): the backing store is now CLASS_BIBLE — the ① refactor
+// made every former hand-rolled `for(i…) if(CLSS[i].id===…)` loop route through
+// these two functions, so the swap happened HERE and nowhere else, exactly as the
+// DOC_class_bible landing sequence ruled 2026-07-18. classDefs() serves a memoized
+// ARRAY view (insertion order = the creation grid order — byte-identical to the
+// old CLSS ordering, invariant-tested), each element the live CLASS_BIBLE entry
+// object. classDef matches the canonical id exactly first, then falls back to a
+// trimmed case-insensitive scan (normalizeCompanionSheet feeds it raw model
+// output). Returns null when nothing matches — callers keep their own fallbacks
+// (getMHP's 8, companionBaselineHp's hd 10).
+// C6 INVARIANT (the spec's): an existing character's derived values must not move
+// — hd/prime/castStat/statPriority and XP 1-10 are pinned to the legacy values as
+// FROZEN LITERALS in the invariant test; new content applies only at the NEXT
+// level-up (Ammut at L10 sees the new world at L11 — no retroactive grants).
+var _classDefsArr=null;
+function classDefs(){
+  if(_classDefsArr)return _classDefsArr;
+  _classDefsArr=[];var k;for(k in CLASS_BIBLE)_classDefsArr.push(CLASS_BIBLE[k]);
+  return _classDefsArr;
+}
 function classDef(id){
   var L=classDefs(),i;
   for(i=0;i<L.length;i++){if(L[i].id===id)return L[i];}
@@ -123,6 +134,26 @@ function classDef(id){
     for(i=0;i<L.length;i++){if(L[i].id.toLowerCase()===n)return L[i];}
   }
   return null;
+}
+// The 1–20 XP curve (#72 C4/C4b — L1–10 verbatim the shipped XP_LEVELS, so existing
+// levels cannot move; 11–20 opens the post-C6 world). THE accessor: nothing reads
+// CLASS_XP_LEVELS or the dead XP_LEVELS directly.
+function classXpLevels(){return CLASS_XP_LEVELS;}
+// Level-row features (#72 C3/C4): class rows at 2/5/7/9/11/13/15/17, archetype rows
+// at 3/6/10/14/18 + capstone 20. Both return [] when nothing lands at that level —
+// callers grant with no per-shape branching.
+function classFeaturesAt(clsId,lvl){
+  var d=classDef(clsId);
+  return (d&&d.levels&&d.levels[lvl]&&d.levels[lvl].features)||[];
+}
+function archFeaturesAt(clsId,archId,lvl){
+  if(!archId)return[];
+  var d=classDef(clsId);if(!d||!d.archetypes)return[];
+  var i;for(i=0;i<d.archetypes.length;i++){
+    if(d.archetypes[i].id===archId)
+      return (d.archetypes[i].levels&&d.archetypes[i].levels[lvl]&&d.archetypes[i].levels[lvl].features)||[];
+  }
+  return[];
 }
 function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
 /* ── mana pool (#110) ──────────────────────────────────────────────────────────────────
@@ -174,7 +205,7 @@ function pbSp(){var t=0,i;for(i=0;i<STATS.length;i++){t+=(PBC[cs.bs[STATS[i]]]||
 function getToneNm(){if(!cs.tone)return"Unspecified";if(cs.tone==="custom")return"Custom";var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].nm;}return"Unspecified";}
 function getToneVc(){if(!cs.tone)return"";if(cs.tone==="custom"){var el=document.getElementById("tone-ct");return el?el.value.trim():"";}var i;for(i=0;i<TONES.length;i++){if(TONES[i].id===cs.tone)return TONES[i].vc;}return"";}
 function getSubNm(){var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(!a||!a.subraces)return"";var j,k;for(j=0;j<a.subraces.length;j++){if(a.subraces[j].id===cs.subrace){if(cs.heritageVariant&&a.subraces[j].lineages){for(k=0;k<a.subraces[j].lineages.length;k++){if(a.subraces[j].lineages[k].id===cs.heritageVariant)return a.subraces[j].lineages[k].nm;}}return a.subraces[j].nm;}}return"";}
-function getLvl(xp){var i,l=1;for(i=1;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i])l=i+1;else break;}return Math.min(l,10);}
+function getLvl(xp){var _X=classXpLevels();var i,l=1;for(i=1;i<_X.length;i++){if(xp>=_X[i])l=i+1;else break;}return l;}/* C6 ②: the curve length IS the cap (20) — the old Math.min(l,10) was the pre-bible world's ceiling */
 function alignLabel(law,good){var l=law>=2?"Lawful":law<=-2?"Chaotic":"Neutral";var g=good>=2?"Good":good<=-2?"Evil":"Neutral";if(l==="Neutral"&&g==="Neutral")return"True Neutral";if(l==="Neutral")return"Neutral "+g;if(g==="Neutral")return l+" Neutral";return l+" "+g;}
 function skillLevel(successes){var i;for(i=SKILL_THRESHOLDS.length-1;i>=0;i--){if(successes>=SKILL_THRESHOLDS[i])return i+1;}return 0;}
 function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
