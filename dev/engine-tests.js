@@ -8337,6 +8337,95 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #129 — schedule escalate-then-expire teeth + zero-objective quest nudge ─────────────────
+  // Field case (ChatGPT gameplay review of the t1385 Runelords save, confirmed on the t1265
+  // export): "Tide turns against the return route" came due at clock minute 357 and was still
+  // being served as HAPPENING NOW at minute 6,005 — ~1,100 turns of phantom urgency, because
+  // resolution depended on the GM emitting [SCHEDULE_RESOLVED:] unprompted (the #29 futureEvents
+  // lesson, relearned). Teeth: engine-note escalation past SCHEDULE_ESCALATE_MIN overdue, loud
+  // deterministic retirement past SCHEDULE_EXPIRE_MIN.
+  section("#129 — schedule teeth + quest objective nudge");
+  t("buildScheduleEscalation: silent inside the grace window, fires past SCHEDULE_ESCALATE_MIN with the resolve instruction", function(){
+    makeWorld(); clockAdvance(60); scheduleAdd("Tide turns","1h");   // due at min 120
+    clockAdvance(90);                                                // min 150 → overdue 30, inside grace
+    if(buildScheduleEscalation()!=="")return "should be silent 30m overdue: "+buildScheduleEscalation();
+    clockAdvance(SCHEDULE_ESCALATE_MIN);                             // now well past the threshold
+    var n=buildScheduleEscalation();
+    if(n.indexOf("Tide turns")<0)return "note missing the label: "+n;
+    if(n.indexOf("[SCHEDULE_RESOLVED:Tide turns]")<0)return "note missing the resolve instruction: "+n;
+    if(n.indexOf("[SCHEDULE_CANCEL:Tide turns]")<0)return "note missing the cancel alternative: "+n;
+    return true;
+  });
+  t("buildScheduleEscalation: silent during combat; picks the STALEST of two overdue events", function(){
+    makeWorld(); scheduleAdd("Older","10m"); clockAdvance(SCHEDULE_ESCALATE_MIN+200);
+    scheduleAdd("Newer","1m"); clockAdvance(SCHEDULE_ESCALATE_MIN+5);
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};
+    if(buildScheduleEscalation()!=="")return "must stay silent during combat";
+    worldState.combat=null;
+    var n=buildScheduleEscalation();
+    return n.indexOf("'Older'")>=0?true:"should pick the stalest event: "+n;
+  });
+  t("buildEngineNotes carries the schedule escalation (real channel wiring, not just the builder)", function(){
+    makeWorld(); scheduleAdd("The ship sails","5m"); clockAdvance(SCHEDULE_ESCALATE_MIN+60);
+    var notes=buildEngineNotes();
+    return notes.indexOf("The ship sails")>=0?true:"escalation did not reach the engine-note channel: "+notes.slice(0,200);
+  });
+  t("scheduleSweepExpired: retires past SCHEDULE_EXPIRE_MIN — loud, archived, fresh entries survive", function(){
+    makeWorld();
+    scheduleAdd("Doomed","1m"); clockAdvance(SCHEDULE_EXPIRE_MIN+120);  // long past expiry
+    scheduleAdd("Fresh","3d");                                          // pending, must survive
+    // A section far above swaps showToast for a no-op and never restores it, so capture locally
+    // (the harness __toasts stub is dead by the time this section runs).
+    var _swToasts=[],_swPrev=showToast;showToast=function(m){_swToasts.push(String(m));};
+    var out;try{out=scheduleSweepExpired();}finally{showToast=_swPrev;}
+    if(out.length!==1||out[0].label!=="Doomed")return "wrong sweep result: "+JSON.stringify(out);
+    if(worldState.clock.schedule.length!==1||worldState.clock.schedule[0].label!=="Fresh")return "fresh entry did not survive: "+JSON.stringify(worldState.clock.schedule);
+    if(!memory.archive||!memory.archive.expiredSchedules||memory.archive.expiredSchedules.length!==1||memory.archive.expiredSchedules[0].label!=="Doomed")return "not archived: "+JSON.stringify(memory.archive&&memory.archive.expiredSchedules);
+    if(_swToasts.join(" ").indexOf("expired unresolved")<0)return "expiry must toast (no silent failures): "+JSON.stringify(_swToasts);
+    return true;
+  });
+  t("an overdue-but-not-expired event survives the sweep and still escalates", function(){
+    makeWorld(); scheduleAdd("Simmering","1m"); clockAdvance(SCHEDULE_ESCALATE_MIN+30);
+    if(scheduleSweepExpired().length!==0)return "escalation-window event must NOT be swept";
+    if(worldState.clock.schedule.length!==1)return "event vanished";
+    return buildScheduleEscalation().indexOf("Simmering")>=0?true:"should still escalate";
+  });
+  t("the sweep runs on the REAL turn path — the exact field case heals through applyMuts (#107 wiring lesson)", function(){
+    makeWorld();
+    clockAdvance(207); scheduleAdd("Tide turns against the return route","150m"); // due at min 357 — the live save's entry
+    clockAdvance(6005-clockNow());                                                // → min 6005, 5648m overdue (the reviewed numbers)
+    if(clockNow()!==6005)return "harness arithmetic wrong: "+clockNow();
+    applyMuts("The road is quiet, no tags this turn.");
+    if(worldState.clock.schedule.length!==0)return "the field entry survived a real turn: "+JSON.stringify(worldState.clock.schedule);
+    if(buildClockBlock().indexOf("Tide turns")>=0)return "retired entry still haunts the clock block";
+    if(!memory.archive.expiredSchedules||memory.archive.expiredSchedules[0].label.indexOf("Tide turns")<0)return "field entry not archived";
+    return true;
+  });
+  t("quest stamp: an active quest with no objectives gets noObjSince on the applyMuts pass; a QUEST_STEP clears it", function(){
+    makeWorld(); worldState.turn=40;
+    worldState.questLog=[{title:"The Magnimar Lead",status:"active",desc:"",objectives:[],started:40}];
+    applyMuts("no tags this turn");
+    if(worldState.questLog[0].noObjSince!==40)return "noObjSince not stamped: "+JSON.stringify(worldState.questLog[0]);
+    applyMuts("[QUEST_STEP:The Magnimar Lead|Find Marisol Hask at the Naos Wick]");
+    if(worldState.questLog[0].noObjSince!=null)return "stamp not cleared once an objective exists";
+    return true;
+  });
+  t("buildQuestObjectiveNudge: fires after the grace turns with a QUEST_STEP instruction; silent in combat and for offered quests", function(){
+    makeWorld(); worldState.turn=40;
+    worldState.questLog=[{title:"The Magnimar Lead",status:"active",desc:"",objectives:[],started:40}];
+    applyMuts("no tags");                                    // stamps noObjSince=40
+    if(buildQuestObjectiveNudge()!=="")return "must be silent inside the grace window";
+    worldState.turn=40+QUEST_OBJECTIVE_NUDGE_TURNS;
+    var n=buildQuestObjectiveNudge();
+    if(n.indexOf("[QUEST_STEP:The Magnimar Lead|")<0)return "nudge missing the QUEST_STEP instruction: "+n;
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};
+    if(buildQuestObjectiveNudge()!=="")return "must stay silent during combat";
+    worldState.combat=null;
+    worldState.questLog[0].status="offered";delete worldState.questLog[0].noObjSince;
+    applyMuts("no tags");
+    return buildQuestObjectiveNudge()===""?true:"offered quests must not be nudged (they are not accepted goals)";
+  });
+
   // ── B16 — a failed GM turn must not eat the player's words, and must leave a trail ──────────
   // sendAction is async and the harness cannot await. It DOES run fully synchronously when callGM
   // throws synchronously: the await OPERAND is evaluated before the await can suspend, so the

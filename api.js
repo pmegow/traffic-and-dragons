@@ -181,6 +181,12 @@ function stampQuestCompletion(){
     if(all){for(j=0;j<q.objectives.length;j++){if(!q.objectives[j].done){all=false;break;}}}
     if(all){if(q.allDoneSince==null)q.allDoneSince=worldState.turn;}
     else if(q.allDoneSince!=null)delete q.allDoneSince;
+    // #129 zero-objective stamp: an ACTIVE quest with no checklist leaves the player nothing to
+    // follow (the #20 teeth only fire on completion, so an objective-less quest never trips them).
+    // Recomputed every response like allDoneSince — adding a QUEST_STEP or changing status heals it.
+    var none=q.status==="active"&&!(q.objectives&&q.objectives.length);
+    if(none){if(q.noObjSince==null)q.noObjSince=worldState.turn;}
+    else if(q.noObjSince!=null)delete q.noObjSince;
   }
 }
 // P3 escalation, READ side: the "⚑ ALL OBJECTIVES COMPLETE" line in buildQuestBlock is a
@@ -202,6 +208,40 @@ function buildQuestEscalation(){
   }
   if(!pick)return"";
   return"[ENGINE NOTE: Quest '"+pick.title+"' has had all objectives complete for "+stale+" turns. In THIS response either emit [QUEST:"+pick.title+"|completed] together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]), or add the next objective via [QUEST_STEP:"+pick.title+"|<objective>].]";
+}
+// #129: the inverse gap — an ACTIVE quest with NO objectives at all gives the player no checklist
+// and the #20 completion teeth nothing to detect. Reads the noObjSince stamp written by
+// stampQuestCompletion above; fires once the quest has sat empty for QUEST_OBJECTIVE_NUDGE_TURNS
+// (grace, so a just-accepted quest gets its steps naturally first). Same shape as
+// buildQuestEscalation: one note per turn (the stalest), silent in combat.
+function buildQuestObjectiveNudge(){
+  if(!worldState||!worldState.questLog||worldState.combat)return"";
+  var pick=null,stale=-1,i;
+  for(i=0;i<worldState.questLog.length;i++){
+    var q=worldState.questLog[i];
+    if(q.status!=="active"||q.noObjSince==null)continue;
+    var n=worldState.turn-q.noObjSince;
+    if(n>=QUEST_OBJECTIVE_NUDGE_TURNS&&n>stale){stale=n;pick=q;}
+  }
+  if(!pick)return"";
+  return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<first concrete objective>] from the leads the story has already established; add further steps as they become concrete.]";
+}
+// #129: the escalation half of the schedule teeth (expiry lives in clock.js scheduleSweepExpired).
+// The HAPPENING NOW line in buildClockBlock is a mid-prompt instruction, and the field showed the
+// GM ignoring it indefinitely — the same channel failure as the #20 quest teeth, so the same fix:
+// once an event has sat unresolved past SCHEDULE_ESCALATE_MIN, this note rides the user-message
+// engine-note channel demanding narration + [SCHEDULE_RESOLVED:]. One note per turn (the stalest);
+// silent in combat so a fight is never derailed.
+function buildScheduleEscalation(){
+  if(!worldState||worldState.combat)return"";
+  if(typeof scheduleDue!=="function")return"";
+  var due=scheduleDue(),pick=null,i;
+  for(i=0;i<due.length;i++){
+    if(due[i].elapsed>=SCHEDULE_ESCALATE_MIN&&(!pick||due[i].elapsed>pick.elapsed))pick=due[i];
+  }
+  if(!pick)return"";
+  var ago=fmtGap(pick.elapsed).replace(/^in /,"");
+  return"[ENGINE NOTE: Scheduled event '"+pick.label+"' came due "+ago+" ago and is still unresolved. In THIS response narrate its consequence — after this long it has already happened, so treat it as something the world did while the party was busy — then emit [SCHEDULE_RESOLVED:"+pick.label+"]. If events have made it moot, emit [SCHEDULE_CANCEL:"+pick.label+"] instead. Unresolved events are auto-retired "+(SCHEDULE_EXPIRE_MIN/MIN_PER_DAY)+" in-game days after coming due.]";
 }
 // #46 audit teeth (v1.255): the standing "emit REMOVED now" instruction on the sheets is
 // passive and got ignored (the Daeris test); this is the POINTED version — same engine-detects/
@@ -529,7 +569,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

@@ -778,6 +778,12 @@ function applyMutsTable(text){
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}
   }
   stampQuestCompletion();
+  // #129: deterministic expiry for schedule entries the GM never resolved — runs on every real
+  // turn so a rest/TIME_ADVANCE that jumps past SCHEDULE_EXPIRE_MIN retires the entry that same
+  // response. Loudness (warn/toast/archive) lives in the sweep; the muts line makes it visible
+  // in the system message like every other state change.
+  var _swExp=scheduleSweepExpired(),_swi;
+  for(_swi=0;_swi<_swExp.length;_swi++)R.muts.push("Event expired unresolved: "+_swExp[_swi].label);
   if(R.muts.length)addMsg("system",escHtml(R.muts.join(" | ")));
   syncUI();saveAll();
   return R;

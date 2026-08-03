@@ -198,6 +198,42 @@ function scheduleDue(){
     .map(function(e){return {label:e.label,dueMin:e.dueMin,elapsed:c.min-e.dueMin};});
 }
 
+// ── #129 escalate-then-expire teeth ────────────────────────────────────────────────────────
+// Resolution used to depend entirely on the GM emitting [SCHEDULE_RESOLVED:] unprompted — and
+// the GM rarely volunteers resolution tags (the #29 futureEvents lesson, relearned in the field:
+// "Tide turns against the return route" came due at minute 357 and was still served as
+// HAPPENING NOW at minute 6,005, ~1,100 turns of phantom urgency). Deterministic backstop in
+// two steps: past SCHEDULE_ESCALATE_MIN overdue, buildScheduleEscalation (api.js) rides the
+// engine-note channel demanding the GM narrate the consequence and resolve; past
+// SCHEDULE_EXPIRE_MIN, the sweep below retires the entry LOUDLY — warn + toast + a permanent
+// record in memory.archive.expiredSchedules, never a silent vanish.
+var SCHEDULE_ESCALATE_MIN=3*MIN_PER_HOUR;   // overdue this long → the engine note demands resolution
+var SCHEDULE_EXPIRE_MIN=2*MIN_PER_DAY;      // overdue this long → auto-retired (loudly)
+
+// Retire every schedule entry that outlived its escalation window. Returns the retired entries.
+// Called from the applyMutsTable tail (beside stampQuestCompletion) so it runs on every real
+// turn — including the turn a big TIME_ADVANCE/rest jumps an entry straight past the threshold.
+function scheduleSweepExpired(){
+  var c=clockEnsure();if(!c||!c.schedule.length)return [];
+  var kept=[],out=[],i;
+  for(i=0;i<c.schedule.length;i++){
+    if(c.min-c.schedule[i].dueMin>SCHEDULE_EXPIRE_MIN)out.push(c.schedule[i]);else kept.push(c.schedule[i]);
+  }
+  if(!out.length)return out;
+  c.schedule=kept;
+  for(i=0;i<out.length;i++){
+    var ex=out[i];
+    if(typeof memory!=="undefined"&&memory){
+      if(!memory.archive)memory.archive={};
+      if(!memory.archive.expiredSchedules)memory.archive.expiredSchedules=[];
+      memory.archive.expiredSchedules.push({label:ex.label,dueMin:ex.dueMin,born:ex.born,expiredAtMin:c.min,turn:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0});
+    }
+    console.warn("[clock] scheduled event EXPIRED unresolved, "+(c.min-ex.dueMin)+"m overdue: \""+ex.label+"\" — retired to memory.archive.expiredSchedules (the GM never emitted [SCHEDULE_RESOLVED:] through the escalation window)");
+    if(typeof showToast==="function")showToast("⏰ Scheduled event expired unresolved: "+ex.label);
+  }
+  return out;
+}
+
 // ── The shared injection block ──────────────────────────────────────────────────────────────
 // ONE pure builder, called by BOTH buildSysPrompt (volatile half) AND Table Talk's ttStateBlock,
 // so the game and the help desk can never disagree about the clock or a countdown. Every number
