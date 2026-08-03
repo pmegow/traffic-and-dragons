@@ -993,6 +993,48 @@ function applySummaryExtract(extracted){
   if(extracted.chapterSummary)fileChapter(worldState.turn,extracted.chapterSummary);
   return stats;
 }
+// ── #10 (B11): keep the gameplay channel's imperatives out of the JSON channel ────────────────
+// Root cause (BUGS.md B11, 2026-07-21, high confidence): sendAction prepends engine notes to the
+// OUTGOING user message and commitGmTurn archives that exact string — so summarize() replayed
+// them into the extraction call, and on a quest-escalation turn the 500-char user slice was 100%
+// engine imperative ending in "emit [QUEST_STEP:…]". The extractor obeyed IT and answered in
+// state tags instead of JSON. Notes are engine-authored and exactly delimited, so they are
+// stripped from the SESSION slice ONLY — #57 RECORDED-FACTS detection stays on the UNSTRIPPED
+// window (the sketch's critical refinement: names appearing only inside notes must keep serving
+// their recorded facts, or supersession silently narrows).
+// Bracket-depth scan, not a regex: notes NEST brackets ("…emit [QUEST_STEP:…].]"), so [^\]]*
+// would strip half a note and leave residue. An unclosed note swallows to end-of-string — a
+// malformed note never reaches the extractor either.
+function stripEngineNotes(s){
+  s=String(s||"");
+  var out="",i=0;
+  while(i<s.length){
+    if(s.charAt(i)==="["&&s.slice(i,i+12)==="[ENGINE NOTE"){ /* covers "[ENGINE NOTE —" and "[ENGINE NOTES PROTOCOL:" */
+      var depth=0,j=i;
+      for(;j<s.length;j++){var ch=s.charAt(j);if(ch==="[")depth++;else if(ch==="]"){depth--;if(depth===0){j++;break;}}}
+      i=j;
+      continue;
+    }
+    out+=s.charAt(i);i++;
+  }
+  return out.replace(/^\s+/,"");
+}
+// The B11 failure shape verbatim: a response with no "{" anywhere has zero JSON in it — exactly
+// the case repairModelJson cannot and should not repair. Refused at the CALL SITE with a named
+// error (repairModelJson is shared by 8 call sites and stays untouched).
+function extractorRespHasJson(resp){return String(resp||"").indexOf("{")>=0;}
+// Pure prompt composer — factored so the two load-bearing properties are engine-testable:
+// the schema + JSON directive sit LAST (end-of-prompt position is load-bearing, audit #2 — the
+// discipline already applied at campaign_generator.js and blueprint-designer.html), and the
+// SESSION block is the note-stripped text while RECORDED FACTS detects on the raw window.
+function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped){
+  var p="Extract structured data from this RPG session.\n";
+  if(pend.length)p+="\nANTICIPATED EVENTS currently on file — if this session shows one has already happened, failed, or become moot, copy its EXACT text into resolvedEvents:\n- "+pend.join("\n- ")+"\n";
+  p+=buildRecordedFactsBlock(sessRaw);/* #57 leg A serve-side — "" when no known NPC appears in the window */
+  p+="\nSESSION:\n"+sessStripped;
+  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[\"exact name of each named character who DIED in these events -- only unambiguous, on-screen deaths; empty if none\"]}\n";
+  return p;
+}
 var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
@@ -1000,20 +1042,26 @@ async function summarize(){
   try{
     var _sumVc="";var _sumPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:"";if(_sumPaId&&typeof AUTHORS!=="undefined"){var _spi;for(_spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_sumPaId&&AUTHORS[_spi].vc){_sumVc=AUTHORS[_spi].vc;break;}}}
     var _chapterDesc=_sumVc?"5-8 sentence narrative summary written in this prose voice — "+_sumVc:"5-8 sentence narrative summary";
-    var extractPrompt="Extract structured data from this RPG session. Output ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+_chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":\"\"}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[\"exact name of each named character who DIED in these events -- only unambiguous, on-screen deaths; empty if none\"]}\n";
     // #29 ③: the extractor reads the session anyway — hand it the pending list and let it echo back
     // what the session shows is finished. EXACT text echo, so resolveFutureEvent's exact/substring
     // match lands without fuzzy matching. The GM itself rarely emits [FUTURE_EVENT_RESOLVED:].
     var _pend=[],_pi;for(_pi=0;_pi<memory.futureEvents.length;_pi++){if(!memory.futureEvents[_pi].resolved)_pend.push(memory.futureEvents[_pi].what);}
-    if(_pend.length)extractPrompt+="\nANTICIPATED EVENTS currently on file — if this session shows one has already happened, failed, or become moot, copy its EXACT text into resolvedEvents:\n- "+_pend.join("\n- ")+"\n";
     // GM turns carry the events — send them near-whole (a 1000-token turn is ~4000 chars; the old
     // 300-char slice fed the extractor only scene openings, silently dropping mid/late-scene events
     // from long-term memory — audit #3). Player turns are short; trim them lightly.
-    // Built BEFORE appending so the same window text also drives RECORDED FACTS detection (#57).
-    var _sessTxt="",i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];_sessTxt+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";}
-    extractPrompt+=buildRecordedFactsBlock(_sessTxt);/* #57 leg A serve-side — "" when no known NPC appears in the window */
-    extractPrompt+="\nSESSION:\n"+_sessTxt;
+    // #10/B11: TWO windows — _sessRaw (byte-identical to the old composition) drives RECORDED
+    // FACTS detection; _sessTxt has engine notes stripped from the USER halves (BEFORE the
+    // 500-char slice, so the budget is spent on the player's words, not the replayed imperative
+    // that made the extractor answer in state tags at t881).
+    var _sessTxt="",_sessRaw="",i;
+    for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];
+      _sessRaw+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";
+      var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
+      _sessTxt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?4000:500)+"\n";
+    }
+    var extractPrompt=buildExtractPrompt(_chapterDesc,_pend,_sessRaw,_sessTxt);
     var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */
+    if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     var _exStats=applySummaryExtract(extracted);
     retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));

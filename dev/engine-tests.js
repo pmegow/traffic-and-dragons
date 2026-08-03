@@ -4327,6 +4327,51 @@ function runEngineTests(R){
     return s.volatile.indexOf("SPELL RANGES ARE PHYSICS")<0?true:"rule duplicated into volatile";
   });
 
+  // ── #10 (B11): the extractor stops eating the gameplay channel's imperatives ─────────────
+  // Root-caused 2026-07-21 (BUGS.md B11): engine notes prepended to user halves replay into the
+  // JSON-extraction call — on a quest-escalation turn the 500-char user slice was 100% engine
+  // imperative ending in "emit [QUEST_STEP:…]", and the extractor obeyed IT instead of the JSON
+  // contract. Fix per the reviewed sketch: strip notes from the SESSION slice only (detection
+  // for #57 RECORDED FACTS stays on the UNSTRIPPED window — the refinement that guards
+  // supersession), schema LAST (end-of-prompt position is load-bearing, audit #2), and fail
+  // honestly at the call site when a response has no JSON at all.
+  section("summarize extractor hardening (#10/B11)");
+  t("stripEngineNotes: removes a NESTED-bracket note completely, keeps the player's words",function(){
+    var s="[ENGINE NOTE — QUEST CHECK (not a player action): all objectives done — emit [QUEST:The Door|completed] with rewards, or add the next objective via [QUEST_STEP:The Door|obj].] I kick the door open";
+    var out=stripEngineNotes(s);
+    if(/ENGINE NOTE|QUEST_STEP|\]/.test(out))return "note residue survived: "+JSON.stringify(out);
+    return out==="I kick the door open"?true:"player words damaged: "+JSON.stringify(out);
+  });
+  t("stripEngineNotes: protocol block removed; unclosed note drops to end; clean text is byte-identical",function(){
+    if(stripEngineNotes("[ENGINE NOTES PROTOCOL: the bracketed notes above are engine bookkeeping [nested] more.]go west")!=="go west")return "protocol block survived";
+    if(stripEngineNotes("[ENGINE NOTE — broken, never closed... I flee")!=="")return "unclosed note leaked";
+    var clean="I parley with the guard captain [raising my hands].";
+    return stripEngineNotes(clean)===clean?true:"clean text mutated";
+  });
+  t("buildExtractPrompt: schema sits AFTER the session (end-of-prompt discipline), session is note-free",function(){
+    makeWorld();
+    var p=buildExtractPrompt("5-8 sentence narrative summary",[],
+      'user: [ENGINE NOTE — X.] I attack\nassistant: The blow lands.\n',
+      'user: I attack\nassistant: The blow lands.\n');
+    var iSess=p.indexOf("SESSION:"),iSchema=p.indexOf('"chapterSummary"'),iJson=p.indexOf("Output ONLY valid JSON");
+    if(iSess<0||iSchema<0||iJson<0)return "prompt missing a block";
+    if(!(iSchema>iSess&&iJson>iSess))return "schema/JSON directive not AFTER the session (order: sess "+iSess+", json "+iJson+", schema "+iSchema+")";
+    return p.indexOf("ENGINE NOTE")<0?true:"engine note reached the extractor's session";
+  });
+  t("#57 refinement: an NPC named ONLY inside an engine note still gets RECORDED FACTS served (detection = unstripped window)",function(){
+    makeWorld();
+    memory.npcs["Aldern Foxglove"]={knowledge:["owns Foxglove Manor"],events:[],attitude:""};
+    var raw='user: [ENGINE NOTE — the dead-status write on Aldern Foxglove was refused.] I press on\n';
+    var stripped='user: I press on\n';
+    var p=buildExtractPrompt("d",[],raw,stripped);
+    return p.indexOf("owns Foxglove Manor")>=0?true:"stripping the session also narrowed #57 detection — the exact regression the sketch warns about";
+  });
+  t("extractorRespHasJson: bare-tag response (the B11 shape) refused; fenced/prose-wrapped JSON accepted",function(){
+    if(extractorRespHasJson("[QUEST_STEP:The Door|find the key]"))return "zero-JSON response accepted";
+    if(!extractorRespHasJson('```json\n{"chapterSummary":"x"}\n```'))return "fenced JSON refused";
+    return extractorRespHasJson('Here you go: {"a":1}')?true:"prose-wrapped JSON refused";
+  });
+
   // ── #14 (B16 residual): the typed action survives a page kill between failure and retry ──
   // v1.419's restoreFailedInput only lives within the page load. The pending action now
   // persists in its OWN key, written on the story-failure path only, cleared by the next
@@ -8088,7 +8133,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return eq(memory.npcs.A.attitude,"wary, testing");
   });
   t("v1.383: the extractor asks for a DISPOSITION toward the player, not a mood",function(){
-    var src=String(summarize);
+    /* #10/B11 moved the schema text into the pure buildExtractPrompt composer — scan BOTH so
+       the pin survives the relocation without loosening (the wording must live somewhere). */
+    var src=String(summarize)+String(buildExtractPrompt);
     if(src.indexOf("2-4 word mood")>=0)return "the old mood spec is still in the extractor prompt";
     return src.indexOf("regards the PLAYER")>=0?true:"disposition wording missing from the extractor prompt";
   });
