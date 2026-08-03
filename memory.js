@@ -55,6 +55,102 @@ function resolveNpcName(name){
   return name;
 }
 
+// ── #128: deterministic name-variant scan → the #57 merge-confirm channel ──────────────────
+// Field case: 61 memory keys for 36 NPCs at t1265 — Hemlock alone under four spellings, each
+// with its own split history. The consolidation above only helps an UNREGISTERED incoming name;
+// once variant KEYS exist, nothing drained them (the extractor's sameNpc proposals fire rarely).
+// This scan proposes containment pairs through the SAME GM-confirmed [NPC_MERGE:] queue —
+// it never auto-merges (a wrong merge fuses two real people, UA29's E4 hazard).
+//
+// Tokenizer note (deliberate): this does NOT reuse npcCoreTokens. That stripper drops role
+// nouns (man/woman/stranger/guard…), which is safe for resolve-time consolidation only because
+// of its exactly-one-candidate guard on an unregistered name — at PROPOSAL time those words are
+// identity-bearing ("The Scarred Man" vs "The Scarred Woman" must never read as equal).
+// Here only articles/conjunctions and parenthetical descriptors are identity-neutral.
+var _VARIANT_STOP={the:1,a:1,an:1,of:1,and:1,or:1};
+function npcVariantTokens(name){
+  var s=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z0-9\s']/g," ");
+  var raw=s.split(/\s+/),out=[],i;
+  for(i=0;i<raw.length;i++){var w=raw[i].replace(/'s$/,"").replace(/'/g,"");if(w&&!_VARIANT_STOP[w])out.push(w);}
+  return out;
+}
+// Pure pair proposer over a list of names. Rules, conservative by construction:
+//   • strict containment (tokens(A) ⊂ tokens(B)) proposes A → the FULLEST superset — but only
+//     when every superset of A agrees with it (a bare "Perdrath" matching two different sisters
+//     is ambiguous and proposes nothing, loudly);
+//   • equal token sets (parenthetical-only variants) propose once, paren-free name as canonical
+//     (longer raw name on a tie); two or more equal mates = ambiguous, skip;
+//   • a name whose tokens are empty or all-short (<3 chars) proposes nothing.
+function npcVariantPairs(names){
+  var sets=[],i,j,ti;
+  for(i=0;i<names.length;i++){
+    var tk=npcVariantTokens(names[i]),set={},n=0,sub=false;
+    for(ti=0;ti<tk.length;ti++){if(!set[tk[ti]]){set[tk[ti]]=1;n++;}if(tk[ti].length>=3)sub=true;}
+    sets.push({name:names[i],set:set,n:n,ok:n>0&&sub});
+  }
+  function isSubset(a,b){if(a.n>b.n)return false;var k;for(k in a.set){if(!b.set[k])return false;}return true;}
+  var pairs=[];
+  for(i=0;i<sets.length;i++){
+    var A=sets[i];if(!A.ok)continue;
+    var sup=[],eq=[],eqIdx=-1;
+    for(j=0;j<sets.length;j++){
+      if(i===j)continue;var B=sets[j];if(!B.ok)continue;
+      if(A.n<B.n&&isSubset(A,B))sup.push(B);
+      else if(A.n===B.n&&isSubset(A,B)){eq.push(B);eqIdx=j;}
+    }
+    if(sup.length){
+      var F=sup[0],si;
+      for(si=1;si<sup.length;si++){if(sup[si].n>F.n||(sup[si].n===F.n&&sup[si].name.length>F.name.length))F=sup[si];}
+      var amb=false;
+      for(si=0;si<sup.length;si++){if(!isSubset(sup[si],F)){amb=true;break;}}
+      if(amb){if(typeof console!=="undefined")console.info("[memory] variant scan: \""+A.name+"\" matches multiple distinct fuller names — ambiguous, not proposed (#128)");continue;}
+      pairs.push({canonical:F.name,duplicate:A.name});
+    }else if(eq.length===1&&i<eqIdx){
+      var B2=eq[0],aP=/\(/.test(A.name),bP=/\(/.test(B2.name),canonN,dupN;
+      if(aP!==bP){canonN=aP?B2.name:A.name;dupN=aP?A.name:B2.name;}
+      else if(A.name.length>=B2.name.length){canonN=A.name;dupN=B2.name;}
+      else{canonN=B2.name;dupN=A.name;}
+      pairs.push({canonical:canonN,duplicate:dupN});
+    }else if(eq.length>1){
+      if(typeof console!=="undefined")console.info("[memory] variant scan: \""+A.name+"\" has multiple equal-name mates — ambiguous, not proposed (#128)");
+    }
+  }
+  return pairs;
+}
+// Shared queue discipline for BOTH producers (the extractor's sameNpc hints and the scan):
+// once-per-pair-ever latch (worldState.mergeHintNudged, stamped at nudge-build time) checked in
+// both orders, dedupe against the pending queue, then push. Returns true when queued.
+function _queueMergeHint(cn,dn){
+  if(worldState.mergeHintNudged&&(worldState.mergeHintNudged[cn+"|"+dn]||worldState.mergeHintNudged[dn+"|"+cn]))return false;
+  if(!worldState.pendingMergeHints)worldState.pendingMergeHints=[];
+  var mi;for(mi=0;mi<worldState.pendingMergeHints.length;mi++){var _h=worldState.pendingMergeHints[mi];if((_h.canonical===cn&&_h.duplicate===dn)||(_h.canonical===dn&&_h.duplicate===cn))return false;}
+  worldState.pendingMergeHints.push({canonical:cn,duplicate:dn,turn:worldState.turn});
+  return true;
+}
+// The scan itself — runs from applySummaryExtract (summarize cadence: that's when new keys land
+// in bulk, and one nudge per turn drains the queue anyway). Skips alias-linked pairs (already
+// one person to every consumer), the player's own name, and both-party pairs; when exactly one
+// side is a party member it becomes the canonical so a companion is never absorbed under a
+// variant display name (the merge handler carries sheets/portraits either way — this is naming).
+function scanNpcNameVariants(){
+  if(typeof worldState==="undefined"||!worldState||!memory.npcs)return 0;
+  var names=Object.keys(memory.npcs);
+  if(names.length<2)return 0;
+  var pairs=npcVariantPairs(names),added=0,i;
+  var plNm=((worldState.character&&worldState.character.name)||"").toLowerCase();
+  for(i=0;i<pairs.length;i++){
+    var cn=pairs[i].canonical,dn=pairs[i].duplicate;
+    if(resolveNpcName(cn)===resolveNpcName(dn))continue;
+    if(plNm&&(cn.toLowerCase()===plNm||dn.toLowerCase()===plNm))continue;
+    var cw=(typeof wsNpcByName==="function")?wsNpcByName(cn):null,dw=(typeof wsNpcByName==="function")?wsNpcByName(dn):null;
+    if(cw&&cw.partyMember&&dw&&dw.partyMember)continue;
+    if(dw&&dw.partyMember&&!(cw&&cw.partyMember)){var _sw=cn;cn=dn;dn=_sw;}
+    if(_queueMergeHint(cn,dn))added++;
+  }
+  if(added&&typeof console!=="undefined")console.info("[memory] name-variant scan queued "+added+" possible duplicate pair(s) for GM confirmation (#128)");
+  return added;
+}
+
 // peek=true computes the window WITHOUT advancing memory.nameIdx. buildSysPrompt must use
 // peek — a prompt builder that mutates state burns names on every internal call (sheet sync,
 // re-roll) and makes the prompt unstable for caching (audit #12). The cursor is advanced
@@ -858,10 +954,7 @@ function applySummaryExtract(extracted){
       var _plNm=(worldState&&worldState.character&&worldState.character.name)||"";
       if(_plNm&&(snC.toLowerCase()===_plNm.toLowerCase()||snD.toLowerCase()===_plNm.toLowerCase())){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — names the player: "+snC+" / "+snD);continue;}
       if(_isParty(snC)&&_isParty(snD)){if(typeof console!=="undefined")console.warn("[memory] sameNpc hint dropped — both are party members: "+snC+" / "+snD);continue;}
-      if(worldState.mergeHintNudged&&(worldState.mergeHintNudged[snC+"|"+snD]||worldState.mergeHintNudged[snD+"|"+snC]))continue;/* already asked once — the GM declined or acted */
-      if(!worldState.pendingMergeHints)worldState.pendingMergeHints=[];
-      var _dupH=false,mi;for(mi=0;mi<worldState.pendingMergeHints.length;mi++){var _h=worldState.pendingMergeHints[mi];if((_h.canonical===snC&&_h.duplicate===snD)||(_h.canonical===snD&&_h.duplicate===snC)){_dupH=true;break;}}
-      if(!_dupH)worldState.pendingMergeHints.push({canonical:snC,duplicate:snD,turn:worldState.turn});
+      _queueMergeHint(snC,snD);/* #128: shared queue discipline (once-ever latch both orders + pending dedupe) — one implementation for both producers */
     }
   }
   // B3 backstop: deaths the GM narrated but never tagged (the docks class — the kill that spawned
@@ -883,6 +976,11 @@ function applySummaryExtract(extracted){
   if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);if(_kg.length>12)_kg.shift();}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
+  // #128: the deterministic variant scan runs every summarize — after npcUpdates above, so keys
+  // minted THIS window are already on file. The extractor's own sameNpc hints queued first
+  // (session-confirmed evidence outranks token containment); buildMergeConfirmNudge drains one
+  // pair per turn regardless.
+  scanNpcNameVariants();
   // #29 order matters: sweep stale → file new → resolve LAST. Resolving last means an event the
   // extractor lists in BOTH futureEvents and resolvedEvents (set and finished inside one window)
   // nets out removed — the near-dup filing collapses it onto the existing entry, then resolve

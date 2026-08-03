@@ -8460,6 +8460,76 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return b===2?true:"future tail must push the boundary past itself, got "+b;
   });
 
+  // ── #128 — deterministic name-variant scan feeds the #57 merge-confirm channel ──────────────
+  // Field case: 61 memory keys for 36 NPCs at t1265 — Hemlock alone under four spellings, each
+  // with separate history. The scan proposes containment pairs (tokens of one name ⊂ tokens of
+  // another) through the SAME GM-confirmed [NPC_MERGE:] queue the extractor uses; it never
+  // auto-merges, and ambiguous shapes (a bare surname matching two different people) are skipped.
+  section("#128 — NPC name-variant scan");
+  t("npcVariantPairs: the Hemlock cluster — all three variants propose into the fullest name", function(){
+    var p=npcVariantPairs(["Hemlock","Sheriff Hemlock","Belor Hemlock","Sheriff Belor Hemlock"]);
+    if(p.length!==3)return "expected 3 pairs, got "+JSON.stringify(p);
+    for(var i=0;i<p.length;i++){if(p[i].canonical!=="Sheriff Belor Hemlock")return "wrong canonical: "+JSON.stringify(p[i]);}
+    var dups=p.map(function(x){return x.duplicate;}).sort().join("|");
+    return dups==="Belor Hemlock|Hemlock|Sheriff Hemlock"?true:"wrong duplicates: "+dups;
+  });
+  t("npcVariantPairs: a bare surname matching two DIFFERENT people is ambiguous — never proposed", function(){
+    var p=npcVariantPairs(["Perdrath","Vanya Perdrath","Aldara Perdrath"]);
+    return p.length===0?true:"ambiguous surname must not propose: "+JSON.stringify(p);
+  });
+  t("npcVariantPairs: token overlap without containment is not a match", function(){
+    var p=npcVariantPairs(["The Scarred Man","Scarred Wolf","The Scarred Woman"]);
+    return p.length===0?true:"overlap-only names proposed: "+JSON.stringify(p);
+  });
+  t("npcVariantPairs: parenthetical descriptors are identity-neutral; equal sets propose the paren-free name as canonical", function(){
+    var p=npcVariantPairs(["Morwen (Ammut's wife)","Morwen"]);
+    if(p.length!==1)return "expected 1 pair: "+JSON.stringify(p);
+    return p[0].canonical==="Morwen"&&p[0].duplicate==="Morwen (Ammut's wife)"?true:"wrong direction: "+JSON.stringify(p[0]);
+  });
+  t("npcVariantPairs: the real t1265 key clusters produce exactly the expected proposals", function(){
+    var p=npcVariantPairs(["Sheriff Belor Hemlock","Sheriff Hemlock","Hemlock","Belor Hemlock",
+      "Ameiko Kaijitsu","Ameiko","Shalelu Andosana","Shalelu",
+      "The Scarred Stranger (Black-Eyed Man)","The Scarred Man","The Scarred Man / The Collector","Scarred Man","Scarred Wolf","Marta / The Scarred Woman / The Collector"]);
+    // Hemlock 3 + Ameiko 1 + Shalelu 1 + ("Scarred Man"/"The Scarred Man" → the slash compound) 2 = 7;
+    // Scarred Wolf, the Stranger, and Marta must propose nothing.
+    if(p.length!==7)return "expected 7 pairs, got "+p.length+": "+JSON.stringify(p);
+    var bad=p.filter(function(x){return /wolf|stranger|marta/i.test(x.canonical+x.duplicate);});
+    return bad.length===0?true:"distinct identities proposed: "+JSON.stringify(bad);
+  });
+  t("scanNpcNameVariants: queues once (idempotent), honors the once-ever latch, skips alias-linked pairs and the player", function(){
+    makeWorld();
+    memory.npcs={"Hemlock":{attitude:"",knowledge:[],events:[],aliases:[]},"Sheriff Belor Hemlock":{attitude:"",knowledge:[],events:[],aliases:[]}};
+    if(scanNpcNameVariants()!==1)return "first scan should queue 1";
+    if(scanNpcNameVariants()!==0)return "second scan must not duplicate the pending hint";
+    if(worldState.pendingMergeHints.length!==1)return "queue wrong: "+JSON.stringify(worldState.pendingMergeHints);
+    delete worldState.pendingMergeHints;
+    worldState.mergeHintNudged={"Sheriff Belor Hemlock|Hemlock":40};
+    if(scanNpcNameVariants()!==0)return "latched pair re-proposed (the once-ever contract)";
+    delete worldState.mergeHintNudged;
+    // Post-merge state: [NPC_MERGE:] deletes the duplicate KEY and registers it as an alias —
+    // so a healed pair simply isn't two keys any more and the scan finds nothing.
+    memory.npcs["Sheriff Belor Hemlock"].aliases=["Hemlock"];delete memory.npcs["Hemlock"];
+    if(scanNpcNameVariants()!==0)return "healed (merged) pair re-proposed";
+    memory.npcs={"Tess":{attitude:"",knowledge:[],events:[],aliases:[]},"Tess Stormborn":{attitude:"",knowledge:[],events:[],aliases:[]}};
+    return scanNpcNameVariants()===0?true:"player-named pair must never be proposed";
+  });
+  t("scanNpcNameVariants: a party member is always the canonical side of its pair", function(){
+    makeWorld();
+    worldState.npcs=[{name:"Morwen",status:"",rel:"companion",partyMember:true,charSheet:{name:"Morwen",hp:10,maxHp:10}}];
+    memory.npcs={"Morwen":{attitude:"",knowledge:[],events:[],aliases:[]},"Morwen Zethran":{attitude:"",knowledge:[],events:[],aliases:[]}};
+    if(scanNpcNameVariants()!==1)return "pair not queued";
+    var h=worldState.pendingMergeHints[0];
+    return h.canonical==="Morwen"&&h.duplicate==="Morwen Zethran"?true:"companion absorbed under a variant name: "+JSON.stringify(h);
+  });
+  t("REAL PATH: applySummaryExtract runs the scan and buildMergeConfirmNudge asks with the exact tag (#107 wiring lesson)", function(){
+    makeWorld();
+    memory.npcs={"Hemlock":{attitude:"",knowledge:[],events:[],aliases:[]},"Sheriff Belor Hemlock":{attitude:"",knowledge:[],events:[],aliases:[]}};
+    applySummaryExtract({});
+    if(!worldState.pendingMergeHints||!worldState.pendingMergeHints.length)return "summarize path did not run the scan";
+    var note=buildMergeConfirmNudge();
+    return note.indexOf("[NPC_MERGE:Sheriff Belor Hemlock|Hemlock]")>=0?true:"nudge missing the exact tag: "+note;
+  });
+
   // ── B16 — a failed GM turn must not eat the player's words, and must leave a trail ──────────
   // sendAction is async and the harness cannot await. It DOES run fully synchronously when callGM
   // throws synchronously: the await OPERAND is evaluated before the await can suspend, so the
