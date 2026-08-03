@@ -355,6 +355,14 @@ function initState(saved){
     addMsg("system","Welcome back, "+worldState.character.name+".");
     addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
     initReplaySession();
+    // #14 (B16 residual): a page killed between a failed turn and the retry tap used to erase
+    // the typed action. If a campaign-matching pending action survived, hand it back into the
+    // (empty) box — restoreFailedInput's refuse-to-clobber rule applies unchanged. NOT cleared
+    // here: it clears when a turn actually commits, so a second kill still restores it.
+    var _pa=(typeof restorePendingAction==="function")?restorePendingAction():null;
+    if(_pa){var _pi=document.getElementById("action-input");
+      if(_pi&&restoreFailedInput(_pi,_pa)){addMsg("system","↩ Your last action didn't get through — it's back in the box. Press Send to retry.");if(typeof showToast==="function")showToast("↩ Unsent action recovered");}
+    }
     // #30: bring back the campaign folder (a plain var until now, so every reload silently
     // dropped it), THEN re-attach any saved renders to the turns they belong to. Ordered and
     // chained — restoreSavedRenders needs the handle. Both fail soft: no folder, no permission,

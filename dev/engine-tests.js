@@ -4327,6 +4327,33 @@ function runEngineTests(R){
     return s.volatile.indexOf("SPELL RANGES ARE PHYSICS")<0?true:"rule duplicated into volatile";
   });
 
+  // ── #14 (B16 residual): the typed action survives a page kill between failure and retry ──
+  // v1.419's restoreFailedInput only lives within the page load. The pending action now
+  // persists in its OWN key, written on the story-failure path only, cleared by the next
+  // committed turn. Deliberately NOT lastAction (which feeds ragRetrieve — persisting it would
+  // change RAG's first-query-after-reload) and deliberately NOT saveAll (a failure-path flush
+  // would also persist the orphan player transcript entry) — both couplings are the reason this
+  // sat deferred in B16's action log.
+  section("pending action persistence (#14/B16 residual)");
+  t("failure save → boot restore round-trip; campaign-scoped; clear clears",function(){
+    makeWorld();worldState.campId="campA";
+    savePendingAction("strike at the ogre's knee");
+    if(restorePendingAction()!=="strike at the ogre's knee")return "round-trip failed";
+    worldState.campId="campB";
+    if(restorePendingAction()!==null)return "another campaign's draft restored across the switch";
+    worldState.campId="campA";
+    clearPendingAction();
+    return restorePendingAction()===null?true:"clear did not clear";
+  });
+  t("corrupt stored record self-heals to null; empty/blank text never persists",function(){
+    makeWorld();worldState.campId="campA";
+    store.set(PENDING_ACT_K,"{not json");
+    if(restorePendingAction()!==null)return "corrupt record served";
+    if(store.get(PENDING_ACT_K))return "corrupt record not cleared";
+    savePendingAction("   ");
+    return restorePendingAction()===null?true:"blank action persisted";
+  });
+
   // ── #127: arc lifecycle teeth — staging + drift escalation + knowledge boundary ──────────
   // Field evidence (t1385 live save, 2026-08-02): Act 2's three parallel arcs sat ACTIVE for 507
   // turns with no matching quest ever offered — the player never heard of Jorgenfist in-fiction;

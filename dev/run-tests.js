@@ -1078,6 +1078,44 @@ try {
   }
 } catch (e) { console.error("ENGINE MANIFEST CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #14 PENDING ACTION CONTRACT (v1.530, B16 residual) ───────────────────────────────────
+// The helpers are engine-tested; these pin the WIRING the DOM path owns — each clause is a
+// coupling the B16 record explicitly warned about, so a drop is a regression by name.
+try {
+  var _fsP = require("fs"), _pathP = require("path");
+  var _rootP = _pathP.join(__dirname, "..");
+  var _ncP = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _gameP = _ncP(_fsP.readFileSync(_pathP.join(_rootP, "game.js"), "utf8"));
+  var _bootP = _ncP(_fsP.readFileSync(_pathP.join(_rootP, "ui-boot.js"), "utf8"));
+  // ① The story-failure path persists the action (TT excluded — cross-channel restore).
+  if (!/if\(!isTT\)savePendingAction\(txt\)/.test(_gameP)) {
+    console.error("PENDING ACTION CONTRACT: the sendAction failure path no longer persists the story action — a page kill before the retry tap erases the player's words again (B16).");
+    process.exit(1);
+  }
+  // ② A committed turn clears it — without this, a stale draft haunts every reload. The pin is
+  //    the guarded CALL inside commitGmTurn's own span (ending at restoreFailedInput, the next
+  //    function): the first sabotage run matched the helper DEFINITION through an over-wide
+  //    slice and reported the clause green while the call was gone (MISSED, 2026-08-03).
+  var _cgtP = _gameP.slice(_gameP.indexOf("function commitGmTurn"), _gameP.indexOf("function restoreFailedInput"));
+  if (!/if\(typeof clearPendingAction==="function"\)clearPendingAction\(\);/.test(_cgtP)) {
+    console.error("PENDING ACTION CONTRACT: commitGmTurn no longer clears the pending action — a successful turn must supersede the persisted draft.");
+    process.exit(1);
+  }
+  // ③ Boot restores THROUGH restoreFailedInput (its refuse-to-clobber rule is load-bearing:
+  //    an STT draft typed before the restore outranks the failed action).
+  if (_bootP.indexOf("restorePendingAction()") < 0 || !/restoreFailedInput\(\s*_pi\s*,\s*_pa\s*\)/.test(_bootP)) {
+    console.error("PENDING ACTION CONTRACT: ui-boot no longer restores via restoreFailedInput — a direct .value= write would clobber a fresh draft (the B16 refuse-to-clobber rule).");
+    process.exit(1);
+  }
+  // ④ The persist helper writes its OWN key and never saveAll (a failure-path flush would also
+  //    persist the orphan player transcript entry — the row's second warning).
+  var _spaP = _gameP.slice(_gameP.indexOf("function savePendingAction"), _gameP.indexOf("function clearPendingAction"));
+  if (_spaP.indexOf("store.set(PENDING_ACT_K") < 0 || _spaP.indexOf("saveAll") >= 0) {
+    console.error("PENDING ACTION CONTRACT: savePendingAction must write ONLY its own key (store.set(PENDING_ACT_K,...)), never saveAll — a failure-path flush persists the orphan transcript entry.");
+    process.exit(1);
+  }
+} catch (e) { console.error("PENDING ACTION CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains

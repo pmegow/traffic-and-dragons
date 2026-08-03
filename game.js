@@ -1164,6 +1164,7 @@ function detectGhostConsumables(playerTxt,raw){
 // Returns the narrator message element.
 function commitGmTurn(resp,opts){
   var o=opts||{};
+  if(typeof clearPendingAction==="function")clearPendingAction();/* #14: a committed turn supersedes any persisted failed action */
   if(!o.isOpening){
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
@@ -1229,6 +1230,27 @@ function mpRefreshSuggestions(){
 function restoreFailedInput(inp,txt){
   if(!inp||!txt||String(inp.value||"").trim())return false;
   inp.value=txt;return true;
+}
+// #14 (B16 residual): restoreFailedInput only survives within the page load — a kill before
+// the retry tap erased the action (exactly what the reporting device did). The pending action
+// persists in its OWN key, written ONLY on the story-failure path, cleared by the next
+// committed turn. Deliberately NOT lastAction (it feeds ragRetrieve — persisting it would
+// change RAG's first-query-after-reload input) and deliberately NOT saveAll (a failure-path
+// flush would also persist the orphan player transcript entry). Campaign-stamped so a switch
+// never resurrects another campaign's draft — a foreign draft is left in place for its owner.
+function savePendingAction(txt){
+  txt=String(txt||"").trim();if(!txt)return;
+  try{store.set(PENDING_ACT_K,JSON.stringify({camp:(worldState&&worldState.campId)||null,txt:txt}));}
+  catch(e){console.warn("[pending] could not persist the failed action:",e&&e.message);}
+}
+function clearPendingAction(){try{store.del(PENDING_ACT_K);}catch(e){}}
+function restorePendingAction(){
+  var raw=null;try{raw=store.get(PENDING_ACT_K);}catch(e){return null;}
+  if(!raw)return null;
+  var rec=null;try{rec=JSON.parse(raw);}catch(e){clearPendingAction();return null;/* corrupt record: self-heal, loudly pointless to keep */}
+  if(!rec||!rec.txt||!String(rec.txt).trim())return null;
+  if(rec.camp!==((worldState&&worldState.campId)||null))return null;
+  return rec.txt;
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
@@ -1341,7 +1363,7 @@ async function sendAction(override,opts){
       +"\n(turn: "+(isTT?"tabletalk":"story")+((opts&&opts.silent)?", silent engine send":"")+(_tSent?", "+(Date.now()-_tSent)+"ms in flight":", failed before send")+")"
       +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
-    else{if(!_mpResolve&&!(opts&&opts.silent))_restored=restoreFailedInput(inp,txt);/* B16: only here — a committed turn already landed, and a pre-filled box would invite a duplicate submit. Skipped for an assembled multi-PC round (the box is a single-PC surface) and for engine directives the player never typed. */
+    else{if(!_mpResolve&&!(opts&&opts.silent)){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
       var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;document.getElementById("action-input").focus();
