@@ -569,6 +569,10 @@ function checkLegacyCharacter(){
 // most HP, and the archetype. Loop per level like checkCompanionLevelUp already does, then
 // queue the modals owed across the whole span (archetype first, then each stat bump).
 var _levelBumpsOwed=0; // stat bumps owed from a multi-level jump; drained by sbConfirm
+// #72 C2: tier-unlock spell picks owed — [{tier,count,pool,source}], drained by spuConfirm after
+// the bump queue empties (archetype modal → stat bumps → spell picks, the creation-flow order).
+// Page-lifetime like _levelBumpsOwed; the sendAction guard re-surfaces both on the next turn.
+var _spellUnlocksOwed=[];
 function checkLevelUp(){
   if(!worldState)return;var c=worldState.character,newLvl=getLvl(c.xp);if(newLvl<=c.level)return;
   var oldLvl=c.level,i,cls=classDef(c.cls);/* #72 C6 ①: THE class lookup */
@@ -587,6 +591,14 @@ function checkLevelUp(){
     for(_lf=0;_lf<_lvFeats.length;_lf++){c.abilities.push({nm:_lvFeats[_lf].nm,ds:_lvFeats[_lf].ds,gained:worldState.turn});newFeatures.push(_lvFeats[_lf].nm+" — "+_lvFeats[_lf].ds);}
     if(STAT_BUMP_LEVELS.indexOf(c.level)>=0)bumpsOwed++;
   }
+  // #72 C2: queue the picks for every tier unlocked by this level change. A fill-phase blank
+  // bench is skipped LOUDLY, never queued — an empty picker would be a dead modal.
+  var _unl=spellUnlocksCrossed(c.cls,c.archetype,oldLvl,newLvl),_ui2;
+  for(_ui2=0;_ui2<_unl.length;_ui2++){
+    if(!_unl[_ui2].pool.length){console.info("[levelup] spell tier "+_unl[_ui2].tier+" unlocked at L"+_unl[_ui2].level+" but its bench is a fill-phase blank — no picks to offer (see class_bible)");continue;}
+    _spellUnlocksOwed.push({tier:_unl[_ui2].tier,count:SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1,pool:_unl[_ui2].pool.slice(),source:_unl[_ui2].source});
+    addMsg("system","✨ Spell tier "+_unl[_ui2].tier+" unlocked — choose "+(SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1)+" new spell"+((SPELL_UNLOCK_PICKS[String(_unl[_ui2].tier)]||1)>1?"s":"")+".");
+  }
   if(typeof Sound!=="undefined")Sound.play("click_glass");/* #7: the attention sound fires BEFORE the message so it claims the playIfQuiet window (the toast-level poke must not double up) */
   addMsg("system","Level up! "+oldLvl+" -> "+newLvl+" | HP +"+totalHp+" (now "+c.maxHp+")");
   for(i=0;i<newFeatures.length;i++)addMsg("narrator","<p><em>"+newFeatures[i]+"</em></p>");
@@ -597,7 +609,58 @@ function checkLevelUp(){
 }
 // Show the next owed stat-bump modal, if any. Called after the archetype pick and after each
 // bump confirm so a jump that crosses both level 4 and 8 presents both, one at a time.
-function maybeShowLevelBump(){if(_levelBumpsOwed>0)showStatBumpModal();}
+function maybeShowLevelBump(){if(_levelBumpsOwed>0){showStatBumpModal();return;}maybeShowSpellUnlock();/* #72 C2: spell picks after the bump queue drains */}
+function maybeShowSpellUnlock(){
+  if(!_spellUnlocksOwed.length)return;
+  if(typeof document==="undefined")return;/* headless: the queue survives; the picker is a DOM surface */
+  if(document.getElementById("spu-modal"))return;
+  showSpellUnlockModal(_spellUnlocksOwed[0]);
+}
+// #72 C2: the tier-unlock picker — the creation picker's rhythm (bench list + bible one-liners,
+// pick exactly N) as a milestone modal in the stat-bump house style. Forced choice: no ×, no
+// outside-close (same as the archetype/bump milestones); already-known spells are filtered by
+// base name so a re-shown modal can never offer a duplicate.
+function showSpellUnlockModal(unl){
+  var c=worldState.character,have={},i;
+  for(i=0;i<(c.spells||[]).length;i++)have[capBaseName(c.spells[i].nm)]=1;
+  var pool=[];for(i=0;i<unl.pool.length;i++){if(!have[capBaseName(unl.pool[i])])pool.push(unl.pool[i]);}
+  if(!pool.length){/* everything on the bench already known (GM grants, prior picks) — nothing to offer */
+    console.info("[levelup] tier "+unl.tier+" unlock: the whole bench is already known — pick skipped");
+    _spellUnlocksOwed.shift();maybeShowSpellUnlock();return;
+  }
+  var need=Math.min(unl.count,pool.length);
+  window._spuPicks=[];window._spuNeed=need;window._spuTier=unl.tier;
+  var ch="";
+  for(i=0;i<pool.length;i++){
+    var ds=(typeof spellPickDesc==="function")?spellPickDesc(pool[i]):"";
+    ch+="<div class='sc' id='spu-opt-"+i+"' onclick='spuToggle("+i+")' data-nm=\""+pool[i].replace(/"/g,"&quot;")+"\" style='text-align:left;padding:12px 14px;margin-bottom:8px;'><div class='nm' style='font-size:14px;'>"+pool[i]+"</div>"+(ds?"<div class='sb' style='font-size:11px;color:var(--t2);margin-top:3px;'>"+ds+"</div>":"")+"</div>";
+  }
+  modalShell("spu-modal","<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>Tier "+unl.tier+" Spells Unlocked</div><div style='font-size:13px;color:var(--t1);margin-bottom:12px;'>Choose "+need+" — <span id='spu-count'>0</span>/"+need+" selected.</div>"+ch+"<div id='spu-warn' style='color:var(--red);font-size:12px;margin:6px 0;'></div><button id='spu-confirm' onclick='spuConfirm()' style='width:100%;padding:12px;margin-top:6px;'>Confirm</button>",
+    {overlayExtra:"overflow-y:auto;",boxBg:"#181818",maxWidth:480,wireClose:false});
+}
+function spuToggle(i){
+  var el=document.getElementById("spu-opt-"+i);if(!el)return;
+  var nm=el.getAttribute("data-nm"),at=window._spuPicks.indexOf(nm);
+  if(at>=0){window._spuPicks.splice(at,1);el.style.borderColor="var(--brd)";el.style.background="";}
+  else{
+    if(window._spuPicks.length>=window._spuNeed)return;/* full — deselect something first */
+    window._spuPicks.push(nm);el.style.borderColor="var(--acc)";el.style.background="var(--bg2)";
+  }
+  var ce=document.getElementById("spu-count");if(ce)ce.textContent=String(window._spuPicks.length);
+}
+function spuConfirm(){
+  var picks=window._spuPicks||[];
+  if(picks.length!==window._spuNeed){var w=document.getElementById("spu-warn");if(w)w.textContent="Choose exactly "+window._spuNeed+".";return;}
+  var c=worldState.character,i;
+  if(!c.spells)c.spells=[];
+  for(i=0;i<picks.length;i++)c.spells.push({nm:picks[i],lvl:window._spuTier,used:false});
+  var m=document.getElementById("spu-modal");if(m)m.remove();
+  addMsg("system","Learned: "+picks.join(", ")+" (tier "+window._spuTier+")");
+  if(typeof Sound!=="undefined")Sound.play("chime");
+  _spellUnlocksOwed.shift();
+  initSpells();syncUI();saveAll();
+  maybeShowSpellUnlock();/* drain the next queued unlock (a multi-level jump can owe several) */
+}
 function checkCompanionLevelUp(cs){
   // Companion auto-level: HP + class features only. No archetype/stat-bump modals —
   // companions level silently; the GM narrates growth if it matters.
@@ -613,6 +676,23 @@ function checkCompanionLevelUp(cs){
     var _cFeats=classFeaturesAt(cs.cls,cs.level).concat(archFeaturesAt(cs.cls,cs.archetype,cs.level)),_cf;/* C6 ②: bible rows, companion twin of checkLevelUp */
     for(_cf=0;_cf<_cFeats.length;_cf++){if(!cs.abilities)cs.abilities=[];cs.abilities.push({nm:_cFeats[_cf].nm,ds:_cFeats[_cf].ds,gained:worldState?worldState.turn:0});}
   }
+  // #72 C2 companion twin: silent AUTO-PICK — companions level without modals, so each crossed
+  // unlock takes the first N bench spells not already known (base-name dedupe). The bench is
+  // canon (bible-authored), so an auto-pick can never introduce off-canon content; the mana
+  // pool grows with the picks automatically (#110 derives it from the known bench).
+  var _cUnl=spellUnlocksCrossed(cs.cls,cs.archetype,oldLvl,newLvl),_cu,_cp,_learned=[];
+  for(_cu=0;_cu<_cUnl.length;_cu++){
+    if(!_cUnl[_cu].pool.length)continue;
+    var _cHave={},_ch;if(!cs.spells)cs.spells=[];
+    for(_ch=0;_ch<cs.spells.length;_ch++)_cHave[capBaseName(cs.spells[_ch].nm)]=1;
+    var _cNeed=SPELL_UNLOCK_PICKS[String(_cUnl[_cu].tier)]||1;
+    for(_cp=0;_cp<_cUnl[_cu].pool.length&&_cNeed>0;_cp++){
+      var _cNm=_cUnl[_cu].pool[_cp];
+      if(_cHave[capBaseName(_cNm)])continue;
+      cs.spells.push({nm:_cNm,lvl:_cUnl[_cu].tier,used:false});_cHave[capBaseName(_cNm)]=1;_learned.push(_cNm);_cNeed--;
+    }
+  }
+  if(_learned.length)addMsg("system",(cs.name||"Companion")+" learns: "+_learned.join(", "));
   addMsg("system",(cs.name||"Companion")+" levels up! "+oldLvl+" -> "+newLvl);
   showToast((cs.name||"Companion")+" reached level "+newLvl+"!");
 }
@@ -807,6 +887,14 @@ function pickArchetype(idx){
   // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
   // Trickster, leaving them with no AT spells. Append what's missing (dedupe by name).
   var src=SPELLS[c.cls]||ARCH_SPELLS[arch.id];if(src){grantSpellsFromList(c,src.cantrips,0);grantSpellsFromList(c,src[1],1);}/* #101: base-name dedupe — a legacy label can't double-grant its bare twin */
+  // #72 C2 (C7 third casters): the archetype's own tier schedule catches up at the pick —
+  // normally just T1@3, but a jump that crossed 3-10 before the pick owes T2 as well. Queued
+  // like any unlock; the maybeShowLevelBump below drains bumps first, then these.
+  var _apUnl=spellUnlocksCrossed(c.cls,arch.id,2,c.level),_apu;
+  for(_apu=0;_apu<_apUnl.length;_apu++){
+    if(_apUnl[_apu].source!=="arch"||!_apUnl[_apu].pool.length)continue;
+    _spellUnlocksOwed.push({tier:_apUnl[_apu].tier,count:SPELL_UNLOCK_PICKS[String(_apUnl[_apu].tier)]||1,pool:_apUnl[_apu].pool.slice(),source:"arch"});
+  }
   var m=document.getElementById("arch-modal");if(m)m.remove();addMsg("system","Archetype: "+arch.nm);updateAbPanel(true);initSpells();syncUI();saveAll();
   maybeShowLevelBump(); // a jump that crossed both 3 and 4/8 owes a stat bump next (E1)
 }
@@ -1277,6 +1365,7 @@ async function sendAction(override,opts){
   // Re-present a stat bump the player backed out of (audit E64) — it's an earned reward, not
   // something to forfeit; showing it again before the turn makes "Back" a defer, not a loss.
   if(typeof _levelBumpsOwed!=="undefined"&&_levelBumpsOwed>0&&!(opts&&opts.silent)&&!document.getElementById("sb-modal")){maybeShowLevelBump();return;}
+  if(typeof _spellUnlocksOwed!=="undefined"&&_spellUnlocksOwed.length>0&&!(opts&&opts.silent)&&!document.getElementById("spu-modal")){maybeShowSpellUnlock();return;}/* #72 C2: owed tier picks block the next turn the same way owed bumps do */
   // opts.ttRetry forces the Table Talk path regardless of the current tab — a failed TT question
   // must retry AS Table Talk even if the player switched to Story while it was in flight (#76).
   var isTT=(opts&&opts.ttRetry)?true:(activeChatTab==="tabletalk");

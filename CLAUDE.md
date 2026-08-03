@@ -129,6 +129,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 - `DEITY_MAP` + `DEITY_CENTRIC` — Alignment-based deity suggestions for Cleric/Paladin/Druid
 - `DEFAULT_RULES` — ~28 hard GM rules always injected into the system prompt (incl. character sheet upkeep, engine-controlled XP/leveling, mandatory NPC registration on direct interaction, quest lifecycle, active-crises-are-quests, player-actions-are-intent). Count grows over time — see data.js for truth; an editorial merge pass is queued as AUDIT_FABLE #19.
 - `SPELL_PICK_LIMITS` — Max spells selectable per tier during creation: `{cantrips:2, "1":2, "2":2, "3":1}`
+- `SPELL_UNLOCK_PICKS` — **#72 C2 (2026-08-03):** picks granted when a spell tier UNLOCKS in play: `{"1":2,"2":2,"3":1,"4":1,"5":1,"6":1}` (per-class counts are template-iteration material)
 - `SKILLS` — Array of 37 skill objects `{id, label, cat}` across 8 categories (Physical, Endurance, Wilderness, Knowledge, Craft, Social, Roguish, Perception). Wilderness includes **Tracking** (WIS/INT), which doubles as urban tailing.
 - `SKILL_LEVELS` — `["Unskilled","Familiar","Trained","Proficient","Expert","Master"]`
 - `SKILL_THRESHOLDS` — `[1, 5, 12, 25, 50]` (cumulative successes to reach levels 1–5)
@@ -389,6 +390,7 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 `checkLevelUp()` called inside `applyMuts()` whenever XP changes:
 - HP gain per level: `ceil(hd/2) + 1 + CON_mod` (minimum 1)
 - Level rows granted from the class bible as NAMED abilities: class rows (2/5/7/9/11/13/15/17) + the committed archetype's rows (3/6/10/14/18 + capstone 20) via classFeaturesAt()/archFeaturesAt()
+- **Spell growth (#72 C2, 2026-08-03):** each tier-unlock level crossed (`spellTiers` — full casters T2@5/T3@7/T4@9/T5@11/T6@15, half casters T2@7/T3@9/T4@13, third casters AT/EK on their archetype schedule T1@3/T2@10/T3@14/T4@18) queues a forced-choice picker (`showSpellUnlockModal`, `SPELL_UNLOCK_PICKS` counts, bench-only pool, base-name dedupe) after the archetype/stat-bump modals; owed picks re-surface before the next turn like owed bumps. Companions AUTO-pick silently (first N unknown bench spells). Fill-phase blank benches skip loudly. No retroactive grants — only unlocks crossed by the level change fire
 - Level 3: `showArchetypeModal()`
 - Levels 4, 8: `showStatBumpModal()` (+2 to one stat or +1 to two, max 20)
 

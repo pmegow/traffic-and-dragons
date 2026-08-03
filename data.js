@@ -165,6 +165,11 @@ var DEITY_MAP={
   }
 };
 var SPELL_PICK_LIMITS={"cantrips":2,"1":2,"2":2,"3":1};
+// #72 C2 (2026-08-03): picks granted when a spell tier UNLOCKS in play — the creation-picker
+// rhythm carried forward (SPELL_PICK_LIMITS-style). Per-class counts are template-iteration
+// material per the spec; these are the shared defaults. Tier keys are numbers-as-strings to
+// match spellTiers. T1 exists for the C7 third casters (AT/EK), whose T1 unlocks at L3.
+var SPELL_UNLOCK_PICKS={"1":2,"2":2,"3":1,"4":1,"5":1,"6":1};
 var SKILLS=[
   // Physical
   {id:"Jumping",          label:"Jumping",              stats:["STR","DEX"], cat:"Physical"},

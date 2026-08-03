@@ -155,6 +155,27 @@ function archFeaturesAt(clsId,archId,lvl){
   }
   return[];
 }
+// #72 C2 (ruled 2026-07-27): the spell-tier unlocks CROSSED by a level change — the class's
+// spellTiers schedule plus, when an archetype is committed, the archetype's own (C7: third
+// casters like Arcane Trickster/Eldritch Knight key their tiers to the archetype rows).
+// PURE: returns [{tier, level, pool, source}] sorted by level; callers decide what a pick is
+// worth (SPELL_UNLOCK_PICKS) and whether an empty fill-phase pool skips. Half-open interval
+// (fromLvl, toLvl] means no retroactive grants ever — the C6 invariant's rhythm.
+function spellUnlocksCrossed(clsId,archId,fromLvl,toLvl){
+  var out=[],d=classDef(clsId);
+  function scan(tiers,pools,src){
+    if(!tiers)return;
+    var t;for(t in tiers){var lv=tiers[t];if(typeof lv==="number"&&lv>fromLvl&&lv<=toLvl)out.push({tier:parseInt(t,10),level:lv,pool:(pools&&pools[t])||[],source:src});}
+  }
+  if(d)scan(d.spellTiers,d.spells,"class");
+  if(archId&&d&&d.archetypes){
+    var i;for(i=0;i<d.archetypes.length;i++){
+      if(d.archetypes[i].id===archId){scan(d.archetypes[i].spellTiers,d.archetypes[i].spells,"arch");break;}
+    }
+  }
+  out.sort(function(a,b){return a.level-b.level||a.tier-b.tier;});
+  return out;
+}
 function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((getFin().CON-10)/2);}
 /* ── mana pool (#110) ──────────────────────────────────────────────────────────────────
    The spend-by-tier casting economy, design ruled 2026-07-31 (full spec in the TODO row).

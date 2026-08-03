@@ -4430,6 +4430,69 @@ function runEngineTests(R){
     return extractorRespHasJson('Here you go: {"a":1}')?true:"prose-wrapped JSON refused";
   });
 
+  // ── #72 C2: spell growth — picks at tier-unlock levels (ruled 2026-07-27) ────────────────
+  // Full casters T2@5/T3@7/T4@9/T5@11/T6@15, half casters one behind (T2@7/T3@9/T4@13),
+  // third casters (AT/EK) keyed to their archetype rows (T1@3/T2@10/T3@14/T4@18 — C7).
+  // Player: picker modal queued after archetype/stat-bump modals. Companion: silent auto-pick.
+  // No retroactive grants (the C6 invariant): only unlocks CROSSED by this level change fire.
+  section("spell growth at tier unlocks (#72 C2)");
+  t("spellUnlocksCrossed: full caster 4→5 crosses T2 only; 10→11 crosses T5 only (no retroactive tiers)",function(){
+    var u=spellUnlocksCrossed("Cleric",null,4,5);
+    if(u.length!==1||u[0].tier!==2||u[0].source!=="class")return "4→5: "+JSON.stringify(u.map(function(x){return x.tier;}));
+    if(!u[0].pool.length)return "T2 pool empty for Cleric";
+    u=spellUnlocksCrossed("Cleric",null,10,11);
+    return u.length===1&&u[0].tier===5?true:"10→11: "+JSON.stringify(u.map(function(x){return x.tier;}));
+  });
+  t("spellUnlocksCrossed: a multi-level jump collects every crossed unlock in level order; a martial gets none",function(){
+    var u=spellUnlocksCrossed("Druid",null,4,9);
+    var ts=u.map(function(x){return x.tier;}).join(",");
+    if(ts!=="2,3,4")return "Druid 4→9 tiers: "+ts;
+    return spellUnlocksCrossed("Warrior",null,1,20).length===0?true:"martial Warrior got spell unlocks";
+  });
+  t("spellUnlocksCrossed: half-caster runs a tier behind; third caster keys to the ARCHETYPE schedule (C7)",function(){
+    var u=spellUnlocksCrossed("Ranger",null,12,13);
+    if(u.length!==1||u[0].tier!==4)return "Ranger 12→13: "+JSON.stringify(u.map(function(x){return x.tier;}));
+    u=spellUnlocksCrossed("Rogue","arcanetrickster",9,10);
+    if(u.length!==1||u[0].tier!==2||u[0].source!=="arch")return "AT 9→10: "+JSON.stringify(u);
+    return spellUnlocksCrossed("Rogue",null,9,10).length===0?true:"archetype schedule fired without the archetype";
+  });
+  t("checkLevelUp queues the player's unlock picks (pool-bearing tiers only) with SPELL_UNLOCK_PICKS counts",function(){
+    makeWorld();
+    _spellUnlocksOwed.length=0;
+    var c=worldState.character;c.cls="Cleric";c.level=4;c.xp=2700;c.abilities=[];c.spells=[{nm:"Sacred Flame",lvl:0,used:false}];
+    c.xp=6500;checkLevelUp();
+    if(c.level!==5)return "level "+c.level;
+    if(_spellUnlocksOwed.length!==1)return "owed "+_spellUnlocksOwed.length+" unlocks";
+    var o=_spellUnlocksOwed[0];
+    if(o.tier!==2||o.count!==SPELL_UNLOCK_PICKS[2])return "queued wrong: "+JSON.stringify({tier:o.tier,count:o.count});
+    _spellUnlocksOwed.length=0;
+    return true;
+  });
+  t("an unlock whose bench is a fill-phase blank is SKIPPED loudly, never queued (the EK T3 case)",function(){
+    makeWorld();
+    _spellUnlocksOwed.length=0;
+    var infos=[];var _ci=console.info;console.info=function(m){infos.push(String(m));};
+    try{
+      var c=worldState.character;c.cls="Warrior";c.archetype="eldritchknight";c.level=13;c.xp=120000;c.abilities=[];
+      c.xp=140000;checkLevelUp();
+    }finally{console.info=_ci;}
+    if(worldState.character.level!==14)return "level "+worldState.character.level;
+    if(_spellUnlocksOwed.length!==0)return "blank bench queued a pick";
+    return infos.join(" ").indexOf("fill-phase")>=0?true:"skip was silent";
+  });
+  t("companion twin AUTO-PICKS from the bench at an unlock: count honored, dedupe by base name, mana pool grows",function(){
+    makeWorld();
+    var cs={name:"Daeris",cls:"Cleric",level:10,xp:64000,maxHp:60,hp:60,stats:{CON:12,WIS:18},abilities:[],
+      spells:[{nm:"Flame Strike",lvl:5,used:false}]};/* already knows one T5 bench spell */
+    var m0=manaMax(cs);
+    cs.xp=85000;checkCompanionLevelUp(cs);
+    if(cs.level!==11)return "level "+cs.level;
+    var t5=cs.spells.filter(function(s){return s.lvl===5;});
+    if(t5.length!==1+SPELL_UNLOCK_PICKS[5])return "T5 spells after auto-pick: "+t5.map(function(s){return s.nm;}).join(", ");
+    var seen={},i;for(i=0;i<cs.spells.length;i++){var b=capBaseName(cs.spells[i].nm);if(seen[b])return "duplicate spell "+b;seen[b]=1;}
+    return manaMax(cs)>m0?true:"mana pool did not grow with the new picks";
+  });
+
   // ── #14 (B16 residual): the typed action survives a page kill between failure and retry ──
   // v1.419's restoreFailedInput only lives within the page load. The pending action now
   // persists in its OWN key, written on the story-failure path only, cleared by the next
