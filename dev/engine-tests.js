@@ -8426,6 +8426,40 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return buildQuestObjectiveNudge()===""?true:"offered quests must not be nudged (they are not accepted goals)";
   });
 
+  // ── #130 — storyBeats carry a campaign stamp (the #63 core-memory pattern) ──────────────────
+  // Field case: Ammut's sheet carries 111 beats from his pre-Runelords campaign, one stamped
+  // "turn 1391" in a campaign at turn 1385 — foreign turn numbers masquerading as this campaign's
+  // timeline (it fooled the ChatGPT reviewer into diagnosing branch contamination). New beats
+  // stamp camp:campName at write; legacy unstamped beats are classified display-side by
+  // priorBeatBoundary — the append-only order rule: this campaign's beats are exactly the maximal
+  // trailing run that is non-decreasing in turn and never exceeds the campaign's current turn.
+  section("#130 — storyBeat campaign stamp + prior-campaign boundary");
+  t("[STORY_BEAT:] stamps the campaign name at write (the fileCoreMemory pattern)", function(){
+    makeWorld();
+    applyMuts("[STORY_BEAT:The oath is struck]");
+    var b=worldState.character.storyBeats[0];
+    if(!b)return "beat not filed";
+    if(b.camp!=="Test")return "camp stamp missing/wrong: "+JSON.stringify(b);
+    return b.turn===worldState.turn?true:"turn stamp wrong: "+JSON.stringify(b);
+  });
+  t("priorBeatBoundary: the Ammut shape — imported sequences before, native suffix after", function(){
+    // Miniature of the real t1265 save: two prior-campaign runs (14..185, then 36..1391 with a
+    // future-looking 1391) followed by the native run (117..1200), campaign at turn 1265.
+    var beats=[{turn:14},{turn:185},{turn:36},{turn:1391},{turn:117},{turn:235},{turn:1200}];
+    var b=priorBeatBoundary(beats,1265);
+    return b===4?true:"expected boundary 4 (native run starts at t117), got "+b;
+  });
+  t("priorBeatBoundary: never-imported characters are all native; empty list is 0", function(){
+    if(priorBeatBoundary([{turn:3},{turn:9},{turn:9},{turn:40}],50)!==0)return "monotonic array must be all native (boundary 0)";
+    if(priorBeatBoundary([],50)!==0)return "empty list should be 0";
+    return true;
+  });
+  t("priorBeatBoundary: a beat beyond the campaign's current turn can never be native", function(){
+    if(priorBeatBoundary([{turn:1391}],1265)!==1)return "single future beat must be excluded from the native suffix";
+    var b=priorBeatBoundary([{turn:10},{turn:1391}],1265);
+    return b===2?true:"future tail must push the boundary past itself, got "+b;
+  });
+
   // ── B16 — a failed GM turn must not eat the player's words, and must leave a trail ──────────
   // sendAction is async and the harness cannot await. It DOES run fully synchronously when callGM
   // throws synchronously: the await OPERAND is evaluated before the await can suspend, so the

@@ -128,7 +128,18 @@ function csSheetSections(c,invOwner){
   var saveHtml="";
   if(c.saveModifiers&&c.saveModifiers.length){saveHtml="<div class='cs-list'>";for(i=0;i<c.saveModifiers.length;i++){var sm=c.saveModifiers[i],sv=sm.amount>=0?"+"+sm.amount:""+sm.amount;saveHtml+='<div class="cs-list-row"><span>'+sv+' vs '+escHtml(sm.type)+'</span><span class="cs-dim"> ['+escHtml(sm.source)+']</span></div>';}saveHtml+="</div>";}
   var beatsHtml="";
-  if(c.storyBeats&&c.storyBeats.length){for(i=c.storyBeats.length-1;i>=0;i--)beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">Turn '+c.storyBeats[i].turn+'</span>'+escHtml(c.storyBeats[i].text)+'</div>';}/* GM-tag text (#22/UA18) */
+  // #130: an imported character's beats from earlier campaigns must not display foreign turn
+  // numbers as this campaign's timeline. Stamped beats (v1.527+) are labeled by their campaign
+  // name when it differs (the coreMemories pattern below); legacy unstamped beats fall back to
+  // the provable order-violation boundary (priorBeatBoundary, helpers.js). Carried history is
+  // never pruned — this is a label, not a filter.
+  if(c.storyBeats&&c.storyBeats.length){
+    var _sbBound=(typeof priorBeatBoundary==="function")?priorBeatBoundary(c.storyBeats,worldState&&worldState.turn):0;
+    for(i=c.storyBeats.length-1;i>=0;i--){var _sb=c.storyBeats[i],_sbLbl;
+      if(_sb.camp&&worldState&&_sb.camp!==worldState.campName)_sbLbl=escHtml(_sb.camp);
+      else if(!_sb.camp&&i<_sbBound)_sbLbl="Earlier adventure";
+      else _sbLbl="Turn "+_sb.turn;
+      beatsHtml+='<div class="cs-beat"><span class="cs-beat-turn">'+_sbLbl+'</span>'+escHtml(_sb.text)+'</div>';}}/* GM-tag text (#22/UA18) */
   // #63 Core Memory — lives on the character schema (witnessed-by-all), so EVERY sheet shows its
   // own carried history: companions display theirs too, and an imported character keeps moments
   // from earlier adventures — labeled with the campaign name instead of a meaningless turn number.

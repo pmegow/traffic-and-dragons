@@ -581,3 +581,28 @@ function sttCorrectNames(text,roster){
   }
   return toks.join("").replace(/\s{2,}/g," ");
 }
+
+// ── #130: prior-campaign story-beat boundary ────────────────────────────────────────────────
+// storyBeats ride the character schema across campaign imports BY DESIGN (carried history is a
+// user-ruled feature, never pruned) — but until v1.527 they carried no campaign stamp, so an
+// imported character's beats displayed foreign turn numbers as if they were this campaign's
+// timeline (the field case: Ammut's sheet showed a "turn 1391" beat in a campaign at turn 1385;
+// an external reviewer read it as branch contamination). New beats stamp camp:campName at write
+// (the fileCoreMemory pattern). For legacy unstamped beats, this helper finds the provable
+// import boundary from the append-only order rule: beats written IN this campaign are exactly
+// the maximal trailing run whose turns never decrease and never exceed the campaign's current
+// turn (in-campaign writes append in turn order; a violation can only come from an imported
+// prefix). Conservative by construction — an all-monotonic history (never imported, or an
+// import whose numbering happens to blend in) returns 0, i.e. everything renders as native;
+// beats are only ever labeled foreign when the order proves it.
+function priorBeatBoundary(beats,currentTurn){
+  if(!beats||!beats.length)return 0;
+  var cur=Number(currentTurn);if(!isFinite(cur))cur=Infinity;
+  var b=beats.length,next=Infinity,i;
+  for(i=beats.length-1;i>=0;i--){
+    var t=Number(beats[i]&&beats[i].turn)||0;
+    if(t>cur||t>next)break;                 // order violation or future turn → everything before is pre-import
+    next=t;b=i;
+  }
+  return b;
+}
