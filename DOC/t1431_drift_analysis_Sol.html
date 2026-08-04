@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>t1431 Drift Analysis — Split-State Pressure and the Multiplying Beds (Sol)</title>
+<style>
+:root{--bg:#111;--panel:#181818;--t1:#ddd;--t2:#999;--acc:#b8935a;--good:#7aa86a;--warn:#c9a227;--bad:#b05252;--info:#6f91b8}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--t1);font:15px/1.62 Georgia,serif;max-width:980px;margin:0 auto;padding:30px 22px 80px}h1{color:var(--acc);font-size:1.55em;line-height:1.2;margin:0 0 5px}h2{color:var(--acc);font-size:1.15em;margin:35px 0 11px;border-bottom:1px solid #2a2a2a;padding-bottom:5px}h3{color:var(--t1);font-size:1em;margin:21px 0 7px}p{margin:9px 0}.sub{color:var(--t2);font-size:.9em;margin-bottom:24px}.card{background:var(--panel);border:1px solid #2a2a2a;border-radius:10px;padding:14px 18px;margin:13px 0}.tldr{border-color:var(--acc)}.critical{border-color:var(--bad)}.badge{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);vertical-align:middle}.ok{background:#182215;border:1px solid var(--good)}.warn{background:#221f0a;border:1px solid var(--warn)}.bad{background:#221313;border:1px solid var(--bad)}.info{background:#161d24;border:1px solid var(--info)}blockquote{background:#151515;border-left:3px solid var(--acc);margin:10px 0;padding:9px 14px;color:#c9c2b4}blockquote .src{display:block;color:var(--t2);font:11px/1.5 ui-monospace,Consolas,monospace;margin-top:5px}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.92em}th,td{border:1px solid #2a2a2a;padding:7px 10px;text-align:left;vertical-align:top}th{color:var(--acc);background:#161513;font-weight:normal;font-variant:small-caps}code{font:.88em ui-monospace,Consolas,monospace;color:#c9a97a;background:#1d1a15;padding:1px 5px;border-radius:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;padding:11px 13px;color:#bbb;font:12px/1.55 ui-monospace,Consolas,monospace}ol li,ul li{margin:6px 0}.num{font-family:ui-monospace,Consolas,monospace}.footer{margin-top:48px;color:var(--t2);font-size:.82em;border-top:1px solid #2a2a2a;padding-top:12px}a{color:#c9a97a}
+</style>
+</head>
+<body>
+<h1>Split-State Pressure and the Multiplying Beds</h1>
+<div class="sub">Campaign: Rise of the Runelords (Ammut) · turn 1431 · save: <code>Rise_of_the_Runelords__Ammut__Ammut_t1431.tnd</code> · analyst: Sol · 2026-08-04</div>
+
+<div class="card tldr"><strong>TLDR:</strong> The bed drift is confirmed, but the strongest mechanism is not simple memory loss. Immediately before t1431, the GM was still served the t1413 single-bed scene through RAG and had t1428–t1430 verbatim in the retained session tail. At the same time, the authoritative GEOGRAPHY block said <strong>all three companions were elsewhere</strong>: Frizwick remained split in a Sandpoint sea cave, while Daeris and Morwen remained split at Magnimar outside the inn-room thread. The prompt therefore demanded two incompatible realities. The GM preserved the recent fiction that everyone was together, but began spatially separating the group — “across the room” at t1430, then “the gap between beds” at t1431. A missing <code>[LOCATION_DESC:]</code> made the furniture easy to re-roll, but stale <code>charSheet.splitLoc</code> is the primary contamination source. Recommended fix: add an age-based split audit in the user-message engine-note channel, requiring the GM to reaffirm the split or emit <code>[PARTY_SPLIT:Name|rejoin]</code>; separately add teeth for missing interior descriptions.</div>
+
+<h2>1 · Finding and confidence</h2>
+<table>
+<tr><th>Finding</th><th>Verdict</th><th>Confidence</th></tr>
+<tr><td>The Magnimar room changed from one shared bed to multiple beds.</td><td><span class="badge ok">Confirmed</span></td><td>Direct transcript evidence.</td></tr>
+<tr><td>The t1431 prompt contained stale, authoritative party-split state contradicting the live scene.</td><td><span class="badge bad">Confirmed</span></td><td>Direct save inspection plus deterministic prompt reconstruction.</td></tr>
+<tr><td>The stale split pressure caused the exact “gap between beds” wording.</td><td><span class="badge warn">High-confidence inference</span></td><td>Temporal and semantic fit; an individual model token choice cannot be proven after the fact.</td></tr>
+<tr><td>The room lacked durable interior canon.</td><td><span class="badge ok">Confirmed</span></td><td><code>Magnimar|Inn - Top Floor Room.description === null</code>.</td></tr>
+<tr><td>The single-bed fact had disappeared from all context by t1431.</td><td><span class="badge bad">Disproved</span></td><td>RAG served t1413, and the retained session tail held the recent bed scene.</td></tr>
+</table>
+
+<h2>2 · Last ten turns: continuity audit</h2>
+<p>The requested window is t1422–t1431. Chask’s interrogation, the warehouse fire, the walk back, soot continuity, and the Collector’s three-day deadline all remain coherent. The room geometry is the one observed drift, and it develops in two steps:</p>
+<table>
+<tr><th>Turn</th><th>Relevant evidence</th><th>Continuity reading</th></tr>
+<tr><td class="num">t1428</td><td>Morwen and Daeris are “two shapes tangled together under the blankets.” Ammut and Frizwick enter the room.</td><td>Ambiguous alone, but no second bed is stated.</td></tr>
+<tr><td class="num">t1429</td><td>Ammut guides Frizwick four steps to “the bed,” pulls back “the blankets,” and Morwen shifts while Daeris remains beside her.</td><td>Singular shared bed remains the natural reading.</td></tr>
+<tr><td class="num">t1430</td><td>Ammut wakes with Frizwick tucked against him; Morwen is suddenly “across the room.”</td><td><strong>First spatial drift.</strong> The group is still present, but the prose starts honoring separation pressure.</td></tr>
+<tr><td class="num">t1431</td><td>Ammut reaches Morwen “across the gap between beds.”</td><td><strong>Drift hardens into explicit plural furniture.</strong></td></tr>
+</table>
+<p>The older establishment is unambiguous:</p>
+<blockquote>“Frizwick’s already awake when you shift … already swinging her legs off <strong>the bed</strong>.”<span class="src">t1413, all four characters present in the Magnimar inn room</span></blockquote>
+<p>The campaign also had a repeated shared-bed convention before Magnimar: t1318 says, “The four of you pile into the bed,” and t1321 describes one mattress. This is not a one-line grammatical accident; the later plural changes an established domestic layout.</p>
+
+<h2>3 · What the GM was actually served before t1431</h2>
+<p>I reconstructed the pre-t1431 context from the exported save by rolling back only the final GM entry, setting the turn to 1430, and retaining the player’s pending input. The relevant state is unchanged by t1431 except for its 20-minute advance. The deterministic retrieval returned the following older scene:</p>
+<pre>PAST SCENE EXCERPTS …
+[Turn 1413 — Magnimar]
+Player: Wait until the middle of the night. Take Friz and head back to the warehouse.
+GM: Sleep doesn't take you … Daeris's breathing beside Morwen goes slow and even.
+Frizwick's already awake … already swinging her legs off the bed …</pre>
+<p>In addition, <code>sessionLog</code> retained t1428–t1430 verbatim. The model therefore had both the older single-bed establishment and the immediately preceding singular-bed scene. The “summarization erased the fact” theory does not match this turn’s actual input.</p>
+<div class="card critical"><strong>The conflicting authoritative block:</strong>
+<pre>GEOGRAPHY (strict continuity — never contradict):
+World: Magnimar | Sub-location: Inn - Top Floor Room
+…
+SPLIT THREADS — these party members are ELSEWHERE right now:
+they cannot perceive, assist, or be assisted by the main party this round …
+— Sandpoint Coast - Sea Cave (Hidden Fault Passage): Frizwick
+— Magnimar: Daeris, Morwen Zethran</pre></div>
+<p>The same volatile prompt also contained full PARTY MEMBER SHEETS for Frizwick, Daeris, and Morwen, a “3 of 3 companion slots filled” party line, and recent narration placing all three in the room. Thus the prompt asserted mutually exclusive facts:</p>
+<table>
+<tr><th>Prompt surface</th><th>Reality it asserted</th></tr>
+<tr><td>Recent conversation and RAG</td><td>All four are together in the top-floor room and share one bed.</td></tr>
+<tr><td>Party sheets and roster</td><td>Frizwick, Daeris, and Morwen are active companions alongside Ammut.</td></tr>
+<tr><td>GEOGRAPHY / SPLIT THREADS</td><td>All three are elsewhere and cannot interact with the main thread.</td></tr>
+</table>
+
+<h2>4 · Root mechanism</h2>
+<ol>
+<li><strong>A split is durable until one exact tag clears it.</strong> <code>tag_table.js:696–713</code> stores a split as <code>charSheet.splitLoc</code>. The only clearing path is explicit <code>[PARTY_SPLIT:Name|rejoin]</code>. A narrated reunion, a party-wide journey, a bare <code>[LOCATION:]</code>, or many turns of co-presence cannot reconcile it.</li>
+<li><strong>The stale values are old, not a t1431 write.</strong> Frizwick is already marked in the sea cave in the t1265 export and remains there at t1431. Daeris and Morwen are split at Sandpoint in t1385, then at Magnimar in t1411/t1431. The values survived hundreds of turns while the prose repeatedly placed the party together.</li>
+<li><strong>The strict prompt trusts the stale field.</strong> <code>helpers.js:352–356</code> treats any living party member with <code>splitLoc.location</code> as split. <code>api.js:61–72</code> injects every such member under “SPLIT THREADS” on every turn with a “cannot perceive or assist” instruction.</li>
+<li><strong>There is no age, audit, or contradiction detector.</strong> <code>splitLoc</code> carries no turn stamp. Unlike quests, schedules, conditions, moods, relationships, and arcs, it never asks whether a long-lived value is still true. This is a monotonic-state failure: once a missed rejoin leaves the field behind, it can persist indefinitely.</li>
+<li><strong>The model resolves the conflict approximately.</strong> Recent prose momentum is strong enough that Sonnet keeps all four characters in the room, but the authoritative split pressure still favors separation. At t1430 it moves Morwen “across the room”; at t1431 it gives the two pairs separate beds. That is a plausible compromise between incompatible context, not reliable continuity.</li>
+</ol>
+<p>The exported t1385 session provides a concrete missed-reconciliation case: all four characters leave Sandpoint together, and the GM emits only <code>[LOCATION:Varisia - North Road]</code>. Daeris and Morwen’s existing split fields remain at Sandpoint because the P5 contract deliberately says a bare location tag never moves a split member. The fiction reunites; state does not.</p>
+
+<h2>5 · Enabling gap: the room has no pinned description</h2>
+<p>The sibling <a href="t1431_drift_analysis_Fable.html">Fable analysis</a> correctly identifies a systemic coverage weakness: <code>Magnimar|Inn - Top Floor Room</code> has <code>description:null</code>, so <code>buildGeoBlock()</code> supplies no bed count, exits, or furniture. Only 4 of 50 sub-location nodes in this save have descriptions. That makes interior details vulnerable.</p>
+<p>Where the two analyses differ is causality. The Fable report says the single-bed establishment “existed nowhere the GM could read” after summarization. The reconstructed RAG block disproves that for t1431: it served t1413 directly, while the retained tail carried t1428–t1430. Missing description is an <em>enabler</em>, not the whole mechanism. Even with good episodic recall, authoritative state conflict can bend the scene.</p>
+
+<h2>6 · Classification</h2>
+<table>
+<tr><th>Dimension</th><th>Classification</th></tr>
+<tr><td>Drift surface</td><td><strong>Yes.</strong> Tag write path, geography prompt injection, session/RAG interaction.</td></tr>
+<tr><td>Visibility</td><td><strong>Silent.</strong> No warning, note, or UI indication that prose and split state disagree.</td></tr>
+<tr><td>Scope</td><td><strong>Failure class.</strong> Any missed “rejoin” can poison every future prompt, not just this room.</td></tr>
+<tr><td>Monotonic-state question</td><td><strong>Fails.</strong> Stale split state has unbounded lifetime and no periodic validation.</td></tr>
+<tr><td>Current-save severity</td><td><strong>High latent / subtle visible.</strong> The visible symptom is two beds; the prompt actually says the three companions cannot participate at all.</td></tr>
+</table>
+
+<h2>7 · Proposed remedy</h2>
+<h3>A. Split-state audit in the engine-note channel — primary fix</h3>
+<ul>
+<li>Add a turn stamp when <code>[PARTY_SPLIT:]</code> creates or reaffirms <code>splitLoc</code>.</li>
+<li>After a modest age threshold, emit one engine note for the stalest split: if the character is still away, re-emit their current <code>[PARTY_SPLIT:]</code>; if they are back, emit <code>[PARTY_SPLIT:Name|rejoin]</code>.</li>
+<li>Put the audit in <code>NOTE_BUILDERS</code>, so it rides the newest user message. Adding more words to the existing system-prompt block is unlikely to help: that instruction has already lost to the GM’s own recent prose for hundreds of turns.</li>
+<li>Reaffirmation refreshes the stamp; rejoin deletes the field. Audit one member per turn, silent in combat, with a recheck interval so a legitimate long split is not nagged continuously.</li>
+<li>Do <strong>not</strong> auto-rejoin on name mention. Split-thread beats legitimately mention the absent character; prose alone cannot safely identify which thread a sentence belongs to.</li>
+</ul>
+<h3>B. Missing interior-description nudge — secondary hardening</h3>
+<p>For a sub-location occupied across a second turn with <code>description:null</code>, ask the GM through the same engine-note channel to emit one write-once <code>[LOCATION_DESC:]</code> containing layout, exits, and countable fixtures. This makes beds/windows/doors durable without mechanically promoting transient prose into canon. It would have pinned the room, but it would not repair stale split state.</p>
+<h3>C. One-time repair for this save</h3>
+<p>Clear <code>charSheet.splitLoc</code> for Frizwick, Daeris, and Morwen (or drive the same change through three explicit rejoin tags). The prose has established all three as present in the inn room. This report does not mutate the save; repair should be a separate, user-approved action.</p>
+
+<h2>8 · Test and verification plan</h2>
+<ol>
+<li><strong>Red-first stale split fixture:</strong> split a companion, advance beyond the audit threshold without rejoin, and assert the user-message engine note demands reaffirm-or-rejoin.</li>
+<li><strong>Exact clearing path:</strong> apply <code>[PARTY_SPLIT:Name|rejoin]</code>; assert <code>splitLoc</code> is removed, the SPLIT THREADS block disappears, and the companion is again treated as present.</li>
+<li><strong>Legitimate long split:</strong> reaffirm the same location; assert the age resets and no repeated note fires before the next interval.</li>
+<li><strong>Safety negatives:</strong> no split means byte-identical prompt and empty note; combat suppresses the audit; hero/unknown/dead handling remains unchanged.</li>
+<li><strong>Cache contract:</strong> stable half remains byte-identical. Only volatile geography and newest user-message notes may differ.</li>
+<li><strong>Real-save prompt diff:</strong> replay the t1431 save before and after clearing the three stale fields. The expected meaningful diff is removal of the false SPLIT THREADS section; RAG must still retrieve t1413.</li>
+<li><strong>Description hardening:</strong> a settled sub-location with <code>description:null</code> produces one nudge; a populated description silences it permanently; pass-through locations do not create noise.</li>
+</ol>
+
+<h2>9 · Recommendation</h2>
+<p>Fix the stale-split lifecycle first, then add missing-description teeth as a separate hardening task. Retconning the current scene is optional and probably not worth it; the two-bed arrangement now has several turns of local momentum. The dangerous defect is not the furniture itself — it is that the engine has silently told the GM for hundreds of turns that the player’s three companions are elsewhere.</p>
+
+<div class="footer">Evidence: <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1431.tnd</code> (2,859 transcript entries), comparison exports t1265/t1385/t1411, deterministic pre-t1431 <code>ragRetrieve()</code> and <code>buildGeoBlock()</code> reconstruction, <code>api.js</code>, <code>helpers.js</code>, and read-only <code>tag_table.js</code>. Investigation only; no engine or save data changed.</div>
+</body>
+</html>
