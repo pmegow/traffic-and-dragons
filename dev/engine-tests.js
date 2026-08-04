@@ -8716,6 +8716,44 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
   });
 
+  // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
+  // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
+  // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
+  // the interior and the GM re-imagined it from genre priors once summarize evaporated the prose.
+  section("#134 — location-description nudge");
+  t("fires for a settled undescribed node (naming it, demanding furnishings); silent on the arrival turn; reaches the engine-note channel", function(){
+    makeWorld(); worldState.turn=100;
+    applyMuts("[LOCATION:Magnimar]"); applyMuts("[SUBLOCATION:Inn - Top Floor Room]");
+    if(buildLocationDescNudge()!=="")return "must stay silent on the arrival turn (write-once + crowded scene)";
+    worldState.turn=101;
+    var n=buildEngineNotes();
+    if(n.indexOf("[LOCATION_DESC:")<0)return "note lacks the instruction / not wired into buildEngineNotes: "+n.slice(0,200);
+    if(n.indexOf("Inn - Top Floor Room")<0)return "note doesn't name the node";
+    return /furnishing/i.test(n)?true:"note must demand countable furnishings";
+  });
+  t("combat silences it; cooldown gates the re-fire; a filed description ends it permanently", function(){
+    makeWorld(); worldState.turn=100;
+    applyMuts("[LOCATION:Magnimar]"); applyMuts("[SUBLOCATION:Inn - Top Floor Room]");
+    worldState.turn=101;
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};
+    if(buildLocationDescNudge()!=="")return "must stay silent during combat";
+    worldState.combat=null;
+    if(buildLocationDescNudge()==="")return "should fire once settled";
+    if(buildLocationDescNudge()!=="")return "no cooldown latch — this would nag every turn";
+    worldState.turn=101+LOC_DESC_NUDGE_COOLDOWN;
+    if(buildLocationDescNudge()==="")return "should re-fire after the cooldown while still undescribed (one-shots rot, #29)";
+    applyMuts("[LOCATION_DESC:A small room: one bed, one chair, a shuttered window over the harbor.]");
+    worldState.turn+=LOC_DESC_NUDGE_COOLDOWN+1;
+    return buildLocationDescNudge()===""?true:"a described node must never be nudged";
+  });
+  t("works for a bare world node too (no sublocation)", function(){
+    makeWorld(); worldState.turn=50;
+    applyMuts("[LOCATION:Duskmere]");
+    worldState.turn=51;
+    var n=buildLocationDescNudge();
+    return n.indexOf("Duskmere")>=0?true:"world-node case failed: "+n;
+  });
+
   // ── #131 — time-phase reconciliation (world.time vs the #73 clock) ──────────────────────────
   // Field case (B21 screenshot, Runelords t1410): membar clock "Day 5, 3:15 PM" while
   // worldState.world.time still said "dawn" — two writers for one fact, both injected to the GM

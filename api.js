@@ -233,6 +233,27 @@ function buildQuestObjectiveNudge(){
   if(!pick)return"";
   return"[ENGINE NOTE: Quest '"+pick.title+"' has been active for "+stale+" turns with NO recorded objectives — the player has no checklist. In THIS response emit [QUEST_STEP:"+pick.title+"|<first concrete objective>] from the leads the story has already established; add further steps as they become concrete.]";
 }
+// #134 (t1431 field finding — the multiplying beds; Sol's sibling row #133 carries the stale-splitLoc primary): interior canon has exactly ONE pin, the
+// write-once [LOCATION_DESC:], and the GM files it unprompted for ~8% of sub-locations — so a
+// lived-in room's furniture exists only in prose, evaporates within a couple of summarize
+// cycles, and gets re-imagined from genre priors on return (one bed at t1413 became a "gap
+// between beds" by t1431). Engine-detects/GM-decides, the #20/#129 teeth shape: once the party
+// is SETTLED at an undescribed node — past the arrival turn, deliberately, because arrival
+// responses are dramatically crowded and write-once means a rushed description is pinned
+// forever — demand the description. Latch stamps on fire (the buildConditionAudit precedent);
+// re-fires every LOC_DESC_NUDGE_COOLDOWN turns while still null; a filed description ends it.
+function buildLocationDescNudge(){
+  if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map)return"";
+  var key=currentNodeKey();if(!key)return"";
+  var node=memory.map.nodes[key];
+  if(!node||node.description)return"";
+  if(node.firstVisit>=worldState.turn)return"";
+  var st=worldState.locDescNudged||(worldState.locDescNudged={});
+  if(st[key]!=null&&worldState.turn-st[key]<LOC_DESC_NUDGE_COOLDOWN)return"";
+  st[key]=worldState.turn;
+  var nm=worldState.world.sublocation||worldState.world.location;
+  return"[ENGINE NOTE: The current location '"+nm+"' has NO permanent description on file. In THIS response emit [LOCATION_DESC:<1-2 sentences>] fixing its PHYSICAL facts — layout, exits, and countable furnishings (beds, chairs, windows, doors) — exactly as the place exists in the story RIGHT NOW. The engine serves it back on every visit and it cannot be rewritten later, so record facts, not mood.]";
+}
 // #129: the escalation half of the schedule teeth (expiry lives in clock.js scheduleSweepExpired).
 // The HAPPENING NOW line in buildClockBlock is a mid-prompt instruction, and the field showed the
 // GM ignoring it indefinitely — the same channel failure as the #20 quest teeth, so the same fix:
@@ -580,7 +601,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
