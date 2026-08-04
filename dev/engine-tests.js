@@ -8716,6 +8716,33 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
   });
 
+  // ── #132 — output-truncation detection (the B21 [SCH side-class) ────────────────────────────
+  // Field case: Runelords t1410 ended "…was listening. [SCH" — the output-token cap cut the
+  // response mid-tag; the fragment rendered RAW (strip regexes need the closing ]), the mutation
+  // was silently lost, and nothing warned (no adapter read stop_reason). Teeth: every provider
+  // surfaces its length-cap finish reason via parseFinish, and cleanTxt drops a trailing
+  // unterminated ALL-CAPS tag fragment (end-anchored — mid-text prose and complete tags untouched).
+  section("#132 — output-truncation detection");
+  t("cleanTxt strips a trailing truncated tag fragment (label-only and mid-content); lowercase bracket prose survives", function(){
+    if(cleanTxt("The water's had its say.\n\n[SCH")!=="The water's had its say.")return "label-only fragment survived: "+JSON.stringify(cleanTxt("The water's had its say.\n\n[SCH"));
+    var mid=cleanTxt("Night falls over the docks. [SCHEDULE_RESOLVED:Tide turns against the ret");
+    if(mid!=="Night falls over the docks.")return "mid-content fragment survived: "+JSON.stringify(mid);
+    var prose=cleanTxt("He shrugged and said [sic");
+    if(prose!=="He shrugged and said [sic")return "lowercase bracket prose was eaten: "+JSON.stringify(prose);
+    return cleanTxt("Rain falls. [TIME:dusk] The bell tolls.").indexOf("bell tolls")>=0?true:"complete-tag stripping regressed";
+  });
+  t("every provider's parseFinish reports its length-cap finish reason and stays silent on a normal stop", function(){
+    if(!PROVIDERS.anthropic.parseFinish({stop_reason:"max_tokens"}))return "anthropic max_tokens missed";
+    if(PROVIDERS.anthropic.parseFinish({stop_reason:"end_turn"}))return "anthropic end_turn false-positived";
+    if(!PROVIDERS.openai.parseFinish({choices:[{finish_reason:"length"}]}))return "openai length missed";
+    if(PROVIDERS.openai.parseFinish({choices:[{finish_reason:"stop"}]}))return "openai stop false-positived";
+    if(!PROVIDERS.grok.parseFinish({choices:[{finish_reason:"length"}]}))return "grok length missed";
+    if(!PROVIDERS.ollama.parseFinish({choices:[{finish_reason:"length"}]}))return "ollama length missed";
+    if(!PROVIDERS.gemini.parseFinish({candidates:[{finishReason:"MAX_TOKENS"}]}))return "gemini MAX_TOKENS missed";
+    if(PROVIDERS.gemini.parseFinish({candidates:[{finishReason:"STOP"}]}))return "gemini STOP false-positived";
+    return PROVIDERS.anthropic.parseFinish({})?"empty payload must not report truncation":true;
+  });
+
   // ── #130 — storyBeats carry a campaign stamp (the #63 core-memory pattern) ──────────────────
   // Field case: Ammut's sheet carries 111 beats from his pre-Runelords campaign, one stamped
   // "turn 1391" in a campaign at turn 1385 — foreign turn numbers masquerading as this campaign's

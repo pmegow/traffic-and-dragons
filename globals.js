@@ -52,6 +52,10 @@ var ANTHROPIC_HAIKU_REINFORCE="\n\n=== STATE DISCIPLINE — rules this model ten
 // OpenAI's raw prompt_tokens INCLUDES cached tokens, so we subtract cached_tokens here;
 // cross-provider totals in worldState.usage are now the same unit (in + cacheRead = full prompt).
 var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;var _cached=(u.prompt_tokens_details&&u.prompt_tokens_details.cached_tokens)||0;return {in:Math.max(0,(u.prompt_tokens||0)-_cached),out:u.completion_tokens||0,cacheRead:_cached,cacheWrite:0};};
+// #132: length-cap detection, shared by the OpenAI-shaped adapters. Returns the finish reason
+// string ONLY when the response was cut at the output-token cap, else null — callGM warns loudly
+// on truthy (a cut response may have lost a state tag mid-emission; the B21 [SCH case).
+var OPENAI_FINISH=function(data){var c=data.choices&&data.choices[0];return (c&&c.finish_reason==="length")?"length":null;};
 // $/MTok — used by usageCost() (api.js) for the Dev Mode running-cost estimate (TODO #21).
 // Anthropic rates verified 2026-07-02; cache write = 1.25x input (5min TTL), cache read = 0.1x input.
 // Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
@@ -94,6 +98,7 @@ var PROVIDERS={
       return body;
     },
     parseResponse:function(data){if(!data.content||!data.content[0]||!data.content[0].text)throw new Error("Empty response");return data.content[0].text;},
+    parseFinish:function(data){return data.stop_reason==="max_tokens"?"max_tokens":null;},
     // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
     // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
     parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};},
@@ -116,6 +121,7 @@ var PROVIDERS={
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
+    parseFinish:OPENAI_FINISH,
     reinforce:TAG_REINFORCE
   },
   grok:{
@@ -129,6 +135,7 @@ var PROVIDERS={
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
+    parseFinish:OPENAI_FINISH,
     reinforce:TAG_REINFORCE
   },
   gemini:{
@@ -144,6 +151,7 @@ var PROVIDERS={
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     parseResponse:function(data){if(!data.candidates||!data.candidates[0]||!data.candidates[0].content||!data.candidates[0].content.parts||!data.candidates[0].content.parts[0]||typeof data.candidates[0].content.parts[0].text!=="string")throw new Error("Empty response");return data.candidates[0].content.parts[0].text;},
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:u.candidatesTokenCount||0,cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};},
+    parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
     reinforce:TAG_REINFORCE,
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   },
@@ -160,11 +168,12 @@ var PROVIDERS={
     buildBody:function(msgs,sys,maxTok,model){return {model:model,max_tokens:maxTok,messages:[{role:"system",content:sysJoin(sys)}].concat(msgs)};},
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string")throw new Error("Empty response");return data.choices[0].message.content;},
     parseUsage:OPENAI_USAGE,
+    parseFinish:OPENAI_FINISH,
     reinforce:TAG_REINFORCE
   }
 };
 var carMode=false;
-var APP_VERSION="v1.537";
+var APP_VERSION="v1.538";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

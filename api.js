@@ -1017,7 +1017,12 @@ var _CT_BARE=buildCtBare();
 var _CT_DASH=/[ \t]*[—–][ \t]*/g;
 var _CT_NL=/\n{3,}/g;
 function cleanTxt(t){
+  // #132: a response cut at the output cap can end mid-tag ("…listening. [SCH" — B21). The strip
+  // regexes above need the closing ], so the ragged fragment used to render raw. End-anchored
+  // (and ≥3 leading caps, the __tagUnknownScan shape) so complete tags and lowercase bracket
+  // prose are untouched; the raw truth stays in sessionLog, this is display-side only.
   return t.replace(_CT_TAGS,"").replace(_CT_BARE,"")
+    .replace(/\[[A-Z][A-Z_]{2,}(:[^\]]*)?\s*$/,"")
     .replace(_CT_DASH,", ").replace(_CT_NL,"\n\n").trim();
 }
 // Renders EVERY [DICE:] tag in the response, not just the first (audit E10) — cleanTxt strips them
@@ -1345,6 +1350,14 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw providerHttpError(prov,res.status,_em);}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
   if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,(opts&&opts.kind)||(sysOverride?"other":"turn"),model);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
+  // #132: length-cap truncation is LOUD — a cut response may have been mid-tag, and that tag's
+  // mutation is lost (handlers only match complete tags; cleanTxt drops the ragged fragment from
+  // display). The transcript/sessionLog keep the raw truth; this is the only warning channel.
+  if(prov.parseFinish){try{var _fin=prov.parseFinish(data);if(_fin){
+    console.warn("[truncation] "+prov.id+" response cut at the output-token cap (finish: "+_fin+", kind: "+((opts&&opts.kind)||(sysOverride?"other":"turn"))+") — any tag being emitted at the cut is LOST (#132)");
+    if(typeof showToast==="function")showToast("⚠ Response hit the length limit — its tail was cut");
+    if(typeof erCrumb==="function")erCrumb("turn-truncated",{p:prov.id,f:_fin,k:(opts&&opts.kind)||(sysOverride?"other":"turn")});
+  }}catch(e3){}}
   return prov.parseResponse(data);
 }
 
