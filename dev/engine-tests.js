@@ -8716,6 +8716,42 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
   });
 
+  // ── #131 — time-phase reconciliation (world.time vs the #73 clock) ──────────────────────────
+  // Field case (B21 screenshot, Runelords t1410): membar clock "Day 5, 3:15 PM" while
+  // worldState.world.time still said "dawn" — two writers for one fact, both injected to the GM
+  // every turn. Ruling: [TIME:] stays the GM's narrative channel and the ENGINE reconciles the
+  // clock to it — forward-only, at the applyMuts tail (after TIME_ADVANCE/REST), with phase
+  // BANDS so a consistent same-response pair no-ops. Unmappable free text is flavor only.
+  section("#131 — time-phase reconciliation");
+  t("the exact field case: [TIME:dawn] at clock 6315 (3:15 pm) rolls forward to the next dawn", function(){
+    makeWorld(); clockAdvance(6315);
+    applyMuts("Morning light finds the inn. [TIME:dawn]");
+    if(worldState.world.time!=="dawn")return "free text not stored: "+worldState.world.time;
+    if(clockNow()!==7200)return "clock not reconciled to next dawn: "+clockNow();
+    return clockTimeOfDay()==="6:00 am"?true:"wall clock wrong: "+clockTimeOfDay();
+  });
+  t("in-band declarations no-op: [TIME:dawn] at dawn, and a consistent TIME_ADVANCE+TIME pair, never double-advance", function(){
+    makeWorld(); clockAdvance(7200);
+    applyMuts("[TIME:dawn]");
+    if(clockNow()!==7200)return "same-phase declaration moved the clock: "+clockNow();
+    applyMuts("[TIME_ADVANCE:2h][TIME:morning]");
+    if(clockNow()!==7320)return "consistent pair double-advanced (2h should land IN the morning band): "+clockNow();
+    return true;
+  });
+  t("an inconsistent declaration tops the clock up forward: [TIME:evening] from 8 am jumps to 6 pm; never backward", function(){
+    makeWorld(); clockAdvance(120);                       // 8:00 am
+    applyMuts("Dusk gathers early today. [TIME:evening]");
+    if(clockNow()!==720)return "not topped up to evening: "+clockNow();
+    applyMuts("[TIME:just after sunset]");                // dusk keyword inside free text
+    return clockNow()===780?true:"sunset keyword not mapped to dusk: "+clockNow();
+  });
+  t("unmappable free text is flavor only — stored, clock untouched", function(){
+    makeWorld(); clockAdvance(120);
+    applyMuts("[TIME:the storm-dark hour]");
+    if(worldState.world.time!=="the storm-dark hour")return "flavor text not stored";
+    return clockNow()===120?true:"unmapped text moved the clock: "+clockNow();
+  });
+
   // ── #132 — output-truncation detection (the B21 [SCH side-class) ────────────────────────────
   // Field case: Runelords t1410 ended "…was listening. [SCH" — the output-token cap cut the
   // response mid-tag; the fragment rendered RAW (strip regexes need the closing ]), the mutation

@@ -234,6 +234,43 @@ function scheduleSweepExpired(){
   return out;
 }
 
+// ── #131 time-phase reconciliation ──────────────────────────────────────────────────────────
+// The free-text [TIME:] field and this clock were two independent writers for one fact, and the
+// field showed them serving the GM contradictory time context ("dawn" vs "3:15 pm" in the same
+// prompt — the B21 screenshot). Ruling (2026-08-03): [TIME:] STAYS the GM's narrative channel,
+// and the ENGINE reconciles the clock to it — forward-only (monotonic, the #73 heart), called
+// from the applyMutsTable tail so a same-response [TIME_ADVANCE:]/[REST:long] lands first (a
+// consistent pair no-ops via the band check; an inconsistent one gets topped up to the declared
+// phase). Unmappable free text ("the storm-dark hour") is flavor: stored, never clock-applied.
+// Entry order is load-bearing — most specific first ("late night" before "night", "afternoon"
+// before "noon", "midmorning" before "morning"). tgt = elapsed-of-day minute (dawn=0 ≡ 6am);
+// [b0,b1) = the band within which the phase is ALREADY true (declaration no-ops).
+var TIME_PHASES=[
+  {re:/late\s*night|small\s+hours|wee\s+hours/i, tgt:1140, b0:1080, b1:1440},
+  {re:/midnight/i,                               tgt:1080, b0:1020, b1:1140},
+  {re:/mid-?morning/i,                           tgt:180,  b0:120,  b1:330},
+  {re:/afternoon/i,                              tgt:480,  b0:420,  b1:690},
+  {re:/noon|midday/i,                            tgt:360,  b0:330,  b1:420},
+  {re:/dawn|daybreak|sunrise|first\s+light/i,    tgt:0,    b0:0,    b1:90},
+  {re:/dusk|sunset|sundown|twilight/i,           tgt:780,  b0:750,  b1:840},
+  {re:/evening/i,                                tgt:720,  b0:690,  b1:840},
+  {re:/night(fall)?|after\s+dark/i,              tgt:900,  b0:840,  b1:1440},
+  {re:/morning/i,                                tgt:120,  b0:60,   b1:360}
+];
+// Advance the clock forward to the declared phase's next occurrence. Returns minutes added
+// (0 = in-band, exact, or unmapped). Routes through clockAdvance so monotonicity holds.
+function clockReconcilePhase(label){
+  var c=clockEnsure();if(!c||!label)return 0;
+  var i,ph=null;
+  for(i=0;i<TIME_PHASES.length;i++){if(TIME_PHASES[i].re.test(label)){ph=TIME_PHASES[i];break;}}
+  if(!ph)return 0;
+  var off=c.min%MIN_PER_DAY;
+  if(off>=ph.b0&&off<ph.b1)return 0;
+  var delta=(ph.tgt-off+MIN_PER_DAY)%MIN_PER_DAY;
+  if(delta===0)return 0;
+  return clockAdvance(delta);
+}
+
 // ── The shared injection block ──────────────────────────────────────────────────────────────
 // ONE pure builder, called by BOTH buildSysPrompt (volatile half) AND Table Talk's ttStateBlock,
 // so the game and the help desk can never disagree about the clock or a countdown. Every number

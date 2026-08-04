@@ -251,7 +251,7 @@ var TAG_TABLE=[
     if(!_freshFight){R.muts.push("Combat ended (left the area)");if(typeof console!=="undefined")console.warn("[combat] auto-cleared stale combat ("+_staleFoe+") on move to "+_lname+" — GM emitted no [COMBAT_END:]");}}}}},
 {t:"SUBLOCATION",apply:function(text,R){var sloctag=text.match(/\[SUBLOCATION:([^\]]+)\]/);if(sloctag){worldState.world.sublocation=sloctag[1].trim();fileSubLocation(sloctag[1].trim(),R.turn);R.muts.push("Sub: "+sloctag[1].trim());}}},
 {t:"SUBLOCATION_LEAVE",apply:function(text,R){if(/\[SUBLOCATION_LEAVE\]/.test(text)){worldState.world.sublocation=null;R.muts.push("Left sub-location");}}},
-{t:"TIME",apply:function(text,R){var timeTag=text.match(/\[TIME:([^\]]+)\]/);if(timeTag){worldState.world.time=timeTag[1].trim();R.muts.push("Time: "+timeTag[1].trim());}}},
+{t:"TIME",apply:function(text,R){var timeTag=text.match(/\[TIME:([^\]]+)\]/);if(timeTag){worldState.world.time=timeTag[1].trim();R.timeText=timeTag[1].trim();/* #131: the tail reconciles the clock to this AFTER TIME_ADVANCE/REST land */R.muts.push("Time: "+timeTag[1].trim());}}},
 {t:"WEATHER",apply:function(text,R){var wxTag=text.match(/\[WEATHER:([^\]]+)\]/);if(wxTag){worldState.world.weather=wxTag[1].trim();R.muts.push("Weather: "+wxTag[1].trim());}}},
 // ── #73 campaign clock ──────────────────────────────────────────────────────────────────────
 // [TIME_ADVANCE:N] advances the elapsed-minutes clock. The GM emits a natural-unit ESTIMATE
@@ -778,6 +778,13 @@ function applyMutsTable(text){
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}
   }
   stampQuestCompletion();
+  // #131: reconcile the clock to the GM's declared time-of-day AFTER every tag handler has run —
+  // a same-response [TIME_ADVANCE:]/[REST:long] lands first, so a consistent pair no-ops via the
+  // phase band and only a genuine desync gets topped up (forward-only; see clockReconcilePhase).
+  if(R.timeText&&typeof clockReconcilePhase==="function"){
+    var _trAdd=clockReconcilePhase(R.timeText);
+    if(_trAdd>0)R.muts.push("Clock reconciled to '"+R.timeText+"' +"+_trAdd+"m → "+((typeof clockStamp==="function")?clockStamp():""));
+  }
   // #129: deterministic expiry for schedule entries the GM never resolved — runs on every real
   // turn so a rest/TIME_ADVANCE that jumps past SCHEDULE_EXPIRE_MIN retires the entry that same
   // response. Loudness (warn/toast/archive) lives in the sweep; the muts line makes it visible
