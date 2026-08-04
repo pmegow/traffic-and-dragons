@@ -1339,7 +1339,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // exist (rules/adult/tone edits, provider/model switch) — so warn loudly, never block.
   // Hashed AFTER the reinforce append so what's checked is exactly what's sent.
   if(!sysOverride&&sys&&typeof sys!=="string")_checkStablePurity(sys.stable);
-  var _tok=maxTok||1000;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
+  var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var body=prov.buildBody(msgs,sys,_tok,model);
   var url=typeof prov.endpoint==="function"?prov.endpoint(model):prov.endpoint; // Gemini embeds the model in the URL
   var res;try{res=await fetch(url,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)});}catch(e){throw new Error("Network: "+e.message);}

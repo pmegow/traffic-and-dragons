@@ -1490,7 +1490,7 @@ async function rerollLast(){
   var prevA=sessionLog.pop(),prevU=sessionLog.pop(); // context is now just before the last action
   var th=addMsg("thinking","Re-rolling the scene...");
   try{
-    var resp=await callGM(prevU.content,null,1000); // current voice; no muts, no turn++
+    var resp=await callGM(prevU.content,null,1500); // current voice; no muts, no turn++ (1500 = the turn budget, v1.540)
     th.remove();
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
     var clean=cleanTxt(resp),dice=diceTxt(resp);
