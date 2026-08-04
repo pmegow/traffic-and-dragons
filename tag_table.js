@@ -704,7 +704,10 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
-  psN.charSheet.splitLoc={location:psArg,sublocation:psSub};
+  /* #133: stamp the split's turn at write — buildSplitAudit ages from it (a re-affirming re-emit
+     lands here too, minting a fresh object: new turn, audited-stamp gone — the reset IS the write).
+     Legacy splits without .turn read as infinitely old, so stale pre-#133 splits audit immediately. */
+  psN.charSheet.splitLoc={location:psArg,sublocation:psSub,turn:R.turn};
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]={firstVisit:R.turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}

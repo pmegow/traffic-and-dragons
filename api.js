@@ -254,6 +254,38 @@ function buildLocationDescNudge(){
   var nm=worldState.world.sublocation||worldState.world.location;
   return"[ENGINE NOTE: The current location '"+nm+"' has NO permanent description on file. In THIS response emit [LOCATION_DESC:<1-2 sentences>] fixing its PHYSICAL facts — layout, exits, and countable furnishings (beds, chairs, windows, doors) — exactly as the place exists in the story RIGHT NOW. The engine serves it back on every visit and it cannot be rewritten later, so record facts, not mood.]";
 }
+// #133 (t1431/B21 field finding — stale splits poison strict geography indefinitely): a
+// charSheet.splitLoc is cleared ONLY by [PARTY_SPLIT:Name|rejoin], and the GM never volunteers
+// resolution tags (the #29/#20/#129 channel failure, third instance — fix the class). Frizwick's
+// sea-cave split survived ≥166 turns, so SPLIT THREADS asserted "she is elsewhere / cannot
+// assist" every turn against a narrative that had her in the room — the standing ammunition
+// under B21's confabulation and the multiplying-beds drift. Teeth: aged splits (past
+// SPLIT_AUDIT_TURNS; LEGACY-unstamped = infinitely old, the #46 precedent) get ONE audit note
+// listing every aged member (condition-audit style — heals a multi-split save in one turn) with
+// a NEUTRAL fork: rejoin or re-affirm, story decides. The B21 lesson is load-bearing in the
+// wording: the record must never command the narrative ("do not narrate them as absent merely
+// because this record says so"). Audited-stamp on fire (the buildConditionAudit precedent);
+// re-affirming re-emits [PARTY_SPLIT:] which mints a fresh stamped splitLoc — the reset is the write.
+function buildSplitAudit(){
+  if(!worldState||worldState.combat)return"";
+  if(typeof partySplitMembers!=="function")return"";
+  var splits=partySplitMembers(),due=[],i;
+  for(i=0;i<splits.length;i++){
+    var sl=splits[i].charSheet.splitLoc;
+    var age=(sl.turn==null)?Infinity:worldState.turn-sl.turn;
+    if(age<SPLIT_AUDIT_TURNS)continue;
+    if(sl.audited!=null&&worldState.turn-sl.audited<SPLIT_AUDIT_TURNS)continue;
+    due.push(splits[i]);
+  }
+  if(!due.length)return"";
+  var lines=[];
+  for(i=0;i<due.length;i++){
+    var d=due[i],dl=d.charSheet.splitLoc;
+    dl.audited=worldState.turn;
+    lines.push("— "+d.name+": recorded as SPLIT OFF at "+dl.location+(dl.sublocation?" ("+dl.sublocation+")":"")+(dl.turn!=null?" since turn "+dl.turn:" since before the record began"));
+  }
+  return"[ENGINE NOTE — SPLIT AUDIT: the party record still lists the member(s) below as split off on their own thread:\n"+lines.join("\n")+"\nFor EACH: if the story has them WITH the party right now, emit [PARTY_SPLIT:"+due[0].name+"|rejoin] (one per member, their own name); if they are genuinely still apart, re-affirm the split by re-emitting [PARTY_SPLIT:<Name>|<their current location>] — re-affirming resets this check. Decide from the STORY: do not narrate them as absent merely because this record says so.]";
+}
 // #129: the escalation half of the schedule teeth (expiry lives in clock.js scheduleSweepExpired).
 // The HAPPENING NOW line in buildClockBlock is a mid-prompt instruction, and the field showed the
 // GM ignoring it indefinitely — the same channel failure as the #20 quest teeth, so the same fix:
@@ -601,7 +633,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

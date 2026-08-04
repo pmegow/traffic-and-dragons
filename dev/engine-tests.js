@@ -8716,6 +8716,71 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
   });
 
+  // ── #133 — split-audit teeth (stale splitLoc poisons strict geography indefinitely) ─────────
+  // Field case (t1431 forensics, Sol+Fable): Frizwick's charSheet.splitLoc pointed at the
+  // Sandpoint sea cave from before t1265 through t1431 (≥166 turns) — SPLIT THREADS asserted
+  // "she is elsewhere / cannot assist" EVERY turn while the narrative had her in the room, the
+  // standing ammunition under B21 and the multiplying-beds drift. Only [PARTY_SPLIT:|rejoin]
+  // clears a split, and the GM never volunteers resolution tags (the #29/#20/#129 channel
+  // failure, third instance). Teeth: splits stamp their turn at write; aged splits get a
+  // neutral-fork audit note (rejoin OR re-affirm — story decides, the record never commands).
+  section("#133 — split-audit teeth");
+  function mkSplitParty(){
+    makeWorld(); worldState.turn=100;
+    var cs={name:"Frizwick",cls:"Rogue",level:9,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Frizwick",partyMember:true,isPC:true,status:"ally",charSheet:cs});
+    memory.npcs["Frizwick"]={attitude:"loyal",knowledge:[],events:[],aliases:[]};
+    return cs;
+  }
+  t("[PARTY_SPLIT:] stamps the split turn at write; rejoin still clears", function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|The Docks]");
+    if(!cs.splitLoc||cs.splitLoc.turn!==100)return "split not turn-stamped: "+JSON.stringify(cs.splitLoc);
+    applyMuts("[PARTY_SPLIT:Frizwick|rejoin]");
+    return cs.splitLoc?"rejoin did not clear the stamped split":true;
+  });
+  t("buildSplitAudit: silent for a fresh split and in combat; fires past SPLIT_AUDIT_TURNS with the neutral fork", function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|The Docks]");
+    if(buildSplitAudit()!=="")return "fresh split must not be audited";
+    worldState.turn=100+SPLIT_AUDIT_TURNS;
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5}]};
+    if(buildSplitAudit()!=="")return "must stay silent during combat";
+    worldState.combat=null;
+    var n=buildSplitAudit();
+    if(n.indexOf("Frizwick")<0||n.indexOf("The Docks")<0)return "note missing who/where: "+n;
+    if(n.indexOf("[PARTY_SPLIT:Frizwick|rejoin]")<0)return "note missing the rejoin option: "+n;
+    if(!/re-?affirm/i.test(n))return "note missing the re-affirm option: "+n;
+    return /do not narrate them as absent/i.test(n)?true:"note missing the record-never-commands guard (the B21 lesson): "+n;
+  });
+  t("the verbatim field case: a LEGACY unstamped split (Frizwick at the sea cave) is audited immediately; cooldown gates re-fire; rejoin ends it", function(){
+    var cs=mkSplitParty();
+    cs.splitLoc={location:"Sandpoint Coast - Sea Cave",sublocation:"Hidden Fault Passage"};  // no .turn — the live t1431 shape
+    var n=buildSplitAudit();
+    if(n.indexOf("Sandpoint Coast - Sea Cave")<0)return "legacy split not audited immediately: "+n;
+    if(buildSplitAudit()!=="")return "no cooldown — would nag every turn";
+    worldState.turn=100+SPLIT_AUDIT_TURNS;
+    if(buildSplitAudit()==="")return "should re-fire after the cooldown while still split";
+    applyMuts("[PARTY_SPLIT:Frizwick|rejoin]");
+    worldState.turn+=SPLIT_AUDIT_TURNS;
+    return buildSplitAudit()===""?true:"rejoined member must never be audited";
+  });
+  t("re-affirming resets the clock; multiple aged splits land in ONE note; wired into buildEngineNotes", function(){
+    var cs=mkSplitParty();
+    var cs2={name:"Daeris",cls:"Cleric",level:9,hp:50,maxHp:50,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Daeris",partyMember:true,isPC:true,status:"ally",charSheet:cs2});
+    memory.npcs["Daeris"]={attitude:"warm",knowledge:[],events:[],aliases:[]};
+    cs.splitLoc={location:"Sandpoint Coast - Sea Cave",sublocation:null};
+    cs2.splitLoc={location:"Sandpoint",sublocation:null};
+    var n=buildEngineNotes();
+    if(n.indexOf("Frizwick")<0||n.indexOf("Daeris")<0)return "both aged splits should ride one audit: "+n.slice(0,300);
+    applyMuts("[PARTY_SPLIT:Frizwick|Sandpoint Coast - Sea Cave]");  // re-affirm — same place, fresh stamp
+    worldState.turn+=SPLIT_AUDIT_TURNS;
+    var n2=buildSplitAudit();
+    if(n2.indexOf("Frizwick")>=0&&worldState.turn-cs.splitLoc.turn<SPLIT_AUDIT_TURNS)return "re-affirm did not reset the clock";
+    return cs.splitLoc.turn===100?true:"re-affirm should re-stamp the split turn: "+JSON.stringify(cs.splitLoc);
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
