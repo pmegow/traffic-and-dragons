@@ -45,8 +45,15 @@ function buildGeoBlock(){
   if(conns.length)lines.push("Connected to: "+conns.join(", "));
   // NPCs elsewhere. B3: the dead are excluded — "Rinn → the docks" affirmatively implied he was
   // findable there forever; the roster's DECEASED line now carries the truth instead.
+  // B21: living NON-SPLIT party members are excluded too — lastSeenAt re-stamps only on [NPC:]
+  // tags, never on ordinary party travel, so for a companion walking WITH the party it goes stale
+  // and affirmatively lies ("Frizwick → <old node>" against the party sheet's presence — the
+  // t1410 confabulation seed). Split members keep their line: their thread really is elsewhere.
+  var partyHere={},phN;
+  for(i=0;i<worldState.npcs.length;i++){phN=worldState.npcs[i];
+    if(phN.partyMember&&!npcIsDead(phN)&&!(phN.charSheet&&phN.charSheet.splitLoc&&phN.charSheet.splitLoc.location))partyHere[phN.name]=1;}
   var npcLocs=[],nNames=Object.keys(memory.npcs);
-  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
+  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&!partyHere[nNames[i]]&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
   if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
   // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
   // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
@@ -235,9 +242,13 @@ function buildQuestObjectiveNudge(){
 function buildScheduleEscalation(){
   if(!worldState||worldState.combat)return"";
   if(typeof scheduleDue!=="function")return"";
+  // B21: expire-before-escalate — an entry already past SCHEDULE_EXPIRE_MIN belongs to the sweep
+  // (next applyMuts tail), never to a narrate-the-consequence command. Without this guard, the
+  // teeth's first run on an old save handed the GM a command to narrate a ~1,100-turn-stale tide
+  // deadline, and it confabulated a present party member trapped there (Runelords t1410).
   var due=scheduleDue(),pick=null,i;
   for(i=0;i<due.length;i++){
-    if(due[i].elapsed>=SCHEDULE_ESCALATE_MIN&&(!pick||due[i].elapsed>pick.elapsed))pick=due[i];
+    if(due[i].elapsed>=SCHEDULE_ESCALATE_MIN&&due[i].elapsed<=SCHEDULE_EXPIRE_MIN&&(!pick||due[i].elapsed>pick.elapsed))pick=due[i];
   }
   if(!pick)return"";
   var ago=fmtGap(pick.elapsed).replace(/^in /,"");

@@ -242,7 +242,11 @@ function scheduleSweepExpired(){
 // untouched save stays byte-clean.
 function buildClockBlock(){
   var c=clockEnsure();if(!c)return "";
-  var due=scheduleDue(), pending=schedulePending();
+  // B21: past-expiry entries are the sweep's business, not HAPPENING NOW material. A past-expiry
+  // entry can only exist at prompt time on the go-live/migration turn (every later crossing is
+  // swept in the same response's applyMuts tail) — and serving it there is what fed the GM a
+  // days-stale deadline to narrate.
+  var due=scheduleDue().filter(function(e){return e.elapsed<=SCHEDULE_EXPIRE_MIN;}), pending=schedulePending();
   if(c.min===0 && !due.length && !pending.length)return "";   // nothing has happened yet
   var s="CAMPAIGN CLOCK: "+clockFmt(c.min)+" (days run dawn to dawn — 00h00m elapsed-of-day is dawn, ~6am).\n";
   if(pending.length){

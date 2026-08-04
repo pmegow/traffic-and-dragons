@@ -8669,6 +8669,53 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return buildQuestObjectiveNudge()===""?true:"offered quests must not be nudged (they are not accepted goals)";
   });
 
+  // ── B21 — the go-live double-threshold hole + the party-member phantom "elsewhere" line ─────
+  // Field case (Runelords t1410, v1.536): "Tide turns against the return route" was ~4 days
+  // overdue when the #129 teeth first ran on the save — past BOTH thresholds at once. The
+  // escalation builder had no expiry guard, so its one pre-sweep turn COMMANDED the GM to
+  // narrate the stale event's consequence ("it has already happened"), and the GM confabulated
+  // a present party companion (Frizwick) still trapped at the event's sea cave. Ruling:
+  // expire-before-escalate — an entry old enough for the sweep never earns a narration command,
+  // and the clock block stops serving it as HAPPENING NOW (the go-live/migration turn is the
+  // only moment a past-expiry entry can exist at prompt time; every later crossing is swept in
+  // the same response's applyMuts tail).
+  t("B21: an entry past SCHEDULE_EXPIRE_MIN never earns an escalation note (expire-before-escalate)", function(){
+    makeWorld(); scheduleAdd("Tide turns against the return route","1m");
+    clockAdvance(SCHEDULE_EXPIRE_MIN+120);
+    var n=buildScheduleEscalation();
+    return n===""?true:"doubly-overdue entry was commanded into narration: "+n;
+  });
+  t("B21: with one expired and one escalatable entry, the note picks the escalatable one", function(){
+    makeWorld(); scheduleAdd("Ancient","1m"); clockAdvance(SCHEDULE_EXPIRE_MIN+60);
+    scheduleAdd("Recent","1m"); clockAdvance(SCHEDULE_ESCALATE_MIN+30);
+    var n=buildScheduleEscalation();
+    if(n.indexOf("'Recent'")<0)return "should pick the escalatable entry: "+n;
+    return n.indexOf("Ancient")<0?true:"expired entry leaked into the note: "+n;
+  });
+  t("B21: buildClockBlock stops serving past-expiry entries as HAPPENING NOW; legit due entries survive", function(){
+    makeWorld(); scheduleAdd("Tide turns against the return route","1m");
+    clockAdvance(SCHEDULE_EXPIRE_MIN+120);
+    scheduleAdd("Fresh due","1m"); clockAdvance(30);
+    var b=buildClockBlock();
+    if(b.indexOf("Tide turns")>=0)return "past-expiry entry still served as HAPPENING NOW: "+b;
+    return b.indexOf("Fresh due")>=0?true:"legit due entry vanished from the block: "+b;
+  });
+  t("B21: a living non-split party member never appears in geo 'NPCs elsewhere' (stale lastSeenAt lies); split members and outsiders keep their lines", function(){
+    makeWorld();
+    var cs={name:"Frizwick",cls:"Rogue",level:9,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+    worldState.npcs.push({name:"Frizwick",partyMember:true,status:"ally",charSheet:cs});
+    memory.npcs["Frizwick"]={attitude:"loyal",knowledge:[],events:[],aliases:[],lastSeenAt:"Fogscar Sea Cave"};
+    memory.npcs["Old Salt"]={attitude:"neutral",knowledge:[],events:[],aliases:[],lastSeenAt:"Fogscar Sea Cave"};
+    applyMuts("[LOCATION:Magnimar]");
+    var g=buildGeoBlock();
+    if(g.indexOf("Frizwick → Fogscar Sea Cave")>=0)return "present party member served as elsewhere: "+g;
+    if(g.indexOf("Old Salt → Fogscar Sea Cave")<0)return "non-party NPC lost their elsewhere line";
+    cs.splitLoc={location:"The Docks",sublocation:null};   // split directly (handler gating tested elsewhere)
+    memory.npcs["Frizwick"].lastSeenAt="The Docks";
+    var g2=buildGeoBlock();
+    return g2.indexOf("Frizwick → The Docks")>=0?true:"split member's elsewhere line lost — the exclusion must respect splitLoc";
+  });
+
   // ── #130 — storyBeats carry a campaign stamp (the #63 core-memory pattern) ──────────────────
   // Field case: Ammut's sheet carries 111 beats from his pre-Runelords campaign, one stamped
   // "turn 1391" in a campaign at turn 1385 — foreign turn numbers masquerading as this campaign's

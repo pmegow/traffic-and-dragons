@@ -239,7 +239,7 @@ _(second arrival dce1ad9e-7f11-4f8f-b794-e1c4737af03f at t1334: same fingerprint
 ### Action log
 
 ## B21 — Quest closure pressed while the GM believed a present party companion was trapped in peril at a far-away location — canon contradiction corrected only after player pushback (GM issued a RETCON)
-**Status:** findings-ready
+**Status:** fixed (v1.537 — expire-before-escalate + clock-block guard + geo party exclusion; save repaired separately. Field verification: no recurrence of a stale-schedule narration command or a phantom "party member elsewhere" line → move to Completed as verified)
 **Kind:** user-report · **First seen:** 2026-08-04 (v1.536) · **Last seen:** 2026-08-04 (v1.536) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1411
 **Fingerprint:** `user-report · user-report · v1.536 · game is trying to close a quest with a character in peril that’s been with me the whole time. yikes.`
 **Report ids:** 8cf3a6ba-23c8-4990-ac98-aec7a29505f9
@@ -373,7 +373,8 @@ The Sealed Forge of the Kodars (active)
 - **CONTAMINATION CONFIRMED, two writes — both from the t1411 summarize (it extracted the window ending at t1410, before the retcon existed):** ① `memory.futureEvents` pending entry `{when:"already passed, consequences pending", what:"The tide window for the hidden fault passage back through the Fogscar sea cave has closed, raising concern for whoever remained below.", setTurn:1410}` — actively re-served as a pending event every turn until #29 expiry (~t1450) unless resolved/scrubbed. ② The turn-1410 chapter's closing sentence: *"…the tide window at the Fogscar sea cave has long since closed, drowned shut like a mouth around its own secret, and someone was still down there when it did."* — durable false canon in `memory.chapters` (+ its `worldState.eventHistory` copy), served via the STORY SO FAR window. These two writes are the full repair scope.
 
 ### Action log
-_(none)_
+- **2026-08-03 — save repaired** (`Rise_of_the_Runelords_t1411_REPAIRED.tnd`, delivered to the user's Downloads; copy in `testRuns/`): false tide futureEvent removed; the t1410 chapter's closing sentence rewritten to the truth (party departed the cave; no one below) in BOTH `memory.chapters` and the `worldState.eventHistory` copy. Verified: transcript/sessionLog/character/npcs byte-identical, no false-tail text remains anywhere in the save.
+- **2026-08-03 — fixed, v1.537** (`/bugs act B21`, Fable-gated per drift policy): ① `buildScheduleEscalation` (api.js) now skips entries past `SCHEDULE_EXPIRE_MIN` — expire-before-escalate: a sweep-ripe entry never earns a narrate-the-consequence command (the go-live hole that caused this). ② `buildClockBlock` (clock.js) applies the same guard to HAPPENING NOW — a past-expiry entry can only exist at prompt time on the go-live/migration turn, and it is no longer served there. ③ geo "NPCs elsewhere" (api.js buildGeoBlock) excludes living NON-split party members (stale `lastSeenAt` lies about a companion walking with the party); split members keep their line. Test-first: 4 engine tests written failing (incl. the verbatim field note reproduced) → green, 1014 total; stable-half byte-identity suite green. NOT taken (recorded): the optional "moot if the person is with the party — CANCEL" clause in the escalation note text (minimal-change ruling; revisit if an escalate-band entry ever produces the same class). The truncation side-class is TODO #132.
 
 ## Completed
 
