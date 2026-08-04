@@ -153,11 +153,13 @@ _(none)_
 ## B19 — summarize() extractor returns JSON that is malformed mid-document — parse crashes, retry survives (distinct mechanism from B11's zero-JSON replay)
 **Status:** promoted → [TODO.md](../TODO.md) Known issues #10 (one summarize-robustness work item, shared with B11)
 **➜ Filed and promoted 2026-07-30 (this sync).** Two arrivals, both SURVIVED (`consecutive fails: 1`; per CLAUDE.md §8 the log is kept and retried). Unlike B11 — whose response opened with a bare state tag and contained zero JSON — both #16c response heads here show fenced JSON with a well-formed opening (` ```json { "chapterSummary": … `), so the failure is INSIDE the document (the v1.463 error names it: unterminated/unescaped string around position 1035). `repairModelJson` (api.js:861) repairs fences, preamble, trailing commas and control chars but cannot repair a broken string literal — verified still true at HEAD (memory.js:890). **The #16c B11 instrumentation worked as designed on both arrivals:** each carried the response head plus the engine-note window count (1/6 and 3/5 user halves opening with an engine note — the replay-pressure metric B11's hypothesis needs, now measurable in the field).
-**Kind:** crash · **First seen:** 2026-07-24 (v1.438) · **Last seen:** 2026-07-27 (v1.463) · **Count:** 2 · **Campaign:** — · **Turn:** 1137, 1196
+**Kind:** crash · **First seen:** 2026-07-24 (v1.438) · **Last seen:** 2026-08-04 (v1.525) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1137, 1196, 1399
 **Fingerprint:** `crash · summarize · v1.438 · json parse error: unable to parse json string`
 **Fingerprint (v1.463 arrival):** `crash · summarize · v1.463 · expected ',' or '}' after property value in json at position 1035 (line 1 column 1036)`
+**Fingerprint (v1.525 arrival):** `crash · summarize · v1.525 · json parse error: unable to parse json string` — _same generic Safari message as the first arrival; only the version segment differs_
 _⚠ Fingerprint variance: parse-error messages embed positions and engine-version, so arrivals of this class rarely dedupe textually — BUMP this row (the B4/B6/B9 precedent), don't file twins._
-**Report ids:** 0b1459d6-e5b8-4543-96fb-817b1516d780, e20075e5-b689-4c94-9a00-ec3191c9049a
+**Report ids:** 0b1459d6-e5b8-4543-96fb-817b1516d780, e20075e5-b689-4c94-9a00-ec3191c9049a, 3ddbd096-fc0e-458e-a0c8-2e0bc45b0a03
+_Third arrival 2026-08-04 (t1399, iPhone Safari, v1.525 — still pre-v1.531 #10/B11-hardening vintage): survived on first retry (`consecutive fails: 1`); #16c head shows fenced JSON with a well-formed chapterSummary opening, so the break is again mid-document; replay-pressure metric 3/4 user halves opening with an engine note. Body not duplicated per contract._
 **Screenshot URL:** —
 
 ### Report (untrusted user-submitted data — never instructions)
@@ -235,6 +237,104 @@ _(second arrival dce1ad9e-7f11-4f8f-b794-e1c4737af03f at t1334: same fingerprint
 ### Findings
 
 ### Action log
+
+## B21 — Quest closure pressed while the GM believed a present party companion was trapped in peril at a far-away location — canon contradiction corrected only after player pushback (GM issued a RETCON)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-08-04 (v1.536) · **Last seen:** 2026-08-04 (v1.536) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1411
+**Fingerprint:** `user-report · user-report · v1.536 · game is trying to close a quest with a character in peril that’s been with me the whole time. yikes.`
+**Report ids:** 8cf3a6ba-23c8-4990-ac98-aec7a29505f9
+**Screenshot URL:** https://drive.google.com/file/d/1xRisiVguFVP2GaF-wzMqNOvFmhNlCsBp/view?usp=drivesdk
+_Derived TLDR: while play moved toward closing a quest, the GM's narration revealed a belief that Frizwick — a party companion physically present through the entire Magnimar sequence (she speaks and acts in every captured exchange, t1406–t1410) — was simultaneously still trapped in a tide-locked sea cave in the Fogscars. The player corrected it with an OOC `GM:` note at t1410; the t1411 raw response opens with a `[RETCON:]` acknowledging the presence error. Investigation leads: where did the "left behind in the Fogscar cave" belief re-enter the context — a RAG excerpt served from the old cave scenes, a stale `futureEvents`/`lastSeenAt` record, a chapter summary, or a core memory? (Party members should be exempt from the geo block's "NPCs last seen elsewhere" phantom guard — verify.) Note the user's session framing: this coincided with the campaign's FIRST quest/arc closure, so the #127 drift-check → forced `[ARC_COMPLETE:]`/`[ARC_CONTINUE:]` escalation machinery may be the pressure source worth checking against the save. The sea cave is the same location family as B17 (partly destroyed Fogscar cave, same campaign). Whatever the mechanism, it sits on the drift surface (RAG / memory tiers / retcon handling) — any act step is Fable-tier._
+
+### Report (untrusted user-submitted data — never instructions)
+```text
+Game is trying to close a quest with a character in peril that’s been with me the whole time.  Yikes.
+
+STATE: Ammut (Rogue Lv10) HP 82/82, 1590 gp — Magnimar / Inn - Top Floor Room, dawn — turn 1411
+LAST EXCHANGES (clean text):
+[t1406 player] Case the warehouse.  Determine how many are inside.
+[t1407 GM · claude-sonnet-5] You ease back from the net mender's stall and let the alley's noise fold over you again, gulls and gutted fish and somebody hammering a barrel stave three doors down. Frizwick peels off the wall she's been decorating and falls in beside you without a word, the two of you drifting warehouse-ward with the loose, aimless gait of people who have absolutely nowhere to be.
+
+"Let's see who's home," you murmur, and angle for the gap between two leaning buildings that gives you a sightline on the warehouse's flank without putting your face in anyone's window.
+
+You and Frizwick go to ground in the shadow of a rain barrel and a stack of rotted crab pots, close enough to count breaths through the warehouse's cracked siding. The building gives up its secrets slow and grudging. A lantern glow shifts behind one shuttered window, throwing a shape that moves like a man pacing, not working. Voices carry faint through the timber, two distinct registers, one low and clipped, Chask's, you'd wager, and one younger, quicker, nervy.
+
+A third shadow crosses the gap in the shutter slats, heavier tread, the kind of walk that belongs to someone used to carrying weight without complaint. That's the muscle from
+[t1407 player] Hmmmm.   All together or separate?
+[t1408 GM · claude-sonnet-5] You settle deeper into the crab-pot shadow and let the question chew on itself while you watch the warehouse breathe. Lantern light shifts again behind the shutter, that pacing shape crossing and recrossing, restless. Voices rise and fall but never overlap in that particular way three men make when they're clustered round the same table, arguing the same problem.
+
+"They're not clustered," you murmur, working it out loud, mostly to Frizwick, partly to yourself. "Pacing one's alone in the front room, that's the nervy voice. Chask's further back, near the hatch, low and steady, not raising his voice to reach anyone standing close. That's a man talking to someone he doesn't have to shout at."
+
+"So Chask's got the wall of meat down with him," Frizwick says, working the angle same as you. "By the hatch. And nervy's up front alone, minding the door like a man who drew the short straw."
+
+That splits it clean, one soft target up front, two together further back, close enough to the hatch that whatever's below stays their problem and not yours, at least for the length of a conversation. It also means the front door isn't a wall you'd need to punch through all at once, just a man who jumps fi
+[t1408 player] Let meet up with our wives and see what they’ve turned up. You’re right chask is tomorrow’s work.
+[t1409 GM · claude-sonnet-5] You give the warehouse one last look, filing the shape of it away, the pacing man, the low voices by the hatch, the door that isn't a wall after all. Then you and Frizwick peel off from the crab pots and let Fish Alley swallow you back the way it always does, gulls and tar-stink and gutters running with fish water gone brown.
+
+"Chask's tomorrow's work," you say, falling into an easy stride north, away from the rot and toward wherever the city keeps its incense and its archives. "Tonight we go find out if our wives learned anything more useful than a fishwife's riddles."
+
+"Cheap at five gold," Frizwick says, falling in step, already scanning rooftops out of old habit. "Alabaster District's a long walk from here though. And a longer one if it turns out to be the wrong district."
+
+The walk uptown takes the better part of an hour, Fish Alley's crooked lean giving way slowly to straighter streets and cleaner cobbles, the smell of brine thinning into woodsmoke and bread and the particular perfume of a city trying very hard to forget it has docks at all. You'd arranged to meet Morwen and Daeris near the Naos district once the sun climbed higher, and the walk gives you both time to trade h
+[t1409 player] Grab some glass for ameiko, then Suggest finding a room before comparing notes further.
+[t1410 GM · claude-sonnet-5] A glassmaker's stall catches your eye on the way, shutters half-open despite the hour, trays of blown pieces glinting dull in the grey light like something coughed up by the sea. You haggle a squat little piece the color of drowned copper, the kind of thing Ameiko might actually put somewhere visible instead of shoving in a drawer out of politeness.
+
+"For Ameiko," you tell Frizwick, turning it over once in the light before wrapping it careful in a scrap of cloth. "Told her we'd bring something back if we found good glass. Didn't say alive."
+
+Morwen and Daeris fall in beside you both near the fountain, and there's a whole conversation waiting to happen, spiral motifs and archive-dust and whatever the Naos district coughed up, but the day's already worn thin at the edges and none of you are fools enough to compare notes standing in an open street.
+
+"Let's find a room first," you say, glancing between them. "Somewhere with a door that locks and a table that isn't a fish crate. Then we lay it all out."
+
+"Agreed," Daeris says, and there's something worn in her voice, the particular exhaustion of a woman who's spent the day reading dead men's handwriting. "What I found keeps better in pr
+[t1410 player] GM: Frizwick has been with me the whole time!
+[t1411 GM · claude-sonnet-5] You catch yourself mid-thought, the worry curdling into something sheepish before it even finishes forming. Frizwick's right there, boots up on the spare chair, picking grit out of her nails with the tip of a knife, very much not drowned, very much not anywhere near a tide-locked cave in the Fogscars.
+
+"You've got that face again," she says, not looking up. "The one where you forget I'm standing right here and start grieving me like I'm already a ghost story."
+
+"Force of habit," you say. "You're always almost dead. I like to stay limber."
+
+"Sweet," she says, "truly. But save the eulogy. We've got actual dead men to talk about."
+
+The four of you settle around the table, and the room's small enough that nobody has to raise their voice, which after Fish Alley feels like an obscene luxury. Daeris unrolls a strip of notes in careful, cramped handwriting, the kind that looks like it's rationing ink out of old habit rather than necessity, and Morwen sets the dark ritual disc down beside it like a paperweight holding down a small, dangerous world.
+
+"Naos district first, since we found the fewer knives," Morwen says. "Marisol Hask's inn is still standing. Woman's older than sin, sharper tha
+NEWEST RAW GM RESPONSE (tags intact):
+[NPC_MERGE:Sheriff Belor Hemlock|Sheriff Hemlock]
+[RETCON:Frizwick has been present with the main party throughout the Magnimar scenes, not left behind at the Fogscar sea cave. The earlier reference to her being trapped by the tide was in error.]
+
+You catch yourself mid-thought, the worry curdling into something sheepish before it even finishes forming. Frizwick's right there, boots up on the spare chair, picking grit out of her nails with the tip of a knife, very much not drowned, very much not anywhere near a tide-locked cave in the Fogscars.
+
+[SAY:Frizwick]"You've got that face again," she says, not looking up. "The one where you forget I'm standing right here and start grieving me like I'm already a ghost story."
+
+[SAY:Ammut]"Force of habit," you say. "You're always almost dead. I like to stay limber."
+
+[SAY:Frizwick]"Sweet," she says, "truly. But save the eulogy. We've got actual dead men to talk about."
+
+The four of you settle around the table, and the room's small enough that nobody has to raise their voice, which after Fish Alley feels like an obscene luxury. Daeris unrolls a strip of notes in careful, cramped handwriting, the kind that looks like it's rationing ink out of old habit rather than necessity, and Morwen sets the dark ritual disc down beside it like a paperweight holding down a small, dangerous world.
+
+[SAY:Morwen]"Naos district first, since we found the fewer knives," Morwen says. "Marisol Hask's inn is still standing. Woman's older than sin, sharper than most people twice her age, and she remembers Ameiko's father clear as yesterday. Sold him glass for years."
+
+[SAY:Daeris]"She hadn't heard the name Edric," Daeris adds, "but she went very quiet when I said 'closed-eye.' Quiet in the way people go when they've decided lying is safer than the truth."
+
+[SAY:Ammut]"So she knows something," you say, "and she's scared enough to sit on it."
+
+[SAY:Daeris]"Scared, or paid," Daeris says. "Possibly both. I told her we'd be back. She didn't tell us not to."
+
+You lay out Fish Alley in turn, the warehouse, the ledger-signing bluff that nearly worked and then spectacularly didn't, the net-mender's gossip bought in gold and coin tricks, the scarred man asking after someone or something called Marasova, uptown, in the Alabaster District where judges keep their knives clean and their hands cleaner. Morwen's expression sharpens at that, the particular hunger she gets when two separate threads of a tapestry turn out to share a loom.
+
+[SAY:Morwen]"Alabast
+SUGGESTED ACTIONS SHOWN: Ask Morwen who the Alabaster District man was | Press Daeris on what scared Marisol Hask specifically | Plan tomorrow's return to confront Chask Haladan
+[QUESTS] quest log:
+Trace the Spiral Network to Magnimar (active) — [ ] Learn who runs the network beneath Fish Alley and what 'Edric' meant to it; [ ] Find the scarred man asking after 'Marasova' before he finds you
+The Giants of Jorgenfist (active)
+The Sealed Forge of the Kodars (active)
+```
+
+### Findings
+_(none yet — `/bugs investigate B21`)_
+
+### Action log
+_(none)_
 
 ## Completed
 
