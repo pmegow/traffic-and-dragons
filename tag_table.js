@@ -788,6 +788,23 @@ function applyMutsTable(text){
     var _trAdd=clockReconcilePhase(R.timeText);
     if(_trAdd>0)R.muts.push("Clock reconciled to '"+R.timeText+"' +"+_trAdd+"m → "+((typeof clockStamp==="function")?clockStamp():""));
   }
+  // #133b (the church scenario): a split member whose recorded splitLoc IS the party's current
+  // node is a contradiction in terms — "split off at the place you are". Fold them back
+  // deterministically and LOUDLY, after all tags land (so a same-response [LOCATION:] arrival
+  // counts). Exact loc+subloc match ONLY — a world-only match is a granularity gap and goes to
+  // buildSplitAudit's waived age gate instead (GM decides, never the record).
+  if(typeof partySplitMembers==="function"){
+    var _crj=partySplitMembers(),_crji;
+    for(_crji=0;_crji<_crj.length;_crji++){
+      var _crm=_crj[_crji],_crl=_crm.charSheet.splitLoc;
+      if(_crl.location===worldState.world.location&&(_crl.sublocation||null)===(worldState.world.sublocation||null)){
+        delete _crm.charSheet.splitLoc;
+        if(memory.npcs[_crm.name])memory.npcs[_crm.name].lastSeenAt=currentNodeKey();
+        R.muts.push(_crm.name+" rejoins the party (the split record pointed at the party's own location)");
+        if(typeof console!=="undefined")console.warn("[multiplayer] auto-rejoined "+_crm.name+" — splitLoc matched the party's current node exactly (#133b co-location)");
+      }
+    }
+  }
   // #129: deterministic expiry for schedule entries the GM never resolved — runs on every real
   // turn so a rest/TIME_ADVANCE that jumps past SCHEDULE_EXPIRE_MIN retires the entry that same
   // response. Loudness (warn/toast/archive) lives in the sweep; the muts line makes it visible

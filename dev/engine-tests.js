@@ -8781,6 +8781,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return cs.splitLoc.turn===100?true:"re-affirm should re-stamp the split turn: "+JSON.stringify(cs.splitLoc);
   });
 
+  // ── #133b — co-location: exact match auto-rejoins, world-only match audits immediately ──────
+  // The church scenario (user, 2026-08-04): Morwen splits to the church; the party arrives 20
+  // turns later; on reunion the record could lag up to SPLIT_AUDIT_TURNS behind the story.
+  // Deterministic fix: a split member whose splitLoc IS the party's current node is a
+  // contradiction in terms — fold them back loudly; a world-location-only match (granularity
+  // gap) waives the audit's age gate instead — the GM decides, same turn, never silently.
+  t("#133b: exact node co-location auto-rejoins loudly when the party arrives", function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|The Church]");
+    if(!cs.splitLoc)return "precondition: split failed";
+    applyMuts("[LOCATION:The Church]");
+    if(cs.splitLoc)return "party arrived at the split member's exact node — must auto-rejoin: "+JSON.stringify(cs.splitLoc);
+    return memory.npcs["Frizwick"].lastSeenAt==="The Church"?true:"lastSeenAt not updated on auto-rejoin";
+  });
+  t("#133b: sublocation exactness respected — split to Loc|Sub rejoins only when BOTH match", function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|Magnimar|Inn - Top Floor Room]");
+    applyMuts("[LOCATION:Magnimar]");
+    if(!cs.splitLoc)return "world-only match must NOT auto-rejoin (she is in the inn room, party on the street)";
+    applyMuts("[SUBLOCATION:Inn - Top Floor Room]");
+    return cs.splitLoc?"exact loc+subloc match must auto-rejoin":true;
+  });
+  t("#133b: a world-only match waives the audit's age gate — a FRESH granularity-gap split audits immediately; a distant fresh split still does not", function(){
+    var cs=mkSplitParty();
+    applyMuts("[LOCATION:Magnimar]");applyMuts("[SUBLOCATION:Inn - Top Floor Room]");
+    applyMuts("[PARTY_SPLIT:Frizwick|The Docks]");
+    if(buildSplitAudit()!=="")return "distant fresh split must not be audited";
+    cs.splitLoc={location:"Magnimar",sublocation:null,turn:worldState.turn};   // the live Daeris/Morwen shape
+    var n=buildSplitAudit();
+    return n.indexOf("Frizwick")>=0?true:"granularity-gap split should audit immediately: "+n;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned

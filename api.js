@@ -273,7 +273,13 @@ function buildSplitAudit(){
   for(i=0;i<splits.length;i++){
     var sl=splits[i].charSheet.splitLoc;
     var age=(sl.turn==null)?Infinity:worldState.turn-sl.turn;
-    if(age<SPLIT_AUDIT_TURNS)continue;
+    /* #133b: a world-location-only match (split at "Magnimar" while the party is IN Magnimar —
+       the live Daeris/Morwen shape) waives the age gate: near-certain staleness, but a
+       granularity gap the engine can't resolve alone (she may truly be elsewhere in the city),
+       so it goes to the GM immediately rather than auto-rejoining. Exact node matches never
+       reach here — the applyMuts tail folds those back deterministically. */
+    var sameWorld=sl.location===worldState.world.location;
+    if(age<SPLIT_AUDIT_TURNS&&!sameWorld)continue;
     if(sl.audited!=null&&worldState.turn-sl.audited<SPLIT_AUDIT_TURNS)continue;
     due.push(splits[i]);
   }
