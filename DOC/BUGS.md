@@ -239,7 +239,7 @@ _(second arrival dce1ad9e-7f11-4f8f-b794-e1c4737af03f at t1334: same fingerprint
 ### Action log
 
 ## B21 — Quest closure pressed while the GM believed a present party companion was trapped in peril at a far-away location — canon contradiction corrected only after player pushback (GM issued a RETCON)
-**Status:** new
+**Status:** findings-ready
 **Kind:** user-report · **First seen:** 2026-08-04 (v1.536) · **Last seen:** 2026-08-04 (v1.536) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1411
 **Fingerprint:** `user-report · user-report · v1.536 · game is trying to close a quest with a character in peril that’s been with me the whole time. yikes.`
 **Report ids:** 8cf3a6ba-23c8-4990-ac98-aec7a29505f9
@@ -337,7 +337,32 @@ The Sealed Forge of the Kodars (active)
 ```
 
 ### Findings
-_(none yet — `/bugs investigate B21`)_
+
+**2026-08-03 — bug-investigator dispatch (read-only Read/Grep/Glob), /bugs investigate**
+
+- **Verdict: `root-caused`** on the trigger mechanism (code-level); which memory tier supplied "Frizwick" specifically needs the live save (checklist below).
+
+- **Mechanism — the #129 escalate-then-expire teeth going live on a save whose stale entry was already past BOTH thresholds.** #129 shipped v1.526 (2026-08-02); this campaign was v1.525 at t1399 and v1.536 by t1411, so the first post-upgrade turn landed inside t1400–t1410. Order of operations on that turn: ① `buildScheduleEscalation` (api.js:235-244) has **no expiry check** — it picks the STALEST due entry, so the ~5,600-min-overdue "Tide turns against the return route" was guaranteed selection, and the GM received a verbatim engine note commanding: *"came due 4 days ago and is still unresolved. In THIS response narrate its consequence — after this long it has already happened, so treat it as something the world did while the party was busy — then emit [SCHEDULE_RESOLVED:…]"* (CANCEL escape present but the "it has already happened" framing biases hard toward narration). ② `buildClockBlock` (clock.js:243-259, volatile at api.js:818) reinforced the same entry under "HAPPENING NOW … (4 days ago)". ③ The schedule entry carries only a label (`{label,dueMin,born}` — clock.js:168), so WHO was on "the return route" had to be reconstructed from memory, where the sea-cave era ties Frizwick to it — the GM confabulated her still trapped, against the PARTY MEMBER SHEETS block showing her present. ④ `scheduleSweepExpired` (clock.js:216-235) runs only in the applyMutsTable TAIL (tag_table.js:785) — post-response. **Code fact: an entry past both thresholds at feature-go-live always gets exactly one commanded-narration turn before retirement.** TODO #129's "the stale entry heals on its first turn after deploy" — this incident IS that heal turn.
+
+- **Persistence to t1410:** engine notes ride the user message and sessionLog stores the note-laden `apiTxt` (game.js:1427-1432), so the demand text + the GM's tide narration stayed in conversation history for subsequent turns. The suggestion call reuses the full prompt + last 5 exchanges — two independent calls, same contaminated history (matches evidence ①). The t1410 response dying mid-`[SCH` is the GM STILL trying to obey the lingering "then emit [SCHEDULE_RESOLVED:…]" instruction from history, days after the entry was swept.
+
+- **Standing co-channel (probable, live-save-confirmable):** the GEOGRAPHY "NPCs elsewhere" line (api.js:46-50) excludes only dead and same-node NPCs — **no `partyMember` exclusion** — and a companion's `lastSeenAt` is re-stamped only by `[NPC:]` re-tags or PARTY_SPLIT, never by ordinary party `[LOCATION:]` moves. If Frizwick's last `[NPC:]` stamp was cave-era, every turn's geo block affirmatively placed her at the Fogscar node against the party sheet's "present."
+
+- **Act-closure coupling: coincidence with a common cause.** The skeleton handlers touch only `worldState.skeleton`; the schedule store is label-keyed and never referenced by skeleton code. The correlation is the same upgrade window activating #127 (v1.525) AND #129 (v1.526) teeth on a mature save — arc fork, arc staging, quest escalation, and schedule escalation all discharging within a few turns; `buildEngineNotes` stacks all firing notes into one message.
+
+- **`[SCH` truncation side-findings (its own bug class):** `cleanTxt`'s strip regexes require the closing `]` (tag_table.js:40) → unterminated trailing tag renders RAW to the player; all TAG_TABLE handlers match complete tags → the mutation is silently lost; `__tagUnknownScan` requires a colon (tag_table.js:798-803) → `[SCH` never warns; and **no provider adapter reads `stop_reason`/`finish_reason` — the engine has zero output-truncation detection.** Benign here (entry already swept), but a truncated `[QUEST:x|completed]` would silently drop the mutation AND leak raw text.
+
+- **Residual contamination flag:** the t1410-frame "MEMORY UPDATED" means summarize extracted the false-peril turns BEFORE the t1411 retcon. `[RETCON:]` rc-marks only the correcting entry + its immediate predecessor — the ORIGINAL tide-narration turns remain RAG-servable, and anything summarize filed (chapter text, Frizwick npcUpdates, a possible new futureEvent) is untouched by the retcon.
+
+- **Fix sketch (direction only):** ① core — `buildScheduleEscalation` skips (or quietly retires) any entry with `elapsed > SCHEDULE_EXPIRE_MIN`: expire-before-escalate for the both-thresholds case; optionally a consistency clause for merely-stale entries ("if the event concerns anyone currently with the party, it is moot — CANCEL"). ② co-channel — exclude non-split `partyMember` NPCs from the geo "NPCs elsewhere" line (must respect `splitLoc` so genuinely split companions stay visible). ③ truncation class (separate row) — read `stop_reason`/`finish_reason` in provider adapters; on length-truncation warn loudly + strip the trailing unterminated fragment. ④ data repair for this save — scrub Frizwick's cave-era peril lines + whatever the t1410 summarize filed.
+
+- **⚠ Drift surface: YES** — ① touches the NOTE_BUILDERS/engine-note channel, ② a buildSysPrompt canon block (buildGeoBlock), ③ cleanTxt + frozen strip hashes. All Fable-gated.
+
+- **Risk:** over-suppressing escalation revives the #129 phantom-urgency class; auto-cancel without the GM removes deliberate narrative agency; a crude party exclusion would hide genuinely split companions; a greedy trailing-fragment strip could eat legitimate bracketed prose.
+
+- **Confidence:** HIGH on the trigger (code order + ship timeline + field numbers + note wording align; the suggestion-call evidence proves prompt/history-borne). MEDIUM on the specific memory tier that named Frizwick.
+
+- **Live-save checklist:** `memory.archive.expiredSchedules` (tide entry `dueMin:357`; its `turn` field pins the belief's birth turn) · transcript t1395–t1411 raw halves (first tide/Frizwick-peril mention = that turn) · `memory.npcs["Frizwick"]` `.lastSeenAt`/`.events`/`.knowledge` · core memories on Ammut + Frizwick's sheets (cave-era near-death would ride DEFINING MOMENTS every turn) · `memory.futureEvents` + newest `memory.chapters` (did the t1410 summarize file the false peril?) · `worldState.clock` + skeleton act-1 completion turn (confirm coincidence).
 
 ### Action log
 _(none)_
