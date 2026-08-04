@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>t1431 Drift Analysis — the Multiplying Beds (Fable)</title>
+<style>
+:root{--bg:#111;--panel:#181818;--t1:#ddd;--t2:#999;--acc:#b8935a;--good:#7aa86a;--warn:#c9a227;--bad:#b05252;}
+body{background:var(--bg);color:var(--t1);font:15px/1.6 Georgia,serif;max-width:900px;margin:0 auto;padding:28px 20px 80px;}
+h1{color:var(--acc);font-size:1.5em;margin:0 0 4px;}
+h2{color:var(--acc);font-size:1.15em;margin:34px 0 10px;border-bottom:1px solid #2a2a2a;padding-bottom:5px;}
+h3{color:var(--t1);font-size:1em;margin:20px 0 6px;}
+.sub{color:var(--t2);font-size:.9em;margin-bottom:24px;}
+.badge{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);}
+.b-confirmed{background:#182215;border:1px solid var(--good);}
+.b-inference{background:#221f0a;border:1px solid var(--warn);}
+.b-gap{background:#221313;border:1px solid var(--bad);}
+.tldr{background:var(--panel);border:1px solid var(--acc);border-radius:12px;padding:14px 18px;margin:18px 0;}
+blockquote{background:var(--panel);border-left:3px solid var(--acc);margin:10px 0;padding:8px 14px;color:#c9c2b4;font-style:italic;}
+blockquote .who{display:block;font-style:normal;color:var(--t2);font-size:.8em;margin-top:4px;font-family:ui-monospace,Consolas,monospace;}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.92em;}
+th,td{border:1px solid #2a2a2a;padding:6px 10px;text-align:left;vertical-align:top;}
+th{color:var(--acc);background:#161513;font-weight:normal;font-variant:small-caps;}
+code{font:.88em ui-monospace,Consolas,monospace;color:#c9a97a;background:#1d1a15;padding:1px 5px;border-radius:4px;}
+.num{font-family:ui-monospace,Consolas,monospace;}
+ol li,ul li{margin:6px 0;}
+.footer{margin-top:50px;color:var(--t2);font-size:.82em;border-top:1px solid #2a2a2a;padding-top:12px;}
+</style>
+</head>
+<body>
+
+<h1>The Multiplying Beds — drift analysis at t1431</h1>
+<div class="sub">Campaign: Rise of the Runelords (Ammut) · save <code>Rise_of_the_Runelords__Ammut__Ammut_t1431.tnd</code> · engine v1.540 era (turns span v1.539–v1.540) · analyst: Fable · 2026-08-04</div>
+
+<div class="tldr">
+<strong>TLDR:</strong> The inn room really did grow beds — one bed at t1413, two by t1428, an explicit "gap between beds" at t1431. The mechanism is a <em>coverage gap, not a broken guard</em>: interior detail has exactly one pin in the whole architecture — the write-once <code>[LOCATION_DESC:]</code> — and the GM filed one for only <span class="num">4 of 50</span> sub-locations in this campaign, not including this room. With no pinned description, the room's furniture lived only in prose; the summarize cadence (a chapter every ~3 turns at current prose sizes) evaporated the single-bed establishment within ~2 extraction cycles, and twelve turns later the GM re-derived the room from genre priors: four sleepers, therefore multiple beds. Proposed fix: a deterministic <strong>missing-description engine nudge</strong> — the same "engine detects, GM decides" teeth shape as the quest/schedule machinery (#20/#129).
+</div>
+
+<h2>1 · The observed drift <span class="badge b-confirmed">Confirmed</span></h2>
+<p>All quotes verbatim from the save's transcript. The party takes the "Inn - Top Floor Room" at t1410 (node <code>Magnimar|Inn - Top Floor Room</code>, firstVisit 1410). Four occupants throughout: Ammut, Frizwick, Morwen, Daeris.</p>
+
+<table>
+<tr><th>Turn</th><th>Evidence</th><th>Bed count implied</th></tr>
+<tr><td class="num">t1411</td><td>"The four of you settle around the table, and the room's small enough that nobody has to raise their voice" — also "boots up on the spare chair", "the room's one chair" (t1428). A <em>small</em> room with one chair.</td><td>—</td></tr>
+<tr><td class="num">t1413</td><td><em>"Frizwick whispers back, already swinging her legs off <strong>the bed</strong>"</em> — definite article, singular, with all four present at night.</td><td><strong>one</strong></td></tr>
+<tr><td class="num">t1428</td><td>"two shapes tangled together under the blankets" (Morwen + Daeris sharing) — still compatible with one bed… until Ammut and Frizwick need somewhere else.</td><td>ambiguous</td></tr>
+<tr><td class="num">t1429</td><td>"You pull the blankets back and draw her down into them, into the warm hollow her own body left there an hour ago" — a <em>second</em> sleeping place with its own blankets.</td><td><strong>two</strong></td></tr>
+<tr><td class="num">t1431</td><td><em>"Your hand finds Morwen's across the <strong>gap between beds</strong>"</em> — plural, explicit.</td><td><strong>two+</strong></td></tr>
+</table>
+
+<p>Also checked and clean: no other continuity break in t1421–t1431 — Chask's interrogation, the fire, the walk home, and the morning-after are internally consistent, including small carried details (the soot on Frizwick's jaw at t1428 → t1431, the three-day Collector deadline stated at t1423 and correctly referenced at t1431). The beds are the only drift.</p>
+
+<h2>2 · What the GM was served about this room <span class="badge b-confirmed">Confirmed</span></h2>
+<p>The map node for the room, from the save:</p>
+<blockquote><code>Magnimar|Inn - Top Floor Room: description=null · stateNotes=[] · firstVisit=1410 · visits=2</code><span class="who">memory.map.nodes — the geo block's source of truth</span></blockquote>
+<p><code>buildGeoBlock</code> (api.js) serves <code>Sub-location desc:</code> only when a description exists — so every turn in this room, the GEOGRAPHY block carried the room's <em>name</em> and nothing about its interior. <code>[LOCATION_STATE:]</code> (#105) is also empty — correctly, since nothing durable was destroyed. There is <strong>no other surface in the prompt that pins furniture</strong>: chapters are literary compressions (the t1413 chapter summarizes the raid decision, not the bedding), the character sheets don't carry scenery, and RAG excerpts are explicitly subordinated ("the CURRENT state blocks above override anything here") — correct behavior, but it means an excerpt mentioning "the bed" can never overrule anything, because there is nothing to overrule.</p>
+
+<h2>3 · Why the establishment evaporated <span class="badge b-confirmed">Confirmed</span></h2>
+<p>Summarize cadence around the incident, from <code>memory.chapters</code>: extractions landed at turns <span class="num">1400, 1405, 1410, 1413, 1416, 1419, 1422, 1425, 1428</span> — one every ~3 turns. At current prose sizes (~1,300–3,100 chars/turn against <code>SUMMARIZE_AT</code>=2400 estimated tokens), the live verbatim window is roughly three exchanges deep. The single-bed sentence at t1413 was extracted into a chapter by ~t1416 and left <code>sessionLog</code> entirely; from that point the fact existed <em>nowhere the GM could read</em>. Twelve turns later (t1428, the return-to-the-room scene), the GM reconstructed the room from what it had: four adults retiring for the night, an inn, genre priors. Multiple beds is the <em>statistically sensible</em> guess — which is exactly what drift looks like when canon has no pin: not an error against the record, but a plausible re-roll of a fact that was never recorded.</p>
+
+<h2>4 · Why no guard caught it <span class="badge b-gap">Coverage gap</span></h2>
+<ol>
+<li><strong>The pin exists but is voluntary.</strong> <code>[LOCATION_DESC:]</code> is write-once, re-injected every turn, and would have prevented this outright. But filing it is left to the GM's initiative, and the field numbers say that initiative is rare: this save has descriptions for <span class="num">12/23</span> world locations and <span class="num">4/50 (8%)</span> sub-locations. Interiors — where furniture-level continuity matters most — are precisely where the pin almost never gets written.</li>
+<li><strong>Nothing detects the absence.</strong> Every other lifecycle in the engine has teeth (quest objectives #20/#129, schedules #129, arc staging #127, conditions #46, moods, relationships #61). A node with <code>description=null</code> generates no nudge, no warn, nothing — a silent gap by this codebase's own no-silent-failures standard.</li>
+<li><strong>Aggravator at this room's first visit</strong> <span class="badge b-inference">Inference</span>: t1410 — the natural turn to describe the room — was the B21 chaos turn: the GM's budget went to the stale tide-schedule escalation, and the response was <em>truncated mid-tag</em> (the <code>[SCH</code> incident). If a trailing <code>[LOCATION_DESC:]</code> was coming, it died to the cut. Plausible, not provable; but it illustrates why first-visit-only filing is fragile — first visits are often the most dramatically crowded turns.</li>
+</ol>
+
+<h2>5 · Proposed solution</h2>
+<h3>Primary — a missing-interior-description nudge (recommended)</h3>
+<p><code>buildLocationDescNudge</code> in <code>NOTE_BUILDERS</code> (api.js), the established engine-detects/GM-decides shape:</p>
+<ul>
+<li><strong>Trigger:</strong> the party's current node (sub-location first, world node otherwise) has <code>description=null</code> and the party has settled — second consecutive turn at the node, or <code>visits ≥ 2</code>. Not on the arrival turn itself (arrival turns are crowded; that's finding #4.3).</li>
+<li><strong>Note text (sketch):</strong> "This location has no permanent description on file. In THIS response emit <code>[LOCATION_DESC:…]</code> — 1–2 sentences of fixed physical facts: layout, exits, and <em>countable furnishings</em> (beds, chairs, windows). The engine re-serves it every visit so the place stays consistent."</li>
+<li><strong>Discipline:</strong> one note per node per visit-stay (latch on the node key, re-arm on re-entry while still null); silent in combat; one per turn, sharing the existing stalest-first note budget.</li>
+<li><strong>Predicted effect:</strong> converts the 8% interior coverage to ~100% <em>for lived-in nodes specifically</em> — the nudge only ever fires where the party actually dwells, so it adds no prompt weight for pass-through geography.</li>
+<li><strong>⚠ Drift surface:</strong> engine-note channel + a new consumer of the geo data — Fable-tier, test-first, per the standing policy. Estimated size: S (one builder + latch field + 3–4 engine tests).</li>
+</ul>
+<h3>Secondary — tags-early discipline (already under discussion tonight)</h3>
+<p>A first-visit <code>[LOCATION_DESC:]</code> emitted at the response tail can die to output-cap truncation (#132 made this visible; v1.540 raised the cap to 1500, shrinking but not eliminating the window). Instructing the GM to emit state tags early in the response protects every write-once tag, this one included. Same drift-gated prompt change; pairs naturally with the nudge.</p>
+<h3>Not recommended</h3>
+<p><strong>Auto-generating descriptions engine-side</strong> (e.g., harvesting first-visit prose into <code>node.description</code> mechanically): tempting, but it would promote unvetted narrative sentences into permanent, every-turn-served canon — one florid or transient sentence ("smoke still hanging in the rafters") pinned forever is worse than no pin. Description content should stay a GM decision; the engine's job is making sure the decision happens.</p>
+
+<h2>6 · Disposition for this save</h2>
+<p>No repair needed or recommended. The two-bed room is now four turns of established, emotionally load-bearing fiction (the t1431 morning scene depends on the "gap between beds"); retconning back to one bed would cost more continuity than it restores. The right move is to <strong>pin the room as it now is</strong> — once the nudge ships, the next turn in the room files a description and the oscillation ends. (Interim manual option: an OOC <code>GM: describe this room and file its description</code> in-story accomplishes the same today.)</p>
+
+<h2>7 · Verdict summary</h2>
+<table>
+<tr><th>Claim</th><th>Status</th></tr>
+<tr><td>The bed count drifted 1 → 2+ between t1413 and t1428–t1431</td><td><span class="badge b-confirmed">Confirmed</span> (verbatim transcript)</td></tr>
+<tr><td>The room's node has no description; the geo block served no interior canon</td><td><span class="badge b-confirmed">Confirmed</span> (save data + api.js read)</td></tr>
+<tr><td>Summarize cadence removed the establishing prose before the return scene</td><td><span class="badge b-confirmed">Confirmed</span> (chapter turn-stamps t1413/1416 bracket it)</td></tr>
+<tr><td>Sub-location description coverage is systemically near-zero (4/50)</td><td><span class="badge b-confirmed">Confirmed</span> (measured on the save)</td></tr>
+<tr><td>t1410's truncation ate a would-be description tag</td><td><span class="badge b-inference">Inference</span> (plausible aggravator, unprovable)</td></tr>
+<tr><td>No engine mechanism detects a missing description</td><td><span class="badge b-gap">Coverage gap</span> (repo-wide check)</td></tr>
+</table>
+
+<div class="footer">Evidence base: <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1431.tnd</code> (turn 1431, transcript 2859 entries) · buildGeoBlock/api.js · memory.js summarize cadence · CLAUDE.md §9. Related records: DOC/BUGS.md B21 (the t1410 chaos turn), B13 (scene-object continuity cousin), B17/#105 (location-state class), TODO #132/#131 (this same night's fixes). Report requested by the user 2026-08-04; investigation only — no code changed.</div>
+
+</body>
+</html>
