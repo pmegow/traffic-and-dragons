@@ -27,7 +27,13 @@ function partyMemberVitals(npc){
     maxHp:sheet?sheet.maxHp:null,
     pct:(sheet&&sheet.maxHp)?Math.max(0,Math.min(100,Math.round((sheet.hp||0)/sheet.maxHp*100))):null,
     ratio:sheet?(sheet.maxHp?sheet.hp/sheet.maxHp:1):null,
-    cls:sheet?(sheet.cls||""):(npc.role||"")
+    cls:sheet?(sheet.cls||""):(npc.role||""),
+    /* #133c (user design 2026-08-04): a split member's vitals are UNKNOWN to the player — they're
+       elsewhere. Renderers show "(split: location)" instead of HP/MP. Reads the SAME definitive
+       charSheet.splitLoc the prompt/audit/auto-rejoin use — no second store, nothing to desync —
+       and doubles as the standing visual tripwire on stale splits (the 166-turn Frizwick class
+       would have been player-visible from turn one). Sheet MODAL stays complete (the record). */
+    split:(sheet&&sheet.splitLoc&&sheet.splitLoc.location)?{location:sheet.splitLoc.location,sublocation:sheet.splitLoc.sublocation||null}:null
   };
 }
 var _cpanelWasActive=false;/* TODO #7: module-local previous-state latch — lets syncUI detect the hidden->shown edge (combat just started) instead of firing a sound on every sync while combat persists */
@@ -87,9 +93,11 @@ function updateHUD(){
         card.addEventListener("click",pm.open);/* P2: hero card opens showCharSheet, companions showNpcSheet */
         /* P5: location chip when this member's effective location differs from the spotlight PC's */
         var pmLoc=pcEffectiveLoc(pv.sheet),actLoc=pcEffectiveLoc(c);
-        var locChip=(pmLoc.location&&pmLoc.location!==actLoc.location)?"<span style='color:var(--t2);font-size:9px;flex-shrink:0;'>· "+escHtml(pmLoc.location)+"</span>":"";
+        var locChip=(!pv.split&&pmLoc.location&&pmLoc.location!==actLoc.location)?"<span style='color:var(--t2);font-size:9px;flex-shrink:0;'>· "+escHtml(pmLoc.location)+"</span>":"";/* #133c: the split text below names the place — no double chip */
         var nameSpan="<span style='color:var(--t0);font-weight:bold;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;'>"+escHtml(pm.name)+"</span>"+locChip;
-        if(pmSheet&&pmSheet.maxHp){
+        if(pv.split){/* #133c: vitals unknown while elsewhere */
+          card.innerHTML=nameSpan+"<span style='color:var(--acc);font-size:10px;flex-shrink:0;'>(split: "+escHtml(pv.split.location)+")</span>";
+        }else if(pmSheet&&pmSheet.maxHp){
           var pct=pv.pct;
           var hpClr=pct>50?"var(--grn)":pct>25?"var(--acc)":"var(--red)";/* HUD mapping — Car Mode's differs, kept separate (UA21③) */
           var pmXpHtml="";if(pmSheet.xp!==undefined&&pmSheet.level!==undefined){var pmNextXp=classXpLevels()[pmSheet.level];/* C6 ② */pmXpHtml="<span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-left:2px;'>"+pmSheet.xp+"/"+(pmNextXp!==undefined?pmNextXp:"max")+" xp</span>";}
@@ -162,13 +170,14 @@ function updatePartyPanel(){
     m=npcs[i];pv=partyMemberVitals(m);/* UA21③ */
     hp=pv.hp;maxHp=pv.maxHp;cls=pv.cls;
     var _ppLoc=pcEffectiveLoc(m.charSheet);
-    var _ppChip=(_ppLoc.location&&_ppLoc.location!==_ppActLoc.location)?" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>· "+escHtml(_ppLoc.location)+"</span>":"";
+    var _ppChip=(!pv.split&&_ppLoc.location&&_ppLoc.location!==_ppActLoc.location)?" <span style='color:var(--t2);font-weight:normal;font-size:9px;'>· "+escHtml(_ppLoc.location)+"</span>":"";/* #133c: split line names the place — no double chip */
     // data-npc + delegated wiring below (audit E69) — an inline onclick with the name in a JS string
     // literal breaks when the name contains a double quote (escHtml's &quot; decodes back to ").
     h+="<div class='party-row' data-npc='"+escHtml(m.name)+"' style='padding:5px 4px;border-bottom:1px solid var(--brd);cursor:pointer;' onmouseover='this.style.background=\"var(--bg2)\"' onmouseout='this.style.background=\"\"'>"
       +"<div style='font-size:11px;color:var(--acc);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(m.name)+_ppChip+"</div>"
       +(cls?"<div style='font-size:10px;color:var(--t2);'>"+escHtml(cls)+"</div>":"")
-      +(hp!==null?"<div style='font-size:10px;'><span style='color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</span>"+(pv.sheet?_ppManaHtml(pv.sheet):"")+"</div>":"")
+      +(pv.split?"<div style='font-size:10px;color:var(--acc);'>(split: "+escHtml(pv.split.location+(pv.split.sublocation?" — "+pv.split.sublocation:""))+")</div>"
+        :(hp!==null?"<div style='font-size:10px;'><span style='color:var(--hp);'>HP "+hp+(maxHp?"/"+maxHp:"")+"</span>"+(pv.sheet?_ppManaHtml(pv.sheet):"")+"</div>":""))
       +"</div>";
   }
   var _pl=document.getElementById("party-list");_pl.innerHTML=h;
