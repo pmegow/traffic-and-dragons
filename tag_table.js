@@ -712,6 +712,13 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
      lands here too, minting a fresh object: new turn, audited-stamp gone — the reset IS the write).
      Legacy splits without .turn read as infinitely old, so stale pre-#133 splits audit immediately. */
   psN.charSheet.splitLoc={location:psArg,sublocation:psSub,turn:R.turn};
+  /* #135: mark the split as written THIS response — the #133b co-location sweep grants it one
+     response of grace. The natural stay-behind order is "Daeris stays at the inn" now, the
+     party departs NEXT response; an age-blind sweep deleted that record in this very pass
+     (died at birth). Per-RESPONSE scratch, not a turn stamp — turn does not advance between
+     applyMuts calls, so a turn gate would also spare genuinely stale same-turn records. */
+  if(!R._freshSplits)R._freshSplits={};
+  R._freshSplits[psName]=1;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]={firstVisit:R.turn,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
   if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}
@@ -801,6 +808,11 @@ function applyMutsTable(text){
     var _crj=partySplitMembers(),_crji;
     for(_crji=0;_crji<_crj.length;_crji++){
       var _crm=_crj[_crji],_crl=_crm.charSheet.splitLoc;
+      /* #135: a split WRITTEN this response is a stay-behind ahead of the party's departure —
+         one response of grace. If the party genuinely goes nowhere, the NEXT response's sweep
+         folds them back (deterministic, no GM judgment). The church class (a record written on
+         an EARLIER response) still folds right here on arrival. */
+      if(R._freshSplits&&R._freshSplits[_crm.name])continue;
       if(_crl.location===worldState.world.location&&(_crl.sublocation||null)===(worldState.world.sublocation||null)){
         delete _crm.charSheet.splitLoc;
         if(memory.npcs[_crm.name])memory.npcs[_crm.name].lastSeenAt=currentNodeKey();

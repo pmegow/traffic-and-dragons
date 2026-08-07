@@ -8962,6 +8962,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return n.indexOf("Frizwick")>=0?true:"granularity-gap split should audit immediately: "+n;
   });
 
+  // ── #135 — stay-behind splits must survive their birth response (Daeris field report) ───────
+  // The natural GM order is "Daeris stays at the inn" THIS response, the party departs NEXT
+  // response — so the split record points at the party's current node for one response, and the
+  // age-blind #133b sweep deleted it in the same applyMuts pass (died at birth, silent to the
+  // player: her vitals stayed on the panel while the story left her behind). The grace is
+  // per-RESPONSE (R scratch), not per-turn — worldState.turn does not advance between applyMuts
+  // calls, so a turn-stamp gate would have broken the church-arrival fold below.
+  t("#135: a stay-behind split written THIS response survives the co-location sweep, and the departure keeps it",function(){
+    var cs=mkSplitParty();
+    var here=worldState.world.location;
+    applyMuts("[PARTY_SPLIT:Frizwick|"+here+"]");
+    if(!cs.splitLoc)return "the same-response sweep purged the stay-behind at birth";
+    applyMuts("[LOCATION:The Long Road]");
+    return cs.splitLoc&&cs.splitLoc.location===here?true:"the departure response lost the stay-behind record: "+JSON.stringify(cs.splitLoc);
+  });
+  t("#135: the grace is ONE response — if the party never leaves, the contradiction folds on the NEXT response",function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|"+worldState.world.location+"]");
+    if(!cs.splitLoc)return "precondition: birth survival failed";
+    applyMuts("The party lingers by the fire, going nowhere.");
+    return cs.splitLoc?"party stayed put — the co-located split must fold on the next response, not linger":true;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
