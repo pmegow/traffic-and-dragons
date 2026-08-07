@@ -101,7 +101,7 @@ function showSyncModal(){
       var inv2=rawInv?rawInv.split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;}):[];
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.gold=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
-      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=10)c2.level=lvl2;if(loc2)w2.location=loc2;if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
+      if(!isNaN(lvl2)&&lvl2>=1&&lvl2<=classXpLevels().length)c2.level=lvl2;/* the curve length (20) is the cap since C6 — the old <=10 silently refused L11+ */if(loc2)w2.location=loc2;if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
       c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */syncUI();saveAll();renderSync();
       var msg=document.getElementById("sc-msg");if(msg){msg.textContent="Applied.";msg.style.color="var(--grn)";}

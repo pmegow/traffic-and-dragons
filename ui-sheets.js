@@ -16,13 +16,21 @@ function sheetOffsetGet(ownerNpc,char){
 function csSec(title,body){return'<div class="cs-sec"><div class="cs-sec-hd cs-sec-tog" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+title+'<span class="cs-tog-arr" style="font-size:10px;color:var(--t2);flex-shrink:0;margin-left:8px;">&#9654;</span></div><div class="cs-sec-body" style="display:none;">'+body+'</div></div>';}
 function csKv(k,v){return'<div class="cs-kv"><span class="cs-k">'+k+'</span><span class="cs-v">'+v+'</span></div>';}
 // csInitials moved to helpers.js (#15③) — canonical home, loads before every consumer.
+// csXpMeter — ONE XP-meter computation for every sheet host. C6 ran the curve to 20 but the
+// displays kept the pre-bible lvl>=10 ceiling, so a Level 10 sheet claimed "Max level" with a
+// full bar while the engine would happily ding 11 at the next gate (the Ammut t1431 report).
+// "Max level" now means the END of the curve; the bar is progress within the current band.
+function csXpMeter(xp,lvl){
+  var X=classXpLevels(),next=lvl<X.length?X[lvl]:null,prev=X[lvl-1]||0;
+  var pct=next===null?100:Math.max(0,Math.min(100,Math.round(((xp-prev)/Math.max(1,next-prev))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
+  return {lbl:next===null?xp+" XP":xp+" / "+next+" XP",tail:next===null?"Max level":"Next: Lv "+(lvl+1),pct:pct};
+}
 function csHeroHeader(c){
   var genderLbl=genderLabel(c.gender);/* #11③: shared mapping */
   var subnm=c.subraceNm?c.subraceNm+" ":"";
   var clsLine=escHtml(subnm+(c.ancestry||"")+" "+(c.cls||"")+(c.archetypeNm?" ["+c.archetypeNm+"]":""));/* companion sheets are model-generated (#22/UA18) */
-  var lvl=c.level||1,nextXP=lvl<classXpLevels().length?classXpLevels()[lvl]:"max",prevXP=classXpLevels()[lvl-1]||0;/* C6 ② */
-  var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((c.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// low clamp: xp below the level floor rendered width:-N% — invalid CSS, dropped, div defaulted to FULL (the Morwen full-bar lie)
-  return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,nextXP:nextXP,xpPct:xpPct};
+  var lvl=c.level||1,xpm=csXpMeter(c.xp||0,lvl);
+  return {genderLbl:genderLbl,clsLine:clsLine,lvl:lvl,xpm:xpm};
 }
 // #50 QOL: drop an inventory item from a live sheet. owner ""=player, else companion name.
 // Native confirm guards the misclick; the drop is a player edit (like the Sync modal), saved
@@ -240,8 +248,8 @@ function showCharSheet(){
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"
-    +"<div class='cs-xp-lbl'><span>"+c.xp+" XP</span><span>"+(hdr.lvl<10?"Next: "+hdr.nextXP+" XP":"Max level")+"</span></div>"
-    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
+    +"<div class='cs-xp-lbl'><span>"+hdr.xpm.lbl+"</span><span>"+hdr.xpm.tail+"</span></div>"
+    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpm.pct+"%;'></div></div>"
     +"</div>"
     +csVoiceControlHtml(c)/* #9: per-character voice, next to the portrait */
     +"</div></div>"
@@ -413,8 +421,7 @@ function showNpcSheet(name){
   if(sheet){
     var gLbl=genderLabel(sheet.gender);/* #11③: shared mapping */
     var clsLine=escHtml((sheet.subraceNm?sheet.subraceNm+" ":"")+(sheet.ancestry||"")+" "+(sheet.cls||"")+(sheet.archetypeNm?" ["+sheet.archetypeNm+"]":""));/* model-generated sheet fields (#22/UA18) */
-    var lvl=sheet.level||1,nextXP=lvl<classXpLevels().length?classXpLevels()[lvl]:"max",prevXP=classXpLevels()[lvl-1]||0;/* C6 ② */
-    var xpPct=lvl>=10?100:Math.max(0,Math.min(100,Math.round((((sheet.xp||0)-prevXP)/Math.max(1,nextXP-prevXP))*100)));// (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62)
+    var lvl=sheet.level||1,xpm=csXpMeter(sheet.xp||0,lvl);/* (sheet.xp||0) guard so a missing xp doesn't render NaN → full bar (audit E62) */
     var playBtn=isParty?"<button id='npc-play-btn' title='Switch to playing as "+escHtml(name)+"' style='background:none;border:none;color:var(--acc);cursor:pointer;font-size:16px;padding:0 4px;margin-left:6px;vertical-align:middle;line-height:1;opacity:0.8;' onmouseover='this.style.opacity=1' onmouseout='this.style.opacity=0.8'>▶</button>":"";
     // TODO #1 P1 (multiplayer D1/D8): the PC/NPC toggle — radio-style pair, highlighted side =
     // current status. Flips wsNpc.isPC (roster-level; rides the sync blob). The ▶ play button
@@ -438,9 +445,9 @@ function showNpcSheet(name){
       +" &nbsp;·&nbsp; <span style='color:var(--hp)'>"+(sheet.hp||0)+"/"+(sheet.maxHp||0)+" HP</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+(sheet.gold||0)+" gp</span>"
       +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(sheet.actualAlignment||sheet.statedAlignment||"Neutral")+"</span></div>"
-      +"<div class='cs-xp-wrap'><div class='cs-xp-lbl'><span>"+(sheet.xp||0)+" XP</span>"
-      +"<span>"+(lvl<10?"Next: "+nextXP+" XP":"Max level")+"</span></div>"
-      +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpPct+"%;'></div></div></div>";
+      +"<div class='cs-xp-wrap'><div class='cs-xp-lbl'><span>"+xpm.lbl+"</span>"
+      +"<span>"+xpm.tail+"</span></div>"
+      +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpm.pct+"%;'></div></div></div>";
   }else{
     heroInfo="<div class='cs-hero-name'>"+escHtml(name)+"</div>"/* model-invented NPC name (#22/UA18) */
       +(isParty?"<div class='cs-hero-cls'>Party Member</div>":"<div class='cs-hero-cls'>NPC</div>")
@@ -680,8 +687,8 @@ function showReadOnlyCharSheet(c,opts){
     +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
     +"</div>"
     +"<div class='cs-xp-wrap'>"
-    +"<div class='cs-xp-lbl'><span>"+(c.xp||0)+" XP</span><span>"+(hdr.lvl<10?"Next: "+hdr.nextXP+" XP":"Max level")+"</span></div>"
-    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpPct+"%;'></div></div>"
+    +"<div class='cs-xp-lbl'><span>"+hdr.xpm.lbl+"</span><span>"+hdr.xpm.tail+"</span></div>"
+    +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpm.pct+"%;'></div></div>"
     +"</div>"
     +"</div></div>"
     +csSheetSections(c),
