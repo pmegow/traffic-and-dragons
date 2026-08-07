@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T&D — Off the Rails: the t1443–t1467 presence collapse (Fable analysis)</title>
+<style>
+  :root{--bg:#111;--bg2:#181818;--acc:#b8935a;--t1:#ddd;--t2:#999;--brd:#333;
+    --good:#7aa86a;--warn:#b8935a;--bad:#c05050;}
+  body{background:var(--bg);color:var(--t1);font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:28px 18px 60px;line-height:1.65;}
+  h1{color:var(--acc);font-size:22px;line-height:1.25;}
+  h2{color:var(--acc);font-size:16px;margin-top:34px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+  h3{font-size:14px;color:var(--t1);margin-top:22px;}
+  .meta{color:var(--t2);font-size:12px;margin-top:-6px;}
+  .tldr{border-left:4px solid var(--acc);background:#1c170f;padding:12px 16px;border-radius:0 8px 8px 0;margin:18px 0;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--brd);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#1f1f1f;color:var(--acc);}
+  code{font-family:Consolas,ui-monospace,monospace;font-size:.88em;background:#222;padding:1px 5px;border-radius:4px;color:#d8c9a8;}
+  blockquote{border-left:3px solid var(--brd);margin:10px 0;padding:4px 14px;color:#c8c8c8;font-style:italic;}
+  .lean{display:inline-block;font-family:Consolas,ui-monospace,monospace;font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;white-space:nowrap;}
+  .lean.go{background:#182215;border:1px solid var(--good);}
+  .lean.defer{background:#251d12;border:1px solid var(--warn);}
+  .lean.nogo{background:#260d0d;border:1px solid var(--bad);}
+  ul{padding-left:1.3rem;} li{margin-bottom:6px;}
+  .note{color:var(--t2);font-size:12px;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#0a0a0a;} ::-webkit-scrollbar-thumb{background:#333;} ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+
+<h1>Off the Rails — how the Runelords campaign lost track of who was in the room (t1443 → t1467)</h1>
+<p class="meta">Fable deep-dive · 2026-08-07 · analysis only, nothing fixed. Ground truth: the live export
+<code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1467.tnd</code> (taken 08-07 13:32) diffed against
+<code>…_t1431.tnd</code> (08-04 00:15), full transcript/record sweeps by two parallel evidence agents, engine
+timeline pinned from deploy commits and the #16 error reports. Sol is analyzing in parallel; this doc stands alone.</p>
+
+<div class="tldr">
+<b>TLDR:</b> The campaign went off the rails at <b>t1443</b>, and the mechanism is the one the tracker already
+names as the unguarded inverse of #135: <b>a narrated stay-behind that never gets a split record has NO teeth.</b>
+Daeris said "I'll stay here" at the inn (t1443) and Morwen stayed outside the sealed door (t1457) — but the engine
+recorded <i>neither</i> (the player had hand-healed all old splits at t1431, and no new record was ever created —
+either the GM never tagged the stay-behinds, or the tags died instantly to the dies-at-birth bug that was live on
+the device the whole window). From that moment every prompt ASSERTED both women present — full party sheets, roster,
+manifests — while the story said otherwise. The GM held the line for 19 turns of total Daeris silence, then at
+<b>t1463</b>, nudged by the player's own "the room the wives are in" phrasing, it caved and materialized her inside a
+chamber whose only door had been sealed six turns earlier — hedging its own confabulation in the same sentence
+("Message must have carried further than you'd hoped"). The records then <b>converged on the error</b> (map stamp,
+lastSeenAt, knowledge, chapter summary), turning the drift into canon. Frizwick, by contrast, is CLEAN — her prose
+continuity is unbroken; her missing health display almost certainly dates to the 08-04 window when the new
+split-vitals display switched on while her ancient sea-cave record was still standing. None of the fixes that
+address these exact classes (v1.550 stay-behind grace, v1.551 suggestion fixes) had reached the device — it was
+still running v1.546 this morning.
+</div>
+
+<h2>1 · The three symptoms, adjudicated</h2>
+
+<h3>1a · "Daeris has come out of nowhere (should be back at the tavern)" — <span class="lean nogo">CONFIRMED, the core failure</span></h3>
+<p><b>The story:</b> at t1443 Daeris stays behind at the Magnimar inn (node <code>Magnimar|Inn - Top Floor Room</code>,
+the unnamed "tavern" with innkeeper Durnah):</p>
+<blockquote>"I'll stay here," Daeris says, not happily. "Someone has to be the one who isn't standing next to the
+cursed tower when it decides it doesn't like us. If you're not back by dark, I'm coming, and I won't be polite about it."</blockquote>
+<p>She is then mentioned in <b>zero</b> GM responses for 19 consecutive turns (t1444–t1462). At t1463 she is suddenly
+physically present INSIDE the Spire's hidden stairwell — a space whose only known door Morwen sealed from outside at
+t1457 — with the GM hedging its own invention in the placing sentence:</p>
+<blockquote>"…past her shoulder you catch Daeris's shape framed faint against the door, Message must have carried
+further than you'd hoped, or she just knows the sound of you running."</blockquote>
+<p><b>No bridge exists</b> — no travel, no arrival, no door-opening, no reunion beat. <b>The records then converged
+on the error within 3 turns:</b> she is stamped into the stairwell map node (<code>npcs:["Frizwick","Daeris"]</code>),
+her <code>lastSeenAt</code> moved from <code>"Magnimar"</code> to <code>"Magnimar|The Spire — Hidden Stairwell"</code>,
+her knowledge array now holds BOTH <i>"Stayed behind at the inn, warning she'll come after them…"</i> AND
+<i>"Cast Sacred Flame to stagger the Drowned Grafting…"</i> side by side, and the t1466 chapter summary records her
+in the fight. The contradiction is now canon-grade on every memory tier.</p>
+<p><b>The trigger sequence, honestly:</b> the prompt pressure was constant (see §3C), but the dam broke immediately
+after the player's own t1461/t1462 phrasing — "Slowly back towards the wives", "the room the wives are in" — which a
+canon-faithful GM had no engine-side counterweight against, because the engine's own state agreed the wives were all
+present. The player then reinforced it ("Yell for Daeris…", "Wives, range attacks only"). Corroborating detail: her
+mood stamp sat unrefreshed from t1433 for 32 turns — the engine's own mood-age instrument was quietly reporting her
+offscreen the whole time.</p>
+
+<h3>1b · "Morwen has gone from inside to outside" — <span class="lean defer">CONFIRMED as a one-entry dialogue wobble + records-vs-story limbo</span></h3>
+<p>Prose-wise Morwen is <i>continuously outside</i>: she walks to the Spire with Ammut (t1444), reads the wards,
+stays at the seam when Ammut and Frizwick descend (t1456), and seals the door from the street side (t1457). The
+inside-flavored moment is confined to her own t1457 dialogue — "Sealing it doesn't mean locking <b>us</b> in… doesn't
+wander in behind <b>us</b>" — pronouns that include herself in the party inside, two turns before t1459 states the
+truth plainly ("Thirty feet and a stone door between you and Morwen"). After t1459 she is <b>dropped entirely</b> —
+8 turns, no exit beat, no line, absent from the "Wives, ranged only" combat and from the t1466 mood emissions.</p>
+<p><b>The deeper problem is her record state:</b> like Daeris, she has NO split record — the engine considers her
+present, the party panel shows her full vitals, and every prompt serves her sheet as an in-scene actor. She is one
+player phrase away from the same materialization Daeris got. Her <code>lastSeenAt</code> is still the world-grain
+<code>"Magnimar"</code>; the story's "outside the sealed seam-door" exists nowhere in the data.</p>
+
+<h3>1c · "Frizwick doesn't have her health displayed" — <span class="lean go">HER STORY IS CLEAN; the display sighting traces to the stale-record era</span></h3>
+<p>Frizwick's prose continuity t1420–t1467 is unbroken — every move narrated (roofline → drainpipe → flank → stairs).
+At t1467 she has no split record and full HP (52/52); the panel <i>should</i> show her vitals today. The explanation
+that fits every timestamp: the split-vitals display (<b>v1.544, deployed 08-04 08:26</b>) switched on while her
+ancient sea-cave split record (standing since ≈t1265) was still on the books — so between that deploy and your t1431
+hand-heal landing, her card legitimately showed <b>(split: Sandpoint Coast - Sea Cave)</b> instead of HP. That is
+very likely the sighting (and plausibly what prompted your t1431 "emit rejoin for each" message). If her vitals are
+STILL missing on the panel right now, that would be a new, unexplained defect — check after a cache refresh and
+report it (your own B24 screenshot from t1459 would also settle what the panel showed then; it is auth-locked to
+your Drive, so I could not open it).</p>
+
+<h2>2 · The timeline of the derailment</h2>
+<table>
+<tr><th>Turn / date</th><th>Event</th><th>Engine on device</th></tr>
+<tr><td>≈t1265–t1431</td><td>The OLD wound: three stale split records (Frizwick → sea cave; Daeris/Morwen → "Magnimar") poison geography for hundreds of turns — already diagnosed (#133, B21). Symptom on record: the t1410 "Frizwick's still down there… drowned" confabulation, corrected OOC, retconned in-band <b>without a [RETCON:] tag</b> (see §4, residue R1).</td><td>≤v1.541</td></tr>
+<tr><td><b>t1431</b> (08-04, pre-08:26)</td><td><b>You hand-heal all three splits</b> ("…all WITH me in the room — emit [PARTY_SPLIT:Name|rejoin] for each"). From t1432 the engine holds ZERO split records — the audit machinery that deployed hours later never had anything to police.</td><td>v1.542–544 deploys 07:56–08:26</td></tr>
+<tr><td><b>t1443</b></td><td><b>OFF THE RAILS, POINT OF DEPARTURE.</b> Daeris stays at the inn — in prose only. No split record is ever created: either the GM never emitted [PARTY_SPLIT:] (the phantom class — its doc line frames splits as "strikes out on their OWN", not "stays behind"), or it emitted one co-located with the party and the record <b>died at birth</b> (the #135 bug, live on this device the entire window). The raw tags for these turns are unrecoverable (sessionLog window has moved on), so the two cannot be distinguished — but both were live failure modes, and both produce exactly this outcome.</td><td>v1.544</td></tr>
+<tr><td>t1444–t1456</td><td>Party sheets + roster + scene manifests assert Daeris present every turn. The GM resists — she goes unmentioned entirely. Frizwick's overwatch and descent are narrated cleanly.</td><td>v1.544→546</td></tr>
+<tr><td><b>t1457</b></td><td>Morwen seals the door from outside — the second unrecorded stay-behind. Her dialogue's "locking us in" pronouns are the first wobble.</td><td>v1.546</td></tr>
+<tr><td>t1461–t1462</td><td>Player phrasing supplies the final push: "back towards the wives", "the room the wives are in".</td><td rowspan="3">v1.546 (the t1459 error report stamps it; <b>v1.550's stay-behind fix and v1.551's suggestion fixes never reached the device</b>)</td></tr>
+<tr><td><b>t1463</b></td><td><b>THE DAM BREAKS.</b> Daeris materializes inside the sealed stairwell, hedged in-line. Records converge over t1463–t1466: map stamp, lastSeenAt, knowledge, chapter. Drift becomes canon.</td></tr>
+<tr><td>t1467</td><td>Now: Daeris canon-present in the wrong place; Morwen record-present / story-outside (limbo); Frizwick clean; <code>lastActions</code> still carries the B24 fallback button ("Press on toward Varisia - North Road.") — independent confirmation the device ran pre-fix code.</td></tr>
+</table>
+
+<h2>3 · Root causes, ranked</h2>
+<table>
+<tr><th>#</th><th>Cause</th><th>Standing</th></tr>
+<tr><td><b>A</b></td><td><b>The split lifecycle is one-way in practice, and stay-behinds are its blind spot.</b> [PARTY_SPLIT:]'s own doc line frames splitting as "a party member strikes out on their OWN" — a stay-behind (the most common split in real play: "wait here", "watch the door", "stay at the inn") doesn't match that framing, and the GM essentially never writes it. There are NO teeth for a narrated stay-behind without a tag — this exact inverse was recorded on the #135 row on 08-06 ("recorded, not proposed") and this campaign demonstrated it within a day.</td><td>Unguarded (the demonstrated hole)</td></tr>
+<tr><td><b>B</b></td><td><b>The dies-at-birth bug ate any tag the GM DID write.</b> On v1.543–v1.546 (this device, this whole window) a stay-behind split written before the party departs was auto-purged in the same response. Fixed as v1.550 (per-response grace) — deployed 08-06 21:49, never reached the device.</td><td>Fixed, undeployed-on-device</td></tr>
+<tr><td><b>C</b></td><td><b>Phantom-presence pressure: with no record, the prompt actively asserts presence.</b> Party sheets render the absent member's full kit as an in-scene actor every turn; the roster and scene manifest list them; nothing says "not currently in the scene." The GM's only counterweight is its own fading narrative memory — which summarization compresses away (Daeris's stay-behind survived only as one knowledge line and one chapter clause). Given enough turns, prompt-canon beats story memory; the t1461 player phrasing merely set the date.</td><td>Systemic — the design gap behind both symptoms</td></tr>
+<tr><td><b>D</b></td><td><b>Convergence writes launder the error into canon.</b> Once the GM narrated Daeris present, the mention-driven bookkeeping (map node stamp, lastSeenAt, mood/status writes, extractor knowledge, chapters) all recorded it — no tier asks "wasn't this character elsewhere?" The record system is faithful to narration, which is correct by design (the record never commands the narrative), but it means a single confabulated presence is permanent within ~3 turns.</td><td>By design; mitigated only by preventing (A–C)</td></tr>
+<tr><td><b>E</b></td><td><b>Old contamination residue is still servable.</b> The t1410 "Frizwick drowned in the sea cave" narration was corrected in-band with no [RETCON:] tag, so those transcript entries carry no rc-mark and remain RAG-servable as past-scene excerpts (the t1410 entry also ends in a truncated unstripped <code>[SCH</code> fragment — the TODO #132 truncation class, field evidence). Not causal for THIS incident, but a standing seed of the same family.</td><td>Residue, repairable</td></tr>
+</table>
+
+<h2>4 · Exonerated (checked and NOT the cause)</h2>
+<ul>
+<li><b>The #133 split-audit machinery never fired in this window</b> — there were no split records to audit after your t1431 hand-heal (and the audit's cooldown stamp lives on the record itself, so its firing history dies with the record — a small observability gap worth noting). The mess is not audit-nudge churn.</li>
+<li><b>The v1.550/551 fixes didn't cause anything</b> — they never reached the device (v1.546 stamped on the t1459 report).</li>
+<li><b>Frizwick's continuity</b> — clean; no unexplained vanish since the t1410 incident.</li>
+<li><b>Combat state, multiplayer state, retcon marks</b> — combat null at the key turns; <code>mpQueue</code> empty, <code>activePC</code> unset; no rc-marked entries in the window.</li>
+<li><b>Minor unrelated defects logged in passing</b> (evidence, not causes): the innkeeper's gender flips between t1410 and t1435; the t1435 prose leaked an engine-note aside ("Wait, the innkeeper's already registered."); t1466's mood check updated two of three moods and silently left Morwen's — all small, none load-bearing here.</li>
+</ul>
+
+<h2>5 · Recommendations (nothing implemented — this doc is analysis only)</h2>
+<table>
+<tr><th>#</th><th>Recommendation</th><th>Tier / cost</th></tr>
+<tr><td><b>R1 · Update the device first.</b></td><td>File ▸ Clear cache &amp; reload on the phone (and confirm the File-menu version reads v1.551+). This alone activates the stay-behind grace (#135) and the suggestion fixes (B24) that were absent for the entire incident window.</td><td>You, 30 seconds</td></tr>
+<tr><td><b>R2 · Build the stay-behind teeth</b> (the #135 recorded inverse — the demonstrated hole).</td><td>Two complementary instruments, both through the proven engine-note channel: ① a same-response watcher — GM narration matching stay/wait/remain/watch-the-door verbs adjacent to a party member's name without a same-response [PARTY_SPLIT:] earns a next-turn note demanding the tag or a denial; ② a periodic <b>PRESENCE AUDIT</b> (the mood-check pattern, every ~10 turns): list each party member, GM must confirm in-scene or emit the split — deterministic, catches whatever the verb-watcher misses. ② is the stronger instrument and would have caught BOTH Daeris (t1443+) and Morwen (t1457+) within one cycle.</td><td>Fable, drift surface (engine-note channel), test-first — the natural next TODO row</td></tr>
+<tr><td><b>R3 · Reframe the [PARTY_SPLIT:] doc line.</b></td><td>Explicitly include the stay-behind: "a party member strikes out on their own <b>or stays behind / waits outside / remains at a location</b>". Wording change to the money-tested STATE TAGS block — its own deliberate commit with hash re-baseline, per the standing rule.</td><td>Fable, small, separate commit</td></tr>
+<tr><td><b>R4 · Field-repair this campaign</b> (your call on the fork).</td><td><b>Morwen (clear-cut):</b> one OOC line in-game — <code>GM: Morwen stayed outside the sealed seam-door — emit [PARTY_SPLIT:Morwen Zethran|Magnimar|Outside the Spire seam-door]</code> — puts her on the record, flips her panel card to (split: …), and hands her thread to the audit machinery. <b>Daeris (a fork):</b> (a) ACCEPT her arrival as canon — cheapest, the story has integrated her; then retire the stale line with <code>[NPC_SUPERSEDE:Daeris|Stayed behind at the inn|Left the inn and rejoined the party inside the Spire stairwell during the fight]</code> so the two facts stop co-existing; or (b) RETCON her out — heavier, needs a [RETCON:] plus re-narration, and the fight's tags (her Sacred Flame cast) are already banked. I recommend (a).</td><td>You + one OOC turn each</td></tr>
+<tr><td><b>R5 · Sweep the t1410 residue.</b></td><td>A small save-side repair (the B21 pattern): stamp <code>rc:1</code> on the t1410/t1411 GM transcript entries so the false-drowning prose can never be served by RAG. Optional but cheap; do it whenever the next save repair happens.</td><td>Any session, with your export</td></tr>
+<tr><td><b>R6 · Consider audit observability.</b></td><td>The split-audit's fired/answered history dies with the record it stamps (this investigation could not tell whether an audit EVER fired). A one-line breadcrumb (the #16 crumb pattern) per audit-fire would make the next forensic pass cheaper. Low priority.</td><td>S, any tier</td></tr>
+</table>
+
+<h2>6 · Evidence & residual uncertainty</h2>
+<ul>
+<li><b>Sources:</b> t1467 export (worldState + memory + 8-message raw sessionLog), t1431 export, deploy timestamps from git, device versions from the #16 reports (t1436 → v1.544; t1459 → v1.546), full-transcript presence sweeps t1380–t1467 by two parallel evidence agents (mention tables, record diffs). Key state quotes: Daeris knowledge pair, map node <code>Magnimar|The Spire — Hidden Stairwell</code> npcs list, lastSeenAt deltas, chapters t1425–t1466.</li>
+<li><b>UNDETERMINED, honestly:</b> ① whether the GM ever emitted a stay-behind [PARTY_SPLIT:] that died at birth vs. never emitting one — the raw tag stream for t1432–t1462 is gone (summarized out of sessionLog; the transcript stores clean prose by design). Both candidate mechanisms were live and both are already addressed/addressable (B fixed in v1.550; A is R2/R3). ② Whether any split audit fired t1432–t1467 (stamp dies with the record — R6). ③ What your panel showed at t1459 — the B24 screenshot is locked to your Drive; my best-fit explanation for the Frizwick sighting is §1c, and a right-now panel check settles the present tense.</li>
+<li><b>Cross-check invitation:</b> Sol's parallel analysis should independently land on t1443/t1463 as the hinge and the missing-record mechanism; divergence on §3's ranking (especially how much weight the player's "wives" phrasing carries vs. the prompt pressure) would be the interesting comparison.</li>
+</ul>
+
+</body>
+</html>
