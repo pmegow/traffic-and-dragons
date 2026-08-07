@@ -20,6 +20,7 @@ var ENGINE_MANIFEST = [
   { file: "data.js",               sym: "TONES" },
   { file: "capability_bible.js",   sym: "CAPABILITY_BIBLE" },
   { file: "class_bible.js",        sym: "CLASS_BIBLE" },
+  { file: "skills_bible.js",       sym: "SKILLS_BIBLE" },
   { file: "helpers.js",            sym: "skillLevel" },
   { file: "state.js",              sym: "blankMemory" },
   { file: "storage-adapter.js",    sym: "storageAdapter" },

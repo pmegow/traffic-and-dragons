@@ -1582,6 +1582,48 @@ function runEngineTests(R){
     return g.systemInstruction.parts[0].text==="SV"?true:"gemini: "+JSON.stringify(g.systemInstruction);
   });
 
+  // ── #52: skills bible — mechanics ladder + per-skill canon ──────────────────
+  section("skills bible (#52)");
+  t("coverage guard: every SKILLS id has a bible entry and every bible key is a real skill",function(){
+    var byId={},i;for(i=0;i<SKILLS.length;i++)byId[SKILLS[i].id]=1;
+    for(i=0;i<SKILLS.length;i++){var e=SKILLS_BIBLE[SKILLS[i].id];
+      if(!e)return "no bible entry for skill '"+SKILLS[i].id+"' — a new skill and its bible entry land in the SAME commit";
+      if(!e.def||e.def.length<20)return "'"+SKILLS[i].id+"' def missing or too thin to be canon";
+      if(e.untrained!=="yes"&&e.untrained!=="hard"&&e.untrained!=="no")return "'"+SKILLS[i].id+"' untrained value invalid: "+e.untrained;}
+    for(var k in SKILLS_BIBLE){if(!byId[k])return "bible key '"+k+"' is not a SKILLS id (exact-id keying is the contract)";}
+    return true;
+  });
+  t("ladder shape: one entry per SKILL_LEVELS level, bonus = +1 per level (0..5)",function(){
+    if(SKILL_LEVEL_MECHANICS.length!==SKILL_LEVELS.length)return "ladder has "+SKILL_LEVEL_MECHANICS.length+" entries for "+SKILL_LEVELS.length+" levels";
+    for(var i=0;i<SKILL_LEVEL_MECHANICS.length;i++){
+      if(SKILL_LEVEL_MECHANICS[i].bonus!==i)return SKILL_LEVELS[i]+" bonus is "+SKILL_LEVEL_MECHANICS[i].bonus+", want "+i;
+      if(!SKILL_LEVEL_MECHANICS[i].rule)return SKILL_LEVELS[i]+" has no rule text";}
+    return skillLevelBonus(2)===2&&skillLevelBonus(99)===0?true:"skillLevelBonus accessor wrong";
+  });
+  t("SKILL MECHANICS doc rides the STABLE half: ladder names + derived untrained lists",function(){
+    makeWorld();var s=buildSysPrompt().stable;
+    if(s.indexOf("SKILL MECHANICS:")<0)return "doc missing from stable";
+    for(var i=1;i<SKILL_LEVELS.length;i++){if(s.indexOf(SKILL_LEVELS[i]+": ")<0)return "ladder step '"+SKILL_LEVELS[i]+"' missing from doc";}
+    if(s.indexOf("Lockpicking")<0||s.indexOf("cannot be meaningfully attempted untrained")<0)return "untrained 'no' list missing";
+    if(s.indexOf("Sleight of Hand")<0||s.indexOf("+5 DC or disadvantage untrained")<0)return "untrained 'hard' list missing";
+    return s.indexOf("never emit [SKILL_SUCCESS:] for them")>=0?true:"auto-success [SKILL_SUCCESS:] hygiene line missing";
+  });
+  t("earned-skill canon in VOLATILE: level, bonus, stats, and the bible definition — earned only",function(){
+    makeWorld();
+    worldState.character.skills["Stealth"]=5;   // 5 successes → Trained (+2)
+    worldState.character.skills["Persuasion"]=1; // 1 success → Familiar (+1)
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("SKILLS (earned")<0)return "canon block missing";
+    if(v.indexOf("- Stealth — Trained (+2; DEX). ")<0)return "Stealth line wrong: level/bonus/stat format drifted";
+    if(v.indexOf(SKILLS_BIBLE["Stealth"].def)<0)return "Stealth bible def not injected";
+    if(v.indexOf("- Persuasion — Familiar (+1; CHA)")<0)return "Persuasion line wrong";
+    return v.indexOf("- Climbing")<0?true:"unearned skill leaked into the canon block";
+  });
+  t("no earned skills → no skills block (fresh character's volatile is ''-clean here)",function(){
+    makeWorld();var v=buildSysPrompt().volatile;
+    return v.indexOf("SKILLS (earned")<0?true:"canon block rendered for a zeroed skill map";
+  });
+
   // ── 9. Storage adapter sync health (TODO #24) ────────────────────────────────
   section("sync health");
   t("syncStatus: safe defaults when not connected to a server",function(){

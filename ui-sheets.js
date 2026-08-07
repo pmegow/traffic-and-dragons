@@ -115,7 +115,7 @@ function csSheetSections(c,invOwner){
   for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
   statHtml+="</div>";
   var earnedSkills=[],si2;
-  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0)earnedSkills.push(skl.label+" ("+SKILL_LEVELS[skillLevel(succ)]+")");}  }
+  if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0){var sklv=skillLevel(succ);earnedSkills.push(skl.label+" ("+SKILL_LEVELS[sklv]+(typeof skillLevelBonus==="function"?", +"+skillLevelBonus(sklv):"")+")");}}  }
   var skillHtml=earnedSkills.length?'<div class="cs-v">'+earnedSkills.join(", ")+"</div>":'<span class="cs-none">None yet</span>';
   var condHtml;
   // #46: conditions carry effect · turn it landed · why (turn engine-stamped since v1.247;

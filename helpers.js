@@ -481,6 +481,24 @@ function bibleCardHTML(name,e){
     +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+escHtml(e.effect||"")+'</div>'
     +'</div>';
 }
+// skillCardHTML (#52) — the shared skill-card renderer, bibleCardHTML's sibling. Pure:
+// SKILLS row (data.js — stats/category live there) + SKILLS_BIBLE entry in, HTML out.
+// Used by bible_study.html's Skills section; available to any future in-game click-card.
+function skillCardHTML(skill,e){
+  if(!skill)return"";
+  var chip="display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;";
+  var badges='<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t1,#ccc);">'+escHtml(skill.cat||"")+'</span>';
+  var st=(skill.stats||[]).join(" / ");
+  if(st)badges+='<span style="'+chip+'background:rgba(184,147,90,.22);color:var(--acc,#b8935a);">'+escHtml(st)+'</span>';
+  var ut=e&&e.untrained;
+  if(ut==="no")badges+='<span style="'+chip+'background:rgba(180,80,80,.22);color:#d09090;">trained only</span>';
+  else if(ut==="hard")badges+='<span style="'+chip+'background:rgba(180,140,60,.22);color:#d0b070;">hard untrained</span>';
+  return '<div style="padding:22px 24px;">'
+    +'<div style="font-size:18px;font-weight:bold;color:var(--t0,#f0f0f0);margin-bottom:8px;">'+escHtml(skill.label||skill.id)+'</div>'
+    +'<div style="margin-bottom:14px;">'+badges+'</div>'
+    +'<div style="font-size:13px;color:var(--t1,#ccc);line-height:1.55;">'+escHtml(e?e.def:"No canonical entry yet.")+'</div>'
+    +'</div>';
+}
 
 // ── STT name correction (#9 follow-up, v1.330) — "Frizwick becomes Physics" ─────────────────
 // Speech recognizers map audio to THEIR vocabulary; fantasy names always lose ("Frizwick" →

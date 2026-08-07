@@ -34,7 +34,7 @@
 <!-- Per-open cache-buster — same stale-subresource class as bible_editor (2026-08-02): a
      cached capability_bible.js shows stale canon with no visible symptom. -->
 <script>
-(function(){var q="?fresh="+Date.now(),fs=["capability_bible.js","helpers.js"],i;
+(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","skills_bible.js","helpers.js"],i;
 for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
 </script>
 <script>
@@ -43,12 +43,27 @@ for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');}
   function byTierName(a,b){return (a.e.tier||0)-(b.e.tier||0)||(a.name<b.name?-1:1);}
   function byName(a,b){return a.name<b.name?-1:1;}
   function section(title,items){if(!items.length)return"";var h='<h2>'+title+' ('+items.length+')</h2><div class="grid">';for(var i=0;i<items.length;i++)h+='<div class="card">'+bibleCardHTML(items[i].name,items[i].e)+'</div>';return h+'</div>';}
+  // #52: the skills_bible section — same viewer, skillCardHTML renderer. The ladder line is
+  // the ONE global mechanic, shown once above the cards rather than repeated on each.
+  function ladderHTML(){
+    if(typeof SKILL_LEVEL_MECHANICS==="undefined")return"";
+    var parts=[],i;for(i=1;i<SKILL_LEVEL_MECHANICS.length;i++)parts.push('<b style="color:var(--t0);">'+SKILL_LEVELS[i]+'</b> '+SKILL_LEVEL_MECHANICS[i].rule);
+    return '<div style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:14px;">Level ladder (bonus stacks with the stat modifier): '+parts.join(' &middot; ')+'</div>';
+  }
+  function skillsSection(q){
+    if(typeof SKILLS==="undefined"||typeof SKILLS_BIBLE==="undefined"||typeof skillCardHTML!=="function")return"";
+    var items=SKILLS.filter(function(s){var e=SKILLS_BIBLE[s.id];return !q||s.id.toLowerCase().indexOf(q)>=0||(e&&e.def.toLowerCase().indexOf(q)>=0);});
+    if(!items.length)return"";
+    var h='<h2>Skills ('+items.length+')</h2>'+ladderHTML()+'<div class="grid">';
+    for(var i=0;i<items.length;i++)h+='<div class="card">'+skillCardHTML(items[i],SKILLS_BIBLE[items[i].id])+'</div>';
+    return h+'</div>';
+  }
   function render(q){
     q=(q||"").toLowerCase().trim();
     var all=collect().filter(function(x){return !q||x.key.indexOf(q)>=0||String(x.e.effect||"").toLowerCase().indexOf(q)>=0;});
     var spells=all.filter(function(x){return x.e.kind!=="ability";}).sort(byTierName);
     var abils=all.filter(function(x){return x.e.kind==="ability";}).sort(byName);
-    var html=section("Spells",spells)+section("Abilities",abils);
+    var html=section("Spells",spells)+section("Abilities",abils)+skillsSection(q);
     document.getElementById("out").innerHTML=html||'<div class="empty">No matches.</div>';
   }
   document.getElementById("q").addEventListener("input",function(){render(this.value);});

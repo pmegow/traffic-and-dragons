@@ -761,7 +761,9 @@ function buildSysPrompt(){
   var relStr="";if(c.relationships&&c.relationships.length){relStr="Relationships: "+c.relationships.map(function(x){return x.entity+" ("+x.descriptor+")";}).join(", ")+"\n";}
   var saveStr="";if(c.saveModifiers&&c.saveModifiers.length){saveStr="Save modifiers: "+c.saveModifiers.map(function(x){var v=x.amount>=0?"+"+x.amount:""+x.amount;return v+" vs "+x.type+" ["+x.source+"]";}).join(", ")+"\n";}
   var langStr="";if(c.languages&&c.languages.length){langStr="Languages: "+c.languages.map(function(x){return x.name+(x.broken?" (broken)":"");}).join(", ")+"\n";}
-  var skillStr="";if(c.skills){var nzSkills=[],nzKeys=Object.keys(c.skills);for(var nzk=0;nzk<nzKeys.length;nzk++){if(c.skills[nzKeys[nzk]]>0)nzSkills.push(nzKeys[nzk]+": "+SKILL_LEVELS[skillLevel(c.skills[nzKeys[nzk]])]);}if(nzSkills.length)skillStr="Skills (earned): "+nzSkills.join(", ")+"\n";}
+  // #52: the earned-skills line is now the skills-bible canon block (level + bonus + canonical
+  // definition per earned skill) — same slot in the sheet, richer content, ""-clean when none.
+  var skillStr=buildSkillCanonBlock(c);
   // UA26: one line per LIVING foe; down foes summarized once so the GM narrates the aftermath
   // without re-fighting them. combat.engaged marks who the player is actively fighting.
   var cb="";if(worldState.combat){var cm=worldState.combat;var cbLines=[],cbDown=[],cfi,cfs=cm.foes||[];
@@ -859,6 +861,10 @@ function buildSysPrompt(){
     +narrativeDesignBlock
     +bestiaryBlock
     +"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]\n\n"
+    // #52: the skills ladder — campaign-constant text derived from SKILL_LEVEL_MECHANICS
+    // (skills_bible.js), so it is stable-half-safe; a ladder rebalance is one deliberate
+    // cache invalidation. The per-character earned list rides the VOLATILE sheet below.
+    +buildSkillMechanicsDoc()
     // UA1: the STATE TAGS block is DERIVED from the tag table (tag_table.js) — byte-identical
     // to the battle-tested hand-written text (frozen by an engine test + a pre/post stable-half
     // capture). Doc wording changes are separate deliberate commits, never bundled with mechanics.
@@ -975,6 +981,41 @@ function buildSkeletonBlock(){
   }
   lines.push(pacingNote);
   return lines.join("\n")+"\n\n";
+}
+// ── #52 skills bible injection ───────────────────────────────────────────────
+// buildSkillMechanicsDoc — the STABLE-half skills ladder. Rendered entirely from
+// skills_bible.js data (SKILL_LEVEL_MECHANICS + the untrained lists), all of it constant,
+// so the output is byte-identical turn to turn (the cache invariant). The [SKILL_SUCCESS:]
+// hygiene line exists because auto-successes would otherwise grind skill levels for free —
+// routine work must not earn progress.
+function buildSkillMechanicsDoc(){
+  if(typeof SKILL_LEVEL_MECHANICS==="undefined"||typeof skillsUntrained!=="function")return"";
+  var steps=[],i;
+  for(i=1;i<SKILL_LEVEL_MECHANICS.length;i++)steps.push(SKILL_LEVELS[i]+": "+SKILL_LEVEL_MECHANICS[i].rule);
+  var hard=skillsUntrained("hard"),no=skillsUntrained("no");
+  return "SKILL MECHANICS: skills grow through tested use — each success you reward with [SKILL_SUCCESS:] advances that skill. Add the earned level's bonus ON TOP of the stat modifier on any d20 check where the skill applies (the character's earned skills are listed with their bonuses on the sheet below). Ladder — "
+    +steps.join("; ")+". "
+    +"Auto-successes are routine work: never emit [SKILL_SUCCESS:] for them — only rolled or genuinely tested successes earn progress. "
+    +"Untrained (no earned level): most skills may be attempted on the raw stat modifier"
+    +(hard.length?", but "+hard.join(", ")+" suffer +5 DC or disadvantage untrained":"")
+    +(no.length?", and "+no.join(", ")+" cannot be meaningfully attempted untrained":"")+".\n\n";
+}
+// buildSkillCanonBlock — the VOLATILE half of #52: level, bonus, stats, and canonical
+// definition for the player's EARNED skills only (same re-inject-from-data anti-drift
+// pattern as the spell bible — the GM adjudicates a skill from fixed canon, not from
+// whatever its name evokes this turn). ""-clean when no skill has been earned, which keeps
+// a fresh character's prompt byte-identical to the pre-#52 empty case.
+function buildSkillCanonBlock(c){
+  if(!c||!c.skills||typeof skillBibleEntry!=="function")return"";
+  var lines=[],ids=Object.keys(c.skills),i,statsById={};
+  if(typeof SKILLS!=="undefined"){for(i=0;i<SKILLS.length;i++)statsById[SKILLS[i].id]=(SKILLS[i].stats||[]).join("/");}
+  for(i=0;i<ids.length;i++){
+    var id=ids[i],succ=c.skills[id];if(!(succ>0))continue;
+    var lvl=skillLevel(succ),e=skillBibleEntry(id);
+    lines.push("- "+id+" — "+SKILL_LEVELS[lvl]+" (+"+skillLevelBonus(lvl)+(statsById[id]?"; "+statsById[id]:"")+")"+(e?". "+e.def:""));
+  }
+  if(!lines.length)return"";
+  return "SKILLS (earned — apply the SKILL MECHANICS ladder: bonus on checks, auto-success bands):\n"+lines.join("\n")+"\n";
 }
 // capBibleLine (TODO #10) — one canonical capability line for the injection: LABELED and COMPLETE
 // (every attribute, "N/A" where inapplicable) so the GM can query any of a spell/ability's bounds
