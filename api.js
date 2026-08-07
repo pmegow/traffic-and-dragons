@@ -744,7 +744,12 @@ function buildSysPrompt(){
       var pMx=manaMax(pcs);
       var pSt=pcs.stats?("STR "+pcs.stats.STR+" DEX "+pcs.stats.DEX+" CON "+pcs.stats.CON+" INT "+pcs.stats.INT+" WIS "+pcs.stats.WIS+" CHA "+pcs.stats.CHA):"";
       var pInv=(pcs.inventory&&pcs.inventory.length)?pcs.inventory.join(", "):"none";
-      var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+"\n";
+      /* #140 ①+②: alignment finally reaches the GM for companions (it shaped nothing before —
+         the sheet line never carried it), with the stated-vs-actual tension when play has
+         drifted them. Descriptive, not directive — the GM decides what the tension means. */
+      var pmAl=pcs.actualAlignment||pcs.statedAlignment||"";
+      var pmAlTension=(pcs.statedAlignment&&pcs.actualAlignment&&pcs.statedAlignment!==pcs.actualAlignment)?" (professed "+pcs.statedAlignment+" — play has drifted them)":"";
+      var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+(pmAl?" | "+pmAl+pmAlTension:"")+"\n";
       if(pSt)line+="  Stats: "+pSt+"\n";
       line+="  Abilities: "+pAb+"\n  Spells: "+pSp+(pMx>0?"\n  Mana: "+manaCur(pcs)+"/"+pMx+(pcs.cls==="Necromancer"?" (Necromancer — may overdraw in blood; the engine deducts it)":""):"")+"\n  Inventory: "+pInv;
       // #46: companion conditions were WRITTEN by [COMPANION_CONDITION:] but never injected —
@@ -839,7 +844,11 @@ function buildSysPrompt(){
   // Match aliases too — an NPC mentioned only by alias/short form in recent prose otherwise
   // got no detail block, and the GM improvised from momentum instead of memory (audit #13).
   if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.content;}).join(" ");for(i=0;i<npcNames.length;i++){var hnN=npcNames[i],hnHit=recent.indexOf(hnN)>=0;if(!hnHit&&memory.npcs[hnN].aliases){var haj;for(haj=0;haj<memory.npcs[hnN].aliases.length;haj++){if(recent.indexOf(memory.npcs[hnN].aliases[haj])>=0){hnHit=true;break;}}}if(hnHit)hotNpcs+=memoryNpcDetail(hnN)+"\n";}}
-  var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+(c.deity?" | Deity: "+c.deity:"")+(c.trait?" | Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+"\n\n";
+  /* #140 ②: the stated-vs-actual tension line — "who they claimed to be vs who play has made
+     them" was tracked but never surfaced. Fires only on genuine divergence (byte-clean when
+     stated===actual); descriptive, the GM decides whether characters notice. */
+  var idAlTension=(c.statedAlignment&&c.actualAlignment&&c.statedAlignment!==c.actualAlignment)?" (professed "+c.statedAlignment+" at the start — their choices have drifted them, and those who knew them then may notice)":"";
+  var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+idAlTension+(c.deity?" | Deity: "+c.deity:"")+(c.trait?" | Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+"\n\n";
   var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, and graphic mature themes are fully permitted and encouraged when narratively appropriate. PROFANITY IS FULLY UNLOCKED — strong language and crude words (fuck, shit, etc.) are permitted without restriction; swear freely and naturally wherever the chosen prose voice, a character's mouth, or the heat of the moment calls for it. Do NOT self-censor, do NOT soften word choice, do NOT substitute milder words or censor with symbols. Do not fade to black, time-skip, or cut away to the afterglow (e.g. jumping to 'Later, …') at the moment an intimate scene begins — depict the encounter itself on-screen, not just the lead-up and the morning after. Do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
   // Prose-inspiration voice (TODO #23) — merged into the STYLE rule so there's one
   // unified voice directive, not a separate block the model can average away.

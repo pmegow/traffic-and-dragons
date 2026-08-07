@@ -9246,6 +9246,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return fz.actualAlignment==="Lawful Good"||fz.actualAlignment==="Neutral Good"?true:"post-migration shift snapped the label: "+fz.actualAlignment;
   });
 
+  // ── #140 ①+② — alignment reaches the GM: companion sheet lines + the stated-vs-actual tension ──
+  section("#140 — alignment personality levers");
+  t("#140 ①: a companion's alignment rides their party-sheet line; drifted companions carry the professed tension",function(){
+    makeWorld();
+    var cs={name:"Daeris",cls:"Cleric",level:9,hp:50,maxHp:50,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[],
+      statedAlignment:"Lawful Neutral",actualAlignment:"Lawful Good",alignLaw:2,alignGood:2};
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"calm",charSheet:cs});
+    var v=buildSysPrompt().volatile;
+    var fa=v.indexOf("fighting alongside");
+    if(fa<0)return "party block missing";
+    var line=v.slice(v.indexOf("\nDaeris — ",fa),v.indexOf("\n  Stats",fa));
+    if(line.indexOf("Lawful Good")<0)return "companion alignment missing from the sheet line: "+line;
+    if(line.indexOf("professed Lawful Neutral")<0)return "the drift tension is missing: "+line;
+    cs.statedAlignment="Lawful Good";
+    var v2=buildSysPrompt().volatile;
+    return v2.indexOf("professed")<0?true:"an undrifted companion still carries a tension clause";
+  });
+  t("#140 ②: the player identity header carries the stated-vs-actual tension only when they diverge",function(){
+    makeWorld();
+    var c=worldState.character;
+    c.statedAlignment="Lawful Neutral";c.actualAlignment="Neutral Good";c.alignLaw=0;c.alignGood=2;
+    var v=buildSysPrompt().volatile;
+    var idl=v.slice(v.indexOf("PLAYER IDENTITY"),v.indexOf("\n",v.indexOf("PLAYER IDENTITY")));
+    if(idl.indexOf("Neutral Good")<0)return "actual alignment missing from identity: "+idl;
+    if(idl.indexOf("professed Lawful Neutral")<0)return "the tension clause is missing: "+idl;
+    c.statedAlignment="Neutral Good";
+    var v2=buildSysPrompt().volatile;
+    var idl2=v2.slice(v2.indexOf("PLAYER IDENTITY"),v2.indexOf("\n",v2.indexOf("PLAYER IDENTITY")));
+    return idl2.indexOf("professed")<0?true:"aligned stated/actual still renders tension: "+idl2;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
