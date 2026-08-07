@@ -217,7 +217,10 @@ function buildSceneManifest(){
   for(i=0;i<npcs.length;i++){
     var n=npcs[i];
     if(n.dead)continue;
-    if(n.partyMember){addNpc(n.name);continue;}
+    /* #137: membership is not presence — a split member (charSheet.splitLoc set) is NOT an
+       authorized local interaction target; with them excluded here, gate rule ④ rejects
+       direct address of them exactly like any absent NPC (the t1467 Daeris class). */
+    if(n.partyMember){if(!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location))addNpc(n.name);continue;}
     var mn=(typeof memory!=="undefined"&&memory.npcs&&memory.npcs[n.name])||{};
     var ls=String(mn.lastSeenAt||"");
     if(ls&&(ls===nodeKey||ls===loc||ls.indexOf(loc+"|")===0))addNpc(n.name);
@@ -1326,6 +1329,15 @@ function commitGmTurn(resp,opts){
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */
   if(!o.isOpening){
+    // #137 stay-behind watcher (fast path; buildPresenceAudit is the deterministic sibling):
+    // a narrated stay-behind with NO [PARTY_SPLIT:] in the same response arms a one-shot ping
+    // for buildStayBehindNudge. Only non-split members are scanned — an already-recorded split
+    // needs no nudge, and a response that carries ANY [PARTY_SPLIT:] is handling its own splits.
+    if(typeof detectStayBehind==="function"&&String(resp).indexOf("[PARTY_SPLIT:")<0){
+      var _sbNames=livingPartyCompanions().filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc);}).map(function(n){return n.name;});
+      var _sbHit=detectStayBehind(resp,_sbNames);
+      if(_sbHit)worldState.presencePing={name:_sbHit,turn:worldState.turn};
+    }
     detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
     if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
       if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used

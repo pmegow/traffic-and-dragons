@@ -292,6 +292,35 @@ function buildSplitAudit(){
   }
   return"[ENGINE NOTE — SPLIT AUDIT: the party record still lists the member(s) below as split off on their own thread:\n"+lines.join("\n")+"\nFor EACH: if the story has them WITH the party right now, emit [PARTY_SPLIT:"+due[0].name+"|rejoin] (one per member, their own name); if they are genuinely still apart, re-affirm the split by re-emitting [PARTY_SPLIT:<Name>|<their current location>] — re-affirming resets this check. Decide from the STORY: do not narrate them as absent merely because this record says so.]";
 }
+// #137 (the t1467 phantom-presence collapse — DOC/OffTheRails_fable.html + _sol.html): the
+// INVERSE of buildSplitAudit above. That audit can only police records that EXIST; when a
+// narrated stay-behind never earns a [PARTY_SPLIT:] (or the tag died to the pre-v1.550 purge),
+// every presence reader defaults the member to co-located and the GM eventually materializes
+// them (Daeris, t1463). This is the deterministic sweep: every PRESENCE_AUDIT_TURNS, list the
+// members the record holds WITH the party and demand confirmation-or-tag. Engine detects, GM
+// decides — never auto-place from prose. Silent in combat WITHOUT consuming (the deadStatusNudge
+// discipline); split members are deliberately absent (buildSplitAudit owns them).
+function buildPresenceAudit(){
+  if(worldState.combat)return"";
+  if(typeof livingPartyCompanions!=="function")return"";
+  var last=worldState.lastPresenceAudit||0;
+  if(worldState.turn-last<PRESENCE_AUDIT_TURNS)return"";
+  var withParty=[],all=livingPartyCompanions(),i;
+  for(i=0;i<all.length;i++){if(!(all[i].charSheet&&all[i].charSheet.splitLoc&&all[i].charSheet.splitLoc.location))withParty.push(all[i].name);}
+  if(!withParty.length)return"";
+  worldState.lastPresenceAudit=worldState.turn;
+  return"[ENGINE NOTE — PRESENCE CHECK (not a player action): the tracker records these party members as WITH the player in the current scene: "+withParty.join(", ")+". For EACH one who is NOT physically present where you are narrating (stayed behind, waiting elsewhere, separated for any reason), emit [PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] NOW — the record cannot heal itself, and an unrecorded separation eventually makes the engine assert their presence until the story breaks. If everyone listed is genuinely present, emit nothing.]";
+}
+// #137 fast path: commitGmTurn arms worldState.presencePing when the RAW response narrated a
+// stay-behind (detectStayBehind, helpers.js) with no [PARTY_SPLIT:] in the same response. One
+// shot, 2-turn shelf life (the recentSwitch pattern) — consumed on fire, expired silently.
+function buildStayBehindNudge(){
+  var p=worldState.presencePing;
+  if(!p)return"";
+  if(worldState.turn-p.turn>2){worldState.presencePing=null;return"";}
+  worldState.presencePing=null;
+  return"[ENGINE NOTE — SEPARATION UNRECORDED (not a player action): your recent narration described "+p.name+" staying behind or separating from the party, but no [PARTY_SPLIT:] was recorded — the engine still treats them as present in every scene. If they truly separated, emit [PARTY_SPLIT:"+p.name+"|Location] (add |Sublocation if known) NOW; if they are actually with the party, emit nothing and keep narrating them present.]";
+}
 // #129: the escalation half of the schedule teeth (expiry lives in clock.js scheduleSweepExpired).
 // The HAPPENING NOW line in buildClockBlock is a mid-prompt instruction, and the field showed the
 // GM ignoring it indefinitely — the same channel failure as the #20 quest teeth, so the same fix:
@@ -639,7 +668,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -696,10 +725,15 @@ function buildSysPrompt(){
   // to swinging a weapon. Rich block so a caster casts, a rogue uses tricks, etc.
   var partyBlock="";
   if(worldState.npcs.length){
-    var pmArr=[],pj,_pbParty=livingPartyCompanions();/* #6: shared party scan; body stays inline (per-companion prompt text) */
+    var pmArr=[],awArr=[],pj,_pbParty=livingPartyCompanions();/* #6: shared party scan; body stays inline (per-companion prompt text) */
     for(pj=0;pj<_pbParty.length;pj++){
       var pmN=_pbParty[pj];
       var pcs=pmN.charSheet;
+      /* #137: membership is NOT presence. A split member's sheet must never ride under the
+         "fighting alongside" header (the t1467 amplifier — the prompt asserted Daeris present
+         every turn while SPLIT THREADS said otherwise). Their kit stays available under the
+         AWAY header so their own thread can still be narrated with real capabilities. */
+      var pmAway=!!(pcs.splitLoc&&pcs.splitLoc.location);
       var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++)pa2.push(pcs.abilities[pai].nm);if(pa2.length)pAb=pa2.join(", ");}
       // Playtest-F1 (v1.239): name expended spells EXPLICITLY instead of omitting them — the bible
       // block still injects an omitted spell's canon, so omission read as "available" to the GM
@@ -722,9 +756,11 @@ function buildSysPrompt(){
       // a companion's bonds (Morwen's marriages, 222 turns invisible at t755) and reconstructed
       // party dynamics from the roster's decayed one-liners → hallucinated relationships.
       if(pcs.relationships&&pcs.relationships.length)line+="\n  Relationships: "+pcs.relationships.map(function(r){return r.entity+(r.descriptor?" ("+r.descriptor+")":"");}).join(", ");
-      pmArr.push(line);
+      if(pmAway){line+="\n  Currently at: "+pcs.splitLoc.location+(pcs.splitLoc.sublocation?" ("+pcs.splitLoc.sublocation+")":"");awArr.push(line);}
+      else pmArr.push(line);
     }
     if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW. Each Relationships line is that companion's CANONICAL record of their bonds — never contradict it, and update it with [COMPANION_RELATIONSHIP:] when a bond genuinely changes):\n"+pmArr.join("\n")+"\n\n";
+    if(awArr.length)partyBlock+="PARTY MEMBERS CURRENTLY AWAY (split from the party — NOT in this scene; they act only in their own thread per SPLIT THREADS; never narrate them as present here, and never have them assist the player's scene):\n"+awArr.join("\n")+"\n\n";
   }
   // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
   var pmCnt=partyCompanionCount(),pmCap=partyCompanionCap();
@@ -1302,6 +1338,16 @@ function applyMuts(text){
   var R=applyMutsTable(text);
   __tagUnknownScan(text);
   __mpBareTagScan(text);
+  // #137 provenance ring — the record the t1467 forensics lacked: per-response tag names +
+  // mutation labels, ON THE SAVE (rides exports/sync), capped at TAG_LOG_CAP. Observational
+  // only, zero parser contact; makes emitted-then-purged vs never-emitted decidable next time.
+  try{
+    var _tlNames=[],_tlSeen={},_tlM=String(text||"").match(/\[([A-Z][A-Z_]{2,}):/g)||[],_tli;
+    for(_tli=0;_tli<_tlM.length;_tli++){var _tn=_tlM[_tli].slice(1,-1);if(!_tlSeen[_tn]){_tlSeen[_tn]=1;_tlNames.push(_tn);}}
+    if(!worldState.tagLog)worldState.tagLog=[];
+    worldState.tagLog.push({t:R.turn,tags:_tlNames,m:(R.muts||[]).slice(0,10)});
+    if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
+  }catch(_tle){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed:",_tle&&_tle.message);}
   return R;
 }
 // ── TODO #1 P4 (D8): soft misroute tripwire ──────────────────────────────────

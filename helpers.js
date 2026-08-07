@@ -86,6 +86,39 @@ function npcIsDead(n){return !!(n&&(n.dead||npcDeadStatus(n.status)));}
 // today's behavior until the user rules on whether dead companions earn XP/rest/audit.
 // B3: the dead filter reads the durable flag, not the status regex — a "half-dead, bleeding out"
 // companion is ALIVE and no longer silently excluded.
+// #137 stay-behind watcher — the PURE half (game.js commitGmTurn calls it on the raw response).
+// Detects a party member narrated as staying behind / separating: a separation verb WITH a
+// locative tail ("stays behind/here/at…", "hangs back", "keeps watch", "left behind") within
+// ~90 chars of the member's name. The locative requirement is the false-positive lever —
+// "stays low", "remains unconvinced" carry no place and never fire. KNOWN MISS, by design:
+// separations narrated without any stay-verb (Morwen sealing the door from outside, t1457)
+// are invisible here — that class belongs to buildPresenceAudit, the deterministic sibling.
+// Returns the first matching name or null. Never fires when the response already carries a
+// [PARTY_SPLIT:] (the caller checks — a tagged separation needs no nudge).
+var STAY_BEHIND_RE=/(?:stay(?:s|ing)?|remain(?:s|ing)?|wait(?:s|ing)?)[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b|with\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn'?t\s+coming|not\s+coming\s+(?:along|down|inside)/i;
+function detectStayBehind(text,partyNames){
+  var t=String(text||"");
+  if(!t||!partyNames||!partyNames.length)return null;
+  for(var i=0;i<partyNames.length;i++){
+    var nm=partyNames[i];
+    var esc=String(nm).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    var re=new RegExp("\\b"+esc+"\\b","g"),m;
+    while((m=re.exec(t))){
+      var win=t.slice(Math.max(0,m.index-90),m.index+nm.length+90);
+      if(STAY_BEHIND_RE.test(win))return nm;
+    }
+    // first-name half of a multi-word name ("Morwen" for "Morwen Zethran") — same window rule
+    var first=String(nm).split(/\s+/)[0];
+    if(first&&first!==nm){
+      var re2=new RegExp("\\b"+first.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g");
+      while((m=re2.exec(t))){
+        var win2=t.slice(Math.max(0,m.index-90),m.index+first.length+90);
+        if(STAY_BEHIND_RE.test(win2))return nm;
+      }
+    }
+  }
+  return null;
+}
 function partyCompanionsWithSheets(includeDead){
   var out=[],ns=(typeof worldState!=="undefined"&&worldState&&worldState.npcs)||[],i;
   for(i=0;i<ns.length;i++){var n=ns[i];if(n&&n.partyMember&&n.charSheet&&(includeDead||!npcIsDead(n)))out.push(n);}

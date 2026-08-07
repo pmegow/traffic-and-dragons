@@ -9034,6 +9034,95 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return cs.splitLoc?"party stayed put — the co-located split must fold on the next response, not linger":true;
   });
 
+  // ── #137 — phantom party presence: the teeth (t1467 field case, Fable+Sol reconciled) ───────
+  // A narrated stay-behind with no surviving [PARTY_SPLIT:] record made every presence reader
+  // default to co-located (Daeris teleported into a sealed stairwell at t1463). Four builds:
+  // presence audit (primary — deterministic, catches the Morwen class the verb-watcher cannot),
+  // stay-behind watcher (fast path), presence derivation in party sheets + scene manifest, and
+  // the in-save tag/mutation provenance ring that would have made the t1443 fork decidable.
+  section("#137 — phantom presence teeth");
+  function mkPresenceParty(){
+    makeWorld(); worldState.turn=100;
+    ["Frizwick","Daeris","Morwen Zethran"].forEach(function(nm){
+      var cs={name:nm,cls:"Rogue",level:9,hp:50,maxHp:50,stats:{STR:10,DEX:16,CON:12,INT:12,WIS:12,CHA:12},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]};
+      worldState.npcs.push({name:nm,partyMember:true,status:"steady",charSheet:cs});
+      memory.npcs[nm]={attitude:"loyal",knowledge:[],events:[],aliases:[]};
+    });
+    worldState.lastPresenceAudit=100;
+    return worldState.npcs;
+  }
+  t("#137 detectStayBehind: the t1443 verbatim line detects Daeris; locative-less verbs and absent names don't false-positive",function(){
+    var names=["Frizwick","Daeris","Morwen Zethran"];
+    var hit=detectStayBehind("\"I'll stay here,\" Daeris says, not happily. \"Someone has to be the one who isn't standing next to the cursed tower.\"",names);
+    if(hit!=="Daeris")return "t1443 line missed: "+hit;
+    var fps=["Frizwick stays low behind the crates, blade ready","Morwen Zethran remains unconvinced by the plan","Daeris waits for no one and charges ahead","the innkeeper stays behind his desk"];
+    for(var i=0;i<fps.length;i++){var r=detectStayBehind(fps[i],names);if(r)return "false positive on "+JSON.stringify(fps[i])+" → "+r;}
+    var hit2=detectStayBehind("Frizwick hangs back at the mouth of the alley, watching the street.",names);
+    return hit2==="Frizwick"?true:"hangs-back shape missed: "+hit2;
+  });
+  t("#137 presence audit: fires when due, names WITH-party members only, stamps; silent in combat WITHOUT consuming; ''-clean when no companions",function(){
+    mkPresenceParty();
+    worldState.npcs[1].charSheet.splitLoc={location:"Magnimar",sublocation:"Inn - Top Floor Room",turn:90};/* Daeris split — the audit must NOT list her (buildSplitAudit owns splits) */
+    worldState.turn=100+PRESENCE_AUDIT_TURNS;
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildPresenceAudit()!=="")return "not silent in combat";
+    if(worldState.lastPresenceAudit!==100)return "combat silence consumed the due state";
+    worldState.combat=null;
+    var n=buildPresenceAudit();
+    if(n.indexOf("PRESENCE CHECK")<0)return "note missing: "+n.slice(0,80);
+    if(n.indexOf("Frizwick")<0||n.indexOf("Morwen Zethran")<0)return "with-party members not named";
+    if(n.indexOf("Daeris")>=0)return "split member wrongly listed in the presence check";
+    if(worldState.lastPresenceAudit!==worldState.turn)return "fire did not stamp";
+    if(buildPresenceAudit()!=="")return "re-fired immediately after stamping";
+    worldState.npcs.length=0;worldState.lastPresenceAudit=0;worldState.turn=500;
+    return buildPresenceAudit()===""?true:"companion-less world produced a note";
+  });
+  t("#137 stay-behind nudge: consumes the ping once, names the member; an expired ping clears silently",function(){
+    mkPresenceParty();
+    worldState.presencePing={name:"Daeris",turn:100};
+    var n=buildStayBehindNudge();
+    if(n.indexOf("SEPARATION UNRECORDED")<0||n.indexOf("Daeris")<0)return "nudge missing/unnamed: "+n.slice(0,80);
+    if(worldState.presencePing)return "ping not consumed on fire";
+    worldState.presencePing={name:"Daeris",turn:90};worldState.turn=100;/* stale ping (>2 turns) */
+    var n2=buildStayBehindNudge();
+    if(n2!=="")return "expired ping still fired";
+    return worldState.presencePing?"expired ping not cleared":true;
+  });
+  t("#137 presence derivation: a split member leaves the fighting-alongside block and appears under AWAY; unsplit renders as today",function(){
+    mkPresenceParty();
+    var v0=buildSysPrompt().volatile;
+    var fa0=v0.indexOf("fighting alongside");
+    if(fa0<0)return "precondition: party block missing";
+    if(v0.indexOf("CURRENTLY AWAY")>=0)return "AWAY block present with no splits";
+    worldState.npcs[1].charSheet.splitLoc={location:"Magnimar",sublocation:"Inn - Top Floor Room",turn:90};
+    var v=buildSysPrompt().volatile;
+    var fa=v.indexOf("fighting alongside"),aw=v.indexOf("CURRENTLY AWAY");
+    if(aw<0)return "AWAY block missing for a split member";
+    var alongside=v.slice(fa,aw);
+    if(alongside.indexOf("Daeris")>=0)return "split Daeris still presented as fighting alongside";
+    if(v.slice(aw).indexOf("Daeris")<0)return "split Daeris absent from the AWAY block";
+    return v.slice(aw).indexOf("Inn - Top Floor Room")>=0?true:"AWAY block does not state her location";
+  });
+  t("#137 scene manifest: a split member is not authorized present — direct address of them now rejects (rule ④)",function(){
+    mkPresenceParty();
+    worldState.npcs[1].charSheet.splitLoc={location:"Magnimar",sublocation:"Inn - Top Floor Room",turn:90};
+    var man=buildSceneManifest();
+    if(man.npcs.indexOf("Daeris")>=0)return "split member authorized as present by the manifest";
+    var bad=validateSuggestion("Tell Daeris to prepare the ritual",man);
+    return bad&&bad.rule==="absent-npc-direct-address"?true:"direct address of the split member passed: "+JSON.stringify(bad);
+  });
+  t("#137 provenance ring: applyMuts records tag names + muts per response, capped at TAG_LOG_CAP",function(){
+    mkPresenceParty();
+    worldState.tagLog=null;
+    applyMuts("He pays.\n[GOLD:-5][LORE:the seam-door predates the tower]");
+    var lg=worldState.tagLog;
+    if(!lg||lg.length!==1)return "ring not written: "+JSON.stringify(lg);
+    if(lg[0].tags.indexOf("GOLD")<0||lg[0].tags.indexOf("LORE")<0)return "tag names missing: "+JSON.stringify(lg[0].tags);
+    if(!(lg[0].m&&lg[0].m.length))return "muts labels missing";
+    for(var i=0;i<TAG_LOG_CAP+5;i++)applyMuts("turn filler "+i+".\n[TIME_ADVANCE:1]");
+    return worldState.tagLog.length<=TAG_LOG_CAP?true:"cap broken: "+worldState.tagLog.length;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
