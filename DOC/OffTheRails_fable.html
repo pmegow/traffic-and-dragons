@@ -151,5 +151,72 @@ your Drive, so I could not open it).</p>
 <li><b>Cross-check invitation:</b> Sol's parallel analysis should independently land on t1443/t1463 as the hinge and the missing-record mechanism; divergence on §3's ranking (especially how much weight the player's "wives" phrasing carries vs. the prompt pressure) would be the interesting comparison.</li>
 </ul>
 
+<h2>7 · Reconciliation with the Sol report (added after both analyses completed)</h2>
+<p class="meta">Sol's independent report: <code>DOC/OffTheRails_sol.html</code>. The two investigations ran blind to each other
+from the same export and converged on the identical spine — same four hinge turns (t1443 · t1457 · t1463 · t1466), same
+no-bridge verdict, same hedge quote, same "wives"-as-trigger-not-root ruling, same Frizwick exoneration, same honestly-held
+purge-vs-non-emission fork. The differences below are adjudicated; where Sol found something this report missed, it is
+adopted and marked.</p>
+
+<h3>7a · Adopted from Sol (with verification)</h3>
+<ul>
+<li><b>The rot is older than this report's bracket.</b> Sol traced Frizwick's sea-cave split to its birth: told to wait at
+<b>t1065</b>, rejoined in prose at <b>t1068</b>, record survived to t1265+ — refining this report's "≈t1265". Adopted.</li>
+<li><b>Party sheets conflate membership with presence — VERIFIED by hand.</b> Sol's claim that the PARTY MEMBER SHEETS
+block serves every living companion as "fighting alongside the player" even when a valid split record exists is TRUE:
+<code>livingPartyCompanions → partyCompanionsWithSheets</code> (helpers.js:89–93) filters membership/sheet/alive only —
+no <code>splitLoc</code> filter — feeding api.js:727's "fighting alongside" header. The roster line (api.js:54) and
+SPLIT THREADS do exclude/contradict, so a split member is currently asserted present and absent in the same prompt.
+This is a confirmed amplifier defect (Sol's hardening B) and joins the build list in its own right.</li>
+<li><b>Mutation-provenance receipts</b> (Sol's hardening C) supersede this report's narrower R6: a compact recent record of
+emitted tags + applied/ignored/purged mutations would have made the t1443/t1457 fork decidable instead of inferred. Adopted
+as the observability recommendation.</li>
+<li><b>Frizwick display, present tense:</b> Sol confirms from the save that no data condition can suppress her HP today
+(and notes ≤768px hides the whole topbar party HUD — all members, never one). Compatible with this report's §1c historical
+best-fit for the sighting; the combined verdict stands: past sighting explained, a present-tense recurrence would be a new
+bug needing exact-surface reproduction.</li>
+<li><b>One extra regression case</b> from Sol's test list adopted: summarization must not overwrite an explicit remote
+location merely because the player names the remote companion.</li>
+</ul>
+
+<h3>7b · The one analytic divergence, resolved with a new discriminator</h3>
+<p>Sol ranks the pre-v1.550 <b>dies-at-birth purge as the primary mechanism</b> ("strong inference": both responses
+version-matched to the affected window). This report held the fork open. Walking each character through the actual
+co-location predicate (exact loc+subloc match, tag_table.js) splits the difference in a way neither report saw alone:</p>
+<ul>
+<li><b>Daeris (t1443):</b> the party WAS at the inn node when she said "I'll stay here" — a GM-emitted
+<code>[PARTY_SPLIT:Daeris|Magnimar|Inn - Top Floor Room]</code> would have matched the party's node exactly and
+<b>died at birth</b>. For her, Sol's purge branch is fully plausible.</li>
+<li><b>Morwen (t1457):</b> the party was already INSIDE <code>Magnimar|The Spire — Hidden Stairwell</code> when she sealed
+the door. Any sane split for her (<code>|Magnimar</code>, or <code>|Magnimar|street</code>) does NOT exact-match that node —
+<b>a written record would have SURVIVED the purge and be visible in the t1467 export.</b> It is absent. For Morwen,
+GM non-emission is therefore near-certain.</li>
+</ul>
+<p><b>Joint verdict:</b> both mechanisms almost certainly operated — one each. Morwen's missing record is positive evidence
+that the GM does skip stay-behind tags (this report's cause A), which in turn caps how much of the incident the v1.550 fix
+alone can prevent. Consequence for the build: the stay-behind teeth / presence audit (this report's R2 ≡ Sol's hardening A,
+which Sol has drafted as TODO #137 in the main tree, uncommitted at reconciliation time) are non-negotiable regardless of
+which branch fired at t1443 — the two reports' remedies were already identical, and the discriminator only strengthens the
+case.</p>
+
+<h3>7c · The one open fork for the user: the Daeris repair</h3>
+<p>Sol prefers treating t1463–t1467 as <b>error</b> (Daeris stays at the inn; "prefer rewinding to t1462 if available").
+This report prefers <b>accept-as-canon + supersede</b>. Adjudicating with costs: no checkpoint exists between t1431 and
+t1467 — a rewind means replaying 36 turns from the t1431 export, and surgically removing t1463–t1467 from the save would
+edit the append-only transcript (barred by standing decree). Sol's own fallback (an explicit GM correction turn) is the
+viable form of its branch. So the real choice is:
+<b>(a) Accept with a bridge</b> — one OOC turn establishing that Daeris made good on her "I'm coming" vow early and Morwen
+let her through the seam and resealed it (coherent with Morwen-outside; her combat tags are already banked), plus the
+<code>[NPC_SUPERSEDE:]</code> from R4 — cheapest, zero lost play; or
+<b>(b) Correct her out</b> — one OOC turn with <code>[RETCON:]</code> + re-narration sending her back to the inn, accepting
+that her banked Sacred Flame cast/XP stay in the mechanical record. This report still recommends (a); Sol's continuity
+argument for (b) is legitimate taste, not error. The user picks.</p>
+
+<h3>7d · Symptom-verdict alignment</h3>
+<p>Morwen: Sol says "did not move — disproved"; this report says "one-entry dialogue wobble (t1457's <i>locking us in</i>)
+plus record-limbo." No conflict — the transcript is coherent, the wobble is sub-entry, and both reports agree the
+user-visible confusion came from state/panel signals asserting presence, not from actual narrated movement. Daeris and
+Frizwick verdicts are identical across both reports.</p>
+
 </body>
 </html>
