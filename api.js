@@ -1157,7 +1157,16 @@ function cleanTxt(t){
   // regexes above need the closing ], so the ragged fragment used to render raw. End-anchored
   // (and ≥3 leading caps, the __tagUnknownScan shape) so complete tags and lowercase bracket
   // prose are untouched; the raw truth stays in sessionLog, this is display-side only.
+  // Unknown-tag containment (the [MANA:-1] Zone-of-Truth leak, 2026-08-07): the GM sometimes
+  // INVENTS a tag; __tagUnknownScan warns the console (the developer signal, untouched), but
+  // known-name stripping let the invention reach the displayed prose — and TTS read it aloud.
+  // Any [ALLCAPS…] tag shape (colon or bare, the __tagUnknownScan shape) is display-stripped
+  // with a loud warn. Lowercase/mixed-case bracket prose ("[sic]") is deliberately untouched.
   return t.replace(_CT_TAGS,"").replace(_CT_BARE,"")
+    .replace(/\[[A-Z][A-Z_]{2,}(?::[^\]]*)?\]/g,function(_m){
+      if(typeof console!=="undefined")console.warn("[tags] unknown tag stripped from display (invented vocabulary — see the __tagUnknownScan warn for the parse side): "+_m.slice(0,60));
+      return "";
+    })
     .replace(/\[[A-Z][A-Z_]{2,}(:[^\]]*)?\s*$/,"")
     .replace(_CT_DASH,", ").replace(_CT_NL,"\n\n").trim();
 }

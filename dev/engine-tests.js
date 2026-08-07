@@ -3353,6 +3353,21 @@ function runEngineTests(R){
     if(__djb2(_CT_TAGS.source)!==-1140062507||_CT_TAGS.source.length!==1029)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section) */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
+  t("unknown-tag display containment: an INVENTED tag never reaches the player; prose brackets survive (the [MANA:-1] Zone-of-Truth leak)",function(){
+    // Field case 2026-08-07: the GM invented [MANA:-1] (no such tag — the engine derives mana
+    // from the cast tags). __tagUnknownScan warned in the console, but cleanTxt only strips
+    // KNOWN names, so the tag leaked into the displayed prose and TTS read it aloud as
+    // "Maya minus one". Containment: cleanTxt strips ANY [ALLCAPS...] tag shape (colon or
+    // bare) with a loud console warn; the parse-side tripwire (__tagUnknownScan) is untouched.
+    var out=cleanTxt("She speaks only truth now. [MANA:-1] The zone hums around Daeris.");
+    if(out.indexOf("[MANA")>=0)return "invented tag leaked to display: "+out;
+    if(out.indexOf("truth now.")<0||out.indexOf("The zone hums")<0)return "surrounding prose damaged: "+out;
+    var bare=cleanTxt("He salutes. [RETREAT_SIGNAL] The line breaks.");
+    if(bare.indexOf("[RETREAT_SIGNAL]")>=0)return "bare invented tag leaked: "+bare;
+    var prose=cleanTxt("The letter reads \"come alone [sic] at dusk\", and Frizwick snorts. [Maya:-1] stays because it is not an all-caps tag shape.");
+    if(prose.indexOf("[sic]")<0)return "lowercase bracket prose was eaten";
+    return prose.indexOf("[Maya:-1]")>=0?true:"mixed-case bracket text wrongly stripped: "+prose;
+  });
   // #106 cause ①: the TIME_ADVANCE reference used to price ACTIONS ("a conversation 1-5 min"),
   // so ~46% of turns were billed ~4 minutes and an in-game day took ~200 turns. It now prices
   // SCENES. The frozen hash below catches any edit; this guards the specific clauses that must
