@@ -30,6 +30,8 @@ var CAR_STR = {
   retrying: "Retrying…",
   sending: "Sending…",
   errorPrefix: "⚠ ",
+  // #77 — confirm gate (DOC/DOC_nonsense_filter.html §4 Layer 2)
+  confirmTap: "Yes or no? Tap to answer",
   // #78 — numbered options (CAR_MODE.md Phase 2)
   readingOptions: "Your options…",
   gettingOptions: "Getting your options…",
@@ -431,6 +433,20 @@ function _carAutoMic() {
   if (!carMode) return;
   _carSetStatus(CAR_STR.tapToSpeak);
   _carSyncBtn();
+  // #77 — a pending confirmation reopens the mic for the ANSWER, bypassing the options step
+  // (already read this cycle) and the parked-utterance bail below (the pending text lives in
+  // STT's _confirmPending, NOT in the field — the field is deliberately empty). Cloud stays
+  // push-to-talk exactly like actions (round-2 #25's hallucination rule): the driver taps,
+  // and a hallucinated non-answer can't send anyway — parseConfirmCommand refuses it.
+  if (typeof STT !== "undefined" && typeof STT.isConfirmPending === "function" && STT.isConfirmPending()) {
+    if (typeof STT.isCloudActive === "function" && STT.isCloudActive()) { _carSetStatus(CAR_STR.confirmTap); return; }
+    setTimeout(function() {
+      if (!carMode || (typeof busy !== "undefined" && busy) || (typeof STT !== "undefined" && STT.isListening())) return;
+      if (!STT.isConfirmPending()) return;   // resolved while we waited (e.g. a tap answered)
+      _carStartMic();
+    }, 500);
+    return;
+  }
   // final-pass #33 — a busy-parked utterance (rank 19) sits in #action-input, already advertised
   // via carNotify("info","Heard you — tap to send") at the game.js rank-19 site. _carStartMic
   // below clears #action-input unconditionally, so starting the mic here would silently destroy

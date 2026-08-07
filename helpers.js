@@ -455,6 +455,25 @@ function parseCarCommand(text, optionCount) {
   if (optionCount && n > optionCount) return null;   // "four" with 3 options is not a pick — let it be an action
   return { kind: "pick", n: n };
 }
+// #77 Layer-2 confirm vocabulary — SAME false-positive discipline as parseCarCommand above:
+// whole utterance, anchored ^…$, filler-stripped. "no time to lose" and "yes and I draw my
+// sword" are ACTIONS. "again"/"repeat" are safe to claim here because a pending confirmation
+// OWNS the utterance (the #78 menu grammar is never consulted while one is pending — the
+// interceptor order in stt.js is pinned by the #77 CONFIRM GATE contract in run-tests.js).
+// Returns "yes" | "no" | "redo" | "repeat" | null.
+function parseConfirmCommand(text) {
+  var t = String(text == null ? "" : text).toLowerCase();
+  t = t.replace(/['’]/g, "").replace(/[.,!?;:"”“]+/g, " ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+  if (!t) return null;
+  var prev = null, guard = 0;
+  while (t !== prev && guard++ < 4) { prev = t; t = t.replace(CAR_CMD_FILLER, ""); }
+  if (!t) return null;
+  if (/^(?:yes|yeah|yep|yup|aye|correct|right|thats right|that is right|confirm|send|send it|yes send it|go ahead|sure)$/.test(t)) return "yes";
+  if (/^(?:no|nope|nah|cancel|dont|dont send|dont send it|discard|drop it|never mind|nevermind|scratch that|forget it)$/.test(t)) return "no";
+  if (/^(?:redo|retry|try again|again|start over|re do|new take)$/.test(t)) return "redo";
+  if (/^(?:repeat|repeat it|say again|what|what did you hear|read it back)$/.test(t)) return "repeat";
+  return null;
+}
 // bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
 // HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
 // (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
@@ -628,7 +647,71 @@ function sttBiasPrompt(){
   if(s.length>800){s=s.slice(0,800);var cut=s.lastIndexOf(", ");if(cut>0)s=s.slice(0,cut);}/* cap at a clean name boundary */
   return s;
 }
-function sttCorrectNames(text,roster){
+// ── #77 confirm gate — the pure half (v1.548; design record DOC/DOC_nonsense_filter.html §4) ──
+// Layer 0: sttConfidence turns the OpenAI logprobs array (or nothing) into one 0..1 number.
+// Layer 1-gate: sttSuspicion decides whether an utterance auto-sends or earns the Layer-2
+// read-back. The thresholds are DELIBERATELY data — tune from the sttLogEvent record, never
+// from vibes (the review's "measure, then tune" ruling).
+var STT_CONF_MIN=0.66;    // transcript-level confidence below this = suspect
+var STT_FAR_EDIT_SC=10;   // sttWordScore >= 10 means skeleton distance >=1 — a BOLD substitution
+var STT_LOG_K="tnd_stt_log_v1",STT_LOG_CAP=100;
+function sttConfidence(logprobs){
+  if(!logprobs||!logprobs.length)return null;
+  var s=0,n=0,i,lp;
+  for(i=0;i<logprobs.length;i++){lp=logprobs[i]&&logprobs[i].logprob;if(typeof lp==="number"&&isFinite(lp)){s+=lp;n++;}}
+  return n?Math.exp(s/n):null;
+}
+// The suspicion verdict. Reasons (each independently sufficient):
+//   low-confidence        — the transcriber itself was unsure (conf===null NEVER flags: the
+//                           native path often has no signal, and flagging everything is the
+//                           confirmation-fatigue failure the literature warns about)
+//   far-correction        — a unigram substitution at skeleton distance >=1 (physics→Frizwick):
+//                           right or wrong, it rewrote a real word boldly — worth one "send it?"
+//   common-bigram         — a bigram merge whose halves are ordinary words ("there is"→Daeris,
+//                           the review's measured false-positive class; "more when"→Morwen pays
+//                           the same toll, an accepted trade)
+//   multiple-corrections  — two+ substitutions in one utterance
+//   unknown-name          — a mid-utterance capitalized noun matching no roster word (cloud
+//                           transcripts capitalize proper nouns; the bias-prompt PULL class)
+function sttSuspicion(text,corrections,conf,roster){
+  var reasons=[],i;
+  if(typeof conf==="number"&&conf<STT_CONF_MIN)reasons.push("low-confidence");
+  var corr=corrections||[];
+  if(corr.length>=2)reasons.push("multiple-corrections");
+  for(i=0;i<corr.length;i++){
+    if(!corr[i].bigram&&corr[i].sc>=STT_FAR_EDIT_SC&&reasons.indexOf("far-correction")<0)reasons.push("far-correction");
+    if(corr[i].bigram&&reasons.indexOf("common-bigram")<0){
+      var h=String(corr[i].from||"").toLowerCase().split(/\s+/);
+      if((h[0]&&STT_COMMON[h[0]])||(h[1]&&STT_COMMON[h[1]]))reasons.push("common-bigram");
+    }
+  }
+  var toks=String(text||"").split(/\s+/);
+  for(i=1;i<toks.length;i++){
+    if(/^i['’]/i.test(toks[i])||toks[i]==="I")continue;            // I'll / I'm / bare I are never names
+    var a=toks[i].replace(/[^A-Za-z]/g,"");
+    if(a.length<3||!/^[A-Z][a-z]/.test(a)||STT_COMMON[a.toLowerCase()])continue;
+    var known=false,ri;
+    if(roster){for(ri=0;ri<roster.length;ri++){if(roster[ri].word.toLowerCase()===a.toLowerCase()){known=true;break;}}}
+    if(!known){reasons.push("unknown-name");break;}
+  }
+  return {suspicious:reasons.length>0,reasons:reasons};
+}
+// Layer-0 measurement channel — the ring the review found missing ("measure, then tune" had
+// nothing to read). Compact entries only (counts + reasons + outcome, never the transcript);
+// read it back in the console via sttLogAll().
+function sttLogEvent(e){
+  try{
+    var raw=(typeof store!=="undefined")?store.get(STT_LOG_K):null;
+    var arr=raw?JSON.parse(raw):[];
+    arr.push(e);
+    if(arr.length>STT_LOG_CAP)arr=arr.slice(arr.length-STT_LOG_CAP);
+    store.set(STT_LOG_K,JSON.stringify(arr));
+  }catch(err){if(typeof console!=="undefined")console.warn("[stt] log write failed:",err&&err.message);}
+}
+function sttLogAll(){
+  try{var raw=(typeof store!=="undefined")?store.get(STT_LOG_K):null;return raw?JSON.parse(raw):[];}catch(e){return [];}
+}
+function sttCorrectNames(text,roster,collector){
   if(!text||!roster||!roster.length)return text;
   var toks=String(text).split(/(\s+)/),i,r;   // words + separator tokens interleaved
   function alpha(s){return String(s||"").replace(/[^A-Za-z]/g,"");}
@@ -665,6 +748,7 @@ function sttCorrectNames(text,roster){
       var bg=best(w1+w2);
       if(bg&&bg.sc<10){                                            // perfect skeleton only
         toks[i]=subst(toks[i],bg.word);toks[i+1]="";toks[ni]=toks[ni].replace(/[A-Za-z][A-Za-z']*/,"");
+        if(collector)collector.push({from:w1+" "+w2,to:bg.word,sc:bg.sc,bigram:true});/* #77 Layer-0 record */
         if(typeof console!=="undefined")console.info("[stt] name-corrected: \""+w1+" "+w2+"\" → "+bg.word);
         continue;
       }
@@ -674,6 +758,7 @@ function sttCorrectNames(text,roster){
     var sg=best(w1);
     if(sg){
       toks[i]=subst(toks[i],sg.word);
+      if(collector)collector.push({from:w1,to:sg.word,sc:sg.sc,bigram:false});/* #77 Layer-0 record */
       if(typeof console!=="undefined")console.info("[stt] name-corrected: \""+w1+"\" → "+sg.word);
     }
   }

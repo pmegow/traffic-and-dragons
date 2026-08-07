@@ -1153,6 +1153,36 @@ try {
   }
 } catch (e) { console.error("STT UPGRADES CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #77 CONFIRM GATE CONTRACT (v1.548 — DOC/DOC_nonsense_filter.html §4) ─────────────────
+// The pure half (sttConfidence/sttSuspicion/parseConfirmCommand/sttLogEvent) is engine-tested
+// in helpers; the stt.js wiring is pinned here because the harness never loads DOM files.
+try {
+  var _fsC = require("fs"), _pathC = require("path");
+  var _ncC = function (t) { return String(t).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); };
+  var _sttC = _ncC(_fsC.readFileSync(_pathC.join(__dirname, "..", "stt.js"), "utf8"));
+  // ① Interceptor ORDER: the pending-confirmation branch must precede the carVoiceCommand
+  //    block inside _applySendPolicy — otherwise a spoken "no" (2 chars) is eaten by the
+  //    rank-8 gate, a "two" answers the #78 menu instead of the confirmation, and busy parks
+  //    the answer as an action (the #78 ordering lesson, one rung higher).
+  var _aspC = _sttC.slice(_sttC.indexOf("function _applySendPolicy"), _sttC.indexOf("function _enterConfirm"));
+  var _iConf = _aspC.indexOf("_confirmPending"), _iCar = _aspC.indexOf("carVoiceCommand");
+  if (_iConf < 0 || (_iCar >= 0 && _iConf > _iCar)) {
+    console.error("CONFIRM GATE: the _confirmPending interceptor no longer sits ABOVE carVoiceCommand in _applySendPolicy — a spoken 'no'/'two' answer gets eaten by the #78 grammar or the short-transcript gate (#77).");
+    process.exit(1);
+  }
+  // ② Layer 0's signal is actually requested: logprobs ride the gpt-4o transcription request.
+  if (!/form\.append\("include\[\]",\s*"logprobs"\)/.test(_sttC)) {
+    console.error("CONFIRM GATE: the include[]=logprobs request field is gone from _transcribeOnce — the confirm gate's primary confidence signal is silently absent and every cloud utterance reads as no-signal (#77 Layer 0).");
+    process.exit(1);
+  }
+  // ③ A confirmed send uses the PENDING text, never a re-read of the field (the field is
+  //    cleared on entry; re-reading it would send the ANSWER word as the action).
+  if (!/sendAction\(pend\.text\)/.test(_sttC)) {
+    console.error("CONFIRM GATE: _resolveConfirm no longer sends the stored pending text — a confirmed turn would send the wrong string (#77 Layer 2).");
+    process.exit(1);
+  }
+} catch (e) { console.error("CONFIRM GATE CHECK FAILED: " + e.message); process.exit(1); }
+
 // Exit 0 = ALL GREEN; exit 1 = failures (blocks the commit via .git/hooks/pre-commit).
 //   node dev/run-tests.js                     — full suite
 //   node dev/run-tests.js <section-substring> — #20: run only sections whose name contains

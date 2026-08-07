@@ -76,6 +76,7 @@ function buildFileMenus(){
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
       +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
+      +chk(p+"sttconfirm","&#128737; Confirm unclear voice input",0)/* #77 Layer-2 gate — default ON */
       +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
       +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
       +sep(true)
@@ -188,7 +189,7 @@ function wireButtons(){
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","font-lg","legacy-cb","autosend","autolisten","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤) */
+  ["adult-cb","font-lg","legacy-cb","autosend","autolisten","sttconfirm","sound-cb"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});
@@ -244,8 +245,12 @@ function wireButtons(){
   // behavior) whenever STT.isAutoListen isn't wired up yet, per the cross-lane contract in
   // ui-carmode.js's _carAutoMic. Wired/initialized exactly like autosend above.
   eachMenuEl("autolisten",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setAutoListen)STT.setAutoListen(el.checked);});});
+  // #77 — "Confirm unclear voice input" (the Layer-2 gate; DOC/DOC_nonsense_filter.html §4).
+  // Default ON when unset; wired/initialized exactly like autolisten above.
+  eachMenuEl("sttconfirm",function(el){el.addEventListener("change",function(){if(typeof STT!=="undefined"&&STT.setConfirmGate)STT.setConfirmGate(el.checked);eachMenuEl("sttconfirm",function(o){if(o!==el)o.checked=el.checked;});});});
   if(typeof STT!=="undefined")STT.loadSettings();
   if(typeof STT!=="undefined"&&typeof STT.isAutoListen==="function"){var _alOn=STT.isAutoListen();eachMenuEl("autolisten",function(el){el.checked=_alOn;});}
+  if(typeof STT!=="undefined"&&typeof STT.isConfirmGate==="function"){var _cgOn=STT.isConfirmGate();eachMenuEl("sttconfirm",function(el){el.checked=_cgOn;});}
   // Suggested-action buttons: plain tap = fill input (editable); long-press (~500ms) = execute the turn.
   // (Ctrl/Cmd-click is handled in sendSuggestedAction.) Delegated so it covers dynamically-added buttons.
   (function(){

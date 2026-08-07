@@ -7738,6 +7738,91 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #77 confirm gate — the pure half (v1.548) ────────────────────────────────
+  // Design record: DOC/DOC_nonsense_filter.html §4. Layer 0 = confidence capture,
+  // Layer 1-gate = corrections become suspicion signals instead of silent rewrites,
+  // Layer 2 = the read-back. stt.js/ui-carmode wiring is pinned by the #77 CONFIRM GATE
+  // contract in run-tests.js; every function with logic lives in helpers.js and runs here.
+  section("#77 confirm gate (pure half)");
+  t("sttConfidence: null on absent/empty; exp(mean logprob) otherwise",function(){
+    if(sttConfidence(null)!==null)return "null input should be null";
+    if(sttConfidence([])!==null)return "empty input should be null";
+    var one=sttConfidence([{token:"a",logprob:0}]);
+    if(Math.abs(one-1)>1e-9)return "logprob 0 should be prob 1: "+one;
+    var avg=sttConfidence([{logprob:Math.log(0.9)},{logprob:Math.log(0.4)}]);
+    var want=Math.exp((Math.log(0.9)+Math.log(0.4))/2);
+    return Math.abs(avg-want)<1e-9?true:"mean mismatch: "+avg;
+  });
+  t("sttCorrectNames collector reports each substitution; omitting it stays byte-identical",function(){
+    var r=__sttRoster(),corr=[];
+    var out=sttCorrectNames("I ask physics about more when",r,corr);
+    var plain=sttCorrectNames("I ask physics about more when",r);
+    if(out!==plain)return "collector changed the output: "+out+" vs "+plain;
+    if(corr.length!==2)return "expected 2 corrections, got "+corr.length+": "+JSON.stringify(corr);
+    var uni=null,bg=null,i;for(i=0;i<corr.length;i++){if(corr[i].bigram)bg=corr[i];else uni=corr[i];}
+    if(!uni||uni.to!=="Frizwick"||uni.from!=="physics"||uni.sc<10)return "unigram entry wrong (physics is a FAR edit, sc>=10): "+JSON.stringify(uni);
+    if(!bg||bg.to!=="Morwen"||bg.sc>=10)return "bigram entry wrong (bigrams are perfect-skeleton, sc<10): "+JSON.stringify(bg);
+    return true;
+  });
+  t("sttSuspicion: clean confident utterance passes; unknown confidence alone never flags (native path)",function(){
+    var s1=sttSuspicion("I search the room carefully",[],0.95,__sttRoster());
+    if(s1.suspicious)return "flagged clean confident input: "+JSON.stringify(s1.reasons);
+    var s2=sttSuspicion("I search the room carefully",[],null,__sttRoster());
+    return s2.suspicious===false?true:"null confidence + no corrections flagged: "+JSON.stringify(s2.reasons);
+  });
+  t("sttSuspicion: low transcript confidence flags",function(){
+    var s=sttSuspicion("I search the room",[],0.4,__sttRoster());
+    return s.suspicious&&s.reasons.indexOf("low-confidence")>=0?true:JSON.stringify(s);
+  });
+  t("sttSuspicion: a far unigram substitution flags (physics→Frizwick asks before sending)",function(){
+    var corr=[];sttCorrectNames("I ask physics about the wards",__sttRoster(),corr);
+    var s=sttSuspicion("I ask Frizwick about the wards",corr,0.95,__sttRoster());
+    return s.suspicious&&s.reasons.indexOf("far-correction")>=0?true:JSON.stringify(s);
+  });
+  t("sttSuspicion: the bigram false-positive class flags — 'there is'→Daeris (common-word halves)",function(){
+    var corr=[],out=sttCorrectNames("there is a light under the door",__sttRoster(),corr);
+    if(out.indexOf("Daeris")<0)return "precondition changed: the review's FP no longer fires, got "+out;
+    var s=sttSuspicion(out,corr,0.95,__sttRoster());
+    return s.suspicious&&s.reasons.indexOf("common-bigram")>=0?true:JSON.stringify(s);
+  });
+  t("sttSuspicion: two corrections flag even when each is tame; one tame correction stays silent",function(){
+    var two=[{from:"dairies",to:"Daeris",sc:2,bigram:false},{from:"friz wick",to:"Frizwick",sc:0,bigram:true}];
+    var s2=sttSuspicion("x",two,0.95,__sttRoster());
+    if(!(s2.suspicious&&s2.reasons.indexOf("multiple-corrections")>=0))return "two corrections did not flag: "+JSON.stringify(s2);
+    var one=[{from:"dairies",to:"Daeris",sc:2,bigram:false}];
+    var s1=sttSuspicion("I speak with Daeris tonight",one,0.95,__sttRoster());
+    return s1.suspicious===false?true:"a single tame correction flagged (would confirm every dairies-class catch): "+JSON.stringify(s1.reasons);
+  });
+  t("sttSuspicion: out-of-roster capitalized noun mid-utterance flags; I/I'll forms and roster names don't",function(){
+    var s=sttSuspicion("we follow Shalelu into the woods",[],0.95,__sttRoster());
+    if(!(s.suspicious&&s.reasons.indexOf("unknown-name")>=0))return "unknown proper noun not flagged: "+JSON.stringify(s);
+    var ok=sttSuspicion("tomorrow I'll ask Frizwick about the wards",[],0.95,__sttRoster());
+    return ok.suspicious===false?true:"I'll or a roster name false-flagged: "+JSON.stringify(ok.reasons);
+  });
+  t("parseConfirmCommand: yes/no/redo/repeat vocabulary, filler-stripped",function(){
+    var i,yes=["yes","yeah","yep","send it","confirm","go ahead","okay yes"];
+    var no=["no","nope","cancel","dont send it","never mind","scratch that","forget it"];
+    var redo=["redo","try again","again","start over","retry"];
+    var rep=["repeat","say again","what did you hear"];
+    for(i=0;i<yes.length;i++)if(parseConfirmCommand(yes[i])!=="yes")return JSON.stringify(yes[i])+" !== yes: "+parseConfirmCommand(yes[i]);
+    for(i=0;i<no.length;i++)if(parseConfirmCommand(no[i])!=="no")return JSON.stringify(no[i])+" !== no: "+parseConfirmCommand(no[i]);
+    for(i=0;i<redo.length;i++)if(parseConfirmCommand(redo[i])!=="redo")return JSON.stringify(redo[i])+" !== redo: "+parseConfirmCommand(redo[i]);
+    for(i=0;i<rep.length;i++)if(parseConfirmCommand(rep[i])!=="repeat")return JSON.stringify(rep[i])+" !== repeat: "+parseConfirmCommand(rep[i]);
+    return true;
+  });
+  t("parseConfirmCommand FALSE-POSITIVE rule: sentences containing the words are NOT commands",function(){
+    var acts=["no time to lose","yes and I draw my sword","I try again to open the lock","cancel the ritual","send it flying across the room","I nod yes to the guard","we start over the ridge"];
+    for(var i=0;i<acts.length;i++)if(parseConfirmCommand(acts[i])!==null)return JSON.stringify(acts[i])+" consumed as "+parseConfirmCommand(acts[i]);
+    return true;
+  });
+  t("sttLogEvent: ring buffer caps at STT_LOG_CAP, newest kept",function(){
+    store.set(STT_LOG_K,"");
+    for(var i=0;i<STT_LOG_CAP+5;i++)sttLogEvent({n:i});
+    var all=sttLogAll();
+    if(all.length!==STT_LOG_CAP)return "cap broken: "+all.length;
+    return all[all.length-1].n===STT_LOG_CAP+4?true:"newest lost: "+JSON.stringify(all[all.length-1]);
+  });
+
   // ── error reporting (#16) — flood control + payload, transport stubbed ───────
   section("reportError (#16)");
   var __erOrigSend=_erSend,__erSent=[];

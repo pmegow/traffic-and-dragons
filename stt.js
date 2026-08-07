@@ -18,6 +18,7 @@ var STT = (function() {
   var LANG_K       = "tnd_stt_lang_v1";
   var AUTO_K       = "tnd_stt_autosend_v1";
   var AUTOLISTEN_K = "tnd_car_autolisten_v1";
+  var CONFIRM_K    = "tnd_stt_confirm_v1";   // #77 Layer-2 gate pref — default ON when unset
 
   var _Rec       = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var _rec       = null;   // live recognition instance (one at a time)
@@ -28,6 +29,33 @@ var STT = (function() {
   var _cancelled = false;  // set by cancel() — tells the finish handler to discard, never send
   var _lastErrorWasNoSpeech = false; // stamped by onerror, read by onend for the single auto-retry
   var _noSpeechRetried      = false; // has this car-mode listen cycle already used its one retry?
+
+  // ── #77 confirm gate state (design record: DOC/DOC_nonsense_filter.html §4) ──────────────
+  var _confirmPending = null;  // {text, tries} — the utterance awaiting a spoken yes/no/redo
+  var _utterCorr = [];         // Layer-0 record: sttCorrectNames substitutions this utterance
+  var _utterConf = null;       // Layer-0 record: transcript confidence 0..1, null = no signal
+  var _confSum = 0, _confN = 0; // native path per-chunk confidence accumulator
+
+  function isConfirmGate()   { return store.get(CONFIRM_K) !== "0"; }
+  function setConfirmGate(on){ store.set(CONFIRM_K, on ? "1" : "0"); }
+  function isConfirmPending(){ return !!_confirmPending; }
+  function _resetUtterance() { _utterCorr = []; _utterConf = null; _confSum = 0; _confN = 0; }
+  function _rosterNow() {
+    return (typeof sttNameRoster === "function" && typeof worldState !== "undefined")
+      ? sttNameRoster(worldState, (typeof memory !== "undefined") ? memory : null) : [];
+  }
+  function _confSpeak(s) { if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak(s); }
+  // Layer-0 measurement channel: compact outcome record per auto-send-path utterance
+  // (counts + reasons, never the transcript itself). Read back via sttLogAll() in the console.
+  function _logUtter(outcome, reasons, text) {
+    if (typeof sttLogEvent !== "function") return;
+    sttLogEvent({
+      t: Date.now(), path: _Rec ? "n" : "c",
+      conf: (_utterConf == null) ? null : Math.round(_utterConf * 100) / 100,
+      corr: _utterCorr.length, len: String(text || "").length,
+      why: (reasons && reasons.length) ? reasons : undefined, out: outcome
+    });
+  }
 
   function isSupported()  { return !!_Rec || _cloudAvailable(); }
   function getLang()      { return store.get(LANG_K) || "en-US"; }
@@ -75,6 +103,7 @@ var STT = (function() {
     _gotFinal = false;
     _cancelled = false;
     _lastErrorWasNoSpeech = false;
+    _resetUtterance();   // #77 Layer 0 — each listen is its own confidence/correction record
 
     // Name correction (v1.330 — "Frizwick becomes Physics"): the recognizer snaps fantasy names
     // to its own vocabulary; we hold the campaign's canonical roster and phonetically restore
@@ -88,13 +117,20 @@ var STT = (function() {
       var finalTxt = "", interimTxt = "";
       for (var i = ev.resultIndex; i < ev.results.length; i++) {
         var r = ev.results[i];
-        if (r.isFinal) finalTxt += r[0].transcript;
-        else           interimTxt += r[0].transcript;
+        if (r.isFinal) {
+          finalTxt += r[0].transcript;
+          // #77 Layer 0 — the recognizer's own per-chunk confidence (0..1). Some engines
+          // report 0 for everything (the Edge Canary class); a zero is treated as no-signal
+          // rather than certainty-of-garbage, so it can never flag every utterance.
+          if (typeof r[0].confidence === "number" && r[0].confidence > 0) { _confSum += r[0].confidence; _confN++; }
+        }
+        else interimTxt += r[0].transcript;
       }
       // Persist finals into the base so they survive the next result event
       if (finalTxt) {
-        if (_roster.length && typeof sttCorrectNames === "function") finalTxt = sttCorrectNames(finalTxt, _roster);
+        if (_roster.length && typeof sttCorrectNames === "function") finalTxt = sttCorrectNames(finalTxt, _roster, _utterCorr);
         _baseText = _baseText + finalTxt; _gotFinal = true;
+        _utterConf = _confN ? (_confSum / _confN) : null;
       }
       inp.value = (_baseText + interimTxt).replace(/^\s+/, "");
     };
@@ -206,6 +242,13 @@ var STT = (function() {
     var autoOn = isAutoSend() || carModeOn;
     var text = el ? el.value.trim() : "";
 
+    // #77 — a pending confirmation OWNS the next final transcript. Above EVERYTHING below:
+    // above carVoiceCommand (a spoken "two" while confirming is an answer attempt, never a
+    // menu pick), above the busy-park (the answer is not an action to park), and above the
+    // rank-8 <3-char gate (a spoken "no" is 2 chars — the gate would eat it AND clear the
+    // field; the #78 ordering lesson, one rung higher).
+    if (_confirmPending && _gotFinal && text) { _resolveConfirm(text, el); return; }
+
     // #78 — Car Mode voice commands ("two" / "repeat" / "repeat everything") get first refusal on
     // every final transcript. MUST sit above BOTH gates below: the busy branch would park a
     // command as if it were an action, and the rank-8 short-transcript gate (<3 chars) would eat
@@ -249,11 +292,74 @@ var STT = (function() {
       return;
     }
 
+    // #77 Layer 1-gate + Layer 2 — the suspicion verdict decides whether this auto-send
+    // proceeds. BELOW the rank-8 gate on purpose (junk shorter than 3 chars still dies
+    // there) and only on the auto-send path: a manual send was human-reviewed by definition.
+    if (isConfirmGate() && typeof sttSuspicion === "function") {
+      var _susp = sttSuspicion(text, _utterCorr, _utterConf, _rosterNow());
+      if (_susp.suspicious) { _enterConfirm(text, _susp, el, carModeOn); return; }
+    }
+    _logUtter("sent", null, text);
+
     // round-2 #29b: ack earcon + "Heard you…" status right before the actual send.
     // carNotify is a global from ui-carmode.js; guarded + no-ops outside car mode, so
     // desktop auto-send is unaffected.
     if (typeof carNotify === "function") carNotify("sent");
     sendAction(null);
+  }
+
+  // ── #77 Layer 2 — the confirm flow (DOC/DOC_nonsense_filter.html §4; three-band design) ──
+  // Car Mode: speak "I heard: … — send it?" and take a spoken yes/no/redo (the mic reopen is
+  // Car Mode's _carAutoMic confirm branch; cloud stays push-to-talk — the driver taps to
+  // answer). Outside Car Mode there is no spoken loop: the HOLD is the gate — the text stays
+  // parked in the field, visibly flagged, and the player sends by hand.
+  // CONTRACT (doc §5 build note): nothing here may touch sessionLog/worldState/transcript —
+  // the pending text lives only in _confirmPending until the player confirms.
+  function _enterConfirm(text, susp, el, carModeOn) {
+    _logUtter("held", susp.reasons, text);
+    if (!carModeOn) {
+      if (el) {
+        el.value = text;
+        el.style.outline = "2px solid var(--acc)";
+        el.title = "Voice input looked unclear (" + susp.reasons.join(", ") + ") — review before sending";
+        el.oninput = function() { el.style.outline = ""; el.title = ""; el.oninput = null; };
+        el.focus();
+      }
+      if (typeof showToast === "function") showToast("⚠ Voice input looked unclear — review before sending.");
+      return;
+    }
+    _confirmPending = { text: text, tries: 0 };
+    if (el) el.value = "";   // the pending text lives here, not in the field (no stray tap-send)
+    if (typeof carNotify === "function") carNotify("info", "Confirm: yes / no / redo");
+    _confSpeak("I heard: " + text + " — send it?");
+  }
+
+  function _resolveConfirm(answer, el) {
+    if (el) el.value = "";
+    var pend = _confirmPending;
+    var cmd = (typeof parseConfirmCommand === "function") ? parseConfirmCommand(answer) : null;
+    if (cmd === "yes") {
+      _confirmPending = null;
+      _logUtter("confirmed", null, pend.text);
+      if (typeof busy !== "undefined" && busy) {
+        if (el) el.value = pend.text;
+        if (typeof carNotify === "function") carNotify("info", "Heard you — tap to send");
+        return;
+      }
+      if (typeof carNotify === "function") carNotify("sent");
+      if (typeof sendAction === "function") sendAction(pend.text);
+      return;
+    }
+    if (cmd === "no")   { _confirmPending = null; _logUtter("discarded", null, pend.text); _confSpeak("Discarded."); return; }
+    if (cmd === "redo") { _confirmPending = null; _logUtter("redo", null, pend.text); _confSpeak("Go ahead."); return; }
+    if (cmd === "repeat") { _confSpeak("I heard: " + pend.text + " — send it?"); return; }
+    pend.tries++;
+    if (pend.tries < 2) { _confSpeak("Say yes, no, or redo."); return; }
+    // Two unrecognized answers — fail safe to manual, never lose the utterance.
+    _confirmPending = null;
+    _logUtter("parked", null, pend.text);
+    if (el) el.value = pend.text;
+    if (typeof carNotify === "function") carNotify("info", "Heard you — tap to send");
   }
 
   // ── UI ─────────────────────────────────────────────────────────────────────
@@ -500,7 +606,7 @@ var STT = (function() {
         return _transcribeOnce(blob, ext, key, STT_CLOUD_FALLBACK);
       })
       .then(function(json) {
-        _cloudFinalize(json && json.text ? String(json.text) : "");
+        _cloudFinalize(json && json.text ? String(json.text) : "", json && json.logprobs);
       }).catch(function(e) {
         if (typeof showToast === "function") showToast("Voice transcription failed.");
         if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
@@ -520,6 +626,14 @@ var STT = (function() {
     form.append("model", model);
     var bias = (typeof sttBiasPrompt === "function") ? sttBiasPrompt() : "";
     if (bias) form.append("prompt", bias);
+    // #77 Layer 0 — token logprobs are FREE on the gpt-4o transcribe models (same call, no
+    // extra cost) and are the confirm gate's primary signal. gpt-4o models ONLY: whisper-1
+    // rejects include[] (its confidence lives in verbose_json, which we don't need — the
+    // fallback path simply runs ungated-by-confidence, corrections still count).
+    if (model.indexOf("gpt-4o") === 0) {
+      form.append("response_format", "json");
+      form.append("include[]", "logprobs");
+    }
     return fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
       headers: { "Authorization": "Bearer " + key },
@@ -532,13 +646,14 @@ var STT = (function() {
 
   // Same finalization contract as native onresult/onend: name-correction, write into the
   // field, mark _gotFinal, then the shared send policy (rank 5 busy-park + rank 8 gate).
-  function _cloudFinalize(rawText) {
+  function _cloudFinalize(rawText, logprobs) {
     var el = document.getElementById("action-input");
     var text = rawText || "";
+    _resetUtterance();   // #77 Layer 0 — this upload is its own confidence/correction record
+    _utterConf = (typeof sttConfidence === "function") ? sttConfidence(logprobs) : null;
     if (text) {
-      var roster = (typeof sttNameRoster === "function" && typeof worldState !== "undefined")
-        ? sttNameRoster(worldState, (typeof memory !== "undefined") ? memory : null) : [];
-      if (roster.length && typeof sttCorrectNames === "function") text = sttCorrectNames(text, roster);
+      var roster = _rosterNow();
+      if (roster.length && typeof sttCorrectNames === "function") text = sttCorrectNames(text, roster, _utterCorr);
       _gotFinal = true;
     }
     if (el) el.value = (_baseText + text).replace(/^\s+/, "");
@@ -550,6 +665,9 @@ var STT = (function() {
   return {
     isSupported:   isSupported,
     isListening:   function() { return _listening; },
+    isConfirmPending: isConfirmPending,   // #77 — Car Mode's auto-mic confirm branch reads this
+    isConfirmGate:    isConfirmGate,
+    setConfirmGate:   setConfirmGate,
     toggle:        toggle,
     start:         start,
     stop:          stop,
