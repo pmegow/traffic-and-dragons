@@ -3350,13 +3350,14 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==-1140062507||_CT_TAGS.source.length!==1029)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section) */
+    if(__djb2(_CT_TAGS.source)!==946316874||_CT_TAGS.source.length!==1049)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section) */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
-  t("the no-mana-tag clause rides the SPELL_USED doc line (the invented-[MANA:] prevention half)",function(){
+  t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
     var d=buildStateTagsDoc();
-    if(d.indexOf("There is NO mana tag")<0)return "the no-mana-tag clause is gone — the GM is free to invent [MANA:] bookkeeping again";
-    return d.indexOf("an invented tag books nothing")>=0?true:"the books-nothing consequence clause is gone";
+    if(d.indexOf("Cast costs have NO tag of their own")<0)return "the cast-cost prohibition is gone — the GM is free to [MANA:] its own casts again (the v1.555 class)";
+    if(d.indexOf("[MANA:-N|cause]")<0)return "the external-mana doc line is missing — the tag exists with no vocabulary";
+    return d.indexOf("double-charges")>=0?true:"the pairing-double-charges warning is gone";
   });
   t("unknown-tag display containment: an INVENTED tag never reaches the player; prose brackets survive (the [MANA:-1] Zone-of-Truth leak)",function(){
     // Field case 2026-08-07: the GM invented [MANA:-1] (no such tag — the engine derives mana
@@ -3415,7 +3416,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1394386589&&d.length===18760)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye */
+    return (__djb2(d)===1663212119&&d.length===19320)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -9141,6 +9142,59 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!(lg[0].m&&lg[0].m.length))return "muts labels missing";
     for(var i=0;i<TAG_LOG_CAP+5;i++)applyMuts("turn filler "+i+".\n[TIME_ADVANCE:1]");
     return worldState.tagLog.length<=TAG_LOG_CAP?true:"cap broken: "+worldState.tagLog.length;
+  });
+
+  // ── #138 — external mana effects: [MANA:]/[COMPANION_MANA:] + leech/burn bible spells ───────
+  // The v1.554/555 invented-[MANA:-1] incident was model pressure for missing vocabulary: no
+  // mechanism existed for external mana effects (leech, burn, restoration). GM asserts, engine
+  // does ALL arithmetic, clamped 0..manaMax; cast costs remain SOLELY manaPayCast's.
+  section("#138 — external mana effects");
+  function mkManaWorld(){
+    makeWorld();
+    worldState.character.cls="Sorcerer";
+    worldState.character.stats.CHA=16;
+    worldState.character.spells=[{nm:"Firebolt",lvl:0},{nm:"Burning Hands",lvl:1},{nm:"Scorching Ray",lvl:2}];
+    delete worldState.character.mana;   // absent = full (the #110 lazy-default ruling); max = 1+2 = 3
+    return worldState.character;
+  }
+  t("#138 [MANA:-N|cause]: drains the pool with the cause on the muts line; overdrain floors at 0; +N caps at max",function(){
+    var c=mkManaWorld();
+    applyMuts("The leech fastens.\n[MANA:-2|mana leech]");
+    if(manaCur(c)!==1)return "drain wrong: "+manaCur(c)+"/"+manaMax(c);
+    applyMuts("It bites deeper.\n[MANA:-5|mana leech]");
+    if(manaCur(c)!==0)return "overdrain did not floor at 0: "+manaCur(c);
+    applyMuts("You drain the draught.\n[MANA:+99|restorative draught]");
+    return manaCur(c)===manaMax(c)?true:"restore did not cap at max: "+manaCur(c)+"/"+manaMax(c);
+  });
+  t("#138 a manaless character is a LOUD no-op, never a booked effect",function(){
+    makeWorld();
+    worldState.character.cls="Warrior";worldState.character.spells=[];
+    applyMuts("[MANA:-2|mana leech]");
+    return worldState.character.mana===undefined?true:"a pool was minted for a manaless character: "+worldState.character.mana;
+  });
+  t("#138 [COMPANION_MANA:Name|±N|cause]: books on the companion's own pool; an unknown name warns and books nothing",function(){
+    mkManaWorld();
+    var cs={name:"Daeris",cls:"Cleric",level:9,hp:50,maxHp:50,stats:{WIS:16},abilities:[],inventory:[],conditions:[],relationships:[],
+      spells:[{nm:"Sacred Flame",lvl:0},{nm:"Zone of Truth",lvl:2}]};
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"calm",charSheet:cs});
+    applyMuts("[COMPANION_MANA:Daeris|-1|mana burn]");
+    if(manaCur(cs)!==manaMax(cs)-1)return "companion drain wrong: "+manaCur(cs)+"/"+manaMax(cs);
+    var before=manaCur(cs);
+    applyMuts("[COMPANION_MANA:Nobody Real|-2|mana burn]");
+    return manaCur(cs)===before?true:"an unknown name mutated a real pool";
+  });
+  t("#138 both tags strip from display",function(){
+    var out=cleanTxt("The spell lands. [MANA:-2|mana leech] She staggers. [COMPANION_MANA:Daeris|-1|mana burn] Silence follows.");
+    return out.indexOf("[MANA")<0&&out.indexOf("[COMPANION_MANA")<0?true:"mana tags leaked to display: "+out;
+  });
+  t("#138 bible: Mana Leech (necromantic) and Mana Burn (arcane) resolve with the fixed attribute set and category gates",function(){
+    var ml=capabilityLookup("Mana Leech"),mb=capabilityLookup("Mana Burn");
+    if(!ml||!mb)return "bible entries missing: leech="+!!ml+" burn="+!!mb;
+    if(ml.category.indexOf("necromantic")<0)return "Mana Leech not necromantic: "+JSON.stringify(ml.category);
+    if(mb.category.indexOf("arcane")<0)return "Mana Burn not arcane: "+JSON.stringify(mb.category);
+    if(!(ml.effect&&ml.effect.indexOf("rounded down")>=0))return "the leech transfer ruling (half, rounded down) is not in the canon";
+    var necro=capabilitiesByCategory("necromantic").map(function(e){return e.name;});
+    return necro.indexOf("mana leech")>=0?true:"mana leech absent from the necromantic caster menu: "+JSON.stringify(necro.slice(0,8));
   });
 
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
