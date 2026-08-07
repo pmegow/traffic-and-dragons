@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T&D — Extracting meaning from nonsense (#77 widened): research + application</title>
+<style>
+  :root{--bg:#111;--bg2:#181818;--acc:#b8935a;--t1:#ddd;--t2:#999;--brd:#333;
+    --good:#7aa86a;--warn:#b8935a;--bad:#c05050;}
+  body{background:var(--bg);color:var(--t1);font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:28px 18px 60px;line-height:1.65;}
+  h1{color:var(--acc);font-size:22px;line-height:1.25;}
+  h2{color:var(--acc);font-size:16px;margin-top:34px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
+  h3{font-size:14px;color:var(--t1);margin-top:22px;}
+  .meta{color:var(--t2);font-size:12px;margin-top:-6px;}
+  .tldr{border-left:4px solid var(--acc);background:#1c170f;padding:12px 16px;border-radius:0 8px 8px 0;margin:18px 0;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--brd);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#1f1f1f;color:var(--acc);}
+  code{font-family:Consolas,ui-monospace,monospace;font-size:.88em;background:#222;padding:1px 5px;border-radius:4px;color:#d8c9a8;}
+  .lean{display:inline-block;font-family:Consolas,ui-monospace,monospace;font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;white-space:nowrap;}
+  .lean.go{background:#182215;border:1px solid var(--good);}
+  .lean.defer{background:#251d12;border:1px solid var(--warn);}
+  .lean.nogo{background:#260d0d;border:1px solid var(--bad);}
+  ul{padding-left:1.3rem;} li{margin-bottom:6px;}
+  .note{color:var(--t2);font-size:12px;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#0a0a0a;} ::-webkit-scrollbar-thumb{background:#333;} ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
+</style>
+</head>
+<body>
+
+<h1>Extracting meaning from nonsense and "sense-adjacent" sources — research findings and how they apply to Traffic and Dragons</h1>
+<p class="meta">/fable-review subject pass · 2026-08-06 · TODO #77 widened by the user beyond STT to a general nonsense filter.
+Evidence gathered by four parallel briefs (A: input-path inventory · B: external research · C: #77 design dossier · D: house tolerant-parser census);
+load-bearing probe results re-verified by hand against the live engine at v1.546. Findings only — no code shipped from this pass.</p>
+
+<div class="tldr">
+<b>TLDR:</b> The research is unusually unanimous: every published technique that works on garbled text is a form of
+<b>restriction</b> — restrict the candidate vocabulary (phonetic shortlist), restrict the spans touched (verify before
+correcting), or restrict when you dare act (confidence bands: act silently when sure, confirm only in the suspicion band,
+reject below it). Our <code>sttCorrectNames</code> already IS the validated shortlist pattern — but a live probe shows its
+missing piece is exactly the piece the literature says matters: with no confidence gate, it altered <b>ordinary, correct
+English at a 47–60% rate on synthetic rosters</b> ("there is"→Daeris, "sets"→Zethran), and in Car Mode those corruptions
+auto-send with <b>zero human glance</b>. Meanwhile the confidence signal the #77 gate needs is <b>free on the model we
+already ship</b> (<code>include:["logprobs"]</code> on gpt-4o-mini-transcribe) — we just never ask for it. The path:
+capture confidence → gate the corrector and the read-back on it → extend the same "restricted extraction" pattern to the
+typed path and the GM prompt. An LLM proofread layer is affordable (~$0.0004/utterance) but is the LAST layer, not the first.
+</div>
+
+<h2>1 · What the literature says (Brief B — external research)</h2>
+
+<h3>1a · The technique landscape, filtered by what our APIs can actually reach</h3>
+<table>
+<tr><th>Technique family</th><th>Reported gains</th><th>Requires</th><th>Reachable for us?</th></tr>
+<tr><td><b>Contextual biasing / hotword boosting</b> at decode time</td><td>34–50% relative WER on biased words (arXiv 2508.17796, 2012.00133, 2506.06252)</td><td>Decoder access</td><td><span class="lean nogo">NO</span> — black-box HTTP APIs; the OpenAI <code>prompt</code> field is the sanctioned substitute but is documented as "hints, not required output" and independently measured weak-to-ineffective on keyword lists (arXiv 2410.18363, 2502.11572, 2512.23686). We ship it (§4a, v1.536) — don't over-trust it.</td></tr>
+<tr><td><b>N-best rescoring / generative error correction</b></td><td>Up to 53.9% WER reduction (HyPoradise, NeurIPS 2023)</td><td>N-best list from the ASR</td><td><span class="lean nogo">NO</span> — OpenAI transcription exposes no alternatives; Web Speech defaults to 1 (and we set <code>maxAlternatives=1</code>, stt.js:71). Whether Chrome even populates &gt;1 is UNDETERMINED.</td></tr>
+<tr><td><b>Phonetic-similarity matching</b> (Metaphone family)</td><td>Best general-purpose name matcher; no decoder needed</td><td>1-best string + candidate list</td><td><span class="lean go">YES</span> — this is what <code>sttCorrectNames</code> already implements (phonetic skeleton + Levenshtein + shortlist).</td></tr>
+<tr><td><b>LLM post-editing</b> of the 1-best string</td><td>NE-WER 32.3%→22.7% with a <i>filtered</i> shortlist; →43.4% (WORSE) with full context (EDM 2026)</td><td>1-best string (+ an API call)</td><td><span class="lean go">YES</span> — the one high-powered tier that transfers. Restriction is mandatory (§1b).</td></tr>
+<tr><td><b>Confidence gating</b></td><td>The enabler for all of the above acting safely</td><td>logprobs / confidence field</td><td><span class="lean go">YES</span> — free on both paths, captured on neither today (§2c).</td></tr>
+</table>
+
+<h3>1b · The one law everything obeys: restrict, or make it worse</h3>
+<p>The clearest quantified result in the sweep (EDM 2026, GPT-4o-mini as corrector): a corrector handed a
+<b>phonetically pre-filtered, type-matched candidate shortlist</b> cut named-entity WER 32.3%→22.7% while leaving correct
+text untouched (non-NE WER flat at 7.0%). The SAME corrector handed the full context did <i>worse than no correction at
+all</i> (43.4% — hallucination). Every published mitigation is a restriction: candidate-set restriction (their Double-Metaphone +
+entity-type filter), span restriction (detect → <i>verify</i> → correct, arXiv 2505.24347), or output-grammar restriction
+(constrained decoding; over an API, that means structured outputs / function-calling with enums drawn from the live roster).
+No source recommends unconditional LLM rewriting. The game-domain paper (arXiv 2509.23630 — RAG over game vocabulary +
+confidence gate for character/location names) is our exact problem shape.</p>
+
+<h3>1c · When to ask the player: the three-band consensus</h3>
+<table>
+<tr><th>Band</th><th>Behavior</th><th>Source</th></tr>
+<tr><td>High confidence</td><td><b>Act silently</b> (implicit confirmation at most — restate the result in the response)</td><td rowspan="3">VUI practice (85%/40% bands — practitioner heuristic, not empirical law); Alexa design docs draw the same line by STAKES ("protecting against… game progress lost"); parser-IF tradition (Inform's "Does the player mean" rulebook; Zarf 2024: "the author mostly shouldn't have to think about disambig")</td></tr>
+<tr><td>Suspicion band</td><td><b>Explicit confirm</b> — "I heard X — send it?"</td></tr>
+<tr><td>Below</td><td><b>Reject</b> — "I didn't catch that, say it again"</td></tr>
+</table>
+<p>The fatigue finding: people fail to read routine confirmations <b>over 50% of the time</b> — over-confirmation degrades
+into a rubber stamp. Brief confirmations are strongly preferred (median 1.13s vs 4.03s responses, CHI 2022). No study
+establishes a quantified irritation threshold (UNDETERMINED) — but every tradition converges on: <b>ask only when suspicion
+is earned</b>. This independently validates §5's confidence-gated design and the #77 row's own "needs to be played a bit" worry.</p>
+
+<h3>1d · What the two ASR surfaces expose (settles Brief C's open question)</h3>
+<table>
+<tr><th></th><th>OpenAI transcription (our iOS/cloud path)</th><th>Web Speech API (our Chrome/Android path)</th></tr>
+<tr><td>Vocabulary bias</td><td><code>prompt</code> (shipped as §4a; advisory only; whisper-1 reads last ≤224 tokens)</td><td>None</td></tr>
+<tr><td>Confidence</td><td><b><code>include:["logprobs"]</code> — gpt-4o-transcribe models ONLY, needs <code>response_format:"json"</code></b>. The §5 design named <code>verbose_json avg_logprob/no_speech_prob</code> — those are <b>whisper-1-only</b> fields; the design must be re-pointed at <code>logprobs</code> for the shipped primary model. Free (same call).</td><td><code>SpeechRecognitionAlternative.confidence</code> (0–1); population/reliability across engines UNDETERMINED</td></tr>
+<tr><td>N-best</td><td>Not exposed</td><td><code>maxAlternatives</code> (default 1; we request 1)</td></tr>
+<tr><td>Word timestamps</td><td>OpenAI's own two doc pages CONTRADICT each other on which models support <code>timestamp_granularities</code> — unresolved without a live call</td><td>No</td></tr>
+</table>
+<p class="note">Also noted: Chrome 139+ ships on-device Web Speech (<code>processLocally:true</code>) — a future offline
+option on the path that already works; not load-bearing here.</p>
+
+<h3>1e · Typed-text noise (the non-STT half of the widened scope)</h3>
+<ul>
+<li><b>Transfers to ES5/no-deps as pure code + a static table:</b> Levenshtein/Damerau, keyboard-adjacency-weighted edit costs
+(a 26-key coordinate table). SymSpell's 1000×+ speedups are scale optimizations — irrelevant at roster size (~10–50 names).</li>
+<li><b>The hard class is autocorrect-induced REAL-WORD errors</b> ("computer flies" for "computer files") — provably
+undetectable by any dictionary/lexical method, because the observed token IS a valid word. Detection requires context: an LM,
+n-gram statistics, or a <b>domain prior</b> ("a roster name was expected here"). This is the typed-path twin of the
+"physics"→Frizwick problem, and the same restricted-shortlist machinery applies.</li>
+</ul>
+
+<h3>1f · Cost of an LLM "does this make sense" gate</h3>
+<table>
+<tr><th>Option</th><th>Cost / latency</th><th>Fit</th></tr>
+<tr><td>Haiku 4.5 API call (~280 tokens in, ~20 out)</td><td><b>≈$0.00038/utterance ≈ 2,600 per $1</b>. Prompt caching unreachable (Haiku's cacheable floor is 4,096 tokens; a gate prompt is ~10× under it)</td><td><span class="lean go">Viable</span> as an opt-in layer on the player's key</td></tr>
+<tr><td>Browser-local model (WebLLM / transformers.js)</td><td>200–800 MB weights + an 18 MB runtime library</td><td><span class="lean nogo">NO</span> — hard conflict with the no-deps/no-build rules (3–13× the Piper voice footprint)</td></tr>
+<tr><td>Chrome built-in Gemini Nano</td><td>Browser API, no shipped dependency</td><td><span class="lean defer">DEFER</span> — Chrome-only; misses iOS Safari, where the problem is worst</td></tr>
+<tr><td>Pure heuristics (char n-grams / perplexity proxy)</td><td>$0</td><td><span class="lean defer">UNPROVEN</span> — no source measures their precision as a gate; the real-word class is beyond them by construction</td></tr>
+</table>
+
+<h2>2 · What stands in our code today (Briefs A + C — internal evidence)</h2>
+
+<h3>2a · The inventory: one net, twelve doors</h3>
+<p>Twelve player-text entry points reach the engine (typed action, Table Talk, STT native, STT cloud, Car Mode voice,
+suggestion taps, Sync modal fields, char-creation prose, custom rules, custom tone, .tnd/.char imports). Exactly ONE content
+transform exists in the whole pipeline — <code>sttCorrectNames</code> — and it runs only inside stt.js. The typed path's
+entire validation is <code>if(!txt)return;</code> (game.js:1354). The GM prompt contains <b>zero</b> instruction about
+incoherent input — the nearest rule (PLAYER ACTIONS ARE INTENT, data.js:124) pushes the opposite way: adjudicate what was
+typed, don't question it. Two inventory findings worth flagging on their own:</p>
+<ul>
+<li><b>Custom narrative rules are player prose injected into the CACHED STABLE prompt half</b> (ui-modals.js:44 → getRulesBlock) with no validation — out of #77's scope but noted for the record.</li>
+<li>A garbage turn is <b>irreversible in three stores at once</b> — transcript (sacred, append-only), sessionLog (feeds summarize → permanent memory), turn counter — plus RAG can re-serve the player's nonsense verbatim as a past-scene excerpt later. One wasted turn costs two API calls (the turn + the actions call).</li>
+</ul>
+
+<h3>2b · The correction net: catches its class, and bites clean speech</h3>
+<p><code>sttCorrectNames</code> (helpers.js:631) is the literature's validated shape — phonetic-skeleton shortlist,
+first-sound gate, two-layer distance, 374-word common-word stoplist, tie-refusal ("never guess between people"). Probed
+against the live engine (Brief A; the load-bearing rows re-run by hand at v1.546):</p>
+<table>
+<tr><th>Class</th><th>Result</th></tr>
+<tr><td>The designed garble class ("physics"→Frizwick, "more when"→Morwen, "sand point"→Sandpoint, "dairies"→Daeris)</td><td><span class="lean go">CAUGHT</span> — all field examples repair correctly</td></tr>
+<tr><td>The #77 row's structural example ("Shalelu Korunn symbol" ← "Show Corynn the symbol")</td><td><span class="lean defer">PARTIAL</span> — Korunn→Corynn repairs; the swallowed verb/article are structurally unrecoverable by token-aligned substitution (can merge two tokens into a name; can never delete, insert, or reorder)</td></tr>
+<tr><td><b>Ordinary correct English, no garble present</b></td><td><span class="lean nogo">CORRUPTED</span> at a measured 14/30–18/30 sentence rate on synthetic 10–40-name rosters: <b>"there is a light…"→"Daeris a light…"</b> (bigram pass; "there" is in STT_COMMON but the bigram pass never consults it and "there" is missing from STT_BIGRAM_NOLEAD) · <b>"the sun sets…"→"the sun Zethran…"</b> · <b>"ale"→Aldus</b> ("ale" absent from the hand-maintained stoplist) · pure nonsense gets a name pulled INTO it ("zint"→Sandru). Hand-re-verified ✓. Field rate UNDETERMINED (synthetic corpus) — but the mechanism is exact and the trigger conditions are common words.</td></tr>
+</table>
+<p><b>The structural tension this exposes:</b> catching "physics"→Frizwick REQUIRES substituting valid English words —
+which is exactly the operation that corrupts clean sentences. No stoplist can resolve this (it would need to contain
+English). The discriminator the literature prescribes is <b>confidence + context</b>: only correct aggressively when the
+transcriber itself was unsure, or when the token sits where a name is expected. That is precisely the #77 gate — which
+means the gate is not just a read-back UX feature; <b>it is the missing half of the correction net we already shipped.</b></p>
+
+<h3>2c · The confidence gap and the zero-glance surface</h3>
+<ul>
+<li><b>Zero confidence signal is captured on either path today.</b> Cloud: the request sends only file/model/prompt — no
+<code>response_format</code>, no <code>include</code>; only <code>json.text</code> is read (stt.js:503,518-522). Native:
+<code>maxAlternatives=1</code>, <code>confidence</code> never read (stt.js:71,91-92). Every downstream decision runs on the bare string.</li>
+<li><b>The zero-glance surface, precisely:</b> Car Mode forces auto-send regardless of the pref (<code>autoOn = isAutoSend() || carModeOn</code>,
+stt.js) — the only checks between transcript and <code>sendAction</code> are <code>length ≥ 3</code> and not-a-#78-command. Android/Chrome
+Car Mode is a fully hands-off loop (auto-listen default ON); iOS Car Mode is tap-to-start but auto-sends on 1.5s silence — v1.536's
+endpointing made it MORE hands-off. Desktop with the auto-send pref on has no glance and no length gate.</li>
+<li><b>§4 shipped status (v1.536):</b> bias prompt ✓, model swap + fallback ✓, VAD endpointing ✓, mic telemetry ✓ —
+but the getUserMedia constraints audit (§4d2) did NOT ship (<code>{audio:true}</code> bare), and no §4 item captured confidence.</li>
+<li><b>No measurement channel exists.</b> §5's own instruction is "ship §4, measure, then tune" — but sttCorrectNames corrections
+are console-only (nothing persists), the garble corpus on record is tiny (one structural example, anecdotal), and the #16 crumbs
+record mic settings, never transcripts. The "measure" step has nothing to read.</li>
+<li><b>#78 grammar collisions for the confirm flow:</b> spoken yes/no doesn't exist in <code>parseCarCommand</code>;
+"again" already means "re-read the options menu"; a spoken "no" (2 chars) would be eaten by the Car Mode &lt;3-char gate unless
+the confirm hook sits ABOVE the gates (the same ordering lesson #78 learned, stt.js:206-209).</li>
+</ul>
+
+<h2>3 · The house pattern: sense-adjacent MODEL output (Brief D — census)</h2>
+<p>The GM model's own output is the app's OTHER nonsense-adjacent source, and the codebase already contains
+<b>~17 tolerant parsers</b> (loosened numeric tags, duration parsing, JSON repair with named-refusal gates, empty-slot
+NPC parsing, truncated-tag amputation) and <b>~18 name-resolution mechanisms</b> (alias resolution, variant scanning,
+foe matching, capability/class/skill lookups), built one incident at a time. The census extracted the design principles
+they imply — and they turn out to be the SAME laws the external literature converged on (§1b, §1c):</p>
+<table>
+<tr><th>Observed house principle</th><th>Status</th><th>Exhibits / refuters</th></tr>
+<tr><td>① Never mutate on an ambiguous match</td><td><span class="lean go">REGULARITY</span></td><td>resolveNpcName (2+ candidates → no consolidation), #128 variant scan ("ambiguous, not proposed"), sttCorrectNames tie-refusal. ONE reasoned exception: bare [ENEMY_HP:] mutates + warns ("narrated damage must not vanish")</td></tr>
+<tr><td>② Warn loudly on miss, no-op rather than guess</td><td><span class="lean defer">PARTIAL</span></td><td>Holds for combat/companion-cast/arc tags; REFUTED by a silent-miss cluster: unknown [SKILL_SUCCESS:] id, player [SPELL_USED:] miss, COMPANION_* unknown-name misses, [SPELL_DEF:] junk tier→0 + silent re-definition drop (whether ruling or omission is unrecorded)</td></tr>
+<tr><td>③ Exact first, then progressively looser</td><td><span class="lean go">REGULARITY</span></td><td>combatFoeByName, resolveNpcName, classDef, parseSuggestionArray, parseActions, extractor supersede</td></tr>
+<tr><td>④ Protection lists guard common words</td><td><span class="lean go">REGULARITY</span></td><td>STT_COMMON/NOLEAD, SUGGESTION_NAME_STOP, _VARIANT_STOP, rel-vocab strippers, dead-status exclude/resurrect regexes</td></tr>
+<tr><td>⑤ Confirmation queued to GM/user, never auto-applied</td><td><span class="lean go">REGULARITY</span></td><td>merge-confirm nudge ("the engine NEVER auto-merges"), B3 dead-status refusal queue, #127 forced fork, quest offered→accept</td></tr>
+<tr><td>⑥ A refusal still produces an artifact</td><td><span class="lean go">REGULARITY</span></td><td>superseded-fact archive, eviction archives, dead-status conflict queue</td></tr>
+</table>
+<p><b>The convergence is the review's structural finding:</b> principles ①③④⑤ are precisely the literature's restriction
+laws (candidate restriction, staged looseness, stoplists, confidence-banded confirmation). The GM-output side earned this
+discipline through incidents; the player-input side has only layer-1 machinery (<code>sttCorrectNames</code>) with <b>no
+gate and no ambiguity refusal beyond ties</b> — #77 is how the player side catches up to the house standard.</p>
+<h3>3a · Counter-sweep: where the loose matches misfire (probed; load-bearing rows re-verified by hand)</h3>
+<table>
+<tr><th>Finding</th><th>Evidence</th><th>Status</th></tr>
+<tr><td><b>[ARC_COMPLETE:] ignores the title on sequential acts</b> — a hallucinated/misspelled title still closes the active arc and auto-activates the next; sibling [ARC_CONTINUE:] strictly validates + warns on the same input</td><td>tag_table.js:648 (<code>if(_act.parallel&&…)continue;</code>) — hand-verified ✓; probe: wrong title → "Arc complete + New arc", zero warns</td><td><span class="lean nogo">FILED #135</span> (skeleton lifecycle = drift surface)</td></tr>
+<tr><td><b>combatFoeByName contains-match picks the first of two matching foes silently</b> ("Guard" over {Guard Captain, Guard Sergeant}) — the bare-tag path warns on exactly this ambiguity; the named path doesn't</td><td>tag_table.js:151 — hand-verified ✓; probe confirmed no warn</td><td><span class="lean nogo">FILED #135</span></td></tr>
+<tr><td><b>Silent-miss cluster</b> (principle-② refuters above) — candidate no-silent-failures violations</td><td>probes: [SKILL_SUCCESS:parkour] → nothing; [SPELL_USED:Magic Missiles] (unknown) → nothing; [COMPANION_HP:Nobody|-3] → nothing</td><td><span class="lean nogo">FILED #135</span></td></tr>
+<tr><td><b>[NPC_SUPERSEDE:] / [NPC_FORGET:] broad needles retire EVERY containing fact</b> ("the ring" retired 2 unrelated facts); supersede archives (recoverable), NPC_FORGET has no archive</td><td>tag_table.js:584 filter; probe confirmed</td><td><span class="lean defer">FILED #135 (watch)</span></td></tr>
+<tr><td>Numeric trailing-junk absorption ([GOLD:+10 silver pieces] credits +10 GOLD, no warn) — defended only by the prompt's convert-first line</td><td>probe confirmed</td><td><span class="lean defer">Accepted risk</span> (the v1.32 gpt-4o loosening was deliberate; noted)</td></tr>
+<tr><td>parseDuration junk → 1 minute silently, while over-cap is loud</td><td>clock.js:67-79; probe confirmed</td><td><span class="lean defer">Accepted risk</span> (min-1 is the designed floor)</td></tr>
+</table>
+
+<h2>4 · Application to Traffic and Dragons — the layered design (verdict)</h2>
+<p>Every finding assembles into one architecture: <b>layers of restriction, with confidence deciding how far down the stack
+an utterance travels.</b> This is simultaneously what the literature prescribes (§1b/§1c) and what the codebase already
+practices on the GM-output side (§3) — the design extends the house pattern to the player side rather than inventing anything.</p>
+<table>
+<tr><th>Layer</th><th>What</th><th>Cost</th><th>Verdict</th></tr>
+<tr><td><b>0 · Capture confidence + the measurement channel</b></td><td>Cloud: <code>include:["logprobs"]</code> + <code>response_format:"json"</code> (supported by the shipped gpt-4o-mini-transcribe; re-points §5's whisper-1-era <code>verbose_json</code> assumption). Native: read <code>r[0].confidence</code>; probe whether Chrome populates <code>maxAlternatives&gt;1</code>. Persist correction + confidence events (ring buffer, the #16 crumb pattern) — §5's own "measure, then tune" currently has nothing to read.</td><td>Free</td><td><span class="lean go">GO FIRST</span> — prerequisite for every layer below and for tuning any of them honestly</td></tr>
+<tr><td><b>1 · Deterministic shortlist correction</b> (shipped)</td><td><code>sttCorrectNames</code> stays THE first net. Its measured false-positive class ("there is"→Daeris) has <b>no stoplist fix</b> — the designed catches ("more when"→Morwen) require substituting common words, so any list that blocks the FPs kills the feature. The fix IS the confidence gate: correct aggressively only when layer 0 says the transcriber was unsure, and mark substitutions visibly so a wrong one is catchable at a glance. Design details belong to the #77 build.</td><td>$0</td><td><span class="lean go">KEEP + GATE</span></td></tr>
+<tr><td><b>2 · Confidence-gated read-back</b> (#77 as designed, corrected)</td><td>The three bands (§1c): confident+clean auto-sends exactly as today (fatigue law: routine confirms go unread); suspicion band (low logprobs OR far/multiple corrections OR out-of-roster proper noun) → TTS read-back + spoken confirm; below → "say it again". Build corrections from the evidence: yes/no vocabulary does NOT exist in parseCarCommand yet; "again" collides (already = re-read menu — pick "wrong"/"redo"); the confirm hook must sit ABOVE the &lt;3-char gate (a spoken "no" is 2 chars) and above busy-parking, per the #78 ordering lesson; nothing touches sessionLog/transcript until confirmed. Owns the multiplayer misattribution backstop (Q5/D13).</td><td>$0 (no model call)</td><td><span class="lean go">GO</span> — the missing half of layer 1, not just UX</td></tr>
+<tr><td><b>3 · LLM proofread — the general filter</b> (typed + spoken)</td><td>Haiku-class call, <b>restricted per the EDM law</b>: hand it the suspicion span, the phonetic shortlist, and the expected-intent shape — never the full context (measured to make things WORSE). The only layer that can reach the structural class ("Shalelu Korunn symbol" — token-aligned substitution is provably insufficient) and the typed autocorrect real-word class (provably invisible to lexical methods). Opt-in, player's key, ≈$0.0004/utterance ≈ 2,600/$1 (no caching possible — under Haiku's 4,096-token floor).</td><td>≈$0.0004/utt</td><td><span class="lean defer">EVIDENCE-GATED</span> — build after layers 0–2 measure what actually slips through (§5's own sequencing rule, reaffirmed)</td></tr>
+<tr><td><b>4 · GM-side residual rule</b></td><td>One DEFAULT_RULES line: an unintelligible action → the GM asks in-fiction ("The barkeep squints — 'say that again, friend?'") instead of adjudicating gibberish — the parser-IF precedent, and the only layer that also covers Table Talk and every entry path for free. ⚠ Drift surface (stable prompt half): its own deliberate commit, wording A/B'd.</td><td>$0</td><td><span class="lean go">GO</span> (small, separate commit)</td></tr>
+</table>
+<p><b>Sequencing:</b> 0 → (1-gate + 2 together, they are one feature) → 4 → measure → 3 only if the measurements demand it.
+Layers 0–2 are stt.js/ui-carmode territory (outside the drift surface except the Car Mode submission flow); layer 4 and any
+future GM-injection piece are drift-surface commits.</p>
+
+<h2>5 · Verdict record + receipts (/fable-review contract)</h2>
+<ul>
+<li><b>Affirmed:</b> the shipped §4 stack (bias prompt, model swap, VAD, telemetry — v1.536) matches the research's reachable-technique set; <code>sttCorrectNames</code> is the literature-validated shortlist pattern including tie-refusal; the §5 confidence-gated design is independently validated by the VUI/IF literature — with one correction (logprobs, not verbose_json) and the vocabulary/ordering build notes above.</li>
+<li><b>Defects filed (TODO #135):</b> sequential-act [ARC_COMPLETE:] title-ignore (hand-verified, drift surface); combatFoeByName ambiguous-containment silent pick (hand-verified); the silent-miss cluster (SKILL_SUCCESS unknown id / player SPELL_USED / COMPANION_* unknown names / SPELL_DEF junk-tier + re-definition drops) as no-silent-failures candidates; NPC_FORGET's missing archive. None fixed ride-along — each touches the drift surface or a ratified ruling and needs its own careful pass.</li>
+<li><b>#77 evidence recorded:</b> the false-positive class ("there is"→Daeris, "sets"→Zethran, "ale"→Aldus, nonsense→Sandru; 14–18/30 sentences altered on synthetic 10–40-name rosters, hand-re-verified at v1.546) — in Car Mode these auto-send with zero human glance. Field rate UNDETERMINED until the layer-0 measurement channel exists.</li>
+<li><b>Accepted residues:</b> numeric trailing-junk absorption (deliberate v1.32 loosening; prompt line defends units); parseDuration junk→1min floor; Whisper prompt-bias weakness (shipped, cheap, just not load-bearing); OpenAI's self-contradictory timestamp docs (irrelevant until timestamps matter); Chrome N-best population UNDETERMINED (probe at layer-0 build).</li>
+</ul>
+<table>
+<tr><th>Brief</th><th>Subagent tokens</th><th>Tool calls</th><th>Wall clock</th><th>Findings fed</th></tr>
+<tr><td>A · input inventory + probes</td><td>192k</td><td>50</td><td>6.6 min</td><td>12-door inventory; the FP-rate discovery (the run's biggest finding — an unrequested but declared scope-grow); confidence-gap proof</td></tr>
+<tr><td>B · external research</td><td>454k</td><td>32</td><td>4.9 min</td><td>Technique/reachability table; the restriction law (EDM numbers); 3-band consensus; logprobs answer; cost math</td></tr>
+<tr><td>C · #77 dossier</td><td>148k</td><td>34</td><td>4.5 min</td><td>Shipped-vs-designed boundary; §5 trigger had no data source; grammar collisions; zero-glance surface</td></tr>
+<tr><td>D · tolerant-parser census</td><td>212k</td><td>41</td><td>7.1 min</td><td>17+18 mechanism census; 6 principles; counter-sweep → #135</td></tr>
+</table>
+<p class="note">Delegate quality: all four honored the no-verdicts/citation contract; UNDETERMINED used honestly (B flagged
+OpenAI's own docs contradicting each other; D separated "intent unrecorded" from "defect"); A and D declared their scope
+growth explicitly. Reviewer spot-checks: 3/3 load-bearing claims reproduced by hand (FP probes; tag_table.js:648; :151).
+Next-run note: briefs that ask for runtime probes should state the expected fixture SHAPE (Brief A burned a probe round
+discovering the roster's {word,canon} form — as did the reviewer).</p>
+
+</body>
+</html>
