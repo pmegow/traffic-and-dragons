@@ -447,7 +447,7 @@ PREVIOUS page (ended without unload — see B9):
 ### Action log
 
 ## B24 — Suggested action offers overland travel to a distant road while the party stands in a flooded chamber beneath a tower — the B18 canon-violation class, geographic-connectivity variant
-**Status:** new
+**Status:** findings-ready
 **Kind:** user-report · **First seen:** 2026-08-07 (v1.546) · **Last seen:** 2026-08-07 (v1.546) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1459
 **Fingerprint:** `user-report · user-report · v1.546 · how is "the north road" an option inside a tower?`
 **Report ids:** 2250fb28-080f-4996-9b1e-6aab9cc4dee1
@@ -533,6 +533,17 @@ SUGGESTED ACTIONS SHOWN: Press on toward Varisia - North Road. | Get eyes on wha
 ```
 
 ### Findings
+
+**2026-08-07 (bug-investigator agent, adjudicated by the Fable session) — verdict: root-caused at the class level; high confidence on the mechanism, medium-high on the specific leg.**
+
+- **The button was almost certainly ENGINE-COMPOSED, not model-written — by the #126 affordance gate's own fallback.** The chain: ① a model suggestion got rejected by `validateSuggestion` (game.js:253-302) — the scene is a rejection trap: the player had just delegated Silence duty to Morwen, and `man.caps` derives from `worldState.character` ONLY (game.js:243-249), so any "have Morwen cast Silence" suggestion trips `unowned-capability` (game.js:268-273), with `absent-npc-direct-address` (game.js:287-291) as a second candidate. ② `applySuggestionGate` replaces a rejected button with `suggestionFallback` (game.js:321-334), whose FIRST candidate class is the exits list: `"Press on toward "+man.exits[i]+"."` (game.js:308) — **byte-exact with the reported button, including the trailing period**. ③ `man.exits` in `buildSceneManifest` uses world-level map edges of `world.location` only (game.js:238-242) — the manifest computes the sublocation-aware nodeKey (game.js:213-215) but does NOT use it for exits — so a party sealed in a flooded chamber under The Spire is offered the overland edge Magnimar↔"Varisia - North Road" (a real edge from the party's arrival; edge filing at memory.js:186-191). ④ The fallback bypasses validation by design ("valid by construction", game.js:304-305) — **that assumption is the bug: it is valid only at world-node grain, and it is sublocation-blind AND combat-blind.**
+- **Punctuation fingerprint supporting the fallback leg:** `worldState.lastActions` (what the report captures, error-report.js:354) stores post-gate pre-punctuation strings — the first button carries a baked-in period (the fallback template literal), the other two don't (raw model JSON). Exactly the shape of a rejected-slot-0-replaced set.
+- **Secondary leg, same root:** if the model did write it, the source is the GEOGRAPHY block's unconditional `Connected to:` line (api.js:43-45) — world edges served every turn with no "requires leaving the sub-location first" qualifier when `w.sublocation` is set. Both legs reduce to: world-edge connectivity served/used with no sublocation reachability qualifier.
+- **No location guard exists anywhere:** the #126 gate rules ①-④ are all NPC/capability rules (B18's record at BUGS.md:127-150); the only geographic watcher is the log-only off-scene-NPC line (game.js:293-301). SUGGESTION_MODE_BLOCK (game.js:87-92) says nothing about travel reachability, sub-locations, or combat.
+- **Combat state at suggestion time: null** — `[ENEMY_SLAIN:]` zeroed the only foe and the all-foes-down auto-close fired in the same applyMuts pass (tag_table.js:532-539); the out-of-order `[COMBAT_ROUND:1]` was absorbed harmlessly; the stirring second creature had no `[COMBAT_START:]`. But nothing in the manifest/fallback/prompt consults combat anyway.
+- **Fix sketch, ranked:** ① fix `suggestionFallback` + manifest exits — suppress/demote world-edge "Press on toward…" candidates while `world.sublocation` is set (or combat truthy); game.js only, no prompt bytes, kills the observed button (do this FIRST — a location gate rule without it would fall back into the same bug). ② a narrow location-analog gate rule (travel verb + known non-current world node while sublocated), log-only first per the #126 telemetry-before-promotion pattern. ③ a SUGGESTION_MODE_BLOCK reachability line (volatile-only, cache-safe) — complement, not fix (B18's whole record says prompt-only enforcement is the weak channel). ④ qualify the geo `Connected to:` line when sublocated — helps the GM proper but edits an every-turn canon block (full Fable gate; the B17/B21 regression class).
+- **Drift-surface flag: YES** (suggestion pipeline = the user's standing 2026-07-12 watch flag + cache-adjacent stable half; fixes ③/④ edit prompt canon). **Risk:** fallback-ordering mistakes degrade every future rejected-suggestion replacement; an over-broad location rule false-rejects legitimate "head back out" options; any stable-half perturbation silently kills prompt caching.
+- **To fully confirm the leg:** the crumb ring near t1459 would carry a `suggestion-reject` crumb (game.js:330) naming the rejected text and rule — worth pulling if the GAS sheet retained it, but both legs share the same root and the same fix set.
 
 ### Action log
 
