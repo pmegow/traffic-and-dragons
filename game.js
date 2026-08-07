@@ -235,11 +235,20 @@ function buildSceneManifest(){
       }
     }
   }
+  // B24: world-map edges are connectivity at WORLD-NODE grain only. Inside a sub-location the
+  // party must leave first (the t1459 button offered an overland road from a sealed chamber
+  // under The Spire), and mid-combat nobody strolls off down a highway — in both states the
+  // edges are NOT immediate affordances. Sublocated scenes get the one geographically honest
+  // move instead: the way back out (man.back), which rule ⑤ passes by construction.
   var map=(typeof memory!=="undefined"&&memory.map)||{};
-  (map.edges||[]).forEach(function(ed){
-    if(ed.from===loc&&man.exits.indexOf(ed.to)<0)man.exits.push(ed.to);
-    if(ed.to===loc&&man.exits.indexOf(ed.from)<0)man.exits.push(ed.from);
-  });
+  if(sub){
+    man.back=loc;
+  }else if(!worldState.combat){
+    (map.edges||[]).forEach(function(ed){
+      if(ed.from===loc&&man.exits.indexOf(ed.to)<0)man.exits.push(ed.to);
+      if(ed.to===loc&&man.exits.indexOf(ed.from)<0)man.exits.push(ed.from);
+    });
+  }
   var c=worldState.character||{};
   function addCap(nm){
     var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
@@ -290,6 +299,40 @@ function validateSuggestion(text,man){
     if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give|message|signal|hail|summon|contact|warn|alert|call out to)\\b[ '\"]{0,3}(to |with |the |a )?"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
       return {rule:"absent-npc-direct-address",detail:npcs[j].name+" is not present in the scene"};
   }
+  // ⑤ (B24, t1459): ASSERTED immediate overland travel while inside a sub-location — a LEADING
+  // travel verb aimed at a known world node other than the current location. The leading verb
+  // is the precision lever: it makes the travel BE the action, so "Press on toward Varisia -
+  // North Road." from a sealed chamber rejects, while planning shapes ("Return to Sandpoint
+  // tomorrow to report…") and mid-suggestion mentions stay legal and ride the tier-2 watch
+  // line below (the #126 telemetry-before-promotion pattern). Heading back to the CURRENT
+  // world location always passes — that is the legitimate way out.
+  var wSub=worldState.world&&worldState.world.sublocation;
+  if(wSub){
+    var tvm=t.match(/^\s*(?:press on (?:toward|to)|head (?:to|for|toward|towards)|travel to|set out (?:for|toward|towards)|ride (?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);
+    if(tvm){
+      var tvDest=tvm[1].replace(/[.!?]+\s*$/,"").trim().toLowerCase();
+      var tvNodes=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};
+      for(var tvk in tvNodes){
+        if(tvk.indexOf("|")>=0)continue;                                   // world nodes only
+        if(tvk.toLowerCase()!==tvDest)continue;
+        if(tvk!==worldState.world.location)
+          return {rule:"unreachable-travel",detail:"asserts immediate travel to "+tvk+" from inside "+worldState.world.location+" — "+wSub};
+        break;
+      }
+    }
+    // Tier-2 (LOG ONLY, watching): a remote world node named anywhere in a suggestion while
+    // sublocated — legal fiction (plans, letters, talk of home) until the field says otherwise;
+    // same telemetry-before-promotion arc as the off-scene-NPC line below.
+    var tvN2=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};
+    for(var tk2 in tvN2){
+      if(tk2.indexOf("|")>=0||tk2===worldState.world.location)continue;
+      var tkEsc=tk2.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+      if(new RegExp("\\b"+tkEsc+"\\b","i").test(t)){
+        console.info("[actions] remote location named in a suggestion while sublocated (allowed, watching): \""+t+"\" → "+tk2);
+        break;
+      }
+    }
+  }
   // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
   // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.
   for(j=0;j<npcs.length;j++){
@@ -301,10 +344,14 @@ function validateSuggestion(text,man){
   }
   return null;
 }
-// Deterministic local fallback — engine-composed from the manifest, so it is valid by
-// construction; skips anything already on offer.
+// Deterministic local fallback — engine-composed from the manifest AND still revalidated below.
+// B24: the old "valid by construction" assumption WAS the bug (a rejected button got replaced
+// with overland travel from inside a sealed sub-location) — construction keeps candidates
+// scene-plausible, validateSuggestion is the belt, and the terminal generic is the axiomatic
+// floor (names no entity, no capability, no destination), so the loop provably terminates.
 function suggestionFallback(man,taken){
   var cands=[],i,j;
+  if(man.back)cands.push("Head back toward "+man.back+".");
   for(i=0;i<man.exits.length;i++)cands.push("Press on toward "+man.exits[i]+".");
   for(i=0;i<man.npcs.length;i++)cands.push("Talk things over with "+man.npcs[i]+".");
   cands.push("Rest and take stock of the situation.");
@@ -312,7 +359,9 @@ function suggestionFallback(man,taken){
   for(i=0;i<cands.length;i++){
     var dup=false;
     for(j=0;j<taken.length;j++){if(String(taken[j]).toLowerCase()===cands[i].toLowerCase()){dup=true;break;}}
-    if(!dup)return cands[i];
+    if(dup)continue;
+    if(validateSuggestion(cands[i],man)!==null)continue;
+    return cands[i];
   }
   return "Take a moment to consider your next move.";
 }

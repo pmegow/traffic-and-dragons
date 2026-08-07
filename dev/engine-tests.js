@@ -4761,6 +4761,55 @@ function runEngineTests(R){
     var ok=validateSuggestion("Search the wreckage Nualia left behind",man);
     return ok===null?true:"mention-only false positive: "+JSON.stringify(ok);
   });
+  // ── B24 — the gate's own fallback composed an impossible travel button (t1459 field case):
+  // "valid by construction" was the bug — manifest exits are world-map edges served
+  // sublocation-blind and combat-blind, and fallbacks bypassed validation entirely.
+  t("B24 manifest: world-edge exits are suppressed while inside a sub-location; the way BACK is offered instead",function(){
+    __gateWorld();
+    worldState.world.location="Magnimar";worldState.world.sublocation="The Spire - Hidden Stairwell";
+    memory.map.edges=[{from:"Magnimar",to:"Varisia - North Road",turn:1}];
+    var man=buildSceneManifest();
+    if(man.exits.length)return "world edges served as exits from a sealed sub-location: "+JSON.stringify(man.exits);
+    return man.back==="Magnimar"?true:"the way back out is missing: "+JSON.stringify(man.back);
+  });
+  t("B24 THE field case: a rejected model button is never replaced by overland travel while sublocated, and the replacement itself validates",function(){
+    __gateWorld();
+    worldState.world.location="Magnimar";worldState.world.sublocation="The Spire - Hidden Stairwell";
+    memory.map.edges=[{from:"Magnimar",to:"Varisia - North Road",turn:1}];
+    memory.map.nodes={"Magnimar":{},"Varisia - North Road":{}};
+    var out=applySuggestionGate(["Cast Fireball at the pale creature","Get eyes on what's making that ripple","Retreat toward the stairs to regroup"]);
+    if(/press on toward/i.test(out[0]))return "fallback offered overland travel from inside the Spire: "+out[0];
+    return validateSuggestion(out[0],buildSceneManifest())===null?true:"replacement button does not itself validate: "+out[0];
+  });
+  t("B24 rule ⑤: asserted immediate travel to a remote world node while sublocated rejects; back-out, planning shapes, and open-road travel all pass",function(){
+    __gateWorld();
+    worldState.world.location="Magnimar";worldState.world.sublocation="The Spire - Hidden Stairwell";
+    memory.map.nodes={"Magnimar":{},"Varisia - North Road":{},"Sandpoint":{}};
+    var man=buildSceneManifest();
+    var bad=validateSuggestion("Press on toward Varisia - North Road.",man);
+    if(!bad)return "the exact t1459 button passed validation";
+    if(bad.rule!=="unreachable-travel")return "wrong rule: "+bad.rule;
+    if(validateSuggestion("Head back toward Magnimar.",man)!==null)return "heading back to the current location false-rejected";
+    if(validateSuggestion("Return to Sandpoint tomorrow to report to the sheriff",man)!==null)return "planning-shape suggestion false-rejected (tier-2 watch territory)";
+    worldState.world.sublocation=null;
+    return validateSuggestion("Press on toward Varisia - North Road.",buildSceneManifest())===null?true:"open-road travel rejected while NOT sublocated";
+  });
+  t("B24 fallback floor: with exits suppressed and every candidate taken, the terminal generic returns and validates",function(){
+    __gateWorld();
+    worldState.world.sublocation="Backroom";
+    var man=buildSceneManifest();
+    var taken=["Head back toward Lost Coast Road.","Talk things over with Morwen Zethran.","Talk things over with Frizwick.","Rest and take stock of the situation.","Study your surroundings carefully."];
+    var fb=suggestionFallback(man,taken);
+    if(fb!=="Take a moment to consider your next move.")return "floor not reached: "+fb;
+    return validateSuggestion(fb,man)===null?true:"the terminal floor does not validate";
+  });
+  t("B24 combat: travel candidates are suppressed while a fight is open even at a world node",function(){
+    __gateWorld();
+    worldState.combat={round:1,engaged:null,foes:[{name:"Wolf",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    var fb=suggestionFallback(buildSceneManifest(),[]);
+    worldState.combat=null;
+    return /press on toward/i.test(fb)?"mid-combat fallback offered overland travel: "+fb:true;
+  });
   t("applySuggestionGate fails CLOSED: invalid button replaced by a deterministic local fallback, valid ones untouched, always 3 out",function(){
     __gateWorld();
     var warns=[];var _w=console.warn;console.warn=function(m){warns.push(String(m));};

@@ -447,7 +447,7 @@ PREVIOUS page (ended without unload — see B9):
 ### Action log
 
 ## B24 — Suggested action offers overland travel to a distant road while the party stands in a flooded chamber beneath a tower — the B18 canon-violation class, geographic-connectivity variant
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** user-report · **First seen:** 2026-08-07 (v1.546) · **Last seen:** 2026-08-07 (v1.546) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1459
 **Fingerprint:** `user-report · user-report · v1.546 · how is "the north road" an option inside a tower?`
 **Report ids:** 2250fb28-080f-4996-9b1e-6aab9cc4dee1
@@ -546,6 +546,7 @@ SUGGESTED ACTIONS SHOWN: Press on toward Varisia - North Road. | Get eyes on wha
 - **To fully confirm the leg:** the crumb ring near t1459 would carry a `suggestion-reject` crumb (game.js:330) naming the rejected text and rule — worth pulling if the GAS sheet retained it, but both legs share the same root and the same fix set.
 
 ### Action log
+- **2026-08-07 — fixed, v1.551** (`/bugs act B24`, Fable-gated per drift policy; Sol's four-point review incorporated with the two-tier refinement on point 2, user-approved via act). Three changes, all game.js, zero prompt bytes (verified: `man.exits` feeds only the fallback): ① `buildSceneManifest` — world-edge exits suppressed while `world.sublocation` is set (the way back out is offered as `man.back` instead) or while combat is open; ② `suggestionFallback` — candidates revalidated through `validateSuggestion` (the "valid by construction" comment/assumption removed), terminal generic floor axiomatically safe so the loop terminates; ③ rule ⑤ `unreachable-travel` — LEADING travel verb + known remote world node while sublocated rejects (heading back to the current location passes by construction), plus a tier-2 log-only watch line for remote nodes named mid-suggestion (the #126 telemetry-before-promotion pattern; promote on first field sighting). Tests: 5 red-first → green incl. the byte-exact t1459 button repro on the rejection→fallback path AND the direct-output path (Sol point 4); suite 1055; stable-half byte-identity green. Residual observation (not widened into this fix): `man.caps` is player-only, so companion-delegation suggestions ("have Morwen cast Silence") read as unowned-capability — a latent false-reject class, now benign (safe fallback) but worth its own look if the reject telemetry shows it firing often.
 
 ## Completed
 
