@@ -9197,6 +9197,55 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return necro.indexOf("mana leech")>=0?true:"mana leech absent from the necromantic caster menu: "+JSON.stringify(necro.slice(0,8));
   });
 
+  // ── #139 — alignment axes seed from the label (the True-Neutral snap defect) ────────────────
+  // Field find (t1467 read, 2026-08-07): creation seeded alignLaw/alignGood at 0,0 regardless of
+  // the chosen label, and companion sheets carried model-authored labels with UNDEFINED axes —
+  // so the first [ALIGNMENT:] shift recomputed the label from coordinates that never matched it
+  // (a Chaotic Neutral's first shift displayed True Neutral; one shift would snap Lawful Good
+  // Daeris to True Neutral). Fix: axes seed FROM the label at ±2 (the label's minimal consistent
+  // coordinate — one point of deepening room; an OPPOSING first shift now moves the label
+  // directionally instead of teleporting it).
+  section("#139 — alignment axis seeding");
+  t("#139 alignSeedAxes: the 9-grid labels seed their minimal consistent coordinates; unknown text seeds 0,0",function(){
+    var cases=[["Chaotic Neutral",-2,0],["Lawful Good",2,2],["Neutral Evil",0,-2],["True Neutral",0,0],["Neutral",0,0],["Chaotic Evil",-2,-2],["Lawful Neutral",2,0],["",0,0],["utter garbage",0,0]];
+    for(var i=0;i<cases.length;i++){
+      var s=alignSeedAxes(cases[i][0]);
+      if(s.law!==cases[i][1]||s.good!==cases[i][2])return JSON.stringify(cases[i][0])+" seeded "+JSON.stringify(s);
+      if(cases[i][0]&&cases[i][0]!=="Neutral"&&cases[i][0]!=="utter garbage"&&cases[i][0]!==""){
+        if(alignLabel(s.law,s.good)!==(cases[i][0]==="True Neutral"?"True Neutral":cases[i][0]))return cases[i][0]+" does not round-trip through alignLabel: "+alignLabel(s.law,s.good);
+      }
+    }
+    return true;
+  });
+  t("#139 the snap is dead: a seeded Chaotic Neutral's first opposing shift reads as directional drift, and a same-direction shift deepens",function(){
+    makeWorld();
+    var c=worldState.character;
+    c.statedAlignment="Chaotic Neutral";c.actualAlignment="Chaotic Neutral";
+    var seed=alignSeedAxes("Chaotic Neutral");c.alignLaw=seed.law;c.alignGood=seed.good;
+    applyMuts("[ALIGNMENT:law-1]");
+    if(c.actualAlignment!=="Chaotic Neutral")return "deepening shift broke the label: "+c.actualAlignment;
+    if(c.alignLaw!==-3)return "deepen did not move the axis: "+c.alignLaw;
+    applyMuts("[ALIGNMENT:law+1]");applyMuts("[ALIGNMENT:law+1]");
+    return c.actualAlignment==="True Neutral"?true:"two opposing shifts from the floor should read True Neutral (directional), got "+c.actualAlignment+" at law="+c.alignLaw;
+  });
+  t("#139 migration: undefined-axes companion sheets seed from their displayed label; consistent and earned states are untouched",function(){
+    makeWorld();
+    worldState.character.statedAlignment="Chaotic Neutral";worldState.character.actualAlignment="Chaotic Neutral";
+    worldState.character.alignLaw=-3;worldState.character.alignGood=0;   // Ammut's shape: consistent — must not move
+    var fz={name:"Frizwick",cls:"Rogue",level:9,hp:50,maxHp:50,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[],
+      statedAlignment:"Neutral",actualAlignment:"Neutral Good"};        // the t1467 shape: label without axes
+    worldState.npcs.push({name:"Frizwick",partyMember:true,status:"steady",charSheet:fz});
+    var tn={name:"Quiet",cls:"Monk",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[],
+      statedAlignment:"Chaotic Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0}; // earned back to center — must not reseed
+    worldState.npcs.push({name:"Quiet",partyMember:true,status:"calm",charSheet:tn});
+    migrateWorldState();
+    if(worldState.character.alignLaw!==-3)return "a consistent player state was reseeded: law="+worldState.character.alignLaw;
+    if(fz.alignLaw!==0||fz.alignGood!==2)return "Frizwick's axes not seeded from Neutral Good: law="+fz.alignLaw+" good="+fz.alignGood;
+    if(tn.alignLaw!==0||tn.alignGood!==0)return "an earned True Neutral was reseeded: "+tn.alignLaw+","+tn.alignGood;
+    applyMuts("[COMPANION_ALIGNMENT:Frizwick|law+1]");
+    return fz.actualAlignment==="Lawful Good"||fz.actualAlignment==="Neutral Good"?true:"post-migration shift snapped the label: "+fz.actualAlignment;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned

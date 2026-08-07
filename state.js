@@ -247,6 +247,28 @@ function migrateWorldState(){
   if(migrateCharClassNames(c))_mig=true;
   if(migrateSpellDisplayNames(c))_mig=true;
   if(worldState.npcs){var _cri,_crs;for(_cri=0;_cri<worldState.npcs.length;_cri++){_crs=worldState.npcs[_cri]&&worldState.npcs[_cri].charSheet;if(!_crs)continue;if(migrateCharClassNames(_crs))_mig=true;if(migrateSpellDisplayNames(_crs))_mig=true;}}
+  /* #139: alignment axes must AGREE with the displayed label. Creation used to seed 0,0 under a
+     non-neutral label, and model-generated companion sheets carry labels with NO axes at all —
+     either way the first [ALIGNMENT:] shift recomputed the label from coordinates that never
+     produced it (the True-Neutral snap). Reseed ONLY when the axes' own label disagrees with the
+     displayed one — a consistent state (Ammut's earned law −3) and an earned return to True
+     Neutral both pass through untouched. */
+  function _alignHeal(sheet,who){
+    if(!sheet)return;
+    var lbl=sheet.actualAlignment||sheet.statedAlignment;
+    if(!lbl||typeof alignSeedAxes!=="function"||typeof alignLabel!=="function")return;
+    var curLaw=(typeof sheet.alignLaw==="number"&&!isNaN(sheet.alignLaw))?sheet.alignLaw:0;
+    var curGood=(typeof sheet.alignGood==="number"&&!isNaN(sheet.alignGood))?sheet.alignGood:0;
+    if(alignLabel(curLaw,curGood)===lbl){if(sheet.alignLaw!==curLaw||sheet.alignGood!==curGood){sheet.alignLaw=curLaw;sheet.alignGood=curGood;_mig=true;}return;}
+    var seed=alignSeedAxes(lbl);
+    /* off-grid labels ("Neutral") can never equal alignLabel output — if the seed IS the current
+       coordinates, this is as healed as it gets; bail or we reseed-and-log on every load */
+    if(seed.law===curLaw&&seed.good===curGood){if(sheet.alignLaw!==curLaw||sheet.alignGood!==curGood){sheet.alignLaw=curLaw;sheet.alignGood=curGood;_mig=true;}return;}
+    sheet.alignLaw=seed.law;sheet.alignGood=seed.good;_mig=true;
+    console.info("[migrate] #139 alignment axes seeded from label for "+who+": '"+lbl+"' → law "+seed.law+", good "+seed.good);
+  }
+  _alignHeal(c,c.name||"player");
+  if(worldState.npcs){for(var _ali=0;_ali<worldState.npcs.length;_ali++){var _aln=worldState.npcs[_ali];if(_aln&&_aln.charSheet)_alignHeal(_aln.charSheet,_aln.name);}}
   if(typeof c.level!=="number"||isNaN(c.level)){c.level=1;_mig=true;}if(typeof c.xp!=="number"||isNaN(c.xp)){c.xp=0;_mig=true;}
   if(typeof c.maxHp!=="number"||isNaN(c.maxHp)){c.maxHp=(typeof c.hp==="number"&&!isNaN(c.hp)&&c.hp>0)?c.hp:8;_mig=true;}// heal maxHp FIRST (audit E71) — else a NaN maxHp drives hp to NaN on the next [HP:] tag, every load
   if(typeof c.hp!=="number"||isNaN(c.hp)){c.hp=c.maxHp||8;_mig=true;}if(typeof c.gold!=="number"||isNaN(c.gold)){c.gold=0;_mig=true;}
