@@ -22,7 +22,23 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-(Queue drained 2026-07-30 — entries 8-10 reviewed by Fable the same day they were filed; verdicts in the index below, full records in the archive.)
+### 11 — Runelords t1467 phantom-presence field analysis (Sol, no code shipped)
+
+**Filed:** 2026-08-07. **Artifact:** `DOC/OffTheRails_sol.html`. **Tracker:** TODO #137.
+The owner requested independent Sol and Fable deep dives into the latest campaign export. Sol's
+finding is that fiction/state first diverged again at t1443 (Daeris stays at the inn) and t1457
+(Morwen remains outside the sealed Spire door); Daeris' first visible teleport is t1463, and the
+t1466 summary then fossilizes it. Both split responses ran on v1.544/v1.546, before #135's v1.550
+fresh-split grace, so the strongest mechanism is the already-reproduced dies-at-birth purge, but
+the save no longer retains enough raw-tag provenance to distinguish that from GM non-emission.
+The remaining unbuilt class is missing-record phantom presence: every audit starts from an existing
+`splitLoc`, while party sheets and `buildSceneManifest` equate membership with co-presence.
+
+**Review first:** independently adjudicate the purge-vs-non-emission confidence; verify the t1443,
+t1457, and t1463 transcript chain; decide whether #137 should be one presence-invariant task or split
+into (a) missing-transition compliance and (b) party-sheet/scene-manifest split awareness. Confirm
+the negative Frizwick finding: the export records her inside with HP 52/52 and no split, so her
+reported missing HP is not explained by campaign location state. No source or save repair shipped.
 
 ---
 

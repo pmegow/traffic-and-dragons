@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Off the Rails — Rise of the Runelords t1467 (Sol)</title>
+<style>
+:root{--bg:#101010;--panel:#181818;--panel2:#141414;--t0:#f0e8dc;--t1:#d8d1c6;--t2:#9c958b;--acc:#c19a62;--good:#79a66c;--warn:#c7a33a;--bad:#bd6464;--info:#7395bd;--line:#2c2925}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{background:var(--bg);color:var(--t1);font:15px/1.62 Georgia,serif;max-width:1040px;margin:0 auto;padding:30px 24px 84px}h1{color:var(--acc);font-size:1.65em;line-height:1.18;margin:0 0 6px}h2{color:var(--acc);font-size:1.18em;margin:38px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}h3{color:var(--t0);font-size:1em;margin:22px 0 8px}p{margin:9px 0}.sub{color:var(--t2);font-size:.9em;margin-bottom:24px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 18px;margin:14px 0}.tldr{border-color:var(--acc)}.critical{border-color:var(--bad)}.note{border-color:var(--info)}.badge{display:inline-block;border-radius:12px;padding:2px 9px;font:bold .74em ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}.ok{background:#182316;border:1px solid var(--good)}.warn{background:#242009;border:1px solid var(--warn)}.bad{background:#261515;border:1px solid var(--bad)}.info{background:#151d27;border:1px solid var(--info)}blockquote{background:var(--panel2);border-left:3px solid var(--acc);margin:11px 0;padding:9px 14px;color:#ccc3b5}blockquote .src{display:block;color:var(--t2);font:11px/1.5 ui-monospace,Consolas,monospace;margin-top:5px}table{border-collapse:collapse;width:100%;margin:13px 0;font-size:.91em}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{color:var(--acc);background:#171511;font-weight:normal;font-variant:small-caps}code{font:.87em ui-monospace,Consolas,monospace;color:#d2ad78;background:#1d1a15;padding:1px 5px;border-radius:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0c0c0c;border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:#c7bfb3;font:12px/1.55 ui-monospace,Consolas,monospace}ol li,ul li{margin:6px 0}.num{font-family:ui-monospace,Consolas,monospace;white-space:nowrap}.chain{display:grid;grid-template-columns:auto 20px 1fr;gap:5px 8px;align-items:start;margin:14px 0}.chain .turn{font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--acc);padding-top:7px}.chain .arrow{color:#6d655b;text-align:center;padding-top:7px}.chain .event{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 10px}.goodtxt{color:var(--good)}.badtxt{color:var(--bad)}.warntxt{color:var(--warn)}.footer{margin-top:48px;color:var(--t2);font-size:.82em;border-top:1px solid var(--line);padding-top:12px}a{color:#d2ad78}strong{color:var(--t0)}@media(max-width:700px){body{padding:20px 13px 60px;font-size:14px}h1{font-size:1.42em}.table-scroll{overflow-x:auto}table{min-width:650px}.chain{grid-template-columns:auto 14px 1fr}.card{padding:12px 13px}}
+</style>
+</head>
+<body>
+<h1>Off the Rails: Party Presence Failure at the Spire</h1>
+<div class="sub">Campaign: Rise of the Runelords (Ammut) · latest export: <code>Rise_of_the_Runelords__Ammut__Ammut_t1467.tnd</code> · analyst: Sol · 2026-08-07 · independent investigation</div>
+
+<div class="card tldr"><strong>Bottom line:</strong> the campaign did not suddenly lose every character’s location. It repeated the same split-party lifecycle failure in the opposite direction. The old failure left companions falsely marked <em>absent</em>; the current failure has no surviving split records and therefore marks everyone falsely <em>present</em>. Fiction and state first diverged at <strong>t1443</strong>, when Daeris stayed at the inn but no durable absence survived. Morwen’s equivalent divergence was <strong>t1457</strong>, when she remained outside the sealed Spire door. The first visible narrative derailment was <strong>t1463</strong>, when Daeris appeared inside without travel. By t1466, summarization had converted that mistake into durable memory, so later turns now reinforce it.</div>
+
+<div class="card note"><strong>Three direct answers:</strong> Morwen did <em>not</em> move from inside to outside in the transcript—she was consistently left outside after sealing the door. Daeris unquestionably teleported from the inn into the Spire at t1463. Frizwick unquestionably belongs inside with Ammut, and her exported sheet contains <strong>52/52 HP</strong>; her missing health display is not explained by campaign location state.</div>
+
+<h2>1 · Findings and confidence</h2>
+<div class="table-scroll"><table>
+<tr><th>Finding</th><th>Verdict</th><th>Confidence / basis</th></tr>
+<tr><td>Morwen’s latest fiction changed her from inside to outside.</td><td><span class="badge bad">Disproved</span></td><td>At t1457 she closes the door from its daylight side; t1459 explicitly says a stone door separates her from Ammut and she replies “waiting.” The t1459 chapter summary also records her outside.</td></tr>
+<tr><td>Morwen’s structured state correctly records that absence.</td><td><span class="badge bad">Disproved</span></td><td>At t1467 she has no <code>charSheet.splitLoc</code>. The engine therefore treats her as co-located despite the prose.</td></tr>
+<tr><td>Daeris arrived at the Spire without a narrated journey.</td><td><span class="badge ok">Confirmed</span></td><td>She stays at the inn at t1443, is not contacted in the intervening scene, then appears behind Frizwick at t1463. “Message must have carried” is an invented explanation, not travel continuity.</td></tr>
+<tr><td>Frizwick should be elsewhere because her HP is absent.</td><td><span class="badge bad">Disproved by save</span></td><td>She descends with Ammut at t1456, fights inside, has no split record, and her sheet is HP 52/52. The reported display symptom needs a separate exact-surface reproduction.</td></tr>
+<tr><td>The current derailment begins at t1463.</td><td><span class="badge warn">Symptom only</span></td><td>t1463 is the first visible teleport. The state/prose divergence begins twenty turns earlier at t1443.</td></tr>
+<tr><td>The pre-v1.550 “fresh split dies at birth” bug caused the missing Daeris/Morwen records.</td><td><span class="badge warn">Strong inference</span></td><td>Both responses ran on affected versions (v1.544 and v1.546), and the exact failure class was reproduced and fixed in v1.550. Old raw tags are not retained, so GM non-emission remains observationally identical.</td></tr>
+</table></div>
+
+<h2>2 · Ground-truth roster, turn by turn</h2>
+<p>The recent fiction is unusually clear until t1463:</p>
+<div class="chain">
+<div class="turn">t1443</div><div class="arrow">→</div><div class="event"><strong>Daeris stays at the Magnimar inn.</strong> Ammut, Morwen, and Frizwick leave for the Spire.</div>
+<div class="turn">t1444</div><div class="arrow">→</div><div class="event">Frizwick takes rooftop overwatch. Ammut and Morwen inspect the tower.</div>
+<div class="turn">t1456</div><div class="arrow">→</div><div class="event"><strong>Frizwick comes down and enters behind Ammut.</strong> Morwen remains at the threshold.</div>
+<div class="turn">t1457</div><div class="arrow">→</div><div class="event"><strong>Morwen seals the seam-door from outside.</strong> Ammut and Frizwick continue down.</div>
+<div class="turn">t1459</div><div class="arrow">→</div><div class="event">Ammut Messages Morwen through “thirty feet and a stone door.” Morwen replies that she is waiting.</div>
+<div class="turn">t1462</div><div class="arrow">→</div><div class="event">Ammut backs toward Frizwick. The player calls the destination “the room the wives are in,” a plural that conflicts with the established roster.</div>
+<div class="turn">t1463</div><div class="arrow">→</div><div class="event critical"><strong>Daeris materializes behind Frizwick.</strong> No departure from the inn, journey, door opening, or arrival is narrated.</div>
+<div class="turn">t1464–67</div><div class="arrow">→</div><div class="event">Daeris casts, searches, translates, and converses inside. The false arrival becomes the new local reality.</div>
+</div>
+
+<blockquote>“I’ll stay here… If you’re not back by dark, I’m coming.”<span class="src">t1443 — Daeris, at the inn</span></blockquote>
+<blockquote>“The door swings to… and the daylight narrows to a blade, then a thread, then nothing at all.”<span class="src">t1457 — Morwen closes the seam-door behind Ammut and Frizwick</span></blockquote>
+<blockquote>“Thirty feet and a stone door between you and Morwen is nothing to Message… <em>heard. waiting.</em>”<span class="src">t1459 — explicit confirmation that Morwen is outside</span></blockquote>
+<blockquote>“Frizwick’s already braced at the top of the rise, and past her shoulder you catch Daeris’s shape framed faint against the door…”<span class="src">t1463 — first impossible Daeris appearance</span></blockquote>
+
+<h2>3 · What the t1467 save says</h2>
+<p>The durable state no longer matches that roster. All three NPCs remain party members, but none has a split location. In this engine, absent <code>splitLoc</code> means “with the party.”</p>
+<div class="table-scroll"><table>
+<tr><th>Character</th><th>Fictionally correct location</th><th>t1467 structured location</th><th>Other evidence</th></tr>
+<tr><td>Frizwick</td><td>Spire — Hidden Stairwell, with Ammut</td><td><code>splitLoc</code> absent → with party</td><td>HP 52/52; <code>lastSeenAt</code> is the Hidden Stairwell. <span class="goodtxt">State agrees.</span></td></tr>
+<tr><td>Daeris</td><td>Magnimar inn, unless a real journey is retconned</td><td><code>splitLoc</code> absent → with party</td><td><code>lastSeenAt</code> now says Hidden Stairwell. Memory says both “stayed behind” and “cast Sacred Flame” there. <span class="badtxt">State is contaminated.</span></td></tr>
+<tr><td>Morwen Zethran</td><td>Outside the sealed Spire seam-door</td><td><code>splitLoc</code> absent → with party</td><td>Memory still says she is stationed outside; <code>lastSeenAt</code> is only coarse “Magnimar.” <span class="warntxt">Internal contradiction.</span></td></tr>
+</table></div>
+
+<p>The Daeris memory record is the clearest durable contradiction:</p>
+<pre>Daeris.knowledge:
+  • Stayed behind at the inn, warning she’ll come after them if they’re not back by dark.
+  • Cast Sacred Flame to stagger the Drowned Grafting; identified the chained corpse’s robe…
+
+Daeris.lastSeenAt:
+  Magnimar|The Spire — Hidden Stairwell</pre>
+
+<h2>4 · This is a recurrence, not a new kind of chaos</h2>
+<p>The campaign has a long history of companion-location records outliving—or failing to represent—the fiction. Comparison exports show the direction of the error changing over time:</p>
+<div class="table-scroll"><table>
+<tr><th>Checkpoint</th><th>Primary party location</th><th>Structured companion state</th><th>Meaning</th></tr>
+<tr><td class="num">t881</td><td>Sandpoint</td><td>All three “with party”</td><td>No known structured split corruption at this checkpoint.</td></tr>
+<tr><td class="num">t1265</td><td>Sandpoint</td><td>Frizwick still split at <code>Sandpoint Coast - Sea Cave|Hidden Fault Passage</code></td><td>False absence. She had rejoined in fiction at t1068, but the field survived at least 197 turns.</td></tr>
+<tr><td class="num">t1385</td><td>Varisia — North Road</td><td>Frizwick at sea cave; Daeris and Morwen at Sandpoint</td><td>All three structured locations conflict with the traveling party.</td></tr>
+<tr><td class="num">t1411</td><td>Magnimar inn room</td><td>Frizwick at sea cave; Daeris and Morwen at coarse Magnimar</td><td>Stale false-absence records continue feeding strict geography.</td></tr>
+<tr><td class="num">t1431</td><td>Magnimar inn room</td><td>Same three stale splits</td><td>The player explicitly orders three <code>|rejoin</code> tags; t1432 clears them.</td></tr>
+<tr><td class="num">t1467</td><td>Spire — Hidden Stairwell</td><td>All three “with party”</td><td>The inverse failure: Daeris and Morwen are falsely present because their real separations have no surviving record.</td></tr>
+</table></div>
+
+<p>The earliest provable rot in this chain is not t1431. At t1065 Ammut tells the others to wait while he scouts the Hidden Fault Passage. At t1068 all three descend and rejoin him in prose. By t1265, Frizwick still carries that old passage as her split location. The earlier <a href="t1431_drift_analysis_Sol.html">t1431 analysis</a> traced how that stale negative override poisoned geography for hundreds of turns. The current incident is its mirror image: after the manual t1431 repair, fresh separations fail to leave a durable negative override at all.</p>
+
+<h2>5 · Root-cause chain</h2>
+<h3>A. The affected versions could erase a correct stay-behind record</h3>
+<p>The t1431 investigation produced split aging and co-location cleanup in v1.542–v1.544. The co-location rule automatically rejoined a companion whenever their split location exactly matched the party’s current node. That is correct for an old record when the party arrives—but it also erased a <em>new</em> stay-behind record written before the party departed on the next response.</p>
+<p>Daeris’s t1443 response was generated on <strong>v1.544</strong>. Morwen’s t1457 response was generated on <strong>v1.546</strong>. The one-response grace that distinguishes “fresh stay-behind” from “stale co-location” did not ship until <strong>v1.550</strong> (TODO #135, commit <code>5d8bbfb</code>). Therefore both live separations occurred inside the exact affected window.</p>
+<div class="card critical"><strong>Honest evidence boundary:</strong> the export keeps cleaned transcript prose, not the old raw state tags or the parser’s transient mutation list. Consequently, two mechanisms produce the same t1467 save: (1) the GM emitted the correct split tag and the v1.544/v1.546 co-location sweep deleted it immediately, or (2) the GM never emitted the tag. The first is the strongest explanation because it is version-matched and mechanically reproduced, but this file cannot prove which branch happened on those two live responses.</div>
+
+<h3>B. Once the record is absent, every presence reader defaults the wrong way</h3>
+<p>The data model uses <code>partyMember:true</code> for membership plus an optional negative override, <code>charSheet.splitLoc</code>, for absence. The default is co-presence:</p>
+<ul>
+<li><code>helpers.js:340–356</code>: absent split means the companion inherits the main party location.</li>
+<li><code>api.js:61–72</code>: the strict SPLIT THREADS block is emitted only for existing split records.</li>
+<li><code>api.js:694–727</code>: every living party member receives a full sheet under the heading “companions fighting alongside the player,” even when a valid split exists.</li>
+<li><code>game.js:210–223</code>: <code>buildSceneManifest()</code> unconditionally authorizes every party member as present before checking any location evidence.</li>
+<li><code>api.js:269–293</code>: the split audit can age and challenge stale records, but it cannot inspect a record that does not exist.</li>
+</ul>
+<p>This is why one missing mutation spreads so widely: the prompt roster, combat kit, suggestion manifest, party size, and UI all begin from membership and require the absence override to contradict it.</p>
+
+<h3>C. The player’s plural wording triggered the latent state error</h3>
+<p>Through t1461 the GM follows recent fiction and writes only Frizwick inside. At t1462 the player says, “reach the room the wives are in,” even though only Frizwick is there. At t1463 the player explicitly calls for Daeris. With no SPLIT THREADS block, the prompt’s structured surfaces say Daeris is a party member fighting alongside Ammut, and the newest user wording presupposes her presence. The model resolves the conflict by inventing an arrival: “Message must have carried further than you’d hoped.”</p>
+<p>The wording is a <strong>trigger</strong>, not the root cause. A healthy state would have supplied a strict “Daeris is elsewhere and cannot assist” counterweight. The player should not have to perfectly remember an invisible structured roster to prevent teleportation.</p>
+
+<h3>D. Summarization fossilized the error</h3>
+<p>The t1459 chapter summary is still correct: Morwen is outside and only Ammut and Frizwick descend. The next chapter summary, stamped t1466, records Daeris’s Sacred Flame as if it were valid history. Daeris’s NPC knowledge and <code>lastSeenAt</code> are updated accordingly. At that point the mistake is no longer a single bad response; it is represented in recent transcript, chapter memory, NPC knowledge, and location memory. That is why continuing forward will make self-correction progressively less likely.</p>
+
+<h2>6 · Why Frizwick’s HP does not diagnose location</h2>
+<p>The latest export records:</p>
+<pre>Frizwick.partyMember = true
+Frizwick.charSheet.hp = 52
+Frizwick.charSheet.maxHp = 52
+Frizwick.charSheet.splitLoc = absent
+Frizwick.lastSeenAt = Magnimar|The Spire — Hidden Stairwell</pre>
+<p>Under <code>ui-panels.js</code>, that shape should render <strong>52/52</strong> in both the desktop party HUD and the party panel. HP is replaced by “(split: location)” only when <code>splitLoc</code> exists. On viewports at or below 768px, <code>index.html</code> hides the entire topbar <code>#hud-party</code>; that explains an absent topbar, but not one missing companion while others remain visible.</p>
+<div class="card note"><strong>Conclusion:</strong> Frizwick is correctly inside. Her reported missing HP is a genuine presentation question, but the save contains no data condition that should suppress it. It should be reproduced against the exact UI surface and viewport before assigning a cause. Do not move Frizwick or rewrite the scene based on this symptom.</div>
+
+<h2>7 · Causal ranking</h2>
+<div class="table-scroll"><table>
+<tr><th>Rank</th><th>Factor</th><th>Role</th></tr>
+<tr><td>1</td><td>Missing Daeris/Morwen split records, most likely the pre-v1.550 dies-at-birth bug</td><td><strong>Primary mechanism.</strong> It makes the authoritative state silently claim co-presence.</td></tr>
+<tr><td>2</td><td>No audit for a narrated separation whose record is absent</td><td><strong>Persistence mechanism.</strong> Existing audits only validate existing records.</td></tr>
+<tr><td>3</td><td>Membership/presence conflation in party sheets and scene manifest</td><td><strong>Amplifier.</strong> Multiple prompt and UI surfaces repeat the false default.</td></tr>
+<tr><td>4</td><td>“Wives” at t1462 and explicit Daeris instruction at t1463</td><td><strong>Trigger.</strong> The newest user text selects the wrong branch already authorized by state.</td></tr>
+<tr><td>5</td><td>t1466 summarization and NPC-location updates</td><td><strong>Fossilizer.</strong> The one-turn teleport becomes durable canon.</td></tr>
+<tr><td>Not causal</td><td>Morwen “moving outside”; Frizwick’s actual location</td><td>The transcript is coherent on both. The confusion comes from state/UI signals, not those movements.</td></tr>
+</table></div>
+
+<h2>8 · Recommended campaign repair (not performed)</h2>
+<ol>
+<li><strong>Choose whether Daeris’s arrival is a retcon or an error.</strong> The least disruptive continuity choice is to treat t1463–t1467 as erroneous with respect to Daeris: she remains at the inn. If her help must remain canon, add an explicit journey and door-opening explanation; “Message carried” alone cannot cover the travel.</li>
+<li><strong>Reassert the roster before continuing.</strong> Frizwick is with Ammut inside. Morwen is split outside the Spire seam-door. Daeris is split at the Magnimar inn. Drive that through explicit party-split state tags in a dedicated OOC reconciliation turn, then verify the resulting save before resuming fiction.</li>
+<li><strong>Prefer rewinding to t1462 if available.</strong> That removes the teleport before combat tags and the t1466 summary contaminate more memory. If no checkpoint exists, an explicit GM correction is still safer than letting both versions of Daeris persist.</li>
+<li><strong>Do not alter Frizwick’s location.</strong> Reproduce her HP display separately; her location and sheet are internally correct.</li>
+</ol>
+
+<h2>9 · Recommended engine hardening</h2>
+<h3>A. Detect missing transition obligations — TODO #137</h3>
+<p>After a response narrates a named party member staying behind, leaving, waiting outside, or otherwise changing threads, require a matching split mutation. Detection should be loud and neutral: queue a highest-authority engine note asking the GM to emit a split/rejoin tag or clarify that no separation occurred. The engine must not auto-place a character from prose.</p>
+
+<h3>B. Stop equating membership with physical presence</h3>
+<p>Party sheets, combat instructions, and <code>buildSceneManifest()</code> should derive scene presence through the same effective-location boundary as geography and UI. A split companion may remain a party member and retain a sheet without being described as “fighting alongside” or authorized as a local interaction target.</p>
+
+<h3>C. Retain mutation provenance long enough to diagnose field saves</h3>
+<p>Persist a compact recent record of emitted state tags and applied/ignored mutations, including why a tag was ignored or auto-rejoined. Had the t1443/t1457 responses retained that receipt, the purge-versus-non-emission fork would be decidable instead of inferred.</p>
+
+<h3>D. Add the two exact field sequences to the test suite</h3>
+<ul>
+<li>Daeris stays in an inn this response; the party departs on the next response.</li>
+<li>Morwen closes a threshold from outside while Ammut and Frizwick move into a new sub-location.</li>
+<li>A correct split survives, suppresses local combat authorization, and replaces vitals with split location.</li>
+<li>A deliberately missing split tag produces a visible correction obligation instead of silent phantom presence.</li>
+<li>Summarization does not overwrite an explicit remote location merely because the player names the remote companion.</li>
+</ul>
+
+<h2>10 · Final assessment</h2>
+<p>The campaign went off the rails in layers:</p>
+<ol>
+<li><strong>Historical state rot:</strong> Frizwick’s t1066 separation survived long after her t1068 reunion, later joined by stale Daeris/Morwen records.</li>
+<li><strong>Manual reset:</strong> the player repaired all three at t1431/t1432.</li>
+<li><strong>Immediate inverse relapse:</strong> Daeris’s t1443 and Morwen’s t1457 real separations left no durable records during versions vulnerable to the fresh-split purge.</li>
+<li><strong>Visible break:</strong> Daeris teleported at t1463 after plural player wording met false authoritative co-presence.</li>
+<li><strong>Canon contamination:</strong> t1464–t1467 combat and summary writes made the teleport self-reinforcing.</li>
+</ol>
+<p>So the answer to “when did it become a mess?” is: <strong>the location-state system first showed long-lived rot by t1265, was manually healed at t1431, diverged again at t1443, and became visibly wrong at t1463.</strong> The campaign’s story continuity is recoverable; the damaged surface is specifically party presence and the memory written downstream from it.</p>
+
+<div class="footer">Evidence: latest Downloads export <code>Rise_of_the_Runelords__Ammut__Ammut_t1467.tnd</code>; comparison exports t881, t1265, t1385, t1411, and t1431; transcript t1058–t1101, t1376–t1390, and t1427–t1467; reconstructed current prompt surfaces; <code>helpers.js</code>, <code>api.js</code>, <code>game.js</code>, <code>ui-panels.js</code>, <code>index.html</code>, and read-only <code>tag_table.js</code>. Investigation only. No game code, campaign save, or live state was changed.</div>
+</body>
+</html>
