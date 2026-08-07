@@ -3395,7 +3395,20 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1742375949&&d.length===18549)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section) */
+    return (__djb2(d)===1688903435&&d.length===18561)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye */
+  });
+  t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
+    // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
+    // entered the doc line, so the GM was never told it could award it. The list now DERIVES from
+    // SKILLS in tag_table.js; this guard pins the contract so a future literal rewrite can't rot.
+    var d=buildStateTagsDoc();
+    var m=d.match(/\[SKILL_SUCCESS:skill_id\][^(]*\(exact ids: ([^)]*)\)/);
+    if(!m)return "SKILL_SUCCESS exact-ids clause missing from the doc";
+    var listed=m[1].split(", ");
+    if(listed.length!==SKILLS.length)return "doc lists "+listed.length+" ids, SKILLS has "+SKILLS.length;
+    var i,have={};for(i=0;i<listed.length;i++)have[listed[i]]=1;
+    for(i=0;i<SKILLS.length;i++)if(!have[SKILLS[i].id])return "SKILLS id missing from the doc list: "+SKILLS[i].id;
+    return true;
   });
   t("coverage: every handler stripped; every stripped name handled or exempt-with-reason",function(){
     var have={},i;for(i=0;i<TAG_TABLE.length;i++)have[TAG_TABLE[i].t]=1;

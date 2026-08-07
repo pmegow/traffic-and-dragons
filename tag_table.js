@@ -90,7 +90,11 @@ var TAG_DOC_LINES=[
 "[FACTION:name|desc] -- register or update a faction, guild, order, or organisation (e.g. [FACTION:The Black Hand|criminal thieves guild controlling the docks]); use on first mention\n",
 "[NPC_FACTION:npcName|factionName|role] -- assign an NPC to a faction with their role (e.g. [NPC_FACTION:Zarith|The Black Hand|enforcer]); auto-registers the faction if unknown\n",
 "[FACTION_REL:faction1|faction2|relationship] -- relationship between two factions (e.g. [FACTION_REL:The Black Hand|City Watch|bitter enemies], [FACTION_REL:Merchant Guild|City Watch|uneasy allies])\n",
-"[SKILL_SUCCESS:skill_id] -- on a successful skilled action (exact ids: Jumping, Sprinting, Lifting, Grappling, Climbing, Swimming, Distance Running, Riding, Hold Breath, Endure Pain, Tolerate Alcohol/Drugs, Foraging, Cooking, Survival, Animal Handling, Navigation, Tracking, Arcana, Lore, Investigation, Nature, First Aid, Alchemy, Smithing, Handcraft, Persuasion, Deception, Intimidation, Performance, Trading, Stealth, Sleight of Hand, Lockpicking, Gambling, Perception, Insight)\n",
+// The exact-ids list DERIVES from SKILLS (data.js, loaded before this file) — hand-maintained it
+// rotted (v1.546: Explosives shipped in SKILLS but never entered the list, so the GM was never
+// told it could award it). SKILLS is load-time constant, so per-turn byte-identity (the cache
+// contract above) holds; the frozen doc hash + the bidirectional engine guard pin both halves.
+"[SKILL_SUCCESS:skill_id] -- on a successful skilled action (exact ids: "+SKILLS.map(function(s){return s.id;}).join(", ")+")\n",
 "[SKILL_SUCCESS:Tracking] covers both wilderness tracking (following prey or people by physical signs) and urban tailing (shadowing a mark through crowds, alleys, or city streets). Use WIS for reading the environment, INT for anticipating movement patterns.\n",
 "[CONDITION:name|duration|cause] [CONDITION_REMOVED:name] -- duration is descriptive (e.g. 'until antidote', 'saving throw each hour CON DC 15'); cause = what inflicted it (e.g. 'Reaper Spider bite') -- ALWAYS name the cause so the sheet carries the why\n",
 "[RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] -- entity=NPC or faction; descriptor=Allied/Rival/Wanted/Hunted/Indebted/Marked/Feared/etc.\n",
