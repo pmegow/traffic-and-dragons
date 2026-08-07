@@ -377,6 +377,165 @@ The Sealed Forge of the Kodars (active)
 - **2026-08-03 — save repaired** (`Rise_of_the_Runelords_t1411_REPAIRED.tnd`, delivered to the user's Downloads; copy in `testRuns/`): false tide futureEvent removed; the t1410 chapter's closing sentence rewritten to the truth (party departed the cave; no one below) in BOTH `memory.chapters` and the `worldState.eventHistory` copy. Verified: transcript/sessionLog/character/npcs byte-identical, no false-tail text remains anywhere in the save. **Second pass (user catch — the times themselves):** the #131 desync repaired in the same file — `world.time` "dawn" → `"evening"` and the clock advanced forward 6315 → 6480 (Day 5, 6:00 pm; the clockReconcilePhase arithmetic, matching the t1411 scene's "day worn thin" narrative), so the save re-enters play with the two time surfaces already agreeing instead of waiting for the GM's next mappable `[TIME:]` write. **Postscript (same night):** the user played on before importing and reported the contamination "solved itself" in play — the retcon exchange sat in the summarize window, so the machinery self-healed (the repaired file was never imported; it stays in `testRuns/` as the record). Row awaits normal field verification for the v1.537 code fixes.
 - **2026-08-03 — fixed, v1.537** (`/bugs act B21`, Fable-gated per drift policy): ① `buildScheduleEscalation` (api.js) now skips entries past `SCHEDULE_EXPIRE_MIN` — expire-before-escalate: a sweep-ripe entry never earns a narrate-the-consequence command (the go-live hole that caused this). ② `buildClockBlock` (clock.js) applies the same guard to HAPPENING NOW — a past-expiry entry can only exist at prompt time on the go-live/migration turn, and it is no longer served there. ③ geo "NPCs elsewhere" (api.js buildGeoBlock) excludes living NON-split party members (stale `lastSeenAt` lies about a companion walking with the party); split members keep their line. Test-first: 4 engine tests written failing (incl. the verbatim field note reproduced) → green, 1014 total; stable-half byte-identity suite green. NOT taken (recorded): the optional "moot if the person is with the party — CANCEL" clause in the escalation note text (minimal-change ruling; revisit if an escalate-band entry ever produces the same class). The truncation side-class is TODO #132.
 
+## B22 — GM turn request hung ~31 minutes on iPhone then died with the generic WebKit network failure — the B16 class recurs on v1.544, with the deliberately-unshipped transport retry implicated
+**Status:** new
+**Kind:** crash · **First seen:** 2026-08-04 (v1.544) · **Last seen:** 2026-08-04 (v1.544) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1436
+**Fingerprint:** `crash · turn · v1.544 · network: load failed`
+**Report ids:** 50a21723-56bd-4888-9ca8-6fe19f96a865
+**Screenshot URL:** —
+_Grounding (repo-side facts, not conclusions): same message/frame class as B16 (verified 2026-07-30) — WebKit's generic fetch rejection in callGM, not an HTTP status. New in this sighting: the crumb trail shows the request was ~1,893,483 ms (≈31.5 min) in flight before failing — a turn-start at +1425s and the failure at +3319s — which reads as a suspended/backgrounded tab whose radio dropped, not a quick connection reset. B16's verification note recorded the transport retry (its item ④) as deliberately unshipped and `lastAction`-survival as TODO Known issues #14; this row is field evidence for revisiting both._
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Network: Load failed
+
+callGM@https://traffic-and-dragons.pages.dev/api.js:1404:129
+(turn: story, 1893483ms in flight)
+
+--- diag ---
+session sbqj1el-2379 · report 1/10 · up 3319s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+  +956s turn-start t1435 4172ch bg0
+  +971s turn t1436 2218ch
+  +1425s turn-start t1436 1440ch bg0
+  +3319s turn-fail 1893483ms pre bg00 Network: Load failed
+PREVIOUS page (ended without unload — see B9):
+  +0s boot
+  +30s turn-start t1434 1127ch bg0
+  +48s turn t1435 2793ch
+```
+
+### Findings
+
+### Action log
+
+## B23 — Sync modal's Apply crashes updateHUD on a missing collection (`.length` of undefined) — caught from an agent-driven test browser at file://, no campaign loaded
+**Status:** new
+**Kind:** crash · **First seen:** 2026-08-07 (v1.546) · **Last seen:** 2026-08-07 (v1.546) · **Count:** 1 · **Campaign:** — · **Turn:** —
+**Fingerprint:** `crash · window.onerror · v1.546 · uncaught typeerror: cannot read properties of undefined (reading 'length')`
+**Report ids:** b7e36c56-3431-428a-95e6-601bad81aee6
+**Screenshot URL:** —
+_Grounding (repo-side facts, not conclusions): the stack is ui-modals.js:106 (the Sync modal's Apply handler) → syncUI → updateHUD (ui-panels.js:130), reading `.length` of something undefined. Provenance: the UA is the Claude desktop app's embedded Electron browser and the URL is `file:///…/dnd_rpg/index.html` on the user's own machine with no campaign/turn — i.e. an agent-driven verification session (v1.546 was live-verified by a Claude session that day), very likely on a partially-seeded state. Filed rather than skipped because the null-deref is in shipped code: any state where that collection is absent would crash the same way for a player using Sync ▸ Apply. The investigation should identify which collection ui-panels.js:130 reads and whether a real save can lack it (imports/legacy blobs), or whether only a hand-seeded state can._
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+
+file:///C:/Users/hannu/OneDrive/Documents/Projects/dnd_rpg/ui-panels.js:130:54
+TypeError: Cannot read properties of undefined (reading 'length')
+    at updateHUD (file:///C:/Users/hannu/OneDrive/Documents/Projects/dnd_rpg/ui-panels.js:130:54)
+    at syncUI (file:///C:/Users/hannu/OneDrive/Documents/Projects/dnd_rpg/ui-panels.js:40:128)
+    at HTMLButtonElement.<anonymous> (file:///C:/Users/hannu/OneDrive/Documents/Projects/dnd_rpg/ui-modals.js:106:107)
+    at <anonymous>:7:39
+    at <anonymous>:9:3
+
+--- diag ---
+session s6lndu4-4mh · report 1/10 · up 75s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s
+this page:
+  +0s boot
+PREVIOUS page (ended without unload — see B9):
+  +0s boot
+```
+
+### Findings
+
+### Action log
+
+## B24 — Suggested action offers overland travel to a distant road while the party stands in a flooded chamber beneath a tower — the B18 canon-violation class, geographic-connectivity variant
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-08-07 (v1.546) · **Last seen:** 2026-08-07 (v1.546) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1459
+**Fingerprint:** `user-report · user-report · v1.546 · how is "the north road" an option inside a tower?`
+**Report ids:** 2250fb28-080f-4996-9b1e-6aab9cc4dee1
+**Screenshot URL:** https://drive.google.com/file/d/1xRaUoIGwIC0jVS6zHVYOaNyW_ISYTTCg/view?usp=drivesdk
+_Grounding (repo-side facts, not conclusions): the state header places the party at Magnimar / The Spire — Hidden Stairwell (a sealed, flooded understair chamber per the exchanges), one round into combat aftermath with a second creature stirring — and the first suggestion shown was overland travel to "Varisia - North Road". The phrasing matches a map-node/edge name more than scene prose, which points the investigation at what the suggestion call receives from the GEOGRAPHY block (connected world locations / edges) versus the immediate scene; B18 (same class, NPC-reachability variant) is still Open with its own findings. Also visible in the raw response: the GM emitted [COMBAT_START:]+[ENEMY_SLAIN:] for a foe killed in the same breath and [COMBAT_ROUND:1] AFTER the slain tag — tag choreography worth a glance while in there, though the tracker auto-close machinery should absorb it._
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+How is “the north road” an option inside a tower?
+
+STATE: Ammut (Rogue Lv10) HP 82/82, 1739 gp — Magnimar / The Spire — Hidden Stairwell, dawn — turn 1459
+LAST EXCHANGES (clean text):
+[t1454 player] Steady my grip and try opening it with calm confidence.
+[t1455 GM · claude-sonnet-5] You pull your hand back, roll your bent-back nail against your thumb once to steady the sting, and set your fingers into the gap again, slower this time. No yanking. No treating it like a stubborn drawer. Just quiet, deliberate pressure, the kind of touch you'd use on a lock that knows more than you do.
+
+The seam gives all at once, not with a grind of stone but with something closer to a sigh, a long exhale of stale, cold air that smells like dust and old copper and something underneath that you can't quite name and don't love not being able to name. The door, thin as a coffin lid, swings inward on no visible hinge, and beyond it there's only dark, a stairwell curving down and away, swallowing what little grey daylight tries to follow it in.
+
+"Well," she says, quiet, staring into it like it might stare back. "That's in."
+
+Frizwick's signal comes down from the roofline again, a sharp double-tap against her own shoulder, the sign for *someone's watching the street, hurry it up.*
+[t1455 player] Wave Frizwick down from the roof to follow. Draw a blade and lead the way down.
+[t1456 GM · claude-sonnet-5] You throw the sign up, one clean sweep of the arm, *come down, come now*, and Frizwick doesn't hesitate, dropping off the roofline and down a drainpipe with the boneless efficiency of someone who's done it in worse weather than this. She lands soft, crosses the street at a jog, already scanning the seam-door like she's cataloguing exits before she's even through it.
+
+You draw a short blade, the weight of it familiar and calming in a way the crossbow never quite manages, and step into the dark first, because that's just who you are, apparently, even after ten years of people telling you it's a bad habit.
+
+The stairwell curves down tight and close, walls too smooth to be natural, cut by something that didn't need a torch to see by. Cold air breathes up at you, carrying that copper-and-dust smell stronger now, underneath it something faintly sweet that your stomach doesn't like at all. No sound from below. No light either, but your eyes are already adjusting to shapes in the gloom, worn stone steps spiraling down into whatever the Spire's been keeping to itself for ten thousand years.
+
+"Ammut." Her voice is pitched low, right behind your shoulder. "If this is another Fogscar, I'm char
+[t1456 player] We can go to therapy TOGETHER. Signal Morwen to seal the door behind them.
+[t1457 GM · claude-sonnet-5] "Together," you agree, low, not quite a joke. "Group rate."
+
+You throw a hand back toward the doorway without breaking stride, a flat closing gesture, thumb and fingers pinching shut. Morwen catches it in the grey light still leaking through the gap, gives one short nod, and steps back to the seam.
+
+"Sealing it doesn't mean locking us in," she says, mostly to herself, running her fingers along the stone edge to find the give again. "It means whatever's still out there in the district doesn't wander in behind us while we're busy not dying to something else."
+
+The door swings to on that same silent, hingeless motion, and the daylight narrows to a blade, then a thread, then nothing at all. Somewhere in the dark ahead of you, faint and directionless, something that might be dripping water starts up a slow, patient rhythm.
+
+"Lovely."
+[t1457 player] Move toward the dripping sound with blade ready.
+[t1458 GM · claude-sonnet-5] You move toward the sound, blade low and ready, boots finding the worn dip in the center of each step out of some old instinct the stone seems to expect. The dripping gets louder, then stops being dripping at all, resolving into something wetter and less rhythmic, more like something shifting its weight in standing water.
+
+The stairwell opens out below into a wider space, faint bioluminescent light bleeding up from somewhere unseen, pale blue-green, enough to make out shapes without making anything friendly. There's a floor down there, flooded shin-deep, and something pale is crouched at the edge of the water with its back to you, hunched wrong, shoulders too broad for how it's folded itself down.
+
+"Ammut," she breathes, right at your ear, blade already sliding free of its sheath without a sound. "Tell me that's a very large, very unfortunate dog."
+
+"It's not a dog."
+
+The thing at the water's edge goes still. Then, slow, deliberate, it starts to turn its head toward the stairs.
+[t1458 player] Message Morwen.  You're on silence duty.  Cast silence as soon as things get even a little noisy.   Signal Frizwick to flank while it's distracted. Sneak-attack the thing before it fully turns.
+[t1459 GM · claude-sonnet-5] You breathe the message out, barely more than intent given shape: *silence, the second it gets loud, you're on it.* Thirty feet and a stone door between you and Morwen is nothing to Message, and her reply comes back a half-second later, flat and steady even through the spell's thin channel: *heard. waiting.*
+
+You flick two fingers at Frizwick, wide arc, *go around*, and she peels off silent along the flooded chamber's near wall, keeping to the shadow the bioluminescence doesn't quite reach. The thing is still turning, slow, wrong, shoulder-first, giving you exactly the kind of opening you don't waste.
+
+You close the last of the distance in three strides, blade already committing before your brain's fully caught up with your body, and drive it in under the angle of that half-turned skull while it's still deciding what direction "danger" is coming from.
+
+The blade goes in clean, doubled with everything a perfect opening buys you, and the thing doesn't so much scream as *release*, a wet exhale that isn't quite sound, folding sideways into the shin-deep water with a splash that's somehow louder than anything it said while alive.
+
+"Well," she says, still flanking, blade up, scanning the
+NEWEST RAW GM RESPONSE (tags intact):
+You breathe the message out, barely more than intent given shape: *silence, the second it gets loud, you're on it.* Thirty feet and a stone door between you and Morwen is nothing to Message, and her reply comes back a half-second later, flat and steady even through the spell's thin channel: *heard. waiting.*
+
+[SPELL_USED:Message]
+
+You flick two fingers at Frizwick, wide arc, *go around*, and she peels off silent along the flooded chamber's near wall, keeping to the shadow the bioluminescence doesn't quite reach. The thing is still turning, slow, wrong, shoulder-first, giving you exactly the kind of opening you don't waste.
+
+You close the last of the distance in three strides, blade already committing before your brain's fully caught up with your body, and drive it in under the angle of that half-turned skull while it's still deciding what direction "danger" is coming from.
+
+[DICE:Attack roll (Sneak Attack)|20|critical success]
+
+The blade goes in clean, doubled with everything a perfect opening buys you, and the thing doesn't so much scream as *release*, a wet exhale that isn't quite sound, folding sideways into the shin-deep water with a splash that's somehow louder than anything it said while alive.
+
+[COMBAT_START:Pale Lurker|18|13|+5|2d6|hostile]
+[COMBAT_STATS:STR:14|DEX:12|CON:12|INT:6|WIS:10|CHA:6|CR:3]
+[ENEMY_SLAIN:Pale Lurker]
+
+[SAY:Frizwick]"Well," she says, still flanking, blade up, scanning the water like it owes her an apology, "that was almost disappointing."
+
+The splash echoes off wet stone, longer than it should, and somewhere deeper in the flooded dark, something else answers it, a slow, deliberate ripple moving against the current.
+
+[COMBAT_ROUND:1]
+SUGGESTED ACTIONS SHOWN: Press on toward Varisia - North Road. | Get eyes on what's making that ripple | Retreat toward the stairs to regroup
+```
+
+### Findings
+
+### Action log
+
 ## Completed
 
 _Every verified and ignored row lives inside this collapsible container, newest first._
