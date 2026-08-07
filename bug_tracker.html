@@ -66,6 +66,10 @@
   details{margin-top:10px;}
   summary{cursor:pointer;color:var(--dim);font-size:13px;}
   summary:hover{color:var(--acc);}
+  /* the Completed frame: the section heading IS the summary — h2 rendered inline so the
+     disclosure marker and the heading share one clickable line */
+  .done-frame>summary{display:list-item;}
+  .done-frame>summary h2.sect{display:inline-block;width:calc(100% - 26px);vertical-align:middle;margin:34px 0 14px;}
   pre.report{background:#0e0e0e;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
              font:12.5px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-word;
              max-height:420px;overflow:auto;margin:8px 0 0;}
@@ -312,8 +316,13 @@ function render(md){
   var root=document.getElementById("content");
   root.textContent="";
   var bugs=parseBugs(md);
-  var open=bugs.filter(function(b){return b.section==="open";});
-  var done=bugs.filter(function(b){return b.section==="completed";});
+  // Display grouping (user call 2026-08-07): FIXED rows join the Completed frame even though
+  // the FILE keeps them under Open until field-verified (the BUGS.md contract is unchanged —
+  // this is viewer-side grouping only, so a fixed row keeps its action buttons and moves back
+  // up automatically if its status ever regresses).
+  var isDone=function(b){return b.section==="completed"||b.status==="fixed"||b.status==="verified";};
+  var open=bugs.filter(function(b){return !isDone(b);});
+  var done=bugs.filter(isDone);
   document.getElementById("loadinfo").textContent=
     open.length+" open · "+done.length+" completed";
   // Accounted-for = any report id present ANYWHERE in the markdown — rows AND the Skipped ledger
@@ -325,9 +334,15 @@ function render(md){
   root.appendChild(el("h2","sect","Open ("+open.length+")"));
   if(!open.length)root.appendChild(el("div","note","No open bugs. Run /bugs sync in Claude Code to pull new reports."));
   open.forEach(function(b){root.appendChild(renderBug(b));});
-  root.appendChild(el("h2","sect","Completed ("+done.length+")"));
-  if(!done.length)root.appendChild(el("div","note","Nothing completed yet."));
-  done.forEach(function(b){root.appendChild(renderBug(b));});
+  // The Completed frame is a real collapsible (default closed) — the list is long-lived and
+  // read rarely; the count on the summary keeps it honest while folded.
+  var doneDet=el("details");doneDet.className="done-frame";
+  var doneSum=document.createElement("summary");
+  doneSum.appendChild(el("h2","sect","Completed ("+done.length+")"));
+  doneDet.appendChild(doneSum);
+  if(!done.length)doneDet.appendChild(el("div","note","Nothing completed yet."));
+  done.forEach(function(b){doneDet.appendChild(renderBug(b));});
+  root.appendChild(doneDet);
 }
 
 function load(){
