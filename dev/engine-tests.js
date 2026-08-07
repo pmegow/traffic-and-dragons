@@ -7815,6 +7815,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     for(var i=0;i<acts.length;i++)if(parseConfirmCommand(acts[i])!==null)return JSON.stringify(acts[i])+" consumed as "+parseConfirmCommand(acts[i]);
     return true;
   });
+  t("#77 L4: the unintelligible-input rule rides the stable half WITH its adjudicate-normally guard",function(){
+    makeWorld();
+    var s=buildSysPrompt().stable;
+    if(s.indexOf("UNINTELLIGIBLE INPUT")<0)return "rule missing from the stable half";
+    if(s.indexOf("ask what they meant")<0)return "the ask-in-fiction instruction is gone";
+    // The guard is load-bearing: without it this rule licenses refusing weird-but-valid
+    // actions, fighting the PLAYER-ACTIONS-ARE-INTENT rule it sits beside.
+    return s.indexOf("unusual but coherent action is NOT garble")>=0?true:"the adjudicate-normally guard is gone";
+  });
   t("sttLogEvent: ring buffer caps at STT_LOG_CAP, newest kept",function(){
     store.set(STT_LOG_K,"");
     for(var i=0;i<STT_LOG_CAP+5;i++)sttLogEvent({n:i});
