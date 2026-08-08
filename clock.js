@@ -268,6 +268,19 @@ function clockReconcilePhase(label){
   if(off>=ph.b0&&off<ph.b1)return 0;
   var delta=(ph.tgt-off+MIN_PER_DAY)%MIN_PER_DAY;
   if(delta===0)return 0;
+  /* #142 (the t1524 19-hour jump): a top-up that CROSSES DAWN (ph.tgt<off — the declared phase
+     already happened this engine-day) AND exceeds RECONCILE_SKIP_MIN is presumed a mislabel,
+     not a timeskip — the legitimate doors into tomorrow ([REST:long], explicit [TIME_ADVANCE:])
+     move the clock BEFORE this reconcile runs. Skip-and-DEMAND: keep the [TIME:] text (the GM's
+     declared narrative truth), roll nothing, arm the one-shot heal note (buildReconcileSkipNudge)
+     so a genuine forgotten-rest morning-after is corrected next turn instead of sticking. Honest
+     same-day skips (a day fishing until dusk) and small dawn-approaches (the night-owl 1am→dawn)
+     reconcile exactly as before. */
+  if(ph.tgt<off&&delta>RECONCILE_SKIP_MIN){
+    worldState.reconcileSkip={label:label,delta:delta,turn:worldState.turn||0};
+    if(typeof console!=="undefined")console.warn("[clock] reconcile SKIPPED — '"+label+"' is "+Math.round(delta/60)+"h ahead ACROSS dawn (phase already passed today); mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142)");
+    return 0;
+  }
   return clockAdvance(delta);
 }
 

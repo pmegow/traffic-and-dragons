@@ -340,6 +340,16 @@ function buildDeityDriftNudge(){
   worldState.deityDriftNudged[hit.who]=worldState.turn;
   return"[ENGINE NOTE — DEITY DRIFT (not a player action): "+hit.who+" now walks "+hit.al+", while their deity "+hit.deity+" favors "+hit.favors.join(" / ")+". Decide from the story whether the god has noticed: an omen, a cooling in granted power, a pointed dream — or no reaction YET if the story hasn't earned one. Never silently revoke abilities; if the rift ever becomes canon, show it in the fiction first.]";
 }
+// #142: the reconcile-skip heal note — the demand half of skip-and-demand (Direction-1 of the
+// adversarial review: skip-and-warn would turn the forgotten-rest morning-after into a stuck
+// clock; this note bounds that failure to one turn). One shot, 2-turn shelf.
+function buildReconcileSkipNudge(){
+  var s=worldState.reconcileSkip;
+  if(!s)return"";
+  if(worldState.turn-s.turn>2){worldState.reconcileSkip=null;return"";}
+  worldState.reconcileSkip=null;
+  return"[ENGINE NOTE — CLOCK LABEL MISMATCH (not a player action): you declared the time as '"+s.label+"', but that phase already passed this day — the clock was NOT advanced ("+Math.round(s.delta/60)+"h would have jumped to tomorrow). Resolve it now: if a night's sleep genuinely passed, emit [REST:long]; if days passed, emit [TIME_ADVANCE:Nd]; if it is actually still the same day, re-declare the correct time of day with [TIME:...]. Never restate elapsed totals yourself — the engine does all arithmetic.]";
+}
 // #137 fast path: commitGmTurn arms worldState.presencePing when the RAW response narrated a
 // stay-behind (detectStayBehind, helpers.js) with no [PARTY_SPLIT:] in the same response. One
 // shot, 2-turn shelf life (the recentSwitch pattern) — consumed on fire, expired silently.
@@ -697,7 +707,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

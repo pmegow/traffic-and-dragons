@@ -9377,6 +9377,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return buildDeityDriftNudge()===""?true:"fired for a non-divine class";
   });
 
+  // ── #142 — the reconciler's dawn-crossing skip-and-demand (the t1524 19-hour jump) ──────────
+  section("#142 — clock reconcile cap");
+  t("#142 the t1524 shape skips: dawn-crossing + >6h keeps the label, rolls nothing, arms the demand; same-day and small crossings still reconcile",function(){
+    makeWorld();
+    worldState.clock={min:5*1440+460,schedule:[]};worldState.turn=1524;worldState.reconcileSkip=null;
+    var add=clockReconcilePhase("mid-morning");                     // off 460, tgt 180: wraps dawn, +1160
+    if(add!==0)return "t1524 rolled anyway: +"+add;
+    if(!worldState.reconcileSkip||worldState.reconcileSkip.label!=="mid-morning")return "skip not armed for the demand note";
+    worldState.clock.min=5*1440+180;worldState.reconcileSkip=null;  // 9am dawn-relative
+    var fish=clockReconcilePhase("dusk");                           // +600 same-day: the fishing day
+    if(fish!==600)return "honest same-day sunset skipped: +"+fish;
+    worldState.clock.min=5*1440+1140;                               // ~1am
+    var dawn=clockReconcilePhase("dawn");                           // +300 crosses dawn but small: night-owl
+    if(dawn!==300)return "small dawn-approach skipped: +"+dawn;
+    return worldState.reconcileSkip===null?true:"legit rolls armed a phantom demand";
+  });
+  t("#142 the demand note fires once naming the label and the sanctioned doors, then clears; stale skips expire silently",function(){
+    makeWorld();worldState.turn=100;
+    worldState.reconcileSkip={label:"mid-morning",delta:1160,turn:100};
+    var n=buildReconcileSkipNudge();
+    if(n.indexOf("mid-morning")<0||n.indexOf("[REST:long]")<0||n.indexOf("[TIME_ADVANCE:")<0)return "demand incomplete: "+n.slice(0,120);
+    if(worldState.reconcileSkip)return "not consumed on fire";
+    worldState.reconcileSkip={label:"morning",delta:600,turn:90};   // >2 turns old
+    return buildReconcileSkipNudge()===""&&!worldState.reconcileSkip?true:"stale skip did not expire";
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned
@@ -9422,12 +9448,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // clock to it — forward-only, at the applyMuts tail (after TIME_ADVANCE/REST), with phase
   // BANDS so a consistent same-response pair no-ops. Unmappable free text is flavor only.
   section("#131 — time-phase reconciliation");
-  t("the exact field case: [TIME:dawn] at clock 6315 (3:15 pm) rolls forward to the next dawn", function(){
-    makeWorld(); clockAdvance(6315);
+  t("the #131 founding case, SUPERSEDED by #142: [TIME:dawn] at 3:15 pm now skips-and-demands instead of silently jumping 14.75h", function(){
+    // Original expectation (v1.531 era): roll +885m to next dawn. #142 (user-ruled after the
+    // t1524 19-hour jump): a dawn-crossing top-up >6h is presumed a MISLABEL — the same shape
+    // now resolves one turn later through the sanctioned door ([REST:long], demanded by the
+    // heal note) instead of an unattributed silent jump. The text write is unchanged.
+    makeWorld(); clockAdvance(6315); worldState.reconcileSkip=null;
     applyMuts("Morning light finds the inn. [TIME:dawn]");
     if(worldState.world.time!=="dawn")return "free text not stored: "+worldState.world.time;
-    if(clockNow()!==7200)return "clock not reconciled to next dawn: "+clockNow();
-    return clockTimeOfDay()==="6:00 am"?true:"wall clock wrong: "+clockTimeOfDay();
+    if(clockNow()!==6315)return "clock moved despite the #142 skip: "+clockNow();
+    if(!worldState.reconcileSkip)return "the heal demand was not armed";
+    applyMuts("You wake with the light. [REST:long]");/* the sanctioned door heals it */
+    return clockTimeOfDay()==="6:00 am"?true:"REST:long did not land on dawn: "+clockTimeOfDay();
   });
   t("in-band declarations no-op: [TIME:dawn] at dawn, and a consistent TIME_ADVANCE+TIME pair, never double-advance", function(){
     makeWorld(); clockAdvance(7200);

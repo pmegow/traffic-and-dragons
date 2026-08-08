@@ -27,7 +27,8 @@ var CONSUMABLE_RE=/\b(potion|elixir|draught|tonic|salve|poultice|scroll|charge|b
 var SPLIT_AUDIT_TURNS=10;   // #133 (t1431/B21 stale-split finding): a charSheet.splitLoc older than this (or LEGACY-unstamped — infinitely old, the #46 precedent) gets the buildSplitAudit neutral-fork note (rejoin or re-affirm); doubles as the per-member re-fire cooldown. Only [PARTY_SPLIT:] tags resolve it — the record never commands the story
 var PRESENCE_AUDIT_TURNS=12; // #137 (t1467 phantom-presence finding): every N turns the PRESENCE CHECK note asks the GM to confirm each WITH-party member is physically in the scene or emit [PARTY_SPLIT:] — the inverse of buildSplitAudit (which can only police records that EXIST). Deterministic: catches the Morwen class the stay-behind verb-watcher cannot
 var TAG_LOG_CAP=40;
-var DEITY_DRIFT_COOLDOWN=25; // #140③: at most one deity-drift nudge per character per this many turns — a god's displeasure is an arc, not a nag          // #137 provenance ring: recent per-response tag names + mutation labels kept ON THE SAVE (worldState.tagLog) so the next field forensics can decide emitted-then-purged vs never-emitted — the fork the t1467 investigation could not close
+var DEITY_DRIFT_COOLDOWN=25;
+var RECONCILE_SKIP_MIN=360; // #142: a clock reconcile that crosses DAWN and exceeds this is presumed a mislabel (skip-and-demand), never a timeskip — one word cost 19h at t1524 // #140③: at most one deity-drift nudge per character per this many turns — a god's displeasure is an arc, not a nag          // #137 provenance ring: recent per-response tag names + mutation labels kept ON THE SAVE (worldState.tagLog) so the next field forensics can decide emitted-then-purged vs never-emitted — the fork the t1467 investigation could not close
 var LOC_DESC_NUDGE_COOLDOWN=10; // #134 (t1431 multiplying-beds): while the party's current node has NO [LOCATION_DESC:] on file, buildLocationDescNudge re-demands one this often — re-fire, not one-shot (the #29 rot lesson); a filed description ends it permanently
 var LOC_STATE_CAP=3;        // #105 (B17): max durable state-change notes per map node — the record COMPRESSES (newest state is the truest state); overflow evicts the oldest loudly. Small on purpose: every note rides the volatile prompt every turn via the geo block or the changed-locations roll-up
 var CHANGED_LOC_MAX=10;     // #105: max locations shown in the always-present CHANGED LOCATIONS roll-up (most-recent-first); overflow renders a visible "+N more" line, never silent truncation
@@ -178,7 +179,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.562";
+var APP_VERSION="v1.563";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

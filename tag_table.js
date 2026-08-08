@@ -821,6 +821,7 @@ function applyMutsTable(text){
   if(R.timeText&&typeof clockReconcilePhase==="function"){
     var _trAdd=clockReconcilePhase(R.timeText);
     if(_trAdd>0)R.muts.push("Clock reconciled to '"+R.timeText+"' +"+_trAdd+"m → "+((typeof clockStamp==="function")?clockStamp():""));
+    else if(worldState.reconcileSkip&&worldState.reconcileSkip.turn===R.turn)R.muts.push("Clock reconcile SKIPPED — '"+R.timeText+"' crosses dawn ("+Math.round(worldState.reconcileSkip.delta/60)+"h); mislabel presumed, heal note queued (#142)");
   }
   // #133b (the church scenario): a split member whose recorded splitLoc IS the party's current
   // node is a contradiction in terms — "split off at the place you are". Fold them back
