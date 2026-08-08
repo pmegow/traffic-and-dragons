@@ -5364,7 +5364,7 @@ function runEngineTests(R){
     var v=buildSuggestionSys().volatile;
     if(v.indexOf("NEVER invent doors, exits, items, or people")<0)return "scenery fence lost";
     if(v.indexOf("OUT OF RANGE")<0)return "range fence lost";
-    return v.indexOf("JSON array")>=0?true:"output-format instruction lost";
+    return v.indexOf("JSON object")>=0?true:"output-format instruction lost";/* #141: array → {present,actions} object (the scene-check shape) — same guard intent, new format */
   });
   t("t833: concealment condition → CONCEALMENT CHECK data line in suggestion volatile; stable untouched",function(){
     makeWorld();
@@ -9275,6 +9275,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var v2=buildSysPrompt().volatile;
     var idl2=v2.slice(v2.indexOf("PLAYER IDENTITY"),v2.indexOf("\n",v2.indexOf("PLAYER IDENTITY")));
     return idl2.indexOf("professed")<0?true:"aligned stated/actual still renders tension: "+idl2;
+  });
+
+  // ── #141 — the in-call scene check (the driverless-cart phantom, field 2026-08-07) ──────────
+  // "Watch the driver's hands" offered at a cart with NO driver: a generic role noun no closed-
+  // vocabulary gate rule can test. Root mechanism = t833's "instant JSON with no checking space";
+  // the fix gives the model checking space IN the same call — output becomes
+  // {present:"...", actions:[...]} and unplaced entities are declared nonexistent.
+  section("#141 — suggestion scene check");
+  t("#141 parseSuggestionArray: the object shape yields its actions; fenced and prose-wrapped objects too; legacy arrays still parse",function(){
+    var a=parseSuggestionArray('{"present":"Ammut, Frizwick, a driverless cart","actions":["Search the cart bed","Check the horse\'s tack","Scan the rooftops"]}');
+    if(!(a instanceof Array)||a.length!==3||a[0]!=="Search the cart bed")return "object shape failed: "+JSON.stringify(a);
+    var b=parseSuggestionArray('Here you go:\n```json\n{"present":"just the cart","actions":["A","B","C"]}\n```');
+    if(!(b instanceof Array)||b[2]!=="C")return "fenced object failed: "+JSON.stringify(b);
+    var c=parseSuggestionArray('["Old","Array","Shape"]');
+    if(!(c instanceof Array)||c[1]!=="Array")return "legacy bare array broke: "+JSON.stringify(c);
+    var d=parseSuggestionArray('Sure! ["Wrapped","In","Prose"]');
+    return (d instanceof Array&&d[0]==="Wrapped")?true:"prose-wrapped array broke: "+JSON.stringify(d);
+  });
+  t("#141 parseSuggestionArray: an object WITHOUT an actions array is a failure, not a silent pass-through",function(){
+    try{var v=parseSuggestionArray('{"present":"nothing useful here"}');return "returned instead of throwing: "+JSON.stringify(v);}
+    catch(e){return true;}
+  });
+  t("#141 SUGGESTION_MODE_BLOCK: demands the present-first check, the object shape, and the unplaced-entities rule",function(){
+    if(SUGGESTION_MODE_BLOCK.indexOf('"present"')<0)return "the present field is not demanded";
+    if(SUGGESTION_MODE_BLOCK.indexOf("does not exist")<0)return "the unplaced-entities rule is gone (the driverless-cart class)";
+    return SUGGESTION_MODE_BLOCK.indexOf("JSON object")>=0?true:"output shape still says array";
   });
 
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────

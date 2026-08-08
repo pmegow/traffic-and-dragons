@@ -89,7 +89,8 @@ var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
  +"Suggest only actions involving people, objects, and exits explicitly present in the scene or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned.\n"
  +"Never suggest casting a spell or using an ability this character does not have, and never suggest a cast that exceeds a spell's canonical range or targets: a target in another building, street, or district — or anyone not present in the scene or whose current location is unknown — is OUT OF RANGE for a short-range spell.\n"
  +"A spell is a spice, not a default: at most ONE of the 3 suggestions may involve casting a spell or using a named ability — the other two must be mundane actions (move, hide, wait, talk, search, signal by hand).\n"
- +"Ignore the STYLE directive for this call. Output ONLY a valid JSON array of 3 strings, each under 10 words. No prose, no markdown, no backticks.";
+ +"Ignore the STYLE directive for this call. FIRST take stock: list who and what is ACTUALLY present in the scene right now — the people, creatures, and objects the narration has placed there. Then write the 3 actions, each referencing ONLY entities from that list or plain surroundings. A person or thing the narration has not placed in the scene (a driver, a guard, a shopkeep) does not exist — never aim an action at one.\n"
+ +"Output ONLY one valid JSON object, no prose, no markdown, no backticks: {\"present\":\"one line listing who and what is in the scene\",\"actions\":[\"...\",\"...\",\"...\"]} — exactly 3 actions, each under 10 words.";/* #141: the present field IS the checking space t833 proved the instant-JSON call lacks — the driverless-cart phantom (field 2026-08-07) */
 // t833 (2026-07-18) — the recurring Message-cantrip class (t355 cross-town range → t580 unlocated
 // target → t833 casting while INVISIBLE + an invented back exit). The un-starve (v1.288) put every
 // fact and fence in the prompt, and the reconstruction of the t833 call verified all of it present
@@ -157,11 +158,30 @@ function suggestionHistoryPairs(){
   }
   return out.join("\n\n");
 }
-// Tolerant array parse: the full-context prompt is prose-flavored, so accept a fenced or
-// prose-wrapped array too. Anything else throws into generateActions' quiet-removal path.
+// Tolerant parse. #141: primary shape is now the scene-check OBJECT {present, actions} — the
+// present line is the checking space the instant-JSON call lacked (t833 / the driverless-cart
+// phantom, field 2026-08-07) and is logged as field telemetry. Every legacy tolerance survives:
+// bare arrays, fenced/prose-wrapped payloads. An object without an actions array THROWS into
+// generateActions' quiet-removal path — never a silent pass-through.
 function parseSuggestionArray(resp){
   var txt=stripCodeFences(resp);
-  try{return JSON.parse(txt);}catch(e){var m=txt.match(/\[[\s\S]*\]/);if(!m)throw e;return JSON.parse(m[0]);}
+  function pick(v){
+    if(v instanceof Array)return v;
+    if(v&&typeof v==="object"&&v.actions instanceof Array){
+      if(typeof v.present==="string"&&v.present&&typeof console!=="undefined")console.info("[actions] scene check (#141): "+v.present.slice(0,160));
+      return v.actions;
+    }
+    return null;
+  }
+  var got=null;
+  try{got=pick(JSON.parse(txt));}catch(e){}
+  if(got)return got;
+  var mo=txt.match(/\{[\s\S]*\}/);
+  if(mo){try{got=pick(JSON.parse(mo[0]));}catch(e2){}}
+  if(got)return got;
+  var ma=txt.match(/\[[\s\S]*\]/);
+  if(ma)return JSON.parse(ma[0]);
+  throw new Error("no suggestion payload found in the response");
 }
 // ── #126: suggestion affordance gate ──────────────────────────────────────────────────────────
 // The t355 cross-town-Message class RECURRED in the field (2026-08-02: "Send Message to Ameiko
