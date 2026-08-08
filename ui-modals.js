@@ -389,7 +389,17 @@ function showQuestModal(){
     }
   }
   var arch=(memory&&memory.quests)?Object.keys(memory.quests).map(function(k){return memory.quests[k];}):[];
-  var histHtml="";for(i=0;i<arch.length;i++){var aq=arch[i];var clr=aq.status==="completed"?"var(--grn)":aq.status==="failed"?"var(--red)":"var(--t2)";var sym=aq.status==="completed"?"✓":aq.status==="failed"?"✗":"—";histHtml+="<div style='font-size:12px;color:var(--t2);padding:3px 0;'><span style='color:"+clr+";'>"+sym+"</span> "+escHtml(aq.title)+" <span style='font-size:10px;'>("+escHtml(aq.status)+")</span></div>";}
+  // History entries render like Active ones — desc + the objective checklist — but collapsed
+  // (user call 2026-08-07: a quest completing a few turns after its last objective reads as
+  // "WTH, how?" when History shows only a title; the checklist IS the how). archiveQuest has
+  // always kept desc/objectives; older or declined records may lack either — degrade to the
+  // old title-only line inside the summary, never break.
+  var histHtml="";for(i=0;i<arch.length;i++){var aq=arch[i];var clr=aq.status==="completed"?"var(--grn)":aq.status==="failed"?"var(--red)":"var(--t2)";var sym=aq.status==="completed"?"✓":aq.status==="failed"?"✗":"—";
+    histHtml+="<details style='padding:3px 0;'>"
+      +"<summary style='cursor:pointer;font-size:12px;color:var(--t2);'><span style='color:"+clr+";'>"+sym+"</span> "+escHtml(aq.title)+" <span style='font-size:10px;'>("+escHtml(aq.status)+(aq.turn?" · t"+aq.turn:"")+")</span></summary>"
+      +(aq.desc?"<div style='font-size:12px;color:var(--t2);margin:4px 0 0 16px;'>"+escHtml(aq.desc)+"</div>":"")
+      +"<div style='margin-left:16px;'>"+objList(aq)+"</div>"
+      +"</details>";}
   var body="";
   if(offeredHtml)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin:2px 0 8px;'>⚑ Opportunities</div>"+offeredHtml;
   body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);margin:14px 0 8px;'>Active</div>"+(activeHtml||"<div style='font-size:12px;color:var(--t2);font-style:italic;'>No active quests.</div>");

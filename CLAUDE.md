@@ -385,7 +385,7 @@ Quests are GM-emergent and **player-gated**. Live quests live in `worldState.que
 
 **Anti-drift:** `buildQuestBlock()` re-injects the authoritative ACTIVE (with objective checklists) + OFFERED blocks into every system prompt — the GM reads quest state from data each turn rather than from its own compressible memory, same pattern as the character sheet. A DEFAULT_RULES entry forbids inventing/renaming/dropping quests and auto-accepting. **Lifecycle teeth (#20):** in mature campaigns the lifecycle goes silent without them ([history](DOC/CLAUDE_HISTORY.md#10b-quest-lifecycle-teeth--the-t198-silence-20-v1172)) — `buildQuestBlock` adds ① a quest-specific "⚑ ALL OBJECTIVES COMPLETE — emit `[QUEST:title|completed]` with rewards, or add the next objective" instruction when every objective is done (deterministically detected), and ② a standing one-line "active crises ARE quests — register unlisted goals now" reminder (present even when the log is empty). Both in the volatile half. `openai.reinforce` includes the quest tags for non-Claude providers.
 
-**UI:** world-state sidebar shows quest titles + a `⚑ N opportunities` indicator; clicking opens `showQuestModal()` — Opportunities (Accept/Decline) · Active (☑/☐ objective lists) · History (completed/failed/declined from `memory.quests`).
+**UI:** world-state sidebar shows quest titles + a `⚑ N opportunities` indicator; clicking opens `showQuestModal()` — Opportunities (Accept/Decline) · Active (☑/☐ objective lists) · History (completed/failed/declined from `memory.quests` — collapsible entries carrying desc + the objective checklist, so a late completion explains itself).
 
 ### 11. Level-up system
 
