@@ -9303,6 +9303,37 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return SUGGESTION_MODE_BLOCK.indexOf("JSON object")>=0?true:"output shape still says array";
   });
 
+  // ── #143 — canon-boundary gate: suggestions may not name NEVER-INTRODUCED entities ──────────
+  // Field case t~1526: "Ask Morwen about Mokmurian's hold over the giant clans" — a blueprint-
+  // seeded villain dossier (met:0, author-voice knowledge) surfaced in a button. The user's
+  // ruling reframed the axis: the boundary is INTRODUCTION (named on screen ever), not meeting —
+  // planning against a heard-of General Zod is legitimate play. npc.introduced is a lazy stamp
+  // back-filled by a one-time transcript scan (the RAG backfill pattern); met is untouched.
+  section("#143 — suggestion canon boundary");
+  t("#143 the Mokmurian button: a NEVER-introduced seeded NPC in a suggestion rejects; the moment a transcript mention exists it passes and stamps",function(){
+    __gateWorld();
+    worldState.npcs.push({name:"Mokmurian",status:"",rel:"enemy",met:0,partyMember:false});
+    worldState.transcript=[{r:"gm",x:"Mist coils over the road. Morwen squints at the signpost.",t:5}];
+    var man=buildSceneManifest();
+    var bad=validateSuggestion("Ask Morwen about Mokmurian's hold over the giant clans",man);
+    if(!bad)return "the field button passed against a never-introduced dossier NPC";
+    if(bad.rule!=="unintroduced-entity")return "wrong rule: "+bad.rule;
+    worldState.transcript.push({r:"gm",x:"\"Mokmurian's not getting any less dead by us staying in the water,\" she says.",t:1263});
+    var ok=validateSuggestion("Ask Morwen about Mokmurian's hold over the giant clans",buildSceneManifest());
+    if(ok!==null)return "an INTRODUCED (heard-of) villain was rejected — the General Zod case: "+JSON.stringify(ok);
+    var rec=null;worldState.npcs.forEach(function(n){if(n.name==="Mokmurian")rec=n;});
+    if(!rec.introduced)return "the lazy introduced stamp was not written";
+    worldState.transcript=[];/* stamp must now carry it alone (no rescan) */
+    return validateSuggestion("Ask Morwen about Mokmurian's army",buildSceneManifest())===null?true:"the stamp did not persist past the transcript";
+  });
+  t("#143 present and party members are never gated; the mode block carries the spoiler line",function(){
+    __gateWorld();
+    var v=validateSuggestion("Ask Morwen about the wards",buildSceneManifest());
+    if(v!==null)return "a present companion false-rejected: "+JSON.stringify(v);
+    if(SUGGESTION_MODE_BLOCK.indexOf("SPOILER")<0&&SUGGESTION_MODE_BLOCK.indexOf("spoiler")<0)return "the spoiler line is missing from the mode block";
+    return true;
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned

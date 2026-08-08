@@ -89,6 +89,7 @@ var SUGGESTION_MODE_BLOCK="\n\n=== SUGGESTION MODE — THIS CALL ONLY ===\n"
  +"Suggest only actions involving people, objects, and exits explicitly present in the scene or the location description — NEVER invent doors, exits, items, or people the narration has not mentioned.\n"
  +"Never suggest casting a spell or using an ability this character does not have, and never suggest a cast that exceeds a spell's canonical range or targets: a target in another building, street, or district — or anyone not present in the scene or whose current location is unknown — is OUT OF RANGE for a short-range spell.\n"
  +"A spell is a spice, not a default: at most ONE of the 3 suggestions may involve casting a spell or using a named ability — the other two must be mundane actions (move, hide, wait, talk, search, signal by hand).\n"
+ +"Suggest only people, places, and facts the story has already surfaced on screen. The campaign outline's unrevealed names and plans are SPOILERS — never put one in a suggestion, no matter what the background material says about them.\n"
  +"Ignore the STYLE directive for this call. FIRST take stock: list who and what is ACTUALLY present in the scene right now — the people, creatures, and objects the narration has placed there. Then write the 3 actions, each referencing ONLY entities from that list or plain surroundings. A person or thing the narration has not placed in the scene (a driver, a guard, a shopkeep) does not exist — never aim an action at one.\n"
  +"Output ONLY one valid JSON object, no prose, no markdown, no backticks: {\"present\":\"one line listing who and what is in the scene\",\"actions\":[\"...\",\"...\",\"...\"]} — exactly 3 actions, each under 10 words.";/* #141: the present field IS the checking space t833 proved the instant-JSON call lacks — the driverless-cart phantom (field 2026-08-07) */
 // t833 (2026-07-18) — the recurring Message-cantrip class (t355 cross-town range → t580 unlocated
@@ -355,6 +356,37 @@ function validateSuggestion(text,man){
         break;
       }
     }
+  }
+  // ⑥ (#143, the Mokmurian button): a suggestion naming an entity the story has NEVER
+  // introduced. The axis is INTRODUCTION, not meeting (user ruling 2026-08-07: planning
+  // against a heard-of General Zod is legitimate play — one on-screen mention, ever, makes a
+  // name fair game forever). npc.introduced is a lazy stamp back-filled by a one-time
+  // transcript scan (the RAG backfill pattern); blueprint-seeded dossiers (met:0, no
+  // first-encounter, zero transcript presence) are exactly what this catches — their
+  // GM-eyes-only knowledge must never surface in a player-facing button before the story
+  // says the name. Present/party members short-circuit above via `present`.
+  for(j=0;j<npcs.length;j++){
+    var cbN=npcs[j];
+    if(cbN.dead)continue;
+    if(!new RegExp("\\b"+suggestionNameAlt(cbN.name)+"\\b","i").test(t))continue;
+    if(cbN.introduced)continue;/* stamped fair game */
+    // Record signals prove introduction without a scan: they only exist through lived play
+    // (tag registration, a first-encounter snippet, a map sighting) — and PRESENCE is
+    // introduction happening right now. Stamp durably in every case: narration-presence is
+    // transient (drops out of the last-entry window) but introduction is forever.
+    var cbMem=(typeof memory!=="undefined"&&memory.npcs&&memory.npcs[cbN.name])||{};
+    if(present[String(cbN.name).toLowerCase()]||cbN.met>0||cbMem.firstEncounter||cbMem.lastSeenAt){
+      cbN.introduced=worldState.turn||1;continue;
+    }
+    var cbFound=0,cbTr=worldState.transcript,cbNl=String(cbN.name).toLowerCase(),cbk;
+    if(cbTr instanceof Array){
+      for(cbk=0;cbk<cbTr.length;cbk++){
+        var cbx=cbTr[cbk]&&cbTr[cbk].x;
+        if(cbx&&String(cbx).toLowerCase().indexOf(cbNl)>=0){cbFound=cbTr[cbk].t||1;break;}
+      }
+    }
+    if(cbFound){cbN.introduced=cbFound;continue;}/* lazy backfill — scan once, stamped forever */
+    return {rule:"unintroduced-entity",detail:cbN.name+" has never been introduced in the story — outline material may not surface in a button before the narration says the name"};
   }
   // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
   // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.
