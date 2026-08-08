@@ -9334,6 +9334,49 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  // ── #140 ③ — alignment threshold consequences: the flip moment + the deity-drift nudge ──────
+  section("#140③ — alignment flip consequences");
+  t("#140③ a label flip files a defining moment (player and companion); an axis move without a flip files nothing",function(){
+    makeWorld();
+    var c=worldState.character;
+    c.statedAlignment="True Neutral";c.actualAlignment="True Neutral";c.alignLaw=0;c.alignGood=1;
+    var cs={name:"Daeris",cls:"Cleric",level:9,hp:50,maxHp:50,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[],
+      statedAlignment:"Lawful Good",actualAlignment:"Lawful Good",alignLaw:2,alignGood:2};
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"calm",charSheet:cs});
+    var pre=coreMemorySnapshot();
+    applyMuts("[ALIGNMENT:good+1]");                                  // 1→2 crosses: True Neutral → Neutral Good
+    applyMuts("[COMPANION_ALIGNMENT:Daeris|law-1]");                  // 2→1: Lawful Good → Neutral Good
+    detectCoreMoments(pre);
+    var mine=(c.coreMemories||[]).filter(function(m){return m.kind==="alignment";});
+    if(!mine.length||mine[0].text.indexOf("True Neutral")<0||mine[0].text.indexOf("Neutral Good")<0)return "player flip moment missing/wrong: "+JSON.stringify(mine);
+    var hers=(cs.coreMemories||[]).filter(function(m){return m.kind==="alignment"&&/Daeris/.test(m.text);});
+    if(!hers.length)return "companion flip moment missing";
+    var pre2=coreMemorySnapshot();
+    applyMuts("[ALIGNMENT:good+1]");                                  // 2→3: label stays Neutral Good
+    detectCoreMoments(pre2);
+    var after=(c.coreMemories||[]).filter(function(m){return m.kind==="alignment";});
+    return after.length===mine.length?true:"a non-flip axis move filed a moment";
+  });
+  t("#140③ deity drift nudge: a divine class off their god's grid fires once with a cooldown; aligned, custom-deity, non-divine, and combat are all silent",function(){
+    makeWorld();
+    var c=worldState.character;
+    c.cls="Cleric";c.deity=DEITY_MAP["Cleric"]["Lawful Good"];
+    c.statedAlignment="Lawful Good";c.actualAlignment="Neutral Evil";c.alignLaw=0;c.alignGood=-2;
+    worldState.turn=200;worldState.deityDriftNudged=null;
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5,ac:10,atk:1,dmg:"1d4",morale:"steady"}]};
+    if(buildDeityDriftNudge()!=="")return "not silent in combat";
+    worldState.combat=null;
+    var n=buildDeityDriftNudge();
+    if(n.indexOf("DEITY")<0||n.indexOf(c.deity)<0||n.indexOf("Neutral Evil")<0)return "nudge missing/incomplete: "+n.slice(0,120);
+    if(buildDeityDriftNudge()!=="")return "no cooldown — fires every turn";
+    worldState.deityDriftNudged=null;c.actualAlignment="Lawful Good";
+    if(buildDeityDriftNudge()!=="")return "fired while aligned with the deity";
+    c.actualAlignment="Neutral Evil";c.deity="The Whispering Way";   // custom deity — no grid to judge
+    if(buildDeityDriftNudge()!=="")return "fired on a custom deity the map cannot judge";
+    c.deity=DEITY_MAP["Cleric"]["Lawful Good"];c.cls="Rogue";
+    return buildDeityDriftNudge()===""?true:"fired for a non-divine class";
+  });
+
   // ── #134 — missing-interior-description nudge (the t1431 multiplying-beds class) ────────────
   // Field case: the Runelords inn room had ONE bed at t1413 and a "gap between beds" by t1431 —
   // its node had description=null (like 46 of the save's 50 sub-locations), so no canon pinned

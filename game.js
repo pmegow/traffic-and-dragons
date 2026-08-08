@@ -1060,10 +1060,10 @@ function sendSuggestedAction(btn,ev){
 // lesson: dual-homing is the drift class). Empty sheets render nothing — byte-identical prompt.
 function coreMemorySnapshot(){
   if(!worldState||!worldState.character)return null;
-  var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,rels:{},party:{}},i;
+  var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,align:c.actualAlignment||null,rels:{},party:{}},i;/* #140③: label pre-state for the flip moment */
   var rl=c.relationships||[];for(i=0;i<rl.length;i++){if(rl[i]&&rl[i].entity)snap.rels[rl[i].entity]=rl[i].descriptor;}
   var ns=worldState.npcs||[];for(i=0;i<ns.length;i++){var n=ns[i];
-    if(n&&n.partyMember)snap.party[n.name]={dead:npcIsDead(n),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null};}/* v1.439 (F1): flag+all death words, not just "dead" */
+    if(n&&n.partyMember)snap.party[n.name]={dead:npcIsDead(n),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null,align:n.charSheet?(n.charSheet.actualAlignment||null):null};}/* v1.439 (F1): flag+all death words, not just "dead" */
   return snap;
 }
 function fileCoreMemory(kind,who,text){
@@ -1115,12 +1115,19 @@ function detectCoreMoments(pre){
     if(preHp>th&&postHp<=th)fileCoreMemory("near-death",who,who+" was nearly slain"+foe+here+" ("+Math.max(0,postHp)+"/"+mx+" HP).");
   }
   cross(pre.hp,pre.maxHp,c.hp,c.maxHp,c.name);
+  /* #140③ (user go 2026-08-07): a LABEL flip is a defining moment — the person they are
+     changed on the record. Crossing semantics come free (labels only change at the ±2
+     thresholds); axis moves inside a label file nothing. */
+  function alignFlip(preAl,postAl,who){
+    if(preAl&&postAl&&preAl!==postAl)fileCoreMemory("alignment",who,who+"'s compass turned: "+preAl+" → "+postAl+here+".");
+  }
+  alignFlip(pre.align,c.actualAlignment,c.name);
   var seen={},ns=worldState.npcs||[];
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember)continue;seen[n.name]=1;
     var p=pre.party[n.name];
     if(!p){fileCoreMemory("party",n.name,n.name+" joined the party"+here+".");continue;}
     if(!p.dead&&npcIsDead(n)){fileCoreMemory("death",n.name,n.name+" died"+foe+here+".");continue;}/* v1.439 (F1): "slain" now fires the death moment */
-    if(n.charSheet)cross(p.hp,p.maxHp,n.charSheet.hp,n.charSheet.maxHp,n.name);
+    if(n.charSheet){cross(p.hp,p.maxHp,n.charSheet.hp,n.charSheet.maxHp,n.name);alignFlip(p.align,n.charSheet.actualAlignment,n.name);}
   }
   var preNames=Object.keys(pre.party);
   for(i=0;i<preNames.length;i++){if(!seen[preNames[i]])fileCoreMemory("party",preNames[i],preNames[i]+" parted ways with the party"+here+".");}

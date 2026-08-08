@@ -311,6 +311,35 @@ function buildPresenceAudit(){
   worldState.lastPresenceAudit=worldState.turn;
   return"[ENGINE NOTE — PRESENCE CHECK (not a player action): the tracker records these party members as WITH the player in the current scene: "+withParty.join(", ")+". For EACH one who is NOT physically present where you are narrating (stayed behind, waiting elsewhere, separated for any reason), emit [PARTY_SPLIT:Name|Location] or [PARTY_SPLIT:Name|Location|Sublocation] NOW — the record cannot heal itself, and an unrecorded separation eventually makes the engine assert their presence until the story breaks. If everyone listed is genuinely present, emit nothing.]";
 }
+// #140③ (user go 2026-08-07): the deity-drift nudge — a divine-class character whose ACTUAL
+// alignment has walked off their god's grid. State-based with a cooldown (the #29 lesson:
+// event-based teeth rot), judged ONLY against DEITY_MAP's own grid — a custom/homebrew deity
+// has no grid and is never judged. Descriptive and reversible: the GM decides whether the god
+// has noticed (an omen, a chill in granted power, a dream) — or has not, YET; never a silent
+// mechanical revocation. Covers the player and divine companions alike.
+function buildDeityDriftNudge(){
+  if(worldState.combat||typeof DEITY_MAP==="undefined")return"";
+  var latch=worldState.deityDriftNudged||{};
+  function check(sheet,who){
+    if(!sheet||!sheet.deity||!sheet.cls||!DEITY_MAP[sheet.cls])return null;
+    var al=sheet.actualAlignment||sheet.statedAlignment;
+    if(!al)return null;
+    var grid=DEITY_MAP[sheet.cls],mine=[],k,known=false;
+    for(k in grid){if(grid[k]===sheet.deity){known=true;if(k===al)return null;mine.push(k);}}
+    if(!known)return null;/* custom deity — no grid to judge */
+    if(latch[who]&&worldState.turn-latch[who]<DEITY_DRIFT_COOLDOWN)return null;
+    return {who:who,deity:sheet.deity,al:al,favors:mine};
+  }
+  var hit=check(worldState.character,worldState.character.name);
+  if(!hit&&typeof livingPartyCompanions==="function"){
+    var comps=livingPartyCompanions(),ci;
+    for(ci=0;ci<comps.length&&!hit;ci++)hit=check(comps[ci].charSheet,comps[ci].name);
+  }
+  if(!hit)return"";
+  if(!worldState.deityDriftNudged)worldState.deityDriftNudged={};
+  worldState.deityDriftNudged[hit.who]=worldState.turn;
+  return"[ENGINE NOTE — DEITY DRIFT (not a player action): "+hit.who+" now walks "+hit.al+", while their deity "+hit.deity+" favors "+hit.favors.join(" / ")+". Decide from the story whether the god has noticed: an omen, a cooling in granted power, a pointed dream — or no reaction YET if the story hasn't earned one. Never silently revoke abilities; if the rift ever becomes canon, show it in the fiction first.]";
+}
 // #137 fast path: commitGmTurn arms worldState.presencePing when the RAW response narrated a
 // stay-behind (detectStayBehind, helpers.js) with no [PARTY_SPLIT:] in the same response. One
 // shot, 2-turn shelf life (the recentSwitch pattern) — consumed on fire, expired silently.
@@ -668,7 +697,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
