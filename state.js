@@ -430,6 +430,10 @@ function healMemory(){
   if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];/* #144A */
   if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A */
   if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */
+  if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */
+  // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
+  // no-op that occupies a capped slot and reads as canon). Idempotent; each drop logs.
+  if(memory.map&&memory.map.nodes){var _jnk=Object.keys(memory.map.nodes),_jni;for(_jni=0;_jni<_jnk.length;_jni++){var _jnn=memory.map.nodes[_jnk[_jni]];if(_jnn&&Array.isArray(_jnn.stateNotes)&&_jnn.stateNotes.length){var _jnb=_jnn.stateNotes.length;_jnn.stateNotes=_jnn.stateNotes.filter(function(sn){return sn&&String(sn.n||"").trim()&&!/^none[.!]?$/i.test(String(sn.n).trim());});if(_jnn.stateNotes.length<_jnb)console.info("[map] #149: dropped "+(_jnb-_jnn.stateNotes.length)+" junk stateNote(s) on "+_jnk[_jni]);}}}
   // #144A: converge over-cap knowledge lists. Import/blueprint seeding could exceed the cap-12
   // (the live t1549 save carries Frizwick at 18), and the write-site shift sheds only 1/write —
   // an overfilled list stays overfilled forever, shedding one real-play fact per new fact.

@@ -1384,6 +1384,11 @@ function commitGmTurn(resp,opts){
   var _clkPre=(typeof clockNow==="function")?clockNow():null;/* #105b: pre-state for the per-turn time receipt */
   var _invPre=inventorySnapshot();/* #107: pre-state for the "what did I actually collect" toast */
   applyMuts(resp);
+  /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
+     a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
+     response's own combat close has no .fired flag and survives to fire next turn; a failed
+     provider call never reaches here, so the shot survives transport loss. */
+  if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   detectCoreMoments(_cmPre);stampNewConditions(_cnPre);stampRelationshipChanges(_rlPre);/* #40/#46/#61: AFTER applyMuts */
   toastInventoryGains(_invPre);/* #107: say what reached the sheet — silence means the tag never fired */

@@ -121,6 +121,23 @@ function condInjectFmt(x){
 // line, so an unchanged party renders byte-identically to the old shared list. A moment stamped
 // with a DIFFERENT campaign (an imported character's carried history) renders attributed to that
 // campaign — its turn number means nothing here.
+// #149 (drift pass order 5): the AFTERMATH CHECK — [LOCATION_STATE:] infrastructure was fully
+// built (#105/B17) and starving: 0 emissions in the last 40 live responses, 2 real notes across
+// 77 nodes lifetime. Doc-only tags starve; nudged tags comply (SAY 0→39/40, LOCATION_DESC 8%→
+// filed — the prompt-channel-beats-position class). Deterministic trigger: combat close stamps
+// worldState.pendingLocState with the fight's OWN node (recorded at COMBAT_START, so a
+// close+move response can't mis-anchor); this fires next turn ONLY while the party is still
+// there. Consumed at COMMIT (commitGmTurn), not at build — a failed provider call keeps the
+// shot. Departure clears silently: filing battlefield damage onto the wrong node is worse
+// than not filing it (Sol's mis-anchor hazard). Holds without consuming during a new fight.
+function buildLocationStateNudge(){
+  var p=(typeof worldState!=="undefined"&&worldState)?worldState.pendingLocState:null;
+  if(!p||!p.node)return"";
+  if(worldState.combat)return"";
+  if(typeof currentNodeKey==="function"&&currentNodeKey()!==p.node){delete worldState.pendingLocState;return"";}
+  p.fired=worldState.turn;
+  return "[ENGINE NOTE — AFTERMATH CHECK (not a player action): a fight just ended at "+p.node+". If it left DURABLE marks on this place (fire, wreckage, broken doors or walls, bodies, stains that will remain), record them now with [LOCATION_STATE:what changed] — one short factual phrase per durable change. If nothing durable changed, stay silent and emit nothing.]";
+}
 // #147 (drift pass order 4): a [RETCON:] de-indexes BOTH halves of a correction from RAG (by
 // design — the false version must never re-serve as episodic truth), which leaves the corrected
 // fact riding only the rolling session tail + one unverified extraction pass. This pin keeps the
@@ -724,7 +741,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

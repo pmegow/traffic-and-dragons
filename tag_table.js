@@ -446,7 +446,7 @@ var TAG_TABLE=[
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;
     var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
-    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe]};R.muts.push("Combat: "+foe.name);continue;}
+    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:(typeof currentNodeKey==="function"?currentNodeKey():null)};/* #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard) */R.muts.push("Combat: "+foe.name);continue;}
     var dup=null,di,fl=worldState.combat.foes;
     for(di=0;di<fl.length;di++){if(fl[di].name.toLowerCase()===foe.name.toLowerCase()&&!fl[di].down&&fl[di].hp>0){dup=fl[di];break;}}
     if(dup){console.warn("[combat] duplicate COMBAT_START for living foe '"+foe.name+"' ignored (re-emission)");continue;}
@@ -529,13 +529,14 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 // them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
 {t:"COMBAT_END",nc:1,apply:function(text,R){
   var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
-  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?currentNodeKey():null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
     if(f[i].down==="surrendered")surr=true;names.push(f[i].name);}
   if(anyUp||!f.length)return;
   propagateSlainFoes(R);/* B3: auto-close path — same stamp */
+  if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?currentNodeKey():null),turn:worldState.turn};/* #149: auto-close arms the same aftermath nudge */
   worldState.combat=null;
   R.muts.push(surr?"Combat: surrender ("+names.join(", ")+")":"Combat: victory ("+names.join(", ")+")");}},
 {t:"ABILITY_GAINED",apply:function(text,R){var abs=text.match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[];var abi;for(abi=0;abi<abs.length;abi++){var abp=abs[abi].match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!abp)continue;if(!worldState.character.abilities)worldState.character.abilities=[];var already=false,abj;for(abj=0;abj<worldState.character.abilities.length;abj++){if(worldState.character.abilities[abj].nm===abp[1]){already=true;break;}}if(!already){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},

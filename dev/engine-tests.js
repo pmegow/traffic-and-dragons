@@ -2108,6 +2108,64 @@ function runEngineTests(R){
     if(ns[0].n.indexOf("number 0")>=0||ns[0].n.indexOf("number 1")>=0)return "oldest survived the cap: "+ns[0].n;
     return ns[ns.length-1].n.indexOf("number "+(LOC_STATE_CAP+1))>=0?true:"newest missing";
   });
+  // ═══ DRIFT PASS order 5 (#149): the stateNotes sink stops evicting; combat aftermath gets a node-anchored nudge ═══
+  // Field grounding: [LOCATION_STATE:] emission was 0/40 recent responses and 2 real notes
+  // lifetime (the third was literally "none") against 77 nodes / 3,096 transcript entries —
+  // doc-only tags starve until they get a nudge channel (the SAY/#134 precedent).
+  t("stateNotes cap eviction archives to memory.archive.locationStates (#149)",function(){
+    makeWorld();var i;
+    for(i=0;i<LOC_STATE_CAP+1;i++){worldState.turn=40+i;applyMuts("[LOCATION_STATE:distinct durable change number "+i+" xyz"+i+"]");}
+    var a=memory.archive.locationStates;
+    if(!a||a.length!==1)return "evicted note not archived: "+JSON.stringify(a);
+    if(a[0].node!=="Ashfen"||a[0].note.indexOf("number 0")<0)return "wrong record archived: "+JSON.stringify(a[0]);
+    return true;
+  });
+  t("healMemory drops literal junk stateNotes — the live Sandpoint \"none\" (#149)",function(){
+    makeWorld();
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],stateNotes:[{n:"none",t:5},{n:"the chapel burned",t:9}]};
+    healMemory();
+    var ns=memory.map.nodes["Sandpoint"].stateNotes;
+    if(ns.length!==1||ns[0].n!=="the chapel burned")return "junk sweep wrong: "+JSON.stringify(ns);
+    return true;
+  });
+  t("combat close stamps pendingLocState at the FIGHT's node, not the post-move node (#149)",function(){
+    makeWorld();worldState.turn=50;
+    applyMuts("[COMBAT_START:Wolf|10|12|2|1d6|steady]");
+    applyMuts("[COMBAT_END:victory]");
+    var p=worldState.pendingLocState;
+    if(!p||p.node!=="Ashfen")return "explicit close did not stamp: "+JSON.stringify(p);
+    delete worldState.pendingLocState;
+    applyMuts("[COMBAT_START:Bear|8|12|2|1d6|steady]");
+    applyMuts("[ENEMY_HP:-8]");/* all foes down → auto-close */
+    if(!worldState.pendingLocState)return "auto-close did not stamp";
+    delete worldState.pendingLocState;
+    applyMuts("[COMBAT_START:Rat|4|10|1|1d4|skittish]");
+    applyMuts("The rat dies as you cross the bridge. [ENEMY_HP:-4][LOCATION:Greyford]");
+    if(worldState.pendingLocState&&worldState.pendingLocState.node!=="Ashfen")return "close+move stamped the DESTINATION — the mis-anchor hazard: "+JSON.stringify(worldState.pendingLocState);
+    return true;
+  });
+  t("a same-response [LOCATION_STATE:] suppresses the stamp — the GM already used the channel (#149)",function(){
+    makeWorld();worldState.turn=52;
+    applyMuts("[COMBAT_START:Wolf|10|12|2|1d6|steady]");
+    applyMuts("[LOCATION_STATE:scorch marks across the floor][COMBAT_END:victory]");
+    return worldState.pendingLocState?"stamp landed despite a filed note: "+JSON.stringify(worldState.pendingLocState):true;
+  });
+  t("buildLocationStateNudge: fires at the node, holds in combat, clears on departure, one-shot on commit (#149)",function(){
+    makeWorld();worldState.turn=60;
+    worldState.pendingLocState={node:"Ashfen",turn:59};
+    var n1=buildLocationStateNudge();
+    if(n1.indexOf("AFTERMATH CHECK")<0||n1.indexOf("Ashfen")<0)return "did not fire at the node: "+n1.slice(0,80);
+    if(!worldState.pendingLocState.fired)return "fired marker missing — commit could never consume";
+    if(buildLocationStateNudge().indexOf("AFTERMATH CHECK")<0)return "a failed turn's rebuild no longer re-fires";
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:5,maxHp:5}]};
+    if(buildLocationStateNudge()!=="")return "fired during a live fight";
+    if(!worldState.pendingLocState)return "combat hold consumed the shot";
+    worldState.combat=null;
+    worldState.world.location="Greyford";worldState.world.sublocation=null;
+    if(buildLocationStateNudge()!=="")return "fired at the WRONG node after departure";
+    if(worldState.pendingLocState)return "departure did not clear the pending — it would mis-anchor forever";
+    return true;
+  });
   t("buildGeoBlock serves the current node's changes beside the frozen description (sublocation included)",function(){
     makeWorld();worldState.turn=40;
     applyMuts("[LOCATION:Sea Cave]");/* establish the node — LOCATION_DESC stores only on a filed node (pre-existing) */

@@ -230,7 +230,7 @@ function fileLocationState(note,turn){
     }
   }
   node.stateNotes.push({n:txt,t:turn});
-  if(node.stateNotes.length>LOC_STATE_CAP){var ev=node.stateNotes.shift();console.warn("[map] "+key+" state notes over cap ("+LOC_STATE_CAP+") — evicted oldest: \""+ev.n+"\"");}
+  if(node.stateNotes.length>LOC_STATE_CAP){var ev=node.stateNotes.shift();memArchive().locationStates.push({node:key,note:ev.n,turn:ev.t});console.warn("[map] "+key+" state notes over cap ("+LOC_STATE_CAP+") — evicted oldest: \""+ev.n+"\" (archived, #149 — the prompt promises a durable change record)");}
   return true;
 }
 function fileLocationItem(name,action,turn){
@@ -293,7 +293,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
