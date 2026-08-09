@@ -3053,6 +3053,105 @@ function runEngineTests(R){
     return ragChapterRetrieve._misses===m0+1?true:"pool growth did not recompute";
   });
 
+  // ── 11c. #148 Phase 2 — ERAS: the third story-memory tier ────────────────────
+  section("#148 eras");
+  function _eraFill(n){
+    // n archived chapters, turns 10,20,30,…
+    memory.archive={lore:[],decisions:[],chapters:[]};
+    for(var i=0;i<n;i++)memory.archive.chapters.push({turn:(i+1)*10,summary:"Chapter "+(i+1)+" events unfolded."});
+  }
+  t("not due: fewer than ERA_CHAP_BATCH uncovered chapters and no act boundary → null",function(){
+    makeWorld();_eraFill(ERA_CHAP_BATCH-1);
+    return eraNextSources()===null?true:"compiled early";
+  });
+  t("batch boundary: ERA_CHAP_BATCH+1 uncovered → the OLDEST batch exactly",function(){
+    makeWorld();_eraFill(ERA_CHAP_BATCH+1);
+    var d=eraNextSources();
+    if(!d||d.boundary!=="batch")return "no batch cut: "+JSON.stringify(d&&d.boundary);
+    if(d.sources.length!==ERA_CHAP_BATCH)return "took "+d.sources.length+", want "+ERA_CHAP_BATCH;
+    return d.sources[0].turn===10&&d.sources[d.sources.length-1].turn===ERA_CHAP_BATCH*10?true:"not the oldest batch";
+  });
+  t("a stamped act completion cuts the era EARLY (acts win over the fixed batch)",function(){
+    makeWorld();_eraFill(10);
+    worldState.skeleton={premise:"p",acts:[{title:"A1",goal:"g",turningPoint:"tp",status:"completed",completedTurn:45,arcs:[]},{title:"A2",goal:"g",turningPoint:"tp",status:"active",arcs:[]}]};
+    var d=eraNextSources();
+    if(!d||d.boundary!=="act@t45")return "act boundary not used: "+JSON.stringify(d&&d.boundary);
+    if(d.sources.length!==4)return "took "+d.sources.length+" chapters, want 4 (turns 10-40)";
+    return d.sources[3].turn===40?true:"cut at the wrong chapter";
+  });
+  t("an act boundary with under ERA_MIN_CHAPTERS behind it is skipped, not compiled thin",function(){
+    makeWorld();_eraFill(10);
+    worldState.skeleton={premise:"p",acts:[{title:"A1",goal:"g",turningPoint:"tp",status:"completed",completedTurn:25,arcs:[]}]};
+    return eraNextSources()===null?true:"compiled a degenerate era: "+JSON.stringify(eraNextSources());
+  });
+  t("eraRecord: provenance turnRange chains from covered end; second era starts where the first stopped",function(){
+    makeWorld();_eraFill(ERA_CHAP_BATCH*2);
+    var d1=eraNextSources();
+    memEras().push(eraRecord("First era.",d1.sources));
+    var e1=memory.eras[0];
+    if(e1.turnRange[0]!==1||e1.turnRange[1]!==ERA_CHAP_BATCH*10)return "era 1 range wrong: "+JSON.stringify(e1.turnRange);
+    if(e1.sourceChapterTurns.length!==ERA_CHAP_BATCH||e1.sourceChapterTurns[0]!==10)return "era 1 provenance wrong";
+    var d2=eraNextSources();
+    if(!d2)return "second batch not due after the first compiled";
+    memEras().push(eraRecord("Second era.",d2.sources));
+    var e2=memory.eras[1];
+    return e2.turnRange[0]===ERA_CHAP_BATCH*10+1?true:"era 2 does not chain: "+JSON.stringify(e2.turnRange);
+  });
+  t("eraApplyCompileResp applies a valid response; malformed/empty responses throw and leave eras untouched",function(){
+    makeWorld();_eraFill(ERA_CHAP_BATCH);
+    var d=eraNextSources();
+    var threw=false;
+    try{eraApplyCompileResp("no json here at all",d);}catch(e){threw=true;}
+    if(!threw||memEras().length!==0)return "garbage response mutated eras";
+    threw=false;
+    try{eraApplyCompileResp('{"summary":"   "}',d);}catch(e2){threw=true;}
+    if(!threw||memEras().length!==0)return "empty summary mutated eras";
+    eraApplyCompileResp('{"summary":"The founding era."}',d);
+    return memEras().length===1&&memory.eras[0].summary==="The founding era."?true:"valid response not applied";
+  });
+  t("over-budget merge: two oldest fuse, provenance is the union, the rest survive",function(){
+    makeWorld();
+    memory.eras=[
+      {summary:new Array(ERAS_BUDGET_CHARS).join("a"),turnRange:[1,200],sourceChapterTurns:[10,20],compiledAt:5},
+      {summary:new Array(400).join("b"),turnRange:[201,400],sourceChapterTurns:[210,220],compiledAt:6},
+      {summary:"third",turnRange:[401,600],sourceChapterTurns:[410],compiledAt:7}
+    ];
+    if(!erasOverBudget())return "budget check missed an over-budget list";
+    eraApplyMergeResp('{"summary":"The merged early age."}');
+    if(memory.eras.length!==2)return "merge did not shrink the list: "+memory.eras.length;
+    var m=memory.eras[0];
+    if(m.summary!=="The merged early age.")return "merged summary wrong";
+    if(m.turnRange[0]!==1||m.turnRange[1]!==400)return "merged range wrong: "+JSON.stringify(m.turnRange);
+    if(m.sourceChapterTurns.join(",")!=="10,20,210,220")return "provenance union wrong: "+m.sourceChapterTurns.join(",");
+    return memory.eras[1].summary==="third"?true:"newer era lost in the merge";
+  });
+  t("[ACT_COMPLETE:] stamps completedTurn on the closing act (the era boundary signal)",function(){
+    makeWorld();worldState.turn=137;
+    worldState.skeleton={premise:"p",acts:[
+      {title:"A1",goal:"g",turningPoint:"tp",status:"active",arcs:[{title:"a",objective:"o",status:"completed"}]},
+      {title:"A2",goal:"g2",turningPoint:"tp2",status:"pending",arcs:[{title:"b",objective:"o2",status:"pending"}]}
+    ]};
+    applyMuts("[ACT_COMPLETE:A1]");
+    return worldState.skeleton.acts[0].completedTurn===137?true:"completedTurn not stamped: "+worldState.skeleton.acts[0].completedTurn;
+  });
+  t("ERAS block: \"\"-clean with no eras; renders oldest-first above STORY SO FAR; volatile only; stable byte-identical",function(){
+    makeWorld();worldState.eventHistory=["[T90] Recent things happened."];
+    var s0=buildSysPrompt();
+    if(s0.volatile.indexOf("ERAS")>=0)return "ERAS present with no eras compiled";
+    var stable0=s0.stable;
+    memory.eras=[{summary:"The age of founding.",turnRange:[1,200],sourceChapterTurns:[10],compiledAt:5},
+                 {summary:"The age of war.",turnRange:[201,400],sourceChapterTurns:[210],compiledAt:9}];
+    var s=buildSysPrompt();
+    if(s.stable!==stable0)return "stable changed when eras rendered";
+    if(s.stable.indexOf("ERAS")>=0)return "eras leaked into stable";
+    var iE=s.volatile.indexOf("ERAS —"),iF=s.volatile.indexOf("The age of founding."),iW=s.volatile.indexOf("The age of war."),iS=s.volatile.indexOf("STORY SO FAR");
+    if(iE<0)return "ERAS block missing from volatile";
+    if(!(iF<iW))return "eras not oldest-first";
+    if(!(iE<iS)||iS<0)return "ERAS not rendered above STORY SO FAR";
+    if(s.volatile.indexOf("[Era 1 — turns 1-200]")<0)return "provenance range label missing";
+    return s.volatile.slice(iE,iS).indexOf("override")>=0?true:"subordination framing missing from the ERAS block itself";
+  });
+
   // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
   section("summarize-tail retention (#28)");
   function pair(u,g){sessionLog.push({role:"user",content:u},{role:"assistant",content:g});}

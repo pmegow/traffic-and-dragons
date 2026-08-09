@@ -169,6 +169,18 @@ function buildRetconPinBlock(){
   }
   return "CORRECTION IN FORCE (t"+p.turn+"): "+p.what+" — the corrected telling is canon; the earlier version of that scene is void and must never be recalled as fact.\n\n";
 }
+// #148 Phase 2: the ERAS block — the campaign's completed epochs, compiled by compileEraIfDue
+// (memory.js) from ARCHIVED chapters. Always-on once eras exist (the passive "how did we get
+// here" context the retrieval gate structurally under-serves); ""-clean before the first era
+// compiles, so every existing save's prompt is byte-identical until then. VOLATILE half only,
+// rendered just above STORY SO FAR: eras are the deep past, chapters the recent past, in one
+// top-down read. Subordinated to current state like every history block (the drift guard).
+function buildErasBlock(){
+  if(typeof memory==="undefined"||!memory||!memory.eras||!memory.eras.length)return "";
+  var e=memory.eras,lines=[],i;
+  for(i=0;i<e.length;i++)lines.push("[Era "+(i+1)+" — turns "+e[i].turnRange[0]+"-"+e[i].turnRange[1]+"] "+e[i].summary);
+  return "ERAS — the campaign's earlier epochs, compressed from the full chapter record (oldest first; turn ranges are the provenance). Deep background: the CURRENT state blocks override anything here, and the STORY SO FAR chapters below are more recent than any era.\n"+lines.join("\n")+"\n\n";
+}
 function buildCoreMemoryBlock(){
   if(!worldState||!worldState.character)return"";
   var camp=worldState.campName||"",seen={},cur=[],prior=[],i;
@@ -931,6 +943,7 @@ function buildSysPrompt(){
       cbLines.push("Enemy: "+cf.name+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod);}
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
+  var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */
   var memToc=memoryTOC();
   // RAG episodic excerpts (#27 Phase 1) — "" unless worldState.ragMemory is on. VOLATILE
   // half ONLY: retrieval changes per turn and must never touch the cached stable block.
@@ -1060,7 +1073,7 @@ function buildSysPrompt(){
     +buildNpcGraph()
     +buildGeoBlock()
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
-    +cb+hist
+    +cb+erasBlock+hist
     +buildCoreMemoryBlock()
     +buildRetconPinBlock()/* #147: correction-in-force pin — volatile only, ""-clean when no pin lives */
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"

@@ -707,6 +707,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     for(_si2=0;_si2<_sk2.acts.length;_si2++){
       if(_sk2.acts[_si2].status!=="active")continue;
       _sk2.acts[_si2].status="completed";
+      _sk2.acts[_si2].completedTurn=worldState.turn;/* #148 Phase 2: era boundaries prefer act completions — additive stamp, nothing else reads it before eraNextSources */
       R.muts.push("Act complete: "+_sk2.acts[_si2].title);
       if(_si2+1<_sk2.acts.length){
         _sk2.acts[_si2+1].status="active";

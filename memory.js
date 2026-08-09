@@ -1056,6 +1056,108 @@ function fileChapter(turn,summary){
   worldState.eventHistory.push("[T"+turn+"] "+summary);
   if(worldState.eventHistory.length>8)worldState.eventHistory.shift();
 }
+// ── #148 Phase 2: ERAS — the third story-memory tier ─────────────────────────────────────────
+// Chapters compress the session; eras compress ARCHIVED chapters. The recall gate ruled the era
+// arm the always-on spine (zero confabulation across the run — the property an always-injected
+// tier must have; it carried the arc-scale questions the retrieval gate structurally misses).
+// Era records are provenance-stamped and REBUILDABLE: chapters are immutable, so a bad era can
+// always be re-compiled from its sourceChapterTurns (the launder-a-mistake objection answered).
+// WRITE SIDE lives here beside fileChapter; the read side is buildErasBlock (api.js, volatile).
+var ERA_CHAP_BATCH=20;      // fallback boundary: compile once this many archived chapters are uncovered
+var ERA_MIN_CHAPTERS=3;     // an act boundary cuts an era only with at least this many chapters behind it
+var ERAS_BUDGET_CHARS=4000; // ~1000 tok of era text — over it, maintenance merges the two OLDEST eras
+function memEras(){if(!memory.eras)memory.eras=[];return memory.eras;}
+function eraCoveredEnd(){var e=memEras();return e.length?e[e.length-1].turnRange[1]:0;}
+// The boundary rule, ruled 2026-08-08: skeleton act completions win where stamped (an arc can
+// straddle a fixed batch — Sol's objection); else every ERA_CHAP_BATCH archived chapters. Acts
+// completed before the completedTurn stamp existed (pre-v1.575 saves) simply fall through to
+// the batch rule. A stamped boundary with under ERA_MIN_CHAPTERS uncovered chapters is skipped
+// (no degenerate one-chapter eras — those chapters roll into the next era instead). Pure and
+// deterministic; returns {sources:[chapters], boundary:"act@tN"|"batch"} or null when not due.
+function eraNextSources(){
+  var arch=(memory.archive&&memory.archive.chapters)?memory.archive.chapters:[];
+  var end=eraCoveredEnd(),unc=[],i,j;
+  for(i=0;i<arch.length;i++){if(typeof arch[i].turn==="number"&&arch[i].turn>end)unc.push(arch[i]);}
+  if(!unc.length)return null;
+  var actTurns=[],sk=(typeof worldState!=="undefined"&&worldState)?worldState.skeleton:null;
+  if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){if(sk.acts[i].status==="completed"&&typeof sk.acts[i].completedTurn==="number"&&sk.acts[i].completedTurn>end)actTurns.push(sk.acts[i].completedTurn);}}
+  actTurns.sort(function(a,b){return a-b;});
+  for(i=0;i<actTurns.length;i++){
+    var upto=[];
+    for(j=0;j<unc.length;j++){if(unc[j].turn<=actTurns[i])upto.push(unc[j]);}
+    if(upto.length>=ERA_MIN_CHAPTERS)return {sources:upto,boundary:"act@t"+actTurns[i]};
+  }
+  if(unc.length>=ERA_CHAP_BATCH)return {sources:unc.slice(0,ERA_CHAP_BATCH),boundary:"batch"};
+  return null;
+}
+// Era record builder — call BEFORE pushing (turnRange starts where coverage currently ends).
+function eraRecord(summary,sources){
+  var st=[],i;for(i=0;i<sources.length;i++)st.push(sources[i].turn);
+  return {summary:String(summary||"").trim(),turnRange:[eraCoveredEnd()+1,st[st.length-1]],sourceChapterTurns:st,compiledAt:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0};
+}
+function erasOverBudget(){var e=memEras(),n=0,i;for(i=0;i<e.length;i++)n+=String(e[i].summary||"").length;return n>ERAS_BUDGET_CHARS&&e.length>=2;}
+// Merge the two OLDEST eras into one (the recursive over-budget compaction — bounded at any
+// campaign length because each merge halves the head of the list). Provenance is the UNION, so
+// rebuildability survives arbitrarily many merges.
+function eraApplyMerge(summary){
+  var e=memEras();if(e.length<2)return false;
+  var m={summary:String(summary||"").trim(),turnRange:[e[0].turnRange[0],e[1].turnRange[1]],sourceChapterTurns:e[0].sourceChapterTurns.concat(e[1].sourceChapterTurns),compiledAt:(typeof worldState!=="undefined"&&worldState)?worldState.turn:0};
+  memory.eras=[m].concat(e.slice(2));
+  return true;
+}
+// Prompt composers + response appliers — SYNC and pure-ish (appliers mutate memory.eras only on
+// a valid response; anything malformed throws and leaves memory untouched), split from the async
+// orchestrator so every decision is engine-testable without an API call — the applySummaryExtract
+// discipline. The prompts forbid invention outright: the recall gate measured the era arm's
+// zero-confabulation property as its shipping requirement — prefer omission over guessing.
+function eraCompilePrompt(sources){
+  var lines=[],i;for(i=0;i<sources.length;i++)lines.push("[t"+sources[i].turn+"] "+sources[i].summary);
+  return "Compress this sequence of RPG campaign chapter summaries into ONE era summary of at most 150 tokens (5-7 tight sentences). Keep: major plot movements, the named characters who mattered, decisive outcomes, permanent changes to people and places. Drop: scene detail, travel, color. NEVER state anything the chapters do not contain — prefer omission over guessing.\nCHAPTERS (oldest first):\n"+lines.join("\n")+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
+}
+function eraMergePrompt(eraA,eraB){
+  return "Merge these two consecutive RPG campaign era summaries into ONE era summary of at most 150 tokens. Keep only what still matters at campaign scale; NEVER state anything the eras do not contain.\nERA 1: "+eraA.summary+"\nERA 2: "+eraB.summary+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
+}
+function eraApplyCompileResp(resp,due){
+  var got=JSON.parse(repairModelJson(resp));
+  if(!got||!got.summary||!String(got.summary).trim())throw new Error("era summary empty");
+  memEras().push(eraRecord(got.summary,due.sources));
+  var _nr=memEras()[memEras().length-1];
+  if(typeof console!=="undefined")console.info("[memory] #148: era compiled ("+due.boundary+") — turns "+_nr.turnRange[0]+"-"+_nr.turnRange[1]+" from "+due.sources.length+" chapters ("+memEras().length+" eras total)");
+}
+function eraApplyMergeResp(resp){
+  var got=JSON.parse(repairModelJson(resp));
+  if(!got||!got.summary||!String(got.summary).trim())throw new Error("era merge summary empty");
+  eraApplyMerge(got.summary);
+  if(typeof console!=="undefined")console.info("[memory] #148: era text over budget — two oldest merged ("+memEras().length+" eras remain)");
+}
+// The maintenance orchestrator — fire-and-forget from summarize()'s success path. ONE model
+// call per invocation (a compile, or if none is due, an over-budget merge), so a summarize
+// cycle never stacks era work; the next cycle continues. Failure is LOUD and leaves memory
+// untouched — the era simply compiles on a later cycle (chapters are immutable, nothing is
+// lost by waiting).
+var _eraBusy=false;
+async function compileEraIfDue(){
+  if(_eraBusy)return;
+  var due=eraNextSources();
+  var mergeDue=!due&&erasOverBudget();
+  if(!due&&!mergeDue)return;
+  _eraBusy=true;
+  try{
+    if(due){
+      var resp=await callGM(eraCompilePrompt(due.sources),"You are a compression system. Output ONLY valid JSON. No prose, no markdown, no backticks.",600,null,{kind:"era",noHistory:true});
+      eraApplyCompileResp(resp,due);
+      saveMem();
+    }else{
+      var e2=memEras();
+      var resp2=await callGM(eraMergePrompt(e2[0],e2[1]),"You are a compression system. Output ONLY valid JSON. No prose, no markdown, no backticks.",600,null,{kind:"era",noHistory:true});
+      eraApplyMergeResp(resp2);
+      saveMem();
+    }
+  }catch(eErr){
+    if(typeof console!=="undefined")console.warn("[memory] #148: era compile failed ("+(eErr&&eErr.message?eErr.message:eErr)+") — memory untouched, retries after a later summarize");
+  }
+  _eraBusy=false;
+}
 // Files one extraction result into memory/worldState — split from summarize() so the filing
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
 // Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
@@ -1210,6 +1312,7 @@ async function summarize(){
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
     var _exStats=applySummaryExtract(extracted);
     retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
+    compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
