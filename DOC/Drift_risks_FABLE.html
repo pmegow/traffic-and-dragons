@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drift Risks — Fable audit (2026-08-08)</title>
+<style>
+  :root{
+    --bg:#131313; --panel:#181818; --ink:#d8d2c8; --dim:#8a857c; --acc:#b8935a;
+    --bad:#c25a5a; --warn:#c9a24a; --good:#7aa86a; --info:#6a8fa8;
+    --bad-fill:#221111; --warn-fill:#221d0e; --good-fill:#182215; --info-fill:#121a20;
+  }
+  html{background:var(--bg);}
+  body{margin:0 auto;max-width:960px;padding:28px 20px 80px;font:15px/1.55 Georgia,serif;color:var(--ink);background:var(--bg);}
+  h1{font-size:1.5em;color:var(--acc);margin:0 0 4px;}
+  h2{font-size:1.15em;color:var(--acc);border-bottom:1px solid #2a2a2a;padding-bottom:6px;margin-top:44px;}
+  h3{font-size:1.02em;color:var(--ink);margin:26px 0 8px;}
+  .sub{color:var(--dim);font-size:.9em;margin-bottom:26px;}
+  .lean{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em monospace;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.4);vertical-align:middle;}
+  .lean.bad{background:var(--bad-fill);border:1px solid var(--bad);}
+  .lean.warn{background:var(--warn-fill);border:1px solid var(--warn);}
+  .lean.good{background:var(--good-fill);border:1px solid var(--good);}
+  .lean.info{background:var(--info-fill);border:1px solid var(--info);}
+  .card{background:var(--panel);border:1px solid #262626;border-radius:10px;padding:16px 20px;margin:18px 0;}
+  .tldr{font-style:italic;color:#cfc6b5;border-left:3px solid var(--acc);padding:2px 0 2px 12px;margin:10px 0 14px;}
+  code{font:.86em Consolas,monospace;color:#c9b997;background:#101010;padding:1px 5px;border-radius:4px;}
+  pre{font:.82em/1.5 Consolas,monospace;color:#b9b2a4;background:#101010;border:1px solid #232323;border-radius:6px;padding:10px 14px;overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;font-size:.92em;margin:12px 0;}
+  th{color:var(--acc);text-align:left;border-bottom:1px solid #333;padding:6px 10px 6px 0;font-weight:normal;font-style:italic;}
+  td{border-bottom:1px solid #222;padding:6px 10px 6px 0;vertical-align:top;}
+  .angle{margin:10px 0;}
+  .angle b{color:var(--acc);font-weight:bold;}
+  .rank{color:var(--acc);font-weight:bold;}
+  .dim{color:var(--dim);}
+  ol,ul{padding-left:22px;}
+  li{margin:6px 0;}
+  a{color:#c9a86a;}
+  .ev{font-size:.93em;}
+</style>
+</head>
+<body>
+
+<h1>Drift Risks — where the anti-drift stack can still leak</h1>
+<div class="sub">
+  Fable audit · 2026-08-08 · engine v1.563 · written for the hardening-pass triage; a parallel audit by Sol
+  lands beside this file, and each will rebut the other.<br>
+  Instruments: code trace of the drift surface · the live save
+  <code>Rise_of_the_Runelords_Ammut_t1549.tnd</code> (t1549, 3,096 transcript entries, exported 2026-08-08)
+  · a longitudinal diff against the t1265 export (2026-07-30, 284 turns earlier) · the real system prompt
+  built headlessly from the t1549 state via <code>dev/load-engine.js</code> → <code>buildSysPrompt()</code>.
+</div>
+
+<h2>Method, and the discipline against over-finding</h2>
+<div class="card">
+<p>Every candidate had to survive <b>three validation angles</b> before it became a finding:</p>
+<ol>
+  <li><b>Mechanism</b> — the exact code path that produces the drift, quoted by file and line. No mechanism, no finding.</li>
+  <li><b>Field evidence</b> — the behavior demonstrated in the real t1549 save (or proven longitudinally against t1265). A mechanism that has never fired in 1,549 turns of real play is a theory, not a vulnerability.</li>
+  <li><b>Steelman against</b> — the strongest argument that this is <i>not</i> drift (deliberate design, another system already covers it, the loss is harmless). The finding ships only if the steelman loses, and the steelman's surviving points bound the stated severity.</li>
+</ol>
+<p>Ten candidates were <b>rejected</b> under this discipline; they are listed at the end with the evidence that killed them, so the hardening pass doesn't re-litigate them.</p>
+</div>
+
+<h2>The measured baseline (t1549, real pipeline)</h2>
+<div class="card ev">
+<p>The prompt actually built from this save: <b>stable ≈ 8,968 tokens</b> (cached), <b>volatile ≈ 16,899 tokens</b> per turn. Volatile composition, largest blocks:</p>
+<table>
+<tr><th>Block</th><th>~tokens</th><th>Note</th></tr>
+<tr><td>Inventory (one line, 107 items)</td><td>2,691</td><td>largest single block in the prompt — see Finding 4</td></tr>
+<tr><td>STORY SO FAR (8 chapter summaries)</td><td>1,952</td><td>spans t1524–t1545 only — see Finding 2</td></tr>
+<tr><td>ACTIVE NPC DETAILS</td><td>1,790</td><td>knowledge ≤12/NPC — see Finding 1</td></tr>
+<tr><td>PARTY MEMBERS CURRENTLY AWAY</td><td>922</td><td>2 of 3 companions split (#137 machinery, working)</td></tr>
+<tr><td>SPLIT THREADS</td><td>895</td><td></td></tr>
+<tr><td>PENDING EVENTS (12 future events)</td><td>780</td><td>see Finding 5</td></tr>
+<tr><td>GEOGRAPHY</td><td>597</td><td></td></tr>
+<tr><td>DEFINING MOMENTS</td><td>570</td><td>16 core memories — permanent tier, healthy</td></tr>
+<tr><td>LORE (scene-relevant, ≤12 of 30)</td><td>528</td><td></td></tr>
+<tr><td>ACTIVE QUESTS</td><td>314</td><td></td></tr>
+<tr><td>PAST SCENE EXCERPTS (RAG)</td><td>218</td><td>1 excerpt triggered for this scene</td></tr>
+<tr><td>CHANGED LOCATIONS roll-up</td><td>72</td><td>nearly empty — see Finding 3</td></tr>
+<tr><td>CAMPAIGN CLOCK</td><td>71</td><td></td></tr>
+</table>
+<p>Memory-tier census: live lore 30/30 (cap), decisions 30/30 (cap), chapters 10/10 (cap) — with
+<b>archive.lore&nbsp;633, archive.decisions&nbsp;706, archive.chapters&nbsp;206</b> evicted over the campaign's life.
+56 NPC memory entries; 8 of them hold exactly 12 knowledge facts (the cap), one (Frizwick) holds 18.</p>
+</div>
+
+<h2>Findings</h2>
+
+<!-- ═══════════════════════════ FINDING 1 ═══════════════════════════ -->
+<div class="card">
+<h3>Finding 1 — "Knowledge evicts to the void": per-NPC knowledge is the only memory tier that silently destroys canon, and NPC merges bulk-destroy it <span class="lean bad">severe</span></h3>
+<p class="tldr">The facts an NPC knows — the tier the whole alive-feeling-NPCs validation rests on — roll off a 12-item window straight into nothing, with no archive, no warning, and no relevance test; and the #128 duplicate merges, built to <i>heal</i> NPC memory, truncate the united history to 12 in the same silent way.</p>
+
+<p class="ev"><b>Evidence.</b> Longitudinal diff t1265 → t1549 (284 turns): <b>83 knowledge facts on file at t1265 are gone at t1549</b> — not superseded, not archived, not merged elsewhere; simply destroyed. Over the same window, lore lost <b>0</b> facts and NPC events lost <b>0</b> (both follow eviction-to-archive discipline). Among the destroyed: Morwen Zethran's <i>"Two carved entities exist a thousand miles apart, same design, older than Karzoug"</i> — a fact about the <b>currently active</b> Jorgenfist arc, evicted to make room for <i>"First time in days her hands and nerves have properly settled, in the bathhouse."</i> The merge amplification is starker: at t1265 Morwen's history was split across three keys holding ~36 facts total; after the #128 merges, exactly <b>12 survive</b> — the <code>[NPC_MERGE:]</code> handler concats the duplicate's knowledge then re-slices to 12 (tag_table.js:318), archive-less.</p>
+
+<div class="angle"><b>Angle 1 · mechanism:</b> memory.js:976 (summarize extraction) and memory.js:940 (supersede) cap via <code>knowledge.shift()</code> — the evicted fact goes nowhere. <code>fileNpcEvent</code> (memory.js:174) does the same to events at cap 8 via <code>slice(-8)</code>. Contrast memory.js:291–298: lore/decisions/chapters were <i>explicitly converted</i> from delete-the-oldest to evict-into-<code>memory.archive</code> ("P12: the caps used to DELETE… never vanishes"). NPC knowledge was left out of that pass. The merge site even documents the adjacent hazard in its own comment (the TODO#69 note about shift-based caps shedding 1/write) without touching the destruction itself.</div>
+<div class="angle"><b>Angle 2 · field:</b> the 83-fact longitudinal loss above, on the highest-value NPCs (the party's inner circle peg the cap first: Frizwick, Daeris, Morwen, Shalelu, Hemlock, Ameiko all at 12+). Frizwick's 18-entry list (over-cap since at least t1265, seeded above the cap by an import/blueprint path) shows the cap is also not an invariant — an over-cap list stays over-cap forever, shedding one real-play fact per new fact.</div>
+<div class="angle"><b>Angle 3 · steelman against:</b> "The GM still gets 12 facts per NPC, RAG can re-serve the origin scenes, and oldest-first eviction approximates least-relevant." The first two points bound severity (this is degradation, not blackout). The third is false on the evidence: extraction files trivia and plot-canon into the same FIFO window, so a bathhouse mood-beat evicts the campaign's central mystery. And RAG cannot compensate reliably — it re-serves <i>scene excerpts</i> when entity/location overlap triggers, not the distilled fact; the fact was distilled precisely because the scene alone doesn't carry it. Steelman loses; severity stays severe because the loss is silent, permanent, targets the most-developed NPCs by construction, and the healing tool (merge) makes it worse.</div>
+
+<p><b>Remedies, ranked:</b></p>
+<ol>
+  <li><span class="rank">1.</span> <b>P12 parity: evict to archive, everywhere knowledge/events shrink.</b> <code>memArchive().npcKnowledge.push({npc,fact,turn})</code> at all three shrink sites (both shift caps + the merge re-slice), with the merge case warning loudly ("merge truncated N facts — archived"). Cheap, mechanical, honest, and it makes remedy 2/3 and any future archive-mining tier possible. Nothing is lost ever again; injection behavior unchanged.</li>
+  <li><span class="rank">2.</span> <b>Importance-aware retention instead of FIFO.</b> Before shifting, prefer evicting facts with zero token overlap against active quests/arcs/schedule labels (deterministic, no model call — the #29 <code>feTokens</code> stemmer already exists); party members get a higher cap (e.g. 25, matching <code>CORE_MEMORY_CAP</code>'s per-sheet precedent). Fixes the bathhouse-evicts-the-mystery failure directly, at the cost of a new deterministic heuristic on the drift surface.</li>
+  <li><span class="rank">3.</span> <b>Summarize-time compaction.</b> When a list hits cap, hand the extractor the 12 facts and ask it to fold near-duplicates and demote stale ones (model judgment, one extra instruction in an existing call). Highest ceiling — the window gets denser, not just bigger — but it puts an LLM's judgment inside canon retention, the exact class the engine avoids; only worth it layered on top of 1.</li>
+</ol>
+</div>
+
+<!-- ═══════════════════════════ FINDING 2 ═══════════════════════════ -->
+<div class="card">
+<h3>Finding 2 — "The ten-chapter horizon": always-on narrative memory covers ~35 turns of a 1,549-turn campaign, and the archive that holds the rest is write-only <span class="lean warn">moderate-high</span></h3>
+<p class="tldr">The injected story spine is the last 8 chapter summaries (~t1524–t1545 at export time); the other 206 chapters live in an archive nothing ever reads, so the GM's only routes to Act 1 are capped per-NPC facts (Finding 1), 12 lore lines, 16 core memories, and RAG excerpts that fire only on entity overlap — arc-level history with no entity handle is unreachable and will be confabulated on demand.</p>
+
+<p class="ev"><b>Evidence.</b> <code>fileChapter</code> keeps 10 chapters (memory.js:914, overflow → <code>archive.chapters</code>, now 206) and <code>eventHistory</code> keeps 8 (memory.js:916) — that is the whole of STORY SO FAR (api.js:856, measured 1,952 tokens). Under the RAG diet the TOC's CHAPTER SUMMARIES section is deliberately dropped as duplicate. A repo-wide grep for <code>archive.</code> readers finds tests, the merge tool's rename fix-ups, and export — <b>no injection or retrieval path</b>; memory.js:295's own comment says a future tier "can mine the archive," i.e. aspirational. RAG's document set is GM transcript entries only — chapters and archives are not indexed.</p>
+
+<div class="angle"><b>Angle 1 · mechanism:</b> confirmed above — three caps (8/10/write-only archive) compose into a hard horizon. Nothing is deleted (P12 held), but nothing behind the horizon is servable.</div>
+<div class="angle"><b>Angle 2 · field:</b> at t1549 the spine spans 21 in-fiction turns of summaries. The campaign's Act 1 (Sandpoint, ~500 turns, the arc that produced 10 of the 16 defining moments) has zero chapter presence in any prompt. A player asking the GM (or an NPC) "how did we get here" gets an answer synthesized from 12 lore lines + whatever RAG happens to trigger — the confabulated-recall class that tail retention (#28) was built to kill at session scale, reappearing at campaign scale.</div>
+<div class="angle"><b>Angle 3 · steelman against:</b> "The t308 validation proved NPCs recall 100+-turn-old events; core memories, quests, and the skeleton carry the big beats; maybe chapters are redundant." Partly right — and it bounds severity below severe: character-level continuity genuinely does ride NPC facts + RAG + core memories, and act boundaries ride the skeleton. But the t308 validation ran at one-fifth this scale with 20× fewer archived chapters, and every carrier named is itself capped (knowledge 12 — Finding 1; lore 30; moments 25/sheet). The un-carried class is specific and real: <i>arc-shaped</i> history ("what did the trafficking network do across Act 2") has no entity key for RAG and no single fact-line home. The steelman survives as a scope limit, not a refutation.</div>
+
+<p><b>Remedies, ranked:</b></p>
+<ol>
+  <li><span class="rank">1.</span> <b>Era compression — a third summary tier.</b> When the archive accrues N chapters (say 20), one summarize-class call compresses them into a single era summary (~150 tokens) kept in a new always-injected ERAS block, recursively bounded (~10 eras even at t5000). This is the same move summarize() already makes at session→chapter scale, applied at chapter→era scale; cost is one extra API call per ~20 chapters. Bounded, always-on, answers the arc-shaped question directly.</li>
+  <li><span class="rank">2.</span> <b>Index archived chapters into RAG.</b> Stamp each chapter with the entity scan at archive time (the <code>ragEntitiesFromRaw</code> machinery exists) and let <code>ragRetrieve</code> score them alongside transcript entries, serving as "PAST CHAPTER" excerpts under the existing stale-chunk header. Cheap and read-side-only — but stays trigger-dependent, so it helps entity questions, not arc questions.</li>
+  <li><span class="rank">3.</span> <b>Raise the caps</b> (chapters 10→25, eventHistory 8→12). Trivial, buys ~2× horizon at ~1,500 extra volatile tokens/turn, and merely postpones the same wall — worth doing only as a stopgap alongside 1 or 2.</li>
+</ol>
+</div>
+
+<!-- ═══════════════════════════ FINDING 3 ═══════════════════════════ -->
+<div class="card">
+<h3>Finding 3 — "The unfed channel": <code>[LOCATION_STATE:]</code> infrastructure is complete and the GM essentially never emits it, so durable world changes still live only in evaporating prose <span class="lean warn">moderate</span></h3>
+<p class="tldr">The #105/B17 machinery (stateNotes, geo-block override, the always-present CHANGED LOCATIONS roll-up) is built, tested, and starving: zero emissions in the last 40 responses and 3 nodes carrying notes out of 77 in the whole campaign — so a place the story burned, sealed, or emptied is still re-served intact from its frozen description once the prose scrolls out of the summarize window.</p>
+
+<p class="ev"><b>Evidence.</b> The tagLog provenance ring (last 40 responses): <code>SAY</code> 39, <code>TIME_ADVANCE</code> 19, <code>DICE</code> 10 … <code>LOCATION_STATE</code> <b>0</b>. Campaign-lifetime: 3 nodes with stateNotes across 77 map nodes and 3,096 transcript entries — a campaign that includes a workshop assault, sealed Spire doors, and a trafficking network dismantled across two cities. The measured CHANGED LOCATIONS block: 72 tokens, near-empty. Adjacent context: sub-location descriptions exist for 10 of 56 nodes (#134's nudge shipped 2026-08-04 and heals go-forward only), so for most interiors the frozen-description override has nothing to override <i>or</i> be overridden by.</p>
+
+<div class="angle"><b>Angle 1 · mechanism:</b> the tag's only driver is its STATE TAGS doc line. This is the exact documented failure class — prompt-channel-beats-position — proven twice on this project: <code>[SAY:]</code> emission was ZERO until <code>buildSayComplianceNudge</code> gave it an engine-note channel (v1.449), and <code>[LOCATION_DESC:]</code> was 8% before #134's nudge. Every tag that got a nudge channel complies (SAY now 39/40); every tag left doc-only starves. LOCATION_STATE is the highest-stakes tag still doc-only.</div>
+<div class="angle"><b>Angle 2 · field:</b> the 0/40 and 3-nodes-lifetime numbers above; and the consequence is already on the incident record — the t1431 multiplying-beds forensics showed re-imagined interiors, and the #134 close note itself rated "furniture drift fully stops" only MODERATE confidence with this exact dependency open.</div>
+<div class="angle"><b>Angle 3 · steelman against:</b> "Maybe nothing durable changed in those 40 turns — city intrigue, shopping, planning — and 3 notes might be the honest count." For the 40-turn window this is plausible and softens the ring evidence. It cannot explain the lifetime rate: the campaign demonstrably changed places durably (the sealed seam-door at the Spire is in the #137 forensics record) and those changes have no notes. Severity stays moderate rather than severe because the failure needs a <i>return visit</i> after summarize-window decay to manifest, and the campaign currently revisits few changed sites.</div>
+
+<p><b>Remedies, ranked:</b></p>
+<ol>
+  <li><span class="rank">1.</span> <b>Post-combat one-shot nudge.</b> When an encounter closes at a node (COMBAT_END or auto-close), arm a one-shot engine note next turn: "if that fight left durable marks on this place, file [LOCATION_STATE:]; if not, stay silent." Deterministic trigger, targets the highest-yield class of change (violence), same one-shot-shelf pattern as <code>buildStayBehindNudge</code>, zero noise when nothing burned.</li>
+  <li><span class="rank">2.</span> <b>Fold into the #134 settle nudge.</b> The existing <code>buildLocationDescNudge</code> fires when settled at an undescribed node; extend it to also fire (with different text) at a <i>described</i> node the party has dwelt at N turns: "does the frozen description still match what the story has done here?" Reuses a proven builder and covers non-combat change (looting, construction), at the cost of periodic-noise risk the #134 cooldown already manages.</li>
+  <li><span class="rank">3.</span> <b>Destruction-verb watcher.</b> A <code>detectStayBehind</code>-style scanner for burn/collapse/seal/shatter verbs near the current location name in GM prose, arming the same one-shot nudge. Broadest coverage, but open-vocabulary detection is false-positive-prone (the sttCorrectNames lesson: designed catches are inseparable from FP classes) — third, not first.</li>
+</ol>
+</div>
+
+<!-- ═══════════════════════════ FINDING 4 ═══════════════════════════ -->
+<div class="card">
+<h3>Finding 4 — "One hundred and seven strings": the inventory is the largest block in the prompt and the only major state class with zero canon behind it <span class="lean warn">moderate</span> <span class="lean info">tracked · #81</span></h3>
+<p class="tldr">107 uncanonized item strings cost ~2,691 tokens every turn — the single largest volatile block, 8.5× the quest block — and because no item has recorded mechanics anywhere, what a potion, wand, or ring actually does is re-derived from its name on every use: the exact class the capability bible killed for spells, still fully open for items.</p>
+
+<p class="ev"><b>Evidence.</b> Measured from the real prompt build: Inventory ≈ 2,691 tokens vs ACTIVE QUESTS 314, CAMPAIGN CLOCK 71, CHANGED LOCATIONS 72 — the flat string list outweighs the three most load-bearing canon blocks combined by ~6×. 14 items carry parenthetical provenance ("(from Sheriff Hemlock)") as their only semantics. No duplicates by base name (the #50d fold discipline holds). #81 (item bible) is filed with its display-vs-GM-injection fork undecided; #82's tooltip surface already ships pointing at a data source that doesn't exist.</p>
+
+<div class="angle"><b>Angle 1 · mechanism:</b> items are plain strings in <code>character.inventory</code>; nothing anywhere records what one does. Anti-drift for spells/abilities works via per-turn canon re-injection (<code>buildSpellBibleBlock</code>); items have no equivalent, so the GM's belief about an item's power lives only in conversation momentum — the compressible, drift-prone place.</div>
+<div class="angle"><b>Angle 2 · field:</b> the token measurement above is the new, hard evidence; 107 items is also an attention hazard — load-bearing one-line canon (clock, changed-locations, party-size) shares a context window with a 10,700-character shopping list. (Direct field proof of an item contradicting itself across turns was not hunted in the transcript for this audit — the mechanism-plus-scale is asserted, the specific incident is not.)</div>
+<div class="angle"><b>Angle 3 · steelman against:</b> "Most of the 107 are narrative color; flavor items can't meaningfully drift; #81 already tracks the fix, so this is a duplicate." Fair on both edges — this finding deliberately ships as <i>evidence changing #81's priority and scope</i>, not as a new row. What the steelman can't dismiss: the measured cost is new information (nobody knew inventory was the largest block), and the consumable-class items (potions, oils, the alchemist's charges) are mechanics-bearing today with zero canon. The existing consumable nudge machinery (<code>buildConsumableNudge</code>) polices <i>quantity</i>, not <i>effect</i> — adjacent, not covering.</div>
+
+<p><b>Remedies, ranked:</b></p>
+<ol>
+  <li><span class="rank">1.</span> <b>Decide #81's fork as GM-injection, scoped to carried items.</b> Item bible + emergent overlay (the <code>[SPELL_DEF:]</code> write-once pattern as <code>[ITEM_DEF:]</code>), with a <code>buildItemBibleBlock</code> injecting canon for mechanics-bearing carried items only (consumables/wearables with effects — not every trophy). Kills the drift class at its root, the proven spell-bible shape; it's the drift-surface option, which is exactly why it's worth the Fable dance.</li>
+  <li><span class="rank">2.</span> <b>Shrink the surface: structured inventory.</b> Categorize on write (weapon/consumable/quest/treasure/mundane) and inject mundane/treasure as counts ("assorted travel gear ×23") with the full list available on demand via the sheet — reclaims ~2k tokens/turn and reduces the attention hazard without touching canon. Pairs naturally with the #6 stash when it lands.</li>
+  <li><span class="rank">3.</span> <b>Display-only bible</b> (#81's other fork): tooltips get real, prompt unchanged. Cheapest, off the drift surface — and it hardens nothing; the GM still re-derives effects. Only worth choosing if the fork ruling goes against injection.</li>
+</ol>
+</div>
+
+<!-- ═══════════════════════════ FINDING 5 ═══════════════════════════ -->
+<div class="card">
+<h3>Finding 5 — "Two calendars, one future": anticipated events live in two stores with different lifecycle rules, and the age-based expiry sweep is blind to whether a thread is still live <span class="lean info">low-moderate</span></h3>
+<p class="tldr">The same anticipated fact can sit in <code>memory.futureEvents</code> (auto-expires at 40 turns, by design) and <code>worldState.clock.schedule</code> (expires by in-fiction due time, with escalation) — at t1549 "Sable checks the workshop" is in both, one copy 0 turns from silent expiry while its twin is 1.6 in-fiction days from due and the Intercept-Sable quest is active; threads that land only in the expiring store die quietly at age 40 regardless of liveness.</p>
+
+<p class="ev"><b>Evidence.</b> From the save: futureEvent t1509 <i>"Sable or an agent of the network arrives to check on the silent workshop"</i> at age 40 (the <code>FUTURE_EXPIRE_TURNS</code> threshold — it expires at the next summarize) while <code>clock.schedule</code> holds <i>"Sable checks the workshop"</i> due at min 8930 and the quest is active. Eleven other pending events, ages 4–37, include slow-burn threads with no schedule twin and no quest anchor (<i>"Determine the significance of the empty child's glove"</i>, age 29) that will hit the same age wall mid-life.</p>
+
+<div class="angle"><b>Angle 1 · mechanism:</b> <code>expireFutureEvents()</code> sweeps on age alone — no check against active quests, arcs, or schedule labels. The two stores have separate writers (the summarize extractor / <code>[FUTURE_EVENT:]</code> vs <code>scheduleAdd</code>) and no cross-reference; which store a thread lands in is an accident of how the GM phrased it.</div>
+<div class="angle"><b>Angle 2 · field:</b> the live Sable pair above — a real, active-arc thread whose futureEvents copy dies this week while its schedule copy escalates. Expiry itself is provably firing in the field (the engine warns and archives to <code>expiredSchedules</code>/sweeps pending events; 12 pending is a healthy count, so the #29 hygiene is working as designed).</div>
+<div class="angle"><b>Angle 3 · steelman against:</b> "Expiry at 40 was a deliberate ruling (#29) against pile-up; the Sable instance loses nothing because the schedule twin and the quest both keep the thread in front of the GM; a stale mirror dying is hygiene, not drift." Mostly right — which is why this is the audit's lowest-severity finding. What survives: the ruling predates the campaign clock (#73); threads that exist <i>only</i> as a futureEvent (no schedule, no quest — the glove) get killed by age while genuinely unresolved, silently from the player's view, and the GM never gets to disagree. That is thread-drop drift, in a bounded class.</div>
+
+<p><b>Remedies, ranked:</b></p>
+<ol>
+  <li><span class="rank">1.</span> <b>Liveness guard on expiry.</b> Before expiring, token-overlap the event against active quest titles/objectives and live schedule labels (the <code>feTokens</code> stemmer again); a hit refreshes <code>setTurn</code> instead of expiring, loudly. Deterministic, no model, ~15 lines, kills the only harmful case while preserving the anti-pile-up ruling for genuinely orphaned events.</li>
+  <li><span class="rank">2.</span> <b>Expiry demotes to a one-shot GM question instead of silence.</b> An expiring event rides one engine note ("this pending thread aged out — resolve it, re-file it, or let it die"), then expires if unanswered. GM judgment where the engine can't know; costs one nudge per expiry and adds to the note-builder stack.</li>
+  <li><span class="rank">3.</span> <b>Unify the stores</b> — fold futureEvents into the clock schedule (every anticipated event gets a due time, possibly "unscheduled"). Architecturally cleanest end-state and the most disruptive: two writers, the extractor contract, and the TOC section all move; not worth it ahead of remedies 1–2 unless the clock work reopens anyway.</li>
+</ol>
+</div>
+
+<h2>Rejected candidates — examined and dismissed</h2>
+<div class="card ev">
+<p>Listed so the hardening pass doesn't re-find them; each died on at least one validation angle.</p>
+<table>
+<tr><th>Candidate</th><th>Why rejected</th></tr>
+<tr><td>NPC identity fragmentation recurring</td><td><span class="lean good">healthy</span> Zero containment-variant key pairs among 56 NPC entries at t1549 — the #128 variant scan + merges are working in the field. (Their side-effect is Finding 1's merge amplification.)</td></tr>
+<tr><td><code>[QUEST_STEP:]</code> text-matching creating duplicate objectives</td><td>No field instance: the three active quests carry 2/1/2 objectives, all clean. Mechanism exists; has not fired in 1,549 turns. Theory, not vulnerability.</td></tr>
+<tr><td>Unstamped relationship bonds escaping the #61 audit</td><td>Code check: <code>buildRelationshipAudit</code> lists <i>every</i> recorded bond each cycle; missing <code>.turn</code> renders "(long-standing)" and is still re-grounded. No gap.</td></tr>
+<tr><td>Clock integrity (schedule entries born <i>after</i> the current minute)</td><td>Explained: the sanctioned #142 console repair (<code>clock.min -= 1160</code>) ran on this save; countdowns recompute from the anchor and remain correct. Evidence of a repair, not a defect.</td></tr>
+<tr><td>XP drought (8,100 XP in 284 turns; L11 ≈ 470 turns away at this rate)</td><td>Pacing observation, not canon drift — nothing in the state contradicts anything. Worth a design glance only because the L11–20 class-bible content is near-unreachable at this award rate.</td></tr>
+<tr><td>Engine-note pileup (22 NOTE_BUILDERS, no per-turn arbitration)</td><td>Each builder is individually gated (cooldowns, one-shots, combat silence); no field evidence of a contention turn. Watch, don't fix.</td></tr>
+<tr><td><code>[LOCATION_DESC:]</code> write-once pinning a wrong first description</td><td>Deliberate design with a built correction channel (stateNotes) — the channel's starvation is Finding 3; a second finding here would double-count.</td></tr>
+<tr><td>NPC events cap-8 losing history</td><td>Longitudinal loss: zero events in 284 turns (extraction routes almost everything to knowledge; events barely fill). The cap-to-void <i>mechanism</i> is folded into Finding 1's remedy 1.</td></tr>
+<tr><td>Voice/speaker misbinding classes</td><td>Output-rendering drift, not canon drift; tracked (#93) with its own owner (Sol). Out of scope here by definition of the drift surface.</td></tr>
+<tr><td>Suggestion buttons leaking outline canon</td><td>The gate stack (#126/B24/#141/#143) is live and its telemetry shows it catching real rejections in this save's era; the residual (outline <i>detail</i> under introduced names) is already recorded in #143's close as the next class to watch. Nothing new to add.</td></tr>
+</table>
+<p>Also verified healthy while hunting: P12 archive discipline (0 longitudinal loss on lore/decisions/chapters) · alignment axes consistent with labels post-#139 (Ammut −3/0 = Chaotic Neutral ✓) · split-party records present with fresh audits (#137: both splits stamped t1536, audited t1546) · dead-NPC discipline (10 DECEASED, status-write refusal semantics) · futureEvents dedupe + honest-staleness expiry · SAY compliance 39/40 · transcript intact at 3,096 entries.</p>
+</div>
+
+<h2>Summary for the hardening pass</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>Finding</th><th>Severity</th><th>Recommended remedy</th><th>Effort</th><th>Drift surface?</th></tr>
+<tr><td>1</td><td>NPC knowledge evicts to the void; merges bulk-destroy</td><td><span class="lean bad">severe</span></td><td>Archive on eviction at all three shrink sites (P12 parity), merge warns loudly</td><td>S</td><td>Yes — Fable</td></tr>
+<tr><td>2</td><td>Ten-chapter story horizon; archive write-only</td><td><span class="lean warn">mod-high</span></td><td>Era-compression tier (chapters → eras, recursive, bounded)</td><td>M</td><td>Yes — Fable</td></tr>
+<tr><td>3</td><td>[LOCATION_STATE:] built but unemitted (0/40, 3 nodes ever)</td><td><span class="lean warn">moderate</span></td><td>Post-combat one-shot nudge (the proven SAY/#134 channel)</td><td>S</td><td>Yes — Fable</td></tr>
+<tr><td>4</td><td>107 uncanonized items = largest prompt block, zero item canon</td><td><span class="lean warn">moderate</span></td><td>Rule #81's fork as GM-injection scoped to carried mechanics-bearing items</td><td>M</td><td>Yes — Fable (rides #81)</td></tr>
+<tr><td>5</td><td>futureEvents expiry is liveness-blind; store bifurcation</td><td><span class="lean info">low-mod</span></td><td>Liveness guard: overlap vs active quests/schedule refreshes instead of expiring</td><td>S</td><td>Yes — Fable</td></tr>
+</table>
+<p class="dim">Findings 1 and 5 are near-pure engine mechanics with deterministic fixes; 3 reuses a proven pattern; 2 and 4 carry real design decisions. If the pass takes one thing: Finding 1 — it is the only place the engine is <i>actively destroying</i> canon today, every session, silently.</p>
+</div>
+
+<div class="sub" style="margin-top:40px">Fable · 2026-08-08 · instruments and raw numbers reproducible from the two .tnd exports in Downloads + <code>dev/load-engine.js</code>. Counterpart: Sol's parallel audit; rebuttal round to follow.</div>
+
+</body>
+</html>
