@@ -140,6 +140,11 @@ function scanNpcNameVariants(){
   var plNm=((worldState.character&&worldState.character.name)||"").toLowerCase();
   for(i=0;i<pairs.length;i++){
     var cn=pairs[i].canonical,dn=pairs[i].duplicate;
+    /* #156: provisional identities NEVER enter this queue — "Savah °t1530" token-contains
+       "Savah" by construction, so the scan would propose exactly the merge the provisional
+       exists to gate, through a channel with no same/distinct fork (dueling nudges). The
+       provisional's own nudge (buildProvisionalNudge) owns that decision. */
+    if(npcIsProvisional(cn)||npcIsProvisional(dn))continue;
     if(resolveNpcName(cn)===resolveNpcName(dn))continue;
     if(plNm&&(cn.toLowerCase()===plNm||dn.toLowerCase()===plNm))continue;
     var cw=(typeof wsNpcByName==="function")?wsNpcByName(cn):null,dw=(typeof wsNpcByName==="function")?wsNpcByName(dn):null;
@@ -161,12 +166,27 @@ function getNameSuggestions(count,peek){
   var surnames=NAMES.surnames||[];
   if(!firstNames.length)return[];
   if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
-  var result=[],n=count||10,idx=memory.nameIdx;
-  for(i=0;i<n;i++){
+  // #156 Phase A prevention seam: never serve a candidate sharing a distinctive token with an
+  // on-file npc key or alias — the pool itself served "Frizwick Coldwater" with Frizwick in the
+  // party, which is how the Savah collision class enters suggestion-shaped. Namespace-scoped to
+  // the npc domain only (Sol §6: a person, quest, and spell may all legitimately be called
+  // "Hope"; cross-domain token ownership is not identity). Filtered candidates are skipped, not
+  // logged — the window scans forward so the GM still gets a full list.
+  var onFile={},ok,ti;
+  if(memory.npcs){for(k in memory.npcs){
+    var kt=npcCoreTokens(k);for(ti=0;ti<kt.length;ti++)onFile[kt[ti]]=1;
+    var als=memory.npcs[k].aliases||[],ai;
+    for(ai=0;ai<als.length;ai++){var at=npcCoreTokens(als[ai]);for(ti=0;ti<at.length;ti++)onFile[at[ti]]=1;}
+  }}
+  var result=[],n=count||10,idx=memory.nameIdx,scanned=0,scanCap=n*8;
+  while(result.length<n&&scanned<scanCap){
     var first=firstNames[idx%firstNames.length];
     var last=surnames.length?surnames[(idx*7+3)%surnames.length]:"";
-    result.push(last?first+" "+last:first);
-    idx++;
+    var cand=last?first+" "+last:first;
+    idx++;scanned++;
+    var ct=npcCoreTokens(cand);ok=true;
+    for(ti=0;ti<ct.length;ti++){if(onFile[ct[ti]]){ok=false;break;}}
+    if(ok)result.push(cand);
   }
   if(!peek)memory.nameIdx=idx;
   return result;
@@ -293,7 +313,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */if(!memory.archive.identityMerges)memory.archive.identityMerges=[];/* #156: complete pre-images of every identity merge — reversible by construction (P12) */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),

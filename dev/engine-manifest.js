@@ -27,6 +27,7 @@ var ENGINE_MANIFEST = [
   { file: "storage-adapter.js",    sym: "storageAdapter" },
   { file: "memory.js",             sym: "resolveNpcName" },
   { file: "clock.js",              sym: "clockAdvance" },
+  { file: "identity.js",           sym: "IDENTITY_DOMAINS" },
   { file: "tag_table.js",          sym: "TAG_TABLE" },
   { file: "api.js",                sym: "buildSysPrompt" },
   { file: "table-talk.js",         sym: "ttMenuOutline" },

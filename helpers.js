@@ -79,6 +79,35 @@ function npcDeadStatus(status){var s=String(status||"");if(!s)return false;if(NP
 // server blob written by an OLDER app version mid-session (cross-device skew), where a companion
 // died with status-only. Same detection either way — never a second regex.
 function npcIsDead(n){return !!(n&&(n.dead||npcDeadStatus(n.status)));}
+// #156 Phase A: is this npc key a PROVISIONAL identity (the create-distinct collision outcome —
+// a suspect write parked in "Name °tN" so it never fuses into the established record)? The
+// record's .provisional stamp is the authority; the ° key pattern is the belt-and-braces
+// fallback for a record the stamp got stripped from (e.g. a hand-edited save). Never a second
+// detection elsewhere — the #128 scan, the merge alias-suppression, and the nudge all call this.
+function npcIsProvisional(name){
+  if(typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[name]&&memory.npcs[name].provisional)return true;
+  return / °t\d+$/.test(String(name||""));
+}
+// #156 Phase A: canonicalize a route name's endpoint pair to ONE fixed order (the #153 class:
+// "Varisia - North Road" carried two different roads because direction/endpoints lived only in
+// prose; an endpoint-ORDERED name re-fragments the moment the party travels it backwards —
+// Sol §7). Gated on route nouns so ordinary parentheticals are never rewritten; splits ONLY on
+// en/em dash or a SPACED hyphen, so hyphenated names ("Xin-Shalast", "Half-Sunk") stay whole.
+// Output always uses the en-dash form the NAMING clause teaches. Pure; callers are the
+// [LOCATION:] and [PARTY_SPLIT:] write boundaries (tag_table.js).
+var ROUTE_NOUN_RE=/\b(road|pass|trail|way|route|track|crossing|bridge|highway|causeway)\b/i;
+function normalizeEndpointPair(name){
+  var s=String(name==null?"":name);
+  var m=s.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+  if(!m||!ROUTE_NOUN_RE.test(m[1]))return s;
+  var inner=m[2],parts=inner.split(/\s*[–—]\s*/);
+  if(parts.length!==2)parts=inner.split(/\s+-\s+/);
+  if(parts.length!==2)return s;
+  var a=parts[0].trim(),b=parts[1].trim();
+  if(!a||!b)return s;
+  var flip=a.toLowerCase()>b.toLowerCase();
+  return m[1].trim()+" ("+(flip?b:a)+"–"+(flip?a:b)+")";
+}
 // AUDIT_FABLE_07_16 #6: THE party-companion scan — partyMember NPCs that carry a charSheet, in
 // worldState.npcs order. includeDead=true skips the dead filter: a handful of call sites
 // (restSpells, the [XP:] mirror, syncCharSheet, and the snapshot/consume passes) historically

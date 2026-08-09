@@ -3946,7 +3946,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==160043331||_CT_TAGS.source.length!==1058)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section) */
+    if(__djb2(_CT_TAGS.source)!==-330433611||_CT_TAGS.source.length!==1070)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section); re-baselined v1.581 (#156 Phase A): +12 = "ALIAS|"(6)+"MERGE|"(6) — the generalized identity pair; \[( anchoring keeps them from shadowing NPC_ALIAS/NPC_MERGE (strip test in the #156 section) */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4012,7 +4012,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===70603114&&d.length===20002)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye; re-baselined v1.576 (#81): +682 = the one ITEM_DEF doc line (player-CONFIRMED item-canon proposals — fork ruled 2026-08-08; proposal + TYPE-vs-INSTANCE clause guards in the #81 section). Golden diffed by eye */
+    return (__djb2(d)===953759051&&d.length===20259)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye; re-baselined v1.576 (#81): +682 = the one ITEM_DEF doc line (player-CONFIRMED item-canon proposals — fork ruled 2026-08-08; proposal + TYPE-vs-INSTANCE clause guards in the #81 section). Golden diffed by eye; re-baselined v1.581 (#156 Phase A): +257 = the one generalized [ALIAS:]/[MERGE:] doc line (domain-first identity pair + the pipe-refusal sentence — parse+strip+docs land together; clause tests in the #156 section). Golden diffed by eye */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -10803,6 +10803,256 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(src.indexOf("providerHttpError(")<0)return "callGM no longer calls providerHttpError — every caller is back to rendering a billing state as its own crash";
     if(/throw new Error\("HTTP "/.test(src))return "callGM still builds a raw HTTP error inline, bypassing the shared boundary";
     return true;
+  });
+
+  // ═══ #156 Phase A: THE IDENTITY LAYER — spine + npc domain ═══════════════════════════════
+  // Failing-first battery written BEFORE identity.js existed (drift-surface discipline).
+  // Fixture: the field-confirmed Savah class (t1593) — a history-rich armorer record that an
+  // introduction-shaped write must NEVER fuse into.
+  section("identity (#156 Phase A): registry, provisional records, generalized tags");
+  function makeIdWorld(){
+    memory=blankMemory();sessionLog=[];
+    worldState={ver:10,campId:null,campName:"Test",legacyCharsUsed:[],pendingLegacy:null,
+      character:{name:"Tess",gender:"F",age:"30",appear:"",mark:"",backstory:"",ancestry:"Human",subrace:"northlander",subraceNm:"Northlander",heritageVariant:"",
+        cls:"Warrior",stats:{STR:15,DEX:12,CON:14,INT:10,WIS:10,CHA:10},hp:14,maxHp:14,gold:25,
+        inventory:[],level:1,xp:0,abilities:[],spells:[],archetype:"",archetypeNm:"",
+        statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,deity:"",
+        trait:"",flaw:"",motivation:"",languages:[{name:"Common",broken:false}],skills:initSkills(),
+        conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true},
+      world:{location:"Magnimar",region:"Varisia",time:"dusk",weather:"clear",threat:"low",sublocation:null},
+      npcs:[],questLog:[],eventHistory:[],combat:null,turn:1530,transcript:[],ragMemory:false};
+    memory.npcs["Savah"]={attitude:"warm",knowledge:["sells blasting charges","armory on Church Street"],
+      events:[{turn:644,note:"sold the party blasting charges"}],aliases:[],lastSeenAt:"Sandpoint|Savah's Armory"};
+    worldState.npcs.push({name:"Savah",status:"",statusTurn:0,rel:"ally",met:644,partyMember:false,portrait:null,aliases:[]});
+    // the current world node exists, as it always does in real play (fileLocation on arrival) —
+    // without it mapNpcLocation's node gate skips the lastSeenAt stamp
+    memory.map.nodes["Magnimar"]={firstVisit:1500,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    return worldState;
+  }
+  t("IDENTITY_DOMAINS registry: exactly the Phase A domain set, uniform adapter shape",function(){
+    if(typeof IDENTITY_DOMAINS!=="object")return "IDENTITY_DOMAINS missing";
+    var ks=Object.keys(IDENTITY_DOMAINS).sort().join(",");
+    if(ks!=="capability,item,npc")return "Phase A ships npc+capability+item ONLY (location is Phase B; an accidental stub invites use): got "+ks;
+    var n=IDENTITY_DOMAINS.npc,f;
+    for(f=0;f<5;f++){var fn=["keys","resolve","tokens","merge","registerAlias"][f];if(typeof n[fn]!=="function")return "npc adapter missing "+fn+"()";}
+    if(!Array.isArray(n.namingRules)||!n.namingRules.length)return "npc namingRules missing";
+    if(IDENTITY_DOMAINS.capability.merge!==null||IDENTITY_DOMAINS.item.merge!==null)return "type domains must declare merge=null (normalization-collapse IS their semantics)";
+    return true;
+  });
+  t("resolveEntity: npc parity with resolveNpcName (exact, alias, consolidation, unknown); type domains normalize; unknown domain loud no-op",function(){
+    makeIdWorld();
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"",knowledge:[],events:[],aliases:["The Sheriff"]};
+    var probes=["Savah","The Sheriff","Hemlock","Total Stranger"],i;
+    for(i=0;i<probes.length;i++){
+      if(resolveEntity("npc",probes[i])!==resolveNpcName(probes[i]))return "npc parity broke on '"+probes[i]+"': "+resolveEntity("npc",probes[i])+" vs "+resolveNpcName(probes[i]);
+    }
+    if(resolveEntity("capability","Faerie Fire (racial, 1/day)")!==capBaseName("Faerie Fire (racial, 1/day)"))return "capability resolve is not capBaseName";
+    if(resolveEntity("item","Torch x3")!==itemBaseName("Torch x3"))return "item resolve is not itemBaseName";
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    var out;try{out=resolveEntity("starship","Enterprise");}finally{console.warn=ow;}
+    return out==="Enterprise"&&warned?true:"unknown domain must return the name unchanged WITH a loud warn (got '"+out+"', warned="+warned+")";
+  });
+  t("[ALIAS:npc|A|B] lands the identical end state as [NPC_ALIAS:A|B]",function(){
+    makeIdWorld();applyMuts("[NPC_ALIAS:Savah|The Armorer]");
+    var legacy=JSON.stringify([memory.npcs,worldState.npcs]);
+    makeIdWorld();applyMuts("[ALIAS:npc|Savah|The Armorer]");
+    var gen=JSON.stringify([memory.npcs,worldState.npcs]);
+    return gen===legacy?true:"generalized alias diverged from legacy";
+  });
+  t("[MERGE:npc|A|B] lands the identical end state as [NPC_MERGE:A|B] (modulo the pre-image archive)",function(){
+    makeIdWorld();memory.npcs["Savah the Armorer"]={attitude:"",knowledge:["fled a debt in Korvosa"],events:[],aliases:[]};
+    worldState.npcs.push({name:"Savah the Armorer",status:"",statusTurn:0,rel:"unknown",met:700,partyMember:false,portrait:null,aliases:[]});
+    applyMuts("[NPC_MERGE:Savah|Savah the Armorer]");
+    delete memory.archive;var legacy=JSON.stringify([memory.npcs,worldState.npcs]);
+    makeIdWorld();memory.npcs["Savah the Armorer"]={attitude:"",knowledge:["fled a debt in Korvosa"],events:[],aliases:[]};
+    worldState.npcs.push({name:"Savah the Armorer",status:"",statusTurn:0,rel:"unknown",met:700,partyMember:false,portrait:null,aliases:[]});
+    applyMuts("[MERGE:npc|Savah|Savah the Armorer]");
+    delete memory.archive;var gen=JSON.stringify([memory.npcs,worldState.npcs]);
+    return gen===legacy?true:"generalized merge diverged from legacy";
+  });
+  t("every [NPC_MERGE:] archives the duplicate's complete pre-image to memory.archive.identityMerges (P12 — reversible by construction)",function(){
+    makeIdWorld();memory.npcs["Savah the Armorer"]={attitude:"wary",knowledge:["fled a debt in Korvosa"],events:[{turn:700,note:"seen at the docks"}],aliases:["Armorer Savah"]};
+    var pre=JSON.stringify(memory.npcs["Savah the Armorer"]);
+    applyMuts("[NPC_MERGE:Savah|Savah the Armorer]");
+    var im=memory.archive&&memory.archive.identityMerges;
+    if(!im||!im.length)return "no identityMerges entry — the merge is irreversible";
+    var e=im[im.length-1];
+    if(e.domain!=="npc"||e.canonical!=="Savah"||e.duplicate!=="Savah the Armorer")return "entry mis-labeled: "+JSON.stringify([e.domain,e.canonical,e.duplicate]);
+    if(JSON.stringify(e.records.mem)!==pre)return "archived pre-image is not the duplicate's full pre-merge record";
+    makeIdWorld();applyMuts("[NPC_MERGE:Savah|Nobody On File]");
+    var im2=memory.archive&&memory.archive.identityMerges;
+    return (!im2||!im2.length)?true:"a no-op merge (unknown dupe) must not archive";
+  });
+  t("pipe refusal: a 4-operand [MERGE:] mutates NOTHING, warns loudly, and still strips from display",function(){
+    makeIdWorld();memory.npcs["Sandpoint"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    var pre=JSON.stringify([memory.npcs,worldState.npcs]);
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    var r;try{r=applyMuts("[MERGE:npc|Sandpoint|Sandpoint Bathhouse|Private Room]");}finally{console.warn=ow;}
+    if(JSON.stringify([memory.npcs,worldState.npcs])!==pre)return "a pipe-bearing operand MUTATED state — the exact Sol §5 hazard";
+    if(!warned)return "refusal was silent";
+    var ow2=console.warn,w2=false;console.warn=function(){w2=true;};
+    var vis;try{vis=cleanTxt("Done. [MERGE:npc|Sandpoint|Sandpoint Bathhouse|Private Room] Next.");}finally{console.warn=ow2;}
+    if(vis.indexOf("[MERGE")>=0)return "refused tag leaked to display";
+    return w2===false?true:"strip fell through to the unknown-tag catch-all (registry entry missing) — the refusal must be a KNOWN tag";
+  });
+  t("unmergeable domains refuse loudly: [MERGE:item|...] (merge=null) and [MERGE:faction|...] (not yet registered)",function(){
+    makeIdWorld();var pre=JSON.stringify([memory.npcs,worldState.npcs]);
+    var warns=0,ow=console.warn;console.warn=function(){warns++;};
+    try{applyMuts("[MERGE:item|Rope|Hemp Rope]");applyMuts("[MERGE:faction|Sczarni|The Sczarni]");}finally{console.warn=ow;}
+    if(JSON.stringify([memory.npcs,worldState.npcs])!==pre)return "an unmergeable domain mutated state";
+    return warns>=2?true:"refusals were silent ("+warns+" warns)";
+  });
+  t("PROVISIONAL RECORD (the Savah class ends here): an introduction-shaped write into a history-rich record lands in a NEW provisional identity; canonical byte-untouched",function(){
+    makeIdWorld();
+    var pre=JSON.stringify(memory.npcs["Savah"]);
+    applyMuts("[NPC:Savah|counting vials|unknown, not yet met]");
+    if(JSON.stringify(memory.npcs["Savah"])!==pre)return "CANONICAL RECORD MUTATED — the fusion happened anyway";
+    var key="Savah °t1530";
+    var p=memory.npcs[key];
+    if(!p)return "provisional record not minted under '"+key+"': keys="+Object.keys(memory.npcs).join(", ");
+    if(!p.provisional||p.provisional.of!=="Savah"||p.provisional.turn!==1530)return "provisional stamp wrong: "+JSON.stringify(p.provisional);
+    var wsP=wsNpcByName(key);
+    if(!wsP)return "no worldState roster entry for the provisional";
+    if(p.lastSeenAt!=="Magnimar")return "provisional lastSeenAt should stamp the CURRENT node (got "+p.lastSeenAt+")";
+    return true;
+  });
+  t("provisional immunity: party members, thin records, dead records, and ordinary relations never mint",function(){
+    makeIdWorld();
+    worldState.npcs[0].partyMember=true;
+    applyMuts("[NPC:Savah|smiling|unknown]");
+    if(memory.npcs["Savah °t1530"])return "minted for a PARTY member — companions get tagged constantly";
+    makeIdWorld();memory.npcs["Savah"].knowledge=[];memory.npcs["Savah"].events=[];
+    applyMuts("[NPC:Savah|smiling|unknown]");
+    if(memory.npcs["Savah °t1530"])return "minted over a THIN record — nothing worth protecting yet";
+    makeIdWorld();memory.npcs["Savah"].dead=900;worldState.npcs[0].dead=900;
+    applyMuts("[NPC:Savah|smiling|unknown]");
+    if(memory.npcs["Savah °t1530"])return "minted over a DEAD record — B3 owns dead-name writes (evidence-gated follow-up)";
+    makeIdWorld();
+    applyMuts("[NPC:Savah|smiling|ally]");
+    if(memory.npcs["Savah °t1530"])return "minted on an ordinary relation — the predicate must require an introduction-shaped write";
+    if(worldState.npcs[0].status!=="smiling")return "the ordinary write no longer lands on the canonical (parity broken)";
+    return true;
+  });
+  t("provisional cap: at PROVISIONAL_CAP outstanding, the next suspect write degrades LOUDLY to today's direct-write behavior",function(){
+    makeIdWorld();
+    var i;for(i=0;i<PROVISIONAL_CAP;i++){
+      memory.npcs["Filler "+i]={attitude:"",knowledge:["a","b"],events:[],aliases:[],provisional:{of:"Filler",turn:1000+i}};
+    }
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    try{applyMuts("[NPC:Savah|counting vials|unknown]");}finally{console.warn=ow;}
+    if(memory.npcs["Savah °t1530"])return "minted past the cap — runaway-model guard missing";
+    if(!warned)return "cap degrade was SILENT";
+    return worldState.npcs[0].rel==="unknown"?true:"the degraded write did not land on the canonical (status quo broken)";
+  });
+  t("buildProvisionalNudge: fires the same/distinct fork with exact tags; latch + cooldown; combat-silent without consuming; resolution ends it",function(){
+    makeIdWorld();
+    applyMuts("[NPC:Savah|counting vials|unknown]");
+    var key="Savah °t1530";
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:1,maxHp:1,ac:10,atk:0,dmg:"1",morale:"low"}]};
+    if(buildProvisionalNudge()!=="")return "fired mid-combat";
+    worldState.combat=null;
+    var note=buildProvisionalNudge();
+    if(note.indexOf("[NPC_MERGE:Savah|"+key+"]")<0)return "same-person fork tag missing from: "+note;
+    if(note.indexOf("[MERGE:npc|")<0)return "distinct-person fork tag missing";
+    if(buildProvisionalNudge()!=="")return "re-fired inside the cooldown (latch missing)";
+    worldState.turn+=PROVISIONAL_NUDGE_COOLDOWN+1;
+    if(buildProvisionalNudge()==="")return "did not re-fire after the cooldown — an unresolved provisional must keep asking";
+    applyMuts("[NPC_MERGE:Savah|"+key+"]");
+    worldState.turn+=PROVISIONAL_NUDGE_COOLDOWN+1;
+    if(buildProvisionalNudge()!=="")return "nudged after resolution";
+    if(memory.npcs[key])return "provisional record survived its merge";
+    var al=memory.npcs["Savah"].aliases;
+    if(al.indexOf(key)>=0)return "the ° key was registered as a permanent alias — provisional keys never recur in prose and must not pollute the alias table";
+    return memory.npcs["Savah"].knowledge.length>=2?true:"canonical lost facts in the fold";
+  });
+  t("NOTE_LATCH_FIELDS carries provisionalNudged — the suggestion call must not eat the nudge",function(){
+    return NOTE_LATCH_FIELDS.indexOf("provisionalNudged")>=0?true:"provisionalNudged missing from NOTE_LATCH_FIELDS — the #14 suggestion prompt build would consume the one-shot latch";
+  });
+  t("distinct-person resolution: [MERGE:npc|Vessa Thorn|<provisional>] renames — new canonical created, facts folded, canonical Savah untouched",function(){
+    makeIdWorld();
+    applyMuts("[NPC:Savah|counting vials|unknown, not yet met]");
+    var key="Savah °t1530",preSavah=JSON.stringify(memory.npcs["Savah"]);
+    applyMuts("[NPC_NOTE:"+key+"|mixes a resin-scented tonic]");
+    applyMuts("[MERGE:npc|Vessa Thorn|"+key+"]");
+    if(memory.npcs[key])return "provisional survived the rename-merge";
+    var v=memory.npcs["Vessa Thorn"];
+    if(!v)return "renamed canonical 'Vessa Thorn' was not created";
+    var hasNote=false,i;for(i=0;i<(v.events||[]).length;i++){if(String(v.events[i].note).indexOf("resin-scented")>=0)hasNote=true;}
+    if(!hasNote)return "the provisional's filed events did not fold into the new identity";
+    if((v.aliases||[]).indexOf(key)>=0)return "° key polluted the new identity's aliases";
+    return JSON.stringify(memory.npcs["Savah"])===preSavah?true:"the REAL Savah was disturbed by the rename";
+  });
+  t("#128 variant scan never proposes against a provisional key (its own nudge owns that fork)",function(){
+    makeIdWorld();
+    memory.npcs["Savah °t1500"]={attitude:"",knowledge:[],events:[],aliases:[],provisional:{of:"Savah",turn:1500}};
+    scanNpcNameVariants();
+    var q=worldState.pendingMergeHints||[],i;
+    for(i=0;i<q.length;i++){
+      if(String(q[i].canonical).indexOf("°")>=0||String(q[i].duplicate).indexOf("°")>=0)return "scan proposed a provisional pair: "+JSON.stringify(q[i])+" — dueling nudges";
+    }
+    return true;
+  });
+  t("suggestion pool stops serving on-file npc names (the 'Frizwick Coldwater' class), stays peek-pure, still fills the window",function(){
+    makeIdWorld();
+    var raw=getNameSuggestions(10,true);
+    if(!raw.length)return "empty pool — NAMES data missing";
+    var firstTok=npcCoreTokens(raw[0])[0];
+    memory.npcs[raw[0]]={attitude:"",knowledge:[],events:[],aliases:[]};
+    var idx0=memory.nameIdx;
+    var filtered=getNameSuggestions(10,true);
+    if(memory.nameIdx!==idx0)return "peek mutated the cursor";
+    if(filtered.length!==10)return "filter shrank the window ("+filtered.length+") — scan forward instead";
+    var i;for(i=0;i<filtered.length;i++){
+      var toks=npcCoreTokens(filtered[i]);
+      if(toks.indexOf(firstTok)>=0)return "on-file token '"+firstTok+"' still served: "+filtered[i];
+    }
+    var again=getNameSuggestions(10,true);
+    return JSON.stringify(again)===JSON.stringify(filtered)?true:"peek not stable across calls";
+  });
+  t("NAMING clause: constant, stable-half, assembled from adapter namingRules, carries the mechanism and the road convention",function(){
+    var c=buildNamingClause();
+    if(!c||c.indexOf("files everything by name")<0)return "the WHY is missing — the model must learn names are keys";
+    if(c.indexOf("Never give a new character")<0)return "the reuse prohibition is missing";
+    if(c.indexOf("(Magnimar–Sandpoint)")<0)return "the unordered road example is missing";
+    if(c.indexOf("[SUBLOCATION:]")<0)return "the parent-baked-name prohibition is missing";
+    if(buildNamingClause()!==c)return "clause is not call-stable";
+    var nr=IDENTITY_DOMAINS.npc.namingRules.join("");
+    if(!nr||c.indexOf(IDENTITY_DOMAINS.npc.namingRules[0])<0)return "npc namingRules do not assemble into the clause";
+    makeIdWorld();
+    var sys=buildSysPrompt();
+    if(sys.stable.indexOf(c)<0)return "clause is not in the STABLE half";
+    worldState.turn=9999;var sys2=buildSysPrompt();
+    return sys2.stable===sys.stable?true:"stable half stopped being campaign-constant — cache killed";
+  });
+  t("generalized tags are documented vocabulary: the STATE TAGS doc carries the [ALIAS:]/[MERGE:] line (parse+strip+docs land together)",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[ALIAS:domain|canonical|alias]")<0)return "[ALIAS:] doc line missing — a parsed-but-undocumented tag is the UA1 phantom class";
+    if(d.indexOf("[MERGE:domain|canonical|duplicate]")<0)return "[MERGE:] doc line missing";
+    return d.indexOf("npc")<d.indexOf("[ALIAS:domain")?false||true:true;
+  });
+  t("road names canonicalize on an UNORDERED endpoint pair at the map write boundary (the #153 two-roads-one-key class)",function(){
+    if(normalizeEndpointPair("North Road (Sandpoint–Magnimar)")!=="North Road (Magnimar–Sandpoint)")return "en-dash reversed order not normalized";
+    if(normalizeEndpointPair("North Road (Sandpoint - Magnimar)")!=="North Road (Magnimar–Sandpoint)")return "spaced-hyphen variant not normalized to the canonical en-dash form";
+    if(normalizeEndpointPair("North Road (Magnimar–Sandpoint)")!=="North Road (Magnimar–Sandpoint)")return "already-canonical form changed";
+    if(normalizeEndpointPair("Old Cellar (Half-Sunk)")!=="Old Cellar (Half-Sunk)")return "an unspaced hyphen was split — hyphenated names must stay whole";
+    if(normalizeEndpointPair("Festival Grounds (Day - Night)")!=="Festival Grounds (Day - Night)")return "a non-road parenthetical with a spaced dash was rewritten — the ROUTE_NOUN_RE gate is not holding (sabotage-found: the dash rule alone protected the old test input)";
+    if(normalizeEndpointPair("Savah's Armory")!=="Savah's Armory")return "a plain name was touched";
+    makeIdWorld();
+    applyMuts("[LOCATION:North Road (Sandpoint–Magnimar)]");
+    if(!memory.map.nodes["North Road (Magnimar–Sandpoint)"])return "[LOCATION:] did not land on the canonical node key";
+    if(memory.map.nodes["North Road (Sandpoint–Magnimar)"])return "the reversed twin node was ALSO created";
+    if(worldState.world.location!=="North Road (Magnimar–Sandpoint)")return "world pointer holds the un-normalized name";
+    makeIdWorld();
+    worldState.npcs.push({name:"Scout",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,portrait:null,aliases:[],charSheet:{name:"Scout",hp:5,maxHp:5,inventory:[],abilities:[],spells:[],conditions:[],relationships:[],coreMemories:[],storyBeats:[]}});
+    memory.npcs["Scout"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[PARTY_SPLIT:Scout|North Road (Sandpoint–Magnimar)]");
+    var sl=worldState.npcs[worldState.npcs.length-1].charSheet.splitLoc;
+    return sl&&sl.location==="North Road (Magnimar–Sandpoint)"?true:"PARTY_SPLIT destination not normalized: "+JSON.stringify(sl);
+  });
+  t("memory.archive.identityMerges is ensured by memArchive() and rides blank saves",function(){
+    memory=blankMemory();
+    var a=memArchive();
+    return Array.isArray(a.identityMerges)?true:"identityMerges not ensured — pre-images would crash the first archive push";
   });
 
 }

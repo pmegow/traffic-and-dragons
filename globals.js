@@ -31,6 +31,9 @@ var RETCON_PIN_SHELF=15;    // #147 (drift pass order 4): turns a CORRECTION IN 
 var DEITY_DRIFT_COOLDOWN=25;
 var RECONCILE_SKIP_MIN=360; // #142: a clock reconcile that crosses DAWN and exceeds this is presumed a mislabel (skip-and-demand), never a timeskip — one word cost 19h at t1524 // #140③: at most one deity-drift nudge per character per this many turns — a god's displeasure is an arc, not a nag          // #137 provenance ring: recent per-response tag names + mutation labels kept ON THE SAVE (worldState.tagLog) so the next field forensics can decide emitted-then-purged vs never-emitted — the fork the t1467 investigation could not close
 var LOC_DESC_NUDGE_COOLDOWN=10; // #134 (t1431 multiplying-beds): while the party's current node has NO [LOCATION_DESC:] on file, buildLocationDescNudge re-demands one this often — re-fire, not one-shot (the #29 rot lesson); a filed description ends it permanently
+var PROVISIONAL_CAP=4;          // #156 Phase A: max OUTSTANDING provisional npc records (the create-distinct collision outcome). Beyond it a suspect write degrades LOUDLY to today's direct-write behavior — the guard may never be worse than the status quo it replaces (runaway-model bound, the pendingItemDefs precedent)
+var PROVISIONAL_NUDGE_COOLDOWN=5; // #156 Phase A: buildProvisionalNudge re-fires per unresolved provisional this often — re-fire, not one-shot (an unresolved provisional is live fragmentation; the #29/#134 rot lesson), latch on worldState.provisionalNudged
+var NPC_INTRO_REL_RE=/(unknown|stranger|unfamiliar|just met|newly met|not yet met|new arrival)/i; // #156 Phase A: an [NPC:] relation slot that reads as an INTRODUCTION — into a history-rich record, that is the Savah collision signature (t1530: "unknown, not yet met" written into the armorer's file). Tested against the RAW rel operand only
 var LOC_STATE_CAP=3;        // #105 (B17): max durable state-change notes per map node — the record COMPRESSES (newest state is the truest state); overflow evicts the oldest loudly. Small on purpose: every note rides the volatile prompt every turn via the geo block or the changed-locations roll-up
 var CHANGED_LOC_MAX=10;     // #105: max locations shown in the always-present CHANGED LOCATIONS roll-up (most-recent-first); overflow renders a visible "+N more" line, never silent truncation
 var CONSUMABLE_NUDGE_COOLDOWN=6; // #60: after a consumable check fires for an item, don't re-queue that same item for this many turns — one ignored nudge means the GM decided it wasn't spent; re-nagging every mention would railroad a false decrement (the C2 lesson in reverse)
@@ -180,7 +183,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.580";
+var APP_VERSION="v1.581";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
