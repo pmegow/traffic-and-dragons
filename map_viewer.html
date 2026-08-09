@@ -295,14 +295,16 @@
   }
   function nodeSVG(n){
     var r=nodeR(n),shape;
+    var isSel=n.key===selected;
     var stroke=n.ghost?"#a05a5a":(n.key===G.current?"#d9b47c":"#b8935a");
     var fill=n.world?"#1e1a12":"#181818";
+    if(isSel){fill="#b8935a";stroke="#e8d9b8";} // selected: filled accent + 50% larger label
     var dash=n.ghost?' stroke-dasharray="3 2"':'';
     if(n.road){shape='<rect x="'+(n.x-r)+'" y="'+(n.y-r)+'" width="'+(r*2)+'" height="'+(r*2)+'" transform="rotate(45 '+n.x+' '+n.y+')" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
     else{shape='<circle cx="'+n.x+'" cy="'+n.y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
     var nSubs=G.descCount[n.key]||0;
     var label=esc(n.key)+(nSubs?" ("+nSubs+" sublocation"+(nSubs===1?"":"s")+")":"");
-    var fs=12;
+    var fs=isSel?18:12;
     var ttl=esc(n.key)+(n.visits?" — "+n.visits+" visit"+(n.visits===1?"":"s"):"")+(nSubs?" — click to browse "+nSubs+" sublocation"+(nSubs===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
     return '<g class="nodeg'+(n.world?' world':'')+'" data-k="'+esc(n.key)+'">'+shape+
       '<text x="'+n.x+'" y="'+(n.y+r+fs+1)+'" text-anchor="middle" font-size="'+fs+'">'+label+'</text><title>'+ttl+'</title></g>';
@@ -364,6 +366,7 @@
     var conn=[];for(var i7=0;i7<G.edges.length;i7++){var E=G.edges[i7];if(E.a.key===n.key)conn.push({k:E.b.key,t:E.turn});else if(E.b.key===n.key)conn.push({k:E.a.key,t:E.turn});}
     if(conn.length){h+='<div class="sec"><h3>Connected (first travel)</h3><ul>';for(var i8=0;i8<conn.length;i8++)h+='<li>· <a data-go="'+esc(conn[i8].k)+'">'+esc(conn[i8].k)+'</a> <span style="color:var(--t2)">(t'+esc(conn[i8].t)+')</span></li>';h+='</ul></div>';}
     var pn=$("panel");pn.innerHTML=h;pn.className="open";
+    render();/* selected-node highlight: filled shape + enlarged label (re-render keeps SVG and panel in step) */
     var links=pn.querySelectorAll("a[data-go]");
     for(var i9=0;i9<links.length;i9++)links[i9].addEventListener("click",function(){var k2=this.getAttribute("data-go");selectNode(k2);centerOn(k2);});
   }
@@ -385,7 +388,7 @@
       view.w*=f;view.h*=f;view.x=mx-(mx-view.x)*f;view.y=my-(my-view.y)*f;
       svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
     },{passive:false});
-    svg.addEventListener("click",function(){$("panel").className="";selected=null;});
+    svg.addEventListener("click",function(){$("panel").className="";selected=null;render();});
   })();
   function fit(){
     if(!G||!G.worlds.length)return;
