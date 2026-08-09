@@ -171,7 +171,7 @@ function getNameSuggestions(count,peek){
   if(!peek)memory.nameIdx=idx;
   return result;
 }
-function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8)memory.npcs[name].events=memory.npcs[name].events.slice(-8);/* slice, not a single shift, so an NPC_MERGE overfill actually shrinks back to the cap (audit E50) */}
+function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
 function fileLocation(loc,note,turn){
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
@@ -293,7 +293,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
@@ -750,7 +750,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;/* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _kn=n.knowledge.join("; ");if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;/* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
@@ -937,7 +937,7 @@ function applySummaryExtract(extracted){
     var retired=sfNpc.knowledge.splice(sfIdx,1)[0];
     memArchive().superseded.push({npc:sfName,fact:retired,turn:worldState.turn,replacedBy:String(sf["new"])});
     var newFact=String(sf["new"]);
-    if(sfNpc.knowledge.indexOf(newFact)<0){sfNpc.knowledge.push(newFact);if(sfNpc.knowledge.length>12)sfNpc.knowledge.shift();}
+    if(sfNpc.knowledge.indexOf(newFact)<0){sfNpc.knowledge.push(newFact);while(sfNpc.knowledge.length>12)memArchive().npcKnowledge.push({npc:sfName,fact:sfNpc.knowledge.shift(),turn:worldState.turn});/* #144A */}
     stats.superseded++;if(stats.supersededNames.indexOf(sfName)<0)stats.supersededNames.push(sfName);
     if(typeof console!=="undefined")console.warn("[memory] superseded fact on "+sfName+": \""+String(retired).slice(0,80)+"\" → \""+newFact.slice(0,80)+"\"");
   }}
@@ -973,7 +973,7 @@ function applySummaryExtract(extracted){
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
   // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
-  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);if(_kg.length>12)_kg.shift();}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
+  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(nu.knowledgeGained)<0){_kg.push(nu.knowledgeGained);while(_kg.length>12)memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn});/* #144A: evict to archive, never the void (83 facts lost t1265→t1549 this way) */}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #128: the deterministic variant scan runs every summarize — after npcUpdates above, so keys

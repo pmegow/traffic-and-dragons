@@ -413,6 +413,14 @@ function healMemory(){
   if(!memory.archive.decisions)memory.archive.decisions=[];
   if(!memory.archive.chapters)memory.archive.chapters=[];
   if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
+  if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];/* #144A */
+  if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A */
+  // #144A: converge over-cap knowledge lists. Import/blueprint seeding could exceed the cap-12
+  // (the live t1549 save carries Frizwick at 18), and the write-site shift sheds only 1/write —
+  // an overfilled list stays overfilled forever, shedding one real-play fact per new fact.
+  // Oldest overflow → archive (never destroyed), newest 12 stay. Idempotent: converged lists
+  // are ≤12, so a second pass churns nothing.
+  if(memory.npcs){var _ckk=Object.keys(memory.npcs),_cki;for(_cki=0;_cki<_ckk.length;_cki++){var _ckn=memory.npcs[_ckk[_cki]];if(_ckn&&Array.isArray(_ckn.knowledge)&&_ckn.knowledge.length>12){var _ckOver=_ckn.knowledge.length,_ckd=_ckn.knowledge.splice(0,_ckn.knowledge.length-12),_ckj;for(_ckj=0;_ckj<_ckd.length;_ckj++)memory.archive.npcKnowledge.push({npc:_ckk[_cki],fact:_ckd[_ckj],turn:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0});if(typeof console!=="undefined")console.info("[memory] #144A: "+_ckk[_cki]+" knowledge over cap ("+_ckOver+") — "+_ckd.length+" oldest archived, newest 12 kept");}}}
   // P6 retro-clamp: sentence-length attitudes from pre-v1.211 extractor runs (memoryNpcDetail injects them).
   if(typeof clampNpcMood==="function"&&memory.npcs){var _ank=Object.keys(memory.npcs),_ai2;for(_ai2=0;_ai2<_ank.length;_ai2++){var _an=memory.npcs[_ank[_ai2]];if(_an&&_an.attitude)_an.attitude=clampNpcMood(_an.attitude);}}
   // B3: mirror worldState DECEASED stamps onto memory.npcs — geography/TOC/detail/graph read the

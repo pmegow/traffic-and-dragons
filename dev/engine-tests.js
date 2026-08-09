@@ -3326,6 +3326,82 @@ function runEngineTests(R){
     return memory.archive&&memory.archive.lore.length===1?true:"memArchive did not self-heal on eviction";
   });
 
+  // ═══ DRIFT PASS order 1 (#144 Phase A): NPC knowledge lifecycle — every shrink archives, never the void ═══
+  // Field grounding: 83 knowledge facts destroyed t1265→t1549 (longitudinal diff) while
+  // lore/decisions/chapters lost ZERO — knowledge was the one tier outside the P12 discipline.
+  t("summarize-path knowledge eviction archives to memory.archive.npcKnowledge (#144A)",function(){
+    makeWorld();worldState.turn=50;
+    memory.npcs["Bram"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var i=0;i<12;i++)memory.npcs["Bram"].knowledge.push("fact "+i);
+    applySummaryExtract({npcUpdates:[{name:"Bram",knowledgeGained:"fact 12"}]});
+    if(memory.npcs["Bram"].knowledge.length!==12)return "cap broken: "+memory.npcs["Bram"].knowledge.length;
+    if(memory.npcs["Bram"].knowledge.indexOf("fact 12")<0)return "new fact not kept";
+    var a=memory.archive.npcKnowledge;
+    if(!a||a.length!==1)return "evicted fact not archived: "+JSON.stringify(a);
+    if(a[0].npc!=="Bram"||a[0].fact!=="fact 0"||a[0].turn!==50)return "archive record wrong: "+JSON.stringify(a[0]);
+    return true;
+  });
+  t("supersede-path eviction on an over-cap list archives too (#144A)",function(){
+    makeWorld();worldState.turn=51;
+    memory.npcs["Bram"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var i=0;i<14;i++)memory.npcs["Bram"].knowledge.push("fact "+i); // legacy overfill (the Frizwick class)
+    applySummaryExtract({supersededFacts:[{name:"Bram",old:"fact 5","new":"the corrected fact"}]});
+    // splice(1)+push(1) keeps 14; the >12 guard must now shed toward the cap AND archive what it sheds
+    if(memory.npcs["Bram"].knowledge.indexOf("the corrected fact")<0)return "replacement missing";
+    var a=memory.archive.npcKnowledge;
+    if(!a||!a.length)return "over-cap supersede shed to the void";
+    if(a[0].fact!=="fact 0")return "wrong fact shed first: "+JSON.stringify(a[0]);
+    return true;
+  });
+  t("NPC_MERGE truncation archives the overflow instead of destroying it (#144A)",function(){
+    makeWorld();worldState.turn=60;
+    memory.npcs["Morwen Zethran"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    memory.npcs["Morwen"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var i=0;i<10;i++)memory.npcs["Morwen Zethran"].knowledge.push("canon fact "+i);
+    for(var j=0;j<8;j++)memory.npcs["Morwen"].knowledge.push("dupe fact "+j);
+    applyMuts("[NPC_MERGE:Morwen Zethran|Morwen]");
+    var kn=memory.npcs["Morwen Zethran"].knowledge;
+    if(kn.length!==12)return "merged list not at cap: "+kn.length;
+    if(kn.indexOf("dupe fact 7")<0)return "newest merged fact lost";
+    var a=memory.archive.npcKnowledge;
+    if(!a||a.length!==6)return "merge overflow not archived (6 expected): "+(a?a.length:"none");
+    if(a[0].fact!=="canon fact 0"||a[0].npc!=="Morwen Zethran")return "wrong overflow archived: "+JSON.stringify(a[0]);
+    return true;
+  });
+  t("fileNpcEvent eviction archives to memory.archive.npcEvents (#144A)",function(){
+    makeWorld();
+    for(var i=0;i<9;i++)fileNpcEvent("Bram","event "+i,i);
+    if(memory.npcs["Bram"].events.length!==8)return "events cap broken";
+    var a=memory.archive.npcEvents;
+    if(!a||a.length!==1)return "evicted event not archived: "+JSON.stringify(a);
+    if(a[0].npc!=="Bram"||a[0].note!=="event 0"||a[0].turn!==0)return "archive record wrong: "+JSON.stringify(a[0]);
+    return true;
+  });
+  t("healMemory converges over-cap knowledge — newest 12 kept, overflow archived, idempotent (#144A)",function(){
+    makeWorld();worldState.turn=70;
+    memory.npcs["Frizwick"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    for(var i=0;i<18;i++)memory.npcs["Frizwick"].knowledge.push("fact "+i); // the live t1549 shape
+    healMemory();
+    var kn=memory.npcs["Frizwick"].knowledge;
+    if(kn.length!==12)return "not converged: "+kn.length;
+    if(kn[0]!=="fact 6"||kn[11]!=="fact 17")return "wrong end kept: "+kn[0]+" … "+kn[11];
+    if(memory.archive.npcKnowledge.length!==6)return "overflow not archived: "+memory.archive.npcKnowledge.length;
+    healMemory(); // second pass must churn nothing
+    if(kn.length!==12||memory.archive.npcKnowledge.length!==6)return "convergence not idempotent";
+    return true;
+  });
+  t("memoryNpcDetail keeps the NEWEST facts when the Knows line exceeds its budget (#144A)",function(){
+    makeWorld();
+    memory.npcs["Verbose"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    var pad="",p;for(p=0;p<296;p++)pad+="x";
+    for(var i=0;i<12;i++)memory.npcs["Verbose"].knowledge.push("fact"+i+" "+pad); // ~3.6k chars joined
+    var det=memoryNpcDetail("Verbose");
+    if(det.indexOf("fact11 ")<0)return "newest fact was cut — truncation still keeps the oldest end";
+    if(det.indexOf("fact0 ")>=0)return "oldest fact survived a budget cut that should shed oldest-first";
+    if(!/\(\d+ older facts not shown\)/.test(det))return "omission marker missing";
+    return true;
+  });
+
   // ═══ UA1: tag table — derivations frozen, coverage guards, full-vocabulary battery ═══
   // Since v1.261 (legacy parser deleted) the converted parity battery below IS the vocabulary
   // behavior spec: every end-state assertion was proven byte-identical to the legacy parser

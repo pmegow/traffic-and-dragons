@@ -166,6 +166,36 @@ try {
   }
 } catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── #144A ARCHIVE CARRY CONTRACT (drift pass order 1, 2026-08-08) ────────────────────────
+// NPC knowledge was the ONE memory tier evicting canon to the void (83 facts destroyed
+// t1265→t1549, longitudinally proven). The engine tests pin the archive behavior; these
+// clauses pin the surfaces the DOM-free harness cannot execute: the .tnd import whitelist
+// (ui-files.js) and the no-bare-shift discipline at the write sites.
+try {
+  var _fsAC = require("fs"), _pathAC = require("path");
+  var _failAC = function (msg) { console.error("#144A ARCHIVE CARRY CONTRACT: " + msg); process.exit(1); };
+  var _ufAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-files.js"), "utf8");
+  // ① the import whitelist carries the FULL archive — the pre-#144A rebuild silently dropped
+  //   superseded/coreMemories/expiredSchedules on every import (Sol's find, drift audit).
+  var _keysAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents"];
+  var _archAC = (_ufAC.match(/archive:mm\.archive\?\{[^}]*\}/) || [""])[0];
+  if (!_archAC) _failAC("the import's archive rebuild expression is gone from ui-files.js");
+  for (var _kAC = 0; _kAC < _keysAC.length; _kAC++) {
+    if (_archAC.indexOf(_keysAC[_kAC] + ":mm.archive." + _keysAC[_kAC]) < 0)
+      _failAC("import whitelist no longer carries archive." + _keysAC[_kAC] + " — a .tnd import silently destroys it");
+  }
+  // ② no bare knowledge.shift() — every shrink must feed memArchive().npcKnowledge.
+  var _memAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "memory.js"), "utf8");
+  var _shAC = /knowledge\.shift\(\)/g, _mAC, _bareAC = 0;
+  while ((_mAC = _shAC.exec(_memAC))) {
+    if (_memAC.slice(Math.max(0, _mAC.index - 80), _mAC.index).indexOf("npcKnowledge.push") < 0) _bareAC++;
+  }
+  if (_bareAC) _failAC(_bareAC + " bare knowledge.shift() in memory.js — an eviction path shed to the void again");
+  if (_memAC.indexOf("npcEvents.push") < 0) _failAC("fileNpcEvent no longer archives evicted events");
+  var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
+  if (_ttAC.indexOf("npcKnowledge.push") < 0) _failAC("the NPC_MERGE truncation no longer archives its overflow");
+} catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
+
 // ── STARS PORTABILITY CONTRACT (#95.5/#95.8 — cloud-backed since v1.450) ─────────────────
 // The star store is per-origin localStorage (the #95.4 star-origin field bug), so the CLOUD
 // mirror is the only bridge across origins and devices. The file Export/Import pure slice
