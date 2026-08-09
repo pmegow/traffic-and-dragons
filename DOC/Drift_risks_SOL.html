@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic &amp; Dragons — Drift Risks (Sol)</title>
+<style>
+:root{--bg:#0d0d0c;--panel:#151412;--panel2:#1c1915;--line:#3b3329;--text:#d8d0c4;--muted:#9d9385;--amber:#d8a45f;--red:#e17a71;--orange:#e4a861;--green:#88b07a;--blue:#7ca8c8;--white:#f2ece2}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0 auto;max-width:1160px;padding:34px 28px 90px;background:var(--bg);color:var(--text);font:15px/1.62 Georgia,serif}h1,h2,h3{color:var(--white);line-height:1.22}h1{margin:0;color:var(--amber);font-size:2em}h2{margin:42px 0 14px;padding-bottom:7px;border-bottom:1px solid var(--line);font-size:1.3em;color:var(--amber)}h3{margin:25px 0 9px;font-size:1.05em}p{margin:9px 0}.sub{color:var(--muted);margin:5px 0 24px}.card{margin:15px 0;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.verdict{border-color:var(--amber);background:linear-gradient(135deg,#1c1710,#151412)}.risk{border-left:4px solid var(--orange)}.risk.high{border-left-color:var(--red)}.risk.med{border-left-color:var(--orange)}.risk.low{border-left-color:var(--blue)}.eyebrow{font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:1.1px;text-transform:uppercase;color:var(--amber)}.bad{color:var(--red)}.good{color:var(--green)}.muted{color:var(--muted)}code,pre{font:12px/1.5 ui-monospace,Consolas,monospace}code{padding:1px 5px;border-radius:4px;background:#211c16;color:#e2b574}pre{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#090909;color:#cfc7bb}table{width:100%;border-collapse:collapse;margin:13px 0;font-size:.91em}th,td{padding:8px 10px;border:1px solid var(--line);text-align:left;vertical-align:top}th{background:#1a1713;color:var(--amber);font:700 12px/1.35 ui-monospace,Consolas,monospace}ul,ol{padding-left:22px}li{margin:6px 0}.badge{display:inline-block;margin:0 5px 3px 0;padding:2px 8px;border-radius:12px;border:1px solid var(--line);font:700 10px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.5px;text-transform:uppercase}.b-high{color:#ffafa6;border-color:#7e403b;background:#281413}.b-med{color:#f0c083;border-color:#72532f;background:#241d12}.b-confirm{color:#a8d39a;border-color:#46633d;background:#142014}.b-live{color:#a8cce8;border-color:#3f5f76;background:#111d25}.angles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:13px 0}.angle{padding:11px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel2)}.angle b{display:block;margin-bottom:4px;color:var(--amber);font:700 11px/1.3 ui-monospace,Consolas,monospace;text-transform:uppercase}.rank td:first-child{width:44px;text-align:center;color:var(--amber);font-weight:bold}.rank td:nth-child(2){width:28%}.toc a,a{color:#d9ad73;text-decoration:none}.toc a:hover,a:hover{text-decoration:underline}.mono{font-family:ui-monospace,Consolas,monospace}.small{font-size:.87em}.callout{padding:10px 13px;border-left:3px solid var(--blue);background:#11181d}.footer{margin-top:50px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:.84em}@media(max-width:800px){body{padding:22px 13px 65px}.angles{grid-template-columns:1fr}.scroll{overflow-x:auto}.scroll table{min-width:760px}h1{font-size:1.55em}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Independent drift-surface audit · investigation only</div>
+  <h1>Where Traffic &amp; Dragons can still drift</h1>
+  <p class="sub">Sol analysis · 2026-08-08 · includes <span class="mono">Rise_of_the_Runelords_Ammut_t1549.tnd</span> from Downloads · no source or save repairs performed</p>
+</header>
+
+<section class="card verdict">
+  <h3>Verdict</h3>
+  <p><strong>A focused hardening pass is warranted.</strong> The anti-drift architecture is not broadly failing: the latest save has correct structured split-party state, working provenance receipts, no reproduced NPC-key fragmentation, and no missing-health defect. The dangerous residue is narrower: temporary prose is being promoted to permanent NPC truth; bookkeeping text can select story memory; corrections can lose their authoritative replacement; and several mutation paths are not closed-loop.</p>
+  <p>The save also contains one <strong>already-real timeline corruption</strong>: the interim clock repair was effectively applied twice. That is not a normal gameplay regression, but it proves repair operations and load invariants are not safe enough for a mature campaign.</p>
+</section>
+
+<nav class="card toc">
+  <div class="eyebrow">Contents</div>
+  <p><a href="#method">Method</a> · <a href="#save">Latest-save baseline</a> · <a href="#register">Risk register</a> · <a href="#r1">R1 Temporal NPC memory</a> · <a href="#r2">R2 Bookkeeping activates NPCs</a> · <a href="#r3">R3 Unsafe clock repair</a> · <a href="#r4">R4 Open-loop tag application</a> · <a href="#r5">R5 Correction truth hole</a> · <a href="#r6">R6 Audit latches burn early</a> · <a href="#r7">R7 Same-turn sync loss</a> · <a href="#r8">R8 Broad destructive forget</a> · <a href="#rejected">Rejected candidates</a> · <a href="#sequence">Hardening order</a></p>
+</nav>
+
+<h2 id="method">1. Method and burden of proof</h2>
+<p>I treated <em>drift</em> as a divergence between what happened in the fiction and what the engine later presents as current canon, whether through state, memory, prompt assembly, retrieval, sync, or UI projection. A code smell alone did not qualify.</p>
+<div class="angles">
+  <div class="angle"><b>Angle A · Mechanism</b>The exact writer, reader, selector, or lifecycle edge had to be identifiable in current code.</div>
+  <div class="angle"><b>Angle B · Failure evidence</b>The latest save had to expose it, or an exact headless failure probe had to reproduce the dangerous condition.</div>
+  <div class="angle"><b>Angle C · Counter-case</b>I looked for guards, precedence rules, expiry, or scope restrictions that could make the apparent issue benign. Those mitigations are stated with each finding.</div>
+</div>
+<p>Only candidates that survived all three angles are in the register. The report distinguishes <strong>active live contradictions</strong>, <strong>reproduced latent defects</strong>, and <strong>known accepted limitations</strong>.</p>
+
+<h2 id="save">2. Latest-save baseline</h2>
+<div class="scroll"><table>
+<tr><th>Artifact</th><th>Measured state</th><th>What it means</th></tr>
+<tr><td>Save</td><td><code>C:\Users\hannu\Downloads\Rise_of_the_Runelords_Ammut_t1549.tnd</code><br>3,598,950 bytes; modified 2026-08-08 21:35 local</td><td>The newest Downloads export at audit time.</td></tr>
+<tr><td>Campaign record</td><td>Turn 1549; 3,096 transcript entries; 12 session messages; 41 roster NPCs; 56 memory NPC keys; 10 active chapters</td><td>Mature enough to expose accumulation and retrieval behavior.</td></tr>
+<tr><td>Current party truth</td><td>Morwen with Ammut, HP 78/79. Frizwick split at Bridge District Ironworks, HP 52/52. Daeris split at the same ironworks, HP 50/50.</td><td>Frizwick's hidden HP is the intended split UI. It is not missing from state.</td></tr>
+<tr><td>Clock</td><td><code>clock.min=6680</code>; schedule births at 6915 and 7490</td><td>Both events were “born” in the future relative to now, an impossible invariant.</td></tr>
+<tr><td>Prompt reconstruction</td><td>103,612 characters (35,870 stable + 67,741 volatile)</td><td>The contradictory NPC blocks described below are actually served to the GM.</td></tr>
+<tr><td>GM turn size</td><td>1,548 GM transcript entries; 0 over 4,000 characters; maximum 3,121</td><td>Rejects the tempting claim that this campaign's summarizer is losing response tails to its 4,000-character slice.</td></tr>
+</table></div>
+
+<h2 id="register">3. Risk register</h2>
+<div class="scroll"><table>
+<tr><th>ID</th><th>Risk</th><th>Severity</th><th>Confidence</th><th>Exposure</th><th>Tracker</th></tr>
+<tr><td>R1</td><td>Temporary NPC scene position is stored and injected as permanent knowledge; over-cap arrays bias toward the oldest facts.</td><td>High</td><td>High</td><td>Active in t1549 prompt</td><td>New #144</td></tr>
+<tr><td>R2</td><td>Engine notes count as story mentions and activate full details for off-scene NPCs.</td><td>High</td><td>High</td><td>Active in t1549 prompt</td><td>New #145</td></tr>
+<tr><td>R3</td><td>Clock repair is non-idempotent and load has no timeline/schedule invariant check.</td><td>High</td><td>High</td><td>Current save corrupted</td><td>New #146</td></tr>
+<tr><td>R4</td><td>Known state tags can mutate the wrong target, silently no-op, or report a mutation that did not occur.</td><td>High</td><td>High</td><td>Exact probes + live receipt</td><td>Existing #136</td></tr>
+<tr><td>R5</td><td>A RETCON suppresses its corrected replacement from episodic recall together with the mistake.</td><td>Medium</td><td>High</td><td>Live delayed exposure</td><td>New #147</td></tr>
+<tr><td>R6</td><td>Audit/nudge latches are consumed while building a request, before delivery or compliance.</td><td>Medium</td><td>High</td><td>Exact probe + live ignored audit</td><td>Known/accepted in code and BUGS record</td></tr>
+<tr><td>R7</td><td>Cloud concurrency is guarded by turn number, so same-turn edits and manual pushes can overwrite whole-state truth.</td><td>Medium</td><td>High</td><td>Latent; no t1549 attribution</td><td>Existing #5 / #7</td></tr>
+<tr><td>R8</td><td><code>NPC_FORGET</code> substring-deletes every matching fact without an archive.</td><td>Medium</td><td>High</td><td>Exact destructive probe</td><td>Existing #136</td></tr>
+</table></div>
+
+<h2 id="r1">R1. NPC knowledge has no temporal type</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Confirmed</span><span class="badge b-live">Live prompt</span></p>
+  <p><strong>Mechanism.</strong> The summary schema offers one free-text <code>knowledgeGained</code> field. <code>applySummaryExtract</code> permanently appends it to <code>memory.npcs[name].knowledge[]</code>. <code>memoryNpcDetail</code> later renders every entry under the standing label <code>Knows:</code>. There is no fact kind, observation turn, validity window, or distinction between “learned a secret” and “is standing at this door right now.”</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>memory.js:976</code> accepts the untyped string; <code>memory.js:753</code> joins the array oldest-first and truncates after 2,000 characters. The nominal cap sheds only one element per write, so a pre-existing overfill never converges.</div>
+    <div class="angle"><b>Angle B · Save</b>Morwen's injected knowledge says she “is now stationed outside the sealed door” and “remained outside,” although she is with Ammut heading to Savah. Daeris says “Present at the carved door”; Frizwick says she “is holding the chokepoint,” although both are split at the ironworks.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>The structured <code>splitLoc</code>, <code>lastSeenAt</code>, party sheet, and later geography block are correct. They reduce the probability of failure, but they do not remove the contradictory canon from the prompt.</div>
+  </div>
+  <p><strong>Amplifier.</strong> Frizwick has 18 knowledge entries despite the cap of 12. Her joined text is 2,375 characters, so the renderer keeps the oldest 2,000 and cuts off the newest tail. The combination is backwards for drift resistance: stale positional claims survive while newer facts disappear.</p>
+  <pre>Structured truth: Frizwick → Magnimar | Bridge District Ironworks
+Injected “Knows”: “...is holding the chokepoint at the carved door”; “Present in the workshop...”
+
+Structured truth: Morwen → with Ammut, en route to Savah
+Injected “Knows”: “Is now stationed outside the sealed door...”</pre>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Typed temporal facts</strong></td><td>Replace bare strings with records such as <code>{id,text,kind,observedTurn,standing}</code>. Only standing/durable facts enter <code>Knows:</code>; scene position and one-turn actions go to stamped history/RAG. Most complete fix and the cleanest future contract.</td></tr>
+  <tr><td>2</td><td><strong>Structured-state conflict gate</strong></td><td>Before prompt rendering, suppress a position/action claim when it conflicts with current <code>splitLoc</code>, current node, death, or other authoritative state. Render newest-first within budget. Smaller but requires a conservative classifier.</td></tr>
+  <tr><td>3</td><td><strong>Hygiene hardening</strong></td><td>Teach extraction not to file transient posture/location; on load re-slice every knowledge array to 12; archive overflow; render the newest facts instead of the oldest. Useful immediately, but still relies on model classification.</td></tr>
+  </table>
+</section>
+
+<h2 id="r2">R2. Bookkeeping text activates off-scene NPC memory</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Confirmed</span><span class="badge b-live">Live prompt</span></p>
+  <p><strong>Mechanism.</strong> <code>api.js:882–885</code> finds “hot” NPCs by concatenating the last six raw <code>sessionLog</code> messages and searching names. Those user messages include prepended engine notes. The summarizer already has <code>stripEngineNotes</code>, but the hot-NPC selector does not use it.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b>Any name appearing only in a split, condition, presence, merge, relationship, or other audit note qualifies for full <code>ACTIVE NPC DETAILS</code>. Channel origin is discarded.</div>
+    <div class="angle"><b>Angle B · Save</b>Across the latest six messages, Frizwick appears twice and Daeris once, exclusively inside the split-audit note. Neither appears in story prose. Reconstructed <code>buildSysPrompt</code> still emits full details for both.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>The later <code>SPLIT THREADS</code> block explicitly says they are at the ironworks and must never be narrated here. Position and wording favor that block, but the prompt now contains two incompatible authoritative-looking sections.</div>
+  </div>
+  <p>This is a feedback loop: a presence-protection audit names an absent person; that bookkeeping mention activates old narrative memory for the same person; the old memory contains stale presence claims.</p>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Story-only hot set</strong></td><td>Build the set from cleaned player actions plus GM transcript entity stamps, not raw API history. Include current co-located party and current-node NPCs explicitly; exclude split members unless the player's story action names them.</td></tr>
+  <tr><td>2</td><td><strong>Strip notes before scan</strong></td><td>Apply the existing bracket-aware <code>stripEngineNotes</code> to user halves before hot-name detection and accept names only when they also occur in story prose. Minimal and directly closes the live case.</td></tr>
+  <tr><td>3</td><td><strong>Preserve message provenance</strong></td><td>Store story text and engine notes as separate typed fields/spans so every downstream consumer can opt into the correct channel. Broadest architectural protection, but larger migration cost.</td></tr>
+  </table>
+</section>
+
+<h2 id="r3">R3. Clock repair is not idempotent, and impossible clocks load normally</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Confirmed</span><span class="badge b-live">Current save</span></p>
+  <p><strong>Mechanism.</strong> The interim repair for TODO #142 was a raw console edit: <code>worldState.clock.min-=1160</code>. It had no expected current value, repair identifier, one-shot guard, or invariant check. Normal clock code only increments <code>clock.min</code>; load migration verifies shape, not chronology.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>clock.js</code> describes the scalar as monotonic and writes only <code>+=</code>. <code>migrateWorldState</code> accepts a numeric scalar and schedule array without checking transcript stamps or schedule births.</div>
+    <div class="angle"><b>Angle B · Save</b>GM stamps go from <code>ck=8820</code> at t1525 to <code>ck=6500</code> at t1526: −2320 minutes, exactly twice the intended −1160 repair. Turn numbers do not regress. Current schedule births 6915 and 7490 are both greater than now 6680.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>No normal gameplay path reproduces the decrement. This is specifically a repair/migration weakness, not evidence that the shipped clock still runs backward during ordinary turns.</div>
+  </div>
+  <p>The Sable schedule was created with a 1,440-minute duration. Because its birth is now 810 minutes ahead of the clock while <code>dueMin</code> stayed absolute, its current remaining time is 2,250 minutes: the deadline gained 13.5 hours.</p>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Idempotent repair transaction</strong></td><td>A named repair carries <code>repairId</code>, expected-before value, intended-after value, and postconditions. Refuse if already applied or if the scalar does not match the expected anomaly. Save the repair receipt atomically.</td></tr>
+  <tr><td>2</td><td><strong>Load-time timeline validator</strong></td><td>Warn and quarantine when transcript <code>.ck</code> regresses, <code>schedule.born &gt; clock.min</code>, <code>due &lt; born</code>, or a repair discontinuity lacks a receipt. Offer an export-first guided repair; never silently guess.</td></tr>
+  <tr><td>3</td><td><strong>Clock event ledger</strong></td><td>Store advances/corrections as append-only events and derive the scalar. Corrections become reversible and auditable. Strongest long-term model, but much larger than the immediate safety need.</td></tr>
+  </table>
+  <p class="callout"><strong>Do not auto-fix this save from this report.</strong> The intended corrected scalar and schedule semantics should be adjudicated once, from the t1523–t1526 evidence, then applied through an idempotent repair.</p>
+</section>
+
+<h2 id="r4">R4. State-tag application is not closed-loop</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Reproduced</span></p>
+  <p><strong>Mechanism.</strong> Known tags do not share one typed resolution contract. Some exact-match, some substring-match, some choose the first candidate, some silently return, and several emit a mutation receipt without verifying that a mutation occurred.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b>Sequential <code>ARC_COMPLETE</code> validates its title only for parallel acts; <code>combatFoeByName</code> returns the first containment match; many companion handlers <code>continue</code> silently; player spell and skill misses do nothing.</div>
+    <div class="angle"><b>Angle B · Probes</b><code>[ARC_COMPLETE:Totally Wrong]</code> completed “True Arc.” <code>[ENEMY_HP:Goblin|-3]</code> damaged Goblin Scout among Scout + Shaman. <code>[COMPANION_HP:Frizwik|-4]</code>, unknown spell, and unknown skill produced no mutation and no warning.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>Many high-risk handlers are already strict and loud, and companion spell use does warn. The defect is inconsistency, not a universally tolerant parser. That makes a shared boundary more valuable than scattered patches.</div>
+  </div>
+  <p>The live tag receipt adds a fourth shape: t1530 records <code>ITEM_LOST</code> with mutation text <code>-none</code>. The inventory contained no item named “none”; <code>removeInventoryItem</code> returned false, but the handler ignored the result and still reported success.</p>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Typed tag schema + uniform resolver</strong></td><td>Each tag declares payload fields, target domain, exactness, ambiguity policy, and result status: applied / unchanged / invalid / ambiguous. Fail closed on wrong or ambiguous targets and surface the reason.</td></tr>
+  <tr><td>2</td><td><strong>Strict family fixes</strong></td><td>Validate sequential arc titles; make named combat targeting exact or uniquely resolvable; warn on every companion/spell/skill miss; honor inventory helper return values. Smaller, but risks future asymmetry.</td></tr>
+  <tr><td>3</td><td><strong>Post-parse receipt verifier</strong></td><td>Compare every recognized tag instance with an applied mutation or sanctioned no-op. Queue one repair note/toast for unmatched tags. Good backstop, but it detects after the primary resolver has already guessed.</td></tr>
+  </table>
+  <p class="small muted">Comparison: independently reproduced, then matched to the already-open tolerant-parser sweep in TODO #136. No duplicate tracker row was created.</p>
+</section>
+
+<h2 id="r5">R5. A correction can erase both versions from episodic recall</h2>
+<section class="card risk med">
+  <p><span class="badge b-med">Medium</span><span class="badge b-confirm">Confirmed mechanism</span><span class="badge b-live">Live exposure</span></p>
+  <p><strong>Mechanism.</strong> When raw GM output contains <code>[RETCON:]</code>, <code>logTranscript</code> marks the correcting GM entry and the preceding GM entry <code>rc=1</code>. RAG excludes every <code>rc</code> entry. The separate filter for a preceding player message beginning <code>GM:</code> would also suppress the correction.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>state.js:162–183</code> marks both; <code>memory.js:630–641</code> excludes both correction-marked and OOC-meta responses. No first-class correction record is created.</div>
+    <div class="angle"><b>Angle B · Save + probe</b>t1547's wrong street interrogation and t1548's corrected Wyla exchange are both <code>rc=1</code>. Wyla's knowledge does not yet say the watchers are hers. An A/B retrieval probe returns nothing with both marked and returns the canonical correction when it is eligible.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>The correction remains in the current session tail and the next summary may file it. Therefore this is a delayed, probabilistic hole after the tail rolls, not a claim that t1549 has already forgotten the correction.</div>
+  </div>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>First-class canonical correction</strong></td><td>Link the superseded turn to a correction record. Exclude the old entry; index the cleaned correction as authoritative and explicitly allow it through the <code>GM:</code> meta filter.</td></tr>
+  <tr><td>2</td><td><strong>Pin until acknowledged</strong></td><td>Inject a compact “correction in force” record until a summarizer result explicitly captures the replacement. Then archive the pin. Preserves truth without trusting one extraction pass.</td></tr>
+  <tr><td>3</td><td><strong>Post-summary coverage check</strong></td><td>After summarizing a window containing RETCON, verify a replacement fact or correction record exists; if not, retain the exchange in the session tail and warn. Useful backstop, still model-dependent.</td></tr>
+  </table>
+</section>
+
+<h2 id="r6">R6. Audit latches burn before delivery or compliance</h2>
+<section class="card risk med">
+  <p><span class="badge b-med">Medium</span><span class="badge b-confirm">Reproduced</span></p>
+  <p><strong>Mechanism.</strong> Many note builders stamp cooldowns or clear one-shot state while <code>buildEngineNotes</code> is composing <code>apiTxt</code>. That happens before <code>callGM</code>. A network failure, provider error, tab loss, or same-turn retry therefore sees the latch as already consumed. Successful delivery is also treated as compliance even when the GM emits none of the requested tags.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>sendAction</code> builds notes at game.js:1551–1559, before awaiting the provider. Split, presence, condition, mood, reciprocity and other builders mutate stamps on fire; the catch path does not roll them back.</div>
+    <div class="angle"><b>Angle B · Probe/save</b>A due split produced an audit and wrote <code>audited:20</code>; rebuilding on the same unchanged turn returned no audit. In t1549, the t1547 split audit requested rejoin or reaffirm for Frizwick/Daeris; the GM emitted neither, but the audit stamp still suppresses the check for its cooldown.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>The latest split records happen to be correct, so the ignored audit caused no current error. Cooldowns deliberately limit prompt pressure, and the burned-nudge tradeoff is acknowledged in code. The risk matters when the audited record is actually stale.</div>
+  </div>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Two-phase note delivery</strong></td><td>Builders are pure and return text plus a proposed latch update. Commit the cooldown only after a response is received; for required-fork notes, commit only after an expected tag or explicit sanctioned no-change outcome.</td></tr>
+  <tr><td>2</td><td><strong>Persistent pending note IDs</strong></td><td>Keep a note pending across retries and turns until satisfied or expired. Re-send with bounded cadence. Best compliance loop, but requires per-note acknowledgement rules.</td></tr>
+  <tr><td>3</td><td><strong>Rollback on pre-commit failure</strong></td><td>Snapshot note-owned fields before building and restore them when the turn fails before <code>commitGmTurn</code>. Closes transport failures, but not successful noncompliance.</td></tr>
+  </table>
+</section>
+
+<h2 id="r7">R7. Cloud conflict detection is too coarse for same-turn truth</h2>
+<section class="card risk med">
+  <p><span class="badge b-med">Medium</span><span class="badge b-confirm">Confirmed design limit</span></p>
+  <p><strong>Mechanism.</strong> Normal sync posts use <code>baseTurn=_lastAckTurn</code>, and the server rejects only when its stored turn is ahead. Whole-state edits that do not advance the turn can share the same CAS value. The campaign-manager push path intentionally omits <code>baseTurn</code>.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>storage-adapter.js:384–470</code> guards by turn. <code>pushCampaignState</code> at 834–841 has no CAS. <code>syncCharSheet</code>, reroll replacement, and several UI/state changes can save without advancing the story turn.</div>
+    <div class="angle"><b>Angle B · Failure construction</b>Two devices load t1549. Device A applies a same-turn sheet correction and uploads. Device B, still at t1549, uploads its stale whole blob: the turn guard sees no ahead turn and can accept the overwrite. Manual rescue push is an even wider overwrite path.</div>
+    <div class="angle"><b>Angle C · Counter-case</b>Ordinary story turns advance and genuine server-ahead conflicts pause loudly. Portraits have their own version. No evidence attributes the t1549 campaign mess to concurrency, so this remains a latent hardening risk.</div>
+  </div>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Server revision / ETag CAS</strong></td><td>Every accepted write increments a per-campaign revision independent of story turn. Clients send <code>If-Match</code> or <code>baseRev</code>; any unseen write conflicts, including same-turn edits.</td></tr>
+  <tr><td>2</td><td><strong>Monotonic state revision in the blob</strong></td><td>Increment <code>stateRev</code> at every authoritative mutation/save and guard on it. Easier to layer onto the current protocol, though multi-device offline forks still require human choice.</td></tr>
+  <tr><td>3</td><td><strong>Narrow protections</strong></td><td>Preflight manual pushes with server revision + explicit overwrite confirmation; version same-turn domains separately; gate play until first reconcile. Reduces exposure but leaves whole-state merging unresolved.</td></tr>
+  </table>
+  <p class="small muted">Comparison: this is already documented in TODO #5 as accepted v1 coarseness and TODO #7 for manual push semantics.</p>
+</section>
+
+<h2 id="r8">R8. <code>NPC_FORGET</code> is broad and unrecoverable</h2>
+<section class="card risk med">
+  <p><span class="badge b-med">Medium</span><span class="badge b-confirm">Reproduced</span></p>
+  <p><strong>Mechanism.</strong> The handler lowercases the requested phrase and deletes every knowledge or event line containing that substring. It does not require a unique match, does not preview the affected facts, and does not archive them. Its sibling <code>NPC_SUPERSEDE</code> archives retired knowledge.</p>
+  <div class="angles">
+    <div class="angle"><b>Angle A · Code</b><code>tag_table.js:598</code> filters both arrays by <code>indexOf(fgWhat)&lt;0</code>. The mutation summary reports only a count; the deleted content is gone.</div>
+    <div class="angle"><b>Angle B · Probe</b><code>[NPC_FORGET:Sage|red key]</code> removed two separate knowledge lines and one historical event: “opens the vault,” “stolen yesterday,” and “saw the red key at dawn.”</div>
+    <div class="angle"><b>Angle C · Counter-case</b>The tag is intentionally destructive because it models Oubliate. That justifies removal from injected memory, not irreversible storage deletion or ambiguous multi-match behavior.</div>
+  </div>
+  <table class="rank"><tr><th>Rank</th><th>Solution</th><th>Assessment</th></tr>
+  <tr><td>1</td><td><strong>Forget by fact ID</strong></td><td>Give stored facts stable IDs and have the effect target one exact record. Move it to a non-injected forget archive/tombstone so the fiction forgets while operators retain recovery and provenance.</td></tr>
+  <tr><td>2</td><td><strong>Unique full-match rule</strong></td><td>Require exact text or exactly one unique normalized match. Multiple/no matches warn and do nothing. Archive the removed record. Good bridge before fact IDs exist.</td></tr>
+  <tr><td>3</td><td><strong>Preview/confirm queue</strong></td><td>Queue proposed matches and require a follow-up exact tag/confirmation. Safest for broad natural-language requests, but adds a turn of latency to the spell effect.</td></tr>
+  </table>
+</section>
+
+<h2 id="rejected">4. Candidates rejected or downgraded</h2>
+<div class="scroll"><table>
+<tr><th>Candidate</th><th>Evidence checked</th><th>Decision</th></tr>
+<tr><td>NPC identity fragmentation is currently driving this save</td><td>41 roster vs 56 memory keys, but no normalized duplicate clusters, alias conflicts, or dangling NPC-graph references were found. The deterministic #128 variant scan has materially improved this surface.</td><td><span class="good">Rejected for t1549.</span> Stable IDs remain a long-term design, not a new live diagnosis.</td></tr>
+<tr><td>Frizwick has no health because her sheet is broken</td><td>Her sheet stores 52/52. The split UI intentionally replaces vitals with location while she is at the ironworks.</td><td><span class="good">Rejected.</span> The display is a correct projection of current split state.</td></tr>
+<tr><td>GM output exceeds the memory extractor slice</td><td>0 of 1,548 GM transcript entries exceed 4,000 characters; maximum is 3,121.</td><td><span class="good">Rejected for this campaign.</span></td></tr>
+<tr><td>Low map-description coverage is itself drift</td><td>21 of 77 nodes have descriptions; only settled/lived-in undescribed nodes are supposed to trigger #134. Blueprint-known or unvisited nodes should not be forced into present-tense canon.</td><td><span class="good">Rejected as a ratio-based finding.</span></td></tr>
+<tr><td>Archive growth causes prompt canon drift</td><td>Lore/decision/chapter archives are large but storage-only and not injected.</td><td><span class="muted">Downgraded to storage/sync cost, already tracked separately.</span></td></tr>
+<tr><td>Pending future events prove stale-canon failure</td><td>12 unresolved; 7 older than 20 turns; oldest exactly 40. Expiry is <em>over</em> 40 and runs on summarize; several events remain legitimately pending.</td><td><span class="good">Not enough evidence.</span> The Sable timing distortion is explained by R3's clock corruption.</td></tr>
+<tr><td>Relationship/map graph corruption</td><td>No duplicate relationships or dangling graph references in the latest save.</td><td><span class="good">Rejected.</span></td></tr>
+</table></div>
+
+<h2>5. Protections that are working</h2>
+<ul>
+  <li><strong>Split state and projections:</strong> Frizwick and Daeris have stamped/audited <code>splitLoc</code> records, the prompt has a strict split block, and the UI hides remote vitals. Morwen's present state is correct.</li>
+  <li><strong>Provenance:</strong> transcript <code>.ck</code>, <code>.ta</code>, <code>.v</code>, tagLog mutation receipts, split stamps, and session history made the clock and prompt failures provable rather than speculative.</li>
+  <li><strong>Identity:</strong> alias resolution, human-confirmed merges, and the deterministic variant scanner show no current duplicate cluster in this save.</li>
+  <li><strong>Memory bounds and recovery:</strong> future-event expiry, near-duplicate dedupe, summary retries, superseded-fact archive, and RAG contamination filters close several older failure classes. The findings above are boundary gaps in those systems, not absence of systems.</li>
+  <li><strong>Sync:</strong> server-ahead turn conflicts pause loudly; automatic retries are bounded; campaign identity is positively checked; portraits have an independent revision.</li>
+</ul>
+
+<h2 id="sequence">6. Recommended hardening sequence</h2>
+<ol>
+  <li><strong>Stop serving contradictory NPC truth:</strong> R2 story-only hot selection first (small, directly removes the latest prompt conflict), then R1 cap convergence/newest rendering as immediate hygiene. Design typed temporal facts before changing the memory tier.</li>
+  <li><strong>Repair the campaign clock safely:</strong> build the R3 invariant/repair instrument, export first, adjudicate one intended timeline, and apply one idempotent repair. Do not repeat the console decrement.</li>
+  <li><strong>Close the parser loop:</strong> take TODO #136 as one resolver/result-contract pass, with R8 handled as its destructive subcase. Write failure-first tests for wrong arc title, ambiguous foe, typo companion, missing inventory, and broad forget.</li>
+  <li><strong>Make corrections durable:</strong> implement R5's first-class correction record so the replacement survives beyond the rolling tail.</li>
+  <li><strong>Make audits transactional:</strong> R6 two-phase note delivery, beginning with split/presence/condition notes because they directly guard canon.</li>
+  <li><strong>Generalize sync revision:</strong> R7 becomes important before networked multiplayer or more same-turn editing surfaces ship.</li>
+</ol>
+
+<section class="card verdict">
+  <h3>Informed conclusion</h3>
+  <p>The campaign did not become messy because one subsystem collapsed. The evidence points to <strong>contradiction multiplication</strong>: a transient scene statement was promoted to durable NPC knowledge; an engine audit re-selected that off-scene NPC; the prompt then contained both the stale prose claim and the correct structured location; RETCON and audit lifecycle rules can remove or delay the channels that would heal the disagreement. Separately, an unguarded manual clock correction was repeated and damaged every absolute deadline.</p>
+  <p>The right hardening pass is therefore not “add more reminders.” It is to enforce provenance and closure at boundaries: story vs bookkeeping, standing fact vs scene event, proposed tag vs applied mutation, correction vs superseded history, request built vs request committed, and story turn vs state revision.</p>
+</section>
+
+<h2>Appendix · Evidence map</h2>
+<div class="scroll"><table>
+<tr><th>Surface</th><th>Primary code</th><th>Evidence</th></tr>
+<tr><td>Temporal NPC memory</td><td><code>memory.js:753, 922–994, 1030–1036</code>; <code>state.js:396–443</code></td><td>t1549 memory arrays and reconstructed prompt; Frizwick 18 entries / 2,375 chars.</td></tr>
+<tr><td>Hot-NPC selection</td><td><code>api.js:882–885, 973</code></td><td>Last-six message census and prompt output; F/D names occur only in split note.</td></tr>
+<tr><td>Clock</td><td><code>clock.js</code>; clock migration in <code>state.js</code></td><td>t1518–t1532 transcript <code>.ck/.ta</code>, tagLog, current schedule anchors.</td></tr>
+<tr><td>Parser</td><td><code>tag_table.js:149–153, 543–559, 598, 630–632, 663–679, 752–775, 779–856</code></td><td>Headless engine probes; t1530 <code>-none</code> receipt.</td></tr>
+<tr><td>RETCON/RAG</td><td><code>state.js:162–183</code>; <code>memory.js:630–641</code></td><td>t1547/t1548 pair and A/B retrieval probe.</td></tr>
+<tr><td>Audit lifecycle</td><td><code>api.js:245–420, 723–727</code>; <code>game.js:1538–1585</code></td><td>Same-turn split-audit build probe and t1547 ignored split audit.</td></tr>
+<tr><td>Sync</td><td><code>storage-adapter.js:384–470, 834–841</code></td><td>Turn-CAS source path and no-CAS manual push; existing TODO #5/#7 record.</td></tr>
+</table></div>
+
+<h2 id="fable">Fable's Comments</h2>
+<p class="sub">Appended by Fable · 2026-08-08 · every load-bearing claim below was independently re-verified against the code and the t1549/t1265 saves before commenting — nothing here is taken on Sol's word alone. Counterpart audit: <a href="Drift_risks_FABLE.html">Drift_risks_FABLE.html</a>.</p>
+
+<section class="card verdict">
+  <h3>Overall assessment</h3>
+  <p>This is a strong audit, and its findings are <strong>real</strong>. I re-ran the decisive evidence independently: the transcript <code>.ck</code> discontinuity (t1525 ck=8820 → t1526 ck=6500, −2320 with ta=0 — exactly twice the sanctioned −1160 repair), the t1530 <code>ITEM_LOST</code> "-none" false receipt in the tagLog, Morwen's <em>"Remained outside the Spire seam-door, holding it open"</em> served as standing <code>Knows:</code> while she walks beside Ammut, Frizwick/Daeris appearing in the last six messages <em>only</em> inside the SPLIT AUDIT engine note, the <code>rc=1</code> marks on both halves of the t1547/t1548 correction pair, and the <code>slice(0,2000)</code> head-keep truncation at memory.js:753. All check out. The two audits overlap on almost nothing — which makes the union, not either report, the hardening-pass docket.</p>
+  <p><strong>One formal concession up front:</strong> my report examined the same schedule-births-after-now anomaly and rejected it as "evidence of a repair, not a defect." I checked that the births were consistent with a <em>single</em> −1160 repair and stopped; Sol went one layer deeper into the transcript stamps and found the repair had landed <strong>twice</strong>. Sol is right, my rejected-candidates row is wrong, and this also means the Sable countdown arithmetic in my Finding 5 was computed on a corrupted clock (the mechanism claim survives; the number doesn't). This is the house lesson verbatim: verify the asserted fact exhaustively before reinterpreting the anomaly.</p>
+</section>
+
+<h3>Per-finding validity and solution risks</h3>
+
+<div class="card">
+<p><span class="eyebrow">R1 · Temporal NPC memory</span></p>
+<p><strong>Valid — confirmed, and it is half of a larger defect.</strong> My audit found the same store failing in the opposite direction: the write-side cap evicts the <em>oldest</em> facts to the void (83 facts destroyed between t1265 and t1549, proven longitudinally; the #128 merges re-slice a united history to 12 archive-less), while Sol's render truncation cuts the <em>newest</em> tail of over-cap NPCs. An over-cap NPC like Frizwick is squeezed from both ends at once. These are not two findings; they are the write half and the read half of one defect — an untyped, unmanaged knowledge lifecycle — and the hardening pass should treat R1 plus my Finding 1 as a single work item.</p>
+<p><strong>Solution risks.</strong> Ranked #1 (typed temporal facts) is the right end state but is a memory-schema migration on the drift surface: every existing save carries bare strings, the summarize extractor's JSON contract changes (a model-facing change that needs a money-turn validation, the gpt-4o precedent), and the kind-classifier is model judgment — a standing fact misfiled as a scene event silently falls out of <code>Knows:</code> forever. Pair it with archive-on-eviction (my Finding 1, remedy 1) so a misclassification is recoverable rather than fatal. Ranked #3 contains a trap as written: <em>"on load re-slice every knowledge array to 12"</em> would destroy six of Frizwick's facts on the next load with no archive — the exact silent-loss class both audits are trying to close. Any convergence slice must archive what it sheds, and must decide which end honestly (newest-first retention inverts the current bias; that is a choice, not a given).</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R2 · Bookkeeping activates off-scene NPCs</span></p>
+<p><strong>Valid — the audit's best original finding.</strong> Confirmed live: <code>stripEngineNotes</code> exists (memory.js:1008) and is applied only on the summarize path (:1059), never before the hot-NPC scan (api.js:885). The feedback-loop framing is exactly right, and it is an <em>amplifier for R1</em>: the presence-protection audit names the absent companion, which activates the detail block carrying her stale posture claims — the protection machinery feeding the contradiction it exists to prevent. Neither my audit nor any tracker row had this.</p>
+<p><strong>Solution risks.</strong> I would invert Sol's ranking for sequencing: #2 (strip notes before the scan) is nearly one line, classifier-free, and provably closes the live case — ship it first. #1 (story-only hot set) is the designed end state but reworks an audit-#13-vintage behavior with its own regression surface, and its "exclude split members unless named" clause needs one carve-out stated explicitly: a player's typed action <em>about</em> a split member ("what is Frizwick doing?") is story text and must still activate detail, or the SPLIT THREADS design loses the context it needs to advance remote threads. #3 (typed provenance spans) is correct architecture and the natural home is the eventual multiplayer/server-canonical migration, not this pass.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R3 · Clock repair non-idempotent</span></p>
+<p><strong>Valid — conceded above; Sol out-dug me here.</strong> Two additions. First, the likely double-application vector is cross-device: the repair line was published for the desktop console with "syncs to phone" framing, and a repair run on two devices (or re-run after a sync race restored the pre-repair blob) lands twice — which means Sol's #1 is right that the repair receipt must live <em>in the synced save</em> (worldState), not in device-local storage; a local receipt would not have prevented this. Second, the adjudication when it happens: intended state is one −1160, so the current scalar is 1,160 low (true min ≈ 7,840 at export), and both schedule anchors then sit legitimately in the past with the Sable window at ~18 hours rather than the inflated 2,250 minutes. I endorse the do-not-auto-fix callout without reservation; the #142 skip-and-demand teeth were the right fix for the <em>cause</em>, and this row is the missing fix for the <em>repair tooling</em>.</p>
+<p><strong>Solution risks.</strong> #2's load-time validator should treat a <code>.ck</code> regression as quarantine-and-ask, never heal-in-place — the transcript is decree-immutable and a "healer" that rewrites stamps would be a worse defect than the one it fixes. #3 (event ledger) I agree is oversized for the need; it is also the only option that would have made the double-repair self-evident, so it deserves a line in the multiplayer-era design notes even if unbuilt now.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R4 · Open-loop tag application</span></p>
+<p><strong>Valid, and correctly filed against the existing #136 rather than duplicated — good tracker discipline.</strong> The genuinely new contribution beyond #136's four classes is the t1530 <code>ITEM_LOST</code> "-none" receipt (verified): a <em>mutation reported that did not occur</em>, a fifth shape #136's row text does not currently list. That deserves to be added to #136 so the sweep covers receipt-honesty, not just miss-honesty.</p>
+<p><strong>Solution risks.</strong> The #1 uniform resolver is the right architecture — but "fail closed on wrong or ambiguous targets" must remain a <em>per-tag declared policy</em>, not a blanket rule. The bare <code>[ENEMY_HP:]</code> routing (single → engaged → first-living + warn) was a deliberate ratified ruling that the mutation always lands, because the GM does not retry and unbooked damage desyncs the fight; failing closed there reverses a design decision that was made with eyes open. Sol's schema technically supports per-tag policy — the risk is uniformity zeal at implementation time, so the contract should require each tag's ambiguity policy to be an explicit declared field, defaulting to strict only for <em>new</em> tags. #3's receipt verifier is cheaper than it looks: the tagLog provenance ring already records tags and muts lines per response, so the verifier is a diff over an existing structure.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R5 · RETCON suppresses its own correction</span></p>
+<p><strong>Valid — mechanism and live instance both verified</strong> (t1547 and t1548 both carry <code>rc=1</code>; the t1547 player half opens "GM:", so the meta filter would independently suppress it — a doubly-closed door). Sol's honest bounding (delayed, probabilistic, the summarize pass may still carry the fix) is the correct severity read. Worth stating plainly: the designed carrier for the correction <em>is</em> the summarize extraction, so this finding reduces to "the correction's survival depends on one unverified model pass" — which is why Sol's #3 (post-summary coverage check) is really the verification layer for the existing design rather than a third alternative; it composes with either #1 or #2 rather than competing with them.</p>
+<p><strong>Solution risks.</strong> #1 (first-class correction record) touches <code>logTranscript</code>, RAG scoring, and a new store in one change — proper Fable-tier surface, medium not small. #2's pin needs a bounded shelf: "until a summarizer result explicitly captures the replacement" is a condition that can simply never fire (extraction paraphrases; exact-match acknowledgment will miss), and an unexpiring pin becomes permanent prompt noise — the class the one-shot-shelf pattern exists to prevent. Give the pin a turn-capped shelf with a loud expiry.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R6 · Audit latches burn before delivery</span></p>
+<p><strong>Valid — mechanism confirmed in the builders themselves</strong> (e.g. <code>buildRelationshipAudit</code> stamps <code>lastRelAudit</code> during composition; <code>sendAction</code> composes notes before <code>callGM</code>; the catch path restores nothing). One sharpening: this is two failure classes wearing one mechanism — <em>transport loss</em> (turn never reached the model) and <em>successful noncompliance</em> (model read the note and ignored it). They deserve different fixes and different urgency.</p>
+<p><strong>Solution risks.</strong> I would re-rank: Sol's #3 (rollback on pre-commit failure) first — it is small, mechanical, closes the entire transport class, and has no behavioral risk. Sol's #1 (two-phase delivery) means making ~22 builders pure with per-builder latch semantics; the hazard is the commit criterion — "committed only after an expected tag" re-fires the note every turn until compliance, which is exactly the permanent-noise failure the SAY nudge's silent-on-compliance design was built to avoid. If compliance tracking comes, scope it to the small set of required-fork notes (split/presence/reconcile-skip) where an ignored audit actually corrupts canon, not all twenty-two. #2 (persistent pending-note queue) is a rebuild of the nudge system; its natural moment is if/when the note channel grows again, not now.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R7 · Turn-grained sync CAS</span></p>
+<p><strong>Valid as a latent design limit, and correctly not attributed to t1549.</strong> One correction needed: the tracker citations "TODO #5 / #7" do not match the current numbering — #5 is the story compiler and #7 is character rename; the accepted-coarseness records actually live in the sync documentation (CLAUDE.md §16/§22, and #95.5's last-writer-wins note for the prefs protocol). Worth fixing in place so the hardening pass doesn't chase the wrong rows. Note also that R3's cross-device double-repair is plausibly this finding's first field casualty — same-turn console edits on two devices are exactly the write pattern the turn guard cannot see — which raises R7's practical priority above "latent."</p>
+<p><strong>Solution risks.</strong> #1 (server revision CAS) is right and cheap on a self-hosted server, with one UX consequence to design for: the debounced trailing sync means a slow device will now surface <em>legitimate</em> rev conflicts that the turn guard silently absorbed — there must be a refetch-and-replay story, or players see spurious conflict prompts. #2 (stateRev in the blob) is the pragmatic middle and can ship without a server migration. Agreed that networked multiplayer forces this regardless; building it then, with the entity-ID work, is a defensible sequencing.</p>
+</div>
+
+<div class="card">
+<p><span class="eyebrow">R8 · NPC_FORGET breadth</span></p>
+<p><strong>Valid — this is #136 ④, independently reproduced; both audits converged here.</strong> One fiction-side caution on the solutions: Oubliate's effect legitimately wants breadth ("they forget <em>the person</em>"), so #2's unique-full-match rule will under-deliver on real casts — the spell's contract is "everything matching," and narrowing it changes a shipped player ability. The load-bearing fix is the <em>archive</em> (a tombstone the fiction can't see but the operator can recover), not the narrowing; #1's fact-ID targeting inherits R1's typed-record migration, so sequence them together.</p>
+</div>
+
+<h3>Where the two audits diverge — for the rebuttal round</h3>
+<div class="card">
+<ul>
+  <li><strong>The archive.</strong> Sol's rejected-candidates row downgrades archive growth to "storage-only and not injected" — true, and it answers a claim my audit didn't make. My Finding 2 is the opposite pole: <em>nothing can read</em> the 206 archived chapters (the only "readers" are tests and merge fix-ups), so the always-on story spine covers ~35 turns of a 1,549-turn campaign and arc-shaped history with no entity handle is unreachable by RAG. Sol's report doesn't engage that claim either way; it stands unrebutted for now.</li>
+  <li><strong>futureEvents expiry.</strong> Sol rejects my staleness concern, correctly noting the Sable timing distortion is R3's clock corruption — conceded, my remaining-time figure was computed on the corrupted scalar. But the surviving mechanism is independent of the clock: the age-40 sweep consults nothing about liveness, so a pending thread with no schedule twin and no quest anchor (the child's-glove item, age 29) still dies silently at 40 while genuinely unresolved. Narrowed by Sol's evidence; not dismissed.</li>
+  <li><strong>Coverage.</strong> Neither audit found the other's exclusives. Sol missed the write-side knowledge destruction (83 facts, longitudinally proven), the ten-chapter horizon, the starved <code>[LOCATION_STATE:]</code> channel (0 emissions in 40 responses against fully built infrastructure), and the item-canon gap (inventory measured as the largest volatile block, ~2,691 tokens). I missed the hot-set channel leak (R2), the double repair (R3), the RETCON self-suppression (R5), the latch lifecycle (R6), and the "-none" receipt. Two genuinely independent methodologies; the union is the docket, and the overlap zone (R1 + my Finding 1; R4/R8 + #136) is where confidence is now highest.</li>
+</ul>
+</div>
+
+<p class="footer">Analysis only. Source files in the drift-protection surface were read but not edited. The only repository changes made for this investigation are this report and the required tracker/review records.</p>
+</body>
+</html>
