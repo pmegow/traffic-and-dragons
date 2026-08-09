@@ -3290,6 +3290,76 @@ function runEngineTests(R){
     var a=memory.archive.futureEvents;
     return (a&&a.length===1&&a[0].expiredAt===101)?true:"asked thread not archived: "+JSON.stringify(a);
   });
+  // ═══ DRIFT PASS order 10 (#136): tag receipts tell the truth — the tolerant-parser counter-sweep ═══
+  // Five classes, all probe-reproduced (the #77 review ①–④ + Sol R4's live t1530 "-none" receipt ⑤).
+  // Rebuttal-round rulings baked in: strictness is PER-TAG (bare ENEMY_HP's always-lands routing
+  // is ratified and stays), and NPC_FORGET keeps its breadth — the fix is the archive.
+  t("① sequential-act [ARC_COMPLETE:] validates its title like its strict sibling (#136)",function(){
+    makeWorld();
+    worldState.skeleton={acts:[{title:"Act 1",status:"active",parallel:false,arcs:[{title:"True Arc",status:"active"},{title:"Next Arc",status:"pending"}]}]};
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ARC_COMPLETE:Totally Wrong Title]");}finally{console.warn=_w;}
+    if(worldState.skeleton.acts[0].arcs[0].status!=="active")return "a wrong title still closed the arc (Sol's probe)";
+    if(!warns.filter(function(w){return w.indexOf("Totally Wrong Title")>=0;}).length)return "the mismatch was silent";
+    applyMuts("[ARC_COMPLETE:True Arc]");
+    if(worldState.skeleton.acts[0].arcs[0].status!=="completed")return "a correct title no longer closes";
+    return worldState.skeleton.acts[0].arcs[1].status==="active"?true:"sequential auto-activate broken by the fix";
+  });
+  t("② an ambiguous containment foe match warns but still lands — the always-lands ruling stands (#136)",function(){
+    makeWorld();
+    applyMuts("[COMBAT_START:Guard Captain|10|12|2|1d6|steady]");
+    applyMuts("[COMBAT_START:Guard Sergeant|8|12|2|1d6|steady]");
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ENEMY_HP:Guard|-3]");}finally{console.warn=_w;}
+    var f=worldState.combat.foes;
+    if(f[0].hp!==7)return "the mutation did not land on the first match: "+f[0].hp;
+    return warns.filter(function(w){return w.indexOf("ambiguous")>=0;}).length?true:"the ambiguity was silent (Sol's Goblin probe)";
+  });
+  t("③ the silent-miss cluster warns: unknown skill, player spell miss, companion typo, SPELL_DEF redefinition (#136)",function(){
+    makeWorld();
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      applyMuts("[SKILL_SUCCESS:Nonexistent Skill]");
+      applyMuts("[SPELL_USED:Spell Nobody Knows]");
+      applyMuts("[COMPANION_HP:Frizwik|-4]");
+      applyMuts("[SPELL_DEF:Zaptrap|tier=abc|effect=zap]");
+      applyMuts("[SPELL_DEF:Zaptrap|tier=2|effect=different]");
+    }finally{console.warn=_w;}
+    var j=warns.join(" || ");
+    if(j.indexOf("Nonexistent Skill")<0)return "unknown skill id still silent";
+    if(j.indexOf("Spell Nobody Knows")<0)return "player spell miss still silent (the companion twin already warned — the asymmetry)";
+    if(j.indexOf("Frizwik")<0)return "companion-name miss still silent";
+    if(j.indexOf("unparseable tier")<0)return "SPELL_DEF junk tier still silently becomes 0";
+      if(j.indexOf("already defined")<0)return "SPELL_DEF write-once redefinition drop still silent";
+    return true;
+  });
+  t("④ [NPC_FORGET:] archives what it removes — Oubliate keeps its breadth, the operator keeps the record (#136)",function(){
+    makeWorld();worldState.turn=20;
+    memory.npcs["Sage"]={attitude:"",knowledge:["the red key opens the vault","the red key was stolen yesterday","unrelated fact"],events:[{turn:5,note:"saw the red key at dawn"}],aliases:[]};
+    applyMuts("[NPC_FORGET:Sage|red key]");
+    if(memory.npcs["Sage"].knowledge.length!==1)return "breadth changed — the spell's contract is everything matching";
+    var a=memory.archive.npcForgotten;
+    if(!a||a.length!==3)return "forgotten material not archived (3 expected): "+JSON.stringify(a);
+    return (a[0].npc==="Sage"&&a[0].cause==="red key")?true:"archive record wrong: "+JSON.stringify(a[0]);
+  });
+  t("⑤ receipts without mutations are dead: a missed removal warns and mints NO muts line (#136)",function(){
+    makeWorld();
+    worldState.character.inventory=["Rope"];
+    worldState.character.conditions=[{name:"Poisoned",duration:"1 day"}];
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applyMuts("[ITEM_LOST:none]");}finally{console.warn=_w;}
+    var e1=(worldState.tagLog||[]).slice(-1)[0];
+    if(((e1&&e1.m)||[]).join("|").indexOf("-none")>=0)return "the live t1530 false receipt is still minted";
+    if(!warns.filter(function(w){return w.indexOf("none")>=0;}).length)return "the missed removal was silent";
+    if(worldState.character.inventory.length!==1)return "inventory changed on a miss";
+    applyMuts("[CONDITION_REMOVED:Blessed]");
+    var e2=(worldState.tagLog||[]).slice(-1)[0];
+    if(((e2&&e2.m)||[]).join("|").indexOf("Blessed")>=0)return "a no-op condition removal minted a receipt";
+    if(worldState.character.conditions.length!==1)return "conditions changed on a miss";
+    applyMuts("[ITEM_LOST:Rope]");
+    var e3=(worldState.tagLog||[]).slice(-1)[0];
+    return (((e3&&e3.m)||[]).join("|").indexOf("-Rope")>=0&&worldState.character.inventory.length===0)?true:"a REAL removal lost its receipt";
+  });
   t("the futureEvents cap-30 overflow archives too — no shrink site left silent (#150)",function(){
     makeWorld();worldState.turn=10;
     for(var i=0;i<31;i++)memory.futureEvents.push({when:"soon",who:"",what:"wholly distinct plan alpha"+i+" beta"+i+" gamma"+i,setTurn:10,resolved:false});

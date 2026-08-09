@@ -432,6 +432,7 @@ function healMemory(){
   if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */
   if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */
   if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */
+  if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */
   // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
   // no-op that occupies a capped slot and reads as canon). Idempotent; each drop logs.
   if(memory.map&&memory.map.nodes){var _jnk=Object.keys(memory.map.nodes),_jni;for(_jni=0;_jni<_jnk.length;_jni++){var _jnn=memory.map.nodes[_jnk[_jni]];if(_jnn&&Array.isArray(_jnn.stateNotes)&&_jnn.stateNotes.length){var _jnb=_jnn.stateNotes.length;_jnn.stateNotes=_jnn.stateNotes.filter(function(sn){return sn&&String(sn.n||"").trim()&&!/^none[.!]?$/i.test(String(sn.n).trim());});if(_jnn.stateNotes.length<_jnb)console.info("[map] #149: dropped "+(_jnb-_jnn.stateNotes.length)+" junk stateNote(s) on "+_jnk[_jni]);}}}
