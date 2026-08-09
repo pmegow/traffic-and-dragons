@@ -51,6 +51,10 @@
   #panel .cascade summary{cursor:pointer;color:var(--t1)}
   #panel .cascade summary::marker{color:var(--acc)}
   #panel .cascade details{margin:1px 0}
+  #panel .crec{border-left:2px solid var(--brd2);margin:4px 0 10px 3px;padding:2px 0 2px 10px}
+  #panel .crec .sec{margin:8px 0}
+  #panel .mk{font-size:10px;color:var(--acc2)}
+  #panel .mk.away{color:var(--bad)}
   #legend{position:absolute;left:12px;bottom:12px;background:rgba(22,22,22,.92);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;font-size:10.5px;color:var(--t2);line-height:1.8;pointer-events:none}
   #legend svg{vertical-align:middle;margin-right:5px}
   #drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.85);color:var(--acc);font-size:16px;border:2px dashed var(--acc);z-index:5;pointer-events:none}
@@ -312,37 +316,51 @@
   }
 
   // ── node panel ─────────────────────────────────────────────────────────────
+  // One location's record body — shared between the panel header view and every cascade entry
+  // (user call 2026-08-09 #2: a sublocation EXPANDS IN PLACE with its full record instead of
+  // navigating the panel away; browsing Sandpoint's shops never loses Sandpoint).
+  function nodeRecordHTML(n){
+    var h='';
+    var marks='';
+    if(n.key===G.current)marks+='<span class="chip">'+esc(G.playerName)+' is here</span>';
+    for(var si=0;si<G.splits.length;si++)if(G.splits[si].key===n.key)marks+='<span class="chip away">'+esc(G.splits[si].name)+' — away from party</span>';
+    if(marks)h+='<div class="sec">'+marks+'</div>';
+    h+='<div class="sec"><h3>Record</h3><div>'+(n.visits||0)+' visit'+(n.visits===1?'':'s')+(n.firstVisit!=null?' · first at turn '+esc(n.firstVisit):'')+(n.ghost?' · <span style="color:var(--bad)">ghost — referenced, never filed</span>':'')+'</div></div>';
+    if(n.description)h+='<div class="sec"><h3>Canonical description (write-once, GM-injected)</h3><div class="desc">'+esc(n.description)+'</div></div>';
+    if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
+    if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
+    if(n.npcsHere.length){h+='<div class="sec"><h3>NPCs last seen here</h3><ul>';for(var i4=0;i4<n.npcsHere.length;i4++){var np=n.npcsHere[i4];h+='<li'+(np.dead?' class="dead"':'')+'>· '+esc(np.name)+(np.dead?' (deceased)':'')+'</li>';}h+='</ul></div>';}
+    return h;
+  }
+  // Every cascade entry is an accordion: summary = the name, body = the full record + its own
+  // children, recursively. Nothing navigates; everything unfolds where it stands.
+  function cascadeFull(key){
+    var kids=G.childIdx[key]||[];
+    if(!kids.length)return "";
+    var out="<ul>";
+    for(var ci=0;ci<kids.length;ci++){
+      var kn=G.byKey[kids[ci]];if(!kn)continue;
+      var mark='';
+      if(kn.key===G.current)mark=' <span class="mk">● party</span>';
+      for(var mi=0;mi<G.splits.length;mi++)if(G.splits[mi].key===kn.key)mark+=' <span class="mk away">● '+esc(G.splits[mi].name)+'</span>';
+      var line=esc(kn.label)+(kn.ghost?' <span style="color:var(--bad)">(ghost)</span>':'')+(kn.visits>1?' <span style="color:var(--t2)">×'+kn.visits+'</span>':'')+mark;
+      out+='<li><details><summary>'+line+'</summary><div class="crec">'+nodeRecordHTML(kn)+cascadeSection(kn.key,true)+'</div></details></li>';
+    }
+    return out+"</ul>";
+  }
+  function cascadeSection(key,nested){
+    var tree=cascadeFull(key);
+    if(!tree)return "";
+    if(nested)return '<div class="sec"><h3>Sublocations</h3><div class="cascade">'+tree+'</div></div>';
+    return '<div class="sec"><h3>Sublocations ('+(G.descCount[key]||0)+')</h3><div class="cascade">'+tree+'</div></div>';
+  }
   function selectNode(key){
     var n=G.byKey[key];if(!n)return;
     selected=key;
     var up=n.world?null:(n.treeParent||n.rootKey);
     var h='<h2>'+esc(n.world?n.key:n.label)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'inside <a data-go="'+esc(up)+'" style="text-transform:none;letter-spacing:0">'+esc(up)+'</a>'))+'</div>';
-    var chips='';
-    if(n.key===G.current)chips+='<span class="chip">'+esc(G.playerName)+' is here</span>';
-    for(var si=0;si<G.splits.length;si++)if(G.splits[si].key===n.key)chips+='<span class="chip away">'+esc(G.splits[si].name)+' — away from party</span>';
-    if(chips)h+='<div class="sec">'+chips+'</div>';
-    h+='<div class="sec"><h3>Record</h3><div>'+(n.visits||0)+' visit'+(n.visits===1?'':'s')+(n.firstVisit!=null?' · first at turn '+esc(n.firstVisit):'')+'</div></div>';
-    if(n.description)h+='<div class="sec"><h3>Canonical description (write-once, GM-injected)</h3><div class="desc">'+esc(n.description)+'</div></div>';
-    if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
-    if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
-    if(n.npcsHere.length){h+='<div class="sec"><h3>NPCs last seen here</h3><ul>';for(var i4=0;i4<n.npcsHere.length;i4++){var np=n.npcsHere[i4];h+='<li'+(np.dead?' class="dead"':'')+'>· '+esc(np.name)+(np.dead?' (deceased)':'')+'</li>';}h+='</ul></div>';}
-    // Cascading sublocation tree (user call 2026-08-09): children from the key-structure index,
-    // sub-sub-locations nested inside native <details> — no wiring needed for expand/collapse.
-    function cascade(key){
-      var kids=G.childIdx[key]||[];
-      if(!kids.length)return "";
-      var out="<ul>";
-      for(var ci=0;ci<kids.length;ci++){
-        var kn=G.byKey[kids[ci]];if(!kn)continue;
-        var inner=cascade(kn.key);
-        var line='<a data-go="'+esc(kn.key)+'">'+esc(kn.label)+'</a>'+(kn.ghost?' <span style="color:var(--bad)">(ghost)</span>':'')+(kn.visits>1?' <span style="color:var(--t2)">×'+kn.visits+'</span>':'');
-        if(inner)out+='<li><details><summary>'+line+'</summary>'+inner+'</details></li>';
-        else out+='<li>· '+line+'</li>';
-      }
-      return out+"</ul>";
-    }
-    var tree=cascade(n.key);
-    if(tree){h+='<div class="sec"><h3>Sublocations ('+(G.descCount[n.key]||0)+')</h3><div class="cascade">'+tree+'</div></div>';}
+    h+=nodeRecordHTML(n);
+    h+=cascadeSection(n.key,false);
     var conn=[];for(var i7=0;i7<G.edges.length;i7++){var E=G.edges[i7];if(E.a.key===n.key)conn.push({k:E.b.key,t:E.turn});else if(E.b.key===n.key)conn.push({k:E.a.key,t:E.turn});}
     if(conn.length){h+='<div class="sec"><h3>Connected (first travel)</h3><ul>';for(var i8=0;i8<conn.length;i8++)h+='<li>· <a data-go="'+esc(conn[i8].k)+'">'+esc(conn[i8].k)+'</a> <span style="color:var(--t2)">(t'+esc(conn[i8].t)+')</span></li>';h+='</ul></div>';}
     var pn=$("panel");pn.innerHTML=h;pn.className="open";
