@@ -8716,6 +8716,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     // Both present, both labelled: two DIFFERENT measurements, nothing for the model to adjudicate.
     return true;
   });
+  // ═══ DRIFT PASS order 7 (#151): engine-note latches survive failed turns ═══
+  // Builders stamp cooldowns / consume one-shots while COMPOSING the request; a dead provider
+  // call then sees the latch as spent — a due split audit burned its stamp with no delivery
+  // (Sol R6). sendAction snapshots the declared latch fields before buildEngineNotes and
+  // restores them when the turn dies before commitGmTurn. Transport loss ONLY — compliance
+  // tracking is deliberately out of scope (the re-fire-noise class).
+  t("snapshotNoteLatches round-trips values, absences, and the nested split stamp (#151)",function(){
+    makeWorld();worldState.turn=50;
+    worldState.lastRelAudit=7;worldState.presencePing={name:"Daeris",turn:49};
+    worldState.npcs.push({name:"Friz",partyMember:true,charSheet:{name:"Friz",hp:9,maxHp:9,splitLoc:{location:"Magnimar",turn:40,audited:44},conditions:[],relationships:[]}});
+    var snap=snapshotNoteLatches();
+    worldState.lastRelAudit=50;delete worldState.presencePing;worldState.arcStaged={x:1};
+    worldState.npcs[worldState.npcs.length-1].charSheet.splitLoc.audited=50;
+    restoreNoteLatches(snap);
+    if(worldState.lastRelAudit!==7)return "stamped cooldown not restored";
+    if(!worldState.presencePing||worldState.presencePing.name!=="Daeris")return "deleted one-shot not restored";
+    if(worldState.arcStaged)return "a key absent at snapshot survived restore: "+JSON.stringify(worldState.arcStaged);
+    var cs=worldState.npcs[worldState.npcs.length-1].charSheet;
+    return cs.splitLoc.audited===44?true:"nested split stamp not restored: "+cs.splitLoc.audited;
+  });
+  t("a failed turn's restore lets the same audit fire again — the burned-latch class is dead (#151)",function(){
+    makeWorld();worldState.turn=100;worldState.lastRelAudit=10;
+    worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife",turn:10}];
+    var snap=snapshotNoteLatches();
+    var n1=buildEngineNotes();
+    if(n1.indexOf("RELATIONSHIP AUDIT")<0)return "precondition: the audit did not fire";
+    if(worldState.lastRelAudit!==100)return "precondition: the stamp never landed";
+    restoreNoteLatches(snap); // the provider call died before commitGmTurn
+    var n2=buildEngineNotes();
+    return n2.indexOf("RELATIONSHIP AUDIT")>=0?true:"restored latch did not re-fire the audit";
+  });
+
   // ═══ DRIFT PASS order 2 (#145): bookkeeping text must not activate off-scene NPC memory ═══
   // Live t1549 shape: Frizwick/Daeris occurred in the last six messages ONLY inside the split-audit
   // engine note, yet got full ACTIVE NPC DETAILS carrying stale posture claims — the presence-

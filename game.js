@@ -1554,7 +1554,7 @@ async function sendAction(override,opts){
     // worldState.transcript player entry above already captured the clean txt, and
     // lastAction/retry keep the clean txt too, so the note never reaches the player.
     var apiTxt=txt;
-    if(!isTT&&!(opts&&opts.silent)){var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
+    if(!isTT&&!(opts&&opts.silent)){var _latchSnap=snapshotNoteLatches();/* #151: capture BEFORE the builders stamp/consume — the catch restores when the turn dies pre-commit */var _en=buildEngineNotes();if(_en)apiTxt=_en+"\n\n"+txt;}/* v1.255: the engine-notes registry (quest escalation + condition audit; adding a check = a NOTE_BUILDERS entry) */
     _tSent=Date.now();_hid0=(typeof document!=="undefined"&&document.hidden)?1:0;
     if(typeof erCrumb==="function")erCrumb("turn-start","t"+worldState.turn+(isTT?" tt":"")+((opts&&opts.silent)?" sil":"")+" "+String(apiTxt).length+"ch bg"+_hid0);/* pre-increment turn — commitGmTurn's "turn" crumb carries the post-increment one, so the pair brackets the request */
     // #76: TT sends noHistory — the narrative sessionLog is what used to overpower the
@@ -1577,6 +1577,7 @@ async function sendAction(override,opts){
     }
     syncUI();
   }catch(e){th.remove();
+    if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(_latchSnap);/* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
     var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
     if(typeof erCrumb==="function")erCrumb("turn-fail",(_tSent?(Date.now()-_tSent)+"ms":"pre-send")+(_committed?" post":" pre")+" bg"+_hid0+_hid1+" "+String((e&&e.message)||"?").slice(0,28));/* survives a page kill via the crumb ring, unlike the report below */
     // B16: ctx:"turn" alone could not tell a Story turn from a Table Talk question from a silent

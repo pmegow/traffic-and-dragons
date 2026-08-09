@@ -196,6 +196,38 @@ try {
   if (_ttAC.indexOf("npcKnowledge.push") < 0) _failAC("the NPC_MERGE truncation no longer archives its overflow");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
 
+// ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
+// Every worldState key the NOTE_BUILDERS region writes must be declared in NOTE_LATCH_FIELDS,
+// or a failed turn silently burns that builder's latch (the class this pass closed). The census
+// re-runs the same write-scan on every build — a NEW builder stamping an undeclared key fails
+// here, so the registry cannot rot. Also pins the sendAction wiring the DOM-free harness
+// exercises only piecewise.
+try {
+  var _fsLR = require("fs"), _pathLR = require("path");
+  var _failLR = function (msg) { console.error("#151 LATCH REGISTRY CONTRACT: " + msg); process.exit(1); };
+  var _apiLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "api.js"), "utf8");
+  // TWO builder regions: the #147/#149/#150 builders live before buildCoreMemoryBlock, the
+  // original registry cluster before NOTE_BUILDERS. The first sabotage run proved a one-region
+  // census misses the new cluster entirely (the write landed, nothing tripped) — census both.
+  var _b0 = _apiLR.indexOf("function buildQuestEscalation"), _b1 = _apiLR.indexOf("var NOTE_BUILDERS=");
+  var _c0 = _apiLR.indexOf("function buildExpiredThreadNudge"), _c1 = _apiLR.indexOf("function buildCoreMemoryBlock");
+  if (_b0 < 0 || _b1 < 0 || _b1 <= _b0 || _c0 < 0 || _c1 < 0 || _c1 <= _c0) _failLR("builder-region anchors moved — re-point the census");
+  var _segLR = _apiLR.slice(_b0, _b1) + "\n" + _apiLR.slice(_c0, _c1);
+  var _declM = _segLR.match(/var NOTE_LATCH_FIELDS=\[([^\]]*)\]/);
+  if (!_declM) _failLR("NOTE_LATCH_FIELDS is gone from the builder region");
+  var _decl = {}; _declM[1].split(",").forEach(function (k) { k = k.replace(/["'\s]/g, ""); if (k) _decl[k] = 1; });
+  var _wLR = {}, _mLR, _reLR = /worldState\.([A-Za-z_$][A-Za-z0-9_$]*)\s*=[^=]/g;
+  while ((_mLR = _reLR.exec(_segLR))) _wLR[_mLR[1]] = 1;
+  var _rdLR = /delete worldState\.([A-Za-z_$][A-Za-z0-9_$]*)/g;
+  while ((_mLR = _rdLR.exec(_segLR))) _wLR[_mLR[1]] = 1;
+  var _undecl = Object.keys(_wLR).filter(function (k) { return !_decl[k]; });
+  if (_undecl.length) _failLR("builder region writes UNDECLARED worldState key(s): " + _undecl.join(", ") + " — add them to NOTE_LATCH_FIELDS or a failed turn burns that latch");
+  var _gmLR = _fsLR.readFileSync(_pathLR.join(__dirname, "..", "game.js"), "utf8");
+  var _snapAt = _gmLR.indexOf("snapshotNoteLatches()"), _notesAt = _gmLR.indexOf("buildEngineNotes()");
+  if (_snapAt < 0 || _notesAt < 0 || _snapAt > _notesAt) _failLR("sendAction no longer snapshots BEFORE buildEngineNotes");
+  if (!/if\(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap[^\n]*restoreNoteLatches\(_latchSnap\)/.test(_gmLR)) _failLR("the pre-commit failure path no longer restores the latches");
+} catch (eLR) { console.error("#151 LATCH REGISTRY CONTRACT: " + (eLR && eLR.message)); process.exit(1); }
+
 // ── STARS PORTABILITY CONTRACT (#95.5/#95.8 — cloud-backed since v1.450) ─────────────────
 // The star store is per-origin localStorage (the #95.4 star-origin field bug), so the CLOUD
 // mirror is the only bridge across origins and devices. The file Export/Import pure slice
@@ -933,7 +965,7 @@ try {
   _ttReq("lastAction guarded by !isTT (else Retry replays a TT question as a story turn)", /if\(!isTT\)lastAction=txt;/.test(_game));
   _ttReq("transcript write guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!_isRetryDup\)logTranscript/.test(_game));
   _ttReq("summarize guarded by !isTT", /if\(!isTT&&sessionTokens\(\)>=SUMMARIZE_AT\)/.test(_game));
-  _ttReq("engine notes guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)\)\{var _en=buildEngineNotes/.test(_game));
+  _ttReq("engine notes guarded by !isTT", /if\(!isTT&&!\(opts&&opts\.silent\)\)\{var _latchSnap=snapshotNoteLatches\(\);[^\n]*var _en=buildEngineNotes/.test(_game));/* #151 widened the pinned line: the latch snapshot sits INSIDE the same !isTT gate (TT/silent paths neither build notes nor snapshot), so the isolation intent is unchanged */
   _ttReq("multi-PC queue bypassed for TT", /if\(!isTT&&!\(opts&&opts\.silent\)&&!\(opts&&opts\.mpBypass\)/.test(_game));
   _ttReq("TT sends noHistory (the narrative sessionLog is not sent)", /isTT\?\{noHistory:true,kind:"tabletalk"\}:undefined/.test(_game));
   _ttReq("TT response runs cleanTxt (#74 (1): raw tags used to render verbatim)", /var ttClean=\(typeof cleanTxt==="function"\)\?cleanTxt\(resp\)/.test(_game));

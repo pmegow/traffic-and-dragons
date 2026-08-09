@@ -754,6 +754,35 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
+// #151 (drift pass order 7): the LATCH REGISTRY — every top-level worldState key a NOTE_BUILDERS
+// entry stamps or consumes while COMPOSING a request. sendAction snapshots these before
+// buildEngineNotes and restores them when the turn dies before commitGmTurn: a dead provider
+// call must not eat an audit (Sol R6 — a due split audit burned its stamp with no delivery).
+// The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
+// every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
+// The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","presencePing","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];
+function snapshotNoteLatches(){
+  var snap={t:{},split:[]},i;
+  for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
+    if(Object.prototype.hasOwnProperty.call(worldState,k)){var sv=JSON.stringify(worldState[k]);snap.t[k]=(sv===undefined)?"null":sv;}
+    else snap.t[k]="__ABSENT__";
+  }
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
+  for(i=0;i<party.length;i++){var cs=party[i].charSheet;if(cs&&cs.splitLoc)snap.split.push({name:party[i].name,audited:cs.splitLoc.audited});}
+  return snap;
+}
+function restoreNoteLatches(snap){
+  if(!snap)return;var i,j;
+  for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i],v=snap.t[k];
+    if(v==="__ABSENT__"){delete worldState[k];}
+    else if(typeof v==="string"){worldState[k]=JSON.parse(v);}
+  }
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
+  for(i=0;i<snap.split.length;i++){var rec=snap.split[i];
+    for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
+      if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
+}
 var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
