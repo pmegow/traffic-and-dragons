@@ -293,7 +293,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
@@ -991,6 +991,10 @@ function applySummaryExtract(extracted){
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
   if(extracted.chapterSummary)fileChapter(worldState.turn,extracted.chapterSummary);
+  // #147: a completed extraction SAW the corrected exchange while it was still in the session
+  // window — the correction pin's job is done. Archive it (never a silent drop). Runs after the
+  // chapter file so a throw in any earlier step keeps the pin alive for the retry.
+  if(typeof worldState!=="undefined"&&worldState&&worldState.retconPin){memArchive().retconPins.push(worldState.retconPin);delete worldState.retconPin;}
   return stats;
 }
 // ── #10 (B11): keep the gameplay channel's imperatives out of the JSON channel ────────────────

@@ -121,6 +121,23 @@ function condInjectFmt(x){
 // line, so an unchanged party renders byte-identically to the old shared list. A moment stamped
 // with a DIFFERENT campaign (an imported character's carried history) renders attributed to that
 // campaign — its turn number means nothing here.
+// #147 (drift pass order 4): a [RETCON:] de-indexes BOTH halves of a correction from RAG (by
+// design — the false version must never re-serve as episodic truth), which leaves the corrected
+// fact riding only the rolling session tail + one unverified extraction pass. This pin keeps the
+// correction injected until a summarize completes (applySummaryExtract archives it) or the
+// RETCON_PIN_SHELF expires — expiry archives LOUDLY, never a silent drop. The shelf is the
+// one-shot-shelf discipline: an unfiled pin must not become permanent prompt noise.
+function buildRetconPinBlock(){
+  var p=(typeof worldState!=="undefined"&&worldState)?worldState.retconPin:null;
+  if(!p||!p.what)return"";
+  if(worldState.turn-(p.turn||0)>=RETCON_PIN_SHELF){
+    if(typeof memArchive==="function")memArchive().retconPins.push(p);
+    if(typeof console!=="undefined")console.warn("[memory] #147: correction pin EXPIRED unfiled after "+RETCON_PIN_SHELF+" turns — archived: \""+String(p.what).slice(0,80)+"\" (no summarize completed inside the window)");
+    delete worldState.retconPin;
+    return"";
+  }
+  return "CORRECTION IN FORCE (t"+p.turn+"): "+p.what+" — the corrected telling is canon; the earlier version of that scene is void and must never be recalled as fact.\n\n";
+}
 function buildCoreMemoryBlock(){
   if(!worldState||!worldState.character)return"";
   var camp=worldState.campName||"",seen={},cur=[],prior=[],i;
@@ -978,6 +995,7 @@ function buildSysPrompt(){
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
     +cb+hist
     +buildCoreMemoryBlock()
+    +buildRetconPinBlock()/* #147: correction-in-force pin — volatile only, ""-clean when no pin lives */
     +"REMINDER -- PLAYER IDENTITY: "+c.name+" is a "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+". Level "+c.level+". Never forget this.\n\n"
     +"STYLE: "+(_paVc?"Write EVERY sentence of narration in this voice — a reader should recognise the author from rhythm, sentence length, and word choice alone. Commit fully; never blend with a neutral GM voice. VOICE: "+_paVc+(_paProfane?(adultMode?" This voice swears: use strong, crude profanity freely and naturally — never censored.":" Keep this voice's rhythm and bite, but keep the language clean — no profanity."):"")+" ":"Write clean, readable prose. ")+"Do NOT use em-dashes or en-dashes anywhere; use commas or separate sentences instead. Do not cram multiple clauses or similes into one long sentence; break a long thought into several short ones, one main image per sentence. Do NOT end your response with suggested actions, a 'You could' line, or an [ACTIONS:] tag — action suggestions are handled separately by the engine. Never show tags in prose. Death is possible."
     /* D12 (supersedes D10, user field ruling 2026-07-18): the third-person override must sit

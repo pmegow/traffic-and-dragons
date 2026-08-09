@@ -177,7 +177,7 @@ try {
   var _ufAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "ui-files.js"), "utf8");
   // ① the import whitelist carries the FULL archive — the pre-#144A rebuild silently dropped
   //   superseded/coreMemories/expiredSchedules on every import (Sol's find, drift audit).
-  var _keysAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents"];
+  var _keysAC = ["lore", "decisions", "chapters", "superseded", "coreMemories", "expiredSchedules", "npcKnowledge", "npcEvents", "retconPins"];
   var _archAC = (_ufAC.match(/archive:mm\.archive\?\{[^}]*\}/) || [""])[0];
   if (!_archAC) _failAC("the import's archive rebuild expression is gone from ui-files.js");
   for (var _kAC = 0; _kAC < _keysAC.length; _kAC++) {

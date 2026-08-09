@@ -2797,6 +2797,52 @@ function runEngineTests(R){
     worldState.ragMemory=false;
     return b.indexOf("Origin scene")>=0?true:"orphaned index name not resolved: "+b.slice(0,140);
   });
+  // ═══ DRIFT PASS order 4 (#147): the correction survives its own retcon ═══
+  // [RETCON:] de-indexes BOTH halves from RAG (by design), leaving the corrected truth riding
+  // only the rolling tail + one unverified extraction pass (Sol R5, live t1547/t1548). The pin
+  // keeps it injected until memory files it — and every exit archives, never silent-drops.
+  t("[RETCON:] pins the correction: payload + turn on worldState.retconPin (#147)",function(){
+    makeWorld();worldState.turn=30;
+    logTranscript("gm","clean text","Prose. [RETCON: the boy was never at the lockhouse]");
+    var p=worldState.retconPin;
+    if(!p||p.what!=="the boy was never at the lockhouse"||p.turn!==30)return "pin wrong: "+JSON.stringify(p);
+    return true;
+  });
+  t("the pin injects as CORRECTION IN FORCE while live; no pin renders nothing (#147)",function(){
+    makeWorld();worldState.turn=31;
+    if(buildSysPrompt().volatile.indexOf("CORRECTION IN FORCE")>=0)return "phantom pin line with no pin";
+    worldState.retconPin={what:"the watchers are Wyla's",turn:30};
+    var v=buildSysPrompt().volatile;
+    return v.indexOf("CORRECTION IN FORCE (t30): the watchers are Wyla's")>=0?true:"pin not injected";
+  });
+  t("a completed extraction files the pin to the archive and clears it (#147)",function(){
+    makeWorld();worldState.turn=32;
+    worldState.retconPin={what:"corrected fact",turn:30};
+    applySummaryExtract({chapterSummary:"a chapter"});
+    if(worldState.retconPin)return "pin survived the extraction";
+    var a=memory.archive.retconPins;
+    return (a&&a.length===1&&a[0].what==="corrected fact")?true:"pin not archived: "+JSON.stringify(a);
+  });
+  t("shelf expiry archives the pin LOUDLY instead of dropping it (#147)",function(){
+    makeWorld();worldState.turn=45;
+    worldState.retconPin={what:"stale correction",turn:30}; // 15 turns old = at RETCON_PIN_SHELF
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    var v;try{v=buildSysPrompt().volatile;}finally{console.warn=_w;}
+    if(v.indexOf("CORRECTION IN FORCE")>=0)return "expired pin still injected";
+    if(worldState.retconPin)return "expired pin not cleared";
+    if(!memory.archive.retconPins||memory.archive.retconPins.length!==1)return "expired pin not archived";
+    if(!warns.filter(function(w){return w.indexOf("#147")>=0;}).length)return "expiry was silent — the failure being removed";
+    return true;
+  });
+  t("a second retcon rotates the slot — prior pin archived, newest live (#147)",function(){
+    makeWorld();worldState.turn=33;
+    logTranscript("gm","a","x [RETCON:first correction]");
+    worldState.turn=34;
+    logTranscript("gm","b","y [RETCON:second correction]");
+    if(!worldState.retconPin||worldState.retconPin.what!=="second correction")return "newest not live: "+JSON.stringify(worldState.retconPin);
+    var a=memory.archive.retconPins;
+    return (a&&a.length===1&&a[0].what==="first correction")?true:"prior pin not rotated to archive: "+JSON.stringify(a);
+  });
   t("cleanTxt strips [RETCON:]",function(){
     return eq(cleanTxt("You are right. The record stands corrected. [RETCON:pin retrieval]"),"You are right. The record stands corrected.");
   });

@@ -180,7 +180,15 @@ function logTranscript(role,text,raw,taMin){if(!worldState||!text)return;if(!wor
      no timestamp — the caption degrades to the bare turn number rather than guessing. */
   if(role==="gm"&&typeof clockNow==="function")_e.ck=clockNow();
   if(role==="gm"&&typeof APP_VERSION!=="undefined")_e.v=APP_VERSION;/* #45b: engine version per turn — "what version was the phone on?" is now answerable from any export */
-  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}}
+  if(role==="gm"&&/\[RETCON:/i.test(String(raw||""))){_e.rc=1;var _tr=worldState.transcript,_bi;for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){_tr[_bi].rc=1;break;}}
+    /* #147: the de-index above removes BOTH versions of the scene from retrieval — correct for
+       the false half, but it leaves the corrected truth riding only the rolling session tail +
+       one unverified extraction. Pin it: the tag's own payload (what was corrected) injects as
+       CORRECTION IN FORCE (buildRetconPinBlock, api.js) until a summarize files it or the
+       RETCON_PIN_SHELF expires — every exit archives to memory.archive.retconPins. Single slot:
+       a newer retcon rotates the prior into the archive here. */
+    var _rpM=String(raw).match(/\[RETCON:([^\]]*)\]/i);
+    if(_rpM&&_rpM[1]&&_rpM[1].trim()){if(worldState.retconPin&&typeof memArchive==="function")memArchive().retconPins.push(worldState.retconPin);worldState.retconPin={what:_rpM[1].trim(),turn:worldState.turn};}}
   worldState.transcript.push(_e);}
 // #9: stamp the speaker map onto a GM entry AFTER the fact — the post-pass resolves 1-4s after
 // logTranscript already wrote the entry. Additive field, exactly like .e/.m/.v above.
@@ -421,6 +429,7 @@ function healMemory(){
   if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
   if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];/* #144A */
   if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A */
+  if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */
   // #144A: converge over-cap knowledge lists. Import/blueprint seeding could exceed the cap-12
   // (the live t1549 save carries Frizwick at 18), and the write-site shift sheds only 1/write —
   // an overfilled list stays overfilled forever, shedding one real-play fact per new fact.
