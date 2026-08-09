@@ -32,7 +32,7 @@
 var MODEL="claude-sonnet-4-6";
 var log=document.getElementById("log"),statusEl=document.getElementById("status");
 function L(s,cls){var d=document.createElement("div");if(cls)d.className=cls;d.textContent=s;log.appendChild(d);log.scrollTop=log.scrollHeight;}
-function setStatus(s){statusEl.textContent=s;}
+function setStatus(s){statusEl.textContent=s;window.__gateStatus=s;/* seam: pollable progress */}
 
 // ── the 10 authored questions (Fable, 2026-08-09, from the t1549 archive — expected keys ride
 //    the report so judging is reproducible; the model never sees them) ─────────────────────────
@@ -87,6 +87,7 @@ function callModel(system,user,maxTok){
 document.getElementById("run").onclick=function(){
   var btn=this;btn.disabled=true;log.textContent="";
   var report={when:new Date().toISOString(),model:MODEL,chapters:CHAPTERS.length,eras:[],answers:[],extractorProbe:null};
+  window.__gateReport=report;/* seam: harness-readable results (the no-untestable-surface rule) — progress and final state both visible without the download */
   var ERA_BATCH=20;
 
   // ARM A prep: compile era summaries from ALL chapters, oldest→newest, batches of 20
