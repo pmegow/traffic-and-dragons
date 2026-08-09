@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#148 Recall Gate — era summaries vs chapter retrieval</title>
+<style>
+  body{margin:0 auto;max-width:900px;padding:24px 16px 60px;font:15px/1.5 Georgia,serif;background:#131313;color:#d8d2c8}
+  h1{font-size:1.3em;color:#b8935a;margin:0 0 6px}
+  .sub{color:#8a857c;font-size:.9em;margin-bottom:18px}
+  .card{background:#181818;border:1px solid #262626;border-radius:10px;padding:14px 18px;margin:14px 0}
+  button{background:#2a2216;border:1px solid #b8935a;color:#e0c894;font:bold 15px Georgia;padding:10px 22px;border-radius:8px;cursor:pointer}
+  button:disabled{opacity:.4;cursor:default}
+  #log{font:12px/1.5 Consolas,monospace;color:#b9b2a4;background:#101010;border:1px solid #232323;border-radius:6px;padding:10px;max-height:340px;overflow:auto;white-space:pre-wrap}
+  .ok{color:#7aa86a}.bad{color:#c25a5a}.warn{color:#c9a24a}
+  code{color:#c9b997;background:#101010;padding:1px 4px;border-radius:3px}
+</style>
+</head>
+<body>
+<h1>#148 Recall Gate — era summaries vs archived-chapter retrieval</h1>
+<div class="sub">Drift pass order 9, the ruled gate: both candidates answer 10 arc-recall questions authored from this campaign's own archived chapters; Fable judges groundedness from the saved report and ships the winner. Also runs the #144B typed-extractor probe. <b>READ-ONLY:</b> this page never writes game state — it reads your stored key and memory, calls the model, and downloads a results file. Cost ≈ $0.50–$1 on your key.</div>
+
+<div class="card" id="pre">Checking prerequisites…</div>
+<div class="card"><button id="run" disabled>▶ Run the gate (~2–4 minutes, autonomous)</button>
+<span id="status" style="margin-left:12px;color:#8a857c"></span></div>
+<div class="card"><div id="log">idle</div></div>
+
+<script>
+// ⛔ READ-ONLY INSTRUMENT: no localStorage.setItem / removeItem anywhere in this file — it must
+// be impossible for the gate to touch campaign state. It reads the key + memory + session, calls
+// the model, and downloads a JSON report for Fable to judge.
+var MODEL="claude-sonnet-4-6";
+var log=document.getElementById("log"),statusEl=document.getElementById("status");
+function L(s,cls){var d=document.createElement("div");if(cls)d.className=cls;d.textContent=s;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+function setStatus(s){statusEl.textContent=s;}
+
+// ── the 10 authored questions (Fable, 2026-08-09, from the t1549 archive — expected keys ride
+//    the report so judging is reproducible; the model never sees them) ─────────────────────────
+var QUESTIONS=[
+ {q:"How long had Daeris been bound to her debt ledger before joining the party, and how many contract holders did she outlast?",expect:"forty years; three contract holders (revealed when Ammut explained the marriages, ~t100)"},
+ {q:"In the goblin tunnels early in the campaign, what did the charmed one-eyed goblin describe seeing from the left passage?",expect:"water that stood upright; hands with too many joints; it looked at him — three others saw it, one still moving below, wrong (~t304)"},
+ {q:"Whose letters had Frizwick been carrying in her satchel before the party knew who sent them, and what had Ammut quietly been planning in response?",expect:"Aldern Foxglove's letters; Ammut had been planning to kill a Magnimarian noble for sending flowers (~t511)"},
+ {q:"What happened to Rinn Toldrath, and what three items landed on Sheriff Hemlock's desk at the debrief afterwards?",expect:"went into the harbour (killed); a key, an iron disc, and Edric's name (~t718)"},
+ {q:"When Hemlock heard about the catacombs under Sandpoint, what did he tell the party to do?",expect:"go handle the worse thing first — the rest of Sandpoint's mess will keep (~t889)"},
+ {q:"What did the party learn about Korunn Quellvane's past when they charmed her with her consent?",expect:"she had been 'the Third' before Edric, walking victims out of houses; recruited by a woman calling herself Aunt; burned spiral on her collarbone matching the sea cave door (~t1056)"},
+ {q:"How did the party lure the built creature out of the dark in the tunnels, and what did its corpse reveal?",expect:"an illusion of a dying man as bait, then ambush; the corpse had no eyes and stitched joins — built from leftover flesh by cruder hands than the Sandpoint work (~t1218)"},
+ {q:"What did the exhumed Sleeper reveal under Daeris's questioning, and what did the party do with its corpse?",expect:"makers unnamed; direction: north, always north; they burned the corpse (~t1361)"},
+ {q:"Who did the Seventh's network intend as the replacement Third, and how did the party learn it?",expect:"Aldus Vareth (the man Ammut pulled out of Thistletop); Ammut overheard Tharwick and an unhurried woman in a cold-house storeroom, five minutes on the clock (~t587)"},
+ {q:"How did Chask Haladan die, and what did his confession give the party?",expect:"a fast death from Ammut's blade, then fed to a warehouse fire in Fish Alley; the confession gave Sable's name, the Collector's shape, and the Spire's existence (~t1428)"}
+];
+
+// lexical scorer for arm B (the feTokens shape, inlined — this page is deliberately standalone)
+var STOP={the:1,and:1,that:1,with:1,from:1,this:1,they:1,them:1,their:1,have:1,been:1,were:1,what:1,when:1,where:1,into:1,about:1,under:1,over:1,after:1,before:1,party:1,did:1,does:1,how:1,who:1,whose:1};
+function toks(s){var out=[],seen={},w=String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/),i;for(i=0;i<w.length;i++){var t=w[i];if(t.length<4||STOP[t])continue;t=t.replace(/(ing|ed|es|s)$/,"");if(t.length>=3&&!seen[t]){seen[t]=1;out.push(t);}}return out;}
+
+function getKey(){
+  try{var pk=JSON.parse(localStorage.getItem("tnd_provider_keys_v1")||"{}");if(pk.anthropic)return pk.anthropic;}catch(e){}
+  return localStorage.getItem("tnd_ak_v1")||null;
+}
+function getMem(){try{return JSON.parse(localStorage.getItem("tnd_mem_v10")||"null");}catch(e){return null;}}
+function getSess(){try{return JSON.parse(localStorage.getItem("tnd_sess_v10")||"[]");}catch(e){return [];}}
+
+var KEY=null,CHAPTERS=null;
+(function pre(){
+  var el=document.getElementById("pre"),lines=[];
+  KEY=getKey();
+  lines.push(KEY?("✓ Anthropic key found ("+KEY.slice(0,10)+"…, "+KEY.length+" chars)"):"✗ NO API key on this origin — open the game here once and enter it, then reload this page");
+  var mem=getMem();
+  var arch=(mem&&mem.archive&&mem.archive.chapters)||[];
+  var live=(mem&&mem.chapters)||[];
+  CHAPTERS=arch.concat(live);
+  lines.push(CHAPTERS.length>=50?("✓ campaign memory found — "+arch.length+" archived + "+live.length+" live chapters"):"✗ campaign memory too thin here ("+CHAPTERS.length+" chapters) — run on the device/origin that holds the Runelords campaign");
+  el.innerHTML=lines.map(function(l){return "<div class='"+(l.charAt(0)==="✓"?"ok":"bad")+"'>"+l.replace(/</g,"&lt;")+"</div>";}).join("");
+  if(KEY&&CHAPTERS.length>=50)document.getElementById("run").disabled=false;
+})();
+
+function callModel(system,user,maxTok){
+  return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{
+    "content-type":"application/json","x-api-key":KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"
+  },body:JSON.stringify({model:MODEL,max_tokens:maxTok||400,system:system||"",messages:[{role:"user",content:user}]})})
+  .then(function(r){return r.json();}).then(function(j){
+    if(j&&j.content&&j.content[0]&&j.content[0].text)return j.content[0].text;
+    throw new Error("bad response: "+JSON.stringify(j).slice(0,200));
+  });
+}
+
+document.getElementById("run").onclick=function(){
+  var btn=this;btn.disabled=true;log.textContent="";
+  var report={when:new Date().toISOString(),model:MODEL,chapters:CHAPTERS.length,eras:[],answers:[],extractorProbe:null};
+  var ERA_BATCH=20;
+
+  // ARM A prep: compile era summaries from ALL chapters, oldest→newest, batches of 20
+  var batches=[];for(var b=0;b<CHAPTERS.length;b+=ERA_BATCH)batches.push(CHAPTERS.slice(b,b+ERA_BATCH));
+  L("Arm A: compiling "+batches.length+" era summaries from "+CHAPTERS.length+" chapters…");
+  var chain=Promise.resolve();
+  batches.forEach(function(batch,bi){
+    chain=chain.then(function(){
+      setStatus("era "+(bi+1)+"/"+batches.length);
+      var txt=batch.map(function(c){return "[T"+c.turn+"] "+c.summary;}).join("\n");
+      return callModel(
+        "You compress campaign-chapter summaries into ONE era summary of at most 150 tokens. Keep CONCRETE facts: names, places, deaths, revelations, outcomes. No mood language. Output only the summary.",
+        txt,260
+      ).then(function(era){report.eras.push({range:"t"+batch[0].turn+"–t"+batch[batch.length-1].turn,summary:era.trim()});L("  era "+(bi+1)+" ✓ ("+era.trim().slice(0,60)+"…)");});
+    });
+  });
+
+  chain=chain.then(function(){
+    L("Answering "+QUESTIONS.length+" questions × 2 arms…");
+    var eraCtx="ERA SUMMARIES OF THE CAMPAIGN (oldest first):\n"+report.eras.map(function(e){return "["+e.range+"] "+e.summary;}).join("\n\n");
+    var q=Promise.resolve();
+    QUESTIONS.forEach(function(item,qi){
+      q=q.then(function(){
+        setStatus("question "+(qi+1)+"/"+QUESTIONS.length);
+        var qt=toks(item.q);
+        var scored=CHAPTERS.map(function(c){var ct=toks(c.summary),s=0;for(var i2=0;i2<qt.length;i2++)if(ct.indexOf(qt[i2])>=0)s++;return {c:c,s:s};});
+        scored.sort(function(a,b){return b.s-a.s;});
+        var top3=scored.slice(0,3).map(function(x){return "[T"+x.c.turn+"] "+x.c.summary;}).join("\n\n");
+        var ask="Using ONLY the context above, answer this question about the campaign's past. Be specific. If the context does not contain the answer, reply exactly: CANNOT ANSWER.\n\nQUESTION: "+item.q;
+        return callModel("",eraCtx+"\n\n"+ask,300).then(function(aA){
+          return callModel("","RETRIEVED PAST CHAPTERS:\n"+top3+"\n\n"+ask,300).then(function(aB){
+            report.answers.push({q:item.q,expect:item.expect,armA_eras:aA.trim(),armB_retrieval:aB.trim(),armB_served:scored.slice(0,3).map(function(x){return "t"+x.c.turn;})});
+            L("  Q"+(qi+1)+" ✓  A:"+(aA.indexOf("CANNOT")>=0?"∅":"answered")+"  B:"+(aB.indexOf("CANNOT")>=0?"∅":"answered"));
+          });
+        });
+      });
+    });
+    return q;
+  });
+
+  // #144B probe: does the LIVE extractor emit typed facts under the v1.572 schema?
+  chain=chain.then(function(){
+    var sess=getSess();
+    if(sess.length<2){L("#144B probe: session log too thin on this origin — skipped","warn");return;}
+    L("#144B probe: one extraction call over the last session exchanges…");
+    setStatus("#144B probe");
+    var win=sess.slice(-6).map(function(m){return (m.role==="user"?"PLAYER: ":"GM: ")+String(m.content).slice(0,1200);}).join("\n\n");
+    var sys="You extract structured memory from RPG session logs. Output ONLY valid JSON: {\"npcUpdates\":[{\"name\":\"\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}]}";
+    return callModel(sys,win,700).then(function(out){
+      var parsed=null,typed=0,strings=0,sceneEx=null,durEx=null;
+      try{parsed=JSON.parse(out.replace(/^```json?\s*/,"").replace(/```\s*$/,""));}catch(e){}
+      if(parsed&&parsed.npcUpdates)parsed.npcUpdates.forEach(function(u){
+        if(u&&u.knowledgeGained){if(typeof u.knowledgeGained==="object"&&u.knowledgeGained.fact){typed++;if(u.knowledgeGained.kind==="scene"&&!sceneEx)sceneEx=u.knowledgeGained.fact;if(u.knowledgeGained.kind==="durable"&&!durEx)durEx=u.knowledgeGained.fact;}else strings++;}
+      });
+      report.extractorProbe={raw:out.slice(0,2000),parsed:!!parsed,typedFacts:typed,legacyStrings:strings,sceneExample:sceneEx,durableExample:durEx};
+      L("#144B probe ✓ — parsed:"+!!parsed+" typed:"+typed+" legacy-strings:"+strings,(parsed&&typed&&!strings)?"ok":"warn");
+    }).catch(function(e){L("#144B probe failed: "+e.message,"bad");report.extractorProbe={error:String(e.message)};});
+  });
+
+  chain.then(function(){
+    setStatus("done");
+    L("DONE — downloading report. Send recall_gate_results.json to Fable for judging.","ok");
+    var blob=new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="recall_gate_results.json";a.click();
+  }).catch(function(e){setStatus("FAILED");L("RUN FAILED: "+e.message,"bad");btn.disabled=false;});
+};
+</script>
+</body>
+</html>
