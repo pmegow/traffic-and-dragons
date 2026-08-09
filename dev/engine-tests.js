@@ -10829,10 +10829,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory.map.nodes["Magnimar"]={firstVisit:1500,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
     return worldState;
   }
-  t("IDENTITY_DOMAINS registry: exactly the Phase A domain set, uniform adapter shape",function(){
+  t("IDENTITY_DOMAINS registry: exactly the shipped domain set, uniform adapter shape",function(){
     if(typeof IDENTITY_DOMAINS!=="object")return "IDENTITY_DOMAINS missing";
     var ks=Object.keys(IDENTITY_DOMAINS).sort().join(",");
-    if(ks!=="capability,item,npc")return "Phase A ships npc+capability+item ONLY (location is Phase B; an accidental stub invites use): got "+ks;
+    if(ks!=="capability,item,location,npc")return "shipped domains are npc+capability+item (Phase A) + location (Phase B); quest/faction stay evidence-gated (an accidental stub invites use): got "+ks;/* expectation updated at Phase B — location adapter lands */
     var n=IDENTITY_DOMAINS.npc,f;
     for(f=0;f<5;f++){var fn=["keys","resolve","tokens","merge","registerAlias"][f];if(typeof n[fn]!=="function")return "npc adapter missing "+fn+"()";}
     if(!Array.isArray(n.namingRules)||!n.namingRules.length)return "npc namingRules missing";
@@ -11053,6 +11053,280 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory=blankMemory();
     var a=memArchive();
     return Array.isArray(a.identityMerges)?true:"identityMerges not ensured — pre-images would crash the first archive push";
+  });
+
+  // ═══ #156 Phase B: the LOCATION domain — sparse identity overlay, resolution seam, repair ═══
+  // Failing-first battery written BEFORE the location adapter existed. Representation per the
+  // Phase B review (call #1, amending the A0 letter with its criteria intact): node keys stay
+  // IMMUTABLE NAME-BORN identifiers; a sparse identity overlay (memory.map.identity.entries)
+  // carries tombstones/aliases/ghost marks; merges tombstone + fold and heal the O(1) live
+  // pointers while the O(n) historical mass (e.l, lastSeenAt, splitLoc) resolves at read.
+  section("identity (#156 Phase B): location domain, resolution seam, repair executors");
+  function makeGeoWorld(){
+    makeIdWorld();/* Tess @ Magnimar; Savah npc; Magnimar node */
+    worldState.turn=1530;
+    memory.map.nodes["Sandpoint"]={firstVisit:10,visits:20,description:"A town on the cliffs.",parent:null,npcs:["Savah"],items:[],size:null,travelMins:45,lastVisit:1529,stateNotes:[{n:"festival banners up",t:1000}]};
+    memory.map.nodes["Sandpoint, Varisia"]={firstVisit:5,visits:2,description:"Sandpoint, jewel of the Lost Coast.",parent:null,npcs:["Bethana"],items:[{name:"Coil of rope",placed:12,taken:false}],size:"large",travelMins:null,lastVisit:1520,stateNotes:[{n:"north gate scorched",t:900},{n:"harbor chain raised",t:1400}]};
+    memory.map.nodes["Thistletop"]={firstVisit:289,visits:3,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    memory.map.nodes["Sandpoint|Rusty Dragon"]={firstVisit:80,visits:12,description:"Common room smelling of spiced potatoes.",parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null,lastVisit:1529};
+    memory.map.nodes["Sandpoint|Sandpoint Bathhouse|Private Room"]={firstVisit:1200,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null,lastVisit:1528};
+    memory.map.edges.push({from:"Sandpoint",to:"Sandpoint, Varisia",turn:0});
+    memory.map.edges.push({from:"Sandpoint, Varisia",to:"Thistletop",turn:100});
+    memory.map.edges.push({from:"Sandpoint",to:"Thistletop",turn:289});
+    memory.locations["Sandpoint"]={visited:[10,300],notes:[]};
+    memory.locations["Sandpoint, Varisia"]={visited:[5],notes:["seed note"]};
+    memory.npcs["Bethana"]={attitude:"",knowledge:[],events:[],aliases:[],lastSeenAt:"Sandpoint, Varisia"};
+    worldState.npcs.push({name:"Bethana",status:"",statusTurn:0,rel:"ally",met:100,partyMember:false,portrait:null,aliases:[]});
+    return worldState;
+  }
+  t("location adapter registered: full shape, merge/registerAlias callable, namingRules assemble into the (byte-unchanged) NAMING clause",function(){
+    var d=IDENTITY_DOMAINS.location;
+    if(!d)return "location adapter missing";
+    var f;for(f=0;f<6;f++){var fn=["keys","resolve","tokens","context","merge","registerAlias"][f];if(typeof d[fn]!=="function")return "location adapter missing "+fn+"()";}
+    if(!Array.isArray(d.namingRules)||d.namingRules.length<2)return "location namingRules must carry the road + sublocation conventions (moved out of the Phase A literals)";
+    var c=buildNamingClause();
+    if(c.indexOf("(Magnimar–Sandpoint)")<0||c.indexOf("[SUBLOCATION:]")<0)return "clause lost the location conventions in the move";
+    return true;
+  });
+  t("locResolve: identity without a table; alias and tombstone chains; cycle guard is loud and terminates",function(){
+    makeGeoWorld();
+    if(locResolve("Sandpoint")!=="Sandpoint")return "no-table resolve must be the identity function";
+    memory.map.identity={entries:{"Sandpoint, Varisia":{mergedInto:"Sandpoint"},"Sandpoint":{aliases:["The Town on the Cliffs"]}}};
+    if(locResolve("Sandpoint, Varisia")!=="Sandpoint")return "tombstone hop failed";
+    if(locResolve("The Town on the Cliffs")!=="Sandpoint")return "alias hop failed";
+    memory.map.identity.entries["Old Docks"]={mergedInto:"New Docks"};
+    memory.map.identity.entries["New Docks"]={mergedInto:"Old Docks"};
+    var erred=false,oe=console.error;console.error=function(){erred=true;};
+    var out;try{out=locResolve("Old Docks");}finally{console.error=oe;}
+    if(!erred)return "a resolution CYCLE resolved silently — corrupted tables must be loud";
+    return typeof out==="string"?true:"cycle guard did not terminate with a string";
+  });
+  t("[MERGE:location|A|B] folds by the A0 field rules: visits sum, firstVisit min, canonical desc wins, size/travelMins canonical-unless-null, items ci-dedupe, npcs union, stateNotes chronological",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    var n=memory.map.nodes["Sandpoint"];
+    if(!n)return "canonical node vanished";
+    if(memory.map.nodes["Sandpoint, Varisia"])return "duplicate node survived the fold";
+    if(n.visits!==22)return "visits not summed: "+n.visits;
+    if(n.firstVisit!==5)return "firstVisit not min: "+n.firstVisit;
+    if(n.description!=="A town on the cliffs.")return "canonical description lost: "+n.description;
+    if(n.size!=="large")return "null canonical size did not take the dup's: "+n.size;
+    if(n.travelMins!==45)return "canonical travelMins overwritten: "+n.travelMins;
+    if(n.items.length!==1)return "items not folded: "+n.items.length;
+    if(n.npcs.indexOf("Savah")<0||n.npcs.indexOf("Bethana")<0)return "npcs not unioned: "+n.npcs.join(",");
+    var sn=n.stateNotes.map(function(x){return x.t;}).join(",");
+    return sn==="900,1000,1400"?true:"stateNotes not chronological: "+sn;
+  });
+  t("location merge: tombstone + alias + pre-image archived (domain:location) + muts receipt; memory.locations metadata folds",function(){
+    makeGeoWorld();
+    var preDup=JSON.stringify(memory.map.nodes["Sandpoint, Varisia"]);
+    var r=applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    if(locResolve("Sandpoint, Varisia")!=="Sandpoint")return "duplicate name does not resolve to canonical";
+    var e=(memory.map.identity&&memory.map.identity.entries||{})["Sandpoint, Varisia"];
+    if(!e||e.mergedInto!=="Sandpoint")return "tombstone entry missing";
+    var im=memory.archive.identityMerges,last=im&&im[im.length-1];
+    if(!last||last.domain!=="location"||last.duplicate!=="Sandpoint, Varisia")return "pre-image not archived for the location domain";
+    if(JSON.stringify(last.records.node)!==preDup)return "archived pre-image is not the duplicate's full node record";
+    if(!memory.locations["Sandpoint, Varisia"]&&memory.locations["Sandpoint"].visited.join(",")!=="5,10,300")return "memory.locations metadata not folded: "+memory.locations["Sandpoint"].visited.join(",");
+    return true;
+  });
+  t("location merge heals the O(1) live pointers: world pointer, combat.node, pendingLocState, locDescNudged, lastArrivalFrom, splitLoc; edges compact (self-loop dropped, parallel collapsed)",function(){
+    makeGeoWorld();
+    worldState.world.location="Sandpoint, Varisia";worldState.world.sublocation=null;
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:1,maxHp:1,ac:10,atk:0,dmg:"1",morale:"low"}],node:"Sandpoint, Varisia"};
+    worldState.pendingLocState={node:"Sandpoint, Varisia",turn:1529};
+    worldState.locDescNudged={"Sandpoint, Varisia":1500};
+    memory.map.lastArrivalFrom="Sandpoint, Varisia";
+    worldState.npcs.push({name:"Scout",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,portrait:null,aliases:[],charSheet:{name:"Scout",hp:5,maxHp:5,inventory:[],abilities:[],spells:[],conditions:[],relationships:[],coreMemories:[],storyBeats:[],splitLoc:{location:"Sandpoint, Varisia",sublocation:null,turn:1520}}});
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    if(worldState.world.location!=="Sandpoint")return "live world pointer not healed: "+worldState.world.location;
+    if(worldState.combat.node!=="Sandpoint")return "combat.node not healed: "+worldState.combat.node;
+    if(worldState.pendingLocState.node!=="Sandpoint")return "pendingLocState.node not healed";
+    if(worldState.locDescNudged["Sandpoint"]!==1500||worldState.locDescNudged["Sandpoint, Varisia"]!=null)return "locDescNudged key not moved";
+    if(memory.map.lastArrivalFrom!=="Sandpoint")return "lastArrivalFrom not healed";
+    /* the heal moves the split to the canonical, which makes it CO-LOCATED with the healed
+       world pointer — so the #133b sweep (same applyMuts pass) correctly auto-rejoins. The
+       composed outcome IS the assertion: heal → co-location → rejoin, record gone. */
+    var _slCs=worldState.npcs[worldState.npcs.length-1].charSheet;
+    if(_slCs.splitLoc)return "split at the merged dup of the CURRENT node should heal to co-location and auto-rejoin (#133b), but the record survived: "+JSON.stringify(_slCs.splitLoc);
+    var sigs={},i,self=0;
+    for(i=0;i<memory.map.edges.length;i++){var ed=memory.map.edges[i];if(ed.from===ed.to)self++;var sg=ed.from<ed.to?ed.from+""+ed.to:ed.to+""+ed.from;if(sigs[sg])return "parallel edge survived compaction: "+ed.from+"<->"+ed.to;sigs[sg]=1;}
+    if(self)return self+" self-loop(s) survived compaction";
+    return memory.map.edges.length===1?true:"expected 1 compacted edge, got "+memory.map.edges.length;
+  });
+  t("write-time canonicalization: [LOCATION:] of a merged name lands on the canonical (no re-mint); fileSubLocation composes under the resolved parent",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    var v0=memory.map.nodes["Sandpoint"].visits;
+    applyMuts("[LOCATION:Sandpoint, Varisia]");
+    if(memory.map.nodes["Sandpoint, Varisia"])return "the tombstoned key was re-minted";
+    if(worldState.world.location!=="Sandpoint")return "world pointer holds the dead name: "+worldState.world.location;
+    if(memory.map.nodes["Sandpoint"].visits!==v0+1)return "visit did not land on the canonical";
+    worldState.world.location="Sandpoint, Varisia";/* a stale pointer (older device blob) — composition must still resolve */
+    applyMuts("[SUBLOCATION:Chapel Cellar]");
+    if(!memory.map.nodes["Sandpoint|Chapel Cellar"])return "sublocation did not compose under the RESOLVED parent: "+JSON.stringify(Object.keys(memory.map.nodes));
+    if(memory.map.nodes["Sandpoint|Chapel Cellar"].parent!=="Sandpoint")return "parent field not the resolved canonical";
+    /* DIRECT caller (blueprint import etc.) — the [LOCATION:] handler resolves too, so this is
+       the only probe of fileLocation's OWN resolve (sabotage-found gap: the handler masked it) */
+    var v1=memory.map.nodes["Sandpoint"].visits;
+    fileLocation("Sandpoint, Varisia","",worldState.turn);
+    if(memory.map.nodes["Sandpoint, Varisia"])return "a DIRECT fileLocation call re-minted the tombstoned key";
+    return memory.map.nodes["Sandpoint"].visits===v1+1?true:"direct fileLocation visit did not land on the canonical";
+  });
+  t("pipe-bearing location operands still refuse via tags (4 segments) — the cleanup tool owns structural keys",function(){
+    makeGeoWorld();
+    var pre=JSON.stringify([memory.map.nodes,memory.map.identity||null]);
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    try{applyMuts("[MERGE:location|Sandpoint|Sandpoint|Rusty Dragon]");}finally{console.warn=ow;}
+    if(JSON.stringify([memory.map.nodes,memory.map.identity||null])!==pre)return "a pipe-bearing operand mutated the map";
+    return warned?true:"refusal was silent";
+  });
+  t("geo block resolves: current-at-merged-name serves the canonical record; sub listing is parent-based with leaf display; lastSeenAt exclusion and connections resolve",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    worldState.world.location="Sandpoint, Varisia";worldState.world.sublocation=null;/* stale pointer from an older device */
+    memory.npcs["Bethana"].lastSeenAt="Sandpoint, Varisia";/* un-healed mass reference */
+    var g=buildGeoBlock();
+    if(g.indexOf("A town on the cliffs.")<0)return "canonical description not served for the merged current name";
+    if(g.indexOf("Bethana →")>=0)return "an NPC whose lastSeenAt resolves HERE is still listed as elsewhere";
+    if(g.indexOf("Private Room")<0)return "3-segment sub key does not list by its LEAF (the flagged split(\"|\")[1] bug): "+g;
+    if(g.indexOf("Sandpoint Bathhouse|Private Room")>=0)return "leaf display leaked the raw multi-segment tail";
+    if(g.indexOf("Connected to: Thistletop")<0)return "connections did not resolve/dedupe: "+g;
+    return true;
+  });
+  t("changed-locations roll-up: notes folded to the canonical are excluded when the party is there under the merged name",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    worldState.world.location="Sandpoint, Varisia";worldState.world.sublocation=null;
+    var s=buildChangedLocationsBlock();
+    return s.indexOf("north gate scorched")<0?true:"the CURRENT location's folded notes leaked into the remote roll-up";
+  });
+  t("affordance travel gate: naming the current location by its merged alias is not an unreachable-travel rejection; reparented ex-world nodes stop counting as remote worlds",function(){
+    makeGeoWorld();
+    memory.map.nodes["Sandpoint Glassworks"]={firstVisit:136,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    locReparent("Sandpoint Glassworks","Sandpoint",{muts:[],turn:worldState.turn});
+    worldState.world.location="Sandpoint";worldState.world.sublocation="Rusty Dragon";
+    var _man=buildSceneManifest();
+    var v1=validateSuggestion("Head to Sandpoint, Varisia",_man);
+    if(v1&&v1.rule==="unreachable-travel")return "the current location's own merged alias was rejected as remote travel";
+    var v2=validateSuggestion("Travel to Sandpoint Glassworks",_man);
+    return !(v2&&v2.rule==="unreachable-travel")?true:"a reparented child still trips the remote-world gate (world-ness must come from parent, not key shape)";
+  });
+  t("#133b auto-rejoin fires when the split location is the current node's merged alias",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    worldState.npcs.push({name:"Scout",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,portrait:null,aliases:[],charSheet:{name:"Scout",hp:5,maxHp:5,inventory:[],abilities:[],spells:[],conditions:[],relationships:[],coreMemories:[],storyBeats:[],splitLoc:{location:"Sandpoint, Varisia",sublocation:null,turn:1400}}});
+    memory.npcs["Scout"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[TIME:noon]");/* any parse pass runs the co-location sweep */
+    var cs=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Scout")cs=worldState.npcs[i].charSheet;}
+    return cs&&!cs.splitLoc?true:"split member at the merged alias of the CURRENT node was not auto-rejoined (#133b + locSame)";
+  });
+  t("scene manifest presence resolves lastSeenAt through the identity table",function(){
+    makeGeoWorld();
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.npcs["Bethana"].lastSeenAt="Sandpoint, Varisia";
+    var man=buildSceneManifest();
+    return man.npcs.indexOf("Bethana")>=0?true:"NPC last seen at the merged alias is absent from the scene manifest: "+man.npcs.join(",");
+  });
+  t("RAG location scoring resolves e.l: a scene stamped under the merged name still scores for the canonical location",function(){
+    makeGeoWorld();
+    delete worldState.ragMemory;/* RAG standard-on */
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    worldState.turn=1560;
+    var i;worldState.transcript=[];
+    for(i=0;i<40;i++)worldState.transcript.push({r:(i%2?"gm":"player"),x:"filler turn "+i,t:i,e:(i%2?{n:[],l:"Thistletop",q:[]}:undefined)});
+    worldState.transcript[21]={r:"gm",x:"The harbor chain rattles as the gate opens.",t:21,e:{n:[],l:"Sandpoint, Varisia",q:[]}};
+    sessionLog=[];
+    ragRetrieve("I look around the harbor");
+    var cands=ragRetrieve._cands||[],hit=false;
+    for(i=0;i<cands.length;i++){if(cands[i].t===21)hit=true;}
+    return hit?true:"the merged-name e.l stamp scored zero — historical scenes go invisible after a merge (the A0 arm-2 property lost)";
+  });
+  t("locReparent: parent set through resolution, world→sub transition is parent-based, blueprint export skips it, pre-image archived",function(){
+    makeGeoWorld();
+    memory.map.nodes["Sandpoint Glassworks"]={firstVisit:136,visits:1,description:"Furnace heat.",parent:null,npcs:[],items:[],size:null,travelMins:null,lastVisit:1529};
+    var R={muts:[],turn:worldState.turn};
+    locReparent("Sandpoint Glassworks","Sandpoint, Varisia",R);/* target named by an alias-to-be */
+    applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
+    var n=memory.map.nodes["Sandpoint Glassworks"];
+    if(!n)return "reparented node vanished";
+    if(locResolve(n.parent)!=="Sandpoint")return "parent does not resolve to the canonical: "+n.parent;
+    if(!locIsSub("Sandpoint Glassworks"))return "world-ness must derive from parent, not key shape";
+    worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    var g=buildGeoBlock();
+    if(g.indexOf("Sandpoint Glassworks")<0)return "reparented child missing from the sub listing";
+    var bp=buildBlueprintFromGame();
+    var names=bp.locations.map(function(l){return l.name;});
+    if(names.indexOf("Sandpoint Glassworks")>=0)return "blueprint export still treats the reparented child as a world location";
+    var im=memory.archive.identityMerges,found=false,i;
+    for(i=0;i<(im||[]).length;i++){if(im[i].op==="reparent"&&im[i].key==="Sandpoint Glassworks")found=true;}
+    return found?true:"reparent pre-image not archived";
+  });
+  t("locSplit: successors minted with kind/endpoints, facts and children allocated, fused key tombstones to the primary, edges re-pointed per allocation",function(){
+    makeGeoWorld();
+    memory.map.nodes["Varisia - North Road"]={firstVisit:766,visits:8,description:"A rutted trade road.",parent:null,npcs:[],items:[],size:null,travelMins:null,
+      stateNotes:[{n:"washed-out bridge near the fork",t:800},{n:"giant tracks in the mud",t:1300}]};
+    memory.map.nodes["Varisia - North Road|Crossroads Camp"]={firstVisit:900,visits:1,description:null,parent:"Varisia - North Road",npcs:[],items:[],size:null,travelMins:null};
+    memory.map.edges.push({from:"Sandpoint",to:"Varisia - North Road",turn:766});
+    memory.map.edges.push({from:"Varisia - North Road",to:"Jorgenfist",turn:1340});
+    memory.map.nodes["Jorgenfist"]={firstVisit:1340,visits:0,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    memory.npcs["Bethana"].lastSeenAt="Varisia - North Road";
+    var R={muts:[],turn:worldState.turn};
+    locSplit("Varisia - North Road",{
+      primary:"North Road (Magnimar–Sandpoint)",
+      successors:[
+        {key:"North Road (Magnimar–Sandpoint)",kind:"route",endpoints:["Magnimar","Sandpoint"],take:{stateNotes:[0],children:["Varisia - North Road|Crossroads Camp"],edges:["Sandpoint"]}},
+        {key:"North Road (Magnimar–Jorgenfist)",kind:"route",endpoints:["Magnimar","Jorgenfist"],take:{stateNotes:[1],children:[],edges:["Jorgenfist"]}}
+      ]},R);
+    var p=memory.map.nodes["North Road (Magnimar–Sandpoint)"],s=memory.map.nodes["North Road (Magnimar–Jorgenfist)"];
+    if(!p||!s)return "successor nodes not minted";
+    if(memory.map.nodes["Varisia - North Road"])return "fused node survived the split";
+    if(p.kind!=="route"||!p.endpoints||p.endpoints.join(",")!=="Magnimar,Sandpoint")return "kind/endpoints not written";
+    if(p.visits!==8)return "primary did not inherit the numeric record";
+    if(p.stateNotes.length!==1||p.stateNotes[0].n.indexOf("washed-out")<0)return "primary allocation wrong";
+    if(s.stateNotes.length!==1||s.stateNotes[0].n.indexOf("giant tracks")<0)return "secondary allocation wrong";
+    if(locResolve("Varisia - North Road")!=="North Road (Magnimar–Sandpoint)")return "fused key does not tombstone to the primary";
+    var ch=memory.map.nodes["Varisia - North Road|Crossroads Camp"];
+    if(!ch||locResolve(ch.parent)!=="North Road (Magnimar–Sandpoint)")return "child not re-parented to its successor";
+    var toP=0,toS=0,i;
+    for(i=0;i<memory.map.edges.length;i++){var e2=memory.map.edges[i];
+      if(e2.from==="North Road (Magnimar–Sandpoint)"||e2.to==="North Road (Magnimar–Sandpoint)")toP++;
+      if(e2.from==="North Road (Magnimar–Jorgenfist)"||e2.to==="North Road (Magnimar–Jorgenfist)")toS++;
+      if(e2.from==="Varisia - North Road"||e2.to==="Varisia - North Road")return "an edge still names the fused key";}
+    if(!(toP>=1&&toS>=1))return "edges not re-pointed per allocation ("+toP+"/"+toS+")";
+    if(locResolve(memory.npcs["Bethana"].lastSeenAt)!=="North Road (Magnimar–Sandpoint)")return "historical lastSeenAt does not resolve to the primary";
+    var im=memory.archive.identityMerges,found=false;
+    for(i=0;i<(im||[]).length;i++){if(im[i].op==="split"&&im[i].key==="Varisia - North Road")found=true;}
+    return found?true:"split pre-image not archived";
+  });
+  t("repair census (dev core): finds shadow pairs, byte-identical-description pairs, and same-parent leaf variants — and classifies NOTHING",function(){
+    if(typeof locRepairCensus!=="function")return "locRepairCensus missing (dev/loc-repair-core.js not engine-visible)";
+    makeGeoWorld();
+    memory.map.nodes["Sandpoint - Rusty Dragon"]={firstVisit:80,visits:1,description:null,parent:null,npcs:[],items:[],size:null,travelMins:null};
+    memory.map.nodes["Sandpoint|Sandpoint - Rusty Dragon"]={firstVisit:81,visits:14,description:null,parent:"Sandpoint",npcs:[],items:[],size:null,travelMins:null};
+    memory.map.nodes["Sandpoint, Varisia"].description="A town on the cliffs.";/* byte-identical desc pair */
+    var groups=locRepairCensus();
+    var kinds={},i;for(i=0;i<groups.length;i++){kinds[groups[i].evidence]=1;if(groups[i].classification!=="undecided")return "the census auto-classified a group — adjudication is human (Sol §1)";}
+    if(!kinds["shadow"])return "shadow pair (world X vs Parent|X) not found";
+    if(!kinds["identical-description"])return "byte-identical description pair not found";
+    if(!kinds["leaf-variant"])return "same-parent leaf containment pair (Rusty Dragon vs Sandpoint - Rusty Dragon) not found";
+    return true;
+  });
+  t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
+    if(typeof locRepairApply!=="function")return "locRepairApply missing";
+    makeGeoWorld();
+    var plan=[{op:"merge",canonical:"Sandpoint",duplicate:"Sandpoint, Varisia"}];
+    var pre=JSON.stringify([memory.map,memory.locations,worldState.world]);
+    var dry=locRepairApply(plan,{dry:true});
+    if(JSON.stringify([memory.map,memory.locations,worldState.world])!==pre)return "DRY RUN MUTATED STATE";
+    if(!dry||!dry.length||dry[0].op!=="merge")return "dry-run returned no diff";
+    var real=locRepairApply(plan,{dry:false});
+    if(memory.map.nodes["Sandpoint, Varisia"])return "apply did not perform the merge";
+    return real&&real.length===dry.length?true:"apply diff diverged from the dry-run";
   });
 
 }

@@ -1288,6 +1288,7 @@ if (escHtml('<img src=x onerror="alert(1)">&\'"') !== "&lt;img src=x onerror=&qu
   process.exit(1);
 }
 var geval=eval; // indirect eval → global scope (same loader convention as load-engine.js)
+geval(fs.readFileSync(path.join(__dirname,"loc-repair-core.js"),"utf8"));/* #156B: the location repair census/apply core — engine-visible for the identity battery (drives the SHIPPING executors) */
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));
 
 var filterRaw=process.argv[2]||"";

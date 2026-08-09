@@ -30,6 +30,23 @@ var path = require("path");
 var cp = require("child_process");
 var os = require("os");
 
+// OneDrive-resilient write (2026-08-09, #156 Phase B verification): the sync client's filter
+// driver transiently locks files (errno -4094 UNKNOWN on open), which killed a run MID-MUTATION
+// and left the tree sabotaged — for a harness whose whole job is putting files back, a flaky
+// write is a correctness bug, not an inconvenience. Up to 6 attempts, ~200ms busy-wait between.
+function writeRetry(file, data) {
+  var tries = 6, err;
+  while (tries-- > 0) {
+    try { fs.writeFileSync(file, data); return; }
+    catch (e) {
+      err = e;
+      var until = Date.now() + 200;
+      while (Date.now() < until) { /* busy-wait — sync context, no timers */ }
+    }
+  }
+  throw err;
+}
+
 function prove(opts) {
   var file = path.resolve(opts.file);
   if (!fs.existsSync(file)) { console.error("sabotage: no such file: " + file); return 1; }
@@ -42,7 +59,7 @@ function prove(opts) {
   function restore(why) {
     if (restored) return;
     try {
-      fs.writeFileSync(file, original);
+      writeRetry(file, original);
       restored = true;
       if (why) console.error("\nsabotage: restored " + path.basename(file) + " after " + why);
     } catch (e) {
@@ -74,9 +91,9 @@ function prove(opts) {
         continue;
       }
 
-      fs.writeFileSync(file, after);
+      writeRetry(file, after);
       var run = cp.spawnSync(cmd[0], cmd[1], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
-      fs.writeFileSync(file, original);
+      writeRetry(file, original);
 
       var caught = run.status !== 0;
       results.push({

@@ -193,6 +193,7 @@ function getNameSuggestions(count,peek){
 }
 function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
 function fileLocation(loc,note,turn){
+  if(typeof locResolve==="function")loc=locResolve(loc);/* #156B: a merged/aliased name lands on the canonical node — a tombstoned key must never re-mint (guarded: identity.js loads later; some dev tools load memory.js alone) */
   // Legacy locations index
   if(!memory.locations[loc])memory.locations[loc]={visited:[],notes:[]};
   if(!memory.locations[loc].visited)memory.locations[loc].visited=[];// blueprint-seeded entries lacked this (audit #8)
@@ -214,13 +215,16 @@ function fileLocation(loc,note,turn){
 function fileSubLocation(name,turn){
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var parent=worldState&&worldState.world?worldState.world.location:null;if(!parent)return;
+  if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
+  if(typeof locResolve==="function")key=locResolve(key);/* the composed sub key may itself be merged */
   if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:parent,npcs:[],items:[],size:null,travelMins:null};
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
 }
 function fileLocationDesc(desc){
   if(!memory.map||!worldState||!worldState.world)return;
   var key=currentNodeKey();/* UA9 */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return;
   if(!memory.map.nodes[key].description)memory.map.nodes[key].description=desc;
 }
@@ -235,6 +239,7 @@ function fileLocationState(note,turn){
   if(!worldState||!worldState.world)return false;
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
   var key=currentNodeKey();/* sublocation-aware, same grain as LOCATION_ITEM/LOCATION_SIZE */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var txt=String(note==null?"":note).trim();if(!txt)return false;
   if(txt.length>200){console.warn("[map] LOCATION_STATE note clamped to 200 chars: \""+txt.slice(0,60)+"…\"");txt=txt.slice(0,200);}
   if(!memory.map.nodes[key])memory.map.nodes[key]={firstVisit:turn,visits:0,description:null,parent:(key.indexOf("|")>=0?key.split("|")[0]:null),npcs:[],items:[],size:null,travelMins:null};
@@ -256,6 +261,7 @@ function fileLocationState(note,turn){
 function fileLocationItem(name,action,turn){
   if(!memory.map||!worldState||!worldState.world)return;
   var key=currentNodeKey();/* UA9 */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return;
   var items=memory.map.nodes[key].items,idx=-1,i;
   for(i=0;i<items.length;i++){if(items[i].name.toLowerCase()===name.toLowerCase()){idx=i;break;}}
@@ -267,6 +273,7 @@ function fileLocationItem(name,action,turn){
 function autoTakeLocationItem(itemName){
   if(!memory.map||!worldState||!worldState.world)return;
   var key=currentNodeKey();/* UA9 */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];if(!node)return;
   var i;for(i=0;i<node.items.length;i++){if(node.items[i].name.toLowerCase()===itemName.toLowerCase()&&!node.items[i].taken){node.items[i].taken=true;return;}}
 }
@@ -274,6 +281,7 @@ function mapNpcLocation(name){
   if(!memory.map||!worldState||!worldState.world)return;
   name=resolveNpcName(name);
   var key=currentNodeKey();/* UA9 */
+  if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   if(!memory.map.nodes[key])return;
   var npcs=memory.map.nodes[key].npcs;if(npcs.indexOf(name)<0)npcs.push(name);
   if(memory.npcs[name])memory.npcs[name].lastSeenAt=key;
@@ -545,7 +553,7 @@ function ragQueryEntities(inputText){
   for(i=0;i<names.length;i++){
     if(names[i].others&&names[i].others.length)q.groups[names[i].nm]=names[i].others; // duplicate-key aliases for weight mapping
     var meta=memory.npcs[names[i].nm];
-    if(meta&&meta.lastSeenAt&&(meta.lastSeenAt===key||meta.lastSeenAt===q.loc))q.scene[names[i].nm]=1;
+    if(meta&&meta.lastSeenAt&&(typeof locSame==="function"?(locSame(meta.lastSeenAt,key)||locSame(meta.lastSeenAt,q.loc)):(meta.lastSeenAt===key||meta.lastSeenAt===q.loc)))q.scene[names[i].nm]=1;/* #156B: a stamp under a merged alias still reads as HERE */
   }
   if(inputText)ragScanNames(String(inputText).toLowerCase(),names,function(nm){q.input[nm]=1;});
   for(i=0;i<(worldState.questLog||[]).length;i++){if(worldState.questLog[i].status==="active")q.quests.push(worldState.questLog[i].title);}
@@ -707,7 +715,7 @@ function _ragRetrieveScore(inputText){
       seenG[root]=1;
       sc+=w[enNm];
     }
-    if(q.loc&&en.e.l===q.loc)sc+=2;
+    if(q.loc&&(typeof locSame==="function"?locSame(en.e.l,q.loc):en.e.l===q.loc))sc+=2;/* #156B: historical scenes stamped under a merged name still score for the canonical place (the A0 arm-2 property) */
     for(j=0;j<(en.e.q||[]).length;j++){if(qws[en.e.q[j].toLowerCase()])sc+=1;}
     if(sc>0){
       var lex=0;

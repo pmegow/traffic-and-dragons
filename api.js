@@ -3,10 +3,13 @@ var __lastChapRagBlock="";/* #148 Phase 1 — the PAST CHAPTERS block buildSysPr
 function buildGeoBlock(){
   if(!memory.map||!worldState||!worldState.world)return"";
   var w=worldState.world,lines=[],i;
-  var wKey=w.location;
-  var wNode=memory.map.nodes[wKey];
-  var subKey=w.sublocation?wKey+"|"+w.sublocation:null;
-  var subNode=subKey?memory.map.nodes[subKey]:null;
+  /* #156B resolution seam: the HEADER keeps the narrated pointer text, but every store lookup
+     and comparison below resolves through the location identity table — a stale pointer from
+     an older-device blob (or a mid-repair rename) must still serve the canonical record. */
+  var wKey=w.location,rwKey=locResolve(wKey);
+  var wNode=memory.map.nodes[rwKey];
+  var subKey=w.sublocation?wKey+"|"+w.sublocation:null,rsubKey=subKey?locResolve(subKey):null;
+  var subNode=rsubKey?memory.map.nodes[rsubKey]:null;
   var activeNode=subNode||wNode;
   // Location header. P3-F3 (v1.275): the header carries its own correction teeth — the v1.271
   // playtest traveled two days to a burned waystation while this line still said "Marrowgate"
@@ -37,12 +40,12 @@ function buildGeoBlock(){
   // Known sub-locations
   // Only include sub-locations visited in the last 20 turns to keep the prompt lean in long campaigns.
   var subLocs=[],nKeys=Object.keys(memory.map.nodes),cutoff=worldState.turn-20;
-  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent===w.location&&((sn.lastVisit||sn.firstVisit)>=cutoff))subLocs.push(nKeys[i].split("|")[1]);}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53) */
+  for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&((sn.lastVisit||sn.firstVisit)>=cutoff))subLocs.push(locDisplayLeaf(nKeys[i]));}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
   if(subLocs.length)lines.push("Known sub-locations: "+subLocs.join(", "));
   // Connections + arrival
-  if(memory.map.lastArrivalFrom)lines.push("Arrived from: "+memory.map.lastArrivalFrom);
+  if(memory.map.lastArrivalFrom)lines.push("Arrived from: "+locResolve(memory.map.lastArrivalFrom));
   var conns=[];
-  for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i];if(e.from===w.location)conns.push(e.to);else if(e.to===w.location)conns.push(e.from);}
+  for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i],ef=locResolve(e.from),et=locResolve(e.to);if(ef===et)continue;/* #156B: resolve endpoints; a merged pair's edge is no longer a connection to anywhere else */if(ef===rwKey){if(conns.indexOf(et)<0)conns.push(et);}else if(et===rwKey){if(conns.indexOf(ef)<0)conns.push(ef);}}
   if(conns.length)lines.push("Connected to: "+conns.join(", "));
   // NPCs elsewhere. B3: the dead are excluded — "Rinn → the docks" affirmatively implied he was
   // findable there forever; the roster's DECEASED line now carries the truth instead.
@@ -54,7 +57,7 @@ function buildGeoBlock(){
   for(i=0;i<worldState.npcs.length;i++){phN=worldState.npcs[i];
     if(phN.partyMember&&!npcIsDead(phN)&&!(phN.charSheet&&phN.charSheet.splitLoc&&phN.charSheet.splitLoc.location))partyHere[phN.name]=1;}
   var npcLocs=[],nNames=Object.keys(memory.npcs);
-  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&!partyHere[nNames[i]]&&nm.lastSeenAt!==wKey&&nm.lastSeenAt!==subKey)npcLocs.push(nNames[i]+" → "+nm.lastSeenAt);}
+  for(i=0;i<nNames.length;i++){var nm=memory.npcs[nNames[i]];if(nm.lastSeenAt&&!nm.dead&&!partyHere[nNames[i]]&&!locSame(nm.lastSeenAt,wKey)&&!(subKey&&locSame(nm.lastSeenAt,subKey)))npcLocs.push(nNames[i]+" → "+locResolve(nm.lastSeenAt));}/* #156B: a stamp under the current node's merged alias is HERE, not elsewhere; displays serve the canonical name */
   if(npcLocs.length)lines.push("NPCs elsewhere: "+npcLocs.join(", "));
   // TODO #1 P5 (D11, F4 "Hard A"): split party members' threads inject EVERY turn while any
   // split exists — the GM must never forget an absent thread (the #53 canon-starve lesson,
@@ -66,9 +69,9 @@ function buildGeoBlock(){
     for(sgi=0;sgi<splits.length;sgi++){var sl=splits[sgi].charSheet.splitLoc;var sgk=sl.location+(sl.sublocation?" ("+sl.sublocation+")":"");if(!sGroups[sgk])sGroups[sgk]={names:[],loc:sl.location};sGroups[sgk].names.push(splits[sgi].name);}
     var sgks=Object.keys(sGroups);
     for(sgi=0;sgi<sgks.length;sgi++){var sg=sGroups[sgks[sgi]];var sgLine="— "+sgks[sgi]+": "+sg.names.join(", ");
-      var sgNode=memory.map.nodes[sg.loc];
+      var sgR=locResolve(sg.loc),sgNode=memory.map.nodes[sgR];/* #156B */
       if(sgNode&&sgNode.description)sgLine+=". "+sgNode.description;
-      var sgConns=[],sgei;for(sgei=0;sgei<memory.map.edges.length;sgei++){var sge=memory.map.edges[sgei];if(sge.from===sg.loc)sgConns.push(sge.to);else if(sge.to===sg.loc)sgConns.push(sge.from);}
+      var sgConns=[],sgei;for(sgei=0;sgei<memory.map.edges.length;sgei++){var sge=memory.map.edges[sgei],sgf=locResolve(sge.from),sgt=locResolve(sge.to);if(sgf===sgt)continue;if(sgf===sgR){if(sgConns.indexOf(sgt)<0)sgConns.push(sgt);}else if(sgt===sgR){if(sgConns.indexOf(sgf)<0)sgConns.push(sgf);}}
       if(sgConns.length)sgLine+=" [connected to: "+sgConns.join(", ")+"]";
       lines.push(sgLine);}
   }
@@ -88,7 +91,7 @@ function buildChangedLocationsBlock(){
   var wKey=w.location,subKey=w.sublocation?w.location+"|"+w.sublocation:null;
   var rows=[],keys=Object.keys(memory.map.nodes),i,j;
   for(i=0;i<keys.length;i++){
-    var k=keys[i];if(k===wKey||k===subKey)continue;
+    var k=keys[i];if(locSame(k,wKey)||(subKey&&locSame(k,subKey)))continue;/* #156B: the current node's folded notes are served in-place by the geo block, whatever name the pointer holds */
     var nd=memory.map.nodes[k];
     if(!nd.stateNotes||!nd.stateNotes.length)continue;
     var latest=0;for(j=0;j<nd.stateNotes.length;j++)if(nd.stateNotes[j].t>latest)latest=nd.stateNotes[j].t;
@@ -98,7 +101,7 @@ function buildChangedLocationsBlock(){
   rows.sort(function(a,b){return b.latest-a.latest;});
   var shown=rows.slice(0,CHANGED_LOC_MAX),over=rows.length-shown.length;
   var s="CHANGED LOCATIONS (durable changes the story has made — if any of these places comes up, its CURRENT state is this, not its old description):\n";
-  for(i=0;i<shown.length;i++)s+="  - "+shown[i].k.replace("|"," — ")+": "+shown[i].txt+"\n";
+  for(i=0;i<shown.length;i++)s+="  - "+shown[i].k.split("|").join(" — ")+": "+shown[i].txt+"\n";/* #156B: ALL segments — replace() only hit the first pipe, so 3-segment keys leaked a raw "|" */
   if(over>0)s+="  (+"+over+" more changed locations — older changes remain on record)\n";
   return s+"\n";
 }
@@ -148,7 +151,7 @@ function buildLocationStateNudge(){
   var p=(typeof worldState!=="undefined"&&worldState)?worldState.pendingLocState:null;
   if(!p||!p.node)return"";
   if(worldState.combat)return"";
-  if(typeof currentNodeKey==="function"&&currentNodeKey()!==p.node){delete worldState.pendingLocState;return"";}
+  if(typeof currentNodeKey==="function"&&!locSame(currentNodeKey(),p.node)){delete worldState.pendingLocState;return"";}/* #156B */
   p.fired=worldState.turn;
   return "[ENGINE NOTE — AFTERMATH CHECK (not a player action): a fight just ended at "+p.node+". If it left DURABLE marks on this place (fire, wreckage, broken doors or walls, bodies, stains that will remain), record them now with [LOCATION_STATE:what changed] — one short factual phrase per durable change. If nothing durable changed, stay silent and emit nothing.]";
 }
@@ -305,6 +308,7 @@ function buildQuestObjectiveNudge(){
 function buildLocationDescNudge(){
   if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map)return"";
   var key=currentNodeKey();if(!key)return"";
+  key=locResolve(key);/* #156B */
   var node=memory.map.nodes[key];
   if(!node||node.description)return"";
   if(node.firstVisit>=worldState.turn)return"";
@@ -338,7 +342,7 @@ function buildSplitAudit(){
        granularity gap the engine can't resolve alone (she may truly be elsewhere in the city),
        so it goes to the GM immediately rather than auto-rejoining. Exact node matches never
        reach here — the applyMuts tail folds those back deterministically. */
-    var sameWorld=sl.location===worldState.world.location;
+    var sameWorld=locSame(sl.location,worldState.world.location);/* #156B */
     if(age<SPLIT_AUDIT_TURNS&&!sameWorld)continue;
     if(sl.audited!=null&&worldState.turn-sl.audited<SPLIT_AUDIT_TURNS)continue;
     due.push(splits[i]);

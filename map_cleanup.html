@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T&D — Location Cleanup (dev)</title>
+<!-- map_cleanup.html — #156 Phase B: the DEV-ONLY guided location-repair tool (the doc §7.4
+     cleanup tool; bible_editor precedent — the mutable surface lives HERE, never in the
+     read-only map_viewer). Loads a save (.tnd file, or the LIVE active campaign from
+     same-origin localStorage), runs the census (dev/loc-repair-core.js — typed evidence,
+     classifies NOTHING), lets a human classify each group (merge / reparent / alias / leave;
+     split rides the advanced plan box — allocation is inherently human, §7.1), shows a
+     DRY-RUN diff of every receipt before anything is written, then applies through the
+     SHIPPING executors (identity.js) — pre-images to memory.archive.identityMerges, loud
+     receipts, reversible by construction. .tnd mode exports a repaired download; live mode
+     writes back through saveAll() behind a double confirm.
+     Test seam: window.__cleanupTest (the no-untestable-surface rule). NOT in the app shell;
+     network-first allowlisted in sw.js (the bug_tracker stale-pin lesson). -->
+<style>
+:root{--bg:#111;--fg:#ddd;--t2:#888;--acc:#b8935a;--good:#7aa86a;--warn:#c8763a;--bad:#b05252;}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;margin:0;padding:18px;max-width:1100px;margin:0 auto;}
+h1{font-size:18px;color:var(--acc);margin:0 0 2px;}
+.sub{color:var(--t2);font-size:12px;margin-bottom:14px;}
+button{background:#222;color:var(--fg);border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;margin-right:8px;}
+button:hover{border-color:var(--acc);}
+button.primary{border-color:var(--acc);color:var(--acc);}
+button.danger{border-color:var(--bad);color:var(--bad);}
+.card{background:#181818;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin:10px 0;}
+.ev{display:inline-block;border:1px solid var(--acc);background:#231c12;color:rgba(255,255,255,.55);font:bold 10px/1 monospace;text-transform:uppercase;letter-spacing:1px;border-radius:12px;padding:3px 9px;margin-right:8px;}
+.mem{font-family:monospace;font-size:12.5px;}
+select{background:#222;color:var(--fg);border:1px solid #444;border-radius:5px;padding:3px 6px;}
+#diff,#planBox{width:100%;box-sizing:border-box;background:#0d0d0d;color:#bbb;font:12px/1.5 monospace;border:1px solid #2a2a2a;border-radius:6px;padding:10px;white-space:pre-wrap;}
+#planBox{min-height:70px;}
+.quiet{color:var(--t2);font-size:12px;}
+.ok{color:var(--good);} .warnc{color:var(--warn);} .badc{color:var(--bad);}
+</style>
+</head>
+<body>
+<h1>Location Cleanup <span class="quiet">— #156 Phase B repair tool (dev-only)</span></h1>
+<div class="sub">Census proposes with evidence; <b>you</b> classify per pair (Sol §1 — never a batch). Every apply archives pre-images and prints receipts. The map viewer stays read-only; this page is the one mutable surface. <span id="ver"></span></div>
+
+<div class="card">
+  <button id="btnFile">📁 Load .tnd save…</button>
+  <input type="file" id="fileIn" accept=".tnd,.json" style="display:none">
+  <button id="btnLive">🗄 Load LIVE active campaign (this origin's localStorage)</button>
+  <span id="loadStatus" class="quiet">nothing loaded</span>
+</div>
+
+<div class="card">
+  <button id="btnCensus" class="primary">🔎 Run census</button>
+  <span id="censusStatus" class="quiet"></span>
+  <div id="groups"></div>
+</div>
+
+<div class="card">
+  <div class="quiet" style="margin-bottom:6px;">Advanced: paste a raw plan JSON (array of ops — the only route for <b>split</b> allocations and pipe-bearing keys). Classified groups above are appended to it on dry-run/apply.</div>
+  <textarea id="planBox" placeholder='[{"op":"split","key":"Varisia - North Road","spec":{"primary":"North Road (Magnimar–Sandpoint)","successors":[…]}}]'></textarea>
+</div>
+
+<div class="card">
+  <button id="btnDry" class="primary">🧪 Dry-run</button>
+  <button id="btnApply" class="danger">⚠ APPLY for real</button>
+  <span id="applyStatus" class="quiet"></span>
+  <div id="diff" style="margin-top:8px;">no run yet</div>
+</div>
+
+<script src="globals.js"></script>
+<script src="compress.js"></script>
+<script src="data.js"></script>
+<script src="capability_bible.js"></script>
+<script src="class_bible.js"></script>
+<script src="skills_bible.js"></script>
+<script src="item_bible.js"></script>
+<script src="helpers.js"></script>
+<script src="state.js"></script>
+<script src="memory.js"></script>
+<script src="clock.js"></script>
+<script src="identity.js"></script>
+<script src="dev/loc-repair-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var need=["locRepairCensus","locRepairApply","locMerge","locReparent","locSplit","loadState","parseWorldState"];
+  for(var i=0;i<need.length;i++){if(typeof window[need[i]]!=="function"){document.body.innerHTML="<b style='color:#b05252'>ENGINE LOAD FAILED — "+need[i]+" missing (script list drifted from the manifest?)</b>";return;}}
+  document.getElementById("ver").textContent="engine "+(typeof APP_VERSION!=="undefined"?APP_VERSION:"?");
+  var MODE=null,TND=null,TNDNAME="";
+  function status(id,txt,cls){var el=document.getElementById(id);el.textContent=txt;el.className=cls||"quiet";}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+  function loadTnd(data,name){
+    worldState=data.worldState;memory=data.memory;sessionLog=data.sessionLog||[];
+    if(typeof migrateWorldState==="function")migrateWorldState();
+    MODE="tnd";TND=data;TNDNAME=name||"save.tnd";
+    status("loadStatus","loaded .tnd: "+name+" — turn "+worldState.turn+", "+Object.keys(memory.map.nodes).length+" map nodes","ok");
+  }
+  document.getElementById("btnFile").onclick=function(){document.getElementById("fileIn").click();};
+  document.getElementById("fileIn").onchange=function(ev){
+    var f=ev.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){try{loadTnd(JSON.parse(r.result),f.name);}catch(e){status("loadStatus","parse failed: "+e.message,"badc");}};
+    r.readAsText(f);ev.target.value="";
+  };
+  document.getElementById("btnLive").onclick=function(){
+    try{
+      loadState();
+      MODE="live";TND=null;
+      status("loadStatus","LIVE campaign loaded: "+(worldState.campName||"?")+" — turn "+worldState.turn+", "+Object.keys((memory.map&&memory.map.nodes)||{}).length+" map nodes. Applying WILL write this campaign.","warnc");
+    }catch(e){status("loadStatus","live load failed: "+e.message,"badc");}
+  };
+
+  var GROUPS=[];
+  function renderGroups(){
+    var host=document.getElementById("groups"),h="",i;
+    for(i=0;i<GROUPS.length;i++){
+      var g=GROUPS[i];
+      h+="<div class='card' data-gi='"+i+"'><span class='ev'>"+esc(g.evidence)+"</span><span class='mem'>"+g.members.map(esc).join("  ·  ")+"</span>"
+        +"<div class='quiet'>"+esc(g.note)+"</div>"
+        +"<div style='margin-top:6px;'>Classify: <select data-cls='"+i+"'><option value='leave'>leave (ambiguous — the honest default)</option><option value='merge'>merge → first member is canonical</option><option value='merge-rev'>merge → second member is canonical</option><option value='reparent'>reparent → second under first</option><option value='alias'>alias → second name onto first</option></select></div></div>";
+    }
+    host.innerHTML=h||"<div class='quiet'>no suspected groups</div>";
+  }
+  function runCensus(){
+    if(!MODE){status("censusStatus","load a save first","badc");return[];}
+    GROUPS=locRepairCensus();
+    status("censusStatus",GROUPS.length+" suspected group(s) — every one starts as LEAVE","quiet");
+    renderGroups();
+    return GROUPS;
+  }
+  document.getElementById("btnCensus").onclick=runCensus;
+
+  function collectPlan(){
+    var plan=[],i;
+    var raw=document.getElementById("planBox").value.trim();
+    if(raw){try{plan=JSON.parse(raw);if(!(plan instanceof Array))throw new Error("plan must be an array");}catch(e){status("applyStatus","plan JSON invalid: "+e.message,"badc");return null;}}
+    for(i=0;i<GROUPS.length;i++){
+      var sel=document.querySelector("select[data-cls='"+i+"']");
+      var v=sel?sel.value:"leave",m=GROUPS[i].members;
+      if(v==="merge")plan.push({op:"merge",canonical:m[0],duplicate:m[1]});
+      else if(v==="merge-rev")plan.push({op:"merge",canonical:m[1],duplicate:m[0]});
+      else if(v==="reparent")plan.push({op:"reparent",key:m[1],newParent:m[0]});
+      else if(v==="alias")plan.push({op:"alias",canonical:m[0],alias:m[1]});
+    }
+    return plan;
+  }
+  function showDiff(diff){
+    var lines=[],i,j;
+    for(i=0;i<diff.length;i++){
+      lines.push((diff[i].ok?"✔ ":"✗ ")+diff[i].op);
+      for(j=0;j<diff[i].receipts.length;j++)lines.push("    "+diff[i].receipts[j]);
+    }
+    document.getElementById("diff").textContent=lines.join("\n")||"(plan empty — classify a group or paste ops)";
+  }
+  document.getElementById("btnDry").onclick=function(){
+    var plan=collectPlan();if(!plan)return;
+    if(!MODE){status("applyStatus","load a save first","badc");return;}
+    showDiff(locRepairApply(plan,{dry:true}));
+    status("applyStatus","dry-run only — nothing written ("+plan.length+" op(s))","quiet");
+  };
+  document.getElementById("btnApply").onclick=function(){
+    var plan=collectPlan();if(!plan)return;
+    if(!MODE){status("applyStatus","load a save first","badc");return;}
+    if(!plan.length){status("applyStatus","plan is empty","warnc");return;}
+    if(!confirm("Apply "+plan.length+" repair op(s) for real? Pre-images are archived, but review the dry-run first."))return;
+    if(MODE==="live"&&!confirm("This writes the LIVE campaign in this browser's localStorage. Second confirm — proceed?"))return;
+    var diff=locRepairApply(plan,{dry:false});
+    showDiff(diff);
+    if(MODE==="live"){
+      saveAll();
+      status("applyStatus","APPLIED + saved to the live campaign. Reload the game tab.","ok");
+    }else{
+      TND.worldState=worldState;TND.memory=memory;
+      var blob=new Blob([JSON.stringify(TND,null,2)],{type:"application/json"});
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=TNDNAME.replace(/\.tnd$/i,"")+"_REPAIRED.tnd";
+      a.click();
+      status("applyStatus","APPLIED — repaired save downloaded ("+a.download+")","ok");
+    }
+    GROUPS=[];renderGroups();
+  };
+
+  window.__cleanupTest={loadTnd:loadTnd,census:runCensus,apply:function(plan,opts){return locRepairApply(plan,opts||{});},collectPlan:collectPlan};
+})();
+</script>
+</body>
+</html>

@@ -78,4 +78,66 @@ rc |= sabotage.prove({
   ]
 });
 
+// ── Phase B: the location domain ────────────────────────────────────────────────────────────
+rc |= sabotage.prove({
+  file: "identity.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "locResolve alias hop disabled — aliases stop resolving",
+      find: "if(hitK&&hitK!==cur){",
+      replace: "if(false){" },
+    { label: "fold loses the visits sum",
+      find: "canonNode.visits=(canonNode.visits||0)+(dupNode.visits||0);",
+      replace: "canonNode.visits=canonNode.visits||0;" },
+    { label: "merge stops healing live pointers",
+      find: "_locResGen++;\n  _locHealLivePointers(R);\n  _locCompactEdges(R);\n  R.muts.push(\"Location merged: \"+duplicate+\" -> \"+canonical);",
+      replace: "_locResGen++;\n  _locCompactEdges(R);\n  R.muts.push(\"Location merged: \"+duplicate+\" -> \"+canonical);" },
+    { label: "location merges stop archiving pre-images",
+      find: "  memArchive().identityMerges.push({domain:\"location\",op:\"merge\",canonical:canonical,duplicate:duplicate,turn:R.turn,\n    records:{node:JSON.parse(JSON.stringify(memory.map.nodes[duplicate])),identity:entries[duplicate]?JSON.parse(JSON.stringify(entries[duplicate])):null,locations:memory.locations[duplicate]?JSON.parse(JSON.stringify(memory.locations[duplicate])):null}});",
+      replace: "" }
+  ]
+});
+rc |= sabotage.prove({
+  file: "memory.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "fileLocation stops resolving — tombstoned keys re-mint",
+      find: "if(typeof locResolve===\"function\")loc=locResolve(loc);",
+      replace: "" },
+    { label: "RAG e.l scoring reverts to literal equality — merged scenes go invisible",
+      find: "if(q.loc&&(typeof locSame===\"function\"?locSame(en.e.l,q.loc):en.e.l===q.loc))sc+=2;",
+      replace: "if(q.loc&&en.e.l===q.loc)sc+=2;" }
+  ]
+});
+rc |= sabotage.prove({
+  file: "api.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "geo block lookups stop resolving the current key",
+      find: "var wKey=w.location,rwKey=locResolve(wKey);",
+      replace: "var wKey=w.location,rwKey=wKey;" }
+  ]
+});
+rc |= sabotage.prove({
+  file: "game.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "scene-manifest presence reverts to literal lastSeenAt equality",
+      find: "var rls=ls?locResolve(ls):\"\",rLoc=locResolve(loc),rNode=locResolve(nodeKey);",
+      replace: "var rls=ls,rLoc=loc,rNode=nodeKey;" }
+  ]
+});
+rc |= sabotage.prove({
+  file: "dev/loc-repair-core.js",
+  command: ["node", ["dev/run-tests.js"]],
+  cases: [
+    { label: "the census auto-classifies (adjudication stolen from the human)",
+      find: "groups.push({evidence:evidence,members:members,note:note||\"\",classification:\"undecided\"});",
+      replace: "groups.push({evidence:evidence,members:members,note:note||\"\",classification:\"merge\"});" },
+    { label: "dry-run stops cloning — a preview mutates the real save",
+      find: "    memory=JSON.parse(JSON.stringify(svM));\n    worldState=JSON.parse(JSON.stringify(svW));",
+      replace: "" }
+  ]
+});
+
 process.exit(rc ? 1 : 0);

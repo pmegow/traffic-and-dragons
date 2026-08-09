@@ -245,7 +245,7 @@ var TAG_TABLE=[
 // latched count reflects any spend applied in the same response. No R.muts push: nothing changed
 // on the sheet, and a "kept" line in the mutation summary would be noise.
 {t:"ITEM_KEPT",apply:function(text,R){var ikTags=text.match(/\[ITEM_KEPT:([^\]]+)\]/g)||[];var iki;for(iki=0;iki<ikTags.length;iki++){var ikm=ikTags[iki].match(/\[ITEM_KEPT:([^\]]+)\]/);if(!ikm)continue;_stampItemKept(null,worldState.character.inventory,ikm[1].trim());}}},
-{t:"LOCATION",apply:function(text,R){var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=normalizeEndpointPair(loc[1].trim());/* #156: route names canonicalize on an UNORDERED endpoint pair at the write boundary — a reversed "(Sandpoint–Magnimar)" must land on the same node as "(Magnimar–Sandpoint)" (the #153 two-roads-one-key class, Sol §7) */var _prevLoc=worldState.world.location;fileLocation(_lname,"",R.turn);worldState.world.location=_lname;worldState.world.sublocation=null;R.muts.push("-> "+_lname);
+{t:"LOCATION",apply:function(text,R){var loc=text.match(/\[LOCATION:([^\]]+)\]/);if(loc){var _lname=locResolve(normalizeEndpointPair(loc[1].trim()));/* #156: route names canonicalize on an UNORDERED endpoint pair at the write boundary — a reversed "(Sandpoint–Magnimar)" must land on the same node as "(Magnimar–Sandpoint)" (the #153 two-roads-one-key class, Sol §7); #156B: then RESOLVE through the identity table, so a merged alias re-anchors the canonical name in the pointer AND the prompt header (anti-drift feedback) */var _prevLoc=worldState.world.location;fileLocation(_lname,"",R.turn);worldState.world.location=_lname;worldState.world.sublocation=null;R.muts.push("-> "+_lname);
   // F2 (v1.216) generalized for multi-foe (v1.264): a WORLD-location change means the whole
   // encounter is over — the party traveled away. The old exemption relied on COMBAT_START
   // OVERWRITING; under add-a-foe semantics skipping the clear would leak the old location's
@@ -457,7 +457,7 @@ var TAG_TABLE=[
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;
     var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
-    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:(typeof currentNodeKey==="function"?currentNodeKey():null)};/* #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard) */R.muts.push("Combat: "+foe.name);continue;}
+    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};/* #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard); #156B: anchored canonical */R.muts.push("Combat: "+foe.name);continue;}
     var dup=null,di,fl=worldState.combat.foes;
     for(di=0;di<fl.length;di++){if(fl[di].name.toLowerCase()===foe.name.toLowerCase()&&!fl[di].down&&fl[di].hp>0){dup=fl[di];break;}}
     if(dup){console.warn("[combat] duplicate COMBAT_START for living foe '"+foe.name+"' ignored (re-emission)");continue;}
@@ -540,14 +540,14 @@ combatAttrEntry("COMBAT_VULN","vuln"),
 // them closes as "surrender" (≡ truce), otherwise victory (MULTI_ENEMY_COMBAT §2).
 {t:"COMBAT_END",nc:1,apply:function(text,R){
   var ce=text.match(/\[COMBAT_END:([^\]]+)\]/);
-  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?currentNodeKey():null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
+  if(ce){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */worldState.combat=null;R.muts.push("Combat: "+ce[1].trim());return;}
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
     if(f[i].down==="surrendered")surr=true;names.push(f[i].name);}
   if(anyUp||!f.length)return;
   propagateSlainFoes(R);/* B3: auto-close path — same stamp */
-  if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?currentNodeKey():null),turn:worldState.turn};/* #149: auto-close arms the same aftermath nudge */
+  if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: auto-close arms the same aftermath nudge; #156B: canonical anchor */
   worldState.combat=null;
   R.muts.push(surr?"Combat: surrender ("+names.join(", ")+")":"Combat: victory ("+names.join(", ")+")");}},
 {t:"ABILITY_GAINED",apply:function(text,R){var abs=text.match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[];var abi;for(abi=0;abi<abs.length;abi++){var abp=abs[abi].match(/\[ABILITY_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!abp)continue;if(!worldState.character.abilities)worldState.character.abilities=[];var already=false,abj;for(abj=0;abj<worldState.character.abilities.length;abj++){if(worldState.character.abilities[abj].nm===abp[1]){already=true;break;}}if(!already){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
@@ -757,7 +757,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
    effective location, lastSeenAt stamped — lastArrivalFrom and primary visits are camera
    instruments and stay untouched (F2). Dead/unknown/non-party names are loud no-ops. */
 {t:"PARTY_SPLIT",apply:function(text,R){var psTags=text.match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var psi;for(psi=0;psi<psTags.length;psi++){var psm=psTags[psi].match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!psm)continue;
-  var psName=resolveNpcName(psm[1].trim()),psArg=normalizeEndpointPair(psm[2].trim()),psSub=psm[3]?psm[3].trim():null;/* #156: split destinations get the same route-name canonicalization as [LOCATION:] */
+  var psName=resolveNpcName(psm[1].trim()),psArg=locResolve(normalizeEndpointPair(psm[2].trim())),psSub=psm[3]?psm[3].trim():null;/* #156: split destinations get the same route-name canonicalization as [LOCATION:]; #156B: and identity resolution */
   if(worldState.character&&psName===worldState.character.name){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — the hero IS the primary thread (bare [LOCATION:] moves them)");continue;}
   var psN=wsNpcByName(psName);
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}
@@ -873,7 +873,8 @@ function applyMutsTable(text){
          folds them back (deterministic, no GM judgment). The church class (a record written on
          an EARLIER response) still folds right here on arrival. */
       if(R._freshSplits&&R._freshSplits[_crm.name])continue;
-      if(_crl.location===worldState.world.location&&(_crl.sublocation||null)===(worldState.world.sublocation||null)){
+      var _crEff=_crl.sublocation?_crl.location+"|"+_crl.sublocation:_crl.location;/* #156B: compare EFFECTIVE nodes through the identity table — a split recorded at the current node's merged alias is the same place (the #133b co-location contract survives repairs) */
+      if(locSame(_crEff,currentNodeKey())){
         delete _crm.charSheet.splitLoc;
         if(memory.npcs[_crm.name])memory.npcs[_crm.name].lastSeenAt=currentNodeKey();
         R.muts.push(_crm.name+" rejoins the party (the split record pointed at the party's own location)");

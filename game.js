@@ -244,7 +244,10 @@ function buildSceneManifest(){
     if(n.partyMember){if(!(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location))addNpc(n.name);continue;}
     var mn=(typeof memory!=="undefined"&&memory.npcs&&memory.npcs[n.name])||{};
     var ls=String(mn.lastSeenAt||"");
-    if(ls&&(ls===nodeKey||ls===loc||ls.indexOf(loc+"|")===0))addNpc(n.name);
+    /* #156B: presence resolves through the location identity table — a stamp under the current
+       node's merged alias is HERE. Same-world test runs on the RESOLVED keys. */
+    var rls=ls?locResolve(ls):"",rLoc=locResolve(loc),rNode=locResolve(nodeKey);
+    if(rls&&(rls===rNode||rls===rLoc||rls.indexOf(rLoc+"|")===0))addNpc(n.name);
   }
   // Presence by narration: an NPC the GM just wrote into the scene is present even if the map
   // stamp lags a turn (the forensic's one manifest upgrade).
@@ -337,9 +340,9 @@ function validateSuggestion(text,man){
       var tvDest=tvm[1].replace(/[.!?]+\s*$/,"").trim().toLowerCase();
       var tvNodes=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};
       for(var tvk in tvNodes){
-        if(tvk.indexOf("|")>=0)continue;                                   // world nodes only
+        if(tvk.indexOf("|")>=0||locIsSub(tvk))continue;                    // world nodes only — #156B: world-ness derives from the parent relation, not key shape (a reparented ex-world node is a sub)
         if(tvk.toLowerCase()!==tvDest)continue;
-        if(tvk!==worldState.world.location)
+        if(!locSame(tvk,worldState.world.location))                        // #156B: the current location's merged alias is HERE, not remote travel
           return {rule:"unreachable-travel",detail:"asserts immediate travel to "+tvk+" from inside "+worldState.world.location+" — "+wSub};
         break;
       }
@@ -349,7 +352,7 @@ function validateSuggestion(text,man){
     // same telemetry-before-promotion arc as the off-scene-NPC line below.
     var tvN2=(typeof memory!=="undefined"&&memory.map&&memory.map.nodes)||{};
     for(var tk2 in tvN2){
-      if(tk2.indexOf("|")>=0||tk2===worldState.world.location)continue;
+      if(tk2.indexOf("|")>=0||locIsSub(tk2)||locSame(tk2,worldState.world.location))continue;/* #156B */
       var tkEsc=tk2.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
       if(new RegExp("\\b"+tkEsc+"\\b","i").test(t)){
         console.info("[actions] remote location named in a suggestion while sublocated (allowed, watching): \""+t+"\" → "+tk2);
@@ -1759,7 +1762,7 @@ function buildBlueprintFromGame(){
   var locations=[];
   if(memory.map&&memory.map.nodes){
     Object.keys(memory.map.nodes).forEach(function(key){
-      if(key.indexOf("|")>=0)return; // skip sub-locations
+      if(key.indexOf("|")>=0||locIsSub(key))return; // skip sub-locations — #156B: including reparented ex-world nodes (parent relation, not key shape)
       var node=memory.map.nodes[key];
       locations.push({name:key,description:node.description||""});
     });

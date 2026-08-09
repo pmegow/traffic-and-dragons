@@ -1,0 +1,35 @@
+[
+  {"op":"merge","canonical":"Sandpoint","duplicate":"Sandpoint, Varisia"},
+  {"op":"merge","canonical":"Sandpoint","duplicate":"Sandpoint|Varisia"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint - Rusty Dragon","duplicate":"Sandpoint|Rusty Dragon"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint - Rusty Dragon","duplicate":"Sandpoint - Rusty Dragon"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint - Rusty Dragon","duplicate":"Sandpoint|Varisia|Sandpoint - Rusty Dragon"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint - Rusty Dragon|Common Room","duplicate":"Sandpoint - Rusty Dragon|Common Room"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint - Rusty Dragon|Common Room","duplicate":"Sandpoint|Varisia|Sandpoint - Rusty Dragon|Common Room"},
+  {"op":"reparent","key":"Sandpoint|Varisia|Sandpoint - Rusty Dragon|Guest Room","newParent":"Sandpoint|Sandpoint - Rusty Dragon"},
+  {"op":"reparent","key":"Sandpoint|Rusty Dragon - Ammut's Room","newParent":"Sandpoint|Sandpoint - Rusty Dragon"},
+  {"op":"reparent","key":"Sandpoint|Rusty Dragon - Shared Room","newParent":"Sandpoint|Sandpoint - Rusty Dragon"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint Docks","duplicate":"Sandpoint|Sandpoint - Sandpoint Docks"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint Northeast Cliffs","duplicate":"Sandpoint Northeast Cliffs"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint Temple","duplicate":"Sandpoint Temple|Sandpoint Temple"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint Temple","duplicate":"Sandpoint Temple"},
+  {"op":"merge","canonical":"Sandpoint|Sandpoint Temple","duplicate":"Sandpoint|Sandpoint Cathedral"},
+  {"op":"merge","canonical":"Sandpoint Temple|Corven Coldwater's Shop","duplicate":"Sandpoint|Varisia|Corven's Cooper Shop"},
+  {"op":"reparent","key":"Sandpoint Temple|Corven Coldwater's Shop","newParent":"Sandpoint"},
+  {"op":"merge","canonical":"Fogscar Mountains Tunnel","duplicate":"Fogscar Mountains Tunnel|Fogscar Mountains Tunnel"},
+  {"op":"merge","canonical":"Fogscar Mountains Tunnel","duplicate":"Varisia - North Road|Fogscar Mountains Tunnel"},
+  {"op":"reparent","key":"Residential Quarter, Sandpoint","newParent":"Sandpoint"},
+  {"op":"reparent","key":"Sandpoint Residential Quarter - Burning Alley","newParent":"Residential Quarter, Sandpoint"},
+  {"op":"reparent","key":"Sandpoint Glassworks","newParent":"Sandpoint"},
+  {"op":"reparent","key":"Sandpoint Catacombs - Hidden Passage","newParent":"Sandpoint"},
+  {"op":"reparent","key":"Sandpoint Coast - Sea Approach","newParent":"Sandpoint"},
+  {"op":"reparent","key":"Sandpoint Coast - Sea Cave","newParent":"Sandpoint"},
+  {"op":"split","key":"Varisia - North Road","spec":{
+    "primary":"North Road (Magnimar–Sandpoint)",
+    "successors":[
+      {"key":"North Road (Magnimar–Sandpoint)","kind":"route","endpoints":["Magnimar","Sandpoint"],
+       "take":{"children":["Varisia - North Road|Charred Barrel - Common Room","Varisia - North Road|Charred Barrel - Hidden Passage","Varisia - North Road|Crossroads Camp - Burned Mill"],"edges":["Sandpoint","Magnimar"]}},
+      {"key":"North Road (Magnimar–Jorgenfist)","kind":"route","endpoints":["Magnimar","Jorgenfist"],
+       "take":{"edges":["Fogscar Mountains - Ridge Line","Fogscar Mountains Tunnel"]}}
+    ]}}
+]

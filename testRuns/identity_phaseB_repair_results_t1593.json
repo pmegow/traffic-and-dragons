@@ -1,0 +1,28 @@
+{
+  "plan": "testRuns/t1593_repair_plan.json",
+  "results": {
+    "nodes": 66,
+    "was": 80,
+    "identityEntries": 24,
+    "preImages": 26,
+    "resolutionBad": [],
+    "dangling": [],
+    "el": {
+      "ok": 1452,
+      "bad": 0
+    },
+    "censusAfter": [
+      "leaf-variant: Sandpoint|Sandpoint Garrison / Sandpoint|Sandpoint Garrison — Hemlock's Office",
+      "leaf-variant: Sandpoint|Sandpoint Bathhouse / Sandpoint|Sandpoint Bathhouse - Private Bathing Room",
+      "leaf-variant: Sandpoint|Sandpoint Bathhouse|Private Room / Sandpoint|Private Bathing Room",
+      "leaf-variant: Sandpoint|Sandpoint Bathhouse|Private Room / Sandpoint|Sandpoint Bathhouse - Private Bathing Room",
+      "leaf-variant: Sandpoint|Private Bathing Room / Sandpoint|Sandpoint Bathhouse - Private Bathing Room"
+    ],
+    "promptOk": true,
+    "geoSubLocs": "(none)",
+    "roadNodes": [
+      "primary ok (visits 8, kind route)",
+      "secondary ok"
+    ]
+  }
+}
