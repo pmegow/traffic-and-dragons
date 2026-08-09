@@ -369,6 +369,50 @@ function showProseModal(){
     modal.remove();
   });
 }
+// ── #81: item-canon confirm — the ONLY path from an [ITEM_DEF:] proposal to canon ────────────
+// Thin veneer over itemDefAccept/itemDefDecline (helpers.js — the pure, engine-tested writers).
+// Lists every pending proposal with its full fixed-attribute definition; Accept writes the
+// write-once overlay entry, Decline drops it loudly. Re-renders in place until the queue is
+// empty, then closes. Proposals ride the save (worldState.pendingItemDefs), so an unanswered
+// queue re-surfaces via init()/campLoad rather than vanishing with the session.
+function showItemDefConfirmModal(){
+  var pend=(worldState&&worldState.pendingItemDefs)||[];
+  if(!pend.length)return;
+  function rowsHtml(){
+    var h="",i;
+    for(i=0;i<pend.length;i++){var p=pend[i];
+      h+="<div style='border:1px solid var(--brd2);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--bg2);'>"
+        +"<div style='font-size:13px;color:var(--t0);font-weight:bold;'>"+escHtml(p.name)+"</div>"
+        +"<div style='font-size:11px;color:var(--t2);margin:4px 0 8px;'>"+escHtml(p.entry.category)+" · effect: "+escHtml(p.entry.effect)+" · uses: "+escHtml(p.entry.uses)+" · value: "+escHtml(p.entry.value)+"</div>"
+        +"<div style='display:flex;gap:8px;'>"
+        +"<button class='idf-acc' data-key='"+escHtml(p.key)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Accept as canon</button>"
+        +"<button class='idf-dec' data-key='"+escHtml(p.key)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:none;color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Decline</button>"
+        +"</div></div>";}
+    return h;
+  }
+  var modal=modalShell("itemdef-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>⚗ Item canon proposed</span><button id='idf-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<p style='font-size:11px;color:var(--t2);margin:0 0 14px;'>The GM proposes fixed mechanics for these items. Accepted definitions become permanent campaign canon (re-injected every turn, shown in tooltips); declined ones are dropped. Closing keeps them pending.</p>"
+    +"<div id='idf-rows'>"+rowsHtml()+"</div>",
+    {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:440,boxExtra:"margin-top:40px;",closeId:"idf-x",outside:true});
+  function wire(){
+    Array.prototype.forEach.call(modal.querySelectorAll(".idf-acc"),function(b){b.addEventListener("click",function(){
+      var k=this.getAttribute("data-key");
+      if(itemDefAccept(k))showToast("⚗ Item canon accepted");
+      pend=(worldState&&worldState.pendingItemDefs)||[];
+      if(!pend.length){modal.remove();return;}
+      document.getElementById("idf-rows").innerHTML=rowsHtml();wire();
+    });});
+    Array.prototype.forEach.call(modal.querySelectorAll(".idf-dec"),function(b){b.addEventListener("click",function(){
+      var k=this.getAttribute("data-key");
+      if(itemDefDecline(k))showToast("Item definition declined");
+      pend=(worldState&&worldState.pendingItemDefs)||[];
+      if(!pend.length){modal.remove();return;}
+      document.getElementById("idf-rows").innerHTML=rowsHtml();wire();
+    });});
+  }
+  wire();
+}
 // ── Quest journal ─────────────────────────────────────────────────────────────
 function showQuestModal(){
   var ql=(worldState&&worldState.questLog)||[];

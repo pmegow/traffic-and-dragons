@@ -1059,6 +1059,7 @@ function buildSysPrompt(){
     +buildSpellBibleBlock()
     +buildAbilityBibleBlock()
     +buildCompanionSpellBibleBlock()
+    +buildItemBibleBlock()/* #81: carried-item canon — volatile only, ""-clean when nothing carried resolves */
     +partyBlock
     +partyCapBlock
     +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
@@ -1273,6 +1274,36 @@ function buildAbilityBibleBlock(){
   }
   if(!lines.length)return"";
   return "CANONICAL ABILITY RULES (authoritative — these bounds are FIXED; honor them over any remembered version when the ability is used):\n"+lines.join("\n")+"\n\n";
+}
+// #81: the item half of the anti-drift injection — ONE labeled canon line per CARRIED
+// mechanics-bearing item across the whole party (player inventory + every party charSheet).
+// Resolution through itemLookup (player-confirmed overlay wins over the static base); the
+// mundane/treasure categories and effect:"N/A" entries NEVER inject (flavor and loot need no
+// bounds — injecting them would only spend tokens teaching the GM what a wine bottle is).
+// VOLATILE half only; ""-clean when nothing carried resolves, so pre-#81 prompts are
+// byte-identical until canon actually applies.
+function itemBibleLine(nm,e){
+  return "- "+nm+" — "+e.category+" | effect: "+e.effect+" | uses: "+e.uses+" | value: "+e.value;
+}
+function buildItemBibleBlock(){
+  if(typeof itemLookup!=="function"||!worldState||!worldState.character)return"";
+  var seen={},lines=[],i;
+  function add(list){
+    if(!list)return;
+    for(var j=0;j<list.length;j++){
+      var raw=list[j];if(!raw)continue;
+      var key=itemBaseName(raw);if(!key||seen[key])continue;
+      var e=itemLookup(raw);if(!e)continue;
+      seen[key]=1;
+      if(e.category==="mundane"||e.category==="treasure"||e.effect==="N/A")continue;
+      lines.push(itemBibleLine(key,e));
+    }
+  }
+  add(worldState.character.inventory);
+  var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
+  for(i=0;i<party.length;i++){if(party[i].charSheet)add(party[i].charSheet.inventory);}
+  if(!lines.length)return"";
+  return "ITEM CANON (authoritative for carried items — the definition governs what an item does; never re-derive an effect, blast radius, or dose from an item's NAME when a line below covers it. Items not listed have no mechanical canon yet: if the story makes one mechanics-bearing, propose a definition with [ITEM_DEF:] and keep narrating without assuming it until the item appears here):\n"+lines.join("\n")+"\n\n";
 }
 // ── Model-output JSON cleanup ────────────────────────────────────────────────
 // Shared by every JSON-expecting call (skeleton, action suggestions, summarize,

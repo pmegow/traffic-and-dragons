@@ -231,11 +231,13 @@ function spellTip(nm){
   }
   return "no description available for: "+String(nm||"");
 }
-// #83/#82: inventory item tooltip. The #81 item bible does not exist yet, so there is NO data
-// source and every item falls back to "no description available". When item_bible ships, look it
-// up HERE (itemLookup) and return the real description; keep this fallback for genuine misses.
+// #83/#82: inventory item tooltip — DATA GAP CLOSED by #81: itemLookup resolves the carried
+// string (player-confirmed overlay first, then the curated ITEM_BIBLE base) and shows the
+// fixed-attribute definition. The fallback survives for genuine misses — most flavor items
+// are deliberately uncurated (curation is the user's editor pass).
 function itemTip(nm){
-  // future (#81): var e=(typeof itemLookup==="function")?itemLookup(nm):null; if(e&&e.description)return (e.category?e.category+"\n":"")+e.description;
+  var e=(typeof itemLookup==="function")?itemLookup(nm):null;
+  if(e)return e.category+(e.effect!=="N/A"?" — "+e.effect:"")+(e.uses!=="N/A"?"\nUses: "+e.uses:"")+(e.value!=="N/A"?"\nValue: "+e.value:"");
   return "no description available for: "+String(nm||"");
 }
 // #80: clicking a side-panel spell appends "Cast <name>." to the input (a quick-cast affordance;

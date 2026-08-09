@@ -339,6 +339,28 @@ try {
   // the editor is a satellite: it must never be reachable from the game's own UI surface
   if (_bePage.indexOf("id=\"bible-editor-link\"") >= 0) _failBE("unexpected in-game link marker");
 
+  // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
+  var _biFile = _fsBE.readFileSync(_pathBE.join(__dirname, "..", "item_bible.js"), "utf8").replace(/\r\n/g, "\n");
+  var _serItems = new Function(_serM[0] + "\nreturn serializeItemBible;")();
+  var _biData = new Function(_biFile + "\nreturn ITEM_BIBLE;")();
+  var _biOut = _serItems(_biData).replace(/\r\n/g, "\n");
+  if (_biOut !== _biFile) {
+    var _dj = 0; while (_dj < _biOut.length && _biOut[_dj] === _biFile[_dj]) _dj++;
+    _failBE("serialize(on-disk data) !== on-disk item_bible.js — first divergence at char " + _dj +
+      " (…" + JSON.stringify(_biFile.slice(Math.max(0, _dj - 30), _dj + 30)) + " vs …" +
+      JSON.stringify(_biOut.slice(Math.max(0, _dj - 30), _dj + 30)) + "). Re-export from the editor, or align the serializer.");
+  }
+  // TYPE vs INSTANCE is a schema contract, not advice: an entry carrying instance fields
+  // (charges/owner/provenance/count) or missing a fixed attribute fails the build here.
+  var _biCats = { weapon: 1, armor: 1, consumable: 1, tool: 1, quest: 1, treasure: 1, mundane: 1 };
+  for (var _bk in _biData) {
+    var _be2 = _biData[_bk], _bfs = Object.keys(_be2).sort().join(",");
+    if (_bfs !== "category,effect,uses,value") _failBE("item '" + _bk + "' breaks the fixed attribute set (has: " + _bfs + ") — instance state never enters a TYPE definition");
+    if (!_biCats[_be2.category]) _failBE("item '" + _bk + "' has unknown category '" + _be2.category + "'");
+    for (var _bf in _be2) { if (typeof _be2[_bf] !== "string") _failBE("item '" + _bk + "." + _bf + "' is not a string"); }
+    if (_bk !== _bk.toLowerCase()) _failBE("item key '" + _bk + "' is not lowercase — itemLookup can never resolve it");
+  }
+
   // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
   // The define form accepted anything until four real draft entries showed the cost: three were
   // category:["martial"] with isMagical:true (contradictory), and two were keyed with capitals,

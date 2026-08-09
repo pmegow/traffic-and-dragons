@@ -521,6 +521,62 @@ function parseConfirmCommand(text) {
   return null;
 }
 // bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
+// ── #81 item bible accessors — the classDef()-in-helpers pattern (item_bible.js is pure data) ──
+// itemBaseName: the ONE key normalizer for inventory strings. Real saves carry three provenance
+// forms, all of which must strip to the TYPE key (TYPE vs INSTANCE is the ruled schema line):
+//   "Alchemist's fire x5"                          → "alchemist's fire"   (count)
+//   "Skinsaw knife (wrapped, ritual implement)"    → "skinsaw knife"      (parenthetical)
+//   "Iron ring — unmarked x6"                      → "iron ring"          (dash clause + count)
+//   "Collector's ledger - closed-eye cipher, ..."  → "collector's ledger" (spaced hyphen clause)
+// Intra-word hyphens survive ("Trip-wire cord" — the dash cut requires surrounding spaces).
+function itemBaseName(nm){
+  var s=String(nm||"");
+  s=s.replace(/\s+x\d+\s*$/i,"");        // trailing count: "… x6"
+  var cut=s.search(/\s+[—–-]\s+/);        // first spaced dash begins the provenance clause
+  if(cut>=0)s=s.slice(0,cut);
+  s=s.replace(/\s*\(.*\)/,"");           // parenthetical provenance (the capBaseName pattern)
+  s=s.replace(/\s+x\d+\s*$/i,"");        // count that sat before a stripped clause
+  return s.toLowerCase().replace(/\s+/g," ").trim();
+}
+// The ONE item lookup — tooltip, viewer, and injection all read through here. The emergent
+// per-campaign overlay (worldState.itemBible — player-CONFIRMED [ITEM_DEF:] proposals, never
+// raw model output) wins over the static base, so an accepted correction is authoritative.
+function itemLookup(nm){
+  var key=itemBaseName(nm);
+  if(!key)return null;
+  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return worldState.itemBible[key];
+  return (typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])||null;
+}
+// Player verdicts on [ITEM_DEF:] proposals — the ONLY writers of worldState.itemBible (#81).
+// Pure state ops (no DOM) so the confirm modal stays a thin veneer and the flow is engine-
+// testable. Accept = write-once overlay entry (an existing key refuses — the SPELL_DEF rule);
+// decline = dropped LOUDLY. Both remove the pending record; both return true only on action.
+function itemDefAccept(key){
+  if(typeof worldState==="undefined"||!worldState||!worldState.pendingItemDefs)return false;
+  var i,p=null;
+  for(i=0;i<worldState.pendingItemDefs.length;i++){if(worldState.pendingItemDefs[i].key===key){p=worldState.pendingItemDefs[i];break;}}
+  if(!p)return false;
+  worldState.pendingItemDefs.splice(i,1);
+  if(!worldState.itemBible)worldState.itemBible={};
+  if(worldState.itemBible[key]){if(typeof console!=="undefined")console.warn("[items] accept refused — '"+key+"' already canon (write-once, #81)");return false;}
+  worldState.itemBible[key]=p.entry;
+  if(typeof console!=="undefined")console.info("[items] item canon ACCEPTED: "+p.name+" ("+p.entry.category+")");
+  if(typeof saveAll==="function")saveAll();
+  return true;
+}
+function itemDefDecline(key){
+  if(typeof worldState==="undefined"||!worldState||!worldState.pendingItemDefs)return false;
+  var i;
+  for(i=0;i<worldState.pendingItemDefs.length;i++){
+    if(worldState.pendingItemDefs[i].key===key){
+      var p=worldState.pendingItemDefs.splice(i,1)[0];
+      if(typeof console!=="undefined")console.warn("[items] item canon DECLINED by the player: "+p.name+" — proposal dropped, nothing written (#81)");
+      if(typeof saveAll==="function")saveAll();
+      return true;
+    }
+  }
+  return false;
+}
 // HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
 // (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
 // function — one render, two hosts. CSS vars carry app-theme fallbacks so it looks right in either.

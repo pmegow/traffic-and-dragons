@@ -1428,6 +1428,9 @@ function commitGmTurn(resp,opts){
   narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96: map derives from the response's own [SAY:] tags */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
+  /* #81: [ITEM_DEF:] proposals queued by this turn go to the player NOW — the confirm modal is
+     the only path from proposal to canon (accept writes the overlay; decline drops loudly). */
+  if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
   return narEl;
 }
 // TODO #1 P3 (D4): mid-round suggestion refresh — strip the previous sub-turn's buttons off the

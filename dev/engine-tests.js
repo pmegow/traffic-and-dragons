@@ -3152,6 +3152,105 @@ function runEngineTests(R){
     return s.volatile.slice(iE,iS).indexOf("override")>=0?true:"subordination framing missing from the ERAS block itself";
   });
 
+  // ── 11d. #81 — item bible: TYPE canon, player-confirmed proposals, injection ─
+  section("#81 item bible");
+  t("itemBaseName: real save provenance strings all strip to the TYPE key",function(){
+    var cases=[
+      ["Alchemist's fire x5","alchemist's fire"],
+      ["Skinsaw knife (wrapped, ritual implement)","skinsaw knife"],
+      ["Iron ring — unmarked x6","iron ring"],
+      ["Collector's ledger - closed-eye cipher, names and debt records spanning decades x2","collector's ledger"],
+      ["Trip-wire cord","trip-wire cord"],
+      ["Short blade — Thassilonian script along the fuller, three characters, origin unknown","short blade"],
+      ["Rope — mountain grade, 50ft","rope"],
+      ["  Leather Armor  ","leather armor"],
+      ["Blasting charge x12","blasting charge"],
+      ["",""]
+    ],i;
+    for(i=0;i<cases.length;i++){var got=itemBaseName(cases[i][0]);if(got!==cases[i][1])return "\""+cases[i][0]+"\" → \""+got+"\", want \""+cases[i][1]+"\"";}
+    return true;
+  });
+  t("itemLookup: base resolves through provenance; the player-confirmed overlay wins; misses are null",function(){
+    makeWorld();
+    var b=itemLookup("Alchemist's fire x5");
+    if(!b||b.category!=="consumable")return "base entry not resolved via provenance string";
+    if(itemLookup("Nonexistent Gizmo")!==null)return "miss did not return null";
+    worldState.itemBible={"alchemist's fire":{category:"consumable",effect:"OVERRIDDEN",uses:"single use",value:"1 gp"}};
+    var o=itemLookup("Alchemist's fire");
+    return o&&o.effect==="OVERRIDDEN"?true:"overlay did not win over the base";
+  });
+  t("[ITEM_DEF:] is a PROPOSAL — queued for the player, never written to the overlay directly",function(){
+    makeWorld();
+    var r=applyMuts("The alchemist explains her smoke bomb. [ITEM_DEF:Smoke Bomb|category=consumable|effect=Fills a 10-ft cube with thick smoke for a minute|uses=single use|value=25 gp]");
+    if(worldState.itemBible&&worldState.itemBible["smoke bomb"])return "proposal wrote canon without the player";
+    if(!worldState.pendingItemDefs||worldState.pendingItemDefs.length!==1)return "proposal not queued";
+    var p=worldState.pendingItemDefs[0];
+    if(p.key!=="smoke bomb"||p.entry.category!=="consumable"||p.entry.value!=="25 gp")return "queued entry wrong: "+JSON.stringify(p);
+    return r.muts.join("|").indexOf("Item canon proposed")>=0?true:"no proposal receipt in muts";
+  });
+  t("proposal hygiene: duplicates drop, instance fields never enter, unknown category defaults loudly, queue caps at 5",function(){
+    makeWorld();
+    applyMuts("[ITEM_DEF:Smoke Bomb|category=consumable|effect=Smoke.|uses=single use|value=25 gp]");
+    applyMuts("[ITEM_DEF:Smoke Bomb|category=consumable|effect=Different text.|uses=single use|value=9 gp]");
+    if(worldState.pendingItemDefs.length!==1)return "duplicate proposal was queued";
+    applyMuts("[ITEM_DEF:Strange Wand|category=widget|effect=Zaps.|charges=3|owner=Ammut]");
+    var w=worldState.pendingItemDefs[1];
+    if(!w)return "second proposal missing";
+    if(w.entry.charges!==undefined||w.entry.owner!==undefined)return "instance fields entered the definition: "+JSON.stringify(w.entry);
+    if(Object.keys(w.entry).sort().join(",")!=="category,effect,uses,value")return "fixed attribute set broken: "+JSON.stringify(w.entry);
+    if(w.entry.category!=="tool")return "unknown category did not default to tool: "+w.entry.category;
+    for(var i=0;i<9;i++)applyMuts("[ITEM_DEF:Filler Item "+i+"|category=tool|effect=Fills.|uses=reusable|value=1 gp]");
+    return worldState.pendingItemDefs.length===5?true:"queue not capped at 5: "+worldState.pendingItemDefs.length;
+  });
+  t("accept writes the overlay WRITE-ONCE and empties the pending slot; a re-proposal of accepted canon is refused",function(){
+    makeWorld();
+    applyMuts("[ITEM_DEF:Smoke Bomb|category=consumable|effect=Smoke.|uses=single use|value=25 gp]");
+    if(!itemDefAccept("smoke bomb"))return "accept failed";
+    if(!worldState.itemBible||!worldState.itemBible["smoke bomb"])return "overlay not written on accept";
+    if(worldState.pendingItemDefs.length!==0)return "pending not cleared on accept";
+    applyMuts("[ITEM_DEF:Smoke Bomb|category=consumable|effect=REDEFINED.|uses=single use|value=1 gp]");
+    if(worldState.pendingItemDefs.length!==0)return "re-proposal of accepted canon was queued";
+    if(worldState.itemBible["smoke bomb"].effect!=="Smoke.")return "accepted canon was overwritten";
+    if(itemDefAccept("smoke bomb")!==false)return "accept of a non-pending key claimed success";
+    return true;
+  });
+  t("decline drops the proposal — nothing written, pending cleared",function(){
+    makeWorld();
+    applyMuts("[ITEM_DEF:Cursed Doll|category=quest|effect=Whispers at night.|uses=N/A|value=N/A]");
+    if(!itemDefDecline("cursed doll"))return "decline failed";
+    if(worldState.pendingItemDefs.length!==0)return "pending not cleared on decline";
+    return (!worldState.itemBible||!worldState.itemBible["cursed doll"])?true:"decline wrote canon";
+  });
+  t("ITEM CANON block: carried items inject (player + companion), mundane/treasure never, \"\"-clean otherwise, stable byte-identical",function(){
+    makeWorld();
+    var s0=buildSysPrompt();
+    if(s0.volatile.indexOf("ITEM CANON")>=0)return "block present with nothing resolvable carried";
+    worldState.character.inventory=["Alchemist's fire x5","Bottle of wine x4","Silver arm","Unknown Trinket"];
+    worldState.npcs=[{name:"Frizwick",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Frizwick",hp:10,maxHp:10,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},inventory:["Lockpick roll — seven picks, two tension bars"],abilities:[],spells:[],conditions:[],relationships:[],level:1,cls:"Rogue"}}];
+    var s=buildSysPrompt();
+    if(s.stable!==s0.stable)return "stable changed with item canon live";
+    // the block header specifically — the STATE TAGS doc (stable) legitimately NAMES the list
+    if(s.stable.indexOf("ITEM CANON (authoritative")>=0)return "item canon block leaked into stable";
+    var v=s.volatile;
+    if(v.indexOf("ITEM CANON (authoritative")<0)return "block missing from volatile";
+    if(v.indexOf("alchemist's fire — consumable")<0)return "player item line missing: "+v.slice(v.indexOf("ITEM CANON"),v.indexOf("ITEM CANON")+300);
+    if(v.indexOf("lockpick roll — tool")<0)return "companion item line missing";
+    if(v.indexOf("bottle of wine")>=0)return "mundane item injected";
+    if(v.indexOf("silver arm")>=0)return "treasure item injected";
+    return v.indexOf("never re-derive")>=0?true:"authority framing missing";
+  });
+  t("cleanTxt strips [ITEM_DEF:] from the displayed prose",function(){
+    var out=cleanTxt("She hands it over. [ITEM_DEF:Smoke Bomb|category=consumable|effect=Smoke.|uses=single use|value=25 gp] It smells of saltpeter.");
+    if(out.indexOf("[ITEM_DEF")>=0)return "proposal tag leaked to display: "+out;
+    return (out.indexOf("She hands it over.")>=0&&out.indexOf("It smells of saltpeter.")>=0)?true:"surrounding prose damaged: "+out;
+  });
+  t("the [ITEM_DEF:] doc line rides the STATE TAGS block with the proposal + TYPE discipline clauses",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[ITEM_DEF:")<0)return "doc line missing — the tag exists with no vocabulary";
+    if(d.indexOf("the player must accept it before it becomes canon")<0)return "the proposal clause is gone — the GM will assume acceptance";
+    return d.indexOf("NEVER put instance state")>=0?true:"the TYPE-vs-INSTANCE clause is gone";
+  });
+
   // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
   section("summarize-tail retention (#28)");
   function pair(u,g){sessionLog.push({role:"user",content:u},{role:"assistant",content:g});}
@@ -3847,7 +3946,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==946316874||_CT_TAGS.source.length!==1049)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section) */
+    if(__djb2(_CT_TAGS.source)!==160043331||_CT_TAGS.source.length!==1058)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section) */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -3913,7 +4012,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1663212119&&d.length===19320)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye */
+    return (__djb2(d)===70603114&&d.length===20002)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye; re-baselined v1.576 (#81): +682 = the one ITEM_DEF doc line (player-CONFIRMED item-canon proposals — fork ruled 2026-08-08; proposal + TYPE-vs-INSTANCE clause guards in the #81 section). Golden diffed by eye */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
