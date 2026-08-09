@@ -8564,6 +8564,25 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     // Both present, both labelled: two DIFFERENT measurements, nothing for the model to adjudicate.
     return true;
   });
+  // ═══ DRIFT PASS order 2 (#145): bookkeeping text must not activate off-scene NPC memory ═══
+  // Live t1549 shape: Frizwick/Daeris occurred in the last six messages ONLY inside the split-audit
+  // engine note, yet got full ACTIVE NPC DETAILS carrying stale posture claims — the presence-
+  // protection audit feeding the exact contradiction it exists to prevent (Sol R2).
+  t("engine notes cannot activate ACTIVE NPC DETAILS — story text only selects the hot set (#145)",function(){
+    makeWorld();worldState.turn=900;
+    memory.npcs["Ghostwick"]={attitude:"",knowledge:["stale posture claim"],events:[],aliases:[]};
+    memory.npcs["Prosewick"]={attitude:"",knowledge:["player-prose fact"],events:[],aliases:[]};
+    memory.npcs["Gmwick"]={attitude:"",knowledge:["gm-prose fact"],events:[],aliases:[]};
+    sessionLog=[
+      {role:"user",content:"[ENGINE NOTE — SPLIT AUDIT (not a player action): the record still lists Ghostwick away — confirm or emit [PARTY_SPLIT:Ghostwick|rejoin].]\n\nI walk toward the docks with Prosewick."},
+      {role:"assistant",content:"Gmwick waves from the pier as you and Prosewick pass."}
+    ];
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("stale posture claim")>=0)return "a note-only mention still activated detail (the t1549 Frizwick/Daeris class)";
+    if(v.indexOf("player-prose fact")<0)return "player-prose mention no longer activates detail";
+    if(v.indexOf("gm-prose fact")<0)return "GM-prose mention no longer activates detail";
+    return true;
+  });
   t("v1.383: the attitude spec change clears old MOOD values ONCE, then never again",function(){
     makeWorld();
     memory.npcs={A:{attitude:"cataloguing, wary",knowledge:[],events:[],aliases:[]},
