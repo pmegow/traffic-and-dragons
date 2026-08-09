@@ -9571,6 +9571,52 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[TIME:just after sunset]");                // dusk keyword inside free text
     return clockNow()===780?true:"sunset keyword not mapped to dusk: "+clockNow();
   });
+  // ═══ DRIFT PASS order 3 (#146): clock repairs are transactions; impossible timelines get caught ═══
+  // Field grounding: the #142 console repair (clock.min-=1160) landed TWICE on the live campaign
+  // (transcript ck stamps: 8820 at t1525 → 6500 at t1526, exactly −2×1160). A raw scalar edit has
+  // no idempotency and no cross-device memory; receipts ride worldState.clock (the sync blob), so
+  // the second device SEES the first application.
+  t("clockRepair applies once, writes a receipt on the save, and moves the scalar (#146)",function(){
+    makeWorld(); clockAdvance(500);
+    if(clockRepair("test-fix",500,160)!==true)return "matching repair refused";
+    if(clockNow()!==660)return "delta not applied: "+clockNow();
+    var r=worldState.clock.repairs;
+    if(!r||r.length!==1||r[0].id!=="test-fix"||r[0].before!==500||r[0].after!==660)return "receipt wrong: "+JSON.stringify(r);
+    return true;
+  });
+  t("clockRepair refuses a duplicate id — the double-application class is dead (#146)",function(){
+    makeWorld(); clockAdvance(500);
+    clockRepair("dup-fix",500,160);
+    if(clockRepair("dup-fix",660,160)!==false)return "second application not refused";
+    return clockNow()===660?true:"duplicate still moved the clock: "+clockNow();
+  });
+  t("clockRepair refuses on expected-state mismatch and leaves no receipt (#146)",function(){
+    makeWorld(); clockAdvance(300);
+    if(clockRepair("wrong-state",999,160)!==false)return "mismatched repair applied";
+    if(clockNow()!==300)return "refused repair still moved the clock";
+    if(worldState.clock.repairs&&worldState.clock.repairs.length)return "refused repair left a receipt";
+    return true;
+  });
+  t("clockTimelineAnomalies flags born-after-now and due-before-born; healthy schedules stay silent (#146)",function(){
+    makeWorld(); clockAdvance(1000);
+    var c=worldState.clock;
+    c.schedule.push({id:"a",label:"future-born",dueMin:3000,born:2000});   // born > now — the live t1549 shape
+    c.schedule.push({id:"b",label:"due-before-born",dueMin:100,born:900}); // impossible window
+    c.schedule.push({id:"c",label:"healthy",dueMin:1500,born:400});
+    var an=clockTimelineAnomalies(c);
+    if(an.length!==2)return "expected 2 anomalies, got "+an.length+": "+JSON.stringify(an);
+    if(an.join(" ").indexOf("future-born")<0||an.join(" ").indexOf("due-before-born")<0)return "wrong events flagged";
+    return true;
+  });
+  t("migrateWorldState WARNS on a timeline anomaly and heals nothing (#146)",function(){
+    makeWorld(); clockAdvance(1000);
+    worldState.clock.schedule.push({id:"x",label:"born-tomorrow",dueMin:3000,born:2000});
+    var warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{migrateWorldState();}finally{console.warn=_w;}
+    if(!warns.filter(function(w){return w.indexOf("TIMELINE ANOMALY")>=0;}).length)return "no anomaly warn on load";
+    var s=worldState.clock.schedule[worldState.clock.schedule.length-1];
+    return (s.born===2000&&worldState.clock.min===1000)?true:"migrate auto-healed the timeline — forbidden (transcript stamps and anchors are quarantine-and-ask)";
+  });
   t("unmappable free text is flavor only — stored, clock untouched", function(){
     makeWorld(); clockAdvance(120);
     applyMuts("[TIME:the storm-dark hour]");

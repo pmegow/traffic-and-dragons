@@ -51,6 +51,44 @@ function clockEnsure(){
 
 function clockNow(){var c=clockEnsure();return c?c.min:0;}
 
+// ── #146 (drift pass order 3): sanctioned clock corrections are TRANSACTIONS ─────────────
+// A raw console edit (`clock.min-=1160`, the #142 interim repair) landed TWICE on the live
+// campaign — transcript ck stamps prove 8820→6500 between t1525 and t1526, exactly −2×1160 —
+// because a scalar edit has no expected-before value, no identity, and no cross-device memory.
+// Receipts live ON worldState.clock so they ride the save/sync blob: the second device (the
+// likely double-fire vector) SEES the first application and refuses. Refusals are loud and
+// mutate NOTHING.
+function clockRepair(repairId,expectedMin,delta){
+  var c=clockEnsure();if(!c)return false;
+  if(!c.repairs)c.repairs=[];
+  var i;for(i=0;i<c.repairs.length;i++){if(c.repairs[i].id===repairId){
+    if(typeof console!=="undefined")console.warn("[clock] repair \""+repairId+"\" ALREADY APPLIED (t"+c.repairs[i].t+", "+c.repairs[i].before+"→"+c.repairs[i].after+") — refused (#146)");
+    if(typeof showToast==="function")showToast("Clock repair refused: already applied");
+    return false;}}
+  if(c.min!==expectedMin){
+    if(typeof console!=="undefined")console.warn("[clock] repair \""+repairId+"\" REFUSED — clock.min is "+c.min+", expected "+expectedMin+"; the anomaly this repair targets is not present. Re-derive from the transcript ck stamps before writing anything (#146)");
+    if(typeof showToast==="function")showToast("Clock repair refused: state mismatch — see console");
+    return false;}
+  c.repairs.push({id:repairId,before:c.min,after:c.min+delta,t:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0});
+  c.min+=delta;
+  if(typeof console!=="undefined")console.info("[clock] repair \""+repairId+"\" applied: "+(c.min-delta)+" → "+c.min+" (receipt rides the save — a second run on ANY device refuses)");
+  if(typeof showToast==="function")showToast("⏱ Clock repaired: "+repairId);
+  if(typeof saveAll==="function")saveAll();
+  return true;
+}
+
+// #146 load-time diagnostics: the invariants a healthy timeline can never violate. Pure —
+// migrateWorldState WARNS on each hit and heals NOTHING (transcript stamps are decree-immutable
+// and schedule anchors carry adjudication evidence; quarantine-and-ask, never guess).
+function clockTimelineAnomalies(c){
+  var out=[];if(!c||!Array.isArray(c.schedule))return out;
+  var i;for(i=0;i<c.schedule.length;i++){var s=c.schedule[i];if(!s)continue;
+    if(typeof s.born==="number"&&s.born>c.min)out.push("schedule \""+s.label+"\" born at min "+s.born+" is AFTER now ("+c.min+") — the clock moved backward under it");
+    if(typeof s.dueMin==="number"&&typeof s.born==="number"&&s.dueMin<s.born)out.push("schedule \""+s.label+"\" is due ("+s.dueMin+") BEFORE it was born ("+s.born+")");
+  }
+  return out;
+}
+
 // Advance by a whole number of minutes, clamped to >= 1 (min turn = 1 minute) and MONOTONIC —
 // a negative or zero advance is coerced up, never applied backward. Returns the minutes added.
 function clockAdvance(min){
