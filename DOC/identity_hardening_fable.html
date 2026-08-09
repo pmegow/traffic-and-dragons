@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Identity Hardening — implementation proposal (Fable)</title>
+<style>
+  :root{--bg:#0d0d0d;--bg2:#161616;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--acc2:#d9b47c;--t0:#e8e0d0;--t1:#b0a890;--t2:#6f6a5c;--bad:#a05a5a;--good:#7aa86a;--r:8px}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;margin:0;padding:40px 20px}
+  main{max-width:880px;margin:0 auto}
+  h1{color:var(--acc);font-size:26px;margin:0 0 4px}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:30px}
+  h2{color:var(--t0);font-size:19px;margin:38px 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px}
+  h3{color:var(--acc2);font-size:15px;margin:24px 0 6px}
+  p,li{font-size:14.5px}
+  code{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:1px 5px;font-size:13px;color:var(--acc2)}
+  pre{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.5;color:var(--t1)}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}
+  th,td{border:1px solid var(--brd2);padding:8px 12px;text-align:left;vertical-align:top}
+  th{color:var(--t0);background:var(--bg2)}
+  .callout{border-left:3px solid var(--acc);background:var(--bg2);padding:12px 16px;border-radius:0 var(--r) var(--r) 0;margin:16px 0}
+  .warn{border-left-color:var(--bad)}
+  .quiet{color:var(--t2);font-size:13px}
+  strong{color:var(--t0)}
+</style>
+</head>
+<body>
+<main>
+<h1>Identity Hardening</h1>
+<div class="sub">Implementation proposal · filed 2026-08-09 · Fable-tier (drift surface: applyMuts write paths, memory tiers, prompt injection, naming machinery) · absorbs TODO #152, #153, #155 into TODO #156 · design direction ruled by the user 2026-08-09: <em>one standardized identity scheme, uniform across entity types — the fewer object types and actions, the better</em></div>
+
+<h2>1. The problem</h2>
+
+<p><strong>The engine has no concept of identity. It has names.</strong></p>
+
+<p>Every canonical store in Traffic and Dragons is a dictionary whose primary key is a string the model produced while writing fiction: <code>memory.npcs["Savah"]</code>, <code>memory.map.nodes["Varisia - North Road"]</code>, <code>questLog</code> entries matched by title, factions by name, relationships by entity string, spell and item canon by normalized base name. The GM narrates; the engine promotes fragments of that narration to primary keys; every later read and write resolves through string equality. A campaign's canon is, structurally, a set of databases whose keys are improvised prose.</p>
+
+<p>String-equality-as-identity fails in exactly two directions, and at campaign scale both are inevitable:</p>
+
+<table>
+<tr><th></th><th>Failure</th><th>Mechanism</th><th>Damage</th></tr>
+<tr>
+<td><strong>Drift</strong></td>
+<td>Many names accrete around one thing</td>
+<td>The model re-describes a known entity in fresh words — an honorific dropped, a region suffix added, a landmark renamed by its function — and the upsert mints a new record instead of finding the old one</td>
+<td>The entity's canon <em>fragments</em>: facts, visits, relationships and history split across records; recall serves a partial file; the roster and map overcount</td>
+</tr>
+<tr>
+<td><strong>Collision</strong></td>
+<td>One name is reused for a new thing</td>
+<td>The model reaches for a familiar name when inventing — context gravity makes an established name the highest-probability token for "a shopkeeper," "the road north" — and the upsert <em>finds</em> the old record and writes into it</td>
+<td>Two entities' canon <em>fuses</em> into one file: the record becomes internally contradictory, and there is no clean way to split it after the fact</td>
+</tr>
+</table>
+
+<p>Both failures are <strong>silent</strong> — no error fires, because nothing is wrong at the string level. Both are <strong>cumulative</strong> — each summarize cycle files more facts under the wrong key. And both are <strong>self-reinforcing</strong>, which is the truly dangerous property: the system prompt is assembled <em>from</em> the keyed stores, so once a record fragments or fuses, the model is fed its own mistake as canon every turn. A fused record teaches the model that the armorer sells rings; a fragmented one hides the canonical name that would have anchored the next mention.</p>
+
+<h3>1.1 Field evidence — all four quadrants confirmed in one live campaign (2026-08-09, t1593)</h3>
+
+<table>
+<tr><th></th><th>One name, many things (collision)</th><th>Many names, one thing (drift)</th></tr>
+<tr>
+<th>NPCs</th>
+<td><strong>The three Savahs</strong> (was #152): a Sandpoint armorer (t644), a Magnimar ring-jeweler (t988, "a woman named Savah who you've dealt with before" — the model narrating its own context gravity), and a Magnimar apothecary (t1530, named inside barkeep dialogue). One memory record now holds blasting-charge sales, a wedding-ring commission, and an "unknown, not yet met" attitude. The GM self-caught this class once (t1253: "Wait, that's wrong, Savah's already registered elsewhere") — model vigilance, unreliable by construction.</td>
+<td><strong>Hemlock / Sheriff Hemlock / Sheriff Belor Hemlock</strong> — the class that motivated the #128 variant scan (shipped: token-subset detection + GM-confirmed <code>[NPC_MERGE:]</code> + alias table). The one quadrant with real machinery, and the template for everything below.</td>
+</tr>
+<tr>
+<th>Locations</th>
+<td><strong>One "Varisia - North Road" node carrying two different roads</strong> (was #153): Frizwick was split off toward Sandpoint on the road node, the party then took "the same road" the opposite direction toward Jorgenfist, and the #133b co-location auto-rejoin folded her back into the party — by t1593 the GM narrated "the four of you" while the same response says she's alone on the road. The engine behaved correctly on wrong identity: two roads shared one key. <em>User ruling: the fix is node identity (endpoint-qualified road names), explicitly not a timing guard.</em></td>
+<td><strong>The Sandpoint fragmentation cloud</strong> (was #155): 8+ world nodes that are all Sandpoint or its parts — "Sandpoint", "Sandpoint, Varisia", "Residential Quarter, Sandpoint" <em>and</em> "Sandpoint Residential Quarter - Burning Alley", "Sandpoint - Rusty Dragon" as a world node while <code>Sandpoint|Sandpoint - Rusty Dragon</code> exists as a sublocation, plus Temple/Glassworks/Cliffs/Coast variants. Made visible in one glance by the map viewer.</td>
+</tr>
+</table>
+
+<h3>1.2 The engine already knows — five partial guards, grown independently</h3>
+
+<p>This is the strongest evidence that identity is one problem and not five: five stores have each sprouted a hand-rolled partial defense, each covering one direction in one store, none sharing code:</p>
+
+<ol>
+<li><strong>NPCs:</strong> the #128 variant scan (drift), <code>resolveNpcName</code> + alias table, GM-confirmed <code>[NPC_MERGE:]</code>. Nothing for collision.</li>
+<li><strong>Spells/abilities:</strong> <code>capBaseName</code> normalization (drift) + write-once <code>[SPELL_DEF:]</code> refusal (collision). The best-hardened store — and the proof the two-sided scheme works.</li>
+<li><strong>Items (#81):</strong> <code>itemBaseName</code> strips counts/provenance (drift). Collision resolved by design ruling — TYPE vs INSTANCE: eleven iron keys <em>correctly</em> collapse to one type.</li>
+<li><strong>futureEvents (#29):</strong> the <code>feTokens</code> near-duplicate dedupe — a fuzzy identity detector for event text.</li>
+<li><strong>Quests:</strong> an archived-title re-creation block (one narrow collision guard). Nothing for title drift; <code>[QUEST_STEP:]</code> matches objectives by substring, so re-worded text silently orphans.</li>
+</ol>
+
+<p class="quiet">Factions have nothing at all — and <code>[NPC_FACTION:]</code> auto-registers unknown faction names, so a typo mints an organization. The standing audit rule ("second instance of a failure class → enumerate the class, don't ship a third point fix") tripped at instance five.</p>
+
+<h3>1.3 Why not stable IDs?</h3>
+
+<p>The textbook fix — opaque entity IDs with names as display attributes — is parked in SERVER_ARCHITECTURE.md as a design topic, and should stay parked. The GM speaks in names; tags arrive name-keyed no matter what the storage schema does, so IDs merely relocate the resolution problem to the tag boundary while forcing a total-store migration. The alias table is the pragmatic stable ID: <strong>one canonical key with many attached names</strong>. This proposal extends that idea to every store instead of rebuilding the schema.</p>
+
+<h2>2. The design — one identity scheme, per-domain adapters</h2>
+
+<div class="callout"><strong>User direction (2026-08-09):</strong> "the fewer object types and actions we have the better. If a standardized identity scheme is possible where locations, spells, items, whatever are dealt with more or less identically (like objects in OOP), all the better."</div>
+
+<p>The house pattern already exists three times over: <code>PROVIDERS</code> (LLM adapters), <code>BIBLE_TYPES</code> (editor formats), <code>TAG_TABLE</code> (tag handlers). One table, uniform interface, dispatch through it, adding a variant = adding an entry. Identity gets the same treatment.</p>
+
+<h3>2.1 The registry: <code>IDENTITY_DOMAINS</code></h3>
+
+<pre>// identity.js (new engine file) — ONE table, one uniform adapter shape.
+var IDENTITY_DOMAINS = {
+  npc: {
+    keys()                    — all canonical keys in the store
+    aliases(key)              — registered alternate names
+    tokens(key)               — distinctive-token set (npcCoreTokens generalized)
+    resolve(name)             — name → canonical key (today's resolveNpcName)
+    context(key)              — the disambiguation signal for collision checks
+                                (npc: lastSeenAt; location: parent + node kind;
+                                 quest: status; faction: member overlap)
+    merge(canonical, dup)     — the ONLY genuinely store-specific code (see 2.4)
+    registerAlias(canon, alias)
+    namingRules               — domain lines for the shared prompt clause (2.6)
+  },
+  location: { ... }, quest: { ... }, faction: { ... },
+  capability: { ... },  // already conforming — capBaseName/lookup wrap into the interface
+  item: { ... }         // already conforming — itemBaseName/lookup, merge = N/A by TYPE ruling
+};</pre>
+
+<p>Everything above the adapters is <strong>shared machinery, written once</strong>:</p>
+
+<h3>2.2 One resolver</h3>
+<p><code>resolveEntity(domain, name)</code> — alias-aware canonicalization at every tag parse site. <code>resolveNpcName</code> becomes the npc adapter's <code>resolve</code>; tag_table call sites go through the shared entry point. Behavior for NPCs must be byte-identical (parity-tested) — this step is refactor, not change.</p>
+
+<h3>2.3 One detector, both directions</h3>
+<p>The #128 variant scan generalized, running over any domain via its adapter:</p>
+<ul>
+<li><strong>Drift scan:</strong> token-subset/overlap between keys ("Sandpoint, Varisia" ⊂ "Sandpoint" + suffix; "Residential Quarter, Sandpoint" ↔ "Sandpoint Residential Quarter"), plus the location-specific <em>shadowing</em> check (world node X coexisting with <code>Parent|X</code>).</li>
+<li><strong>Collision scan:</strong> at upsert time, an incoming name that resolves to an existing key whose <code>context()</code> disagrees with the scene (an NPC last seen in another city; a location whose parent differs) is a <em>suspect</em> — not an error, because entities legitimately travel and titles legitimately recur.</li>
+</ul>
+<p>Every detection produces the same output: a <strong>GM-decides engine note</strong>, one-shot, through the established nudge channel. Nothing ever auto-merges and nothing ever auto-blocks — every prior ruling in this project (merge confirmations #57/#128, dead-status refusal B3, item-canon proposals #81) converges on <em>engine detects, GM or player decides</em>, and identity is the least reversible surface of all.</p>
+
+<h3>2.4 One action pair</h3>
+<p>Fewer actions, per the ruling — TWO generalized tags replace per-store families:</p>
+<pre>[ALIAS:domain|canonical|alias]     e.g. [ALIAS:location|Sandpoint|Sandpoint, Varisia]
+[MERGE:domain|canonical|duplicate] e.g. [MERGE:npc|Savah|Savah (apothecary)]</pre>
+<ul>
+<li>Legacy <code>[NPC_ALIAS:]</code>/<code>[NPC_MERGE:]</code> remain valid — thin tag_table entries routing into the same handlers (the doc/strip registries keep them; the model has years of reinforcement on those names, and removing working vocabulary buys nothing).</li>
+<li><code>merge()</code> executors are the one place domain differences are real, and they are contained in the adapter:
+  <ul>
+  <li><strong>npc:</strong> today's NPC_MERGE (events/knowledge/aliases fold, relationship cleanup) — moves, unchanged.</li>
+  <li><strong>location:</strong> the hard one — re-key the duplicate's sublocation <em>subtree</em> (child keys embed parent names), merge node records (visits sum, canonical description wins, stateNotes/items concat under caps), re-point <code>edges[]</code>, every <code>memory.npcs[*].lastSeenAt</code>, <code>lastArrivalFrom</code>, and any <code>splitLoc</code>.</li>
+  <li><strong>quest:</strong> re-home objectives onto the canonical title, union-dedupe by objective text, archive the duplicate shell.</li>
+  <li><strong>faction:</strong> fold member rosters and faction edges.</li>
+  <li><strong>capability/item:</strong> <code>merge = null</code> — write-once overlay (spells) and the TYPE ruling (items) make merge meaningless; the adapters exist so the resolver and prompt clause cover them, not to add actions.</li>
+  </ul></li>
+<li><strong>Reversibility is non-negotiable:</strong> every merge archives the complete pre-merge records to <code>memory.archive.identityMerges</code> (the P12 discipline) with a loud muts receipt. A wrong merge must be reconstructable by hand even if un-merge tooling never ships.</li>
+</ul>
+
+<h3>2.5 One prevention seam</h3>
+<p>The Savah collision entered through a <em>suggestion-shaped</em> gap: <code>getNameSuggestions</code> offers fresh names but nothing forbids reusing on-file ones, and the pool itself contains on-file names (it currently serves "Frizwick Coldwater" while Frizwick is in the party). Fix at the source: suggestion generation filters any candidate whose tokens collide with an on-file entity <em>in any domain</em> — one call into the registry.</p>
+
+<h3>2.6 One prompt clause</h3>
+<p>A single NAMING block (stable half — campaign-constant, cache-safe) stating the rule <em>with the mechanism</em>, because the model currently has no idea the stakes exist:</p>
+<blockquote class="quiet">"The engine files everything by name: the same name IS the same entity, permanently. Never give a new character, place, or organization the name of one already on file (KNOWN NPCs, GEOGRAPHY). Name roads and passes by their endpoints ("North Road (Magnimar→Sandpoint)"), never bare. A place inside a known settlement is [SUBLOCATION:], never a new [LOCATION:] with the parent baked into the name."</blockquote>
+<p class="quiet">Domain lines assemble from each adapter's <code>namingRules</code> — adding a domain extends the clause without editing prose elsewhere. Frozen doc-hash re-baseline required (deliberate, documented — the established discipline).</p>
+
+<h2>3. What this absorbs</h2>
+<table>
+<tr><th>Was</th><th>Becomes</th></tr>
+<tr><td>#152 name-collision guard (Savah)</td><td>Collision scan (2.3) + prevention seam (2.5) + prompt clause (2.6), npc domain</td></tr>
+<tr><td>#153 endpoint-named roads (phantom rejoin)</td><td>Location <code>namingRules</code> (2.6) + collision scan's parent/kind context (2.3); the #133b auto-rejoin is left untouched — correct identity makes it correct behavior</td></tr>
+<tr><td>#155 location merge/alias (Sandpoint cloud)</td><td>Location adapter merge executor (2.4) + drift/shadow scan (2.3); live-campaign repair rides GM-confirmed merges once shipped</td></tr>
+<tr><td>#128 machinery (shipped)</td><td>Ports INTO the npc adapter unchanged — parity-tested, zero behavior change</td></tr>
+</table>
+
+<h2>4. Phasing (each phase: critical review → failing tests first → sabotage-proven → live spot-check)</h2>
+<ol>
+<li><strong>Phase A — the spine + npc domain.</strong> <code>identity.js</code> registry, shared resolver/detector/nudge, generalized <code>[ALIAS:]</code>/<code>[MERGE:]</code> (legacy tags rerouted), #128 ported with byte-parity tests, npc collision scan (the Savah class), suggestion-pool filter. <em>Risk contained: NPC behavior must be provably unchanged except the new collision nudge.</em></li>
+<li><strong>Phase B — location domain.</strong> The subtree-re-keying merge executor (the hardest single function in this proposal — test battery over real t1593 fragments), drift + shadow scan, road naming rules, map_viewer gains an honest "suspected duplicates" overlay (read-only, dotted hulls — diagnosis surfaced, never display-folded).</li>
+<li><strong>Phase C — quest + faction domains.</strong> Title-drift scan for quests, objective re-homing merge; faction dedupe + auto-registration tightening.</li>
+</ol>
+
+<h2>5. Constraints and non-goals</h2>
+<ul>
+<li><strong>Drift-surface policy applies in full:</strong> Fable-only, review-before-code per phase, engine tests + stable-half byte-identity + prompt/mutation diffs against real transcripts.</li>
+<li><strong>ES5, no deps, tag_table discipline</strong> (parse+strip+doc land together; strip/doc frozen hashes re-baselined deliberately with documented deltas).</li>
+<li><strong>Never auto-merge, never auto-block, never silent</strong> — detection nudges, humans decide, receipts always.</li>
+<li><strong>Non-goal: stable opaque IDs</strong> (§1.3). <strong>Non-goal: display-side grouping that hides fragmentation</strong> (the map's honesty is load-bearing). <strong>Non-goal: retiring legacy NPC tags</strong> (working vocabulary stays).</li>
+</ul>
+
+<h2>6. Open questions for the user</h2>
+<ol>
+<li><strong>Repair surface:</strong> when merges ship, is GM-confirmed-nudge repair enough for the Sandpoint cloud (~8 merges, one per nudge, spread over play), or do you want a one-time guided cleanup pass (a dev-mode "review suspected duplicates now" flow that walks the queue)? The latter is more tooling but resolves years of accretion in one sitting.</li>
+<li><strong>Tag surface for players:</strong> <code>[MERGE:domain|…]</code> is GM vocabulary. Should location merges also be reachable from the map viewer via a confirm flow (would end the viewer's read-only contract), or stay tag-only? Recommendation: tag-only; the viewer stays a pure instrument.</li>
+<li><strong>Scope check:</strong> Phase C (quests/factions) is speculative-priority — no field incident yet. Ship A+B and let C wait for evidence, or take the trio in one arc while the pattern is hot? Recommendation: A+B now, C filed as follow-up.</li>
+</ol>
+
+<p class="quiet">— Filed by Fable, 2026-08-09. Companion row: TODO #156. Evidence trail: audits/AUDIT_recall_gate_v1.573.md (session context), the t1593 server pull (live forensics), map_viewer.html (the instrument that made #155 visible).</p>
+</main>
+</body>
+</html>
