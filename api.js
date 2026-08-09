@@ -121,6 +121,19 @@ function condInjectFmt(x){
 // line, so an unchanged party renders byte-identically to the old shared list. A moment stamped
 // with a DIFFERENT campaign (an imported character's carried history) renders attributed to that
 // campaign — its turn number means nothing here.
+// #150 (drift pass order 6): the ONE ask before a quest-linked thread dies. expireFutureEvents
+// marks such a thread _asked=turn instead of expiring it; this renders on the SAME turn only
+// (single-fire by the turn stamp — the sweep runs pre-request, commitGmTurn increments the turn
+// after, so the next build is naturally silent) and the next sweep archives it regardless of
+// the answer. No latch state to snapshot; a transport loss costs only the courtesy ask, and
+// the archive still catches the thread.
+function buildExpiredThreadNudge(){
+  if(typeof memory==="undefined"||!memory||!Array.isArray(memory.futureEvents))return"";
+  var now=(typeof worldState!=="undefined"&&worldState)?worldState.turn:0,hits=[],i;
+  for(i=0;i<memory.futureEvents.length;i++){var f=memory.futureEvents[i];if(f&&f._asked===now)hits.push("\""+f.what+"\"");}
+  if(!hits.length)return"";
+  return "[ENGINE NOTE — AGED-OUT THREAD (not a player action): the following anticipated event has been pending "+FUTURE_EXPIRE_TURNS+"+ turns and looks tied to an active quest: "+hits.join("; ")+". If it already happened, emit [FUTURE_EVENT_RESOLVED:its text]. If it is genuinely still coming, re-file it with a fresh [FUTURE_EVENT:what|when]. If you stay silent it is retired for good.]";
+}
 // #149 (drift pass order 5): the AFTERMATH CHECK — [LOCATION_STATE:] infrastructure was fully
 // built (#105/B17) and starving: 0 emissions in the last 40 live responses, 2 real notes across
 // 77 nodes lifetime. Doc-only tags starve; nudged tags comply (SAY 0→39/40, LOCATION_DESC 8%→
@@ -741,7 +754,7 @@ function buildSayComplianceNudge(){
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

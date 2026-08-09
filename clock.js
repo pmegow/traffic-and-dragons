@@ -205,6 +205,18 @@ function scheduleAdd(label,whenStr){
   }
   var ev={id:"sch"+(c.schedule.length+1)+"_"+due,label:lbl,dueMin:due,born:c.min};
   c.schedule.push(ev);
+  // #150 (drift pass order 6): PROMOTION — the same anticipated fact used to live in BOTH stores
+  // under different lifecycle rules (the live t1549 Sable pair: the futureEvents copy 0 turns
+  // from silent age-expiry while its schedule twin had 1.6 in-fiction days on the clock). A
+  // fuzzy pending event that fingerprint-matches the new schedule retires as promoted — the
+  // clock, with its due-time and escalation, becomes the ONE lifecycle authority.
+  if(typeof memory!=="undefined"&&memory&&Array.isArray(memory.futureEvents)&&typeof feNearDup==="function"){
+    var fi;for(fi=memory.futureEvents.length-1;fi>=0;fi--){var fev=memory.futureEvents[fi];
+      if(fev&&!fev.resolved&&feNearDup(fev.what,lbl)){
+        memory.futureEvents.splice(fi,1);
+        memArchive().futureEvents.push({when:fev.when,who:fev.who,what:fev.what,setTurn:fev.setTurn,promoted:ev.id});
+        if(typeof console!=="undefined")console.info("[clock] #150: pending thread \""+String(fev.what).slice(0,60)+"\" promoted to schedule \""+lbl+"\" — retired from futureEvents (one lifecycle authority)");
+      }}}
   return ev;
 }
 

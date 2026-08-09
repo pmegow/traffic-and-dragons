@@ -293,7 +293,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
@@ -317,13 +317,39 @@ function feTokens(s){
 // PENDING EVENTS was injecting them every turn. Called from summarize() — deterministic, no model
 // judgment involved. Entries missing setTurn (pre-stamp saves) are grandfathered: stamped now, age
 // from here.
+// #150 (drift pass order 6): THE shared near-duplicate fingerprint — extracted from
+// fileFutureEvent's inline #29 logic so scheduleAdd's promotion cross-check and the expiry
+// sweep's quest-linkage test reuse the SAME thresholds instead of minting a rival heuristic.
+// shared≥2 significant stemmed tokens AND ≥half the smaller fingerprint = the same business.
+function feNearDup(a,b){
+  var at=feTokens(a),bt=feTokens(b),shared=0,i;
+  for(i=0;i<at.length;i++){if(bt.indexOf(at[i])>=0)shared++;}
+  return shared>=2&&shared*2>=Math.min(at.length,bt.length);
+}
+// #150: does this pending thread fingerprint-match an ACTIVE quest's title or any objective?
+function feQuestLinked(f){
+  if(typeof worldState==="undefined"||!worldState||!Array.isArray(worldState.questLog))return false;
+  var i,j;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];
+    if(!q||q.status!=="active")continue;
+    if(feNearDup(f.what,q.title))return true;
+    var ob=q.objectives||[];for(j=0;j<ob.length;j++){if(ob[j]&&feNearDup(f.what,ob[j].text))return true;}
+  }
+  return false;
+}
 function expireFutureEvents(){
   if(!memory.futureEvents||!memory.futureEvents.length)return;
   var now=(typeof worldState!=="undefined"&&worldState)?worldState.turn:0,kept=[],i;
   for(i=0;i<memory.futureEvents.length;i++){
     var f=memory.futureEvents[i];
     if(typeof f.setTurn!=="number")f.setTurn=now;
-    if(now-f.setTurn<=FUTURE_EXPIRE_TURNS)kept.push(f);
+    if(now-f.setTurn<=FUTURE_EXPIRE_TURNS){kept.push(f);continue;}
+    // #150: expiry is no longer liveness-blind, and NEVER the void. A thread still fingerprint-
+    // linked to an ACTIVE quest gets exactly ONE GM ask (buildExpiredThreadNudge renders it this
+    // turn; _asked marks it, the age is NEVER rewritten — Sol's immortal-event objection) and
+    // dies archived at the next sweep regardless of the answer. Everything else archives now.
+    if(!f._asked&&feQuestLinked(f)){f._asked=now;kept.push(f);console.info("[memory] #150: expiring thread \""+String(f.what).slice(0,60)+"\" looks quest-linked — one GM ask before it dies");continue;}
+    memArchive().futureEvents.push({when:f.when,who:f.who,what:f.what,setTurn:f.setTurn,expiredAt:now});
+    console.info("[memory] #150: pending thread expired at age "+(now-f.setTurn)+" — archived: \""+String(f.what).slice(0,60)+"\"");
   }
   memory.futureEvents=kept;
 }
@@ -336,20 +362,16 @@ function fileFutureEvent(when,who,what,setTurn){
   // instead of filing a twin (still-topical goals stay alive for the expiry sweep; no spam).
   // Threshold keeps same-NPC-different-business apart ("Confront Hemlock re broadsheet" vs
   // "Understand Hemlock's mechanism" share only 1 token — both survive).
-  var nt=feTokens(what);
   for(i=0;i<memory.futureEvents.length;i++){
     var ex=memory.futureEvents[i];
     if(ex.resolved)continue;
-    var et=feTokens(ex.what),shared=0,j;
-    for(j=0;j<nt.length;j++){if(et.indexOf(nt[j])>=0)shared++;}
-    var minLen=Math.min(nt.length,et.length);
-    if(shared>=2&&shared*2>=minLen){
+    if(feNearDup(what,ex.what)){/* #150: same thresholds, now via the shared fingerprint */
       if(typeof setTurn==="number")ex.setTurn=setTurn;
       return;
     }
   }
   memory.futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,resolved:false});
-  if(memory.futureEvents.length>30)memory.futureEvents=memory.futureEvents.slice(-30);
+  if(memory.futureEvents.length>30){var _feOv=memory.futureEvents.splice(0,memory.futureEvents.length-30),_feI;for(_feI=0;_feI<_feOv.length;_feI++)memArchive().futureEvents.push({when:_feOv[_feI].when,who:_feOv[_feI].who,what:_feOv[_feI].what,setTurn:_feOv[_feI].setTurn,expiredAt:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0,capOverflow:true});}/* #150: the cap's shrink archives too — no shrink site left silent */
 }
 function resolveFutureEvent(what){var i;
   what=String(what==null?"":what);if(!what.trim())return;// empty/whitespace needle would substring-match (and delete) the oldest event (audit E45)

@@ -3249,6 +3249,54 @@ function runEngineTests(R){
     if(memory.futureEvents[0].what!=="fresh goal")return "wrong survivor: "+memory.futureEvents[0].what;
     return memory.futureEvents[1].setTurn===100?true:"unstamped entry not grandfathered";
   });
+  // ═══ DRIFT PASS order 6 (#150): one future, one lifecycle ═══
+  // Field grounding (t1549): "Sable checks the workshop" lived in BOTH stores — the futureEvents
+  // copy 0 turns from silent expiry while its schedule twin had 1.6 days on the clock and the
+  // quest was active; threads with no twin (the child's-glove item) die at 40 mid-life, unseen.
+  t("expiry ARCHIVES instead of vanishing — every drop lands in memory.archive.futureEvents (#150)",function(){
+    makeWorld();worldState.turn=100;
+    memory.futureEvents=[{when:"soon",who:"",what:"ancient unlinked errand nobody remembers",setTurn:50,resolved:false}];
+    expireFutureEvents();
+    if(memory.futureEvents.length!==0)return "stale event survived";
+    var a=memory.archive.futureEvents;
+    if(!a||a.length!==1||a[0].what.indexOf("ancient unlinked")<0)return "expiry shed to the void: "+JSON.stringify(a);
+    return a[0].expiredAt===100?true:"no expiredAt stamp: "+JSON.stringify(a[0]);
+  });
+  t("scheduleAdd retires the futureEvents twin as promoted — one lifecycle authority (#150)",function(){
+    makeWorld();worldState.turn=60;
+    fileFutureEvent("soon","","Sable or an agent arrives to check on the silent workshop",55);
+    scheduleAdd("Sable checks the silent workshop","in 1 day");
+    if(memory.futureEvents.length!==0)return "twin survived promotion: "+JSON.stringify(memory.futureEvents);
+    var a=memory.archive.futureEvents;
+    if(!a||a.length!==1||!a[0].promoted)return "promotion not archived with a stamp: "+JSON.stringify(a);
+    if(memory.futureEvents.some&&memory.futureEvents.some(function(f){return f.setTurn!==55&&false;}))return "impossible";
+    return true;
+  });
+  t("a quest-linked expiring thread gets ONE ask, no age rewrite, then dies archived (#150)",function(){
+    makeWorld();worldState.turn=100;
+    worldState.questLog=[{title:"Intercept Sable",status:"active",desc:"",objectives:[{text:"catch the collector's agent",done:false}],started:1}];
+    memory.futureEvents=[{when:"soon",who:"",what:"Sable arrives to intercept the shipment",setTurn:50,resolved:false}];
+    expireFutureEvents();
+    var f=memory.futureEvents[0];
+    if(!f)return "quest-linked thread killed without the ask";
+    if(f.setTurn!==50)return "age was rewritten — the immortal-event hazard: "+f.setTurn;
+    if(f._asked!==100)return "ask marker missing: "+JSON.stringify(f);
+    var n=buildExpiredThreadNudge();
+    if(n.indexOf("Sable arrives to intercept")<0)return "the ask never rendered: "+n.slice(0,80);
+    worldState.turn=101;
+    if(buildExpiredThreadNudge()!=="")return "the ask repeated — it is single-fire";
+    expireFutureEvents();
+    if(memory.futureEvents.length!==0)return "asked thread survived the second sweep — immortality";
+    var a=memory.archive.futureEvents;
+    return (a&&a.length===1&&a[0].expiredAt===101)?true:"asked thread not archived: "+JSON.stringify(a);
+  });
+  t("the futureEvents cap-30 overflow archives too — no shrink site left silent (#150)",function(){
+    makeWorld();worldState.turn=10;
+    for(var i=0;i<31;i++)memory.futureEvents.push({when:"soon",who:"",what:"wholly distinct plan alpha"+i+" beta"+i+" gamma"+i,setTurn:10,resolved:false});
+    fileFutureEvent("soon","","final unique zulu omega sierra plan",10);
+    var a=memory.archive.futureEvents;
+    return (a&&a.length>=1)?true:"cap overflow shed to the void";
+  });
   t("applySummaryExtract: extractor-echoed resolvedEvents clear pending items",function(){
     makeWorld();worldState.turn=30;
     fileFutureEvent("soon","","Find Shalelu the hunter in the hinterlands",10);
