@@ -8786,6 +8786,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     // Both present, both labelled: two DIFFERENT measurements, nothing for the model to adjudicate.
     return true;
   });
+  // ═══ DRIFT PASS order 8 (#144 Phase B): typed NPC facts — durable canon vs scene state ═══
+  // The t1549 prompt served "Remained outside the Spire seam-door, holding it open" as standing
+  // Knows: while Morwen walked beside Ammut (Sol R1). One untyped free-text field mixed secrets
+  // with momentary posture; the extractor now types them, and scene facts become dated history.
+  t("a scene-kind fact files as dated history, never standing Knows (#144B)",function(){
+    makeWorld();worldState.turn=80;
+    applySummaryExtract({npcUpdates:[{name:"Morwen",knowledgeGained:{fact:"stationed outside the sealed seam-door, holding it open",kind:"scene"}}]});
+    var n=memory.npcs["Morwen"];
+    if(n.knowledge.length)return "scene fact entered Knows — the t1549 stale-posture class lives: "+JSON.stringify(n.knowledge);
+    if(!n.events.length||n.events[0].note.indexOf("seam-door")<0||n.events[0].turn!==80)return "scene fact not filed as dated history: "+JSON.stringify(n.events);
+    return true;
+  });
+  t("durable-kind objects and legacy strings still land in Knows — byte-compatible (#144B)",function(){
+    makeWorld();worldState.turn=81;
+    applySummaryExtract({npcUpdates:[{name:"Wyla",knowledgeGained:{fact:"the watchers on the street are hers",kind:"durable"}}]});
+    applySummaryExtract({npcUpdates:[{name:"Wyla",knowledgeGained:"a legacy string fact"}]});
+    var kn=memory.npcs["Wyla"].knowledge;
+    return (kn.length===2&&kn[0].indexOf("watchers")>=0&&kn[1]==="a legacy string fact")?true:"landing broken: "+JSON.stringify(kn);
+  });
+  t("a split party member's detail leads with the authoritative Currently line; others untouched (#144B)",function(){
+    makeWorld();worldState.turn=82;
+    worldState.npcs.push({name:"Frizwick",partyMember:true,met:3,charSheet:{name:"Frizwick",hp:9,maxHp:9,splitLoc:{location:"Magnimar",sublocation:"Bridge District Ironworks",turn:70},conditions:[],relationships:[]}});
+    memory.npcs["Frizwick"]={attitude:"",knowledge:["is holding the chokepoint at the carved door"],events:[],aliases:[]};
+    memory.npcs["Wyla"]={attitude:"",knowledge:["runs the enchanting shopfront"],events:[],aliases:[]};
+    var det=memoryNpcDetail("Frizwick");
+    if(det.indexOf("AWAY from the party at Magnimar (Bridge District Ironworks)")<0)return "no authoritative Currently line: "+det.split("\n").slice(0,2).join(" / ");
+    if(det.indexOf("STALE")<0)return "the stale-claims framing is missing";
+    return memoryNpcDetail("Wyla").indexOf("AWAY from the party")<0?true:"the annotation leaked onto a non-split NPC";
+  });
+
   // ═══ DRIFT PASS order 7 (#151): engine-note latches survive failed turns ═══
   // Builders stamp cooldowns / consume one-shots while COMPOSING the request; a dead provider
   // call then sees the latch as spent — a due split audit burned its stamp with no delivery

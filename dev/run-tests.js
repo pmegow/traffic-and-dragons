@@ -194,6 +194,9 @@ try {
   if (_memAC.indexOf("npcEvents.push") < 0) _failAC("fileNpcEvent no longer archives evicted events");
   var _ttAC = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "tag_table.js"), "utf8");
   if (_ttAC.indexOf("npcKnowledge.push") < 0) _failAC("the NPC_MERGE truncation no longer archives its overflow");
+  // #144B: the extractor schema must keep teaching the durable/scene kind — losing it reverts
+  // every new fact to the untyped stale-posture class.
+  if (_memAC.indexOf("scene facts are filed as dated history") < 0) _failAC("the extraction schema no longer teaches the durable/scene kind (#144B)");
 } catch (eAC) { console.error("#144A ARCHIVE CARRY CONTRACT: " + (eAC && eAC.message)); process.exit(1); }
 
 // ── #151 LATCH REGISTRY CONTRACT (drift pass order 7, 2026-08-08) ────────────────────────
