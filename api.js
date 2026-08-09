@@ -1,4 +1,5 @@
 var __lastRagBlock="";/* UA36 harness enabler — the RAG block buildSysPrompt last injected ("" when the flag is off); capture-only */
+var __lastChapRagBlock="";/* #148 Phase 1 — the PAST CHAPTERS block buildSysPrompt last injected; same capture-only contract */
 function buildGeoBlock(){
   if(!memory.map||!worldState||!worldState.world)return"";
   var w=worldState.world,lines=[],i;
@@ -935,6 +936,12 @@ function buildSysPrompt(){
   // half ONLY: retrieval changes per turn and must never touch the cached stable block.
   var ragBlock=typeof ragRetrieve==="function"?ragRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
   __lastRagBlock=ragBlock;/* UA36 harness enabler — capture-ONLY side channel (window.__lastRagBlock in the browser) for the RAG A/B; the engine never reads it back */
+  // #148 Phase 1: archived-chapter retrieval — same flag, same volatile-only discipline; ""
+  // for young campaigns (pool under RAG_CHAP_SKIP+1 chapters), so pre-feature prompts are
+  // byte-identical. Injected just BEFORE the scene excerpts: coarse chapter context reads
+  // naturally ahead of the verbatim moments it frames.
+  var chapRagBlock=typeof ragChapterRetrieve==="function"?ragChapterRetrieve(typeof lastAction==="string"&&lastAction?lastAction:""):"";
+  __lastChapRagBlock=chapRagBlock;/* capture-ONLY harness seam, the __lastRagBlock pattern */
   var legacyBlock="";
   if(worldState.pendingLegacy){
     var _lc=worldState.pendingLegacy;
@@ -1047,6 +1054,7 @@ function buildSysPrompt(){
     +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */
   +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
+    +chapRagBlock/* #148 Phase 1: PAST CHAPTERS before the finer-grained excerpts; "" when nothing retrieves */
     +ragBlock
     +legacyBlock
     +buildNpcGraph()

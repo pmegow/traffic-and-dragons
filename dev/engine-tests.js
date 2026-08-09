@@ -2953,6 +2953,106 @@ function runEngineTests(R){
     return off===""?true:"flag-off build did not reset the capture: "+String(off).slice(0,60);
   });
 
+  // ── 11b. #148 Phase 1 — archived-chapter retrieval (the recall-gate build) ───
+  section("#148 archived-chapter retrieval");
+  function _chapReset(){ragChapterRetrieve._memo=null;ragChapterRetrieve._entMemo=null;}
+  function _chapFill(archN,liveN,edits){
+    // archN archived + liveN live chapters, turns 10,20,30,…; edits = {index:summaryText}
+    memory.archive={lore:[],decisions:[],chapters:[]};
+    var i,tot=archN+liveN;
+    for(i=0;i<tot;i++){
+      var ch={turn:(i+1)*10,summary:edits&&edits[i]!==undefined?edits[i]:"The village slept quietly through chapter "+(i+1)+"."};
+      if(i<archN)memory.archive.chapters.push(ch);else memory.chapters.push(ch);
+    }
+  }
+  t("flag off → ragChapterRetrieve returns the empty string",function(){
+    makeWorld();_chapReset();worldState.turn=200;
+    _chapFill(10,2,{1:"Veyra swore vengeance at the burned mill."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    return ragChapterRetrieve("I ask Veyra about her vengeance")===""?true:"retrieved with flag off";
+  });
+  t("young pool: 8 or fewer total chapters → no block (STORY SO FAR already covers them)",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(6,2,{1:"Veyra swore vengeance at the burned mill."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var b=ragChapterRetrieve("I ask Veyra about her vengeance");
+    worldState.ragMemory=false;
+    return b===""?true:"served from an all-recent pool: "+b.slice(0,80);
+  });
+  t("entity hit serves the ARCHIVED chapter with framing + turn range; the newest 8 never serve",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(10,2,{1:"Veyra swore vengeance at the burned mill.",11:"Veyra rejoined the party in high spirits."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var b=ragChapterRetrieve("I ask Veyra about her vengeance");
+    worldState.ragMemory=false;
+    if(b.indexOf("swore vengeance")<0)return "old chapter not retrieved: "+b.slice(0,120);
+    if(b.indexOf("rejoined the party")>=0)return "a newest-8 chapter leaked in";
+    if(b.indexOf("PAST CHAPTERS")<0)return "header missing";
+    if(b.indexOf("override")<0)return "subordination framing missing";
+    return b.indexOf("[Chapter — turns ~11-20]")>=0?true:"turn-range label wrong: "+b.slice(0,200);
+  });
+  t("lexical-only gate-in: rare terms clear the IDF floor with no entity handle; common terms never do",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(16,2,{2:"An obsidian shard was pried from the barrow altar that night."});
+    var hit=ragChapterRetrieve("where did the obsidian shard come from");
+    var miss=ragChapterRetrieve("I think back on the sleeping village");
+    worldState.ragMemory=false;
+    if(hit.indexOf("barrow altar")<0)return "rare-term chapter not served: "+hit.slice(0,120);
+    return miss===""?true:"common-term query gated in: "+miss.slice(0,120);
+  });
+  t("cap + budget: many matches serve at most RAG_CHAP_MAX chapters, oldest-first",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(13,0,{0:"Veyra argued once.",1:"Veyra argued twice.",2:"Veyra argued thrice.",3:"Veyra argued again.",4:"Veyra argued more."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var b=ragChapterRetrieve("I ask Veyra about the argument");
+    worldState.ragMemory=false;
+    var n=b.split("[Chapter").length-1;
+    if(n>RAG_CHAP_MAX)return "served "+n+" chapters, cap is "+RAG_CHAP_MAX;
+    if(n<1)return "nothing served";
+    if(b.length>RAG_CHAP_BUDGET+600)return "over budget: "+b.length;
+    var f=b.indexOf("Veyra argued once."),s2=b.indexOf("Veyra argued twice.");
+    return (f>=0&&s2>f)?true:"not oldest-first: "+b.slice(0,300);
+  });
+  t("chapter block: volatile only, stable byte-identical, capture seam matches the injected block",function(){
+    makeWorld();_chapReset();worldState.turn=200;lastAction="I ask Veyra about her vengeance";
+    _chapFill(10,2,{1:"Veyra swore vengeance at the burned mill."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var offStable=buildSysPrompt().stable;
+    if(__lastChapRagBlock!=="")return "flag-off build did not reset the capture";
+    worldState.ragMemory=true;
+    var s=buildSysPrompt();
+    worldState.ragMemory=false;lastAction=null;
+    if(s.stable!==offStable)return "stable changed with the chapter block live";
+    if(s.stable.indexOf("PAST CHAPTERS")>=0)return "chapters leaked into stable";
+    if(s.volatile.indexOf("PAST CHAPTERS")<0)return "chapters missing from volatile";
+    if(!__lastChapRagBlock||s.volatile.indexOf(__lastChapRagBlock)<0)return "capture is not the literal injected block";
+    return true;
+  });
+  t("retrieval never writes to memory.archive (storage-only contract) — no .e backfill on chapters",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(10,2,{1:"Veyra swore vengeance at the burned mill."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var before=JSON.stringify(memory.archive);
+    ragChapterRetrieve("I ask Veyra about her vengeance");
+    worldState.ragMemory=false;
+    if(JSON.stringify(memory.archive)!==before)return "retrieval mutated the archive";
+    return memory.archive.chapters[1].e===undefined?true:"entity scan persisted onto a chapter";
+  });
+  t("memo: identical repeat serves the cache; a newly archived chapter recomputes",function(){
+    makeWorld();_chapReset();worldState.turn=200;worldState.ragMemory=true;
+    _chapFill(10,2,{1:"Veyra swore vengeance at the burned mill."});
+    memory.npcs["Veyra"]={attitude:"ally",knowledge:[],events:[],aliases:[]};
+    var a=ragChapterRetrieve("I ask Veyra about her vengeance");
+    var m0=ragChapterRetrieve._misses;
+    var b=ragChapterRetrieve("I ask Veyra about her vengeance");
+    if(ragChapterRetrieve._misses!==m0)return "identical repeat re-scored";
+    if(a!==b)return "memo hit returned a different block";
+    memory.archive.chapters.push({turn:130,summary:"A fresh chapter joins the archive."});
+    ragChapterRetrieve("I ask Veyra about her vengeance");
+    worldState.ragMemory=false;
+    return ragChapterRetrieve._misses===m0+1?true:"pool growth did not recompute";
+  });
+
   // ── 12. Summarize-tail retention (#28) — the amnesia-cliff fix ───────────────
   section("summarize-tail retention (#28)");
   function pair(u,g){sessionLog.push({role:"user",content:u},{role:"assistant",content:g});}

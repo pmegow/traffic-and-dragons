@@ -726,6 +726,125 @@ function _ragRetrieveScore(inputText){
   if(!out.length)return "";
   return "PAST SCENE EXCERPTS — verbatim moments from earlier in this campaign, retrieved because they involve the people, places, or quests in the current scene. This is HISTORY (oldest first): attitudes, alliances, locations, and stakes may have CHANGED since — the CURRENT state blocks above are the truth and override anything here. Use these for continuity only: exact wording of promises, shared history, callbacks.\n"+out.join("\n")+"\n\n";
 }
+// ── #148 Phase 1: archived-chapter retrieval ─────────────────────────────────────────────────
+// The chapter archive (memory.archive.chapters — everything evicted past the live cap-10) had
+// ZERO read paths: at t1549 the always-injected history spanned ~35 turns while 200+ chapters
+// sat unreachable. The recall gate (audits/AUDIT_recall_gate_v1.573.md) measured retrieval as
+// the higher-yield arm when it hits (5-6/10 questions with verbatim detail) and ruled it ships
+// FIRST, inside the product's existing subordination guardrails — the override header is the
+// mitigation for the gate's one confident-misattribution failure. READ-SIDE ONLY, like the rest
+// of this section: retrieval never writes to memory.archive (entity scans live in a RAM memo,
+// never persisted — a deliberate, conservative deviation from the transcript's persisted .e
+// backfill, keeping the archive purely storage as its P12 comment promises).
+var RAG_CHAP_MAX=2;       // chapter summaries served per turn
+var RAG_CHAP_BUDGET=1400; // chars (~350 tok) — the block stays a garnish, never a second prompt
+var RAG_CHAP_SKIP=8;      // newest N chapters excluded: STORY SO FAR injects them every turn already
+var RAG_CHAP_LEX_MIN=3;   // IDF floor for a lexical-only gate-in (see _ragChapterScore)
+// Candidate pool, chronological: archived chapters (oldest) then the live list, minus the
+// newest RAG_CHAP_SKIP overall. Under 1 candidate → [] → "" (young campaigns byte-unchanged).
+function _ragChapterPool(){
+  var arch=(memory.archive&&memory.archive.chapters)?memory.archive.chapters:[];
+  var pool=arch.concat(memory.chapters||[]);
+  return pool.length>RAG_CHAP_SKIP?pool.slice(0,pool.length-RAG_CHAP_SKIP):[];
+}
+// Per-chapter known-NPC name scan, memoized in RAM only (never written to the pool objects —
+// the no-archive-writes rule above). Rescans when the NPC roster or the pool itself changes.
+function _ragChapterEnts(pool){
+  var fp=_ragNpcsFp()+"|"+pool.length+"|"+(pool.length?String(pool[0].turn)+"."+String(pool[pool.length-1].turn):"");
+  var m=ragChapterRetrieve._entMemo;
+  if(m&&m.fp===fp)return m.ents;
+  var names=ragKnownNames(),ents=[],i;
+  for(i=0;i<pool.length;i++){
+    var found=[];
+    ragScanNames(String(pool[i].summary||"").toLowerCase(),names,function(nm){if(found.indexOf(nm)<0&&found.length<12)found.push(nm);});
+    ents.push(found);
+  }
+  ragChapterRetrieve._entMemo={fp:fp,ents:ents};
+  return ents;
+}
+// Memo wrapper (the ragRetrieve A2 pattern). Key = the transcript memo's key (a superset of
+// everything scoring reads — extra components only cause MISSES, never stale hits) plus the
+// chapter pool's own fingerprint, which the transcript key can't see (summarize can archive a
+// chapter without touching anything that key hashes).
+function ragChapterRetrieve(inputText){
+  if(!ragEnabled())return "";
+  var pool=_ragChapterPool();
+  if(!pool.length)return "";
+  var _k=_ragRetrieveKey(inputText)+"|chap|"+pool.length+"|"+String(pool[pool.length-1].turn);
+  var _m=ragChapterRetrieve._memo;
+  if(_m&&_m.k===_k)return _m.v;
+  ragChapterRetrieve._misses++;
+  var v=_ragChapterScore(inputText,pool);
+  ragChapterRetrieve._memo={k:_k,v:v};
+  return v;
+}
+ragChapterRetrieve._memo=null;ragChapterRetrieve._entMemo=null;ragChapterRetrieve._misses=0; // test hooks
+// The scoring pass — returns the PAST CHAPTERS block for buildSysPrompt's volatile half, or "".
+// Same query machinery as the transcript pass (entities weighted input>scene, party demoted,
+// IDF-weighted rare terms) over the far smaller chapter pool. ONE deliberate widening, ruled by
+// the gate audit (both retrieval whiffs were gate failures): a chapter with NO matching entity
+// still gates in when its lexical IDF sum clears RAG_CHAP_LEX_MIN — arc-shaped questions often
+// carry no entity handle at all (Fable Finding 2), and a rare-term match on a tiny pool is a
+// strong signal where a common term (IDF ~0 when it's in every chapter) still scores nothing.
+function _ragChapterScore(inputText,pool){
+  var q=ragQueryEntities(inputText||"");
+  var terms=ragQueryTerms(inputText||"");
+  // Entity tokens don't double-dip as lexical terms (same rule as the transcript pass).
+  (function(){
+    var ent={},k2,i2,keepT=[];
+    for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}
+    for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
+    terms=keepT;
+  })();
+  var w={},k,hasInput=false;
+  for(k in q.input){w[k]=3;hasInput=true;}
+  for(k in q.scene){if(!w[k]){var pw=q.party[k]?(hasInput?0:1):2;if(pw)w[k]=pw;}}
+  var gRoot={};
+  for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
+  var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
+  var ents=_ragChapterEnts(pool);
+  var lows=[],df=[],i,j;
+  for(j=0;j<terms.length;j++)df.push(0);
+  for(i=0;i<pool.length;i++){
+    var lo=String(pool[i].summary||"").toLowerCase();lows.push(lo);
+    for(j=0;j<terms.length;j++){if(lo.indexOf(terms[j])>=0)df[j]++;}
+  }
+  var N=pool.length,cands=[];
+  var _res={};
+  function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
+  for(i=0;i<pool.length;i++){
+    var sc=0,seenG={};
+    for(j=0;j<ents[i].length;j++){
+      var enNm=ents[i][j];
+      if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;} // merge-orphan bridge
+      var root=gRoot[enNm]||enNm;
+      if(seenG[root])continue;
+      seenG[root]=1;
+      sc+=w[enNm];
+    }
+    for(k in qws){if(lows[i].indexOf(k)>=0)sc+=1;}
+    var lex=0;
+    for(j=0;j<terms.length;j++){if(lows[i].indexOf(terms[j])>=0)lex+=Math.log((N+1)/(df[j]+1));}
+    if(sc>0)sc+=Math.min(8,lex*1.5);
+    else if(lex>=RAG_CHAP_LEX_MIN)sc=lex; // the ruled gate widening — lexical-only entry
+    if(sc>0)cands.push({i:i,t:pool[i].turn,sc:sc});
+  }
+  if(!cands.length)return "";
+  cands.sort(function(a,b){return b.sc-a.sc||a.t-b.t;}); // ties toward the OLDEST (origin over echo)
+  var picked=cands.slice(0,RAG_CHAP_MAX);
+  picked.sort(function(a,b){return a.t-b.t;});
+  var out=[],used=0,pi;
+  for(pi=0;pi<picked.length;pi++){
+    var idx=picked[pi].i;
+    // A chapter's .turn stamps the END of its window; the previous chapter's turn bounds the start.
+    var from=idx>0&&typeof pool[idx-1].turn==="number"?pool[idx-1].turn+1:1;
+    var block="[Chapter — turns ~"+from+"-"+String(pool[idx].turn)+"]\n"+ragTrim(pool[idx].summary,700);
+    if(used+block.length>RAG_CHAP_BUDGET)break;
+    out.push(block);used+=block.length;
+  }
+  if(!out.length)return "";
+  return "PAST CHAPTERS — compressed summaries of earlier stretches of this campaign, retrieved because they touch the people, places, or topics in play right now. This is HISTORY (oldest first): attitudes, alliances, and stakes may have CHANGED since — the CURRENT state blocks above are the truth and override anything here. Use these for continuity, callbacks, and how-the-story-got-here, never as current fact.\n"+out.join("\n")+"\n\n";
+}
 function memoryTOC(){
   var lines=[],i;
   // RAG flag ON puts the TOC on a diet (same flag as retrieval — RAG_MEMORY.md §3.4):
