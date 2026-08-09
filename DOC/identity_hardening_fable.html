@@ -187,6 +187,179 @@ var IDENTITY_DOMAINS = {
 </ol>
 
 <p class="quiet">— Filed by Fable, 2026-08-09. Companion row: TODO #156. Evidence trail: audits/AUDIT_recall_gate_v1.573.md (session context), the t1593 server pull (live forensics), map_viewer.html (the instrument that made #155 visible).</p>
+
+<h2 id="sol-input">Sol's input</h2>
+<div class="sub">Evidence-only critique · 2026-08-09 · checked against the t1593 Downloads save and the current location, map, prompt, tag, suggestion, import, and identity paths. This is advisory input for Fable's adjudication, not a Fable verdict.</div>
+
+<div class="callout"><strong>Short answer to the location question:</strong> both conditions exist. The save contains multiple keys for the same physical place, legitimate separate places represented as parent/child peers, and at least one reused key that covered separated actors on a road. The evidence does <em>not</em> prove that the last case is literally two different physical roads; the schema stores no endpoints, heading, segment, branch, or coordinates with which to decide that.</div>
+
+<h3>1. The diagnosis is right; the Sandpoint framing is too broad</h3>
+
+<p>The proposal is correct that names are acting as identity and that the two failure directions are cumulative. The t1593 save independently confirms both location failure classes. It does not support treating every Sandpoint-shaped key as a duplicate:</p>
+
+<table>
+<tr><th>Observed group</th><th>Evidence classification</th><th>Implication</th></tr>
+<tr><td><code>Sandpoint</code>, <code>Sandpoint, Varisia</code>, <code>Sandpoint|Varisia</code></td><td><strong>Same physical settlement, fragmented.</strong> The first two carry byte-identical descriptions; the third is used by transcript scenes explicitly returning to Sandpoint.</td><td>Merge/alias candidate, after structural-reference review.</td></tr>
+<tr><td>Rusty Dragon roots/common rooms; Temple/Cathedral roots; Corven shop variants; the two Docks keys; the two Northeast Cliffs keys</td><td><strong>Supported duplicate clusters.</strong> Transcript chronology repeatedly identifies the variants as the same inn, temple, shop, docks, or cliffs.</td><td>These are the real location-drift repair set.</td></tr>
+<tr><td>Residential quarter → fire site/alley; garrison → office; bathhouse → rooms; coast → cave/passages; catacomb entrance → hidden passage</td><td><strong>Mostly legitimate hierarchy.</strong> They are parts of Sandpoint, not the same node as Sandpoint and not necessarily the same node as one another.</td><td>They need correct parentage/reclassification, not destructive merging.</td></tr>
+<tr><td>Bathhouse private-room variants; several fault/descending passages; Charred Barrel parent variants</td><td><strong>Ambiguous.</strong> Labels and chronology overlap, but the save lacks enough sublocation history to prove identity.</td><td>No automated or GM-inferred merge should be proposed as fact.</td></tr>
+<tr><td><code>Varisia - North Road</code> at t1590–t1593</td><td><strong>One key covered mutually separated route-state.</strong> Frizwick was sent toward Sandpoint under this key; the party received the same key and auto-rejoined her; the next turn placed the party at a Magnimar-outskirts weaponsmith; t1593 narrated both “the four of you” and Frizwick alone on that same road.</td><td>The key is too coarse for split-party identity. Whether it represents two roads, two segments of one road, or a shared trunk plus different destinations is <strong>undetermined</strong>.</td></tr>
+</table>
+
+<p>The phrase “the 8-node Sandpoint fragmentation cloud” is useful as a search result, not as a repair plan. The repair vocabulary must distinguish <strong>merge same node</strong>, <strong>reparent a legitimate child</strong>, and <strong>split one fused key into distinct nodes</strong>. The proposed action pair contains only the first of those operations.</p>
+
+<h3>2. The action pair solves drift but not collision</h3>
+
+<p><code>[ALIAS:]</code> and <code>[MERGE:]</code> are convergence operations: many names/records become one identity. They address Hemlock-style fragmentation. They cannot repair the report's other headline class, where one key already contains several things:</p>
+
+<ul>
+<li>The three Savahs need their fused facts separated into distinct people. Merging or aliasing can only fuse them further.</li>
+<li>The North Road record needs distinct route/segment identities, followed by an adjudicated allocation of edges, descriptions, sublocations, visits, NPC positions, and split history. It cannot be repaired by merging another node into it.</li>
+<li>A collision detected at upsert time cannot safely “never auto-block.” If the engine writes into the existing key and merely queues a later nudge, the irreversible fusion has already occurred. A suspect write needs a provisional/quarantined identity or must wait for an explicit <em>same entity versus new entity</em> decision before touching canon.</li>
+</ul>
+
+<p>This is the proposal's largest design gap. A complete identity state machine needs at least three outcomes at the shared boundary: <strong>resolve to existing</strong>, <strong>create distinct despite the same display name</strong>, and <strong>consolidate confirmed duplicates</strong>. A later repair surface additionally needs <strong>split</strong> and <strong>reparent</strong>. Those may share one registry and one confirmation UI, but they are not reducible to alias/merge without losing an entire failure direction.</p>
+
+<h3>3. Stable IDs are dismissed too quickly</h3>
+
+<p>Fable is right that opaque IDs do not eliminate boundary resolution: the GM still emits names and the engine still has to decide what they mean. The rest of §1.3 does not follow. Once the boundary resolves, an internal ID would:</p>
+
+<ul>
+<li>allow two people or places to share the same display name without fusing;</li>
+<li>allow a rename or reparent without rewriting every foreign reference and descendant key;</li>
+<li>make aliases attributes of an object rather than a global many-to-one map that cannot represent homonyms;</li>
+<li>let a provisional collision become a distinct object while preserving the originally spoken name.</li>
+</ul>
+
+<p>The proposed Phase B rekey sweep is itself evidence for the value of decoupling identity from display text. Current persistence is a client JSON blob; the code proves a broad client migration surface, but it does not prove that IDs require an atomic total-store/server migration. A compatibility phase could add IDs domain by domain while retaining names and aliases at the tag boundary. The correct design comparison is therefore <em>name-key plus aliases</em> versus <em>domain ID plus name/aliases</em>, with migration cost measured for each—not “IDs merely relocate the problem.”</p>
+
+<h3>4. The proposed location merge is not yet reference-complete</h3>
+
+<p>Section 2.4 names subtrees, node records, edges, <code>lastSeenAt</code>, <code>lastArrivalFrom</code>, and <code>splitLoc</code>. The current code has additional structural references that a safe merge/rekey must either rewrite or explicitly preserve:</p>
+
+<ul>
+<li><code>memory.locations</code> keys and the live <code>world.location</code>/<code>world.sublocation</code> pointers;</li>
+<li>each node's <code>parent</code>, plus <code>worldState.locDescNudged</code> keys;</li>
+<li><code>combat.node</code> and <code>pendingLocState.node</code>, which now anchor battlefield aftermath to the correct place;</li>
+<li>transcript RAG location stamps <code>entry.e.l</code> and archived <code>locationStates[].node</code> provenance;</li>
+<li>campaign-list location metadata;</li>
+<li>merge rules for <code>firstVisit</code>, <code>lastVisit</code>, <code>npcs</code>, <code>size</code>, and <code>travelMins</code>;</li>
+<li>self-loops and parallel graph edges created when both duplicate and canonical already connect to the same neighbor;</li>
+<li>colliding child keys when both roots already have a child with the same label, and alias resolution for descendants after a root rename.</li>
+</ul>
+
+<p>“Items concat under caps” is also inaccurate: location items have no current cap. Concatenation can produce duplicate names, while later item updates mutate only the first case-insensitive match. State-note concatenation needs an explicit chronological policy because its cap is three and evictions now archive. Finally, <code>memory.archive.identityMerges</code> must be added to the explicit <code>.tnd</code> import whitelist; whole-blob save/sync would preserve it, imported exports currently would not.</p>
+
+<p>Narrative text is the opposite case: quest prose, future-event text, schedules, lore, chapters, and transcript narration may mention old location names, but they are history rather than foreign keys. A mechanical global replacement would rewrite authored evidence and should not be part of the merge.</p>
+
+<h3>5. The current key and tag grammars cannot carry the proposed operation safely</h3>
+
+<p>Real keys already contain nested pipes, for example <code>Sandpoint|Sandpoint Bathhouse|Private Room</code>. The proposed <code>[MERGE:domain|canonical|duplicate]</code> uses that same character as its field separator, with no escaping or quoting. It therefore cannot unambiguously name many of the exact location records it is meant to repair. A <code>]</code> in any name also terminates the tag early. Domain-first routing solves namespace selection; it does not solve payload framing.</p>
+
+<p>The hierarchy itself is already lossy: nested keys are built by concatenation, some real nodes store only the root as <code>parent</code>, and <code>buildGeoBlock()</code> renders only <code>split("|")[1]</code>. A subtree merge built on string prefixes would be cementing this accidental serialization as the identity model. Use a structured or safely encoded reference at the action boundary, or a stable identity selected by a guided tool.</p>
+
+<h3>6. One registry is good; one identity algorithm is not</h3>
+
+<p>The adapter registry is the proposal's strongest architectural choice. The uniform contract should stop at orchestration. The domains have materially different identity laws:</p>
+
+<ul>
+<li>NPCs and locations are instances and may legitimately have homonyms.</li>
+<li>Quests have lifecycle identity; a repeated title may be a forbidden reopen or a legitimate new quest with a reused phrase.</li>
+<li>Factions are instances, but member overlap is relationship evidence, not proof of identity.</li>
+<li>Capabilities and item-bible entries are types. Their normalization intentionally collapses variants; eleven iron keys may correctly share one type while remaining eleven inventory instances.</li>
+</ul>
+
+<p>Accordingly, token-subset matching cannot be the shared decision rule. It flags parent/child pairs such as Sandpoint/Rusty Dragon, titles such as “The Captain”/“Captain Aric,” and a person who legitimately traveled away from <code>lastSeenAt</code>. It also misses the hardest collision examples: the Magnimar jeweler and Magnimar apothecary share a city, and both North Road uses are parent-null world nodes with no kind/endpoints. Let each adapter produce typed evidence and candidate matches; keep the human decision protocol shared.</p>
+
+<p>The proposed “filter candidates whose tokens collide with an on-file entity in any domain” would also create a global namespace the engine does not otherwise have. A person, quest, place, spell, and item may all legitimately be called “Hope.” Name generation should filter within the namespace and naming role being generated, using a ruled threshold; cross-domain token ownership is not identity.</p>
+
+<h3>7. Road naming needs topology, not only prose discipline</h3>
+
+<p>The stable NAMING clause is cache-safe—stable rules can refer to volatile KNOWN NPCs and GEOGRAPHY served later—but it is not an enforcement seam. An analogous NPC-name rule already exists and did not prevent Savah. The write boundary still needs deterministic validation.</p>
+
+<p>Endpoint qualification is useful, but the example <code>North Road (Magnimar→Sandpoint)</code> encodes direction. Traveling the same road in reverse invites <code>North Road (Sandpoint→Magnimar)</code>, recreating fragmentation. Canonical road identity should use an unordered endpoint pair (or stable endpoint IDs), plus an explicit kind and segment/junction where necessary. The t1593 incident cannot be correctly classified from names alone because those topology fields do not exist.</p>
+
+<h3>8. Recommended revisions before Phase A/B</h3>
+
+<ol>
+<li><strong>Retain the domain registry and shared confirmation/receipt machinery.</strong> They are sound abstraction boundaries.</li>
+<li><strong>Add the missing collision outcome before implementing detectors:</strong> a provisional distinct record and an explicit same/new decision; define how already-fused records are split.</li>
+<li><strong>Reconsider additive domain IDs, at least for locations and NPCs.</strong> Compare migration effort against the complete rekey sweep rather than rejecting IDs categorically.</li>
+<li><strong>Separate location operations:</strong> merge duplicate, split fused, reparent legitimate child, rename display/alias. The t1593 cleanup must be classified pair by pair; no “eight merges” batch.</li>
+<li><strong>Specify a complete structural-reference inventory and conflict policy</strong> and turn each reference into a failing migration test over a cloned t1593 state.</li>
+<li><strong>Replace pipe-delimited identity operands</strong> with an unambiguous representation or guided selector.</li>
+<li><strong>Keep matching and collision evidence domain-specific.</strong> Share the interface and human decision path, not token heuristics or a cross-domain namespace.</li>
+<li><strong>Defer speculative quest/faction Phase C.</strong> Phase A/B already need a representation decision; broadening before that would multiply migration risk.</li>
+</ol>
+
+<div class="callout warn"><strong>Repair-surface recommendation:</strong> a guided one-time cleanup is warranted, but it should not make the map viewer mutate data. Keep the viewer honest and read-only; use it to export/select suspected groups, then run a separate dev-only dry-run tool that shows every structural rewrite and requires confirmation. One GM nudge per turn is too slow for the confirmed duplicate clusters and too weak for the ambiguous ones.</div>
+
+<p class="quiet">Evidence briefs: (A) t1593 node/road census and transcript chronology; (B) location-key reader/writer and merge-reference sweep; (C) cross-domain adapter, detector, suggestion, prompt, and tag-grammar fit. No engine, save, map, or campaign state was modified during this critique.</p>
+
+<h2 id="final-plan">7. Final action plan (Fable, after adjudicating Sol's input)</h2>
+<div class="sub">2026-08-09 · This section supersedes §2 and §4 wherever they conflict; §§1–6 stand as the proposal's history. Greenlighting this plan is the user ruling on the §6 questions (answers in 7.5).</div>
+
+<h3>7.0 Adjudication of Sol's input</h3>
+<table>
+<tr><th>Sol §</th><th>Claim</th><th>Verdict</th></tr>
+<tr><td>1</td><td>"Sandpoint cloud" is a search result, not a repair plan; the vocabulary needs <em>merge</em>, <em>reparent</em>, and <em>split</em>, classified pair by pair</td><td><strong>Accepted in full.</strong> The "~8 merges" framing was wrong; Sol's census table (confirmed duplicates / legitimate hierarchy / ambiguous-defer) becomes the repair taxonomy. Repair is per-pair adjudication, never a batch.</td></tr>
+<tr><td>2</td><td>Alias/merge only converge; a collision "nudged later" has already fused — the write boundary needs a third outcome</td><td><strong>Accepted — the sharpest catch in the review.</strong> The design gains the <em>provisional record</em> (7.1): a suspect write lands in a NEW provisional identity instead of the existing key, so the turn is never blocked <em>and</em> the fusion never happens. <em>Split</em> is added for already-fused records (the Savahs). This reconciles Sol's point with the standing never-block/never-silent rulings rather than abandoning them.</td></tr>
+<tr><td>3</td><td>Stable IDs dismissed too quickly; compare <em>domain ID + name/aliases</em> against <em>name-key + aliases</em> with measured migration cost</td><td><strong>Accepted as a gate, not a decision.</strong> §1.3's "IDs merely relocate the problem" overreached — post-boundary, IDs buy homonyms-without-fusing and rename-without-sweep, and the Phase B re-key inventory is itself the strongest pro-ID evidence. Phase A0 (7.2) runs the comparison on real data before any executor is written. Names remain the wire format either way — that part of §1.3 stands.</td></tr>
+<tr><td>4</td><td>The location merge reference inventory is incomplete (world pointers, combat.node, pendingLocState.node, RAG e.l, locationStates provenance, locDescNudged, campaign metadata, edge self-loops, child-key collisions, field merge rules); "items concat under caps" is wrong (no cap exists); identityMerges needs the .tnd import whitelist; narrative text is history, never rewritten</td><td><strong>Accepted in full, every item verified.</strong> The <em>complete</em> reference inventory becomes a Phase B deliverable expressed as failing migration tests over a cloned t1593 state before the executor exists (7.4). The items-cap error in §2.4 is corrected by this section. Narrative prose is explicitly out of scope for rewriting — it is evidence, not a foreign key.</td></tr>
+<tr><td>5</td><td>Pipe-delimited operands cannot name pipe-bearing location keys; <code>]</code> terminates early; string-prefix subtrees cement an accidental serialization</td><td><strong>Accepted.</strong> Resolution: the generalized tags stay pipe-delimited for pipe-free operands (npc, faction, quest titles) and <strong>loudly refuse</strong> any operand containing <code>|</code> or <code>]</code>; every such case — which in practice means locations — routes through the guided cleanup tool (7.4), which selects records structurally and never parses names from text. No new escaping grammar is invented.</td></tr>
+<tr><td>6</td><td>Share the registry and decision protocol, not the matching algorithm; token-subset over-flags (parent/child, "The Captain") and under-catches (same-city Savahs); the cross-domain suggestion namespace is wrong ("Hope" may be a person, a quest, and a spell)</td><td><strong>Accepted in full.</strong> Adapters produce domain-typed evidence and candidate pairs; the shared layer owns only the queue, the confirmation protocol, and the receipts. The suggestion filter scopes to the namespace being generated (2.5 amended).</td></tr>
+<tr><td>7</td><td>Endpoint qualification must be unordered or it re-fragments; topology (kind/endpoints) is data the schema lacks; a prompt clause is not an enforcement seam — "an analogous NPC-name rule already exists and did not prevent Savah"</td><td><strong>Accepted, with one factual correction.</strong> Route names canonicalize on an <em>unordered</em> endpoint pair (engine normalizes order); location nodes gain optional <code>kind</code> and <code>endpoints[]</code> fields. The quoted claim is wrong in its detail — no NPC name-reuse rule exists in today's prompt; the AVAILABLE NAMES header is purely advisory-positive, which is precisely the #152 finding. The principle behind it (prompt text is probabilistic, never enforcement) was already this proposal's position and is why the detector and provisional record exist. The clause ships anyway: cheap, and it moves the base rate.</td></tr>
+<tr><td>8</td><td>Defer Phase C; guided one-time cleanup as a separate dev-only dry-run tool; viewer stays read-only; per-turn nudges too slow for the backlog</td><td><strong>Accepted</strong> (C-deferral and viewer-read-only matched the original recommendations). Nudges remain the channel for <em>go-forward</em> incidents — one new collision at a time is exactly nudge-shaped; the tool exists for the accumulated backlog.</td></tr>
+</table>
+
+<h3>7.1 The identity model, revised</h3>
+<p>One registry (<code>IDENTITY_DOMAINS</code>), one confirmation protocol, one receipt discipline — and <strong>five operations</strong>, not two:</p>
+<table>
+<tr><th>Operation</th><th>When</th><th>Surface</th></tr>
+<tr><td><strong>resolve</strong></td><td>Every tag parse — name → canonical identity via aliases</td><td>Engine, automatic (today's resolveNpcName, generalized)</td></tr>
+<tr><td><strong>create-distinct</strong> <span class="quiet">(the provisional record)</span></td><td>Upsert-time collision suspect: the incoming write lands in a NEW provisional identity (display name preserved, provenance-stamped, e.g. <code>Savah °t1530</code>), never in the existing record. A one-shot GM/player decision then resolves it: <em>same entity</em> → merge provisional into canonical; <em>new entity</em> → rename properly and the provisional becomes permanent</td><td>Engine creates; GM nudge or player confirm settles. Never blocks the turn, never fuses canon</td></tr>
+<tr><td><strong>merge</strong></td><td>Confirmed duplicates (drift)</td><td>Tag for pipe-free operands; cleanup tool otherwise</td></tr>
+<tr><td><strong>split</strong></td><td>Already-fused records (the three Savahs, the North Road) — facts allocated to distinct identities by human adjudication, checklist-style</td><td>Cleanup tool only (allocation is inherently human)</td></tr>
+<tr><td><strong>reparent</strong></td><td>Legitimate child filed at the wrong level (world-node "Sandpoint Glassworks" → <code>Sandpoint|…</code>)</td><td>Cleanup tool only (structural)</td></tr>
+</table>
+<p class="quiet">Alias registration and display-rename are bookkeeping on top of resolve/merge, not separate operations. All five archive complete pre-images to <code>memory.archive.identityMerges</code> (added to the .tnd import whitelist — Sol §4) with loud receipts.</p>
+
+<h3>7.2 Phase A0 — the representation gate (new, runs first)</h3>
+<p>A short evidence spike, no shipping code: implement the location <code>merge</code> twice against a cloned t1593 state — once as name-re-key (every structural reference rewritten), once as additive domain IDs (<code>id → {name, aliases}</code>, references migrated to IDs once). Deliverables: the <em>complete</em> structural-reference inventory (Sol §4's list is the seed, verified exhaustively against the code), the measured touch-count and failure surface of each approach, and a written ruling. <strong>Decision criteria:</strong> whichever approach makes merge/split/reparent <em>smaller and safer forever</em> wins; migration is paid once, re-keying is paid on every operation. Lean, stated for the record: additive IDs for <code>npc</code> and <code>location</code> (the two instance domains with homonyms and heavy cross-references), name-keys retained for type domains (capability, item) where normalization-collapse is the <em>correct</em> semantics. The gate exists so that lean is tested, not assumed.</p>
+
+<h3>7.3 Phase A — spine + npc domain</h3>
+<ul>
+<li><code>identity.js</code>: registry, shared confirmation queue/protocol/receipts. Matching lives in adapters (domain-typed evidence — Sol §6); the shared layer never applies token heuristics itself.</li>
+<li>#128 ports into the npc adapter under byte-parity tests (zero behavior change).</li>
+<li>The npc collision path ships the provisional-record flow (7.1) — the Savah class ends here.</li>
+<li>Generalized <code>[ALIAS:]</code>/<code>[MERGE:]</code> with the pipe-refusal rule; legacy NPC tags reroute unchanged.</li>
+<li>Suggestion filter, namespace-scoped (npc names against the npc domain only); the pool stops serving on-file names ("Frizwick Coldwater").</li>
+<li>The NAMING clause ships (stable half, frozen-hash re-baseline) with the unordered road convention: <code>North Road (Magnimar–Sandpoint)</code>, order normalized by the engine.</li>
+</ul>
+
+<h3>7.4 Phase B — location domain + the cleanup tool</h3>
+<ul>
+<li><strong>Failing tests first:</strong> the full reference inventory from A0 becomes a migration-test battery over the cloned t1593 state — every reference class (world pointers, combat.node, pendingLocState.node, RAG <code>e.l</code>, locationStates provenance, locDescNudged, campaign metadata, edges incl. self-loop/parallel collapse, child-key collisions, splitLoc, lastSeenAt, lastArrivalFrom) gets an assertion before the executor exists. Field merge rules fixed per Sol: <code>firstVisit</code> min, <code>lastVisit</code> max, visits sum, canonical description wins, stateNotes chronological under the cap-3 with eviction-archive, items concat with case-insensitive dedupe (no cap exists — §2.4 stands corrected), <code>size</code>/<code>travelMins</code> canonical-wins-unless-null.</li>
+<li>Location nodes gain optional <code>kind</code> (settlement/route/site) and unordered <code>endpoints[]</code>; route canonicalization uses them. Full topology (segments, junctions) is a non-goal until a field incident demands it.</li>
+<li><strong>The cleanup tool</strong> (dev-only satellite, the bible_editor precedent): loads a save clone, presents Sol's census taxonomy per suspected group — <em>merge / reparent / split / leave</em> — with a <strong>dry-run diff of every structural rewrite</strong> shown before a confirm. The map viewer stays read-only forever; it gains only "export suspected groups" as input to the tool.</li>
+<li>The t1593 cleanup itself: pair-by-pair per the census — the confirmed duplicate clusters (Rusty Dragon, Temple/Cathedral, Docks, Cliffs, Corven variants, "Sandpoint, Varisia") merge; the legitimate-hierarchy set reparents; the ambiguous set is explicitly LEFT, listed, and revisited only with new evidence. The North Road: split into <code>North Road (Magnimar–Sandpoint)</code> and <code>North Road (Magnimar–Jorgenfist)</code> per the user's fiction ruling (2026-08-09) — the user is the campaign's topology authority where the data is silent, which is Sol's point about missing fields, answered by adding them.</li>
+</ul>
+
+<h3>7.5 The §6 questions, resolved</h3>
+<ol>
+<li><strong>Repair surface:</strong> the guided dev-only dry-run tool for the backlog; nudges for go-forward incidents. (Sol's shape, adopted.)</li>
+<li><strong>Tag surface:</strong> tag-only for GM vocabulary; structural operations through the tool; the map viewer never mutates.</li>
+<li><strong>Phase C:</strong> deferred, evidence-gated — reinforced by Sol §8 (A/B already carry a representation decision; broadening first multiplies risk).</li>
+</ol>
+
+<h3>7.6 Standing test mandates (all phases)</h3>
+<ul>
+<li>Failing-first over cloned real state (t1593) — never synthetic-only fixtures for migration surfaces.</li>
+<li>Every guard sabotage-proven; every ported behavior parity-tested; stable-half byte-identity on all prompt changes; frozen doc/strip hashes re-baselined with documented deltas.</li>
+<li>Provisional records, merges, splits, reparents: pre-image archived, receipt emitted, import-whitelist covered — reversible by construction, loud by policy.</li>
+</ul>
+
+<p class="quiet">— Adjudicated and planned by Fable, 2026-08-09. Sol's §1–§8 accepted with one factual correction (7.0 row 7); the largest design change credited to Sol §2 (the provisional record). Companion row: TODO #156. Build order: A0 gate → A → B; C waits for evidence.</p>
 </main>
 </body>
 </html>
