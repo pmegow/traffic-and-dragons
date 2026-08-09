@@ -46,6 +46,11 @@
   #panel a:hover{text-decoration:underline}
   #panel .dead{color:var(--t2);text-decoration:line-through}
   #panel ul{list-style:none}
+  #panel .cascade ul{padding-left:14px}
+  #panel .cascade>ul{padding-left:0}
+  #panel .cascade summary{cursor:pointer;color:var(--t1)}
+  #panel .cascade summary::marker{color:var(--acc)}
+  #panel .cascade details{margin:1px 0}
   #legend{position:absolute;left:12px;bottom:12px;background:rgba(22,22,22,.92);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;font-size:10.5px;color:var(--t2);line-height:1.8;pointer-events:none}
   #legend svg{vertical-align:middle;margin-right:5px}
   #drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.85);color:var(--acc);font-size:16px;border:2px dashed var(--acc);z-index:5;pointer-events:none}
@@ -158,6 +163,40 @@
     }
     // Ensure every sublocation's parent exists (ghost if the world node was never filed).
     for(i=0;i<nodes.length;i++){if(nodes[i].parent&&!byKey[nodes[i].parent])add(nodes[i].parent,true);}
+    // Cascade hierarchy (legibility pass, user call 2026-08-09): sublocations never render on
+    // the canvas — they live in a cascading list on their WORLD node's panel. The tree derives
+    // from KEY STRUCTURE (successive "|" prefixes), not the stored .parent field, because real
+    // saves stamp .parent inconsistently ("Sandpoint|Sandpoint Bathhouse|Private Room" carries
+    // parent:"Sandpoint"); each node hangs off its LONGEST existing prefix, so
+    // sub-sub-locations cascade naturally. rootKey = the rendered world node that owns the
+    // subtree (current-position ring and split badges resolve to it).
+    function treeParentKey(key){
+      var segs=key.split("|");
+      if(segs.length<2)return null;
+      for(var s=segs.length-1;s>=1;s--){var pref=segs.slice(0,s).join("|");if(byKey[pref])return pref;}
+      return null;
+    }
+    for(i=0;i<nodes.length;i++){
+      var nd=nodes[i];
+      if(nd.world){nd.rootKey=nd.key;nd.treeParent=null;continue;}
+      nd.treeParent=treeParentKey(nd.key)||nd.parent;
+      var seen={},walk=nd,guard=0;
+      while(walk&&!walk.world&&guard++<20){
+        var pk=walk.treeParent!==undefined?walk.treeParent:walk.parent;
+        if(walk!==nd&&pk===undefined)pk=treeParentKey(walk.key)||walk.parent;
+        if(!pk||seen[pk])break;seen[pk]=1;walk=byKey[pk];
+      }
+      nd.rootKey=(walk&&walk.world)?walk.key:(nd.key.indexOf("|")>=0?nd.key.split("|")[0]:nd.key);
+    }
+    var childIdx={},descCount={};
+    for(i=0;i<nodes.length;i++){
+      var c2=nodes[i];if(c2.world)continue;
+      var pk2=c2.treeParent||c2.rootKey;
+      if(!childIdx[pk2])childIdx[pk2]=[];
+      childIdx[pk2].push(c2.key);
+      descCount[c2.rootKey]=(descCount[c2.rootKey]||0)+1;
+    }
+    for(k in childIdx)childIdx[k].sort();
     // NPC last-seen markers + death flags (memory side).
     var mn=mem.npcs||{};
     for(k in mn){
@@ -168,6 +207,7 @@
     // Party overlay (worldState side): current position + split members.
     var cur=ws.world?ws.world.location:null;
     var curSub=ws.world&&ws.world.sublocation?cur+"|"+ws.world.sublocation:null;
+    var curKey=curSub&&byKey[curSub]?curSub:(cur&&byKey[cur]?cur:null);
     var splits=[];
     var roster=ws.npcs||[];
     for(i=0;i<roster.length;i++){
@@ -178,38 +218,45 @@
         splits.push({name:p.name,key:byKey[skey]?skey:(byKey[sl.location]?sl.location:null),raw:sl});
       }
     }
-    G={nodes:nodes,edges:edges,byKey:byKey,current:curSub&&byKey[curSub]?curSub:(cur&&byKey[cur]?cur:null),splits:splits,
+    var worlds=[];for(i=0;i<nodes.length;i++)if(nodes[i].world)worlds.push(nodes[i]);
+    // Badges attach to the RENDERED node — a sub-located party/split resolves to its world root.
+    function renderedKey(key){var nn=byKey[key];return nn?nn.rootKey:null;}
+    for(i=0;i<splits.length;i++)if(splits[i].key)splits[i].badgeKey=renderedKey(splits[i].key);
+    G={nodes:nodes,worlds:worlds,edges:edges,byKey:byKey,childIdx:childIdx,descCount:descCount,
+       current:curKey,currentBadge:curKey?renderedKey(curKey):null,splits:splits,
        playerName:(ws.character&&ws.character.name)||"the party"};
   }
 
   // ── force layout (hand-rolled; no deps by project rule) ────────────────────
+  // Layout runs over WORLD nodes only — sublocations never hit the canvas (they cascade in the
+  // panel), which is the whole legibility win: ~20 labeled nodes instead of ~80.
   function layout(){
-    var N=G.nodes,i,j,it;
-    var worlds=[];for(i=0;i<N.length;i++)if(N[i].world)worlds.push(N[i]);
-    // Seed: world nodes on a circle in first-visit order; sublocations jittered around parents.
-    worlds.sort(function(a,b){return (a.firstVisit||0)-(b.firstVisit||0);});
-    var R=Math.max(220,worlds.length*46);
-    for(i=0;i<worlds.length;i++){var th=(i/Math.max(1,worlds.length))*Math.PI*2;worlds[i].x=Math.cos(th)*R;worlds[i].y=Math.sin(th)*R;}
-    for(i=0;i<N.length;i++){if(!N[i].world){var pp=G.byKey[N[i].parent];N[i].x=(pp?pp.x:0)+(Math.sin(i*7)*40);N[i].y=(pp?pp.y:0)+(Math.cos(i*13)*40);}}
+    var N=G.worlds,i,j,it;
+    N.sort(function(a,b){return (a.firstVisit||0)-(b.firstVisit||0);});
+    var R=Math.max(220,N.length*46);
+    for(i=0;i<N.length;i++){var th=(i/Math.max(1,N.length))*Math.PI*2;N[i].x=Math.cos(th)*R;N[i].y=Math.sin(th)*R;}
     for(it=0;it<400;it++){
       var cool=1-it/400;
       for(i=0;i<N.length;i++){N[i].vx=0;N[i].vy=0;}
-      // Pairwise repulsion — subs repel weakly (they live in tight clusters).
       for(i=0;i<N.length;i++)for(j=i+1;j<N.length;j++){
         var a=N[i],b=N[j];
         var dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;if(d2<1)d2=1;
         var d=Math.sqrt(d2);
-        var rep=(a.world&&b.world?9000:(a.world||b.world?2600:900))/d2;
+        var rep=12000/d2;
         var fx=dx/d*rep,fy=dy/d*rep;
         a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
       }
-      // Springs: real edges + sub→parent tethers.
       for(i=0;i<G.edges.length;i++){
-        var E=G.edges[i],len=E.a.world&&E.b.world?230:120;
-        spring(E.a,E.b,len,0.012);
+        var E=G.edges[i];
+        if(!E.a.world||!E.b.world)continue; // edges into sub keys pull their world roots instead
+        spring(E.a,E.b,240,0.012);
       }
-      for(i=0;i<N.length;i++){if(!N[i].world){var par=G.byKey[N[i].parent];if(par)spring(N[i],par,64,0.05);}}
-      // Weak centering + integrate.
+      for(i=0;i<G.edges.length;i++){
+        var E2=G.edges[i];
+        if(E2.a.world&&E2.b.world)continue;
+        var ra=G.byKey[E2.a.rootKey],rb=G.byKey[E2.b.rootKey];
+        if(ra&&rb&&ra!==rb)spring(ra,rb,240,0.012);
+      }
       for(i=0;i<N.length;i++){var n=N[i];n.vx-=n.x*0.0012;n.vy-=n.y*0.0012;n.x+=n.vx*cool;n.y+=n.vy*cool;}
     }
     function spring(a,b,len,k){
@@ -223,13 +270,20 @@
   function nodeR(n){return n.world?(10+Math.min(16,Math.sqrt(n.visits||1)*2.4)):(4+Math.min(7,Math.sqrt(n.visits||1)*1.5));}
   function render(){
     var s=[],i;
-    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(!n.world){var p=G.byKey[n.parent];if(p)s.push('<line class="subedge" x1="'+p.x+'" y1="'+p.y+'" x2="'+n.x+'" y2="'+n.y+'"/>');}}
+    // Every edge draws between WORLD roots; an edge whose endpoints share a root is internal
+    // to one settlement and stays off the canvas (its story lives in the cascade). Dedupe
+    // root-pairs so five sub-edges into one city don't stack five lines.
+    var drawn={};
     for(i=0;i<G.edges.length;i++){var e=G.edges[i];
-      s.push('<line class="edge'+(e.ghosted?' ghosted':'')+'" x1="'+e.a.x+'" y1="'+e.a.y+'" x2="'+e.b.x+'" y2="'+e.b.y+'"><title>t'+esc(e.turn)+': '+esc(e.a.key)+' ↔ '+esc(e.b.key)+'</title></line>');}
-    for(i=0;i<G.nodes.length;i++){s.push(nodeSVG(G.nodes[i]));}
-    // Party + split badges last (topmost).
-    if(G.current){var c=G.byKey[G.current];s.push('<circle cx="'+c.x+'" cy="'+c.y+'" r="'+(nodeR(c)+7)+'" fill="none" stroke="#d9b47c" stroke-width="2" stroke-dasharray="3 3"><title>'+esc(G.playerName)+' is here</title></circle>');}
-    for(i=0;i<G.splits.length;i++){var sp=G.splits[i];if(!sp.key)continue;var sn=G.byKey[sp.key];
+      var ra=G.byKey[e.a.rootKey],rb=G.byKey[e.b.rootKey];
+      if(!ra||!rb||ra===rb)continue;
+      var pairKey=ra.key<rb.key?ra.key+""+rb.key:rb.key+""+ra.key;
+      if(drawn[pairKey])continue;drawn[pairKey]=1;
+      s.push('<line class="edge'+(e.ghosted?' ghosted':'')+'" x1="'+ra.x+'" y1="'+ra.y+'" x2="'+rb.x+'" y2="'+rb.y+'"><title>t'+esc(e.turn)+': '+esc(e.a.key)+' ↔ '+esc(e.b.key)+'</title></line>');}
+    for(i=0;i<G.worlds.length;i++){s.push(nodeSVG(G.worlds[i]));}
+    // Party + split badges last (topmost) — attached to the rendered world root.
+    if(G.currentBadge){var c=G.byKey[G.currentBadge];if(c)s.push('<circle cx="'+c.x+'" cy="'+c.y+'" r="'+(nodeR(c)+7)+'" fill="none" stroke="#d9b47c" stroke-width="2" stroke-dasharray="3 3"><title>'+esc(G.playerName)+' is here'+(G.current!==G.currentBadge?' — at '+esc(G.current):'')+'</title></circle>');}
+    for(i=0;i<G.splits.length;i++){var sp=G.splits[i];if(!sp.badgeKey)continue;var sn=G.byKey[sp.badgeKey];if(!sn)continue;
       s.push('<g><circle cx="'+(sn.x+nodeR(sn)+7)+'" cy="'+(sn.y-nodeR(sn)-7)+'" r="8" fill="#221212" stroke="#a05a5a"/><text x="'+(sn.x+nodeR(sn)+7)+'" y="'+(sn.y-nodeR(sn)-3.5)+'" text-anchor="middle" font-size="9" fill="#c88">'+esc(sp.name.charAt(0))+'</text><title>'+esc(sp.name)+' — split from the party, at '+esc(sp.key)+'</title></g>');}
     $("svg").innerHTML='<g id="root">'+s.join("")+'</g>';
     $("svg").setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
@@ -242,9 +296,10 @@
     var dash=n.ghost?' stroke-dasharray="3 2"':'';
     if(n.road){shape='<rect x="'+(n.x-r)+'" y="'+(n.y-r)+'" width="'+(r*2)+'" height="'+(r*2)+'" transform="rotate(45 '+n.x+' '+n.y+')" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
     else{shape='<circle cx="'+n.x+'" cy="'+n.y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
-    var label=n.world?esc(n.key):esc(n.label);
-    var fs=n.world?12:9.5;
-    var ttl=esc(n.key)+(n.visits?" — "+n.visits+" visit"+(n.visits===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
+    var nSubs=G.descCount[n.key]||0;
+    var label=esc(n.key)+(nSubs?" ("+nSubs+" sublocation"+(nSubs===1?"":"s")+")":"");
+    var fs=12;
+    var ttl=esc(n.key)+(n.visits?" — "+n.visits+" visit"+(n.visits===1?"":"s"):"")+(nSubs?" — click to browse "+nSubs+" sublocation"+(nSubs===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
     return '<g class="nodeg'+(n.world?' world':'')+'" data-k="'+esc(n.key)+'">'+shape+
       '<text x="'+n.x+'" y="'+(n.y+r+fs+1)+'" text-anchor="middle" font-size="'+fs+'">'+label+'</text><title>'+ttl+'</title></g>';
   }
@@ -253,14 +308,15 @@
       '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#1e1a12" stroke="#b8935a"/></svg>settlement / site &nbsp; <svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="#181818" stroke="#b8935a"/></svg>road / corridor</div>'+
       '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#d9b47c" stroke-dasharray="3 3"/></svg>party is here &nbsp; <svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#221212" stroke="#a05a5a"/></svg>split member</div>'+
       '<div><svg width="14" height="6"><line x1="0" y1="3" x2="14" y2="3" stroke="#a05a5a" stroke-dasharray="4 3"/></svg>edge to a node the record never filed (ghost)</div>'+
-      '<div>node size = visit count · drag background to pan · wheel to zoom · click a node for its record</div>';
+      '<div>node size = visit count · sublocations cascade in the side panel · drag to pan · wheel to zoom</div>';
   }
 
   // ── node panel ─────────────────────────────────────────────────────────────
   function selectNode(key){
     var n=G.byKey[key];if(!n)return;
     selected=key;
-    var h='<h2>'+esc(n.key)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'sublocation of '+esc(n.parent)))+'</div>';
+    var up=n.world?null:(n.treeParent||n.rootKey);
+    var h='<h2>'+esc(n.world?n.key:n.label)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'inside <a data-go="'+esc(up)+'" style="text-transform:none;letter-spacing:0">'+esc(up)+'</a>'))+'</div>';
     var chips='';
     if(n.key===G.current)chips+='<span class="chip">'+esc(G.playerName)+' is here</span>';
     for(var si=0;si<G.splits.length;si++)if(G.splits[si].key===n.key)chips+='<span class="chip away">'+esc(G.splits[si].name)+' — away from party</span>';
@@ -270,15 +326,30 @@
     if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
     if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
     if(n.npcsHere.length){h+='<div class="sec"><h3>NPCs last seen here</h3><ul>';for(var i4=0;i4<n.npcsHere.length;i4++){var np=n.npcsHere[i4];h+='<li'+(np.dead?' class="dead"':'')+'>· '+esc(np.name)+(np.dead?' (deceased)':'')+'</li>';}h+='</ul></div>';}
-    var subs=[];for(var i5=0;i5<G.nodes.length;i5++)if(G.nodes[i5].parent===n.key)subs.push(G.nodes[i5]);
-    if(subs.length){h+='<div class="sec"><h3>Known sublocations ('+subs.length+')</h3><ul>';for(var i6=0;i6<subs.length;i6++)h+='<li>· <a data-go="'+esc(subs[i6].key)+'">'+esc(subs[i6].label)+'</a></li>';h+='</ul></div>';}
+    // Cascading sublocation tree (user call 2026-08-09): children from the key-structure index,
+    // sub-sub-locations nested inside native <details> — no wiring needed for expand/collapse.
+    function cascade(key){
+      var kids=G.childIdx[key]||[];
+      if(!kids.length)return "";
+      var out="<ul>";
+      for(var ci=0;ci<kids.length;ci++){
+        var kn=G.byKey[kids[ci]];if(!kn)continue;
+        var inner=cascade(kn.key);
+        var line='<a data-go="'+esc(kn.key)+'">'+esc(kn.label)+'</a>'+(kn.ghost?' <span style="color:var(--bad)">(ghost)</span>':'')+(kn.visits>1?' <span style="color:var(--t2)">×'+kn.visits+'</span>':'');
+        if(inner)out+='<li><details><summary>'+line+'</summary>'+inner+'</details></li>';
+        else out+='<li>· '+line+'</li>';
+      }
+      return out+"</ul>";
+    }
+    var tree=cascade(n.key);
+    if(tree){h+='<div class="sec"><h3>Sublocations ('+(G.descCount[n.key]||0)+')</h3><div class="cascade">'+tree+'</div></div>';}
     var conn=[];for(var i7=0;i7<G.edges.length;i7++){var E=G.edges[i7];if(E.a.key===n.key)conn.push({k:E.b.key,t:E.turn});else if(E.b.key===n.key)conn.push({k:E.a.key,t:E.turn});}
     if(conn.length){h+='<div class="sec"><h3>Connected (first travel)</h3><ul>';for(var i8=0;i8<conn.length;i8++)h+='<li>· <a data-go="'+esc(conn[i8].k)+'">'+esc(conn[i8].k)+'</a> <span style="color:var(--t2)">(t'+esc(conn[i8].t)+')</span></li>';h+='</ul></div>';}
     var pn=$("panel");pn.innerHTML=h;pn.className="open";
     var links=pn.querySelectorAll("a[data-go]");
     for(var i9=0;i9<links.length;i9++)links[i9].addEventListener("click",function(){var k2=this.getAttribute("data-go");selectNode(k2);centerOn(k2);});
   }
-  function centerOn(key){var n=G.byKey[key];if(!n)return;view.x=n.x-view.w/2;view.y=n.y-view.h/2;$("svg").setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);}
+  function centerOn(key){var n=G.byKey[key];if(!n)return;var r=n.world?n:G.byKey[n.rootKey];if(!r)return;view.x=r.x-view.w/2;view.y=r.y-view.h/2;$("svg").setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);}
 
   // ── interactions ───────────────────────────────────────────────────────────
   function wireNodes(){
@@ -299,9 +370,9 @@
     svg.addEventListener("click",function(){$("panel").className="";selected=null;});
   })();
   function fit(){
-    if(!G||!G.nodes.length)return;
+    if(!G||!G.worlds.length)return;
     var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,i;
-    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
+    for(i=0;i<G.worlds.length;i++){var n=G.worlds[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
     var pad=90;view.x=minX-pad;view.y=minY-pad;view.w=(maxX-minX)+pad*2;view.h=(maxY-minY)+pad*2;
     // Match the stage aspect so nothing squashes.
     var svg=$("svg"),ar=svg.clientWidth/Math.max(1,svg.clientHeight),var_ar=view.w/view.h;
@@ -313,9 +384,9 @@
   // Standalone-SVG export — the same render, wrapped self-contained (inline styles + bg) so the
   // file is shareable anywhere. Exposed on the seam so a headless run can produce the image too.
   function exportSVG(title){
-    if(!G||!G.nodes.length)return null;
+    if(!G||!G.worlds.length)return null;
     var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,i;
-    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
+    for(i=0;i<G.worlds.length;i++){var n=G.worlds[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
     var p=110,w=(maxX-minX)+2*p,hh=(maxY-minY)+2*p;
     var css="text{font-family:Segoe UI,system-ui,sans-serif;fill:#b0a890}.nodeg.world text{fill:#e8e0d0}.edge{stroke:#333;stroke-width:1.2}.edge.ghosted{stroke:#a05a5a;stroke-dasharray:4 3}.subedge{stroke:#242424;stroke-width:1}";
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(minX-p)+' '+(minY-p)+' '+w+' '+hh+'"><style>'+css+'</style>'+
