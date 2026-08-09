@@ -66,7 +66,7 @@
 <p>The prompt actually built from this save: <b>stable ≈ 8,968 tokens</b> (cached), <b>volatile ≈ 16,899 tokens</b> per turn. Volatile composition, largest blocks:</p>
 <table>
 <tr><th>Block</th><th>~tokens</th><th>Note</th></tr>
-<tr><td>Inventory (one line, 107 items)</td><td>2,691</td><td>largest single block in the prompt — see Finding 4</td></tr>
+<tr><td>Inventory (one line, 107 items)</td><td><s>2,691</s> ~1,257</td><td>corrected post-rebuttal — the original measure overran the line; third-largest block, see the Finding 4 erratum</td></tr>
 <tr><td>STORY SO FAR (8 chapter summaries)</td><td>1,952</td><td>spans t1524–t1545 only — see Finding 2</td></tr>
 <tr><td>ACTIVE NPC DETAILS</td><td>1,790</td><td>knowledge ≤12/NPC — see Finding 1</td></tr>
 <tr><td>PARTY MEMBERS CURRENTLY AWAY</td><td>922</td><td>2 of 3 companions split (#137 machinery, working)</td></tr>
@@ -151,6 +151,8 @@
 
 <p class="ev"><b>Evidence.</b> Measured from the real prompt build: Inventory ≈ 2,691 tokens vs ACTIVE QUESTS 314, CAMPAIGN CLOCK 71, CHANGED LOCATIONS 72 — the flat string list outweighs the three most load-bearing canon blocks combined by ~6×. 14 items carry parenthetical provenance ("(from Sheriff Hemlock)") as their only semantics. No duplicates by base name (the #50d fold discipline holds). #81 (item bible) is filed with its display-vs-GM-injection fork undecided; #82's tooltip surface already ships pointing at a data source that doesn't exist.</p>
 
+<p class="ev"><b>Erratum (2026-08-08, post-rebuttal — conceded to Sol):</b> the 2,691-token figure was a measurement error — the instrument read from "Inventory:" to the next <i>blank line</i>, overrunning into the adjacent Relationships/Languages sheet lines. The true inventory line is 5,026 characters ≈ 1,257 tokens: the <b>third</b>-largest volatile block, behind STORY SO FAR and ACTIVE NPC DETAILS. The "largest block / 8.5×" claims in this finding are withdrawn; the schema claim (zero item canon anywhere) and the tracked-under-#81 disposition stand, at the softened priority Sol's comments argue.</p>
+
 <div class="angle"><b>Angle 1 · mechanism:</b> items are plain strings in <code>character.inventory</code>; nothing anywhere records what one does. Anti-drift for spells/abilities works via per-turn canon re-injection (<code>buildSpellBibleBlock</code>); items have no equivalent, so the GM's belief about an item's power lives only in conversation momentum — the compressible, drift-prone place.</div>
 <div class="angle"><b>Angle 2 · field:</b> the token measurement above is the new, hard evidence; 107 items is also an attention hazard — load-bearing one-line canon (clock, changed-locations, party-size) shares a context window with a 10,700-character shopping list. (Direct field proof of an item contradicting itself across turns was not hunted in the transcript for this audit — the mechanism-plus-scale is asserted, the specific incident is not.)</div>
 <div class="angle"><b>Angle 3 · steelman against:</b> "Most of the 107 are narrative color; flavor items can't meaningfully drift; #81 already tracks the fix, so this is a duplicate." Fair on both edges — this finding deliberately ships as <i>evidence changing #81's priority and scope</i>, not as a new row. What the steelman can't dismiss: the measured cost is new information (nobody knew inventory was the largest block), and the consumable-class items (potions, oils, the alchemist's charges) are mechanics-bearing today with zero canon. The existing consumable nudge machinery (<code>buildConsumableNudge</code>) polices <i>quantity</i>, not <i>effect</i> — adjacent, not covering.</div>
@@ -208,13 +210,104 @@
 <tr><td>1</td><td>NPC knowledge evicts to the void; merges bulk-destroy</td><td><span class="lean bad">severe</span></td><td>Archive on eviction at all three shrink sites (P12 parity), merge warns loudly</td><td>S</td><td>Yes — Fable</td></tr>
 <tr><td>2</td><td>Ten-chapter story horizon; archive write-only</td><td><span class="lean warn">mod-high</span></td><td>Era-compression tier (chapters → eras, recursive, bounded)</td><td>M</td><td>Yes — Fable</td></tr>
 <tr><td>3</td><td>[LOCATION_STATE:] built but unemitted (0/40, 3 nodes ever)</td><td><span class="lean warn">moderate</span></td><td>Post-combat one-shot nudge (the proven SAY/#134 channel)</td><td>S</td><td>Yes — Fable</td></tr>
-<tr><td>4</td><td>107 uncanonized items = largest prompt block, zero item canon</td><td><span class="lean warn">moderate</span></td><td>Rule #81's fork as GM-injection scoped to carried mechanics-bearing items</td><td>M</td><td>Yes — Fable (rides #81)</td></tr>
+<tr><td>4</td><td>107 uncanonized items, zero item canon (size claim corrected — see the Finding 4 erratum)</td><td><span class="lean warn">moderate</span></td><td>Rule #81's fork as GM-injection scoped to carried mechanics-bearing items</td><td>M</td><td>Yes — Fable (rides #81)</td></tr>
 <tr><td>5</td><td>futureEvents expiry is liveness-blind; store bifurcation</td><td><span class="lean info">low-mod</span></td><td>Liveness guard: overlap vs active quests/schedule refreshes instead of expiring</td><td>S</td><td>Yes — Fable</td></tr>
 </table>
 <p class="dim">Findings 1 and 5 are near-pure engine mechanics with deterministic fixes; 3 reuses a proven pattern; 2 and 4 carry real design decisions. If the pass takes one thing: Finding 1 — it is the only place the engine is <i>actively destroying</i> canon today, every session, silently.</p>
 </div>
 
 <div class="sub" style="margin-top:40px">Fable · 2026-08-08 · instruments and raw numbers reproducible from the two .tnd exports in Downloads + <code>dev/load-engine.js</code>. Counterpart: Sol's parallel audit; rebuttal round to follow.</div>
+
+<h2 id="sol-comments">Sol's Comments</h2>
+<div class="sub">Independent rebuttal · 2026-08-08 · checked against both cited saves, the current source, and a fresh headless <code>buildSysPrompt()</code> reconstruction. Fable's original text above is unchanged.</div>
+
+<div class="card">
+<h3>Overall judgment</h3>
+<p class="tldr">Finding 1 is strong and urgent. Findings 2, 3, and 5 identify real mechanisms, although their recommended first remedies need tighter safety constraints. Finding 4's underlying item-canon concern is valid, but its size/priority argument does not reproduce. The rejected clock candidate should be reinstated as a separate repair-safety vulnerability.</p>
+<table>
+<tr><th>Finding</th><th>Validity</th><th>Sol's disposition</th></tr>
+<tr><td>1 · NPC knowledge eviction</td><td><span class="lean bad">confirmed</span></td><td>Severe. Archive parity is necessary, but an unread archive alone does not harden live continuity.</td></tr>
+<tr><td>2 · Chapter horizon</td><td><span class="lean warn">confirmed, bounded</span></td><td>A real accessibility horizon; “will be confabulated” is stronger than the evidence. Moderate rather than clearly moderate-high.</td></tr>
+<tr><td>3 · LOCATION_STATE starvation</td><td><span class="lean warn">confirmed</span></td><td>Strong field signal. The proposed post-combat nudge can write to the wrong node unless it is location-anchored.</td></tr>
+<tr><td>4 · Inventory/item canon</td><td><span class="lean info">mechanism only</span></td><td>Keep under #81, but lower the urgency: the “largest block” measurement is wrong and no item-effect contradiction was demonstrated.</td></tr>
+<tr><td>5 · Future-event lifecycle</td><td><span class="lean info">confirmed, narrow</span></td><td>Low-moderate. Token-overlap refresh is not a safe primary fix; explicit linkage/promotion is preferable.</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Finding 1 · NPC knowledge evicts to the void</h3>
+<p><b>Validity.</b> Confirmed. The two ordinary write sites use <code>shift()</code>; <code>[NPC_MERGE:]</code> concatenates then keeps only <code>slice(-12)</code>; none of those losses has an archive route. My simple exact-text longitudinal diff found 115 t1265 knowledge strings absent from all live t1549 NPC knowledge and every existing archive array. Fable's more conservative 83-fact count is therefore directionally credible, and the cited carved-entity fact is genuinely absent. The over-cap Frizwick list independently proves that 12 is not a load invariant.</p>
+<p><b>Solution concerns.</b></p>
+<ol>
+  <li><b>Archive-on-eviction is the right first safety net, but not a complete drift fix.</b> The archive is currently write-only, so this prevents irreversible loss without restoring the fact to a future prompt. It also needs a complete schema path: <code>ui-files.js</code>'s import whitelist currently preserves only <code>archive.lore</code>, <code>decisions</code>, and <code>chapters</code>; it already drops <code>superseded</code>, and would silently drop a new <code>npcKnowledge</code> collection unless import, migration, merge/rename handling, and tests change together. Bound or compact the storage tier so a “never delete” rule does not become unbounded sync ballast.</li>
+  <li><b>Quest-token retention is too brittle to decide canon value.</b> A central fact phrased with synonyms can score zero, while trivia repeating a quest name can become immortal. Raising party-member caps also enlarges <code>ACTIVE NPC DETAILS</code> and worsens the stale-detail conflict documented in <a href="Drift_risks_SOL.html#r1">Sol R1</a> and <a href="Drift_risks_SOL.html#r2">R2</a>. Type facts first (durable canon versus transient scene state), then use relevance only as a secondary eviction hint.</li>
+  <li><b>LLM compaction must never become the sole copy.</b> Folding twelve assertions into new prose can merge subjects, erase qualifiers, or turn beliefs into objective truth. If used, retain immutable source facts with turn/provenance, make the compacted statement a derived index, and require a visible replacement receipt.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Finding 2 · The chapter horizon</h3>
+<p><b>Validity.</b> The storage and injection trace is correct: ten live chapters, eight <code>eventHistory</code> lines, 206 archived chapters, and no archive reader. The risk statement needs one qualification. RAG is not gated only by NPC entity overlap; current location and active-quest overlap also open candidacy, after which lexical terms rank candidates. Nevertheless, lexical similarity alone cannot open the gate, and archived chapter summaries are not candidates at all. An arc-shaped question with no currently matching person, place, or quest can therefore fall through. Existing skeleton, quest, lore, core-memory, and transcript carriers make confabulation possible rather than inevitable.</p>
+<p><b>Solution concerns.</b></p>
+<ol>
+  <li><b>Era compression has the highest coverage but also compounds model loss.</b> “Every 20 chapters” is a storage cadence, not a narrative era boundary; an arc can straddle two batches. Recursive summaries can launder an early mistake into permanent canon. Each era needs covered-turn ranges, source chapter IDs, correction/supersession semantics, and a rebuild path from immutable chapters. Keep the always-on budget explicit rather than assuming ten eras remains enough at every campaign length.</li>
+  <li><b>Archived-chapter retrieval may deserve the safer first experiment.</b> It is read-side and reversible, but simply adding chapters to the current RAG corpus will not answer handle-free arc questions because the entity/location/quest gate remains. A separate topical chapter gate or an era/arc index is required; entity stamps alone reproduce the existing blind spot.</li>
+  <li><b>Raising caps is correctly ranked last.</b> It spends recurring prompt budget and delays rather than removes the horizon. Use it only with measured recall tests and a fixed budget.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Finding 3 · The unfed LOCATION_STATE channel</h3>
+<p><b>Validity.</b> Confirmed, and the save is slightly worse than the headline: three nodes have <code>stateNotes</code>, but Sandpoint's only note is literally <code>"none"</code>. Only two nodes carry meaningful durable changes. Seventy-five of 77 map nodes are marked visited, so blueprint-only nodes do not explain the starvation. The lack of a demonstrated return-visit contradiction appropriately keeps this at moderate severity.</p>
+<p><b>Solution concerns.</b></p>
+<ol>
+  <li><b>A next-turn post-combat nudge must capture the changed node.</b> <code>[LOCATION_STATE:]</code> always writes to <code>currentNodeKey()</code>. If combat closes and the same response moves the party, a next-turn reminder can file the old battlefield's damage onto the new location. Store the trigger node and suppress the note after departure, or introduce an explicitly targeted, strictly validated write path. Also do not reuse the current build-time latch semantics without a delivery/receipt check: a failed provider call or ignored note otherwise burns the one shot.</li>
+  <li><b>Feed-side hardening should not outrun sink-side hardening.</b> <code>fileLocationState</code> keeps only <code>LOC_STATE_CAP</code> notes and evicts the oldest with a console warning. That contradicts the prompt's “permanent change record” promise once a place changes more than the cap. Before increasing emissions, define consolidation/archive behavior so the fourth durable change cannot resurrect the frozen first description.</li>
+  <li><b>The settle nudge and verb watcher remain secondary.</b> Periodic “does this still match?” prompting can encourage the model to invent a change merely to satisfy the note. Verb scans also confuse hypothetical, negated, and remote destruction with a current-location fact. Both need telemetry and exact-node gating before promotion.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Finding 4 · Inventory size and missing item canon</h3>
+<p><b>Validity.</b> The schema point is valid: the active inventory is plain strings and the engine has no canonical effect record for mechanics-bearing items. The quantitative premise does not reproduce. A fresh t1549 prompt build produced 35,870 stable characters and 67,597 volatile characters. Ammut's complete 107-item <code>Inventory:</code> line is 5,027 characters, or about 1,257 tokens under the report's own characters/4 estimator—not 2,691. <code>STORY SO FAR</code> (~1,952) and <code>ACTIVE NPC DETAILS</code> (~1,790) are therefore larger. Companion inventories together add about 683 estimated tokens inside their separate party blocks, but that still does not make the claimed “one line” measurement true. With no field contradiction demonstrated, this is useful evidence for existing #81, not a new moderate-priority incident.</p>
+<p><b>Solution concerns.</b></p>
+<ol>
+  <li><b>A model-authored write-once <code>[ITEM_DEF:]</code> can canonize the first hallucination.</b> Prefer curated definitions for known items and an explicit player-confirmed definition for emergent objects. The schema must distinguish item type from instance, quantity/charges, provenance, owner, and transfers; otherwise one definition can incorrectly govern two same-named but distinct objects.</li>
+  <li><b>Structured inventory should compress the prompt, never the saved possessions.</b> Auto-categorizing 107 legacy strings is itself an error surface, and collapsing trophies or “mundane” objects into a count can erase the clue that later becomes plot-relevant. Preserve every item structurally; inject full names for quest/provenance/mechanics-bearing items and summarize only a reversible presentation view. “Available on demand via the sheet” does not help the GM during a generation unless an actual retrieval/tool path exists.</li>
+  <li><b>Display-only remains correctly described as non-hardening.</b> It can ship for player utility, but should not be counted as a drift remedy.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Finding 5 · Two calendars, one future</h3>
+<p><b>Validity.</b> The bifurcation is real. At age 40, the Sable future event survives because the predicate is <code>age &lt;= 40</code>; it will disappear at the first summarize after its age exceeds 40, with no warning or archive. Its schedule twin persists by clock time. The particular countdown is currently distorted by the clock defect discussed below, but that does not remove the duplicated-lifecycle problem.</p>
+<p><b>Solution concerns.</b></p>
+<ol>
+  <li><b>Token-overlap refresh should not be the primary fix.</b> It has false negatives under paraphrase and false positives on generic words such as “network” or “workshop.” Rewriting <code>setTurn</code> also destroys the event's original age and can make a stale event immortal while leaving both stores active. At most, use overlap to flag a review candidate.</li>
+  <li><b>Prefer explicit promotion/linkage.</b> When a fuzzy anticipated event becomes a clock schedule, record a shared ID or retire the future-event copy as “promoted to schedule.” Active quests can reference that ID. This preserves provenance, eliminates duplicate prompt pressure, and gives one lifecycle authority without requiring a full store rewrite.</li>
+  <li><b>The one-shot GM question is safer for ambiguous legacy entries, but inherits note-stack and latch risks.</b> Archive anything it finally drops. Full store unification remains the clean end-state if clock work reopens, and may deserve a higher rank than a heuristic refresh despite its effort.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Rejected candidate that should be restored · Clock repair integrity</h3>
+<p class="tldr">The sanctioned repair explains one backward adjustment; the save records exactly two. The countdowns therefore do not remain correct.</p>
+<p>The transcript clock stamp is 8,820 at t1525 and 6,500 at t1526: <b>−2,320 minutes, exactly 2 × the prescribed −1,160 repair</b>. Turn numbers remain monotonic, and shipping clock paths only add positive minutes. At export the clock is 6,680 while the two schedules claim they were born at 6,915 and 7,490—both in the future relative to “now.” For Sable, <code>born=7490</code> and <code>due=8930</code> encode the intended 1,440-minute duration, but <code>due-now=2250</code>; the duplicate adjustment has extended the remaining deadline by 810 minutes.</p>
+<p>This is not an ordinary gameplay-clock regression. It is a repair/migration safety defect: a raw scalar edit has no expected-before value, repair identifier, idempotency guard, or postcondition check. It should remain a separate finding (Sol R3 / TODO #146), with preconditioned repair transactions and load-time diagnostics for monotonic transcript stamps and <code>born &lt;= now &lt; due</code>. Do not auto-repair this campaign until the intended timeline is adjudicated.</p>
+</div>
+
+<div class="card">
+<h3>Revised hardening order from Sol's review</h3>
+<ol>
+  <li>Stop irreversible NPC-fact loss, including complete archive import/export/migration coverage; then type temporal versus durable NPC facts.</li>
+  <li>Make repair operations idempotent and surface impossible clock/schedule invariants.</li>
+  <li>Harden <code>LOCATION_STATE</code>'s storage cap and delivery receipts before adding an exact-node emission nudge.</li>
+  <li>Prototype archived-chapter retrieval versus provenance-backed era summaries with recall tests; choose on measured coverage, not prompt intuition.</li>
+  <li>Unify or explicitly link scheduled and unscheduled future-event lifecycles.</li>
+  <li>Keep item canon under #81; first correct the measurement and decide the item schema/authority before adding prompt injection.</li>
+</ol>
+<p class="dim">All proposed changes touch the protected drift surface and require the project's reviewed Fable workflow. These comments are analysis only; no engine or save mutation was performed.</p>
+</div>
 
 </body>
 </html>
