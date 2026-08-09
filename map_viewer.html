@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic and Dragons — Campaign Map</title>
+<!-- ─── MAP VIEWER SATELLITE (filed with TODO #154) ──────────────────────────────────────────
+     Interactive view of the campaign's location graph — the GM's actual working geography:
+     memory.map nodes + edges, sublocations clustered under parents, current party position,
+     split members, NPC last-seen markers, and per-node stats on click. READ-ONLY by
+     construction: this page never writes localStorage (the recall_gate discipline).
+     Data sources, in precedence order:
+       1. window.__mapTest.load(data)  — test seam (the no-untestable-surface rule)
+       2. file import (.tnd export or raw {worldState,memory} JSON) — drag/drop or picker
+       3. same-origin localStorage (tnd_mem_v10 + tnd_core_v10) — the LIVE view when opened
+          on the deployed origin beside the game
+     Like all satellites it must ride sw.js's network-first allowlist (the bug_tracker
+     stale-pin lesson) — done in the same commit that created this file. -->
+<style>
+  :root{--bg:#0d0d0d;--bg2:#161616;--bg3:#1e1e1e;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--acc2:#d9b47c;--t0:#e8e0d0;--t1:#b0a890;--t2:#6f6a5c;--bad:#a05a5a;--good:#7aa86a;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--t1);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  #bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--brd);flex-wrap:wrap}
+  #bar h1{font-size:15px;color:var(--acc);font-weight:600;letter-spacing:.5px}
+  #bar .muted{color:var(--t2);font-size:11px;font-weight:400}
+  #src{font-size:11px;color:var(--t2)}
+  #src.live{color:var(--good)}
+  #src.err{color:var(--bad)}
+  #bar button,#bar label.btn{background:var(--bg3);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font)}
+  #bar button:hover,#bar label.btn:hover{border-color:var(--acc);color:var(--t0)}
+  #wrap{flex:1;display:flex;min-height:0}
+  #stage{flex:1;position:relative;min-width:0}
+  #stage svg{width:100%;height:100%;display:block;cursor:grab}
+  #stage svg.panning{cursor:grabbing}
+  #panel{width:340px;border-left:1px solid var(--brd);background:var(--bg2);overflow-y:auto;padding:16px;display:none}
+  #panel.open{display:block}
+  #panel h2{font-size:14px;color:var(--t0);margin-bottom:2px}
+  #panel .sub{font-size:11px;color:var(--acc);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+  #panel .sec{margin:12px 0}
+  #panel .sec h3{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  #panel .sec div,#panel .sec li{font-size:12px;line-height:1.5;color:var(--t1)}
+  #panel .desc{font-size:12px;line-height:1.55;color:var(--t1);border-left:2px solid var(--brd2);padding-left:8px}
+  #panel .chip{display:inline-block;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:1px;padding:1px 8px;border-radius:12px;border:1px solid var(--acc);background:#221c12;margin:0 4px 4px 0;font-family:monospace;text-transform:uppercase}
+  #panel .chip.away{border-color:var(--bad);background:#221212}
+  #panel a{color:var(--acc2);cursor:pointer;text-decoration:none}
+  #panel a:hover{text-decoration:underline}
+  #panel .dead{color:var(--t2);text-decoration:line-through}
+  #panel ul{list-style:none}
+  #legend{position:absolute;left:12px;bottom:12px;background:rgba(22,22,22,.92);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;font-size:10.5px;color:var(--t2);line-height:1.8;pointer-events:none}
+  #legend svg{vertical-align:middle;margin-right:5px}
+  #drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.85);color:var(--acc);font-size:16px;border:2px dashed var(--acc);z-index:5;pointer-events:none}
+  .nodeg{cursor:pointer}
+  .nodeg text{font-family:var(--font);fill:var(--t1);pointer-events:none}
+  .nodeg.world text{fill:var(--t0)}
+  .nodeg:hover text{fill:var(--acc2)}
+  .edge{stroke:var(--brd2);stroke-width:1.2}
+  .edge.ghosted{stroke:var(--bad);stroke-dasharray:4 3}
+  .subedge{stroke:#242424;stroke-width:1}
+  #empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--t2);font-size:13px;text-align:center;padding:0 40px}
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>Campaign Map <span class="muted">satellite · read-only</span></h1>
+  <span id="src">no data yet</span>
+  <label class="btn">📂 Import save<input type="file" id="file" accept=".tnd,.json" style="display:none"></label>
+  <button id="relayout">↻ Re-run layout</button>
+  <button id="fit">⤢ Fit</button>
+  <button id="expsvg">⬇ Export SVG</button>
+</div>
+<div id="wrap">
+  <div id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="legend"></div>
+    <div id="drop">drop a .tnd export anywhere</div>
+    <div id="empty">
+      <div>No campaign data found in this browser's storage.</div>
+      <div>Open this page on the same origin as a played campaign, drop a <b>.tnd</b> export here, or use 📂 Import save.</div>
+    </div>
+  </div>
+  <div id="panel"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+  // ── state ──────────────────────────────────────────────────────────────────
+  var CUR=null;      // {mem, ws, srcLabel} — the loaded campaign
+  var G=null;        // built graph {nodes:[], edges:[], byKey:{}}
+  var view={x:0,y:0,w:1200,h:800};
+  var selected=null;
+
+  // ── data loading (three sources, one normalizer) ───────────────────────────
+  function normalize(data,label){
+    // Accepts a .tnd export ({worldState, memory, ...}) or bare pieces.
+    var ws=data.worldState||data.ws||null;
+    var mem=data.memory||data.mem||null;
+    if(!mem&&data.map)mem=data;                       // a raw memory object
+    if(!mem||!mem.map||!mem.map.nodes){setSrc("no map data in that source ("+label+")",true);return false;}
+    CUR={mem:mem,ws:ws||{},srcLabel:label};
+    buildGraph();layout();render();fit();
+    var n=G.nodes.length,e=G.edges.length;
+    setSrc(label+" — "+n+" locations, "+e+" routes"+(CUR.ws&&CUR.ws.turn?", turn "+CUR.ws.turn:""),false,label.indexOf("live")===0);
+    $("empty").style.display="none";
+    return true;
+  }
+  function setSrc(txt,isErr,isLive){var el=$("src");el.textContent=txt;el.className=isErr?"err":(isLive?"live":"");}
+  function tryLocalStorage(){
+    try{
+      var m=localStorage.getItem("tnd_mem_v10"),c=localStorage.getItem("tnd_core_v10");
+      if(!m)return false;
+      var mem=JSON.parse(m),ws=null;
+      try{ws=c?JSON.parse(c):null;}catch(e2){ws=null;}
+      // worldState's transcript may be the {__lz} compressed form — never needed here, drop it.
+      if(ws&&ws.transcript)delete ws.transcript;
+      return normalize({memory:mem,worldState:ws},"live localStorage"+(ws&&ws.campName?" · "+ws.campName:""));
+    }catch(e){setSrc("localStorage read failed: "+e.message,true);return false;}
+  }
+  function loadFile(f){
+    var r=new FileReader();
+    r.onload=function(){
+      try{var d=JSON.parse(r.result);if(d.worldState&&d.worldState.transcript)delete d.worldState.transcript;normalize(d,"import · "+f.name);}
+      catch(e){setSrc("could not parse "+f.name+": "+e.message,true);}
+    };
+    r.onerror=function(){setSrc("could not read "+f.name,true);};
+    r.readAsText(f);
+  }
+  // Test seam — inject a campaign without storage or pickers (drives every render path).
+  window.__mapTest={load:function(d,label){return normalize(d,label||"seam");},graph:function(){return G;},select:function(k){selectNode(k);return selected;}};
+
+  // ── graph build ────────────────────────────────────────────────────────────
+  var ROAD_RE=/\broad\b|\bpass\b|\btrail\b|\btunnel\b|\bapproach\b|\bridge\b|\briver\b|\bcrossing\b/i;
+  function buildGraph(){
+    var mem=CUR.mem,ws=CUR.ws||{},nodes=[],byKey={},i,k;
+    var raw=mem.map.nodes||{};
+    function add(key,ghost){
+      if(byKey[key])return byKey[key];
+      var src=raw[key]||{};
+      var pipe=key.indexOf("|");
+      var parent=src.parent||(pipe>=0?key.slice(0,pipe):null);
+      var n={key:key,label:pipe>=0?key.slice(pipe+1):key,parent:parent,world:!parent,
+             visits:src.visits||0,firstVisit:src.firstVisit,description:src.description||null,
+             stateNotes:src.stateNotes||[],items:src.items||[],ghost:!!ghost,
+             road:ROAD_RE.test(key),npcsHere:[],x:0,y:0,vx:0,vy:0};
+      byKey[key]=n;nodes.push(n);return n;
+    }
+    for(k in raw)add(k,false);
+    var edges=[];
+    var rawE=mem.map.edges||[];
+    for(i=0;i<rawE.length;i++){
+      var e=rawE[i];if(!e||!e.from||!e.to)continue;
+      var a=byKey[e.from]||add(e.from,true);       // ghost: edge names a node that was never filed
+      var b=byKey[e.to]||add(e.to,true);
+      edges.push({a:a,b:b,turn:e.turn,ghosted:a.ghost||b.ghost});
+    }
+    // Ensure every sublocation's parent exists (ghost if the world node was never filed).
+    for(i=0;i<nodes.length;i++){if(nodes[i].parent&&!byKey[nodes[i].parent])add(nodes[i].parent,true);}
+    // NPC last-seen markers + death flags (memory side).
+    var mn=mem.npcs||{};
+    for(k in mn){
+      var at=mn[k]&&mn[k].lastSeenAt;if(!at)continue;
+      var tn=byKey[at];if(!tn&&at.indexOf("|")>=0)tn=byKey[at.slice(0,at.indexOf("|"))];
+      if(tn)tn.npcsHere.push({name:k,dead:!!mn[k].dead});
+    }
+    // Party overlay (worldState side): current position + split members.
+    var cur=ws.world?ws.world.location:null;
+    var curSub=ws.world&&ws.world.sublocation?cur+"|"+ws.world.sublocation:null;
+    var splits=[];
+    var roster=ws.npcs||[];
+    for(i=0;i<roster.length;i++){
+      var p=roster[i];
+      if(p.partyMember&&p.charSheet&&p.charSheet.splitLoc){
+        var sl=p.charSheet.splitLoc;
+        var skey=sl.sublocation?sl.location+"|"+sl.sublocation:sl.location;
+        splits.push({name:p.name,key:byKey[skey]?skey:(byKey[sl.location]?sl.location:null),raw:sl});
+      }
+    }
+    G={nodes:nodes,edges:edges,byKey:byKey,current:curSub&&byKey[curSub]?curSub:(cur&&byKey[cur]?cur:null),splits:splits,
+       playerName:(ws.character&&ws.character.name)||"the party"};
+  }
+
+  // ── force layout (hand-rolled; no deps by project rule) ────────────────────
+  function layout(){
+    var N=G.nodes,i,j,it;
+    var worlds=[];for(i=0;i<N.length;i++)if(N[i].world)worlds.push(N[i]);
+    // Seed: world nodes on a circle in first-visit order; sublocations jittered around parents.
+    worlds.sort(function(a,b){return (a.firstVisit||0)-(b.firstVisit||0);});
+    var R=Math.max(220,worlds.length*46);
+    for(i=0;i<worlds.length;i++){var th=(i/Math.max(1,worlds.length))*Math.PI*2;worlds[i].x=Math.cos(th)*R;worlds[i].y=Math.sin(th)*R;}
+    for(i=0;i<N.length;i++){if(!N[i].world){var pp=G.byKey[N[i].parent];N[i].x=(pp?pp.x:0)+(Math.sin(i*7)*40);N[i].y=(pp?pp.y:0)+(Math.cos(i*13)*40);}}
+    for(it=0;it<400;it++){
+      var cool=1-it/400;
+      for(i=0;i<N.length;i++){N[i].vx=0;N[i].vy=0;}
+      // Pairwise repulsion — subs repel weakly (they live in tight clusters).
+      for(i=0;i<N.length;i++)for(j=i+1;j<N.length;j++){
+        var a=N[i],b=N[j];
+        var dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;if(d2<1)d2=1;
+        var d=Math.sqrt(d2);
+        var rep=(a.world&&b.world?9000:(a.world||b.world?2600:900))/d2;
+        var fx=dx/d*rep,fy=dy/d*rep;
+        a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
+      }
+      // Springs: real edges + sub→parent tethers.
+      for(i=0;i<G.edges.length;i++){
+        var E=G.edges[i],len=E.a.world&&E.b.world?230:120;
+        spring(E.a,E.b,len,0.012);
+      }
+      for(i=0;i<N.length;i++){if(!N[i].world){var par=G.byKey[N[i].parent];if(par)spring(N[i],par,64,0.05);}}
+      // Weak centering + integrate.
+      for(i=0;i<N.length;i++){var n=N[i];n.vx-=n.x*0.0012;n.vy-=n.y*0.0012;n.x+=n.vx*cool;n.y+=n.vy*cool;}
+    }
+    function spring(a,b,len,k){
+      var dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+      var f=(d-len)*k,fx=dx/d*f,fy=dy/d*f;
+      a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
+    }
+  }
+
+  // ── render ─────────────────────────────────────────────────────────────────
+  function nodeR(n){return n.world?(10+Math.min(16,Math.sqrt(n.visits||1)*2.4)):(4+Math.min(7,Math.sqrt(n.visits||1)*1.5));}
+  function render(){
+    var s=[],i;
+    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(!n.world){var p=G.byKey[n.parent];if(p)s.push('<line class="subedge" x1="'+p.x+'" y1="'+p.y+'" x2="'+n.x+'" y2="'+n.y+'"/>');}}
+    for(i=0;i<G.edges.length;i++){var e=G.edges[i];
+      s.push('<line class="edge'+(e.ghosted?' ghosted':'')+'" x1="'+e.a.x+'" y1="'+e.a.y+'" x2="'+e.b.x+'" y2="'+e.b.y+'"><title>t'+esc(e.turn)+': '+esc(e.a.key)+' ↔ '+esc(e.b.key)+'</title></line>');}
+    for(i=0;i<G.nodes.length;i++){s.push(nodeSVG(G.nodes[i]));}
+    // Party + split badges last (topmost).
+    if(G.current){var c=G.byKey[G.current];s.push('<circle cx="'+c.x+'" cy="'+c.y+'" r="'+(nodeR(c)+7)+'" fill="none" stroke="#d9b47c" stroke-width="2" stroke-dasharray="3 3"><title>'+esc(G.playerName)+' is here</title></circle>');}
+    for(i=0;i<G.splits.length;i++){var sp=G.splits[i];if(!sp.key)continue;var sn=G.byKey[sp.key];
+      s.push('<g><circle cx="'+(sn.x+nodeR(sn)+7)+'" cy="'+(sn.y-nodeR(sn)-7)+'" r="8" fill="#221212" stroke="#a05a5a"/><text x="'+(sn.x+nodeR(sn)+7)+'" y="'+(sn.y-nodeR(sn)-3.5)+'" text-anchor="middle" font-size="9" fill="#c88">'+esc(sp.name.charAt(0))+'</text><title>'+esc(sp.name)+' — split from the party, at '+esc(sp.key)+'</title></g>');}
+    $("svg").innerHTML='<g id="root">'+s.join("")+'</g>';
+    $("svg").setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
+    wireNodes();renderLegend();
+  }
+  function nodeSVG(n){
+    var r=nodeR(n),shape;
+    var stroke=n.ghost?"#a05a5a":(n.key===G.current?"#d9b47c":"#b8935a");
+    var fill=n.world?"#1e1a12":"#181818";
+    var dash=n.ghost?' stroke-dasharray="3 2"':'';
+    if(n.road){shape='<rect x="'+(n.x-r)+'" y="'+(n.y-r)+'" width="'+(r*2)+'" height="'+(r*2)+'" transform="rotate(45 '+n.x+' '+n.y+')" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
+    else{shape='<circle cx="'+n.x+'" cy="'+n.y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'"'+dash+' stroke-width="1.4"/>';}
+    var label=n.world?esc(n.key):esc(n.label);
+    var fs=n.world?12:9.5;
+    var ttl=esc(n.key)+(n.visits?" — "+n.visits+" visit"+(n.visits===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
+    return '<g class="nodeg'+(n.world?' world':'')+'" data-k="'+esc(n.key)+'">'+shape+
+      '<text x="'+n.x+'" y="'+(n.y+r+fs+1)+'" text-anchor="middle" font-size="'+fs+'">'+label+'</text><title>'+ttl+'</title></g>';
+  }
+  function renderLegend(){
+    $("legend").innerHTML=
+      '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#1e1a12" stroke="#b8935a"/></svg>settlement / site &nbsp; <svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="#181818" stroke="#b8935a"/></svg>road / corridor</div>'+
+      '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#d9b47c" stroke-dasharray="3 3"/></svg>party is here &nbsp; <svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#221212" stroke="#a05a5a"/></svg>split member</div>'+
+      '<div><svg width="14" height="6"><line x1="0" y1="3" x2="14" y2="3" stroke="#a05a5a" stroke-dasharray="4 3"/></svg>edge to a node the record never filed (ghost)</div>'+
+      '<div>node size = visit count · drag background to pan · wheel to zoom · click a node for its record</div>';
+  }
+
+  // ── node panel ─────────────────────────────────────────────────────────────
+  function selectNode(key){
+    var n=G.byKey[key];if(!n)return;
+    selected=key;
+    var h='<h2>'+esc(n.key)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'sublocation of '+esc(n.parent)))+'</div>';
+    var chips='';
+    if(n.key===G.current)chips+='<span class="chip">'+esc(G.playerName)+' is here</span>';
+    for(var si=0;si<G.splits.length;si++)if(G.splits[si].key===n.key)chips+='<span class="chip away">'+esc(G.splits[si].name)+' — away from party</span>';
+    if(chips)h+='<div class="sec">'+chips+'</div>';
+    h+='<div class="sec"><h3>Record</h3><div>'+(n.visits||0)+' visit'+(n.visits===1?'':'s')+(n.firstVisit!=null?' · first at turn '+esc(n.firstVisit):'')+'</div></div>';
+    if(n.description)h+='<div class="sec"><h3>Canonical description (write-once, GM-injected)</h3><div class="desc">'+esc(n.description)+'</div></div>';
+    if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
+    if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
+    if(n.npcsHere.length){h+='<div class="sec"><h3>NPCs last seen here</h3><ul>';for(var i4=0;i4<n.npcsHere.length;i4++){var np=n.npcsHere[i4];h+='<li'+(np.dead?' class="dead"':'')+'>· '+esc(np.name)+(np.dead?' (deceased)':'')+'</li>';}h+='</ul></div>';}
+    var subs=[];for(var i5=0;i5<G.nodes.length;i5++)if(G.nodes[i5].parent===n.key)subs.push(G.nodes[i5]);
+    if(subs.length){h+='<div class="sec"><h3>Known sublocations ('+subs.length+')</h3><ul>';for(var i6=0;i6<subs.length;i6++)h+='<li>· <a data-go="'+esc(subs[i6].key)+'">'+esc(subs[i6].label)+'</a></li>';h+='</ul></div>';}
+    var conn=[];for(var i7=0;i7<G.edges.length;i7++){var E=G.edges[i7];if(E.a.key===n.key)conn.push({k:E.b.key,t:E.turn});else if(E.b.key===n.key)conn.push({k:E.a.key,t:E.turn});}
+    if(conn.length){h+='<div class="sec"><h3>Connected (first travel)</h3><ul>';for(var i8=0;i8<conn.length;i8++)h+='<li>· <a data-go="'+esc(conn[i8].k)+'">'+esc(conn[i8].k)+'</a> <span style="color:var(--t2)">(t'+esc(conn[i8].t)+')</span></li>';h+='</ul></div>';}
+    var pn=$("panel");pn.innerHTML=h;pn.className="open";
+    var links=pn.querySelectorAll("a[data-go]");
+    for(var i9=0;i9<links.length;i9++)links[i9].addEventListener("click",function(){var k2=this.getAttribute("data-go");selectNode(k2);centerOn(k2);});
+  }
+  function centerOn(key){var n=G.byKey[key];if(!n)return;view.x=n.x-view.w/2;view.y=n.y-view.h/2;$("svg").setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);}
+
+  // ── interactions ───────────────────────────────────────────────────────────
+  function wireNodes(){
+    var gs=$("svg").querySelectorAll(".nodeg");
+    for(var i=0;i<gs.length;i++)gs[i].addEventListener("click",function(ev){ev.stopPropagation();selectNode(this.getAttribute("data-k"));});
+  }
+  (function(){
+    var svg=$("svg"),drag=null;
+    svg.addEventListener("mousedown",function(ev){drag={x:ev.clientX,y:ev.clientY,vx:view.x,vy:view.y};svg.className="panning";});
+    window.addEventListener("mousemove",function(ev){if(!drag)return;var sc=view.w/svg.clientWidth;view.x=drag.vx-(ev.clientX-drag.x)*sc;view.y=drag.vy-(ev.clientY-drag.y)*sc;svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);});
+    window.addEventListener("mouseup",function(){drag=null;svg.className="";});
+    svg.addEventListener("wheel",function(ev){ev.preventDefault();
+      var f=ev.deltaY>0?1.15:0.87;
+      var mx=view.x+ev.offsetX/svg.clientWidth*view.w,my=view.y+ev.offsetY/svg.clientHeight*view.h;
+      view.w*=f;view.h*=f;view.x=mx-(mx-view.x)*f;view.y=my-(my-view.y)*f;
+      svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
+    },{passive:false});
+    svg.addEventListener("click",function(){$("panel").className="";selected=null;});
+  })();
+  function fit(){
+    if(!G||!G.nodes.length)return;
+    var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,i;
+    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
+    var pad=90;view.x=minX-pad;view.y=minY-pad;view.w=(maxX-minX)+pad*2;view.h=(maxY-minY)+pad*2;
+    // Match the stage aspect so nothing squashes.
+    var svg=$("svg"),ar=svg.clientWidth/Math.max(1,svg.clientHeight),var_ar=view.w/view.h;
+    if(var_ar<ar)view.w=view.h*ar;else view.h=view.w/ar;
+    svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
+  }
+  $("relayout").addEventListener("click",function(){if(G){layout();render();fit();}});
+  $("fit").addEventListener("click",fit);
+  // Standalone-SVG export — the same render, wrapped self-contained (inline styles + bg) so the
+  // file is shareable anywhere. Exposed on the seam so a headless run can produce the image too.
+  function exportSVG(title){
+    if(!G||!G.nodes.length)return null;
+    var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,i;
+    for(i=0;i<G.nodes.length;i++){var n=G.nodes[i];if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y;}
+    var p=110,w=(maxX-minX)+2*p,hh=(maxY-minY)+2*p;
+    var css="text{font-family:Segoe UI,system-ui,sans-serif;fill:#b0a890}.nodeg.world text{fill:#e8e0d0}.edge{stroke:#333;stroke-width:1.2}.edge.ghosted{stroke:#a05a5a;stroke-dasharray:4 3}.subedge{stroke:#242424;stroke-width:1}";
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(minX-p)+' '+(minY-p)+' '+w+' '+hh+'"><style>'+css+'</style>'+
+      '<rect x="'+(minX-p)+'" y="'+(minY-p)+'" width="'+w+'" height="'+hh+'" fill="#0d0d0d"/>'+
+      '<text x="'+(minX-p+24)+'" y="'+(minY-p+34)+'" font-size="20" fill="#b8935a">'+esc(title||"Campaign geography")+'</text>'+
+      $("svg").querySelector("#root").innerHTML+'</svg>';
+  }
+  window.__mapTest.exportSVG=exportSVG;
+  $("expsvg").addEventListener("click",function(){
+    var label=(CUR&&CUR.ws&&CUR.ws.campName?CUR.ws.campName:"campaign")+(CUR&&CUR.ws&&CUR.ws.turn?" — turn "+CUR.ws.turn:"");
+    var svg=exportSVG(label+" — campaign geography");
+    if(!svg)return;
+    var a=document.createElement("a");
+    a.href="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+    a.download="campaign_map.svg";
+    document.body.appendChild(a);a.click();a.remove();
+  });
+  $("file").addEventListener("change",function(){if(this.files&&this.files[0])loadFile(this.files[0]);});
+  (function(){
+    var stage=$("stage");
+    ["dragenter","dragover"].forEach(function(evn){stage.addEventListener(evn,function(ev){ev.preventDefault();$("drop").style.display="flex";});});
+    stage.addEventListener("dragleave",function(ev){if(ev.target===stage)$("drop").style.display="none";});
+    stage.addEventListener("drop",function(ev){ev.preventDefault();$("drop").style.display="none";if(ev.dataTransfer.files&&ev.dataTransfer.files[0])loadFile(ev.dataTransfer.files[0]);});
+  })();
+
+  // ── boot ───────────────────────────────────────────────────────────────────
+  if(!tryLocalStorage())setSrc("no campaign in this browser's storage — import a .tnd export",false);
+})();
+</script>
+</body>
+</html>
