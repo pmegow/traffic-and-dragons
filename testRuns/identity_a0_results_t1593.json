@@ -1,0 +1,1706 @@
+{
+  "save": "Rise_of_the_Runelords__Ammut__Ammut_t1593.tnd",
+  "turn": 1593,
+  "generatedBy": "dev/identity-a0-gate.js",
+  "overlays": [
+    "F14 combat.node = \"Sandpoint, Varisia\" (fight staged at the M1 dup)",
+    "F15 pendingLocState.node = \"Sandpoint|Varisia|Sandpoint - Rusty Dragon\" (M2 descendant)",
+    "F16 locDescNudged key on an M2 4-segment descendant",
+    "F12 splitLoc on Frizwick = \"Sandpoint, Varisia\" (M1 dup)",
+    "F13 lastSeenAt on staged NPC = \"Sandpoint|Varisia|Corven's Cooper Shop\" (M2 descendant)",
+    "F18 archive.locationStates provenance = \"Sandpoint|Varisia\" (M2 dup)",
+    "F5 stateNotes 2+2 on M1 pair (forces chronological merge + 1 eviction past cap 3)",
+    "F6 size/travelMins on M1 pair (canonical null takes dup size; canonical travelMins wins)",
+    "F4 items on M3 pair (case-collision \"Brass Key\"/\"brass key\" must dedupe)",
+    "F6 description on M4 world dup (null canonical takes dup's — the other direction of the rule)",
+    "F10/F11 world pointer = Sandpoint / \"Rusty Dragon\" bare sub name (rides M3)"
+  ],
+  "inventory": [
+    {
+      "id": "F1",
+      "cls": "memory.map.nodes keys",
+      "shape": "world \"Name\" | sub \"Parent|Sub\" (3–4 segment keys exist in the wild via pipe-bearing [SUBLOCATION:] text)",
+      "writers": "memory.js:183 fileLocation, :198 fileSubLocation, :220 fileLocationState, tag_table.js:774 PARTY_SPLIT, game.js:38 boot-heal"
+    },
+    {
+      "id": "F2",
+      "cls": "node.parent",
+      "shape": "world name (or null; real data also holds full sub keys — Sandpoint|Varisia children)",
+      "writers": "memory.js:198 (world.location), :220 (key.split(\"|\")[0])"
+    },
+    {
+      "id": "F3",
+      "cls": "node.npcs[]",
+      "shape": "NPC names on the node (merge: union)",
+      "writers": "memory.js:258 mapNpcLocation, tag_table.js:776"
+    },
+    {
+      "id": "F4",
+      "cls": "node.items[]",
+      "shape": "{name, placed, taken} — reads are FIRST case-insensitive name match",
+      "writers": "memory.js:236 fileLocationItem"
+    },
+    {
+      "id": "F5",
+      "cls": "node.stateNotes[]",
+      "shape": "{n, t} cap LOC_STATE_CAP=3, evictions → memory.archive.locationStates",
+      "writers": "memory.js:214 fileLocationState"
+    },
+    {
+      "id": "F6",
+      "cls": "node scalar fields",
+      "shape": "description (write-once), firstVisit, lastVisit, visits, size, travelMins",
+      "writers": "memory.js:183/199/205, tag_table.js:290 LOCATION_SIZE"
+    },
+    {
+      "id": "F7",
+      "cls": "memory.map.edges[].from/to",
+      "shape": "world names BY DESIGN, but full sub keys exist in the wild (Choke Gully, Sandpoint|Varisia); ghosts exist (endpoint with no node)",
+      "writers": "memory.js:191 fileLocation"
+    },
+    {
+      "id": "F8",
+      "cls": "memory.map.lastArrivalFrom",
+      "shape": "world name",
+      "writers": "memory.js:188"
+    },
+    {
+      "id": "F9",
+      "cls": "memory.locations keys",
+      "shape": "world names BY DESIGN; pipe keys exist in the wild. {visited[], notes[] cap5}",
+      "writers": "memory.js:175 fileLocation"
+    },
+    {
+      "id": "F10",
+      "cls": "worldState.world.location",
+      "shape": "world name",
+      "writers": "tag_table.js:247 LOCATION, sync modal, game.js:1879 blueprint"
+    },
+    {
+      "id": "F11",
+      "cls": "worldState.world.sublocation",
+      "shape": "BARE sub name (currentNodeKey composes loc+\"|\"+sub — a sub rename must rewrite the bare name here)",
+      "writers": "tag_table.js:260/261"
+    },
+    {
+      "id": "F12",
+      "cls": "charSheet.splitLoc",
+      "shape": "{location: world name, sublocation: BARE name|null, turn, audited?}",
+      "writers": "tag_table.js:765 PARTY_SPLIT"
+    },
+    {
+      "id": "F13",
+      "cls": "memory.npcs[*].lastSeenAt",
+      "shape": "FULL node key (world or Parent|Sub)",
+      "writers": "memory.js:259, tag_table.js:758/777/870"
+    },
+    {
+      "id": "F14",
+      "cls": "worldState.combat.node",
+      "shape": "full node key (where the fight started, #149)",
+      "writers": "tag_table.js:452 COMBAT_START"
+    },
+    {
+      "id": "F15",
+      "cls": "worldState.pendingLocState.node",
+      "shape": "full node key (aftermath anchor)",
+      "writers": "tag_table.js:535/542"
+    },
+    {
+      "id": "F16",
+      "cls": "worldState.locDescNudged keys",
+      "shape": "full node key → turn (nudge latch)",
+      "writers": "api.js:311-313 buildLocationDescNudge"
+    },
+    {
+      "id": "F17",
+      "cls": "transcript[*].e.l",
+      "shape": "WORLD name at log time (RAG scene stamp; pipe-key values exist in the wild — 109 × \"Sandpoint|Varisia\")",
+      "writers": "memory.js:496 logTranscript-side stamp"
+    },
+    {
+      "id": "F18",
+      "cls": "memory.archive.locationStates[].node",
+      "shape": "full node key (evicted state-note provenance)",
+      "writers": "memory.js:233"
+    },
+    {
+      "id": "F19",
+      "cls": "campaign meta entry.location",
+      "shape": "world name snapshot in tnd_camps_v1",
+      "writers": "state.js:506 updateCampMeta",
+      "scope": "derived"
+    },
+    {
+      "id": "F20",
+      "cls": "blueprint export locations[]/startingLocation",
+      "shape": "world names at export time",
+      "writers": "game.js:1761-1782",
+      "scope": "derived"
+    },
+    {
+      "id": "F21",
+      "cls": ".tnd import whitelist",
+      "shape": "ui-files.js importSave memory allowlist — memory.archive.identityMerges is NOT whitelisted yet; Phase A must add it or pre-images die on .tnd round-trip",
+      "writers": "ui-files.js:479",
+      "scope": "code"
+    },
+    {
+      "id": "F22",
+      "cls": "narrative prose",
+      "shape": "transcript x, npc knowledge/events/firstEncounter, chapters, lore, decisions, quest text, futureEvents, storyBeats, coreMemories, schedule labels, tagLog, eventHistory, node.description text, stateNotes text, memory.locations notes",
+      "writers": "(everywhere)",
+      "scope": "prose"
+    }
+  ],
+  "noop": [
+    {
+      "fixture": "M1",
+      "failed": [
+        "A1",
+        "A2",
+        "A4",
+        "A6",
+        "A10",
+        "A13",
+        "A15",
+        "A20",
+        "A21"
+      ]
+    },
+    {
+      "fixture": "M2",
+      "failed": [
+        "A1",
+        "A2",
+        "A7",
+        "A8",
+        "A10",
+        "A14",
+        "A16",
+        "A19",
+        "A20",
+        "A21"
+      ]
+    },
+    {
+      "fixture": "M3",
+      "failed": [
+        "A1",
+        "A2",
+        "A5",
+        "A7",
+        "A12",
+        "A21"
+      ]
+    },
+    {
+      "fixture": "M4",
+      "failed": [
+        "A1",
+        "A2",
+        "A3",
+        "A7",
+        "A19",
+        "A20",
+        "A21"
+      ]
+    }
+  ],
+  "merges": [],
+  "arms": {
+    "rekey": {
+      "merges": [
+        {
+          "fixture": "M1",
+          "touched": {
+            "F1 node key": 1,
+            "F7 edge endpoint": 2,
+            "F7 self-loop dropped": 1,
+            "F9 memory.locations key": 1,
+            "F12 splitLoc": 1,
+            "F14 combat.node": 1
+          },
+          "instances": 7,
+          "warns": [
+            "edges: 1 self-loop(s) dropped, 0 parallel(s) collapsed"
+          ],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (1)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (18)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (28)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (68 pre-existing); 0 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 29)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: no dead key survives outside prose (1 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M2",
+          "touched": {
+            "F1 node key": 6,
+            "node-moved": 3,
+            "child-collision-fold": 2,
+            "F7 edge endpoint": 4,
+            "F7 parallel collapsed": 2,
+            "F9 memory.locations key": 1,
+            "F13 lastSeenAt": 1,
+            "F15 pendingLocState.node": 1,
+            "F16 locDescNudged key": 1,
+            "F18 archive.locationStates.node": 1,
+            "F17 e.l": 109
+          },
+          "instances": 131,
+          "warns": [
+            "child-key collision folded: Sandpoint|Varisia|Sandpoint - Rusty Dragon -> Sandpoint|Sandpoint - Rusty Dragon",
+            "child-key collision folded: Sandpoint|Varisia|Sandpoint - Rusty Dragon|Common Room -> Sandpoint|Sandpoint - Rusty Dragon|Common Room",
+            "edges: 0 self-loop(s) dropped, 2 parallel(s) collapsed"
+          ],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (19)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (5 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (1)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (68 pre-existing); 109 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 31)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: no dead key survives outside prose (6 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M3",
+          "touched": {
+            "F1 node key": 1,
+            "F10/F11 world pointer": 1
+          },
+          "instances": 2,
+          "warns": [],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=2, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (9)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Sandpoint - Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (68 pre-existing); 0 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited null)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: no dead key survives outside prose (1 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M4",
+          "touched": {
+            "F1 node key": 1,
+            "F7 edge endpoint": 1,
+            "F9 memory.locations key": 1,
+            "F17 e.l": 29
+          },
+          "instances": 32,
+          "warns": [
+            "edge became parent-child after re-point: Sandpoint <-> Sandpoint|Sandpoint Northeast Cliffs (kept — Choke Gully precedent; Phase B policy question)",
+            "e.l rewrites forced a sub-grain key into a world-name field (grain wart — rekey has no better option)"
+          ],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (3)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Sandpoint - Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (68 pre-existing); 29 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 2)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: no dead key survives outside prose (1 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            }
+          ]
+        }
+      ],
+      "executorLoc": 92,
+      "totalInstances": 172
+    },
+    "ids": {
+      "migration": {
+        "touched": {
+          "F1 node key": 80,
+          "F2 parent": 57,
+          "F7 edge endpoint": 58,
+          "ghost-minted": 3,
+          "F8 lastArrivalFrom": 1,
+          "F9 memory.locations key": 23,
+          "F10 world.location": 1,
+          "F11 world effective node": 1,
+          "F12 splitLoc": 2,
+          "F13 lastSeenAt": 38,
+          "F14 combat.node": 1,
+          "F15 pendingLocState.node": 1,
+          "F16 locDescNudged key": 9,
+          "F17 e.l": 1452,
+          "F18 archive.locationStates.node": 1
+        },
+        "ghostsMinted": [
+          "Sandpoint Coast - Abandoned Cottage",
+          "Sandpoint Glassworks - Deep Passage",
+          "Sandpoint Glassworks - Main Floor"
+        ]
+      },
+      "migrationInstances": 1728,
+      "merges": [
+        {
+          "fixture": "M1",
+          "touched": {
+            "identity tombstone": 1,
+            "alias registered": 1,
+            "node fold": 1,
+            "F9 metadata fold": 1
+          },
+          "instances": 4,
+          "warns": [],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (1)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (18)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (28)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (0 pre-existing); 0 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 29)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: zero dangling ids",
+              "pass": true,
+              "detail": "0 dangling",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M2",
+          "touched": {
+            "identity tombstone": 1,
+            "alias registered": 1,
+            "node fold": 1,
+            "F9 metadata fold": 1
+          },
+          "instances": 4,
+          "warns": [
+            "post-merge homonym children flagged for adjudication (records kept distinct): sandpoint - rusty dragon, common room"
+          ],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (19)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (5 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (0 pre-existing); 109 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 31)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: zero dangling ids",
+              "pass": true,
+              "detail": "0 dangling",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M3",
+          "touched": {
+            "identity tombstone": 1,
+            "alias registered": 1,
+            "node fold": 1
+          },
+          "instances": 3,
+          "warns": [],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=2, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (9)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Sandpoint - Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (0 pre-existing); 0 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited null)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: zero dangling ids",
+              "pass": true,
+              "detail": "0 dangling",
+              "inv": false
+            }
+          ]
+        },
+        {
+          "fixture": "M4",
+          "touched": {
+            "identity tombstone": 1,
+            "alias registered": 1,
+            "node fold": 1,
+            "F9 metadata fold": 1
+          },
+          "instances": 4,
+          "warns": [],
+          "battery": [
+            {
+              "id": "A1",
+              "desc": "dup name resolves to the canonical identity",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A2",
+              "desc": "node fold: visits summed, firstVisit min, lastVisit max",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A3",
+              "desc": "description: canonical wins, null takes dup's",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A4",
+              "desc": "size/travelMins: canonical wins unless null",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A5",
+              "desc": "items: case-insensitive dedupe (count=0, no dup names)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A6",
+              "desc": "stateNotes: chronological, cap 3, evictions archived (0)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A7",
+              "desc": "node npcs[] union (3)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A8",
+              "desc": "descendants reachable with visits preserved/summed (0 keys)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A9",
+              "desc": "edges: no self-loops, no parallels, ghost set not grown (resolved view)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A10",
+              "desc": "expected resolved edge count (26)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A11",
+              "desc": "lastArrivalFrom resolves to a live identity",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A12",
+              "desc": "world pointer resolves to the canonical effective node (Sandpoint|Sandpoint - Rusty Dragon)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A13",
+              "desc": "splitLoc resolves (and overlay re-points to canonical)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A14",
+              "desc": "lastSeenAt: dangling set not grown (0 pre-existing); moved stamps reach canonical (0)",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A15",
+              "desc": "combat.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A16",
+              "desc": "pendingLocState.node resolves to canonical",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A17",
+              "desc": "locDescNudged keys all resolve to live identities",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A18",
+              "desc": "archive.locationStates provenance resolves",
+              "pass": true,
+              "detail": "",
+              "inv": true
+            },
+            {
+              "id": "A19",
+              "desc": "transcript e.l: dangling set not grown (0 pre-existing); 29 moved stamps reach canonical",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A20",
+              "desc": "memory.locations folded (visited 2)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A21",
+              "desc": "pre-image archived to memory.archive.identityMerges with the dup's full record",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A22",
+              "desc": "narrative prose byte-unchanged (F22 — history, never rewritten)",
+              "pass": true,
+              "detail": "",
+              "inv": false
+            },
+            {
+              "id": "A23",
+              "desc": "deep scan: zero dangling ids",
+              "pass": true,
+              "detail": "0 dangling",
+              "inv": false
+            }
+          ]
+        }
+      ],
+      "executorLoc": 89,
+      "totalMergeInstances": 15
+    }
+  },
+  "noopNeverFailing": [
+    "A9",
+    "A22",
+    "A17",
+    "A18"
+  ],
+  "sabotage": [
+    {
+      "label": "self-loop edge planted",
+      "target": "A9",
+      "fired": true
+    },
+    {
+      "label": "parallel edge planted",
+      "target": "A9",
+      "fired": true
+    },
+    {
+      "label": "edge to a brand-new ghost planted",
+      "target": "A9",
+      "fired": true
+    },
+    {
+      "label": "dangling locDescNudged key planted",
+      "target": "A17",
+      "fired": true
+    },
+    {
+      "label": "dangling archive provenance planted",
+      "target": "A18",
+      "fired": true
+    },
+    {
+      "label": "transcript prose mutated",
+      "target": "A22",
+      "fired": true
+    },
+    {
+      "label": "dead key planted at a structural path",
+      "target": "A23 deepScan",
+      "fired": true
+    }
+  ],
+  "summary": {
+    "rekeyBattery": "92/92",
+    "idsBattery": "92/92"
+  }
+}
