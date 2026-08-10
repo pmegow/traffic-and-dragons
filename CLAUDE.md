@@ -242,6 +242,8 @@ Assembled fresh on every request from live state. **Returns `{stable, volatile}`
 
 **Gender in image prompts:** `doRender()` uses `c.gender==="F"?"female":c.gender==="NB"?"androgynous":"male"` — never uses pronouns.
 
+**Age is cosmetic-only (user ruling 2026-08-10):** `age` is injected into ZERO gameplay prompts — neither the player identity header nor PARTY MEMBER SHEETS carries it; only the image-render prompt writers read it. Deliberate, NOT the #46/#61 missing-injection defect class: raw years would demand cross-ancestry age semantics (67 = elderly human, coming-of-age elf). Age-driven fiction belongs in `appear`/ancestry text. Full ruling: TODO.md ▸ Architecture decisions.
+
 ### 7. State tag system (`applyMuts`)
 
 The GM embeds hidden tags in every response. `applyMuts(text)` parses them and mutates `worldState` and `memory`. Tags are stripped from displayed text by `cleanTxt()`.

@@ -893,6 +893,11 @@ function buildSysPrompt(){
       /* #140 ①+②: alignment finally reaches the GM for companions (it shaped nothing before —
          the sheet line never carried it), with the stated-vs-actual tension when play has
          drifted them. Descriptive, not directive — the GM decides what the tension means. */
+      /* AGE is deliberately ABSENT here and in the player identity header (user ruling
+         2026-08-10, TODO.md ▸ Architecture decisions): cosmetic-only — image-render prompts
+         are the sole readers. Raw years would demand cross-ancestry age semantics (67 =
+         elderly human, coming-of-age elf). NOT the #46/#61 missing-injection class — do not
+         "fix" by injecting; age-driven fiction rides appear/ancestry text instead. */
       var pmAl=pcs.actualAlignment||pcs.statedAlignment||"";
       var pmAlTension=(pcs.statedAlignment&&pcs.actualAlignment&&pcs.statedAlignment!==pcs.actualAlignment)?" (professed "+pcs.statedAlignment+" — play has drifted them)":"";
       var line=pmN.name+" — "+(pcs.subraceNm?pcs.subraceNm+" ":"")+(pcs.ancestry?pcs.ancestry+" ":"")+(pcs.cls||"adventurer")+(pcs.archetypeNm?" ["+pcs.archetypeNm+"]":"")+", Level "+(pcs.level||1)+" | HP "+pcs.hp+"/"+pcs.maxHp+(pmAl?" | "+pmAl+pmAlTension:"")+"\n";

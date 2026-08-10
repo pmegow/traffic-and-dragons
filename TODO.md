@@ -263,6 +263,13 @@ Parked watches and break-glass items — deliberately OUT of the backlog so they
 
 ## Architecture decisions
 
+### Age is cosmetic-only (2026-08-10)
+**Decision:** Character/companion `age` is a display-and-render field ONLY. It is deliberately injected into ZERO gameplay prompts — not the player identity header, not the PARTY MEMBER SHEETS block. Only the image-render prompt writers read it (scene render `doRender`, the portrait paths). Do NOT "fix" the missing injection.
+
+**Why:** injecting raw years would force the GM — and every campaign — to model cross-ancestry age semantics: 67 is an elderly human but a coming-of-age elf (user: "I really don't want to have to worry about balancing a 70 year old elderly human and a 70 year old coming of age elf"). Age-driven fiction belongs in the fields the GM already reads: `appear` prose ("lined at the corners of the eyes"), ancestry blurbs ("a long-lived southern lineage"), conditions. Field evidence: Daeris played ~1,100 turns at age 67 with zero gameplay effect, and that was the desired behavior — the number only surfaced when the user read her sheet.
+
+**Guard note:** this LOOKS like the #46/#61 write-path-with-no-read-path defect class (companion conditions/relationships were written but never injected, and were rightly fixed as bugs). It is not — it is a ruled non-injection. A constraint comment sits at the partyBlock in api.js so a future audit doesn't pattern-match it back into the defect class.
+
 ### Stable entity IDs vs. names-as-keys (2026-06)
 **Decision:** Keep names as the internal key for now. Do NOT introduce hex/UUID entity IDs as a standalone refactor. Fold identity-by-ID into Multiplayer (#1) or the server-canonical model (subscription) — whichever lands first — where it becomes a near-free side effect instead of a project.
 
