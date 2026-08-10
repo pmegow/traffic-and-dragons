@@ -389,6 +389,19 @@ try {
   // alias normalization needs the live itemBaseName — checked in the engine half via the #157
   // grouping battery; here the shape rules above are the load-bearing static contract.
 
+  // ── #158 PHASE-DETECTOR WIRING CONTRACT ────────────────────────────────────────────────
+  // The detector's engine half is battery-tested; what the DOM-free harness cannot execute is
+  // the two GAME seams: commitGmTurn (the story-commit boundary — post-applyMuts, clean text)
+  // and rerollLast (replacement narration applies NO tags, so the nudge is the only heal).
+  // Losing either call silently re-opens the t1605 class on that path.
+  var _gmSrc = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "game.js"), "utf8");
+  var _cgtBody = (_gmSrc.match(/function commitGmTurn[\s\S]*?\nfunction /) || [""])[0];
+  var _rrlBody = (_gmSrc.match(/function rerollLast[\s\S]*?\nfunction /) || [""])[0];
+  if (_cgtBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: commitGmTurn no longer runs clockPhaseDetect on the committed clean prose — untagged phase narration goes unnoticed again");
+  if (_rrlBody.indexOf("clockPhaseDetect(clean)") < 0) _failAC("#158: rerollLast no longer runs clockPhaseDetect — a re-rolled scene can assert a phase with no tag heal AND no detection");
+  var _clkSrc = _fsAC.readFileSync(_pathAC.join(__dirname, "..", "clock.js"), "utf8");
+  if (_clkSrc.indexOf("TIME_PHASES[i].re.source") < 0) _failAC("#158: the prose forms are no longer DERIVED from TIME_PHASES — two vocabularies will drift (the one-vocabulary rule)");
+
   // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
   // The define form accepted anything until four real draft entries showed the cost: three were
   // category:["martial"] with isMagical:true (contradictory), and two were keyed with capitals,

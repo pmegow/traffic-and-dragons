@@ -1424,6 +1424,7 @@ function commitGmTurn(resp,opts){
   /* #105b: the time receipt. Read the clock AFTER every mutation (TIME_ADVANCE, and the [REST:long]
      dawn roll that restSpells owns) so the stamp is what the clock ACTUALLY did this turn, not what
      the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
+  if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned. */
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre));
   sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
   saveAll();
@@ -1637,6 +1638,7 @@ async function rerollLast(){
       // reroll text) can never persist a stale compressed blob.
       if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
     }
+    if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}
     /* #106b: a re-roll re-narrates the SAME turn and never re-runs applyMuts, so the moment is

@@ -334,6 +334,97 @@ function clockReconcilePhase(label){
   return clockAdvance(delta);
 }
 
+// ── #158: the phase-mismatch detector (Sol-amended spec, adjudicated 2026-08-09) ────────────
+// The t1605 class: prose narrated a full march day into dusk while the clock read 11:10 am —
+// the phase existed only in narration, and nothing could notice. This is the deterministic
+// sibling of the #142 reconcile guard, on the OTHER direction: narration ahead of (or simply
+// disagreeing with) the clock. It recognizes a HIGH-CONFIDENCE current-phase assertion in
+// committed CLEAN prose, compares it against the post-applyMuts clock by BAND distance, and
+// arms a one-shot GM-decides nudge. It NEVER moves the clock — a flashback may name any phase
+// it likes, and only the GM knows which mentions are the story's now.
+//
+// Recognition contract (precision over recall — a noisy detector teaches everyone to ignore
+// it): prose forms are \b-ANCHORED DERIVATIONS of TIME_PHASES (one vocabulary, two compiled
+// shapes — the label regexes are unanchored and would match "Morningstar"/"knight"); quoted
+// dialogue is stripped ("we move at dusk" is a plan, not narration); sentences carrying
+// future/modal, historical, figurative, negated, vision/memory, or interrogative markers are
+// rejected WHOLE (deliberately over-conservative); overlapping matches resolve by the registry's
+// specificity order ("late night" is late-night, never bare night); and the LAST qualifying cue
+// wins — narrative recency, because a scene ends where its final time-word leaves it.
+var TIME_PHASES_PROSE=(function(){
+  var out=[],i;
+  for(i=0;i<TIME_PHASES.length;i++)out.push(new RegExp("\\b(?:"+TIME_PHASES[i].re.source+")\\b","gi"));
+  return out;
+})();
+var _PHASE_REJECT_RE=/(?:\bwill\b|'ll\b|\bshall\b|\bwould\b|\bcould\b|\bshould\b|\bgoing to\b|\bplan(?:s|ned|ning)?\b|\bintend\w*\b|\bhope\w*\b|\bexpect\w*\b|\bmeant to\b|\btomorrow\b|\bnext\b|\bby the time\b|\bback by\b|\bif\b|\bunless\b|\bwhen\b|\bonce\b|\buntil\b|\btill\b|\bsince\b|\bearlier\b|\byesterday\b|\blast night\b|\bago\b|\bthat (?:morning|evening|night|afternoon|dawn|dusk)\b|\bnot\b|\bnever\b|\bno longer\b|\bhardly\b|\bbarely\b|\blike\b|\bas if\b|\bas though\b|\bcolou?r of\b|\bshade of\b|\bdream\w*\b|\bvision\w*\b|\bmemor(?:y|ies)\b|\bremember\w*\b|\brecall\w*\b|\bimagin\w*\b|\bflashback\w*\b|\bsay(?:s|ing)?\b|\bsaid\b|\bask(?:s|ed|ing)?\b|\brepl(?:y|ies|ied)\b|\bmutter\w*\b|\bwhisper\w*\b|\bmurmur\w*\b|\banswer\w*\b)/i;/* #158 corpus hardenings: "back by <phase>" is a return plan (t1413); a speech verb in the sentence means the phase was SPOKEN, not narrated (t1412) */
+function clockPhaseAssertion(text){
+  var s=String(text||"");
+  if(!s)return null;
+  /* #158 (the t1412 corpus alarm): an ODD straight-quote count (or mismatched curly pairs)
+     means quote roles are unknowable from some point on — a stray opener can turn everything
+     after it into unmarked dialogue ('"Rest. She said nothing more. Dawn comes cold…' may all
+     be one spoken block whose closer was lost). Broken parity distrusts the WHOLE entry. Costs
+     ~1% of corpus turns (2/328 measured); a persisting mismatch re-detects next turn anyway. */
+  var _sq=(s.match(/"/g)||[]).length;
+  if(_sq%2)return null;
+  if((s.match(/“/g)||[]).length!==(s.match(/”/g)||[]).length)return null;
+  var best=null,re=/[^.!?]+[.!?]*/g,m;
+  while((m=re.exec(s))){
+    var sent=m[0],off=m.index;
+    if(/\?\s*$/.test(sent))continue;
+    /* #158: ANY quote character makes the sentence speech territory — spoken plans ("We move
+       at dusk"), attribution fragments, scare quotes, and every mispair shape all reject on
+       this one rule. Deliberately simpler than span-stripping (the first build stripped
+       balanced pairs and patched the mispair leaks one by one — sabotage showed the guards had
+       collapsed into exactly this rule). Narration sentences that assert a phase carry no
+       quotes; the corpus audit confirms zero precision cost. */
+    if(/["“”]/.test(sent))continue;
+    if(_PHASE_REJECT_RE.test(sent))continue;
+    var claimed=[],i,pm,j;
+    for(i=0;i<TIME_PHASES_PROSE.length;i++){
+      TIME_PHASES_PROSE[i].lastIndex=0;
+      while((pm=TIME_PHASES_PROSE[i].exec(sent))){
+        var st=pm.index,en=pm.index+pm[0].length,ov=false;
+        if(/\b(?:this|that)\s+$/i.test(sent.slice(Math.max(0,st-8),st)))continue;/* #158 (t1586): "this afternoon"/"that morning" is a REFERENCE to a period, not a scene-time assertion */
+        for(j=0;j<claimed.length;j++){if(st<claimed[j].en&&en>claimed[j].st){ov=true;break;}}
+        if(!ov)claimed.push({st:st,en:en,idx:i,label:pm[0]});
+      }
+    }
+    for(i=0;i<claimed.length;i++){
+      var g=off+claimed[i].st;
+      if(!best||g>best.at)best={at:g,idx:claimed[i].idx,label:claimed[i].label};
+    }
+  }
+  return best?{idx:best.idx,label:best.label,at:best.at}:null;
+}
+// Distance from the current clock to the asserted phase's [b0,b1) BAND (not its target minute):
+// in-band = 0 (agreement self-silences, whatever tags did or did not fire — a [TIME:morning]
+// under dusk narration is a CONTRADICTION and still measures far). Circular, min of the two
+// directions, so "evening" narrated at 17:40 is 0 and dusk at 17:40 is 50m of slop, not 23h.
+function clockPhaseBandDist(idx){
+  var c=clockEnsure();if(!c)return 0;
+  var ph=TIME_PHASES[idx];if(!ph)return 0;
+  var off=c.min%MIN_PER_DAY;
+  if(off>=ph.b0&&off<ph.b1)return 0;
+  var fwd=(ph.b0-off+MIN_PER_DAY)%MIN_PER_DAY;
+  var back=(off-(ph.b1-1)+MIN_PER_DAY)%MIN_PER_DAY;
+  return Math.min(fwd,back);
+}
+// The commit-seam entry point — called by commitGmTurn (after applyMuts, so the parser tail has
+// already reconciled any [TIME:]) and by rerollLast (whose replacement prose applies NO tags at
+// all, so a nudge is the only possible heal there). CLEAN text only — raw text would match the
+// tags' own words. Arms worldState.phaseMismatch (a NOTE_LATCH_FIELDS one-shot).
+function clockPhaseDetect(cleanText){
+  if(typeof worldState==="undefined"||!worldState)return null;
+  var a=clockPhaseAssertion(cleanText);
+  if(!a)return null;
+  var d=clockPhaseBandDist(a.idx);
+  if(d<PHASE_MISMATCH_MIN)return null;
+  worldState.phaseMismatch={idx:a.idx,label:String(a.label).toLowerCase().replace(/\s+/g," "),turn:(worldState.turn||0),stamp:(typeof clockStamp==="function"?clockStamp():"")};
+  if(typeof console!=="undefined")console.warn("[clock] #158: narration asserts '"+a.label+"' but the clock reads "+worldState.phaseMismatch.stamp+" ("+Math.round(d/60)+"h off-band) — GM-decides reconcile nudge armed");
+  return worldState.phaseMismatch;
+}
+
 // ── The shared injection block ──────────────────────────────────────────────────────────────
 // ONE pure builder, called by BOTH buildSysPrompt (volatile half) AND Table Talk's ttStateBlock,
 // so the game and the help desk can never disagree about the clock or a countdown. Every number

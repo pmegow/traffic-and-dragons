@@ -668,6 +668,20 @@ function buildMergeConfirmNudge(){
   worldState.mergeHintNudged[h.canonical+"|"+h.duplicate]=worldState.turn;
   return "[ENGINE NOTE — POSSIBLE DUPLICATE NPC (not a player action): the record suggests \""+h.canonical+"\" and \""+h.duplicate+"\" may be the SAME person. If the story has confirmed this, emit [NPC_MERGE:"+h.canonical+"|"+h.duplicate+"] in this response (and [NPC_SUPERSEDE:] for any recorded fact the reveal made outdated). If they are genuinely different people, emit nothing — this note will not repeat.]";
 }
+// #158: the phase-mismatch heal note — the GM-decides half of clockPhaseDetect (clock.js).
+// One-shot (the queue field IS the latch, the pendingLocState pattern; rides NOTE_LATCH_FIELDS
+// so the #14 suggestion build can't eat it); combat-silent WITHOUT consuming; a STALE entry
+// whose clock has since come into band discards silently (the story or a later tag healed it —
+// nagging now would be noise). Phrasing per the adjudicated review: the do-nothing branch is
+// explicit, and "correct the prose" is banned — the player already read the scene.
+function buildPhaseMismatchNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.phaseMismatch;
+  if(!q)return"";
+  if(typeof clockPhaseBandDist==="function"&&clockPhaseBandDist(q.idx)<PHASE_MISMATCH_MIN){delete worldState.phaseMismatch;return"";}
+  delete worldState.phaseMismatch;
+  return "[ENGINE NOTE — CLOCK vs NARRATION (not a player action): your last scene described \""+q.label+"\" but the campaign clock reads "+q.stamp+". If the story is NOW at "+q.label+", emit [TIME:"+q.label+"] in this response and the engine will reconcile the clock. If that mention was only a reference (a plan, a memory, a figure of speech), do nothing.]";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
@@ -778,7 +792,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -800,7 +814,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

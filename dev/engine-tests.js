@@ -11427,6 +11427,113 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return g.length===0?true:"expected zero sections for an empty inventory, got "+g.length;
   });
 
+  // ═══ #158: the clock phase-mismatch detector (Sol-amended spec, adjudicated 2026-08-09) ═══
+  // Prose narrated a phase the clock never reached and nothing could notice. The detector
+  // recognizes a HIGH-CONFIDENCE current-phase assertion in committed narration (one vocabulary:
+  // \b-anchored prose forms DERIVED from TIME_PHASES), compares against the post-applyMuts clock
+  // by BAND distance, and arms the one-shot GM-decides nudge. Never auto-advances.
+  section("clock phase-mismatch detector (#158)");
+  function makeClockWorld(offMin){
+    makeIdWorld();
+    worldState.clock={min:offMin,schedule:[]};
+    worldState.combat=null;
+    delete worldState.phaseMismatch;
+    return worldState;
+  }
+  t("prose forms are \\b-anchored derivations of TIME_PHASES — embedded words never match, specificity survives",function(){
+    makeClockWorld(310);
+    if(clockPhaseAssertion("You reach the Morningstar Inn and stable the horses."))return "'Morningstar' matched morning — the label regexes leaked unanchored into prose";
+    if(clockPhaseAssertion("The knight watches from the wall."))return "'knight' matched night";
+    var a=clockPhaseAssertion("By mid-morning the frost has burned off.");
+    if(!a||!/mid-?morning/i.test(a.label))return "'By mid-morning <state>' is a completed transition (current-phase assertion) and must resolve to the SPECIFIC phase, got: "+JSON.stringify(a);
+    var b=clockPhaseAssertion("Late night finds the watch unchanged.");
+    if(!b||!/late\s*night/i.test(b.label))return "'late night' must resolve to the SPECIFIC phase, not bare night: "+JSON.stringify(b);
+    return true;
+  });
+  t("recognition positives: current-phase narration parses; the LAST qualifying cue wins across multiple phases",function(){
+    makeClockWorld(310);
+    var a=clockPhaseAssertion("Dusk catches you on the descent, the fortress crouched below.");
+    if(!a||!/dusk/i.test(a.label))return "the reported t1605 sentence did not parse: "+JSON.stringify(a);
+    var b=clockPhaseAssertion("Morning comes, grey and cold over the harbor.");
+    if(!b||!/morning/i.test(b.label))return "'Morning comes' (the true corpus class) did not parse";
+    var c=clockPhaseAssertion("The afternoon march grinds on across the scree. Dusk catches you at the ridge line.");
+    if(!c||!/dusk/i.test(c.label))return "multiple phases must resolve to the LAST qualifying cue (narrative recency), got: "+JSON.stringify(c);
+    return true;
+  });
+  t("rejections: quoted dialogue, plans, history, figurative, negation, visions, counterfactuals all stay silent",function(){
+    makeClockWorld(310);
+    var cases=[
+      ["“We move at dusk,” she says, checking the straps.","quoted plan"],
+      ["\"We move at dusk,\" she says.","straight-quoted plan"],
+      ["You'll be back by first light if the pass holds.","future plan"],
+      ["The mist has thickened since morning.","historical reference"],
+      ["A bruise the color of a bad sunset spreads along his jaw.","figurative"],
+      ["It is not dusk yet, whatever the shadows claim.","negation"],
+      ["In the dream it was always evening, always this street.","vision"],
+      ["She mourns the evening that never got to happen.","counterfactual"],
+      ["Will you wait until nightfall?","interrogative plan"],
+      ["The plan lands hard. \"Dawn, then,\" you say, checking the crossbow.","spoken plan (speech verb — the t1412 corpus alarm)"],
+      ["She nods once. \"Dawn, then. We move quiet and we move first.","spoken plan behind an UNBALANCED quote (the stripper's pairing fails — the sentence must reject, not leak)"],
+      ["\"An unclosed opener poisons the pairing. \"Dawn, then,\" you say. \"We hit the warehouse.","the t1412 corpus shape: ODD quote count mispairs the stripper, the spoken plan lands outside quotes with its speech verb eaten — broken parity must distrust the WHOLE entry"],
+      ["Gone to finish it, back by first light, and slip out past the sleeping desk.","return-plan idiom (the t1413 corpus alarm)"],
+      ["Whatever this afternoon was, it's over now.","retrospective this-<phase> reference (the t1586 corpus alarm)"],
+      ["\"Rest. She said nothing more. Dawn comes cold over the pass.","ODD parity with a clean-looking phase sentence — one stray quote makes every outside-quotes judgment a guess, so the WHOLE entry is distrusted (parity guard's own case)"],
+      ["\"Dusk. Move.\" The word hangs there.","quoted phase with NO speech verb — only the any-quote-in-sentence rule catches it (that guard's own case)"]
+    ],i;
+    for(i=0;i<cases.length;i++){
+      var r=clockPhaseAssertion(cases[i][0]);
+      if(r)return cases[i][1]+" false-positive: "+JSON.stringify(r)+" on: "+cases[i][0];
+    }
+    return true;
+  });
+  t("band distance: in-band = 0, the t1605 case alerts, adjacent-phase slop stays quiet",function(){
+    makeClockWorld(310);/* 11:10 am display — clock zero is DAWN(6:00), so 310 = 11:10 */
+    var dusk=-1,evening=-1,i;
+    for(i=0;i<TIME_PHASES.length;i++){if(/dusk/.test(TIME_PHASES[i].re.source))dusk=i;if(/evening/.test(TIME_PHASES[i].re.source)&&evening<0&&!/dusk/.test(TIME_PHASES[i].re.source))evening=i;}
+    var d=clockPhaseBandDist(dusk);
+    if(!(d>=PHASE_MISMATCH_MIN))return "11:10 am vs dusk must clear the threshold (got "+d+"m, need >= "+PHASE_MISMATCH_MIN+")";
+    worldState.clock.min=760;/* 18:40 — inside the dusk band */
+    if(clockPhaseBandDist(dusk)!==0)return "in-band must be 0";
+    worldState.clock.min=700;/* 17:40 — inside evening band [690,840) */
+    if(clockPhaseBandDist(evening)!==0)return "evening at 17:40 is in-band";
+    if(clockPhaseBandDist(dusk)>=PHASE_MISMATCH_MIN)return "17:40 vs dusk is 50m of slop — must stay under the 4h threshold";
+    return true;
+  });
+  t("clockPhaseDetect arms the queue on a real mismatch and self-silences when the same response's [TIME:] healed the clock",function(){
+    makeClockWorld(310);
+    clockPhaseDetect("Dusk catches you on the descent toward the silent fortress.");
+    if(!worldState.phaseMismatch)return "the t1605 shape did not arm";
+    if(!/dusk/i.test(worldState.phaseMismatch.label))return "queue carries the wrong label: "+JSON.stringify(worldState.phaseMismatch);
+    makeClockWorld(310);
+    applyMuts("[TIME:dusk] Dusk catches you on the descent.");/* reconcile lands INSIDE applyMuts */
+    clockPhaseDetect(cleanTxt("[TIME:dusk] Dusk catches you on the descent."));
+    if(worldState.phaseMismatch)return "a healed clock must self-silence (band agreement) — no covering-tag logic, just math";
+    makeClockWorld(310);
+    applyMuts("[TIME:morning] Dusk catches you on the descent.");/* the CONTRADICTION class */
+    clockPhaseDetect(cleanTxt("[TIME:morning] Dusk catches you on the descent."));
+    return worldState.phaseMismatch?true:"a [TIME:morning] tag under dusk narration must STILL alert — tag presence is not agreement (the review's sharpest amendment)";
+  });
+  t("buildPhaseMismatchNudge: one-shot with the amended phrasing, combat-silent without consuming, stale-agreement discards silently",function(){
+    makeClockWorld(310);
+    worldState.phaseMismatch={idx:6,label:"dusk",turn:worldState.turn,stamp:"Day 1, 11:10 am"};
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:1,maxHp:1,ac:10,atk:0,dmg:"1",morale:"low"}]};
+    if(buildPhaseMismatchNudge()!=="")return "fired mid-combat";
+    if(!worldState.phaseMismatch)return "combat consumed the queue";
+    worldState.combat=null;
+    var note=buildPhaseMismatchNudge();
+    if(note.indexOf("[TIME:dusk]")<0)return "the exact reconcile tag is missing from: "+note;
+    if(!/only a reference|do nothing/i.test(note))return "the do-nothing branch (a reference, not the current phase) is missing — 'correct the prose' is not actionable";
+    if(/correct the prose/i.test(note))return "'correct the prose' phrasing survived — the player already read it";
+    if(worldState.phaseMismatch)return "note did not consume the queue";
+    if(buildPhaseMismatchNudge()!=="")return "re-fired with an empty queue";
+    makeClockWorld(760);/* clock now IN the dusk band — a stale armed entry must discard silently */
+    worldState.phaseMismatch={idx:6,label:"dusk",turn:worldState.turn,stamp:"stale"};
+    if(buildPhaseMismatchNudge()!=="")return "stale agreement must discard, not nag";
+    if(worldState.phaseMismatch)return "stale entry not cleared";
+    if(NOTE_LATCH_FIELDS.indexOf("phaseMismatch")<0)return "phaseMismatch missing from NOTE_LATCH_FIELDS — the suggestion call would eat the one-shot";
+    return true;
+  });
+
   t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
     if(typeof locRepairApply!=="function")return "locRepairApply missing";
     makeGeoWorld();
