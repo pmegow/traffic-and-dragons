@@ -563,6 +563,58 @@ function _showCharOverwriteConfirm(char,existing){
   });
 }
 
+// ── #161: ⟳ Update from library — pull the library copy's IDENTITY fields into a live sheet ──
+// The semantics live in helpers.js (LIB_UPDATE_FIELDS whitelist + libUpdateDiff/libUpdateApply —
+// progression is never touched); this is the preview-confirm shell. onApplied(appliedRows) runs
+// after a successful apply — callers re-render their sheet, and the companion caller mirrors
+// portraitOffset onto wsNpc (its §19 canonical home).
+function _libDiffCell(kind,v){
+  if(kind==="image")return v?"<img src='"+escHtml(v)+"' style='width:44px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--brd);display:block;'>":"<span style='color:var(--t2);font-style:italic;'>none</span>";
+  if(kind==="json")return "<span style='color:var(--t2);font-style:italic;'>"+(v?"custom framing":"default framing")+"</span>";
+  var s=(v==null||v==="")?"—":String(v);
+  if(s.length>140)s=s.slice(0,140)+"…";
+  return escHtml(s);
+}
+function showLibraryUpdateModal(char,onApplied){
+  if(!storageAdapter.isServerMode()){showToast("Connect to server to use the character library.");return;}
+  storageAdapter.listCharacterLibrary(function(err,list){
+    if(err){showToast("Character library error: "+err);return;}
+    var slug=_charLibSlug(char.name),entry=null,i;
+    for(i=0;i<(list||[]).length;i++){if(list[i].slug===slug){entry=list[i];break;}}
+    if(!entry||!entry.character){showToast(char.name+" is not in the character library yet — Export Character ▸ Save to library first.");return;}
+    var lib=entry.character;
+    var diff=libUpdateDiff(char,lib);
+    if(!diff.length){showToast("✓ "+char.name+" already matches the library copy — nothing to update.");return;}
+    var rowsHtml="";
+    for(i=0;i<diff.length;i++){
+      var r=diff[i];
+      rowsHtml+="<div style='padding:8px 0;border-bottom:1px solid var(--brd);'>"
+        +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:4px;'>"+escHtml(r.label)+"</div>"
+        +"<div style='display:flex;align-items:center;gap:10px;font-size:12px;'>"
+        +"<div style='flex:1;min-width:0;color:var(--t2);overflow-wrap:break-word;'>"+_libDiffCell(r.kind,r.from)+"</div>"
+        +"<div style='color:var(--acc);flex-shrink:0;'>&#8594;</div>"
+        +"<div style='flex:1;min-width:0;color:var(--t0);overflow-wrap:break-word;'>"+_libDiffCell(r.kind,r.to)+"</div>"
+        +"</div></div>";
+    }
+    var modal=modalShell("lib-update-modal",
+      "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>&#8635; Update "+escHtml(char.name)+" from library</div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>Library copy: Lv"+(lib.level||"?")+" "+escHtml(((lib.subraceNm||lib.ancestry||"")+" "+(lib.cls||"")).trim())+" &middot; identity fields only &mdash; level, inventory, spells and progression are never touched.</div>"
+      +rowsHtml
+      +"<div style='display:flex;gap:10px;margin-top:16px;'>"
+      +"<button id='lu-apply' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Apply "+diff.length+" change"+(diff.length===1?"":"s")+"</button>"
+      +"<button id='lu-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
+      +"</div>",
+      {z:400,maxWidth:460,wireClose:false,align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",boxExtra:"margin:20px 0 40px;"});
+    document.getElementById("lu-cancel").addEventListener("click",function(){modal.remove();});
+    document.getElementById("lu-apply").addEventListener("click",function(){
+      var applied=libUpdateApply(char,lib);
+      saveAll();
+      modal.remove();
+      showToast("&#8635; "+char.name+": "+applied.length+" field"+(applied.length===1?"":"s")+" updated from the library.");
+      if(onApplied)onApplied(applied);
+    });
+  });
+}
 // The standalone Character Library is now the Library tab of the unified Import Character browser.
 function showCharacterLibrary(){showCharacterBrowser("library");}
 // ── Campaign-start companion selection ────────────────────────────────────────

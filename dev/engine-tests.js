@@ -6397,6 +6397,73 @@ function runEngineTests(R){
   // itself in #97/v1.455 — the diagnostic answered its question and #90's server tier closed
   // B9 architecturally, so there is no lever left to assert on.)
 
+  // ── #161: Update from library — the identity-field pull (helpers.js) ──────
+  // The library copy is a SNAPSHOT (often at export-time level), so the pull must move
+  // identity fields ONLY — the failure condition throughout is a library copy whose
+  // progression/name DISAGREES with the live sheet, which a naive replace would clobber.
+  section("Update from library (#161)");
+  function mk161Lib(over){
+    var base={name:"Daeris",gender:"F",age:"47",appear:"Tall and spare",mark:"Iron clasp pin",backstory:"A ledger-keeper of unwritten debts",trait:"Precise",flaw:"Unforgiving",motivation:"Repay what is owed",deity:"The Unwritten",portrait:"data:image/jpeg;base64,LIBPORTRAIT",portraitOffset:{x:0.4,y:0.6,zoom:1.2},
+      level:3,xp:900,hp:20,maxHp:20,gold:15,cls:"Cleric",archetypeNm:"Arbiter",stats:{STR:10,DEX:10,CON:10,INT:14,WIS:16,CHA:12},inventory:["Ink kit"],spells:[{nm:"Bless",lvl:1}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:3}};
+    if(over)Object.keys(over).forEach(function(k){if(over[k]===undefined)delete base[k];else base[k]=over[k];});
+    return base;
+  }
+  function mk161Cur(){
+    return {name:"Daeris",gender:"F",age:"67",appear:"Old appearance text",mark:"",backstory:"Old story",trait:"Old trait",flaw:"Old flaw",motivation:"Old drive",deity:"Old god",portrait:"data:image/jpeg;base64,CURPORTRAIT",portraitOffset:{x:0.5,y:0.5,zoom:1},
+      level:9,xp:48000,hp:61,maxHp:66,gold:230,cls:"Cleric",archetypeNm:"Arbiter of Unwritten Things",stats:{STR:12,DEX:12,CON:14,INT:16,WIS:18,CHA:14},inventory:["Iron clasp pin","Ledger fragment"],spells:[{nm:"Bless",lvl:1,used:true}],abilities:[{nm:"Turn Undead",ds:"x"}],skills:{persuasion:9},conditions:[{name:"Blessed",duration:"1h"}],relationships:[{entity:"Ammut",descriptor:"Wife"}]};
+  }
+  t("#161: identity fields flow from the library copy — and ONLY the differing ones appear in the diff",function(){
+    var cur=mk161Cur(),lib=mk161Lib();
+    var d=libUpdateDiff(cur,lib);
+    if(d.length!==10)return "expected 10 differing identity rows (gender matches, so 11-1), got "+d.length+": "+d.map(function(r){return r.k;}).join(",");
+    libUpdateApply(cur,lib);
+    if(cur.age!=="47")return "age not applied: "+cur.age;
+    if(cur.appear!=="Tall and spare")return "appear not applied";
+    if(cur.deity!=="The Unwritten")return "deity not applied";
+    if(cur.portrait!=="data:image/jpeg;base64,LIBPORTRAIT")return "portrait not applied";
+    return cur.portraitOffset.zoom===1.2?true:"portraitOffset not applied: "+JSON.stringify(cur.portraitOffset);
+  });
+  t("#161: progression, inventory, spells, stats and NAME are never touched — even when the library copy disagrees",function(){
+    var cur=mk161Cur(),lib=mk161Lib({name:"Imposter",level:20,gold:99999,cls:"Necromancer"});
+    var d=libUpdateApply(cur,lib);
+    for(var i=0;i<d.length;i++)if(["name","level","xp","gold","cls","inventory","spells","stats","hp"].indexOf(d[i].k)>=0)return "forbidden field in diff: "+d[i].k;
+    if(cur.name!=="Daeris")return "NAME was rewritten: "+cur.name;
+    if(cur.level!==9||cur.xp!==48000||cur.gold!==230)return "progression clobbered: Lv"+cur.level+" xp"+cur.xp+" gold"+cur.gold;
+    if(cur.inventory.length!==2)return "inventory clobbered: "+JSON.stringify(cur.inventory);
+    if(cur.spells[0].used!==true)return "spell used-flag clobbered";
+    if(cur.stats.WIS!==18)return "stats clobbered";
+    return cur.cls==="Cleric"?true:"class clobbered: "+cur.cls;
+  });
+  t("#161: an old export missing a field never deletes live data (undefined skips); an explicit \"\" applies (deliberate clear)",function(){
+    var cur=mk161Cur(),lib=mk161Lib({backstory:undefined,appear:""});
+    libUpdateApply(cur,lib);
+    if(cur.backstory!=="Old story")return "missing lib field DELETED live data: "+JSON.stringify(cur.backstory);
+    return cur.appear===""?true:"deliberate empty-string clear not applied: "+JSON.stringify(cur.appear);
+  });
+  t("#161: a portrait-less library copy never strips a live portrait; portraitOffset lands as a fresh copy (no shared reference)",function(){
+    var cur=mk161Cur(),lib=mk161Lib({portrait:null});
+    libUpdateApply(cur,lib);
+    if(cur.portrait!=="data:image/jpeg;base64,CURPORTRAIT")return "null lib portrait STRIPPED the live one";
+    lib.portraitOffset.x=9;
+    return cur.portraitOffset.x===0.4?true:"portraitOffset shares a reference with the library object";
+  });
+  t("#161: schema-invalid gender is refused; a valid one applies",function(){
+    var cur=mk161Cur(),lib=mk161Lib({gender:"X"});
+    var d=libUpdateDiff(cur,lib);
+    for(var i=0;i<d.length;i++)if(d[i].k==="gender")return "invalid gender entered the diff";
+    libUpdateApply(cur,lib);
+    if(cur.gender!=="F")return "invalid gender applied: "+cur.gender;
+    var cur2=mk161Cur(),lib2=mk161Lib({gender:"NB"});
+    libUpdateApply(cur2,lib2);
+    return cur2.gender==="NB"?true:"valid gender not applied: "+cur2.gender;
+  });
+  t("#161: idempotent — a second diff after apply is empty",function(){
+    var cur=mk161Cur(),lib=mk161Lib();
+    libUpdateApply(cur,lib);
+    var d2=libUpdateDiff(cur,lib);
+    return d2.length===0?true:"second diff not empty: "+d2.map(function(r){return r.k;}).join(",");
+  });
+
   // ── TTS shared text-prep (TODO #41 Phase 1 — normalizeForTTS/splitSentences/packLongUnit) ──
   section("TTS text-prep (#41 Phase 1)");
   var _tp=TTS._textPrep;

@@ -65,6 +65,63 @@ function csInitials(name){return(name||"?").split(" ").map(function(w){return w[
 // composition and likenesses survive while lighting, contrast, and texture get pushed hard.
 var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
 var ENHANCE_STRENGTH=0.45;
+// ── #161: "⟳ Update from library" — the identity-field pull ───────────────────
+// THE whitelist of fields the library pull may touch, as a REGISTRY (an editor-era
+// field lands as one entry). Everything else is deliberately excluded: the library
+// copy is a SNAPSHOT (often at export-time level — Daeris can sit there at Lv3 while
+// she is Lv9 in play), so progression and play-earned state (level/xp/stats/class/
+// archetype/hp/gold/inventory/spells/abilities/skills/conditions/relationships/
+// languages/coreMemories/voiceId) must never flow; and `name` is the identity KEY
+// everywhere (library slug, worldState keys, relationship entities) — renames are
+// #156 identity-layer territory, never a field copy.
+// Skip rules (schema-age tolerance): a lib field that is undefined skips — an old
+// export missing a field must never delete live data; an explicit "" applies (a
+// deliberate editor clear); `skipEmpty` fields (portrait) also skip null/"" — a
+// portrait-less library copy never strips a live portrait (removal belongs to the
+// portrait modal); per-field `valid` gates schema-constrained values.
+var LIB_UPDATE_FIELDS=[
+  {k:"gender",label:"Gender",valid:function(v){return v==="M"||v==="F"||v==="NB";}},
+  {k:"age",label:"Age"},
+  {k:"appear",label:"Appearance"},
+  {k:"mark",label:"Distinguishing mark"},
+  {k:"backstory",label:"Backstory"},
+  {k:"trait",label:"Trait"},
+  {k:"flaw",label:"Flaw"},
+  {k:"motivation",label:"Motivation"},
+  {k:"deity",label:"Deity"},
+  {k:"portrait",label:"Portrait",kind:"image",skipEmpty:true},
+  {k:"portraitOffset",label:"Portrait framing",kind:"json"}
+];
+function _libFieldEq(kind,a,b){
+  if(kind==="json")return JSON.stringify(a||null)===JSON.stringify(b||null);
+  return (a==null?"":a)===(b==null?"":b);
+}
+// Pure: rows of {k,label,kind,from,to} for every whitelisted field the library copy
+// would change. Empty array = the sheet already matches (callers surface that LOUDLY).
+function libUpdateDiff(cur,lib){
+  var out=[],i,f,lv;
+  if(!cur||!lib)return out;
+  for(i=0;i<LIB_UPDATE_FIELDS.length;i++){
+    f=LIB_UPDATE_FIELDS[i];lv=lib[f.k];
+    if(lv===undefined)continue;
+    if(f.skipEmpty&&(lv===null||lv===""))continue;
+    if(f.valid&&!f.valid(lv))continue;
+    if(_libFieldEq(f.kind,cur[f.k],lv))continue;
+    out.push({k:f.k,label:f.label,kind:f.kind||"text",from:cur[f.k],to:lv});
+  }
+  return out;
+}
+// Applies exactly what libUpdateDiff reports (recomputed here so a preview and its
+// apply can never drift) and returns the applied rows. Object values land as fresh
+// copies — the live sheet must never share a reference with the library object.
+function libUpdateApply(cur,lib){
+  var d=libUpdateDiff(cur,lib),i,row;
+  for(i=0;i<d.length;i++){
+    row=d[i];
+    cur[row.k]=(row.kind==="json"&&row.to!=null)?JSON.parse(JSON.stringify(row.to)):row.to;
+  }
+  return d;
+}
 // B3 (v1.361): NPC death is FIRST-CLASS canon — worldState.npcs[].dead / memory.npcs[].dead =
 // death turn (number), or true when the death predates the flag (legacy migration). Detection is
 // deliberately conservative: word-boundary death words MINUS living idioms ("half-dead, bleeding

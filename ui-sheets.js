@@ -226,10 +226,11 @@ function showCharSheet(){
 
   var initials=csInitials(c.name);
   var hdr=csHeroHeader(c);
+  var _libConn=storageAdapter.isServerMode();/* #161: grey the library pull when disconnected (the Save-to-library precedent) */
 
   // ── compose ───────────────────────────────────────────────────────────────
   var modal=modalShell("cs-modal",/* #14 */
-    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><button id='cs-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><div style='display:flex;gap:6px;flex-wrap:wrap;align-items:center;'><button id='cs-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><button id='cs-libupd-btn' title='Pull this character&#39;s identity fields (appearance, backstory, portrait…) from their character-library copy — progression is never touched' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:"+(_libConn?"var(--bg2)":"var(--bg3)")+";color:"+(_libConn?"var(--t1)":"var(--t2)")+";cursor:pointer;'>&#8635; Update from library</button></div><div style='display:flex;gap:6px;align-items:center;'><button id='cs-sync-btn' title='Ask GM to update relationships, conditions and quests' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>&#8635; Sync</button><button id='cs-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div></div>"
 
     +"<div class='cs-hero'>"
     +"<div style='position:relative;flex-shrink:0;'>"
@@ -267,6 +268,9 @@ function showCharSheet(){
     {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"cs-x",outside:true});
 
   document.getElementById("cs-export-btn").addEventListener("click",function(){_showCharExportOptions(c);});
+  /* #161: showLibraryUpdateModal lives in ui-browsers.js (loads AFTER this file) — safe by
+     call-time resolution, the same load-order argument as ftRenderPortrait/UA21 ②. */
+  document.getElementById("cs-libupd-btn").addEventListener("click",function(){showLibraryUpdateModal(c,function(){showCharSheet();});});
   document.getElementById("cs-sync-btn").addEventListener("click",function(){if(typeof syncCharSheet==="function")syncCharSheet();});
   csWireToggles(modal);
   csWireVoice(c);/* #9 */
@@ -505,7 +509,7 @@ function showNpcSheet(name){
   var partWaysHtml=isParty?"<div style='margin-top:10px;'><button id='npc-part-btn' style='display:block;width:100%;padding:9px 14px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;background:none;border:1px solid var(--brd2);color:var(--t2);' onmouseover=\"this.style.borderColor='#c04040';this.style.color='#c04040'\" onmouseout=\"this.style.borderColor='var(--brd2)';this.style.color='var(--t2)'\">Part ways with "+escHtml(name)+"</button></div>":"";
 
   var modal=modalShell("npc-modal",/* #14 */
-    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<div style='display:flex;gap:6px;flex-wrap:wrap;align-items:center;'><button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><button id='npc-libupd-btn' title='Pull this companion&#39;s identity fields (appearance, backstory, portrait…) from their character-library copy — progression is never touched' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:"+(storageAdapter.isServerMode()?"var(--bg2)":"var(--bg3)")+";color:"+(storageAdapter.isServerMode()?"var(--t1)":"var(--t2)")+";cursor:pointer;'>&#8635; Update from library</button></div>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
     +"<div class='cs-hero-info'>"+heroInfo+(sheet?csVoiceControlHtml(sheet):"")/* #9: voice only when a sheet exists to hold it (sheetless NPC = narrator tier) */+"</div></div>"
     +sheetSections
@@ -516,6 +520,12 @@ function showNpcSheet(name){
     {align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"npc-x",outside:true});
 
   if(document.getElementById("npc-export-btn")){document.getElementById("npc-export-btn").addEventListener("click",function(){_showCharExportOptions(sheet);});}
+  /* #161: companion pull writes the charSheet; portraitOffset is then mirrored onto wsNpc —
+     its canonical home (§19) — or the stale wsNpc copy would win on every display read. */
+  if(document.getElementById("npc-libupd-btn")){document.getElementById("npc-libupd-btn").addEventListener("click",function(){showLibraryUpdateModal(sheet,function(){
+    if(wsNpc&&sheet.portraitOffset)wsNpc.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));
+    saveAll();showNpcSheet(name);
+  });});}
   csWireToggles(modal);
   if(sheet)csWireVoice(sheet);/* #9: writes the companion/NPC charSheet.voiceId */
 
