@@ -8,6 +8,12 @@
       "runtimeArgs": ["serve", "."],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev/static-server.js"],
+      "port": 8123
     }
   ]
 }

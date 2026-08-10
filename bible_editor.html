@@ -193,7 +193,14 @@ function serializeItemBible(bible) {
     "// instance fields fails the engine build.",
     "//",
     "// Schema, fixed-attribute discipline (every entry carries the full set, \"N/A\" where",
-    "// inapplicable — injected canon must never query empty):",
+    "// inapplicable — injected canon must never query empty). #157 adds two display fields:",
+    "//   inventoryCategories — one or more of the seven ids (DISPLAY membership for the grouped",
+    "//     inventory; always includes category; serialized in registry order; the FIRST registry",
+    "//     match decides the section an item files under),",
+    "//   aliases — exact alternate TYPE names, itemBaseName()-normalized, collision-refused —",
+    "//     never substring, never fuzzy (an ambiguous name stays honestly Unclassified).",
+    "// effect:\"N/A\" outside mundane/treasure is a LEGAL classification-only entry (#157): it",
+    "// organizes the inventory and fills the tooltip but is NEVER injected as GM canon.",
     "//   { category: weapon|armor|consumable|tool|quest|treasure|mundane,",
     "//     effect:   what it DOES, mechanically, or \"N/A\",",
     "//     uses:     usage/recharge model of the TYPE (\"single use\", \"at-will\", \"1/day\", \"reusable\"),",
@@ -214,9 +221,28 @@ function serializeItemBible(bible) {
     "//    is the t1431 party inventory's clearly mechanics-bearing items plus staple archetypes.",
     ""
   ].join("\n");
+  // #157: canonical form is STRUCTURAL — every entry re-emitted in the fixed field order
+  // (category, inventoryCategories, aliases, effect, uses, value), legacy entries normalized to
+  // the full shape ([category] / []), and inventoryCategories sorted in registry order. The
+  // BIBLE EDITOR CONTRACT byte-compares this output against the file, so drift cannot ship.
+  var _ord = ["weapon", "armor", "quest", "consumable", "tool", "treasure", "mundane"];
+  var canon = {}, ks = Object.keys(bible), ki, oi;
+  for (ki = 0; ki < ks.length; ki++) {
+    var se = bible[ks[ki]];
+    var inv = (se.inventoryCategories instanceof Array && se.inventoryCategories.length) ? se.inventoryCategories.slice() : [se.category];
+    if (inv.indexOf(se.category) < 0) inv.push(se.category);
+    var sortedInv = [];
+    for (oi = 0; oi < _ord.length; oi++) { if (inv.indexOf(_ord[oi]) >= 0) sortedInv.push(_ord[oi]); }
+    canon[ks[ki]] = {
+      category: se.category,
+      inventoryCategories: sortedInv,
+      aliases: (se.aliases instanceof Array) ? se.aliases.slice().sort() : [],
+      effect: se.effect, uses: se.uses, value: se.value
+    };
+  }
   return header +
     "// >>> ITEM BIBLE DATA\n" +
-    "var ITEM_BIBLE = " + JSON.stringify(bible, null, 2) + ";\n" +
+    "var ITEM_BIBLE = " + JSON.stringify(canon, null, 2) + ";\n" +
     "// <<< ITEM BIBLE DATA\n";
 }
 // <<< BIBLE SERIALIZER
@@ -888,8 +914,9 @@ function serializeItemBible(bible) {
       var k = keys[i], e = b[k];
       if (f && (k + " " + e.effect).toLowerCase().indexOf(f) < 0) continue;
       shown++;
+      var _fu = (e.inventoryCategories instanceof Array && e.inventoryCategories.length) ? e.inventoryCategories.join(", ") : e.category;
       h += "<div class='cap'><div class='k'>" + esc(k) +
-        "<div class='meta'>" + esc(e.category) + " · " + esc(e.uses) + " · " + esc(e.value) + "</div></div>" +
+        "<div class='meta'>" + esc(e.category) + " · files under: " + esc(_fu) + (e.aliases && e.aliases.length ? " · aka: " + esc(e.aliases.join(", ")) : "") + " · " + esc(e.uses) + " · " + esc(e.value) + (String(e.effect || "N/A") === "N/A" ? " · <span style='color:var(--orange,#e4a861)'>classification-only</span>" : "") + "</div></div>" +
         "<div class='eff'>" + esc(String(e.effect || "").slice(0, 190)) + "</div>" +
         "<div><button data-itedit='" + esc(k) + "'>edit</button> <button class='x' data-itdel='" + esc(k) + "'>✕</button></div></div>";
     }
@@ -918,29 +945,62 @@ function serializeItemBible(bible) {
     };
   }
   function itemForm(nm, d, onSave) {
+    // #157: inventoryCategories checkboxes (primary locked on) + aliases + classification-only
+    // save path (warning, not rejection — organization must not force premature mechanics).
+    var _sel = {}, _seed = (d.inventoryCategories instanceof Array && d.inventoryCategories.length) ? d.inventoryCategories : [d.category], _si;
+    for (_si = 0; _si < _seed.length; _si++) _sel[_seed[_si]] = 1;
+    function catBoxes(primary) {
+      return ITEM_CATEGORIES.map(function (c) {
+        var isPrim = c === primary;
+        return "<label style='margin-right:10px;white-space:nowrap;font-size:12.5px'><input type='checkbox' class='it-invcat' value='" + c + "'" + ((_sel[c] || isPrim) ? " checked" : "") + (isPrim ? " disabled" : "") + "> " + c + "</label>";
+      }).join("");
+    }
     var h = "<h3>" + esc(nm) + "</h3>" +
-      "<p class='muted'>Fixed attribute set — category/effect/uses/value, \"N/A\" where inapplicable. category is a hard dropdown (mundane/treasure never inject; a typo would silently change injection behaviour).</p>" +
+      "<p class='muted'>Fixed attribute set — category/inventoryCategories/aliases/effect/uses/value, \"N/A\" where inapplicable. category is a hard dropdown (mundane/treasure never inject; a typo would silently change injection behaviour). The checkboxes are DISPLAY membership (which inventory sections apply); the primary is always included.</p>" +
       "<div class='row'><span class='lbl'>category</span><select id='it-cat'>" +
       ITEM_CATEGORIES.map(function (c) { return "<option" + (c === d.category ? " selected" : "") + ">" + c + "</option>"; }).join("") + "</select></div>" +
+      "<div class='row'><span class='lbl'>files under</span><span id='it-invcats'>" + catBoxes(d.category) + "</span></div>" +
+      "<div class='row'><span class='lbl'>aliases</span><textarea id='it-aliases' rows='2' style='width:340px' placeholder='one exact alternate TYPE name per line — normalized, never fuzzy'>" + esc((d.aliases || []).join("\n")) + "</textarea></div>" +
       "<div class='row'><span class='lbl'>uses</span><input type='text' id='it-uses' style='width:260px' value='" + esc(d.uses) + "' placeholder='single use / at-will / 1/day / reusable'></div>" +
       "<div class='row'><span class='lbl'>value</span><input type='text' id='it-value' style='width:260px' value='" + esc(d.value) + "' placeholder='50 gp'></div>" +
       "<div class='row'><span class='lbl'>effect</span><textarea id='it-effect' rows='4'>" + esc(d.effect) + "</textarea></div>" +
+      "<div id='it-warn' style='color:var(--orange,#e4a861);font-size:12.5px'></div>" +
       "<div id='it-err' style='color:var(--bad);font-size:12.5px'></div>" +
       "<div style='margin-top:12px;display:flex;gap:10px'><button class='primary' id='m-save'>Save entry</button><button id='m-close'>Cancel</button></div>";
     $("modal-box").innerHTML = h;
     $("modal").style.display = "flex";
     $("m-close").onclick = closeModal;
+    $("it-cat").onchange = function () { $("it-invcats").innerHTML = catBoxes(this.value); };
     $("m-save").onclick = function () {
+      var primary = $("it-cat").value;
+      var invCats = [], boxes = $("modal-box").querySelectorAll(".it-invcat"), bi;
+      var picked = { }; picked[primary] = 1;
+      for (bi = 0; bi < boxes.length; bi++) { if (boxes[bi].checked || boxes[bi].disabled) picked[boxes[bi].value] = 1; }
+      for (bi = 0; bi < ITEM_CATEGORIES.length; bi++) { if (picked[ITEM_CATEGORIES[bi]]) invCats.push(ITEM_CATEGORIES[bi]); } // registry order, primary always in
+      var aliases = [], seenAl = {}, alLines = $("it-aliases").value.split("\n"), ai;
+      for (ai = 0; ai < alLines.length; ai++) {
+        var a = (typeof itemBaseName === "function") ? itemBaseName(alLines[ai]) : alLines[ai].toLowerCase().trim();
+        if (!a || seenAl[a]) continue; seenAl[a] = 1;
+        // collision refusal (Sol §4 rule 4): an alias may not shadow a canonical key or another entry's alias
+        if (CUR.data.bible[a] && a !== nm) { $("it-err").textContent = "✗ alias '" + a + "' is a LIVE item key — merge/rename instead of aliasing over it."; return; }
+        var ok2 = true, k4;
+        for (k4 in CUR.data.bible) { if (k4 === nm) continue; var oa = CUR.data.bible[k4].aliases || []; if (oa.indexOf(a) >= 0) { $("it-err").textContent = "✗ alias '" + a + "' already belongs to '" + k4 + "' — one alias, one owner."; ok2 = false; break; } }
+        if (!ok2) return;
+        aliases.push(a);
+      }
       var draft = {
-        category: $("it-cat").value,
+        category: primary,
+        inventoryCategories: invCats,
+        aliases: aliases,
         effect: $("it-effect").value.trim() || "N/A",
         uses: $("it-uses").value.trim() || "N/A",
         value: $("it-value").value.trim() || "N/A"
       };
-      // An injectable category with no effect would inject nothing and render a blank tooltip.
+      // #157 (Sol §7.2): classification-only entries are LEGAL — the warning replaces the old
+      // hard rejection. The prompt builder already skips effect:"N/A", so nothing blank injects.
       if (draft.effect === "N/A" && draft.category !== "mundane" && draft.category !== "treasure") {
-        $("it-err").textContent = "✗ effect is empty — a " + draft.category + " entry with no effect defines nothing (only mundane/treasure may skip it).";
-        return;
+        var w = $("it-warn");
+        if (!w.getAttribute("data-armed")) { w.setAttribute("data-armed", "1"); w.textContent = "⚠ classification-only: no mechanics — the entry organizes the inventory and fills the tooltip, but is NOT injected as GM canon until effect is written. Save again to confirm."; return; }
       }
       onSave(draft); closeModal();
     };

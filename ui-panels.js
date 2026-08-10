@@ -202,12 +202,36 @@ function invItemHtml(s){
   if(!m)return "<b>"+escHtml(s)+"</b>"+_qh;
   return "<b>"+escHtml(m[1])+"</b><span style='opacity:.8'>"+escHtml(s.slice(m[1].length))+"</span>"+_qh;
 }
+/* #157: ephemeral per-page collapse state for the inventory category sections — keyed by
+   category id, default OPEN so nothing hides on first use. Deliberately NOT persisted: this is
+   page UI state, never campaign state (Sol §6.2). */
+var _invSecOpen={};
+function invToggleSec(id){_invSecOpen[id]=(_invSecOpen[id]===false);updateInvPanel();}
+/* Tooltip suffix for multi-category items — the row renders ONCE (highest-priority section);
+   the tooltip names the rest: "Categories: Weapon, Quest · Filed under: Weapons" (Sol §6.1). */
+function _invTipCats(row,filedId){
+  if(!row.categories||row.categories.length<2)return"";
+  var lbl={},i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++)lbl[INVENTORY_CATEGORY_REGISTRY[i].id]=INVENTORY_CATEGORY_REGISTRY[i].label;
+  var names=[];for(i=0;i<row.categories.length;i++)names.push(lbl[row.categories[i]]||row.categories[i]);
+  return "\nCategories: "+names.join(", ")+" · Filed under: "+(lbl[filedId]||filedId);
+}
 function updateInvPanel(){
   if(!worldState)return;var _ap=activePlayer(),inv=_ap.inventory||[],gold=(_ap.gold!=null?_ap.gold:0);/* P2: panel follows the spotlight PC */
-  var weps=["sword","blade","axe","bow","staff","crossbow","knife","dagger","spear","mace","hammer","blades"];
-  var arm=["armor","chainmail","leather","hide","shield","helm","cloak","mail","scale"];
-  document.getElementById("inv-cnt").textContent=inv.length;document.getElementById("inv-gold").textContent=gold+" gp";
-  var h="",i;for(i=0;i<inv.length;i++){var lc=inv[i].toLowerCase(),eq=false,j;for(j=0;j<weps.length;j++){if(lc.indexOf(weps[j])>=0){eq=true;break;}}if(!eq)for(j=0;j<arm.length;j++){if(lc.indexOf(arm[j])>=0){eq=true;break;}}h+='<div class="ii has-tip'+(eq?' eq':'')+'" title="'+escHtml(itemTip(inv[i]))+'">'+invItemHtml(inv[i])+'</div>';}/* #83: item tooltip (fallback until #81 item bible) + long-press */
+  document.getElementById("inv-cnt").textContent=inv.length;/* badge stays the stored-row count — never the stack sum (Sol §6.2) */
+  document.getElementById("inv-gold").textContent=gold+" gp";
+  /* #157: item-bible-driven grouping through the ONE shared view model — the old substring
+     weapon/armor guess is retired (canon decides; a miss shows honestly as Unclassified).
+     Weapon/armor row emphasis (.eq) now derives from the SELECTED canonical section. */
+  var groups=groupInventory(inv),h="",i,j;
+  for(i=0;i<groups.length;i++){
+    var grp=groups[i],open=_invSecOpen[grp.id]!==false,unc=grp.id==="unclassified";
+    h+='<div class="inv-cat'+(unc?' unc':'')+' has-tip" data-sec="'+grp.id+'" onclick="invToggleSec(this.dataset.sec)"'+(unc?' title="These items have no item-bible classification yet — they are shown here rather than guessed (#157)"':'')+'>'+(open?"&#9662; ":"&#9656; ")+escHtml(grp.label)+' <span class="inv-cat-n">'+grp.rows.length+"</span></div>";
+    if(!open)continue;
+    for(j=0;j<grp.rows.length;j++){
+      var row=grp.rows[j],eq=(grp.id==="weapon"||grp.id==="armor");
+      h+='<div class="ii has-tip'+(eq?' eq':'')+'" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+'</div>';
+    }
+  }
   document.getElementById("inv-list").innerHTML=h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">Empty</div>';
 }
 function updateAbPanel(hl){

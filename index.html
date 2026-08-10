@@ -116,6 +116,13 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .psb{padding:0 10px 10px;display:flex;flex-direction:column;gap:4px}.pss.col .psb{display:none}
 .ii{font-size:11px;color:var(--t1);padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ii.eq{border-color:var(--blue);color:var(--acc)}
+/* #157: inventory category headings — side panel (.inv-cat, collapsible) + sheets (.cs-inv-cat).
+   Unclassified (.unc) is a restrained warning tint: missing knowledge, not an error state. */
+.inv-cat{margin:7px 0 2px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);cursor:pointer;border-bottom:1px solid var(--brd);padding-bottom:2px;user-select:none}
+.inv-cat.unc{color:#c8763a}
+.inv-cat-n{color:var(--t2);font-weight:normal}
+.cs-inv-cat{margin:9px 0 3px;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);border-bottom:1px solid var(--brd);padding-bottom:2px}
+.cs-inv-cat.unc{color:#c8763a}
 .ai{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}.ai.nw{border-color:var(--blue)}
 .an{font-weight:bold;font-size:11px;color:var(--t0);display:block}.ad{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}
 .sp-item{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}

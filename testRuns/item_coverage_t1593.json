@@ -1,0 +1,120 @@
+{
+  "save": "Rise_of_the_Runelords__Ammut__Ammut_t1593_REPAIRED.tnd",
+  "generatedBy": "dev/item-bible-coverage.js logic @ v1.583",
+  "owners": [
+    "Ammut (PC) (112)",
+    "Frizwick (22)",
+    "Daeris (7)",
+    "Morwen Zethran (8)"
+  ],
+  "rows": 149,
+  "stats": {
+    "direct": 120,
+    "alias": 11,
+    "invalid": 0,
+    "miss": 18
+  },
+  "coveragePct": 88,
+  "bySection": {
+    "weapon": 14,
+    "armor": 1,
+    "tool": 32,
+    "unclassified": 18,
+    "quest": 30,
+    "mundane": 29,
+    "consumable": 11,
+    "treasure": 14
+  },
+  "deliberatelyUnclassified": [
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Black iridescent feather — oversized, wind-resistant, cold to the touch; origin unknown",
+      "key": "black iridescent feather"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Compact-sealed letter — Vanya Perdrath, unread",
+      "key": "compact-sealed letter"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Scholar's broadsheet — seven-sin taxonomy, Thassilonian soul-harvesting mechanisms, Karzoug named, chest-rune sketch",
+      "key": "scholar's broadsheet"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Stone disc — carved spiral rune, unknown Thassilonian script",
+      "key": "stone disc"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Tidal sketch — north face sea cave approach, Corven Coldwater",
+      "key": "tidal sketch"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Intake list — four names, Spire delivery order x2",
+      "key": "intake list"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Short chain — no lock, purpose unclear x2",
+      "key": "short chain"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Burned scrap — 'fits the shape. Third confirmed her before...', found under strongbox false bottom",
+      "key": "burned scrap"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Tarnished disc — fused bone-plate, spiral etched, drowned thing's shoulder x2",
+      "key": "tarnished disc"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Tally scrap — closed-eye ledger, cramped hand, columns of crossed-out names x2",
+      "key": "tally scrap"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Route scrap — charcoal sketch, north fork to marked stone, blank beyond",
+      "key": "route scrap"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Recovered goods (trafficker wagon cache)",
+      "key": "recovered goods"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Carved disc — closed-eye and Thassilonian script, pried from cloaked commander's chest",
+      "key": "carved disc"
+    },
+    {
+      "owner": "Ammut (PC)",
+      "raw": "Child's grey glove — empty, left deliberately, purpose unclear",
+      "key": "child's grey glove"
+    },
+    {
+      "owner": "Frizwick",
+      "raw": "Folded city sketch — hand-drawn, marks Tharwick's office, Beldvik's shop, dry fork road marker",
+      "key": "folded city sketch"
+    },
+    {
+      "owner": "Frizwick",
+      "raw": "confirmed loft position clear",
+      "key": "confirmed loft position clear"
+    },
+    {
+      "owner": "Frizwick",
+      "raw": "Oilcloth document bundle — Edric letters, debt list, bond ledger, blank transfer authorization, parcel release",
+      "key": "oilcloth document bundle"
+    },
+    {
+      "owner": "Daeris",
+      "raw": "Ledger fragment — three pages of the original bound book, partially legible, edges scorched from the disruption",
+      "key": "ledger fragment"
+    }
+  ]
+}

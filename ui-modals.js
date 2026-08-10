@@ -379,11 +379,20 @@ function showItemDefConfirmModal(){
   var pend=(worldState&&worldState.pendingItemDefs)||[];
   if(!pend.length)return;
   function rowsHtml(){
-    var h="",i;
+    var h="",i,ci;
     for(i=0;i<pend.length;i++){var p=pend[i];
+      /* #157: inventory-category checkboxes, seeded from the proposal (its array when present,
+         else the primary category). The PRIMARY category is locked on — the scalar mechanics
+         contract stays authoritative; the player may only ADD applicable sections (Sol §7.4). */
+      var _sel={},_seed=(p.entry.inventoryCategories instanceof Array&&p.entry.inventoryCategories.length)?p.entry.inventoryCategories:[p.entry.category];
+      for(ci=0;ci<_seed.length;ci++)_sel[_seed[ci]]=1;
+      var cats="";
+      for(ci=0;ci<INVENTORY_CATEGORY_REGISTRY.length;ci++){var _c=INVENTORY_CATEGORY_REGISTRY[ci],_prim=_c.id===p.entry.category;
+        cats+="<label style='font-size:10.5px;color:var(--t1);margin-right:9px;white-space:nowrap;'><input type='checkbox' class='idf-cat' data-key='"+escHtml(p.key)+"' value='"+_c.id+"'"+(_sel[_c.id]||_prim?" checked":"")+(_prim?" disabled":"")+" style='vertical-align:middle;margin-right:3px;'>"+escHtml(_c.label)+"</label>";}
       h+="<div style='border:1px solid var(--brd2);border-radius:var(--r);padding:12px;margin-bottom:10px;background:var(--bg2);'>"
         +"<div style='font-size:13px;color:var(--t0);font-weight:bold;'>"+escHtml(p.name)+"</div>"
         +"<div style='font-size:11px;color:var(--t2);margin:4px 0 8px;'>"+escHtml(p.entry.category)+" · effect: "+escHtml(p.entry.effect)+" · uses: "+escHtml(p.entry.uses)+" · value: "+escHtml(p.entry.value)+"</div>"
+        +"<div style='margin:0 0 9px;line-height:1.9;'><span style='font-size:10px;color:var(--t2);letter-spacing:.5px;text-transform:uppercase;margin-right:8px;'>Files under</span>"+cats+"</div>"
         +"<div style='display:flex;gap:8px;'>"
         +"<button class='idf-acc' data-key='"+escHtml(p.key)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Accept as canon</button>"
         +"<button class='idf-dec' data-key='"+escHtml(p.key)+"' style='flex:1;padding:8px;font-size:12px;font-family:var(--font);background:none;color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Decline</button>"
@@ -398,6 +407,18 @@ function showItemDefConfirmModal(){
   function wire(){
     Array.prototype.forEach.call(modal.querySelectorAll(".idf-acc"),function(b){b.addEventListener("click",function(){
       var k=this.getAttribute("data-key");
+      /* #157: collect the checked sections in REGISTRY order onto the pending entry before the
+         accept writes it — the primary category always rides (its box is locked+checked). */
+      var _pi,_pp=null,_pl=(worldState&&worldState.pendingItemDefs)||[];
+      for(_pi=0;_pi<_pl.length;_pi++){if(_pl[_pi].key===k){_pp=_pl[_pi];break;}}
+      if(_pp){
+        var _checked={},_boxes=modal.querySelectorAll(".idf-cat[data-key='"+k.replace(/'/g,"\\'")+"']"),_bi;
+        for(_bi=0;_bi<_boxes.length;_bi++){if(_boxes[_bi].checked||_boxes[_bi].disabled)_checked[_boxes[_bi].value]=1;}
+        _checked[_pp.entry.category]=1;
+        var _arr=[],_ci2;
+        for(_ci2=0;_ci2<INVENTORY_CATEGORY_REGISTRY.length;_ci2++){if(_checked[INVENTORY_CATEGORY_REGISTRY[_ci2].id])_arr.push(INVENTORY_CATEGORY_REGISTRY[_ci2].id);}
+        _pp.entry.inventoryCategories=_arr;
+      }
       if(itemDefAccept(k))showToast("⚗ Item canon accepted");
       pend=(worldState&&worldState.pendingItemDefs)||[];
       if(!pend.length){modal.remove();return;}

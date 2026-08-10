@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic &amp; Dragons — Inventory Reorganization Plan</title>
+<style>
+:root{--bg:#0d0d0c;--panel:#151412;--panel2:#1c1915;--line:#3b3329;--text:#d8d0c4;--muted:#9d9385;--amber:#d8a45f;--red:#e17a71;--orange:#e4a861;--green:#88b07a;--blue:#7ca8c8;--white:#f2ece2}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0 auto;max-width:1160px;padding:34px 28px 90px;background:var(--bg);color:var(--text);font:15px/1.62 Georgia,serif}h1,h2,h3,h4{color:var(--white);line-height:1.22}h1{margin:0;color:var(--amber);font-size:2em}h2{margin:42px 0 14px;padding-bottom:7px;border-bottom:1px solid var(--line);font-size:1.3em;color:var(--amber)}h3{margin:25px 0 9px;font-size:1.05em}h4{margin:16px 0 7px;font-size:.96em}.sub{color:var(--muted);margin:5px 0 24px}.card{margin:15px 0;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.verdict{border-color:var(--amber);background:linear-gradient(135deg,#1c1710,#151412)}.callout{padding:11px 14px;border-left:3px solid var(--blue);background:#11181d}.warn{border-left-color:var(--orange);background:#201810}.danger{border-left-color:var(--red);background:#211312}.good{border-left-color:var(--green);background:#121a11}.eyebrow{font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:1.1px;text-transform:uppercase;color:var(--amber)}.muted{color:var(--muted)}.bad{color:var(--red)}.ok{color:var(--green)}code,pre{font:12px/1.5 ui-monospace,Consolas,monospace}code{padding:1px 5px;border-radius:4px;background:#211c16;color:#e2b574}pre{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#090909;color:#cfc7bb}table{width:100%;border-collapse:collapse;margin:13px 0;font-size:.91em}th,td{padding:8px 10px;border:1px solid var(--line);text-align:left;vertical-align:top}th{background:#1a1713;color:var(--amber);font:700 12px/1.35 ui-monospace,Consolas,monospace}ul,ol{padding-left:22px}li{margin:6px 0}.toc a,a{color:#d9ad73;text-decoration:none}.toc a:hover,a:hover{text-decoration:underline}.mono{font-family:ui-monospace,Consolas,monospace}.small{font-size:.87em}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mini{padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}.mini b{display:block;margin-bottom:4px;color:var(--amber)}.flow td:first-child{width:14%;font-weight:bold;color:var(--amber)}.files td:first-child{width:22%;font-family:ui-monospace,Consolas,monospace;color:#e2b574}.priority td:first-child{width:56px;text-align:center;color:var(--amber);font-weight:bold}.priority td:nth-child(2){width:22%}.checklist li{margin:8px 0}.footer{margin-top:50px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:.84em}@media(max-width:800px){body{padding:22px 13px 65px}.grid{grid-template-columns:1fr}.scroll{overflow-x:auto}.scroll table{min-width:760px}h1{font-size:1.55em}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Design and implementation plan · planning only</div>
+  <h1>Item-bible-driven inventory organization</h1>
+  <p class="sub">Traffic &amp; Dragons · Sol · 2026-08-09 · character sheets and side panel · no game code or save data changed</p>
+</header>
+
+<section class="card verdict">
+  <h3>Recommended design</h3>
+  <p>Group every inventory row through one shared classifier, using the item bible as the authority and this fixed priority:</p>
+  <p><strong>Weapons → Armor → Quest → Consumables → Tools → Treasure → Mundane.</strong></p>
+  <p>Keep the existing singular <code>category</code> field for the item's primary mechanical type, and add <code>inventoryCategories</code> as a validated array for display membership. The first matching value in the global priority list wins. This supports a quest sword and a quest potion without converting the existing mechanics contract from a scalar into an array.</p>
+  <p>Unknown or invalid items must remain visible under a temporary final section named <strong>Unclassified</strong>. They must never be guessed from name fragments or silently treated as Mundane.</p>
+</section>
+
+<nav class="card toc">
+  <div class="eyebrow">Contents</div>
+  <p><a href="#scope">Scope</a> · <a href="#baseline">Current baseline</a> · <a href="#decisions">Design decisions</a> · <a href="#schema">Bible schema</a> · <a href="#resolution">Resolution contract</a> · <a href="#ui">UI design</a> · <a href="#editor">Curation workflow</a> · <a href="#implementation">Implementation sequence</a> · <a href="#tests">Verification</a> · <a href="#acceptance">Acceptance criteria</a> · <a href="#risks">Risks</a> · <a href="#sanity">Sanity check</a></p>
+</nav>
+
+<h2 id="scope">1. Scope and non-goals</h2>
+<div class="grid">
+  <div class="mini"><b>In scope</b>Seven ordered inventory subsections; multi-category precedence; a shared view model for the side panel and all live character sheets; item-bible schema/editor support; explicit incomplete-bible handling; tests and visual verification.</div>
+  <div class="mini"><b>Not in scope</b>No inventory cleanup, item removal, save repair, equipment-slot system, encumbrance, drag-and-drop, automatic equipping, prompt rewrite, or conversion of <code>character.inventory[]</code> from strings to objects.</div>
+</div>
+<p>The implementation must be a <strong>view-only reorganization</strong>. It may change what order rows are displayed in, but it must not reorder, rewrite, merge, or migrate the underlying inventory array. The GM, save/export format, item gain/loss tags, stacking, and sync paths continue to see the same strings in the same stored order.</p>
+
+<h2 id="baseline">2. Current-system and live-save baseline</h2>
+<div class="scroll"><table>
+<tr><th>Surface</th><th>Current behavior</th><th>Design consequence</th></tr>
+<tr><td>Item bible</td><td><code>item_bible.js</code> has 19 definitions. Each has one scalar <code>category</code> from the same seven-value vocabulary requested here.</td><td>The vocabulary already fits; the missing capability is overlap, not a new taxonomy.</td></tr>
+<tr><td>Lookup</td><td><code>itemBaseName()</code> removes trailing counts, parenthetical provenance, and spaced-dash provenance. <code>itemLookup()</code> resolves a player-confirmed campaign overlay before the static bible.</td><td>Both UI surfaces should consume this authority. They must not invent a second name-based classifier.</td></tr>
+<tr><td>Side panel</td><td><code>updateInvPanel()</code> renders a flat list and guesses weapons/armor from hard-coded substrings such as “sword,” “blade,” “armor,” and “cloak.”</td><td>That heuristic can disagree with canon and must be retired when bible grouping ships.</td></tr>
+<tr><td>Character sheets</td><td><code>csSheetSections()</code> renders a flat inventory for the player and companion sheets. Live rows retain their original array index for the Drop button.</td><td>The grouped view model must carry the original index so a visually moved row still drops the correct stored row.</td></tr>
+<tr><td>Item editor</td><td><code>bible_editor.html</code> offers one hard category dropdown and enforces a fixed <code>category/effect/uses/value</code> shape.</td><td>It needs multi-category checkboxes, validation, and a coverage view; the existing primary dropdown should remain.</td></tr>
+<tr><td>Emergent canon</td><td><code>[ITEM_DEF:]</code> proposes one primary category. Player acceptance writes the campaign overlay.</td><td>The tag grammar does not need to change. The confirmation UI can seed <code>inventoryCategories</code> from the primary category and let the player add applicable categories before accepting.</td></tr>
+</table></div>
+
+<section class="callout warn">
+  <strong>Latest-save evidence.</strong> <code>Rise_of_the_Runelords__Ammut__Ammut_t1593.tnd</code> contains 156 inventory rows across Ammut and four companions with inventory. Ammut alone has 112 rows. Only 25 of the 156 rows currently resolve to the 19-entry bible; 131 rows (114 unique normalized names) do not. In other words, <strong>84% of the live rows are presently unclassified by the bible</strong>. Shipping the UI before addressing coverage would replace one painful flat list with one painful Unclassified list.
+</section>
+
+<div class="scroll"><table>
+<tr><th>Latest-save classification using today's bible</th><th>Rows</th></tr>
+<tr><td>Weapons</td><td>7</td></tr>
+<tr><td>Armor</td><td>1</td></tr>
+<tr><td>Quest</td><td>4</td></tr>
+<tr><td>Consumables</td><td>5</td></tr>
+<tr><td>Tools</td><td>6</td></tr>
+<tr><td>Treasure</td><td>1</td></tr>
+<tr><td>Mundane</td><td>1</td></tr>
+<tr><td><strong>Unclassified</strong></td><td><strong>131</strong></td></tr>
+</table></div>
+
+<h2 id="decisions">3. Design decisions</h2>
+
+<h3>3.1 One ordered category registry</h3>
+<p>Define the order, internal ids, and display labels once. The classifier, item-bible editor, section renderer, validation, and tests all consume this registry rather than copying seven literals into several files.</p>
+<pre>var INVENTORY_CATEGORY_REGISTRY = [
+  { id: "weapon",     label: "Weapons" },
+  { id: "armor",      label: "Armor" },
+  { id: "quest",      label: "Quest" },
+  { id: "consumable", label: "Consumables" },
+  { id: "tool",       label: "Tools" },
+  { id: "treasure",   label: "Treasure" },
+  { id: "mundane",    label: "Mundane" }
+];</pre>
+<p>Array position is the priority. Do not store separate numeric ranks that could disagree with it.</p>
+
+<h3>3.2 Preserve the existing primary category</h3>
+<p>Do <strong>not</strong> change <code>category</code> from a string into an array. That scalar is already consumed by item-canon injection, tooltips, <code>[ITEM_DEF:]</code>, the editor contract, and engine tests. Converting it would unnecessarily expand this UI task into the read-only drift-protection surface.</p>
+<p>Instead, add a display-specific array:</p>
+<pre>"witchlight blade": {
+  "category": "weapon",
+  "inventoryCategories": ["weapon", "quest"],
+  "aliases": [],
+  "effect": "...",
+  "uses": "at-will",
+  "value": "N/A — not commonly sold"
+}</pre>
+<p>The scalar remains the primary mechanical type. The array answers a different question: “Which inventory sections are applicable?” Existing entries and legacy campaign overlays without the array behave as though they contained <code>[entry.category]</code>.</p>
+
+<h3>3.3 Global precedence, not array order</h3>
+<p>The registry order always wins; the order authored inside an entry is not meaningful.</p>
+<div class="scroll"><table class="priority">
+<tr><th>Priority result</th><th>Item metadata</th><th>Displayed section</th></tr>
+<tr><td>1</td><td><code>["weapon", "quest"]</code></td><td>Weapons</td></tr>
+<tr><td>2</td><td><code>["armor", "quest"]</code></td><td>Armor</td></tr>
+<tr><td>3</td><td><code>["quest", "consumable"]</code></td><td>Quest</td></tr>
+<tr><td>4</td><td><code>["consumable", "tool"]</code></td><td>Consumables</td></tr>
+<tr><td>5</td><td><code>["tool", "treasure"]</code></td><td>Tools</td></tr>
+<tr><td>6</td><td><code>["treasure", "mundane"]</code></td><td>Treasure</td></tr>
+</table></div>
+<p>Each stored row renders exactly once. Secondary categories remain visible in the item tooltip/editor, but never cause duplicate rows.</p>
+
+<h3>3.4 Unclassified is a safety state, not an eighth canon category</h3>
+<p><code>unclassified</code> must not be accepted into <code>ITEM_BIBLE</code>. It is a UI fallback returned when there is no definition, identity resolution is ambiguous, or metadata fails validation. It renders last and only when non-empty.</p>
+<p>This distinction matters: <strong>Mundane is a positive classification</strong>; Unclassified is missing knowledge. Treating them as synonyms would hide coverage defects and misfile current items such as a heavy crossbow, quest letters, keys, maps, and poisons.</p>
+
+<h3>3.5 Classification may precede mechanical definition</h3>
+<p>The editor should allow a classification-only entry whose <code>effect</code>, <code>uses</code>, or <code>value</code> is <code>N/A</code>, regardless of category. This is already safe at runtime because the item-canon prompt builder skips <code>effect:"N/A"</code>. The editor should show a warning (“classified for inventory; not injected as mechanical canon”), not block the save.</p>
+<p>Without this separation, classifying a quest letter or an ordinary suit of armor would force the curator to invent complete mechanics merely to put it under a heading. That would make organization hostage to the slower canon-writing pass.</p>
+
+<h3>3.6 No fuzzy classification</h3>
+<p>The current substring equipment guess must not be generalized into seven fuzzy guesses. “Cloak” is not always armor; “blade” can appear in a document title; “token” may be treasure, quest, tool, or mundane. A miss goes to Unclassified.</p>
+<p>For known alternate names, the bible may add an explicit <code>aliases</code> array. Alias matching is exact after the existing <code>itemBaseName()</code> normalization. It is never substring, stemming, singularization, or model inference.</p>
+
+<h2 id="schema">4. Proposed item-bible contract</h2>
+<pre>{
+  category:            "weapon" | "armor" | "quest" | "consumable" |
+                       "tool" | "treasure" | "mundane",
+  inventoryCategories: [one or more values from the same vocabulary],
+  aliases:             [zero or more exact alternate TYPE names],
+  effect:              string or "N/A",
+  uses:                string or "N/A",
+  value:               string or "N/A"
+}</pre>
+
+<h3>Validation rules</h3>
+<ol>
+  <li><code>category</code> remains required and must be one registry id.</li>
+  <li><code>inventoryCategories</code> must be a non-empty array, contain unique valid ids, include <code>category</code>, and serialize in registry order.</li>
+  <li><code>aliases</code> must be an array of non-empty strings. Normalize each with <code>itemBaseName()</code>.</li>
+  <li>An alias may not collide with a canonical item key, another entry's alias, or a differently keyed campaign overlay. Collisions fail loudly; they never pick a winner by object order.</li>
+  <li>Instance facts still do not belong in the bible: remaining charges, owner, provenance, current count, and one specific object's condition stay outside the TYPE definition.</li>
+  <li>A classification-only entry may use <code>N/A</code> mechanics. It remains a valid organizer entry but stays out of the GM item-canon block.</li>
+  <li>Legacy definitions with no new fields remain readable as <code>inventoryCategories:[category]</code> and <code>aliases:[]</code>. Static bible export should normalize them to the full shape.</li>
+</ol>
+
+<section class="callout">
+  <strong>Type-versus-instance limit.</strong> The current inventory model stacks and identifies items by normalized string type. It cannot represent “one ordinary longsword is quest-related but the other identical longsword is not.” A quest-specific copy must have a distinct canonical type/name, or the project needs a separate future structured-inventory design. This organizer should not pretend to solve per-copy identity.
+</section>
+
+<h3>Why aliases are on the table</h3>
+<p>The latest save contains surface forms such as <code>Small corked vial, violet residue</code>, while the bible contains <code>corked vial</code>. The current normalizer deliberately does not strip comma clauses, and broadening it heuristically could collapse genuinely different item types. Explicit aliases let the curator connect proven equivalents without weakening identity.</p>
+<p>Alias resolution affects more than display if it is added to <code>itemLookup()</code>: tooltips and volatile item-canon injection will also begin resolving those names. That is desirable consistency, but it is drift-surface-adjacent. It should receive the same focused review as the current identity-hardening work before shipping. Do not create a UI-only alias resolver that disagrees with canonical lookup.</p>
+
+<h2 id="resolution">5. Shared resolution and grouping contract</h2>
+<p>Both renderers consume one pure view-model builder. They do not classify independently.</p>
+<pre>groupInventory(inventory) → [
+  {
+    id: "weapon",
+    label: "Weapons",
+    rows: [
+      { raw: "Witchlight blade — ...", sourceIndex: 17,
+        key: "witchlight blade", entry: {...}, categories: [...]} 
+    ]
+  },
+  ...,
+  { id: "unclassified", label: "Unclassified", rows: [...] }
+]</pre>
+
+<div class="scroll"><table class="flow">
+<tr><th>Step</th><th>Rule</th></tr>
+<tr><td>1 · Identify</td><td>Normalize the raw row. Resolve an exact campaign-overlay key, exact static key, then an explicitly declared alias. Any ambiguous alias is a loud validation failure and resolves as Unclassified at runtime.</td></tr>
+<tr><td>2 · Read</td><td>Use <code>itemLookup()</code> as the canonical definition source. Campaign overlay continues to beat the static base.</td></tr>
+<tr><td>3 · Categories</td><td>Use valid <code>inventoryCategories</code>; for legacy entries, derive <code>[category]</code>. Do not repair invalid metadata silently.</td></tr>
+<tr><td>4 · Select</td><td>Scan <code>INVENTORY_CATEGORY_REGISTRY</code> from first to last and choose the first category contained in the item metadata.</td></tr>
+<tr><td>5 · Preserve</td><td>Append a row carrying its original array index. Preserve the source relative order within each section for the first release.</td></tr>
+<tr><td>6 · Contain</td><td>If no valid match exists, append the row to Unclassified. Never omit it and never place it in Mundane by default.</td></tr>
+<tr><td>7 · Render</td><td>Omit empty sections. Every source row must occur exactly once across the returned groups.</td></tr>
+</table></div>
+
+<p>The builder should be O(inventory rows + bible/alias index construction), not “scan the whole bible for every row.” Build or cache one collision-checked alias index and invalidate it only when the item bible/overlay changes.</p>
+
+<h2 id="ui">6. UI design</h2>
+
+<h3>6.1 Shared presentation rules</h3>
+<ul>
+  <li>Show only non-empty category sections, in the fixed priority order.</li>
+  <li>Use compact amber text headings with a subtle divider; no decorative pills/chips.</li>
+  <li>Keep the current item row rendering, quantity display, hover tooltip, and mobile long-press behavior.</li>
+  <li>Preserve existing relative order inside each category. Alphabetic sorting can be considered later, but it should not be bundled into the first grouping change.</li>
+  <li>Do not duplicate a multi-category item. Its tooltip may say, for example, <code>Categories: Weapon, Quest · Filed under: Weapons</code>.</li>
+  <li>Unclassified uses a restrained warning color and a tooltip explaining that the item needs bible classification. It is not an error toast on every render.</li>
+</ul>
+
+<h3>6.2 Side panel</h3>
+<pre>INVENTORY                         112
+
+WEAPONS
+  Witchlight blade
+  Heavy crossbow
+
+QUEST
+  Amber vial
+  Collector's ledger
+
+TOOLS
+  Lockpicks
+  Rope (2)
+
+UNCLASSIFIED
+  ...only while bible coverage is incomplete
+
+Gold                               38 gp</pre>
+<ul>
+  <li>The existing Inventory panel remains the outer collapse control.</li>
+  <li>Category headings should be independently collapsible in the side panel because 112 rows remain 112 rows even after grouping. Default all sections open so nothing is hidden on first use.</li>
+  <li>Category open/closed state is ephemeral UI state for the current page, keyed by category id. It does not belong in campaign state or exports.</li>
+  <li>Gold stays after the grouped item list.</li>
+  <li>The overall badge remains the number of stored rows, matching current behavior. Do not quietly redefine it as the sum of stack quantities.</li>
+  <li>Remove the hard-coded <code>weps</code>/<code>arm</code> substring scan and the resulting guessed <code>.eq</code> state. If weapon/armor emphasis is retained, drive it from the selected canonical section.</li>
+</ul>
+
+<h3>6.3 Character and companion sheets</h3>
+<ul>
+  <li>The existing Inventory sheet section remains the parent. Inside it, render the same non-empty grouped sections.</li>
+  <li>Do not add nested collapse controls initially; the sheet already has a parent collapse and nested toggles would add interaction noise. Reassess only after visual testing with the 112-row save.</li>
+  <li>Every row object retains <code>sourceIndex</code>. The Drop button uses that original index, not the row's grouped position.</li>
+  <li>The same renderer covers the player, read-only previews, and companion sheets. Only live sheets get Drop buttons, as today.</li>
+  <li>After a drop, the sheet and side panel rebuild from state, so empty categories disappear and remaining rows keep correct indexes.</li>
+</ul>
+
+<h3>6.4 Empty inventory</h3>
+<p>If no rows exist, show the existing single “Empty” message. Do not render seven empty headings. If all rows are unclassified, show one Unclassified section rather than an empty-category scaffold.</p>
+
+<h2 id="editor">7. Item-bible authoring and coverage workflow</h2>
+
+<h3>7.1 Entry form</h3>
+<p>Retain the primary category dropdown. Add a checkbox row for all seven inventory categories in the registry order, seeded from the primary category. Selecting a primary category automatically selects its inventory checkbox; the user may add other checkboxes but may not remove the primary one.</p>
+<p>Add an alias list editor with one normalized alias per row. Display collision errors before save. The list view should show the primary category plus a concise “files under” summary.</p>
+
+<h3>7.2 Classification-only entries</h3>
+<p>Replace the current hard rejection of <code>effect:"N/A"</code> for weapon/armor/quest/consumable/tool entries with a visible warning. The definition remains useful for organization and tooltip metadata, but the existing prompt builder will not inject it until mechanics are filled.</p>
+
+<h3>7.3 Campaign coverage audit</h3>
+<p>Add a read-only audit path—either a focused <code>dev/item-bible-coverage.js</code> tool or an “Audit .tnd” control in the item-bible editor—that reports:</p>
+<ul>
+  <li>total rows and unique normalized names;</li>
+  <li>direct key matches, explicit alias matches, invalid definitions, alias collisions, and misses;</li>
+  <li>chosen display section and all applicable categories;</li>
+  <li>misses grouped by character, with the exact raw inventory string;</li>
+  <li>coverage percentage without modifying the save or bible.</li>
+</ul>
+<p>The t1593 save should become a regression corpus for this audit. The initial curation pass should classify each of its 156 rows or explicitly record why an item remains Unclassified before the grouped UI is enabled for normal play.</p>
+
+<h3>7.4 Player-confirmed emergent definitions</h3>
+<p>Do not expand the read-only <code>[ITEM_DEF:]</code> grammar merely for display. Its scalar category seeds the new array. In <code>showItemDefConfirmModal()</code>, present the same seven checkboxes so the player can mark a proposed potion as both Consumable and Quest before acceptance. Acceptance stores the validated array with the campaign overlay entry.</p>
+<p>Legacy accepted entries without the field still work through scalar fallback. Closing the modal continues to leave the proposal pending.</p>
+
+<h2 id="implementation">8. Recommended implementation sequence</h2>
+<p>Implementation should be split into small checkpoints. The UI should not be turned on until schema validation and live-save coverage behavior are proven.</p>
+
+<div class="scroll"><table>
+<tr><th>Phase</th><th>Work</th><th>Exit condition</th></tr>
+<tr><td>0 · Approval and boundaries</td><td>Create/update the future TODO row. Obtain owner sign-off before touching ask-first <code>index.html</code> for styles. Confirm whether explicit item aliases should join the active identity-hardening design; route that resolution change through focused drift review.</td><td>File ownership and review path are explicit. No drift-protection file is casually edited.</td></tr>
+<tr><td>1 · Failing core tests</td><td>Add grouping, precedence, invalid-data, legacy-schema, source-index, alias-collision, and no-loss tests before implementation.</td><td>The new tests fail for the exact missing behavior.</td></tr>
+<tr><td>2 · Schema and editor</td><td>Add the shared category registry; add <code>inventoryCategories</code> and <code>aliases</code>; update canonical serializer/header, form validation, legacy read fallback, and classification-only warning. Normalize all current static entries to the full shape.</td><td>Editor round-trip is byte-stable; all 19 existing definitions retain their current mechanics and primary category.</td></tr>
+<tr><td>3 · Canonical resolution</td><td>If aliases are approved, build one exact, collision-checked alias index and make canonical item lookup/identity consume it. Do not add fuzzy fallbacks.</td><td>Direct and alias lookups agree across tooltip, grouping, identity resolution, and item-canon lookup; ambiguity is loud.</td></tr>
+<tr><td>4 · Shared view model</td><td>Implement pure <code>groupInventory()</code> returning category groups and original indexes. Keep inventory state untouched.</td><td>Every input row appears once; priority examples and legacy entries pass.</td></tr>
+<tr><td>5 · Character sheets</td><td>Replace the flat sheet loop with the shared groups. Preserve live/read-only behavior and original-index Drop actions.</td><td>Player and companion sheets match the category contract; dropping after visual reorder removes the intended row.</td></tr>
+<tr><td>6 · Side panel</td><td>Render shared groups, add compact/collapsible headings, preserve tooltips and gold, remove name-fragment equipment guessing.</td><td>Side panel and sheet place every test item in the same section.</td></tr>
+<tr><td>7 · Emergent-canon UI</td><td>Add multi-category selection to the player confirmation modal without changing the tag grammar.</td><td>Accepted campaign entries persist the selected array; legacy proposals still accept correctly.</td></tr>
+<tr><td>8 · Curation and coverage</td><td>Run the read-only audit on t1593, add classification-only entries/approved aliases, resolve collisions, and explicitly review remaining misses.</td><td>The current party's 156 rows are all classified or deliberately accepted as Unclassified; nothing is silently guessed.</td></tr>
+<tr><td>9 · Visual and regression gate</td><td>Run the full suite, render both surfaces at desktop/mobile widths, exercise the exact large inventory, hard-refresh past the service worker, and bump version/cache markers with the code commit.</td><td><code>node dev/run-tests.js</code> ends <code>ALL GREEN</code>; screenshots confirm legibility and no missing/duplicate rows.</td></tr>
+</table></div>
+
+<h3>Expected file map</h3>
+<div class="scroll"><table class="files">
+<tr><th>File</th><th>Planned responsibility</th><th>Boundary</th></tr>
+<tr><td>item_bible.js</td><td>Full schema and curated categories/aliases.</td><td>Normal task surface; machine-regenerated data contract.</td></tr>
+<tr><td>helpers.js</td><td>Registry, category normalization, pure grouping, and possibly canonical alias index.</td><td>Keep one abstraction; ES5.1 only.</td></tr>
+<tr><td>identity.js</td><td>If aliases ship, keep the item identity adapter aligned with canonical item resolution.</td><td>Coordinate with identity hardening; focused review recommended.</td></tr>
+<tr><td>bible_editor.html</td><td>Checkboxes, aliases, coverage status, serializer/validation, classification-only warning.</td><td>Normal task surface.</td></tr>
+<tr><td>ui-panels.js</td><td>Grouped side-panel renderer; remove substring category guessing.</td><td>Normal task surface.</td></tr>
+<tr><td>ui-sheets.js</td><td>Grouped player/companion inventory using original indexes.</td><td>Normal task surface.</td></tr>
+<tr><td>ui-modals.js</td><td>Inventory-category selection on item-canon confirmation.</td><td>Normal task surface.</td></tr>
+<tr><td>index.html</td><td>Small category heading/collapse styles if shared CSS classes are used.</td><td><strong>Ask-first.</strong> Obtain explicit owner sign-off before editing.</td></tr>
+<tr><td>dev/engine-tests.js</td><td>Core category, grouping, migration, identity, collision, and source-index tests.</td><td>Failing assertions first.</td></tr>
+<tr><td>dev/item-bible-coverage.js</td><td>Optional focused read-only save coverage report.</td><td>Preferred over folding audit logic into unrelated tools.</td></tr>
+<tr><td>globals.js / sw.js</td><td>Version and cache markers for code commits.</td><td>Marker bumps only, in the same commit.</td></tr>
+</table></div>
+
+<section class="callout danger">
+  <strong>Do not solve this by editing <code>api.js</code> or <code>tag_table.js</code>.</strong> The additive schema allows the existing scalar prompt/tag contracts to remain intact. If implementation unexpectedly requires either read-only file, stop and route the change through the project's reviewed drift-surface workflow.
+</section>
+
+<h2 id="tests">9. Verification plan</h2>
+
+<h3>9.1 Core logic tests</h3>
+<ol class="checklist">
+  <li><strong>Exact user examples:</strong> Weapon + Quest → Weapons; Consumable + Quest → Quest.</li>
+  <li><strong>Full precedence:</strong> an entry carrying all seven categories resolves to Weapons; adjacent pairs choose the earlier registry id.</li>
+  <li><strong>Legacy compatibility:</strong> an old entry with only <code>category:"tool"</code> resolves to Tools.</li>
+  <li><strong>Unknown containment:</strong> missing definition, invalid category, empty array, and alias ambiguity all resolve to Unclassified—not Mundane and not disappearance.</li>
+  <li><strong>Exactly once:</strong> concatenate all group rows and prove the same length, raw values, and source indexes as the input.</li>
+  <li><strong>Stable relative order:</strong> rows retain original order inside each selected section.</li>
+  <li><strong>Original-index drop:</strong> after visual grouping, dropping a row removes the exact source array element.</li>
+  <li><strong>Normalization:</strong> counts, dash provenance, and parentheses still resolve. Explicit aliases cover approved comma/prose variants without fuzzy matching.</li>
+  <li><strong>Collision refusal:</strong> duplicate aliases, alias-to-key collisions, and conflicting overlay aliases fail loudly.</li>
+  <li><strong>Editor round-trip:</strong> open/serialize/reopen preserves canonical field order, sorted category arrays, aliases, and every untouched mechanical value.</li>
+  <li><strong>Classification-only:</strong> <code>effect:"N/A"</code> groups correctly and remains absent from item-canon injection.</li>
+  <li><strong>Overlay compatibility:</strong> legacy accepted <code>[ITEM_DEF:]</code> entries derive one inventory category; new acceptance persists multiple selected categories.</li>
+</ol>
+
+<h3>9.2 UI integration tests</h3>
+<ul>
+  <li>All seven categories plus Unclassified, with some categories empty.</li>
+  <li>Player sheet, companion sheet, read-only preview, and side panel.</li>
+  <li>Multiplayer spotlight switch: the side panel follows <code>activePlayer()</code> and re-groups the new inventory.</li>
+  <li>Item hover and long-press tooltip, stacked quantity display, category collapse, outer panel collapse, and gold placement.</li>
+  <li>Drop the last item in a category and confirm the now-empty heading disappears.</li>
+  <li>HTML escaping for apostrophes, quotes, ampersands, and GM-authored descriptions remains intact.</li>
+</ul>
+
+<h3>9.3 Visual ground truth</h3>
+<p>Use the t1593 save to capture the side panel and Ammut's full sheet at desktop and narrow/mobile widths. Verify with the rendered result, not only element measurements:</p>
+<ul>
+  <li>headings remain distinguishable while item text stays dominant;</li>
+  <li>long names ellipsize in the side panel without hiding headings or collapse controls;</li>
+  <li>the seven-category structure does not become more visually noisy than the flat list;</li>
+  <li>collapsed side-panel sections materially reduce scrolling;</li>
+  <li>the sheet's Drop button remains aligned with the correct row;</li>
+  <li>Unclassified is visible but not styled like a catastrophic error.</li>
+</ul>
+
+<h2 id="acceptance">10. Acceptance criteria</h2>
+<ol>
+  <li>Both UI surfaces use the same grouping function and fixed priority registry.</li>
+  <li>Weapons, Armor, Quest, Consumables, Tools, Treasure, and Mundane appear in that order when non-empty.</li>
+  <li>Multi-category items render exactly once in the highest-priority applicable section.</li>
+  <li>No name-fragment heuristic assigns a canonical category.</li>
+  <li>Every inventory row remains visible. Unknown/invalid items appear under Unclassified.</li>
+  <li>Stored inventory arrays, strings, order, quantities, exports, sync, and tag mutation behavior are unchanged.</li>
+  <li>Drop actions still target the correct original row after visual grouping.</li>
+  <li>The item-bible editor can author and validate primary category, inventory categories, aliases, and classification-only entries.</li>
+  <li>Old saves and old campaign overlay definitions require no migration to render correctly.</li>
+  <li>The t1593 audit has no unexplained misses or alias collisions before the feature is enabled for that campaign.</li>
+  <li>All headless tests are green and both large-inventory surfaces pass screenshot review.</li>
+</ol>
+
+<h2 id="risks">11. Risks and mitigations</h2>
+<div class="scroll"><table>
+<tr><th>Risk</th><th>Why it matters</th><th>Mitigation</th></tr>
+<tr><td>Incomplete bible makes the feature look ineffective</td><td>84% of current rows miss today.</td><td>Unclassified containment, classification-only entries, coverage audit, and curation before enablement.</td></tr>
+<tr><td>Seven headings add vertical noise</td><td>The side panel is narrow and the total item count does not shrink.</td><td>Hide empty sections; compact headings; independent side-panel collapse; no category chips per item.</td></tr>
+<tr><td>Metadata drifts between UI surfaces</td><td>Separate classifiers would eventually disagree.</td><td>One registry, one resolver, one pure grouped view model.</td></tr>
+<tr><td>Multiple categories create duplicates</td><td>A quest sword could appear twice and inflate counts.</td><td>Select the first matching registry category; enforce exactly-once tests.</td></tr>
+<tr><td>Grouped indexes drop the wrong item</td><td>Visual order differs from storage order.</td><td>Carry the original source index in every view row and test the exact failure.</td></tr>
+<tr><td>Fuzzy matching misclassifies canon</td><td>Item words are ambiguous and mistakes are quiet.</td><td>No fuzzy matching. Explicit aliases only; collision refusal; Unclassified on uncertainty.</td></tr>
+<tr><td>Organization forces premature mechanics</td><td>The item bible is still being curated.</td><td>Allow classification-only <code>N/A</code> mechanics; injection already skips them.</td></tr>
+<tr><td>Alias support changes prompt coverage</td><td>Previously unresolved items may enter volatile item canon.</td><td>Keep canonical lookup unified, test prompt effects, and require focused drift/identity review.</td></tr>
+<tr><td>Instance-specific quest role is unrepresentable</td><td>Current strings model types/stacks, not uniquely identified copies.</td><td>Require a distinct named type for a quest-specific item; defer structured inventory to a separate design.</td></tr>
+</table></div>
+
+<h2 id="sanity">12. Quick sanity check — is this a good idea?</h2>
+<section class="card verdict">
+  <p><strong>Yes—with two conditions, this is a good idea.</strong> The requested order matches the bible's existing seven-value taxonomy, the precedence rule is deterministic, and one shared grouping layer will make both inventory surfaces much easier to scan without changing campaign state.</p>
+  <p>The first condition is that <strong>classification must be allowed to mature independently of mechanical canon</strong>. Otherwise a simple organizational pass would force premature item rules. The second is that <strong>missing classifications must stay visibly Unclassified</strong>; with the current bible, pretending unknown means Mundane would make the interface tidy but untrustworthy.</p>
+  <p>The reservation is scale: grouping improves finding an item, but it does not reduce Ammut's 112 rows. Collapsible side-panel categories are therefore worth including. If the panel still feels painful after the grouped version is tested, the next improvement should be search/filter or a compact “show category” control—not more categories or automatic guessing.</p>
+  <p><strong>Bottom line:</strong> proceed, but implement in the order <em>schema and coverage → shared classifier → both renderers</em>. Enabling seven headings against today's 84% miss rate would be premature; enabling them after the bible can classify without inventing mechanics should be a clear usability win.</p>
+</section>
+
+<div class="footer">Prepared from the current project architecture and the latest Downloads save. Planning artifact only; no source, item-bible data, campaign save, TODO, version marker, or service-worker cache was modified.</div>
+</body>
+</html>

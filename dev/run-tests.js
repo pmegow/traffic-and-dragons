@@ -352,14 +352,42 @@ try {
   }
   // TYPE vs INSTANCE is a schema contract, not advice: an entry carrying instance fields
   // (charges/owner/provenance/count) or missing a fixed attribute fails the build here.
+  // #157: the fixed set grew two DISPLAY fields — inventoryCategories (non-empty, unique valid
+  // ids, includes category, serialized in registry order) and aliases (itemBaseName-normalized,
+  // sorted, collision-free across keys and other entries). The scalar category contract is
+  // untouched; unclassified is a UI safety state and may never be authored into the bible.
   var _biCats = { weapon: 1, armor: 1, consumable: 1, tool: 1, quest: 1, treasure: 1, mundane: 1 };
+  var _biOrder = ["weapon", "armor", "quest", "consumable", "tool", "treasure", "mundane"];
+  var _biAliasOwner = {};
   for (var _bk in _biData) {
     var _be2 = _biData[_bk], _bfs = Object.keys(_be2).sort().join(",");
-    if (_bfs !== "category,effect,uses,value") _failBE("item '" + _bk + "' breaks the fixed attribute set (has: " + _bfs + ") — instance state never enters a TYPE definition");
+    if (_bfs !== "aliases,category,effect,inventoryCategories,uses,value") _failBE("item '" + _bk + "' breaks the fixed attribute set (has: " + _bfs + ") — instance state never enters a TYPE definition, and #157's full shape is mandatory in the static bible");
     if (!_biCats[_be2.category]) _failBE("item '" + _bk + "' has unknown category '" + _be2.category + "'");
-    for (var _bf in _be2) { if (typeof _be2[_bf] !== "string") _failBE("item '" + _bk + "." + _bf + "' is not a string"); }
+    var _bic = _be2.inventoryCategories;
+    if (!(_bic instanceof Array) || !_bic.length) _failBE("item '" + _bk + "' inventoryCategories must be a non-empty array");
+    if (_bic.indexOf(_be2.category) < 0) _failBE("item '" + _bk + "' inventoryCategories must include its primary category");
+    var _bSeen = {}, _bLast = -1, _bi2;
+    for (_bi2 = 0; _bi2 < _bic.length; _bi2++) {
+      if (!_biCats[_bic[_bi2]]) _failBE("item '" + _bk + "' inventoryCategories carries unknown id '" + _bic[_bi2] + "'");
+      if (_bSeen[_bic[_bi2]]) _failBE("item '" + _bk + "' inventoryCategories has a duplicate '" + _bic[_bi2] + "'");
+      _bSeen[_bic[_bi2]] = 1;
+      var _bPos = _biOrder.indexOf(_bic[_bi2]);
+      if (_bPos < _bLast) _failBE("item '" + _bk + "' inventoryCategories is not in registry order — the editor serializes canonically, so this is a hand edit fighting it");
+      _bLast = _bPos;
+    }
+    if (!(_be2.aliases instanceof Array)) _failBE("item '" + _bk + "' aliases must be an array");
+    for (_bi2 = 0; _bi2 < _be2.aliases.length; _bi2++) {
+      var _bal = _be2.aliases[_bi2];
+      if (typeof _bal !== "string" || !_bal) _failBE("item '" + _bk + "' has an empty alias");
+      if (_biData[_bal]) _failBE("item '" + _bk + "' alias '" + _bal + "' shadows a LIVE bible key — exact keys always win; merge instead");
+      if (_biAliasOwner[_bal]) _failBE("alias '" + _bal + "' claimed by BOTH '" + _biAliasOwner[_bal] + "' and '" + _bk + "' — one alias, one owner");
+      _biAliasOwner[_bal] = _bk;
+    }
+    for (var _bf in _be2) { if (_bf !== "inventoryCategories" && _bf !== "aliases" && typeof _be2[_bf] !== "string") _failBE("item '" + _bk + "." + _bf + "' is not a string"); }
     if (_bk !== _bk.toLowerCase()) _failBE("item key '" + _bk + "' is not lowercase — itemLookup can never resolve it");
   }
+  // alias normalization needs the live itemBaseName — checked in the engine half via the #157
+  // grouping battery; here the shape rules above are the load-bearing static contract.
 
   // ── CAP VALIDATOR CONTRACT (v1.480) ──────────────────────────────────────────────────
   // The define form accepted anything until four real draft entries showed the cost: three were

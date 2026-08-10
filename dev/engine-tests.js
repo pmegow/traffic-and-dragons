@@ -11316,6 +11316,117 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!kinds["leaf-variant"])return "same-parent leaf containment pair (Rusty Dragon vs Sandpoint - Rusty Dragon) not found";
     return true;
   });
+  // ═══ #157: item-bible-driven inventory organization (Sol's spec, DOC/DOC_inventory_reorganization.html) ═══
+  // View-only grouping: one registry, one pure view model, Unclassified as a SAFETY state (never
+  // silently Mundane, never dropped), no fuzzy matching — aliases are exact-after-normalization
+  // and collision-refused. The stored inventory array is never reordered or rewritten.
+  section("inventory organization (#157): registry, grouping, aliases, safety states");
+  function makeInvWorld(){
+    makeIdWorld();
+    worldState.itemBible={};/* overlay-staged entries keep these tests independent of static-bible content */
+    return worldState;
+  }
+  t("INVENTORY_CATEGORY_REGISTRY: the seven ids in fixed priority order, position IS the priority",function(){
+    if(typeof INVENTORY_CATEGORY_REGISTRY==="undefined")return "registry missing";
+    var ids=INVENTORY_CATEGORY_REGISTRY.map(function(c){return c.id;}).join(",");
+    if(ids!=="weapon,armor,quest,consumable,tool,treasure,mundane")return "order wrong: "+ids;
+    var i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){if(!INVENTORY_CATEGORY_REGISTRY[i].label)return "missing label at "+i;if(INVENTORY_CATEGORY_REGISTRY[i].rank!==undefined)return "no separate numeric ranks — array position is the priority (Sol §3.1)";}
+    return true;
+  });
+  t("groupInventory precedence: weapon+quest files under Weapons, consumable+quest under Quest; the full-seven entry under Weapons",function(){
+    makeInvWorld();
+    worldState.itemBible["witchlight blade"]={category:"weapon",inventoryCategories:["weapon","quest"],aliases:[],effect:"Glows near lies.",uses:"at-will",value:"N/A"};
+    worldState.itemBible["amber vial"]={category:"consumable",inventoryCategories:["quest","consumable"],aliases:[],effect:"N/A",uses:"single use",value:"N/A"};
+    worldState.itemBible["everything token"]={category:"mundane",inventoryCategories:["weapon","armor","quest","consumable","tool","treasure","mundane"],aliases:[],effect:"N/A",uses:"N/A",value:"N/A"};
+    var g=groupInventory(["Witchlight blade","Amber vial","Everything token"]);
+    function sec(id){var i;for(i=0;i<g.length;i++){if(g[i].id===id)return g[i];}return null;}
+    if(!sec("weapon")||sec("weapon").rows.length!==2)return "Weapons should hold the blade AND the all-seven token: "+JSON.stringify(g.map(function(x){return x.id+":"+x.rows.length;}));
+    if(!sec("quest")||sec("quest").rows[0].raw!=="Amber vial")return "consumable+quest must file under Quest (registry order), got: "+JSON.stringify(sec("quest"));
+    return sec("consumable")===null?true:"the vial must not ALSO appear under Consumables (exactly once)";
+  });
+  t("legacy scalar-only entries group by their category; invalid metadata and unknown items land in Unclassified (never Mundane, never dropped)",function(){
+    makeInvWorld();
+    worldState.itemBible["lockpicks"]={category:"tool",effect:"N/A",uses:"reusable",value:"25 gp"};/* legacy shape — no array */
+    worldState.itemBible["cursed orb"]={category:"weapon",inventoryCategories:[],aliases:[],effect:"N/A",uses:"N/A",value:"N/A"};/* invalid: empty array */
+    worldState.itemBible["odd idol"]={category:"treasure",inventoryCategories:["treasure","haunted"],aliases:[],effect:"N/A",uses:"N/A",value:"N/A"};/* invalid: unknown id */
+    var g=groupInventory(["Lockpicks","Cursed orb","Odd idol","Total mystery item"]);
+    function sec(id){var i;for(i=0;i<g.length;i++){if(g[i].id===id)return g[i];}return null;}
+    if(!sec("tool")||sec("tool").rows[0].key!=="lockpicks")return "legacy scalar entry did not derive [category]";
+    var u=sec("unclassified");
+    if(!u)return "no Unclassified section";
+    var names=u.rows.map(function(r){return r.raw;}).join("|");
+    if(names.indexOf("Cursed orb")<0)return "empty-array metadata must land in Unclassified, not be repaired silently";
+    if(names.indexOf("Odd idol")<0)return "unknown category id must land in Unclassified";
+    if(names.indexOf("Total mystery item")<0)return "an unknown item must stay VISIBLE in Unclassified";
+    if(sec("mundane"))return "nothing here may default to Mundane — it is a positive classification (Sol §3.4)";
+    return g[g.length-1].id==="unclassified"?true:"Unclassified must render last";
+  });
+  t("exactly-once with source indexes and stable relative order — the grouped view is a permutation carrying original positions",function(){
+    makeInvWorld();
+    worldState.itemBible["longsword"]={category:"weapon",inventoryCategories:["weapon"],aliases:[],effect:"N/A",uses:"at-will",value:"15 gp"};
+    worldState.itemBible["rope"]={category:"tool",inventoryCategories:["tool"],aliases:[],effect:"N/A",uses:"reusable",value:"1 gp"};
+    var inv=["Rope x2","Longsword","Mystery A","Rope","Longsword (notched)"];
+    var g=groupInventory(inv),flat=[],i,j;
+    for(i=0;i<g.length;i++){for(j=0;j<g[i].rows.length;j++)flat.push(g[i].rows[j]);}
+    if(flat.length!==inv.length)return "row count changed: "+flat.length+"/"+inv.length;
+    for(i=0;i<flat.length;i++){if(inv[flat[i].sourceIndex]!==flat[i].raw)return "sourceIndex broken at '"+flat[i].raw+"'";}
+    var weap=null;for(i=0;i<g.length;i++){if(g[i].id==="weapon")weap=g[i];}
+    if(!weap||weap.rows.length!==2)return "both longswords must file under Weapons";
+    if(!(weap.rows[0].sourceIndex===1&&weap.rows[1].sourceIndex===4))return "relative order inside a section must follow the stored array";
+    return true;
+  });
+  t("aliases resolve canonically through itemLookup — grouping, tooltip, and GM injection all agree (never a UI-only resolver)",function(){
+    makeInvWorld();
+    worldState.itemBible["corked vial"]={category:"consumable",inventoryCategories:["consumable"],aliases:["small corked vial, violet residue"],effect:"One measured dose of numbweed tincture.",uses:"single use",value:"12 gp"};
+    var e=itemLookup("Small corked vial, violet residue x2");
+    if(!e||e.effect.indexOf("numbweed")<0)return "alias did not resolve through itemLookup";
+    var g=groupInventory(["Small corked vial, violet residue x2"]);
+    if(g[0].id!=="consumable")return "alias-resolved item did not group by its entry";
+    /* tooltip agreement is structural — itemTip (ui-panels.js, outside the engine subset)
+       delegates to this same itemLookup; the cross-surface probe that matters is injection: */
+    worldState.character.inventory=["Small corked vial, violet residue x2"];
+    var blk=buildItemBibleBlock();
+    return blk.indexOf("numbweed")>=0?true:"GM item-canon injection did not pick up the alias-resolved item — a UI-only resolver would now disagree with the prompt (Sol §4)";
+  });
+  t("alias collisions refuse loudly and resolve as Unclassified — never a winner by object order",function(){
+    makeInvWorld();
+    worldState.itemBible["iron key"]={category:"tool",inventoryCategories:["tool"],aliases:[],effect:"N/A",uses:"reusable",value:"N/A"};
+    worldState.itemBible["warden's key"]={category:"quest",inventoryCategories:["quest"],aliases:["iron key"],effect:"N/A",uses:"N/A",value:"N/A"};/* alias shadows a LIVE key */
+    worldState.itemBible["red flask"]={category:"consumable",inventoryCategories:["consumable"],aliases:["strange flask"],effect:"N/A",uses:"single use",value:"N/A"};
+    worldState.itemBible["blue flask"]={category:"consumable",inventoryCategories:["consumable"],aliases:["strange flask"],effect:"N/A",uses:"single use",value:"N/A"};/* duplicate alias */
+    var warned=false,ow=console.warn;console.warn=function(){warned=true;};
+    var e1,g;try{e1=itemLookup("Iron key");g=groupInventory(["Strange flask"]);}finally{console.warn=ow;}
+    if(!e1||e1.category!=="tool")return "an exact key must always beat an alias claim";
+    if(!warned)return "collisions were silent";
+    return g[g.length-1].id==="unclassified"&&g[g.length-1].rows[0].raw==="Strange flask"?true:"an ambiguous alias must resolve as Unclassified: "+JSON.stringify(g);
+  });
+  t("classification-only entries (effect N/A) group correctly and stay OUT of the GM item-canon block",function(){
+    makeInvWorld();
+    worldState.itemBible["quest letter"]={category:"quest",inventoryCategories:["quest"],aliases:[],effect:"N/A",uses:"N/A",value:"N/A"};
+    var g=groupInventory(["Quest letter"]);
+    if(g[0].id!=="quest")return "classification-only entry did not group";
+    worldState.character.inventory=["Quest letter"];
+    var blk=buildItemBibleBlock();
+    return blk.indexOf("quest letter")<0?true:"an N/A-effect entry leaked into the injected canon — organization must not force premature mechanics (Sol §3.5)";
+  });
+  t("itemDefAccept persists a validated inventoryCategories array; legacy acceptance (scalar only) still lands and derives at read",function(){
+    makeInvWorld();
+    worldState.pendingItemDefs=[{key:"smoke bomb",name:"Smoke Bomb",entry:{category:"consumable",inventoryCategories:["consumable","tool"],effect:"Bursts into thick smoke.",uses:"single use",value:"40 gp"}},
+                                {key:"plain marble",name:"Plain Marble",entry:{category:"mundane",effect:"N/A",uses:"N/A",value:"N/A"}}];
+    if(!itemDefAccept("smoke bomb"))return "accept failed";
+    if(JSON.stringify(worldState.itemBible["smoke bomb"].inventoryCategories)!=='["consumable","tool"]')return "array did not persist on acceptance";
+    if(!itemDefAccept("plain marble"))return "legacy-shaped accept failed";
+    var g=groupInventory(["Plain Marble","Smoke Bomb"]);
+    function sec(id){var i;for(i=0;i<g.length;i++){if(g[i].id===id)return g[i];}return null;}
+    if(!sec("mundane"))return "legacy overlay entry did not derive [category] at read";
+    return sec("consumable")&&sec("consumable").rows[0].raw==="Smoke Bomb"?true:"multi-category acceptance did not group by precedence";
+  });
+  t("empty inventory groups to an empty list (renderers keep the single Empty message — no seven-heading scaffold)",function(){
+    makeInvWorld();
+    var g=groupInventory([]);
+    return g.length===0?true:"expected zero sections for an empty inventory, got "+g.length;
+  });
+
   t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
     if(typeof locRepairApply!=="function")return "locRepairApply missing";
     makeGeoWorld();

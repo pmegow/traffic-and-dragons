@@ -567,14 +567,96 @@ function itemBaseName(nm){
   s=s.replace(/\s+x\d+\s*$/i,"");        // count that sat before a stripped clause
   return s.toLowerCase().replace(/\s+/g," ").trim();
 }
-// The ONE item lookup — tooltip, viewer, and injection all read through here. The emergent
-// per-campaign overlay (worldState.itemBible — player-CONFIRMED [ITEM_DEF:] proposals, never
-// raw model output) wins over the static base, so an accepted correction is authoritative.
+// ── #157: the inventory category registry — ONE ordered list (Sol's spec §3.1) ─────────────
+// Array position IS the display priority; the classifier, editor, renderers, validation, and
+// tests all consume this registry. Never store separate numeric ranks that could disagree.
+var INVENTORY_CATEGORY_REGISTRY=[
+  {id:"weapon",     label:"Weapons"},
+  {id:"armor",      label:"Armor"},
+  {id:"quest",      label:"Quest"},
+  {id:"consumable", label:"Consumables"},
+  {id:"tool",       label:"Tools"},
+  {id:"treasure",   label:"Treasure"},
+  {id:"mundane",    label:"Mundane"}
+];
+function _invCatValid(id){var i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){if(INVENTORY_CATEGORY_REGISTRY[i].id===id)return true;}return false;}
+// The display-membership set for an entry: a VALID inventoryCategories array wins; a legacy
+// entry (no array) derives [category]; invalid metadata (empty array, unknown id, category
+// missing from the array's implied membership) returns null — the caller files the row under
+// Unclassified and the defect stays VISIBLE, never silently repaired (Sol §3.4, spec step 3).
+var _invCatWarned={};
+function itemInvCategories(entry){
+  if(!entry)return null;
+  var arr=entry.inventoryCategories;
+  if(arr===undefined)return _invCatValid(entry.category)?[entry.category]:null;
+  if(!(arr instanceof Array)||!arr.length)return null;
+  var seen={},i;
+  for(i=0;i<arr.length;i++){if(!_invCatValid(arr[i])||seen[arr[i]])return null;seen[arr[i]]=1;}
+  return arr;
+}
+// ── #157: exact alias index (Sol §3.6 — never substring, never stemming, never inference) ──
+// One collision-checked map alias→canonical over the static bible + campaign overlay. Cached;
+// the memo key is the two stores' entry counts (overlay entries are write-once, the static
+// bible changes only on deploy, so counts identify the state). A collision — an alias shadowing
+// a LIVE key, or two entries claiming one alias — warns loudly ONCE and EXCLUDES that alias, so
+// runtime resolution is never decided by object order: the ambiguous name simply stays
+// unresolved and surfaces as Unclassified.
+var _itemAliasMemo=null,_itemAliasMemoKey="";
+function _itemAliasIndex(){
+  var stat=(typeof ITEM_BIBLE!=="undefined")?ITEM_BIBLE:{};
+  var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||{};
+  var mk=Object.keys(stat).length+"|"+Object.keys(ov).length;
+  if(_itemAliasMemo&&_itemAliasMemoKey===mk)return _itemAliasMemo;
+  var idx={},dead={},k,i;
+  function claim(alias,canon){
+    var a=itemBaseName(alias);
+    if(!a)return;
+    if(stat[a]||ov[a]){if(!_invCatWarned["ak:"+a]){_invCatWarned["ak:"+a]=1;if(typeof console!=="undefined")console.warn("[items] alias '"+a+"' (on '"+canon+"') shadows a LIVE item key — alias ignored; an exact key always wins (#157)");}dead[a]=1;return;}
+    if(idx[a]&&idx[a]!==canon){if(!_invCatWarned["ad:"+a]){_invCatWarned["ad:"+a]=1;if(typeof console!=="undefined")console.warn("[items] alias '"+a+"' claimed by BOTH '"+idx[a]+"' and '"+canon+"' — ambiguous, resolves to neither (#157)");}dead[a]=1;return;}
+    idx[a]=canon;
+  }
+  for(k in stat){var sa=stat[k].aliases||[];for(i=0;i<sa.length;i++)claim(sa[i],k);}
+  for(k in ov){var oa=ov[k].aliases||[];for(i=0;i<oa.length;i++)claim(oa[i],k);}
+  for(k in dead)delete idx[k];
+  _itemAliasMemo=idx;_itemAliasMemoKey=mk;
+  return idx;
+}
+// The ONE item lookup — tooltip, viewer, grouping, and GM injection all read through here. The
+// emergent per-campaign overlay (worldState.itemBible — player-CONFIRMED [ITEM_DEF:] proposals,
+// never raw model output) wins over the static base, so an accepted correction is
+// authoritative. #157: an exact-alias hop runs only after BOTH exact-key probes miss — canonical
+// resolution, never a UI-only second classifier (Sol §4).
 function itemLookup(nm){
   var key=itemBaseName(nm);
   if(!key)return null;
   if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[key])return worldState.itemBible[key];
-  return (typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])||null;
+  if(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])return ITEM_BIBLE[key];
+  var canon=_itemAliasIndex()[key];
+  if(!canon)return null;
+  if(typeof worldState!=="undefined"&&worldState&&worldState.itemBible&&worldState.itemBible[canon])return worldState.itemBible[canon];
+  return (typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[canon])||null;
+}
+// ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
+// Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
+// its ORIGINAL array index so a visually regrouped Drop still removes the right stored row.
+// Every input row appears exactly once; the stored array is never reordered or rewritten.
+function groupInventory(inv){
+  inv=inv||[];
+  var buckets={},order=[],i,j;
+  for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
+  var un={id:"unclassified",label:"Unclassified",rows:[]};
+  for(i=0;i<inv.length;i++){
+    var raw=inv[i],e=itemLookup(raw),cats=e?itemInvCategories(e):null;
+    var row={raw:raw,sourceIndex:i,key:itemBaseName(raw),entry:e,categories:cats||[]};
+    if(!cats){un.rows.push(row);continue;}
+    var placed=false;
+    for(j=0;j<order.length;j++){if(cats.indexOf(order[j])>=0){buckets[order[j]].rows.push(row);placed=true;break;}}
+    if(!placed)un.rows.push(row);
+  }
+  var out=[];
+  for(i=0;i<order.length;i++){if(buckets[order[i]].rows.length)out.push(buckets[order[i]]);}
+  if(un.rows.length)out.push(un);
+  return out;
 }
 // Player verdicts on [ITEM_DEF:] proposals — the ONLY writers of worldState.itemBible (#81).
 // Pure state ops (no DOM) so the confirm modal stays a thin veneer and the flow is engine-

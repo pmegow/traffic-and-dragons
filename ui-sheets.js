@@ -162,11 +162,20 @@ function csSheetSections(c,invOwner){
     var _shMx=(typeof manaMax==="function")?manaMax(c):0;
     spellHtml=(_shMx>0?'<div class="cs-v" style="color:var(--mana);margin-bottom:2px;">Mana '+manaCur(c)+' / '+_shMx+' <span style="color:var(--t2);font-size:.85em;">(a cast costs its tier; refills on rest)</span></div>':"")+'<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
-  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a drop × */
-    var invRows="",ivi,_canDrop=(invOwner!==undefined);
-    for(ivi=0;ivi<c.inventory.length;ivi++){
-      var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+ivi+'" onclick="dropInvItem(this.dataset.own,this.dataset.idx,event)" title="Drop this item" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
-      invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>'+invItemHtml(c.inventory[ivi])+'</span>'+_dropBtn+'</div>';
+  if(c.inventory&&c.inventory.length){/* #50(b): one line per item (was a comma run); live sheets get a drop ×.
+     #157: rendered through the ONE shared grouping view model (same classifier as the side
+     panel — Sol §5). Each row carries its ORIGINAL array index, so a visually regrouped Drop
+     still removes the right stored row; the stored array itself is never reordered. No nested
+     collapse here — the sheet already has a parent collapse (Sol §6.3). */
+    var invRows="",_canDrop=(invOwner!==undefined),_gi,_ri,_grps=groupInventory(c.inventory);
+    for(_gi=0;_gi<_grps.length;_gi++){
+      var _grp=_grps[_gi];
+      invRows+='<div class="cs-inv-cat'+(_grp.id==="unclassified"?' unc':'')+'">'+escHtml(_grp.label)+'</div>';
+      for(_ri=0;_ri<_grp.rows.length;_ri++){
+        var _row=_grp.rows[_ri];
+        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" onclick="dropInvItem(this.dataset.own,this.dataset.idx,event)" title="Drop this item" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
+        invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>'+invItemHtml(_row.raw)+'</span>'+_dropBtn+'</div>';
+      }
     }
     invHtml='<div class="cs-list">'+invRows+"</div>";}
   else invHtml='<span class="cs-none">Empty</span>';

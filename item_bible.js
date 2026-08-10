@@ -10,7 +10,14 @@
 // instance fields fails the engine build.
 //
 // Schema, fixed-attribute discipline (every entry carries the full set, "N/A" where
-// inapplicable — injected canon must never query empty):
+// inapplicable — injected canon must never query empty). #157 adds two display fields:
+//   inventoryCategories — one or more of the seven ids (DISPLAY membership for the grouped
+//     inventory; always includes category; serialized in registry order; the FIRST registry
+//     match decides the section an item files under),
+//   aliases — exact alternate TYPE names, itemBaseName()-normalized, collision-refused —
+//     never substring, never fuzzy (an ambiguous name stays honestly Unclassified).
+// effect:"N/A" outside mundane/treasure is a LEGAL classification-only entry (#157): it
+// organizes the inventory and fills the tooltip but is NEVER injected as GM canon.
 //   { category: weapon|armor|consumable|tool|quest|treasure|mundane,
 //     effect:   what it DOES, mechanically, or "N/A",
 //     uses:     usage/recharge model of the TYPE ("single use", "at-will", "1/day", "reusable"),
@@ -33,117 +40,1078 @@
 var ITEM_BIBLE = {
   "alchemist's fire": {
     "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
     "effect": "Thrown flask that shatters and ignites: 1d4 fire damage on impact and 1d4 more at the start of the target's next turn until doused (an action to extinguish).",
     "uses": "single use — thrown",
     "value": "50 gp"
   },
   "blasting charge": {
     "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
     "effect": "Placed or thrown explosive: 3d6 fire and concussive damage in a 10-ft radius (DEX save DC 13 for half); demolishes doors, thin walls, and rigged supports. Unmistakably loud.",
     "uses": "single use — fuse or trigger",
     "value": "75 gp"
   },
   "healing potion": {
     "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
     "effect": "Drunk as an action: restores 2d4+2 HP.",
     "uses": "single use",
     "value": "50 gp"
   },
   "travel rations": {
     "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
     "effect": "One day of preserved food for one person; a day without food risks exhaustion.",
     "uses": "single use — one day",
     "value": "5 sp"
   },
   "torch": {
     "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
     "effect": "Bright light 20 ft, dim light 20 ft beyond; can ignite flammables or serve as an improvised weapon for 1 fire damage.",
     "uses": "single use — burns about an hour",
     "value": "1 cp"
   },
   "lockpicks": {
     "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
     "effect": "Enable Lockpicking attempts on mechanical locks; the skill does the work, the picks make it possible. Incriminating if found during a search.",
     "uses": "reusable",
     "value": "25 gp"
   },
   "lockpick roll": {
     "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
     "effect": "A full set of picks and tension bars: enables Lockpicking attempts and grants the working room to retry a failed lock once without breaking a pick.",
     "uses": "reusable",
     "value": "40 gp"
   },
   "trip-wire cord": {
     "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
     "effect": "Rigged across a path: a creature crossing must save (DEX DC 12) or fall prone; pairs with a bell or a blasting charge as an alarm or trap trigger.",
     "uses": "reusable once recovered",
     "value": "1 gp"
   },
   "rope": {
     "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
     "effect": "50 ft of hemp line for climbing, binding, and hauling. A bound creature escapes only with STR DC 15 or an Escape Artistry success.",
     "uses": "reusable",
     "value": "1 gp"
   },
   "crossbow": {
     "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
     "effect": "Ranged: 1d8 piercing, range 80/320 ft; loading — one shot per action.",
     "uses": "at-will",
     "value": "25 gp"
   },
   "short blade": {
     "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
     "effect": "Light finesse blade: 1d6 piercing or slashing; easily concealed.",
     "uses": "at-will",
     "value": "10 gp"
   },
   "witchlight blade": {
     "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
     "effect": "Short blade that sheds a pale glow on command (dim light 10 ft); counts as magical against resistances; 1d6 piercing.",
     "uses": "at-will",
     "value": "N/A — not commonly sold"
   },
   "bone-handled knife": {
     "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
     "effect": "Small utility blade: 1d4 piercing; doubles as an eating and skinning knife.",
     "uses": "at-will",
     "value": "2 gp"
   },
   "leather armor": {
     "category": "armor",
+    "inventoryCategories": [
+      "armor"
+    ],
+    "aliases": [],
     "effect": "Light armor: AC 11 + DEX modifier; no penalty to stealth.",
     "uses": "passive while worn",
     "value": "10 gp"
   },
   "veil token pendant": {
     "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
     "effect": "Worn iron-and-silver disc: once per day the bearer becomes hard to notice for a scene — advantage on stealth against casual attention; direct scrutiny breaks the effect.",
     "uses": "1/day",
     "value": "N/A — not commonly sold"
   },
   "amber vial": {
     "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
     "effect": "Rune-sealed vial recovered from Pale Choir sites; contents unidentified — opening or identifying it is a story action, not a mechanical use.",
     "uses": "N/A — unidentified",
     "value": "N/A"
   },
   "corked vial": {
     "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [
+      "small corked vial, violet residue"
+    ],
     "effect": "Unmarked rune-sealed vial; contents unknown until identified in play.",
     "uses": "N/A — unidentified",
     "value": "N/A"
   },
   "bottle of wine": {
     "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
     "effect": "N/A",
     "uses": "single use",
     "value": "2 sp"
   },
   "silver arm": {
     "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
     "effect": "N/A",
     "uses": "N/A",
     "value": "120 gp"
+  },
+  "arrow": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use — ammunition",
+    "value": "1 gp per 20"
+  },
+  "crossbow bolt": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use — ammunition",
+    "value": "1 gp per 20"
+  },
+  "silvered arrow": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use — ammunition",
+    "value": "1 gp each"
+  },
+  "heavy crossbow": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
+    "effect": "Ranged 1d10 piercing; loading (one bolt per action); range 100/400 ft.",
+    "uses": "at-will",
+    "value": "50 gp"
+  },
+  "short blades": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "at-will",
+    "value": "N/A"
+  },
+  "throwing knives": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon"
+    ],
+    "aliases": [
+      "two throwing knives, utilitarian, unworn"
+    ],
+    "effect": "Light thrown blade: 1d4 piercing; range 20/60 ft.",
+    "uses": "at-will",
+    "value": "2 gp each"
+  },
+  "skinsaw knife": {
+    "category": "weapon",
+    "inventoryCategories": [
+      "weapon",
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "at-will",
+    "value": "N/A"
+  },
+  "brass key": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [
+      "second brass key"
+    ],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "iron key": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "room key": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "cipher wheel": {
+    "category": "tool",
+    "inventoryCategories": [
+      "quest",
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "transcription kit": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "traveling ink kit": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "chalk composite for ward marking": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "consumed per marking",
+    "value": "N/A"
+  },
+  "folding camp stove": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "leather satchel": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "1 gp"
+  },
+  "dispatch satchel": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "oilcloth strip": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "oilskin packet": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "coin pouch": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "5 sp"
+  },
+  "silver coin pouch": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "saddles": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "saddlebags": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "bridles": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "feed bags": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "cart": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "cart horse": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable — a working animal",
+    "value": "N/A"
+  },
+  "road horse": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable — a riding animal",
+    "value": "N/A"
+  },
+  "dark bay mare": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "reusable — a riding animal",
+    "value": "N/A"
+  },
+  "spare spectacles": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [
+      "spare spectacles with a cracked left lens she hasn't replaced"
+    ],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "folded camp kit": {
+    "category": "tool",
+    "inventoryCategories": [
+      "tool"
+    ],
+    "aliases": [
+      "folded camp kit including a second ground cloth she has not mentioned aloud"
+    ],
+    "effect": "N/A",
+    "uses": "reusable",
+    "value": "N/A"
+  },
+  "black wax candle": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use — burns ~1 hour",
+    "value": "1 cp"
+  },
+  "dried provisions": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [
+      "dried provisions, travel-grade, efficiently packed"
+    ],
+    "effect": "N/A",
+    "uses": "single use — one day's food",
+    "value": "N/A"
+  },
+  "fuel block": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use",
+    "value": "N/A"
+  },
+  "small tin of tallow": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "several applications",
+    "value": "N/A"
+  },
+  "toffee twist": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use",
+    "value": "N/A"
+  },
+  "vial of contact paralytic": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use — applied",
+    "value": "N/A"
+  },
+  "vial of giant's bane": {
+    "category": "consumable",
+    "inventoryCategories": [
+      "quest",
+      "consumable"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "single use",
+    "value": "N/A"
+  },
+  "ameiko's note": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "blank transfer authorization": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "blood-damp papers": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "bruthazmus's head": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A — proof of a kill"
+  },
+  "cipher letters": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "cipher pages": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "closed-eye cipher primer": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "closed-eye ledger": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "collector's ledger": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "letter of introduction": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [
+      "letter of introduction written in a dead contractual script, undelivered for eleven years"
+    ],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "operative's letter": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "operative's map": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "quink's ward notes": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "tharwick's circuit ledger": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "thassilonian ledger fragment": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "travel warrant": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "trade route map": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [
+      "worn map of the southern trade routes with seventeen locations marked in her own notation system"
+    ],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "fieldwork journal": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [
+      "fieldwork journal, pre-reach contract law annotations, water-resistant binding"
+    ],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "iron clasp pin shaped like an open hand": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "iron spiral pendant": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "dark metal disc with rotating spiral engraving": {
+    "category": "quest",
+    "inventoryCategories": [
+      "quest"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "brass ring": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "iron ring": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "brass token": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "dark tooth cap": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "blown glass piece": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "cold iron ring": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "wedding ring": {
+    "category": "treasure",
+    "inventoryCategories": [
+      "treasure"
+    ],
+    "aliases": [
+      "wedding rings"
+    ],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "good wool cloak": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "heavy wool underlayer": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "mountain gloves": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "boot liners": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "spare travel wrap": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "waxed outer wrap": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "pale choir robe": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "bell": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "pressed wildflower": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "small river stone": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [
+      "small river stone, smooth, kept in her left coat pocket"
+    ],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "note": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "folded letter": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "folded papers": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "folded document": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "scrap of paper": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "vellum scrap": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "vellum strip": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "map": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "ledger": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
+  },
+  "one sealed letter": {
+    "category": "mundane",
+    "inventoryCategories": [
+      "mundane"
+    ],
+    "aliases": [],
+    "effect": "N/A",
+    "uses": "N/A",
+    "value": "N/A"
   }
 };
 // <<< ITEM BIBLE DATA
