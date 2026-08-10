@@ -321,6 +321,15 @@ var TTS = (function() {
   // Order matters: the literal-"..."→ellipsis collapse runs BEFORE the dash substitution, so a
   // dashRepl of "... " (three literal dots) is not immediately re-collapsed into a single "…" —
   // that would silently change the exact validated native-speech output.
+  // INTERWORD single hyphens are DELETED (→ space), never routed through dashRepl (#159):
+  // "half-buried" must read as two adjacent words, but Piper's espeak-ng phonemizer renders a
+  // compound's hyphen as an audible pause INSIDE the synthesized wav — the one place the
+  // scheduled inter-unit gaps can't reach — so it read "half … buried" (field report
+  // 2026-08-10; 1011 such compounds in the t1593 campaign's GM prose). The lookahead leaves
+  // the trailing letter unconsumed so chained compounds ("three-and-a-half") strip every link.
+  // Letters only, on purpose: digit ranges ("3-4"), spaced breaks (" - "), and the --/em-dash
+  // rules stay untouched. Unconditional across engines — OS voices speak "half buried" and
+  // "half-buried" identically, so native is neutral and the two paths cannot drift.
   function normalizeForTTS(text, dashRepl) {
     if (dashRepl == null) dashRepl = ", ";
     return (text || "")
@@ -336,6 +345,7 @@ var TTS = (function() {
       .replace(/\s*\.\.\.+\s*/g, "… ")     // literal "..." already in the source → single ellipsis char
       .replace(/\s*--\s*/g, dashRepl)      // spaced ASCII double-hyphen
       .replace(/\s*[—–]\s*/g, dashRepl)    // em / en dash
+      .replace(/([A-Za-z])-(?=[A-Za-z])/g, "$1 ")  // interword hyphen → space (#159, see block comment)
       .replace(/\n/g, " ")                 // intra-paragraph newline → space (paragraphs are split before this runs)
       .replace(/[ \t]+/g, " ")
       .trim();

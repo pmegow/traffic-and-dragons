@@ -6449,6 +6449,34 @@ function runEngineTests(R){
     var out=_tp.normalizeForTTS("Line one\nLine two");
     return out==="Line one Line two"?true:"got "+JSON.stringify(out);
   });
+  // ── #159 interword hyphens (field report 2026-08-10) ──
+  t("#159: interword ASCII hyphen becomes a space — Piper renders 'half-buried' as 'half … buried'",function(){
+    // The FAILURE condition: a compound's hyphen survives into the unit text, and Piper's
+    // espeak-ng phonemizer renders it as an audible pause INSIDE the synthesized wav — the one
+    // place the scheduled inter-unit gaps can't reach. The fix makes the hyphen invisible
+    // before the engine sees it; "half buried" carries no pause-inducing token at all.
+    var out=_tp.normalizeForTTS("The chest lies half-buried near the cargo-culting shrine.");
+    return out==="The chest lies half buried near the cargo culting shrine."?true:"got "+JSON.stringify(out);
+  });
+  t("#159: chained compounds strip EVERY link — 'three-and-a-half' (a consumed-letter regex misses alternate hyphens)",function(){
+    var out=_tp.normalizeForTTS("A three-and-a-half day march.");
+    return out==="A three and a half day march."?true:"got "+JSON.stringify(out);
+  });
+  t("#159 scope pin: digit ranges, spaced single hyphens, and the --/em-dash break rules stay untouched",function(){
+    var a=_tp.normalizeForTTS("Wait 3-4 days.");
+    if(a!=="Wait 3-4 days.")return "digit range altered: "+JSON.stringify(a);
+    var b=_tp.normalizeForTTS("A pause - like this - survives.");
+    if(b!=="A pause - like this - survives.")return "spaced single hyphen altered: "+JSON.stringify(b);
+    var c=_tp.normalizeForTTS("Wait--stop");
+    if(c!=="Wait, stop")return "double-hyphen break lost: "+JSON.stringify(c);
+    var d=_tp.normalizeForTTS("Wait—stop","... ");
+    return d==="Wait... stop"?true:"tight em-dash break lost: "+JSON.stringify(d);
+  });
+  t("#159 pin: hyphen strip never changes unit COUNT (persisted speaker maps key on it — the B14 invariant)",function(){
+    var a=_tp.splitSentences('Ammut finds the half-buried chest, waiting. "Dig," she says.',null,true).length;
+    var b=_tp.splitSentences('Ammut finds the half buried chest, waiting. "Dig," she says.',null,true).length;
+    return a===b?true:"unit counts diverge: "+a+" vs "+b;
+  });
   t("over-long single clause (no commas/semicolons/colons) word-wraps under MAX_UNIT",function(){
     var words=[];for(var i=0;i<60;i++)words.push("wordwordword"+i);
     var clause=words.join(" ");
