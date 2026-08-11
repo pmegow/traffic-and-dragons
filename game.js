@@ -2070,7 +2070,7 @@ async function doRender(){
       fetch("https://fal.run/fal-ai/flux/dev/image-to-image",{method:"POST",
         headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
         body:JSON.stringify({prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})})
-        .then(function(r){if(!r.ok)throw new Error("fal.ai HTTP "+r.status);return r.json();})
+        .then(function(r){if(!r.ok)return r.text().catch(function(){return "";}).then(function(t){throw new Error(falErrorMsg(r.status,t));});return r.json();})/* #163b */
         .then(function(d){
           if(!(d.images&&d.images[0]&&d.images[0].url))throw new Error("No image returned.");
           imageUrl=d.images[0].url;if(sceneImg)sceneImg.src=imageUrl;
@@ -2124,7 +2124,7 @@ async function doRender(){
         if(isNano&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene.";
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
-        if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
+        if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
         var falData=await falRes.json();
         if(falData.images&&falData.images[0]&&falData.images[0].url){
           imageUrl=falData.images[0].url;

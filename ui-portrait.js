@@ -89,8 +89,8 @@ function compressPortrait(dataUrl,cb){
 //         strength (NOT the #42 scene-render slider); null/absent → text-to-image on the
 //         player's selected render model (renderModel lookup, default RENDER_MODELS[0]) with
 //         portraitRenderBody's 3:4 aspect override.
-// Resolves to the generated image URL; rejects with the exact Error messages the inline
-// copies threw ("fal.ai HTTP <n>" / "No image returned."). Callers own guards (falKey/busy),
+// Resolves to the generated image URL; rejects with "fal.ai HTTP <n> — <fal's own detail>"
+// (#163b — the bare status cost a live round trip) / "No image returned.". Callers own guards (falKey/busy),
 // status lines, and result handling — those genuinely differ per surface.
 // Load-order note: char-creation.js loads BEFORE ui-portrait.js in index.html, but
 // ftRenderPortrait only RUNS on user action (wizard step 5) long after all scripts have
@@ -107,7 +107,7 @@ async function generatePortraitImage(prompt,refSrc){
       headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},
       body:JSON.stringify(portraitRenderBody(mdlCfg,stPrompt))});
   }
-  if(!falRes.ok)throw new Error("fal.ai HTTP "+falRes.status);
+  if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
   var falData=await falRes.json();
   if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
   return falData.images[0].url;

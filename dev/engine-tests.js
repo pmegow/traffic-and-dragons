@@ -4379,6 +4379,25 @@ function runEngineTests(R){
     if(b.image_urls.length!==3)return "expected 3 seeds, got "+b.image_urls.length;
     return eq(b.image_urls[0],"data:p1");
   });
+  // ── #163b: falErrorMsg — fal failures must name the failing field ──────────
+  t("#163b: a fal 422 detail array surfaces the failing field — 'fal.ai HTTP 422' alone cost a live round trip",function(){
+    var m=falErrorMsg(422,'{"detail":[{"loc":["body","loras",0,"path"],"msg":"invalid url"}]}');
+    if(m.indexOf("fal.ai HTTP 422")!==0)return "status prefix missing: "+m;
+    if(m.indexOf("loras")<0||m.indexOf("path")<0)return "failing field not named: "+m;
+    return m.indexOf("invalid url")>=0?true:"validation message lost: "+m;
+  });
+  t("#163b: string detail and non-JSON bodies surface too; empty body stays the bare status",function(){
+    if(falErrorMsg(403,'{"detail":"Forbidden: key exhausted"}').indexOf("Forbidden: key exhausted")<0)return "string detail lost";
+    if(falErrorMsg(500,"upstream exploded").indexOf("upstream exploded")<0)return "non-JSON body lost";
+    return falErrorMsg(500,"")==="fal.ai HTTP 500"?true:"empty body should stay bare: "+falErrorMsg(500,"");
+  });
+  t("#163b: long bodies clamp (status lines, not log dumps) and whitespace collapses",function(){
+    var big="",i;for(i=0;i<50;i++)big+="wordwordword ";
+    var m=falErrorMsg(422,big+"\n\n"+big);
+    if(m.length>270)return "not clamped: length "+m.length;
+    return m.indexOf("\n")<0?true:"newlines survived into a status line";
+  });
+
   // ── #163: Flux LoRA (fal-ai/flux-lora) — the user's trained style ──
   t("#163: Flux LoRA t2i body carries the loras array — without it renders silently fall back to base Flux",function(){
     var m=__rm("fal-ai/flux-lora");

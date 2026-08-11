@@ -65,6 +65,21 @@ function csInitials(name){return(name||"?").split(" ").map(function(w){return w[
 // composition and likenesses survive while lighting, contrast, and texture get pushed hard.
 var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
 var ENHANCE_STRENGTH=0.45;
+// #163b: fal.ai failures carry the REAL complaint in the response body ({detail:[{loc,msg}]}
+// validation arrays, or a detail string) — the old bare "fal.ai HTTP 422" cost a live round
+// trip to learn WHICH field failed (the bare loras[].path id). Pure string builder so it's
+// engine-testable; the three fal fetch sites await res.text() and route through here.
+// Clamped + whitespace-collapsed: this lands in one-line status displays, not logs.
+function falErrorMsg(status,bodyText){
+  var msg="fal.ai HTTP "+status;
+  if(bodyText){
+    var d=String(bodyText);
+    try{var j=JSON.parse(d);if(j&&j.detail!=null)d=typeof j.detail==="string"?j.detail:JSON.stringify(j.detail);}catch(e){}
+    d=d.replace(/\s+/g," ").trim();
+    if(d)msg+=" — "+(d.length>220?d.slice(0,220)+"…":d);
+  }
+  return msg;
+}
 // ── #161: "⟳ Update from library" — the identity-field pull ───────────────────
 // THE whitelist of fields the library pull may touch, as a REGISTRY (an editor-era
 // field lands as one entry). Everything else is deliberately excluded: the library
