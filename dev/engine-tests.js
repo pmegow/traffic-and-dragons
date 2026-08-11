@@ -4923,17 +4923,36 @@ function runEngineTests(R){
     stampRelationshipChanges(pre);
     return worldState.relDowngrades===undefined?true:"removal was flagged as a downgrade";
   });
-  t("downgrade nudge: consumed on fire, companion form uses COMPANION_RELATIONSHIP, silent mid-combat without consuming",function(){
-    __relWorld();
+  t("#167 downgrade nudge: PERSISTS until resolved — pre-filled restore tag, cooldown re-fire, 3-delivery cap; combat-silent without stamping",function(){
+    // The t1666 Frizwick incident: one delivery, ignored mid-love-scene, marriage clobbered
+    // forever. Consumed-on-fire was the defect — the provisional-nudge pattern replaces it.
+    __relWorld();worldState.turn=50;
     worldState.relDowngrades=[{who:"Morwen",entity:"Tess",prev:"Husband — beloved family",next:"Husband",turn:50}];
     worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
     if(buildRelationshipDowngradeNudge()!=="")return "fired mid-combat";
-    if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "combat path consumed the queue";
+    if(worldState.relDowngrades[0].fired)return "combat path stamped a delivery";
     worldState.combat=null;
     var n=buildRelationshipDowngradeNudge();
-    if(n.indexOf("BOND DOWNGRADE CHECK")<0||n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|")<0)return "companion tag form wrong: "+n;
-    if(worldState.relDowngrades!==undefined)return "queue not consumed";
-    return buildRelationshipDowngradeNudge()===""?true:"re-fired on an empty queue";
+    if(n.indexOf("BOND DOWNGRADE CHECK")<0)return "note missing: "+n;
+    if(n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|Husband — beloved family]")<0)return "restore tag must be PRE-FILLED with the old descriptor (the compliance lever): "+n;
+    if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "delivery must NOT consume — one ignored nudge left the marriage clobbered";
+    if(buildRelationshipDowngradeNudge()!=="")return "re-fired inside the cooldown";
+    worldState.turn=53;
+    if(buildRelationshipDowngradeNudge()==="")return "cooldown elapsed — must re-fire";
+    worldState.turn=56;
+    if(buildRelationshipDowngradeNudge()==="")return "third (final) delivery must fire";
+    if(worldState.relDowngrades!==undefined)return "3-delivery cap must retire the entry after the final attempt (bounded — never open-ended nagging)";
+    return buildRelationshipDowngradeNudge()===""?true:"fired on an empty queue";
+  });
+  t("#167 resolution: ANY rewrite of the pair's descriptor clears its pending check; unrelated pairs keep theirs",function(){
+    __relWorld();worldState.turn=60;
+    var pre=relationshipSnapshot();
+    worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"Travel companion",turn:59},{who:"Morwen",entity:"Tess",prev:"Husband",next:"pal",turn:59}];
+    worldState.character.relationships[0].descriptor="Wife — reconciled";/* the GM rewrote player→Morwen (weighty restore) */
+    stampRelationshipChanges(pre);
+    var q=worldState.relDowngrades;
+    if(!q||q.length!==1)return "player→Morwen pending check must clear on rewrite; the unrelated pair must stay: "+JSON.stringify(q);
+    return q[0].who==="Morwen"?true:"wrong entry cleared: "+JSON.stringify(q[0]);
   });
   t("audit: timer fires at REL_AUDIT_TURNS with player+companion bonds and ages; cooldown suppresses re-fire",function(){
     __relWorld();worldState.turn=50;worldState.lastRelAudit=20;

@@ -627,17 +627,27 @@ function buildArcStagingNudge(){
 }
 // #61: weighty-bond downgrade nudge — the [RELATIONSHIP:] upsert is last-write-wins, so a
 // moment-description could silently overwrite a defining bond (t582→t727 Frizwick: "Husband —
-// beloved family" → "Husband"). The write is NEVER blocked or reverted (the GM owns the fiction);
-// stampRelationshipChanges (game.js) records the drop and this note asks the GM to confirm or
-// restore NEXT turn. One entry per call, consumed at build time (the reciprocity-latch pattern);
-// silent mid-combat WITHOUT consuming.
+// beloved family" → "Husband"). The write is NEVER blocked or reverted (the GM owns the fiction).
+// #167: consumed-on-fire was the residual defect — at t1666 the ONE delivery landed mid-love-scene,
+// the GM ignored it, and "Wife — beloved family" stayed clobbered by "Owed a favor". Now the
+// pending check PERSISTS (provisional-nudge pattern): re-fires every REL_DOWNGRADE_COOLDOWN turns
+// until the pair's descriptor is rewritten (resolution in stampRelationshipChanges — a weighty
+// restore OR a consciously different truth both end it) or REL_DOWNGRADE_MAX deliveries retire it.
+// The restore tag is PRE-FILLED with the old descriptor — paste-ready compliance, no placeholder.
+// Silent mid-combat WITHOUT stamping a delivery.
 function buildRelationshipDowngradeNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.relDowngrades;
   if(!q||!q.length)return"";
-  var d=q.shift();if(!q.length)delete worldState.relDowngrades;
-  var whose=d.who?d.who+"'s":"the player's",tag=d.who?"[COMPANION_RELATIONSHIP:"+d.who+"|"+d.entity+"|<descriptor>]":"[RELATIONSHIP:"+d.entity+"|<descriptor>]";
-  return "[ENGINE NOTE — BOND DOWNGRADE CHECK (not a player action): "+whose+" recorded bond with "+d.entity+" was just overwritten from \""+d.prev+"\" to \""+d.next+"\". If the bond has genuinely changed, leave it. But if the old descriptor was the BOND and the new one only describes a passing moment or mood, restore the bond's substance via "+tag+" — a defining bond (marriage, oath, sworn enmity) must not silently decay into a scene note.]";
+  var d=null,i;
+  for(i=0;i<q.length;i++){var e=q[i];if(e.lastFired==null||worldState.turn-e.lastFired>=REL_DOWNGRADE_COOLDOWN){d=e;break;}}
+  if(!d)return"";
+  d.fired=(d.fired||0)+1;d.lastFired=worldState.turn;
+  if(d.fired>=REL_DOWNGRADE_MAX){q.splice(q.indexOf(d),1);if(!q.length)delete worldState.relDowngrades;}
+  var whose=d.who?d.who+"'s":"the player's";
+  var prefill=String(d.prev||"").replace(/[|\[\]]/g," ").replace(/\s+/g," ").trim();
+  var tag=d.who?"[COMPANION_RELATIONSHIP:"+d.who+"|"+d.entity+"|"+prefill+"]":"[RELATIONSHIP:"+d.entity+"|"+prefill+"]";
+  return "[ENGINE NOTE — BOND DOWNGRADE CHECK (not a player action): "+whose+" recorded bond with "+d.entity+" was overwritten from \""+d.prev+"\" to \""+d.next+"\". A passing moment (a favor, a mood, a scene) belongs ALONGSIDE the bond in the descriptor, never instead of it. If the bond truly changed, re-state the new truth with the same tag and this check ends. Otherwise restore it now — emit "+tag+" (fold the new dynamic in after a dash if you wish). A defining bond (marriage, oath, sworn enmity) must not silently decay into a scene note.]";
 }
 // #61: periodic relationship audit — the cadence backstop behind the per-turn injection (party
 // sheets now carry Relationships lines; this catches DESCRIPTOR ROT: bonds that evolved in the

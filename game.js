@@ -1254,6 +1254,14 @@ function stampRelationshipChanges(pre){
       if(prev===undefined){if(!r.turn)r.turn=worldState.turn;continue;}/* new bond */
       if(prev===(r.descriptor||""))continue;/* unchanged */
       r.turn=worldState.turn;/* changed descriptor = the bond's new shape starts now */
+      /* #167: ANY rewrite of this pair's descriptor RESOLVES its pending downgrade check —
+         a weighty restore healed it, a consciously different truth re-stated it; either way
+         the persistent nudge stops. Resolve BEFORE the arm below so a fresh weighty→non-weighty
+         on the same pair re-arms cleanly. */
+      if(worldState.relDowngrades){
+        for(var _di=worldState.relDowngrades.length-1;_di>=0;_di--){var _de=worldState.relDowngrades[_di];if(_de.who===who&&_de.entity===r.entity)worldState.relDowngrades.splice(_di,1);}
+        if(!worldState.relDowngrades.length)delete worldState.relDowngrades;
+      }
       if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(prev)&&!WEIGHTY_REL_RE.test(r.descriptor||"")){
         if(!worldState.relDowngrades)worldState.relDowngrades=[];
         worldState.relDowngrades.push({who:who,entity:r.entity,prev:prev,next:r.descriptor||"",turn:worldState.turn});

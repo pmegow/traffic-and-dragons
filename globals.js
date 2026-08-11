@@ -20,6 +20,12 @@ var TT_HISTORY_CHARS=3000;  // #76: char budget on that TT history (newest pair 
 var TT_CAP_MATCH_MAX=6;     // #76: max capability-bible entries expanded to full canon per question (the index of ALL names is always sent; only matches get the 6-row detail)
 var CONDITION_AUDIT_COOLDOWN=12; // #46: at most one condition audit per this many turns — a kept condition gets re-audited next window, not nagged every turn
 var WEIGHTY_REL_RE=/(married|wed(ded)?|wife|husband|spouse|betrothed|lover|betray|sworn|oath|blood[- ]?(bound|brother|sister)|nemesis|widow|avenged)/i; // #40: relationship descriptors weighty enough to file as a defining moment. +wife/husband/spouse (v1.270, UA41): the t455 Morwen entries read literally "Wife" — the exact incident the reciprocity nudge exists to catch never matched the original list
+// #167: the bond-downgrade check re-fires until the pair's descriptor is rewritten (resolution
+// in stampRelationshipChanges) — consumed-on-fire let ONE ignored delivery clobber a marriage
+// (t1666: "Wife — beloved family" → "Owed a favor" mid-love-scene, nudge ignored, gone).
+// Bounded on purpose: never open-ended nagging (the #151 re-fire-noise concern).
+var REL_DOWNGRADE_COOLDOWN=3;  // turns between deliveries of the same pending check
+var REL_DOWNGRADE_MAX=3;       // total deliveries before the entry retires unanswered
 var MOOD_AUDIT_TURNS=12;    // v1.381: a party member's recorded MOOD older than this is due for a re-check (buildMoodAudit, api.js). Deliberately far shorter than REL_AUDIT_TURNS below: bonds shift on a ~100-turn scale, mood is scene-scale, and auditing a volatile field on a slow field's clock is what let "watchful, tense" sit pinned on Frizwick for an entire arc. ~12 turns ≈ one play session at the observed rate. An EMPTY mood is eligible immediately — no age wait — since a party member in every scene with no recorded mood is a gap now, not in 12 turns.
 var MOOD_AUDIT_COOLDOWN=12; // v1.381: at most one mood audit per this many turns. Frequency is the real lever on churn — every audit invites re-emission, and re-emission is where vocabulary leaks enter, so a fast audit would keep rolling the corruption dice on characters that were fine.
 var REL_AUDIT_TURNS=40;          // #61: at most one relationship audit per this many turns (buildRelationshipAudit, api.js) — bonds shift on a ~100-turn scale in the wild (t455/t472 Runelords), so 40 re-grounds without nagging; a party join/leave pulls the audit forward via worldState.relAuditDue
@@ -184,7 +190,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.594";
+var APP_VERSION="v1.595";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
