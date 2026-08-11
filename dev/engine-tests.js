@@ -4398,28 +4398,31 @@ function runEngineTests(R){
     return m.indexOf("\n")<0?true:"newlines survived into a status line";
   });
 
-  // ── #163: Flux LoRA (fal-ai/flux-lora) — the user's trained style ──
-  t("#163: Flux LoRA t2i body carries the loras array — without it renders silently fall back to base Flux",function(){
+  // ── #163: Flux [Dev] HQ (fal-ai/flux-lora with NO adapter) — the A/B-validated quality tier ──
+  // The user's same-prompt grid showed the empty flux-lora endpoint consistently beats
+  // flux/dev (full unaccelerated serving vs the accelerated variant). The validated config
+  // carries NO loras key — its ABSENCE is the contract until a real trained style exists.
+  t("#163: Flux HQ t2i body matches the A/B-validated sandbox config — and carries NO loras key",function(){
     var m=__rm("fal-ai/flux-lora");
     if(!m)return "model not in RENDER_MODELS";
+    if(m.label!=="Flux [Dev] HQ")return "label wrong: "+m.label;
     var b=m.body("a scene");
     if(b.prompt!=="a scene")return "prompt missing";
-    if(b.image_size!=="landscape_4_3")return "image_size wrong: "+b.image_size;
-    if(!Array.isArray(b.loras)||b.loras.length!==1)return "loras array missing/wrong: "+JSON.stringify(b.loras);
-    if(b.loras[0].path!==FLUX_LORA_PATH)return "lora path not the FLUX_LORA_PATH constant";
-    return b.loras[0].scale===1?true:"lora scale wrong: "+b.loras[0].scale;
+    if(b.image_size!=="landscape_4_3")return "image_size wrong (portrait override keys on this field): "+b.image_size;
+    if(b.num_inference_steps!==28||b.guidance_scale!==3.5)return "quality config drifted: steps "+b.num_inference_steps+" cfg "+b.guidance_scale;
+    if("loras" in b)return "a loras key crept in — the A/B'd config has NONE (see the entry comment)";
+    return b.num_images===1?true:"num_images wrong";
   });
-  t("#163: Flux LoRA img2img body carries the SAME lora as t2i (shared constant — the two can't drift), collapses array seeds to the player, and flows strength",function(){
+  t("#163: Flux HQ img2img — singular image_url collapses array seeds to the player, strength flows, NO loras key",function(){
     var m=__rm("fal-ai/flux-lora");
     var b=m.img2img.body("scene",["data:player","data:c1"],0.45);
-    if(!Array.isArray(b.loras)||b.loras.length!==1)return "img2img loras array missing — would silently render base Flux";
-    if(b.loras[0].path!==m.body("x").loras[0].path)return "t2i and img2img lora paths drifted";
+    if("loras" in b)return "a loras key crept into the img2img body";
     if(b.image_url!=="data:player")return "array seed did not collapse to the player: "+b.image_url;
     if(b.strength!==0.45)return "strength did not flow: "+b.strength;
     var lone=m.img2img.body("scene","data:solo",0.6);
     return lone.image_url==="data:solo"?true:"lone URL mangled: "+lone.image_url;
   });
-  t("#163: Flux LoRA strength default 0.6 (project-tuned, matches its Flux sibling) with the #42 override machinery",function(){
+  t("#163: Flux HQ strength default 0.6 (project-tuned, matches its Flux sibling) with the #42 override machinery",function(){
     renderStrength={};
     if(img2imgStrength(__rm("fal-ai/flux-lora"))!==0.6)return "default wrong: "+img2imgStrength(__rm("fal-ai/flux-lora"));
     renderStrength={"fal-ai/flux-lora":0.3};
