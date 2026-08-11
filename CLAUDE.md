@@ -471,7 +471,7 @@ Direct editing of HP, max HP, gold, XP, level, location, time, weather, inventor
 
 **img2img strength is user-tunable (#42):** each model's `img2img` entry declares its `strength` default as data (body fns take it as a param); `img2imgStrength(cfg)` (helpers.js) resolves the player's per-model override (Render Options ▸ "Portrait influence" slider, 0.2–0.95, persisted in `RENDER_STR_K`) over the default, returning `null` for knobless models (slider hides). Only the scene render (`doRender`) reads it — portrait-generation paths keep their fixed 0.75.
 
-When `character.portrait` exists, img2img is used automatically (status line shows "Generating scene (portrait-seeded)…"). Falls back to text-to-image if no portrait.
+When `character.portrait` exists, img2img is used automatically. **#165:** portrait-seed selection is table-driven — an img2img entry declaring `multiSeed:true` (Nano, Grok) gets the whole party's portraits via `collectRenderSeeds` (pure, game.js); single-reference APIs (Flux family, Qwen) get the player only, and the status line says so explicitly. The scene-render writer request is built by pure `buildSceneRenderRequest` (engine-tested): per-character description FLOOR instead of a party sentence cap (the cap compressed Daeris to "human cleric" and Flux genderswapped her — the STYLE-cap lesson again) + an explicit never-omit-gender demand. Falls back to text-to-image if no portrait.
 
 Parameters: `aspect_ratio:"4:3"`, `resolution:"1K"`. `genderWord` derived from `c.gender` (male/female/androgynous).
 

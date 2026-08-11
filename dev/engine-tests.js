@@ -4379,6 +4379,54 @@ function runEngineTests(R){
     if(b.image_urls.length!==3)return "expected 3 seeds, got "+b.image_urls.length;
     return eq(b.image_urls[0],"data:p1");
   });
+  // ── #165: party render fidelity — the Daeris genderswap (field, 2026-08-11) ──
+  // The writer request was rich but the "3-4 sentences" cap forced five characters into
+  // triage — Daeris compressed to "human cleric" and Flux invented a male one. And the
+  // companion-seed collection was hardcoded isNano, so Grok (3-ref edit API) never
+  // received the party portraits its #162 body-slice tests assumed.
+  function mk165Party(){
+    return [
+      {name:"Frizwick",partyMember:true,charSheet:{name:"Frizwick",gender:"F",age:"38",ancestry:"Gnome",cls:"Rogue",appear:"sharp cheekbones",portrait:"data:img/fz"}},
+      {name:"Daeris",partyMember:true,charSheet:{name:"Daeris",gender:"F",age:"47",ancestry:"Human Vashari",cls:"Cleric",appear:"a woman of middle years, deep brown skin",portrait:"data:img/da"}},
+      {name:"Morwen",partyMember:true,charSheet:{name:"Morwen",gender:"F",age:"41",ancestry:"Human",cls:"Ranger",appear:"tall and lean",portrait:"data:img/mo"}}
+    ];
+  }
+  t("#165: the scene-render request carries EVERY member's gender word and demands gender explicitly — and the party sentence cap is gone",function(){
+    var c={name:"Ammut",gender:"M",age:"35",ancestry:"Human",cls:"Necromancer",appear:"scarred",mark:""};
+    var w={location:"Sandpoint",region:"Varisia",time:"dawn",weather:"mist"};
+    var rp=buildSceneRenderRequest(c,mk165Party(),w);
+    if(rp.indexOf("Daeris, a female")<0)return "Daeris's gender word missing from the request";
+    if(rp.indexOf("Frizwick, a female")<0||rp.indexOf("Morwen, a female")<0)return "companion gender words missing";
+    if(!/gender/i.test(rp.split("Scene:")[0])===false&&rp.toLowerCase().indexOf("gender")<0)return "no explicit gender demand";
+    if(rp.toLowerCase().indexOf("gender")<0)return "the spell-out instruction must demand gender explicitly (compression dropped it)";
+    if(rp.indexOf("3-4 sentences")>=0)return "the party sentence cap survived — caps force character triage (the STYLE-cap lesson)";
+    return rp.indexOf("ONE full sentence")>=0?true:"no per-character description floor: "+rp.slice(rp.length-300);
+  });
+  t("#165: solo render request keeps its shape — 2-3 sentences, protagonist described",function(){
+    var c={name:"Ammut",gender:"M",age:"35",ancestry:"Human",cls:"Necromancer",appear:"scarred",mark:""};
+    var rp=buildSceneRenderRequest(c,[],{location:"X",region:"Y",time:"dawn",weather:"mist"});
+    if(rp.indexOf("Ammut, a male")<0)return "protagonist description missing";
+    return rp.indexOf("2-3 sentences")>=0?true:"solo budget changed unexpectedly";
+  });
+  t("#165: seed collection is a TABLE property — multiSeed models gather the party, single-ref models the player only",function(){
+    var c={portrait:"data:img/player"};
+    var party=mk165Party();
+    var nano=collectRenderSeeds(__rm("fal-ai/nano-banana-2"),c,party);
+    if(nano.length!==4||nano[0]!=="data:img/player")return "Nano must gather player + all 3 companions: "+JSON.stringify(nano);
+    var grok=collectRenderSeeds(__rm("xai/grok-imagine-image"),c,party);
+    if(grok.length!==4)return "Grok must gather the party too (its body slices to its own cap of 3): "+JSON.stringify(grok);
+    var flux=collectRenderSeeds(__rm("fal-ai/flux/dev"),c,party);
+    if(flux.length!==1||flux[0]!=="data:img/player")return "single-ref Flux must stay player-only: "+JSON.stringify(flux);
+    var hq=collectRenderSeeds(__rm("fal-ai/flux-lora"),c,party);
+    return hq.length===1?true:"Flux HQ is single-ref too: "+JSON.stringify(hq);
+  });
+  t("#165: multiSeed is declared on the Nano and Grok img2img entries — never an id check at a call site",function(){
+    if(!__rm("fal-ai/nano-banana-2").img2img.multiSeed)return "Nano img2img must declare multiSeed";
+    if(!__rm("xai/grok-imagine-image").img2img.multiSeed)return "Grok img2img must declare multiSeed";
+    if(__rm("fal-ai/flux/dev").img2img.multiSeed)return "Flux Dev must NOT declare multiSeed (single-ref API)";
+    return !__rm("fal-ai/flux-lora").img2img.multiSeed?true:"Flux HQ must NOT declare multiSeed";
+  });
+
   // ── #163b: falErrorMsg — fal failures must name the failing field ──────────
   t("#163b: a fal 422 detail array surfaces the failing field — 'fal.ai HTTP 422' alone cost a live round trip",function(){
     var m=falErrorMsg(422,'{"detail":[{"loc":["body","loras",0,"path"],"msg":"invalid url"}]}');

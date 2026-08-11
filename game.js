@@ -1994,34 +1994,52 @@ function _promptCampaignFolder(){
   document.getElementById("folder-no").addEventListener("click",function(){banner.remove();localStorage.setItem("tnd_folder_declined_v1","1");});
 }
 var _rendering=false;
+// #165: the scene-render REQUEST builder, extracted pure for engine tests. The field failure
+// (2026-08-11): the old "3-4 sentences" party budget forced FIVE characters into triage — the
+// writer compressed Daeris to "human cleric", dropping her gender, and Flux painted its default
+// (male) cleric. Same mechanism as the retired STYLE sentence cap: hard counts make the model
+// cram and drop. The party budget is now a PER-CHARACTER FLOOR (one full sentence each, scene
+// after), and the spell-out line demands gender explicitly so compression can never shed it.
+function buildSceneRenderRequest(c,party,w){
+  var gw=genderWord(c.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
+  var charDesc=c.name+", a "+gw+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
+  var compDescs=[],pi;
+  for(pi=0;pi<party.length;pi++){
+    var pcs=party[pi].charSheet;
+    var pg=genderWord(pcs.gender);/* #11③: shared mapping */
+    var pd=party[pi].name+", a "+pg+(pcs.age?" "+pcs.age:"")+" "+(pcs.ancestry||"")+" "+(pcs.cls||"")+(pcs.appear?", "+pcs.appear:"")+(pcs.mark?", "+pcs.mark:"");
+    compDescs.push(pd.replace(/\s+/g," ").trim());
+  }
+  var hasParty=compDescs.length>0;
+  return "Write a detailed image generation prompt for the current scene"
+    +(hasParty?", portraying the whole adventuring party together in one composition":"")+". "
+    +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
+    +(hasParty?"Party members also present — include every one, describe each exactly as written, do not invent appearance: "+compDescs.join("; ")+". ":"")
+    +"Spell out each character's gender, hair colour, eye colour, skin tone, clothing and visible gear explicitly — never omit or change a character's stated gender. "
+    +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
+    +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
+    +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
+    +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
+    +(hasParty?"Give EVERY character ONE full sentence of physical description before any scene detail — never compress a character to a bare role noun — then 1-2 sentences for scene and action":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
+}
+// #165: portrait-seed selection as DATA — a model's img2img entry declares multiSeed (Nano, Grok)
+// and gets the companions' portraits; single-reference APIs (Flux family, Qwen) get the player
+// only. Replaces the hardcoded isNano check that silently starved Grok's 3-reference capability.
+function collectRenderSeeds(mdlCfg,character,party){
+  var seeds=[],pj;
+  if(character.portrait)seeds.push(character.portrait);
+  if(mdlCfg&&mdlCfg.img2img&&mdlCfg.img2img.multiSeed){
+    for(pj=0;pj<party.length;pj++){var cpo=npcPortrait(party[pj]);if(cpo)seeds.push(cpo);}
+  }
+  return seeds;
+}
 async function doRender(){
   if(!worldState||_rendering)return;_rendering=true;var th=addMsg("thinking","Composing scene...");
   try{
     var c=worldState.character,w=worldState.world;
-    // Build a character-specific anchor so the model paints the same person each time
-    var gw=genderWord(c.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
-    var charDesc=c.name+", a "+gw+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"");
-    // Party render (all models): describe every living companion so the scene portrays the whole party
-    // with correct appearances, not invented ones. Portrait-likeness seeding (below) is Nano-only.
-    var party=livingPartyCompanions(),compDescs=[],pi;
-    for(pi=0;pi<party.length;pi++){
-      var pcs=party[pi].charSheet;
-      var pg=genderWord(pcs.gender);/* #11③: shared mapping */
-      var pd=party[pi].name+", a "+pg+(pcs.age?" "+pcs.age:"")+" "+(pcs.ancestry||"")+" "+(pcs.cls||"")+(pcs.appear?", "+pcs.appear:"")+(pcs.mark?", "+pcs.mark:"");
-      compDescs.push(pd.replace(/\s+/g," ").trim());
-    }
-    var hasParty=compDescs.length>0;
-    var rp="Write a detailed image generation prompt for the current scene"
-      +(hasParty?", portraying the whole adventuring party together in one composition":"")+". "
-      +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
-      +(hasParty?"Party members also present — include every one, describe each exactly as written, do not invent appearance: "+compDescs.join("; ")+". ":"")
-      +"Spell out each character's hair colour, eye colour, skin tone, clothing and visible gear explicitly. "
-      +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
-      +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
-      +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
-      +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "
-      +(hasParty?"3-4 sentences":"2-3 sentences")+". Output ONLY the prompt, no game tags.";
-    var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe the protagonist's exact physical appearance with full specificity. No narration, no tags.");
+    var party=livingPartyCompanions();
+    var rp=buildSceneRenderRequest(c,party,w);
+    var resp=await callGM(rp,"You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe EVERY listed character's exact physical appearance with full specificity — gender, colouring, build — never invent or alter them. No narration, no tags.");
     th.remove();
     var div=addMsg("render-out","");
     div.style.whiteSpace="normal";div.style.fontFamily="inherit";
@@ -2107,21 +2125,20 @@ async function doRender(){
       div.appendChild(imgStatus);
       try{
         var mdlCfg=RENDER_MODELS[0],mi2;for(mi2=0;mi2<RENDER_MODELS.length;mi2++){if(RENDER_MODELS[mi2].id===renderModel){mdlCfg=RENDER_MODELS[mi2];break;}}
-        // Seed portraits: player first, then each living companion WITH a portrait — but only Nano
-        // Banana 2 composites multiple references, so companion seeds are gathered for Nano only.
-        // Flux/Qwen receive just the player (their body fn takes seeds[0]) — behavior unchanged.
-        var isNano=mdlCfg.id==="fal-ai/nano-banana-2";
-        var seeds=[],pj;
-        if(worldState.character.portrait)seeds.push(worldState.character.portrait);
-        if(isNano){for(pj=0;pj<party.length;pj++){var cpo=npcPortrait(party[pj]);if(cpo)seeds.push(cpo);}}
+        /* #165: seed selection is table-driven (multiSeed on the img2img entry) — Nano AND Grok
+           gather the party now; single-reference models get the player only. */
+        var isMulti=!!(mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
+        var seeds=collectRenderSeeds(mdlCfg,worldState.character,party);
         var usingI2I=!!(seeds.length&&mdlCfg.img2img);
-        if(usingI2I)imgStatus.textContent=(isNano&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded)…"):"Generating scene (portrait-seeded)…";
+        /* #165: say the truth about what seeded — "portrait-seeded" alone read as "everyone's
+           portrait" and the player reasonably expected companion likeness from a single-ref model. */
+        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded)…"):("Generating scene (player portrait seeded"+(party.length?" — this engine takes ONE reference; Nano Banana 2 / Grok Imagine seed the party":"")+")…");
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
-        // Nano Banana 2 is an edit/compositor — left alone it clings to the reference portraits' posed,
-        // front-facing headshot framing (the "school-portrait" stiffness). Tell it the references are
-        // likeness-only so it re-stages everyone dynamically. Scene-render only; portrait paths stay posed.
-        if(isNano&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene.";
+        // Edit/compositor models (Nano, Grok) cling to the reference portraits' posed, front-facing
+        // headshot framing (the "school-portrait" stiffness). Tell them the references are
+        // likeness-only so everyone re-stages dynamically. Scene-render only; portrait paths stay posed.
+        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene.";
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
