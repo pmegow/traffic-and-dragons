@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drift Hardening — reconciled action plan (t1667)</title>
+<style>
+  :root{--bg:#0d0d0d;--bg2:#161616;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--acc2:#d9b47c;--t0:#e8e0d0;--t1:#b0a890;--t2:#6f6a5c;--bad:#a05a5a;--warn:#a8965a;--good:#7aa86a;--blue:#5a7ea8;--r:8px}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--t1);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;margin:0;padding:40px 20px}
+  main{max-width:960px;margin:0 auto}
+  h1{color:var(--acc);font-size:26px;margin:0 0 4px}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:30px}
+  h2{color:var(--t0);font-size:19px;margin:38px 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px}
+  h3{color:var(--acc2);font-size:15px;margin:24px 0 6px}
+  p,li{font-size:14.5px}
+  code{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:1px 5px;font-size:13px;color:var(--acc2)}
+  pre{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.5;color:var(--t1)}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}
+  th,td{border:1px solid var(--brd2);padding:8px 12px;text-align:left;vertical-align:top}
+  th{color:var(--t0);background:var(--bg2)}
+  .callout{border-left:3px solid var(--acc);background:var(--bg2);padding:12px 16px;border-radius:0 var(--r) var(--r) 0;margin:16px 0}
+  .warncall{border-left-color:var(--bad)}
+  .goodcall{border-left-color:var(--good)}
+  .quiet{color:var(--t2);font-size:13px}
+  strong{color:var(--t0)}
+  a{color:var(--acc2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .pill{border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;font-family:Consolas,monospace;font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);white-space:nowrap}
+  .p-crit{background:#221111;border:1px solid var(--bad)}
+  .p-major{background:#221d10;border:1px solid var(--warn)}
+  .p-minor{background:#1a1a15;border:1px solid var(--t2)}
+  .p-confirmed{background:#182215;border:1px solid var(--good)}
+  .p-refuted{background:#221111;border:1px solid var(--bad)}
+  .p-owner{background:#131a22;border:1px solid var(--blue)}
+  .p-design{background:#1c1522;border:1px solid #8a5aa8}
+</style>
+</head>
+<body>
+<main>
+<h1>Drift Hardening — reconciled action plan</h1>
+<div class="sub">Filed 2026-08-11 · engine v1.595 · reconciles <a href="driftHardening_fable.html">driftHardening_fable.html</a> (the #168 five-lane audit, 32 findings) with <a href="driftHardening_SOL.html">driftHardening_SOL.html</a> (Sol's five-agent adjudication, 9 findings) · every point where the two reports disagree was re-adjudicated by fresh execution against the real save (<code>Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</code>) and v1.595 source before this plan was written — the probes and their raw output are recorded in §1</div>
+
+<h2>0. Executive summary</h2>
+
+<p>The two audits <strong>agree on the diagnosis</strong>: the anti-drift plumbing is sound, and what rotted is everything the plumbing never sees — recognizers that misread prose, axes with no detector, records that predate the guards, and receipts that land wrong. They overlap exactly on the week's flagship incident (the unanchored <code>WEIGHTY_REL_RE</code> matching "wed" inside <em>"O<strong>wed</strong> a favor"</em>, so the bond-downgrade guard never armed and a false ★ defining moment landed on all four sheets), on the Jorgenfist location blackout, on the frozen <code>world.time</code>, and on the stay-behind detector's foot-on-calf false positive.</p>
+
+<p>Where they diverge, each report caught something the other missed — and each got one thing wrong that the other corrects:</p>
+
+<ul>
+<li><strong>Sol's biggest catch, missed by the Fable audit: the wrong corpse.</strong> The t1648 kill prose kills "the old scholar-giant" — an actor the party's own committed dialogue had twice judged <em>"not the warlord"</em> ("Not Mokmurian himself, you think… an old scholar-giant rather than a war-king", t1638) — yet the chapter extractor canonized <em>"Mokmurian dropped dead across his own dimming tablets"</em>, both stores stamp <code>dead:1648</code>, and the quest objective auto-completed with rewards. The Fable audit's clean list had cleared "death propagation works" — true of the <em>plumbing</em>, but nobody checked the stamp's <em>referent</em>. Confirmed by fresh transcript execution (§1.1).</li>
+<li><strong>Fable's biggest catches, missed or wrongly downgraded by Sol:</strong> the #158 phase detector's orphaned-quote blindness; the Collector's missing t414 death stamp and corpse/successor fusion; the Ilvane/Grafter alive-and-dead dual record; the travel-time compression axis; the t1606 transcript hole; and <strong>Sable</strong> — Sol's adjudication rejected "Sable drift", but fresh execution confirms the Fable finding exactly: 29 transcript scenes name her, zero retrieval-index entries carry her, and every line of her canon has been evicted to <code>memory.archive.*</code>, which is never injected (§1.3).</li>
+<li><strong>One Fable claim is refuted:</strong> the "schedule anchors don't ride clock repairs — three days is silently 3.81" finding fails on the receipt arithmetic. The Collector entry's <code>born:6915</code> lies outside the corrupted clock interval, the repair receipt restored truth, and <code>dueMin−born</code> is exactly 3 days. Sol's closure of the clock incident was correct — and the proposed auto-rebase fix would have <em>corrupted</em> this very entry (§1.5).</li>
+<li><strong>Two Sol-only code findings are confirmed live and neither is in the Fable report:</strong> the SAY compliance estimator false-fires on <em>every one</em> of the five retained responses despite 4–7 <code>[SAY:]</code> tags each (§1.6), and the tag-provenance ring's name regex cannot record legal two-letter tags — 13 HP/XP mutations sit in the current ring with no recordable name (§1.7).</li>
+</ul>
+
+<div class="callout"><strong>The plan in one paragraph.</strong> Close the Owed hole first (small diff, active corruption, both audits' #1). Kill the every-turn false SAY nudge and fix the other three broken recognizers under a new standing rule — recognizer fixtures beside sabotage. Add detectors to the three axes that have none (location filing, travel-day pricing, dated commitments). Land the small receipt fixes. Run ONE consolidated repair session on the live campaign — after the recognizer fixes, so repaired state isn't immediately re-rotted — with the owner adjudicating the forks (Mokmurian above all). In parallel, draft the one genuinely new subsystem both audits point at from different directions: <strong>referential integrity for high-impact writes</strong> (Sol's scene-entity gate), which is the only structural answer to the wrong-corpse class. That one is proposal-first, like the identity layer was.</div>
+
+<h2>1. Adjudication record — the conflicts, re-executed</h2>
+<p class="quiet">Method: a read-only node script over the t1667 export plus direct reads of v1.595 source. Where the reports disagreed, the save is the referee. Full probe output preserved in the session; the load-bearing lines are quoted here.</p>
+
+<h3>1.1 The wrong corpse <span class="pill p-confirmed">sol confirmed</span> — Sol F1 stands; the Fable clean-list entry is corrected</h3>
+<p>Fresh transcript execution reproduces every quoted beat:</p>
+<pre>t1638 gm: "…Not Mokmurian himself, you think, too stooped, too grey at the jaw,
+          an old scholar-giant rather than a war-king…"
+t1638 gm: "Old giant, scholar type, not the warlord."     (Ammut, committed dialogue)
+t1639 gm: "One robed, old, scholar-looking, not the warlord."
+t1644 pl: "Mokmurian it is. Cut the head off the snake…"  (the player accepts the frame
+          the GM's own t1644 prose supplied via Daeris)
+t1647 pl: "Strike the scholar-giant's neck with Cleaver, unseen."
+t1648 gm: "…drive Cleaver into the join of his neck and shoulder…"  (kills "the old scholar-giant";
+          the response prose never renames him)
+eventHistory[3] (the T1648 chapter): "Mokmurian dropped dead across his own dimming tablets"</pre>
+<p>State consequences, all verified in the save: <code>ws.npcs["Mokmurian"] = {status:"dead", dead:1648}</code>, mirrored in <code>memory.npcs</code>; the live quest "The Giants of Jorgenfist" carries objective <em>"Strike Mokmurian directly in his ritual chamber before his army can march" — <code>done:true</code></em>; the archived satchel quest paid xp 800 / gold 400. The fusion happened exactly as Sol reconstructed it: an anonymous, targetable actor + a plan named "Mokmurian" + a death extractor that can only stamp <em>already-registered</em> NPCs (<code>memory.js</code> — the safety rule that avoids minting unknown corpses becomes a substitution bias). <strong>The Fable audit's "death propagation works" clearance verified that the stamp landed in both stores — the plumbing — and never asked whether the stamped name matched the killed entity.</strong> That is the same recognizer-vs-plumbing lesson the Fable audit itself coined, applied one level up; it is adopted as an audit-process rule in §7.</p>
+<p class="quiet">One fictional nuance both reports under-weighted, relevant to the repair fork (§5): the quest's own description calls Mokmurian a <em>"wizard-king"</em> — a robed old giant working glowing Thassilonian tablets in the heart of Jorgenfist is exactly what a wizard-king looks like. The party's "not the warlord" inference assumed a war-king's build. So "the scholar WAS Mokmurian" is a narratively coherent ruling, not just a cheap one — but it must be <em>ruled</em>, on screen, not silently inherited from an extractor's guess. The engine defect stands regardless of which way the owner rules.</p>
+
+<h3>1.2 The misgendered chapter <span class="pill p-confirmed">sol confirmed</span> — Sol F5 stands; the Fable "chapters faithful" clearance is withdrawn</h3>
+<p>The chapter stamped <code>turn:1644</code> narrates Ammut's satchel theft — t1640's second-person prose ("Your fingers close on the strap") is unambiguous about who acted — and renders him she/her throughout:</p>
+<pre>"Invisible, boots silent as held breath, she crosses the ritual chamber and rips the
+ closed-eye satchel free…"  ·  "Morwen and Daeris meet her with blades half-raised"
+"…satchel heavy against her hip"  ·  "In the tunnel's dark she cracks the satchel open…"</pre>
+<p>Five feminine tokens, all Ammut. The other she/her chapters check clean (legitimate female antecedents — Morwen, Ameiko), which confirms Sol's precision framing: this is one bad commit, not a broken summarizer — but it is injected as canon every turn (<code>eventHistory</code> rides the prompt), and nothing validated the summary against the sheet before commit. The Fable clean list's "chapter summaries (all 10 recent) faithful to their windows" checked event content, not entity identity, and is withdrawn on this axis.</p>
+
+<h3>1.3 Sable <span class="pill p-confirmed">fable confirmed</span> — the Fable C3 finding stands; Sol's downgrade is overturned</h3>
+<pre>transcript prose naming \bSable\b:  29 entries, t1422 – t1607
+entries with Sable in the e.n retrieval index:  0
+live stores (ws.npcs / memory.npcs / lore / keyDecisions / chapters):  0 mentions
+memory.archive.*  (never injected anywhere):  lore 11 · decisions 9 · chapters 11
+                                              · npcKnowledge 3 · futureEvents 3</pre>
+<p>A named figure who drove ~185 turns of plot is unreachable by every retrieval path: no NPC record means the <code>ragEntitiesFromRaw</code> known-NPC scan never indexed her scenes, and archive eviction removed the last live-store mentions. "Intercept Sable" sits correctly failed in the quest archive — the one surviving trace. Sol's agent-D row rejected "Sable drift"; whatever stronger claim that rejection addressed, the store-level invisibility is real and confirmed. <span class="quiet">(To be fair to both: the Fable audit said "21 scenes" — the true count is 29.)</span></p>
+
+<h3>1.4 The Collector <span class="pill p-confirmed">fable confirmed</span> — the missing death stamp is real; Sol's "Marta merge" downgrade addressed a different claim</h3>
+<pre>t414 gm: "You put the witchlight blade through the top of her skull. Both hands on the
+          grip. Straight down. … She stops."
+t419 gm: "The Collector face down in the dirt with three blade wounds and a skull that
+          didn't survive Daeris's final answer."
+ws.npcs["Marta / The Scarred Woman / The Collector"]:
+          status "overdue, unlocated" · rel "unknown" · NO dead field
+memory.npcs same key: dead=undefined · knowledge mixes "Confirmed female; tall, dark hair…"
+          with "He was in the warehouse the entire time…"
+orphan:   memory.npcs["The Scarred Stranger (Black-Eyed Man)"] — 1 knowledge line, unmerged</pre>
+<p>The on-screen kill never stamped (the record predates the death machinery, and the summarize backstop never caught up), the post-t1422 successor was filed onto the corpse's key, and the record self-contradicts in the prompt every turn she's mentioned. Sol's downgrade concerned whether the Marta⇄Collector <em>merge itself</em> was wrong — a different assertion, which this plan does not relitigate. The repair is data-side (§5); the engine class is already covered going forward by the B3 death machinery + #156 provisional guard.</p>
+
+<h3>1.5 The schedule-anchor claim <span class="pill p-refuted">fable refuted</span> — Sol's clock closure was correct</h3>
+<pre>schedule entry: born 6915 · dueMin 11235 · dueMin − born = 4320 = exactly 3 days
+clock.repairs:  [{id:"142-double-decrement", before:6690, after:7850, t:1550}]
+the regression (Sol §10 / the t1549 audit): 8820 → 6500 = the −1160 manual repair applied twice</pre>
+<p>The corrupted reading interval was [6500 … 6690] (then the receipt jumped to 7850, and readings resume true). A <code>born</code> of 6915 cannot have been stamped inside that window or after the repair — it is a pre-corruption, <em>true</em> stamp. The +1160 receipt restored the clock to truth (one of the two −1160 applications was legitimate), so the entry needs no rebase and "three days" is exactly three days. The Fable audit's "silently 3.81" assumed the anchors were stranded by the repair; the arithmetic says otherwise. <strong>Consequence for the plan:</strong> the proposed fix ("clockRepair shifts dependents' absolutes by the same delta") is dropped — it would have corrupted this very entry, because a truth-<em>restoring</em> repair must not move truthfully-stamped anchors. What survives is a design note: repair receipts now record <code>before/after/t</code>, which is enough for a future repair tool to adjudicate per-entry whether an anchor was born inside a corrupted window. No auto-rebase, ever.</p>
+
+<h3>1.6 SAY compliance false notes <span class="pill p-confirmed">sol confirmed</span> — firing on 5 of 5 retained responses, live</h3>
+<pre>assistant[1]: 6 [SAY:] tags, 24 quote chars → fires (24 ≥ 2·6+4)
+assistant[3]: 4 tags, 12 quote chars → fires (12 ≥ 12)     assistant[5]: 4 tags, 16 → fires
+assistant[7]: 7 tags, 28 quote chars → fires (28 ≥ 18)     — 5/5 user messages carry the nudge</pre>
+<p>The estimator (<code>buildSayComplianceNudge</code>, <a href="../api.js">api.js</a> ~799) budgets ~2 quote characters per tag, but the shipped playback semantics let one <code>[SAY:]</code> own multiple interrupted quote spans ("On the house," she says… "Again…" — one tag, four-plus quote chars). Heavily-tagged compliant responses therefore read as non-compliant, and the false VOICE TAGS MISSING note rides <em>every current turn</em> — prompt noise, wasted tokens, and exactly the kind of engine-note pressure the GM eventually answers aloud (the t1666 leak). The #96 authoring-time design is field-validated and untouched; the <em>checker</em> must adopt the playback segmentation instead of the global ratio.</p>
+
+<h3>1.7 Tag-provenance blind spots <span class="pill p-confirmed">sol confirmed</span> — 13 unrecordable mutations in the current ring</h3>
+<p><a href="../api.js">api.js</a>:1581 matches tag names with <code>/\[([A-Z][A-Z_]{2,}):/g</code> — minimum three characters — so legal <code>[HP:]</code>/<code>[XP:]</code> writes can never appear in a <code>tagLog</code> entry's name list. The live ring (40 entries, t1628–t1667) contains <strong>13 mutation labels</strong> mentioning HP/XP with zero corresponding tag names. The ring was built (#137) precisely so "emitted-then-purged vs never-emitted" is decidable from an export; for the two most common tags in the game it currently records the opposite of the truth. The Fable audit used this ring as evidence in several lanes and did not notice the gap — one more reason the fix is cheap but mandatory.</p>
+
+<h3>1.8 Corroborations <span class="pill p-confirmed">both confirmed</span> — agreed findings spot-checked against the save</h3>
+<ul>
+<li>The false <em>"Owed a favor"</em> ★ defining moment is present on <strong>all four sheets</strong> (Ammut, Frizwick, Daeris, Morwen — t1666), five entries after the genuine <em>"Wife — beloved family, reunited"</em> moment. <code>WEIGHTY_REL_RE</code> at <a href="../globals.js">globals.js</a>:22 confirmed unanchored.</li>
+<li>Jorgenfist: <strong>56 GM entries</strong> t1593–1649 all indexed <code>e.l="Fogscar Mountains - Ridge Line"</code>; the blueprint-seeded <code>Jorgenfist</code> node still reads <code>firstVisit:null, visits:0</code>. (The reports' "57 turns" vs "41 entries" were window-definition differences over the same phenomenon.)</li>
+<li>Ilvane/Grafter: <code>memory.npcs["Grafter"]</code> alive with alias "Ilvane Threcker" beside <code>memory.npcs["Ilvane"]</code> <code>dead:1499</code> — both served every prompt, one in the living roster and one in DECEASED.</li>
+<li>Frizwick's XP: 49,050 vs exactly 63,650 on Daeris <em>and</em> Morwen — the 14,600 gap is real; mechanism still the open COMPANION_XP question (§5, owner ruling).</li>
+<li><code>memory.npcs["Ammut"]</code> exists (12 knowledge lines, attitude "self-directed, merciful") — the player's third-person dossier on himself, injected every turn.</li>
+<li><code>world.time = "dawn"</code> beside <code>clock.min = 10505</code> (Day 8, ~1 p.m.) — both injected.</li>
+<li>Stale futureEvents confirmed pending: the black-water shape (<code>setTurn:1626</code>, resolved on screen ~4 turns later) and the bathhouse trip (<code>setTurn:1663</code>, the party is <em>in</em> the bathhouse).</li>
+</ul>
+
+<h2>2. Unified finding register</h2>
+<p class="quiet">Every distinct finding from both reports, merged and named. "Verdict" reflects §1 where a conflict existed. Fable refs are that report's section/fix IDs; Sol refs are its F-numbers and sequence steps — both are citations into the source docs, not vocabulary this plan relies on.</p>
+
+<table>
+<tr><th>Finding (named)</th><th>Sev</th><th>Fable ref</th><th>Sol ref</th><th>Verdict</th><th>Plan</th></tr>
+<tr><td>The Owed/wed regex hole — bond guard never armed + false ★ on four sheets</td><td><span class="pill p-crit">crit</span></td><td>A1 / E1</td><td>F2 / 0A</td><td>Both; save+code confirmed</td><td>W1 + repair</td></tr>
+<tr><td>The wrong corpse — scholar-giant canonized as Mokmurian across four tiers</td><td><span class="pill p-crit">crit</span></td><td>— (clean-list miss)</td><td>F1 / 0B</td><td>Sol; re-executed, confirmed</td><td>W2 + owner fork</td></tr>
+<tr><td>The Jorgenfist blackout — 56 fortress entries filed on the ridge, node unvisited</td><td><span class="pill p-crit">crit</span></td><td>B1 / E3</td><td>F4</td><td>Both; save confirmed</td><td>W4 + repair</td></tr>
+<tr><td>The orphaned-quote phase blindness — #158 returns null on its own flagship case</td><td><span class="pill p-crit">crit</span></td><td>A2 / E2</td><td>—</td><td>Fable (string-verified in audit)</td><td>W3</td></tr>
+<tr><td>The Collector — killed t414, never stamped, fused with her successor</td><td><span class="pill p-crit">crit</span></td><td>C1</td><td>downgrade was a different claim</td><td>Fable; re-executed, confirmed</td><td>repair</td></tr>
+<tr><td>Ilvane/Grafter — alive and dead in the same prompt</td><td><span class="pill p-crit">crit</span></td><td>C2</td><td>—</td><td>Fable; re-executed, confirmed</td><td>W5 + repair</td></tr>
+<tr><td>The t1606 transcript hole — a 470-minute clock move with no transcript row</td><td><span class="pill p-crit">crit</span></td><td>D-table</td><td>—</td><td>Fable-verified</td><td>W5</td></tr>
+<tr><td>The stay-behind recognizer — foot-on-calf false positive, real t1590 separation missed</td><td><span class="pill p-major">major</span></td><td>A3 / E8</td><td>F3a</td><td>Both (complementary halves)</td><td>W3</td></tr>
+<tr><td>SAY compliance false notes — every current turn carries a false VOICE TAGS MISSING</td><td><span class="pill p-major">major</span></td><td>—</td><td>F3b</td><td>Sol; re-executed live, 5/5</td><td>W3</td></tr>
+<tr><td>Travel-day compression — "two days south" delivered in 205 clock-minutes</td><td><span class="pill p-major">major</span></td><td>B2 / E4</td><td>—</td><td>Fable</td><td>W4</td></tr>
+<tr><td>Dated commitments evaporate — Wyla's 1,200g deal in zero stores; turn-based expiry ≈14.6h</td><td><span class="pill p-major">major</span></td><td>B3 / E5</td><td>F7 (stale-pending half)</td><td>Both (partial overlap); confirmed</td><td>W4 + repair</td></tr>
+<tr><td>The misgendered t1644 chapter — summary canon written against the sheet</td><td><span class="pill p-major">major</span></td><td>— (clean-list miss)</td><td>F5 / 2B</td><td>Sol; re-executed, confirmed</td><td>W6 + repair</td></tr>
+<tr><td>Sable — 29 scenes, zero retrieval paths, canon archive-evicted</td><td><span class="pill p-major">major</span></td><td>C3</td><td>rejected by Sol</td><td>Fable; re-executed, Sol overturned</td><td>W6 + repair</td></tr>
+<tr><td>The Savah fusion — armorer + apothecary on one key, unrepaired, live again</td><td><span class="pill p-major">major</span></td><td>C3</td><td>—</td><td>Fable (the #156 test case)</td><td>repair</td></tr>
+<tr><td>Location twins — Sealed Forge Passage / Tunnel duplicates; the Sandpoint|Varisia orphan</td><td><span class="pill p-major">major</span></td><td>C4</td><td>agent-B noted, unregistered</td><td>Fable</td><td>W5 + repair</td></tr>
+<tr><td>Inventory receipts — dup satchel &amp; blade, lost quantities, wrong-sheet arrows, the wedding ring, fact-as-item rows, the iron key</td><td><span class="pill p-major">major</span></td><td>D-table / E6</td><td>F8</td><td>Both; satchel/blade confirmed</td><td>W5 + repair</td></tr>
+<tr><td>Frizwick's XP gap — 49,050 vs 63,650 on both identical peers</td><td><span class="pill p-major">major</span></td><td>D-table</td><td>—</td><td>Fable; numbers confirmed</td><td>owner ruling + W5</td></tr>
+<tr><td>The consumable second copy + ignored nudges — CONSUMABLE_RE vs the item bible; charges never decremented</td><td><span class="pill p-major">major</span></td><td>A4 / E9</td><td>—</td><td>Fable</td><td>W3 + W5</td></tr>
+<tr><td>Tag-provenance blind spots — HP/XP unrecordable; empty mutation receipts</td><td><span class="pill p-major">major</span></td><td>—</td><td>F9</td><td>Sol; re-executed live, confirmed</td><td>W5</td></tr>
+<tr><td>The army-march promotion — a player conditional became a marching column, reversed t1659</td><td><span class="pill p-minor">minor</span></td><td>—</td><td>timeline / 1B</td><td>Sol (not re-executed; carried)</td><td>W2 (design input)</td></tr>
+<tr><td>The stranded quest prerequisite — "Consult Shalelu… before traveling" false after the trip</td><td><span class="pill p-minor">minor</span></td><td>—</td><td>register</td><td>Sol; confirmed in quest dump</td><td>owner + repair</td></tr>
+<tr><td>world.time — a frozen free-text twin of the clock</td><td><span class="pill p-minor">minor</span></td><td>B4</td><td>F6 / 2A</td><td>Both; confirmed</td><td>W5</td></tr>
+<tr><td>The player's self-dossier — memory.npcs["Ammut"] injected every turn</td><td><span class="pill p-minor">minor</span></td><td>C5</td><td>—</td><td>Fable; confirmed</td><td>W5 + repair</td></tr>
+<tr><td>storyBeats provenance — 111 beats mislabeled "earlier adventure"; the Tharwick contradiction</td><td><span class="pill p-minor">minor</span></td><td>D-table</td><td>register (legacy beats)</td><td>Both (complementary)</td><td>W5 + repair</td></tr>
+<tr><td>Frozen roster moods — ten postures 850+ turns cold injected as current</td><td><span class="pill p-minor">minor</span></td><td>D-table</td><td>—</td><td>Fable</td><td>W5</td></tr>
+<tr><td>The missing-RETCON class — in-fiction corrections that never emit the tag</td><td><span class="pill p-minor">minor</span></td><td>D-table</td><td>—</td><td>Fable</td><td>W5</td></tr>
+<tr><td>The OOC note-leak class — bookkeeping denials in prose (t1604, t1666)</td><td><span class="pill p-minor">minor</span></td><td>D-table</td><td>F3 (leak)</td><td>Both; t1604/t1666 verified</td><td>W3 (pressure removal) + STYLE line</td></tr>
+<tr><td>Schedule anchors stranded by clock repairs — "three days is silently 3.81"</td><td><span class="pill p-minor">minor</span></td><td>D-table</td><td>§10 (closed)</td><td><span class="pill p-refuted">refuted</span> — Sol correct; auto-rebase dropped</td><td>design note only</td></tr>
+<tr><td>Frizwick's mountain grime — false shared experience, not personality collapse</td><td><span class="pill p-minor">minor</span></td><td>—</td><td>register</td><td>Sol; carried (low)</td><td>no action (watch)</td></tr>
+</table>
+
+<h2>3. The action plan — seven workstreams, ordered</h2>
+<p class="quiet">Everything below the line of "S" effort touches the drift surface and is Fable-tier per the standing decree, failing-first fixtures before code, engine tests + stable-half byte-identity after. Workstreams are ordered by leverage; W1 and the two containment repairs are this week.</p>
+
+<table>
+<tr><th>#</th><th>Workstream</th><th>Covers</th><th>Effort</th></tr>
+<tr><td><strong>W1</strong></td><td><strong>Close the Owed hole.</strong> Word-bound every <code>WEIGHTY_REL_RE</code> alternative; the failing-first fixture drives the <em>exact two raw t1666 tags</em> through the full pipeline (snapshot → parser → stamp → core-memory detection) and asserts: both directions queue, "Owed" is non-weighty, no false ★ is minted, the pre-filled restore note persists, pair-scoped rewrite resolves. Lexical matrix beside it: <code>owed</code>, <code>showed</code>, <code>midwife</code>, <code>loathes</code>, <code>clover</code> vs legitimate <code>wife</code>, <code>widow</code>, <code>widowed</code>, <code>betrayed</code>. Re-verify the shipped #167 persistence machinery now arms on this class. (Fable E1 ≡ Sol 0A, first half.)</td><td>Owed hole</td><td>S</td></tr>
+<tr><td><strong>W2</strong></td><td><strong>Referential integrity for high-impact writes — proposal first.</strong> <span class="pill p-design">design track</span> The wrong-corpse class needs a structural answer: death stamps, identity merges, quest completions, and reward payouts gate on a <em>resolved, present scene-entity handle</em>, and an explicit negative-identity constraint in recent committed prose ("not Mokmurian") <em>quarantines</em> a conflicting write loudly instead of letting the extractor guess. Includes the extractor's known-NPC-only death eligibility (the substitution bias) and Sol's source-attribution principle (player conditionals file intent, never world facts — the army-march class). Sol's boundedness constraints are adopted as design requirements: a capped current-scene ledger (~8–12, expiring on scene transition), no per-turn append, loud overflow. This is a new subsystem on the hottest part of the drift surface — it gets a proposal doc and a user ruling before any code, exactly like the identity layer did (<a href="identity_hardening_fable.html">precedent</a>).</td><td>Wrong corpse · army-march · extractor bias</td><td>M–L (proposal S)</td></tr>
+<tr><td><strong>W3</strong></td><td><strong>The recognizer repair bundle</strong>, under the new standing rule (§7). Four broken recognizers, one failure shape: <br>① <strong>#158 splitter</strong> — keep closing quotes attached to the sentence they terminate (parity preserved); freeze t1605's exact text as the fixture; add the <code>\bbefore\b</code> future-reference rejection in the same commit; re-run <code>dev/clock-phase-audit.js</code> as the re-enable gate. <br>② <strong>#137 stay-behind</strong> — clause-local subject binding (skip <code>Name's</code> possessives), add send-ahead/farewell shapes ("Then she's gone"), and let an OOC player correction ("X is not with us") arm the ping directly. <br>③ <strong>SAY compliance</strong> — replace the global quote-ratio with the playback speaker segmentation (one tag legally owns its interrupted spans); fixture: the confirmed 6-tag/24-quote-char t1666-window response must go silent, a genuinely untagged speaker must still fire. Kills a false note currently riding every turn. <br>④ <strong>Consumable detection</strong> — <code>itemLookup(base).category === "consumable"</code> becomes the primary leg (one authority, per the #81/#157 TYPE rulings), regex as fallback; the Alchemist's-fire fixture proves the bible leg fires where the regex is blind.</td><td>Phase blindness · presence both-ways · SAY noise · phantom flasks</td><td>S–M each</td></tr>
+<tr><td><strong>W4</strong></td><td><strong>Missing-axis detectors</strong> — three nudges in the shipped GM-decides mold (one-shot, never auto-mutate, combat-aware): <br>① <strong>Location filing</strong> — N (~8) committed turns with neither location tag while clean prose names a new enclosed place (chamber/hall/tunnel/vault) arms "file [LOCATION:]/[SUBLOCATION:] or say why not". Sol's firing constraint adopted verbatim: "through the breached curtain wall of Jorgenfist" must fire; "toward Jorgenfist" / "a map of Jorgenfist" / "remembering Jorgenfist" must not. <br>② <strong>Travel-day pricing</strong> — committed prose pricing a journey in days within K turns of an arrival whose cumulative <code>[TIME_ADVANCE:]</code> is under a day arms "emit [TIME_ADVANCE:Nd] or correct the reference" (the #158 never-auto-advance discipline). <br>③ <strong>Dated commitments</strong> — currency-or-obligation + delivery-interval in one committed sentence with no lifecycle tag arms "file [SCHEDULE:]/[FUTURE_EVENT:]/[QUEST:] or say it was only talk". Plus the two lifecycle teeth: clock-aware futureEvents expiry (a <code>when</code> that parses to a duration expires on the clock, or promotes to schedule at file time), and the deterministic resolve-assist (score pending events' <code>feTokens</code> against each fresh chapter summary; surface strong overlaps for <code>[FUTURE_EVENT_RESOLVED:]</code>).</td><td>Jorgenfist class · travel collapse · Wyla class · stale events</td><td>S–M each</td></tr>
+<tr><td><strong>W5</strong></td><td><strong>Receipts &amp; hygiene</strong> — the small, sharp fixes, each S: <br>· <code>[ITEM_GAINED:]</code> warns loudly when the incoming <code>itemBaseName</code> already exists as an uncounted row (#157 computes the identity; the handler never asks); a documented rename vocabulary; count-and-companion doc lines ("counts ride the string as x N"; companion pickups use <code>[COMPANION_ITEM_GAINED:]</code>). <br>· The <code>(bookkeeping)</code> transcript row: when applyMuts mutated but cleanTxt yields "", log a stamped, RAG-inert row (closes the t1606 hole). <br>· tagLog: name regex to <code>{1,}</code> so HP/XP record; mutation labels always non-empty for descriptor updates. <br>· <code>world.time</code> rendered <em>from</em> the clock (the #73 "derived, never stored" spine); free text demoted to flavor. <br>· Player + party sheet-holders excluded from <code>memory.npcs</code> writes and the TOC/hot-detail scan. <br>· Given-name auto-alias on multi-word registrations when unambiguous (the Ilvane class; #128 has the ambiguity machinery). <br>· <code>[LOCATION:X]</code> where X is byte-equal to the leaf of an existing sublocation of the current world node → refuse-loud nudge, never mint (the forge-passage twin class). <br>· Roster mood injection age-gated. <br>· The RETCON-nudge: a response opening by retracting its own prior turn with no <code>[RETCON:]</code> arms a one-shot. <br>· COMPANION_XP divergence tripwire (warn when living companions differ by more than the largest single award) — lands with the owner's additive-vs-supersede ruling. <br>· The #167-style escalation generalized to recurring unanswered consumable checks on the same head-noun.</td><td>Receipt gaps · twins · dossier · moods · provenance</td><td>each S</td></tr>
+<tr><td><strong>W6</strong></td><td><strong>Summary-commit validation.</strong> <span class="pill p-design">design track</span> The extractor gets a canonical identity table (names + genders of player/party/principals) in its prompt, and a pre-commit validator rejects high-confidence pronoun/entity contradictions into the existing bounded retry/degraded-chapter path — the summary is a canon write, not harmless prose (the t1644 chapter). Never blind-replace pronouns; validate, retry, or degrade loudly. Second half: the extractor may <em>propose</em> NPC registration for recurring proper nouns with high chapter presence and no record (the Sable class) — proposal-only, GM/player confirmed, same channel discipline as merge proposals. Touches summarize — drift-surface core, so it rides behind W2's ruling and gets the same proposal treatment.</td><td>Misgendered chapter · Sable class</td><td>M</td></tr>
+<tr><td><strong>W7</strong></td><td><strong>The two-axis relationship model</strong> — <span class="pill p-design">design track</span> Sol's durable fix for the bond class: separate <em>bond</em> ("Wife — beloved family") from <em>current dynamic</em> ("owes a favor, warming"), so a passing moment can never destructively replace a marriage without an explicit bond-severing operation. W1's regex fix makes the guard see the overwrite; this makes the overwrite structurally impossible. Schema-touching (relationships[], both sheets, prompt blocks, the #61/#167 guard family) — proposal + owner ruling first; Sol's boundedness note adopted (one bond + one dynamic per pair, turn-stamped, no per-change array).</td><td>Bond destruction class</td><td>M (proposal S)</td></tr>
+</table>
+
+<div class="callout"><strong>Sequencing.</strong> W1 ships first (active corruption, small diff). W3-③ (SAY) goes with it or immediately after — it is polluting every live turn right now. The containment subset of the repair session (§5: the four-sheet ★ purge, the marriage restore, the Mokmurian ruling) runs as soon as the owner adjudicates — before the rest of the engine work if need be, because every turn served until then carries the poison. W3-①②④, W4, and W5 proceed in that order; the repair session's main body (§5) runs <em>after</em> W1+W3+W5's landing so repaired state isn't re-rotted. W2/W6/W7 are proposal-first: draft the proposals while W3–W5 execute, get rulings, then build. After W1+W3+W4 land, re-run the audit probes against a fresh export as the exit check — the #158 t1605 fixture must arm, the Owed replay must queue a downgrade, the SAY estimator must go silent on tagged responses.</div>
+
+<h2>4. Standing decisions the plan needs from the owner</h2>
+<table>
+<tr><th>#</th><th>Decision</th><th>Context and recommendation</th></tr>
+<tr><td>1</td><td><span class="pill p-owner">owner</span> <strong>The Mokmurian fork.</strong></td><td>The campaign's act climax currently rests on an extractor's guess. <strong>Branch A — canonize the kill:</strong> rule that the scholar <em>was</em> Mokmurian (the quest's own "wizard-king" description makes this coherent — §1.1 note); repair = one on-screen recognition beat (a GM: line landing the confirmation in prose + a <code>[LORE:]</code>), everything else stands, XP stands. Cheap, and the army-reacts thread continues unchanged. <strong>Branch B — the scholar was someone else:</strong> Mokmurian's death stamp is removed (console — the B3 refusal rules rightly block a tag-side un-death), the strike objective reopens, the T1648 chapter line and event history get a supersede note, the successor question opens, and the XP award needs a ruling. Richer story (the real wizard-king still lives), materially more repair. <em>Recommendation: A, unless the campaign wants the twist — the fiction never contradicted A on screen; B's "not the warlord" beats were the party's own inference.</em></td></tr>
+<tr><td>2</td><td><span class="pill p-owner">owner</span> <strong>COMPANION_XP: additive or supersede?</strong></td><td>Rule whether a named solo award should ride <em>on top of</em> the mirrored shared award (additive) or replace it that turn (today's likeliest mechanism, per the Fable audit's hypothesis). Then: reconcile Frizwick's 14,600 by hand or leave as earned history. The W5 divergence tripwire lands either way.</td></tr>
+<tr><td>3</td><td><span class="pill p-owner">owner</span> <strong>Adopt the two-axis bond/dynamic model?</strong></td><td>W7's proposal. Alternative: keep the single slot and rely on W1's fixed guard + #167 persistence. The guard now works; the model change makes the failure impossible. Schema migrations have costs — the proposal will price them.</td></tr>
+<tr><td>4</td><td><span class="pill p-owner">owner</span> <strong>Approve the W2 referential-integrity proposal scope.</strong></td><td>The one genuinely new subsystem. The proposal doc will bring the concrete shape (scene ledger, gate list, quarantine flow, caps) for ruling before any code.</td></tr>
+<tr><td>5</td><td><span class="pill p-owner">owner</span> <strong>Jorgenfist history: re-key the 56 entries' location index?</strong></td><td>The prose (<code>x</code>) is sacred and untouched either way. The <em>derived</em> per-entry index (<code>e.l</code>) currently keys 56 fortress scenes to the ridge. Option (a): leave as historical rot — RAG serves fortress scenes under ridge queries (mostly adjacent, same journey). Option (b): console-rewrite <code>e.l</code> on those entries to the Jorgenfist key — engine-derived metadata, not narrative, so the transcript-is-sacred decree arguably doesn't cover it. <em>Recommendation: (b), scripted with a receipt, in the §5 session.</em></td></tr>
+<tr><td>6</td><td><span class="pill p-owner">owner</span> <strong>The stranded Shalelu prerequisite; the Wyla and Shalelu commitments.</strong></td><td>Mark "Consult Shalelu… before traveling" done (t1653 suggests some consultation) or reword it. Decide whether Wyla's 1,200g five-day ring commission and Shalelu's map are still live threads at Day 8 — if yes they refile as <code>[SCHEDULE:]</code> entries in §5; if the fiction has moved past them, they file as lapsed lore instead.</td></tr>
+</table>
+
+<h2>5. The consolidated repair session (this campaign)</h2>
+<p class="quiet">One sitting, on the live device (several items are console-only), after W1+W3 land — except the ⚡ containment items, which run as soon as decisions 1 and 3's interim stance exist, because they poison every prompt until then. Every step gets a receipt; pre-images archive where the executors support it. Export a <code>.tnd</code> before starting (house rule).</p>
+
+<h3>5.1 ⚡ Containment (run first)</h3>
+<ul>
+<li><strong>Purge the false ★</strong> — remove the t1666 "Owed a favor" core memory from all four sheets (console; no tag can remove a core memory — recipe in the Fable audit §5.2).</li>
+<li><strong>Restore the marriage pair</strong> — rewrite both Ammut↔Frizwick descriptors (<code>[RELATIONSHIP:]</code> + <code>[COMPANION_RELATIONSHIP:]</code> GM: line, wording per decision 3's interim stance: bond first, favor alongside).</li>
+<li><strong>Execute the Mokmurian ruling</strong> (decision 1): Branch A = the recognition-beat GM: line + <code>[LORE:]</code>; Branch B = console un-stamp + objective reopen + supersede notes + XP adjustment.</li>
+</ul>
+
+<h3>5.2 GM: lines and Sync modal</h3>
+<ul>
+<li>The Collector: stamp the t414 individual dead (<code>[NPC:Marta / The Scarred Woman / The Collector|dead|…]</code> — the death-status vocabulary), register the post-t1422 operative as her own NPC, <code>[NPC_NOTE:]</code> the succession, <code>[NPC_SUPERSEDE:]</code> the contradicting knowledge lines; fold the orphan "Scarred Stranger (Black-Eyed Man)" fragment via <code>[NPC_MERGE:]</code>.</li>
+<li><code>[MERGE:npc|Ilvane|Grafter]</code> — one record, dead, with the interrogation intel and the alias intact.</li>
+<li>Split Savah: register the Magnimar apothecary as her own NPC; supersede the poison lines on the Sandpoint armorer.</li>
+<li>Register Sable (<code>[NPC:Sable|whereabouts unknown|…]</code> — the store already carries unmet figures) so the retrieval index can key her from here on; refile her live thread as lore/futureEvent per decision 6's spirit.</li>
+<li>Inventory: drop the duplicate satchel and blade rows, set true counts (flasks 0, charges per canon), move the wedding ring to Daeris (<code>[ITEM_LOST:]</code> + <code>[COMPANION_ITEM_GAINED:]</code>), silvered arrows to Morwen, remove the "confirmed loft position clear" fact-row, settle the iron key's holder. (Sync modal edits where simpler than tags.)</li>
+<li>Resolve the two consumed futureEvents (<code>[FUTURE_EVENT_RESOLVED:]</code>); refile Wyla/Shalelu per decision 6.</li>
+<li>Set <code>world.time</code> to match the clock (Sync modal) — until W5 derives it permanently.</li>
+<li>Quest: apply decision 6 on the Shalelu objective (<code>[QUEST_STEP:]</code>).</li>
+</ul>
+
+<h3>5.3 map_cleanup.html</h3>
+<ul>
+<li>Merge the "Sealed Forge Passage" and "Fogscar Mountains Tunnel" world-node twins into their real sublocation records; kill the parent→own-child ghost edges.</li>
+<li>Fold <code>Sandpoint|Varisia</code> into <code>Sandpoint</code> (it <em>is</em> Sandpoint — four children and the South Road edge come along); reparent the Charred Barrel interior off the North Road node.</li>
+<li>Re-scope the North Road's frozen hour-specific description (the write-once field froze "shuttered and dark this hour" as permanent canon).</li>
+<li>Remove the ghost-cottage edge (the map_viewer original).</li>
+<li>File Jorgenfist: stamp the visit (firstVisit/visits), reparent/describe the interiors worth keeping, add the two stateNotes (Mokmurian's death per decision 1's branch; the library fire), connect the edge into the Kodars.</li>
+</ul>
+
+<h3>5.4 Console (scripted, with receipts)</h3>
+<ul>
+<li>The e.l re-key of the 56 Jorgenfist-window entries (decision 5, if approved).</li>
+<li>storyBeats: backfill <code>camp</code> stamps on this campaign's beats; de-dupe the i=45/47 pair; leave the Tharwick-claim beat but note it superseded.</li>
+<li>Frizwick XP reconcile (decision 2, if ruled).</li>
+<li>Edit <code>memory.chapters[4]</code> + the matching eventHistory entry: correct the t1644 chapter's pronouns to Ammut (a surgical text fix beats a supersede here — the chapter is otherwise faithful); delete <code>memory.npcs["Ammut"]</code> after folding anything worth keeping into storyBeats.</li>
+</ul>
+
+<h2>6. The merged failure-first fixture matrix</h2>
+<p class="quiet">The union of both reports' test specs. Every row is a fixture of <em>real campaign prose</em> (or the exact raw tags) plus the assertion that must fail before its fix and pass after. These land in the engine suite with their workstreams.</p>
+<table>
+<tr><th>Class</th><th>Exact fixture</th><th>Required assertion</th><th>WS</th></tr>
+<tr><td>Bond overwrite</td><td>The two raw t1666 tags, full pipeline (snapshot → parser → stamp → core-memory detection)</td><td>Both directions queue; "Owed" non-weighty; no false ★; pre-filled note persists; pair-scoped rewrite resolves only that pair</td><td>W1</td></tr>
+<tr><td>Lexical boundary</td><td><code>owed · showed · midwife · loathes · clover</code> vs <code>wife · widow · widowed · betrayed · wed</code></td><td>Only intended relationship words classify weighty</td><td>W1</td></tr>
+<tr><td>Wrong corpse</td><td>Replay t1637–t1648: anonymous scholar + committed "not Mokmurian", then "Mokmurian it is" and the scholar strike</td><td>Scholar may die; Mokmurian stays alive/unknown; objective + XP stay provisional; the conflict is loud</td><td>W2</td></tr>
+<tr><td>Phase splitter</td><td>t1605's exact text (dialogue ending <code>…lly is."</code> then "Dusk catches you on the descent…"); t1643's "escape before dawn finds you"</td><td>The dusk assertion is recognized; the future-reference "before dawn" is rejected; quote-parity distrust preserved</td><td>W3</td></tr>
+<tr><td>Presence subject</td><td>"Frizwick's foot … stays there" vs "Frizwick stays behind at the inn" vs "Then she's gone…" vs OOC "Frizwick is not with us"</td><td>First silent; second and third arm and name Frizwick; the OOC correction arms; negation/quotation/plans never fire</td><td>W3</td></tr>
+<tr><td>SAY coverage</td><td>The confirmed live case: 6 tags / 24 quote chars (interrupted spans, one speaker)</td><td>Segmentation-aware checker silent; a genuinely untagged speaker segment still fires</td><td>W3</td></tr>
+<tr><td>Consumable authority</td><td>"Alchemist's fire" (bible: consumable; regex: blind)</td><td>The bible leg fires the ghost-consumable check; regex remains fallback-only</td><td>W3</td></tr>
+<tr><td>Location entry</td><td>"Through the breached curtain wall of Jorgenfist" untagged, N turns; contrast "toward" / "a map of" / "remembering"</td><td>Only the high-confidence entry arms the one-shot; a matching tag suppresses; prose never auto-moves state</td><td>W4</td></tr>
+<tr><td>Travel pricing</td><td>"Sandpoint still two days south" committed, arrival 3 turns later on +180m cumulative</td><td>The fork nudge arms; an honest [TIME_ADVANCE:2d] suppresses; never auto-advances</td><td>W4</td></tr>
+<tr><td>Dated commitment</td><td>Wyla's sentence: "Twelve hundred gold… Call it five days", no lifecycle tag in response</td><td>One-shot "file it or say it was only talk" arms; any lifecycle tag suppresses</td><td>W4</td></tr>
+<tr><td>Clock-aware expiry</td><td>A futureEvent with <code>when:"five days"</code> at measured campaign pacing</td><td>Expires/promotes on clock horizon, not at 40 turns ≈ 14.6 fiction-hours</td><td>W4</td></tr>
+<tr><td>Duplicate item</td><td>Re-grant of an existing base name (the satchel); rename re-grant with no paired loss (the blade)</td><td>Loud warn + muts line; the rename vocabulary path clean</td><td>W5</td></tr>
+<tr><td>Bookkeeping row</td><td>A pure-tag response moving the clock 470 minutes (the t1606 shape)</td><td>A stamped <code>(bookkeeping)</code> transcript row exists; RAG never serves it; .ta/.ck truthful on the next turn</td><td>W5</td></tr>
+<tr><td>Provenance</td><td>Apply <code>[HP:-3]</code>, <code>[XP:600]</code>, a descriptor update</td><td>Tag names recorded (two-letter legal); mutation text non-empty; empty receipt can no longer imply "no write"</td><td>W5</td></tr>
+<tr><td>Summary identity</td><td>Male Ammut + an extractor chapter whose only antecedent is she/her; contrast a legitimate female antecedent</td><td>The contradictory summary is rejected into retry/degraded, never committed; valid text passes; no blind pronoun replace</td><td>W6</td></tr>
+<tr><td>World-twin refuse</td><td><code>[LOCATION:Sealed Forge Passage]</code> while it exists as a sublocation of the current node</td><td>Refuse-loud into a nudge; no node minted; no edge to a child-twin</td><td>W5</td></tr>
+</table>
+
+<h2>7. Process rules this reconciliation adopts</h2>
+<ul>
+<li><strong>Recognizer fixtures beside sabotage</strong> (the Fable audit's rule, ratified here): every guard that begins with a recognizer — regex, splitter, window-match, ratio estimator — ships with a fixture file of real campaign prose covering the hostile cases (dialogue-adjacent narration, possessives, substring traps, orphaned quotes, interrupted quote spans), and the failing-first test runs the recognizer over them, not a hand-seeded queue. Sabotage proves the plumbing; fixtures prove the eyes. Sol's SAY finding retroactively validates the rule — a fifth recognizer with the same untested-half failure.</li>
+<li><strong>The referent lane</strong> (this reconciliation's own lesson): an audit that verifies a stamp <em>landed</em> must also verify the stamp's <em>referent</em>. "Mokmurian is stamped dead in both stores and never acts again" was true and still wrong. Future audits add a referential-truth pass on identity-bearing writes: does the committed prose actually support the name on the record?</li>
+<li><strong>Boundedness requirements for new guards</strong> (Sol's, adopted): scene ledgers capped and scene-scoped; one bond + one dynamic per relationship pair; presence records as small rings, never per-turn appends; caps overflow loudly with the actor named; an unresolved integrity flag may stop nagging after its delivery budget but must stay visibly unresolved, never silently deleted.</li>
+<li><strong>The negative-results ledger</strong>: conclusions both audits reached that must not be re-litigated — the t1658 auto-rejoin is fixed by #164 (kept only as regression evidence); the clock double-decrement is closed with its receipt and the anchors are sound (§1.5); "RAG forgot the not-Mokmurian line" is false (retrievable); the player did not declare the scholar's identity (the GM supplied the mapping); quest lifecycle is not globally broken; party personality has not collapsed; the false engine notes are confirmed noise but <em>not</em> proven causes of the bond/identity failures; the t1667 <code>空气</code> token is an isolated generation blemish.</li>
+</ul>
+
+<h2>8. The corrected clean list</h2>
+<p class="quiet">The Fable audit's §6 clearances survive this reconciliation with two corrections, so absence of findings keeps reading as checked, not skipped:</p>
+<ul>
+<li><strong>Corrected:</strong> "Death propagation post-B3 works" → the propagation <em>plumbing</em> works (Durnah, Ilvane-the-twin, Chask; zero post-death prose); Mokmurian's stamp is plumbing-correct but referentially unproven — see decision 1.</li>
+<li><strong>Withdrawn:</strong> "chapter summaries (all 10 recent) faithful" → faithful on event content; the t1644 chapter misgenders Ammut throughout (§1.2). Chapter fidelity checks now include entity identity.</li>
+<li><strong>Standing:</strong> clock-core monotonicity (with its receipt) and the schedule anchors (§1.5 — now positively re-verified); the quest archive's 25 terminal records; the location-identity overlay (18 entries, no cycles); HP/gold/mana/conditions/relationship reciprocity on all four sheets (post-repair); cleanTxt's zero bracket leakage across 107 responses; the #158 detector's <em>band math</em> (its silence in t1560–1667 was correct — the defect is upstream recognition).</li>
+<li><strong>Open residuals, logged not filed:</strong> Daeris's mana 19/22 after a full rest (self-checks at next rest) · pre-t1628 gold movements unverifiable (the ring doesn't reach them) · Frizwick's "mountain grime" false shared experience (watch; no engine action).</li>
+</ul>
+
+<div class="callout goodcall"><strong>Where this leaves the stack.</strong> Nothing in either audit found the core architecture wrong — the tag table, the clock spine, the identity layer, the cache split, and the quest teeth all held. The rot lives at the boundaries: what the recognizers see, what no detector watches, what predates the guards, and what the receipts miss. W1 through W7 are boundary work. The two design tracks (referential integrity, bond/dynamic) are the only new load-bearing pieces, and both go proposal-first.</div>
+
+<div class="sub" style="margin-top:34px">Sources: <a href="driftHardening_fable.html">driftHardening_fable.html</a> (TODO #168) · <a href="driftHardening_SOL.html">driftHardening_SOL.html</a> · fresh adjudication probes over <code>Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</code> and v1.595 source (2026-08-11, this document §1) · TODO #167 (corrected diagnosis on the row) · no game code, save, or tracker state was changed by this reconciliation.</div>
+
+</main>
+</body>
+</html>

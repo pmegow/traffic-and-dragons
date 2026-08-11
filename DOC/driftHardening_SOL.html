@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic &amp; Dragons — t1667 Drift Hardening Analysis</title>
+<style>
+:root{--bg:#0d0d0c;--panel:#151412;--panel2:#1b1814;--line:#3c342a;--text:#d8d0c4;--muted:#9e9487;--amber:#d8a45f;--red:#e17a71;--orange:#e4a861;--green:#88b07a;--blue:#7ca8c8;--white:#f3ede4}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0 auto;max-width:1180px;padding:34px 28px 90px;background:var(--bg);color:var(--text);font:15px/1.62 Georgia,serif}h1,h2,h3{color:var(--white);line-height:1.22}h1{margin:0;color:var(--amber);font-size:2em}h2{margin:42px 0 14px;padding-bottom:7px;border-bottom:1px solid var(--line);font-size:1.3em;color:var(--amber)}h3{margin:22px 0 8px;font-size:1.06em}p{margin:9px 0}.sub{color:var(--muted);margin:5px 0 24px}.card{margin:15px 0;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.verdict{border-color:var(--amber);background:linear-gradient(135deg,#1d1710,#151412)}.risk{border-left:4px solid var(--orange)}.critical{border-left-color:var(--red)}.high{border-left-color:var(--orange)}.medium{border-left-color:var(--blue)}.eyebrow{font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:1.1px;text-transform:uppercase;color:var(--amber)}.bad{color:var(--red)}.good{color:var(--green)}.muted{color:var(--muted)}code,pre{font:12px/1.5 ui-monospace,Consolas,monospace}code{padding:1px 5px;border-radius:4px;background:#211c16;color:#e2b574}pre{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#090909;color:#cfc7bb}table{width:100%;border-collapse:collapse;margin:13px 0;font-size:.91em}th,td{padding:8px 10px;border:1px solid var(--line);text-align:left;vertical-align:top}th{background:#1a1713;color:var(--amber);font:700 12px/1.35 ui-monospace,Consolas,monospace}ul,ol{padding-left:22px}li{margin:6px 0}.badge{display:inline-block;margin:0 5px 3px 0;padding:2px 8px;border-radius:12px;border:1px solid var(--line);font:700 10px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.5px;text-transform:uppercase}.b-crit{color:#ffafa6;border-color:#7e403b;background:#281413}.b-high{color:#f0c083;border-color:#72532f;background:#241d12}.b-confirm{color:#a8d39a;border-color:#46633d;background:#142014}.b-active{color:#a8cce8;border-color:#3f5f76;background:#111d25}.b-fixed{color:#b8d7af;border-color:#46633d;background:#142014}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:13px 0}.cell{padding:11px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel2)}.cell b{display:block;margin-bottom:4px;color:var(--amber);font:700 11px/1.3 ui-monospace,Consolas,monospace;text-transform:uppercase}.rank td:first-child{width:44px;text-align:center;color:var(--amber);font-weight:bold}.toc a,a{color:#d9ad73;text-decoration:none}.toc a:hover,a:hover{text-decoration:underline}.mono{font-family:ui-monospace,Consolas,monospace}.small{font-size:.87em}.callout{padding:10px 13px;border-left:3px solid var(--blue);background:#11181d}.danger{border-left-color:var(--red);background:#201313}.ok{border-left-color:var(--green);background:#122016}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:stretch;margin:14px 0}.step{position:relative;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:.86em}.step strong{display:block;color:var(--amber);margin-bottom:3px}.footer{margin-top:50px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:.84em}@media(max-width:850px){body{padding:22px 13px 65px}.grid,.flow{grid-template-columns:1fr}.scroll{overflow-x:auto}.scroll table{min-width:760px}h1{font-size:1.55em}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Five-agent field investigation · independent adjudication · no repairs performed</div>
+  <h1>t1667 drift hardening analysis</h1>
+  <p class="sub">Sol · 2026-08-11 · latest export <span class="mono">Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</span> · save authored by v1.589 · current repository HEAD v1.595</p>
+</header>
+
+<section class="card verdict">
+  <h3>Verdict</h3>
+  <p><strong>The anti-drift stack is not broadly collapsed, but two live failures are critical.</strong> First, an explicitly non-Mokmurian scholar was silently fused into Mokmurian; the memory extractor then canonized the wrong corpse across NPC state, quest completion, chapter history, and rewards. Second, v1.595 does <em>not</em> detect the exact relationship overwrite it claims to fix: the unbounded token <code>wed</code> matches inside <code>Owed</code>, so the guard never queues and the same false match promotes the favor to a permanent defining memory on all four character sheets.</p>
+  <p>The surrounding pattern is consistent: <strong>low-confidence prose is allowed to cross a one-way boundary into high-authority state without referential proof</strong>. Once written, the quest, relationship, core-memory, chapter, and prompt layers reinforce each other. False audit notes add pressure and can leak into ordinary prose, but there is no evidence that they caused the identity or bond failures.</p>
+  <p class="callout danger"><strong>Do not treat TODO #167 as closed.</strong> Its persistence mechanism works only after a queue exists. The exact t1666 input never creates that queue, and the save also needs four-sheet core-memory repair—not only a relationship tag.</p>
+</section>
+
+<nav class="card toc">
+  <div class="eyebrow">Contents</div>
+  <p><a href="#method">Method</a> · <a href="#baseline">Save baseline</a> · <a href="#timeline">Failure timeline</a> · <a href="#register">Risk register</a> · <a href="#f1">Wrong corpse</a> · <a href="#f2">Broken bond guard</a> · <a href="#f3">False notes</a> · <a href="#f4">Location drift</a> · <a href="#f5">Stored contradictions</a> · <a href="#agents">Agent adjudication</a> · <a href="#hardening">Hardening sequence</a> · <a href="#repair">Repair scope</a> · <a href="#tests">Failure-first matrix</a></p>
+</nav>
+
+<h2 id="method">1. Method and burden of proof</h2>
+<p>Five read-only agents examined different surfaces: chronology, persisted state, the write/read pipeline, adversarial counter-evidence, and hardening design. I then replayed exact field inputs against current HEAD, reconstructed the current prompt, and adjudicated disagreements. A candidate was promoted only when the save established the divergence and current code explained how it could persist.</p>
+<div class="grid">
+  <div class="cell"><b>Exact fiction</b>Turn-by-turn transcript evidence identified the first unsupported assertion, not merely the later visible symptom.</div>
+  <div class="cell"><b>Exact write path</b>Raw state tags, snapshots, extractor commits, prompt assembly, and bounded receipts were traced separately.</div>
+  <div class="cell"><b>Current status</b>Save-era failures were replayed against v1.595 so fixed history was not reported as an open defect.</div>
+</div>
+<p>Scope is investigation only. No game code, save, tracker, or TODO entry was changed. Hard-boundary files are cited as required design surfaces, not edited.</p>
+
+<h2 id="baseline">2. Latest-save baseline</h2>
+<div class="scroll"><table>
+<tr><th>Artifact</th><th>Measured state</th><th>Interpretation</th></tr>
+<tr><td>Latest export</td><td><code>C:\Users\hannu\Downloads\Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</code><br>3,958,438 bytes; modified 2026-08-10 23:35 local</td><td>Newest Downloads save found for this investigation.</td></tr>
+<tr><td>Campaign</td><td>Turn 1667; 3,331 transcript entries; 10 recent session messages; 42 roster NPCs; 57 memory NPCs; 23 locations; 25 quests; 10 chapters</td><td>Mature corpus with enough provenance to reconstruct the incident.</td></tr>
+<tr><td>Authored vs audited</td><td>Save response metadata reports v1.589; current HEAD is v1.595 (<code>5904ae8</code>)</td><td>The t1658 auto-rejoin predates its v1.592 fix; the t1666 bond incident is replayed against v1.595 below.</td></tr>
+<tr><td>Current scene</td><td>Sandpoint · Sandpoint Bathhouse · all four party members present · clock minute 10505</td><td>Current presence state is consistent. The harmful presence remnant is the leaked t1666 bookkeeping sentence.</td></tr>
+<tr><td>Prompt reconstruction</td><td>37,657 stable characters + about 79.8k volatile characters</td><td>The marriage/favor, dawn/afternoon, and chapter-pronoun contradictions are actually served to the GM.</td></tr>
+<tr><td>Bounded receipts</td><td>Tag log contains exactly 40 entries, t1628–t1667</td><td>Healthy boundedness, but older mutations require transcript/memory reconstruction. A separate provenance bug omits legal two-letter tag names.</td></tr>
+</table></div>
+
+<h2 id="timeline">3. Failure timeline</h2>
+<div class="scroll"><table>
+<tr><th>Turn</th><th>Observed fiction</th><th>Drift transition</th></tr>
+<tr><td>1587–1593</td><td>Messenger reports giants “by the dozen” and Mokmurian rallying tribes. Player conditionally reasons, “If the giants are moving…”</td><td>At t1593 the GM silently promotes the conditional into a column already marching a day ahead. t1659 reverses it: “they haven’t marched yet.”</td></tr>
+<tr><td>1591–1594</td><td>Frizwick leaves alone. t1593 nevertheless says “the four of you.” Player corrects it; t1594 restores three travelers.</td><td>Short prose presence slip, immediately healed. Later structured auto-rejoin at t1658 is a distinct save-era defect fixed by #164.</td></tr>
+<tr><td>1605–1607</td><td>Clock is late morning while prose says dusk. Player explicitly syncs it.</td><td>Known clock/prose mismatch class; not the principal new failure.</td></tr>
+<tr><td>1609–1649</td><td>Party passes Jorgenfist’s broken curtain wall, then reaches the fortress proper beneath Mokmurian’s house.</td><td>All 41 GM entries remain indexed as <code>Fogscar Mountains - Ridge Line</code>; Jorgenfist remains unvisited in the map.</td></tr>
+<tr><td>1638–1639</td><td>Robed target is “Not Mokmurian himself” and later “old, scholar-looking, not the warlord.”</td><td>Negative identity exists in recent fiction and is retrievable.</td></tr>
+<tr><td>1645–1648</td><td>GM maps a plan to kill Mokmurian onto the tablet-reading actor. Player later targets “the scholar-giant’s neck”; prose kills “the old scholar-giant.”</td><td>Extractor/state ratchet records Mokmurian dead, completes his objective, and pays XP.</td></tr>
+<tr><td>1658–1661</td><td>Structured state auto-rejoins Frizwick three turns before the narrated reunion.</td><td>Real v1.589 defect; current v1.592+ granularity-aware fold addresses this exact case.</td></tr>
+<tr><td>1664–1666</td><td>Frizwick’s <em>foot</em> “stays there.” Next request warns that Frizwick stayed behind.</td><td>Subject-blind detector creates a false separation note; GM leaks a visible bookkeeping denial into prose.</td></tr>
+<tr><td>1666–1667</td><td>Playful favor scene emits two “Owed” relationship tags.</td><td>Marriage descriptors are overwritten, “Owed” is falsely classified as weighty, and a false permanent bond memory is copied to all four sheets.</td></tr>
+</table></div>
+
+<h2 id="register">4. Adjudicated risk register</h2>
+<div class="scroll"><table>
+<tr><th>ID</th><th>Finding</th><th>Severity</th><th>Current status</th><th>Confidence</th></tr>
+<tr><td>F1</td><td>Anonymous scholar fused into Mokmurian; wrong known NPC death canonized across tiers.</td><td>Critical</td><td>Open; save actively corrupted</td><td>High</td></tr>
+<tr><td>F2</td><td><code>wed</code> inside <code>Owed</code> defeats #167 and files the favor as a defining bond.</td><td>Critical</td><td>Open in v1.595</td><td>Exact replay</td></tr>
+<tr><td>F3</td><td>Subject-blind stay-behind and global SAY heuristics produce false notes; presence note leaked to prose.</td><td>High</td><td>Open in v1.595</td><td>Exact replay</td></tr>
+<tr><td>F4</td><td>Jorgenfist scenes indexed to Ridge Line; Jorgenfist map node remains unvisited.</td><td>High</td><td>Open</td><td>High</td></tr>
+<tr><td>F5</td><td>Summarizer commits wrong protagonist pronouns into the always-injected chapter window.</td><td>Medium</td><td>Active prompt contradiction</td><td>High</td></tr>
+<tr><td>F6</td><td>Legacy <code>world.time=dawn</code> is injected beside an afternoon campaign clock.</td><td>Medium</td><td>Active prompt/UI contradiction</td><td>High</td></tr>
+<tr><td>F7</td><td>Two already-consumed future events remain pending and prompt-visible.</td><td>Medium</td><td>Active until semantic resolution/expiry</td><td>High</td></tr>
+<tr><td>F8</td><td>Two names for one closed-eye satchel; observations/ownership claims stored as inventory.</td><td>Medium</td><td>Active state hygiene drift</td><td>High</td></tr>
+<tr><td>F9</td><td>Tag provenance regex cannot record legal <code>HP</code>/<code>XP</code> tag names; relationship updates may have empty mutation receipts.</td><td>Medium</td><td>Open observability gap</td><td>Exact evidence</td></tr>
+</table></div>
+
+<h2 id="f1">5. F1 — the wrong corpse became canon</h2>
+<section class="card risk critical">
+  <p><span class="badge b-crit">Critical</span><span class="badge b-confirm">Confirmed</span><span class="badge b-active">Cross-tier</span></p>
+  <p><strong>Fictional truth.</strong> At t1638 the GM says the robed tablet-reader is “Not Mokmurian himself … an old scholar-giant rather than a war-king.” t1639 repeats “not the warlord.” No later recognition or reveal reverses that evidence. At t1647 the player explicitly returns to “the scholar-giant’s neck,” and t1648 prose kills “the old scholar-giant.”</p>
+  <p><strong>First fusion.</strong> At t1645 the GM resolves a plan to kill Mokmurian onto “Mokmurian bent over his glowing tablets.” This was not simply a player asserting that the scholar was Mokmurian; the companions proposed Mokmurian as the next target, the player accepted the plan, and the GM supplied the unsupported referent.</p>
+  <div class="flow">
+    <div class="step"><strong>1 · Untracked actor</strong>Observed, targetable scholar remains anonymous and has no stable scene identity.</div>
+    <div class="step"><strong>2 · Referential fusion</strong>Plan target “Mokmurian” is mapped onto the only visible tablet-reader.</div>
+    <div class="step"><strong>3 · Extractor bias</strong>True victim is ineligible because anonymous; known Mokmurian is eligible for <code>npcDeaths</code>.</div>
+    <div class="step"><strong>4 · State ratchet</strong>Mokmurian becomes dead in roster and memory; chapter records the kill.</div>
+    <div class="step"><strong>5 · Consequences</strong>Quest objective completes, XP pays, later dialogue reports victory.</div>
+  </div>
+  <p><strong>Write mechanism.</strong> <code>memory.js:1231–1241</code> auto-stamps an extracted death only for an NPC already on file. That safety rule avoids minting unknown corpses, but here it creates substitution bias: the true anonymous victim cannot be committed while Mokmurian can. <code>fileChapter</code> then preserves the false name in <code>eventHistory</code>, and the false quest objective re-injects it on later turns.</p>
+  <p><strong>Counter-evidence checked.</strong> The relevant t1639 negative identity is available to current RAG, so “retrieval did not find it” is rejected. Quest handling is not globally broken; the false completion is downstream. The t1638 phrase “you think” allows uncertainty, but there is no intervening discovery that justifies the reversal.</p>
+  <p class="callout danger"><strong>Root fix:</strong> high-impact writes need referential integrity, not a stronger prompt reminder. A death, identity merge, quest completion, or reward must resolve to a present scene-entity handle. An explicit <code>not Mokmurian</code> constraint must quarantine a conflicting write and its downstream consequences until resolved.</p>
+</section>
+
+<h2 id="f2">6. F2 — v1.595 misses its exact relationship incident</h2>
+<section class="card risk critical">
+  <p><span class="badge b-crit">Critical</span><span class="badge b-confirm">Exact replay</span><span class="badge b-active">Current HEAD</span></p>
+  <p>The raw t1666 response overwrites both directions:</p>
+  <pre>[RELATIONSHIP:Frizwick|Owed a favor — reckless theft, for the fun of it]
+[COMPANION_RELATIONSHIP:Frizwick|Ammut|Owed favor collected, warming]</pre>
+  <p>Current <code>globals.js:22</code> defines <code>WEIGHTY_REL_RE</code> with the unbounded alternative <code>wed(ded)?</code>. JavaScript therefore finds <code>wed</code> inside <code>Owed</code>. At <code>game.js:1265</code>, both the old Wife descriptor and new Owed descriptor look weighty, so no downgrade entry is queued. <code>api.js:638–650</code> can persist only an entry that exists.</p>
+  <pre>WEIGHTY_REL_RE.test("Wife — beloved family, reunited")  // true
+WEIGHTY_REL_RE.test("Owed a favor — reckless theft")   // true (wrong)
+worldState.relDowngrades                                // undefined
+buildRelationshipDowngradeNudge()                       // ""</pre>
+  <p>The saved t1666 and t1667 requests contain no <code>BOND DOWNGRADE CHECK</code>. TODO #167’s claim that the guard “detected it perfectly” and the model ignored one delivery is therefore factually false.</p>
+  <p><strong>Worse than a missed nudge.</strong> <code>game.js:1140</code> uses the same regex to decide what becomes a defining bond. The save now carries this permanent memory on Ammut, Frizwick, Daeris, and Morwen:</p>
+  <pre>The bond between Ammut and Frizwick became
+"Owed a favor — reckless theft, for the fun of it".</pre>
+  <p>The current prompt simultaneously labels Frizwick’s relationship as Owed, labels the companion sheet canonical, and injects earlier permanent marriage memories. The false t1666 memory is also injected as permanent canon. This is an active cross-tier contradiction, not merely a stale display value.</p>
+  <p><strong>Why tests passed.</strong> <code>dev/engine-tests.js:4912–4924</code> tests Wife → Travel companion. The #167 test at 4926 manually seeds <code>relDowngrades</code>. Neither drives the exact “Owed” tags through snapshot → parser → stamp → core-memory detection.</p>
+  <p class="callout danger"><strong>Root fix:</strong> the immediate regression is token-aware matching plus the exact field fixture. The durable model separates <em>bond</em> from <em>current dynamic</em>; a passing favor cannot destructively replace a marriage without an explicit bond-severing operation.</p>
+</section>
+
+<h2 id="f3">7. F3 — protection machinery generates false pressure</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Confirmed</span><span class="badge b-active">Current HEAD</span></p>
+  <h3>False separation</h3>
+  <p>t1665 says, “Frizwick’s foot finds your calf … and <em>stays there</em>.” <code>helpers.js:199–218</code> searches a ±90-character name window for <code>stays there</code> without binding the verb’s grammatical subject. Exact replay returns Frizwick. <code>game.js:1407–1414</code> arms <code>presencePing</code>, and the next request says her separation was unrecorded.</p>
+  <p>The GM then begins t1666 with: “Frizwick is with the party in the bathhouse, not separated. No party split occurred.” That directly acknowledges private bookkeeping despite the engine-note protocol. The sentence is now a normal transcript/RAG entry and remains in raw session history. Current evidence does not show it in a chapter or top RAG result, so those stronger claims are not made.</p>
+  <h3>False voice-compliance notes</h3>
+  <p>All five retained assistant responses contain tagged spoken paragraphs, yet all five following user messages carry <code>VOICE TAGS MISSING</code>. <code>api.js:799–812</code> estimates coverage from a global quote-character/SAY-tag ratio. The speaker implementation instead lets one SAY tag own multiple interrupted quote spans until another tag changes the speaker. The compliance checker and playback semantics therefore disagree.</p>
+  <p><strong>Adjudication.</strong> These notes are confirmed prompt noise and one leaked into prose. They are not proven causes of the Mokmurian or relationship failures. The right repair is shared parsing/subject logic, not more forceful wording or regex deletion of generated prose.</p>
+</section>
+
+<h2 id="f4">8. F4 — narrative location and retrieval index diverged</h2>
+<section class="card risk high">
+  <p><span class="badge b-high">High</span><span class="badge b-confirm">Persisted</span></p>
+  <p>From t1609 through t1649, 41 GM entries are indexed as <code>Fogscar Mountains - Ridge Line</code>. The prose passes Jorgenfist’s breached curtain wall and, by t1636, is inside the fortress proper beneath Mokmurian’s house. Yet <code>memory.map.nodes.Jorgenfist</code> remains <code>visits:0</code>, <code>firstVisit:null</code>.</p>
+  <p>This is not cosmetic. Ritual-room evidence, the scholar encounter, and the false Mokmurian kill are retrieved and summarized under the wrong location. Current HEAD has location-description and aftermath machinery, but no closed-loop check that a high-confidence arrival in a known node received its location tag.</p>
+  <p><strong>Hardening constraint.</strong> A detector may ask the GM to confirm a high-confidence known-node entry; it must not auto-move from a keyword. “Inside Jorgenfist” should fire, while “toward,” “remembering,” or “a map of Jorgenfist” must not.</p>
+</section>
+
+<h2 id="f5">9. Other active contradictions and secondary drift</h2>
+<div class="scroll"><table>
+<tr><th>Surface</th><th>Evidence</th><th>Adjudication</th></tr>
+<tr><td>Chapter identity</td><td>Ammut is male in the canonical sheet. The t1644 chapter repeatedly calls Ammut she/her. <code>memory.js:1305–1310</code> gives the summarizer no canonical identity table, and <code>api.js:994</code> injects the chapter every turn.</td><td><strong>Medium, active.</strong> The stronger sheet reduces risk but does not remove the prompt contradiction. Validate before commit; never blind-replace pronouns.</td></tr>
+<tr><td>Clock projection</td><td><code>world.time=dawn</code>; <code>clock.min=10505</code> is Day 8 +07h05 from dawn, roughly 1:05 p.m. Both are independently injected (<code>api.js:1115</code>, <code>clock.js:434+</code>) and the UI displays legacy time.</td><td><strong>Medium, active.</strong> A single authoritative time projection is needed; legacy text should derive from the clock or be explicitly scoped.</td></tr>
+<tr><td>Future-event lifecycle</td><td>“Investigate the black-water shape” remains unresolved after t1627–1630 investigates and bypasses it. “Go to the bathhouse” remains unresolved while t1664–1667 occur there.</td><td><strong>Medium, active.</strong> Resolution only at summarization cadence leaves stale instructions between summaries; semantic lifecycle needs a closed loop.</td></tr>
+<tr><td>Quest prerequisite</td><td>Giants quest is active with “Consult Shalelu … before traveling to the Kodars” false, after the party traveled there and the later Mokmurian objective was falsely completed.</td><td><strong>Medium.</strong> The prerequisite is stranded as phrased; t1653 suggests some consultation, so missing completion vs skipped prerequisite needs owner adjudication.</td></tr>
+<tr><td>Inventory identity</td><td>The same closed-eye satchel was awarded under two names. Frizwick’s inventory also contains “confirmed loft position clear” and an iron key described as held by Ammut.</td><td><strong>Medium.</strong> One-object/two-slot and fact-as-item drift; 118 unique player inventory slots make repeated restatement a growth risk.</td></tr>
+<tr><td>Provenance ring</td><td><code>api.js:1581</code> requires tag names at least three characters, so legal <code>HP</code>/<code>XP</code> writes cannot appear in the tag-name list. Relationship updates may record tag names but no mutation text.</td><td><strong>Medium observability gap.</strong> Receipts remain useful, but empty/missing provenance cannot be read as “no write.”</td></tr>
+<tr><td>Frizwick experience</td><td>After correctly distinguishing herself from the Jorgenfist travelers at t1662, Frizwick says the mountain is in her hair and is washed of mountain grime at t1664–1665.</td><td><strong>Medium-low corroboration.</strong> False shared experience, not personality collapse. Her voice and motivations remain notably stable.</td></tr>
+<tr><td>Legacy story beats</td><td>132 unstamped beats contain turn-order regressions, a duplicated intimacy beat, and an old claim that Ammut assassinated Tharwick while current canon has Tharwick alive and imprisoned.</td><td><strong>Stored migration risk.</strong> New beats have campaign stamps; legacy unstamped entries lack reliable provenance. Not ranked as a live prompt driver without proof of injection.</td></tr>
+</table></div>
+
+<h2>10. Historical defects not counted as open</h2>
+<section class="card callout ok">
+  <p><strong>t1658 silent auto-rejoin:</strong> the v1.589 save cleared Frizwick’s split when both sides resolved to coarse “Sandpoint,” even though the narrated reunion occurred at t1661. Current v1.592+ code treats a bare location with known interiors as a granularity gap and keeps the split until genuine co-location. This exact class is fixed and retained here only as regression evidence.</p>
+  <p><strong>Clock double-decrement:</strong> the historical 8820 → 6500 regression has an explicit <code>142-double-decrement</code> repair receipt and no later scalar decrease. The remaining dawn/afternoon conflict is a separate dual-projection issue.</p>
+</section>
+
+<h2 id="agents">11. Five-agent findings, evaluated</h2>
+<div class="scroll"><table>
+<tr><th>Agent lens</th><th>Strongest contribution</th><th>Adjudication</th></tr>
+<tr><td>A · Chronology</td><td>Located first assertions and reversals: army t1593, scholar identity t1638→1645, false shared experience t1664, and unresolved event lifecycles.</td><td><strong>Accepted.</strong> Crucial for separating first divergence from later symptom. Personality collapse and global quest failure were correctly rejected.</td></tr>
+<tr><td>B · Persisted state</td><td>Catalogued prompt-active contradictions: favor/marriage, dawn/afternoon, future events, pronoun summary, duplicate satchel, map topology, and legacy beats.</td><td><strong>Accepted with triage.</strong> Prompt-active and one-object/two-slot findings promoted. Suspicious schedule and Marta merge were downgraded for substantial counter-evidence.</td></tr>
+<tr><td>C · Pipeline</td><td>Exact current-code replay proved the <code>Owed</code> collision, four-sheet core-memory contamination, false stay-behind path, provenance gap, and #164’s current fix.</td><td><strong>Accepted.</strong> This falsifies #167’s incident narrative and distinguishes queue persistence from queue creation.</td></tr>
+<tr><td>D · Adversarial</td><td>Reframed Mokmurian as unsupported referential fusion, not simply player-premise laundering; identified the known-NPC death eligibility bias.</td><td><strong>Accepted.</strong> RAG absence, Sable drift, personality collapse, and global quest failure were rejected or downgraded.</td></tr>
+<tr><td>E · Hardening design</td><td>Proposed bounded scene identities, bond/dynamic separation, shared dialogue validation, subject-bound presence detection, and commit-time summary validation.</td><td><strong>Accepted as design direction.</strong> Prompt-only reminders and one-off phrase exceptions were rejected as non-root fixes.</td></tr>
+</table></div>
+
+<h2 id="hardening">12. Recommended hardening sequence</h2>
+<div class="scroll"><table class="rank">
+<tr><th>Order</th><th>Work</th><th>Why this order</th></tr>
+<tr><td>0A</td><td><strong>Reopen/correct #167.</strong> Make weighty terms token-aware; add the exact two t1666 tags as the failure-first fixture; prevent false defining memories. Then design a two-axis <code>{bond,dynamic}</code> relationship model.</td><td>Current HEAD claims closure while the exact failure still reproduces. Minimal containment is small; data corruption is active.</td></tr>
+<tr><td>0B</td><td><strong>Scene-entity referential integrity.</strong> Give every observed, targetable, plot-bearing actor a bounded stable handle and explicit identity exclusions. Gate death, merge, quest completion, and reward on a present resolved handle.</td><td>Stops the highest-impact one-way canon ratchet and generalizes beyond Mokmurian.</td></tr>
+<tr><td>1A</td><td><strong>Shared validators.</strong> Clause-local subject matcher for separation; use the playback speaker segmentation for SAY compliance; structured stripped note acknowledgments.</td><td>Removes false protection pressure without adding brittle exceptions.</td></tr>
+<tr><td>1B</td><td><strong>Source-attributed facts.</strong> Player conditionals may file decisions/intent, not new world facts. High-impact conflicts become provisional rather than immediately canonical.</td><td>Army march and Mokmurian are two instances of unsupported fact promotion.</td></tr>
+<tr><td>2A</td><td><strong>Location and time single authority.</strong> High-confidence known-node arrival check; derive human time from campaign clock.</td><td>Closes persistent retrieval/UI contradictions without auto-moving from prose keywords.</td></tr>
+<tr><td>2B</td><td><strong>Validate summaries before commit.</strong> Supply canonical identities, then reject high-confidence pronoun/entity contradictions into the existing bounded retry/fallback path.</td><td>The summary is a canon write, not harmless prose. Validation must happen before chapter/eventHistory commit.</td></tr>
+<tr><td>3</td><td><strong>Lifecycle and hygiene.</strong> Semantic future-event resolution, typed inventory identity/ownership, legacy story-beat provenance, and complete tag receipts.</td><td>Important but lower leverage than wrong-identity and bond destruction.</td></tr>
+</table></div>
+
+<h3>Boundedness requirements</h3>
+<ul>
+  <li>Scene-entity ledger: current scene only, capped (roughly 8–12), expired on scene/location transition. Reuse the existing bounded provisional-decision pattern; do not append an identity record every turn.</li>
+  <li>Relationships: one current bond and one current dynamic with turns; no per-change array. An unresolved integrity flag may stop nagging after a delivery budget, but it must remain visibly unresolved instead of being silently deleted.</li>
+  <li>Presence snapshots: current/recent absence interval per member or a small ring, not one record per turn.</li>
+  <li>Failure paths remain loud. A cap overflow or rejected canon commit must identify the actor/fact and preserve the raw transcript as audit evidence.</li>
+</ul>
+
+<h3>Workflow boundary</h3>
+<p>The durable fixes cross the protected drift surface: <code>tag_table.js</code>, <code>api.js</code>, <code>memory.js</code>, and likely <code>data.js</code>; <code>game.js</code>/<code>state.js</code> are ask-first. They require the project’s Fable review workflow. This report deliberately does not implement around those boundaries.</p>
+
+<h2 id="repair">13. Save repair scope — explicit, never silent</h2>
+<section class="card callout danger">
+  <p><strong>No save repair was performed.</strong> A safe repair needs owner adjudication and a receipt:</p>
+  <ol>
+    <li>Restore Ammut ↔ Frizwick’s marriage bond while preserving the favor as a current dynamic.</li>
+    <li>Remove the false t1666 Owed defining memory from all four character sheets; a later relationship tag alone does not remove it.</li>
+    <li>Treat the old scholar and Mokmurian as distinct unless the owner decides otherwise. Likely consequences: revive/unmark Mokmurian, reopen the objective, supersede the false chapter/event history, and decide whether the XP award stands.</li>
+    <li>Repair Jorgenfist’s historical location/index with provenance rather than rewriting transcript text.</li>
+    <li>Supersede the t1644 pronoun summary and resolve the two consumed future events.</li>
+    <li>Merge the duplicate satchel only after verifying ownership/content continuity.</li>
+  </ol>
+  <p>A raw deletion would erase the evidence that makes the repair auditable. Existing <code>RETCON</code> semantics cannot by themselves reverse a historical multi-tier cascade.</p>
+</section>
+
+<h2 id="tests">14. Exact failure-first matrix</h2>
+<div class="scroll"><table>
+<tr><th>Class</th><th>Exact fixture</th><th>Required assertion</th></tr>
+<tr><td>Bond overwrite</td><td>Run both raw t1666 tags through snapshot → parser → stamp → core-memory detection.</td><td>Both directions queue; Owed is non-weighty; no Owed defining memory; prefilled note persists; pair-scoped rewrite clears only that pair.</td></tr>
+<tr><td>Lexical boundary</td><td><code>owed</code>, <code>clover</code>, <code>midwife</code>, legitimate <code>wife</code>, <code>widow</code>, <code>widowed</code>, <code>betrayed</code>.</td><td>Only intended relationship words classify as weighty.</td></tr>
+<tr><td>Wrong corpse</td><td>Replay t1637–t1648 with scholar handle + <code>not Mokmurian</code>, then “Mokmurian it is” and scholar attack.</td><td>Scholar may die; Mokmurian remains alive/unknown; objective and XP stay provisional; conflict is loud.</td></tr>
+<tr><td>Presence subject</td><td>“Frizwick’s foot … stays there” vs “Frizwick stays behind at the inn.”</td><td>First is silent; second identifies Frizwick. Negation, quotation, and plans do not fire.</td></tr>
+<tr><td>SAY coverage</td><td><code>[SAY:Ameiko]"On the house," she says … "Again…"</code></td><td>One valid speaker segment covering interrupted quotes produces no nudge; a later truly untagged speaker segment does.</td></tr>
+<tr><td>Location</td><td>“Through the breached curtain wall of Jorgenfist” without tag; contrast “toward/a map of Jorgenfist.”</td><td>Only high-confidence entry queues confirmation; matching tag suppresses; prose never auto-moves state.</td></tr>
+<tr><td>Summary identity</td><td>Male Ammut plus extractor chapter whose only antecedent uses she/her; contrast a legitimate female antecedent.</td><td>Contradictory summary is not committed; source window is retained/retried; valid text passes.</td></tr>
+<tr><td>Provenance</td><td>Apply <code>[HP:-3]</code>, <code>[XP:600]</code>, and a relationship descriptor update.</td><td>Tag names and truthful mutation status appear; empty receipt cannot imply no write.</td></tr>
+</table></div>
+
+<h2>15. Rejected or downgraded explanations</h2>
+<ul>
+  <li><strong>“RAG forgot the not-Mokmurian line.”</strong> Rejected. Current reconstruction can retrieve t1639’s negative evidence.</li>
+  <li><strong>“The player declared the scholar was Mokmurian.”</strong> Rejected as too strong. The player accepted a plan; the GM supplied the actor mapping.</li>
+  <li><strong>“Quest lifecycle is globally broken.”</strong> Rejected. The false completion is downstream of identity fusion; other quest transitions are valid.</li>
+  <li><strong>“Party personality collapsed.”</strong> Rejected. Frizwick, Daeris, and Morwen remain behaviorally recognizable; Frizwick’s mountain grime is experience provenance drift.</li>
+  <li><strong>“t1658 auto-rejoin is still open.”</strong> Rejected for current HEAD; #164 addresses the exact coarse-Sandpoint case.</li>
+  <li><strong>“False notes caused the bond/identity failures.”</strong> Not established. They are confirmed noise and one leaked, but causation would be speculation.</li>
+  <li><strong>Chinese <code>空气</code> at t1667 is canon drift.</strong> Downgraded to an isolated generation blemish with no state effect.</li>
+</ul>
+
+<div class="footer">
+  <p>Prepared from read-only save inspection, exact current-code replays, prompt reconstruction, and five delegated evidence briefs. No source, save, TODO, or tracker mutation was performed.</p>
+  <p>Primary evidence surfaces: <code>globals.js:22</code>; <code>game.js:1107–1142, 1241–1270, 1407–1414</code>; <code>helpers.js:199–218</code>; <code>api.js:433–441, 638–650, 799–812, 862–1142, 1573–1587</code>; <code>memory.js:1231–1264, 1305–1338</code>; raw t1666–t1667 <code>sessionLog</code>; transcript turns 1587–1667.</p>
+</div>
+</body>
+</html>
