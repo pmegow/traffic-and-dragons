@@ -4379,6 +4379,29 @@ function runEngineTests(R){
     if(b.image_urls.length!==3)return "expected 3 seeds, got "+b.image_urls.length;
     return eq(b.image_urls[0],"data:p1");
   });
+  // ── #162: Grok Imagine (xai/grok-imagine-image) ──
+  t("#162: Grok Imagine t2i body — prompt, 4:3, lowercase '1k', one image; aspect_ratio present for the portrait 3:4 override",function(){
+    var m=__rm("xai/grok-imagine-image");
+    if(!m)return "model not in RENDER_MODELS";
+    var b=m.body("a scene");
+    if(b.prompt!=="a scene")return "prompt missing";
+    if(b.aspect_ratio!=="4:3")return "aspect_ratio wrong: "+b.aspect_ratio;
+    if(b.resolution!=="1k")return "resolution must be lowercase '1k' (fal schema): "+b.resolution;
+    return b.num_images===1?true:"num_images wrong";
+  });
+  t("#162: Grok edit body caps references at THREE (fal schema max) — a 4-strong party seeds player + first two companions",function(){
+    // THE failure condition: PARTY_MAX is 4, the endpoint takes at most 3 image_urls —
+    // an unsliced party render would 422 on every full-party scene.
+    var b=__rm("xai/grok-imagine-image").img2img.body("scene",["data:player","data:c1","data:c2","data:c3"]);
+    if(!Array.isArray(b.image_urls))return "image_urls not an array";
+    if(b.image_urls.length!==3)return "expected cap at 3 seeds, got "+b.image_urls.length;
+    return b.image_urls[0]==="data:player"?true:"player (first seed) not kept";
+  });
+  t("#162: Grok edit body wraps a lone data-URL; no strength knob so the #42 slider hides",function(){
+    var b=__rm("xai/grok-imagine-image").img2img.body("scene","data:solo");
+    if(!Array.isArray(b.image_urls)||b.image_urls.length!==1||b.image_urls[0]!=="data:solo")return "lone URL not wrapped: "+JSON.stringify(b.image_urls);
+    return img2imgStrength(__rm("xai/grok-imagine-image"))===null?true:"strength knob should be absent (edit-style API)";
+  });
   t("Nano edit body still wraps a lone data-URL (single-subject render unchanged)",function(){
     var b=__rm("fal-ai/nano-banana-2").img2img.body("scene","data:solo");
     return Array.isArray(b.image_urls)&&b.image_urls.length===1&&b.image_urls[0]==="data:solo";

@@ -184,7 +184,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.587";
+var APP_VERSION="v1.588";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -211,6 +211,16 @@ var RENDER_MODELS=[
    // (player first) for a group render; a lone data-URL is wrapped so single-subject renders still work.
    img2img:{endpoint:"fal-ai/nano-banana-2/edit",
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),aspect_ratio:"4:3",resolution:"1K",num_images:1};}}},
+  {id:"xai/grok-imagine-image",label:"Grok Imagine",
+   // fal schema (verified 2026-08-10): lowercase "1k", aspect_ratio enum includes 4:3 AND the
+   // portrait override's 3:4. Response is the standard fal images[].url shape.
+   body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1k",num_images:1};},
+   // Edit API composites reference images like Nano (image_urls, plural) but caps at THREE
+   // references — PARTY_MAX is 4, so a full-party render seeds the player + first two
+   // companions; unsliced it would 422 on every full-party scene. Edit-style: no strength
+   // knob (the #42 slider hides).
+   img2img:{endpoint:"xai/grok-imagine-image/edit",
+            body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl.slice(0,3):[imgUrl]),aspect_ratio:"4:3",resolution:"1k",num_images:1};}}},
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
    img2img:{endpoint:"fal-ai/qwen-image-edit/image-to-image",strength:0.9,
