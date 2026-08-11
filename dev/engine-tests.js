@@ -4379,6 +4379,36 @@ function runEngineTests(R){
     if(b.image_urls.length!==3)return "expected 3 seeds, got "+b.image_urls.length;
     return eq(b.image_urls[0],"data:p1");
   });
+  // ── #163: Flux LoRA (fal-ai/flux-lora) — the user's trained style ──
+  t("#163: Flux LoRA t2i body carries the loras array — without it renders silently fall back to base Flux",function(){
+    var m=__rm("fal-ai/flux-lora");
+    if(!m)return "model not in RENDER_MODELS";
+    var b=m.body("a scene");
+    if(b.prompt!=="a scene")return "prompt missing";
+    if(b.image_size!=="landscape_4_3")return "image_size wrong: "+b.image_size;
+    if(!Array.isArray(b.loras)||b.loras.length!==1)return "loras array missing/wrong: "+JSON.stringify(b.loras);
+    if(b.loras[0].path!==FLUX_LORA_PATH)return "lora path not the FLUX_LORA_PATH constant";
+    return b.loras[0].scale===1?true:"lora scale wrong: "+b.loras[0].scale;
+  });
+  t("#163: Flux LoRA img2img body carries the SAME lora as t2i (shared constant — the two can't drift), collapses array seeds to the player, and flows strength",function(){
+    var m=__rm("fal-ai/flux-lora");
+    var b=m.img2img.body("scene",["data:player","data:c1"],0.45);
+    if(!Array.isArray(b.loras)||b.loras.length!==1)return "img2img loras array missing — would silently render base Flux";
+    if(b.loras[0].path!==m.body("x").loras[0].path)return "t2i and img2img lora paths drifted";
+    if(b.image_url!=="data:player")return "array seed did not collapse to the player: "+b.image_url;
+    if(b.strength!==0.45)return "strength did not flow: "+b.strength;
+    var lone=m.img2img.body("scene","data:solo",0.6);
+    return lone.image_url==="data:solo"?true:"lone URL mangled: "+lone.image_url;
+  });
+  t("#163: Flux LoRA strength default 0.6 (project-tuned, matches its Flux sibling) with the #42 override machinery",function(){
+    renderStrength={};
+    if(img2imgStrength(__rm("fal-ai/flux-lora"))!==0.6)return "default wrong: "+img2imgStrength(__rm("fal-ai/flux-lora"));
+    renderStrength={"fal-ai/flux-lora":0.3};
+    var r=img2imgStrength(__rm("fal-ai/flux-lora"))===0.3;
+    renderStrength={};
+    return r?true:"user override did not win";
+  });
+
   // ── #162: Grok Imagine (xai/grok-imagine-image) ──
   t("#162: Grok Imagine t2i body — prompt, 4:3, lowercase '1k', one image; aspect_ratio present for the portrait 3:4 override",function(){
     var m=__rm("xai/grok-imagine-image");

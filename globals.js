@@ -184,7 +184,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.588";
+var APP_VERSION="v1.589";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -195,6 +195,11 @@ var providerModels={};          // {providerId: modelOverride} — falls back to
 var _lastTurnModel=null;
 var customRules=[];
 var apiKey="",falKey="",busy=false,lastAction=null;
+// #163: the user's trained Flux LoRA (added 2026-08-10) — referenced by BOTH flux-lora bodies
+// below so t2i and img2img can never drift onto different weights. fal's docs say loras[].path
+// is a "URL or the path to the LoRA weights"; if fal 422s on this bare id, paste the weights-file
+// URL from the fal dashboard's training page here — one-string swap, nothing else changes.
+var FLUX_LORA_PATH="019fee18-d528-7193-8205-a0da64256495";
 var RENDER_MODELS=[
   // img2img.strength is the model's DEFAULT — the effective value goes through img2imgStrength()
   // (helpers.js, #42), which lets a per-model user override from Render Options win. Models whose
@@ -205,6 +210,16 @@ var RENDER_MODELS=[
    // the first seed only (the player) — multi-portrait party seeding is Nano-only by design.
    img2img:{endpoint:"fal-ai/flux/dev/image-to-image",strength:0.6,
             body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:28,num_images:1};}}},
+  {id:"fal-ai/flux-lora",      label:"Flux LoRA",
+   // Flux [Dev] + the FLUX_LORA_PATH style adapter (schema verified vs fal docs 2026-08-10:
+   // guidance_scale 3.5 default, standard images[].url response). The loras array MUST ride
+   // both bodies — a body without it still renders fine, just silently in base Flux.
+   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:3.5,num_images:1,loras:[{path:FLUX_LORA_PATH,scale:1}]};},
+   // Single-image denoise like its Flux sibling: array seed collapses to the first (the player) —
+   // multi-portrait party seeding stays Nano/Grok territory. Strength 0.6 = the project-tuned
+   // flux/dev default (the API's own default is 0.85 — too remake-heavy for portrait seeding).
+   img2img:{endpoint:"fal-ai/flux-lora/image-to-image",strength:0.6,
+            body:function(p,imgUrl,s){return {prompt:p,image_url:(Array.isArray(imgUrl)?imgUrl[0]:imgUrl),strength:s,num_inference_steps:28,guidance_scale:3.5,num_images:1,loras:[{path:FLUX_LORA_PATH,scale:1}]};}}},
   {id:"fal-ai/nano-banana-2",  label:"Nano Banana 2",
    body:function(p){return {prompt:p,aspect_ratio:"4:3",resolution:"1K",num_images:1};},
    // Edit API composites MULTIPLE reference images — image_urls accepts the whole party portrait set
