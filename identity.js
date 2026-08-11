@@ -137,6 +137,18 @@ function locIsSub(key){
   var n=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)?memory.map.nodes[locResolve(key)]:null;
   return !!(n&&n.parent);
 }
+// #164: does this world node have any KNOWN interior places? Parent relation through the
+// identity table (the locIsSub rule), no recency cutoff — interior-ness is structural, unlike
+// the geo block's prompt-lean 20-turn window. Decides whether a bare==bare co-location is
+// "same place" (a camp — fold) or a granularity gap (a town — 'somewhere in Sandpoint' is
+// not 'with the party'; the GM decides via the split audit).
+function locHasInteriors(worldKey){
+  var nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)?memory.map.nodes:null;
+  if(!nodes)return false;
+  var ks=Object.keys(nodes),i;
+  for(i=0;i<ks.length;i++){var n=nodes[ks[i]];if(n&&n.parent&&locSame(n.parent,worldKey))return true;}
+  return false;
+}
 // Display leaf for multi-segment keys — fixes the flagged split("|")[1] bug (a 3-segment key
 // rendered its MIDDLE segment). The identity entry's display name wins when a repair set one.
 function locDisplayLeaf(key){

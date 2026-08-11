@@ -354,7 +354,23 @@ function buildSplitAudit(){
     dl.audited=worldState.turn;
     lines.push("— "+d.name+": recorded as SPLIT OFF at "+dl.location+(dl.sublocation?" ("+dl.sublocation+")":"")+(dl.turn!=null?" since turn "+dl.turn:" since before the record began"));
   }
-  return"[ENGINE NOTE — SPLIT AUDIT: the party record still lists the member(s) below as split off on their own thread:\n"+lines.join("\n")+"\nFor EACH: if the story has them WITH the party right now, emit [PARTY_SPLIT:"+due[0].name+"|rejoin] (one per member, their own name); if they are genuinely still apart, re-affirm the split by re-emitting [PARTY_SPLIT:<Name>|<their current location>] — re-affirming resets this check. Decide from the STORY: do not narrate them as absent merely because this record says so.]";
+  return"[ENGINE NOTE — SPLIT AUDIT: the party record still lists the member(s) below as split off on their own thread:\n"+lines.join("\n")+"\nFor EACH: if the story has them WITH the party right now, emit [PARTY_SPLIT:"+due[0].name+"|rejoin] (one per member, their own name); if they are genuinely still apart, re-affirm the split by re-emitting [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] — include the SUBLOCATION when the story knows it (e.g. [PARTY_SPLIT:Frizwick|Sandpoint|The Rusty Dragon]), so the record is as precise as the fiction; re-affirming resets this check. Decide from the STORY: do not narrate them as absent merely because this record says so.]";
+}
+// #164 (the Frizwick t1658 class): the co-location fold (#133b, tag_table applyMuts tail) flips
+// membership in DATA; this is its NARRATIVE half. Without it the member silently materializes in
+// the party block — the engine rejoined Frizwick at the town gates while the fiction still had
+// her at the Rusty Dragon, and the party then walked TOWARD a member the prompt said was beside
+// them. One-shot; combat-silent WITHOUT consuming (deadStatusNudge discipline); stale stamps
+// (the scene moved on) discard silently. The fold stays GM-reversible with existing vocabulary:
+// re-emitting [PARTY_SPLIT:] re-splits.
+function buildReunionNote(){
+  var p=worldState.pendingReunion;
+  if(!p)return"";
+  if(worldState.combat)return"";
+  if(worldState.turn-p.turn>3){delete worldState.pendingReunion;return"";}
+  delete worldState.pendingReunion;
+  var one=p.names.length===1;
+  return"[ENGINE NOTE — REUNION (not a player action): "+p.names.join(", ")+" rejoined the party this turn — "+(one?"their":"each")+" split thread ended at the party's own location ("+p.node+"). The story has NOT yet shown this: acknowledge the reunion in your narration now (a greeting, falling back into step, whatever fits the scene). If the story actually has "+(one?"them":"any of them")+" elsewhere, re-emit [PARTY_SPLIT:<Name>|<Location>|<Sublocation>] instead and they stay split.]";
 }
 // #137 (the t1467 phantom-presence collapse — DOC/OffTheRails_fable.html + _sol.html): the
 // INVERSE of buildSplitAudit above. That audit can only police records that EXIST; when a
@@ -792,7 +808,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -814,7 +830,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which

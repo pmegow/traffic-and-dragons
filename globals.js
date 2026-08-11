@@ -184,7 +184,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.591";
+var APP_VERSION="v1.592";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

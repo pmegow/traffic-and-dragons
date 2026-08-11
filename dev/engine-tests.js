@@ -9879,6 +9879,60 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return n.indexOf("Frizwick")>=0?true:"granularity-gap split should audit immediately: "+n;
   });
 
+  // ── #164 — the Frizwick t1658 class: bare==bare at a town is a granularity gap, and folds
+  // must be narrated (field, 2026-08-10). The engine rejoined her at the town gates while the
+  // fiction had her at the Rusty Dragon, silently — the party then walked TOWARD a member the
+  // prompt already listed as fighting alongside them.
+  t("#164: bare==bare at a node WITH interiors does NOT fold — it audits immediately instead (the Frizwick replay)",function(){
+    makeGeoWorld();
+    worldState.world.location="Magnimar";worldState.world.sublocation=null;
+    worldState.npcs.push({name:"Scout",status:"",statusTurn:0,rel:"ally",met:1,partyMember:true,portrait:null,aliases:[],charSheet:{name:"Scout",hp:5,maxHp:5,inventory:[],abilities:[],spells:[],conditions:[],relationships:[],coreMemories:[],storyBeats:[]}});
+    memory.npcs["Scout"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[PARTY_SPLIT:Scout|Sandpoint]");
+    var cs=null,i;for(i=0;i<worldState.npcs.length;i++)if(worldState.npcs[i].name==="Scout")cs=worldState.npcs[i].charSheet;
+    if(!cs.splitLoc)return "precondition: split failed";
+    applyMuts("[LOCATION:Sandpoint]");   // party arrives at bare Sandpoint — she is 'somewhere in town' (Rusty Dragon exists in the map)
+    if(!cs.splitLoc)return "bare==bare at an interior-bearing node must NOT auto-fold — 'somewhere in Sandpoint' is not 'with the party'";
+    if(worldState.pendingReunion)return "no fold happened — nothing may stamp a reunion";
+    var n=buildSplitAudit();
+    return n.indexOf("Scout")>=0?true:"the granularity gap must audit immediately (GM decides): "+JSON.stringify(n);
+  });
+  t("#164: an interior-less fold still happens (church class) and stamps the reunion note; the note demands narration ONCE",function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|The Church]");
+    applyMuts("[LOCATION:The Church]");
+    if(cs.splitLoc)return "interior-less exact match must still fold (the #133b church contract)";
+    var p=worldState.pendingReunion;
+    if(!p||p.names.indexOf("Frizwick")<0||p.node!=="The Church")return "fold did not stamp pendingReunion: "+JSON.stringify(p);
+    var n=buildReunionNote();
+    if(n.indexOf("Frizwick")<0||n.indexOf("The Church")<0)return "reunion note missing member/place: "+JSON.stringify(n);
+    if(n.indexOf("[PARTY_SPLIT:")<0)return "note must teach the re-split escape (the fold stays GM-reversible)";
+    return buildReunionNote()===""?true:"reunion note must be ONE-shot (consumed on build)";
+  });
+  t("#164: exact Loc|Sub fold stamps the reunion note too — the doorstep reunion is the one worth narrating",function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|Magnimar|Inn - Top Floor Room]");
+    applyMuts("[LOCATION:Magnimar]");
+    applyMuts("[SUBLOCATION:Inn - Top Floor Room]");
+    if(cs.splitLoc)return "precondition: exact loc+subloc fold failed";
+    var p=worldState.pendingReunion;
+    return p&&p.names.indexOf("Frizwick")>=0?true:"Loc|Sub fold did not stamp pendingReunion: "+JSON.stringify(p);
+  });
+  t("#164: reunion note is combat-silent WITHOUT consuming, and a stale stamp discards silently",function(){
+    var cs=mkSplitParty();
+    applyMuts("[PARTY_SPLIT:Frizwick|The Church]");
+    applyMuts("[LOCATION:The Church]");
+    if(cs.splitLoc||!worldState.pendingReunion)return "precondition: fold+stamp failed";
+    worldState.combat={round:1,engaged:null,foes:[{name:"X",hp:1,maxHp:1,ac:10,atk:0,dmg:"1",morale:"low"}]};
+    if(buildReunionNote()!=="")return "must be combat-silent";
+    if(!worldState.pendingReunion)return "combat silence must NOT consume the stamp (the deadStatusNudge discipline)";
+    worldState.combat=null;
+    worldState.turn=worldState.pendingReunion.turn+4;   // the scene moved on
+    if(buildReunionNote()!=="")return "stale stamp must discard silently";
+    if(worldState.pendingReunion)return "stale discard must clear the stamp";
+    return NOTE_LATCH_FIELDS.indexOf("pendingReunion")>=0?true:"pendingReunion not declared in NOTE_LATCH_FIELDS (#151 — a failed turn would burn the reunion)";
+  });
+
   // ── #135 — stay-behind splits must survive their birth response (Daeris field report) ───────
   // The natural GM order is "Daeris stays at the inn" THIS response, the party departs NEXT
   // response — so the split record points at the party's current node for one response, and the
@@ -11314,11 +11368,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.pendingLocState.node!=="Sandpoint")return "pendingLocState.node not healed";
     if(worldState.locDescNudged["Sandpoint"]!==1500||worldState.locDescNudged["Sandpoint, Varisia"]!=null)return "locDescNudged key not moved";
     if(memory.map.lastArrivalFrom!=="Sandpoint")return "lastArrivalFrom not healed";
-    /* the heal moves the split to the canonical, which makes it CO-LOCATED with the healed
-       world pointer — so the #133b sweep (same applyMuts pass) correctly auto-rejoins. The
-       composed outcome IS the assertion: heal → co-location → rejoin, record gone. */
+    /* the heal moves the split to the canonical, making it CO-LOCATED with the healed world
+       pointer — but Sandpoint has interiors (Rusty Dragon in this fixture), so under #164 the
+       bare==bare match is a GRANULARITY GAP: the record survives POINTING AT THE CANONICAL
+       (the heal is what this test proves) and the GM decides via the immediate audit. */
     var _slCs=worldState.npcs[worldState.npcs.length-1].charSheet;
-    if(_slCs.splitLoc)return "split at the merged dup of the CURRENT node should heal to co-location and auto-rejoin (#133b), but the record survived: "+JSON.stringify(_slCs.splitLoc);
+    if(!_slCs.splitLoc)return "bare==bare at interior-bearing Sandpoint must no longer auto-fold (#164) — the record should survive";
+    if(_slCs.splitLoc.location!=="Sandpoint")return "splitLoc not healed to the canonical: "+JSON.stringify(_slCs.splitLoc);
     var sigs={},i,self=0;
     for(i=0;i<memory.map.edges.length;i++){var ed=memory.map.edges[i];if(ed.from===ed.to)self++;var sg=ed.from<ed.to?ed.from+""+ed.to:ed.to+""+ed.from;if(sigs[sg])return "parallel edge survived compaction: "+ed.from+"<->"+ed.to;sigs[sg]=1;}
     if(self)return self+" self-loop(s) survived compaction";
@@ -11383,7 +11439,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var v2=validateSuggestion("Travel to Sandpoint Glassworks",_man);
     return !(v2&&v2.rule==="unreachable-travel")?true:"a reparented child still trips the remote-world gate (world-ness must come from parent, not key shape)";
   });
-  t("#133b auto-rejoin fires when the split location is the current node's merged alias",function(){
+  t("#133b×#164: a split at the current node's merged alias RESOLVES as co-located but the interior-bearing node routes it to the audit, not the fold",function(){
     makeGeoWorld();
     applyMuts("[MERGE:location|Sandpoint|Sandpoint, Varisia]");
     worldState.world.location="Sandpoint";worldState.world.sublocation=null;
@@ -11391,7 +11447,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory.npcs["Scout"]={attitude:"",knowledge:[],events:[],aliases:[]};
     applyMuts("[TIME:noon]");/* any parse pass runs the co-location sweep */
     var cs=null,i;for(i=0;i<worldState.npcs.length;i++){if(worldState.npcs[i].name==="Scout")cs=worldState.npcs[i].charSheet;}
-    return cs&&!cs.splitLoc?true:"split member at the merged alias of the CURRENT node was not auto-rejoined (#133b + locSame)";
+    if(!cs||!cs.splitLoc)return "bare==bare via merged alias at interior-bearing Sandpoint must not fold (#164)";
+    var n=buildSplitAudit();
+    return n.indexOf("Scout")>=0?true:"the alias-resolved co-location must audit immediately (locSame still proven): "+JSON.stringify(n);
   });
   t("scene manifest presence resolves lastSeenAt through the identity table",function(){
     makeGeoWorld();

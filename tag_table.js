@@ -875,8 +875,22 @@ function applyMutsTable(text){
       if(R._freshSplits&&R._freshSplits[_crm.name])continue;
       var _crEff=_crl.sublocation?_crl.location+"|"+_crl.sublocation:_crl.location;/* #156B: compare EFFECTIVE nodes through the identity table — a split recorded at the current node's merged alias is the same place (the #133b co-location contract survives repairs) */
       if(locSame(_crEff,currentNodeKey())){
+        /* #164 (the Frizwick t1658 class): bare==bare at a node with KNOWN interiors is a
+           granularity gap, not co-location — "somewhere in Sandpoint" is not "with the party"
+           when the town has a Rusty Dragon to be inside. No fold; buildSplitAudit's waived
+           age gate fires the same turn and the GM decides. Interior-less nodes (a camp, the
+           church) and exact Loc|Sub matches still fold — genuinely the same place. */
+        if(!_crl.sublocation&&!worldState.world.sublocation&&typeof locHasInteriors==="function"&&locHasInteriors(worldState.world.location)){
+          if(typeof console!=="undefined")console.info("[multiplayer] "+_crm.name+" is split at the party's own node but the node has interiors — granularity gap, audit (not auto-rejoin) decides (#164)");
+          continue;
+        }
         delete _crm.charSheet.splitLoc;
         if(memory.npcs[_crm.name])memory.npcs[_crm.name].lastSeenAt=currentNodeKey();
+        /* #164: the fold's NARRATIVE half — stamp the reunion so buildReunionNote demands the
+           story acknowledge it next turn (the silent-materialize class). One stamp per response;
+           multiple folds append names. */
+        if(!worldState.pendingReunion||worldState.pendingReunion.turn!==R.turn)worldState.pendingReunion={names:[],node:currentNodeKey(),turn:R.turn};
+        if(worldState.pendingReunion.names.indexOf(_crm.name)<0)worldState.pendingReunion.names.push(_crm.name);
         R.muts.push(_crm.name+" rejoins the party (the split record pointed at the party's own location)");
         if(typeof console!=="undefined")console.warn("[multiplayer] auto-rejoined "+_crm.name+" — splitLoc matched the party's current node exactly (#133b co-location)");
       }
