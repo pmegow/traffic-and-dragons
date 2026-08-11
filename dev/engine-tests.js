@@ -4408,17 +4408,30 @@ function runEngineTests(R){
     if(rp.indexOf("Ammut, a male")<0)return "protagonist description missing";
     return rp.indexOf("2-3 sentences")>=0?true:"solo budget changed unexpectedly";
   });
-  t("#165: seed collection is a TABLE property — multiSeed models gather the party, single-ref models the player only",function(){
-    var c={portrait:"data:img/player"};
+  t("#165/#166: seed collection is a TABLE property carrying NAMES — multiSeed models gather the party, maxSeeds caps at collection, single-ref models stay player-only",function(){
+    var c={name:"Ammut",portrait:"data:img/player"};
     var party=mk165Party();
     var nano=collectRenderSeeds(__rm("fal-ai/nano-banana-2"),c,party);
-    if(nano.length!==4||nano[0]!=="data:img/player")return "Nano must gather player + all 3 companions: "+JSON.stringify(nano);
+    if(nano.urls.length!==4||nano.urls[0]!=="data:img/player")return "Nano must gather player + all 3 companions: "+JSON.stringify(nano.urls);
+    if(nano.names.join(",")!=="Ammut,Frizwick,Daeris,Morwen")return "names must align with urls: "+nano.names.join(",");
+    if(nano.omitted.length!==0)return "Nano omits nobody";
     var grok=collectRenderSeeds(__rm("xai/grok-imagine-image"),c,party);
-    if(grok.length!==4)return "Grok must gather the party too (its body slices to its own cap of 3): "+JSON.stringify(grok);
+    if(grok.urls.length!==3)return "Grok collects to its DECLARED maxSeeds (3) — the legend must match what is actually sent: "+JSON.stringify(grok.urls);
+    if(grok.names.join(",")!=="Ammut,Frizwick,Daeris")return "Grok names wrong: "+grok.names.join(",");
+    if(grok.omitted.join(",")!=="Morwen")return "the over-cap member must be reported as omitted (described-only): "+JSON.stringify(grok.omitted);
     var flux=collectRenderSeeds(__rm("fal-ai/flux/dev"),c,party);
-    if(flux.length!==1||flux[0]!=="data:img/player")return "single-ref Flux must stay player-only: "+JSON.stringify(flux);
+    if(flux.urls.length!==1||flux.urls[0]!=="data:img/player")return "single-ref Flux must stay player-only: "+JSON.stringify(flux.urls);
     var hq=collectRenderSeeds(__rm("fal-ai/flux-lora"),c,party);
-    return hq.length===1?true:"Flux HQ is single-ref too: "+JSON.stringify(hq);
+    return hq.urls.length===1?true:"Flux HQ is single-ref too: "+JSON.stringify(hq.urls);
+  });
+  t("#166: the reference legend names every numbered image and marks unseeded members described-only — Grok guessed at unlabeled refs and Daeris's face averaged away",function(){
+    var legend=buildSeedLegend(["Ammut","Frizwick","Daeris"],["Morwen"]);
+    if(legend.indexOf("Reference image 1 is Ammut")<0)return "ref 1 not named: "+legend;
+    if(legend.indexOf("Reference image 2 is Frizwick")<0||legend.indexOf("Reference image 3 is Daeris")<0)return "companion refs not named: "+legend;
+    if(legend.toLowerCase().indexOf("exactly")<0)return "the match-exactly demand is the point";
+    if(legend.indexOf("Morwen")<0)return "unseeded member must be declared described-only (or the model hunts for a fourth ref): "+legend;
+    var solo=buildSeedLegend(["Ammut"],[]);
+    return solo.indexOf("Reference image 1 is Ammut")>=0?true:"single-seed legend missing: "+solo;
   });
   t("#165: multiSeed is declared on the Nano and Grok img2img entries — never an id check at a call site",function(){
     if(!__rm("fal-ai/nano-banana-2").img2img.multiSeed)return "Nano img2img must declare multiSeed";

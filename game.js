@@ -2025,13 +2025,32 @@ function buildSceneRenderRequest(c,party,w){
 // #165: portrait-seed selection as DATA — a model's img2img entry declares multiSeed (Nano, Grok)
 // and gets the companions' portraits; single-reference APIs (Flux family, Qwen) get the player
 // only. Replaces the hardcoded isNano check that silently starved Grok's 3-reference capability.
+// #166: returns {urls,names,omitted} — names align with urls so the reference LEGEND can tell
+// the compositor which face belongs to which character (Grok received 3 anonymous refs for 4
+// described characters and guessed; Daeris's likeness averaged away). maxSeeds (table data)
+// caps at COLLECTION so the legend always matches what is actually sent; over-cap and
+// portrait-less members land in `omitted` and are declared described-only.
 function collectRenderSeeds(mdlCfg,character,party){
-  var seeds=[],pj;
-  if(character.portrait)seeds.push(character.portrait);
-  if(mdlCfg&&mdlCfg.img2img&&mdlCfg.img2img.multiSeed){
-    for(pj=0;pj<party.length;pj++){var cpo=npcPortrait(party[pj]);if(cpo)seeds.push(cpo);}
+  var urls=[],names=[],omitted=[],pj;
+  if(character.portrait){urls.push(character.portrait);names.push(character.name||"the protagonist");}
+  var multi=!!(mdlCfg&&mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
+  var cap=(multi&&mdlCfg.img2img.maxSeeds)?mdlCfg.img2img.maxSeeds:Infinity;
+  for(pj=0;pj<party.length;pj++){
+    var cpo=multi?npcPortrait(party[pj]):null;
+    if(cpo&&urls.length<cap){urls.push(cpo);names.push(party[pj].name);}
+    else if(multi)omitted.push(party[pj].name);
   }
-  return seeds;
+  return {urls:urls,names:names,omitted:omitted};
+}
+// #166: the numbered reference legend appended to a multiSeed image prompt — the mapping the
+// compositor otherwise has to guess. Unseeded members are named described-only so the model
+// neither hunts for a missing reference nor borrows a wrong one.
+function buildSeedLegend(names,omitted){
+  var parts=[],i;
+  for(i=0;i<names.length;i++)parts.push("Reference image "+(i+1)+" is "+names[i]);
+  var s=" "+parts.join("; ")+" — match each named character's face, colouring and build to their numbered reference EXACTLY.";
+  if(omitted&&omitted.length)s+=" "+omitted.join(", ")+" has no reference image — paint them strictly from their written description.";
+  return s;
 }
 async function doRender(){
   if(!worldState||_rendering)return;_rendering=true;var th=addMsg("thinking","Composing scene...");
@@ -2128,17 +2147,21 @@ async function doRender(){
         /* #165: seed selection is table-driven (multiSeed on the img2img entry) — Nano AND Grok
            gather the party now; single-reference models get the player only. */
         var isMulti=!!(mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
-        var seeds=collectRenderSeeds(mdlCfg,worldState.character,party);
+        var sc=collectRenderSeeds(mdlCfg,worldState.character,party);
+        var seeds=sc.urls;
         var usingI2I=!!(seeds.length&&mdlCfg.img2img);
         /* #165: say the truth about what seeded — "portrait-seeded" alone read as "everyone's
-           portrait" and the player reasonably expected companion likeness from a single-ref model. */
-        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded)…"):("Generating scene (player portrait seeded"+(party.length?" — this engine takes ONE reference; Nano Banana 2 / Grok Imagine seed the party":"")+")…");
+           portrait" and the player reasonably expected companion likeness from a single-ref model.
+           #166: an over-cap member is named as described-only right in the status. */
+        if(usingI2I)imgStatus.textContent=(isMulti&&seeds.length>1)?("Generating party scene ("+seeds.length+" portraits seeded"+(sc.omitted.length?" — "+sc.omitted.join(", ")+" by description":"")+")…"):("Generating scene (player portrait seeded"+(party.length?" — this engine takes ONE reference; Nano Banana 2 / Grok Imagine seed the party":"")+")…");
         var falEndpoint=usingI2I?mdlCfg.img2img.endpoint:mdlCfg.id;
         var falPrompt=withImgStyle(resp);
         // Edit/compositor models (Nano, Grok) cling to the reference portraits' posed, front-facing
         // headshot framing (the "school-portrait" stiffness). Tell them the references are
         // likeness-only so everyone re-stages dynamically. Scene-render only; portrait paths stay posed.
-        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene.";
+        // #166: and NAME each numbered reference — three anonymous refs against four described
+        // characters made Grok guess, and Daeris's likeness averaged away.
+        if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness and costume ONLY — do NOT copy their frontal, posed headshot framing; re-stage every figure in a natural, dynamic pose within the scene."+buildSeedLegend(sc.names,sc.omitted);
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         var falRes=await fetch("https://fal.run/"+falEndpoint,{method:"POST",headers:{"Authorization":"Key "+falKey,"Content-Type":"application/json"},body:JSON.stringify(falBody)});
         if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */

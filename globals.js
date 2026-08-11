@@ -184,7 +184,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.593";
+var APP_VERSION="v1.594";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
@@ -235,7 +235,12 @@ var RENDER_MODELS=[
    // knob (the #42 slider hides). #165: multiSeed — doRender gathers the party for this entry
    // (it did NOT before v1.593: the seed collection was hardcoded isNano, so Grok's 3-ref
    // capability went unused despite the #162 body-slice tests).
-   img2img:{endpoint:"xai/grok-imagine-image/edit",multiSeed:true,
+   // #166: maxSeeds=3 is COLLECTION data (collectRenderSeeds caps there so the reference
+   // legend matches what is actually sent); the body's slice stays as a defensive backstop.
+   // ⚠ Field note 2026-08-11: the edit endpoint ACCEPTED aspect_ratio:"4:3" (no 422) but the
+   // output followed the 3:4 reference portraits' ratio anyway — Grok edit treats the field
+   // as soft when references dominate. Nano honors 4:3; use it when the frame matters.
+   img2img:{endpoint:"xai/grok-imagine-image/edit",multiSeed:true,maxSeeds:3,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl.slice(0,3):[imgUrl]),aspect_ratio:"4:3",resolution:"1k",num_images:1};}}},
   {id:"fal-ai/qwen-image-2512",label:"Qwen Image 2512",
    body:function(p){return {prompt:p,image_size:"landscape_4_3",num_inference_steps:28,guidance_scale:4,num_images:1};},
