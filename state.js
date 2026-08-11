@@ -163,7 +163,7 @@ function saveAll(){saveCore();saveMem();updateCampMeta();if(typeof storageAdapte
 // transcript. When the GM emits the tag, mark the correcting entry AND the immediately preceding
 // GM entry (the likely superseded narration) so ragRetrieve never serves either as episodic
 // truth. `rc` rides at the top level of the entry — additive, invisible to everything but retrieval.
-function logTranscript(role,text,raw,taMin){if(!worldState||!text)return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text).trim()};if(role==="gm"&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
+function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeeping);if(!worldState||(!text&&!_bk))return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text||"").trim()};if(_bk)_e.bk=1;if(role==="gm"&&!_bk&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
   if(role==="gm"&&typeof _lastTurnModel!=="undefined"&&_lastTurnModel)_e.m=_lastTurnModel;/* #45: attribute the narration to the model that wrote it (additive, like .e) */
   /* #105b: minutes the campaign clock actually moved on this turn. Stamped even when ZERO — a
      no-[TIME_ADVANCE:] turn is the silent-failure class this field exists to expose, so absence

@@ -158,6 +158,23 @@ function locDisplayLeaf(key){
   return i<0?s:s.slice(i+1);
 }
 
+// W5: a bare [LOCATION:leaf] must not mint a world twin of an already-known child under the
+// current world. Resolution/parent relations are authoritative; punctuation in the key is not.
+// A genuine live world node with the same display name wins and remains a legal destination.
+function locationWorldTwinConflict(name){
+  var nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)?memory.map.nodes:null;
+  if(!nodes||!worldState||!worldState.world)return null;
+  var raw=String(name||"").trim(),target=locResolve(raw),direct=nodes[target];
+  if(direct&&!direct.parent)return null;
+  var current=locResolve(worldState.world.location),leaf=locDisplayLeaf(target).toLowerCase(),ks=Object.keys(nodes),i,k,n;
+  for(i=0;i<ks.length;i++){
+    k=locResolve(ks[i]);n=nodes[k]||nodes[ks[i]];
+    if(!n||!n.parent||!locSame(n.parent,current))continue;
+    if(locSame(k,target)||locDisplayLeaf(k).toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};
+  }
+  return null;
+}
+
 // ── Shared field-merge rules (the A0 §7.4 set — ONE implementation for merge and split) ─────
 function locFoldNodeRecords(canonNode,dupNode,canonLabel){
   if(dupNode.firstVisit!=null&&(canonNode.firstVisit==null||dupNode.firstVisit<canonNode.firstVisit))canonNode.firstVisit=dupNode.firstVisit;

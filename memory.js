@@ -366,9 +366,11 @@ function feQuestLinked(f){
 }
 function expireFutureEvents(){
   if(!memory.futureEvents||!memory.futureEvents.length)return;
-  var now=(typeof worldState!=="undefined"&&worldState)?worldState.turn:0,kept=[],i;
+  var now=(typeof worldState!=="undefined"&&worldState)?worldState.turn:0,kept=[],promote=[],i;
   for(i=0;i<memory.futureEvents.length;i++){
     var f=memory.futureEvents[i];
+    var strict=(typeof parseStrictFutureDuration==="function")?parseStrictFutureDuration(f.when):0;
+    if(strict>0){promote.push({f:f,mins:strict});continue;}
     if(typeof f.setTurn!=="number")f.setTurn=now;
     if(now-f.setTurn<=FUTURE_EXPIRE_TURNS){kept.push(f);continue;}
     // #150: expiry is no longer liveness-blind, and NEVER the void. A thread still fingerprint-
@@ -380,9 +382,21 @@ function expireFutureEvents(){
     console.info("[memory] #150: pending thread expired at age "+(now-f.setTurn)+" — archived: \""+String(f.what).slice(0,60)+"\"");
   }
   memory.futureEvents=kept;
+  for(i=0;i<promote.length;i++){
+    var pe=(typeof scheduleAdd==="function")?scheduleAdd(promote[i].f.what,promote[i].mins+"m"):null;
+    if(pe){memArchive().futureEvents.push({when:promote[i].f.when,who:promote[i].f.who,what:promote[i].f.what,setTurn:promote[i].f.setTurn,promoted:pe.id,clockAware:true});
+      if(typeof console!=="undefined")console.info("[memory] duration-bound pending thread promoted to schedule: \""+String(promote[i].f.what).slice(0,60)+"\"");}
+    else kept.push(promote[i].f);
+  }
 }
 function fileFutureEvent(when,who,what,setTurn){
   if(what==null)return;what=String(what);if(!what)return;/* coerce a non-string what so feTokens/indexOf don't throw later (audit E44) */
+  var strict=(typeof parseStrictFutureDuration==="function")?parseStrictFutureDuration(when):0;
+  if(strict>0&&typeof scheduleAdd==="function"){
+    var scheduled=scheduleAdd(what,strict+"m");
+    if(scheduled&&typeof console!=="undefined")console.info("[memory] duration-bound future event filed directly to the clock schedule: \""+what.slice(0,60)+"\"");
+    return scheduled;
+  }
   var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
   // Near-duplicate dedupe (#29): the extractor re-mints pending goals in fresh words every cycle —
   // the t198 save held SEVEN "find Shalelu" variants. If the new event shares ≥2 significant tokens
@@ -405,6 +419,24 @@ function resolveFutureEvent(what){var i;
   what=String(what==null?"":what);if(!what.trim())return;// empty/whitespace needle would substring-match (and delete) the oldest event (audit E45)
   for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what)===what){memory.futureEvents.splice(i,1);return;}}// exact, remove
   for(i=0;i<memory.futureEvents.length;i++){if(String(memory.futureEvents[i].what).indexOf(what)>=0){memory.futureEvents.splice(i,1);return;}}}// partial, remove
+
+// W4: deterministic resolve assist. It never resolves state. A pending event must share the
+// existing #29 fingerprint with one chapter sentence AND that sentence must assert an outcome;
+// plans, reminders, and mere mentions stay pending. The bounded queue only asks the GM to file
+// the existing resolution tag or leave the event alone.
+var FUTURE_OUTCOME_RE=/\b(?:arrived|reached|entered|visited|met|found|confronted|investigated|identified|examined|completed|finished|delivered|returned|recovered|rescued|defeated|killed|slain|escaped|bathed|resolved|settled|paid|collected|avoided|routed\s+around)\b/i;
+function futureResolveOverlap(a,b){var at=feTokens(a),bt=feTokens(b),shared=[],i;for(i=0;i<at.length;i++)if(bt.indexOf(at[i])>=0)shared.push(at[i]);if(shared.length>=2&&shared.length*2>=Math.min(at.length,bt.length))return true;return shared.length===1&&shared[0].length>=7&&Math.min(at.length,bt.length)<=2;}
+function futureResolveAssist(summary){
+  if(!memory.futureEvents||!memory.futureEvents.length)return;
+  var ss=String(summary||"").match(/[^.!?]+[.!?]?/g)||[],i,j,f,s;
+  if(!worldState.futureResolveHints)worldState.futureResolveHints=[];
+  for(i=0;i<memory.futureEvents.length&&worldState.futureResolveHints.length<3;i++){
+    f=memory.futureEvents[i];if(!f||f.resolved)continue;
+    var already=false,k;for(k=0;k<worldState.futureResolveHints.length;k++)if(worldState.futureResolveHints[k].what===f.what){already=true;break;}if(already)continue;
+    for(j=0;j<ss.length;j++){s=ss[j];if(FUTURE_OUTCOME_RE.test(s)&&futureResolveOverlap(s,f.what)){worldState.futureResolveHints.push({what:f.what,turn:(worldState&&worldState.turn)||0,evidence:String(s).trim().slice(0,180)});break;}}
+  }
+  if(!worldState.futureResolveHints.length)delete worldState.futureResolveHints;
+}
 // ── RAG episodic memory (#27 Phase 1 — see RAG_MEMORY.md) ──────────────────────
 // Entity-keyed retrieval over the verbatim transcript — no vectors, no extra API calls.
 // READ-SIDE ONLY: nothing here changes what gets written to memory/chapters/summaries.
@@ -433,9 +465,19 @@ function _ragDjb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeA
 // alias count + djb2 over the joined names catch adds, deletes, merges, renames, and alias
 // registrations, including mid-response ones. Shared by the ragKnownNames memo and the
 // ragRetrieve result memo (whose scoring consumes ragKnownNames' output).
+function memoryNpcIsPlayer(name){
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||null;
+  var low=String(name||"").replace(/^\s+|\s+$/g,"").toLowerCase(),i;
+  if(low==="player")return true;
+  if(!c||!low)return false;
+  if(low===String(c.name||"").replace(/^\s+|\s+$/g,"").toLowerCase())return true;
+  for(i=0;i<(c.aliases||[]).length;i++){if(low===String(c.aliases[i]||"").replace(/^\s+|\s+$/g,"").toLowerCase())return true;}
+  return false;
+}
 function _ragNpcsFp(){
   if(typeof memory==="undefined"||!memory||!memory.npcs)return "none";
-  var ks=Object.keys(memory.npcs),aCnt=0,aJoin="",i,e;
+  var all=Object.keys(memory.npcs),ks=[],aCnt=0,aJoin="",i,e;
+  for(i=0;i<all.length;i++)if(!memoryNpcIsPlayer(all[i]))ks.push(all[i]);
   // "\u0001" separators, never bare concatenation — ["ab","c"] and ["a","bc"] must hash apart.
   for(i=0;i<ks.length;i++){e=memory.npcs[ks[i]];if(e&&e.aliases&&e.aliases.length){aCnt+=e.aliases.length;aJoin+="\u0001"+e.aliases.join("\u0001");}}
   return ks.length+"."+aCnt+"."+_ragDjb2(ks.join("\u0001"))+"."+_ragDjb2(aJoin);
@@ -454,6 +496,7 @@ function ragKnownNames(){
   ragKnownNames._misses++;
   var ks=Object.keys(memory.npcs);
   for(i=0;i<ks.length;i++){
+    if(memoryNpcIsPlayer(ks[i]))continue;
     var low=ks[i].toLowerCase(),als=[],src=memory.npcs[ks[i]].aliases||[];
     for(j=0;j<src.length;j++){if(src[j]&&String(src[j]).length>=3)als.push(String(src[j]).toLowerCase());}
     var toks=[],core=npcCoreTokens(ks[i]);
@@ -680,6 +723,7 @@ function _ragRetrieveScore(inputText){
   for(i=0;i<tr.length;i++){
     var en0=tr[i];
     if(en0.r!=="gm")continue;
+    if(en0.bk)continue; // typed bookkeeping receipts are instrumentation, never episodic evidence
     if(en0.t>cutT)continue;
     if(en0.rc)continue; // [RETCON:]-marked — superseded or correcting narration, never episodic truth
     var prev0=i>0&&tr[i-1].r==="player"?String(tr[i-1].x).toLowerCase():"";
@@ -883,7 +927,7 @@ function memoryTOC(){
   var _diet=typeof ragEnabled==="function"&&ragEnabled();
   // B3: dead NPCs stay listed (they're still known) but carry the marker — an unannotated name
   // read as alive. No dead NPCs → byte-identical to the pre-B3 line (the flag-off TOC contract).
-  var nk=Object.keys(memory.npcs);if(nk.length){var _nkS=[],_nki;for(_nki=0;_nki<nk.length;_nki++)_nkS.push(memory.npcs[nk[_nki]]&&memory.npcs[nk[_nki]].dead?nk[_nki]+" (dead)":nk[_nki]);lines.push("KNOWN NPCs: "+_nkS.join(", "));}
+  var nk=Object.keys(memory.npcs);if(nk.length){var _nkS=[],_nki;for(_nki=0;_nki<nk.length;_nki++){if(memoryNpcIsPlayer(nk[_nki]))continue;_nkS.push(memory.npcs[nk[_nki]]&&memory.npcs[nk[_nki]].dead?nk[_nki]+" (dead)":nk[_nki]);}if(_nkS.length)lines.push("KNOWN NPCs: "+_nkS.join(", "));}
   // P9 (audit): blueprint import pre-files every location, so a flat "VISITED:" line told
   // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
   // on the map node's visit count; entries with NO node data are legacy saves — keep them
@@ -919,7 +963,7 @@ function memoryTOC(){
   if(memory.chapters.length&&!_diet){var ch=memory.chapters.slice(-3),cs2=[];for(i=0;i<ch.length;i++)cs2.push(ch[i].summary);lines.push("CHAPTER SUMMARIES:\n"+cs2.join("\n"));}
   return lines.join("\n");
 }
-function memoryNpcDetail(name){var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
+function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+(n.attitude?" — toward you: "+n.attitude:"")],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}if(n.firstEncounter)lines.push("  First met: "+n.firstEncounter);return lines.join("\n");}
 function npcLinkUpsert(nameA, nameB, rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
@@ -1043,7 +1087,7 @@ function retainSessionTail(){
 }
 /* Entry guards (v1.439, F8 — brief A probe F): a null/malformed sessionLog entry used to throw
    HERE, before summarize()'s try even existed — no catch, no report, no retry counter. */
-function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];if(_se&&_se.content!=null)total+=String(_se.content).length;}return Math.ceil(total/4);}
+function sessionTokens(){var total=0,i;for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];if(_se&&!_se.bk&&_se.content!=null)total+=String(_se.content).length;}return Math.ceil(total/4);}
 // ── #57 reveal-commitment: knowledge supersession + fork hints ───────────────────
 // Serve-side of leg A (see DOC/todo_57_reveal_commitment.md): the extractor can only retire a
 // fact it can quote EXACTLY, so summarize() hands it the on-file knowledge lines for the NPCs
@@ -1234,6 +1278,7 @@ function applySummaryExtract(extracted){
   // and reversible via [NPC:name|resurrected|...].
   if(Array.isArray(extracted.npcDeaths)){for(i=0;i<extracted.npcDeaths.length;i++){var nd=extracted.npcDeaths[i];if(!nd)continue;
     var ndName=resolveNpcName(String(nd)),ndWs=(typeof wsNpcByName==="function")?wsNpcByName(ndName):null;
+    if(memoryNpcIsPlayer(ndName)){if(typeof console!=="undefined")console.warn("[memory] npcDeaths rejected the player identity '"+ndName+"' — player canon never enters memory.npcs");continue;}
     if(!ndWs&&!memory.npcs[ndName]){if(typeof console!=="undefined")console.warn("[memory] npcDeaths: "+ndName+" not on file — ignored");continue;}
     if((ndWs&&ndWs.dead)||(memory.npcs[ndName]&&memory.npcs[ndName].dead))continue;
     if(ndWs){ndWs.dead=worldState.turn;if(!npcDeadStatus(ndWs.status))ndWs.status="dead";}
@@ -1244,7 +1289,7 @@ function applySummaryExtract(extracted){
   // iterate per-character, filing junk lore/decisions or mass-deleting pending events.
   // Route extractor names through resolveNpcName — the extractor freely returns variants
   // ("Morwen (Ammut's wife)"), which forked NPCs exactly the way the v1.143 tag fix prevents (audit #6).
-  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kgV=nu.knowledgeGained,_kgFact=null,_kgScene=false;if(typeof _kgV==="object"&&_kgV&&_kgV.fact){_kgFact=String(_kgV.fact);_kgScene=String(_kgV.kind||"").toLowerCase()==="scene";}else if(typeof _kgV==="string")_kgFact=_kgV;/* #144B: the extractor now TYPES facts — durable (standing truth) vs scene (true only in the moment); unknown kind defaults durable, the safe side now that evictions archive (#144A). The legacy string shape stays byte-compatible. */if(_kgFact&&_kgScene){fileNpcEvent(nuName,_kgFact,worldState.turn);/* scene facts are dated history, never standing Knows — the t1549 stale-posture class (Sol R1) */}else if(_kgFact){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(_kgFact)<0){_kg.push(_kgFact);while(_kg.length>12)memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn});/* #144A: evict to archive, never the void */}}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
+  if(Array.isArray(extracted.npcUpdates)){for(i=0;i<extracted.npcUpdates.length;i++){var nu=extracted.npcUpdates[i];if(nu&&nu.name){var nuName=resolveNpcName(nu.name);if(memoryNpcIsPlayer(nuName)){if(typeof console!=="undefined")console.warn("[memory] npcUpdates rejected the player identity '"+nuName+"' — player canon stays on the character sheet");continue;}if(!memory.npcs[nuName])memory.npcs[nuName]={attitude:"",knowledge:[],events:[],aliases:[]};if(nu.attitude)memory.npcs[nuName].attitude=clampNpcMood(nu.attitude);if(nu.knowledgeGained){var _kgV=nu.knowledgeGained,_kgFact=null,_kgScene=false;if(typeof _kgV==="object"&&_kgV&&_kgV.fact){_kgFact=String(_kgV.fact);_kgScene=String(_kgV.kind||"").toLowerCase()==="scene";}else if(typeof _kgV==="string")_kgFact=_kgV;/* #144B: the extractor now TYPES facts — durable (standing truth) vs scene (true only in the moment); unknown kind defaults durable, the safe side now that evictions archive (#144A). The legacy string shape stays byte-compatible. */if(_kgFact&&_kgScene){fileNpcEvent(nuName,_kgFact,worldState.turn);/* scene facts are dated history, never standing Knows — the t1549 stale-posture class (Sol R1) */}else if(_kgFact){var _kg=memory.npcs[nuName].knowledge;if(_kg.indexOf(_kgFact)<0){_kg.push(_kgFact);while(_kg.length>12)memArchive().npcKnowledge.push({npc:nuName,fact:_kg.shift(),turn:worldState.turn});/* #144A: evict to archive, never the void */}}}}}}/* dedupe + cap knowledge so ACTIVE NPC DETAILS can't grow unbounded (audit E51) */
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #128: the deterministic variant scan runs every summarize — after npcUpdates above, so keys
@@ -1261,7 +1306,7 @@ function applySummaryExtract(extracted){
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
-  if(extracted.chapterSummary)fileChapter(worldState.turn,extracted.chapterSummary);
+  if(extracted.chapterSummary){fileChapter(worldState.turn,extracted.chapterSummary);futureResolveAssist(extracted.chapterSummary);}
   // #147: a completed extraction SAW the corrected exchange while it was still in the session
   // window — the correction pin's job is done. Archive it (never a silent drop). Runs after the
   // chapter file so a throw in any earlier step keeps the pin alive for the retry.
@@ -1330,6 +1375,7 @@ async function summarize(){
     // that made the extractor answer in state tags at t881).
     var _sessTxt="",_sessRaw="",i;
     for(i=sessKeptStart();i<sessionLog.length;i++){var _se=sessionLog[i];
+      if(!_se||_se.bk||_se.content==null)continue;
       _sessRaw+=_se.role+": "+_se.content.slice(0,_se.role==="assistant"?4000:500)+"\n";
       var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
       _sessTxt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?4000:500)+"\n";
@@ -1356,7 +1402,7 @@ async function summarize(){
     try{
       var _noted=0,_users=0,_di;
       for(_di=sessKeptStart();_di<sessionLog.length;_di++){
-        if(sessionLog[_di].role!=="user")continue;
+        if(sessionLog[_di].role!=="user"||sessionLog[_di].bk)continue;
         _users++;
         if(/^\s*\[ENGINE NOTE/.test(sessionLog[_di].content||""))_noted++;
       }
@@ -1372,7 +1418,7 @@ async function summarize(){
     try{_eStk=(e&&e.stack!=null)?String(e.stack):"";}catch(_ee2){}
     if(typeof reportError==="function")reportError("summarize",_eMsg,_dbg+"\n"+_eStk);/* #16 */
     if(_sumFails>=3){
-      var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri]&&sessionLog[_ri].role==="assistant")_rawBits.push(String(sessionLog[_ri].content||"").slice(0,200));}/* v1.439 (F8, probes C/E): String() — a non-string content threw OUT of the catch and aborted the archive */
+      var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri]&&!sessionLog[_ri].bk&&sessionLog[_ri].role==="assistant")_rawBits.push(String(sessionLog[_ri].content||"").slice(0,200));}/* v1.439 (F8, probes C/E): String() — a non-string content threw OUT of the catch and aborted the archive */
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
       fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
       retainSessionTail();saveMem();saveCore();_sumFails=0;addMsg("system","Memory saved (raw).");/* v1.439 (F8, probe J): reset AFTER the saves — resetting first let a repeating quota failure zero the strike counter every pass */

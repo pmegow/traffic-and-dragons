@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drift hardening - work completed by Sol</title>
+  <style>
+    :root {
+      --ink: #231f1a;
+      --muted: #6e665c;
+      --paper: #fbf8f1;
+      --panel: #fffdf8;
+      --line: #d9d0c1;
+      --accent: #8a4d0f;
+      --accent-soft: #f3e5cf;
+      --good: #21623b;
+      --good-soft: #e8f3eb;
+      --warn: #805e10;
+      --warn-soft: #fbf1d4;
+      --hold: #6a486f;
+      --hold-soft: #f0e8f2;
+      --bad: #843a31;
+      --bad-soft: #f7e8e5;
+      --code: #f2eee6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(138, 77, 15, 0.035) 1px, transparent 1px),
+        linear-gradient(rgba(138, 77, 15, 0.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.56;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 36px));
+      margin: 34px auto 64px;
+    }
+
+    header {
+      padding: 38px 42px 34px;
+      color: #fffaf1;
+      background: #2e2922;
+      border-top: 6px solid #bc752c;
+      box-shadow: 0 12px 30px rgba(45, 35, 23, 0.16);
+    }
+
+    header p { margin: 0; }
+
+    .eyebrow {
+      margin-bottom: 8px;
+      color: #e9c18f;
+      font: 700 0.78rem/1.3 Arial, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+
+    .lede {
+      max-width: 820px;
+      margin-top: 18px;
+      color: #ddd5c8;
+      font-size: 1.08rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 22px;
+      margin-top: 24px;
+      color: #f2dfc5;
+      font: 600 0.86rem/1.4 Arial, sans-serif;
+    }
+
+    .banner {
+      margin-top: 22px;
+      padding: 15px 18px;
+      border-left: 5px solid var(--warn);
+      background: var(--warn-soft);
+      font-family: Arial, sans-serif;
+      font-size: 0.94rem;
+    }
+
+    nav, section {
+      margin-top: 24px;
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.96);
+      box-shadow: 0 5px 18px rgba(57, 45, 29, 0.06);
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    nav strong {
+      color: var(--accent);
+      font-family: Arial, sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    nav ol {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px 24px;
+      margin: 0;
+      padding-left: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    a { color: #70410e; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:hover { color: #a25c12; }
+
+    h2 {
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--accent-soft);
+      color: #40372e;
+      font-size: 1.55rem;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      color: var(--accent);
+      font: 700 1.05rem/1.35 Arial, sans-serif;
+    }
+
+    p { margin: 10px 0; }
+    ul, ol { margin: 10px 0; padding-left: 23px; }
+    li + li { margin-top: 5px; }
+
+    code {
+      padding: 0.1em 0.32em;
+      border-radius: 3px;
+      background: var(--code);
+      font: 0.9em Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 14px 0;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: var(--code);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 0.86rem/1.5 Consolas, "Courier New", monospace;
+    }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #eee7db; color: #3c352d; }
+
+    .status {
+      display: inline-block;
+      min-width: 84px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font: 700 0.74rem/1.35 Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .done { color: var(--good); background: var(--good-soft); }
+    .deferred { color: var(--hold); background: var(--hold-soft); }
+    .rejected { color: var(--bad); background: var(--bad-soft); }
+    .review { color: var(--warn); background: var(--warn-soft); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card {
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      border-top: 4px solid #ad6924;
+      background: #fffefa;
+    }
+
+    .card h3 { margin-top: 0; }
+    .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+
+    .receipt {
+      margin: 16px 0;
+      padding: 15px 18px;
+      border-left: 5px solid var(--good);
+      background: var(--good-soft);
+    }
+
+    .receipt strong, .callout strong { font-family: Arial, sans-serif; }
+
+    .callout {
+      margin: 16px 0;
+      padding: 15px 18px;
+      border-left: 5px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .small { color: var(--muted); font-size: 0.9rem; }
+
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .checklist li {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .checklist li::before {
+      position: absolute;
+      left: 0;
+      top: 0.05em;
+      color: var(--good);
+      content: "\2713";
+      font: 700 1rem Arial, sans-serif;
+    }
+
+    footer {
+      margin-top: 24px;
+      padding: 20px 4px;
+      color: var(--muted);
+      font: 0.86rem/1.5 Arial, sans-serif;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1120px); margin-top: 10px; }
+      header, section, nav { padding: 23px 20px; }
+      nav { grid-template-columns: 1fr; }
+      nav ol, .grid { grid-template-columns: 1fr; }
+      .table-wrap { overflow-x: auto; }
+    }
+
+    @media print {
+      body { background: #fff; font-size: 10.5pt; }
+      main { width: 100%; margin: 0; }
+      header { box-shadow: none; }
+      nav, section { box-shadow: none; break-inside: avoid-page; }
+      .card, .receipt, .callout, table { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Fable implementation handoff</p>
+    <h1>Drift hardening: work completed by Sol</h1>
+    <p class="lede">A reviewable account of the hardening implemented after the t1667 campaign audit, including the exact failure mechanisms, safeguards preserved, Mokmurian canon repair, verification evidence, and the work intentionally left behind a design gate.</p>
+    <div class="meta">
+      <span>Candidate build: v1.598</span>
+      <span>Cache marker: tnd-v3-20260811f</span>
+      <span>Prepared: 2026-08-11</span>
+      <span>Author: Sol / Codex</span>
+    </div>
+  </header>
+
+  <div class="banner"><strong>Repository status:</strong> this implementation is present and verified in the shared working tree. It has not been staged, committed, pushed, or deployed by Sol. The live t1667 save was never edited; campaign-repair tests and replays used in-memory copies.</div>
+
+  <nav aria-label="Document contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#executive">Executive status</a></li>
+      <li><a href="#root-causes">Root causes addressed</a></li>
+      <li><a href="#w1">W1: bond downgrade</a></li>
+      <li><a href="#w3">W3: recognizers</a></li>
+      <li><a href="#w4">W4: missing axes</a></li>
+      <li><a href="#w5">W5: integrity hardening</a></li>
+      <li><a href="#mokmurian">Mokmurian repair</a></li>
+      <li><a href="#invariants">Preserved invariants</a></li>
+      <li><a href="#deferred">Deferred and rejected</a></li>
+      <li><a href="#verification">Verification receipts</a></li>
+      <li><a href="#files">Change surface</a></li>
+      <li><a href="#review">Fable review focus</a></li>
+    </ol>
+  </nav>
+
+  <section id="executive">
+    <h2>1. Executive status</h2>
+    <p>The completed work closes the observed relationship-classification hole, repairs four overbroad or underpowered recognizers, adds bounded observation for several previously untracked drift axes, strengthens state provenance and ownership, and provides a receipted operator repair for the false Mokmurian death. The changes are deliberately conservative: most new systems observe and ask the GM to choose a tag; they do not silently rewrite canon.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Workstream</th><th>Status</th><th>Outcome</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>W1 - relationship downgrade</td><td><span class="status done">Complete</span></td><td>Exact <code>Owed</code>/<code>wed</code> substring failure closed; existing persistent downgrade path now arms for the t1666 incident.</td></tr>
+          <tr><td>W3 - phase, presence, SAY, consumables</td><td><span class="status done">Complete</span></td><td>Four distinct recognizers repaired against the exact failures and adversarial negatives.</td></tr>
+          <tr><td>W4 - missing observation axes</td><td><span class="status done">Complete</span></td><td>Location filing, travel pricing, dated commitments, strict durations, outcome-aware resolution, and location-twin cues added as bounded GM notes.</td></tr>
+          <tr><td>W5 - state integrity</td><td><span class="status done">Complete</span></td><td>Bookkeeping rows, provenance, player/NPC separation, duplicate warnings, time authority, mood aging, and persistent consumable follow-up hardened.</td></tr>
+          <tr><td>Mokmurian campaign repair</td><td><span class="status done">Complete</span></td><td>Hidden, receipted death retraction restores the real Mokmurian at Jorgenfist without clawing back XP or overwriting intervening play.</td></tr>
+          <tr><td>W2, W6, W7 architecture</td><td><span class="status deferred">Design gate</span></td><td>Concrete proposals written, but atomic identity transactions and bond/dynamic migration were not guessed into production.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="root-causes">
+    <h2>2. Root causes addressed</h2>
+    <p>The work was driven by mechanisms reproduced from the latest save and transcript, not by generic drift examples.</p>
+    <div class="grid">
+      <article class="card">
+        <h3>Substring classification</h3>
+        <p><code>WEIGHTY_REL_RE</code> matched <code>wed</code> inside <code>Owed</code>. The t1666 change from wife/husband to “Owed a favor” was therefore misclassified as weighty-to-weighty: no downgrade record, no bond warning, and a false permanent defining moment.</p>
+      </article>
+      <article class="card">
+        <h3>Unbounded language recognition</h3>
+        <p>Phase, presence, SAY coverage, and consumable checks were using proxies that lost syntax, ownership, or playback structure. Those shortcuts created both missed incidents and false alarms.</p>
+      </article>
+      <article class="card">
+        <h3>Unobserved lifecycle gaps</h3>
+        <p>Jorgenfist could remain unfiled, travel could arrive underpriced in clock time, and dated commitments or completed future events could remain unresolved because no bounded observer owned those transitions.</p>
+      </article>
+      <article class="card">
+        <h3>Canon ratchet after identity fusion</h3>
+        <p>The old scholar was first identified as not Mokmurian, then silently resolved to Mokmurian. Summary extraction, NPC death state, chapter memory, quest completion, and downstream prose reinforced the unsupported identity.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="w1">
+    <h2>3. W1 - relationship downgrade hardening</h2>
+    <p>The weighty-relationship vocabulary is now word-bounded and retains intended morphology such as <code>weds</code>, <code>wedded</code>, <code>wedding</code>, <code>wife/wives</code>, <code>husband</code>, <code>spouse</code>, <code>betroth</code>, <code>lover</code>, <code>betrayal</code>, <code>sworn oath</code>, <code>blood-bound</code>, <code>nemesis</code>, <code>widow</code>, and <code>avenge</code>.</p>
+    <p>This is intentionally a narrow repair. It preserves the established persistent bond-downgrade mechanism and corrects the classifier that prevented that mechanism from seeing the real incident.</p>
+    <div class="receipt">
+      <strong>Exact replay receipt.</strong> Replaying the t1666 relationship tags with “Owed a favor” now queues both directed marriage-downgrade records. It does not mint the false relationship core moment on Ammut, Frizwick, Morwen, or Daeris.
+    </div>
+  </section>
+
+  <section id="w3">
+    <h2>4. W3 - four recognizer repairs</h2>
+    <div class="grid">
+      <article class="card">
+        <h3>Phase consistency</h3>
+        <ul>
+          <li>A closing quotation mark remains attached to the sentence it closes, while following narration is evaluated separately.</li>
+          <li>The word <code>before</code> rejects a cue only when it governs that phase cue; “Dawn breaks before you” remains valid.</li>
+          <li>Quoted phase mentions and whole-entry quote-parity distrust remain rejected.</li>
+          <li>The exact t1605 dusk/clock mismatch is exercised.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>Party presence</h3>
+        <ul>
+          <li>Detection is subject-bound rather than keyword-bound.</li>
+          <li>It rejects possessives, co-location, commands, plans, counterfactuals, and a companion belonging to some other subject.</li>
+          <li>It accepts a named departure/send-ahead and an unambiguous adjacent pronoun.</li>
+          <li>Explicit out-of-character correction is separate; an in-story claim that a guard lies cannot activate it.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>SAY playback coverage</h3>
+        <ul>
+          <li>Compliance follows the same segmentation and coverage boundaries used by actual playback.</li>
+          <li>A valid response with six SAY tags and twelve quotation marks is accepted.</li>
+          <li>Dialogue before the first tag and a new dialogue paragraph without a leading tag fail deterministically.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>Consumables</h3>
+        <ul>
+          <li>Item canon/type lookup is authoritative; a generic head noun such as “fire” is not sufficient evidence.</li>
+          <li>Reusable classification explicitly overrides lexical suspicion.</li>
+          <li>Type-defined consumables outside the legacy name regex are detected.</li>
+          <li>Loss/kept suppression is scoped to the correct owner.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section id="w4">
+    <h2>5. W4 - bounded observers for missing axes</h2>
+    <p>These observers share one policy: the engine may identify strong evidence and prepare a specific note, but the GM remains the writer of canon. They are one-shot or bounded, combat-aware, use the shared note-builder registry, and never silently mutate the story fact they are watching.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Observer</th><th>Implemented behavior</th><th>False-positive boundary</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Location filing</strong></td>
+            <td>A high-confidence enclosed-place entry may survive up to eight untagged turns before a note offers the location/sub-location fork. The exact Jorgenfist “through the breached curtain wall” case is covered.</td>
+            <td>Rejects travel toward, map references, remembering, and the already-current place. <code>LOCATION</code>/<code>SUBLOCATION</code> suppress; descriptive tags alone do not.</td>
+          </tr>
+          <tr>
+            <td><strong>Travel pricing</strong></td>
+            <td>Tracks one bounded journey, expected duration, and accumulated clock charge. At arrival it asks only for the computed shortfall.</td>
+            <td>Never recharges the entire expected duration; an honest full time advance suppresses the note.</td>
+          </tr>
+          <tr>
+            <td><strong>Dated commitment</strong></td>
+            <td>Money/obligation plus an interval can prompt the GM to choose <code>SCHEDULE</code>, <code>FUTURE_EVENT</code>, or <code>QUEST</code>.</td>
+            <td>An existing lifecycle tag suppresses the prompt.</td>
+          </tr>
+          <tr>
+            <td><strong>Strict future duration</strong></td>
+            <td>Durations such as “five days” and “in 2 days” go directly to the clock scheduler. Legacy strict-duration future events promote during the sweep.</td>
+            <td>Fuzzy dates remain ordinary future events.</td>
+          </tr>
+          <tr>
+            <td><strong>Resolution assist</strong></td>
+            <td>Token overlap plus an outcome verb in a fresh summary proposes a prefilled <code>FUTURE_EVENT_RESOLVED</code> tag.</td>
+            <td>Mere mention, discussion, or a plan does not resolve anything; the engine does not auto-resolve.</td>
+          </tr>
+          <tr>
+            <td><strong>Location twin</strong></td>
+            <td>An identity-layer conflict can queue a bounded note that offers <code>SUBLOCATION</code> as the likely repair.</td>
+            <td>An already-live world node remains legal; refusal does not mutate the graph.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="w5">
+    <h2>6. W5 - state integrity and provenance</h2>
+    <h3>Typed bookkeeping transcript rows</h3>
+    <p>A pure-tag or clean-empty GM turn now retains a truthful, typed receipt with clock, tag, and version data while leaving story text empty. These rows survive serialization but are excluded from story UI, retrieval, summarization prose, voice, dialogue, and actions. This preserves provenance without feeding bookkeeping back into narrative.</p>
+
+    <h3>Tag and mutation provenance</h3>
+    <p>The tag log records legal two-letter HP/XP tags, and relationship descriptor changes receive meaningful non-empty mutation labels. This makes later forensic reconstruction possible without inventing story prose.</p>
+
+    <h3>Player/NPC identity boundary</h3>
+    <p>The player name and aliases are rejected by summary <code>npcUpdates</code> and by the NPC tag writer, and hidden from memory table-of-contents, detail, and retrieval name indexes. Companions remain intentionally represented in NPC memory; a blanket companion exclusion was not adopted.</p>
+
+    <h3>Duplicate acquisition warning</h3>
+    <p>Owner-scoped, exact-base-name acquisition can warn about an apparent duplicate but never blocks a tag. A paired loss suppresses the warning. Repeated grants remain legal because they may represent a documented quantity.</p>
+
+    <h3>World/sub-location twin refusal</h3>
+    <p>The identity layer refuses an attempt to create a world location that conflicts with an existing sub-location identity. The refusal creates no world node or edge, and the follow-up note offers the correct sub-location form.</p>
+
+    <h3>Single authority for displayed time</h3>
+    <p>The clock is the authority. Prompt and player-facing displays derive from it through a shared projection; stored <code>world.time</code> remains compatibility/flavor data only. Opening, skeleton, Table Talk, panels, error reporting, and sync wording were brought into that rule.</p>
+
+    <h3>Mood freshness</h3>
+    <p>Roster mood is injected only while fresh (at most twelve turns old). Stale or legacy-unstamped mood is withheld, while identity, relationship, and pronoun data remain available.</p>
+
+    <h3>Persistent consumable follow-up</h3>
+    <p>Pending consumable questions are keyed by owner and item, have a cooldown, deliver at most three times, and are capped at six stored records. They do not interrupt combat and clear on the appropriate player or companion kept/lost tag.</p>
+  </section>
+
+  <section id="mokmurian">
+    <h2>7. Mokmurian canon repair</h2>
+    <p>The story ruling supplied by the owner is: the party's identification was wrong; the old scholar was a deception; the real Mokmurian is alive and remains in Jorgenfist. The implementation turns that ruling into a narrow, receipted repair instead of directly editing old transcript or chapter prose.</p>
+
+    <h3>Operator-only repair tag</h3>
+    <pre>[NPC_DEATH_RETRACTED:name|reason|existing remote node]</pre>
+    <p>The tag is deliberately absent from the GM's normal prompt documentation. On a first repair it accepts only when the NPC already exists in world and memory, is recorded dead, has a non-empty reason, names an existing map node, and that node is remote from the party.</p>
+
+    <h3>What the transaction changes</h3>
+    <ul>
+      <li>Archives the full changed preimage: world death/status/status-turn, memory death/last-seen/attitude/knowledge/events, and affected map membership.</li>
+      <li>Clears world and memory death stamps, death status, death-like attitude, and narrowly self-death-shaped facts.</li>
+      <li>Preserves unrelated facts. Tests retain “Killed three challengers” and “Remains inside Jorgenfist,” while removing facts such as “Slain by ...” and “Body posed ...”.</li>
+      <li>Files correction knowledge and durable lore, records one decision receipt, and moves Mokmurian's membership/last-seen to the already-existing Jorgenfist node.</li>
+      <li>Leaves awarded XP untouched. The repair is canon correction, not an automatic reward clawback.</li>
+    </ul>
+
+    <p>The repair is paired with the quest reopening:</p>
+    <pre>[QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber before his army can march|false]</pre>
+
+    <h3>Compatibility with the correction already pasted</h3>
+    <p>The owner had already fed the earlier correction text to the GM before the final hardening pass. v1.598 therefore includes a completion replay, but it is not a general idempotent override. It accepts only a matching earlier correction receipt, unchanged repaired-node membership, and real residual death memory or missing correction knowledge. It archives that cleanup preimage and avoids duplicating the decision or reward.</p>
+    <p>A clean repeat is refused and cannot grow the archive. If the NPC has moved since the repair, the completion replay is also refused and cannot teleport him back to Jorgenfist.</p>
+
+    <div class="receipt">
+      <strong>Exact old-handler replay receipt.</strong> The simulated t1667 state ends with Mokmurian alive, false death attitude/facts/events removed, corrected knowledge present, XP unchanged, and decision count unchanged. A clean repeat produces no new archive entry.
+    </div>
+  </section>
+
+  <section id="invariants">
+    <h2>8. Drift protection preserved</h2>
+    <p>The hardening was checked against the anti-drift invariants throughout implementation.</p>
+    <ul class="checklist">
+      <li>New observers nudge a specific GM decision; they do not silently declare location, time, commitment, outcome, or consumption canon.</li>
+      <li>Identity refusals are mutation-free on failure.</li>
+      <li>Operator repair is hidden, gated by recorded state, archives its preimage, and is replay-safe.</li>
+      <li>Owner-scoped records prevent one character's item evidence from clearing another's.</li>
+      <li>Clock authority is centralized rather than copied into a second mutable truth.</li>
+      <li>Typed bookkeeping remains available for audit but cannot contaminate narrative retrieval or playback.</li>
+      <li>Existing legal tag behavior, repeated quantities, companions in memory, and reusable items remain supported.</li>
+      <li>No historical transcript, chapter, event history, or live save was rewritten in place.</li>
+    </ul>
+  </section>
+
+  <section id="deferred">
+    <h2>9. Deferred design gates and rejected shortcuts</h2>
+    <h3>Designed but not implemented</h3>
+    <p>The proposals are recorded in <a href="driftHardeningDesignProposals_SOL.html">driftHardeningDesignProposals_SOL.html</a> for Fable's ruling:</p>
+    <ul>
+      <li><strong>W2:</strong> scene handles, negative constraints, and atomic quarantine. Death plus merge is the first target; quest/reward quarantine requires a transaction envelope before implementation.</li>
+      <li><strong>W6:</strong> stage extractor output and validate identity before any write. Recurring-noun/name proposals remain a separate later decision.</li>
+      <li><strong>W7:</strong> a bounded two-axis relationship model (durable bond versus current dynamic), conservative migration of legacy descriptors, and explicit write ownership. Regex classification must not decide which axis is overwritten.</li>
+    </ul>
+
+    <h3>Shortcuts explicitly rejected</h3>
+    <ul>
+      <li>Blanket rewrite of transcript locations or the proposed sweep across dozens of historical rows.</li>
+      <li>Unreceipted direct edits or deletes in memory/state.</li>
+      <li>An ordinary offstage <code>NPC</code> tag as a substitute for a proper Sable correction.</li>
+      <li>Blanket companion exclusion from NPC memory.</li>
+      <li>Automatic aliasing based only on a given name.</li>
+      <li>A delayed RETCON guess or owner-blind companion XP heuristic.</li>
+      <li>Undocumented quantity/rename tag vocabulary.</li>
+      <li>Automatic XP/reward clawback for a canon correction.</li>
+      <li>Raw in-place chapter or event-history surgery.</li>
+    </ul>
+    <p>The initial default branch for Mokmurian was also rejected pending owner intent. The owner then explicitly selected the deception/real-Mokmurian-alive branch, which is the branch implemented above.</p>
+  </section>
+
+  <section id="verification">
+    <h2>10. Verification receipts</h2>
+    <div class="grid">
+      <article class="card">
+        <h3>Full engine suite</h3>
+        <p><strong>ALL GREEN - 1,248 assertions passed.</strong></p>
+        <p>The complete suite passed twice on the final v1.598 code tree.</p>
+      </article>
+      <article class="card">
+        <h3>Mutation/sabotage gate</h3>
+        <p><strong>12/12 deliberate regressions detected.</strong></p>
+        <p><code>game.js</code> 3/3; <code>memory.js</code> 2/2; <code>identity.js</code> 1/1; <code>tag_table.js</code> 4/4; <code>api.js</code> 2/2. Every file was restored byte-identically.</p>
+      </article>
+      <article class="card">
+        <h3>Repository hygiene</h3>
+        <p><code>git diff --check</code> passed (with an existing CRLF warning for <code>ui-panels.js</code>). <code>node dev/lint-todo.js</code> reported <strong>TODO.md tables OK (416 lines)</strong>.</p>
+      </article>
+      <article class="card">
+        <h3>Prompt determinism</h3>
+        <p>The exact t1667 stable and volatile prompt builds repeated byte-identically, retained STYLE as the final section, and emitted no spurious notes. Header time came from the clock; the stale stored dawn value was not injected.</p>
+      </article>
+    </div>
+
+    <h3>Sabotaged failure conditions</h3>
+    <ol>
+      <li>Removed the GM-turn observer hook.</li>
+      <li>Narrowed reference rejection so “toward Jorgenfist” could false-trigger.</li>
+      <li>Allowed a descriptive location tag to suppress filing.</li>
+      <li>Disabled strict-duration promotion.</li>
+      <li>Removed the outcome-verb requirement from future resolution.</li>
+      <li>Removed location child-identity matching.</li>
+      <li>Removed the duplicate-acquisition receipt.</li>
+      <li>Removed death-shaped memory cleanup.</li>
+      <li>Removed the completion replay's repaired-node gate.</li>
+      <li>Removed its residual-death/missing-knowledge gate.</li>
+      <li>Stopped persistent consumable records from being stored.</li>
+      <li>Replaced computed travel shortfall with the original full price.</li>
+    </ol>
+
+    <h3>Additional exact checks</h3>
+    <ul>
+      <li>The clock phase audit catches the exact t1605 mismatch and independently identified one other literal phase mismatch at t1366.</li>
+      <li>The W1 replay uses the actual t1666 “Owed a favor” payload rather than a generic relationship fixture.</li>
+      <li>The Mokmurian replay covers both first repair and completion after the already-used older handler.</li>
+      <li>All campaign-save checks were performed in memory; the latest save remains unmodified.</li>
+    </ul>
+  </section>
+
+  <section id="files">
+    <h2>11. Change surface</h2>
+    <p>The implementation touches the existing anti-drift pipeline at its owning boundaries rather than copying logic into parallel modules.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Primary files</th><th>Responsibility</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Classification and observation</td><td><code>globals.js</code>, <code>game.js</code>, <code>clock.js</code></td><td>Relationship vocabulary, bounded turn observers, strict duration and phase/time logic.</td></tr>
+          <tr><td>Prompt notes</td><td><code>api.js</code></td><td>Shared bounded note builders and duplicate-acquisition warning.</td></tr>
+          <tr><td>State tags and identity</td><td><code>tag_table.js</code>, <code>identity.js</code></td><td>Mutation refusal, provenance, repair tag, owner-scoped item lifecycle.</td></tr>
+          <tr><td>Memory lifecycle</td><td><code>memory.js</code></td><td>Future promotion/resolution assist, player identity boundary, freshness and retrieval behavior.</td></tr>
+          <tr><td>Persistence and presentation</td><td><code>state.js</code>, <code>helpers.js</code>, <code>ui-boot.js</code>, <code>ui-panels.js</code>, <code>ui-modals.js</code>, <code>table-talk.js</code>, <code>error-report.js</code></td><td>Typed bookkeeping, playback/presence support, and clock-derived display.</td></tr>
+          <tr><td>Verification</td><td><code>dev/engine-tests.js</code>, <code>dev/sabotage-drift-hardening.js</code></td><td>Exact failures, negatives, replay/idempotence, and mutation detection.</td></tr>
+          <tr><td>Project record</td><td><code>TODO.md</code>, <code>CLAUDE.md</code></td><td>Work status and current behavioral contract.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <strong>Shared-tree caution.</strong> Concurrent or unrelated changes are present in <code>todo_checkWithFable.md</code>, <code>samples/the_iron_meridian.blueprint</code>, and <code>testRuns/recall_gate_results_t1549.json</code>. They are not part of this handoff and should not be sweep-staged with the hardening.
+    </div>
+  </section>
+
+  <section id="review">
+    <h2>12. Requested Fable review focus</h2>
+    <p>The implementation is green; the most valuable review is adversarial scrutiny of the boundaries rather than another broad feature pass.</p>
+    <ol>
+      <li><strong>W1 exactness:</strong> rerun the t1666 payload and challenge the word-bounded relationship vocabulary with unintended substrings and intended morphology.</li>
+      <li><strong>W4 precision:</strong> expand the false-positive corpus for references, travel arrivals, obligations, and outcome verbs. Confirm every note remains bounded and GM-decides.</li>
+      <li><strong>Mokmurian cleanup:</strong> challenge the narrow self-death classifier so it removes the NPC's alleged death without erasing facts about people the NPC killed.</li>
+      <li><strong>Completion replay:</strong> confirm that only the already-used older correction can be completed, and that intervening NPC movement or a clean repeat cannot mutate state.</li>
+      <li><strong>Transaction design:</strong> adjudicate W2/W6/W7 before implementation, especially atomic extractor staging and ownership of the future bond/dynamic axes.</li>
+      <li><strong>Shipping hygiene:</strong> isolate the intended files from unrelated shared-tree work; rerun the full gate before any commit or deployment.</li>
+    </ol>
+
+    <p>Supporting documents:</p>
+    <ul>
+      <li><a href="driftHardeningActionplan_SOL.html">Action-plan validation and item-by-item rulings</a></li>
+      <li><a href="driftHardeningDesignProposals_SOL.html">Deferred W2/W6/W7 design proposals</a></li>
+      <li><a href="driftHardening_SOL.html">Original aggregated drift analysis</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    Prepared as a review handoff, not a deployment claim. Candidate v1.598; no live save mutation; no stage, commit, push, or deploy performed by Sol.
+  </footer>
+</main>
+</body>
+</html>

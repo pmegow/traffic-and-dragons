@@ -327,7 +327,7 @@ function erReportContext(userText){
       var c=w.character;
       out.push("STATE: "+c.name+" ("+c.cls+" Lv"+c.level+") HP "+c.hp+"/"+c.maxHp+", "+c.gold+" gp — "
         +((w.world&&w.world.location)||"?")+(w.world&&w.world.sublocation?" / "+w.world.sublocation:"")
-        +", "+((w.world&&w.world.time)||"?")+" — turn "+w.turn);
+        +", "+(typeof worldTimeDisplay==="function"?worldTimeDisplay():((w.world&&w.world.time)||"?"))+" — turn "+w.turn);
     }else out.push("STATE: no active campaign");
   }catch(e){out.push("STATE: (gather failed: "+e.message+")");}
   // ② last 5 exchanges (≈10 transcript entries), oldest first, each capped

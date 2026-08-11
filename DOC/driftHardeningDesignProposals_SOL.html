@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drift hardening — W2/W6/W7 decision package</title>
+<style>
+:root{--bg:#111;--bg2:#181818;--ink:#d7d1c6;--muted:#8e887f;--acc:#b8935a;--good:#7aa86a;--warn:#c49552;--bad:#bd6b64;--line:#34302b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Georgia,serif}main{max-width:1080px;margin:0 auto;padding:40px 26px 70px}h1,h2,h3{font-family:system-ui,sans-serif;color:#eee;line-height:1.2}h1{font-size:2rem;margin-bottom:4px}h2{margin-top:42px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{color:var(--acc);margin-top:26px}.sub{color:var(--muted);font:13px/1.5 system-ui,sans-serif}.box{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--acc);padding:16px 18px;margin:18px 0}.good{border-left-color:var(--good)}.warn{border-left-color:var(--warn)}.bad{border-left-color:var(--bad)}code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{color:#dcc08e}pre{background:#0d0d0d;border:1px solid var(--line);padding:14px;overflow:auto;color:#cfc8bc}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top}th{background:#1d1b18;color:var(--acc);font:600 12px system-ui,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:.06em}ul,ol{padding-left:22px}li{margin:7px 0}.lean{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.4);background:#182215;border:1px solid var(--good)}.decision{background:#271f14;border-color:var(--warn)}</style></head>
+<body><main>
+<h1>Drift hardening: W2 / W6 / W7 decision package</h1>
+<p class="sub">Sol implementation proposal · 2026-08-11 · companion to <a href="driftHardeningActionplan.html" style="color:var(--acc)">the reconciled action plan</a></p>
+
+<div class="box good"><strong>Outcome.</strong> W2, W6, and W7 are ready for an owner ruling, not code. Each proposal below fixes the confirmed failure class structurally, keeps all accumulating state bounded, quarantines uncertainty before writes, and preserves the existing stable/volatile prompt split. No part of these three tracks was silently implemented.</div>
+
+<h2>W2 — referential integrity for high-impact writes</h2>
+<p><span class="lean">Recommend</span> Approve a two-phase build: resolved scene handles gate death/merge first; quest completion and rewards follow only after the transaction envelope is in place.</p>
+
+<h3>Proposed state shape</h3>
+<pre>worldState.sceneRefs = {
+  scene: "loc-key|sub-key|scene-serial",
+  actors: [
+    { h:"r1", name:"Mokmurian", kind:"npc", present:true,
+      sourceTurn:1645, evidence:"tag|narration|combat" }
+  ],                         // cap 10; loud refusal on the 11th
+  negatives: [
+    { h:"r2", not:"Mokmurian", sourceTurn:1638, source:"gm-committed" }
+  ]                          // cap 6; structured, never reconstructed by prose regex later
+}</pre>
+
+<ul>
+<li>The ledger is replaced on a scene transition; it is not an append-only history.</li>
+<li>Entries are created only for identity-bearing scene evidence, not every name on every turn.</li>
+<li>A handle identifies the actor in this scene. The canonical NPC key remains the durable identity. The two are never silently substituted.</li>
+<li>Player statements and conditionals may create <em>intent/assertion</em> evidence, never observed-world evidence. “If the giants are moving” cannot become an army fact.</li>
+<li>Explicit negative identity is extracted as a typed constraint while the source window is live. No later regex tries to rediscover “not Mokmurian” from compressed prose.</li>
+</ul>
+
+<h3>Write gate and quarantine</h3>
+<table><tr><th>Write</th><th>Required preflight</th><th>Conflict result</th></tr>
+<tr><td>NPC death</td><td>Resolved scene handle; actor present; canonical key known or deliberately anonymous; no negative constraint against that key.</td><td>Quarantine the whole death assertion. Anonymous victims stay anonymous; the known-NPC-only rule may never substitute a different eligible corpse.</td></tr>
+<tr><td>Identity merge</td><td>Two resolved handles/keys plus positive same-person evidence; no distinct-person constraint.</td><td>Keep both records and surface the existing GM confirmation fork.</td></tr>
+<tr><td>Quest completion</td><td>Objective’s target handles resolve, and the asserted outcome is not quarantined.</td><td>Quest remains unchanged; one note explains which referent is unresolved.</td></tr>
+<tr><td>Rewards</td><td>Attached to the same accepted quest/outcome transaction; idempotency key absent from the paid ledger.</td><td>No partial payout. The transaction either commits once or not at all.</td></tr></table>
+
+<p>The preflight produces a mutation plan against clones. Only a fully valid plan applies. A death cannot stamp while its quest/reward half is rejected, and a retry cannot pay twice.</p>
+
+<h3>Mokmurian regression fixture</h3>
+<p>The t1638 “not Mokmurian” actor receives one handle. The t1645 target name resolves to a different canonical key while the physical action still targets that handle. The conflict quarantines <em>Mokmurian died</em>, allows the anonymous/deceptive scholar’s death, leaves the strike objective open, and pays no identity-dependent reward. This is the acceptance test, not an invented benign scene.</p>
+
+<div class="box decision"><strong>Owner decision W2.</strong> Approve the phased shape above? Recommended answer: <code>W2 approve — death/merge gate first; transaction envelope before quest/reward.</code></div>
+
+<h2>W6 — atomic summary validation</h2>
+<p><span class="lean">Recommend</span> Ship canonical identity validation first. Defer recurring-proper-noun registration proposals to a second phase so a safety validator is not coupled to a new entity faucet.</p>
+
+<h3>Staging contract</h3>
+<ol>
+<li>The extractor receives a compact canonical identity table for the player, party, and principals: exact key, aliases, gender/pronouns, dead/alive, and scene handle when present.</li>
+<li>The JSON result is parsed into a staging object. No memory, NPC, quest, chapter, or archive write occurs yet.</li>
+<li>A deterministic validator checks every named/pronominal assertion against that table and W2’s scene constraints.</li>
+<li>A high-confidence contradiction rejects the <em>entire</em> extraction by throwing into the existing bounded summarize failure path. There is no blind pronoun replacement and no partial chapter commit.</li>
+<li>After the existing retry ceiling, the degraded raw chapter is filed with a validation receipt and without the rejected structured claims. It cannot re-inject the contradicted sentence as canonical summary text.</li>
+</ol>
+
+<h3>Pronoun test</h3>
+<p>A chapter sentence whose sole named antecedent is male Ammut and whose subject is “she/her” is rejected. A sentence about a separately named female actor passes. Ambiguous plural/quoted speech is not “corrected”; it is either allowed as ambiguous or rejected for retry. The validator never rewrites prose to manufacture confidence.</p>
+
+<h3>Recurring proper nouns</h3>
+<p>If approved later, the extractor may propose—not file—an unregistered proper noun after repeated chapter presence. Queue cap 3, once-per-name latch, supporting turn list capped at 4. Confirmation uses a dedicated proposal channel; it does not overload merge hints or automatically create an NPC. This is the Sable remedy without recreating the identity-fusion faucet.</p>
+
+<div class="box decision"><strong>Owner decision W6.</strong> Recommended answer: <code>W6 approve validator; defer recurring-name proposals.</code></div>
+
+<h2>W7 — separate durable bond from current dynamic</h2>
+<p><span class="lean">Recommend</span> Adopt the two-axis model. Migrate every legacy descriptor conservatively into <code>bond</code>, leave <code>dynamic</code> empty, and require explicit axis operations from then on.</p>
+
+<h3>Schema and boundedness</h3>
+<pre>{ entity:"Frizwick",
+  bond:"Wife — beloved family", bondTurn:1668,
+  dynamic:"Favor collected, warming", dynamicTurn:1666 }</pre>
+<p>Exactly one bond and one dynamic per resolved pair. Updates overwrite their own axis and stamp a turn; there is no per-change array. Existing core memories remain the historical record.</p>
+
+<h3>Migration</h3>
+<ul>
+<li>Every legacy <code>descriptor</code> moves verbatim to <code>bond</code>. This may conservatively treat “wary ally” as durable, but it destroys nothing and never demotes a wife to a passing favor.</li>
+<li>No lexical classifier decides the migration. W1’s regex remains a warning/audit aid, not schema authority.</li>
+<li>Player and companion reciprocal rows migrate independently, then the reciprocity audit surfaces disagreements. Migration never invents a mirror.</li>
+</ul>
+
+<h3>Write authority</h3>
+<table><tr><th>Operation</th><th>Meaning</th></tr>
+<tr><td><code>[RELATIONSHIP_BOND:entity|text]</code></td><td>Creates/replaces durable kinship, marriage, sworn allegiance, enmity, or another standing bond.</td></tr>
+<tr><td><code>[RELATIONSHIP_DYNAMIC:entity|text]</code></td><td>Creates/replaces the current situational dynamic without touching the bond.</td></tr>
+<tr><td>Companion-prefixed twins</td><td>Same axes on the named companion sheet.</td></tr>
+<tr><td>Axis-specific removal</td><td>Removing a dynamic cannot sever a bond; ending a bond requires the explicit bond operation/removal and keeps the existing downgrade warning.</td></tr>
+<tr><td>Legacy <code>[RELATIONSHIP:]</code></td><td>During one compatibility window, refuse loudly when a pair already exists and ask for an axis. For a new pair, queue an axis-choice note rather than guessing.</td></tr></table>
+
+<p>Prompt/UI render <strong>Bond</strong> and <strong>Current dynamic</strong> as labeled fields. RAG, core-memory triggers, reciprocity, downgrade checks, export/import, character swapping, and removal paths all consume the same two-field adapter—no scattered “if old/new” branches.</p>
+
+<div class="box decision"><strong>Owner decision W7.</strong> Recommended answer: <code>W7 approve — all legacy descriptors migrate to bond; explicit bond/dynamic tags.</code></div>
+
+<h2>One-line ruling syntax</h2>
+<pre>W2 approve phased; W6 approve validator/defer names; W7 approve two-axis/all legacy to bond.</pre>
+<p class="sub">Any rejected clause can be named individually. Until a ruling arrives, these workstreams remain deliberately unimplemented.</p>
+</main></body></html>

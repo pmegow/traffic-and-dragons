@@ -22,7 +22,7 @@
 // THE LOAD-BEARING RULE — NEVER INFER:
 //   Answer from what the engine actually stores; say plainly when something is not tracked.
 //   This is GENERAL, not a set of special cases. Do NOT add per-topic branches here. The worked
-//   example is dates: there is no calendar today (world.time is free text with no advancement),
+//   example is dates: the clock projects day/time, but there is no named calendar today,
 //   so "days to the solstice" must come back "not tracked" — and when TODO #73 lands a real
 //   campaign clock, this file needs ZERO changes, because it reads worldState.world generically
 //   like every other fact. An `if (question is about dates)` branch would be a bug twice over.
@@ -132,7 +132,7 @@ function ttStateBlock(){
   s.push("Player character: "+c.name+" — level "+c.level+" "+(c.ancestry||"")+" "+(c.cls||"")
     +" | HP "+c.hp+"/"+c.maxHp+" | gold "+c.gold+" | XP "+c.xp);
   s.push("Location: "+(w.location||"unknown")+(w.sublocation?" — "+w.sublocation:"")
-    +" | time of day: "+(w.time||"not set")+" | weather: "+(w.weather||"not set"));
+    +" | time: "+worldTimeDisplay()+" | weather: "+(w.weather||"not set"));
   // #73 campaign clock: elapsed time + scheduled-deadline countdowns are now REAL, computed data.
   // buildClockBlock is the SAME shared builder the game prompt uses, so TT and the GM can never
   // disagree about the clock or a countdown (the #76↔#73 coupling — TT answers "days to the

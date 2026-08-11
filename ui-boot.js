@@ -321,7 +321,8 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   if(!worldState.transcript.length)return false;
   var story=document.getElementById("story-narrative");if(!story)return false;
   if(clearFirst)story.innerHTML="";
-  var tr=worldState.transcript,n=maxEntries||20,start=Math.max(0,tr.length-n),i,lastNar=null;
+  var tr=worldState.transcript.filter(function(e){return e&&!e.bk;}),n=maxEntries||20,start=Math.max(0,tr.length-n),i,lastNar=null;
+  if(!tr.length)return true;/* typed bookkeeping exists, so suppress sessionLog fallback; there is simply no story row to paint */
   if(start>0)addMsg("system","… "+start+" earlier entr"+(start===1?"y":"ies")+" omitted — the full story lives in the transcript.");
   for(i=start;i<tr.length;i++){var e=tr[i];
     if(e.r==="player")addMsg("player",escHtml(e.x));

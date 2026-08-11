@@ -14,7 +14,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
   // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
   if(!getActiveCampId())setActiveCampId(newCampaignId());
-  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:0,schedule:[]}};/* #73 campaign clock */
+  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
   delete worldState.character._startLoc;delete worldState.character._campName;
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
@@ -546,6 +546,31 @@ function deriveSpeakerMapFromTags(raw,clean){
     if(segs[j].name){out[i]=segs[j].name;kept++;}
   }
   return kept?{n:units.length,s:out}:null;
+}
+
+/* #168: the SAY compliance detector reads the same dialogue units and ownership map as playback.
+   Counts of quote glyphs are not evidence: a single tag can intentionally own multiple speech
+   spans. Deterministic gaps are (a) dialogue units playback could not map and (b) a new dialogue
+   paragraph whose first quote has no tag before it in that paragraph. */
+function sayTagCoverage(raw,clean){
+  raw=String(raw||"");clean=String(clean||"");
+  if(typeof TTS==="undefined"||!TTS._textPrep)return null;
+  var units=TTS._textPrep.splitSentences(clean,null,true),sp=deriveSpeakerMapFromTags(raw,clean),dialogue=0,mapped=0,i;
+  for(i=0;i<units.length;i++){
+    if(!units[i]||units[i].spk===null||units[i].spk===undefined)continue;
+    dialogue++;if(sp&&sp.s&&Object.prototype.hasOwnProperty.call(sp.s,i))mapped++;
+  }
+  var missing=Math.max(0,dialogue-mapped),paragraphGaps=0,paras=raw.replace(/\r\n/g,"\n").split(/\n\s*\n/);
+  for(i=0;i<paras.length;i++){
+    var p=paras[i],qm=p.search(/["“]/),plain=p.replace(/^\s*(?:\[[A-Z][A-Z_]{1,}(?::[^\]]*)?\]\s*)*/,"");
+    if(qm<0||!(p.slice(qm+1).match(/["”]/)))continue;
+    /* A paragraph-initial quote is a deterministic new spoken line. Attribution syntax is the
+       second deterministic shape. Interior scare quotes in narration are not a speaker boundary. */
+    var spoken=/^["“]/.test(plain)||/["”]\s*,?\s*(?:(?:[A-Z][A-Za-z'’-]*|he|she|they)\s+){0,4}(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\b/i.test(p);
+    if(spoken&&!/\[SAY:[^\]]+\]/.test(p.slice(0,qm)))paragraphGaps++;
+  }
+  if(paragraphGaps>missing)missing=paragraphGaps;
+  return {dialogue:dialogue,mapped:mapped,missing:missing,paragraphGaps:paragraphGaps};
 }
 
 // Stored NAMES -> live voice ids. Deliberately resolved at speak time, not at write time, so
@@ -1311,23 +1336,35 @@ function consumableHeadNoun(base){
   var words=b.split(/\s+/);
   return words[words.length-1]||"";
 }
+var GENERIC_CONSUMABLE_HEAD_RE=/^(?:fire|oil|acid|dust|powder|water)$/i;
+var CONSUMABLE_USE_RE=/\b(?:drink(?:s|ing)?|drank|quaff(?:s|ed|ing)?|swallow(?:s|ed|ing)?|apply|applies|applied|applying|smear(?:s|ed|ing)?|hurl(?:s|ed|ing)?|throw(?:s|ing)?|threw|toss(?:es|ed|ing)?|lob(?:s|bed|bing)?|ignite(?:s|d|ing)?|light(?:s|ed|ing)?|detonat(?:e|es|ed|ing)|use(?:s|d|ing)?|spend(?:s|ing)?|spent|consum(?:e|es|ed|ing)|uncork(?:s|ed|ing)?|empty|empties|emptied|pour(?:s|ed|ing)?|sprinkl(?:e|es|ed|ing)|scatter(?:s|ed|ing)?|activat(?:e|es|ed|ing)|wedg(?:e|es|ed|ing))\b/i;
+function consumableUseEvidence(hay,base,head){
+  if(!GENERIC_CONSUMABLE_HEAD_RE.test(head))return true;
+  var h=String(hay||"").replace(/’/g,"'"),b=String(base||"").replace(/’/g,"'").replace(/\s*\([^)]*\)\s*$/,"").trim();
+  var esc=b.replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+"),re;
+  try{re=new RegExp("\\b"+esc+"\\b","ig");}catch(e){return false;}
+  var m;while((m=re.exec(h))){var win=h.slice(Math.max(0,m.index-80),Math.min(h.length,re.lastIndex+80));if(CONSUMABLE_USE_RE.test(win))return true;}
+  return false;
+}
 function detectGhostConsumables(playerTxt,raw){
   if(!worldState||!worldState.character)return;
   var hay=String(playerTxt||"")+"\n"+String(raw||"");
   // item-loss tags already in this response → those items are handled, not ghosts
   var lostNorm={},tags=String(raw||"").match(/\[(?:COMPANION_)?ITEM_LOST:[^\]]+\]/g)||[],ti;
   for(ti=0;ti<tags.length;ti++){
-    var tm=tags[ti].match(/\[COMPANION_ITEM_LOST:[^|\]]+\|([^\]]+)\]/)||tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
-    if(tm)lostNorm[_invNorm(_qtyParse(tm[1]).base)]=1;
+    var cm=tags[ti].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/),pm=tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
+    if(cm){var owner=(typeof resolveNpcName==="function")?resolveNpcName(cm[1].trim()):cm[1].trim();lostNorm[owner+"|"+_invNorm(_qtyParse(cm[2]).base)]=1;}
+    else if(pm)lostNorm["|"+_invNorm(_qtyParse(pm[1]).base)]=1;
   }
   var liveKeys={};/* #60b: every key the current party can legitimately hold a latch for */
   function sweep(who,inv){
     var j;for(j=0;j<(inv||[]).length;j++){var entry=inv[j];if(typeof entry!=="string")continue;
       var base=_invBase(entry),norm=_invNorm(entry);
-      if(!CONSUMABLE_RE.test(base))continue;
+      var itemDef=(typeof itemLookup==="function")?itemLookup(base):null;
+      if(itemDef?itemDef.category!=="consumable":!CONSUMABLE_RE.test(base))continue;
       var key=(who||"")+"|"+norm;
       liveKeys[key]=1;
-      if(lostNorm[norm])continue;
+      if(lostNorm[key])continue;
       // #60b: the GM already answered "not spent" for this item at this exact count. Stay silent
       // until the count actually moves — a spend or a fresh acquisition is new information, a
       // re-mention of the same unspent stack is not (that re-nagging is what produced the leak).
@@ -1337,10 +1374,13 @@ function detectGhostConsumables(playerTxt,raw){
         delete worldState.consumableKept[key];/* count moved — the confirmation is stale, let the check speak again */
       }
       var head=consumableHeadNoun(base);if(head.length<3)head=base;
+      if(!consumableUseEvidence(hay,base,head))continue;
       var re;try{re=new RegExp("\\b"+head.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(s|es)?\\b","i");}catch(e){continue;}
       if(!re.test(hay))continue;
       var last=worldState.consumableNudged&&worldState.consumableNudged[key];
       if(last!=null&&(worldState.turn-last)<CONSUMABLE_NUDGE_COOLDOWN)continue;
+      var pending=false,pi;for(pi=0;pi<((worldState.consumablePending)||[]).length;pi++){if(worldState.consumablePending[pi].key===key){pending=true;break;}}
+      if(pending)continue;
       if(!worldState.consumableChecks)worldState.consumableChecks=[];
       var dup=false,k;for(k=0;k<worldState.consumableChecks.length;k++){if(worldState.consumableChecks[k].key===key){dup=true;break;}}
       if(dup)continue;
@@ -1360,6 +1400,7 @@ function detectGhostConsumables(playerTxt,raw){
     for(kx=0;kx<kk.length;kx++)if(!liveKeys[kk[kx]])delete worldState.consumableKept[kk[kx]];
     if(!Object.keys(worldState.consumableKept).length)delete worldState.consumableKept;
   }
+  if(worldState.consumablePending){worldState.consumablePending=worldState.consumablePending.filter(function(x){return x&&liveKeys[x.key];});if(!worldState.consumablePending.length)delete worldState.consumablePending;}
 }
 // ── THE GM-turn commit pipeline (audit 07-16 #5) ─────────────────────────────────────────────
 // One home for the formerly duplicated sendAction/beginAdventure commit sequences. sendAction's
@@ -1381,6 +1422,73 @@ function detectGhostConsumables(playerTxt,raw){
 //   onMutated — called the moment applyMuts lands (sendAction latches _committed here for the
 //               E82 no-double-apply Retry guard).
 // Returns the narrator message element.
+var LOCATION_FILING_TURNS=8,TRAVEL_PRICE_TURNS=12;
+function _driftEsc(s){return String(s||"").replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&");}
+function detectLocationFilingCue(clean){
+  var s=String(clean||"");if(!s)return null;
+  var nodes=(memory&&memory.map&&memory.map.nodes)||{},ks=Object.keys(nodes),i,k,nm,esc;
+  for(i=0;i<ks.length;i++){
+    k=ks[i];if(nodes[k]&&nodes[k].parent)continue;nm=(typeof locDisplayLeaf==="function")?locDisplayLeaf(k):k;esc=_driftEsc(nm);
+    if(new RegExp("\\b(?:toward|towards|remembering|recalling)\\s+(?:the\\s+)?"+esc+"\\b|\\b(?:map|drawing|sketch)\\s+of\\s+(?:the\\s+)?"+esc+"\\b","i").test(s))continue;
+    if(new RegExp("(?:\\b(?:enter(?:s|ed|ing)?|inside|within)\\b[^.!?]{0,70}\\b"+esc+"\\b|\\bthrough\\b[^.!?]{0,90}\\b"+esc+"\\b)","i").test(s))return nm;
+  }
+  var g=s.match(/\b(?:enter(?:s|ed|ing)?|step(?:s|ped|ping)?\s+into|pass(?:es|ed|ing)?\s+into|inside|through)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){0,3}(?:chamber|hall|tunnel|vault|fortress|citadel|keep))\b/i);
+  return g?g[1].replace(/^the\s+/i,"").trim():null;
+}
+function _driftNumber(v){var s=String(v||"").toLowerCase();return /^\d+$/.test(s)?parseInt(s,10):((typeof FUTURE_NUMBER_WORDS!=="undefined"&&FUTURE_NUMBER_WORDS[s])||0);}
+function detectTravelPrice(clean){
+  var s=String(clean||"");if(/\b(?:teleport|portal|instant(?:ly)?|magical shortcut)\b/i.test(s))return null;
+  var num="(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)",m;
+  m=s.match(new RegExp("\\b([A-Z][A-Za-z'’.-]*(?:\\s+[A-Z][A-Za-z'’.-]*){0,3})\\s+(?:is\\s+)?still\\s+"+num+"\\s+days?\\s+(?:south|north|east|west|away)\\b"));
+  if(m)return {destination:m[1].trim(),days:_driftNumber(m[2])};
+  m=s.match(new RegExp("\\b"+num+"\\s+days?\\s+(?:to|until|before\\s+reaching)\\s+([A-Z][A-Za-z'’.-]*(?:\\s+[A-Z][A-Za-z'’.-]*){0,3})\\b","i"));
+  return m?{destination:m[2].trim(),days:_driftNumber(m[1])}:null;
+}
+function detectDatedCommitment(clean){
+  var s=String(clean||"").replace(/\s+/g," ").trim();if(!s||s.length>900)return null;
+  var money=/\b(?:gold|gp|silver|sp|copper|cp|pay|payment|owe|owed|deliver|delivery|ready)\b/i;
+  var interval=/\b(?:call\s+it|in|within|after)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:minutes?|hours?|days?|weeks?)\b/i;
+  var mm=s.match(money),im=s.match(interval);if(!mm||!im||Math.abs(mm.index-im.index)>160||/\b(?:if|could|might|maybe|hypothetically)\b/i.test(s))return null;
+  var at=im.index,start=Math.max(0,at-130),end=Math.min(s.length,at+130);return s.slice(start,end);
+}
+// W4 observers store at most one candidate per axis. They detect gaps and arm GM-decides notes;
+// no prose path mutates location, clock, quests, schedules, or future-event lifecycle.
+function observeDriftAxes(raw,clean){
+  if(!worldState)return;raw=String(raw||"");clean=String(clean||"");var turn=worldState.turn||0;
+  var hasLoc=/\[(?:LOCATION|SUBLOCATION):[^\]]+\]|\[SUBLOCATION_LEAVE\]/i.test(raw),cue;
+  if(hasLoc){delete worldState.locationFilingWatch;delete worldState.locationFilingPing;}
+  else{
+    cue=detectLocationFilingCue(clean);
+    if(cue&&((typeof locSame==="function"&&locSame(cue,worldState.world.location))||(worldState.world.sublocation&&String(cue).toLowerCase()===String(worldState.world.sublocation).toLowerCase())))cue=null;
+    var lw=worldState.locationFilingWatch;
+    if(cue&&(!lw||String(lw.place).toLowerCase()!==String(cue).toLowerCase()))lw=worldState.locationFilingWatch={place:cue,firstTurn:turn,lastTurn:turn,count:1};
+    else if(lw){lw.lastTurn=turn;lw.count=(lw.count||1)+1;}
+    if(lw&&lw.count>=LOCATION_FILING_TURNS){worldState.locationFilingPing={place:lw.place,firstTurn:lw.firstTurn,turn:turn};delete worldState.locationFilingWatch;}
+  }
+  var price=detectTravelPrice(clean);
+  if(price&&price.days>0)worldState.travelPriceWatch={destination:price.destination,expected:price.days*MIN_PER_DAY,startMin:clockNow(),startTurn:turn};
+  var tw=worldState.travelPriceWatch,lm=raw.match(/\[LOCATION:([^\]]+)\]/i);
+  if(tw&&lm){
+    var arrived=locResolve(normalizeEndpointPair(lm[1].trim())),same=(typeof locSame==="function")?locSame(arrived,tw.destination):String(arrived).toLowerCase()===String(tw.destination).toLowerCase();
+    if(same){var elapsed=Math.max(0,clockNow()-tw.startMin),shortfall=Math.max(0,tw.expected-elapsed);
+      if(turn-tw.startTurn<=TRAVEL_PRICE_TURNS&&shortfall>=MIN_PER_HOUR&&!/\b(?:teleport|portal|instant(?:ly)?|shortcut|abandon(?:ed)?\s+the\s+route)\b/i.test(clean))worldState.travelPricePing={destination:tw.destination,elapsed:elapsed,shortfall:shortfall,turn:turn};
+      delete worldState.travelPriceWatch;
+    }
+  }
+  if(tw&&turn-tw.startTurn>TRAVEL_PRICE_TURNS)delete worldState.travelPriceWatch;
+  var hasLifecycle=/\[(?:SCHEDULE|FUTURE_EVENT|QUEST)(?::|_)/.test(raw);
+  if(hasLifecycle)delete worldState.commitmentPing;
+  else{var dc=detectDatedCommitment(clean);if(dc)worldState.commitmentPing={text:dc,turn:turn};}
+}
+function isBookkeepingResponse(raw,clean,dice){
+  if(String(clean||"").trim()||String(dice||"").trim())return false;
+  var s=String(raw||""),known={},i,m,ms;
+  if(typeof TAG_STRIP_NAMES!=="undefined")for(i=0;i<TAG_STRIP_NAMES.length;i++)known[TAG_STRIP_NAMES[i]]=1;
+  if(typeof TAG_STRIP_BARE!=="undefined")for(i=0;i<TAG_STRIP_BARE.length;i++)known[TAG_STRIP_BARE[i]]=1;
+  ms=s.match(/\[([A-Z][A-Z_]{1,})(?::[^\]]*)?\]/g)||[];
+  for(i=0;i<ms.length;i++){m=ms[i].match(/^\[([A-Z][A-Z_]{1,})/);if(m&&known[m[1]])return true;}
+  return false;
+}
 function commitGmTurn(resp,opts){
   var o=opts||{};
   if(typeof clearPendingAction==="function")clearPendingAction();/* #14: a committed turn supersedes any persisted failed action */
@@ -1411,6 +1519,7 @@ function commitGmTurn(resp,opts){
     if(typeof detectStayBehind==="function"&&String(resp).indexOf("[PARTY_SPLIT:")<0){
       var _sbNames=livingPartyCompanions().filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc);}).map(function(n){return n.name;});
       var _sbHit=detectStayBehind(resp,_sbNames);
+      if(!_sbHit&&typeof detectPartyAbsenceCorrection==="function")_sbHit=detectPartyAbsenceCorrection(o.playerTxt,_sbNames);
       if(_sbHit)worldState.presencePing={name:_sbHit,turn:worldState.turn};
     }
     detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
@@ -1423,7 +1532,8 @@ function commitGmTurn(resp,opts){
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
   }
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
-  var clean=cleanTxt(resp),dice=diceTxt(resp);
+  var clean=cleanTxt(resp),dice=diceTxt(resp),_bookkeeping=isBookkeepingResponse(resp,clean,dice);
+  if(!o.isOpening&&typeof observeDriftAxes==="function")observeDriftAxes(resp,clean);
   // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
   // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
   // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,
@@ -1433,9 +1543,16 @@ function commitGmTurn(resp,opts){
      dawn roll that restSpells owns) so the stamp is what the clock ACTUALLY did this turn, not what
      the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
   if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned. */
-  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre));
-  sessionLog.push({role:"user",content:o.userMsg},{role:"assistant",content:resp});
+  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping});
+  var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
+  if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
+  sessionLog.push(_slUser,_slGm);
   saveAll();
+  if(_bookkeeping){
+    processPendingCompanionSheets();
+    if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();
+    return null;
+  }
   var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
   narrateWithSpeakers(clean,resp,narEl,worldState.transcript[worldState.transcript.length-1]);/* #96: map derives from the response's own [SAY:] tags */
   generateActions(narEl);
@@ -1967,7 +2084,7 @@ async function beginAdventure(){
     var c=worldState.character,w=worldState.world;
     var compNpcs=(worldState.npcs||[]).filter(function(n){return n.partyMember;});
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
-    var intro="Open the adventure at "+w.location+", "+w.region+", at "+w.time+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
+    var intro="Open the adventure at "+w.location+", "+w.region+", at "+worldTimeDisplay()+". "+c.name+" is a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+"."+(c.trait?" Trait: "+c.trait+".":"")+(c.flaw?" Flaw: "+c.flaw+".":"")+(c.motivation?" Wants: "+c.motivation+".":"")+(c.backstory?" Backstory: "+c.backstory:"")+compStr+" Write a vivid 3-5 sentence opening. Give rich sensory detail. Plant an immediate hook. Do not end with suggested actions or a 'You could' line — action buttons are handled separately.";
     var resp=await callGM(intro);th.remove();
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
@@ -2024,7 +2141,7 @@ function buildSceneRenderRequest(c,party,w){
     +"Protagonist (describe exactly as written, do not invent appearance): "+charDesc+". "
     +(hasParty?"Party members also present — include every one, describe each exactly as written, do not invent appearance: "+compDescs.join("; ")+". ":"")
     +"Spell out each character's gender, hair colour, eye colour, skin tone, clothing and visible gear explicitly — never omit or change a character's stated gender. "
-    +"Scene: "+w.location+", "+w.region+", "+w.time+", "+w.weather+". "
+    +"Scene: "+w.location+", "+w.region+", "+worldTimeDisplay()+", "+w.weather+". "
     +(hasParty?"All "+(compDescs.length+1)+" party members must be present and individually recognizable in the scene. ":"")
     +"Depict a candid, dynamic moment — characters in varied, natural poses (moving, turning, gesturing, mid-action), interacting with the environment and one another from a cinematic camera angle; NOT a static, front-facing line-up or posed group portrait. "
     +"Style: dark fantasy concept art, dramatic high-contrast cinematic lighting — strong directional key light, warm rim-light, deep shadows, moody atmospheric colour grading, rich painterly texture. "

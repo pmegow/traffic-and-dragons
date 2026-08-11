@@ -3946,7 +3946,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==-330433611||_CT_TAGS.source.length!==1070)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section); re-baselined v1.581 (#156 Phase A): +12 = "ALIAS|"(6)+"MERGE|"(6) — the generalized identity pair; \[( anchoring keeps them from shadowing NPC_ALIAS/NPC_MERGE (strip test in the #156 section) */
+    if(__djb2(_CT_TAGS.source)!==-1593618956||_CT_TAGS.source.length!==1090)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section); re-baselined v1.581 (#156 Phase A): +12 = "ALIAS|"(6)+"MERGE|"(6) — the generalized identity pair; \[( anchoring keeps them from shadowing NPC_ALIAS/NPC_MERGE (strip test in the #156 section); re-baselined v1.596 (#168 owner repair): +20 = "NPC_DEATH_RETRACTED|" — the hidden operator tag must never leak to prose */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4876,7 +4876,7 @@ function runEngineTests(R){
   section("relationship grounding (#61)");
   function __relWorld(){
     makeWorld();worldState.turn=50;
-    worldState.npcs.push({name:"Morwen",status:"steady",rel:"companion",partyMember:true,charSheet:{name:"Morwen",gender:"F",cls:"Druid",level:3,hp:14,maxHp:14,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Husband — beloved family",turn:10}]}});
+    worldState.npcs.push({name:"Morwen",status:"steady",statusTurn:50,rel:"companion",partyMember:true,charSheet:{name:"Morwen",gender:"F",cls:"Druid",level:3,hp:14,maxHp:14,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Husband — beloved family",turn:10}]}});
     worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife",turn:10}];
   }
   t("party sheet injects the companion's Relationships line (the write-path-no-read-path fix)",function(){
@@ -4890,9 +4890,9 @@ function runEngineTests(R){
   });
   t("roster rel DERIVES from the player's bond for party members; non-party npc.rel untouched; no bond falls back",function(){
     __relWorld();
-    worldState.npcs.push({name:"Aldara",status:"wary",rel:"mother of Morwen",partyMember:false});
+    worldState.npcs.push({name:"Aldara",status:"wary",statusTurn:50,rel:"mother of Morwen",partyMember:false});
     worldState.character.relationships.push({entity:"Aldara",descriptor:"Cautious Peace"});
-    worldState.npcs.push({name:"Durdun",status:"ally",rel:"business partner",partyMember:true,charSheet:{name:"Durdun",gender:"M",cls:"Rogue",level:2,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    worldState.npcs.push({name:"Durdun",status:"ally",statusTurn:50,rel:"business partner",partyMember:true,charSheet:{name:"Durdun",gender:"M",cls:"Rogue",level:2,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
     var v=buildSysPrompt().volatile;
     if(v.indexOf("Morwen (mood: steady, Wife")<0)return "party rel not derived from the player's bond";
     if(v.indexOf("Aldara (mood: wary, mother of Morwen")<0)return "non-party rel was overwritten — identity info lost";
@@ -7613,12 +7613,10 @@ function runEngineTests(R){
       if(buildSayComplianceNudge()!=="")return "fired on a response with no dialogue";
       sessionLog=[{role:"assistant",content:'She smiles. "Fine." '},{role:"user",content:"GM: was that a real offer?"}];
       if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not find the newest ASSISTANT message past a trailing user message";
-      // Fable review entry 7, brief D (3c): ONE tag anywhere used to silence the nudge, so a
-      // response tagging 3 of 5 speeches shipped with two lines mis-voiced and no correction.
-      // Partial compliance (>=2 untagged quote-pairs of slack) must fire; a compliant response
-      // with a scare quote / inch marks must NOT (the slack absorbs non-dialogue quote chars).
-      sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says. [SAY:Morwen]"Fine," Morwen answers. [SAY:Ammut]"Pack light," you say. "No torches," the sheriff warns. "And no songs," the innkeeper adds.'}];
-      if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not fire on 3-of-5 partial compliance";
+      // A new dialogue paragraph is a deterministic speaker boundary. Playback cannot infer a
+      // speaker for it unless that paragraph carries a tag, so partial compliance must fire.
+      sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says.\n\n"No torches," the sheriff warns.'}];
+      if(buildSayComplianceNudge().indexOf("VOICE TAGS MISSING")<0)return "did not fire on an untagged dialogue paragraph";
       sessionLog=[{role:"assistant",content:'[SAY:Daeris]"We leave at dawn," she says. The sign calls it a "shortcut".'}];
       if(buildSayComplianceNudge()!=="")return "fired on a compliant response with one scare-quoted word";
     }finally{ sessionLog=saved; }
@@ -8063,6 +8061,31 @@ function runEngineTests(R){
     commitGmTurn("You sleep until morning. [REST:long]",{userMsg:"u2",playerTxt:"p2"});
     var en2=worldState.transcript[worldState.transcript.length-1];
     return en2.ta===(1440-145)?true:".ta after the REST dawn roll: "+en2.ta+" (want "+(1440-145)+")";
+  });
+
+  t("#168 bookkeeping WIRING: a pure-tag turn persists a typed clock receipt but creates no story, voice, or action UI",function(){
+    makeWorld();worldState.clock={min:100,schedule:[]};
+    var nar=0,acts=0,spk=0;
+    addMsg=function(type){if(type==="narrator")nar++;return __stubEl();};
+    generateActions=function(){acts++;};
+    TTS={isOn:function(){return true;},speakResponse:function(){spk++;}};
+    var got=commitGmTurn("[TIME_ADVANCE:470m]",{userMsg:"GM: sync the clock to dusk",playerTxt:"GM: sync the clock to dusk"});
+    var en=worldState.transcript[worldState.transcript.length-1];
+    addMsg=function(){return __stubEl();};generateActions=function(){};TTS={speakResponse:function(){},isOn:function(){return false;}};
+    if(got!==null)return "bookkeeping commit must return null, got "+JSON.stringify(got);
+    if(!en||en.bk!==1||en.x!=="")return "typed transcript row missing: "+JSON.stringify(en);
+    if(en.ta!==470||en.ck!==570||!en.v)return "clock/version receipt incomplete: "+JSON.stringify(en);
+    if(nar||acts||spk)return "bookkeeping leaked into display/voice/actions: narrator="+nar+" actions="+acts+" speech="+spk;
+    if(sessionLog.length!==2||sessionLog[0].bk!==1||sessionLog[1].bk!==1)return "bookkeeping type did not reach the paired session rows: "+JSON.stringify(sessionLog);
+    return true;
+  });
+
+  t("#168 OOC presence correction WIRING: an explicit GM correction arms the same one-shot without inventing a split",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Frizwick",status:"steady",statusTurn:5,partyMember:true,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:[],conditions:[],relationships:[]}});
+    commitGmTurn("The three riders take the north road.",{userMsg:"GM: Frizwick is not with us or the party.",playerTxt:"GM: Frizwick is not with us or the party."});
+    if(!worldState.presencePing||worldState.presencePing.name!=="Frizwick")return "explicit OOC correction did not arm: "+JSON.stringify(worldState.presencePing);
+    return worldState.npcs[0].charSheet.splitLoc?"correction auto-mutated presence instead of asking the GM":true;
   });
 
   t("(c) turn + nameIdx advance exactly once per normal commit",function(){
@@ -9317,7 +9340,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("roster render: every part present renders in a fixed order with the mood LABELLED (v1.382)",function(){
     makeWorld();
-    worldState.npcs=[{name:"Full",status:"watchful, tense",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
+    worldState.npcs=[{name:"Full",status:"watchful, tense",statusTurn:worldState.turn,rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
     return line.indexOf("Full (mood: watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
   });
@@ -11840,6 +11863,329 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.phaseMismatch)return "stale entry not cleared";
     if(NOTE_LATCH_FIELDS.indexOf("phaseMismatch")<0)return "phaseMismatch missing from NOTE_LATCH_FIELDS — the suggestion call would eat the one-shot";
     return true;
+  });
+
+  // ═══ #168: hostile recognizer fixtures from the sealed t1667 drift audit ═══
+  section("#168 drift-hardening recognizer receipts");
+
+  t("W1: weighty relationship vocabulary is token-bounded while intended morphology survives",function(){
+    var no=["Owed a favor","showed restraint","midwife","clover-scented","loathes him","knowledge broker"],
+        yes=["married","weds","wedded","wedding","wife","wives","husbands","spouses","betrothed","betrothal","lovers","betrayed","betraying","betrayal","sworn oath","blood-bound sister","nemesis","widowed","avenged"],i;
+    for(i=0;i<no.length;i++){WEIGHTY_REL_RE.lastIndex=0;if(WEIGHTY_REL_RE.test(no[i]))return "false weighty match: "+no[i];}
+    for(i=0;i<yes.length;i++){WEIGHTY_REL_RE.lastIndex=0;if(!WEIGHTY_REL_RE.test(yes[i]))return "intended morphology lost: "+yes[i];}
+    return true;
+  });
+
+  t("W1 exact t1666 replay: Owed queues both marriage downgrades and mints no false bond moment on any witness",function(){
+    makeWorld();worldState.turn=1666;worldState.character.name="Ammut";worldState.character.coreMemories=[];
+    worldState.character.relationships=[{entity:"Frizwick",descriptor:"Wife",turn:1500}];
+    function mate(nm,rels){var cs={name:nm,hp:20,maxHp:20,inventory:[],conditions:[],relationships:rels||[],coreMemories:[]};worldState.npcs.push({name:nm,status:"steady",statusTurn:1665,rel:"companion",partyMember:true,charSheet:cs});memory.npcs[nm]={attitude:"",knowledge:[],events:[],aliases:[]};return cs;}
+    var friz=mate("Frizwick",[{entity:"Ammut",descriptor:"Husband",turn:1500}]),dae=mate("Daeris"),mor=mate("Morwen");
+    var cm=coreMemorySnapshot(),rl=relationshipSnapshot();
+    applyMuts("[RELATIONSHIP:Frizwick|Owed a favor — warmly claimed][COMPANION_RELATIONSHIP:Frizwick|Ammut|Owed favor collected, warming]");
+    detectCoreMoments(cm);stampRelationshipChanges(rl);
+    var q=worldState.relDowngrades||[];
+    if(q.length!==2)return "both directed marriage edges must queue, got "+JSON.stringify(q);
+    var owners=[worldState.character,friz,dae,mor],i,j;
+    for(i=0;i<owners.length;i++){for(j=0;j<(owners[i].coreMemories||[]).length;j++){if(owners[i].coreMemories[j].kind==="bond")return "false bond moment filed to "+owners[i].name+": "+JSON.stringify(owners[i].coreMemories[j]);}}
+    return true;
+  });
+
+  t("W3 phase: a closing quote stays with its sentence; only the cue governed by 'before' is rejected",function(){
+    var a=clockPhaseAssertion('The captain says, "Before dark." Dusk catches you on the descent toward Jorgenfist.');
+    if(!a||!/dusk/i.test(a.label))return "closing quote poisoned following narration: "+JSON.stringify(a);
+    if(clockPhaseAssertion("Escape before dawn finds you at the gate."))return "future deadline cue parsed as current dawn";
+    var b=clockPhaseAssertion("Dawn breaks before you, pale over the ridge.");
+    if(!b||!/dawn/i.test(b.label))return "sentence-wide 'before' rejection ate a legitimate current dawn: "+JSON.stringify(b);
+    return clockPhaseAssertion('"Dusk. Move." The word hangs there.')===null?true:"quoted phase stopped rejecting";
+  });
+
+  t("W3 presence: subject binding rejects possessives/co-location/plans and accepts named or unambiguous departures",function(){
+    var names=["Frizwick","Daeris","Morwen Zethran"],fps=[
+      "Frizwick's foot stays here with the party while she limps onward.",
+      "Frizwick stays here with the party.",
+      "Daeris tells Frizwick to stay here.",
+      "Daeris, stay here until we return.",
+      "Daeris, ride ahead and warn Sandpoint.",
+      "If Daeris stays behind, the door may hold.",
+      "Morwen Zethran remains with us at the mouth of the tunnel."
+    ],i;
+    for(i=0;i<fps.length;i++){var hit=detectStayBehind(fps[i],names);if(hit)return "false separation for "+hit+" on "+fps[i];}
+    if(detectStayBehind("Daeris rides ahead to warn Sandpoint.",names)!=="Daeris")return "named send-ahead missed";
+    if(detectStayBehind("Frizwick watches as Daeris leaves for Sandpoint.",names)!=="Daeris")return "an earlier name stole the later clause subject";
+    if(detectStayBehind("Frizwick checks the road once. Then she's gone.",names)!=="Frizwick")return "single-name adjacent pronoun departure missed";
+    if(detectStayBehind("Frizwick and Daeris check the road. Then she's gone.",names)!==null)return "ambiguous pronoun guessed a party member";
+    if(detectPartyAbsenceCorrection("GM: Frizwick is not with us or the party.",names)!=="Frizwick")return "explicit OOC absence correction missed";
+    if(detectPartyAbsenceCorrection("GM: Frizwick is with us and the party.",names)!==null)return "OOC presence statement was inverted into an absence correction";
+    return detectPartyAbsenceCorrection("Frizwick is not with us, the guard lies.",names)===null?true:"in-story text entered the OOC correction path";
+  });
+
+  t("W3 SAY: playback coverage clears the 6-tag/24-quote response and catches deterministic unowned boundaries",function(){
+    var ok='[SAY:Daeris]"A." she says. "B." [SAY:Morwen]"C." she says. "D." [SAY:Frizwick]"E." she says. "F." [SAY:Ammut]"G." he says. "H." [SAY:Shalelu]"I." she says. "J." [SAY:Hemlock]"K." he says. "L."';
+    var cov=sayTagCoverage(ok,cleanTxt(ok));
+    if(!cov||cov.dialogue!==12||cov.missing!==0)return "compliant multi-span playback coverage failed: "+JSON.stringify(cov);
+    var before='"Untethered," the guard says. [SAY:Daeris]"Mine is tagged," Daeris says.';
+    var c1=sayTagCoverage(before,cleanTxt(before));
+    if(!c1||c1.missing<1)return "dialogue before the first tag was not detected: "+JSON.stringify(c1);
+    var para='[SAY:Daeris]"Mine is tagged," Daeris says.\n\n"This new speaker paragraph is not."';
+    var c2=sayTagCoverage(para,cleanTxt(para));
+    if(!c2||c2.missing<1)return "untagged dialogue paragraph was not detected: "+JSON.stringify(c2);
+    var saved=sessionLog;sessionLog=[{role:"assistant",content:ok}];var note=buildSayComplianceNudge();sessionLog=saved;
+    return note===""?true:"ratio heuristic still false-fired on complete playback coverage: "+note;
+  });
+
+  t("W3 consumables: item canon owns type; generic fire needs full use evidence; loss suppression is per owner",function(){
+    __consWorld();worldState.character.inventory=["Alchemist's fire"];
+    detectGhostConsumables("","The cooking fire snaps while rain needles the roof.");
+    if(worldState.consumableChecks)return "ambient fire queued Alchemist's fire: "+JSON.stringify(worldState.consumableChecks);
+    detectGhostConsumables("","Ammut hurls the Alchemist's fire into the troll's nest.");
+    if(!worldState.consumableChecks||worldState.consumableChecks[0].item!=="Alchemist's fire")return "full-name use evidence missed: "+JSON.stringify(worldState.consumableChecks);
+    __consWorld();worldState.itemBible={"blasting charge":{category:"tool",inventoryCategories:["tool"],effect:"",uses:"reusable",value:""}};
+    detectGhostConsumables("","The blasting charge detonates.");
+    if(worldState.consumableChecks)return "authoritative non-consumable override lost to the regex";
+    __consWorld();worldState.character.inventory=["Iron key"];worldState.itemBible={"iron key":{category:"consumable",inventoryCategories:["consumable"],effect:"",uses:"single use",value:""}};
+    detectGhostConsumables("","Ammut uses the iron key; it dissolves in the lock.");
+    if(!worldState.consumableChecks)return "authoritative consumable outside CONSUMABLE_RE was missed";
+    __consWorld();worldState.character.inventory=["Potion of healing"];worldState.npcs.push({name:"Frizwick",partyMember:true,status:"steady",statusTurn:99,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:["Potion of healing"],conditions:[],relationships:[]}});
+    detectGhostConsumables("","Both drink their potions. [COMPANION_ITEM_LOST:Frizwick|Potion of healing]");
+    var q=worldState.consumableChecks||[],who=q.map(function(x){return x.who;});
+    if(who.indexOf("Frizwick")>=0)return "Frizwick's covered loss still queued";
+    return who.indexOf(null)>=0?true:"Frizwick's loss suppressed the player's same-named potion: "+JSON.stringify(q);
+  });
+
+  t("W5 typed transcript rows round-trip and can never become RAG evidence",function(){
+    makeWorld();worldState.clock={min:570,schedule:[]};
+    logTranscript("gm","","[TIME_ADVANCE:470m]",470,{bookkeeping:true});
+    var en=worldState.transcript[0];
+    if(!en||en.bk!==1||en.x!==""||en.ta!==470||en.ck!==570)return "typed row malformed: "+JSON.stringify(en);
+    var back=parseWorldState(serializeWorldState());
+    if(!back.transcript[0]||back.transcript[0].bk!==1||back.transcript[0].x!=="")return "typed row lost on round-trip: "+JSON.stringify(back.transcript[0]);
+    makeWorld();ragRetrieve._memo=null;worldState.ragMemory=true;worldState.turn=40;memory.npcs.Bram={attitude:"",knowledge:[],events:[],aliases:[]};sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"y"}];
+    worldState.transcript=[
+      {t:3,r:"gm",x:"Bram promises the poisoned bookkeeping passage.",bk:1,e:{n:["Bram"],l:"Ashfen",q:[]}},
+      {t:6,r:"gm",x:"filler a",e:{n:[],l:"Ashfen",q:[]}},{t:7,r:"gm",x:"filler b",e:{n:[],l:"Ashfen",q:[]}},
+      {t:8,r:"gm",x:"filler c",e:{n:[],l:"Ashfen",q:[]}},{t:9,r:"gm",x:"filler d",e:{n:[],l:"Ashfen",q:[]}},{t:10,r:"gm",x:"filler e",e:{n:[],l:"Ashfen",q:[]}}
+    ];
+    var got=ragRetrieve("Ask Bram about the poisoned bookkeeping passage");
+    return got.indexOf("poisoned bookkeeping")<0?true:"bookkeeping row leaked through RAG: "+got;
+  });
+
+  t("W5 provenance records legal two-letter tags and descriptor updates with non-empty mutation labels",function(){
+    makeWorld();worldState.character.hp=20;worldState.character.maxHp=20;worldState.character.relationships=[{entity:"Frizwick",descriptor:"Wife"}];memory.npcs.Frizwick={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[HP:-3][XP:600]");
+    var a=worldState.tagLog[worldState.tagLog.length-1];
+    if(a.tags.indexOf("HP")<0||a.tags.indexOf("XP")<0)return "HP/XP absent from tagLog: "+JSON.stringify(a);
+    applyMuts("[RELATIONSHIP:Frizwick|Wife — reconciled]");
+    var b=worldState.tagLog[worldState.tagLog.length-1];
+    if(!b.m||!b.m.length||b.m.join("|").indexOf("Wife — reconciled")<0)return "player descriptor update has no mutation receipt: "+JSON.stringify(b);
+    worldState.npcs.push({name:"Frizwick",partyMember:true,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Friend"}]}});
+    applyMuts("[COMPANION_RELATIONSHIP:Frizwick|Tess|Trusted friend]");
+    var c=worldState.tagLog[worldState.tagLog.length-1];
+    return c.m&&c.m.join("|").indexOf("Trusted friend")>=0?true:"companion descriptor update has no mutation receipt: "+JSON.stringify(c);
+  });
+
+  t("W5 player identity is rejected at NPC writers and hidden from every NPC reader; companions remain",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.aliases=["Blackbird"];
+    applySummaryExtract({npcUpdates:[{name:"Ammut",attitude:"hostile",knowledgeGained:"is somehow his own enemy"},{name:"Blackbird",attitude:"hostile",knowledgeGained:"is his own alias"},{name:"Morwen",attitude:"loyal",knowledgeGained:"keeps the western watch"}]});
+    if(memory.npcs.Ammut)return "summary minted the player as an NPC: "+JSON.stringify(memory.npcs.Ammut);
+    if(memory.npcs.Blackbird)return "summary minted a player alias as an NPC";
+    if(!memory.npcs.Morwen||memory.npcs.Morwen.knowledge[0]!=="keeps the western watch")return "companion NPC memory was wrongly excluded";
+    applyMuts("[NPC:Ammut|furious|enemy]");
+    if(memory.npcs.Ammut||wsNpcByName("Ammut"))return "[NPC:] minted the player as an NPC";
+    memory.npcs.Ammut={attitude:"stale",knowledge:["bad duplicate"],events:[],aliases:[]};ragKnownNames._memo=null;
+    if(memoryTOC().indexOf("Ammut")>=0)return "stale player duplicate leaked into memory TOC";
+    if(memoryNpcDetail("Ammut")!=="")return "stale player duplicate leaked through detail reader";
+    var known=ragKnownNames(),i;for(i=0;i<known.length;i++){if(known[i].nm==="Ammut")return "stale player duplicate leaked into RAG name index";}
+    return memoryTOC().indexOf("Morwen")>=0?true:"real companion disappeared from NPC readers";
+  });
+
+  t("owner ruling: NPC_DEATH_RETRACTED heals only an existing dead NPC at an existing remote node, archives the preimage, and reopens the exact objective",function(){
+    makeWorld();worldState.turn=1668;worldState.world.location="Sandpoint";
+    worldState.npcs.push({name:"Mokmurian",status:"dead",statusTurn:1648,rel:"enemy",dead:1648,partyMember:false});
+    memory.npcs.Mokmurian={attitude:"deceased",knowledge:["Raising an army at Jorgenfist","Killed three challengers before dawn","Remains inside Jorgenfist","Slain by Ammut's unseen blade while bent over the tablets"],events:[{turn:1652,note:"Body posed to look asleep at his desk after death"}],aliases:[],dead:1648,lastSeenAt:"Fogscar Mountains - Ridge Line"};
+    memory.map.nodes.Sandpoint={firstVisit:1,visits:3,description:"",parent:null,npcs:["Mokmurian"],items:[]};
+    memory.map.nodes.Jorgenfist={firstVisit:null,visits:0,description:"",parent:null,npcs:[],items:[]};
+    worldState.questLog=[{title:"The Giants of Jorgenfist",status:"active",objectives:[{text:"Strike Mokmurian directly in his ritual chamber before his army can march",done:true}]}];
+    applyMuts("[NPC_DEATH_RETRACTED:Mokmurian|The slain scholar was a deceptive proxy; Mokmurian remains alive|Jorgenfist][QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber before his army can march|false]");
+    var n=wsNpcByName("Mokmurian"),mn=memory.npcs.Mokmurian;
+    if(n.dead||mn.dead||npcIsDead(n))return "death stamp survived: "+JSON.stringify({ws:n,mem:mn});
+    if(n.status!==""||n.statusTurn!==0)return "repair invented a current mood/condition: "+JSON.stringify(n);
+    if(mn.attitude!=="")return "memory attitude still injects deceased: "+mn.attitude;
+    if(mn.knowledge.join("|").indexOf("Slain by")>=0||JSON.stringify(mn.events).indexOf("Body posed")>=0)return "false death narrative survived: "+JSON.stringify(mn);
+    if(mn.knowledge.join("|").indexOf("Raising an army")<0||mn.knowledge.join("|").indexOf("Killed three challengers")<0||mn.knowledge.join("|").indexOf("Remains inside Jorgenfist")<0||mn.knowledge.join("|").indexOf("deceptive proxy")<0)return "repair removed unrelated canon or failed to file the corrected identity: "+JSON.stringify(mn.knowledge);
+    if(mn.lastSeenAt!=="Jorgenfist")return "remote location not restored: "+JSON.stringify(mn);
+    if(memory.map.nodes.Sandpoint.npcs.indexOf("Mokmurian")>=0||memory.map.nodes.Jorgenfist.npcs.indexOf("Mokmurian")<0)return "map membership not moved conservatively";
+    if(worldState.questLog[0].objectives[0].done!==false)return "identity-dependent objective stayed completed";
+    var ar=memory.archive.npcDeathCorrections;
+    if(!ar||!ar.length||ar[0].before.world.dead!==1648||ar[0].before.memory.dead!==1648)return "reversible preimage missing: "+JSON.stringify(ar);
+    if(ar[0].before.memory.attitude!=="deceased"||ar[0].before.memory.knowledge.length!==4||ar[0].before.memory.events.length!==1)return "changed NPC memory arrays missing from preimage: "+JSON.stringify(ar[0].before.memory);
+    if(!ar[0].before.map.nodes||ar[0].before.map.nodes.length!==2)return "complete affected-node preimage missing: "+JSON.stringify(ar[0].before.map);
+    if(memory.lore.join("|").indexOf("deceptive proxy")<0)return "correction truth was not filed as durable lore";
+    makeWorld();worldState.npcs.push({name:"Alive One",status:"steady",rel:"ally",partyMember:false});memory.npcs["Alive One"]={attitude:"",knowledge:[],events:[],aliases:[]};
+    applyMuts("[NPC_DEATH_RETRACTED:Alive One|bad correction|Nowhere Invented]");
+    if(memory.archive.npcDeathCorrections!==undefined)return "non-death/unknown-node correction archived state";
+    makeWorld();worldState.world.location="Ashfen";
+    worldState.npcs.push({name:"Dead Here",status:"dead",statusTurn:4,rel:"enemy",dead:4,partyMember:false});
+    memory.npcs["Dead Here"]={attitude:"",knowledge:[],events:[],aliases:[],dead:4,lastSeenAt:"Ashfen"};
+    memory.map.nodes.Ashfen={firstVisit:1,visits:1,description:"",parent:null,npcs:["Dead Here"],items:[]};
+    applyMuts("[NPC_DEATH_RETRACTED:Dead Here|unsafe local correction|Ashfen]");
+    return npcIsDead(wsNpcByName("Dead Here"))&&memory.archive.npcDeathCorrections===undefined?true:"same-node correction was not refused without archive";
+  });
+
+  t("owner repair completion replay requires its prior receipt and the unchanged repaired node, then clears memory without duplicating the decision",function(){
+    makeWorld();worldState.turn=1669;worldState.world.location="Sandpoint";
+    worldState.npcs.push({name:"Mokmurian",status:"",statusTurn:0,rel:"enemy",partyMember:false});
+    memory.npcs.Mokmurian={attitude:"deceased",knowledge:["Raising an army at Jorgenfist","Slain by Ammut's unseen blade"],events:[{turn:1652,note:"Body posed to look asleep at his desk after death"}],aliases:[],lastSeenAt:"Jorgenfist"};
+    memory.map.nodes.Sandpoint={firstVisit:1,visits:3,description:"",parent:null,npcs:[],items:[]};
+    memory.map.nodes.Jorgenfist={firstVisit:null,visits:0,description:"",parent:null,npcs:["Mokmurian"],items:[]};
+    memory.map.nodes["Black Tower"]={firstVisit:null,visits:0,description:"",parent:null,npcs:[],items:[]};
+    memory.keyDecisions=[{turn:1668,desc:"Canon correction: Mokmurian was not the slain figure."}];
+    memArchive().npcDeathCorrections=[{turn:1668,name:"Mokmurian",reason:"The slain scholar was a deceptive proxy",location:"Jorgenfist",before:{world:{dead:1648},memory:{dead:1648},map:{}}}];
+    var tag="[NPC_DEATH_RETRACTED:Mokmurian|The slain scholar was a deceptive proxy; the party misidentified him and Mokmurian remains alive|Jorgenfist]";
+    applyMuts(tag);
+    var mn=memory.npcs.Mokmurian,ar=memory.archive.npcDeathCorrections;
+    if(mn.attitude!==""||mn.knowledge.join("|").indexOf("Slain by")>=0||mn.events.length)return "receipt-matched completion replay left stale death memory: "+JSON.stringify(mn);
+    if(mn.knowledge.join("|").indexOf("Raising an army")<0||mn.knowledge.join("|").indexOf("deceptive proxy")<0)return "completion replay lost unrelated canon or missed the correction: "+JSON.stringify(mn.knowledge);
+    if(ar.length!==2||ar[1].completionReplay!==true)return "completion replay did not archive its own preimage distinctly: "+JSON.stringify(ar);
+    if(memory.keyDecisions.length!==1)return "completion replay duplicated the already-filed story decision";
+    var cleanLen=ar.length;applyMuts(tag);
+    if(ar.length!==cleanLen)return "a clean completion replay kept growing the correction archive";
+    mn.attitude="deceased";mn.lastSeenAt="Black Tower";memory.map.nodes.Jorgenfist.npcs=[];memory.map.nodes["Black Tower"].npcs=["Mokmurian"];
+    var before=ar.length;applyMuts(tag);
+    if(ar.length!==before||mn.attitude!=="deceased"||mn.lastSeenAt!=="Black Tower")return "stale receipt dragged a progressed living NPC back to the old repair node";
+    return true;
+  });
+
+  t("W5 roster mood gate omits stale/legacy moods without hiding identity, relation, or pronouns",function(){
+    makeWorld();worldState.turn=100;worldState.npcs=[
+      {name:"Fresh",status:"alert, amused",statusTurn:95,rel:"ally",pronouns:"she/her",partyMember:false},
+      {name:"Stale",status:"watchful, tense",statusTurn:70,rel:"rival",pronouns:"he/him",partyMember:false},
+      {name:"Legacy",status:"cheerful",statusTurn:0,rel:"merchant",pronouns:"they/them",partyMember:false}
+    ];
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Fresh (mood: alert, amused, ally, she/her)")<0)return "fresh mood missing: "+v.slice(0,500);
+    if(v.indexOf("Stale (rival, he/him)")<0||v.indexOf("Legacy (merchant, they/them)")<0)return "age gate hid non-mood roster identity: "+v.slice(0,700);
+    if(v.indexOf("mood: watchful, tense")>=0||v.indexOf("mood: cheerful")>=0)return "stale/legacy mood still injected";
+    return true;
+  });
+
+  section("#168 W4/W5 remaining drift axes");
+  t("W4 location filing: exact Jorgenfist entry survives eight untagged turns; toward/map/remembering and a real tag stay silent",function(){
+    makeWorld();worldState.turn=10;memory.map.nodes.Jorgenfist={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[]};
+    observeDriftAxes("Through the breached curtain wall of Jorgenfist, you pass inside.","Through the breached curtain wall of Jorgenfist, you pass inside.");
+    worldState.turn++;observeDriftAxes("The basalt is scarred. [LOCATION_DESC:A breached giant fortress]","The basalt is scarred.");
+    for(var i=2;i<8;i++){worldState.turn++;observeDriftAxes("The fortress interior closes around you.","The fortress interior closes around you.");}
+    if(!worldState.locationFilingPing||worldState.locationFilingPing.place!=="Jorgenfist")return "exact entry did not arm: "+JSON.stringify(worldState.locationFilingPing);
+    var n=buildLocationFilingNudge();if(n.indexOf("[LOCATION:")<0||n.indexOf("[SUBLOCATION:")<0)return "location fork malformed: "+n;
+    makeWorld();memory.map.nodes.Jorgenfist={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[]};
+    var neg=["You ride toward Jorgenfist.","You enter the road toward Jorgenfist.","The map of Jorgenfist is stained.","Remembering Jorgenfist makes her shiver."];
+    for(i=0;i<neg.length;i++){worldState.turn++;observeDriftAxes(neg[i],neg[i]);}
+    if(worldState.locationFilingWatch||worldState.locationFilingPing)return "reference-only prose armed location filing";
+    observeDriftAxes("Through the breached curtain wall of Jorgenfist. [LOCATION:Jorgenfist]","Through the breached curtain wall of Jorgenfist.");
+    if(worldState.locationFilingWatch||worldState.locationFilingPing)return "a matching location tag did not suppress";
+    worldState.world.location="Jorgenfist";observeDriftAxes("Inside Jorgenfist, the gates grind shut.","Inside Jorgenfist, the gates grind shut.");
+    return !worldState.locationFilingWatch?true:"the already-current world place armed a false filing gap";
+  });
+
+  t("W4 wiring: committed GM turns arm the observer and the shared engine-note registry delivers it",function(){
+    makeWorld();memory.map.nodes.Jorgenfist={firstVisit:null,visits:0,description:null,parent:null,npcs:[],items:[]};
+    commitGmTurn("Through the breached curtain wall of Jorgenfist, you pass inside.",{userMsg:"u0",playerTxt:"p0"});
+    for(var i=1;i<8;i++)commitGmTurn("The fortress interior closes around you.",{userMsg:"u"+i,playerTxt:"p"+i});
+    if(!worldState.locationFilingPing)return "real turn path never armed location filing";
+    var n=buildEngineNotes();if(n.indexOf("LOCATION FILING GAP")<0)return "shared note registry did not deliver the armed observer: "+n;
+    var funcs=[buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge],j;
+    for(j=0;j<funcs.length;j++)if(NOTE_BUILDERS.indexOf(funcs[j])<0)return "W4/W5 note builder missing from registry at "+j;
+    var fields=["locationFilingPing","travelPricePing","commitmentPing","futureResolveHints","locationTwinConflicts","consumablePending"];
+    for(j=0;j<fields.length;j++)if(NOTE_LATCH_FIELDS.indexOf(fields[j])<0)return fields[j]+" missing from rollback latch registry";
+    return true;
+  });
+
+  t("W4 travel pricing asks only for the clock shortfall; an honest two-day advance suppresses",function(){
+    makeWorld();worldState.clock={min:0,schedule:[]};worldState.world.location="Ridge";worldState.turn=20;
+    observeDriftAxes("Sandpoint still two days south.","Sandpoint still two days south.");
+    if(!worldState.travelPriceWatch||worldState.travelPriceWatch.destination!=="Sandpoint")return "travel price not armed: "+JSON.stringify(worldState.travelPriceWatch);
+    worldState.turn=23;clockAdvance(180);worldState.world.location="Sandpoint";
+    observeDriftAxes("You arrive. [LOCATION:Sandpoint][TIME_ADVANCE:180m]","You arrive.");
+    if(!worldState.travelPricePing||worldState.travelPricePing.shortfall!==2700)return "wrong shortfall: "+JSON.stringify(worldState.travelPricePing);
+    var n=buildTravelPriceNudge();if(n.indexOf("[TIME_ADVANCE:2700m]")<0)return "nudge did not price only the missing time: "+n;
+    makeWorld();worldState.clock={min:0,schedule:[]};worldState.world.location="Ridge";worldState.turn=20;
+    observeDriftAxes("Sandpoint still two days south.","Sandpoint still two days south.");clockAdvance(2880);worldState.turn=23;worldState.world.location="Sandpoint";
+    observeDriftAxes("You arrive. [LOCATION:Sandpoint][TIME_ADVANCE:2d]","You arrive.");
+    return worldState.travelPricePing?"honest advance still armed":true;
+  });
+
+  t("W4 dated commitment: Wyla's money-plus-interval line arms; any lifecycle tag suppresses",function(){
+    makeWorld();worldState.turn=40;
+    var s='Wyla says, "Twelve hundred gold. Call it five days."';observeDriftAxes(s,s);
+    if(!worldState.commitmentPing)return "Wyla commitment missed";
+    var n=buildCommitmentNudge();if(n.indexOf("[SCHEDULE:")<0||n.indexOf("[FUTURE_EVENT:")<0||n.indexOf("[QUEST:")<0)return "commitment fork malformed: "+n;
+    makeWorld();observeDriftAxes(s+" [SCHEDULE:Wyla pays 1200 gold|5d]",s);
+    return worldState.commitmentPing?"tagged commitment still armed":true;
+  });
+
+  t("W4 clock-aware future events promote strict durations, including legacy rows",function(){
+    makeWorld();worldState.clock={min:100,schedule:[]};
+    fileFutureEvent("five days","","Wyla delivers twelve hundred gold",10);
+    if(memory.futureEvents.length!==0)return "strict duration stayed in turn-aged store: "+JSON.stringify(memory.futureEvents);
+    if(worldState.clock.schedule.length!==1||worldState.clock.schedule[0].dueMin!==7300)return "strict duration scheduled wrong: "+JSON.stringify(worldState.clock.schedule);
+    makeWorld();worldState.clock={min:500,schedule:[]};memory.futureEvents=[{when:"in 2 days",who:"",what:"The smith finishes the blade",setTurn:1,resolved:false}];
+    expireFutureEvents();
+    if(memory.futureEvents.length||worldState.clock.schedule.length!==1||worldState.clock.schedule[0].dueMin!==3380)return "legacy duration did not promote: "+JSON.stringify({f:memory.futureEvents,s:worldState.clock.schedule});
+    return true;
+  });
+
+  t("W4 future-event resolve assist requires both token overlap and an outcome verb",function(){
+    makeWorld();memory.futureEvents=[{when:"soon",who:"",what:"Group will go to the bathhouse",setTurn:10,resolved:false}];
+    futureResolveAssist("The party entered the bathhouse and bathed there together.");
+    if(!worldState.futureResolveHints||worldState.futureResolveHints[0].what.indexOf("bathhouse")<0)return "completed bathhouse event not surfaced";
+    var n=buildFutureResolveNudge();if(n.indexOf("[FUTURE_EVENT_RESOLVED:Group will go to the bathhouse]")<0)return "resolve tag not prefilled: "+n;
+    makeWorld();memory.futureEvents=[{when:"soon",who:"",what:"Group will go to the bathhouse",setTurn:10,resolved:false}];
+    futureResolveAssist("They discuss the bathhouse plan and leave it for later.");
+    return worldState.futureResolveHints?"mere mention treated as completion":true;
+  });
+
+  t("W5 duplicate grants warn without blocking, but repeated tags still express quantity",function(){
+    makeWorld();worldState.character.inventory=["The Stone Giant's Lair satchel"];
+    applyMuts("[ITEM_GAINED:The Stone Giant's Lair satchel]");
+    var a=worldState.tagLog[worldState.tagLog.length-1],am=(a.m||[]).join("|");
+    if(worldState.character.inventory[0]!=="The Stone Giant's Lair satchel x2")return "duplicate grant was blocked";
+    if(am.indexOf("DUPLICATE ITEM")<0)return "duplicate grant was silent: "+JSON.stringify(a);
+    makeWorld();worldState.character.inventory=[];applyMuts("[ITEM_GAINED:Torch][ITEM_GAINED:Torch][ITEM_GAINED:Torch]");
+    var b=worldState.tagLog[worldState.tagLog.length-1];if((b.m||[]).join("|").indexOf("DUPLICATE ITEM")>=0)return "documented repeated-tag quantity warned";
+    worldState.npcs.push({name:"Frizwick",partyMember:true,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:["Runed blade"],conditions:[],relationships:[]}});
+    applyMuts("[COMPANION_ITEM_GAINED:Frizwick|Runed blade]");
+    var c=worldState.tagLog[worldState.tagLog.length-1];return (c.m||[]).join("|").indexOf("DUPLICATE ITEM")>=0?true:"companion duplicate was silent";
+  });
+
+  t("W5 world/sub-location twin is refused loudly without minting a node or edge; a live world key remains legal",function(){
+    makeWorld();worldState.world.location="Sandpoint";memory.map.nodes.Sandpoint={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};
+    memory.map.nodes["Sandpoint|Sealed Forge Passage"]={firstVisit:3,visits:1,description:null,parent:"Sandpoint",npcs:[],items:[]};
+    var edgeCount=memory.map.edges.length;applyMuts("[LOCATION:Sealed Forge Passage]");
+    if(worldState.world.location!=="Sandpoint")return "party moved into a child-twin";
+    if(memory.map.nodes["Sealed Forge Passage"]||memory.map.edges.length!==edgeCount)return "world twin minted graph data";
+    if(!worldState.locationTwinConflicts)return "refusal was silent";
+    var n=buildLocationTwinNudge();if(n.indexOf("[SUBLOCATION:Sealed Forge Passage]")<0)return "twin repair fork malformed: "+n;
+    memory.map.nodes["Sealed Forge Passage"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[]};
+    applyMuts("[LOCATION:Sealed Forge Passage]");
+    return worldState.world.location==="Sealed Forge Passage"?true:"existing world node was wrongly refused";
+  });
+
+  t("W5 world time renders only from the clock while stored free text remains non-authoritative flavor",function(){
+    makeWorld();worldState.clock={min:420,schedule:[]};worldState.world.time="dawn";
+    if(worldTimeDisplay()!=="Day 1, 1:00 pm")return "wrong derived label: "+worldTimeDisplay();
+    var v=buildSysPrompt().volatile;
+    if(v.indexOf("Time: Day 1, 07h 00m elapsed")<0)return "prompt lacks derived time";
+    return v.indexOf("Time: dawn")<0?true:"stale flavor still rendered as authority";
+  });
+
+  t("W5 consumable checks re-fire boundedly without a fresh mention and resolve on ITEM_KEPT",function(){
+    __consWorld();detectGhostConsumables("","A charge detonates below.");
+    if(buildConsumableNudge().indexOf("Blasting charge")<0)return "first delivery missing";
+    if(!worldState.consumablePending||worldState.consumablePending[0].attempts!==1)return "persistent check not stamped";
+    worldState.turn+=CONSUMABLE_NUDGE_COOLDOWN;
+    if(buildConsumableNudge().indexOf("Blasting charge")<0||worldState.consumablePending[0].attempts!==2)return "unanswered check did not re-fire";
+    applyMuts("[ITEM_KEPT:Blasting charge]");worldState.turn+=CONSUMABLE_NUDGE_COOLDOWN;
+    return !worldState.consumablePending&&buildConsumableNudge()===""?true:"answered check survived";
   });
 
   t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){

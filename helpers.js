@@ -188,35 +188,68 @@ function normalizeEndpointPair(name){
 // B3: the dead filter reads the durable flag, not the status regex — a "half-dead, bleeding out"
 // companion is ALIVE and no longer silently excluded.
 // #137 stay-behind watcher — the PURE half (game.js commitGmTurn calls it on the raw response).
-// Detects a party member narrated as staying behind / separating: a separation verb WITH a
-// locative tail ("stays behind/here/at…", "hangs back", "keeps watch", "left behind") within
-// ~90 chars of the member's name. The locative requirement is the false-positive lever —
-// "stays low", "remains unconvinced" carry no place and never fire. KNOWN MISS, by design:
+// Detects a party member narrated as staying behind / separating only when the name is the
+// clause-local subject (or owns an explicit first-person commitment), plus named departures and
+// a pronoun departure whose preceding clause names exactly one party member. Possessives,
+// plans/commands, and "with us/the party" remain silent. KNOWN MISS, by design:
 // separations narrated without any stay-verb (Morwen sealing the door from outside, t1457)
 // are invisible here — that class belongs to buildPresenceAudit, the deterministic sibling.
 // Returns the first matching name or null. Never fires when the response already carries a
 // [PARTY_SPLIT:] (the caller checks — a tagged separation needs no nudge).
-var STAY_BEHIND_RE=/(?:stay(?:s|ing)?|remain(?:s|ing)?|wait(?:s|ing)?)[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b|with\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn'?t\s+coming|not\s+coming\s+(?:along|down|inside)/i;
-function detectStayBehind(text,partyNames){
-  var t=String(text||"");
-  if(!t||!partyNames||!partyNames.length)return null;
-  for(var i=0;i<partyNames.length;i++){
-    var nm=partyNames[i];
-    var esc=String(nm).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    var re=new RegExp("\\b"+esc+"\\b","g"),m;
-    while((m=re.exec(t))){
-      var win=t.slice(Math.max(0,m.index-90),m.index+nm.length+90);
-      if(STAY_BEHIND_RE.test(win))return nm;
-    }
-    // first-name half of a multi-word name ("Morwen" for "Morwen Zethran") — same window rule
-    var first=String(nm).split(/\s+/)[0];
-    if(first&&first!==nm){
-      var re2=new RegExp("\\b"+first.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g");
-      while((m=re2.exec(t))){
-        var win2=t.slice(Math.max(0,m.index-90),m.index+first.length+90);
-        if(STAY_BEHIND_RE.test(win2))return nm;
+function _partyNameForms(name){var a=[String(name)],f=String(name).split(/\s+/)[0];if(f&&f!==name)a.push(f);return a;}
+function _partyNameHits(text,partyNames){
+  var out=[],seen={},i,j,m,forms,esc,re;
+  for(i=0;i<partyNames.length;i++){
+    forms=_partyNameForms(partyNames[i]);
+    for(j=0;j<forms.length;j++){
+      esc=forms[j].replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&");re=new RegExp("\\b"+esc+"\\b","gi");
+      while((m=re.exec(text))){
+        if(j>0&&seen[i+"|"+m.index])continue;
+        seen[i+"|"+m.index]=1;out.push({name:partyNames[i],form:forms[j],at:m.index,end:m.index+m[0].length});
       }
     }
+  }
+  out.sort(function(a,b){return a.at-b.at;});return out;
+}
+function _partyClauseSeparation(clause,partyNames){
+  if(/^\s*(?:["“”]\s*)?(?:if|unless|should|would|could)\b/i.test(clause))return null;
+  var hits=_partyNameHits(clause,partyNames),i,j,h,tail,vm,gap,after,esc,attr,firstPerson,otherSubject;
+  for(i=0;i<hits.length;i++){
+    h=hits[i];
+    if(/^['’]s\b/i.test(clause.slice(h.end)))continue;
+    tail=clause.slice(h.end);
+    vm=tail.match(/^([^.!?;]{0,45}?)(?:(?:stay(?:s|ing)|remain(?:s|ing)|wait(?:s|ing))[\s,]+(?:behind|here|there|put|at\b|outside|below|above|by\b)|hang(?:s|ing)?\s+back|keep(?:s|ing)?\s+watch|left\s+behind|isn['’]?t\s+coming|is\s+not\s+coming|not\s+coming\s+(?:along|down|inside)|leaves|left|depart(?:s|ed)|is\s+gone|(?:rides|rode)\s+ahead|heads\s+back|goes\s+ahead)/i);
+    if(vm){
+      gap=vm[1];after=tail.slice(vm.index+vm[0].length);
+      otherSubject=false;for(j=0;j<hits.length;j++){if(hits[j].at>h.at&&hits[j].at<h.end+gap.length){otherSubject=true;break;}}
+      if(!otherSubject&&!/\b(?:to|may|might|will|would|could|should|if|unless|she|he|they)\b/i.test(gap)&&
+         !/\bwith\s+(?:us|the\s+party)\b/i.test(vm[0]+after.slice(0,35)))return h.name;
+    }
+    esc=String(h.form||h.name).replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&");
+    attr=new RegExp("(?:\\b"+esc+"\\b\\s+(?:says?|said|answers?|answered|murmurs?|murmured)|(?:says?|said|answers?|answered|murmurs?|murmured)\\s+\\b"+esc+"\\b)","i");
+    firstPerson=/["“]\s*I(?:['’]ll|\s+will|\s+am\s+going\s+to)?\s+(?:stay|remain|wait)\b/i;
+    if(attr.test(clause)&&firstPerson.test(clause))return h.name;
+  }
+  return null;
+}
+function detectStayBehind(text,partyNames){
+  var t=String(text||"");if(!t||!partyNames||!partyNames.length)return null;
+  var clauses=t.match(/[^.!?;\n]+[.!?;]*/g)||[],i,hit;
+  for(i=0;i<clauses.length;i++){hit=_partyClauseSeparation(clauses[i],partyNames);if(hit)return hit;}
+  for(i=1;i<clauses.length;i++){
+    if(!/^\s*(?:then\s+)?(?:she|he|they)\s*(?:is|['’]s|are|['’]re)\s+gone\b/i.test(clauses[i]))continue;
+    var ph=_partyNameHits(clauses[i-1],partyNames),uniq={},names=[],j;
+    for(j=0;j<ph.length;j++){if(!uniq[ph[j].name]){uniq[ph[j].name]=1;names.push(ph[j].name);}}
+    if(names.length===1)return names[0];
+  }
+  return null;
+}
+function detectPartyAbsenceCorrection(text,partyNames){
+  var t=String(text||"");if(!/^\s*(?:GM|OOC)\s*:/i.test(t)||!partyNames||!partyNames.length)return null;
+  var hits=_partyNameHits(t,partyNames),i,h,tail;
+  for(i=0;i<hits.length;i++){
+    h=hits[i];if(/^['’]s\b/i.test(t.slice(h.end)))continue;tail=t.slice(h.end,h.end+80);
+    if(/^\s+(?:(?:(?:is|was)\s+(?:(?:currently\s+)?not|not\s+currently|no\s+longer)|isn['’]?t|wasn['’]?t)\s+(?:with\s+(?:us|the\s+party)|here\b|present\b|in\s+this\s+scene\b)|(?:is|was)\s+absent\b)/i.test(tail))return h.name;
   }
   return null;
 }

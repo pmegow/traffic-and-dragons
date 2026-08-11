@@ -19,9 +19,9 @@
 //   • Firing SURFACES to the GM (buildClockBlock → HAPPENING NOW); the GM narrates and emits the
 //     consequent tag itself. The engine tracks time; the GM stays the only mutator.
 //
-// v1 SCOPE: the clock measures ELAPSED campaign time. Mapping elapsed → an in-world wall-clock
-// date (named months, "3rd of Frostfall") and retiring free-text [TIME:] are the fast-follow —
-// both are the display / date-projection layer. So this file does NOT touch world.time.
+// The clock measures ELAPSED campaign time. The dawn-anchored wall-clock projection is derived
+// here too; named calendar dates remain a future layer. world.time survives as compatibility
+// flavor and [TIME:] input, but all current-time rendering comes from the clock scalar.
 //
 // #89 (v1.433, ratified 2026-07-23): the Day boundary IS dawn — clock%1440==0 ≡ dawn (~6am).
 // This adds an INTERPRETATION to the existing boundary, not a new offset: Day numbers are
@@ -116,6 +116,20 @@ function parseDuration(str){
   return any?total:0;
 }
 
+// W4: only a deliberately narrow duration grammar may cross from the fuzzy future-event store
+// into the deterministic scheduler. Natural-language dates ("after the feast", "at dusk") stay
+// pending for GM judgment; exact scalar intervals get one clock authority immediately.
+var FUTURE_NUMBER_WORDS={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
+function parseStrictFutureDuration(str){
+  var s=String(str==null?"":str).toLowerCase().trim();
+  s=s.replace(/^(?:in|within|after)\s+/,"");
+  var m=s.match(/^(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)$/);
+  if(!m)return 0;
+  var n=/^\d+$/.test(m[1])?parseInt(m[1],10):FUTURE_NUMBER_WORDS[m[1]];
+  if(!n||n<1)return 0;
+  var u=m[2].charAt(0);return u==="w"?n*7*MIN_PER_DAY:u==="d"?n*MIN_PER_DAY:u==="h"?n*MIN_PER_HOUR:n;
+}
+
 // #89: an overnight sleep — roll forward to the next Day boundary, which IS dawn (see header).
 // Returns the minutes added (1..1440): bedding down 10 minutes before dawn sleeps 10 minutes
 // ("the rest of the night"); sleeping AT dawn exactly sleeps a full day to the next dawn
@@ -179,6 +193,14 @@ function clockTimeOfDay(min){
 function clockStamp(min){
   var v=(min==null?clockNow():min);
   return "Day "+clockDayNumber(v)+", "+clockTimeOfDay(v);
+}
+
+// W5: the clock scalar is authoritative wherever time is rendered. world.time survives only as
+// compatibility/flavor input for [TIME:] reconciliation and old saves; it is never displayed
+// beside the clock as a second current truth.
+function worldTimeDisplay(min){
+  if(typeof worldState!=="undefined"&&worldState&&worldState.clock&&typeof worldState.clock.min==="number")return clockStamp(min);
+  return (typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.time)||"not set";
 }
 
 // Render a positive minute-gap as the coarsest natural phrase: "in 7 days", "in 3 hours",
@@ -368,7 +390,10 @@ function clockPhaseAssertion(text){
   var _sq=(s.match(/"/g)||[]).length;
   if(_sq%2)return null;
   if((s.match(/“/g)||[]).length!==(s.match(/”/g)||[]).length)return null;
-  var best=null,re=/[^.!?]+[.!?]*/g,m;
+  /* Keep terminal closing quotes on the sentence they close. The old splitter ended at the
+     punctuation and made the quote the first character of the NEXT narration sentence; the
+     any-quote precision guard then rejected that innocent sentence (the exact t1605 miss). */
+  var best=null,re=/[^.!?]+(?:[.!?]+["”]*|$)/g,m;
   while((m=re.exec(s))){
     var sent=m[0],off=m.index;
     if(/\?\s*$/.test(sent))continue;
@@ -386,6 +411,9 @@ function clockPhaseAssertion(text){
       while((pm=TIME_PHASES_PROSE[i].exec(sent))){
         var st=pm.index,en=pm.index+pm[0].length,ov=false;
         if(/\b(?:this|that)\s+$/i.test(sent.slice(Math.max(0,st-8),st)))continue;/* #158 (t1586): "this afternoon"/"that morning" is a REFERENCE to a period, not a scene-time assertion */
+        /* Reject only a cue syntactically governed by "before" ("escape before dawn"). Bare
+           `before` cannot reject the whole sentence: "Dawn breaks before you" asserts dawn. */
+        if(/\bbefore(?:\s+the)?\s+$/i.test(sent.slice(Math.max(0,st-24),st)))continue;
         for(j=0;j<claimed.length;j++){if(st<claimed[j].en&&en>claimed[j].st){ov=true;break;}}
         if(!ov)claimed.push({st:st,en:en,idx:i,label:pm[0]});
       }

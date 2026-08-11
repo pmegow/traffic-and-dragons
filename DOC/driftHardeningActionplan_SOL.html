@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sol Review — Drift Hardening Action Plan</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a20;--panel2:#1d2129;--ink:#d8dbe2;--muted:#9098a7;--line:#303642;--gold:#c5a365;--green:#78b98b;--amber:#d6a458;--red:#d27676;--blue:#76a9d4;--code:#11141a}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.58 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:44px 24px 80px} h1{font:600 31px/1.15 Georgia,serif;color:#eee;margin:0 0 8px} h2{font:600 22px/1.25 Georgia,serif;color:var(--gold);margin:42px 0 14px;border-bottom:1px solid var(--line);padding-bottom:8px} h3{font-size:16px;color:#ece7dc;margin:25px 0 8px} p{margin:8px 0 14px} a{color:#9fc2df;text-decoration:none} a:hover{text-decoration:underline} code{background:var(--code);border:1px solid #292e38;border-radius:4px;padding:1px 5px;color:#e7d5b3;font:13px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace} ul,ol{margin:8px 0 16px;padding-left:25px} li{margin:5px 0}
+.sub{color:var(--muted);font-size:13px}.callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:7px;padding:15px 17px;margin:18px 0}.stop{border-left-color:var(--red)}.good{border-left-color:var(--green)}
+table{width:100%;border-collapse:collapse;margin:12px 0 24px;background:var(--panel);font-size:13.5px} th,td{border:1px solid var(--line);padding:10px 11px;text-align:left;vertical-align:top} th{background:#20252e;color:#eee;font-weight:600} tr:nth-child(even) td{background:#15191f}.v{white-space:nowrap;font:bold 11px/1.1 ui-monospace,Consolas,monospace;letter-spacing:.04em}.yes{color:var(--green)}.rev{color:var(--amber)}.no{color:var(--red)}.hold{color:var(--blue)}
+.pill{display:inline-block;border-radius:4px;padding:3px 7px;margin-right:6px;font:bold 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.05em;border:1px solid currentColor}.pill.yes{background:#14241b}.pill.rev{background:#2a2115}.pill.no{background:#2a1719}.pill.hold{background:#172331}
+.quiet{color:var(--muted)} .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}.tight td{padding:8px 9px}.num{color:var(--gold);font-weight:700}.foot{margin-top:45px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media(max-width:760px){main{padding:26px 12px 60px}table{display:block;overflow-x:auto}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Sol review of the drift-hardening action plan</h1>
+<div class="sub">Review target: <a href="driftHardeningActionplan.html">driftHardeningActionplan.html</a> · code/save changes expressly out of scope · 2026-08-11</div>
+
+<div class="callout stop">
+  <strong>Verdict: approve the program, but do not execute the plan as written.</strong>
+  The incident register is strong and W1 is ready for failing-first implementation. The plan also correctly identifies the need for referential integrity, summary validation, and a two-axis relationship design. However, several proposed detectors are not yet mechanically defined, and several repair recipes would replace observed drift with a new guess. The most serious are the preferred Mokmurian retcon, the blanket re-key of 56 transcript entries, use of an ordinary <code>[NPC:Sable|…]</code> tag for an offstage person, natural-language duration passed to a parser that turns it into one minute, exclusion of companions from NPC memory, and unreceipted direct edits/deletes of derived canon.
+</div>
+
+<p>This review endorses an item only where the mechanism, authority, and failure condition line up. <span class="v yes">ENDORSE</span> means the proposed outcome is supported. <span class="v rev">REVISE</span> means the problem is real but the action needs the stated constraints. <span class="v no">REJECT</span> means the action as written is likely to corrupt or erase evidence. <span class="v hold">DESIGN / MEASURE</span> means no implementation should start until the proposal or corpus gate is complete.</p>
+
+<h2>1. Executive adjudication</h2>
+
+<table class="tight">
+<tr><th>Area</th><th>Sol verdict</th><th>Why</th></tr>
+<tr><td>W1 — Owed/wed</td><td><span class="pill yes">ENDORSE</span></td><td>Exact cause, exact live input, shared authority, and a falsifiable full-pipeline test. Correct the documented runtime order and preserve intended morphology.</td></tr>
+<tr><td>W2 — referential integrity</td><td><span class="pill rev">ENDORSE DESIGN, REVISE SCOPE</span></td><td>The wrong-corpse class is structural. Reuse the shipped #156 identity spine; add preflight/transaction semantics before claiming quest and reward quarantine.</td></tr>
+<tr><td>W3 — recognizers</td><td><span class="pill rev">ENDORSE SEPARATELY</span></td><td>All four causes are real, but they touch four authorities and need four failing-first changes. Several negative boundaries are still undefined.</td></tr>
+<tr><td>W4 — missing axes</td><td><span class="pill hold">DESIGN / MEASURE</span></td><td>The observed gaps are real; the proposed general detectors can misprice time, misread dialogue, and create competing lifecycle authorities. They are not implementation-ready.</td></tr>
+<tr><td>W5 — receipts/hygiene</td><td><span class="pill rev">MIXED</span></td><td>Provenance, derived time, and a typed bookkeeping receipt are good. Party-memory exclusion, blind given-name aliases, delayed RETCON nudging, and the XP-difference heuristic are rejected.</td></tr>
+<tr><td>W6 — summary validation</td><td><span class="pill rev">ENDORSE DESIGN, SPLIT</span></td><td>Validate the whole extraction before any write. Recurring-name registration is a separate proposal with different evidence and failure modes.</td></tr>
+<tr><td>W7 — bond/dynamic</td><td><span class="pill rev">ENDORSE DESIGN</span></td><td>The storage split helps only if write authority is explicit. A regex deciding which axis to overwrite would preserve the original failure class.</td></tr>
+<tr><td>Campaign repair</td><td><span class="pill rev">PARTIAL</span></td><td>Containment is urgent. Every destructive or identity-bearing repair needs a preimage and evidence-scoped target; several listed operations are unsupported by the named tool.</td></tr>
+</table>
+
+<h3>Actions I strongly reject as written</h3>
+<ol>
+<li><strong>Recommendation of Mokmurian Branch A.</strong> The plan itself quotes two committed on-screen judgments that the tablet reader was not Mokmurian. Branch A is an owner retcon or later reveal, not the evidence-preserving default.</li>
+<li><strong>Re-keying all 56 t1593–t1649 transcript entries to Jorgenfist.</strong> That window includes ridge/travel scenes before fortress entry. Only an entry-by-entry evidence manifest may change derived <code>e.l</code>.</li>
+<li><strong>Excluding party sheet-holders from <code>memory.npcs</code>.</strong> Companion attitudes, knowledge, history, first encounter, death, and location are intentional continuity. Exclude the player from the NPC channel; retain companions.</li>
+<li><strong>Using <code>[NPC:Sable|whereabouts unknown|…]</code> to register Sable.</strong> The ordinary NPC handler maps a living re-mentioned NPC to the current location, falsely placing offstage Sable with the party.</li>
+<li><strong>Passing “five days” into the current scheduler.</strong> <code>parseDuration("five days")</code> returns 0; <code>scheduleAdd</code> clamps that to one minute. Use a normalized <code>5d</code>/7200-minute value only after the contract is decided and tested.</li>
+<li><strong>A blanket <code>\bbefore\b</code> phase rejection.</strong> It rejects the entire sentence, including legitimate present assertions. Reject only a phase cue governed by a future-relative “before”.</li>
+<li><strong>A delayed RETCON nudge as described.</strong> If the GM retracts on turn N+1 and is asked to emit <code>[RETCON:]</code> on N+2, current logging de-indexes N+1 and N+2; the original false turn N can remain indexed. The tag must land on the correcting response or the engine needs a typed repair that names the superseded entry.</li>
+<li><strong>The “difference &gt; largest award” companion-XP tripwire.</strong> Cross-sectional XP differences can be legitimate after joins, splits, deaths, or solo awards. Without an award/participation ledger, the threshold is not evidence of drift.</li>
+<li><strong>Blanket story-beat campaign backfill and raw chapter/NPC deletion.</strong> Missing provenance cannot be reconstructed by stamping one answer on every row. Derived text still needs archived preimages and supersession receipts.</li>
+</ol>
+
+<h2>2. Workstream review</h2>
+
+<h3>W1 — close the Owed hole</h3>
+<p><span class="pill yes">ENDORSE</span> This is the only workstream ready to move directly to a failing test. <code>WEIGHTY_REL_RE</code> at <a href="../globals.js">globals.js:22</a> is used by both core-memory filing (<a href="../game.js">game.js:1140</a>) and downgrade detection (<a href="../game.js">game.js:1265</a>); today it matches <em>wed</em> inside <em>Owed</em>. Word boundaries solve the demonstrated substring class.</p>
+<ul>
+<li>Correct the test narrative: runtime order is snapshot → <code>applyMuts</code> → <code>detectCoreMoments</code> → <code>stampRelationshipChanges</code>, not parser → stamp → core detection (<a href="../game.js">game.js:1392–1404</a>).</li>
+<li>Make morphology explicit. An outer boundary around <code>widow</code> would stop matching <code>widowed</code>; an exact <code>betray</code> would stop matching <code>betrayed</code>. The legitimate matrix must include the forms the product actually intends: wed/weds/wedded/wedding if intended, wife/wives, widow/widowed, betray/betrayed/betrayal/betraying, lover/lovers, betrothed/betrothal, and the blood-bound forms.</li>
+<li>Run the exact two t1666 raw tags through the real commit order. Assert both relationship directions, the pending downgrade state, no false bond moment on any of the four witnessing sheets, persistence/re-fire, and pair-scoped resolution.</li>
+<li>Keep the false lexical cases: owed, showed, midwife, loathes, clover. Add case and punctuation variants.</li>
+</ul>
+
+<h3>W2 — referential integrity for high-impact writes</h3>
+<p><span class="pill rev">ENDORSE PROPOSAL; REVISE ARCHITECTURE</span> The diagnosis is correct: “known NPC” is not evidence that a named NPC is the corpse. The current summary backstop stamps an extracted death if the name is already on file (<a href="../memory.js">memory.js:1231–1241</a>), which creates the exact substitution bias seen with the anonymous scholar and Mokmurian.</p>
+<p>The proposal must extend, not parallel, the shipped #156 identity layer. <code>IDENTITY_DOMAINS</code>, provisional NPCs, same/distinct confirmation, and preimage receipts already own stored-entity resolution (<a href="../identity.js">identity.js:28, 404–465</a>). W2 adds a different missing concept: the actor occupying a scene role and the evidence linking that actor to a canonical entity.</p>
+<ul>
+<li><strong>Phase 1 scope:</strong> entity-bearing writes only—combat foe creation/death, direct NPC death, identity merge, and summary <code>npcDeaths</code>. Most quests have no entity target, so “gate every quest completion on a present scene entity” is not representable today.</li>
+<li><strong>Quest/reward scope requires a transaction design.</strong> <code>[XP:]</code> mutates and levels the party before the title-keyed quest handler runs; rewards carry no quest id, target, or transaction id (<a href="../tag_table.js">tag_table.js:403–450</a>). Post-hoc rollback is unsafe. A preflight envelope or explicit target/transaction metadata is required before W2 can promise to quarantine the whole bundle.</li>
+<li><strong>Live and delayed evidence have different lifetimes.</strong> A scene ledger that expires on transition cannot validate a later summarization window spanning several scenes. Either stamp compact entity evidence/source turns onto relevant transcript entries, require extraction output to cite that evidence, or keep live mutation gating and delayed summary validation as two coordinated paths.</li>
+<li><strong>Negative identity must be structured.</strong> A free-prose regex for “not Mokmurian” would itself be a recognizer on the hottest mutation path. Prefer an explicit exclusion/claim with source turn; otherwise proposal-first corpus validation is mandatory.</li>
+<li><strong>Preflight before mutation.</strong> <code>applyMutsTable</code> mutates handler by handler and continues after handler errors. Cross-tag quarantine belongs before table execution, not in <code>npcUpsertTarget</code> and not in rollback.</li>
+<li><strong>Critical overflow fails closed.</strong> Keep the narration, retain a visible unresolved item, and quarantine the mutation. A cap overflow must never mean “apply the unverified death anyway.”</li>
+</ul>
+<p>The action plan’s broader claim that the anti-drift plumbing is sound should be narrowed to “most shipped write/receipt paths operated as designed.” Known-only death eligibility and unlinked quest/reward tags are themselves load-bearing commit semantics, not merely an unwatched prose boundary.</p>
+
+<h3>W3 — recognizer repairs</h3>
+<p><span class="pill rev">ENDORSE FOUR SEPARATE CHANGES</span> The common lesson is valid; a common commit is not. Each recognizer has its own authority and negative corpus.</p>
+<table class="tight">
+<tr><th>Recognizer</th><th>Verdict</th><th>Required correction</th></tr>
+<tr><td>Phase splitter</td><td><span class="v yes">ENDORSE</span></td><td>Keep a terminal closing quote with the sentence it closes so following narration can be evaluated, while preserving whole-entry quote-parity distrust. Reject only a phase match syntactically governed by “before”; do not add bare <code>before</code> to the sentence-wide reject regex.</td></tr>
+<tr><td>Stay-behind</td><td><span class="v rev">REVISE</span></td><td>Clause-local subject binding and possessive exclusion fix the exact foot/calf false positive. OOC corrections need an explicit input path—the current detector sees only GM output. “Then she’s gone” may resolve only from one unique adjacent antecedent; never guess among same-gender companions. Include “stays here with the party,” commands, plans, quotes, negations, and multiple departures as hostile cases.</td></tr>
+<tr><td>SAY compliance</td><td><span class="v rev">ENDORSE CORE</span></td><td>Reuse the playback segmentation to prove compliant coverage. But segmentation assigns everything after a tag to that speaker; it cannot discover a new untagged speaker inside the same segment. Define a deterministic missing-tag boundary such as dialogue before the first tag or a new dialogue paragraph lacking a leading tag.</td></tr>
+<tr><td>Consumables</td><td><span class="v rev">ENDORSE TYPE AUTHORITY</span></td><td><code>itemLookup(...).category</code> is the correct classification authority. It does not prove use. “Alchemist’s fire” reduces to head noun “fire,” so ambient fire would be noisy; require a spend/use verb or fuller item phrase. Make loss/kept suppression owner-scoped so one holder’s tag does not silence another holder’s check.</td></tr>
+</table>
+
+<h3>W4 — missing-axis detectors</h3>
+<p><span class="pill hold">DESIGN / MEASURE BEFORE CODE</span> I endorse all five observed gaps, but not the proposed generalized implementations. A nudge that cannot decide its candidate and reset semantics precisely will create the same engine-note pressure this plan is trying to remove.</p>
+<table class="tight">
+<tr><th>Axis</th><th>Sol disposition</th><th>Minimum implementable contract</th></tr>
+<tr><td>Location filing</td><td><span class="v rev">REVISE</span></td><td>Track a resolved known place or a high-confidence proper named venue plus an arrival/entry predicate. Generic “hall/chamber/tunnel” is not an identity. Remote description, dialogue, maps, memories, exits, split-party cutaways, and unrelated location tags must not arm or clear it. Specify N-turn reset, multiple candidates, cooldown, transport rollback, and visible unresolved residue.</td></tr>
+<tr><td>Travel-day pricing</td><td><span class="v no">REJECT CURRENT NOTE</span></td><td>Track one identified journey, expected duration, destination, and cumulative clock charge. At t1655→t1658 the clock moved 205 minutes; asking for a fresh <code>[TIME_ADVANCE:2d]</code> would overcharge by those 205 minutes. Offer only the computed shortfall or ask the GM to correct the prose. Handle shortcuts, teleportation, changed destination, detours, and abandonment.</td></tr>
+<tr><td>Dated commitments</td><td><span class="v hold">PROPOSAL</span></td><td>Distinguish accepted obligation from quote, offer, conditional, cancellation, and banter; a random lifecycle tag must not suppress a different candidate. Normalize word-number durations before filing. The exact Wyla phrase “five days” currently parses to zero and becomes a one-minute schedule.</td></tr>
+<tr><td>Future-event clock lifecycle</td><td><span class="v rev">ONE AUTHORITY</span></td><td>Use schedule promotion as the sole exact-clock authority, with a normalized duration and archival receipt. Do not simultaneously add a second clock-expiry engine inside fuzzy <code>futureEvents</code>. The existing scheduler already retires near-duplicate future events when an explicit schedule is filed.</td></tr>
+<tr><td>Resolve assist</td><td><span class="v hold">MEASURE</span></td><td>Two-token overlap was tuned for short event/event and event/quest comparisons, not a long chapter. Require completion/outcome semantics in addition to overlap; restatement, negation, and failed attempt must not suggest resolution. Surface only—never auto-resolve—and use a bounded, transport-safe latch.</td></tr>
+</table>
+<p>The plan calls the new notes “one-shot” while its process rule says unresolved integrity flags remain visible. Resolve that contradiction in each state machine: delivery may be capped, but the unresolved fact must have an inspectable home.</p>
+
+<h3>W5 — receipts and hygiene, item by item</h3>
+<table class="tight">
+<tr><th>Action</th><th>Verdict</th><th>Review</th></tr>
+<tr><td>Duplicate item warning</td><td><span class="v rev">ENDORSE WITH LIMITS</span></td><td>Warn, never block. Scope by owner and canonical <code>itemBaseName</code>. A rename should normally be the existing loss+gain pair in one response; do not add a new parser vocabulary without a separate need. Choose one quantity authoring contract and test it—the docs currently say repeated tags, while the parser also accepts only single-digit <code>x2</code>…<code>x9</code>.</td></tr>
+<tr><td>Bookkeeping transcript receipt</td><td><span class="v rev">ENDORSE TYPED ROW</span></td><td>Do not store literal prose <code>(bookkeeping)</code>. Permit a typed GM receipt such as empty <code>x</code> plus <code>bk:1</code>, with truthful <code>.ck/.ta/.v</code>, excluded from story UI, RAG, dialogue splitting, summarization prose, and action generation. The type—not a magic string—makes it inert.</td></tr>
+<tr><td>tagLog two-letter names and non-empty mutation labels</td><td><span class="v yes">ENDORSE</span></td><td>The current <code>{2,}</code>-after-first shape misses HP/XP. Add exact HP/XP and descriptor-update fixtures; keep the ring observational and bounded.</td></tr>
+<tr><td><code>world.time</code> derived from clock</td><td><span class="v rev">ENDORSE DESIGN</span></td><td>One time authority, but this is not a localized S change: prompt construction, opening/skeleton paths, Table Talk, panels, errors, Sync, and <code>[TIME:]</code> read or write the stored string. Define a single derived API and what happens to legacy “flavor” before changing those readers.</td></tr>
+<tr><td>Exclude player + party from <code>memory.npcs</code></td><td><span class="v no">REJECT PARTY HALF</span></td><td>Block the player at summary <code>npcUpdates</code> and every other NPC write boundary. Do not exclude companions: their memory records intentionally hold attitude, knowledge, dated history, death, first encounter, and last-seen state. Suppress duplicate presentation if needed, not the data.</td></tr>
+<tr><td>Given-name auto-alias</td><td><span class="v no">REJECT</span></td><td><code>resolveNpcName</code> already resolves an unregistered shorter token set to exactly one existing NPC. A permanent first-name alias adds collision risk and does not solve Grafter↔Ilvane, whose names share no token. Let #128/#156 propose and confirm actual variants.</td></tr>
+<tr><td>World/sublocation twin refusal</td><td><span class="v rev">ENDORSE VIA IDENTITY LAYER</span></td><td>A refusal/nudge is safe when the exact resolved leaf already exists under the current world node. Cover legitimate same-leaf places, aliases, current sublocation, and an already-live world key. Route the decision through the location domain, not a parallel string guard.</td></tr>
+<tr><td>Roster mood age gate</td><td><span class="v yes">ENDORSE</span></td><td>The needed <code>statusTurn</code>, 12-turn constant, and age arithmetic already exist. Apply the age gate consistently and define treatment of legacy unstamped moods. Correct the evidence label: the ten cited nonparty moods are age 800 at t1667, not 850+.</td></tr>
+<tr><td>RETCON nudge</td><td><span class="v no">REJECT DELAYED TAG</span></td><td>It arrives one response too late for current “current + previous GM entry” de-index semantics. Detect and type the correction at the same commit seam, or create an explicit repair operation that names the superseded transcript entry.</td></tr>
+<tr><td>Companion-XP difference tripwire</td><td><span class="v no">REJECT</span></td><td>First settle semantics. Current implementation makes a named award supersede the shared mirror in that response, while the prompt documents <code>COMPANION_XP</code> as an individual bonus. A reliable audit needs award and participation provenance; total difference versus one award is not enough.</td></tr>
+<tr><td>Persistent consumable escalation</td><td><span class="v hold">DEFER</span></td><td>First fix classification, use detection, and owner scoping. Then a capped per-owner/item unresolved state with <code>ITEM_LOST</code>/<code>ITEM_KEPT</code> acknowledgement is reasonable. Escalating the current broad head-noun detector would amplify false notes.</td></tr>
+</table>
+
+<h3>W6 — summary-commit validation and recurring names</h3>
+<p><span class="pill rev">ENDORSE, BUT SPLIT THE TWO HALVES</span> Validation belongs between JSON parse and <code>applySummaryExtract</code>, before deaths, supersessions, facts, lore, decisions, events, or chapter text can mutate. A validator inside <code>fileChapter</code> is too late.</p>
+<ul>
+<li>Limit canonical identity rows to actors actually present in the extraction window. Distinguish explicit pronoun canon from the UI’s synthetic <code>they/them</code> fallback.</li>
+<li>Reject only high-confidence contradictions: an explicit structured subject, or one canonical actor with no competing antecedent. Ambiguity should pass with telemetry, never trigger blind replacement.</li>
+<li>Throw before any mutation so the existing retry path can be reused. Decide separately how validator strikes persist across reloads; today the three-failure counter is process-local.</li>
+<li>The degraded fallback cannot simply inject raw text known to contain an identity contradiction. Define a visible non-injected archive or memory-gap policy for exhausted identity failures.</li>
+</ul>
+<p>The Sable class is a separate registration proposal. Mine deterministic candidates from distinct GM transcript entries and attach evidence turns; exclude existing people, player/party, locations, quests, factions, and capability/item names. Human acceptance should create a minimal memory-only identity without inventing mood, relationship, pronouns, or presence. Do not route acceptance through ordinary <code>[NPC:]</code>, which would stamp the current location. Corpus-measure the proper-noun threshold and cap/dedupe both pending and refused candidates.</p>
+
+<h3>W7 — two-axis relationships</h3>
+<p><span class="pill rev">ENDORSE PROPOSAL WITH AN EXPLICIT WRITE CONTRACT</span> One fixed <code>bond</code> plus one fixed <code>dynamic</code> per resolved pair is bounded and addresses the data model problem. The schema alone does not prevent t1666.</p>
+<ul>
+<li>Generic/passive relationship updates may change <code>dynamic</code> but may not replace a non-empty <code>bond</code>.</li>
+<li>Bond creation, redefinition, severance, and removal need an explicit distinct operation and a reversible preimage receipt. If a regex decides the target axis, the Owed/wed class remains part of correctness.</li>
+<li>Core memories, reciprocity, and the durable graph should use <code>bond</code>; scene rendering can show both. Define removal semantics independently for dynamic, bond, and entire pair.</li>
+<li>Migrate an old single descriptor losslessly into <code>bond</code>, leaving dynamic empty, unless a human repair classifies it otherwise. Make the migration idempotent across <code>.tnd</code>, <code>.char</code>, live companions, PC switching, legacy injection, and UI/prompt readers.</li>
+<li>Enforce one canonical pair per resolved entity and descriptor length bounds; no per-change history array. New receipt arrays must ride import/export whitelists.</li>
+</ul>
+
+<h2>3. Owner decisions — recommended rulings</h2>
+<table>
+<tr><th>#</th><th>Action-plan decision</th><th>Sol response</th></tr>
+<tr><td class="num">1</td><td>Mokmurian fork</td><td><span class="pill no">REJECT A AS DEFAULT</span> Recommend Branch B or an explicitly unresolved identity. The committed scene says “Not Mokmurian himself” and then “not the warlord”; no new recognition evidence appears before the GM begins calling the same actor Mokmurian. The player later returns to “scholar-giant.” Later t1651/t1660/t1663 prose strongly repeats Branch A, so A is narratively coherent—but it is an owner-authored reveal/retcon of an earlier negative inference, not validation of the extractor. It must openly resolve and supersede the contradictory records. Do not blanket-claw back XP: the saved receipts show +2500 for the real scholar kill, +600 with the identity-contingent Mokmurian objective, and earlier +400/+800 satchel awards independent of the corpse identity.</td></tr>
+<tr><td class="num">2</td><td>Companion XP additive vs supersede</td><td><span class="pill rev">RULE FIRST</span> Recommend additive semantics because the prompt calls <code>COMPANION_XP</code> a solo bonus. Current code skips the shared mirror for a named companion, so implementation and contract conflict. Fix prospectively with exact mixed-tag fixtures; do not reconcile Frizwick’s 14,600 gap until an award history can justify the amount.</td></tr>
+<tr><td class="num">3</td><td>Adopt bond/dynamic</td><td><span class="pill yes">YES, PROPOSAL FIRST</span> Only with distinct bond write authority, lossless migration, removal semantics, and full reader/import inventory.</td></tr>
+<tr><td class="num">4</td><td>Approve W2 scope</td><td><span class="pill rev">APPROVE NARROWER SCOPE</span> Build on #156, start with entity-bearing death/merge paths, and design a transaction envelope before quest/reward gating. Include delayed-summary evidence lifetime explicitly.</td></tr>
+<tr><td class="num">5</td><td>Re-key 56 Jorgenfist entries</td><td><span class="pill no">NO BLANKET REWRITE</span> Exact save classification refutes the scope: 17 GM entries t1593–1610 are approach/exterior and Ridge is materially correct; t1611 is a mixed entry; 38 entries t1612–1649 are interior; t1650 is also clearly interior but omitted from the proposed 56; t1651 is mixed. A conservative repair is the 39 unambiguous interior entries t1612–1650, with t1611 separately ruled. Archive prior <code>{turn,index,e.l}</code> values and invalidate the transcript compression memo after nested metadata edits.</td></tr>
+<tr><td class="num">6</td><td>Shalelu/Wyla commitments</td><td><span class="pill rev">SPLIT THREE QUESTIONS</span> Do not mark “Consult Shalelu” done because t1653 merely suggests it; reword as missed/moot or identify the exact consultation. Decide the Wyla commission and Shalelu map independently. If Wyla remains live, file an explicitly normalized <code>5d</code>/7200-minute schedule or its correct remaining due time—never “five days” through today’s parser.</td></tr>
+</table>
+
+<h2>4. Campaign repair review</h2>
+
+<div class="callout good"><strong>Containment is endorsed now, after export:</strong> remove the four false t1666 defining moments with external preimage receipts and restore both Ammut↔Frizwick relationship directions to the last supported durable bond. No core-memory removal tag exists, and an update to an existing relationship descriptor currently emits no mutation label, so neither operation is self-receipting today. Keep the favor as a dynamic fact only if the owner wants it. Do not wait for every design track while contradictory permanent memories are injected on every turn.</div>
+
+<table class="tight">
+<tr><th>Repair</th><th>Verdict</th><th>Required change</th></tr>
+<tr><td>Mokmurian state/quest</td><td><span class="v no">REJECT A DEFAULT</span></td><td>Prefer alive/unknown and reopen only the entity-dependent objective, with a supersession receipt. Preserve the killed scholar as a separate anonymous/provisional actor. Leave reward adjustment to a separate owner ruling because the existing tags do not prove causal ownership.</td></tr>
+<tr><td>Collector / successor / orphan</td><td><span class="v rev">HUMAN SPLIT</span></td><td>Separate individual Marta, the Collector mantle/organization, and the later operative before allocating facts. “Scarred Stranger (Black-Eyed Man)” is not safe to merge blindly into the dead scarred woman. A normal death tag would stamp the fused record dead at the repair turn, not t414, so historical backdating and identity split need a repair tool. Every fact/death/alias needs an evidence turn and a chosen target.</td></tr>
+<tr><td>Ilvane / Grafter</td><td><span class="v yes">CONDITIONAL ENDORSE</span></td><td>If the transcript confirms one person, merge through the identity executor after a dry-run and preserve the full preimage, alias, interrogation facts, and death stamp.</td></tr>
+<tr><td>Savah</td><td><span class="v no">REJECT LISTED RECIPE</span></td><td>Registering a new apothecary and superseding poison lines on the armorer does not move the facts to the new person. Use a receipted split/allocate repair that assigns each knowledge/event/world record to one successor.</td></tr>
+<tr><td>Sable</td><td><span class="v no">REJECT NPC TAG</span></td><td>Create a minimal memory-only identity with evidence turns and no current-location stamp; then backfill or reindex only the exact historical scenes that mention her. The proposed “whereabouts unknown” operand would also be rendered as a current mood because field 2 is mood/condition. Ordinary registration affects future indexing only and does not backfill old <code>e.n</code>.</td></tr>
+<tr><td>Inventory</td><td><span class="v rev">ITEM-BY-ITEM</span></td><td>The duplicate satchel/blade and fact-as-item repairs are supported. Counts, ring/arrows holder, charges, and iron key require a one-row evidence ledger showing old value, transcript support, new value, and owner. Never use a broad normalize sweep.</td></tr>
+<tr><td>Consumed future events</td><td><span class="v rev">ENDORSE WITH EXTERNAL RECEIPT</span></td><td>Resolve the black-water and bathhouse entries by exact identity. Current <code>FUTURE_EVENT_RESOLVED</code> physically splices the record without archive or mutation receipt, so capture complete preimages externally or use a receipted repair operation. Refile live commitments only after decision 6 and duration normalization.</td></tr>
+<tr><td><code>world.time</code></td><td><span class="v yes">ENDORSE</span></td><td>Make the current value agree with the clock until derivation ships; receipt the preimage.</td></tr>
+<tr><td>Shalelu objective</td><td><span class="v rev">REWORD, DO NOT GUESS</span></td><td>A missed prerequisite is not a completed prerequisite. Mark the actual state the owner rules—done with exact evidence, skipped/moot, or still open. <code>[QUEST_STEP:]</code> can only toggle an exact objective or add a new one; it cannot reword/remove the old text, so rewording needs a receipted repair tool.</td></tr>
+</table>
+
+<h3>Map repair surface</h3>
+<p><span class="pill rev">ENDORSE PAIRWISE DRY-RUN; REJECT THE SECTION AS AN EXECUTABLE RECIPE</span> <a href="../map_cleanup.html">map_cleanup.html</a> supports only merge, reparent, split, and alias operations, applied through the identity executors with preimages. It does not directly re-scope descriptions, delete arbitrary edges, stamp visits, write state notes, or create/descriptively populate Jorgenfist. Some ghost edges may disappear as a side effect of a valid merge, but that must appear in the dry-run receipt.</p>
+<ul>
+<li>Evaluate each Sealed Forge Passage/Tunnel and Sandpoint|Varisia/Sandpoint pair independently. Default to leave when classification is ambiguous.</li>
+<li>Move description repair, arbitrary edge cleanup, Jorgenfist visit/state filing, and any content allocation to a separate tested repair operation with complete preimages. The merge executor only drops edges that become self-loops after identity resolution; a parent→child edge is not automatically one. Do not perform unsupported work by undocumented console mutation.</li>
+<li>Preserve the identity layer’s historical-pointer rule: old names resolve through the overlay. Rewrite historical indexes only when the stored location itself is factually wrong, not merely renamed.</li>
+</ul>
+
+<h3>Console repair surface</h3>
+<table class="tight">
+<tr><th>Listed console action</th><th>Sol verdict</th></tr>
+<tr><td>All 56 <code>e.l</code> values → Jorgenfist</td><td><span class="v no">REJECT.</span> The evidence-supported conservative set is t1612–1650 (39 GM entries), with t1611 mixed and 17 earlier entries correctly on the approach/exterior. Archive old value/reason and invalidate the transcript memo after nested <code>e.l</code> edits.</td></tr>
+<tr><td>Backfill every story-beat <code>camp</code></td><td><span class="v no">REJECT.</span> Multiple campaigns/runs and the contradictory Tharwick beat mean missing provenance is genuinely unknown. Stamp only evidence-mapped rows. Exact duplicates may be deduped with a preimage; contradictory beats should be superseded, not left active.</td></tr>
+<tr><td>Reconcile Frizwick XP</td><td><span class="v no">DEFER.</span> Decide semantics and reconstruct attributable awards first. A visible gap is not proof of the correct replacement number.</td></tr>
+<tr><td>Edit t1644 chapter/eventHistory text in place</td><td><span class="v no">REJECT RAW EDIT.</span> Correct the content, but archive the originals and record a superseding replacement/repair receipt. Derived summary text is still forensic evidence.</td></tr>
+<tr><td>Delete <code>memory.npcs["Ammut"]</code></td><td><span class="v rev">REVISE.</span> Exclude the player prospectively, classify useful facts into their correct tiers, archive the complete NPC preimage, then remove the duplicate from active NPC memory. Do not dump all facts into story beats or raw-delete the record.</td></tr>
+</table>
+
+<h2>5. Fixture matrix amendments</h2>
+<p>The action plan’s positives are valuable but too thin on hostile negatives. Add these as release gates:</p>
+<table class="tight">
+<tr><th>Surface</th><th>Missing assertion</th></tr>
+<tr><td>W1</td><td>Real runtime order; all four witnessing sheets; intended morphology; case/punctuation; no false ★; persistent pair resolves only after a supported rewrite.</td></tr>
+<tr><td>Phase</td><td>Straight and curly closers, broken parity still null, present cue plus future cue in one sentence, and cue-scoped “before” rather than sentence-wide rejection.</td></tr>
+<tr><td>Presence</td><td>Curly possessive, “stays here with the party,” command/proposal/quote/negation, two same-gender antecedents, multiple departures, and explicit OOC correction input.</td></tr>
+<tr><td>SAY</td><td>Untagged dialogue before first tag and a new untagged dialogue paragraph after a tagged paragraph; empty/unknown tag, scare quotes, and actual speaker-map coverage.</td></tr>
+<tr><td>Consumable</td><td>Ambient fire vs thrown Alchemist’s fire, bible override both directions, aliases, two owners of same base item, owner-specific loss/kept tags, and spend-verb requirement.</td></tr>
+<tr><td>Location</td><td>Known alias, generic room inside current venue, dialogue/map/memory/flashback/cutaway, wrong unrelated tag, ignored note, transport failure, and bounded unresolved residue.</td></tr>
+<tr><td>Travel</td><td>Computed shortfall after partial time, not a full duplicate duration; shortcut, teleport, detour, cancellation, changed destination, multiple journeys, and arrival without a location tag.</td></tr>
+<tr><td>Commitment/schedule</td><td><code>five days</code> versus <code>5d</code>; due exactly 7200 minutes, never one minute; offer vs acceptance; unrelated lifecycle tag; cancellation; promotion leaves no twin and archives a receipt.</td></tr>
+<tr><td>Resolve assist</td><td>Chapter merely restates, negates, fails, and completes the event; same person/different obligation; paraphrase with no shared stems.</td></tr>
+<tr><td>W2</td><td>Anonymous actor with explicit exclusion; source-turn evidence; scene transition before summarization; critical-cap overflow quarantines; unrelated quest/reward stays unaffected; no partial mutation on failed preflight.</td></tr>
+<tr><td>W6</td><td>Validation before every extracted write; competing antecedent passes; explicit contradiction retries; reload cannot evade the bound; degraded fallback cannot reinject the rejected contradiction.</td></tr>
+<tr><td>W7</td><td>Old descriptor migration is lossless/idempotent; generic dynamic update cannot overwrite bond; explicit bond change is receipted; removal semantics; PC/companion/import/export/prompt/UI parity.</td></tr>
+<tr><td>Bookkeeping receipt</td><td>Pure-tag response retains <code>.ta/.ck/.v</code> and mutation provenance, while story replay, RAG, summarization, TTS, and action suggestions remain silent.</td></tr>
+</table>
+
+<h2>6. Revised sequence</h2>
+<ol>
+<li><strong>Export and contain:</strong> back up the live campaign; purge the four false defining moments; restore the supported Ammut↔Frizwick bond pair with receipts. Leave Mokmurian unresolved/alive unless the owner explicitly chooses the retcon branch.</li>
+<li><strong>Ship W1 alone:</strong> exact t1666 replay, morphology matrix, real runtime order, all-green suite, version markers, tracker receipt.</li>
+<li><strong>Remove current prompt noise:</strong> ship SAY compliance as its own failing-first change after defining deterministic untagged boundaries.</li>
+<li><strong>Land low-risk observability separately:</strong> tag provenance, non-empty mutation labels, typed bookkeeping receipt, and clock-derived world time.</li>
+<li><strong>Repair the remaining W3 recognizers independently:</strong> phase splitter/cue scope, stay-behind subject binding/OOC path, then consumable TYPE + owner/use semantics. Do not couple their rollback.</li>
+<li><strong>Write the W2/W6 identity-commit proposal:</strong> reuse #156; decide live versus delayed evidence, structured exclusions, preflight transaction scope, summary rejection, and exhausted-failure policy. Build only after owner ruling.</li>
+<li><strong>Write W7 independently:</strong> explicit bond operations, migration/readers/imports, and reversible receipts.</li>
+<li><strong>Instrument and corpus-test W4 before implementation:</strong> location candidates, journey state/shortfall, accepted commitments/duration normalization, single lifecycle authority, and outcome-aware resolve suggestions.</li>
+<li><strong>Run the campaign repair through tested surfaces:</strong> pairwise map dry-runs; typed split/allocation for Collector/Savah; minimal offstage Sable registration; per-entry location-index manifest; exact inventory/future-event repairs; archived preimages for every console-only change.</li>
+<li><strong>Exit audit:</strong> replay exact failures, inspect fresh prompt/state/export, verify no false notes, and compare every repair receipt against its saved preimage.</li>
+</ol>
+
+<h2>7. Final position</h2>
+<div class="callout">
+<strong>Endorsed direction:</strong> W1, segmentation-aware SAY compliance, item-bible consumable classification, typed receipts/provenance, one clock authority, proposal-first referential integrity, precommit summary validation, and explicit bond/dynamic storage.<br>
+<strong>Rejected shortcuts:</strong> canonizing Mokmurian to preserve downstream state, mass-rekeying a mixed transcript window, turning fuzzy language into scheduler input, excluding companions from memory, registering an offstage NPC through a presence-stamping tag, heuristically equalizing XP, and overwriting/deleting audit evidence without preimages.<br>
+<strong>Bottom line:</strong> the action plan is a good reconciliation document and an unsafe execution script. Incorporating the constraints above turns it into a defensible implementation and repair program.
+</div>
+
+<div class="foot">
+Evidence read: <a href="driftHardeningActionplan.html">reconciled action plan</a>, <a href="driftHardening_fable.html">Fable audit</a>, <a href="driftHardening_SOL.html">Sol drift analysis</a>, <a href="identity_hardening_fable.html">identity-hardening adjudication</a>, TODO #167/#168, and current v1.595 source paths cited inline. Three independent read-only challenge briefs examined W1/W3/W4, W2/W6/W7, and W5/campaign repair. This review changed no game code, save, tracker, or source document; the only artifact written is this file.
+</div>
+</main>
+</body>
+</html>

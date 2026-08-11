@@ -84,7 +84,7 @@ function showSyncModal(){
       +((typeof manaMax==="function"&&manaMax(c)>0)?"<div><label class='sc-lbl'>Mana (max "+manaMax(c)+")</label><input id='sc-mana' type='number' min='0' max='"+manaMax(c)+"' class='sc-inp' value='"+manaCur(c)+"' "+ro+"/></div>":"")/* #110: the manual patch path for a desynced pool */
       +"<div><label class='sc-lbl'>Level</label><input id='sc-level' type='number' min='1' max='10' class='sc-inp' value='"+c.level+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Location</label><input id='sc-loc' type='text' class='sc-inp' value='"+escHtml(w.location)+"' "+ro+"/></div>"
-      +"<div><label class='sc-lbl'>Time</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
+      +"<div><label class='sc-lbl'>Time flavor (clock is authoritative)</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
       +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
       +(isUI?"<button id='sc-apply' style='width:100%;padding:13px;font-size:15px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>APPLY</button>":"<div style='text-align:center;font-size:12px;color:var(--t2);padding:8px;'>Showing live game state. Switch to UI -> Game to edit.</div>")

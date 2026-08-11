@@ -708,6 +708,26 @@ function buildPhaseMismatchNudge(){
   delete worldState.phaseMismatch;
   return "[ENGINE NOTE — CLOCK vs NARRATION (not a player action): your last scene described \""+q.label+"\" but the campaign clock reads "+q.stamp+". If the story is NOW at "+q.label+", emit [TIME:"+q.label+"] in this response and the engine will reconcile the clock. If that mention was only a reference (a plan, a memory, a figure of speech), do nothing.]";
 }
+function buildLocationFilingNudge(){
+  if(!worldState||worldState.combat)return"";var q=worldState.locationFilingPing;if(!q)return"";delete worldState.locationFilingPing;
+  return "[ENGINE NOTE — LOCATION FILING GAP (not a player action): the story entered or remained inside '"+q.place+"' for several committed turns without a location tag. If this is a new world location, emit [LOCATION:"+q.place+"]; if it is an interior of the current world location, emit [SUBLOCATION:"+q.place+"]. If neither is true, leave location state unchanged. Never acknowledge this check in prose.]";
+}
+function buildTravelPriceNudge(){
+  if(!worldState||worldState.combat)return"";var q=worldState.travelPricePing;if(!q)return"";delete worldState.travelPricePing;
+  return "[ENGINE NOTE — TRAVEL TIME GAP (not a player action): the journey to "+q.destination+" was priced in days, but arrival landed after only "+q.elapsed+" clock minutes. If the travel really consumed the stated duration, emit [TIME_ADVANCE:"+q.shortfall+"m] for ONLY the missing shortfall. If the earlier duration was only an estimate, a shortcut occurred, or the route changed, leave the clock unchanged and keep the current fiction. Never auto-correct story text.]";
+}
+function buildCommitmentNudge(){
+  if(!worldState||worldState.combat)return"";var q=worldState.commitmentPing;if(!q)return"";delete worldState.commitmentPing;
+  return "[ENGINE NOTE — DATED COMMITMENT GAP (not a player action): the last scene joined an obligation/payment with a delivery interval ('"+q.text+"') but filed no lifecycle state. If it is a real timed obligation, file ONE appropriate authority now: [SCHEDULE:event|duration], [FUTURE_EVENT:event|when], or [QUEST:title|offered|description]. If it was only talk, negotiation, or a hypothetical, leave state unchanged. Never acknowledge this check in prose.]";
+}
+function buildFutureResolveNudge(){
+  if(!worldState||worldState.combat)return"";var q=worldState.futureResolveHints;if(!q||!q.length)return"";var h=q.shift();if(!q.length)delete worldState.futureResolveHints;
+  return "[ENGINE NOTE — PENDING EVENT MAY BE RESOLVED (not a player action): the fresh chapter summary appears to contain an outcome for '"+h.what+"' (evidence: '"+h.evidence+"'). If that anticipated event actually finished, emit [FUTURE_EVENT_RESOLVED:"+h.what+"] now. If it was merely mentioned, approached, or remains unfinished, leave it pending.]";
+}
+function buildLocationTwinNudge(){
+  if(!worldState||worldState.combat)return"";var q=worldState.locationTwinConflicts;if(!q||!q.length)return"";var h=q.shift();if(!q.length)delete worldState.locationTwinConflicts;
+  return "[ENGINE NOTE — LOCATION LEVEL CONFLICT (not a player action): [LOCATION:"+h.requested+"] was refused because '"+h.leaf+"' already exists as an interior of "+h.parent+"; accepting it would mint a duplicate world node and edge. If the party entered that known interior, emit [SUBLOCATION:"+h.leaf+"]. If a genuinely distinct world place was intended, use its unambiguous world-location name.]";
+}
 // The engine-notes registry (user-approved shape + name, 2026-07-10): sendAction calls ONE
 // orchestrator; each check stays a single-purpose, separately-traceable function. Adding the
 // next engine nag = adding a list entry, not editing sendAction.
@@ -716,15 +736,18 @@ function buildPhaseMismatchNudge(){
 // the GM DECIDES here — the note asks it to verify its OWN narration and either emit the
 // battle-tested tag or explicitly leave the sheet alone. Never auto-decrements: the #60 design
 // space rejected every shape where a second model writes inventory unattended; the only write
-// path stays the sole parser. One item per turn (note pressure), cooldown latch written on fire
-// (CONSUMABLE_NUDGE_COOLDOWN — an ignored nudge means "not spent", don't re-nag), silent
-// mid-combat WITHOUT consuming (spends happen in combat; the check keeps until the dust settles).
+// path stays the sole parser. One item per turn (note pressure); unanswered checks persist per
+// owner/item and re-fire on the cooldown at most three times, while ITEM_LOST/ITEM_KEPT resolves
+// them. Silent mid-combat WITHOUT consuming (spends happen in combat; the check keeps until the dust settles).
 function buildConsumableNudge(){
   if(!worldState||worldState.combat)return"";
-  var q=worldState.consumableChecks;if(!q||!q.length)return"";
-  var c=q.shift();if(!q.length)delete worldState.consumableChecks;
+  var q=worldState.consumableChecks,c=null,i,p=worldState.consumablePending||[];
+  if(q&&q.length){c=q.shift();if(!q.length)delete worldState.consumableChecks;for(i=0;i<p.length;i++)if(p[i].key===c.key){c=p[i];break;}if(i===p.length){if(p.length>=6)p.shift();c={key:c.key,who:c.who,item:c.item,attempts:0,lastFired:-9999};p.push(c);worldState.consumablePending=p;}}
+  if(!c){for(i=0;i<p.length;i++){if((p[i].attempts||0)<3&&worldState.turn-(p[i].lastFired||0)>=CONSUMABLE_NUDGE_COOLDOWN){c=p[i];break;}}}
+  if(!c)return"";
   if(!worldState.consumableNudged)worldState.consumableNudged={};
   worldState.consumableNudged[c.key]=worldState.turn;
+  c.attempts=(c.attempts||0)+1;c.lastFired=worldState.turn;
   var tag=c.who?"[COMPANION_ITEM_LOST:"+c.who+"|"+c.item+"]":"[ITEM_LOST:"+c.item+"]";
   var keepTag=c.who?"[COMPANION_ITEM_KEPT:"+c.who+"|"+c.item+"]":"[ITEM_KEPT:"+c.item+"]";
   var whose=c.who?c.who+"'s":"the player's";
@@ -799,15 +822,18 @@ function buildMoodAudit(){
 function buildSayComplianceNudge(){
   if(typeof sessionLog==="undefined"||!sessionLog||!sessionLog.length)return"";
   var last=null,i;
-  for(i=sessionLog.length-1;i>=0;i--){if(sessionLog[i]&&sessionLog[i].role==="assistant"){last=String(sessionLog[i].content||"");break;}}
+  for(i=sessionLog.length-1;i>=0;i--){if(sessionLog[i]&&sessionLog[i].role==="assistant"&&!sessionLog[i].bk){last=String(sessionLog[i].content||"");break;}}
   if(!last)return"";
-  var quoteChars=(last.match(/["“”]/g)||[]).length;
-  if(quoteChars<2)return"";/* no quoted dialogue — nothing was mis-voiced */
   var sayCount=(last.match(/\[SAY:/g)||[]).length;
-  // Partial compliance counts as non-compliance (Fable review entry 7): each tagged speech accounts
-  // for ~2 quote chars, so tags present but >=2 untagged quote-pairs of slack means lines shipped
-  // mis-voiced. The +4 slack keeps a compliant response with a scare quote / inch marks silent.
-  if(sayCount>0&&quoteChars<2*sayCount+4)return"";
+  var cov=(typeof sayTagCoverage==="function")?sayTagCoverage(last,cleanTxt(last)):null;
+  if(cov){
+    if(!cov.dialogue||!cov.missing)return"";
+  }else{
+    /* TTS loads after this file. Runtime calls happen after page boot, but a conservative fallback
+       keeps utility/test contexts safe: no quotes means no dialogue; any tagged response is left
+       alone rather than reviving the disproven quote/tag ratio. */
+    if((last.match(/["“”]/g)||[]).length<2||sayCount>0)return"";
+  }
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
   return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
@@ -818,7 +844,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","consumableChecks","consumableNudged","deadStatusConflicts","deityDriftNudged","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin","travelPricePing"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -840,7 +866,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -884,7 +910,12 @@ function buildSysPrompt(){
        as rival claims about one thing rather than complementary facts about two: a character can be
        "watchful, tense" about the job while "easy, approving" toward the player, and both be true.
        Labels remove the adjudication entirely — the model never has to guess which is which. */
-    var npcBits=[];if(npc.status)npcBits.push("mood: "+npc.status);if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
+    /* Mood is scene-scale. Once its audit is due, omitting the stale adjective is safer than
+       asserting it every turn; identity/relation/pronouns remain fully present. Legacy unstamped
+       moods are age-unknown and therefore omitted until the GM writes a current one. */
+    var npcBits=[],npcMoodAge=worldState.turn-(npc.statusTurn||0);
+    if(npc.status&&npc.statusTurn>0&&npcMoodAge>=0&&npcMoodAge<MOOD_AUDIT_TURNS)npcBits.push("mood: "+npc.status);
+    if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
     ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");}
   if(_decList.length){
     _decList.sort(function(a,b){return b.t-a.t;});
@@ -1027,7 +1058,7 @@ function buildSysPrompt(){
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   // Match aliases too — an NPC mentioned only by alias/short form in recent prose otherwise
   // got no detail block, and the GM improvised from momentum instead of memory (audit #13).
-  if(npcNames.length&&sessionLog.length){var recent=sessionLog.slice(-6).map(function(m){return m.role==="user"?stripEngineNotes(m.content):m.content;}).join(" ");/* #145: engine notes ride the user half — without the strip, a split/presence audit NAMING an absent companion activated their full detail block (stale posture claims included), the protection machinery feeding the exact contradiction it guards against (live t1549: Frizwick/Daeris note-only mentions). The summarize path already strips (memory.js:1059); the hot scan now matches it. A player action naming a split member is story text and still activates — the SPLIT THREADS design needs that. */for(i=0;i<npcNames.length;i++){var hnN=npcNames[i],hnHit=recent.indexOf(hnN)>=0;if(!hnHit&&memory.npcs[hnN].aliases){var haj;for(haj=0;haj<memory.npcs[hnN].aliases.length;haj++){if(recent.indexOf(memory.npcs[hnN].aliases[haj])>=0){hnHit=true;break;}}}if(hnHit)hotNpcs+=memoryNpcDetail(hnN)+"\n";}}
+  if(npcNames.length&&sessionLog.length){var recent=sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return m.role==="user"?stripEngineNotes(m.content):m.content;}).join(" ");/* #145: engine notes ride the user half — without the strip, a split/presence audit NAMING an absent companion activated their full detail block (stale posture claims included), the protection machinery feeding the exact contradiction it guards against (live t1549: Frizwick/Daeris note-only mentions). The summarize path already strips (memory.js:1059); the hot scan now matches it. A player action naming a split member is story text and still activates — the SPLIT THREADS design needs that. */for(i=0;i<npcNames.length;i++){var hnN=npcNames[i],hnHit=recent.indexOf(hnN)>=0;if(!hnHit&&memory.npcs[hnN].aliases){var haj;for(haj=0;haj<memory.npcs[hnN].aliases.length;haj++){if(recent.indexOf(memory.npcs[hnN].aliases[haj])>=0){hnHit=true;break;}}}if(hnHit)hotNpcs+=memoryNpcDetail(hnN)+"\n";}}
   /* #140 ②: the stated-vs-actual tension line — "who they claimed to be vs who play has made
      them" was tracked but never surfaced. Fires only on genuine divergence (byte-clean when
      stated===actual); descriptive, the GM decides whether characters notice. */
@@ -1112,7 +1143,7 @@ function buildSysPrompt(){
     +buildItemBibleBlock()/* #81: carried-item canon — volatile only, ""-clean when nothing carried resolves */
     +partyBlock
     +partyCapBlock
-    +"Location: "+w.location+", "+w.region+" | Time: "+w.time+" | Weather: "+w.weather+"\n"
+    +"Location: "+w.location+", "+w.region+" | Time: "+clockFmt()+" (clock-derived) | Weather: "+w.weather+"\n"
     +"NPCs: "+nstr+"\n\n"+questBlock+buildSkeletonBlock()
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
     +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */
@@ -1491,6 +1522,21 @@ function addInventoryItem(inv,name){var t=_invNorm(name),i;
   for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
   inv.push(name);
 }
+function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
+  if(incoming!==1)return false;
+  var key=itemBaseName(name),i,lossRe,losses=String(raw||"").match(owner?/\[COMPANION_ITEM_LOST:[^|\]]+\|[^\]]+\]/g:/\[ITEM_LOST:[^\]]+\]/g)||[];
+  for(i=0;i<losses.length;i++){var lm=owner?losses[i].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/):losses[i].match(/\[ITEM_LOST:([^\]]+)\]/);if(lm&&(!owner||String(lm[1]).trim()===owner)&&itemBaseName(owner?lm[2]:lm[1])===key)return false;}
+  for(i=0;i<(inv||[]).length;i++)if(_invCount(inv[i])===1&&itemBaseName(inv[i])===key){
+    var who=owner?owner+"'s ":"player ",msg="DUPLICATE ITEM: "+who+"sheet already had uncounted '"+_invBase(inv[i])+"'; grant stacked, verify acquisition/rename";
+    if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push(msg);return true;
+  }
+  return false;
+}
+function _clearConsumablePending(who,name){
+  if(!worldState||!worldState.consumablePending)return;var key=(who||"")+"|"+_invNorm(name);
+  worldState.consumablePending=worldState.consumablePending.filter(function(x){return x&&x.key!==key;});
+  if(!worldState.consumablePending.length)delete worldState.consumablePending;
+}
 // #60b (v1.384) — the confirmed-negative latch behind [ITEM_KEPT:]/[COMPANION_ITEM_KEPT:].
 // ROOT CAUSE it closes (measured on the t881 Runelords corpus, turns 760-881): the consumable
 // check's "not consumed" branch had NO output channel — the note said "leave the sheet alone",
@@ -1512,6 +1558,7 @@ function _stampItemKept(who,inv,name){
     if(_invNorm(inv[i])!==n)continue;
     if(!worldState.consumableKept)worldState.consumableKept={};
     worldState.consumableKept[(who||"")+"|"+n]=_invCount(inv[i]);
+    _clearConsumablePending(who,name);
     return true;
   }
   console.warn("[ITEM_KEPT] no inventory entry matches '"+name+"'"+(who?" on "+who:"")+" — latch not written");
@@ -1578,7 +1625,7 @@ function applyMuts(text){
   // mutation labels, ON THE SAVE (rides exports/sync), capped at TAG_LOG_CAP. Observational
   // only, zero parser contact; makes emitted-then-purged vs never-emitted decidable next time.
   try{
-    var _tlNames=[],_tlSeen={},_tlM=String(text||"").match(/\[([A-Z][A-Z_]{2,}):/g)||[],_tli;
+    var _tlNames=[],_tlSeen={},_tlM=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],_tli;
     for(_tli=0;_tli<_tlM.length;_tli++){var _tn=_tlM[_tli].slice(1,-1);if(!_tlSeen[_tn]){_tlSeen[_tn]=1;_tlNames.push(_tn);}}
     if(!worldState.tagLog)worldState.tagLog=[];
     worldState.tagLog.push({t:R.turn,tags:_tlNames,m:(R.muts||[]).slice(0,10)});
@@ -1703,7 +1750,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
   // opts.kind: telemetry bucket for recordUsage; defaults to "turn" for gameplay calls
   // (no sysOverride) and "other" for utility calls.
-  var msgs=(opts&&opts.noHistory)?[{role:"user",content:msg}]:sessionLog.concat([{role:"user",content:msg}]);
+  var msgs=(opts&&opts.noHistory)?[{role:"user",content:msg}]:sessionLog.filter(function(h){return h&&!h.bk;}).concat([{role:"user",content:msg}]);
   var prov=PROVIDERS[activeProvider]||PROVIDERS.anthropic;
   var key=providerKeys[activeProvider]||apiKey||"";
   var model=modelOverride||providerModels[activeProvider]||prov.defaultModel;

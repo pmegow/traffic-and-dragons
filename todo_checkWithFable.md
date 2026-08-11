@@ -22,6 +22,30 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 12 — Project-wide drift-risk audit against Runelords t1549 (Sol, no code shipped)
+
+**Filed:** 2026-08-08. **Artifact:** `DOC/Drift_risks_SOL.html`. **Trackers:** TODO
+#144–#147; existing TODO #136, #5, and #7 are cross-referenced rather than duplicated.
+The owner requested a conservative whole-project search for places canon may drift, with the latest
+Downloads save included and every surviving candidate challenged from three angles. The audit used
+the real t1549 state, transcript, tag receipts, reconstructed prompt, exact headless probes, and
+counter-evidence. It rejected identity fragmentation in this save, GM-output summary truncation,
+map-description coverage, archive growth as canon drift, and the current split-HP display as new
+defects.
+
+The four new findings are: temporal scene claims stored as standing NPC knowledge (including a live
+18-entry cap violation and oldest-first truncation); raw engine notes making off-scene split members
+"hot" and injecting their stale details; a non-idempotent manual clock repair applied twice, leaving
+future-born schedules; and `[RETCON:]` suppressing the corrected narration from RAG along with the
+mistake. The report also independently reproduces TODO #136's parser/forget risks and records the
+known audit-latch and sync-revision limitations. No source, save, or runtime state was repaired.
+
+**Review first:** reconstruct the t1549 volatile prompt and confirm that Frizwick/Daeris are selected
+only through the split-audit note; adjudicate whether temporal knowledge and selector provenance are
+one task or two; verify the t1525→t1526 −2320 clock discontinuity cannot arise from a normal write
+path; challenge the proposed canonical-correction RAG shape against the reason the `GM:` meta filter
+exists. The ranked remedies are recommendations, not pre-approved designs.
+
 ### 11 — Runelords t1467 phantom-presence field analysis (Sol, no code shipped)
 
 **Filed:** 2026-08-07. **Artifact:** `DOC/OffTheRails_sol.html`. **Tracker:** TODO #137.
