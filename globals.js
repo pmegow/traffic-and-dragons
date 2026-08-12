@@ -1,4 +1,12 @@
 var MDL="claude-sonnet-4-6";
+var SCENE_REF_ACTOR_CAP=10;     // #168 W2: accepted referents in one active scene. Overflow preserves them and makes irreversible identity writes fail closed.
+var SCENE_REF_NEGATIVE_CAP=10;  // #168 W2: explicit/inference exclusions per active scene; same no-eviction rule as actors.
+var SCENE_REF_SEALED_CAP=6;     // #168 W2: transitioned frames retained until a structured summary acknowledges them.
+var CANON_TXN_CAP=24;           // #168 W2: bounded idempotency/quarantine receipts for death/quest/reward envelopes.
+var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
+var SUMMARY_IDENTITY_ROW_CAP=12;// #168 W6: compact identity authorities in one extractor call; priority is player, party, scene, then mentioned NPCs.
+var SUMMARY_IDENTITY_CHAR_CAP=1600;// #168 W6: hard prompt bound for the uncached summary identity block.
+var SUMMARY_IDENTITY_QUARANTINE_CAP=12;// #168 W6: non-injected exhausted-validation receipts retained for forensics.
 var SUMMARIZE_AT=2400; // session-token threshold: summarize() gate, sendAction trigger, membar colors (amber at 80%).
 // Counts only UNEXTRACTED session tokens (past worldState.sessKept — see sessKeptStart, memory.js).
 // Raised 1200→2400 with #28: 1200 was tuned in the 2-3-sentence-cap era; prose-voice GM turns run
@@ -194,7 +202,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.598";
+var APP_VERSION="v1.601";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

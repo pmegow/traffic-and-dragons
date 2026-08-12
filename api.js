@@ -508,19 +508,19 @@ function buildConditionAudit(){
 // backstop (the alternative couples the note builder to the parse cycle for marginal gain).
 function buildReciprocityNudge(){
   if(!worldState||!worldState.character||worldState.combat)return"";
-  var c=worldState.character,rl=c.relationships||[],i,j;
+  var c=worldState.character,rl=relationshipRows(c,null),i,j;
   for(i=0;i<rl.length;i++){var r=rl[i];
-    if(!r||!r.entity||!r.descriptor)continue;
-    if(typeof WEIGHTY_REL_RE==="undefined"||!WEIGHTY_REL_RE.test(r.descriptor))continue;
+    if(!r||!r.entity||!r.bond)continue;
+    if(typeof WEIGHTY_REL_RE==="undefined"||!WEIGHTY_REL_RE.test(r.bond))continue;
     var cs=findCompanionChar(r.entity);if(!cs)continue;/* party members with sheets only */
-    var key=r.entity+"|"+r.descriptor;
+    var key=r.entity+"|"+r.bond;
     if(worldState.reciprocityNudged&&worldState.reciprocityNudged[key])continue;
-    var mirrored=false,cr=cs.relationships||[];
-    for(j=0;j<cr.length;j++){if(cr[j].entity&&cr[j].entity.toLowerCase()===c.name.toLowerCase()){mirrored=true;break;}}
+    var mirrored=false,cr=relationshipRows(cs,r.entity);
+    for(j=0;j<cr.length;j++){if(cr[j].entity&&cr[j].entity.toLowerCase()===c.name.toLowerCase()&&cr[j].bond){mirrored=true;break;}}
     if(mirrored)continue;
     if(!worldState.reciprocityNudged)worldState.reciprocityNudged={};
     worldState.reciprocityNudged[key]=worldState.turn;
-    return "[ENGINE NOTE — RELATIONSHIP RECIPROCITY (not a player action): the player's sheet records "+r.entity+" as \""+r.descriptor+"\", but "+r.entity+"'s own sheet has NO relationship entry for "+c.name+". If the fiction agrees the bond is mutual, emit [COMPANION_RELATIONSHIP:"+r.entity+"|"+c.name+"|<their descriptor for "+c.name+">] in this response; if it is genuinely one-sided, leave it as is.]";
+    return "[ENGINE NOTE — RELATIONSHIP RECIPROCITY (not a player action): the player's durable bond with "+r.entity+" is \""+r.bond+"\", but "+r.entity+"'s own sheet has NO durable bond for "+c.name+". If the fiction agrees the bond is mutual, emit [COMPANION_RELATIONSHIP_BOND:"+r.entity+"|"+c.name+"|<their durable bond with "+c.name+">] in this response; if it is genuinely one-sided, leave it as is.]";
   }
   return"";
 }
@@ -632,7 +632,8 @@ function buildArcStagingNudge(){
 // the GM ignored it, and "Wife — beloved family" stayed clobbered by "Owed a favor". Now the
 // pending check PERSISTS (provisional-nudge pattern): re-fires every REL_DOWNGRADE_COOLDOWN turns
 // until the pair's descriptor is rewritten (resolution in stampRelationshipChanges — a weighty
-// restore OR a consciously different truth both end it) or REL_DOWNGRADE_MAX deliveries retire it.
+// restore OR a consciously different truth both end it). After REL_DOWNGRADE_MAX deliveries the
+// pointed note quiets, but the protected preimage remains in state and in the relationship block.
 // The restore tag is PRE-FILLED with the old descriptor — paste-ready compliance, no placeholder.
 // Silent mid-combat WITHOUT stamping a delivery.
 function buildRelationshipDowngradeNudge(){
@@ -640,14 +641,27 @@ function buildRelationshipDowngradeNudge(){
   var q=worldState.relDowngrades;
   if(!q||!q.length)return"";
   var d=null,i;
-  for(i=0;i<q.length;i++){var e=q[i];if(e.lastFired==null||worldState.turn-e.lastFired>=REL_DOWNGRADE_COOLDOWN){d=e;break;}}
+  for(i=0;i<q.length;i++){var e=q[i];if(!e.muted&&(e.lastFired==null||worldState.turn-e.lastFired>=REL_DOWNGRADE_COOLDOWN)){d=e;break;}}
   if(!d)return"";
   d.fired=(d.fired||0)+1;d.lastFired=worldState.turn;
-  if(d.fired>=REL_DOWNGRADE_MAX){q.splice(q.indexOf(d),1);if(!q.length)delete worldState.relDowngrades;}
+  if(d.fired>=REL_DOWNGRADE_MAX)d.muted=true;
   var whose=d.who?d.who+"'s":"the player's";
   var prefill=String(d.prev||"").replace(/[|\[\]]/g," ").replace(/\s+/g," ").trim();
-  var tag=d.who?"[COMPANION_RELATIONSHIP:"+d.who+"|"+d.entity+"|"+prefill+"]":"[RELATIONSHIP:"+d.entity+"|"+prefill+"]";
-  return "[ENGINE NOTE — BOND DOWNGRADE CHECK (not a player action): "+whose+" recorded bond with "+d.entity+" was overwritten from \""+d.prev+"\" to \""+d.next+"\". A passing moment (a favor, a mood, a scene) belongs ALONGSIDE the bond in the descriptor, never instead of it. If the bond truly changed, re-state the new truth with the same tag and this check ends. Otherwise restore it now — emit "+tag+" (fold the new dynamic in after a dash if you wish). A defining bond (marriage, oath, sworn enmity) must not silently decay into a scene note.]";
+  var tag=d.who?"[COMPANION_RELATIONSHIP_BOND:"+d.who+"|"+d.entity+"|"+prefill+"]":"[RELATIONSHIP_BOND:"+d.entity+"|"+prefill+"]";
+  var dyn=d.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+d.who+"|"+d.entity+"|"+String(d.next||"").replace(/[|\[\]]/g," ")+"]":"[RELATIONSHIP_DYNAMIC:"+d.entity+"|"+String(d.next||"").replace(/[|\[\]]/g," ")+"]";
+  return "[ENGINE NOTE — BOND DOWNGRADE CHECK (not a player action): "+whose+" recorded bond with "+d.entity+" was overwritten from \""+d.prev+"\" to \""+d.next+"\" before relationship axes existed. If \""+d.next+"\" was only the current dynamic, emit "+dyn+" — the engine restores the protected preimage as the bond. If the durable bond truly changed, emit the correct explicit BOND tag. To restore it, emit "+tag+". A passing moment must never replace marriage, kinship, oath, or sworn enmity.]";
+}
+
+// #168 W7: legacy tags and destructive bond changes are decisions, never last-write-wins.
+// Pending records ride the save and re-fire on a cooldown until an explicit axis tag resolves
+// them. Combat is silent without stamping a delivery.
+function buildRelationshipAxisNudge(){
+  if(!worldState||worldState.combat)return"";
+  var p=worldState.relBondChanges||[],q=worldState.relAxisChoices||[],reviews=relationshipAxisReviews(),i,x;
+  for(i=0;i<p.length;i++){x=p[i];if(x.lastFire==null||worldState.turn-x.lastFire>=REL_NOTE_COOLDOWN){x.lastFire=worldState.turn;var bt;if(x.pair)bt=x.who?"[COMPANION_RELATIONSHIP_PAIR_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_PAIR_REMOVED:"+x.entity+"]";else{bt=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.next+"]":x.next?"[RELATIONSHIP_BOND:"+x.entity+"|"+x.next+"]":"[RELATIONSHIP_BOND_REMOVED:"+x.entity+"]";if(x.who&&!x.next)bt="[COMPANION_RELATIONSHIP_BOND_REMOVED:"+x.who+"|"+x.entity+"]";}return "[ENGINE NOTE — BOND CHANGE CONFIRMATION (not a player action): the durable bond "+(x.who?x.who+" → ":"player → ")+x.entity+" remains \""+x.prev+"\". A response proposed "+(x.pair?"removing the entire relationship pair":x.next?'replacing it with "'+x.next+'"':"removing it")+". If that durable canon change is deliberate, confirm it by emitting the exact same tag on this later response: "+bt+". Otherwise leave it unchanged; current mood, favor, friction, or warmth belongs on the DYNAMIC axis.]";}}
+  for(i=0;i<q.length;i++){x=q[i];if(x.who&&!relationshipSheet(x.who))continue;if(x.lastFire!=null&&worldState.turn-x.lastFire<REL_NOTE_COOLDOWN)continue;x.lastFire=worldState.turn;var owner=x.who?x.who+" → ":"player → ",bond=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_BOND:"+x.entity+"|"+x.value+"]",dyn=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_DYNAMIC:"+x.entity+"|"+x.value+"]",pair="";if(x.kind==="legacy-remove"){bond=x.who?"[COMPANION_RELATIONSHIP_BOND_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_BOND_REMOVED:"+x.entity+"]";dyn=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_DYNAMIC_REMOVED:"+x.entity+"]";pair=x.who?" OR [COMPANION_RELATIONSHIP_PAIR_REMOVED:"+x.who+"|"+x.entity+"]":" OR [RELATIONSHIP_PAIR_REMOVED:"+x.entity+"]";}return "[ENGINE NOTE — RELATIONSHIP AXIS DECISION (not a player action): a legacy or conflicting relationship write for "+owner+x.entity+" could not safely choose between durable BOND and current DYNAMIC, so canon was left unchanged. Emit exactly one explicit axis tag: "+bond+" OR "+dyn+pair+". Marriage, family, oath, alliance, and nemesis belong to BOND; favors, warmth, suspicion, tension, and tonight's posture belong to DYNAMIC.]";}
+  for(i=0;i<reviews.length;i++){x=reviews[i];if(x.lastFire!=null&&worldState.turn-x.lastFire<REL_NOTE_COOLDOWN)continue;if(!worldState.relAxisReviewFired)worldState.relAxisReviewFired={};worldState.relAxisReviewFired[x.key]=worldState.turn;var rb=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_BOND:"+x.entity+"|"+x.value+"]",rd=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_DYNAMIC:"+x.entity+"|"+x.value+"]";return "[ENGINE NOTE — RELATIONSHIP AXIS DECISION (not a player action): the migrated legacy value \""+x.value+"\" for "+(x.who?x.who+" → ":"player → ")+x.entity+" is preserved provisionally as a bond but still needs classification. Confirm durable canon with "+rb+", or classify it as current posture with "+rd+". The latter moves this migrated value off the bond axis without losing it.]";}
+  return"";
 }
 // #61: periodic relationship audit — the cadence backstop behind the per-turn injection (party
 // sheets now carry Relationships lines; this catches DESCRIPTOR ROT: bonds that evolved in the
@@ -658,19 +672,20 @@ function buildRelationshipDowngradeNudge(){
 function buildRelationshipAudit(){
   if(!worldState||!worldState.character||worldState.combat)return"";
   var c=worldState.character,lines=[],i,j;
-  function fmt(who,list){
-    for(j=0;j<(list||[]).length;j++){var r=list[j];if(!r||!r.entity)continue;
-      lines.push("- "+who+" → "+r.entity+": \""+(r.descriptor||"")+"\""+(r.turn?" (since t"+r.turn+")":" (long-standing)"));}
+  function fmt(who,sheet,owner){
+    var rows=relationshipRows(sheet,owner);
+    for(j=0;j<rows.length;j++){var r=rows[j];if(!r||!r.entity||!r.bond)continue;
+      lines.push("- "+who+" → "+r.entity+": \""+r.bond+"\""+(r.bondTurn?" (since t"+r.bondTurn+")":" (long-standing)"));}
   }
-  fmt(c.name,c.relationships);
+  fmt(c.name,c,null);
   var _raParty=livingPartyCompanions();/* #6: shared party scan */
-  for(i=0;i<_raParty.length;i++)fmt(_raParty[i].name,_raParty[i].charSheet.relationships);
+  for(i=0;i<_raParty.length;i++)fmt(_raParty[i].name,_raParty[i].charSheet,_raParty[i].name);
   var eventDue=!!worldState.relAuditDue;
   var timerDue=(worldState.turn-(worldState.lastRelAudit||0))>=REL_AUDIT_TURNS;
   if(!eventDue&&!timerDue)return"";
   if(!lines.length&&!eventDue){worldState.lastRelAudit=worldState.turn;return"";}/* nothing to re-ground; consume the window so the first filed bond isn't audited one turn later */
   worldState.lastRelAudit=worldState.turn;delete worldState.relAuditDue;
-  return "[ENGINE NOTE — RELATIONSHIP AUDIT (not a player action): below is every recorded bond in the party"+(eventDue?"; the party's composition just changed, so re-ground them now":"")+". For EACH: if it still matches the fiction, leave it alone — do NOT re-emit unchanged bonds. If it has grown, faded, or reads wrong, refresh it with [RELATIONSHIP:entity|descriptor] (player) or [COMPANION_RELATIONSHIP:Name|entity|descriptor] (companion), or end it with the matching REMOVED tag. Bonds the fiction has clearly established but that are MISSING below — especially for anyone who just joined — must be filed NOW with the same tags.\n"+(lines.length?lines.join("\n"):"- (none recorded yet)")+"]";
+  return "[ENGINE NOTE — RELATIONSHIP AUDIT (not a player action): below is every durable BOND in the party"+(eventDue?"; the party's composition just changed, so re-ground them now":"")+". For EACH: if it still matches the fiction, leave it alone. If durable canon has genuinely changed, use the explicit RELATIONSHIP_BOND tag (existing-bond changes require confirmation on a later response); if only the current posture changed, use RELATIONSHIP_DYNAMIC. Bonds clearly established but MISSING below must be filed now with the corresponding player or COMPANION tag.\n"+(lines.length?lines.join("\n"):"- (none recorded yet)")+"]";
 }
 // #57 leg C: fork healing — the summarize extractor may PROPOSE that two on-file NPCs are the
 // same person (the t378 "Woman in Bronze"/Daeris class: zero shared name tokens, invisible to
@@ -681,6 +696,7 @@ function buildRelationshipAudit(){
 // consumed at build time; silent mid-combat WITHOUT consuming (the queue keeps the hint). Hints
 // whose pair has already been healed (merged/aliased since queueing) are discarded silently.
 function buildMergeConfirmNudge(){
+  if(worldState&&worldState.mergeConfirmArmed&&worldState.mergeConfirmArmed.turn<worldState.turn)delete worldState.mergeConfirmArmed;
   if(!worldState||worldState.combat)return"";
   var q=worldState.pendingMergeHints;
   if(!q||!q.length)return"";
@@ -692,6 +708,7 @@ function buildMergeConfirmNudge(){
   if(!h)return"";
   if(!worldState.mergeHintNudged)worldState.mergeHintNudged={};
   worldState.mergeHintNudged[h.canonical+"|"+h.duplicate]=worldState.turn;
+  worldState.mergeConfirmArmed={canonical:h.canonical,duplicate:h.duplicate,turn:worldState.turn+1};
   return "[ENGINE NOTE — POSSIBLE DUPLICATE NPC (not a player action): the record suggests \""+h.canonical+"\" and \""+h.duplicate+"\" may be the SAME person. If the story has confirmed this, emit [NPC_MERGE:"+h.canonical+"|"+h.duplicate+"] in this response (and [NPC_SUPERSEDE:] for any recorded fact the reveal made outdated). If they are genuinely different people, emit nothing — this note will not repeat.]";
 }
 // #158: the phase-mismatch heal note — the GM-decides half of clockPhaseDetect (clock.js).
@@ -700,6 +717,14 @@ function buildMergeConfirmNudge(){
 // whose clock has since come into band discards silently (the story or a later tag healed it —
 // nagging now would be noise). Phrasing per the adjudicated review: the do-nothing branch is
 // explicit, and "correct the prose" is banned — the player already read the scene.
+function buildIdentityConflictNudge(){
+  if(!worldState||worldState.combat)return"";
+  var q=worldState.identityConflicts||[],i,c=null;
+  for(i=0;i<q.length;i++)if(!q[i].resolved&&(!q[i].lastFired||worldState.turn-q[i].lastFired>=3)){c=q[i];break;}
+  if(!c)return"";c.lastFired=worldState.turn;c.attempts=(c.attempts||0)+1;
+  var known=c.subject&&c.subject!=="unknown"&&c.subject!=="-",handle=c.handle&&c.handle!=="-";
+  return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): an irreversible write for "+(known?'"'+c.subject+'"':"an unknown actor")+(handle?' using scene handle "'+c.handle+'"':"")+" was refused because "+c.reason+". Do not re-state the death, objective, or rewards from momentum. If an on-screen reveal genuinely establishes the handle's identity, emit "+(handle&&known?"[SCENE_REVEAL:"+c.handle+"|"+c.subject+"] now; put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response":"the appropriate SCENE_REF/SCENE_REVEAL evidence first, then wait one response before any consequence")+". If the actor was not "+(known?c.subject:"a known NPC")+", leave that NPC alive and continue with the corrected fiction.]";
+}
 function buildPhaseMismatchNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.phaseMismatch;
@@ -844,7 +869,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relDowngrades","retconPin","travelPricePing"];/* #156: provisionalNudged — the collision-decision latch (buildProvisionalNudge, identity.js) */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -866,7 +891,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #137: presence audit + stay-behind nudge beside their sibling buildSplitAudit; #149: the aftermath check beside its sibling buildLocationDescNudge; #156: the provisional collision fork beside its sibling buildMergeConfirmNudge */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -886,6 +911,8 @@ function buildEngineNotes(){
   return out.join("\n\n")+"\n\n"+ENGINE_NOTES_PROTOCOL;
 }
 function buildSysPrompt(){
+  if(typeof sceneRefsEnsure==="function")sceneRefsEnsure();/* #168: gameplay activates referential protection before the response that may need it */
+  relationshipMigrateWorld();/* #168 W7: every prompt reader consumes the normalized two-axis schema. */
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};
   var tb=tone.voice?"TONE -- "+tone.name.toUpperCase()+":\n"+tone.voice+"\n\n":"TONE: "+(tone.name||"Sword and Sorcery")+"\n\n";
   // #61: the roster's rel field is last-[NPC:]-tag residue — for PARTY members it decayed to
@@ -893,13 +920,13 @@ function buildSysPrompt(){
   // (re-injected every turn) is what seeded relationship hallucinations (t755 Frizwick). For party
   // members the PLAYER'S relationship descriptor is authoritative when one exists; non-party NPCs
   // keep npc.rel untouched — theirs often carries identity ("mother of Morwen") no descriptor has.
-  var relByEntity={},_rbi,_rbl=(c.relationships||[]);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].descriptor)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].descriptor;}
+  var relByEntity={},_rbi,_rbl=relationshipRows(c,null);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].bond)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].bond;}
   // B3 (v1.361): dead NPCs render as an AFFIRMATIVE "DECEASED" line, never as silent omission —
   // absence taught the GM nothing, so every other tier (TOC/detail/RAG excerpts/geography) kept
   // presenting the dead as alive and NOTHING in "the CURRENT state blocks above" overrode it
   // (the Rinn Toldrath class). Cap 10 most recent; the full record stays in memory.npcs.
   var _decList=[];
-  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=(npc.partyMember&&relByEntity[npc.name.toLowerCase()])||npc.rel;
+  var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=npc.partyMember?relByEntity[npc.name.toLowerCase()]:null;
     /* v1.372: build the parenthetical from PRESENT parts only. Mood may now be legitimately empty
        (a character whose current mood was never recorded, or was repaired away), and the old
        unguarded concatenation rendered that as a stray leading comma — "Morwen Zethran (, Wife…)".
@@ -915,7 +942,7 @@ function buildSysPrompt(){
        moods are age-unknown and therefore omitted until the GM writes a current one. */
     var npcBits=[],npcMoodAge=worldState.turn-(npc.statusTurn||0);
     if(npc.status&&npc.statusTurn>0&&npcMoodAge>=0&&npcMoodAge<MOOD_AUDIT_TURNS)npcBits.push("mood: "+npc.status);
-    if(npcRel)npcBits.push(npcRel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
+    if(npcRel)npcBits.push("bond: "+npcRel);else if(!npc.partyMember&&npc.rel&&npc.rel!=="unknown")npcBits.push("NPC stance: "+npc.rel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
     ns.push(npc.name+npcAka+(npcBits.length?" ("+npcBits.join(", ")+")":""));}if(ns.length)nstr=ns.join("; ");}
   if(_decList.length){
     _decList.sort(function(a,b){return b.t-a.t;});
@@ -968,11 +995,14 @@ function buildSysPrompt(){
       // the same write-path-with-no-read-path class as the #46 conditions above. The GM never saw
       // a companion's bonds (Morwen's marriages, 222 turns invisible at t755) and reconstructed
       // party dynamics from the roster's decayed one-liners → hallucinated relationships.
-      if(pcs.relationships&&pcs.relationships.length)line+="\n  Relationships: "+pcs.relationships.map(function(r){return r.entity+(r.descriptor?" ("+r.descriptor+")":"");}).join(", ");
+      var _pmR=relationshipRows(pcs,pmN.name),_pmB=[],_pmD=[],_pmRi;for(_pmRi=0;_pmRi<_pmR.length;_pmRi++){if(_pmR[_pmRi].bond)_pmB.push(_pmR[_pmRi].entity+" ("+_pmR[_pmRi].bond+")");if(_pmR[_pmRi].dynamic)_pmD.push(_pmR[_pmRi].entity+" ("+_pmR[_pmRi].dynamic+")");}
+      if(_pmB.length)line+="\n  Bond: "+_pmB.join(", ");
+      if(_pmD.length)line+="\n  Current dynamic: "+_pmD.join(", ");
+      var _pmG=relationshipGuards(pmN.name),_pmGi;for(_pmGi=0;_pmGi<_pmG.length;_pmGi++)line+="\n  UNRESOLVED protected bond preimage: "+_pmG[_pmGi].entity+" was \""+_pmG[_pmGi].prev+"\" before an unclassified legacy overwrite to \""+_pmG[_pmGi].next+"\"";
       if(pmAway){line+="\n  Currently at: "+pcs.splitLoc.location+(pcs.splitLoc.sublocation?" ("+pcs.splitLoc.sublocation+")":"");awArr.push(line);}
       else pmArr.push(line);
     }
-    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW. Each Relationships line is that companion's CANONICAL record of their bonds — never contradict it, and update it with [COMPANION_RELATIONSHIP:] when a bond genuinely changes):\n"+pmArr.join("\n")+"\n\n";
+    if(pmArr.length)partyBlock="PARTY MEMBER SHEETS (companions fighting alongside the player — have each act IN CHARACTER using their OWN abilities and spells below, not just weapons: a spellcaster should cast from their spell list, a rogue should use stealth and tricks. Track their resources with COMPANION_* tags. If a companion's listed Condition no longer matches the fiction, emit [COMPANION_CONDITION_REMOVED:Name|condition] NOW. Bond lines are DURABLE CANON and Current dynamic lines are scene-scale posture; never replace one with the other. Update them only with the corresponding COMPANION_RELATIONSHIP_BOND or COMPANION_RELATIONSHIP_DYNAMIC tag):\n"+pmArr.join("\n")+"\n\n";
     if(awArr.length)partyBlock+="PARTY MEMBERS CURRENTLY AWAY (split from the party — NOT in this scene; they act only in their own thread per SPLIT THREADS; never narrate them as present here, and never have them assist the player's scene):\n"+awArr.join("\n")+"\n\n";
   }
   // Live party-size note so the GM never narrates a join it can't make (the engine also caps it).
@@ -1007,7 +1037,7 @@ function buildSysPrompt(){
   // condition the GM can't SEE (or can't see is 200 turns old) is never honored and never
   // removed — visibility + age is what makes stale state self-correcting.
   var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(condInjectFmt).join(", ")+" — if a condition no longer matches the fiction, emit [CONDITION_REMOVED:name] NOW\n";}
-  var relStr="";if(c.relationships&&c.relationships.length){relStr="Relationships: "+c.relationships.map(function(x){return x.entity+" ("+x.descriptor+")";}).join(", ")+"\n";}
+  var relStr="",_pcR=relationshipRows(c,null),_pcB=[],_pcD=[],_pcRi;for(_pcRi=0;_pcRi<_pcR.length;_pcRi++){if(_pcR[_pcRi].bond)_pcB.push(_pcR[_pcRi].entity+" ("+_pcR[_pcRi].bond+")");if(_pcR[_pcRi].dynamic)_pcD.push(_pcR[_pcRi].entity+" ("+_pcR[_pcRi].dynamic+")");}if(_pcB.length)relStr+="Bond: "+_pcB.join(", ")+"\n";if(_pcD.length)relStr+="Current dynamic: "+_pcD.join(", ")+"\n";var _pcG=relationshipGuards(null),_pcGi;for(_pcGi=0;_pcGi<_pcG.length;_pcGi++)relStr+="UNRESOLVED protected bond preimage: "+_pcG[_pcGi].entity+" was \""+_pcG[_pcGi].prev+"\" before an unclassified legacy overwrite to \""+_pcG[_pcGi].next+"\"\n";
   var saveStr="";if(c.saveModifiers&&c.saveModifiers.length){saveStr="Save modifiers: "+c.saveModifiers.map(function(x){var v=x.amount>=0?"+"+x.amount:""+x.amount;return v+" vs "+x.type+" ["+x.source+"]";}).join(", ")+"\n";}
   var langStr="";if(c.languages&&c.languages.length){langStr="Languages: "+c.languages.map(function(x){return x.name+(x.broken?" (broken)":"");}).join(", ")+"\n";}
   // #52: the earned-skills line is now the skills-bible canon block (level + bonus + canonical
@@ -1040,10 +1070,10 @@ function buildSysPrompt(){
     var _lc=worldState.pendingLegacy;
     var _lpron=_lc.gender?pronounsForGender(_lc.gender):"they/them";
     var _lgw=_lc.gender==="F"?"female":_lc.gender==="NB"?"non-binary":_lc.gender==="M"?"male":"";
-    var _lrel=(_lc.relationships&&_lc.relationships.length)?_lc.relationships.map(function(r){return r.entity+(r.descriptor?" ("+r.descriptor+")":"");}).join(", "):"";
+    var _lrows=relationshipMigrateSheet(_lc,"@legacy:"+(_lc.name||"character"),{portable:true}),_lrels=[];for(var _lri=0;_lri<_lrows.length;_lri++){if(_lrows[_lri].bond)_lrels.push(_lrows[_lri].entity+" (bond: "+_lrows[_lri].bond+")");if(_lrows[_lri].dynamic)_lrels.push(_lrows[_lri].entity+" (current dynamic: "+_lrows[_lri].dynamic+")");}var _lrel=_lrels.join(", ");
     var _linv=(_lc.inventory&&_lc.inventory.length)?_lc.inventory.join(", "):"";
     var _lpers="";if(_lc.trait)_lpers+=" trait — "+_lc.trait+";";if(_lc.flaw)_lpers+=" flaw — "+_lc.flaw+";";if(_lc.motivation)_lpers+=" motivation — "+_lc.motivation+";";
-    legacyBlock="LEGACY CHARACTER — INTRODUCE THIS SESSION:\n"
+    legacyBlock=(_lc.introduced?"LEGACY CHARACTER RELATIONSHIP RESIDUE — already introduced; preserve these unresolved carried facts until the engine can transfer them:\n":"LEGACY CHARACTER — INTRODUCE THIS SESSION:\n")
       +"A figure from another story walks this world: "+_lc.name+", "+(_lgw?"("+_lgw+", pronouns "+_lpron+") ":"")+"a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")"+(_lc.age?", "+_lc.age:"")+".\n"
       +(_lc.appear?"Appearance: "+_lc.appear+"\n":"")
       +(_lc.mark?"Distinguishing mark: "+_lc.mark+"\n":"")
@@ -1051,6 +1081,7 @@ function buildSysPrompt(){
       +(_lpers?"Personality:"+_lpers+"\n":"")
       +(_lc.alignment?"Alignment: "+_lc.alignment+(_lc.deity?" | Deity: "+_lc.deity:"")+"\n":"")
       +(_lrel?"People they know and remember (preserve these — do NOT forget or invent relationships): "+_lrel+"\n":"")
+      +(_lc.relationshipAxisProposals&&_lc.relationshipAxisProposals.length?"UNRESOLVED carried relationship candidates (do not guess an axis): "+_lc.relationshipAxisProposals.map(function(x){return x.entity+" = "+x.value;}).join(", ")+"\n":"")
       +(_linv?"Carries: "+_linv+"\n":"")
       +"This is the SAME person from their own tale. Preserve their gender ("+_lpron+"), appearance, personality, the people they love, and their possessions EXACTLY as listed — never change their pronouns and never invent new family or gear. They retain who they are, but they do NOT recognize "+c.name+" and know nothing of this campaign's events.\n"
       +"Introduce them organically as a background NPC within the next 1-2 turns — do not force them into the scene unnaturally. Register them with [NPC:"+_lc.name+"|alive|neutral]"+(_lgw?" and [NPC_PRONOUN:"+_lc.name+"|"+_lpron+"]":"")+".\n\n";
@@ -1064,6 +1095,7 @@ function buildSysPrompt(){
      stated===actual); descriptive, the GM decides whether characters notice. */
   var idAlTension=(c.statedAlignment&&c.actualAlignment&&c.statedAlignment!==c.actualAlignment)?" (professed "+c.statedAlignment+" at the start — their choices have drifted them, and those who knew them then may notice)":"";
   var identity="PLAYER IDENTITY (never forget this): "+c.name+", a "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+" | Level "+c.level+" | "+(c.actualAlignment||c.statedAlignment||"Neutral")+idAlTension+(c.deity?" | Deity: "+c.deity:"")+(c.trait?" | Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+"\n\n";
+  var relResidueBlock="",_rrq=worldState.relAxisChoices||[],_rrl=[],_rri;for(_rri=0;_rri<_rrq.length;_rri++)if(_rrq[_rri].who&&!relationshipSheet(_rrq[_rri].who))_rrl.push(_rrq[_rri].who+" → "+_rrq[_rri].entity+" = \""+_rrq[_rri].value+"\"");if(_rrl.length)relResidueBlock="UNRESOLVED CARRIED RELATIONSHIP FACTS (owner has no active sheet yet; preserve, do not guess or discard):\n- "+_rrl.join("\n- ")+"\n\n";
   var adultBlock=adultMode?"ADULT CONTENT ENABLED (player has opted in): Explicit violence, sexual content between adult characters, and graphic mature themes are fully permitted and encouraged when narratively appropriate. PROFANITY IS FULLY UNLOCKED — strong language and crude words (fuck, shit, etc.) are permitted without restriction; swear freely and naturally wherever the chosen prose voice, a character's mouth, or the heat of the moment calls for it. Do NOT self-censor, do NOT soften word choice, do NOT substitute milder words or censor with symbols. Do not fade to black, time-skip, or cut away to the afterglow (e.g. jumping to 'Later, …') at the moment an intimate scene begins — depict the encounter itself on-screen, not just the lead-up and the morning after. Do not sanitize descriptions, do not soften mature scenes unless the player explicitly asks. All content must still involve adults only.\n\n":"";
   // Prose-inspiration voice (TODO #23) — merged into the STYLE rule so there's one
   // unified voice directive, not a separate block the model can average away.
@@ -1152,7 +1184,9 @@ function buildSysPrompt(){
     +chapRagBlock/* #148 Phase 1: PAST CHAPTERS before the finer-grained excerpts; "" when nothing retrieves */
     +ragBlock
     +legacyBlock
+    +relResidueBlock
     +buildNpcGraph()
+    +buildSceneRefBlock()
     +buildGeoBlock()
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
     +cb+erasBlock+hist
@@ -1617,8 +1651,44 @@ function foldDuplicateInventory(inv){
 // flag flip died with the flags. The unknown-tag scan is called here unconditionally: it is a
 // vocabulary tripwire (the phantom-tag class, inverted), not a parity tool — v1.260 had left it
 // dark in production behind the retired shadow gate.
+function _w2StageEffects(run){
+  var root=typeof window!=="undefined"?window:(typeof global!=="undefined"?global:null),names=["addMsg","showToast","updateAbPanel","showArchetypeModal","showStatBumpModal","maybeShowLevelBump","maybeShowSpellUnlock","bondToast"],saved={},effects=[],i,soundPlay=null,stub={appendChild:function(){},remove:function(){},style:{},textContent:"",innerHTML:""};
+  function wrap(fn,ctx){return function(){effects.push({fn:fn,ctx:ctx,args:Array.prototype.slice.call(arguments)});return stub;};}
+  if(root){for(i=0;i<names.length;i++)if(typeof root[names[i]]==="function"){saved[names[i]]=root[names[i]];root[names[i]]=wrap(saved[names[i]],root);}}
+  if(typeof Sound!=="undefined"&&Sound&&typeof Sound.play==="function"){soundPlay=Sound.play;Sound.play=wrap(soundPlay,Sound);}
+  var result,thrown=null;try{result=run();}catch(e){thrown=e;}finally{if(root)for(i=0;i<names.length;i++)if(saved[names[i]])root[names[i]]=saved[names[i]];if(soundPlay)Sound.play=soundPlay;}
+  if(thrown)throw thrown;
+  return {result:result,replay:function(){for(var j=0;j<effects.length;j++){try{effects[j].fn.apply(effects[j].ctx,effects[j].args);}catch(e){if(typeof console!=="undefined")console.warn("[identity] committed transaction side effect failed:",e&&e.message);}}}};
+}
 function applyMuts(text){
-  var R=applyMutsTable(text);
+  var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
+  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,text:_w2Plan.ordinary,errors:[]},_w2i;
+  for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
+    var _w2t=_w2Plan.txns[_w2i];
+    if(!_w2t.valid){R.muts.push("Canon claim "+(_w2t.meta.id||"?")+" quarantined");continue;}
+    if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
+    var _w2Ws=worldState,_w2Mem=memory,_w2Bumps=(typeof _levelBumpsOwed!=="undefined")?_levelBumpsOwed:0,_w2Unlocks=(typeof _spellUnlocksOwed!=="undefined")?_w2Copy(_spellUnlocksOwed):[];
+    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);
+    var _w2Stage=null,_w2r;try{_w2Stage=_w2StageEffects(function(){return applyMutsTable(_w2t.body,{deferCommit:true});});_w2r=_w2Stage.result;}catch(_w2e){_w2r={muts:[],errors:["transaction stage: "+((_w2e&&_w2e.message)||_w2e)]};}
+    if(_w2r.errors.length){
+      worldState=_w2Ws;memory=_w2Mem;
+      if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;
+      if(typeof _spellUnlocksOwed!=="undefined")_spellUnlocksOwed=_w2Unlocks;
+      w2TxnQuarantine(_w2t.meta,"transaction handler failed: "+_w2r.errors.join("; "),_w2t.ops,_w2t.tokens);
+      R.errors=R.errors.concat(_w2r.errors);R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
+      continue;
+    }
+    if(!w2TxnCommit(_w2t.meta,_w2t.ops,_w2t.tokens)){
+      worldState=_w2Ws;memory=_w2Mem;
+      if(typeof _levelBumpsOwed!=="undefined")_levelBumpsOwed=_w2Bumps;
+      if(typeof _spellUnlocksOwed!=="undefined")_spellUnlocksOwed=_w2Unlocks;
+      w2TxnQuarantine(_w2t.meta,"transaction receipt could not be persisted",_w2t.ops,_w2t.tokens);
+      R.errors.push("CANON_TXN: receipt persistence failed");R.muts.push("Canon claim "+_w2t.meta.id+" rolled back and quarantined");
+      continue;
+    }
+    R.muts=R.muts.concat(_w2r.muts);
+    if(_w2Stage)_w2Stage.replay();
+  }
   __tagUnknownScan(text);
   __mpBareTagScan(text);
   // #137 provenance ring — the record the t1467 forensics lacked: per-response tag names +
@@ -1631,6 +1701,8 @@ function applyMuts(text){
     worldState.tagLog.push({t:R.turn,tags:_tlNames,m:(R.muts||[]).slice(0,10)});
     if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
   }catch(_tle){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed:",_tle&&_tle.message);}
+  if(R.muts.length)addMsg("system",escHtml(R.muts.join(" | ")));
+  syncUI();saveAll();
   return R;
 }
 // ── TODO #1 P4 (D8): soft misroute tripwire ──────────────────────────────────

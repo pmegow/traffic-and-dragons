@@ -311,7 +311,7 @@ function showCharacterBrowser(initialMode){
       if(!entry){showToast("Character not found.");return;}
       var char=entry.character;
       if(!char.skills)char.skills=initSkills();
-      if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
+      if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];relationshipMigrateSheet(char,"@import:"+(char.name||"character"),{portable:true});
       if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];
       if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
       if(char.portrait===undefined)char.portrait=null;
@@ -505,7 +505,7 @@ function importCharacterFile(e){
       var data=JSON.parse(ev.target.result);
       if(!data.character||!data.character.name){showToast("Invalid character file.");return;}
       var char=data.character;
-      if(!char.skills)char.skills=initSkills();if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];
+      if(!char.skills)char.skills=initSkills();if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];relationshipMigrateSheet(char,"@import:"+(char.name||"character"),{portable:true});
       if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];if(char.portrait===undefined)char.portrait=null;
       if(!char.storyBeats)char.storyBeats=[];if(!char.abilities)char.abilities=[];if(!char.spells)char.spells=[];
       var inCreation2=document.getElementById("char-screen").style.display!=="none";

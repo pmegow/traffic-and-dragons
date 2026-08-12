@@ -287,14 +287,14 @@
     <h1>Drift hardening: work completed by Sol</h1>
     <p class="lede">A reviewable account of the hardening implemented after the t1667 campaign audit, including the exact failure mechanisms, safeguards preserved, Mokmurian canon repair, verification evidence, and the work intentionally left behind a design gate.</p>
     <div class="meta">
-      <span>Candidate build: v1.598</span>
-      <span>Cache marker: tnd-v3-20260811f</span>
+      <span>Release build: v1.601</span>
+      <span>Cache marker: tnd-v3-20260811i</span>
       <span>Prepared: 2026-08-11</span>
       <span>Author: Sol / Codex</span>
     </div>
   </header>
 
-  <div class="banner"><strong>Repository status:</strong> this implementation is present and verified in the shared working tree. It has not been staged, committed, pushed, or deployed by Sol. The live t1667 save was never edited; campaign-repair tests and replays used in-memory copies.</div>
+  <div class="banner"><strong>Repository status:</strong> this implementation is present and verified in the v1.601 release batch. This report travels in the same commit and push. The live t1667 save was never edited; campaign-repair and W6 lifecycle replays used in-memory copies. No deployment was performed by Sol.</div>
 
   <nav aria-label="Document contents">
     <strong>Contents</strong>
@@ -306,17 +306,20 @@
       <li><a href="#w4">W4: missing axes</a></li>
       <li><a href="#w5">W5: integrity hardening</a></li>
       <li><a href="#mokmurian">Mokmurian repair</a></li>
+      <li><a href="#w2">W2: referential integrity</a></li>
       <li><a href="#invariants">Preserved invariants</a></li>
       <li><a href="#deferred">Deferred and rejected</a></li>
       <li><a href="#verification">Verification receipts</a></li>
       <li><a href="#files">Change surface</a></li>
       <li><a href="#review">Fable review focus</a></li>
+      <li><a href="#w7">W7: relationship axes</a></li>
+      <li><a href="#w6">W6: summary identity validation</a></li>
     </ol>
   </nav>
 
   <section id="executive">
     <h2>1. Executive status</h2>
-    <p>The completed work closes the observed relationship-classification hole, repairs four overbroad or underpowered recognizers, adds bounded observation for several previously untracked drift axes, strengthens state provenance and ownership, and provides a receipted operator repair for the false Mokmurian death. The changes are deliberately conservative: most new systems observe and ask the GM to choose a tag; they do not silently rewrite canon.</p>
+    <p>The completed work closes the observed relationship-classification hole, repairs four overbroad or underpowered recognizers, adds bounded observation for previously untracked drift axes, provides a receipted repair for the false Mokmurian death, structurally prevents the wrong-corpse class through W2 scene evidence and atomic consequence transactions, structurally separates durable bonds from current relationship dynamics in W7, and prevents extractor/era prose from contradicting explicit character identity through W6. Detection remains conservative: uncertainty quarantines a write or abstains; it never guesses a corpse, merge, relationship axis, antecedent, or pronoun.</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -328,7 +331,9 @@
           <tr><td>W4 - missing observation axes</td><td><span class="status done">Complete</span></td><td>Location filing, travel pricing, dated commitments, strict durations, outcome-aware resolution, and location-twin cues added as bounded GM notes.</td></tr>
           <tr><td>W5 - state integrity</td><td><span class="status done">Complete</span></td><td>Bookkeeping rows, provenance, player/NPC separation, duplicate warnings, time authority, mood aging, and persistent consumable follow-up hardened.</td></tr>
           <tr><td>Mokmurian campaign repair</td><td><span class="status done">Complete</span></td><td>Hidden, receipted death retraction restores the real Mokmurian at Jorgenfist without clawing back XP or overwriting intervening play.</td></tr>
-          <tr><td>W2, W6, W7 architecture</td><td><span class="status deferred">Design gate</span></td><td>Concrete proposals written, but atomic identity transactions and bond/dynamic migration were not guessed into production.</td></tr>
+          <tr><td>W2 - referential integrity</td><td><span class="status done">Complete</span></td><td>Persisted scene handles and exclusions gate death/merge; atomic, idempotent envelopes bind caused quest/reward effects; summary deaths require cited evidence.</td></tr>
+          <tr><td>W7 - relationship axes</td><td><span class="status done">Complete</span></td><td>Durable bond and current dynamic are structurally independent across state, prompt, UI, imports, swaps, alias/merge convergence, audits, graph, reciprocity, and core memory.</td></tr>
+          <tr><td>W6 - summary identity validation</td><td><span class="status done">Complete</span></td><td>Bounded explicit identity authority, conservative whole-extraction/era preflight, reload-persistent retries, and non-injected quarantine are shipped. Recurring-name registration remains deferred.</td></tr>
         </tbody>
       </table>
     </div>
@@ -507,8 +512,42 @@
     </div>
   </section>
 
+  <section id="w2">
+    <h2>8. W2 - referential integrity and atomic consequences</h2>
+    <p>W2 fixes the mechanism that turned an anonymous scholar into Mokmurian: a durable NPC name is no longer accepted as proof that the named NPC occupies the physical scene role. The engine now persists the observed actor separately from the canonical identity and requires earlier committed evidence before irreversible identity writes.</p>
+
+    <h3>Scene evidence</h3>
+    <ul>
+      <li><code>[SCENE_REF:handle|name or ?]</code> records an observed actor; <code>[SCENE_NOT:handle|name|explicit]</code> or <code>[SCENE_NOT:handle|name|inference]</code> records polarity without treating uncertain POV as a hard negative.</li>
+      <li><code>[SCENE_REVEAL:handle|name]</code> can resolve an anonymous actor, but its own response cannot authorize death. It also cannot overwrite a different established binding.</li>
+      <li>The active frame survives summaries. Location/sub-location transition seals the old frame until structured extraction succeeds, so the t1638 evidence survives the t1644 compaction boundary.</li>
+      <li>Actor, negative, and sealed-frame caps preserve accepted evidence. Overflow refuses new evidence and all high-impact writes fail closed until a structured summary covers the preserved transitioned frame.</li>
+      <li>Direct named death and combat-close propagation consult the same prior-turn evidence. A same-response scene tag cannot self-authorize a combat corpse.</li>
+    </ul>
+
+    <h3>Atomic transaction envelope</h3>
+    <pre>[CANON_TXN_BEGIN:stable-id|npc-death|canonical-name-or--|scene-handle|quest-title-or--]
+[SCENE_DEATH:scene-handle] [NPC:canonical-name|dead|relation]
+[QUEST_STEP:quest|objective|true] [XP:amount] [GOLD:+amount] [ITEM_GAINED:item]
+[CANON_TXN_END:stable-id]</pre>
+    <p>The response is preflighted before handlers run. Subject, handle, quest, and allowed operation types must agree. Valid operations run against cloned world and memory state while success messages, toasts, sounds, and level-up UI are buffered. State, receipt, and UI commit only after every handler succeeds; otherwise every enclosed effect rolls back and the claim is quarantined loudly. Independent envelopes still commit independently.</p>
+    <p>Semantic operation receipts preserve intentional repeated grants while making exact replay, <code>100</code> versus <code>+100</code>, duplicate envelopes in one response, and delayed continuations idempotent. A quarantined ID remains poisoned and keeps its original failure reason.</p>
+
+    <h3>Merge and summary gates</h3>
+    <ul>
+      <li>Direct NPC merges no longer execute merely because a tag names two records. A typed provisional or the exact pair delivered through the existing merge-confirmation note must authorize it.</li>
+      <li>Summary <code>npcDeaths</code> entries now cite <code>{name, handle, sourceTurn, canonTxnId?}</code>. Bare names cannot mint a corpse once W2 is active.</li>
+      <li>The whole extraction validates before any tier writes. A contradicted death cannot partially file a chapter, lore, decision, NPC fact, or death stamp.</li>
+      <li>After three referential validation failures, a bounded diagnostic excerpt goes to <code>memory.archive.identityQuarantines</code>; the rejected claim is not promoted into chapter/event-history canon.</li>
+    </ul>
+
+    <div class="receipt">
+      <strong>Exact t1667 replay.</strong> <code>dev/replay-w2-incident.js</code> loaded the 3.96 MB export, verified the t1638/t1647/t1648 scholar evidence, applied the already-ratified correction only to the in-memory clone, and replayed the old wrong-corpse bundle twice. Mokmurian remained alive, the objective remained open, XP delta stayed zero, the first quarantine reason survived replay, the stable prompt repeated byte-identically, and the scene exclusion appeared in the volatile prompt.
+    </div>
+  </section>
+
   <section id="invariants">
-    <h2>8. Drift protection preserved</h2>
+    <h2>9. Drift protection preserved</h2>
     <p>The hardening was checked against the anti-drift invariants throughout implementation.</p>
     <ul class="checklist">
       <li>New observers nudge a specific GM decision; they do not silently declare location, time, commitment, outcome, or consumption canon.</li>
@@ -523,14 +562,13 @@
   </section>
 
   <section id="deferred">
-    <h2>9. Deferred design gates and rejected shortcuts</h2>
-    <h3>Designed but not implemented</h3>
-    <p>The proposals are recorded in <a href="driftHardeningDesignProposals_SOL.html">driftHardeningDesignProposals_SOL.html</a> for Fable's ruling:</p>
+    <h2>10. Deferred design gates and rejected shortcuts</h2>
+    <h3>Still designed but not implemented</h3>
+    <p>The remaining proposal is recorded in <a href="driftHardeningDesignProposals_SOL.html">driftHardeningDesignProposals_SOL.html</a> for Fable's ruling:</p>
     <ul>
-      <li><strong>W2:</strong> scene handles, negative constraints, and atomic quarantine. Death plus merge is the first target; quest/reward quarantine requires a transaction envelope before implementation.</li>
-      <li><strong>W6:</strong> stage extractor output and validate identity before any write. Recurring-noun/name proposals remain a separate later decision.</li>
-      <li><strong>W7:</strong> a bounded two-axis relationship model (durable bond versus current dynamic), conservative migration of legacy descriptors, and explicit write ownership. Regex classification must not decide which axis is overwritten.</li>
+      <li><strong>W6:</strong> completed in v1.601: extractor and era output validate explicit identity before any write. Recurring-noun/name proposals remain a separate later decision.</li>
     </ul>
+    <p>W7 and the W6 validator were subsequently owner-approved and implemented; their final contracts and verification appear in §14–15.</p>
 
     <h3>Shortcuts explicitly rejected</h3>
     <ul>
@@ -548,21 +586,21 @@
   </section>
 
   <section id="verification">
-    <h2>10. Verification receipts</h2>
+    <h2>11. Verification receipts</h2>
     <div class="grid">
       <article class="card">
-        <h3>Full engine suite</h3>
-        <p><strong>ALL GREEN - 1,248 assertions passed.</strong></p>
-        <p>The complete suite passed twice on the final v1.598 code tree.</p>
+        <h3>W1-W2 checkpoint suite</h3>
+        <p><strong>ALL GREEN - 1,268 assertions passed.</strong></p>
+        <p>The complete suite passed twice on the final v1.599 code tree: <strong>1268 assertions each pass</strong>.</p>
       </article>
       <article class="card">
         <h3>Mutation/sabotage gate</h3>
-        <p><strong>12/12 deliberate regressions detected.</strong></p>
-        <p><code>game.js</code> 3/3; <code>memory.js</code> 2/2; <code>identity.js</code> 1/1; <code>tag_table.js</code> 4/4; <code>api.js</code> 2/2. Every file was restored byte-identically.</p>
+        <p><strong>W2 9/9; identity spine 22/22; earlier drift pass 12/12.</strong></p>
+        <p>W2 specifically sabotages exclusions, prior-response authority, envelope metadata, semantic idempotency, proposal-first merge, summary preflight, combat propagation, cloned state, and buffered UI. Every file was restored byte-identically.</p>
       </article>
       <article class="card">
         <h3>Repository hygiene</h3>
-        <p><code>git diff --check</code> passed (with an existing CRLF warning for <code>ui-panels.js</code>). <code>node dev/lint-todo.js</code> reported <strong>TODO.md tables OK (416 lines)</strong>.</p>
+        <p><code>git diff --check</code> passed cleanly. <code>node dev/lint-todo.js</code> reported <strong>TODO.md tables OK (416 lines)</strong>.</p>
       </article>
       <article class="card">
         <h3>Prompt determinism</h3>
@@ -584,6 +622,15 @@
       <li>Removed its residual-death/missing-knowledge gate.</li>
       <li>Stopped persistent consumable records from being stored.</li>
       <li>Replaced computed travel shortfall with the original full price.</li>
+      <li>Disabled explicit scene exclusions.</li>
+      <li>Allowed same-response scene evidence to self-authorize combat death.</li>
+      <li>Stopped transaction operations matching their declared subject and quest.</li>
+      <li>Reverted XP receipts to raw spelling so <code>100</code> and <code>+100</code> paid twice.</li>
+      <li>Restored proposal-free destructive NPC merges.</li>
+      <li>Removed whole-summary referent validation.</li>
+      <li>Removed the combat-close scene-evidence gate.</li>
+      <li>Applied transaction handlers to authoritative state instead of clones.</li>
+      <li>Let rolled-back quest success toasts escape the side-effect buffer.</li>
     </ol>
 
     <h3>Additional exact checks</h3>
@@ -591,12 +638,13 @@
       <li>The clock phase audit catches the exact t1605 mismatch and independently identified one other literal phase mismatch at t1366.</li>
       <li>The W1 replay uses the actual t1666 “Owed a favor” payload rather than a generic relationship fixture.</li>
       <li>The Mokmurian replay covers both first repair and completion after the already-used older handler.</li>
+      <li>The W2 exact-save replay verifies t1638/t1647/t1648 evidence before exercising the hostile transaction twice.</li>
       <li>All campaign-save checks were performed in memory; the latest save remains unmodified.</li>
     </ul>
   </section>
 
   <section id="files">
-    <h2>11. Change surface</h2>
+    <h2>12. Change surface</h2>
     <p>The implementation touches the existing anti-drift pipeline at its owning boundaries rather than copying logic into parallel modules.</p>
     <div class="table-wrap">
       <table>
@@ -606,42 +654,110 @@
         <tbody>
           <tr><td>Classification and observation</td><td><code>globals.js</code>, <code>game.js</code>, <code>clock.js</code></td><td>Relationship vocabulary, bounded turn observers, strict duration and phase/time logic.</td></tr>
           <tr><td>Prompt notes</td><td><code>api.js</code></td><td>Shared bounded note builders and duplicate-acquisition warning.</td></tr>
-          <tr><td>State tags and identity</td><td><code>tag_table.js</code>, <code>identity.js</code></td><td>Mutation refusal, provenance, repair tag, owner-scoped item lifecycle.</td></tr>
-          <tr><td>Memory lifecycle</td><td><code>memory.js</code></td><td>Future promotion/resolution assist, player identity boundary, freshness and retrieval behavior.</td></tr>
+          <tr><td>State tags and identity</td><td><code>tag_table.js</code>, <code>identity.js</code></td><td>Scene handles/exclusions, death/combat/merge gates, transaction preflight and receipts, mutation refusal, provenance, and repair tag.</td></tr>
+          <tr><td>Memory lifecycle</td><td><code>memory.js</code></td><td>Cited summary deaths, whole-extraction referent validation, identity quarantine, future promotion/resolution assist, freshness and retrieval behavior.</td></tr>
           <tr><td>Persistence and presentation</td><td><code>state.js</code>, <code>helpers.js</code>, <code>ui-boot.js</code>, <code>ui-panels.js</code>, <code>ui-modals.js</code>, <code>table-talk.js</code>, <code>error-report.js</code></td><td>Typed bookkeeping, playback/presence support, and clock-derived display.</td></tr>
-          <tr><td>Verification</td><td><code>dev/engine-tests.js</code>, <code>dev/sabotage-drift-hardening.js</code></td><td>Exact failures, negatives, replay/idempotence, and mutation detection.</td></tr>
+          <tr><td>Verification</td><td><code>dev/engine-tests.js</code>, <code>dev/sabotage-drift-hardening.js</code>, <code>dev/sabotage-identity.js</code>, <code>dev/sabotage-w2.js</code>, <code>dev/replay-w2-incident.js</code></td><td>Exact failures, negatives, exact-save replay, idempotence, rollback, and source-mutation detection.</td></tr>
           <tr><td>Project record</td><td><code>TODO.md</code>, <code>CLAUDE.md</code></td><td>Work status and current behavioral contract.</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="callout">
-      <strong>Shared-tree caution.</strong> Concurrent or unrelated changes are present in <code>todo_checkWithFable.md</code>, <code>samples/the_iron_meridian.blueprint</code>, and <code>testRuns/recall_gate_results_t1549.json</code>. They are not part of this handoff and should not be sweep-staged with the hardening.
+      <strong>Shared-tree caution.</strong> Concurrent or unrelated changes are present in <code>samples/the_iron_meridian.blueprint</code> and <code>testRuns/recall_gate_results_t1549.json</code>. They are not part of this handoff and should not be sweep-staged with the hardening.
     </div>
   </section>
 
   <section id="review">
-    <h2>12. Requested Fable review focus</h2>
+    <h2>13. Requested Fable review focus</h2>
     <p>The implementation is green; the most valuable review is adversarial scrutiny of the boundaries rather than another broad feature pass.</p>
     <ol>
       <li><strong>W1 exactness:</strong> rerun the t1666 payload and challenge the word-bounded relationship vocabulary with unintended substrings and intended morphology.</li>
       <li><strong>W4 precision:</strong> expand the false-positive corpus for references, travel arrivals, obligations, and outcome verbs. Confirm every note remains bounded and GM-decides.</li>
       <li><strong>Mokmurian cleanup:</strong> challenge the narrow self-death classifier so it removes the NPC's alleged death without erasing facts about people the NPC killed.</li>
       <li><strong>Completion replay:</strong> confirm that only the already-used older correction can be completed, and that intervening NPC movement or a clean repeat cannot mutate state.</li>
-      <li><strong>Transaction design:</strong> adjudicate W2/W6/W7 before implementation, especially atomic extractor staging and ownership of the future bond/dynamic axes.</li>
+      <li><strong>W2 transaction boundary:</strong> challenge same-response authority, envelope subject/quest matching, delayed continuation, cap recovery, receipt multiplicity, rollback side effects, and summary false positives.</li>
+      <li><strong>W7 relationship axes:</strong> challenge migration under saturated queues, W1 guard disposition, later-turn destructive confirmation, whole-pair removal, portable inspection, cross-campaign load ordering, and identity convergence from both endpoint directions.</li>
+      <li><strong>Remaining design:</strong> recurring proper-noun registration remains proposal-first and was not bundled into W6 validation.</li>
       <li><strong>Shipping hygiene:</strong> isolate the intended files from unrelated shared-tree work; rerun the full gate before any commit or deployment.</li>
     </ol>
 
     <p>Supporting documents:</p>
     <ul>
       <li><a href="driftHardeningActionplan_SOL.html">Action-plan validation and item-by-item rulings</a></li>
-      <li><a href="driftHardeningDesignProposals_SOL.html">Deferred W2/W6/W7 design proposals</a></li>
+      <li><a href="driftHardeningDesignProposals_SOL.html">Original W2/W6/W7 design proposals (W2, W6 validator, and W7 subsequently implemented)</a></li>
       <li><a href="driftHardening_SOL.html">Original aggregated drift analysis</a></li>
     </ul>
   </section>
 
+  <section id="w7">
+    <h2>14. W7 completion — structural relationship drift prevention</h2>
+    <p>W7 is implemented in candidate <code>v1.600</code>. Its root cause was not merely a weak word list: one free-text relationship slot was being asked to represent both durable canon and a passing scene posture. Any last-write-wins update could therefore replace a marriage with a favor, and downstream readers would treat the replacement as roster authority, graph truth, reciprocity input, and a permanent defining moment.</p>
+
+    <h3>One directed edge, two independent axes</h3>
+    <p>Each relationship row is now <code>{entity,bond,bondTurn,dynamic,dynamicTurn}</code>. <code>bond</code> owns marriage, kinship, oath, alliance, enmity, and other standing canon. <code>dynamic</code> owns the current warmth, tension, suspicion, obligation, or favor. Wife/Husband directions remain independently authored; no reciprocal row is invented.</p>
+    <ul>
+      <li>Only bond feeds core-memory detection, roster authority, the NPC graph, reciprocity, and the periodic durable-bond audit.</li>
+      <li>Dynamic remains separately labeled in prompt and sheets, but can never mint a relationship defining moment.</li>
+      <li><code>npc.rel</code> remains an NPC stance and <code>NPC_LINK</code> remains graph data; neither seeds a character-sheet bond.</li>
+    </ul>
+
+    <h3>Write and removal authority</h3>
+    <p>New explicit bond and dynamic tags own the two axes. A new bond may commit directly. Replacing or removing an existing bond—and explicitly removing an entire pair—stages the original value and requires the exact same operation on a later GM response. A same-response duplicate cannot confirm itself. Whole-pair receipts preserve both the prior bond and prior dynamic. Axis-specific removal cannot disturb the other axis.</p>
+    <p>Legacy relationship tags remain accepted only as a compatibility input. They do not guess an axis and do not mutate canon; instead they create a bounded, deduplicated, persistent explicit-axis decision. Multiple conflicting candidates on one edge survive independently, and resolving one cannot erase its siblings. Absent legacy removals have an explicit whole-pair disposition, so the queue cannot deadlock.</p>
+
+    <h3>Lossless migration and identity convergence</h3>
+    <p>Every legacy descriptor migrates verbatim to bond with its original turn and a persistent axis-review marker. No regex classifies it. If a hybrid or alias collision cannot enter a full eight-item decision queue, its source descriptor/row remains intact and retries when capacity opens. Existing long values are preserved; prospective writes and proposals over 240 characters are refused loudly without creating empty state residue.</p>
+    <p>The central adapter covers the player, companion sheets, generated sheets, character-library imports, read-only character inspection, PC swaps, NPC aliases, NPC merges, campaign loads, and prompt/UI readers. Portable inspection uses the inspected character's raw identity table and cannot mutate the active campaign. Campaign load installs the incoming memory alias table before migrating relationships, preventing the previous campaign from rekeying the new one. Merge logic preserves outgoing rows from both populated companion sheets, rekeys queued owners as well as entities, recomputes each record's own key, and leaves unrelated decisions unchanged. Player names and epithets resolve to one pair.</p>
+
+    <h3>W1 protection retained</h3>
+    <p>Legacy W1 downgrade records remain a protective preimage. Writing an unrelated dynamic first restores the saved bond. Re-emitting the already-clobbered text as a bond cannot exploit the row's current value: the protected bond is restored first, then the destructive change enters the normal two-response confirmation path. After three pointed notes, a guard becomes muted rather than deleted and remains visibly unresolved in the prompt. A correctly confirmed explicit bond change carries a receipt that prevents the old post-pass from re-arming a stale downgrade warning.</p>
+
+    <h3>Exact incident outcome</h3>
+    <p>The t1666 shape is now represented as two facts on each directed edge: the Wife bond survives, while “Owed a favor … warming” lands only on dynamic. The dynamic update creates no defining moment. This makes the original corruption structurally impossible even if a recognizer later misses a word.</p>
+
+    <h3>Verification receipt</h3>
+    <div class="grid">
+      <article class="card"><h3>Focused W7</h3><p><strong>28/28 assertions green.</strong> Exact t1666 input, migration, confirmation timing, pair removal, bounds, queue saturation/retry, guard disposition, portable reads, campaign load, aliases, merges, and orphaned carried facts.</p></article>
+      <article class="card"><h3>Mutation proof</h3><p><strong>24/24 W7 sabotages caught.</strong> Every temporary source mutation was restored byte-identically.</p></article>
+      <article class="card"><h3>Preserved protections</h3><p><strong>W2 9/9 and identity 22/22 sabotages caught.</strong> W2 also has 22 focused assertions, including the added bare-death explicit-exclusion path.</p></article>
+      <article class="card"><h3>Full engine gate</h3><p><strong>1297 assertions ALL GREEN</strong> after the v1.600 markers and release documentation; the complete gate passed twice.</p></article>
+    </div>
+
+    <div class="callout"><strong>Scope truth.</strong> W7 changes engine behavior and documentation only. It does not edit the live t1667 save or deploy. W6's separately ruled validator is documented below.</div>
+  </section>
+
+  <section id="w6">
+    <h2>15. W6 completion — atomic summary identity validation</h2>
+    <p>W6 is implemented in release <code>v1.601</code>. The root cause was a trust-boundary omission: extractor prose was treated as harmless compression even though it writes directly into chapters, event history, NPC details, lore, decisions, future events, and eventually eras. The t1644 extractor therefore turned male Ammut into she/her and injected the contradiction every turn.</p>
+
+    <h3>Bounded explicit authority</h3>
+    <p>Each extractor and era-compression prompt receives a per-call canonical identity table capped at 12 rows and 1,600 characters. Priority is player, sheeted party, canonically bound scene actors, then on-file NPCs actually mentioned in the source window. Player and party authority comes from sheet gender; ordinary NPCs require an explicit stored <code>he/him</code>, <code>she/her</code>, or <code>they/them</code>. The roster's synthetic fallback is excluded. Aliases are capped and resolve through the existing identity layer.</p>
+
+    <h3>Conservative prewrite validation</h3>
+    <p>One preflight runs before the first extraction write and inspects every prose-bearing output tier. It rejects only a high-confidence binary contradiction: a sole canonical actor named at the start of one sentence, followed in the adjacent unquoted sentence by subject/reflexive <code>he</code>/<code>himself</code> or <code>she</code>/<code>herself</code> from the opposite family. The exact t1644 wording fails at its second sentence. Separately named Morwen passes.</p>
+    <ul>
+      <li>Mixed actors, quotations or broken quote parity, object/possessive pronouns, <code>they</code>, unknown/conflicting NPC pronouns, and non-adjacent references abstain.</li>
+      <li>The validator never replaces words or manufactures confidence; the whole generated extraction retries.</li>
+      <li>Era compile and merge use the same bounded prompt and prewrite check, preventing later compression from re-ratcheting the same identity error.</li>
+    </ul>
+
+    <h3>Failure lifecycle</h3>
+    <p>The retry strike is now a single persisted <code>worldState.summaryFailure</code> record, saved immediately after each failure and restored on load. Attempts one and two retain the complete unextracted window. At attempt three, identity-validation failures retain the live tail and archive a capped, non-injected forensic receipt with the reason, subject, attempt count, and bounded raw source evidence. They file no generated chapter, event-history entry, or canon consequence. The receipt array is capped at 12, initialized/healed, and preserved by <code>.tnd</code> import.</p>
+
+    <h3>Verification receipt</h3>
+    <div class="grid">
+      <article class="card"><h3>Focused W6</h3><p><strong>10/10 assertions green.</strong> Exact t1644 failure, female/NB/alias positives, ambiguity abstention, all prose tiers, prompt bounds, era validation, reload restoration, and receipt cap.</p></article>
+      <article class="card"><h3>Exact lifecycle replay</h3><p><strong>Green.</strong> Two JSON reloads preserve strikes 1 → 2 → 3; canon writes remain zero; rejected generated prose never appears in the gameplay prompt.</p></article>
+      <article class="card"><h3>Mutation proof</h3><p><strong>15/15 W6 sabotages caught.</strong> Atomic order, recognizer precision, authority source, prompt/receipt bounds, era gate, persisted retry, safe exhaustion, and import preservation are load-bearing.</p></article>
+      <article class="card"><h3>Full engine gate</h3><p><strong>1306 assertions ALL GREEN</strong> twice after the release documentation and marker pass.</p></article>
+    </div>
+
+    <div class="callout"><strong>Deliberate boundary.</strong> The recurring-proper-noun/NPC-registration proposal was not implemented. W6 validates existing explicit identity; it does not invent or auto-register principals.</div>
+  </section>
+
   <footer>
-    Prepared as a review handoff, not a deployment claim. Candidate v1.598; no live save mutation; no stage, commit, push, or deploy performed by Sol.
+    Prepared as the v1.601 commit/push review handoff, not a deployment claim. No live save mutation or deployment was performed by Sol.
   </footer>
 </main>
 </body>

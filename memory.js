@@ -321,7 +321,7 @@ function clampNpcMood(s){
 // compacts into memory.archive (storage-only: never injected into the prompt, so the caps still
 // bound prompt size; strings are cheap in the sync blob). Future retrieval features (Core Memory
 // #40, RAG) can mine the archive.
-function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */if(!memory.archive.identityMerges)memory.archive.identityMerges=[];/* #156: complete pre-images of every identity merge — reversible by construction (P12) */return memory.archive;}
+function memArchive(){if(!memory.archive)memory.archive={lore:[],decisions:[],chapters:[]};if(!memory.archive.lore)memory.archive.lore=[];if(!memory.archive.decisions)memory.archive.decisions=[];if(!memory.archive.chapters)memory.archive.chapters=[];if(!memory.archive.superseded)memory.archive.superseded=[];if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A: NPC knowledge/events were the one tier still evicting to the void */if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */if(!memory.archive.locationStates)memory.archive.locationStates=[];/* #149 */if(!memory.archive.futureEvents)memory.archive.futureEvents=[];/* #150 */if(!memory.archive.npcForgotten)memory.archive.npcForgotten=[];/* #136④ */if(!memory.archive.identityMerges)memory.archive.identityMerges=[];/* #156: complete pre-images of every identity merge — reversible by construction (P12) */if(!memory.archive.identityQuarantines)memory.archive.identityQuarantines=[];/* #168 W6: rejected summaries stay forensic but never prompt-injected */return memory.archive;}
 function fileLore(fact){if(memory.lore.indexOf(fact)<0)memory.lore.push(fact);if(memory.lore.length>30)memArchive().lore.push(memory.lore.shift());}
 function fileDecision(turn,desc){memory.keyDecisions.push({turn:turn,desc:desc});if(memory.keyDecisions.length>30)memArchive().decisions.push(memory.keyDecisions.shift());}
 // Future events were unbounded — pushed every summarize() cycle, never removed (resolve only flagged),
@@ -975,8 +975,8 @@ function npcLinkUpsert(nameA, nameB, rel){
   edges.push({a:nameA,b:nameB,rel:rel,turn:worldState.turn});
 }
 function buildNpcGraph(){
-  if(!memory.npcGraph||!memory.npcGraph.edges.length)return"";
-  var edges=memory.npcGraph.edges;
+  if(!memory.npcGraph)memory.npcGraph={edges:[]};
+  var edges=memory.npcGraph.edges||[];
   var player=worldState.character.name;
   // Build adjacency: node → [{other, rel, turn}]
   var adj={};
@@ -986,9 +986,9 @@ function buildNpcGraph(){
     addAdj(edges[i].b,edges[i].a,edges[i].rel,edges[i].turn);
   }
   // Player→NPC from character.relationships
-  var rels=worldState.character.relationships||[];
+  var rels=relationshipRows(worldState.character,null);
   for(var ri=0;ri<rels.length;ri++){
-    addAdj(player,rels[ri].entity,rels[ri].descriptor,0);
+    if(rels[ri].bond)addAdj(player,rels[ri].entity,rels[ri].bond,rels[ri].bondTurn||0);
   }
   var nodes=Object.keys(adj);
   if(!nodes.length)return"";
@@ -1184,14 +1184,17 @@ function eraApplyMerge(summary){
 // zero-confabulation property as its shipping requirement — prefer omission over guessing.
 function eraCompilePrompt(sources){
   var lines=[],i;for(i=0;i<sources.length;i++)lines.push("[t"+sources[i].turn+"] "+sources[i].summary);
-  return "Compress this sequence of RPG campaign chapter summaries into ONE era summary of at most 150 tokens (5-7 tight sentences). Keep: major plot movements, the named characters who mattered, decisive outcomes, permanent changes to people and places. Drop: scene detail, travel, color. NEVER state anything the chapters do not contain — prefer omission over guessing.\nCHAPTERS (oldest first):\n"+lines.join("\n")+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
+  var ids=typeof buildSummaryIdentityBlock==="function"?buildSummaryIdentityBlock(summaryIdentityTable(lines.join("\n"))):"";
+  return "Compress this sequence of RPG campaign chapter summaries into ONE era summary of at most 150 tokens (5-7 tight sentences). Keep: major plot movements, the named characters who mattered, decisive outcomes, permanent changes to people and places. Drop: scene detail, travel, color. NEVER state anything the chapters do not contain — prefer omission over guessing.\n"+ids+"CHAPTERS (oldest first):\n"+lines.join("\n")+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
 }
 function eraMergePrompt(eraA,eraB){
-  return "Merge these two consecutive RPG campaign era summaries into ONE era summary of at most 150 tokens. Keep only what still matters at campaign scale; NEVER state anything the eras do not contain.\nERA 1: "+eraA.summary+"\nERA 2: "+eraB.summary+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
+  var raw=String(eraA.summary||"")+"\n"+String(eraB.summary||""),ids=typeof buildSummaryIdentityBlock==="function"?buildSummaryIdentityBlock(summaryIdentityTable(raw)):"";
+  return "Merge these two consecutive RPG campaign era summaries into ONE era summary of at most 150 tokens. Keep only what still matters at campaign scale; NEVER state anything the eras do not contain.\n"+ids+"ERA 1: "+eraA.summary+"\nERA 2: "+eraB.summary+"\nOutput ONLY valid JSON, no markdown: {\"summary\":\"\"}";
 }
 function eraApplyCompileResp(resp,due){
   var got=JSON.parse(repairModelJson(resp));
   if(!got||!got.summary||!String(got.summary).trim())throw new Error("era summary empty");
+  if(typeof w6ValidateSummary==="function"){var raw=[],_eci,_ect;for(_eci=0;_eci<due.sources.length;_eci++)raw.push(String(due.sources[_eci].summary||""));_ect=summaryIdentityTable(raw.join("\n"));buildSummaryIdentityBlock(_ect);w6ValidateSummary({chapterSummary:String(got.summary)},_ect);}
   memEras().push(eraRecord(got.summary,due.sources));
   var _nr=memEras()[memEras().length-1];
   if(typeof console!=="undefined")console.info("[memory] #148: era compiled ("+due.boundary+") — turns "+_nr.turnRange[0]+"-"+_nr.turnRange[1]+" from "+due.sources.length+" chapters ("+memEras().length+" eras total)");
@@ -1199,6 +1202,7 @@ function eraApplyCompileResp(resp,due){
 function eraApplyMergeResp(resp){
   var got=JSON.parse(repairModelJson(resp));
   if(!got||!got.summary||!String(got.summary).trim())throw new Error("era merge summary empty");
+  if(typeof w6ValidateSummary==="function"){var _emt=summaryIdentityTable(memEras().slice(0,2).map(function(e){return String(e.summary||"");}).join("\n"));buildSummaryIdentityBlock(_emt);w6ValidateSummary({chapterSummary:String(got.summary)},_emt);}
   eraApplyMerge(got.summary);
   if(typeof console!=="undefined")console.info("[memory] #148: era text over budget — two oldest merged ("+memEras().length+" eras remain)");
 }
@@ -1234,7 +1238,8 @@ async function compileEraIfDue(){
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
 // Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
 // retired in the visible "Memory updated" line (#57 — no silent memory surgery).
-function applySummaryExtract(extracted){
+function applySummaryExtract(extracted,identityTable){
+  if(typeof validateSummaryExtract==="function")validateSummaryExtract(extracted,identityTable);/* #168 W2/W6: whole-extraction preflight before any tier can ratchet disputed identity */
   var i;
   var stats={superseded:0,supersededNames:[]};
   // #57 leg A: supersession BEFORE npcUpdates, so a same-window retire-then-learn lands in order.
@@ -1277,7 +1282,7 @@ function applySummaryExtract(extracted){
   // never mint a corpse the world doesn't know; a wrong stamp is loud, visible (DECEASED line),
   // and reversible via [NPC:name|resurrected|...].
   if(Array.isArray(extracted.npcDeaths)){for(i=0;i<extracted.npcDeaths.length;i++){var nd=extracted.npcDeaths[i];if(!nd)continue;
-    var ndName=resolveNpcName(String(nd)),ndWs=(typeof wsNpcByName==="function")?wsNpcByName(ndName):null;
+    var ndRaw=(typeof nd==="object"&&nd.name)?nd.name:nd,ndName=resolveNpcName(String(ndRaw)),ndWs=(typeof wsNpcByName==="function")?wsNpcByName(ndName):null;
     if(memoryNpcIsPlayer(ndName)){if(typeof console!=="undefined")console.warn("[memory] npcDeaths rejected the player identity '"+ndName+"' — player canon never enters memory.npcs");continue;}
     if(!ndWs&&!memory.npcs[ndName]){if(typeof console!=="undefined")console.warn("[memory] npcDeaths: "+ndName+" not on file — ignored");continue;}
     if((ndWs&&ndWs.dead)||(memory.npcs[ndName]&&memory.npcs[ndName].dead))continue;
@@ -1311,6 +1316,7 @@ function applySummaryExtract(extracted){
   // window — the correction pin's job is done. Archive it (never a silent drop). Runs after the
   // chapter file so a throw in any earlier step keeps the pin alive for the retry.
   if(typeof worldState!=="undefined"&&worldState&&worldState.retconPin){memArchive().retconPins.push(worldState.retconPin);delete worldState.retconPin;}
+  if(typeof sceneRefsSummarySuccess==="function")sceneRefsSummarySuccess();/* active evidence remains; only safely covered transitioned frames retire */
   return stats;
 }
 // ── #10 (B11): keep the gameplay channel's imperatives out of the JSON channel ────────────────
@@ -1347,15 +1353,30 @@ function extractorRespHasJson(resp){return String(resp||"").indexOf("{")>=0;}
 // the schema + JSON directive sit LAST (end-of-prompt position is load-bearing, audit #2 — the
 // discipline already applied at campaign_generator.js and blueprint-designer.html), and the
 // SESSION block is the note-stripped text while RECORDED FACTS detects on the raw window.
-function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped){
+function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable){
   var p="Extract structured data from this RPG session.\n";
+  if(typeof buildSceneRefBlock==="function")p+="\n"+buildSceneRefBlock();/* #168: exact handles/exclusions survive the transcript's summarize boundary */
   if(pend.length)p+="\nANTICIPATED EVENTS currently on file — if this session shows one has already happened, failed, or become moot, copy its EXACT text into resolvedEvents:\n- "+pend.join("\n- ")+"\n";
   p+=buildRecordedFactsBlock(sessRaw);/* #57 leg A serve-side — "" when no known NPC appears in the window */
+  if(typeof buildSummaryIdentityBlock==="function")p+="\n"+buildSummaryIdentityBlock(identityTable&&identityTable.rows?identityTable:summaryIdentityTable(sessRaw));
   p+="\nSESSION:\n"+sessStripped;
-  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[\"exact name of each named character who DIED in these events -- only unambiguous, on-screen deaths; empty if none\"]}\n";
+  p+="\nREFERENTIAL SCHEMA OVERRIDE: npcDeaths MUST be objects shaped [{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}], never bare strings. Cite only prior engine-authoritative SCENE REFERENTS. If the victim is anonymous, omit npcDeaths rather than substituting a known name. A death-like chapter sentence without a matching cited npcDeaths object is rejected as a whole.\n";
+  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}]}\n";
   return p;
 }
-var _sumFails=0; // consecutive summarize() failures; the log is only discarded after 3 (audit #5)
+var _sumFails=0; // runtime mirror of worldState.summaryFailure.count; persisted state is authoritative across reloads
+function summaryFailureBump(e){
+  var old=worldState&&worldState.summaryFailure,prior=old&&typeof old.count==="number"?old.count:0,isIdentity=!!(e&&(e.summaryIdentity||e.w2Identity)),msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_sfb){}
+  if(!worldState)return Math.min(3,prior+1);
+  worldState.summaryFailure={count:Math.min(3,prior+1),firstTurn:old&&old.firstTurn!=null?old.firstTurn:worldState.turn,lastTurn:worldState.turn,kind:isIdentity?"identity-validation":"extraction",reason:msg.slice(0,400),subject:e&&e.subject?String(e.subject).slice(0,120):"",identityValidation:!!(isIdentity||(old&&old.identityValidation))};
+  return worldState.summaryFailure.count;
+}
+function summaryFailureClear(){if(worldState&&worldState.summaryFailure)delete worldState.summaryFailure;_sumFails=0;}
+function summaryIdentityQuarantine(e,rawBits,attempts){
+  var a=memArchive().identityQuarantines,msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_siq){}
+  a.push({turn:(worldState&&worldState.turn)||0,kind:e&&e.summaryIdentity?"summary-validation":"referential-validation",subject:e&&e.subject?String(e.subject).slice(0,120):"",reason:msg.slice(0,400),attempts:attempts||3,raw:(rawBits||[]).join(" ... ").slice(0,900)});
+  while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP)a.shift();return a[a.length-1];
+}
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
   addMsg("system","Filing memories...");
@@ -1380,18 +1401,20 @@ async function summarize(){
       var _ssc=_se.role==="user"?stripEngineNotes(_se.content):_se.content;
       _sessTxt+=_se.role+": "+_ssc.slice(0,_se.role==="assistant"?4000:500)+"\n";
     }
-    var extractPrompt=buildExtractPrompt(_chapterDesc,_pend,_sessRaw,_sessTxt);
+    var _identityTable=typeof summaryIdentityTable==="function"?summaryIdentityTable(_sessRaw):null;
+    var extractPrompt=buildExtractPrompt(_chapterDesc,_pend,_sessRaw,_sessTxt,_identityTable);
     var resp=await callGM(extractPrompt,"You are a data extraction system. Output ONLY valid JSON. No prose, no markdown, no backticks.",2000,null,{kind:"summarize",noHistory:true});/* the extraction prompt already contains the session slice — don't also prepend the full sessionLog (audit E47) */
     if(!extractorRespHasJson(resp))throw new Error("extractor returned NO JSON at all (B11 class) — head: \""+String(resp).slice(0,60).replace(/\s+/g," ")+"\"");/* named at the call site; repairModelJson (8 shared callers) stays untouched */
     var extracted=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — also fixes trailing-comma/preamble failures that used to burn a retry
-    var _exStats=applySummaryExtract(extracted);
-    retainSessionTail();_sumFails=0;saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
+    var _exStats=applySummaryExtract(extracted,_identityTable);
+    retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
     // Do NOT discard the session log on a transient failure — that permanently erased up to a
     // chapter's worth of events from long-term memory (audit #5). Keep it and retry next turn;
     // only after 3 consecutive failures archive the raw text as a degraded chapter and clear.
-    _sumFails++;
+    _sumFails=summaryFailureBump(e);saveCore();/* the retry ceiling survives reloads; saveCore reports storage failure loudly */
+    if(typeof sceneRefsSummaryFailure==="function")sceneRefsSummaryFailure(_sumFails>=3);
     // #16c (user policy call 2026-07-22: crash detail MAY carry app-generated content).
     // B11 was undiagnosable because the ONLY evidence of what the extractor returned was 11
     // characters inside a V8 message. The head of the response answers "did it reply in state
@@ -1417,11 +1440,17 @@ async function summarize(){
     try{_eMsg=(e&&e.message!=null)?String(e.message):String(e);}catch(_ee){}
     try{_eStk=(e&&e.stack!=null)?String(e.stack):"";}catch(_ee2){}
     if(typeof reportError==="function")reportError("summarize",_eMsg,_dbg+"\n"+_eStk);/* #16 */
+    if(_sumFails>=3&&((e&&(e.w2Identity||e.summaryIdentity))||(worldState.summaryFailure&&worldState.summaryFailure.identityValidation))){
+      var _iqBits=[],_iqi;for(_iqi=sessKeptStart();_iqi<sessionLog.length;_iqi++){if(sessionLog[_iqi]&&!sessionLog[_iqi].bk&&sessionLog[_iqi].role==="assistant")_iqBits.push(String(sessionLog[_iqi].content||"").slice(0,200));}
+      summaryIdentityQuarantine(e,_iqBits,_sumFails);
+      retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory identity conflict quarantined; no chapter or canon consequence was filed.");
+      return;
+    }
     if(_sumFails>=3){
       var _rawBits=[],_ri;for(_ri=sessKeptStart();_ri<sessionLog.length;_ri++){if(sessionLog[_ri]&&!sessionLog[_ri].bk&&sessionLog[_ri].role==="assistant")_rawBits.push(String(sessionLog[_ri].content||"").slice(0,200));}/* v1.439 (F8, probes C/E): String() — a non-string content threw OUT of the catch and aborted the archive */
       var _rawSum="(summary failed; raw excerpt) "+_rawBits.join(" … ").slice(0,900);
       fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
-      retainSessionTail();saveMem();saveCore();_sumFails=0;addMsg("system","Memory saved (raw).");/* v1.439 (F8, probe J): reset AFTER the saves — resetting first let a repeating quota failure zero the strike counter every pass */
+      retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory saved (raw).");
     }else{
       addMsg("system","Memory filing failed ("+_eMsg+") — will retry next turn.");
     }

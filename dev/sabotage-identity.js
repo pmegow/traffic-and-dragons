@@ -50,8 +50,8 @@ rc |= sabotage.prove({
       find: "memArchive().identityMerges.push({domain:\"npc\",canonical:mgCanon,duplicate:mgDupe,turn:R.turn,records:{mem:JSON.parse(JSON.stringify(memory.npcs[mgDupe])),ws:_imWs?JSON.parse(JSON.stringify(_imWs)):null}});",
       replace: "" },
     { label: "the NPC handler bypasses the collision boundary (pre-#156 direct resolve)",
-      find: "var npName=npcUpsertTarget(np[1].trim(),(np[3]||\"\").trim(),R);",
-      replace: "var npName=resolveNpcName(np[1].trim());" }
+      find: "var npName=npcUpsertTarget(_npRaw,(np[3]||\"\").trim(),R);",
+      replace: "var npName=resolveNpcName(_npRaw);" }
   ]
 });
 

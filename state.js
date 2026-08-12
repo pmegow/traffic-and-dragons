@@ -21,7 +21,7 @@ var sessionLog=[];
 /* attitudeSpec:2 at birth (v1.439, F7 — brief D): a memory born WITHOUT the marker re-fires the
    v1.383 one-time clear on its first loadState and wipes CORRECT new-spec dispositions. New
    campaigns are born ON the current spec — there is nothing to heal. */
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[]}};}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() *//* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
+function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:{lore:[],decisions:[],chapters:[],coreMemories:[],identityQuarantines:[]}};}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() *//* archive: P12 eviction compaction — storage-only, never injected. coreMemories: #40 over-cap evictions (UA14: archive's consumers are the story compiler #5 + future RAG phases, NOT Core Memory itself) */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -284,6 +284,7 @@ function migrateWorldState(){
   for(var si=0;si<c.spells.length;si++){if(c.spells[si].lvl===0&&c.spells[si].used){c.spells[si].used=false;_mig=true;}}// cantrips never expend
   if(!worldState.npcs){worldState.npcs=[];_mig=true;}if(!worldState.questLog){worldState.questLog=[];_mig=true;}if(!worldState.eventHistory){worldState.eventHistory=[];_mig=true;}if(worldState.world&&!('sublocation' in worldState.world)){worldState.world.sublocation=null;_mig=true;}if(!worldState.campName){worldState.campName=worldState.character.name;_mig=true;}if(!worldState.character.portraitOffset){worldState.character.portraitOffset={x:50,y:50};_mig=true;}if(!worldState.campId){var _aid=getActiveCampId();if(_aid){worldState.campId=_aid;_mig=true;}}if(!worldState.legacyCharsUsed){worldState.legacyCharsUsed=[];_mig=true;}if(!worldState.transcript){worldState.transcript=[];_mig=true;}if(!worldState.renders){worldState.renders=[];_mig=true;}/* #30: saved-render POINTERS ({f,t,k}) — never image bytes; capped at RENDER_PTR_CAP */if(worldState.actStartTurn===undefined){worldState.actStartTurn=0;_mig=true;}if(worldState.pendingLegacy===undefined){worldState.pendingLegacy=null;_mig=true;}if(worldState.questLog){var _ql;for(_ql=0;_ql<worldState.questLog.length;_ql++){if(!worldState.questLog[_ql].objectives){worldState.questLog[_ql].objectives=[];_mig=true;}if(worldState.questLog[_ql].desc===undefined){worldState.questLog[_ql].desc="";_mig=true;}}}
   if(!worldState.usage){worldState.usage=blankUsage();_mig=true;}
+  if(!worldState.sceneRefs&&typeof sceneRefsEnsure==="function"){sceneRefsEnsure();_mig=true;}/* #168: loaded campaigns enter referential protection before their first GM response */
   // v1.349 (user call 2026-07-17, after closing #55): episodic memory (RAG) is standard behavior —
   // the toggle UI is gone, so a legacy explicit-OFF would be permanent and invisible. Clear it.
   // ragEnabled()'s default-ON semantics are untouched; `worldState.ragMemory=false` from the console
@@ -390,6 +391,14 @@ function migrateWorldState(){
   // this choice — the audit treats empty as due immediately, so they refresh in the first window.
   if(worldState.npcs){var _msi;for(_msi=0;_msi<worldState.npcs.length;_msi++){var _msn=worldState.npcs[_msi];
     if(_msn&&_msn.statusTurn===undefined){_msn.statusTurn=_msn.status?(worldState.turn||0):0;_mig=true;}}}
+  /* #168 W7: descriptor → {bond,dynamic} is a lossless schema migration owned by the one
+     relationship adapter. identity.js loads after this file but before loadState runs. */
+  if(typeof relationshipMigrateWorld==="function"){
+    var _relBefore=JSON.stringify([c.relationships,worldState.pendingLegacy&&worldState.pendingLegacy.relationships,worldState.npcs.map(function(n){return n&&n.charSheet?n.charSheet.relationships:null;})]);
+    relationshipMigrateWorld();
+    var _relAfter=JSON.stringify([c.relationships,worldState.pendingLegacy&&worldState.pendingLegacy.relationships,worldState.npcs.map(function(n){return n&&n.charSheet?n.charSheet.relationships:null;})]);
+    if(_relBefore!==_relAfter)_mig=true;
+  }
   return _mig;
 }
 function loadState(){
@@ -397,14 +406,16 @@ function loadState(){
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
   // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
   if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
-  if(typeof _sumFails!=="undefined")_sumFails=0; // don't carry a summarize failure streak across campaigns (audit E49)
   // Parse each key in its OWN try/catch (audit E73): a corrupt memory/session key must NOT discard a
   // good worldState (the old single try returned false with worldState still assigned, so the wizard
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){sessionLog=[];}
-  try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE the migrate-save — a healthy load must persist the restored record, and a migrate-save must never persist a just-emptied one over a recoverable blob */if(migrateWorldState())saveCore();}}catch(e){worldState=null;return false;}
+  try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;return false;}
   try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){memory=blankMemory();}
+  /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
+     memory first prevents the previously active campaign from re-keying the incoming save. */
+  try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}
   return !!ws&&!!worldState;
 }
 // Fill the shape defaults an older/foreign memory blob may be missing. Extracted from loadState so
@@ -427,6 +438,7 @@ function healMemory(){
   if(!memory.archive.decisions)memory.archive.decisions=[];
   if(!memory.archive.chapters)memory.archive.chapters=[];
   if(!memory.archive.coreMemories)memory.archive.coreMemories=[];/* #40 */
+  if(!memory.archive.identityQuarantines)memory.archive.identityQuarantines=[];/* #168 W6: exhausted validation receipts survive save/import */
   if(!memory.archive.npcKnowledge)memory.archive.npcKnowledge=[];/* #144A */
   if(!memory.archive.npcEvents)memory.archive.npcEvents=[];/* #144A */
   if(!memory.archive.retconPins)memory.archive.retconPins=[];/* #147 */

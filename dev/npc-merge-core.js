@@ -391,11 +391,11 @@ function nmcResidueScan(log){
     var n=worldState.npcs[i];
     if(n.charSheet&&n.charSheet.relationships){
       for(j=0;j<n.charSheet.relationships.length;j++)
-        report("companion \""+n.name+"\" relationship entity",n.charSheet.relationships[j].entity,nmcTrim(n.charSheet.relationships[j].descriptor,40));
+        report("companion \""+n.name+"\" relationship entity",n.charSheet.relationships[j].entity,nmcTrim((n.charSheet.relationships[j].bond||"")+(n.charSheet.relationships[j].dynamic?" | dynamic: "+n.charSheet.relationships[j].dynamic:""),60));
     }
   }
   var prels=(worldState.character.relationships||[]);
-  for(i=0;i<prels.length;i++)report("player relationship entity",prels[i].entity,nmcTrim(prels[i].descriptor,40));
+  for(i=0;i<prels.length;i++)report("player relationship entity",prels[i].entity,nmcTrim((prels[i].bond||"")+(prels[i].dynamic?" | dynamic: "+prels[i].dynamic:""),60));
   var cms=(worldState.coreMemories||[]);
   for(i=0;i<cms.length;i++){if(cms[i].who)report("coreMemories[].who (t"+cms[i].turn+")",cms[i].who,nmcTrim(cms[i].text,50));}
   var acm=(memory.archive&&memory.archive.coreMemories)||[];

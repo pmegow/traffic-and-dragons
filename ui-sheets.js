@@ -117,7 +117,7 @@ function csWireVoice(char){
     else if(typeof showToast==="function")showToast("Voice engine not ready");
   });
 }
-function csSheetSections(c,invOwner){
+function csSheetSections(c,invOwner,portable){
   var i;
   var statHtml="<div class='cs-stat-grid'>";
   for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
@@ -130,7 +130,9 @@ function csSheetSections(c,invOwner){
   // cause arrives with the Phase-B tag extension). Older conditions lack both — render plain.
   if(c.conditions&&c.conditions.length){condHtml="<div class='cs-list'>";for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i],_cdm=[];if(_cd.turn)_cdm.push("t"+_cd.turn);if(_cd.cause)_cdm.push(escHtml(_cd.cause));if(_cd.duration)_cdm.push(escHtml(_cd.duration));if(_cd.until!=null)_cdm.push("expires ~t"+_cd.until);condHtml+='<div class="cs-list-row"><span style="color:var(--hp)">'+escHtml(_cd.name)+'</span><span class="cs-dim">'+(_cdm.length?" — "+_cdm.join(" · "):"")+'</span></div>';}condHtml+="</div>";}else condHtml='<span class="cs-none">None</span>';/* GM-tag text (#22/UA18) */
   var relHtml;
-  if(c.relationships&&c.relationships.length){relHtml="<div class='cs-list'>";for(i=0;i<c.relationships.length;i++)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+escHtml(c.relationships[i].entity)+'</span><span class="cs-dim"> — '+escHtml(c.relationships[i].descriptor)+'</span></div>';relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';/* GM-tag text (#22/UA18) */
+  var _uiLive=typeof worldState!=="undefined"&&worldState&&c===worldState.character;
+  var _uiR=relationshipRows(c,_uiLive?null:(c.name||null),portable?{portable:true}:null);
+  if(_uiR.length){relHtml="<div class='cs-list'>";for(i=0;i<_uiR.length;i++){if(_uiR[i].bond)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+escHtml(_uiR[i].entity)+'</span><span class="cs-dim"> — Bond: '+escHtml(_uiR[i].bond)+'</span></div>';if(_uiR[i].dynamic)relHtml+='<div class="cs-list-row"><span style="color:var(--acc)">'+escHtml(_uiR[i].entity)+'</span><span class="cs-dim"> — Current dynamic: '+escHtml(_uiR[i].dynamic)+'</span></div>';}relHtml+="</div>";}else relHtml='<span class="cs-none">None</span>';/* #168 W7: label axes so scene posture cannot masquerade as durable canon. */
   var langHtml,langParts=[];
   if(c.languages&&c.languages.length){for(i=0;i<c.languages.length;i++){var lang=c.languages[i];langParts.push(lang.broken?'<span style="color:var(--warn)">'+escHtml(lang.name)+' (broken)</span>':escHtml(lang.name));}langHtml='<div class="cs-v">'+langParts.join(", ")+"</div>";}else langHtml='<span class="cs-none">Common</span>';
   var saveHtml="";
@@ -378,13 +380,9 @@ async function generateNpcSheet(name,doneCb){
     // unpinned voice mid-campaign. A regenerate carried the prior pin just above; only a truly
     // fresh sheet draws a new one. The player can always re-pin via the sheet's voice dropdown.
     if(!sheet.voiceId&&typeof TTS!=="undefined"&&TTS.autoCastVoiceId){var _vp=TTS.autoCastVoiceId(sheet);if(_vp)sheet.voiceId=_vp;}
-    // Seed the player↔NPC relationship from live tracking data
-    if(!sheet.relationships)sheet.relationships=[];
-    if(worldState&&worldState.character){
-      var pcn=worldState.character.name,hasPC=false,rki;
-      for(rki=0;rki<sheet.relationships.length;rki++){if(sheet.relationships[rki].entity===pcn){hasPC=true;break;}}
-      if(!hasPC&&wsNpc.rel&&wsNpc.rel!=="unknown")sheet.relationships.push({entity:pcn,descriptor:wsNpc.rel});
-    }
+    // NPC stance and a directed character bond are different authorities. Model-authored rows
+    // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
+    relationshipMigrateSheet(sheet,wsNpc.name);
     wsNpc.charSheet=sheet;
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
@@ -470,13 +468,7 @@ function showNpcSheet(name){
   // ── Full character sheet sections (when charSheet exists) ─────────────────
   var sheetSections="";
   if(sheet){
-    // Merge live player relationship in case sheet was generated before this fix
-    var origRels=sheet.relationships;
-    var sheetRels=sheet.relationships?sheet.relationships.slice():[];
-    if(worldState&&worldState.character){var pcn2=worldState.character.name,hasPC2=false,rki2;for(rki2=0;rki2<sheetRels.length;rki2++){if(sheetRels[rki2].entity===pcn2){hasPC2=true;break;}}if(!hasPC2&&wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown")sheetRels.push({entity:pcn2,descriptor:wsNpc.rel});}
-    sheet.relationships=sheetRels;
     sheetSections=csSheetSections(sheet,name);/* live companion sheet — drop × routes to this NPC (#50) */
-    sheet.relationships=origRels;
   }
 
   // ── NPC sections (always shown) ───────────────────────────────────────────
@@ -488,10 +480,10 @@ function showNpcSheet(name){
   if(memNpc&&memNpc.aliases){for(_ak=0;_ak<memNpc.aliases.length;_ak++)_aka.push(memNpc.aliases[_ak]);}
   if(sheet&&sheet.aliases){for(_ak=0;_ak<sheet.aliases.length;_ak++){if(_aka.indexOf(sheet.aliases[_ak])<0)_aka.push(sheet.aliases[_ak]);}}
   if(_aka.length)statusBlock+=csKv("Also known as",_aka.map(escHtml).join(", "));
-  var pcRel=null;var pcRels=worldState&&worldState.character&&worldState.character.relationships?worldState.character.relationships:[];
-  for(var pri=0;pri<pcRels.length;pri++){if(pcRels[pri].entity===name){pcRel=pcRels[pri].descriptor;break;}}
-  var relDisplay=pcRel||(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown"?wsNpc.rel:null);
-  if(relDisplay)statusBlock+=csKv("Relationship",escHtml(relDisplay));
+  var pcRel=worldState&&worldState.character?relationshipFind(worldState.character,name,null):null;
+  if(pcRel&&pcRel.bond)statusBlock+=csKv("Bond from "+worldState.character.name,escHtml(pcRel.bond));
+  if(pcRel&&pcRel.dynamic)statusBlock+=csKv("Current dynamic from "+worldState.character.name,escHtml(pcRel.dynamic));
+  if(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown")statusBlock+=csKv("NPC stance toward player",escHtml(wsNpc.rel));
   var nfEntries=memory&&memory.npcGraph&&memory.npcGraph.npcFactions?memory.npcGraph.npcFactions[name]||[]:[];
   if(nfEntries.length)statusBlock+=csKv("Factions",escHtml(nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")));
   var npcLinks2="";if(memory&&memory.npcGraph&&memory.npcGraph.edges){var nlEdges=memory.npcGraph.edges;for(var nle=0;nle<nlEdges.length;nle++){var e2=nlEdges[nle];if(e2.a===name)npcLinks2+=(npcLinks2?", ":"")+e2.b+" ("+e2.rel+")";else if(e2.b===name)npcLinks2+=(npcLinks2?", ":"")+e2.a+" ("+e2.rel+")";}}
@@ -659,6 +651,7 @@ function _switchPlayerCharacter(name){
   worldState.npcs.push(oldNpc);             // add old char as npc
   newChar.portraitOffset=newChar.portraitOffset||npc.portraitOffset||{x:0.5,y:0.5,zoom:1};/* UA22: adopt the npc-wrapper framing the NPC sheet was showing (npcGetOff's E60 fallback, mirrored) — else a promotion silently resets it to center */
   worldState.character=newChar;
+  relationshipMigrateSheet(worldState.character,null);relationshipMigrateSheet(oldChar,oldChar.name);relationshipSwapOwners(newChar.name,oldChar.name);
   delete worldState.activePC;/* TODO #1 P2: the heavy anchor swap resets the light display pointer — the new hero IS the spotlight */
   // Mark the switch so buildSysPrompt re-injects a forceful POV-reassignment block for
   // the next couple of turns — the sessionLog is full of the OLD character as "you", and a
@@ -710,7 +703,7 @@ function showReadOnlyCharSheet(c,opts){
     +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+hdr.xpm.pct+"%;'></div></div>"
     +"</div>"
     +"</div></div>"
-    +csSheetSections(c),
+    +csSheetSections(c,null,true),
     {z:420,align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",maxWidth:560,boxExtra:"margin:20px 0 40px;",closeId:"ro-cs-x",outside:true});
   if(opts.onImport){document.getElementById("ro-cs-import").addEventListener("click",function(){modal.remove();opts.onImport();});}
   csWireToggles(modal);

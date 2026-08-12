@@ -26,6 +26,7 @@ function startGame(char,toneName,toneVoice,authorId){
     npcLinkUpsert(char.name,comp.name,"companions");
   }
   pendingCompanions=[];
+  relationshipMigrateWorld();/* #168 W7: imported player/companion sheets enter through the same lossless axis adapter. */
   // Apply blueprint if one was loaded (.blueprint file)
   if(pendingBlueprint){
     applyBlueprint(pendingBlueprint);
@@ -683,6 +684,7 @@ function checkLegacyCharacter(){
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
   migrateCharClassNames(pick);/* #100: server-library entries may predate the Berserker→Primal rename — heal before the cls string reaches the GM prompt */
+  relationshipMigrateSheet(pick,"@legacy:"+pick.name,{portable:true});
   // Capture the FULL identity so the legacy NPC is portrayed consistently — same person, gender,
   // relationships and gear as in their own tale (fixes #18: Ammut forgot his wives + got mis-gendered).
   worldState.pendingLegacy={
@@ -690,7 +692,7 @@ function checkLegacyCharacter(){
     level:pick.level||1,age:pick.age||"",appear:pick.appear||"",mark:pick.mark||"",
     backstory:pick.backstory||"",trait:pick.trait||"",flaw:pick.flaw||"",motivation:pick.motivation||"",
     alignment:pick.actualAlignment||pick.statedAlignment||"",deity:pick.deity||"",
-    relationships:(pick.relationships||[]).slice(0,8),inventory:(pick.inventory||[]).slice(0,12),
+    relationships:(pick.relationships||[]).slice(0,8),relationshipAxisProposals:(pick.relationshipAxisProposals||[]).slice(0,8),inventory:(pick.inventory||[]).slice(0,12),
     queuedAt:worldState.turn};
   saveCore();
   if(typeof showToast==="function")showToast("☠ A familiar face approaches...");
@@ -1089,7 +1091,7 @@ function sendSuggestedAction(btn,ev){
 function coreMemorySnapshot(){
   if(!worldState||!worldState.character)return null;
   var c=worldState.character,snap={hp:c.hp,maxHp:c.maxHp,align:c.actualAlignment||null,rels:{},party:{}},i;/* #140③: label pre-state for the flip moment */
-  var rl=c.relationships||[];for(i=0;i<rl.length;i++){if(rl[i]&&rl[i].entity)snap.rels[rl[i].entity]=rl[i].descriptor;}
+  var rl=relationshipRows(c,null);for(i=0;i<rl.length;i++){if(rl[i]&&rl[i].entity)snap.rels[rl[i].entity]=rl[i].bond||"";}
   var ns=worldState.npcs||[];for(i=0;i<ns.length;i++){var n=ns[i];
     if(n&&n.partyMember)snap.party[n.name]={dead:npcIsDead(n),hp:n.charSheet?n.charSheet.hp:null,maxHp:n.charSheet?n.charSheet.maxHp:null,align:n.charSheet?(n.charSheet.actualAlignment||null):null};}/* v1.439 (F1): flag+all death words, not just "dead" */
   return snap;
@@ -1159,11 +1161,11 @@ function detectCoreMoments(pre){
   }
   var preNames=Object.keys(pre.party);
   for(i=0;i<preNames.length;i++){if(!seen[preNames[i]])fileCoreMemory("party",preNames[i],preNames[i]+" parted ways with the party"+here+".");}
-  var rl=c.relationships||[];
+  var rl=relationshipRows(c,null);
   for(i=0;i<rl.length;i++){var r=rl[i];
-    if(!r||!r.descriptor||!r.entity)continue;
-    if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(r.descriptor)&&pre.rels[r.entity]!==r.descriptor)
-      fileCoreMemory("bond",r.entity,"The bond between "+c.name+" and "+r.entity+" became \""+r.descriptor+"\".");/* #63: name BOTH parties — the old "The bond with X" left the player implicit, which reads as nonsense on X's own sheet and is meaningless once the moment travels to another campaign */
+    if(!r||!r.bond||!r.entity)continue;
+    if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(r.bond)&&pre.rels[r.entity]!==r.bond)
+      fileCoreMemory("bond",r.entity,"The bond between "+c.name+" and "+r.entity+" became \""+r.bond+"\".");/* #168 W7: only the durable axis can mint a permanent moment; current dynamics are categorically excluded. */
   }
 }
 // ── Condition turn-stamps (#46, Phase A) ────────────────────────────────────────────────────
@@ -1265,20 +1267,21 @@ function stampNewConditions(pre){
 //      audit fires next turn instead of waiting out the 40-turn window.
 function relationshipSnapshot(){
   if(!worldState||!worldState.character)return null;
-  function relMap(list){var m={},i;for(i=0;i<(list||[]).length;i++){if(list[i]&&list[i].entity)m[list[i].entity]=list[i].descriptor||"";}return m;}
-  var snap={player:relMap(worldState.character.relationships),party:{},names:{}},i;
+  function relMap(sheet,who){var m={},rows=relationshipRows(sheet,who),i;for(i=0;i<rows.length;i++){if(rows[i]&&rows[i].entity)m[rows[i].entity]=rows[i].bond||"";}return m;}
+  var snap={player:relMap(worldState.character,null),party:{},names:{}},i;
   for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
-    if(n&&n.partyMember){snap.names[n.name]=1;if(n.charSheet)snap.party[n.name]=relMap(n.charSheet.relationships);}}
+    if(n&&n.partyMember){snap.names[n.name]=1;if(n.charSheet)snap.party[n.name]=relMap(n.charSheet,n.name);}}
   return snap;
 }
 function stampRelationshipChanges(pre){
   if(!pre||!worldState||!worldState.character)return;
-  function sweep(who,list,had){
-    var i;for(i=0;i<(list||[]).length;i++){var r=list[i];if(!r||!r.entity)continue;
+  function sweep(who,sheet,had){
+    var rows=relationshipRows(sheet,who),i;for(i=0;i<rows.length;i++){var r=rows[i];if(!r||!r.entity)continue;
       var prev=had[r.entity];
-      if(prev===undefined){if(!r.turn)r.turn=worldState.turn;continue;}/* new bond */
-      if(prev===(r.descriptor||""))continue;/* unchanged */
-      r.turn=worldState.turn;/* changed descriptor = the bond's new shape starts now */
+      if(prev===undefined){if(r.bond&&!r.bondTurn)r.bondTurn=worldState.turn;continue;}/* new bond */
+      if(prev===(r.bond||""))continue;/* unchanged */
+      r.bondTurn=worldState.turn;/* changed durable bond starts now */
+      var _rk=relationshipEdgeKey(who,r.entity),_rr=worldState.relBondReceipts&&worldState.relBondReceipts[_rk],_explicit=!!(_rr&&_rr.turn===worldState.turn&&_rr.prev===prev&&_rr.next===(r.bond||""));
       /* #167: ANY rewrite of this pair's descriptor RESOLVES its pending downgrade check —
          a weighty restore healed it, a consciously different truth re-stated it; either way
          the persistent nudge stops. Resolve BEFORE the arm below so a fresh weighty→non-weighty
@@ -1287,19 +1290,19 @@ function stampRelationshipChanges(pre){
         for(var _di=worldState.relDowngrades.length-1;_di>=0;_di--){var _de=worldState.relDowngrades[_di];if(_de.who===who&&_de.entity===r.entity)worldState.relDowngrades.splice(_di,1);}
         if(!worldState.relDowngrades.length)delete worldState.relDowngrades;
       }
-      if(typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(prev)&&!WEIGHTY_REL_RE.test(r.descriptor||"")){
+      if(!_explicit&&typeof WEIGHTY_REL_RE!=="undefined"&&WEIGHTY_REL_RE.test(prev)&&!WEIGHTY_REL_RE.test(r.bond||"")){
         if(!worldState.relDowngrades)worldState.relDowngrades=[];
-        worldState.relDowngrades.push({who:who,entity:r.entity,prev:prev,next:r.descriptor||"",turn:worldState.turn});
+        worldState.relDowngrades.push({who:who,entity:r.entity,prev:prev,next:r.bond||"",turn:worldState.turn});
         if(worldState.relDowngrades.length>8)worldState.relDowngrades.shift();/* bounded; oldest drop is also the stalest */
-        if(typeof showToast==="function")showToast("⚠ Bond downgraded: "+(who||worldState.character.name)+" → "+r.entity+" (\""+prev+"\" → \""+(r.descriptor||"")+"\") — the GM will be asked to confirm");
+        if(typeof showToast==="function")showToast("⚠ Bond downgraded outside the axis adapter: "+(who||worldState.character.name)+" → "+r.entity+" (\""+prev+"\" → \""+(r.bond||"")+"\") — the GM will be asked to confirm");
       }
     }
   }
-  sweep(null,worldState.character.relationships,pre.player);
+  sweep(null,worldState.character,pre.player);
   var i,nowNames={};
   for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
     if(!n||!n.partyMember)continue;nowNames[n.name]=1;
-    if(n.charSheet)sweep(n.name,n.charSheet.relationships,pre.party[n.name]||{});}
+    if(n.charSheet)sweep(n.name,n.charSheet,pre.party[n.name]||{});}
   var pk=Object.keys(pre.names),joined=false,left=false;
   for(i=0;i<pk.length;i++){if(!nowNames[pk[i]])left=true;}
   var nk=Object.keys(nowNames);
@@ -1523,9 +1526,9 @@ function commitGmTurn(resp,opts){
       if(_sbHit)worldState.presencePing={name:_sbHit,turn:worldState.turn};
     }
     detectGhostConsumables(o.playerTxt,resp);/* #60: ghost-consumable check — queues for buildConsumableNudge; syncCharSheet naturally excluded (its audit already asks for missing tags) */
-    if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name;
-      if(resp.indexOf(_lcn)>=0){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);worldState.pendingLegacy=null;}// actually introduced → mark used
-      else if((worldState.turn-worldState.pendingLegacy.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
+    if(worldState.pendingLegacy){var _lcn=worldState.pendingLegacy.name,_lp=worldState.pendingLegacy;
+      if(_lp.introduced||resp.indexOf(_lcn)>=0){if(!_lp.introduced){if(!worldState.legacyCharsUsed)worldState.legacyCharsUsed=[];worldState.legacyCharsUsed.push(_lcn);_lp.introduced=true;}if(relationshipAdoptPortableProposals(_lp,_lcn))worldState.pendingLegacy=null;}// introduced relationship conflicts transfer losslessly before the transient cameo record retires
+      else if((worldState.turn-_lp.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
     }
     if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
     if(worldState.mpEnded&&(worldState.turn-worldState.mpEnded.turn)>=3)worldState.mpEnded=null; // D12 exit reinforcement done — sessionLog now carries second-person turns again (3 not 2: the retained tail holds ~3 exchanges, so the third-person prose must be fully out of the window before the note stops firing)
@@ -2371,10 +2374,10 @@ function initSpells(){
 // inventory around applyMuts and toasts each correction, so a wrong one is visible and revertable
 // via the Sync modal. XP/HP/GOLD stay forbidden — the audit has no discrepancy basis for those.
 function buildSheetSyncPrompt(companions){
-  var compLine=companions.length?"Party members to also audit: "+companions.join(", ")+". For each use COMPANION_ prefixed tags: [COMPANION_RELATIONSHIP:Name|entity|descriptor] [COMPANION_CONDITION:Name|cond|dur] [COMPANION_CONDITION_REMOVED:Name|cond] [COMPANION_ALIGNMENT:Name|law+1] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item].":"";
+  var compLine=companions.length?"Party members to also audit: "+companions.join(", ")+". For each use COMPANION_ prefixed tags: [COMPANION_RELATIONSHIP_BOND:Name|entity|durable bond] [COMPANION_RELATIONSHIP_DYNAMIC:Name|entity|current dynamic] and their axis-specific REMOVED forms; [COMPANION_CONDITION:Name|cond|dur] [COMPANION_CONDITION_REMOVED:Name|cond] [COMPANION_ALIGNMENT:Name|law+1] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item].":"";
   return "[GM SHEET SYNC — internal, not a player action] Audit ALL character sheets against events in this session. "
     +"Emit ONLY state tags — zero prose, zero narration, zero 'You could' line. "
-    +"For the player — allowed tags: [RELATIONSHIP:entity|descriptor] [RELATIONSHIP_REMOVED:entity] [CONDITION:name|duration] [CONDITION_REMOVED:name] "
+    +"For the player — allowed tags: [RELATIONSHIP_BOND:entity|durable bond] [RELATIONSHIP_DYNAMIC:entity|current dynamic] and their axis-specific REMOVED forms; [CONDITION:name|duration] [CONDITION_REMOVED:name] "
     +"[NPC:name|status|relation] [QUEST:title|status] [ALIGNMENT:law+1] (or law-1/good+1/good-1) [ITEM_GAINED:name] [ITEM_LOST:name]. "
     +compLine+" "
     +"ITEM tags are DISCREPANCY CORRECTIONS ONLY, and finding item discrepancies is a core duty of this audit: go item by item — emit [ITEM_LOST:] for anything the story shows spent, sold, or taken that the sheet still lists, and [ITEM_GAINED:] for anything the story clearly shows acquired that is MISSING from the sheet (a story-established item absent from the sheet is exactly the error you exist to repair — repair it). The prohibition runs ONE way only: never re-emit a gain or loss the sheet ALREADY reflects, because that double-applies it. "

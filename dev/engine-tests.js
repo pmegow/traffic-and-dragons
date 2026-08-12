@@ -999,7 +999,7 @@ function runEngineTests(R){
   t("FUTURE_EVENT files, dedupes, resolves",function(){makeWorld();applyMuts("[FUTURE_EVENT:the debt comes due|soon]");applyMuts("[FUTURE_EVENT:the debt comes due|soon]");if(memory.futureEvents.length!==1)return "dedupe failed: "+memory.futureEvents.length;applyMuts("[FUTURE_EVENT_RESOLVED:the debt comes due]");return eq(memory.futureEvents.length,0);});
   t("ALIGNMENT clamps at ±3 and relabels",function(){makeWorld();applyMuts("[ALIGNMENT:good+1][ALIGNMENT:good+1][ALIGNMENT:good+1][ALIGNMENT:good+1]");return eq(worldState.character.alignGood,3)===true?eq(worldState.character.actualAlignment,"Neutral Good"):"good="+worldState.character.alignGood;});
   t("SAVE_MOD upserts by source; REMOVED filters",function(){makeWorld();applyMuts("[SAVE_MOD:Ward|Fear|2]");applyMuts("[SAVE_MOD:Ward|Fear|3]");if(worldState.character.saveModifiers.length!==1)return "dup";if(worldState.character.saveModifiers[0].amount!==3)return "not updated";applyMuts("[SAVE_MOD_REMOVED:Ward]");return eq(worldState.character.saveModifiers.length,0);});
-  t("RELATIONSHIP upsert + REMOVED resolve through aliases",function(){makeWorld();applyMuts("[NPC:Veyra|calm|ally][NPC_ALIAS:Veyra|The Grey Blade]");applyMuts("[RELATIONSHIP:The Grey Blade|Sworn ally]");if(!worldState.character.relationships.length||worldState.character.relationships[0].entity!=="Veyra")return "not resolved: "+JSON.stringify(worldState.character.relationships);applyMuts("[RELATIONSHIP_REMOVED:The Grey Blade]");return eq(worldState.character.relationships.length,0);});
+  t("RELATIONSHIP_BOND upsert + confirmed removal resolve through aliases",function(){makeWorld();applyMuts("[NPC:Veyra|calm|ally][NPC_ALIAS:Veyra|The Grey Blade]");applyMuts("[RELATIONSHIP_BOND:The Grey Blade|Sworn ally]");var r=relationshipFind(worldState.character,"Veyra",null);if(!r||r.entity!=="Veyra"||r.bond!=="Sworn ally")return "not resolved: "+JSON.stringify(worldState.character.relationships);worldState.turn++;applyMuts("[RELATIONSHIP_BOND_REMOVED:The Grey Blade]");if(r.bond!=="Sworn ally")return "removal bypassed confirmation";worldState.turn++;applyMuts("[RELATIONSHIP_BOND_REMOVED:The Grey Blade]");return r.bond===""?true:"confirmed alias removal failed: "+JSON.stringify(r);});
   t("SPELL_USED matches base name through the racial parenthetical",function(){makeWorld();applyMuts("[SPELL_USED:Faerie Fire]");return eq(worldState.character.spells[0].used,true);});
   // ── tag capture bounding (audit E8/E18/E42/E52) ──
   t("QUEST_STEP 2-field form doesn't over-capture across a later tag (E8)",function(){
@@ -3946,7 +3946,7 @@ function runEngineTests(R){
     // v1.447 (#96): +SAY strip entry — source grew exactly 4 chars = "SAY|". Stripping is
     // load-bearing twice over: an unstripped [SAY:] would leak into the displayed prose AND into
     // the transcript's clean text, polluting RAG excerpts and the narrative export.
-    if(__djb2(_CT_TAGS.source)!==-1593618956||_CT_TAGS.source.length!==1090)return "_CT_TAGS diverged from the frozen literal";/* re-baselined v1.463: +12 = "ENEMY_SLAIN|"; re-baselined v1.503 (#105/B17): +15 = "LOCATION_STATE|" — an unstripped state note would leak bookkeeping into the prose AND the transcript's clean text; re-baselined v1.525 (#127): +13 = "ARC_CONTINUE|" (the drift-check answer tag — strip clause in the #127 section); re-baselined v1.556 (#138): +20 = "MANA|"(5)+"COMPANION_MANA|"(15) — the external-mana pair (strip test in the #138 section); re-baselined v1.576 (#81): +9 = "ITEM_DEF|" — an unstripped proposal tag would leak the whole definition into the prose (strip test in the #81 section); re-baselined v1.581 (#156 Phase A): +12 = "ALIAS|"(6)+"MERGE|"(6) — the generalized identity pair; \[( anchoring keeps them from shadowing NPC_ALIAS/NPC_MERGE (strip test in the #156 section); re-baselined v1.596 (#168 owner repair): +20 = "NPC_DEATH_RETRACTED|" — the hidden operator tag must never leak to prose */
+    if(__djb2(_CT_TAGS.source)!==1533725148||_CT_TAGS.source.length!==1455)return "_CT_TAGS diverged from the frozen literal";/* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -4012,7 +4012,7 @@ function runEngineTests(R){
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===953759051&&d.length===20259)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* re-baselined v1.463: +378 = the ENEMY_SLAIN doc sentence (outcome tag for narrated kills, t1188); re-baselined v1.499: +677 = the TIME_ADVANCE scene-level rewrite (#106 cause ①, measured — 216 turns of Day 1 billed 1043 min against ~2332 narrated); re-baselined v1.503: +478 = the one LOCATION_STATE doc line (#105/B17 — the frozen-locations fix, design ratified by the user 2026-07-30; clause guard in the #105 section); re-baselined v1.508: +463 = the #110 MANA rewrite of the SPELL_USED / COMPANION_SPELL_USED / REST doc lines (spend-by-tier economy, necromancer blood-price never re-emitted as [HP:] — design ruled with the user 2026-07-31, clause tests in the mana section); re-baselined v1.525 (#127): +258 = the one ARC_CONTINUE doc line (the drift-check answer tag — user-directed arc-lifecycle teeth 2026-08-02, clause tests in the #127 section); re-baselined v1.546: +12 = ", Explosives" — the SKILL_SUCCESS exact-ids list rotted by hand (Explosives shipped in SKILLS without ever entering the doc, so the GM could never award it) and now DERIVES from SKILLS in tag_table.js; the bidirectional guard above pins the derivation. Golden diffed by eye; re-baselined v1.555: +199 = the no-mana-tag sentence on the SPELL_USED line (the GM invented [MANA:-1] on a Zone of Truth cast, 2026-08-07 field report — the display leak is contained in cleanTxt v1.554, this clause is the prevention half; clause guard above). Golden diffed by eye; re-baselined v1.556 (#138): +560 = the [MANA:]/[COMPANION_MANA:] external-effects doc line + the v1.555 clause NARROWED to cast-costs-only (the tag now exists — user greenlight same day; clause guard updated in step). Golden diffed by eye; re-baselined v1.576 (#81): +682 = the one ITEM_DEF doc line (player-CONFIRMED item-canon proposals — fork ruled 2026-08-08; proposal + TYPE-vs-INSTANCE clause guards in the #81 section). Golden diffed by eye; re-baselined v1.581 (#156 Phase A): +257 = the one generalized [ALIAS:]/[MERGE:] doc line (domain-first identity pair + the pipe-refusal sentence — parse+strip+docs land together; clause tests in the #156 section). Golden diffed by eye */
+    return (__djb2(d)===-766346739&&d.length===22357)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -4823,35 +4823,35 @@ function runEngineTests(R){
   function __morwenWorld(){
     makeWorld();
     worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Morwen",cls:"Druid",level:3,hp:14,maxHp:14,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
-    worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife"}];
+    worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:5,dynamic:"",dynamicTurn:null}];
   }
   t("fires on a weighty unmirrored player→companion relationship (the Morwen failure, reconstructed)",function(){
     __morwenWorld();
     var n=buildReciprocityNudge();
     if(!n)return "nudge did not fire";
     if(n.indexOf("Morwen")<0||n.indexOf("Wife")<0)return "note missing names: "+n;
-    return n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|")>=0?true:"exact mirror-tag form missing: "+n;
+    return n.indexOf("[COMPANION_RELATIONSHIP_BOND:Morwen|Tess|")>=0?true:"exact mirror-tag form missing: "+n;
   });
   t("does NOT fire when the mirror exists (any descriptor counts as reciprocation)",function(){
     __morwenWorld();
-    worldState.npcs[0].charSheet.relationships=[{entity:"Tess",descriptor:"Travel companion"}];
+    worldState.npcs[0].charSheet.relationships=[{entity:"Tess",bond:"Travel companion",bondTurn:5,dynamic:"",dynamicTurn:null}];
     return buildReciprocityNudge()===""?true:"fired despite an existing mirror";
   });
   t("does NOT fire for a non-weighty descriptor",function(){
     __morwenWorld();
-    worldState.character.relationships=[{entity:"Morwen",descriptor:"Allied"}];
+    worldState.character.relationships=[{entity:"Morwen",bond:"Allied",bondTurn:5,dynamic:"",dynamicTurn:null}];
     return buildReciprocityNudge()===""?true:"fired on a non-weighty bond";
   });
   t("does NOT fire for a weighty bond with a NON-party entity",function(){
     __morwenWorld();
-    worldState.character.relationships=[{entity:"The Crimson Hand",descriptor:"Sworn enemy"}];
+    worldState.character.relationships=[{entity:"The Crimson Hand",bond:"Sworn enemy",bondTurn:5,dynamic:"",dynamicTurn:null}];
     return buildReciprocityNudge()===""?true:"fired on a non-companion entity";
   });
   t("once per (entity,descriptor) pair, ever; a NEW weighty descriptor re-arms",function(){
     __morwenWorld();
     if(!buildReciprocityNudge())return "first call did not fire";
     if(buildReciprocityNudge()!=="")return "second call re-fired the same pair";
-    worldState.character.relationships=[{entity:"Morwen",descriptor:"Betrayed sworn oath"}];
+    worldState.character.relationships=[{entity:"Morwen",bond:"Betrayed sworn oath",bondTurn:6,dynamic:"",dynamicTurn:null}];
     return buildReciprocityNudge()!==""?true:"new weighty descriptor did not re-arm";
   });
   t("silent mid-combat, and the pair is NOT consumed (mark only writes when a note returns)",function(){
@@ -4876,43 +4876,43 @@ function runEngineTests(R){
   section("relationship grounding (#61)");
   function __relWorld(){
     makeWorld();worldState.turn=50;
-    worldState.npcs.push({name:"Morwen",status:"steady",statusTurn:50,rel:"companion",partyMember:true,charSheet:{name:"Morwen",gender:"F",cls:"Druid",level:3,hp:14,maxHp:14,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Husband — beloved family",turn:10}]}});
-    worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife",turn:10}];
+    worldState.npcs.push({name:"Morwen",status:"steady",statusTurn:50,rel:"companion",partyMember:true,charSheet:{name:"Morwen",gender:"F",cls:"Druid",level:3,hp:14,maxHp:14,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",bond:"Husband — beloved family",bondTurn:10,dynamic:"",dynamicTurn:null}]}});
+    worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:10,dynamic:"",dynamicTurn:null}];
   }
-  t("party sheet injects the companion's Relationships line (the write-path-no-read-path fix)",function(){
+  t("party sheet injects the companion's labeled Bond line",function(){
     __relWorld();var s=buildSysPrompt();
-    if(s.volatile.indexOf("Relationships: Tess (Husband — beloved family)")<0)return "companion bond missing from party sheet";
+    if(s.volatile.indexOf("Bond: Tess (Husband — beloved family)")<0)return "companion bond missing from party sheet";
     return s.stable.indexOf("Husband — beloved family")<0?true:"bond leaked into the stable half";/* the bare word 'husband' legitimately exists in a static rule (data.js) */
   });
-  t("no Relationships lines anywhere when nobody has bonds (byte-shape unchanged)",function(){
+  t("no Bond or Current dynamic lines anywhere when nobody has relationship state",function(){
     __relWorld();worldState.character.relationships=[];worldState.npcs[0].charSheet.relationships=[];
-    return buildSysPrompt().volatile.indexOf("Relationships:")<0?true:"empty bond list still rendered a Relationships line";
+    var v=buildSysPrompt().volatile;return v.indexOf("Bond:")<0&&v.indexOf("Current dynamic:")<0?true:"empty relationship list still rendered an axis line";
   });
   t("roster rel DERIVES from the player's bond for party members; non-party npc.rel untouched; no bond falls back",function(){
     __relWorld();
     worldState.npcs.push({name:"Aldara",status:"wary",statusTurn:50,rel:"mother of Morwen",partyMember:false});
-    worldState.character.relationships.push({entity:"Aldara",descriptor:"Cautious Peace"});
+    worldState.character.relationships.push({entity:"Aldara",bond:"Cautious Peace",bondTurn:50,dynamic:"",dynamicTurn:null});
     worldState.npcs.push({name:"Durdun",status:"ally",statusTurn:50,rel:"business partner",partyMember:true,charSheet:{name:"Durdun",gender:"M",cls:"Rogue",level:2,hp:9,maxHp:9,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
     var v=buildSysPrompt().volatile;
-    if(v.indexOf("Morwen (mood: steady, Wife")<0)return "party rel not derived from the player's bond";
-    if(v.indexOf("Aldara (mood: wary, mother of Morwen")<0)return "non-party rel was overwritten — identity info lost";
-    return v.indexOf("Durdun (mood: ally, business partner")>=0?true:"party member without a player bond lost its npc.rel fallback";
+    if(v.indexOf("Morwen (mood: steady, bond: Wife")<0)return "party bond not derived from the player's durable axis";
+    if(v.indexOf("Aldara (mood: wary, NPC stance: mother of Morwen")<0)return "non-party NPC stance was overwritten — identity info lost";
+    return v.indexOf("Durdun (mood: ally, business partner")<0&&v.indexOf("Durdun (mood: ally, NPC stance:")<0?true:"party member without a bond inherited npc.rel as durable authority";
   });
   t("stamps: new bond stamped, changed descriptor re-stamped, unchanged bond keeps its stamp",function(){
     __relWorld();var pre=relationshipSnapshot();
-    worldState.character.relationships.push({entity:"Shalelu",descriptor:"Tentative Ally"});
-    worldState.character.relationships[0].descriptor="Wife — estranged but wed";
-    worldState.npcs[0].charSheet.relationships[0].descriptor="Husband — beloved family";/* unchanged */
+    worldState.character.relationships.push({entity:"Shalelu",bond:"Tentative Ally",bondTurn:null,dynamic:"",dynamicTurn:null});
+    worldState.character.relationships[0].bond="Wife — estranged but wed";
+    worldState.npcs[0].charSheet.relationships[0].bond="Husband — beloved family";/* unchanged */
     stampRelationshipChanges(pre);
     var rl=worldState.character.relationships;
-    if(rl[1].turn!==50)return "new bond not stamped: "+rl[1].turn;
-    if(rl[0].turn!==50)return "changed descriptor not re-stamped: "+rl[0].turn;
-    return worldState.npcs[0].charSheet.relationships[0].turn===10?true:"unchanged bond lost its original stamp";
+    if(rl[1].bondTurn!==50)return "new bond not stamped: "+rl[1].bondTurn;
+    if(rl[0].bondTurn!==50)return "changed bond not re-stamped: "+rl[0].bondTurn;
+    return worldState.npcs[0].charSheet.relationships[0].bondTurn===10?true:"unchanged bond lost its original stamp";
   });
   t("downgrade detect: weighty→non-weighty queues + toasts; weighty→weighty, removal, and non-weighty changes do NOT",function(){
     __relWorld();var pre=relationshipSnapshot();
-    worldState.character.relationships[0].descriptor="Travel companion";/* weighty→non-weighty */
-    worldState.npcs[0].charSheet.relationships[0].descriptor="Sworn husband";/* weighty→weighty */
+    worldState.character.relationships[0].bond="Travel companion";/* weighty→non-weighty outside adapter */
+    worldState.npcs[0].charSheet.relationships[0].bond="Sworn husband";/* weighty→weighty */
     stampRelationshipChanges(pre);
     var q=worldState.relDowngrades;
     if(!q||q.length!==1)return "expected exactly 1 downgrade, got "+(q?q.length:0);
@@ -4934,21 +4934,23 @@ function runEngineTests(R){
     worldState.combat=null;
     var n=buildRelationshipDowngradeNudge();
     if(n.indexOf("BOND DOWNGRADE CHECK")<0)return "note missing: "+n;
-    if(n.indexOf("[COMPANION_RELATIONSHIP:Morwen|Tess|Husband — beloved family]")<0)return "restore tag must be PRE-FILLED with the old descriptor (the compliance lever): "+n;
+    if(n.indexOf("[COMPANION_RELATIONSHIP_BOND:Morwen|Tess|Husband — beloved family]")<0)return "restore tag must be PRE-FILLED with the old bond (the compliance lever): "+n;
     if(!worldState.relDowngrades||worldState.relDowngrades.length!==1)return "delivery must NOT consume — one ignored nudge left the marriage clobbered";
     if(buildRelationshipDowngradeNudge()!=="")return "re-fired inside the cooldown";
     worldState.turn=53;
     if(buildRelationshipDowngradeNudge()==="")return "cooldown elapsed — must re-fire";
     worldState.turn=56;
     if(buildRelationshipDowngradeNudge()==="")return "third (final) delivery must fire";
-    if(worldState.relDowngrades!==undefined)return "3-delivery cap must retire the entry after the final attempt (bounded — never open-ended nagging)";
-    return buildRelationshipDowngradeNudge()===""?true:"fired on an empty queue";
+    if(!worldState.relDowngrades||!worldState.relDowngrades[0].muted)return "3-delivery cap must mute the pointed note without deleting the protected preimage";
+    if(buildRelationshipDowngradeNudge()!=="")return "muted guard kept nagging";
+    var s=buildSysPrompt().volatile;
+    return s.indexOf("UNRESOLVED protected bond preimage")>=0&&s.indexOf("was \"Husband")>=0?true:"muted integrity residue became invisible";
   });
   t("#167 resolution: ANY rewrite of the pair's descriptor clears its pending check; unrelated pairs keep theirs",function(){
     __relWorld();worldState.turn=60;
     var pre=relationshipSnapshot();
     worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"Travel companion",turn:59},{who:"Morwen",entity:"Tess",prev:"Husband",next:"pal",turn:59}];
-    worldState.character.relationships[0].descriptor="Wife — reconciled";/* the GM rewrote player→Morwen (weighty restore) */
+    worldState.character.relationships[0].bond="Wife — reconciled";/* direct outside-adapter rewrite, caught by the compatibility guard */
     stampRelationshipChanges(pre);
     var q=worldState.relDowngrades;
     if(!q||q.length!==1)return "player→Morwen pending check must clear on rewrite; the unrelated pair must stay: "+JSON.stringify(q);
@@ -4967,7 +4969,7 @@ function runEngineTests(R){
   });
   t("audit: unstamped legacy bond reads long-standing; combat silent without consuming; empty world consumes the window silently",function(){
     __relWorld();worldState.turn=100;worldState.lastRelAudit=0;
-    delete worldState.character.relationships[0].turn;
+    worldState.character.relationships[0].bondTurn=null;
     worldState.combat={name:"Wolf",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
     if(buildRelationshipAudit()!=="")return "fired mid-combat";
     if(worldState.lastRelAudit!==0)return "combat path consumed the window";
@@ -6031,9 +6033,9 @@ function runEngineTests(R){
   });
   t("weighty relationship files; mundane one does not; unchanged weighty does not re-file",function(){
     __cmWorld();
-    __cmTurn("[RELATIONSHIP:Morwen|Sworn ally]");
+    __cmTurn("[RELATIONSHIP_BOND:Morwen|Sworn ally]");
     if(__cmPl().length!==1)return "weighty not filed";
-    worldState.turn++;__cmTurn("[RELATIONSHIP:Barkeep|acquaintance]");
+    worldState.turn++;__cmTurn("[RELATIONSHIP_BOND:Barkeep|acquaintance]");
     if(__cmPl().length!==1)return "mundane filed";
     worldState.turn++;__cmTurn("no tags this turn");
     return eq(__cmPl().length,1,"unchanged weighty re-filed");
@@ -7477,6 +7479,7 @@ function runEngineTests(R){
     if(!worldState.pendingMergeHints||worldState.pendingMergeHints.length!==1)return "merge hint not queued";
     var note=buildMergeConfirmNudge();
     if(note.indexOf("[NPC_MERGE:Daeris|Woman in Bronze]")<0)return "nudge missing the tag";
+    worldState.turn++;/* #168: the note authorizes the response that commits as the next turn */
     applyMuts("It was her all along. [NPC_MERGE:Daeris|Woman in Bronze]");
     if(memory.npcs["Woman in Bronze"])return "duplicate entry survived the merge";
     if((memory.npcs["Daeris"].knowledge||[]).indexOf("seen at the harbor at night")<0)return "duplicate's knowledge not absorbed: "+JSON.stringify(memory.npcs["Daeris"].knowledge);
@@ -9336,13 +9339,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.npcs=[{name:"Blank",status:"",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
     if(/\(,|,\s*,/.test(line))return "stray comma in: "+line;
-    return line.indexOf("Blank (ally, she/her)")>=0?true:"unexpected render: "+line;
+    return line.indexOf("Blank (NPC stance: ally, she/her)")>=0?true:"unexpected render: "+line;
   });
   t("roster render: every part present renders in a fixed order with the mood LABELLED (v1.382)",function(){
     makeWorld();
     worldState.npcs=[{name:"Full",status:"watchful, tense",statusTurn:worldState.turn,rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
-    return line.indexOf("Full (mood: watchful, tense, ally, she/her)")>=0?true:"render drifted: "+line;
+    return line.indexOf("Full (mood: watchful, tense, NPC stance: ally, she/her)")>=0?true:"render drifted: "+line;
   });
   t("v1.382: the two mood-ish tiers are LABELLED so they can never read as rival claims",function(){
     makeWorld();worldState.turn=900;
@@ -9463,7 +9466,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.npcs=[{name:"Blank",status:"",rel:"ally",pronouns:"she/her",partyMember:false,aliases:[]}];
     var line=(buildSysPrompt().volatile.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";
     if(line.indexOf("mood:")>=0)return "empty mood still rendered a label: "+line;
-    return line.indexOf("Blank (ally, she/her)")>=0?true:"unexpected render: "+line;
+    return line.indexOf("Blank (NPC stance: ally, she/her)")>=0?true:"unexpected render: "+line;
   });
   t("repair: strips a trailing relation word, keeps the real mood (the Frizwick shape)",function(){
     return eq(stripRelWordsFromMood("watchful, tense, acquaintance"),"watchful, tense");
@@ -11876,16 +11879,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
-  t("W1 exact t1666 replay: Owed queues both marriage downgrades and mints no false bond moment on any witness",function(){
+  t("W1/W7 exact t1666 replay: Owed lands only on dynamic, preserves both marriages, and mints no false bond moment",function(){
     makeWorld();worldState.turn=1666;worldState.character.name="Ammut";worldState.character.coreMemories=[];
-    worldState.character.relationships=[{entity:"Frizwick",descriptor:"Wife",turn:1500}];
+    worldState.character.relationships=[{entity:"Frizwick",bond:"Wife",bondTurn:1500,dynamic:"",dynamicTurn:null}];
     function mate(nm,rels){var cs={name:nm,hp:20,maxHp:20,inventory:[],conditions:[],relationships:rels||[],coreMemories:[]};worldState.npcs.push({name:nm,status:"steady",statusTurn:1665,rel:"companion",partyMember:true,charSheet:cs});memory.npcs[nm]={attitude:"",knowledge:[],events:[],aliases:[]};return cs;}
-    var friz=mate("Frizwick",[{entity:"Ammut",descriptor:"Husband",turn:1500}]),dae=mate("Daeris"),mor=mate("Morwen");
+    var friz=mate("Frizwick",[{entity:"Ammut",bond:"Husband",bondTurn:1500,dynamic:"",dynamicTurn:null}]),dae=mate("Daeris"),mor=mate("Morwen");
     var cm=coreMemorySnapshot(),rl=relationshipSnapshot();
-    applyMuts("[RELATIONSHIP:Frizwick|Owed a favor — warmly claimed][COMPANION_RELATIONSHIP:Frizwick|Ammut|Owed favor collected, warming]");
+    applyMuts("[RELATIONSHIP_DYNAMIC:Frizwick|Owed a favor — warmly claimed][COMPANION_RELATIONSHIP_DYNAMIC:Frizwick|Ammut|Owed favor collected, warming]");
     detectCoreMoments(cm);stampRelationshipChanges(rl);
-    var q=worldState.relDowngrades||[];
-    if(q.length!==2)return "both directed marriage edges must queue, got "+JSON.stringify(q);
+    var a=relationshipFind(worldState.character,"Frizwick",null),b=relationshipFind(friz,"Ammut","Frizwick");
+    if(a.bond!=="Wife"||a.dynamic.indexOf("Owed a favor")!==0||b.bond!=="Husband"||b.dynamic.indexOf("Owed favor")!==0)return "axes wrong: "+JSON.stringify([a,b]);
+    if(worldState.relDowngrades)return "dynamic write armed obsolete downgrade guard: "+JSON.stringify(worldState.relDowngrades);
     var owners=[worldState.character,friz,dae,mor],i,j;
     for(i=0;i<owners.length;i++){for(j=0;j<(owners[i].coreMemories||[]).length;j++){if(owners[i].coreMemories[j].kind==="bond")return "false bond moment filed to "+owners[i].name+": "+JSON.stringify(owners[i].coreMemories[j]);}}
     return true;
@@ -11970,18 +11974,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return got.indexOf("poisoned bookkeeping")<0?true:"bookkeeping row leaked through RAG: "+got;
   });
 
-  t("W5 provenance records legal two-letter tags and descriptor updates with non-empty mutation labels",function(){
-    makeWorld();worldState.character.hp=20;worldState.character.maxHp=20;worldState.character.relationships=[{entity:"Frizwick",descriptor:"Wife"}];memory.npcs.Frizwick={attitude:"",knowledge:[],events:[],aliases:[]};
+  t("W5 provenance records legal two-letter tags and explicit axis updates with non-empty mutation labels",function(){
+    makeWorld();worldState.character.hp=20;worldState.character.maxHp=20;worldState.character.relationships=[{entity:"Frizwick",bond:"Wife",bondTurn:1,dynamic:"",dynamicTurn:null}];memory.npcs.Frizwick={attitude:"",knowledge:[],events:[],aliases:[]};
     applyMuts("[HP:-3][XP:600]");
     var a=worldState.tagLog[worldState.tagLog.length-1];
     if(a.tags.indexOf("HP")<0||a.tags.indexOf("XP")<0)return "HP/XP absent from tagLog: "+JSON.stringify(a);
-    applyMuts("[RELATIONSHIP:Frizwick|Wife — reconciled]");
+    applyMuts("[RELATIONSHIP_BOND:Frizwick|Wife — reconciled]");
     var b=worldState.tagLog[worldState.tagLog.length-1];
-    if(!b.m||!b.m.length||b.m.join("|").indexOf("Wife — reconciled")<0)return "player descriptor update has no mutation receipt: "+JSON.stringify(b);
-    worldState.npcs.push({name:"Frizwick",partyMember:true,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:[],conditions:[],relationships:[{entity:"Tess",descriptor:"Friend"}]}});
-    applyMuts("[COMPANION_RELATIONSHIP:Frizwick|Tess|Trusted friend]");
+    if(!b.m||!b.m.length||b.m.join("|").indexOf("Wife — reconciled")<0)return "player bond proposal has no mutation receipt: "+JSON.stringify(b);
+    worldState.npcs.push({name:"Frizwick",partyMember:true,charSheet:{name:"Frizwick",hp:9,maxHp:9,inventory:[],conditions:[],relationships:[{entity:"Tess",bond:"Friend",bondTurn:1,dynamic:"",dynamicTurn:null}]}});
+    applyMuts("[COMPANION_RELATIONSHIP_DYNAMIC:Frizwick|Tess|Trusted tonight]");
     var c=worldState.tagLog[worldState.tagLog.length-1];
-    return c.m&&c.m.join("|").indexOf("Trusted friend")>=0?true:"companion descriptor update has no mutation receipt: "+JSON.stringify(c);
+    return c.m&&c.m.join("|").indexOf("Trusted tonight")>=0?true:"companion dynamic update has no mutation receipt: "+JSON.stringify(c);
   });
 
   t("W5 player identity is rejected at NPC writers and hidden from every NPC reader; companions remain",function(){
@@ -12063,8 +12067,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       {name:"Legacy",status:"cheerful",statusTurn:0,rel:"merchant",pronouns:"they/them",partyMember:false}
     ];
     var v=buildSysPrompt().volatile;
-    if(v.indexOf("Fresh (mood: alert, amused, ally, she/her)")<0)return "fresh mood missing: "+v.slice(0,500);
-    if(v.indexOf("Stale (rival, he/him)")<0||v.indexOf("Legacy (merchant, they/them)")<0)return "age gate hid non-mood roster identity: "+v.slice(0,700);
+    if(v.indexOf("Fresh (mood: alert, amused, NPC stance: ally, she/her)")<0)return "fresh mood missing: "+v.slice(0,500);
+    if(v.indexOf("Stale (NPC stance: rival, he/him)")<0||v.indexOf("Legacy (NPC stance: merchant, they/them)")<0)return "age gate hid non-mood roster identity: "+v.slice(0,700);
     if(v.indexOf("mood: watchful, tense")>=0||v.indexOf("mood: cheerful")>=0)return "stale/legacy mood still injected";
     return true;
   });
@@ -12188,6 +12192,329 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return !worldState.consumablePending&&buildConsumableNudge()===""?true:"answered check survived";
   });
 
+  // ═══ #168 W2: referential integrity for high-impact writes ═══
+  // Exact hostile shape: an observed anonymous actor is explicitly NOT a known NPC, a later
+  // bare relabel tries to bind them, and death/quest/reward writers would otherwise ratchet the
+  // known NPC across independent stores. These fixtures define the transaction before the fix.
+  section("#168 W2: referential integrity transactions");
+  function w2Npc(name,rel){
+    worldState.npcs.push({name:name,status:"",statusTurn:0,rel:rel||"enemy",met:1,partyMember:false,aliases:[]});
+    memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};
+  }
+  function w2Quest(){
+    worldState.questLog.push({title:"The Giants of Jorgenfist",status:"active",desc:"Stop Mokmurian before the army marches",objectives:[{text:"Strike Mokmurian directly in his ritual chamber",done:false}],started:1});
+  }
+  function w2Frame(handle,entity,turn){
+    worldState.turn=turn||10;
+    applyMuts("[SCENE_REF:"+handle+"|"+(entity||"?")+"]");
+  }
+  function w2Txn(id,claim,subject,handle,quest,tags){
+    return "[CANON_TXN_BEGIN:"+id+"|"+claim+"|"+subject+"|"+handle+"|"+(quest||"-")+"]"+tags+"[CANON_TXN_END:"+id+"]";
+  }
+
+  t("W2 exact Mokmurian fixture: anonymous scholar + explicit exclusion quarantines death, objective, and XP together",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=1638;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=1645;applyMuts("[NPC:Mokmurian|bent over tablets|enemy]");
+    worldState.turn=1648;applyMuts(w2Txn("mok-1648","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[NPC:Mokmurian|dead|enemy][QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:600]"));
+    if(npcIsDead(wsNpcByName("Mokmurian"))||memory.npcs.Mokmurian.dead)return "the excluded known NPC was stamped dead";
+    if(worldState.questLog[0].objectives[0].done)return "identity-dependent objective committed";
+    if(worldState.character.xp!==0)return "identity-dependent XP committed: "+worldState.character.xp;
+    var tx=worldState.canonTxns&&worldState.canonTxns[0];
+    if(!tx||tx.id!=="mok-1648"||tx.status!=="quarantined")return "no durable quarantined transaction receipt: "+JSON.stringify(worldState.canonTxns);
+    return worldState.identityConflicts&&worldState.identityConflicts.length?true:"conflict was silent";
+  });
+
+  t("W2 malformed envelopes and cross-subject death operations fail closed without partial consequence",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Npc("Rinn Toldrath");w2Quest();w2Frame("mok","Mokmurian",10);w2Frame("rinn","Rinn Toldrath",10);
+    worldState.turn=11;applyMuts("[CANON_TXN_BEGIN:broken|npc-death|Mokmurian|mok|The Giants of Jorgenfist][NPC:Mokmurian|dead|enemy][QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:600][CANON_TXN_END:wrong]");
+    if(npcIsDead(wsNpcByName("Mokmurian"))||worldState.questLog[0].objectives[0].done||worldState.character.xp)return "mismatched marker leaked a partial consequence";
+    worldState.turn=12;applyMuts(w2Txn("wrong-subject","npc-death","Mokmurian","mok","-","[NPC:Rinn Toldrath|dead|enemy][XP:100]"));
+    return !npcIsDead(wsNpcByName("Rinn Toldrath"))&&worldState.character.xp===0?true:"transaction metadata authorized a different corpse";
+  });
+
+  t("W2 anonymous scholar death may commit its own independent award without killing Mokmurian",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");
+    w2Frame("scholar","?",20);worldState.turn=21;
+    applyMuts(w2Txn("scholar-21","npc-death","-","scholar","-","[SCENE_DEATH:scholar][XP:250]"));
+    if(npcIsDead(wsNpcByName("Mokmurian"))||memory.npcs.Mokmurian.dead)return "anonymous death substituted Mokmurian";
+    if(worldState.character.xp!==250)return "independent anonymous-actor award did not commit: "+worldState.character.xp;
+    var tx=worldState.canonTxns&&worldState.canonTxns[0];
+    return tx&&tx.status==="committed"&&tx.subject==="-"?true:"anonymous outcome receipt wrong: "+JSON.stringify(tx);
+  });
+
+  t("W2 an explicit later reveal supersedes the same-handle exclusion, but cannot authorize death in its own response",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");
+    worldState.turn=30;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=31;applyMuts("[SCENE_REVEAL:scholar|Mokmurian]"+w2Txn("same-turn","npc-death","Mokmurian","scholar","-","[SCENE_DEATH:scholar]"));
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "same-response reveal self-authorized an irreversible write";
+    worldState.turn=32;applyMuts(w2Txn("revealed-next","npc-death","Mokmurian","scholar","-","[SCENE_DEATH:scholar]"));
+    return npcIsDead(wsNpcByName("Mokmurian"))&&memory.npcs.Mokmurian.dead===32?true:"prior committed reveal did not authorize the next-turn death";
+  });
+
+  t("W2 transaction ids are idempotent while the same claim id may carry a later new operation once",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();w2Frame("mok","Mokmurian",40);
+    worldState.turn=41;var death=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][XP:100]");
+    applyMuts(death);applyMuts(death);
+    if(worldState.character.xp!==100)return "exact replay paid twice: "+worldState.character.xp;
+    applyMuts(w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][XP:+100]"));
+    if(worldState.character.xp!==100)return "format-only replay paid twice: "+worldState.character.xp;
+    worldState.turn=42;var later=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:50]");
+    applyMuts(later);applyMuts(later);
+    if(worldState.character.xp!==150)return "new delayed operation did not commit exactly once: "+worldState.character.xp;
+    worldState.turn=43;var split=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[XP:25]");applyMuts(split+split);
+    if(worldState.character.xp!==175)return "duplicate envelopes in one response paid more than once: "+worldState.character.xp;
+    worldState.turn=44;var twins=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[ITEM_GAINED:Obsidian shard][ITEM_GAINED:Obsidian shard]");applyMuts(twins);applyMuts(twins);
+    var shards=worldState.character.inventory.filter(function(x){return _invNorm(x)==="obsidian shard";});
+    if(shards.length!==1||_invCount(shards[0])!==2)return "same-transaction multiplicity was lost or replayed: "+JSON.stringify(shards);
+    return worldState.questLog[0].objectives[0].done?true:"delayed objective did not commit";
+  });
+
+  t("W2 a quarantined claim id poisons its delayed objective/reward continuation",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=50;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=51;applyMuts(w2Txn("bad-mok","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[SCENE_DEATH:scholar]"));
+    var firstReason=worldState.canonTxns[0].reason;
+    worldState.turn=60;applyMuts(w2Txn("bad-mok","npc-death","Mokmurian","scholar","The Giants of Jorgenfist","[QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:600]"));
+    if(worldState.canonTxns[0].reason!==firstReason)return "replay overwrote the original quarantine reason";
+    return !worldState.questLog[0].objectives[0].done&&worldState.character.xp===0?true:"delayed continuation escaped quarantine";
+  });
+
+  t("W2 an unresolved named conflict also blocks a later bare target objective and its co-emitted reward",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();
+    worldState.turn=70;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=71;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    worldState.turn=80;applyMuts("[QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:600]");
+    return !worldState.questLog[0].objectives[0].done&&worldState.character.xp===0?true:"a new id/bare tags laundered the unresolved identity claim";
+  });
+
+  t("W2 independent envelopes in one response isolate a bad Mokmurian claim from a valid courier reward",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");
+    worldState.questLog.push({title:"Courier Run",status:"active",desc:"Deliver the sealed letter",objectives:[{text:"Deliver the sealed letter",done:false}],started:1});
+    worldState.turn=90;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=91;var bad=w2Txn("bad-one","npc-death","Mokmurian","scholar","-","[SCENE_DEATH:scholar][XP:600]");
+    var good=w2Txn("courier-one","quest-outcome","-","-","Courier Run","[QUEST_STEP:Courier Run|Deliver the sealed letter|true][XP:50][GOLD:+10][ITEM_GAINED:Courier's token]");
+    applyMuts(bad+good);
+    if(npcIsDead(wsNpcByName("Mokmurian"))||worldState.character.xp!==50||worldState.character.gold!==35)return "transaction isolation failed: "+JSON.stringify({dead:npcIsDead(wsNpcByName("Mokmurian")),xp:worldState.character.xp,gold:worldState.character.gold});
+    if(worldState.character.inventory.indexOf("Courier's token")<0||!worldState.questLog[0].objectives[0].done)return "valid unrelated envelope was swallowed";
+    return true;
+  });
+
+  t("W2 state application is atomic when a transaction handler throws after mutating its clone",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();w2Frame("mok","Mokmurian",100);
+    var xpEntry=null,i;for(i=0;i<TAG_TABLE.length;i++)if(TAG_TABLE[i].t==="XP"){xpEntry=TAG_TABLE[i];break;}
+    if(!xpEntry)return "XP handler missing";
+    var seenToasts=[],oldToast=showToast;showToast=function(x){seenToasts.push(String(x));};
+    var old=xpEntry.apply;xpEntry.apply=function(text,R){worldState.character.xp+=999;throw new Error("W2 sabotage after mutation");};
+    try{worldState.turn=101;applyMuts(w2Txn("atomic-fail","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][QUEST_STEP:The Giants of Jorgenfist|Strike Mokmurian directly in his ritual chamber|true][XP:100][QUEST:The Giants of Jorgenfist|completed]"));}finally{xpEntry.apply=old;showToast=oldToast;}
+    if(worldState.character.xp!==0||npcIsDead(wsNpcByName("Mokmurian"))||worldState.questLog[0].objectives[0].done)return "partial transaction survived handler failure";
+    var leaked=seenToasts.filter(function(x){return x.indexOf("Quest completed")>=0;});if(leaked.length)return "rolled-back quest leaked a success toast";
+    var tx=worldState.canonTxns&&worldState.canonTxns[0];
+    return tx&&tx.status==="quarantined"?true:"runtime failure was not durably quarantined: "+JSON.stringify(tx);
+  });
+
+  t("W2 inference never becomes a hard exclusion: independent positive binding may authorize; an anonymous inference cannot",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");
+    worldState.turn=110;applyMuts("[SCENE_REF:mok|Mokmurian][SCENE_NOT:mok|Mokmurian|inference]");
+    worldState.turn=111;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    if(!npcIsDead(wsNpcByName("Mokmurian")))return "inference overruled an independent positive binding";
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=110;applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|inference]");
+    worldState.turn=111;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return !npcIsDead(wsNpcByName("Mokmurian"))?true:"inference was upgraded into positive identity evidence";
+  });
+
+  t("W2 an explicit exclusion outranks a contradictory positive scene binding",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=112;
+    applyMuts("[SCENE_REF:scholar|Mokmurian][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=113;applyMuts(w2Txn("explicit-wins","npc-death","Mokmurian","scholar","-","[SCENE_DEATH:scholar]"));
+    return !npcIsDead(wsNpcByName("Mokmurian"))?true:"positive binding overruled its explicit negative constraint";
+  });
+  t("W2 an explicit exclusion also blocks a later bare named death despite a contradictory positive binding",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=114;
+    applyMuts("[SCENE_REF:scholar|Mokmurian][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=115;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return !npcIsDead(wsNpcByName("Mokmurian"))?true:"bare named death bypassed the handle's explicit negative constraint";
+  });
+
+  t("W2 combat-close propagation cannot bypass a scene exclusion, but a prior positive binding still permits the registered foe death",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=115;
+    applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    worldState.turn=116;applyMuts("[COMBAT_START:Mokmurian|10|14|3|1d8|steady][ENEMY_SLAIN:Mokmurian][COMBAT_END:victory]");
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "combat propagation bypassed the explicit exclusion";
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=115;applyMuts("[SCENE_REF:mok|Mokmurian]");
+    worldState.turn=116;applyMuts("[COMBAT_START:Mokmurian|10|14|3|1d8|steady][ENEMY_SLAIN:Mokmurian][COMBAT_END:victory]");
+    if(!npcIsDead(wsNpcByName("Mokmurian"))||memory.npcs.Mokmurian.dead!==116)return "prior observed binding did not authorize the registered combat death";
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=117;
+    applyMuts("[SCENE_REF:mok|Mokmurian][COMBAT_START:Mokmurian|10|14|3|1d8|steady][ENEMY_SLAIN:Mokmurian][COMBAT_END:victory]");
+    return !npcIsDead(wsNpcByName("Mokmurian"))?true:"same-response scene tag self-authorized combat death";
+  });
+
+  t("W2 active evidence survives summary acknowledgement; sealed evidence survives scene transition until a structured success",function(){
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");worldState.turn=120;
+    applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    sceneRefsSummarySuccess();
+    var active=sceneRefsEvidence();if(!active.actors.length||!active.negatives.length)return "active scene evidence was consumed by summary";
+    worldState.world.sublocation="Vault";sceneRefsEnsure();
+    var moved=sceneRefsEvidence();if(!moved.sealed||!moved.sealed.length)return "transition did not seal the prior frame";
+    sceneRefsSummaryFailure(true);var failed=sceneRefsEvidence();if(!failed.sealed.length)return "degraded failure consumed sealed identity evidence";
+    sceneRefsSummarySuccess();var ok=sceneRefsEvidence();
+    return ok.sealed.length===0?true:"successful structured summary did not consume covered sealed frames";
+  });
+
+  t("W2 critical scene-evidence overflow is loud and fail-closed, never oldest-entry eviction",function(){
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");worldState.turn=130;
+    var tags="",i;for(i=0;i<11;i++)tags+="[SCENE_REF:actor"+i+"|?]";applyMuts(tags);
+    var ev=sceneRefsEvidence();if(!ev.overflow)return "actor-cap overflow was not retained";
+    if(ev.actors.length!==10||ev.actors[0].handle!=="actor0")return "overflow evicted or rewrote accepted evidence: "+JSON.stringify(ev.actors);
+    worldState.world.sublocation="Vault";sceneRefsEnsure();var moved=sceneRefsEvidence();
+    if(!moved.sealed.length||moved.sealed[0].actors.length!==10)return "overflowed active evidence was not preserved across transition";
+    if(sceneRefBind("post-overflow","?"))return "new evidence was accepted while the ledger was incomplete";
+    sceneRefsSummarySuccess();if(sceneRefsEvidence().overflow)return "covered transitioned overflow did not recover after structured summary";
+    worldState.turn=131;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return !npcIsDead(wsNpcByName("Mokmurian"))&&worldState.identityConflicts?true:"overflow did not fail closed and surface a conflict";
+  });
+
+  t("W2 a reveal cannot silently overwrite a different established scene binding",function(){
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");w2Npc("Rinn Toldrath");worldState.turn=135;applyMuts("[SCENE_REF:robed|Rinn Toldrath]");
+    worldState.turn=136;applyMuts("[SCENE_REVEAL:robed|Mokmurian]");var hit=_sceneRefActor("robed");
+    return hit&&hit.actor.entity==="Rinn Toldrath"&&worldState.identityConflicts&&worldState.identityConflicts.length?true:"reveal overwrote established identity evidence";
+  });
+
+  t("W2 direct merges are proposals first; a delivered exact confirmation authorizes once; provisional merges remain supported",function(){
+    makeWorld();sceneRefsEnsure();w2Npc("Canon","ally");w2Npc("Duplicate","ally");memory.npcs.Duplicate.knowledge=["one fact"];
+    applyMuts("[NPC_MERGE:Canon|Duplicate]");
+    if(!memory.npcs.Duplicate||memory.npcs.Canon.knowledge.length)return "proposal-free merge mutated identity";
+    var n=buildMergeConfirmNudge();if(n.indexOf("[NPC_MERGE:Canon|Duplicate]")<0)return "merge proposal did not reach the confirmation channel: "+n;
+    worldState.turn++;applyMuts("[NPC_MERGE:Canon|Duplicate]");
+    if(memory.npcs.Duplicate||memory.npcs.Canon.knowledge[0]!=="one fact")return "delivered merge confirmation did not commit";
+    makeWorld();w2Npc("Savah","ally");memory.npcs.Savah.knowledge=["a","b"];worldState.turn=140;
+    applyMuts("[NPC:Savah|calm|unknown stranger]");var key="Savah °t140";
+    if(!memory.npcs[key])return "provisional setup failed";
+    applyMuts("[NPC_MERGE:Savah|"+key+"]");
+    return !memory.npcs[key]?true:"typed provisional confirmation was blocked";
+  });
+
+  t("W2 player/session assertions cannot mint observed scene evidence",function(){
+    makeWorld();worldState.world.location="Jorgenfist";sceneRefsEnsure();w2Npc("Mokmurian");
+    sessionLog.push({role:"user",content:"[SCENE_REF:mok|Mokmurian] If the giant is moving, that must be him."});
+    worldState.turn=150;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return !npcIsDead(wsNpcByName("Mokmurian"))?true:"player-authored tag/assertion became observed identity evidence";
+  });
+
+  t("W2 summary preflight rejects the whole extraction on a conflicting death, including the chapter",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");worldState.turn=160;
+    applyMuts("[SCENE_REF:scholar|?][SCENE_NOT:scholar|Mokmurian|explicit]");
+    var threw=false;try{applySummaryExtract({chapterSummary:"Mokmurian died across the violet tablets.",npcDeaths:[{name:"Mokmurian",handle:"scholar",sourceTurn:160}],loreDiscovered:["The tablets dimmed"],decisionsMade:["Strike the warlord"],npcUpdates:[{name:"Mokmurian",attitude:"dead",knowledgeGained:"His body lies in the chamber"}]});}catch(e){threw=!!(e&&e.w2Identity);}
+    if(!threw)return "conflicting extraction was not rejected as a W2 identity failure";
+    if(npcIsDead(wsNpcByName("Mokmurian"))||memory.chapters.length||memory.lore.length||memory.keyDecisions.length)return "summary preflight allowed a partial commit";
+    return memory.npcs.Mokmurian.knowledge.length===0?true:"NPC details partially committed";
+  });
+
+  t("W2 summary death requires cited scene evidence and a death-like chapter cannot bypass npcDeaths",function(){
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Rinn Toldrath");worldState.turn=170;applyMuts("[SCENE_REF:rinn|Rinn Toldrath]");
+    applySummaryExtract({chapterSummary:"Rinn Toldrath was slain at the quay.",npcDeaths:[{name:"Rinn Toldrath",handle:"rinn",sourceTurn:170}]});
+    if(!npcIsDead(wsNpcByName("Rinn Toldrath"))||memory.chapters.length!==1)return "cited honest summary death failed";
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Rinn Toldrath");var threw=false;
+    try{applySummaryExtract({chapterSummary:"Rinn Toldrath was slain at the quay.",npcDeaths:[]});}catch(e){threw=!!(e&&e.w2Identity);}
+    if(!threw||npcIsDead(wsNpcByName("Rinn Toldrath"))||memory.chapters.length!==0)return "chapter-only death bypassed identity evidence";
+    makeWorld();worldState.world.location="Ashfen";w2Npc("Mokmurian");applySummaryExtract({chapterSummary:"Mokmurian killed the old scholar before the tablets dimmed.",npcDeaths:[]});
+    return !npcIsDead(wsNpcByName("Mokmurian"))&&memory.chapters.length===1?true:"active killer was misread as the sentence's corpse";
+  });
+
+  t("W2 prompt contract documents and strips scene evidence plus transaction envelopes",function(){
+    var docs=TAG_DOC_LINES.join("");
+    var names=["SCENE_REF","SCENE_NOT","SCENE_REVEAL","SCENE_DEATH","CANON_TXN_BEGIN","CANON_TXN_END"],i;
+    for(i=0;i<names.length;i++){
+      if(TAG_STRIP_NAMES.indexOf(names[i])<0)return names[i]+" missing from strip registry";
+      if(docs.indexOf("["+names[i]+":")<0)return names[i]+" missing from the GM contract";
+    }
+    var clean=cleanTxt("Visible. [SCENE_REF:r|Rinn][SCENE_NOT:r|Other|explicit][SCENE_REVEAL:r|Rinn][SCENE_DEATH:r][CANON_TXN_BEGIN:x|npc-death|Rinn|r|-][CANON_TXN_END:x]");
+    return clean==="Visible."?true:"W2 tags leaked into prose: "+clean;
+  });
+
+  // ── #168 W6: atomic summary identity validation ─────────────────────────────
+  section("#168 W6 — summary identity validation");
+  function __w6World(){
+    makeWorld();worldState.turn=1644;worldState.character.name="Ammut";worldState.character.gender="M";worldState.character.aliases=["The Ash Walker"];
+    worldState.npcs.push({name:"Morwen",status:"steady",rel:"wife",partyMember:true,pronouns:"she/her",charSheet:{name:"Morwen",gender:"F",aliases:["The Thorn"],cls:"Mage",level:7,hp:30,maxHp:30,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    worldState.npcs.push({name:"Unknown Guard",status:"watchful",rel:"neutral",partyMember:false});
+    memory.npcs.Morwen={attitude:"wife",knowledge:[],events:[],aliases:["The Thorn"],pronouns:"she/her"};
+    memory.npcs["Unknown Guard"]={attitude:"watchful",knowledge:[],events:[],aliases:[]};
+  }
+  function __w6Throws(extracted,table){try{w6ValidateSummary(extracted,table);return null;}catch(e){return e;}}
+  t("W6 exact t1644 chapter is rejected from male Ammut's sole adjacent antecedent, without partial canon writes",function(){
+    __w6World();memory.lore=["old lore"];memory.keyDecisions=[{turn:1,desc:"old decision"}];memory.futureEvents=[{what:"old future",when:"soon",who:"",setTurn:1}];worldState.retconPin={what:"keep me",turn:1643};
+    var before=JSON.stringify({npcs:memory.npcs,lore:memory.lore,keyDecisions:memory.keyDecisions,futureEvents:memory.futureEvents,chapters:memory.chapters,eventHistory:worldState.eventHistory,retconPin:worldState.retconPin});
+    var bad={chapterSummary:"Ammut spins, sword coming up. Invisible, boots silent as held breath, she crosses the ritual chamber and rips the closed-eye satchel free. She runs for the tunnel. Morwen and Daeris meet her with blades half-raised, the satchel heavy against her hip. In the tunnel's dark she cracks it open.",npcUpdates:[{name:"Morwen",attitude:"fearful",knowledgeGained:{fact:"She saw Ammut flee",kind:"durable"}}],loreDiscovered:["new lore"],decisionsMade:["new decision"],futureEvents:[{what:"new future",when:"tomorrow"}],resolvedEvents:["old future"],supersededFacts:[],sameNpc:[],npcDeaths:[]};
+    var e=null;try{applySummaryExtract(bad,summaryIdentityTable("Ammut and Morwen crossed the ritual chamber."));}catch(err){e=err;}
+    if(!e||!e.summaryIdentity||e.subject!=="Ammut")return "t1644 extraction was not rejected as an identity contradiction: "+(e&&e.message);
+    var after=JSON.stringify({npcs:memory.npcs,lore:memory.lore,keyDecisions:memory.keyDecisions,futureEvents:memory.futureEvents,chapters:memory.chapters,eventHistory:worldState.eventHistory,retconPin:worldState.retconPin});
+    return before===after?true:"rejected extraction partially wrote canon";
+  });
+  t("W6 valid female and nonbinary antecedents pass, including registered aliases",function(){
+    __w6World();var table=summaryIdentityTable("Morwen and The Ash Walker are present.");
+    if(__w6Throws({chapterSummary:"Morwen opens the door. She steps into the rain."},table))return "named female actor was rejected";
+    if(!__w6Throws({chapterSummary:"The Ash Walker opens the door. She steps into the rain."},table))return "male player alias contradiction was missed";
+    worldState.npcs.push({name:"Kestrel",status:"calm",rel:"ally",partyMember:true,charSheet:{name:"Kestrel",gender:"NB",cls:"Scout",level:2,hp:10,maxHp:10,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[]}});
+    memory.npcs.Kestrel={attitude:"ally",knowledge:[],events:[],aliases:[]};table=summaryIdentityTable("Kestrel is present.");
+    return __w6Throws({chapterSummary:"Kestrel opens the door. They step into the rain."},table)?"explicit nonbinary they was rejected":true;
+  });
+  t("W6 ambiguity stays unclassified: competing actors, quotes, objects, possessives, plural they, and unknown pronouns",function(){
+    __w6World();var table=summaryIdentityTable("Ammut, Morwen, and Unknown Guard are present."),cases=[
+      "Ammut and Morwen reach the arch. She steps through.",
+      "Ammut says, \"She carried the satchel.\"",
+      "The guards followed her while Ammut fled.",
+      "Ammut found her sword beneath the bench.",
+      "Ammut watched the giants. They vanished into the snow.",
+      "Unknown Guard opened the gate. She stepped aside."
+    ],i,e;for(i=0;i<cases.length;i++){e=__w6Throws({chapterSummary:cases[i]},table);if(e)return "ambiguous case "+i+" was guessed: "+e.message;}return true;
+  });
+  t("W6 validates every prose-bearing extractor tier, not chapterSummary alone",function(){
+    __w6World();var table=summaryIdentityTable("Ammut is present."),base={chapterSummary:"Ammut waits.",npcUpdates:[],loreDiscovered:[],decisionsMade:[],futureEvents:[],resolvedEvents:[],supersededFacts:[],sameNpc:[],npcDeaths:[]};
+    var probes=[
+      function(x){x.loreDiscovered=["Ammut takes the watch. She refuses relief."];},
+      function(x){x.decisionsMade=["Ammut chose the tunnel. She led the descent."];},
+      function(x){x.futureEvents=[{what:"Ammut returns. She brings the map.",when:"tomorrow"}];},
+      function(x){x.resolvedEvents=["Ammut found the door. She opened it."];},
+      function(x){x.supersededFacts=[{name:"Morwen",old:"old",new:"Ammut carries the key. She guards it."}];},
+      function(x){x.npcUpdates=[{name:"Morwen",attitude:"Ammut intervened. She fled.",knowledgeGained:{fact:"Ammut took the blade. She kept it.",kind:"durable"}}];}
+    ],i,x;for(i=0;i<probes.length;i++){x=JSON.parse(JSON.stringify(base));probes[i](x);if(!__w6Throws(x,table))return "prose tier "+i+" bypassed validation";}return true;
+  });
+  t("W6 extractor identity table is authority-limited and bounded, while the JSON schema remains last",function(){
+    __w6World();var labels=["Alpha","Bravo","Cinder","Delta","Ember","Frost","Garnet","Harbor","Ivory","Juniper","Kestrel","Lantern","Morrow","Nimbus","Onyx","Peregrine","Quartz","Raven","Sable","Topaz"],i;for(i=0;i<labels.length;i++){var n="Principal "+labels[i];memory.npcs[n]={attitude:"",knowledge:[],events:[],aliases:[],pronouns:i%2?"she/her":"he/him"};}
+    var raw="Ammut Morwen Unknown Guard ";for(i=0;i<labels.length;i++)raw+=" Principal "+labels[i];
+    var table=summaryIdentityTable(raw),block=buildSummaryIdentityBlock(table),prompt=buildExtractPrompt("summary",[],raw,raw,table);
+    if(table.rows.length!==12||!table.truncated||block.length>1600)return "identity table bound did not engage: "+table.rows.length+" / "+table.truncated+" / "+block.length;
+    if(block.indexOf("Ammut | he/him")<0||block.indexOf("Morwen | she/her")<0)return "player/party authority missing: "+block;
+    if(block.indexOf("Unknown Guard")>=0)return "synthetic unknown pronouns became canon authority";
+    if(prompt.indexOf("CANONICAL IDENTITIES")<0)return "identity block missing from extractor prompt";
+    return /\}\n$/.test(prompt)&&prompt.lastIndexOf("Output ONLY valid JSON")>prompt.lastIndexOf("SESSION:")?true:"schema/directive no longer occupies the prompt tail";
+  });
+  t("W6 era compaction validates before its rebuildable canon write",function(){
+    __w6World();var due={sources:[{turn:1600,summary:"Ammut enters the fortress. He keeps Cleaver ready."},{turn:1644,summary:"Morwen seals the tunnel. She holds the ward."},{turn:1648,summary:"Ammut returns to Sandpoint. He reports the scholar's death."}],boundary:"batch"},e=null;
+    try{eraApplyCompileResp('{"summary":"Ammut reaches the vault. She takes the satchel."}',due);}catch(err){e=err;}
+    if(!e||!e.summaryIdentity||memory.eras.length)return "contradictory era summary committed: "+(e&&e.message);
+    eraApplyCompileResp('{"summary":"Morwen reaches the vault. She seals the door."}',due);
+    return memory.eras.length===1&&eraCompilePrompt(due.sources).indexOf("CANONICAL IDENTITIES")>=0?true:"valid era or identity prompt failed";
+  });
+  t("W6 summary failure strikes persist through JSON reload, cap at three, and clear only on success or safe exhaustion",function(){
+    __w6World();var n=summaryFailureBump({summaryIdentity:true,message:"bad pronoun",subject:"Ammut"});if(n!==1)return "first strike wrong: "+n;
+    worldState=JSON.parse(JSON.stringify(worldState));n=summaryFailureBump({summaryIdentity:true,message:"bad pronoun",subject:"Ammut"});if(n!==2)return "reload reset the strike: "+n;
+    worldState=JSON.parse(JSON.stringify(worldState));n=summaryFailureBump({summaryIdentity:true,message:"bad pronoun",subject:"Ammut"});if(n!==3||worldState.summaryFailure.count!==3)return "third strike wrong: "+JSON.stringify(worldState.summaryFailure);
+    summaryFailureClear();return worldState.summaryFailure===undefined?true:"success/exhaustion clear left stale strike";
+  });
+  t("W6 campaign load restores the persisted summary strike instead of resetting the retry ceiling",function(){
+    __w6World();summaryFailureBump({summaryIdentity:true,message:"bad pronoun",subject:"Ammut"});summaryFailureBump({summaryIdentity:true,message:"bad pronoun",subject:"Ammut"});
+    store.set(WSK,JSON.stringify(worldState));store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));_sumFails=0;
+    var ok=loadState();store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    return ok&&_sumFails===2&&worldState.summaryFailure&&worldState.summaryFailure.count===2?true:"load reset or lost persisted strikes: "+_sumFails+" / "+JSON.stringify(worldState&&worldState.summaryFailure);
+  });
+  t("W6 identity quarantine receipts are initialized and remain bounded",function(){
+    __w6World();var a=memArchive(),i;for(i=0;i<13;i++)summaryIdentityQuarantine({message:"failure "+i,subject:"Ammut"},["raw "+i],3);
+    if(!Array.isArray(a.identityQuarantines)||a.identityQuarantines.length!==12)return "quarantine cap wrong: "+JSON.stringify(a.identityQuarantines);
+    return a.identityQuarantines[0].reason==="failure 1"&&a.identityQuarantines[11].attempts===3?true:"quarantine receipts lost order/shape";
+  });
+
   t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
     if(typeof locRepairApply!=="function")return "locRepairApply missing";
     makeGeoWorld();
@@ -12200,5 +12527,247 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(memory.map.nodes["Sandpoint, Varisia"])return "apply did not perform the merge";
     return real&&real.length===dry.length?true:"apply diff diverged from the dry-run";
   });
+
+  // ── #168 W7: relationship axes — durable bond versus current dynamic ─────────
+  section("#168 W7 — relationship axes");
+  function __w7World(){
+    makeWorld();worldState.turn=1666;
+    worldState.npcs.push({name:"Frizwick",status:"warm",rel:"companion",partyMember:true,charSheet:{name:"Frizwick",gender:"F",cls:"Rogue",level:7,hp:30,maxHp:30,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[{entity:"Tess",bond:"Wife",bondTurn:1661,dynamic:"",dynamicTurn:null}]}});
+    worldState.character.relationships=[{entity:"Frizwick",bond:"Wife",bondTurn:1661,dynamic:"",dynamicTurn:null}];
+  }
+  t("W7 exact t1666 shape: a favor is dynamic on both directed edges; Wife survives and no defining bond memory is minted",function(){
+    __w7World();var pre=coreMemorySnapshot();
+    applyMuts("[RELATIONSHIP_DYNAMIC:Frizwick|Owed a favor collected, warming][COMPANION_RELATIONSHIP_DYNAMIC:Frizwick|Tess|Owed favor collected, warming]");
+    detectCoreMoments(pre);
+    var a=relationshipFind(worldState.character,"Frizwick",null),b=relationshipFind(worldState.npcs[0].charSheet,"Tess","Frizwick");
+    if(!a||a.bond!=="Wife"||a.dynamic!=="Owed a favor collected, warming")return "player edge wrong: "+JSON.stringify(a);
+    if(!b||b.bond!=="Wife"||b.dynamic!=="Owed favor collected, warming")return "companion edge wrong: "+JSON.stringify(b);
+    return (worldState.character.coreMemories||[]).length===0?true:"dynamic event became defining memory";
+  });
+  t("W7 explicit new bond commits directly, but replacing or removing it requires the same proposal on a later turn and records one preimage",function(){
+    makeWorld();worldState.turn=20;
+    applyMuts("[RELATIONSHIP_BOND:Morwen|Wife]");
+    var row=relationshipFind(worldState.character,"Morwen",null);
+    if(!row||row.bond!=="Wife")return "new bond did not commit";
+    worldState.turn=21;applyMuts("[RELATIONSHIP_BOND:Morwen|Former wife]");
+    if(row.bond!=="Wife"||!worldState.relBondChanges||worldState.relBondChanges.length!==1)return "replacement was not staged: "+JSON.stringify(row);
+    applyMuts("[RELATIONSHIP_BOND:Morwen|Former wife]");
+    if(row.bond!=="Wife")return "same-turn duplicate confirmed a destructive change";
+    worldState.turn=22;applyMuts("[RELATIONSHIP_BOND:Morwen|Former wife]");
+    if(row.bond!=="Former wife")return "later explicit confirmation did not commit";
+    var key=relationshipEdgeKey(null,"Morwen"),rec=worldState.relBondReceipts&&worldState.relBondReceipts[key];
+    if(!rec||rec.prev!=="Wife"||rec.next!=="Former wife")return "preimage missing: "+JSON.stringify(rec);
+    worldState.turn=23;applyMuts("[RELATIONSHIP_BOND_REMOVED:Morwen]");
+    if(row.bond!=="Former wife")return "bond removal committed without confirmation";
+    worldState.turn=24;applyMuts("[RELATIONSHIP_BOND_REMOVED:Morwen]");
+    row=relationshipFind(worldState.character,"Morwen",null);
+    rec=worldState.relBondReceipts&&worldState.relBondReceipts[key];
+    return row&&row.bond===""&&rec&&rec.prev==="Former wife"&&rec.next===""?true:"confirmed removal lost row/preimage: "+JSON.stringify([row,rec]);
+  });
+  t("W7 legacy relationship tags never mutate or disappear: one bounded deduped axis-choice proposal persists until explicit resolution",function(){
+    __w7World();applyMuts("[RELATIONSHIP:Frizwick|Owed a favor][RELATIONSHIP:Frizwick|Owed a favor]");
+    var row=relationshipFind(worldState.character,"Frizwick",null),q=worldState.relAxisChoices;
+    if(row.bond!=="Wife"||row.dynamic!=="")return "legacy tag mutated canon: "+JSON.stringify(row);
+    if(!q||q.length!==1||q[0].value!=="Owed a favor")return "legacy proposal lost/doubled: "+JSON.stringify(q);
+    var n=buildRelationshipAxisNudge();
+    if(n.indexOf("RELATIONSHIP AXIS DECISION")<0||n.indexOf("RELATIONSHIP_DYNAMIC:Frizwick|Owed a favor")<0)return "axis note incomplete: "+n;
+    worldState.turn++;applyMuts("[RELATIONSHIP_DYNAMIC:Frizwick|Owed a favor]");
+    return worldState.relAxisChoices===undefined&&row.bond==="Wife"&&row.dynamic==="Owed a favor"?true:"explicit resolution did not clear proposal";
+  });
+  t("W7 legacy descriptor migration is lossless, preserves the original turn as bondTurn, and marks the row for axis review",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife — beloved family",turn:41}];
+    relationshipMigrateSheet(worldState.character,null);
+    var r=worldState.character.relationships[0];
+    if(r.entity!=="Morwen"||r.bond!=="Wife — beloved family"||r.bondTurn!==41||r.dynamic!=="")return "lossy migration: "+JSON.stringify(r);
+    return r.axisReview===true&&r.descriptor===undefined&&r.turn===undefined?true:"legacy fields/review mark wrong: "+JSON.stringify(r);
+  });
+  t("W7 hybrid and alias-colliding legacy rows fail closed: the committed bond wins while every conflicting value survives as an axis proposal",function(){
+    makeWorld();memory.npcs.Morwen={aliases:["The Druid"],attitude:"ally",knowledge:[],events:[]};
+    worldState.character.relationships=[
+      {entity:"Morwen",bond:"Wife",bondTurn:10,dynamic:"",descriptor:"Travel companion",turn:11},
+      {entity:"The Druid",descriptor:"Sworn enemy",turn:12}
+    ];
+    relationshipMigrateSheet(worldState.character,null);
+    var rows=worldState.character.relationships,q=worldState.relAxisChoices||[];
+    if(rows.length!==1||rows[0].entity!=="Morwen"||rows[0].bond!=="Wife")return "canonical row was overwritten/duplicated: "+JSON.stringify(rows);
+    var vals=q.map(function(x){return x.value;}).sort().join("|");
+    return vals==="Sworn enemy|Travel companion"?true:"conflicting candidates were discarded: "+JSON.stringify(q);
+  });
+  t("W7 migrated-axis review is persistent, combat-silent, cooldown-gated, and restored when a provider turn fails",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",descriptor:"Wife",turn:3}];relationshipMigrateWorld();
+    worldState.combat={round:1,foes:[]};if(buildRelationshipAxisNudge()!=="")return "migration review fired in combat";if(worldState.relAxisReviewFired)return "combat consumed migration review";worldState.combat=null;
+    var snap=snapshotNoteLatches(),n=buildRelationshipAxisNudge();if(n.indexOf("migrated legacy value")<0)return "migration review did not fire: "+n;
+    restoreNoteLatches(snap);if(worldState.relAxisReviewFired)return "failed provider did not restore review latch";
+    if(buildRelationshipAxisNudge()==="")return "restored review could not re-fire";
+    return buildRelationshipAxisNudge()===""?true:"review ignored its cooldown";
+  });
+  t("W7 axis-choice queue is bounded and a cap+1 legacy tag is loud without changing canon",function(){
+    makeWorld();var tags="",i;for(i=0;i<9;i++)tags+="[RELATIONSHIP:Person "+i+"|Suspicious tonight]";applyMuts(tags);
+    if(!worldState.relAxisChoices||worldState.relAxisChoices.length!==REL_AXIS_CHOICE_CAP)return "queue cap wrong: "+JSON.stringify(worldState.relAxisChoices);
+    if(worldState.character.relationships.length)return "legacy overflow changed canon";
+    var log=worldState.tagLog[worldState.tagLog.length-1];return log.m.join("|").indexOf("REFUSED (queue full)")>=0?true:"cap refusal missing from receipt: "+JSON.stringify(log);
+  });
+  t("W7 portable hybrid import carries its conflict on the character until joining, then hands it to the campaign decision queue",function(){
+    makeWorld();var ch={name:"Bryn",relationships:[{entity:"Morwen",bond:"Friend",bondTurn:2,dynamic:"",descriptor:"Rival",turn:3}]};
+    relationshipMigrateSheet(ch,"@import:Bryn",{portable:true});
+    if(worldState.relAxisChoices)return "standalone import polluted the current campaign";
+    if(!ch.relationshipAxisProposals||ch.relationshipAxisProposals[0].value!=="Rival")return "portable conflict lost: "+JSON.stringify(ch);
+    worldState.npcs.push({name:"Bryn",partyMember:true,charSheet:ch});relationshipMigrateWorld();
+    return worldState.relAxisChoices&&worldState.relAxisChoices[0].who==="Bryn"&&worldState.relAxisChoices[0].value==="Rival"&&!ch.relationshipAxisProposals?true:"join did not hand conflict to campaign queue";
+  });
+  t("W7 old W1 downgrade records remain protective: classifying the clobber as dynamic restores the saved bond preimage",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",descriptor:"Owed a favor",turn:20}];worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"Owed a favor",turn:20}];relationshipMigrateWorld();
+    applyMuts("[RELATIONSHIP_DYNAMIC:Morwen|Owed a favor]");var r=relationshipFind(worldState.character,"Morwen",null);
+    return r.bond==="Wife"&&r.dynamic==="Owed a favor"&&!worldState.relDowngrades?true:"W1 preimage was not preserved through W7 migration: "+JSON.stringify(r);
+  });
+  t("W7 identity convergence and PC swaps rekey rows, pending decisions, receipts, and reciprocity latches",function(){
+    makeWorld();memory.npcs.Canon={aliases:["Dupe"],attitude:"",knowledge:[],events:[]};worldState.character.relationships=[{entity:"Canon",bond:"Friend",bondTurn:1,dynamic:""},{entity:"Dupe",bond:"Rival",bondTurn:2,dynamic:""}];relationshipMigrateWorld();
+    if(worldState.character.relationships.length!==1||(worldState.relAxisChoices||[]).length!==1)return "identity convergence discarded or duplicated an edge";
+    worldState.relBondChanges=[{key:relationshipEdgeKey(null,"Canon"),who:null,entity:"Canon",prev:"Friend",next:"Enemy",turn:5}];worldState.relBondReceipts={};worldState.relBondReceipts[relationshipEdgeKey(null,"Canon")]={who:null,entity:"Canon",prev:"Ally",next:"Friend",turn:4};worldState.reciprocityNudged={"Canon|Friend":5};
+    relationshipSwapOwners("Bryn","Tess");
+    var key=relationshipEdgeKey("Tess","Canon");
+    return worldState.relBondChanges[0].who==="Tess"&&worldState.relBondChanges[0].key===key&&worldState.relBondReceipts[key]&&!worldState.reciprocityNudged?true:"swap left player-relative relationship state behind";
+  });
+  t("W7 dynamic state is visible but cannot feed roster authority, reciprocity, graph, relationship audit, or core memory",function(){
+    __w7World();var row=worldState.character.relationships[0];row.dynamic="Resentful wife after tonight's betrayal";row.dynamicTurn=1666;
+    var s=buildSysPrompt().volatile,g=buildNpcGraph(),a=buildRelationshipAudit();
+    if(s.indexOf("Bond: Frizwick (Wife)")<0||s.indexOf("Current dynamic: Frizwick (Resentful wife after tonight's betrayal)")<0)return "axes not separately labeled in prompt: "+s.slice(0,500);
+    var roster=(s.split("\n").filter(function(l){return l.indexOf("NPCs: ")===0;})[0])||"";if(roster.indexOf("bond: Wife")<0||roster.indexOf("Resentful wife")>=0)return "dynamic leaked into roster authority: "+roster;
+    if(g.indexOf("Frizwick(Wife)")<0||g.indexOf("Resentful wife")>=0)return "dynamic leaked into graph: "+g;
+    if(a.indexOf('Tess → Frizwick: "Wife"')<0||a.indexOf("Resentful wife")>=0)return "dynamic leaked into durable audit: "+a;
+    worldState.npcs[0].charSheet.relationships=[];delete worldState.reciprocityNudged;
+    var n=buildReciprocityNudge();
+    return n.indexOf("Wife")>=0&&n.indexOf("Resentful wife")<0?true:"dynamic leaked into reciprocity: "+n;
+  });
+  t("W7 npc.rel remains an NPC stance and cannot seed a companion bond during sheet generation or display",function(){
+    makeWorld();worldState.npcs.push({name:"Rill",status:"friendly",rel:"suspicious admirer",partyMember:true,charSheet:{name:"Rill",relationships:[]}});
+    var row=relationshipFind(worldState.npcs[0].charSheet,"Tess","Rill");
+    if(row)return "relationshipFind synthesized a bond from npc.rel";
+    var s=buildSysPrompt().volatile;
+    return s.indexOf("Bond: Tess (suspicious admirer)")<0?true:"npc stance seeded a durable bond";
+  });
+  t("W7 removing an already-empty axis is refused loudly and leaves the other axis untouched",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:4,dynamic:"",dynamicTurn:null}];
+    applyMuts("[RELATIONSHIP_DYNAMIC_REMOVED:Morwen]");var r=relationshipFind(worldState.character,"Morwen",null),log=worldState.tagLog[worldState.tagLog.length-1];
+    if(r.bond!=="Wife"||r.dynamic!=="")return "empty dynamic removal disturbed the bond: "+JSON.stringify(r);
+    if(log.m.join("|").indexOf("Dynamic removal REFUSED")<0)return "empty dynamic removal was silent: "+JSON.stringify(log);
+    r.bond="";r.dynamic="Uneasy";applyMuts("[RELATIONSHIP_BOND_REMOVED:Morwen]");log=worldState.tagLog[worldState.tagLog.length-1];
+    return r.dynamic==="Uneasy"&&log.m.join("|").indexOf("Bond removal REFUSED")>=0?true:"empty bond removal was silent or disturbed dynamic: "+JSON.stringify([r,log]);
+  });
+  t("W7 cap+1 hybrid migration retains the unqueued legacy source and retries it losslessly when capacity opens",function(){
+    makeWorld();var rows=[],i;for(i=0;i<REL_AXIS_CHOICE_CAP+1;i++)rows.push({entity:"Person "+i,bond:"Friend",bondTurn:1,dynamic:"",descriptor:"Legacy "+i,turn:2});
+    worldState.character.relationships=rows;relationshipMigrateSheet(worldState.character,null);
+    if((worldState.relAxisChoices||[]).length!==REL_AXIS_CHOICE_CAP)return "migration queue was not capped: "+JSON.stringify(worldState.relAxisChoices);
+    var last=relationshipFind(worldState.character,"Person "+REL_AXIS_CHOICE_CAP,null);
+    if(!last||last.descriptor!=="Legacy "+REL_AXIS_CHOICE_CAP)return "cap+1 legacy source was destroyed: "+JSON.stringify(last);
+    _relationshipClearAxis(null,"Person 0","Legacy 0");relationshipMigrateSheet(worldState.character,null);
+    last=relationshipFind(worldState.character,"Person "+REL_AXIS_CHOICE_CAP,null);
+    var found=false,q=worldState.relAxisChoices||[];for(i=0;i<q.length;i++)if(q[i].entity==="Person "+REL_AXIS_CHOICE_CAP&&q[i].value==="Legacy "+REL_AXIS_CHOICE_CAP)found=true;
+    return found&&last&&last.descriptor===undefined?true:"retained source did not retry into the opened slot: "+JSON.stringify([last,q]);
+  });
+  t("W7 explicit classification clears only the matching legacy candidate, never sibling candidates on the same edge",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:4,dynamic:"",dynamicTurn:null}];
+    _relationshipQueueAxis(null,"Morwen","Travel companion","hybrid",null);_relationshipQueueAxis(null,"Morwen","Sworn enemy","alias-bond-conflict",null);
+    applyMuts("[RELATIONSHIP_DYNAMIC:Morwen|Uneasy tonight]");
+    if((worldState.relAxisChoices||[]).length!==2)return "unrelated dynamic erased candidate choices: "+JSON.stringify(worldState.relAxisChoices);
+    worldState.turn++;applyMuts("[RELATIONSHIP_DYNAMIC:Morwen|Travel companion]");var q=worldState.relAxisChoices||[];
+    return q.length===1&&q[0].value==="Sworn enemy"?true:"classification erased the wrong candidate(s): "+JSON.stringify(q);
+  });
+  t("W7 an absent legacy whole-pair removal has an explicit resolving operation and cannot deadlock the proposal queue",function(){
+    makeWorld();applyMuts("[RELATIONSHIP_REMOVED:Morwen]");
+    if(!worldState.relAxisChoices||worldState.relAxisChoices.length!==1||worldState.relAxisChoices[0].kind!=="legacy-remove")return "legacy removal was not preserved as a decision: "+JSON.stringify(worldState.relAxisChoices);
+    worldState.turn++;applyMuts("[RELATIONSHIP_PAIR_REMOVED:Morwen]");
+    var log=worldState.tagLog[worldState.tagLog.length-1];
+    return !worldState.relAxisChoices&&log.m.join("|").indexOf("already absent")>=0?true:"absent removal could not resolve: "+JSON.stringify([worldState.relAxisChoices,log]);
+  });
+  t("W7 a protected W1 preimage survives an unrelated dynamic, and accepting the clobbered value still requires two later-turn bond writes",function(){
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",bond:"Owed a favor",bondTurn:20,dynamic:"",dynamicTurn:null}];worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"Owed a favor",turn:20}];
+    applyMuts("[RELATIONSHIP_DYNAMIC:Morwen|Uneasy tonight]");var r=relationshipFind(worldState.character,"Morwen",null),key=relationshipEdgeKey(null,"Morwen"),rec=worldState.relBondReceipts[key];
+    if(r.bond!=="Wife"||r.dynamic!=="Uneasy tonight"||!rec||rec.prev!=="Owed a favor"||rec.next!=="Wife"||worldState.relDowngrades)return "dynamic destroyed the guard/preimage: "+JSON.stringify([r,rec,worldState.relDowngrades]);
+    makeWorld();worldState.turn=30;worldState.character.relationships=[{entity:"Morwen",bond:"Owed a favor",bondTurn:20,dynamic:"",dynamicTurn:null}];worldState.relDowngrades=[{who:null,entity:"Morwen",prev:"Wife",next:"Owed a favor",turn:20}];
+    applyMuts("[RELATIONSHIP_BOND:Morwen|Owed a favor]");r=relationshipFind(worldState.character,"Morwen",null);
+    if(r.bond!=="Wife"||!worldState.relBondChanges||worldState.relBondChanges[0].prev!=="Wife")return "clobbered current value bypassed staging: "+JSON.stringify([r,worldState.relBondChanges]);
+    applyMuts("[RELATIONSHIP_BOND:Morwen|Owed a favor]");if(r.bond!=="Wife")return "same-turn repeat accepted the clobber";
+    worldState.turn++;applyMuts("[RELATIONSHIP_BOND:Morwen|Owed a favor]");rec=worldState.relBondReceipts[relationshipEdgeKey(null,"Morwen")];
+    return r.bond==="Owed a favor"&&rec&&rec.prev==="Wife"&&rec.next==="Owed a favor"?true:"later confirmation lost the protected preimage: "+JSON.stringify([r,rec]);
+  });
+  t("W7 a confirmed Wife to Friend bond change cannot be re-armed as a legacy downgrade by the post-pass",function(){
+    makeWorld();worldState.turn=40;worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:4,dynamic:"",dynamicTurn:null}];
+    applyMuts("[RELATIONSHIP_BOND:Morwen|Friend]");worldState.turn++;var pre=relationshipSnapshot();applyMuts("[RELATIONSHIP_BOND:Morwen|Friend]");stampRelationshipChanges(pre);
+    var r=relationshipFind(worldState.character,"Morwen",null),rec=worldState.relBondReceipts[relationshipEdgeKey(null,"Morwen")];
+    return r.bond==="Friend"&&rec&&rec.prev==="Wife"&&rec.next==="Friend"&&!worldState.relDowngrades?true:"explicit confirmation re-armed the old guard: "+JSON.stringify([r,rec,worldState.relDowngrades]);
+  });
+  t("W7 whole-pair removal preserves both preimages and requires later confirmation when a bond exists",function(){
+    makeWorld();worldState.turn=50;worldState.character.relationships=[{entity:"Morwen",bond:"Wife",bondTurn:4,dynamic:"Uneasy",dynamicTurn:49}];
+    applyMuts("[RELATIONSHIP_PAIR_REMOVED:Morwen]");var r=relationshipFind(worldState.character,"Morwen",null);
+    if(r.bond!=="Wife"||r.dynamic!=="Uneasy"||!worldState.relBondChanges||!worldState.relBondChanges[0].pair)return "pair removal was not staged intact: "+JSON.stringify([r,worldState.relBondChanges]);
+    applyMuts("[RELATIONSHIP_PAIR_REMOVED:Morwen]");if(!r.bond||!r.dynamic)return "same-turn pair repeat committed";
+    worldState.turn++;applyMuts("[RELATIONSHIP_PAIR_REMOVED:Morwen]");var rec=worldState.relBondReceipts[relationshipEdgeKey(null,"Morwen")];
+    if(r.bond!==""||r.dynamic!==""||!rec||rec.prev!=="Wife"||rec.prevDynamic!=="Uneasy"||rec.nextDynamic!=="")return "confirmed pair removal lost an axis preimage: "+JSON.stringify([r,rec]);
+    makeWorld();worldState.character.relationships=[{entity:"Morwen",bond:"",bondTurn:null,dynamic:"Uneasy",dynamicTurn:4}];applyMuts("[RELATIONSHIP_PAIR_REMOVED:Morwen]");r=relationshipFind(worldState.character,"Morwen",null);
+    return r&&r.dynamic===""&&!worldState.relBondChanges?true:"dynamic-only pair removal was needlessly staged or failed: "+JSON.stringify([r,worldState.relBondChanges]);
+  });
+  t("W7 prospective relationship values over the bound are refused loudly without creating canon or proposals",function(){
+    makeWorld();var huge=new Array(242).join("x");applyMuts("[RELATIONSHIP_BOND:Morwen|"+huge+"][RELATIONSHIP_DYNAMIC:Morwen|"+huge+"][RELATIONSHIP:Morwen|"+huge+"]");
+    var log=worldState.tagLog[worldState.tagLog.length-1],hits=log.m.filter(function(x){return x.indexOf("REFUSED")>=0;});
+    return !relationshipFind(worldState.character,"Morwen",null)&&!worldState.relAxisChoices&&hits.length===3?true:"overlong ingress changed or vanished silently: "+JSON.stringify([worldState.character.relationships,worldState.relAxisChoices,log]);
+  });
+  t("W7 entity rekeying changes only the matching endpoint or owner and recomputes each decision's own key",function(){
+    makeWorld();memory.npcs.Canon={aliases:["Dupe"],attitude:"",knowledge:[],events:[]};
+    worldState.relBondChanges=[
+      {who:null,entity:"Dupe",key:"@player\u001fDupe",prev:"Friend",next:"Enemy",turn:1},
+      {who:"Dupe",entity:"Other",key:"Dupe\u001fOther",prev:"Friend",next:"Enemy",turn:1},
+      {who:"Other",entity:"Third",key:"Other\u001fThird",prev:"Friend",next:"Enemy",turn:1}
+    ];
+    relationshipRekeyEntity("Canon","Dupe");var q=worldState.relBondChanges;
+    if(q[0].entity!=="Canon"||q[0].key!==relationshipEdgeKey(null,"Canon"))return "entity endpoint not rekeyed: "+JSON.stringify(q[0]);
+    if(q[1].who!=="Canon"||q[1].entity!=="Other"||q[1].key!==relationshipEdgeKey("Canon","Other"))return "owner endpoint not rekeyed: "+JSON.stringify(q[1]);
+    return q[2].who==="Other"&&q[2].entity==="Third"&&q[2].key===relationshipEdgeKey("Other","Third")?true:"unrelated decision was rewritten: "+JSON.stringify(q[2]);
+  });
+  t("W7 alias registration rekeys an already-staged bond decision so later canonical confirmation can reach it",function(){
+    makeWorld();worldState.turn=60;memory.npcs.Canon={aliases:[],attitude:"",knowledge:[],events:[]};worldState.npcs.push({name:"Canon",partyMember:false});
+    worldState.character.relationships=[{entity:"Alias",bond:"Friend",bondTurn:1,dynamic:"",dynamicTurn:null}];applyMuts("[RELATIONSHIP_BOND:Alias|Enemy]");
+    if(!worldState.relBondChanges||worldState.relBondChanges[0].entity!=="Alias")return "fixture did not stage on the alias";
+    applyMuts("[NPC_ALIAS:Canon|Alias]");var p=worldState.relBondChanges&&worldState.relBondChanges[0];
+    if(!p||p.entity!=="Canon"||p.key!==relationshipEdgeKey(null,"Canon"))return "alias registration stranded the pending decision: "+JSON.stringify(p);
+    worldState.turn++;applyMuts("[RELATIONSHIP_BOND:Canon|Enemy]");var r=relationshipFind(worldState.character,"Canon",null);
+    return r&&r.bond==="Enemy"&&!worldState.relBondChanges?true:"canonical confirmation could not reach the rekeyed decision: "+JSON.stringify([r,worldState.relBondChanges]);
+  });
+  t("W7 NPC merge preserves outgoing relationship rows from both populated companion sheets",function(){
+    makeWorld();memory.npcs.Canon={aliases:[],attitude:"ally",knowledge:[],events:[]};memory.npcs.Dupe={aliases:[],attitude:"ally",knowledge:[],events:[]};
+    worldState.npcs=[
+      {name:"Canon",partyMember:true,charSheet:{name:"Canon",relationships:[{entity:"Tess",bond:"Friend",bondTurn:1,dynamic:""}]}},
+      {name:"Dupe",partyMember:true,charSheet:{name:"Dupe",relationships:[{entity:"Morwen",bond:"Rival",bondTurn:2,dynamic:""}]}}
+    ];
+    applyMuts("[NPC_MERGE:Canon|Dupe]");var cs=worldState.npcs[0].charSheet,a=relationshipFind(cs,"Tess","Canon"),b=relationshipFind(cs,"Morwen","Canon");
+    return worldState.npcs.length===1&&a&&a.bond==="Friend"&&b&&b.bond==="Rival"?true:"merge discarded one sheet's outgoing edge: "+JSON.stringify([worldState.npcs,cs&&cs.relationships]);
+  });
+  t("W7 portable reads use the inspected character's raw identities and never consult or pollute the live campaign",function(){
+    makeWorld();memory.npcs.Morwen={aliases:["The Druid"],attitude:"",knowledge:[],events:[]};var ch={name:"Bryn",relationships:[{entity:"The Druid",bond:"Friend",bondTurn:1,dynamic:"",descriptor:"Rival",turn:2}]};
+    var rows=relationshipRows(ch,null,{portable:true});
+    return rows.length===1&&rows[0].entity==="The Druid"&&ch.relationshipAxisProposals&&ch.relationshipAxisProposals[0].value==="Rival"&&!worldState.relAxisChoices?true:"portable inspection used live campaign identity/state: "+JSON.stringify([rows,ch.relationshipAxisProposals,worldState.relAxisChoices]);
+  });
+  t("W7 portable cap+1 migration leaves the overflowing descriptor on its source row for a later retry",function(){
+    makeWorld();var ch={name:"Bryn",relationships:[]},i;for(i=0;i<REL_AXIS_CHOICE_CAP+1;i++)ch.relationships.push({entity:"Person "+i,bond:"Friend",bondTurn:1,dynamic:"",descriptor:"Legacy "+i,turn:2});
+    relationshipMigrateSheet(ch,"@import:Bryn",{portable:true});var last=ch.relationships[ch.relationships.length-1];
+    if(!ch.relationshipAxisProposals||ch.relationshipAxisProposals.length!==REL_AXIS_CHOICE_CAP||last.descriptor!=="Legacy "+REL_AXIS_CHOICE_CAP)return "portable overflow was not retained losslessly: "+JSON.stringify(ch);
+    ch.relationshipAxisProposals.shift();relationshipMigrateSheet(ch,"@import:Bryn",{portable:true});last=ch.relationships[ch.relationships.length-1];
+    return ch.relationshipAxisProposals.length===REL_AXIS_CHOICE_CAP&&last.descriptor===undefined?true:"portable retained source did not retry: "+JSON.stringify(ch);
+  });
+  t("W7 player name and epithet resolve to one entity on a companion sheet without inventing a winner",function(){
+    makeWorld();worldState.character.aliases=["Blackbird"];var cs={name:"Morwen",relationships:[{entity:"Tess",bond:"Friend",bondTurn:1,dynamic:""},{entity:"Blackbird",bond:"Rival",bondTurn:2,dynamic:""}]};worldState.npcs.push({name:"Morwen",partyMember:true,charSheet:cs});
+    relationshipMigrateSheet(cs,"Morwen");var rows=relationshipRows(cs,"Morwen"),q=worldState.relAxisChoices||[];
+    return rows.length===1&&rows[0].entity==="Tess"&&rows[0].bond==="Friend"&&q.length===1&&q[0].entity==="Tess"&&q[0].value==="Rival"?true:"player alias left duplicate edges or silently won: "+JSON.stringify([rows,q]);
+  });
+  t("W7 loadState migrates relationship identities against the incoming campaign memory, never the previously active alias table",function(){
+    makeWorld();memory.npcs.Canon={aliases:["Alias"],attitude:"",knowledge:[],events:[]};var incoming=JSON.parse(JSON.stringify(worldState)),incomingMem=blankMemory();incoming.character.relationships=[{entity:"Alias",descriptor:"Friend",turn:3}];
+    store.set(WSK,JSON.stringify(incoming));store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(incomingMem));var ok=loadState(),r=worldState&&worldState.character&&worldState.character.relationships[0];store.del(WSK);store.del(SLK);store.del(MEM_KEY);
+    return ok&&r&&r.entity==="Alias"?true:"previous campaign alias contaminated incoming migration: "+JSON.stringify(r);
+  });
+  t("W7 unresolved carried facts remain prompt-visible but cannot nudge until their owner sheet exists",function(){
+    makeWorld();worldState.relAxisChoices=[{who:"Bryn",entity:"Morwen",value:"Sworn ally",kind:"hybrid",turn:1,lastFire:null}];var n=buildRelationshipAxisNudge(),s=buildSysPrompt().volatile;
+    return n===""&&worldState.relAxisChoices.length===1&&s.indexOf("UNRESOLVED CARRIED RELATIONSHIP FACTS")>=0&&s.indexOf("Bryn")>=0?true:"orphaned carried fact was consumed, nagged, or hidden: "+JSON.stringify([n,worldState.relAxisChoices,s.slice(0,400)]);
+  });
+
 
 }
