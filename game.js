@@ -485,19 +485,11 @@ async function generateActions(msgEl){
 // button, and the sp.n splitter fuse all behave exactly as before; only the map's PRODUCER
 // moved from a model call to the pure function below.
 //
-// Dialogue spans, derived deterministically from the unit tags splitSentences produces — what
-// is inside quotation marks is the ENGINE's knowledge, never a judgement call.
-function speakerSpans(units){
-  var spans=[],by={},i,u;
-  for(i=0;i<(units||[]).length;i++){
-    u=units[i];
-    if(!u||u.spk===null||u.spk===undefined)continue;
-    if(!by[u.spk]){by[u.spk]={id:u.spk,text:"",units:[]};spans.push(by[u.spk]);}
-    by[u.spk].text+=(by[u.spk].text?" ":"")+u.text;
-    by[u.spk].units.push(i);
-  }
-  return spans;
-}
+// (#93 ②, v1.603: speakerSpans() — which grouped units into whole dialogue spans — is DELETED.
+// The v1.451 segment-claiming deriver iterates UNITS and never grouped them, so its only caller
+// had been its own engine test since that rework. Its surviving concern, that a multi-clause line
+// stays one contiguous dialogue run with the attribution outside it, is asserted directly on the
+// units in the B14b splitter test.)
 // The producer (#96, reworked v1.451 on same-night field evidence). Pure: RAW response + CLEAN
 // text in, {n,s} map or null out. The raw text is cut into SEGMENTS at the [SAY:] tags — each
 // tag owns every character until the next tag — and each dialogue UNIT is located inside those
@@ -512,23 +504,52 @@ function speakerSpans(units){
 // unknown speaker names still pass through: speakerVoiceMap drops what it cannot resolve.
 var SAY_TAG_RE=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;   // [SAY:Name] — the |descriptor payload is reserved (delivery styles, later)
 function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"").toLowerCase();}
+// #93 ①b: _sayNorm strips quote marks, which made segment matching QUOTE-BLIND — narration sitting
+// in speaker A's segment that happened to contain the text of speaker B's later tagged line captured
+// B's line into A's voice, and the forward-only cursor then never reached B's segment at all (probe
+// W1: "Frizwick will only say ten out of ten, as always." stole Frizwick's own "Ten out of ten,").
+// So a segment is scanned into the same quote-stripped text as before PLUS a parallel mask marking
+// which characters sit inside a quoted run, and a key must LAND inside one.
+// Two properties the mask has to have, both load-bearing:
+//   • quote state CARRIES across segment boundaries — a [SAY:] tag does not reset parity, and the GM
+//     may write '"[SAY:X]Ten out of ten," he says.' with the opener in the PREVIOUS segment. Restart
+//     it per segment and that correctly-authored shape narrates flat forever, while sayTagCoverage
+//     reports it unmapped and buildSayComplianceNudge nags every turn for prose the GM cannot fix.
+//   • state RESETS at a blank-line paragraph break, mirroring splitSentences' per-paragraph _inQ,
+//     so mask and unit labels stay coherent. normalizeForTTS turns newlines into spaces, so the
+//     break has to be found BEFORE normalizing.
+function _saySegScan(rawSlice,state){
+  var chunks=String(rawSlice||"").split(/\n\s*\n/),text="",mask=[],ci,k,ch,norm;
+  for(ci=0;ci<chunks.length;ci++){
+    if(ci>0)state.inQ=false;                          // paragraph break — parity restarts
+    norm=TTS._textPrep.normalizeForTTS(chunks[ci]);
+    if(norm&&text){text+=" ";mask.push(false);}       // the break itself is one space, as _sayNorm would collapse it
+    for(k=0;k<norm.length;k++){
+      ch=norm.charAt(k);
+      if(ch==='"'||ch==="“"||ch==="”"){state.inQ=!state.inQ;continue;}
+      if(ch===" "&&(!text||text.charAt(text.length-1)===" "))continue;
+      text+=ch.toLowerCase();mask.push(state.inQ);
+    }
+  }
+  while(text.charAt(text.length-1)===" "){text=text.slice(0,-1);mask.pop();}
+  return {text:text,mask:mask};
+}
 function deriveSpeakerMapFromTags(raw,clean){
   if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
   SAY_TAG_RE.lastIndex=0;
   // Segment text must pass through the SAME character rewrites the units underwent (splitSentences
   // runs normalizeForTTS: emphasis stripped, em/en-dash -> ", ", "..." -> "…") or a dash/markdown
   // inside a quoted line makes its 48-char key unfindable and the line narrates flat.
-  var segNorm=function(t){return _sayNorm(TTS._textPrep.normalizeForTTS(t));};
-  var segs=[],m,prevEnd=0,prevName=null,sawTag=false;
+  var segs=[],m,prevEnd=0,prevName=null,sawTag=false,qs={inQ:false};
   while((m=SAY_TAG_RE.exec(raw))){
     sawTag=true;
-    segs.push({name:prevName,text:segNorm(raw.slice(prevEnd,m.index))});
+    segs.push(_sayCarry({name:prevName},_saySegScan(raw.slice(prevEnd,m.index),qs)));
     var nm=String(m[1]).replace(/^\s+|\s+$/g,"");
     prevName=nm||null;                                // [SAY: ] with a blank name owns its segment as narrator
     prevEnd=SAY_TAG_RE.lastIndex;
   }
   if(!sawTag)return null;
-  segs.push({name:prevName,text:segNorm(raw.slice(prevEnd))});
+  segs.push(_sayCarry({name:prevName},_saySegScan(raw.slice(prevEnd),qs)));
   var units=TTS._textPrep.splitSentences(clean,null,true);
   var out={},kept=0,si=0,off=0,i;
   for(i=0;i<units.length;i++){
@@ -538,7 +559,13 @@ function deriveSpeakerMapFromTags(raw,clean){
     if(!key)continue;
     var j=si,hit=-1;
     while(j<segs.length){
-      hit=segs[j].text.indexOf(key,j===si?off:0);
+      var from=(j===si)?off:0;
+      for(;;){
+        hit=segs[j].text.indexOf(key,from);
+        if(hit<0)break;
+        if(segs[j].mask[hit])break;                   // the hit must START inside a quoted run
+        from=hit+1;                                   // a narration echo of the line — keep looking
+      }
       if(hit>=0)break;
       j++;
     }
@@ -548,6 +575,7 @@ function deriveSpeakerMapFromTags(raw,clean){
   }
   return kept?{n:units.length,s:out}:null;
 }
+function _sayCarry(seg,scan){seg.text=scan.text;seg.mask=scan.mask;return seg;}
 
 /* #168: the SAY compliance detector reads the same dialogue units and ownership map as playback.
    Counts of quote glyphs are not evidence: a single tag can intentionally own multiple speech

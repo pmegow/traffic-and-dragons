@@ -463,8 +463,26 @@ var TTS = (function() {
     return { pieces: pieces, inQ: cur };
   }
 
+  // #93 ①/③ helpers. QUOTE_GLYPH is the single definition of "a quote character" for the parity
+  // rules below — splitQuotePieces toggles on exactly these three, so the balance test and the
+  // toggle can never drift apart.
+  var QUOTE_GLYPH   = /["“”]/;
+  var QUOTE_GLYPH_G = /["“”]/g;
+  var HAS_WORD      = /[A-Za-z0-9]/;
+  // Sentence-terminal punctuation, tolerating trailing closers — the same tail the sentence-split
+  // regex accepts. Its ABSENCE at the end of a response is the output-cap truncation signature.
+  var TERMINAL_END  = /[.!?…]["'”’»)\]]*$/;
+
   function splitSentences(text, dashRepl, commaSplit) {
-    var paras = (text || "").split(/\n\s*\n/);
+    // Paragraphs are normalized UP FRONT (#93 ①) so a paragraph can see the next one: the standard
+    // typography for speech continued across a break is that each paragraph re-opens the quote and
+    // only the last one closes it, and that look-ahead is what separates the convention from a fault.
+    var _raw = (text || "").split(/\n\s*\n/), norms = [], _np;
+    for (_np = 0; _np < _raw.length; _np++) {
+      var _n = normalizeForTTS(_raw[_np], dashRepl);
+      if (_n) norms.push(_n);
+    }
+    var paras = norms;
     var out = [];
     // #B14b (2026-07-22, user architecture call). Two jobs were being done by ONE segmentation:
     // the comma split serves PAUSES (rhythm — Piper renders no pause for punctuation inside a
@@ -480,9 +498,37 @@ var TTS = (function() {
     // "she's a door" stays one span.
     var _inDlg = false, _spanId = -1;
     for (var p = 0; p < paras.length; p++) {
-      var norm = normalizeForTTS(paras[p], dashRepl);
-      if (!norm) continue;
+      var norm = paras[p];
       var _inQ = false;   // B14c: per-PARAGRAPH, never carried across a break
+      // #93 ①: quote state is a PARITY TOGGLE, so one stray glyph inverts every label after it for
+      // the rest of the paragraph. Before #96 that only mislabeled; since the v1.451 deterministic
+      // deriver it is audible — an inverted NARRATION unit takes the [SAY:] segment's CHARACTER
+      // voice, so the narrator's own prose is read aloud in an NPC's voice (the reported harm).
+      // The engine cannot know WHICH glyph is stray, so an unbalanced paragraph resolves in the
+      // SAFE direction: every unit in it narrates. Dialogue read flat costs a voice; narration read
+      // in a character's voice costs the scene. Two shapes are exempt because they are legitimate
+      // open-ended speech rather than a fault — a lone opener that STARTS the paragraph (the speech
+      // opened here and runs past the break), and any unbalanced paragraph whose successor opens on
+      // a quote (the standard continued-speech typography, B14c-pinned). Flattening rewrites LABELS
+      // ONLY: unit count and unit text are untouched, so no persisted speaker map trips the sp.n fuse.
+      //
+      // A THIRD exemption comes from measurement, not from theory. A census of 23,858 real GM
+      // paragraphs (13 campaign exports + 6 harness corpora, v1.603) found odd parity 27 times —
+      // 0.11%, and 3 times in 18,704 paragraphs of current-model prose. In ALL 27 the unmatched
+      // glyph was an opener whose run is a character still SPEAKING when the response hit its
+      // output-token cap: 23 of them end with no terminal punctuation, several mid-word. The
+      // narration-after-a-stray-opener shape this rule exists for occurred ZERO times. So an
+      // unterminated run in the LAST paragraph of a response that simply stops — no closing
+      // punctuation — is read as truncation, not as a fault, and keeps its voice: the player can
+      // already hear that the line was cut off, and flattening it would be pure loss.
+      var _qn = (norm.match(QUOTE_GLYPH_G) || []).length, _flat = false;
+      if (_qn % 2 === 1) {
+        var _opensPara = (_qn === 1 && QUOTE_GLYPH.test(norm.charAt(0)));
+        var _continued = QUOTE_GLYPH.test((paras[p + 1] || "").charAt(0));
+        var _cutOff    = (p === paras.length - 1) && !TERMINAL_END.test(norm);
+        _flat = !(_opensPara || _continued || _cutOff);
+      }
+      var _pStart = out.length;
       var parts = norm.match(/[^.!?…]+[.!?…]+["'”’»)\]]*(?=\s|$)|[^.!?…]+$/g) || [norm];
       if (parts.join("").replace(/\s+/g, "") !== norm.replace(/\s+/g, "")) {
         console.warn("[tts] sentence split would lose text — speaking paragraph unsplit (len " + norm.length + ")");
@@ -544,12 +590,34 @@ var TTS = (function() {
         if (units.length && lastSentence) units[units.length - 1].end = "para";
         for (j = 0; j < units.length; j++) {
           units[j].paraEnd = (units[j].end === "para");
-          var _dlg = (units[j].spk === 0);   // set from the quote PIECE above, not guessed per unit
+          var _dlg = !_flat && (units[j].spk === 0);   // set from the quote PIECE above, not guessed per unit
           if (_dlg && !_inDlg) _spanId++;    // a new run of dialogue begins
           _inDlg = _dlg;
           units[j].spk = _dlg ? _spanId : null;
           out.push(units[j]);
         }
+      }
+      // #93 ③: a unit with no alphanumeric content — a lone `"` orphaned by a quote transition, the
+      // `,"` left when a comma opens a piece — carries no speech but is still handed to synthesis as
+      // its own utterance (an audible blip, plus its own scheduled pause). splitQuotePieces already
+      // folds such a fragment BACKWARD, but only within one sentence's pieces and only above index 0.
+      // Fold across the whole paragraph instead: backward into the preceding unit (which inherits the
+      // fragment's end/paraEnd, so the paragraph's final pause survives), and the paragraph's FIRST
+      // unit forward into its successor, which has nothing before it to absorb it. Text is moved,
+      // never dropped — a paragraph that is punctuation-only end to end has no neighbour and is left
+      // exactly as it was. This is the one #93 change that alters unit COUNT, so persisted speaker
+      // maps for passages containing such a fragment degrade to mono-voice replay via the sp.n fuse
+      // (the designed behavior — see speakerVoiceMap).
+      for (j = out.length - 1; j > _pStart; j--) {
+        if (HAS_WORD.test(out[j].text)) continue;
+        out[j - 1].text   += out[j].text;
+        out[j - 1].end     = out[j].end;
+        out[j - 1].paraEnd = out[j].paraEnd;
+        out.splice(j, 1);
+      }
+      if (out.length > _pStart + 1 && !HAS_WORD.test(out[_pStart].text)) {
+        out[_pStart + 1].text = out[_pStart].text + " " + out[_pStart + 1].text;
+        out.splice(_pStart, 1);
       }
     }
     return out;

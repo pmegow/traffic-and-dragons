@@ -6861,6 +6861,114 @@ function runEngineTests(R){
     if(!second)return "second paragraph unit not found";
     return second.spk!==null?true:"continued dialogue in the next paragraph was tagged narration";
   });
+  // ── #93 ①: an UNBALANCED paragraph must never hand narration a character voice ───────────────
+  // The quote state is a parity toggle, so ONE stray quote glyph inverts every label after it for
+  // the rest of the paragraph. Before #96 that only mislabeled; since the v1.451 deterministic
+  // deriver it is audible — inverted NARRATION units take the [SAY:] segment's CHARACTER voice, so
+  // the narrator's own prose is read aloud in an NPC's voice. The engine cannot know WHICH glyph is
+  // stray, so an unbalanced paragraph resolves in the SAFE direction (dialogue -> narrator): real
+  // dialogue may read flat, narration can never take a character's voice.
+  // Two shapes are exempt, because both are legitimate open-ended speech rather than a fault:
+  //   ① the unterminated run STARTS the paragraph (a speech opened here and continues past it), and
+  //   ② the next non-empty paragraph opens on a quote (the standard continued-speech typography).
+  t("#93①: a stray UNCLOSED quote does not label the rest of the paragraph as dialogue",function(){
+    var u=TTS._textPrep.splitSentences('He said, "Run. Then he turned and left the room. The door slammed.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(u[i].spk!==null)bad.push(i+":"+JSON.stringify(u[i].text));
+    return bad.length?"unbalanced paragraph still labels dialogue -> "+bad.join(" | "):true;
+  });
+  t("#93① (probe Y8): a stray CLOSING quote does not label the following narration as dialogue",function(){
+    var u=TTS._textPrep.splitSentences('He turned away." Then he walked out. The lamp guttered.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(u[i].spk!==null)bad.push(i+":"+JSON.stringify(u[i].text));
+    return bad.length?"a stray CLOSING quote still opened a dialogue span -> "+bad.join(" | "):true;
+  });
+  t("#93①: an unbalanced paragraph flattens WHOLLY — a later balanced pair cannot re-arm the fault",function(){
+    // The mixed shape: a stray opener, then a properly quoted line. Parity inverts BOTH ways here —
+    // "Then he left." reads as dialogue and "Wait," reads as narration — so demoting only the
+    // trailing run would leave narration in a character's voice.
+    var u=TTS._textPrep.splitSentences('He said, "Run. Then he left. "Wait," she called. The door slammed.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(u[i].spk!==null)bad.push(i+":"+JSON.stringify(u[i].text));
+    return bad.length?"inverted units kept a dialogue label -> "+bad.join(" | "):true;
+  });
+  t("#93①: exemption A — an unterminated run that STARTS the paragraph stays dialogue",function(){
+    var u=TTS._textPrep.splitSentences('"Hold the line. Do not break.\n\nThey will tire before we do."',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(/Hold the line|Do not break/.test(u[i].text)&&u[i].spk===null)bad.push(JSON.stringify(u[i].text));
+    return bad.length?"open-ended speech was flattened to narration: "+bad.join(", "):true;
+  });
+  t("#93①: exemption B — a next paragraph opening on a quote keeps the unterminated run voiced",function(){
+    var u=TTS._textPrep.splitSentences('"Hold the line," she said. "We wait.\n\n"Not long now."',null,true);
+    var found=null,i;
+    for(i=0;i<u.length;i++)if(/We wait/.test(u[i].text))found=u[i];
+    if(!found)return "the continued-speech unit was not produced at all";
+    return found.spk!==null?true:"continued speech into the next paragraph was flattened to narration";
+  });
+  t("#93①: exemption C — a response CUT OFF mid-speech keeps its voice (the measured real case)",function(){
+    // The v1.603 census of 23,858 real GM paragraphs: odd parity occurred 27 times and every one
+    // was a character still speaking when the response hit its output-token cap (23 ended with no
+    // terminal punctuation, several mid-word). Flattening those is pure loss — the player can
+    // already hear the line was cut off — so an unterminated LAST paragraph that simply stops keeps
+    // its dialogue labels. The attribution must still be narration: truncation is not an amnesty.
+    var u=TTS._textPrep.splitSentences('Morwen leans in, voice low. "We should go now, before the gate closes and the',null,true);
+    var spoke=false,bad=[],i;
+    for(i=0;i<u.length;i++){
+      if(/We should go now|before the gate/.test(u[i].text)){ if(u[i].spk===null)bad.push("truncated speech flattened: "+JSON.stringify(u[i].text)); else spoke=true; }
+      if(/Morwen leans in/.test(u[i].text)&&u[i].spk!==null)bad.push("attribution voiced: "+JSON.stringify(u[i].text));
+    }
+    if(!spoke)bad.push("no dialogue unit survived at all");
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①: a TERMINATED unbalanced last paragraph is still flattened (truncation is the exemption, not the rule)",function(){
+    // The discriminator is the missing terminal punctuation, not merely being last — otherwise the
+    // defect would survive untouched whenever it landed in a response's final paragraph.
+    var u=TTS._textPrep.splitSentences('Morwen leans in, voice low. "Run. Then he turned and left the room.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++)if(u[i].spk!==null)bad.push(i+":"+JSON.stringify(u[i].text));
+    return bad.length?"a terminated unbalanced paragraph kept dialogue labels -> "+bad.join(" | "):true;
+  });
+  t("#93: CURLY quotes toggle exactly like ASCII ones (a branch the corpus never exercises)",function(){
+    // Census finding: 23,085 quote glyphs in the real corpora, 100% ASCII — zero U+201C/U+201D. So
+    // every curly-quote path in the parity rules, the mask, and the fold is untested by the field
+    // and has to be pinned here instead of assumed.
+    var u=TTS._textPrep.splitSentences('“Hold the line,” she said. He turned away.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++){
+      var wantDlg=/Hold the line/.test(u[i].text);
+      if(wantDlg&&u[i].spk===null)bad.push("curly-quoted dialogue read as narration: "+JSON.stringify(u[i].text));
+      if(!wantDlg&&u[i].spk!==null)bad.push("narration read as dialogue: "+JSON.stringify(u[i].text));
+    }
+    var v=TTS._textPrep.splitSentences('He said, “Run. Then he turned and left the room. The door slammed.',null,true);
+    for(i=0;i<v.length;i++)if(v[i].spk!==null)bad.push("a stray CURLY opener still voiced narration: "+JSON.stringify(v[i].text));
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①: a BALANCED paragraph is untouched (the common path must not move)",function(){
+    var u=TTS._textPrep.splitSentences('"Hold the line. Do not break. They will tire before we do." The captain lowered his blade.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++){
+      var wantDlg=!/captain lowered/.test(u[i].text);
+      if(wantDlg&&u[i].spk===null)bad.push("dialogue flattened: "+JSON.stringify(u[i].text));
+      if(!wantDlg&&u[i].spk!==null)bad.push("narration voiced: "+JSON.stringify(u[i].text));
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93③: a punctuation-only fragment never reaches synthesis as its own unit",function(){
+    // splitQuotePieces folds a punctuation-only piece BACKWARD, but the loop stops at k>0 — so an
+    // index-0 fragment (the closer carried in from the previous sentence) survives as a unit whose
+    // entire text is one quote mark, which Piper is handed as an audio blip.
+    var lines=[
+      'He said, "Run. Then he left. "Wait," she called. The door slammed.',
+      '"...," she said.',
+      '"Go on. Please." He waited.'
+    ];
+    var bad=[],li,i;
+    for(li=0;li<lines.length;li++){
+      var u=TTS._textPrep.splitSentences(lines[li],null,true);
+      for(i=0;i<u.length;i++)if(!/[A-Za-z0-9]/.test(u[i].text))bad.push("line "+li+" unit "+i+" is punctuation only: "+JSON.stringify(u[i].text));
+    }
+    return bad.length?bad.join(" | "):true;
+  });
   t("prewarmPiper exported as a function (Phase 3 Piper adapter — WASM path itself can't run headless)",function(){
     return typeof TTS.prewarmPiper==="function"?true:"prewarmPiper not exported: "+typeof TTS.prewarmPiper;
   });
@@ -7163,12 +7271,18 @@ function runEngineTests(R){
     var attrib=null,i;for(i=0;i<u.length;i++)if(/he said/.test(u[i].text))attrib=u[i];
     return (attrib&&attrib.spk===null)?true:"apostrophe flipped the quote state";
   });
-  t("B14b: speakerSpans groups every pause-unit of a multi-clause line into ONE span",function(){
+  t("B14b: every pause-unit of a multi-clause line stays in ONE dialogue run, attribution outside it",function(){
+    // (#93 ②) Was asserted through speakerSpans(), deleted at v1.603 as dead code — the v1.451
+    // segment-claiming deriver iterates units and never grouped them, so the test was its only
+    // caller. The concern is the splitter's, so it is asserted on the units directly.
     var u=TTS._textPrep.splitSentences('"Hold the door, watch the stairs, and do not follow me," she said.',null,true);
-    var spans=speakerSpans(u);
-    if(spans.length!==1)return "expected 1 dialogue span, got "+spans.length;
-    if(spans[0].units.length<2)return "the comma split should have produced several units inside the span, got "+spans[0].units.length;
-    var attrib=null,i;for(i=0;i<u.length;i++)if(/she said/.test(u[i].text))attrib=u[i];
+    var ids={},dlg=0,attrib=null,i;
+    for(i=0;i<u.length;i++){
+      if(/she said/.test(u[i].text))attrib=u[i];
+      else if(u[i].spk!==null&&u[i].spk!==undefined){ids[u[i].spk]=1;dlg++;}
+    }
+    if(Object.keys(ids).length!==1)return "expected 1 dialogue span, got "+Object.keys(ids).length;
+    if(dlg<2)return "the comma split should have produced several units inside the span, got "+dlg;
     return (attrib&&attrib.spk===null)?true:"attribution swallowed into the span";
   });
   t("#96: a [SAY:] tag expands to every unit inside its span, and only those (storage shape intact)",function(){
@@ -7246,6 +7360,72 @@ function runEngineTests(R){
       var txt=u[i].text.toLowerCase(),want=null,j;
       for(j=0;j<expect.length;j++)if(txt.indexOf(expect[j][0])>=0){want=expect[j][1];break;}
       if(want&&m.s[i]!==want)bad.push("unit "+i+" "+JSON.stringify(u[i].text.slice(0,30))+" got "+(m.s[i]||"(narrator)")+" wanted "+want);
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①: parity-inverted narration never takes the [SAY:] segment's character voice",function(){
+    // The audible half of #93①. splitSentences labels the tail of an unbalanced paragraph as
+    // dialogue, the deriver assigns voices per unit mechanically, and the narrator's own prose
+    // comes out of the speakers in Ameiko's voice. Nothing here may carry a name.
+    _mkSpeakerWorld();
+    worldState.npcs.push({name:"Ameiko",status:"ally",charSheet:{name:"Ameiko",voiceId:"en_GB-alba-medium"}});
+    var raw='He said, [SAY:Ameiko]"Run. Then he turned and left the room. The door slammed.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return true;   // no map at all is the safe outcome
+    var u=TTS._textPrep.splitSentences(clean,null,true),bad=[],i;
+    for(i=0;i<u.length;i++)if(m.s[i])bad.push(i+":"+JSON.stringify(u[i].text)+" -> "+m.s[i]);
+    return bad.length?"narration was voiced as a character -> "+bad.join(" | "):true;
+  });
+  t("#93①b (probe W1): a quoted key that also appears in NARRATION binds to its OWN speaker",function(){
+    // _sayNorm strips quote marks, so segment matching was quote-BLIND: narration inside Daeris's
+    // segment that happens to contain the text of Frizwick's later tagged line captured that line,
+    // and the forward-only cursor then never reached Frizwick's segment at all.
+    _mkSpeakerWorld();
+    var raw='[SAY:Daeris]"We go at dawn." Frizwick will only say ten out of ten, as always. [SAY:Frizwick]"Ten out of ten," he agrees.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived from the W1 probe";
+    var u=TTS._textPrep.splitSentences(clean,null,true),bad=[],i;
+    for(i=0;i<u.length;i++){
+      var nm=m.s[i]||null;
+      if(u[i].spk===null||u[i].spk===undefined){ if(nm)bad.push("narration unit "+i+" got "+nm); continue; }
+      var want=/dawn/.test(u[i].text)?"Daeris":/ten out of ten/i.test(u[i].text)?"Frizwick":null;
+      if(want&&nm!==want)bad.push("unit "+i+" "+JSON.stringify(u[i].text)+" got "+(nm||"(narrator)")+" wanted "+want);
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①b: a [SAY:] tag INSIDE the opening quote still binds (quote state carries across segments)",function(){
+    // A tag does not reset quote parity: the opener sits in the PREVIOUS segment. If the quoted-run
+    // mask restarted per segment, this correctly-authored shape would narrate flat forever AND nag
+    // the GM through buildSayComplianceNudge for prose it cannot improve.
+    _mkSpeakerWorld();
+    var raw='"[SAY:Daeris]Hold the door," she says.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "a tag inside the opening quote dropped the whole map";
+    var u=TTS._textPrep.splitSentences(clean,null,true),i;
+    for(i=0;i<u.length;i++){
+      if(u[i].spk===null||u[i].spk===undefined)continue;
+      if(m.s[i]!=="Daeris")return "dialogue unit "+i+" ("+JSON.stringify(u[i].text)+") lost its voice: "+(m.s[i]||"(narrator)");
+    }
+    return true;
+  });
+  t("#93①b: the quoted-run mask RESETS at a paragraph break, so parity cannot leak into the next paragraph",function(){
+    // The mirror of B14c on the deriver's side. splitSentences restarts _inQ per paragraph, so the
+    // mask must too — otherwise an open-ended speech (legitimately unterminated, exempted by ①)
+    // marks the NEXT paragraph's narration as quoted and the W1 theft comes straight back.
+    _mkSpeakerWorld();
+    var raw='[SAY:Daeris]"We go at dawn.\n\nFrizwick will only say ten out of ten, as always.\n\n[SAY:Frizwick]"Ten out of ten," he agrees.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived";
+    var u=TTS._textPrep.splitSentences(clean,null,true),bad=[],i;
+    for(i=0;i<u.length;i++){
+      var nm=m.s[i]||null;
+      if(u[i].spk===null||u[i].spk===undefined){ if(nm)bad.push("narration unit "+i+" ("+JSON.stringify(u[i].text)+") got "+nm); continue; }
+      var want=/dawn/.test(u[i].text)?"Daeris":/ten out of ten/i.test(u[i].text)?"Frizwick":null;
+      if(want&&nm!==want)bad.push("unit "+i+" "+JSON.stringify(u[i].text)+" got "+(nm||"(narrator)")+" wanted "+want);
     }
     return bad.length?bad.join(" | "):true;
   });

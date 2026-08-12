@@ -48,6 +48,12 @@ of scope — note it as still-open in the row.
 
 ## Task 2 — TODO #93: TTS splitter — an unclosed quote voices narration as a character
 
+> ✅ **DONE — shipped v1.603 (2026-08-12, Claude). Do not start this task.** All four items landed
+> (①/①b/③ fixed, `speakerSpans` retired) plus one item this brief did not anticipate: a census of
+> 23,858 real GM paragraphs showed the ONLY field source of odd quote parity is output-cap
+> truncation, so a third exemption keeps a cut-off speech voiced. The full receipt — fixes,
+> measured blast radius, sabotage battery, and the residuals left open — is in the TODO #93 row.
+
 **Problem.** `splitSentences` (tts.js) tracks dialogue/narration state with a quote-parity
 flag; a stray unclosed quote inverts the `spk` labels for the rest of the paragraph. Since the
 v1.451 deterministic deriver (`deriveSpeakerMapFromTags`, game.js — read-only context for you:
