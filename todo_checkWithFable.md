@@ -22,6 +22,47 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 15 — Per-character location-visit provenance gap (#173; Codex investigation, no code shipped)
+
+**Filed:** 2026-08-12. **Tracker:** TODO #173. **Artifact:** the owner's live t1728 save,
+`Rise_of_the_Runelords__Ammut__Ammut_t1728.tnd`. Investigation only; no game code changed.
+
+Frizwick says at t1728, “Last time we saw it, it looked like a wound in the mountain,” while
+looking toward Jorgenfist. Persisted history proves she was not an eyewitness: t1590 sends her to
+warn Hemlock in Sandpoint; t1594 identifies Ammut, Morwen, and Daeris as the three continuing into
+the mountains; t1661 has Frizwick greet the three survivors; and t1662 is when they tell her what
+happened. The same save's injected Era 4 summary explicitly says Frizwick rode ahead while the
+other three infiltrated Jorgenfist. This is therefore a provenance failure despite correct prose
+memory, not missing or corrupted canon.
+
+**Mechanism.** `memory.js:195-214` files location visits as global camera history only.
+`memory.js:280-287` gives each map node an additive, timeless `npcs` name set and gives an NPC one
+overwritten `lastSeenAt`; neither can express who attended a particular visit. The split handler
+(`tag_table.js:824-857`) stores only current `splitLoc`, then deletes it on rejoin. The GEO prompt
+(`api.js:3-70`) injects current geography/current splits/latest elsewhere locations, not historical
+attendance or even `node.npcs`; the TOC (`memory.js:931-944`) exposes only global VISITED versus
+KNOWN OF. After reunion, the correct era prose had to compete with current four-person scene
+momentum, and the model generalized the subgroup's memory into “we.” This is the historical form
+of #137's membership-is-not-presence invariant and applies to every split/rejoin.
+
+**Proposed shape for review.** Add one uniform, bounded visit representation per location: exact
+recent `{turn, actors}` attendance snapshots derived from effective physical location at filing
+time, plus compact `{first,last,count}` per-actor aggregates when exact entries age out. Put only
+the relevant current/prior visit evidence in the volatile GEO block. A failing-first replay must
+split Frizwick to Sandpoint, file the earlier visit with three actors, rejoin her, and file the
+return with four; “previous visit” must exclude Frizwick while “current visit” includes her.
+Second-hand knowledge must not imply attendance. Exact entries need a hard cap (suggested starting
+point: 8 per node) so the resource is not monotonically growing.
+
+**What a reviewer should probe first.** (1) Define “visit” at split boundaries — camera arrival,
+actor arrival, and sublocation transitions are not equivalent. (2) Confirm actor identity uses the
+identity adapter and survives rename/merge/import without parallel name-key drift. (3) Decide the
+minimum prompt projection that wins the authority fight without bloating the volatile tail.
+(4) Keep #168's separate prerequisite visible: this save has Jorgenfist as KNOWN OF because its
+57-turn infiltration carried no location tags, so no attendance ledger can repair visits that were
+never filed. (5) Determine whether the existing timeless `node.npcs` set should be migrated,
+redefined as “ever associated,” or retired rather than silently assigning it new semantics.
+
 ### 14 — TTS splitter cross-assignment (#93) and narration stuck in third person (#172), both drift-surface (Opus)
 
 **Filed:** 2026-08-12. **Shipped:** v1.603 → v1.604 (#93, commits `43363ea`, `caa2a92`) and
