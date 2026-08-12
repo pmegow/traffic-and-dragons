@@ -63,6 +63,81 @@ minimum prompt projection that wins the authority fight without bloating the vol
 never filed. (5) Determine whether the existing timeless `node.npcs` set should be migrated,
 redefined as “ever associated,” or retired rather than silently assigning it new semantics.
 
+**Owner-ratified amendment (2026-08-12).** Use a per-node plain dictionary, not a flat pair list:
+`guestbook[canonicalName] = {turns:[...], resident:boolean}`. Include the hero, living unsplit party
+members, and NPCs evidenced present by a contemporaneous NPC-location write. Turns dedupe and are
+bounded per character. `resident:true` is explicit and reversible: it means “routinely based here”
+(an innkeeper/proprietor), never “physically present now.” Resident-only records do not fabricate a
+visit turn. The owner rejected the `0` sentinel in favor of this uniform shape.
+
+**Phase 1 triage.** Three independent review/check briefs: A — truthful attendance writers and the
+resident authoring seam; B — persistence, identity, location repair, and size; C — prompt
+projection, tests, and viewer visibility. All implementation is **harden if Fable confirms**. No
+item was ignored or superseded. The requested Opus delegate type was unavailable in the Codex
+orchestrator, so three available read-only agents executed the same evidence contracts; no agent
+was authorized to edit.
+
+**Phase 2 evidence — brief A, writers/presence.** `[LOCATION:]` → `fileLocation` and
+`[SUBLOCATION:]` → `fileSubLocation` are camera-visit writers, but `[LOCATION:]` runs before
+`[PARTY_SPLIT:]` in table order regardless of textual order. A truthful party snapshot therefore
+needs a post-handler seam after same-response split/rejoin state settles. Campaign-start nodes can
+stamp the starting party; blueprint-seeded nodes, location-state writes, identity repairs, and
+loads are not visits. `[PARTY_SPLIT:]` can truthfully stamp only the named split member, and its
+current sublocation path records `lastSeenAt` without creating the child node. `[NPC:]` calls
+`mapNpcLocation` and can provide an ordinary NPC turn, but it is neither exhaustive nor
+presence-validated: a present background NPC without `[NPC:]` is invisible, while a remote NPC
+quoted in a letter is stamped here. No resident/proprietor/home-location tag exists; the proposed
+HQ resident tag is TODO-only. Runtime replay reproduced the defect: Frizwick split to Sandpoint,
+the main party visited Jorgenfist, she rejoined, and they returned — the node retained only global
+turns `[11,14]`, with no evidence that Frizwick attended only t14.
+
+**Phase 2 evidence — brief B, persistence/identity/bounds.** Whole-memory local save/load, campaign
+switching, cloud sync/adopt, and `.tnd` export/import preserve an unknown nested node field; old
+saves need defaults/validation/cap enforcement. Blueprint export intentionally strips per-run node
+state. Real-helper fixtures prove current `locMerge` deletes the duplicate guestbook instead of
+folding it, `locSplit` drops it from every successor, and live/dev NPC merges leave deleted-name
+guestbook keys orphaned; reparent preserves it. Location alias and player swaps do not rename keys,
+but every guestbook writer must canonicalize. On the t1728 save: 77 nodes, 184 total node visits,
+45 unique names in existing node NPC sets. Compact synthetic storage with an 8-turn per-character
+cap measured about 19.1 KB for party-only history or 25.0 KB using the intentionally generous
+timeless-node-NPC proxy; no present-corpus size problem, but unbounded integers grow forever.
+
+**Phase 2 evidence — brief C, prompt/tests/viewer.** The reconstructed t1728 prompt already carries
+the correct Era 4 prose (“Frizwick rode ahead…”), but GEO/TOC/party/NPC graph contain no attendance
+or residency field. GEO (`buildGeoBlock`) is the only always-present, current-location-centric,
+volatile projection; the minimum useful line is historical and explicit about its limit, e.g.
+`RECORDED VISITS HERE: Ammut/Morwen/Daeris — t1593…; Frizwick — t1725 only`, with residents under a
+separate `USUAL BASE — not guaranteed present now` label. A name dictionary answers individual
+history directly but derives attendees for a visit by scanning the node's character keys; tiny at
+this scale. Existing split, cache, location-identity, import, and tag-table tests provide the
+failure-first seams. Required cases include the exact split/rejoin replay, old-save default,
+same-turn dedupe/cap, stable-half byte identity, volatile GEO change, location merge union, explicit
+split allocation, NPC merge re-key, resident-only non-presence, and map-viewer rendering.
+`map_viewer.html` currently drops guestbook from its projection; cleanup/viewer/blueprint surfaces
+do not expose or author residents.
+
+**Fable adjudication questions.** (1) Choose the post-handler attendance commit seam and whether a
+split actor's own arrival writes a world and/or child visit. (2) Name and specify the explicit
+resident set/clear tag. (3) Set the per-character turn cap and decide whether a lifetime count is
+needed after eviction. (4) Define guestbook allocation in `locSplit` plans; silent primary-copy is
+not evidence. (5) Decide whether remote-mention false stamps make `[NPC:]` too weak for automatic
+NPC attendance or an acceptable recorded-evidence boundary. (6) Confirm prompt phrasing never
+turns residency into current presence. (7) Decide whether blueprint-authored proprietors belong to
+this task or remain runtime-only.
+
+**Receipts.** Three parallel read-only briefs, roughly six minutes wall clock. Per-agent token/tool
+telemetry is unavailable in this orchestrator; each brief supplied file:line evidence and focused
+real-engine or real-helper outputs, labeled the incomplete NPC-roster question INCONCLUSIVE, and
+reported no repository modifications. Strong cross-brief agreement: current data cannot answer
+actor attendance; identity repair would lose/orphan the proposed dictionary; residency needs a new
+explicit channel; GEO is the correct projection; present-NPC completeness is not currently
+authoritative.
+
+**Tier gate:** this Codex session stops here. Per the `/fable-review` skill and the repository's
+drift-surface decree, only a Fable session may adjudicate these choices or modify
+`memory.js`/`api.js`/`tag_table.js`. No implementation verdict has been issued and no game code has
+changed.
+
 ### 14 — TTS splitter cross-assignment (#93) and narration stuck in third person (#172), both drift-surface (Opus)
 
 **Filed:** 2026-08-12. **Shipped:** v1.603 → v1.604 (#93, commits `43363ea`, `caa2a92`) and
