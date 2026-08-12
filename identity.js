@@ -447,6 +447,12 @@ function relationshipMigrateSheet(sheet,who,opts){
     var old=src[i];if(!old||typeof old!=="object")continue;
     var row=old;/* preserve object identity: prompt/UI reads may normalize repeatedly, and callers can safely retain an edge reference across turns. */
     row.entity=(opts&&opts.portable)?String(row.entity||"").trim():relationshipEntityKey(row.entity);if(!row.entity){_relationshipWarn("relationship row with no entity was refused during migration");continue;}
+    /* #168R5 (entry-13 review): an NPC merge folding both sheets' outgoing rows can rekey a row's entity
+       INTO its own owner — a self-edge ("Ameiko → Ameiko: Wife") that then renders in prompt, audit, and
+       sheet UI. Meaningless by construction; dropped loudly. The merge pre-image archive (P12) retains the
+       full duplicate sheet, so nothing is lost. Portable sheets skip this — their entity keys resolve
+       against a campaign that is not theirs. */
+    if(!(opts&&opts.portable)){var _selfKey=relationshipEntityKey(who||(typeof worldState!=="undefined"&&worldState&&worldState.character&&worldState.character.name)||"");if(_selfKey&&row.entity===_selfKey){_relationshipWarn("self-referential relationship edge dropped during migration: "+(who||"player")+" → "+row.entity+" (merge artifact; pre-image lives in the merge archive)");continue;}}
     var legacy=row.descriptor!=null?String(row.descriptor).trim():"";
     row.bond=row.bond!=null?String(row.bond).trim():"";
     row.dynamic=row.dynamic!=null?String(row.dynamic).trim():"";
@@ -505,9 +511,14 @@ function _relationshipCommitBond(who,row,next,R,pair){
   if(typeof bondToast==="function")bondToast(who,row.entity,next||null,next?"updated":"ended");
 }
 function relationshipWrite(who,entity,axis,value,R){
-  var sheet=relationshipSheet(who),ent=relationshipEntityKey(entity),next=axis==="pair"?"":_relationshipValue(value,"relationship "+axis,R);if(next===null)return false;
+  var sheet=relationshipSheet(who),ent=relationshipEntityKey(entity);
   if(!sheet){_relationshipWarn("no character sheet for '"+(who||"player")+"' — relationship tag refused");return false;}
   relationshipMigrateSheet(sheet,who);var row=relationshipFind(sheet,ent,who),rows=sheet.relationships;
+  var raw=axis==="pair"?"":String(value||"").trim(),next;
+  if(axis==="pair")next="";
+  else if(raw.length<=REL_VALUE_MAX)next=raw;
+  else if(row&&row.bond===raw&&(axis==="bond"||row.axisReview))next=raw;/* #168R4 (entry-13 review): verbatim migration is lossless BY DESIGN and may exceed REL_VALUE_MAX; re-emitting that EXACT text classifies/confirms EXISTING canon rather than minting new — refusing it left the migrated row permanently unconfirmable by the very tag the nudge prints */
+  else{next=_relationshipValue(value,"relationship "+axis,R);if(next===null)return false;}
   if(!row){
     if(!next){var absentResolved=_relationshipClearAxis(who,ent,"");if(absentResolved){R.muts.push("Legacy relationship removal resolved: "+(who?who+" → ":"")+ent+" is already absent");return true;}_relationshipWarn("no relationship edge "+(who?who+" → ":"")+ent+" exists — removal refused");if(R)R.muts.push("Relationship removal REFUSED (pair absent): "+(who?who+" → ":"")+ent);return false;}
     row={entity:ent,bond:"",bondTurn:null,dynamic:"",dynamicTurn:null};rows.push(row);
@@ -703,7 +714,13 @@ function sceneRefsEnsure(){
   if(!s.active)s.active=_sceneRefFresh(node,s.serial||1);
   if(s.active.node!==node){
     var old=s.active,has=(old.actors&&old.actors.length)||(old.negatives&&old.negatives.length);old.endTurn=worldState.turn;
-    if(has){if(s.sealed.length<SCENE_REF_SEALED_CAP)s.sealed.push(old);else{s.overflow=s.overflow||{kind:"sealed",turn:worldState.turn,node:old.node,scene:old.scene,frame:old};if(typeof console!=="undefined")console.warn("[identity] scene-frame cap reached - accepted frames preserved; referential writes fail closed until a structured summary succeeds");}}
+    if(has){if(s.sealed.length<SCENE_REF_SEALED_CAP)s.sealed.push(old);
+    else if(!s.overflow){s.overflow={kind:"sealed",turn:worldState.turn,node:old.node,scene:old.scene,frame:old};if(typeof console!=="undefined")console.warn("[identity] scene-frame cap reached - accepted frames preserved; referential writes fail closed until a structured summary succeeds");}
+    /* #168R9 (entry-13 review): the old `s.overflow=s.overflow||…` kept only the FIRST overflow record, so a
+       transition under an already-latched overflow silently DROPPED the departing frame's accepted evidence
+       while the warn claimed preservation. Later frames now ride a bounded buffer; only past 2× the cap does
+       a frame drop, and that drop says so honestly. */
+    else{s.overflow.frames=s.overflow.frames||[];if(s.overflow.frames.length<SCENE_REF_SEALED_CAP){s.overflow.frames.push(old);if(typeof console!=="undefined")console.warn("[identity] scene-frame cap reached - transitioned frame preserved in the overflow buffer; referential writes fail closed until a structured summary succeeds");}else if(typeof console!=="undefined")console.warn("[identity] scene-frame overflow buffer FULL - a transitioned frame's evidence was DROPPED; run a structured summary to recover capacity (#168R9)");}}
     s.serial=(s.serial||1)+1;s.active=_sceneRefFresh(node,s.serial);
   }
   return s;
@@ -711,7 +728,7 @@ function sceneRefsEnsure(){
 function sceneRefsEvidence(){var s=sceneRefsEnsure();return {actors:s.active.actors,negatives:s.active.negatives,sealed:s.sealed,overflow:s.overflow,active:s.active,serial:s.serial};}
 function sceneRefsSummarySuccess(){var s=sceneRefsEnsure();if(!s)return;if(s.sealed.length)s.sealed=[];s.active.acknowledged=true;if(s.overflow&&s.overflow.scene!==s.active.scene)s.overflow=null;}
 function sceneRefsSummaryFailure(){/* Typed evidence survives every retry and degraded fallback. */}
-function _sceneRefFrames(){var s=worldState&&worldState.sceneRefs;if(!s)return[];var fs=[s.active].concat((s.sealed||[]).slice().reverse());if(s.overflow&&s.overflow.frame&&fs.indexOf(s.overflow.frame)<0)fs.push(s.overflow.frame);return fs;}
+function _sceneRefFrames(){var s=worldState&&worldState.sceneRefs;if(!s)return[];var fs=[s.active].concat((s.sealed||[]).slice().reverse());if(s.overflow&&s.overflow.frame&&fs.indexOf(s.overflow.frame)<0)fs.push(s.overflow.frame);if(s.overflow&&s.overflow.frames)for(var _ofi=0;_ofi<s.overflow.frames.length;_ofi++)if(fs.indexOf(s.overflow.frames[_ofi])<0)fs.push(s.overflow.frames[_ofi]);/* #168R9: buffered frames stay readable evidence */return fs;}
 function _sceneRefActor(handle,sourceTurn){
   var fs=_sceneRefFrames(),i,j,h=String(handle||"").toLowerCase();
   for(i=0;i<fs.length;i++){var a=(fs[i]&&fs[i].actors)||[];for(j=0;j<a.length;j++)if(String(a[j].handle).toLowerCase()===h&&(sourceTurn==null||a[j].sourceTurn===sourceTurn))return {actor:a[j],frame:fs[i]};}
@@ -753,7 +770,7 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);if(!hit){_w2Conf
 function w2DeathAuthorized(name,handle,sourceTurn){
   if(!worldState||!worldState.sceneRefs)return true;
   var s=sceneRefsEnsure(),canon=(name&&name!=="-")?resolveNpcName(name):null,hit,i,fs;if(s.overflow)return false;
-  if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);if(!hit)return false;if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
+  if(handle&&handle!=="-"){hit=_sceneRefActor(handle,sourceTurn);if(!hit)return false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;/* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
   if(!canon)return false;fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}return false;
 }
 function _w2Conflict(subject,handle,reason){
@@ -788,6 +805,18 @@ function _w2TxnReceipt(m,status,reason,ops,tokens){
   var ts=tokens||_w2OpTokens(ops);for(i=0;i<ts.length;i++)if(r.operations.indexOf(ts[i])<0)r.operations.push(ts[i]);return r;
 }
 function w2TxnCommit(meta,ops,tokens){return _w2TxnReceipt(meta,"committed","",ops,tokens);}
+function w2TxnSummaryRetire(){
+  /* #168R3 (entry-13 review): committed receipts exist only to absorb model replays, and a replay can only
+     come from context the model still sees — after a structured summary lands, receipts older than the
+     retained tail are inert. Retiring them (quarantined receipts NEVER retire; poisoning is a contract)
+     frees capacity and clears the overflow latch, so the envelope mechanism survives a campaign's whole
+     life instead of dying permanently at receipt 24. */
+  if(!worldState||!worldState.canonTxns)return;
+  var keep=[],i,r,horizon=worldState.turn-CANON_TXN_RETIRE_TURNS;
+  for(i=0;i<worldState.canonTxns.length;i++){r=worldState.canonTxns[i];if(r.status==="quarantined"||(r.committedTurn!=null?r.committedTurn:r.turn)>=horizon)keep.push(r);}
+  if(keep.length<worldState.canonTxns.length)worldState.canonTxns=keep;
+  if(worldState.canonTxnOverflow&&worldState.canonTxns.length<CANON_TXN_CAP){delete worldState.canonTxnOverflow;if(typeof console!=="undefined")console.warn("[identity] canon receipt capacity recovered after structured summary (#168R3)");}
+}
 function w2TxnQuarantine(meta,reason,ops,tokens){if(meta.subject&&meta.subject!=="-")_w2Conflict(meta.subject,meta.evidence,reason);else if(typeof console!=="undefined")console.warn("[identity] canon transaction "+(meta.id||"?")+" QUARANTINED: "+reason);return _w2TxnReceipt(meta,"quarantined",reason,ops,tokens);}
 function _w2Tags(text){return String(text||"").match(/\[[A-Z][A-Z_]{1,}:[^\]]+\]/g)||[];}
 function _w2TagName(tag){var m=tag.match(/^\[([A-Z][A-Z_]{1,}):/);return m?m[1]:"";}
@@ -821,14 +850,17 @@ function w2PrepareResponse(text){
     if(!planned[meta.id])planned[meta.id]={id:meta.id,claim:meta.claim,subject:meta.subject,evidence:meta.evidence,quest:meta.quest,status:"planned",operations:seen};else planned[meta.id].operations=seen;txns.push({meta:meta,body:fresh.join(""),ops:fresh,tokens:freshTokens,valid:true});
   }
   if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");}
-  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");}
-  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){ordinary=ordinary.replace(npcTags[n],"");_w2Conflict(nm,"-","named death has no prior positive scene binding");}}
-  var conflict=w2TextTouchesConflict(ordinary);if(conflict&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary);if(typeof console!=="undefined")console.warn("[identity] quest/reward consequence refused - response still names unresolved victim "+conflict.subject);}
+  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
+  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){ordinary=ordinary.replace(npcTags[n],"");_w2Conflict(nm,"-","named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
+  /* #168R1 (entry-13 review): a death REFUSED in THIS response de-authorizes its co-emitted quest/reward
+     consequences even when the victim's name lived only inside the stripped tag — the strips above destroy
+     the very text w2TextTouchesConflict reads, so the refusal itself must ride along as the subject. */
+  var conflict=w2TextTouchesConflict(ordinary),refusalSubject=conflict?conflict.subject:refusedVictim;if(refusalSubject&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary);if(typeof console!=="undefined")console.warn("[identity] quest/reward consequence refused - response carries an unresolved or just-refused victim "+refusalSubject);}
   var merges=ordinary.match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/g)||[],mi;for(mi=0;mi<merges.length;mi++){var mp=merges[mi].match(/\[NPC_MERGE:([^|\]]+)\|([^\]]+)\]/),mc=mp[1].trim(),md=mp[2].trim();if(!w2MergeAllowed(mc,md)){ordinary=ordinary.replace(merges[mi],"");w2MergePropose(mc,md);}}
   var gen=ordinary.match(/\[MERGE:npc\|([^|\]]+)\|([^\]]+)\]/g)||[];for(mi=0;mi<gen.length;mi++){var gp=gen[mi].match(/\[MERGE:npc\|([^|\]]+)\|([^\]]+)\]/),gc=gp[1].trim(),gd=gp[2].trim();if(!w2MergeAllowed(gc,gd)){ordinary=ordinary.replace(gen[mi],"");w2MergePropose(gc,gd);}}
   return {ordinary:ordinary,txns:txns};
 }
-function _w2ChapterDeath(name,summary){var esc=String(name).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),n="\\b"+esc+"\\b",s=String(summary||"");return new RegExp(n+"\\s+(?:died|perished)\\b","i").test(s)||new RegExp(n+"\\s+(?:(?:was|is|had been|has been|lay|lies|fell|falls|dropped|drops|remained|remains)\\s+)(?:dead|slain|killed|deceased)\\b","i").test(s)||new RegExp("\\b(?:the\\s+)?death\\s+of\\s+"+n,"i").test(s);}
+function _w2ChapterDeath(name,summary){var esc=String(name).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),n="\\b"+esc+"\\b",s=String(summary||"");return new RegExp(n+"\\s+(?:died|perished)\\b","i").test(s)||new RegExp(n+"\\s+(?:(?:was|is|had been|has been|lay|lies|fell|falls|dropped|drops|remained|remains)\\s+)(?:dead|slain|killed|deceased)\\b","i").test(s)||new RegExp("\\b(?:the\\s+)?death\\s+of\\s+"+n,"i").test(s)||new RegExp(n+"'s\\s+(?:corpse|remains)\\b","i").test(s)||new RegExp(n+"\\s+bled\\s+out\\b","i").test(s);/* #168R6c: "X's corpse cooled" / "X bled out" are death-shaped chapter claims too (entry-13 review) */}
 
 // W6 summary identity authority is deliberately narrower than the roster. Player/party sheet
 // gender and explicitly stored NPC pronouns are canon; the roster's synthetic they/them fallback
@@ -892,7 +924,7 @@ function w6ValidateSummary(extracted,table){
 function validateSummaryExtract(extracted,table){if(typeof w6ValidateSummary==="function")w6ValidateSummary(extracted,table);if(typeof w2ValidateSummary==="function")w2ValidateSummary(extracted);return true;}
 function w2ValidateSummary(extracted){
   var legacyTrusted=!worldState.sceneRefs;sceneRefsEnsure();var ds=Array.isArray(extracted.npcDeaths)?extracted.npcDeaths:[],valid={},i,reason="",subject="",handle="-";
-  for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else valid[name]=true;if(reason)break;}
+  for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else if(d.canonTxnId&&typeof _w2TxnFind==="function"&&(function(){var _ctr=_w2TxnFind(String(d.canonTxnId));if(_ctr&&_ctr.status==="quarantined")return true;if(!_ctr&&typeof console!=="undefined")console.warn("[identity] summary death cites unknown transaction id "+d.canonTxnId+" - ignored, handle evidence governs (#168R6b)");return false;})())reason="summary death cites a quarantined transaction";else valid[name]=true;if(reason)break;}
   if(!reason&&extracted.chapterSummary){var names=Object.keys(memory.npcs||{}),j;for(j=0;j<names.length;j++){var cn=resolveNpcName(names[j]),cw=typeof wsNpcByName==="function"?wsNpcByName(cn):null;if((cw&&cw.dead)||memory.npcs[cn].dead||valid[cn])continue;if(_w2ChapterDeath(cn,extracted.chapterSummary)){subject=cn;reason="death-like chapter claim has no cited npcDeaths evidence";break;}}}
   if(reason){_w2Conflict(subject,handle,reason);var e=new Error("W2 referential integrity: "+subject+" - "+reason);e.w2Identity=true;e.subject=subject;e.handle=handle;throw e;}return true;
 }

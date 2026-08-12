@@ -3,6 +3,7 @@ var SCENE_REF_ACTOR_CAP=10;     // #168 W2: accepted referents in one active sce
 var SCENE_REF_NEGATIVE_CAP=10;  // #168 W2: explicit/inference exclusions per active scene; same no-eviction rule as actors.
 var SCENE_REF_SEALED_CAP=6;     // #168 W2: transitioned frames retained until a structured summary acknowledges them.
 var CANON_TXN_CAP=24;           // #168 W2: bounded idempotency/quarantine receipts for death/quest/reward envelopes.
+var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this retire on structured-summary success (quarantined receipts NEVER retire — poisoning is a contract); without retirement the cap permanently killed envelopes at receipt 24.
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
 var SUMMARY_IDENTITY_ROW_CAP=12;// #168 W6: compact identity authorities in one extractor call; priority is player, party, scene, then mentioned NPCs.
 var SUMMARY_IDENTITY_CHAR_CAP=1600;// #168 W6: hard prompt bound for the uncached summary identity block.
@@ -202,7 +203,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.601";
+var APP_VERSION="v1.602";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel

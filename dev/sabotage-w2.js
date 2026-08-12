@@ -58,4 +58,39 @@ rc|=sabotage.prove({
   ]
 });
 
+/* #168R (entry-13 review): the review-hardening guards prove against their own focused section —
+   a narrow blast radius keeps each catch attributable (brief F: exit-status verdicts cannot tell
+   an unrelated red from a real catch when the command runs the whole suite). */
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#168R"]],
+  cases:[
+    {label:"a just-refused death stops de-authorizing its co-emitted rewards (the stripped-tag evidence hole reopens)",
+      find:"refusalSubject=conflict?conflict.subject:refusedVictim;",
+      replace:"refusalSubject=conflict?conflict.subject:null;"},
+    {label:"same-turn summary evidence self-authorizes a corpse again",
+      find:"if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;",
+      replace:""},
+    {label:"a quarantined transaction id becomes citable death authority again",
+      find:"if(_ctr&&_ctr.status===\"quarantined\")return true;",
+      replace:"if(false)return true;"},
+    {label:"the latched-transition frame buffer stops preserving accepted evidence",
+      find:"if(s.overflow.frames.length<SCENE_REF_SEALED_CAP){s.overflow.frames.push(old);",
+      replace:"if(false){s.overflow.frames.push(old);"}
+  ]
+});
+
+rc|=sabotage.prove({
+  file:"memory.js",
+  command:["node",["dev/run-tests.js","#168R"]],
+  cases:[
+    {label:"committed receipts stop retiring — the receipt cap permanently kills envelopes again",
+      find:"if(typeof w2TxnSummaryRetire===\"function\")w2TxnSummaryRetire();",
+      replace:"if(false)w2TxnSummaryRetire();"},
+    {label:"array-valued chapterSummary stops normalizing — the t1644 type bypass reopens",
+      find:"if(_snn!=null)extracted.chapterSummary=_snn;",
+      replace:"if(false)extracted.chapterSummary=_snn;"}
+  ]
+});
+
 process.exit(rc?1:0);

@@ -3567,7 +3567,7 @@ function runEngineTests(R){
     if(memory.futureEvents.length!==0)return "twin survived promotion: "+JSON.stringify(memory.futureEvents);
     var a=memory.archive.futureEvents;
     if(!a||a.length!==1||!a[0].promoted)return "promotion not archived with a stamp: "+JSON.stringify(a);
-    if(memory.futureEvents.some&&memory.futureEvents.some(function(f){return f.setTurn!==55&&false;}))return "impossible";
+    if(a[0].setTurn!==55)return "archived promotion lost its original setTurn: "+JSON.stringify(a[0]);/* #168R10: the old predicate was `…&&false` — structurally unable to fire */
     return true;
   });
   t("a quest-linked expiring thread gets ONE ask, no age rewrite, then dies archived (#150)",function(){
@@ -4397,7 +4397,7 @@ function runEngineTests(R){
     var rp=buildSceneRenderRequest(c,mk165Party(),w);
     if(rp.indexOf("Daeris, a female")<0)return "Daeris's gender word missing from the request";
     if(rp.indexOf("Frizwick, a female")<0||rp.indexOf("Morwen, a female")<0)return "companion gender words missing";
-    if(!/gender/i.test(rp.split("Scene:")[0])===false&&rp.toLowerCase().indexOf("gender")<0)return "no explicit gender demand";
+    if(!/gender/i.test(rp.split("Scene:")[0]))return "no explicit gender demand in the header before Scene:";/* #168R10: the old `!X===false&&…` pair was contradictory — it could never fire */
     if(rp.toLowerCase().indexOf("gender")<0)return "the spell-out instruction must demand gender explicitly (compression dropped it)";
     if(rp.indexOf("3-4 sentences")>=0)return "the party sentence cap survived — caps force character triage (the STYLE-cap lesson)";
     return rp.indexOf("ONE full sentence")>=0?true:"no per-character description floor: "+rp.slice(rp.length-300);
@@ -11358,7 +11358,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var d=buildStateTagsDoc();
     if(d.indexOf("[ALIAS:domain|canonical|alias]")<0)return "[ALIAS:] doc line missing — a parsed-but-undocumented tag is the UA1 phantom class";
     if(d.indexOf("[MERGE:domain|canonical|duplicate]")<0)return "[MERGE:] doc line missing";
-    return d.indexOf("npc")<d.indexOf("[ALIAS:domain")?false||true:true;
+    var ni=d.indexOf("npc"),ai=d.indexOf("[ALIAS:domain");/* #168R10: the old ternary returned true on BOTH branches — a clause that could not fail */
+    return ni>=0&&ai>=0&&ni<ai?true:"the npc domain vocabulary must precede the [ALIAS:] doc line (npc@"+ni+" alias@"+ai+")";
   });
   t("road names canonicalize on an UNORDERED endpoint pair at the map write boundary (the #153 two-roads-one-key class)",function(){
     if(normalizeEndpointPair("North Road (Sandpoint–Magnimar)")!=="North Road (Magnimar–Sandpoint)")return "en-dash reversed order not normalized";
@@ -12196,6 +12197,22 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // Exact hostile shape: an observed anonymous actor is explicitly NOT a known NPC, a later
   // bare relabel tries to bind them, and death/quest/reward writers would otherwise ratchet the
   // known NPC across independent stores. These fixtures define the transaction before the fix.
+  t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
+    /* #168R11: a #156 Phase-B location-repair test — the c8c37f1 squash inserted the W6 section header above
+       it, so the "#168 W6" focused filter counted a foreign assertion. Relocated to its pre-squash W4/W5
+       home (entry-13 review, brief F). */
+    if(typeof locRepairApply!=="function")return "locRepairApply missing";
+    makeGeoWorld();
+    var plan=[{op:"merge",canonical:"Sandpoint",duplicate:"Sandpoint, Varisia"}];
+    var pre=JSON.stringify([memory.map,memory.locations,worldState.world]);
+    var dry=locRepairApply(plan,{dry:true});
+    if(JSON.stringify([memory.map,memory.locations,worldState.world])!==pre)return "DRY RUN MUTATED STATE";
+    if(!dry||!dry.length||dry[0].op!=="merge")return "dry-run returned no diff";
+    var real=locRepairApply(plan,{dry:false});
+    if(memory.map.nodes["Sandpoint, Varisia"])return "apply did not perform the merge";
+    return real&&real.length===dry.length?true:"apply diff diverged from the dry-run";
+  });
+
   section("#168 W2: referential integrity transactions");
   function w2Npc(name,rel){
     worldState.npcs.push({name:name,status:"",statusTurn:0,rel:rel||"enemy",met:1,partyMember:false,aliases:[]});
@@ -12366,12 +12383,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var tags="",i;for(i=0;i<11;i++)tags+="[SCENE_REF:actor"+i+"|?]";applyMuts(tags);
     var ev=sceneRefsEvidence();if(!ev.overflow)return "actor-cap overflow was not retained";
     if(ev.actors.length!==10||ev.actors[0].handle!=="actor0")return "overflow evicted or rewrote accepted evidence: "+JSON.stringify(ev.actors);
+    worldState.turn=130;applyMuts("[NPC:Mokmurian|dead|enemy]");/* #168R7: fail-closed is asserted UNDER the latch — the old order ran sceneRefsSummarySuccess() first, so this clause only ever tested the ordinary no-binding refusal */
+    if(npcIsDead(wsNpcByName("Mokmurian")))return "overflow did not fail closed — death committed under the latch";
+    if(!(worldState.identityConflicts||[]).length)return "overflow refusal surfaced no conflict";
     worldState.world.sublocation="Vault";sceneRefsEnsure();var moved=sceneRefsEvidence();
     if(!moved.sealed.length||moved.sealed[0].actors.length!==10)return "overflowed active evidence was not preserved across transition";
     if(sceneRefBind("post-overflow","?"))return "new evidence was accepted while the ledger was incomplete";
     sceneRefsSummarySuccess();if(sceneRefsEvidence().overflow)return "covered transitioned overflow did not recover after structured summary";
-    worldState.turn=131;applyMuts("[NPC:Mokmurian|dead|enemy]");
-    return !npcIsDead(wsNpcByName("Mokmurian"))&&worldState.identityConflicts?true:"overflow did not fail closed and surface a conflict";
+    return true;
   });
 
   t("W2 a reveal cannot silently overwrite a different established scene binding",function(){
@@ -12412,6 +12431,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
 
   t("W2 summary death requires cited scene evidence and a death-like chapter cannot bypass npcDeaths",function(){
     makeWorld();worldState.world.location="Ashfen";w2Npc("Rinn Toldrath");worldState.turn=170;applyMuts("[SCENE_REF:rinn|Rinn Toldrath]");
+    worldState.turn=171;/* #168R6: summarize() runs on the NEXT action, so an honest citation is always prior-turn — same-turn evidence now refuses like the tag path */
     applySummaryExtract({chapterSummary:"Rinn Toldrath was slain at the quay.",npcDeaths:[{name:"Rinn Toldrath",handle:"rinn",sourceTurn:170}]});
     if(!npcIsDead(wsNpcByName("Rinn Toldrath"))||memory.chapters.length!==1)return "cited honest summary death failed";
     makeWorld();worldState.world.location="Ashfen";w2Npc("Rinn Toldrath");var threw=false;
@@ -12513,19 +12533,6 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     __w6World();var a=memArchive(),i;for(i=0;i<13;i++)summaryIdentityQuarantine({message:"failure "+i,subject:"Ammut"},["raw "+i],3);
     if(!Array.isArray(a.identityQuarantines)||a.identityQuarantines.length!==12)return "quarantine cap wrong: "+JSON.stringify(a.identityQuarantines);
     return a.identityQuarantines[0].reason==="failure 1"&&a.identityQuarantines[11].attempts===3?true:"quarantine receipts lost order/shape";
-  });
-
-  t("repair plan dry-run mutates NOTHING and reports the diff; apply matches the dry-run's claims",function(){
-    if(typeof locRepairApply!=="function")return "locRepairApply missing";
-    makeGeoWorld();
-    var plan=[{op:"merge",canonical:"Sandpoint",duplicate:"Sandpoint, Varisia"}];
-    var pre=JSON.stringify([memory.map,memory.locations,worldState.world]);
-    var dry=locRepairApply(plan,{dry:true});
-    if(JSON.stringify([memory.map,memory.locations,worldState.world])!==pre)return "DRY RUN MUTATED STATE";
-    if(!dry||!dry.length||dry[0].op!=="merge")return "dry-run returned no diff";
-    var real=locRepairApply(plan,{dry:false});
-    if(memory.map.nodes["Sandpoint, Varisia"])return "apply did not perform the merge";
-    return real&&real.length===dry.length?true:"apply diff diverged from the dry-run";
   });
 
   // ── #168 W7: relationship axes — durable bond versus current dynamic ─────────
@@ -12767,6 +12774,168 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("W7 unresolved carried facts remain prompt-visible but cannot nudge until their owner sheet exists",function(){
     makeWorld();worldState.relAxisChoices=[{who:"Bryn",entity:"Morwen",value:"Sworn ally",kind:"hybrid",turn:1,lastFire:null}];var n=buildRelationshipAxisNudge(),s=buildSysPrompt().volatile;
     return n===""&&worldState.relAxisChoices.length===1&&s.indexOf("UNRESOLVED CARRIED RELATIONSHIP FACTS")>=0&&s.indexOf("Bryn")>=0?true:"orphaned carried fact was consumed, nagged, or hidden: "+JSON.stringify([n,worldState.relAxisChoices,s.slice(0,400)]);
+  });
+
+  section("#168R review hardening — W2/W6/W7 boundary gaps (Fable entry-13 adjudication)");
+  function r168Quest(title,objective){
+    worldState.questLog.push({title:title,status:"active",desc:"",objectives:[{text:objective,done:false}],started:1});
+  }
+  function r168Npc(name){
+    worldState.npcs.push({name:name,status:"",statusTurn:0,rel:"enemy",met:1,partyMember:false,aliases:[]});
+    memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};
+  }
+
+  t("R1: a refused bare death cannot leak its co-emitted quest completion and rewards when the victim is named only inside the stripped tag",function(){
+    makeWorld();r168Npc("Ilma");r168Quest("Clear the Cellar","Sweep the lower vault");
+    worldState.turn=40;applyMuts("[SCENE_REF:bystander|?]");
+    worldState.turn=41;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    applyMuts("The vault falls silent. [NPC:Ilma|dead|enemy][XP:250][GOLD:+300][QUEST_STEP:Clear the Cellar|Sweep the lower vault|true]");
+    var q=worldState.questLog[0];
+    if(npcIsDead(wsNpcByName("Ilma")))return "unauthorized death committed";
+    if(worldState.character.xp!==xp0||worldState.character.gold!==g0)return "refused death still paid rewards: xp+"+(worldState.character.xp-xp0)+" gold+"+(worldState.character.gold-g0);
+    if(!q||q.objectives[0].done)return "refused death still completed the objective";
+    return true;
+  });
+
+  t("R2: an array-valued chapterSummary normalizes and cannot bypass W6 identity validation into canon (the t1644 class by type variation)",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.gender="M";worldState.turn=1644;
+    var threw=null;
+    try{applySummaryExtract({chapterSummary:["Ammut spins, sword coming up. She crosses the ritual chamber."],npcUpdates:[],loreDiscovered:[],decisionsMade:[],futureEvents:[],resolvedEvents:[]});}catch(e){threw=e;}
+    if(!threw)return "array-shaped contradiction filed without validation";
+    if(String(threw.message).indexOf("W6")<0)return "rejected for the wrong reason: "+threw.message;
+    if((memory.chapters||[]).length)return "rejected prose still filed a chapter";
+    if((worldState.eventHistory||[]).length)return "rejected prose still entered eventHistory";
+    return true;
+  });
+
+  t("R3: committed receipts retire on structured-summary success — the envelope mechanism recovers from CANON_TXN_CAP instead of dying for the campaign",function(){
+    makeWorld();r168Quest("Clear the Cellar","Sweep the lower vault");
+    var i;
+    for(i=0;i<CANON_TXN_CAP+1;i++){worldState.turn=50+i;applyMuts("[CANON_TXN_BEGIN:cap"+i+"|quest-outcome|-|-|Clear the Cellar][XP:10][CANON_TXN_END:cap"+i+"]");}
+    if(!worldState.canonTxnOverflow)return "receipt cap never latched";
+    worldState.turn=50+CANON_TXN_CAP+40;
+    applySummaryExtract({chapterSummary:"The party rests and takes stock.",npcDeaths:[]});
+    if(worldState.canonTxnOverflow)return "overflow latch survived a structured summary";
+    if(worldState.canonTxns.length>=CANON_TXN_CAP)return "committed receipts did not retire: "+worldState.canonTxns.length;
+    var xpBefore=worldState.character.xp;worldState.turn+=1;
+    applyMuts("[CANON_TXN_BEGIN:fresh|quest-outcome|-|-|Clear the Cellar][XP:10][CANON_TXN_END:fresh]");
+    return worldState.character.xp===xpBefore+10?true:"post-recovery envelope still refused";
+  });
+
+  t("R4: confirming a verbatim-migrated over-length bond clears its axis review — lossless migration cannot orphan the row it created",function(){
+    makeWorld();var big="B";while(big.length<241)big+="x";
+    worldState.character.relationships=[{entity:"Ameiko",descriptor:big,turn:77}];
+    worldState.turn=101;var R={muts:[]};
+    var ok=relationshipWrite(null,"Ameiko","bond",big,R);
+    var row=relationshipFind(worldState.character,"Ameiko",null);
+    if(!ok)return "exact confirmation of the migrated bond was refused by the prospective-value bound";
+    if(!row||row.bond!==big)return "bond text changed during confirmation";
+    if(row.axisReview)return "axis review survived confirmation";
+    return true;
+  });
+
+  t("R5: an NPC merge cannot mint a self-referential relationship edge (entity === owner)",function(){
+    makeWorld();r168Npc("Ameiko");
+    var canonSheet={name:"Ameiko",relationships:[]};
+    var dupSheet={name:"Amy",relationships:[{entity:"Ameiko",bond:"Wife",bondTurn:100,dynamic:"",dynamicTurn:null}]};
+    relationshipMergeSheets(canonSheet,dupSheet,"Ameiko","Amy");
+    var rows=relationshipRows(canonSheet,"Ameiko"),i;
+    for(i=0;i<rows.length;i++)if(relationshipEntityKey(rows[i].entity)===relationshipEntityKey("Ameiko"))return "self-edge survived the merge: "+JSON.stringify(rows[i]);
+    return true;
+  });
+
+  t("R6: a summary death cannot cite same-turn scene evidence the tag path would refuse",function(){
+    makeWorld();r168Npc("Mokmurian");
+    worldState.turn=500;applyMuts("[SCENE_REF:scholar|Mokmurian]");
+    var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Mokmurian",handle:"scholar",sourceTurn:500}],chapterSummary:""});}catch(e){threw=e;}
+    if(!threw)return "same-turn evidence authorized a summary corpse";
+    worldState.turn=501;var ok=false;
+    try{ok=w2ValidateSummary({npcDeaths:[{name:"Mokmurian",handle:"scholar",sourceTurn:500}],chapterSummary:""});}catch(e2){return "prior-turn evidence wrongly refused: "+e2.message;}
+    return ok===true?true:"prior-turn validation did not return true";
+  });
+
+  t("R6b: a summary death citing a quarantined transaction id is refused; an unknown id merely warns",function(){
+    makeWorld();r168Npc("Barlow");
+    worldState.turn=300;applyMuts("[SCENE_REF:cloaked|Barlow]");
+    _w2TxnReceipt({id:"bad-1",claim:"npc-death",subject:"Barlow",evidence:"cloaked",quest:"-"},"quarantined","test-seed",[]);
+    worldState.turn=301;
+    var threw=null;try{w2ValidateSummary({npcDeaths:[{name:"Barlow",handle:"cloaked",sourceTurn:300,canonTxnId:"bad-1"}],chapterSummary:""});}catch(e){threw=e;}
+    if(!threw)return "quarantined transaction id authorized a corpse";
+    var ok=false;
+    try{ok=w2ValidateSummary({npcDeaths:[{name:"Barlow",handle:"cloaked",sourceTurn:300,canonTxnId:"never-existed"}],chapterSummary:""});}catch(e2){return "unknown txn id hard-refused a handle-backed death: "+e2.message;}
+    return ok===true?true:"handle-backed death with unknown txn id did not validate";
+  });
+
+  t("R9: accepted frame evidence survives a transition after the overflow latch — bounded and honest, never silently dropped",function(){
+    makeWorld();var i;
+    for(i=0;i<SCENE_REF_SEALED_CAP;i++){worldState.world.location="Node"+i;worldState.turn=60+i;applyMuts("[SCENE_REF:seal"+i+"|?]");}
+    worldState.world.location="Hub";worldState.turn=70;
+    var tags="";for(i=0;i<SCENE_REF_ACTOR_CAP+1;i++)tags+="[SCENE_REF:live"+i+"|?]";
+    applyMuts(tags);
+    var s=worldState.sceneRefs;
+    if(!s.overflow)return "actor overflow never latched";
+    if(s.sealed.length!==SCENE_REF_SEALED_CAP)return "sealed cap fixture wrong: "+s.sealed.length;
+    worldState.world.location="Beyond";worldState.turn=71;applyMuts("[SCENE_REF:post|?]");
+    if(JSON.stringify(worldState.sceneRefs).indexOf("live0")<0)return "accepted live-frame evidence was dropped at the latched transition";
+    return true;
+  });
+
+  t("R8a: the negative cap latches loudly and preserves accepted exclusions (vs SCENE_REF_NEGATIVE_CAP, never literals)",function(){
+    makeWorld();r168Npc("Mokmurian");worldState.turn=80;
+    var i,tags="";for(i=0;i<SCENE_REF_NEGATIVE_CAP+2;i++)tags+="[SCENE_NOT:bys"+i+"|Mokmurian|explicit]";
+    applyMuts(tags);
+    var s=worldState.sceneRefs;
+    if(s.active.negatives.length!==SCENE_REF_NEGATIVE_CAP)return "negative count "+s.active.negatives.length;
+    if(s.active.negatives[0].handle!=="bys0")return "oldest exclusion evicted";
+    if(!s.overflow)return "no overflow latch";
+    worldState.turn=81;applyMuts("[NPC:Mokmurian|dead|enemy]");
+    return npcIsDead(wsNpcByName("Mokmurian"))?"death did not fail closed under negative overflow":true;
+  });
+
+  t("R8b: bare-string npcDeaths cannot mint a corpse while the ledger is active",function(){
+    makeWorld();r168Npc("Rinn");
+    worldState.turn=90;applyMuts("[SCENE_REF:someone|?]");
+    var threw=null;try{w2ValidateSummary({npcDeaths:["Rinn"],chapterSummary:""});}catch(e){threw=e;}
+    return threw&&String(threw.message).indexOf("uncited legacy")>=0?true:"bare-string death passed validation under an active ledger";
+  });
+
+  t("R8c: sealed-frame evidence remains readable death authority until a structured summary retires it",function(){
+    makeWorld();r168Npc("Barlow");
+    worldState.world.location="Cellar";worldState.turn=95;applyMuts("[SCENE_REF:cloaked|Barlow]");
+    worldState.world.location="Street";worldState.turn=96;applyMuts("[SCENE_REF:walker|?]");
+    if(!worldState.sceneRefs.sealed.length)return "fixture: frame did not seal";
+    if(!w2DeathAuthorized("Barlow","cloaked",95))return "sealed evidence stopped authorizing (handle-cited)";
+    if(!w2DeathAuthorized("Barlow",null))return "sealed evidence stopped authorizing (name-scan)";
+    applySummaryExtract({chapterSummary:"The street empties.",npcDeaths:[]});
+    return w2DeathAuthorized("Barlow","cloaked",95)?"summary-retired sealed evidence still authorizes":true;
+  });
+
+  t("R8d: the bond-change queue cap refuses the over-cap change loudly without mutating the bond (vs REL_BOND_CHANGE_CAP)",function(){
+    makeWorld();var i,R={muts:[]};worldState.turn=10;
+    worldState.character.relationships=[];
+    for(i=0;i<REL_BOND_CHANGE_CAP+1;i++)worldState.character.relationships.push({entity:"P"+i,bond:"Old"+i,bondTurn:1,dynamic:"",dynamicTurn:null});
+    for(i=0;i<REL_BOND_CHANGE_CAP+1;i++)relationshipWrite(null,"P"+i,"bond","New"+i,R);
+    var q=worldState.relBondChanges||[];
+    if(q.length!==REL_BOND_CHANGE_CAP)return "queue length "+q.length;
+    if(R.muts.join("|").indexOf("REFUSED (queue full)")<0)return "over-cap refusal was silent";
+    var row=relationshipFind(worldState.character,"P"+REL_BOND_CHANGE_CAP,null);
+    return row&&row.bond==="Old"+REL_BOND_CHANGE_CAP?true:"over-cap refusal mutated the bond";
+  });
+
+  t("R8e: the summary identity table's character cap truncates (vs SUMMARY_IDENTITY_CHAR_CAP)",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.gender="M";
+    var i,a;
+    for(i=0;i<11;i++){
+      var nm="Companion"+i+"OfTheLongRoadAndTheDeepVault";a=[];
+      a.push("The Utterly Unabbreviated Honorific Style Number One Of "+nm);
+      a.push("The Second Ceremonial Form Of Address Belonging To "+nm);
+      a.push("The Third And Longest Court Title Carried By "+nm);
+      worldState.npcs.push({name:nm,partyMember:true,charSheet:{name:nm,gender:"F"},status:"",statusTurn:0,met:1,aliases:a});
+      memory.npcs[nm]={attitude:"",knowledge:[],events:[],aliases:a};
+    }
+    var tbl=summaryIdentityTable("irrelevant"),blk=buildSummaryIdentityBlock(tbl);
+    if(blk.length>SUMMARY_IDENTITY_CHAR_CAP)return "block exceeded the char cap: "+blk.length;
+    return tbl.truncated===true&&tbl.rows.length<SUMMARY_IDENTITY_ROW_CAP?true:"char cap never truncated: rows="+tbl.rows.length+" truncated="+tbl.truncated;
   });
 
 

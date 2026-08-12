@@ -1239,6 +1239,18 @@ async function compileEraIfDue(){
 // Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
 // retired in the visible "Memory updated" line (#57 — no silent memory surgery).
 function applySummaryExtract(extracted,identityTable){
+  /* #168R2 (entry-13 review): the extractor may return prose tiers as ARRAYS; _w6SummaryTexts validates only
+     strings, so an array-valued chapterSummary skipped identity validation entirely and filed the raw t1644
+     contradiction into chapters + eventHistory — the exact class W6 shipped to close, back through a type
+     variation. Normalize BEFORE the preflight so validation sees exactly what filing will write; an unusable
+     shape is dropped LOUDLY and never filed. */
+  if(extracted&&typeof extracted==="object"){
+    var _snProse=function(v){var o=[],k;if(typeof v==="string")return v;if(!Array.isArray(v))return null;for(k=0;k<v.length;k++){if(typeof v[k]==="string")o.push(v[k]);else if(Array.isArray(v[k]))o.push(v[k].filter(function(x){return typeof x==="string";}).join(" "));else return null;}return o.join(" ");};
+    var _snLists=["loreDiscovered","decisionsMade","resolvedEvents"],_snf,_snv,_sni,_snn;
+    if(extracted.chapterSummary!=null&&typeof extracted.chapterSummary!=="string"){_snn=_snProse(extracted.chapterSummary);if(_snn!=null)extracted.chapterSummary=_snn;else{if(typeof console!=="undefined")console.warn("[memory] chapterSummary had an unusable shape — dropped, not filed (#168R2)");delete extracted.chapterSummary;}}
+    for(_snf=0;_snf<_snLists.length;_snf++){_snv=extracted[_snLists[_snf]];if(Array.isArray(_snv))for(_sni=0;_sni<_snv.length;_sni++)if(_snv[_sni]!=null&&typeof _snv[_sni]!=="string"){_snn=_snProse(_snv[_sni]);if(_snn!=null)_snv[_sni]=_snn;else{if(typeof console!=="undefined")console.warn("[memory] "+_snLists[_snf]+"["+_sni+"] had an unusable shape — dropped, not filed (#168R2)");_snv.splice(_sni,1);_sni--;}}}
+    var _snFE=extracted.futureEvents;if(Array.isArray(_snFE))for(_sni=0;_sni<_snFE.length;_sni++)if(_snFE[_sni]&&typeof _snFE[_sni]==="object"){if(_snFE[_sni].what!=null&&typeof _snFE[_sni].what!=="string"){_snn=_snProse(_snFE[_sni].what);if(_snn!=null)_snFE[_sni].what=_snn;}if(_snFE[_sni].when!=null&&typeof _snFE[_sni].when!=="string"){_snn=_snProse(_snFE[_sni].when);if(_snn!=null)_snFE[_sni].when=_snn;}}
+  }
   if(typeof validateSummaryExtract==="function")validateSummaryExtract(extracted,identityTable);/* #168 W2/W6: whole-extraction preflight before any tier can ratchet disputed identity */
   var i;
   var stats={superseded:0,supersededNames:[]};
@@ -1316,7 +1328,8 @@ function applySummaryExtract(extracted,identityTable){
   // window — the correction pin's job is done. Archive it (never a silent drop). Runs after the
   // chapter file so a throw in any earlier step keeps the pin alive for the retry.
   if(typeof worldState!=="undefined"&&worldState&&worldState.retconPin){memArchive().retconPins.push(worldState.retconPin);delete worldState.retconPin;}
-  if(typeof sceneRefsSummarySuccess==="function")sceneRefsSummarySuccess();/* active evidence remains; only safely covered transitioned frames retire */
+  if(typeof sceneRefsSummarySuccess==="function")sceneRefsSummarySuccess();
+  if(typeof w2TxnSummaryRetire==="function")w2TxnSummaryRetire();/* #168R3: committed receipts retire once out of replay range; the overflow latch recovers *//* active evidence remains; only safely covered transitioned frames retire */
   return stats;
 }
 // ── #10 (B11): keep the gameplay channel's imperatives out of the JSON channel ────────────────

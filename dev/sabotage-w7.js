@@ -120,4 +120,18 @@ rc|=sabotage.prove({
   ]
 });
 
+/* #168R (entry-13 review): review-hardening guards, proven against their own focused section. */
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#168R"]],
+  cases:[
+    {label:"over-length migrated bonds become permanently unconfirmable again",
+      find:"else if(row&&row.bond===raw&&(axis===\"bond\"||row.axisReview))next=raw;",
+      replace:"else if(false)next=raw;"},
+    {label:"NPC merges mint self-referential relationship edges again",
+      find:"if(_selfKey&&row.entity===_selfKey){",
+      replace:"if(false){"}
+  ]
+});
+
 process.exit(rc?1:0);

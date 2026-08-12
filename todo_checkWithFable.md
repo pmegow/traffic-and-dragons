@@ -22,53 +22,6 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
-### 13 — Verification of the Sol W1–W7 drift-hardening handoff (Opus, docs only)
-
-**Filed:** 2026-08-11. **Artifact:** `DOC/workdone_sol_review.html`. **Commit:** `2220f88`
-(documentation only — the engine is untouched at v1.601 / `c8c37f1`). **Reviews:**
-`DOC/workdone_sol.html`, whose own final section requests exactly this Fable pass.
-
-TLDR: every checkable claim in the W1–W7 handoff was re-executed against the tree rather
-than read. The engineering holds and no code defect was found; four defects in the *record*
-were fixed in the same pass. What remains for Fable is the adversarial design question this
-pass deliberately did not attempt.
-
-Reproduced exactly: 1,306 assertions green (twice — once directly, once via the pre-commit
-hook); 83 sabotage mutations caught across five gates with zero misses; both exact-incident
-replays green; `git diff --check` and TODO lint clean. Probed at the failure condition rather
-than trusted: `WEIGHTY_REL_RE` driven with the real t1666 `"Owed a favor collected, warming"`
-payload plus a 24-case morphology corpus in both polarities; `NPC_DEATH_RETRACTED` confirmed
-absent from the *generated* `buildStateTagsDoc()` block while the new W2/W7 tags are present;
-the live t1667 save confirmed byte- and mtime-identical across the replay.
-
-Corrected in the handoff: the W7 sabotage count read 24/24 in three places where the gate
-proves 25; the contents page promised an order the body did not deliver (the closing
-review-focus section sat ahead of two implementation sections) — reordered and renumbered
-1–16 by script under a content-preservation assertion; the cited t1667 export lived in
-`Downloads`, so the headline receipt could not be reproduced from a checkout — moved to
-`testRuns/`, cited by repo-relative path, replay re-run green from it.
-
-**What a reviewer should probe first — explicitly outside this pass:**
-
-1. **Whether the sabotage clauses are the *right* ones.** This pass proved 25/15/9 mutations
-   are caught; it did not adjudicate whether that set is the correct adversarial coverage.
-   This is the highest-value remaining question and the handoff's §16 asks for it directly.
-2. **The W2/W6/W7 boundaries listed in the handoff's §16** are all still unreviewed:
-   same-response authority, envelope subject/quest matching, delayed continuation, cap
-   recovery, receipt multiplicity, rollback side effects, migration under saturated queues,
-   whole-pair removal, cross-campaign load ordering, identity convergence from both endpoints.
-3. **Focused sub-counts were not isolated** — the cited 28 W7 / 10 W6 / 22 W2 focused
-   assertions live inside the 1,306 aggregate and were neither confirmed nor disputed.
-4. **Traceability (wording since reconciled):** v1.599 and v1.600 were narrated as releases in
-   both the handoff and CLAUDE.md but exist in no commit — all three are squashed into
-   `c8c37f1`, so W7 cannot be reverted or bisected independently of W6. The prose now names
-   `v1.601` everywhere and the handoff carries a standing traceability banner; git history is
-   untouched. The *structural* consequence stands and is worth a reviewer's opinion: three
-   drift-surface workstreams share one revert unit.
-
-Nothing here was live-tested: the whole pass is headless, with no deployment, no rendered UI,
-and no GM turn against a real API.
-
 ### 12 — Project-wide drift-risk audit against Runelords t1549 (Sol, no code shipped)
 
 **Filed:** 2026-08-08. **Artifact:** `DOC/Drift_risks_SOL.html`. **Trackers:** TODO
@@ -120,6 +73,7 @@ zero 2026-07-27 and again 2026-07-30.
 
 | # | Subject | Reviewed | Verdict |
 |---|---|---|---|
+| 13 | Sol W1–7 drift-hardening handoff (v1.601) — six-brief delegated-evidence review, self-adjudicated on Fable | 2026-08-12 | 8 confirmed boundary defects fixed v1.602 failing-test-first — two resurrected origin incidents (stripped-tag reward leak; array-typed t1644 W6 bypass) plus receipt-cap permadeath, same-turn/quarantined-txn citations, latched-frame drop, over-length bond orphan, merge self-edges, eras import drop; +13 tests, +8 sabotage clauses (W2 15/15, W7 27/27), 3 tautological clauses repaired, counts corrected; follow-ups #169–#171 |
 | 10 | Parallel-act hook delivery (v1.495) | 2026-07-30 | Placement PASS; 1 CONFIRMED wording defect (referent "inactive arcs" never renders in a parallel act) fixed v1.501 + pin test; untouched spine-name channels measured and filed as TODO #108 |
 | 9 | Inventory acquisition toast (#107, v1.500) | 2026-07-30 | Behaviors affirmed with observed outputs; 1 CONFIRMED defect (non-string inventory entry killed the whole turn pre-applyMuts) fixed v1.501 at the _inv* primitives; 3 residues accepted |
 | 8 | Campaign-clock batch (v1.496-v1.499 incl. the drift-surface TIME_ADVANCE scene rewrite) | 2026-07-30 | All 4 ship items PASS (cache contract runtime-proven, memo reasoning airtight, day relabel clean); 4 suite hardens + 2 doc fixes v1.501; overshoot measurement BLOCKED on post-v1.496 .ta field data (user action) |

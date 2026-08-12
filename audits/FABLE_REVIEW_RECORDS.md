@@ -961,3 +961,90 @@ Filed under the standing budget-exhausted rule (ALL Opus work documented), not b
 
 ⚠ Prompt text in the **volatile** half (skeleton block), so no cache impact. **No new test** — a prompt-wording change with no engine behavior to assert; suite green but this one rests on field observation only, which is the weakest evidence in this batch. A reviewer may reasonably want the bestiary/seeded-knowledge channels examined too, since they were contributing causes left untouched.
 
+
+---
+
+## Entry 13 — Sol W1–W7 drift-hardening handoff verification → six-brief delegated-evidence review (reviewed 2026-08-12, fixes v1.602)
+
+**Disposition.** Filed as an Opus verification pass over DOC/workdone_sol.html (v1.601, c8c37f1). The user switched the session to Fable mid-review and asked to "hit entry 13", so the /fable-review workflow ran END-TO-END in one session: 6 parallel Opus evidence briefs (all runtime-probed against the real engine, read-only), Fable spot-checked every load-bearing quote against the tree before acting, and adjudicated failing-test-first.
+
+**Verdict.** The W1–W7 set is sound at its core — every headline number reproduced, and the deep boundaries (clone-apply rollback, side-effect buffering, evidence caps, portable isolation, W1 guard disposition) held under hostile probes. Eight boundary defects were confirmed and fixed as v1.602; the two sharpest each RESURRECTED the exact incident their workstream shipped to close:
+
+1. **W2 stripped-tag reward leak (critical, brief A).** identity.js stripped a refused death tag BEFORE running the conflict scan over the remaining text, destroying the scan's own evidence — an unauthorized death's co-emitted [XP:]/[GOLD:]/[QUEST_STEP:done]/[QUEST:completed] all committed (a quest ARCHIVED off a refused corpse in the probe) whenever the victim was named only inside the tag. Fixed: the in-response refusal now rides into the reward gate as its subject.
+2. **W6 array-type bypass (high, brief D).** _w6SummaryTexts validates only strings; an ARRAY-valued chapterSummary skipped identity validation entirely and fileChapter wrote the literal t1644 contradiction into chapters + eventHistory. Fixed: prose tiers normalize to strings before the preflight; unusable shapes drop loudly.
+3. **W2 receipt permadeath (high, brief A).** CANON_TXN_CAP=24 with canonTxnOverflow written and cleared nowhere — 24 claim ids permanently killed the envelope mechanism for a campaign. Fixed: committed receipts retire CANON_TXN_RETIRE_TURNS=12 behind a successful structured summary (quarantined receipts NEVER retire); the latch clears when capacity recovers.
+4. **W2 same-turn/quarantined-txn summary citations (brief B).** w2ValidateSummary's provided-sourceTurn path had no same-turn guard (a summary could cite evidence armed by the very response being summarized — the tag path refused the identical shape), and canonTxnId was schema-only, never read: a QUARANTINED transaction id was citable as death authority. Both refused now; an unknown id warns and defers to handle evidence.
+5. **W2 latched-frame drop (brief B).** s.overflow=s.overflow||{…} kept only the FIRST overflow record, so a transition under an already-latched overflow silently dropped the departing frame's accepted evidence (10 live bindings vanished in the probe) while the warn claimed preservation. Fixed: a bounded buffer (SCENE_REF_SEALED_CAP more frames) preserves them as readable evidence; only past 2× the cap does a frame drop, honestly.
+6. **W7 over-length bond orphan (brief C).** Verbatim migration (lossless BY DESIGN) can exceed REL_VALUE_MAX, but the confirmation tag was length-refused BEFORE the same-value check — the row was permanently unconfirmable by the very tag the nudge prints. Fixed: exact re-emission of existing canon bypasses the prospective-value bound.
+7. **W7 merge self-edges (brief C).** No filter existed for entity===owner; folding both sheets' rows through a merge minted "Ameiko → Ameiko: Wife", rendered in prompt/audit/UI. Fixed: migration drops self-edges loudly (portable sheets exempt; pre-images already in the merge archive).
+8. **Chapter-death shapes + eras import (briefs B/D).** "X's corpse/remains" and "X bled out" now count as death-shaped chapter claims; the .tnd import whitelist carried no eras key, silently dropping compiled eras on every import (the attitudeSpec/#144A class again) — added.
+
+**Test-integrity findings (briefs F + B).** The W2 overflow engine test called sceneRefsSummarySuccess() BEFORE the death it claimed to test fail-closed — reordered so the latch is actually exercised. Three structurally-unable-to-fail clauses repaired (an always-true ternary, a `…&&false` predicate, a self-contradictory gender check). A #156 location-repair test sat inside the W6 section (squash artifact) — relocated; focused counts are now W2 21 · W6 9 · W7 28 (+13 in the new #168R section). The handoff's "22 focused W2" was corrected to the measured 21; CLAUDE.md's "24/24" W7 gate count was stale (25, now 27 with the new clauses).
+
+**Verification.** All 8 fixes landed failing-test-first in section "#168R review hardening" — each failed with the evidence's exact predicted reason before the fix. Suite: 1319 ALL GREEN (was 1306). Sabotage: W2 gate 15/15, W7 gate 27/27, W6 15/15 + identity 22/22 + drift 12/12 unchanged; the 8 new clauses prove against the focused #168R section for attributability (brief F showed exit-status verdicts cannot tell an unrelated red from a real catch). Sources restored byte-identically after every gate.
+
+**Accepted residues (rationale).** Sealed frames remain valid death authority until a summary retires them — sealing governs retention, not authority; blocking would fail-close legitimate cross-scene deaths. Un-enveloped reward tags remain legal — the envelope is the high-impact channel and the 824–826 backstop (now fixed) guards the bare path; forcing envelopes onto every ordinary reward turn would break normal play. The W7 same-turn duplicate-confirm refusal stays silent for now — it doubles as the double-emission dedupe path; a muts line would fire on every model tag repetition (decide in #171). "Ammut killed Mokmurian" abstention in _w2ChapterDeath is deliberate and test-pinned (the subject is the killer, not the corpse).
+
+**Deferred with evidence cited.** TODO #169 (recognizer precision: W4 observer false-positive classes, W6 FN/FP classes incl. the stray-quote whole-field abstention, the self-death classifier's missing subject resolution), #170 (sabotage attribution + the measured unguarded set incl. W6 recognizer internals and CI running no gates), #171 (envelope hygiene tail: unmatched-marker blast radius, header-variance demotion, circular conflict reason, silent refusals, pending.prev re-check).
+
+**Phase-4 receipts (delegate economics).**
+
+| Brief | Lane | Tokens | Tool calls | Wall | Fed into |
+|---|---|---|---|---|---|
+| A | W2 txn envelope | 246,099 | 59 | 13.9m | fixes 1, 3; #170, #171 |
+| B | W2 scene ledger | 239,264 | 57 | 16.1m | fixes 4, 5, 8; test reorder; #170 |
+| C | W7 axes | 211,783 | 34 | 9.6m | fixes 6, 7; #171 |
+| D | W6 recognizer | 203,468 | 60 | 12.1m | fix 2, eras half of 8; #169, #170 |
+| E | W4 + Mokmurian | 186,126 | 37 | 10.6m | #169 (classifier + observer corpora); repair gates affirmed |
+| F | coverage/parity | 227,798 | 65 | 15.3m | focused counts, W6 relocation, tautologies, doc corrections, R8 cap guards |
+
+Total ≈ 1.31M delegate tokens / 312 tool calls; wall ≈ 16 min (parallel). Delegate quality: all six stayed read-only and used UNDETERMINED honestly; brief F self-detected and discarded a OneDrive hash-timing artifact; brief E made one false claim (said no t1667 export existed in testRuns/ — it did), caught by reviewer spot-check; briefs A/B ran guard-coverage mutations in-memory/on-mirrors rather than touching the shared tree — exemplary discipline worth repeating in future briefs.
+
+**Original queue entry (verbatim):**
+
+### 13 — Verification of the Sol W1–W7 drift-hardening handoff (Opus, docs only)
+
+**Filed:** 2026-08-11. **Artifact:** `DOC/workdone_sol_review.html`. **Commit:** `2220f88`
+(documentation only — the engine is untouched at v1.601 / `c8c37f1`). **Reviews:**
+`DOC/workdone_sol.html`, whose own final section requests exactly this Fable pass.
+
+TLDR: every checkable claim in the W1–W7 handoff was re-executed against the tree rather
+than read. The engineering holds and no code defect was found; four defects in the *record*
+were fixed in the same pass. What remains for Fable is the adversarial design question this
+pass deliberately did not attempt.
+
+Reproduced exactly: 1,306 assertions green (twice — once directly, once via the pre-commit
+hook); 83 sabotage mutations caught across five gates with zero misses; both exact-incident
+replays green; `git diff --check` and TODO lint clean. Probed at the failure condition rather
+than trusted: `WEIGHTY_REL_RE` driven with the real t1666 `"Owed a favor collected, warming"`
+payload plus a 24-case morphology corpus in both polarities; `NPC_DEATH_RETRACTED` confirmed
+absent from the *generated* `buildStateTagsDoc()` block while the new W2/W7 tags are present;
+the live t1667 save confirmed byte- and mtime-identical across the replay.
+
+Corrected in the handoff: the W7 sabotage count read 24/24 in three places where the gate
+proves 25; the contents page promised an order the body did not deliver (the closing
+review-focus section sat ahead of two implementation sections) — reordered and renumbered
+1–16 by script under a content-preservation assertion; the cited t1667 export lived in
+`Downloads`, so the headline receipt could not be reproduced from a checkout — moved to
+`testRuns/`, cited by repo-relative path, replay re-run green from it.
+
+**What a reviewer should probe first — explicitly outside this pass:**
+
+1. **Whether the sabotage clauses are the *right* ones.** This pass proved 25/15/9 mutations
+   are caught; it did not adjudicate whether that set is the correct adversarial coverage.
+   This is the highest-value remaining question and the handoff's §16 asks for it directly.
+2. **The W2/W6/W7 boundaries listed in the handoff's §16** are all still unreviewed:
+   same-response authority, envelope subject/quest matching, delayed continuation, cap
+   recovery, receipt multiplicity, rollback side effects, migration under saturated queues,
+   whole-pair removal, cross-campaign load ordering, identity convergence from both endpoints.
+3. **Focused sub-counts were not isolated** — the cited 28 W7 / 10 W6 / 22 W2 focused
+   assertions live inside the 1,306 aggregate and were neither confirmed nor disputed.
+4. **Traceability (wording since reconciled):** v1.599 and v1.600 were narrated as releases in
+   both the handoff and CLAUDE.md but exist in no commit — all three are squashed into
+   `c8c37f1`, so W7 cannot be reverted or bisected independently of W6. The prose now names
+   `v1.601` everywhere and the handoff carries a standing traceability banner; git history is
+   untouched. The *structural* consequence stands and is worth a reviewer's opinion: three
+   drift-surface workstreams share one revert unit.
+
+Nothing here was live-tested: the whole pass is headless, with no deployment, no rendered UI,
+and no GM turn against a real API.
