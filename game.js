@@ -514,12 +514,38 @@ function _sayNorm(s){return String(s||"").replace(/[“”"]/g,"").replace(/\s+/
 //   • quote state CARRIES across segment boundaries — a [SAY:] tag does not reset parity, and the GM
 //     may write '"[SAY:X]Ten out of ten," he says.' with the opener in the PREVIOUS segment. Restart
 //     it per segment and that correctly-authored shape narrates flat forever, while sayTagCoverage
-//     reports it unmapped and buildSayComplianceNudge nags every turn for prose the GM cannot fix.
+//     reports it unmapped. (It does NOT also silence buildSayComplianceNudge on that shape —
+//     measured: sayTagCoverage's paragraphGaps floor fires there regardless of the map. That
+//     detector defect is separate and predates #93; it is recorded in the #93 row.)
 //   • state RESETS at a blank-line paragraph break, mirroring splitSentences' per-paragraph _inQ,
 //     so mask and unit labels stay coherent. normalizeForTTS turns newlines into spaces, so the
 //     break has to be found BEFORE normalizing.
+// The mask must see the text splitSentences sees. Two ways the RAW slice differs from the CLEAN
+// text, both found by adversarial review of the first cut and both able to produce a WRONG
+// CHARACTER VOICE — the exact harm #93 exists to remove:
+//   • a quote glyph inside any stripped tag payload ([NPC_NOTE:… she keeps saying "ten out of ten])
+//     toggled the mask, so every later key landed unmasked and the WHOLE map was thrown away;
+//   • cleanTxt CREATES paragraph breaks the raw does not have, by removing a tag that sat alone on
+//     its own line. splitSentences resets its quote state there and the mask did not, so the mask
+//     inverted, the correct in-quote hit was rejected, and the forward-only cursor walked on into a
+//     LATER speaker's segment and bound the line to them.
+// Stripping fixes the first. The second needs more than stripping: when the tag that creates the
+// break is the [SAY:] tag itself, its two slices end and begin with a lone newline each, so no
+// per-slice split can see it — hence the `tail` seam carried on the shared state object.
+// cleanTxt's own regexes are reused so the two cannot drift, but applied SILENTLY: cleanTxt's
+// unknown-tag catch-all warns, and warning once per segment per turn would be permanent console noise.
+function _sayStripTags(s){
+  s=String(s||"");
+  if(typeof _CT_TAGS!=="undefined")s=s.replace(_CT_TAGS,"");
+  if(typeof _CT_BARE!=="undefined")s=s.replace(_CT_BARE,"");
+  return s.replace(/\[[A-Z][A-Z_]{2,}(?::[^\]]*)?\]/g,"").replace(/\[[A-Z][A-Z_]{2,}(:[^\]]*)?\s*$/,"");
+}
 function _saySegScan(rawSlice,state){
-  var chunks=String(rawSlice||"").split(/\n\s*\n/),text="",mask=[],ci,k,ch,norm;
+  var _s=_sayStripTags(rawSlice);
+  var _head=(_s.match(/^\s*/)||[""])[0];
+  if(state.tail&&/\n\s*\n/.test(state.tail+_head))state.inQ=false;   // the break straddles the tag cut
+  if(/\S/.test(_s))state.tail=(_s.match(/\s*$/)||[""])[0];else state.tail=(state.tail||"")+_s;
+  var chunks=_s.split(/\n\s*\n/),text="",mask=[],ci,k,ch,norm;
   for(ci=0;ci<chunks.length;ci++){
     if(ci>0)state.inQ=false;                          // paragraph break — parity restarts
     norm=TTS._textPrep.normalizeForTTS(chunks[ci]);
@@ -554,7 +580,12 @@ function deriveSpeakerMapFromTags(raw,clean){
   var out={},kept=0,si=0,off=0,i;
   for(i=0;i<units.length;i++){
     var u=units[i];
-    if(!u||u.spk===null||u.spk===undefined)continue;  // narration keeps the narrator, always
+    if(!u)continue;
+    // A unit the splitter FLATTENED (#93 ①) is narration for voicing purposes but still holds real
+    // quoted text in the raw, so it must consume the forward-only cursor: leaving it unconsumed let
+    // its text stay claimable and capture a LATER speaker's identical tagged line into the wrong voice.
+    var _isFlat=!!u.flat;
+    if((u.spk===null||u.spk===undefined)&&!_isFlat)continue;   // narration keeps the narrator, always
     var key=_sayNorm(u.text).slice(0,48);
     if(!key)continue;
     var j=si,hit=-1;
@@ -571,6 +602,7 @@ function deriveSpeakerMapFromTags(raw,clean){
     }
     if(j>=segs.length)continue;                       // not in any segment — narrator, cursor unmoved
     si=j;off=hit+key.length;                          // forward-only: repeated identical lines bind in order
+    if(_isFlat)continue;                              // cursor advanced, but a flattened unit takes no voice
     if(segs[j].name){out[i]=segs[j].name;kept++;}
   }
   return kept?{n:units.length,s:out}:null;

@@ -48,7 +48,7 @@ of scope — note it as still-open in the row.
 
 ## Task 2 — TODO #93: TTS splitter — an unclosed quote voices narration as a character
 
-> ✅ **DONE — shipped v1.603 (2026-08-12, Claude). Do not start this task.** All four items landed
+> ✅ **DONE — shipped v1.603, corrected in v1.604 (2026-08-12, Claude). Do not start this task.** All four items landed
 > (①/①b/③ fixed, `speakerSpans` retired) plus one item this brief did not anticipate: a census of
 > 23,858 real GM paragraphs showed the ONLY field source of odd quote parity is output-cap
 > truncation, so a third exemption keeps a cut-off speech voiced. The full receipt — fixes,

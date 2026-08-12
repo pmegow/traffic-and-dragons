@@ -6898,12 +6898,31 @@ function runEngineTests(R){
     for(i=0;i<u.length;i++)if(/Hold the line|Do not break/.test(u[i].text)&&u[i].spk===null)bad.push(JSON.stringify(u[i].text));
     return bad.length?"open-ended speech was flattened to narration: "+bad.join(", "):true;
   });
-  t("#93①: exemption B — a next paragraph opening on a quote keeps the unterminated run voiced",function(){
-    var u=TTS._textPrep.splitSentences('"Hold the line," she said. "We wait.\n\n"Not long now."',null,true);
-    var found=null,i;
-    for(i=0;i<u.length;i++)if(/We wait/.test(u[i].text))found=u[i];
-    if(!found)return "the continued-speech unit was not produced at all";
-    return found.spk!==null?true:"continued speech into the next paragraph was flattened to narration";
+  t("#93①: a following quote-initial paragraph does NOT disarm the rule (the RETIRED exemption B)",function(){
+    // v1.603 exempted any faulty paragraph whose successor opened on a quote, meaning to protect
+    // continued speech. Adversarial review falsified it: ONE ordinary quoted paragraph appended
+    // after a faulty one turned the whole rule off and restored the wrong-voice bug, and the
+    // exemption applied at 27% of all paragraph positions while the shape it protected has ZERO
+    // occurrences in 23,858 real GM paragraphs. Retired at v1.604; the genuine continued-speech
+    // fixture (B14c) is protected by the opens-paragraph exemption instead, verified by ablation.
+    var u=TTS._textPrep.splitSentences('He said, "Run. Then he turned and left the room. The door slammed.\n\n"Good riddance," she muttered.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++){
+      if(/turned and left|door slammed|"Run\./.test(u[i].text)&&u[i].spk!==null)bad.push("faulty paragraph still voiced: "+JSON.stringify(u[i].text));
+      if(/Good riddance/.test(u[i].text)&&u[i].spk===null)bad.push("the following clean paragraph lost its voice: "+JSON.stringify(u[i].text));
+    }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①: only the runs AT OR AFTER the fault are demoted — an earlier CLOSED quote keeps its voice",function(){
+    // The v1.603 rule flattened the whole paragraph, so a perfectly balanced quotation lost its
+    // voice merely for sharing a paragraph with a stray glyph. Demotion is now scoped by quote run.
+    var u=TTS._textPrep.splitSentences('"Go now," she says. He turned away." Then he walked out.',null,true);
+    var bad=[],i;
+    for(i=0;i<u.length;i++){
+      if(/Go now/.test(u[i].text)&&u[i].spk===null)bad.push("the closed quote before the fault was flattened: "+JSON.stringify(u[i].text));
+      if(/walked out/.test(u[i].text)&&u[i].spk!==null)bad.push("narration after the fault kept a voice: "+JSON.stringify(u[i].text));
+    }
+    return bad.length?bad.join(" | "):true;
   });
   t("#93①: exemption C — a response CUT OFF mid-speech keeps its voice (the measured real case)",function(){
     // The v1.603 census of 23,858 real GM paragraphs: odd parity occurred 27 times and every one
@@ -6927,6 +6946,28 @@ function runEngineTests(R){
     var bad=[],i;
     for(i=0;i<u.length;i++)if(u[i].spk!==null)bad.push(i+":"+JSON.stringify(u[i].text));
     return bad.length?"a terminated unbalanced paragraph kept dialogue labels -> "+bad.join(" | "):true;
+  });
+  t("#93③: the junk fold never merges across a VOICE boundary (the B14c straddle invariant)",function(){
+    // The v1.603 fold tested only for alphanumeric content, so it merged a punctuation-only
+    // fragment into a neighbour of the opposite quote state — building exactly the unit holding
+    // both spoken and narrated text that B14c forbids. Measured corpus-wide: 0 such units before
+    // the fold, 2 after. Both real cases are reproduced here.
+    var lines=[
+      '"Aldern failed," the thing continues. "But the ritual, our ritual, doesn\'t stop. And you..." He breathes in deeply, and his nostrils flare. "...you already know."',
+      'A few words survive in cramped handwriting:"...the vault beneath the glassworks..."',
+      'He said, "Run. Then he left. "Wait," she called. The door slammed.'
+    ];
+    var bad=[],li,i;
+    for(li=0;li<lines.length;li++){
+      var u=TTS._textPrep.splitSentences(lines[li],null,true);
+      for(i=0;i<u.length;i++){
+        var tx=u[i].text;
+        if((tx.match(/"/g)||[]).length===0)continue;
+        var inner=tx.replace(/^\s*"/,"").replace(/"\s*[.,;:!?]*\s*$/,"");
+        if(/"/.test(inner))bad.push("line "+li+" unit "+i+" straddles a quote boundary: "+JSON.stringify(tx));
+      }
+    }
+    return bad.length?bad.join(" | "):true;
   });
   t("#93: CURLY quotes toggle exactly like ASCII ones (a branch the corpus never exercises)",function(){
     // Census finding: 23,085 quote glyphs in the real corpora, 100% ASCII — zero U+201C/U+201D. So
@@ -7397,8 +7438,11 @@ function runEngineTests(R){
   });
   t("#93①b: a [SAY:] tag INSIDE the opening quote still binds (quote state carries across segments)",function(){
     // A tag does not reset quote parity: the opener sits in the PREVIOUS segment. If the quoted-run
-    // mask restarted per segment, this correctly-authored shape would narrate flat forever AND nag
-    // the GM through buildSayComplianceNudge for prose it cannot improve.
+    // mask restarted per segment, this correctly-authored shape would narrate flat forever.
+    // (An earlier version of this comment also claimed the carry rule keeps buildSayComplianceNudge
+    // quiet here. Adversarial review measured that and it is FALSE: sayTagCoverage's paragraphGaps
+    // floor fires on this shape on every version, map or no map. That is a real permanent-noise
+    // defect in the DETECTOR, not in playback, and it is filed separately — see the #93 row.)
     _mkSpeakerWorld();
     var raw='"[SAY:Daeris]Hold the door," she says.';
     var clean=cleanTxt(raw);
@@ -7427,6 +7471,61 @@ function runEngineTests(R){
       var want=/dawn/.test(u[i].text)?"Daeris":/ten out of ten/i.test(u[i].text)?"Frizwick":null;
       if(want&&nm!==want)bad.push("unit "+i+" "+JSON.stringify(u[i].text)+" got "+(nm||"(narrator)")+" wanted "+want);
     }
+    return bad.length?bad.join(" | "):true;
+  });
+  t("#93①b: a state tag alone on its own line must not hand a line to the WRONG speaker",function(){
+    // v1.603 regression, found by adversarial review. cleanTxt CREATES a paragraph break by
+    // removing a bare tag line; splitSentences resets its quote state there and the raw-scanned
+    // mask did not, so the correct in-quote hit was rejected and the forward-only cursor walked on
+    // into a LATER speaker's segment. Frizwick's own tagged line came out in Cyd's voice.
+    _mkSpeakerWorld();
+    worldState.npcs.push({name:"Cyd",status:"ally",charSheet:{name:"Cyd"}});
+    var raw='[SAY:Daeris]"First part of the speech.\n[SAY:Frizwick]\n"Second part," he says.\n\n[SAY:Cyd]"Second part," she echoes.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived";
+    var u=TTS._textPrep.splitSentences(clean,null,true),got=[],i;
+    for(i=0;i<u.length;i++)if(u[i].spk!==null&&u[i].spk!==undefined)got.push(m.s[i]||"(narrator)");
+    return got.join(",")==="Daeris,Frizwick,Cyd"?true:"speakers bound wrong: "+got.join(",");
+  });
+  t("#93①b: a quote glyph inside a STRIPPED tag payload cannot destroy the map",function(){
+    // v1.603 regression: the mask was built from raw text with state tags still in it, so an odd
+    // quote count inside any stripped payload inverted parity for the rest of the segment chain and
+    // every key landed unmasked — kept===0, whole map null, the entire response narrating flat.
+    _mkSpeakerWorld();
+    var raw='She writes it down. [NPC_NOTE:Frizwick|she keeps saying "ten out of ten] [SAY:Frizwick]"Ten out of ten," she agrees.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "the whole speaker map was destroyed by a quote inside a stripped tag";
+    var u=TTS._textPrep.splitSentences(clean,null,true),i;
+    for(i=0;i<u.length;i++){
+      if(u[i].spk===null||u[i].spk===undefined)continue;
+      if(m.s[i]!=="Frizwick")return "dialogue unit "+i+" ("+JSON.stringify(u[i].text)+") got "+(m.s[i]||"(narrator)");
+    }
+    return true;
+  });
+  t("#93①b: a FLATTENED unit still consumes the cursor, so a later identical line keeps its own speaker",function(){
+    // The ①/①b interaction. A flattened unit takes no voice, but its text is still present in the
+    // raw segment and still masked in-quote; leaving the forward-only cursor unmoved let that text
+    // stay claimable, and a later speaker's identical tagged line bound to the EARLIER speaker.
+    _mkSpeakerWorld();
+    // The load-bearing shape is the duplicate text sitting INSIDE the flattened run (sabotage found
+    // that an earlier CLOSED quote advances the cursor by itself, so that variant proves nothing).
+    _mkSpeakerWorld();
+    var raw='[SAY:Daeris]Then the quote never closes "Ten out of ten, and it runs on.\n\nSomeone coughs.\n\n[SAY:Frizwick]"Ten out of ten," he agrees.';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    if(!m)return "no map derived";
+    var u=TTS._textPrep.splitSentences(clean,null,true),bad=[],i;
+    for(i=0;i<u.length;i++){
+      var nm=m.s[i]||null;
+      if(u[i].flat&&nm)bad.push("a flattened unit took a voice: "+JSON.stringify(u[i].text)+" -> "+nm);
+      if(!u[i].flat&&u[i].spk!==null&&u[i].spk!==undefined&&nm!=="Frizwick")bad.push("unit "+i+" bound to "+(nm||"(narrator)")+" instead of Frizwick");
+    }
+    // and the variant where a closed quote precedes the fault must still bind correctly
+    var raw2='[SAY:Daeris]"Ten out of ten," she says. Then the quote never closes "and it runs on.\n\nSomeone coughs.\n\n[SAY:Frizwick]"Ten out of ten," he agrees.';
+    var m2=deriveSpeakerMapFromTags(raw2,cleanTxt(raw2));
+    if(!m2||m2.s[5]!=="Frizwick")bad.push("closed-quote variant bound unit 5 to "+((m2&&m2.s[5])||"(narrator)"));
     return bad.length?bad.join(" | "):true;
   });
   t("#96b: first speech PINS the auto-cast pick to the sheet; assigned voices and unpinnables untouched",function(){

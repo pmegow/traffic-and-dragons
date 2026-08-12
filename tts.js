@@ -444,23 +444,62 @@ var TTS = (function() {
   // boundaries. The comma/sentence split only breaks at , ; : . ! ? — so when a quote closes
   // mid-sentence ("Wrong voice" said Ammut.) the unit carried BOTH the speech and the attribution
   // and the whole thing took one voice. A closing mark ends its piece; an opening mark starts one.
-  function splitQuotePieces(sent, inQ) {
+  function splitQuotePieces(sent, inQ, gOrd, curGi) {
+    // gOrd/curGi (#93 \u2460) carry the paragraph's running QUOTE-GLYPH ORDINAL and the ordinal of the
+    // glyph that opened the current run, so each piece records `gi` = which quoted run it belongs
+    // to. That is what lets the fault rule below demote exactly the runs at and after a fault
+    // instead of the whole paragraph.
     var pieces = [], buf = "", cur = !!inQ, k, ch;
+    var g = gOrd || 0, cg = (curGi === undefined || curGi === null) ? -1 : curGi;
     for (k = 0; k < sent.length; k++) {
       ch = sent.charAt(k);
       if (ch === '"' || ch === "\u201c" || ch === "\u201d") {
-        if (cur) { buf += ch; pieces.push({ text: buf, inQ: true }); buf = ""; cur = false; }
-        else { if (buf.trim()) pieces.push({ text: buf, inQ: false }); buf = ch; cur = true; }
+        if (cur) { buf += ch; pieces.push({ text: buf, inQ: true, gi: cg }); buf = ""; cur = false; cg = -1; g++; }
+        else { if (buf.trim()) pieces.push({ text: buf, inQ: false, gi: -1 }); buf = ch; cur = true; cg = g; g++; }
         continue;
       }
       buf += ch;
     }
-    if (buf.trim()) pieces.push({ text: buf, inQ: cur });
+    if (buf.trim()) pieces.push({ text: buf, inQ: cur, gi: cur ? cg : -1 });
     // Fold a punctuation-only fragment (the "." left over after a closing quote) into the piece
-    // before it — on its own it would become a unit consisting of one full stop.
-    for (k = pieces.length - 1; k > 0; k--)
-      if (!/[A-Za-z0-9]/.test(pieces[k].text)) { pieces[k - 1].text += pieces[k].text; pieces.splice(k, 1); }
-    return { pieces: pieces, inQ: cur };
+    // before it — on its own it would become a unit consisting of one full stop. #93 ③: never fold
+    // across a VOICE boundary. The fragment is inaudible either way, but merging a quoted fragment
+    // into narration (or vice versa) builds a unit holding both, which is exactly the straddle the
+    // B14c invariant forbids — measured at 0 such units before this rule and 2 after, without it.
+    for (k = pieces.length - 1; k > 0; k--) {
+      if (/[A-Za-z0-9]/.test(pieces[k].text)) continue;
+      if (pieces[k - 1].inQ === pieces[k].inQ) { pieces[k - 1].text += pieces[k].text; pieces.splice(k, 1); }
+      else if (k + 1 < pieces.length && pieces[k + 1].inQ === pieces[k].inQ) { pieces[k + 1].text = pieces[k].text + pieces[k + 1].text; pieces.splice(k, 1); }
+      // neither neighbour shares its voice: leave it a piece, the paragraph layer absorbs it
+    }
+    return { pieces: pieces, inQ: cur, g: g, cg: cg };
+  }
+  // #93 ①: locate the FIRST unmatched quote glyph in a paragraph, by typographic ROLE rather than
+  // by parity. Parity alone cannot tell an opener from a closer, so one stray glyph inverts every
+  // label after it; role reads the neighbouring characters — a glyph hugging the text on its left
+  // and followed by space closes, one preceded by space and hugging text on its right opens.
+  // The ambiguous case (space on both sides, or text on both sides) falls back to parity, and that
+  // fallback is load-bearing: normalizeForTTS rewrites "..." to an ellipsis PLUS A SPACE, so a real
+  // closer in `And you..."` becomes `And you… "` with whitespace on both sides. Without the
+  // fallback those misread as faults and demoted 41 units across 22 corpus documents; with it, 4.
+  // Returns {at: ordinal of the offending glyph (-1 = balanced), trailing: the fault is an opener
+  // still hanging at the paragraph's end}.
+  function quoteFault(norm) {
+    var open = -1, g = 0, i, ch, prev, next, closer, lA, rA;
+    for (i = 0; i < norm.length; i++) {
+      ch = norm.charAt(i);
+      if (!QUOTE_GLYPH.test(ch)) continue;
+      prev = i > 0 ? norm.charAt(i - 1) : "";
+      next = i + 1 < norm.length ? norm.charAt(i + 1) : "";
+      lA = !!prev && !/\s/.test(prev);
+      rA = !!next && !/\s/.test(next);
+      closer = (lA && !rA) ? 1 : (!lA && rA) ? 0 : -1;
+      if (closer === -1) closer = (open >= 0) ? 1 : 0;
+      if (closer) { if (open < 0) return { at: g, trailing: false }; open = -1; }
+      else        { if (open >= 0) return { at: open, trailing: false }; open = g; }
+      g++;
+    }
+    return open >= 0 ? { at: open, trailing: true } : { at: -1, trailing: false };
   }
 
   // #93 ①/③ helpers. QUOTE_GLYPH is the single definition of "a quote character" for the parity
@@ -472,6 +511,8 @@ var TTS = (function() {
   // Sentence-terminal punctuation, tolerating trailing closers — the same tail the sentence-split
   // regex accepts. Its ABSENCE at the end of a response is the output-cap truncation signature.
   var TERMINAL_END  = /[.!?…]["'”’»)\]]*$/;
+
+  function _voiceSame(a, b) { return (a.spk === null || a.spk === undefined) === (b.spk === null || b.spk === undefined); }
 
   function splitSentences(text, dashRepl, commaSplit) {
     // Paragraphs are normalized UP FRONT (#93 ①) so a paragraph can see the next one: the standard
@@ -512,22 +553,29 @@ var TTS = (function() {
       // a quote (the standard continued-speech typography, B14c-pinned). Flattening rewrites LABELS
       // ONLY: unit count and unit text are untouched, so no persisted speaker map trips the sp.n fuse.
       //
-      // A THIRD exemption comes from measurement, not from theory. A census of 23,858 real GM
-      // paragraphs (13 campaign exports + 6 harness corpora, v1.603) found odd parity 27 times —
-      // 0.11%, and 3 times in 18,704 paragraphs of current-model prose. In ALL 27 the unmatched
-      // glyph was an opener whose run is a character still SPEAKING when the response hit its
-      // output-token cap: 23 of them end with no terminal punctuation, several mid-word. The
-      // narration-after-a-stray-opener shape this rule exists for occurred ZERO times. So an
-      // unterminated run in the LAST paragraph of a response that simply stops — no closing
+      // The SECOND exemption comes from measurement, not theory. A census of 23,858 real GM
+      // paragraphs (13 campaign exports + 6 harness corpora) found a quote fault 27 times — 0.11%,
+      // and 3 times in 18,704 paragraphs of current-model prose. In ALL 27 the unmatched glyph was
+      // an opener whose run is a character still SPEAKING when the response hit its output-token
+      // cap: 23 of them end with no terminal punctuation, several mid-word. The
+      // narration-after-a-stray-opener shape this rule exists for occurred ZERO times. So a
+      // trailing run in the LAST paragraph of a response that simply stops — no closing
       // punctuation — is read as truncation, not as a fault, and keeps its voice: the player can
-      // already hear that the line was cut off, and flattening it would be pure loss.
-      var _qn = (norm.match(QUOTE_GLYPH_G) || []).length, _flat = false;
-      if (_qn % 2 === 1) {
-        var _opensPara = (_qn === 1 && QUOTE_GLYPH.test(norm.charAt(0)));
-        var _continued = QUOTE_GLYPH.test((paras[p + 1] || "").charAt(0));
-        var _cutOff    = (p === paras.length - 1) && !TERMINAL_END.test(norm);
-        _flat = !(_opensPara || _continued || _cutOff);
+      // already hear the line was cut off, and flattening it would be pure loss.
+      // (A third exemption was tried and DELETED: "the next paragraph opens on a quote". It is a
+      // coin flip between two shapes the census measured at zero field occurrences each, and it
+      // disarmed the rule at 27% of all paragraph positions — one ordinary quoted paragraph
+      // appended after a faulty one was enough to restore the wrong-voice bug. The B14c-pinned
+      // continued-speech fixture is protected by _opensPara, verified by ablation.)
+      var _fault = quoteFault(norm), _flatFrom = -1;
+      if (_fault.at >= 0) {
+        // _opensPara requires a TRAILING fault: a paragraph that opens on a quote but also carries
+        // a second, earlier opener is a genuine defect, not an open-ended speech.
+        var _opensPara = (_fault.trailing && _fault.at === 0 && QUOTE_GLYPH.test(norm.charAt(0)));
+        var _cutOff    = (p === paras.length - 1) && _fault.trailing && !TERMINAL_END.test(norm);
+        if (!(_opensPara || _cutOff)) _flatFrom = _fault.at;
       }
+      var _gOrd = 0, _curGi = -1;
       var _pStart = out.length;
       var parts = norm.match(/[^.!?…]+[.!?…]+["'”’»)\]]*(?=\s|$)|[^.!?…]+$/g) || [norm];
       if (parts.join("").replace(/\s+/g, "") !== norm.replace(/\s+/g, "")) {
@@ -539,8 +587,8 @@ var TTS = (function() {
         if (!sent) continue;
         var lastSentence = (i === parts.length - 1);
         var units = [], j, s2;
-        var _qp = splitQuotePieces(sent, _inQ), _pieces = _qp.pieces, _pi;
-        _inQ = _qp.inQ;
+        var _qp = splitQuotePieces(sent, _inQ, _gOrd, _curGi), _pieces = _qp.pieces, _pi;
+        _inQ = _qp.inQ; _gOrd = _qp.g; _curGi = _qp.cg;
         for (_pi = 0; _pi < _pieces.length; _pi++) {
         var _piece = _pieces[_pi], _uStart = units.length;
         sent = _piece.text.trim();
@@ -583,14 +631,18 @@ var TTS = (function() {
           for (j = 0; j < whole.length; j++)
             units.push({ text: whole[j], end: (j === whole.length - 1) ? "sentence" : "clause" });
         }
-        for (j = _uStart; j < units.length; j++) units[j].spk = _piece.inQ ? 0 : null;   // piece-level truth
+        for (j = _uStart; j < units.length; j++) { units[j].spk = _piece.inQ ? 0 : null; units[j].qi = _piece.gi; }   // piece-level truth
         // a piece that is not the sentence's last gets a clause-length gap, not a full stop
         if (units.length > _uStart && _pi < _pieces.length - 1) units[units.length - 1].end = "clause";
         }
         if (units.length && lastSentence) units[units.length - 1].end = "para";
         for (j = 0; j < units.length; j++) {
           units[j].paraEnd = (units[j].end === "para");
-          var _dlg = !_flat && (units[j].spk === 0);   // set from the quote PIECE above, not guessed per unit
+          // #93 ①: demote only the runs AT OR AFTER the fault. `flat` marks a unit the deriver must
+          // still consume (it holds real quoted text in the raw) while granting it no voice.
+          var _wasDlg = (units[j].spk === 0);
+          var _dlg = _wasDlg && !(_flatFrom >= 0 && units[j].qi >= _flatFrom);
+          units[j].flat = _wasDlg && !_dlg;
           if (_dlg && !_inDlg) _spanId++;    // a new run of dialogue begins
           _inDlg = _dlg;
           units[j].spk = _dlg ? _spanId : null;
@@ -608,12 +660,21 @@ var TTS = (function() {
       // exactly as it was. This is the one #93 change that alters unit COUNT, so persisted speaker
       // maps for passages containing such a fragment degrade to mono-voice replay via the sp.n fuse
       // (the designed behavior — see speakerVoiceMap).
+      // Voice-aware by PREFERENCE, not by hard gate: prefer a same-voice neighbour, but never let a
+      // punctuation-only unit survive just because neither neighbour matches (a hard gate here
+      // resurrects the lone-quote blip on `"...," she said.`). The fragment is inaudible; the
+      // straddle only matters where a same-voice home exists, and this takes it whenever it does.
       for (j = out.length - 1; j > _pStart; j--) {
         if (HAS_WORD.test(out[j].text)) continue;
-        out[j - 1].text   += out[j].text;
-        out[j - 1].end     = out[j].end;
-        out[j - 1].paraEnd = out[j].paraEnd;
-        out.splice(j, 1);
+        if (!_voiceSame(out[j - 1], out[j]) && j + 1 < out.length && _voiceSame(out[j + 1], out[j])) {
+          out[j + 1].text = out[j].text + " " + out[j + 1].text;
+          out.splice(j, 1);
+        } else {
+          out[j - 1].text   += out[j].text;
+          out[j - 1].end     = out[j].end;
+          out[j - 1].paraEnd = out[j].paraEnd;
+          out.splice(j, 1);
+        }
       }
       if (out.length > _pStart + 1 && !HAS_WORD.test(out[_pStart].text)) {
         out[_pStart + 1].text = out[_pStart].text + " " + out[_pStart + 1].text;
