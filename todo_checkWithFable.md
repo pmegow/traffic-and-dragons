@@ -22,6 +22,61 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ## Pending Fable review
 
+### 14 — TTS splitter cross-assignment (#93) and narration stuck in third person (#172), both drift-surface (Opus)
+
+**Filed:** 2026-08-12. **Shipped:** v1.603 → v1.604 (#93, commits `43363ea`, `caa2a92`) and
+v1.605 (#172, commit `8a19360`). **Trackers:** TODO #93, TODO #172.
+
+Two drift-surface changes in one session, filed together because they touch the same week's
+lesson from opposite ends.
+
+**#93 — `splitSentences` / `deriveSpeakerMapFromTags`.** An unbalanced quote inverted the
+dialogue/narration labels for the rest of a paragraph, and since the v1.451 deterministic deriver
+that is audible: narration took the `[SAY:]` segment's CHARACTER voice. Also fixed the quote-blind
+key match (probe W1 — a real field instance corrected in t1667: Frizwick's `"There,"` was being
+spoken in Daeris's voice) and the punctuation-only audio blip. **v1.603 shipped a regression** —
+the quoted-run mask was built from RAW text while the units come from CLEAN, so a tag alone on its
+own line could hand a tagged line to the WRONG character. Caught by an adversarial review pass,
+reproduced by hand against v1.602, and corrected in v1.604 (role-based fault detection, tag
+stripping, a straddling-break seam, flattened units consuming the cursor, voice-aware folds).
+
+**#172 — `buildSysPrompt` post-STYLE slot + a new engine note.** Field report: the campaign was
+narrating in third person. Two causes: the multiplayer-exit correction was retired by a TURN
+COUNTER (proven from the hot-seat `Name:` prefixes in the transcript — multiplayer ran t809–816,
+the GM never complied, the counter fired, third person ran to t829), and ordinary single-player
+carried NO end-of-prompt person directive at all while the prose voice held that slot
+(`howard` campaigns measure 2.7–5.3% second person vs 98–100% for `abercrombie`; this campaign's
+`proseAuthor` is `howard`). Now compliance-boxed, with a short unconditional person line, a
+cause-agnostic drift detector on the engine-note channel, and a visible multi-PC chip.
+
+**Why it is risky.** #93 touches the speaker-map producer and the splitter that persisted `sp.n`
+maps key on. #172 touches `buildSysPrompt`'s volatile tail, `NOTE_BUILDERS`, `NOTE_LATCH_FIELDS`,
+and adds a new per-response observer in `commitGmTurn` — the prompt channel the project has
+already lost to twice (D12 rounds 1–2).
+
+**Supporting evidence.** #93: corpus diff over 3,902 real GM documents (junk units 164→26, B14c
+straddlers 1→0, zero narration→dialogue promotions); 18-mutation sabotage battery, each mutation in
+its own process (these helpers are file-scope globals — in-process comparison silently
+contaminates, a trap that bit both me and one review agent). #172: predicate measured over 10,043
+judged responses with a ZERO false-positive rate, the hero-name-in-narration clause being what takes
+it from 34% to 0; 9-mutation sabotage battery in an isolated tree; a NARRATION-PERSON source
+contract that fails the build if the turn counter ever returns; live browser verification at v1.605.
+Suite: 1348 green.
+
+**What a reviewer should probe first.**
+1. **#172's baseline person line is unconditional** — it now appears in every single-player prompt.
+   Confirm it cannot compete with the prose voice (it is deliberately terse) and that no author's
+   voice is degraded by it. This is the one change with no measured before/after on live prose.
+2. **#93's `_cutOff` fork, deliberately left open:** truncated speech whose cap lands on a period
+   still flattens after its first closed quote. Widening the exemption to any trailing fault in a
+   final paragraph zeroes the corpus label changes but retires the protection for most GM dialogue.
+3. **The `paragraphGaps` detector defects** (findings 9/10/11/15/16 of the #93 review) — identical
+   on v1.602 and v1.605, so #93 neither caused nor worsens them, but `buildSayComplianceNudge` fires
+   on responses whose speaker map is 100% correct. Deliberately NOT folded into a regression fix;
+   they want their own row.
+4. Whether `personDrift` belongs in `NOTE_LATCH_FIELDS` (it was added) — the #151 contract passed,
+   but the semantics of restoring a drift run after a dead provider turn deserve a second opinion.
+
 ### 12 — Project-wide drift-risk audit against Runelords t1549 (Sol, no code shipped)
 
 **Filed:** 2026-08-08. **Artifact:** `DOC/Drift_risks_SOL.html`. **Trackers:** TODO
