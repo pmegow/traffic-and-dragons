@@ -69,7 +69,7 @@ globals.js → wasm-probe.js → error-report.js → compress.js → data.js →
 
 Each file depends only on symbols defined by files earlier in this list. The ENGINE subset of this order (minus the DOM-wiring files: wasm-probe, char-creation, ui-*, stt) lives as data in `dev/engine-manifest.js` — the single list both `dev/load-engine.js` (node) and `test.html` (browser, generated tags + load guard) derive from, mechanically checked against index.html by the ENGINE MANIFEST CONTRACT in run-tests.js (review 2026-08-01; the old manual test.html copy had silently dropped clock/table-talk/sound — the #17 rot class).
 
-### #168 W2 referential integrity (v1.599)
+### #168 W2 referential integrity (v1.601)
 
 High-impact identity consequences use a persisted scene-referent ledger in `worldState.sceneRefs`. `[SCENE_REF:]` records an observed handle, `[SCENE_NOT:]` records an explicit or inferred exclusion, and `[SCENE_REVEAL:]` can resolve an anonymous handle only on a committed response; evidence emitted in the same response cannot authorize a death. Active evidence survives summaries. A node transition seals the old frame until a structured summary succeeds. Actor, negative, and sealed-frame caps never evict accepted evidence: overflow latches loudly and all identity-bearing writes fail closed until preserved transitioned evidence is summarized.
 
@@ -77,7 +77,7 @@ Death plus every caused quest/objective/reward mutation travels in a `CANON_TXN_
 
 Combat-close death propagation and direct named-death writes consult the same prior scene evidence. Summary `npcDeaths` entries are objects `{name,handle,sourceTurn,canonTxnId?}`; `w2ValidateSummary` validates every death and death-like chapter assertion before any memory tier writes. After three referential validation failures, the raw window is retained only in bounded `memory.archive.identityQuarantines`; it is not promoted into chapter/event-history canon. Exact field replay: `node dev/replay-w2-incident.js <t1667.tnd>`. Mutation proof: `node dev/sabotage-w2.js`.
 
-### #168 W7 relationship axes (v1.600)
+### #168 W7 relationship axes (v1.601)
 
 `identity.js` owns the one relationship adapter for all state boundaries. A directed edge is `{entity,bond,bondTurn,dynamic,dynamicTurn}`: durable bond and current posture are separate facts, independently authored in each direction. `REL_AXIS_CHOICE_CAP` and `REL_BOND_CHANGE_CAP` are 8; prospective values are capped at `REL_VALUE_MAX`=240. Legacy descriptors migrate verbatim to bond with their original turn and `axisReview`; no regex chooses an axis. Queue saturation never destroys a legacy source row, and portable characters carry unresolved proposals without consulting or mutating the active campaign.
 

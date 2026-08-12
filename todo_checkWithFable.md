@@ -59,9 +59,12 @@ review-focus section sat ahead of two implementation sections) — reordered and
    whole-pair removal, cross-campaign load ordering, identity convergence from both endpoints.
 3. **Focused sub-counts were not isolated** — the cited 28 W7 / 10 W6 / 22 W2 focused
    assertions live inside the 1,306 aggregate and were neither confirmed nor disputed.
-4. **Traceability:** v1.599 and v1.600 are narrated as releases in both the handoff and
-   CLAUDE.md but exist in no commit — all three are squashed into `c8c37f1`, so W7 cannot be
-   reverted or bisected independently of W6. Wording left unchanged pending an editorial call.
+4. **Traceability (wording since reconciled):** v1.599 and v1.600 were narrated as releases in
+   both the handoff and CLAUDE.md but exist in no commit — all three are squashed into
+   `c8c37f1`, so W7 cannot be reverted or bisected independently of W6. The prose now names
+   `v1.601` everywhere and the handoff carries a standing traceability banner; git history is
+   untouched. The *structural* consequence stands and is worth a reviewer's opinion: three
+   drift-surface workstreams share one revert unit.
 
 Nothing here was live-tested: the whole pass is headless, with no deployment, no rendered UI,
 and no GM turn against a real API.

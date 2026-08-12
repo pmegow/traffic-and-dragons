@@ -362,7 +362,7 @@
           <tr><td>Live-save integrity</td><td><span class="status pass">Reproduces</span></td><td>The t1667 export is byte- and mtime-identical after the replay. The "never edited" claim is true.</td></tr>
           <tr><td>Repository hygiene</td><td><span class="status pass">Reproduces</span></td><td>Version markers correct, HEAD == origin/master, <code>git diff --check</code> and TODO lint clean.</td></tr>
           <tr><td>Document accuracy</td><td><span class="status fixed">4 fixed</span></td><td>One understated count, one incoherent section order, one unreproducible evidence path, one uncommitted deliverable — all four corrected and re-verified. See §5.</td></tr>
-          <tr><td>Version traceability</td><td><span class="status note">Observation</span></td><td>v1.599 and v1.600 are narrated as releases but exist in no commit; all three versions are squashed into <code>c8c37f1</code>.</td></tr>
+          <tr><td>Version traceability</td><td><span class="status fixed">Reconciled</span></td><td>v1.599 and v1.600 were narrated as releases but exist in no commit; all three versions are squashed into <code>c8c37f1</code>. The wording is now corrected in both documents and CLAUDE.md. See §6.</td></tr>
         </tbody>
       </table>
     </div>
@@ -507,7 +507,7 @@ mustNot.forEach(function(s){console.log((WEIGHTY_REL_RE.test(s)?"FAIL MATCH  ":"
     <pre class="out">14/14 intended forms matched · 10/10 negatives rejected
 "Owed a favor collected, warming"  →  no match
 W1 REGEX OK</pre>
-    <p>The exact string that corrupted the marriage now rejects, and no intended vocabulary was lost to the tightening. This is the claim in §3 of the handoff, proven at the failure condition.</p>
+    <p>The exact string that corrupted the marriage now rejects, and no intended vocabulary was lost to the tightening. This is the claim in §4 of the handoff, proven at the failure condition.</p>
 
     <h3>Probe 2 — operator-tag containment, against the real prompt block</h3>
     <p>The handoff states the repair tag is "deliberately absent from the GM's normal prompt documentation". Since <code>buildStateTagsDoc()</code> is <em>derived</em> from <code>TAG_TABLE</code>, an entry could leak into the GM's instructions purely by being registered. The generated block was therefore built and searched.</p>
@@ -532,10 +532,11 @@ after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
   <section id="discrepancies">
     <h2>5. Discrepancies</h2>
     <p>All four are in the handoff document, not in the shipped engine. They are ordered by how much they could mislead a reader who relies on the document as the record.</p>
+    <p class="small">Handoff section numbers cited below refer to the <em>corrected</em> document, so they point where a reader opening it now will actually land. D2 renumbered it.</p>
 
     <div class="finding done" id="d1">
       <h3>D1 — The W7 sabotage count is understated <span class="status fixed">Fixed</span></h3>
-      <p><strong>Claimed:</strong> "24/24 W7 sabotages caught", stated three times — in the ledger's final-gate receipt, in the §11 mutation/sabotage card, and in the §14 W7 verification receipt.</p>
+      <p><strong>Claimed:</strong> "24/24 W7 sabotages caught", stated three times — in the ledger's final-gate receipt, in the §14 mutation/sabotage card, and in the §10 W7 verification receipt.</p>
       <p><strong>Actual:</strong> the gate proves <strong>25</strong> clauses, all caught. Per-file totals printed by the harness are <code>16/16</code>, <code>2/2</code>, <code>1/1</code>, <code>2/2</code>, <code>1/1</code>, <code>3/3</code>.</p>
       <p><strong>Why it matters despite being in the work's favour:</strong> the number is a receipt. A receipt that disagrees with the tool it cites invites the reader to discount the neighbouring receipts too — including the ones that are exactly right. The likely cause is a clause added after the sentence was written; the fix is to re-read the harness output rather than carry the number forward.</p>
       <div class="resolution"><strong>Resolved.</strong> All three occurrences now read <code>25/25</code>, taken from the harness output rather than carried forward. Verified mechanically: <code>24/24</code> occurrences remaining <strong>0</strong>, <code>25/25</code> present <strong>3</strong>.</div>
@@ -561,7 +562,7 @@ after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
 
     <div class="finding done" id="d3">
       <h3>D3 — The cited evidence file is not reproducible from a checkout <span class="status fixed">Fixed</span></h3>
-      <p>§8's receipt and §11's exact-checks list both cite the t1667 export as the input to <code>dev/replay-w2-incident.js</code>. That file is not in <code>testRuns/</code>; it lives at:</p>
+      <p>§5's receipt and §14's exact-checks list both cite the t1667 export as the input to <code>dev/replay-w2-incident.js</code>. That file is not in <code>testRuns/</code>; it lives at:</p>
       <pre>C:\Users\hannu\Downloads\Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</pre>
       <p>Reproducing the handoff's headline receipt required a filesystem-wide search. CLAUDE.md's convention is explicit on both halves of this: personal <code>.tnd</code> saves live in <code>testRuns/</code> (gitignored), and <em>a save cited by an audit must keep its link working</em>. As it stands the receipt is real but nobody working from the repository can re-run it.</p>
       <p><strong>Fix:</strong> move the export into <code>testRuns/</code> and cite that path. It is gitignored, so this costs nothing and restores the citation.</p>
@@ -585,6 +586,17 @@ after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
     <p><code>c8c37f1</code> is a single 24-file commit that bumps <code>APP_VERSION</code> from <code>v1.598</code> straight to <code>v1.601</code>, carrying W2, W6 and W7 together. Both this handoff and CLAUDE.md narrate those as three separate releases — "W7 shipped in <code>v1.600</code>", "#168 W2 referential integrity (v1.599)" — but no commit is tagged, marked or bisectable at v1.599 or v1.600. Those two version markers exist only in prose.</p>
     <p>Against the project's own rules this touches two: tight single-concern commits, and version-marker discipline as the mechanism for confirming what is actually deployed. The practical effect is narrow but real — W7 cannot be reverted, bisected or deployed independently of W6, and a field report citing "v1.600 behaviour" cannot be resolved to a tree.</p>
     <div class="callout"><strong>Not a recommendation to rewrite history.</strong> The commit is pushed and the code is correct. The point is forward-looking: if the three workstreams are ever discussed as separable, the documents should say they shipped together as <code>v1.601</code>.</div>
+
+    <div class="resolution">
+      <p style="margin-top:0"><strong>Reconciled.</strong> Git history was left exactly as it is; only the prose describing it changed, at the four sites that asserted a version no tree carries:</p>
+      <ul style="margin-bottom:10px">
+        <li><code>CLAUDE.md</code> — the W2 and W7 contract headers now read <code>(v1.601)</code>. That file's version tags exist so a reader can confirm what is deployed, so a marker that resolves to nothing defeats their only purpose.</li>
+        <li>The handoff's W7 section — "shipped in <code>v1.600</code>" now states it shipped in <code>v1.601</code>, built as the internal v1.600 stage, with the squash named.</li>
+        <li>The handoff's W7 gate card — "after the v1.600 markers" is now "at the W7 development stage". The 1,297-assertion checkpoint itself is real and was kept.</li>
+        <li>The handoff gained a standing traceability banner recording that the three staged markers exist only in prose and that the workstreams cannot be reverted or bisected apart.</li>
+      </ul>
+      <p style="margin-bottom:0">Descriptions of the problem — this section, the §1 verdict row, the Fable queue entry — deliberately keep the v1.599/v1.600 strings, since removing them would erase the finding rather than fix it.</p>
+    </div>
   </section>
 
   <section id="limits">
@@ -593,7 +605,7 @@ after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
     <ul>
       <li><strong>Focused sub-counts were not isolated.</strong> The handoff cites "28/28" focused W7 assertions, "10/10" W6, and "22 focused" W2. These live inside the 1,306-assertion aggregate, which passes; the individual sub-counts were not separately extracted and are neither confirmed nor disputed here.</li>
       <li><strong>The suite was run once, not twice.</strong> The handoff says it passed twice. One green run at 1,306 was observed; the second is uncontested but unverified.</li>
-      <li><strong>The gates were trusted to define their own failure conditions.</strong> That 25 mutations are caught was verified; whether those 25 are the <em>right</em> 25 is a design judgement this pass did not attempt. The handoff's own §13 asks for exactly that adversarial scrutiny, and it remains open.</li>
+      <li><strong>The gates were trusted to define their own failure conditions.</strong> That 25 mutations are caught was verified; whether those 25 are the <em>right</em> 25 is a design judgement this pass did not attempt. The handoff's own §16 asks for exactly that adversarial scrutiny, and it remains open.</li>
       <li><strong>No live or browser verification.</strong> Everything here is headless. Nothing was deployed, no UI surface was rendered, and no GM turn was taken against a real API.</li>
       <li><strong>Prose claims about design intent were not adjudicated.</strong> Statements such as "detection remains conservative" or "the GM remains the writer of canon" were spot-checked against code structure but not systematically proven.</li>
     </ul>
@@ -602,17 +614,13 @@ after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
 
   <section id="actions">
     <h2>8. Actions taken</h2>
-    <p>All four required actions were carried out and re-verified after the fact. Each is stamped on its finding in §5 with the evidence.</p>
+    <p>All four required actions were carried out and re-verified after the fact, and the optional traceability item was later reconciled on request. Each is stamped on its finding in §5 (or §6 for traceability) with the evidence.</p>
     <ul class="checklist">
       <li><strong>D1 — count corrected.</strong> <code>24/24</code> → <code>25/25</code> in the ledger receipt, the §14 verification card, and the §10 W7 receipt. Checked mechanically: zero <code>24/24</code> left, three <code>25/25</code>.</li>
       <li><strong>D2 — sections reordered and renumbered 1–16</strong> to match the contents page, by script with a content-preservation assertion. Nav order now equals body order, headings run 1–16, the ledger is numbered, anchors resolve, tags balance, and the one cross-reference the move stranded was corrected.</li>
       <li><strong>D3 — evidence relocated and the citation proven live.</strong> The export now sits in <code>testRuns/</code> at an identical byte count, the handoff cites that repo-relative path, and the replay was re-run from it green.</li>
       <li><strong>D4 — both documents committed</strong> with explicitly staged paths, leaving the unrelated shared-tree files untouched. No version bump: documentation only.</li>
-    </ul>
-
-    <h3>Still open</h3>
-    <ul class="todo">
-      <li><strong>The §6 traceability wording</strong> — the v1.599 / v1.600 references in this document, the handoff, and CLAUDE.md still describe releases that exist in no commit. This was listed as optional and was deliberately <em>not</em> changed: whether that narration is useful history or misleading precision is an editorial call, and CLAUDE.md is a drift-surface contract document where an unrequested edit is the wrong reflex. Flagged, not fixed.</li>
+      <li><strong>§6 traceability wording reconciled</strong> on the owner's call, after being flagged rather than assumed: the two CLAUDE.md contract headers, the handoff's W7 claim and its gate card now name <code>v1.601</code>, and a standing traceability banner records the squash. Git history untouched.</li>
     </ul>
 
     <div class="receipt"><strong>Bottom line.</strong> The hardening work was sound and its receipts were honest; the four defects were in the record, not the engine. The record now matches the engineering. The <a href="#limits">§7 limits</a> are unchanged — in particular, whether the 25 sabotage mutations are the <em>right</em> 25 is still the open adversarial question the handoff's own final section asks for.</div>

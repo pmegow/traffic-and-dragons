@@ -296,6 +296,8 @@
 
   <div class="banner"><strong>Repository status:</strong> W1-W7 are implemented and verified in <code>v1.601</code>, commit <code>c8c37f1</code>, and pushed to <code>origin/master</code>. The live t1667 save was never edited; campaign-repair and lifecycle replays used in-memory copies. No deployment was performed by Sol.</div>
 
+  <div class="banner" style="border-left-color:#6a486f;background:#f0e8f2"><strong>Version traceability:</strong> W2, W7 and W6 were staged internally as v1.599, v1.600 and v1.601, but all three landed in the single release commit <code>c8c37f1</code>. Those intermediate markers exist only in prose — <code>v1.601</code> is the one version that resolves to a tree, and the three workstreams cannot be reverted or bisected apart. Section references to the staged versions have been reconciled accordingly.</div>
+
   <nav aria-label="Document contents">
     <strong>Contents</strong>
     <ol>
@@ -592,7 +594,7 @@
 
   <section id="w7">
     <h2>10. W7 completion — structural relationship drift prevention</h2>
-    <p>W7 shipped in <code>v1.600</code> and is retained in the final <code>v1.601</code> release. Its root cause was not merely a weak word list: one free-text relationship slot was being asked to represent both durable canon and a passing scene posture. Any last-write-wins update could therefore replace a marriage with a favor, and downstream readers would treat the replacement as roster authority, graph truth, reciprocity input, and a permanent defining moment.</p>
+    <p>W7 shipped in <code>v1.601</code>. It was built as the internal v1.600 stage, but W2, W7 and W6 landed together in the single release commit <code>c8c37f1</code>, so <code>v1.601</code> is the only marker that resolves to a tree. Its root cause was not merely a weak word list: one free-text relationship slot was being asked to represent both durable canon and a passing scene posture. Any last-write-wins update could therefore replace a marriage with a favor, and downstream readers would treat the replacement as roster authority, graph truth, reciprocity input, and a permanent defining moment.</p>
 
     <h3>One directed edge, two independent axes</h3>
     <p>Each relationship row is now <code>{entity,bond,bondTurn,dynamic,dynamicTurn}</code>. <code>bond</code> owns marriage, kinship, oath, alliance, enmity, and other standing canon. <code>dynamic</code> owns the current warmth, tension, suspicion, obligation, or favor. Wife/Husband directions remain independently authored; no reciprocal row is invented.</p>
@@ -621,7 +623,7 @@
       <article class="card"><h3>Focused W7</h3><p><strong>28/28 assertions green.</strong> Exact t1666 input, migration, confirmation timing, pair removal, bounds, queue saturation/retry, guard disposition, portable reads, campaign load, aliases, merges, and orphaned carried facts.</p></article>
       <article class="card"><h3>Mutation proof</h3><p><strong>25/25 W7 sabotages caught.</strong> Every temporary source mutation was restored byte-identically.</p></article>
       <article class="card"><h3>Preserved protections</h3><p><strong>W2 9/9 and identity 22/22 sabotages caught.</strong> W2 also has 22 focused assertions, including the added bare-death explicit-exclusion path.</p></article>
-      <article class="card"><h3>Full engine gate</h3><p><strong>1297 assertions ALL GREEN</strong> after the v1.600 markers and release documentation; the complete gate passed twice.</p></article>
+      <article class="card"><h3>Full engine gate</h3><p><strong>1297 assertions ALL GREEN</strong> at the W7 development stage, after its markers and release documentation; the complete gate passed twice.</p></article>
     </div>
 
     <div class="callout"><strong>Scope truth.</strong> W7 changes engine behavior and documentation only. It does not edit the live t1667 save or deploy. W6's separately ruled validator is documented in the preceding section.</div>
