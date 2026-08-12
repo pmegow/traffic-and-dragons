@@ -61,6 +61,12 @@ contaminates, a trap that bit both me and one review agent). #172: predicate mea
 judged responses with a ZERO false-positive rate, the hero-name-in-narration clause being what takes
 it from 34% to 0; 9-mutation sabotage battery in an isolated tree; a NARRATION-PERSON source
 contract that fails the build if the turn counter ever returns; live browser verification at v1.605.
+The post-ship t1723 export supplies the missing field repro: its affected turns are stamped
+v1.594–v1.604 despite the export occurring after the v1.605 commit, and show a single-player Howard
+campaign slipping at t1697, then carrying zero second-person narration from t1699 through t1723.
+The save has no `mpEnded` latch or companion `isPC`; its retained user messages contain no narration
+directive. This is direct RC-B evidence from the pre-v1.605 browser session, not a recurrence under
+the fix.
 Suite: 1348 green.
 
 **What a reviewer should probe first.**
