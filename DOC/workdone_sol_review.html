@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Double-check of the Sol drift-hardening handoff</title>
+  <style>
+    :root {
+      --ink: #231f1a;
+      --muted: #6e665c;
+      --paper: #fbf8f1;
+      --panel: #fffdf8;
+      --line: #d9d0c1;
+      --accent: #8a4d0f;
+      --accent-soft: #f3e5cf;
+      --good: #21623b;
+      --good-soft: #e8f3eb;
+      --warn: #805e10;
+      --warn-soft: #fbf1d4;
+      --hold: #6a486f;
+      --hold-soft: #f0e8f2;
+      --bad: #843a31;
+      --bad-soft: #f7e8e5;
+      --code: #f2eee6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(138, 77, 15, 0.035) 1px, transparent 1px),
+        linear-gradient(rgba(138, 77, 15, 0.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.56;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 36px));
+      margin: 34px auto 64px;
+    }
+
+    header {
+      padding: 38px 42px 34px;
+      color: #fffaf1;
+      background: #26312c;
+      border-top: 6px solid #3f8757;
+      box-shadow: 0 12px 30px rgba(45, 35, 23, 0.16);
+    }
+
+    header p { margin: 0; }
+
+    .eyebrow {
+      margin-bottom: 8px;
+      color: #a8d5b8;
+      font: 700 0.78rem/1.3 Arial, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+
+    .lede {
+      max-width: 820px;
+      margin-top: 18px;
+      color: #d5dbd6;
+      font-size: 1.08rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 22px;
+      margin-top: 24px;
+      color: #cfe4d6;
+      font: 600 0.86rem/1.4 Arial, sans-serif;
+    }
+
+    .banner {
+      margin-top: 22px;
+      padding: 15px 18px;
+      border-left: 5px solid var(--good);
+      background: var(--good-soft);
+      font-family: Arial, sans-serif;
+      font-size: 0.94rem;
+    }
+
+    nav, section {
+      margin-top: 24px;
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.96);
+      box-shadow: 0 5px 18px rgba(57, 45, 29, 0.06);
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    nav strong {
+      color: var(--accent);
+      font-family: Arial, sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    nav ol {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px 24px;
+      margin: 0;
+      padding-left: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    a { color: #70410e; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:hover { color: #a25c12; }
+
+    h2 {
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--accent-soft);
+      color: #40372e;
+      font-size: 1.55rem;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      color: var(--accent);
+      font: 700 1.05rem/1.35 Arial, sans-serif;
+    }
+
+    p { margin: 10px 0; }
+    ul, ol { margin: 10px 0; padding-left: 23px; }
+    li + li { margin-top: 5px; }
+
+    code {
+      padding: 0.1em 0.32em;
+      border-radius: 3px;
+      background: var(--code);
+      font: 0.9em Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 14px 0;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: var(--code);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 0.86rem/1.5 Consolas, "Courier New", monospace;
+    }
+
+    pre.out { border-left-color: var(--good); }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #eee7db; color: #3c352d; }
+
+    td code { font-size: 0.86em; }
+
+    .status {
+      display: inline-block;
+      min-width: 74px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font: 700 0.74rem/1.35 Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pass { color: var(--good); background: var(--good-soft); }
+    .fixed { color: var(--good); background: var(--good-soft); }
+    .flag { color: var(--warn); background: var(--warn-soft); }
+    .note { color: var(--hold); background: var(--hold-soft); }
+    .fail { color: var(--bad); background: var(--bad-soft); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card {
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      border-top: 4px solid #ad6924;
+      background: #fffefa;
+    }
+
+    .card.ok { border-top-color: #3f8757; }
+    .card.warn { border-top-color: #b28a1c; }
+
+    .card h3 { margin-top: 0; }
+    .card p:last-child, .card ul:last-child, .card pre:last-child { margin-bottom: 0; }
+
+    .receipt {
+      margin: 16px 0;
+      padding: 15px 18px;
+      border-left: 5px solid var(--good);
+      background: var(--good-soft);
+    }
+
+    .receipt strong, .callout strong, .finding strong { font-family: Arial, sans-serif; }
+
+    .callout {
+      margin: 16px 0;
+      padding: 15px 18px;
+      border-left: 5px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .finding {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--warn);
+      background: #fffdf6;
+    }
+
+    .finding h3 { margin-top: 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+    .finding p:last-child, .finding pre:last-child { margin-bottom: 0; }
+    .finding.done { border-left-color: var(--good); }
+
+    .resolution {
+      margin: 14px 0 0;
+      padding: 12px 15px;
+      border-left: 4px solid var(--good);
+      background: var(--good-soft);
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    .resolution strong { font-family: Arial, sans-serif; }
+
+    .small { color: var(--muted); font-size: 0.9rem; }
+
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { position: relative; padding-left: 28px; }
+    .checklist li::before {
+      position: absolute;
+      left: 0;
+      top: 0.05em;
+      color: var(--good);
+      content: "\2713";
+      font: 700 1rem Arial, sans-serif;
+    }
+
+    .todo { list-style: none; padding-left: 0; }
+    .todo li { position: relative; padding-left: 28px; }
+    .todo li::before {
+      position: absolute;
+      left: 0;
+      top: 0.05em;
+      color: var(--accent);
+      content: "\25A2";
+      font: 700 1rem Arial, sans-serif;
+    }
+
+    footer {
+      margin-top: 24px;
+      padding: 20px 4px;
+      color: var(--muted);
+      font: 0.86rem/1.5 Arial, sans-serif;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1120px); margin-top: 10px; }
+      header, section, nav { padding: 23px 20px; }
+      nav { grid-template-columns: 1fr; }
+      nav ol, .grid { grid-template-columns: 1fr; }
+      .table-wrap { overflow-x: auto; }
+    }
+
+    @media print {
+      body { background: #fff; font-size: 10.5pt; }
+      main { width: 100%; margin: 0; }
+      header { box-shadow: none; }
+      nav, section { box-shadow: none; break-inside: avoid-page; }
+      .card, .receipt, .callout, .finding, table { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Independent verification</p>
+    <h1>Double-check of the Sol drift-hardening handoff</h1>
+    <p class="lede">Every load-bearing claim in <a href="workdone_sol.html" style="color:#a8d5b8">workdone_sol.html</a> was re-executed against the working tree rather than read. The engineering holds. Four documentation-level discrepancies and one traceability observation are recorded below, along with an explicit statement of what this check did <em>not</em> cover.</p>
+    <div class="meta">
+      <span>Document reviewed: DOC/workdone_sol.html</span>
+      <span>Tree: v1.601 @ c8c37f1</span>
+      <span>Date: 2026-08-11</span>
+      <span>Method: re-execution, not review-by-reading</span>
+    </div>
+  </header>
+
+  <div class="banner"><strong>Verdict:</strong> no code defect found. The suite, all five sabotage gates, both exact-incident replays, the clock audit, the version markers, and the repository hygiene checks all reproduce as claimed. The four discrepancies were in the handoff document itself — one wrong number, one broken section order, one unreproducible evidence path, and the document's own uncommitted state. One of them (the W7 count) understated the work.</div>
+
+  <div class="banner" style="border-left-color:#21623b;background:#e8f3eb"><strong>Update — all four resolved.</strong> D1 through D4 were fixed and re-verified in the same pass that filed them: the W7 count now reads 25/25 in all three places, the sections were reordered to match the contents page and renumbered 1&ndash;16, the t1667 export moved into <code>testRuns/</code> and its replay re-run green from the cited path, and both documents are committed. Each finding below carries its resolution and the evidence for it. The <a href="#limits">limits in §7</a> are unchanged and still stand.</div>
+
+  <nav aria-label="Document contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#verdict">Verdict</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#claims">Claim-by-claim results</a></li>
+      <li><a href="#probes">Failure-condition probes</a></li>
+      <li><a href="#discrepancies">Discrepancies</a></li>
+      <li><a href="#traceability">Traceability observation</a></li>
+      <li><a href="#limits">Limits of this check</a></li>
+      <li><a href="#actions">Actions taken</a></li>
+    </ol>
+  </nav>
+
+  <section id="verdict">
+    <h2>1. Verdict</h2>
+    <p>The handoff's technical substance is accurate. Fourteen of fifteen quantitative claims reproduce exactly; the fifteenth understates its own gate. Both exact-incident replays are real replays against real data, not fixtures. The two claims most likely to be asserted rather than proven — that the operator-only repair tag is hidden from the GM prompt, and that the live campaign save was never edited — were both tested directly and both hold.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Status</th><th>Finding</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Engine suite and gates</td><td><span class="status pass">Reproduces</span></td><td>1,306 assertions green; 83 sabotage mutations caught across five gates, zero missed, every source file restored byte-identically.</td></tr>
+          <tr><td>Exact-incident replays</td><td><span class="status pass">Reproduces</span></td><td>W2 against the real 3.96&nbsp;MB t1667 export, W6 across two JSON reloads. Both green with the documented outcomes.</td></tr>
+          <tr><td>Root-cause repairs</td><td><span class="status pass">Reproduces</span></td><td>W1 regex, W2/W6/W7 caps, and operator-tag containment probed at the failure condition, not a benign case.</td></tr>
+          <tr><td>Live-save integrity</td><td><span class="status pass">Reproduces</span></td><td>The t1667 export is byte- and mtime-identical after the replay. The "never edited" claim is true.</td></tr>
+          <tr><td>Repository hygiene</td><td><span class="status pass">Reproduces</span></td><td>Version markers correct, HEAD == origin/master, <code>git diff --check</code> and TODO lint clean.</td></tr>
+          <tr><td>Document accuracy</td><td><span class="status fixed">4 fixed</span></td><td>One understated count, one incoherent section order, one unreproducible evidence path, one uncommitted deliverable — all four corrected and re-verified. See §5.</td></tr>
+          <tr><td>Version traceability</td><td><span class="status note">Observation</span></td><td>v1.599 and v1.600 are narrated as releases but exist in no commit; all three versions are squashed into <code>c8c37f1</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="method">
+    <h2>2. Method</h2>
+    <p>Nothing here was accepted on the document's authority. Each numeric claim was mapped to the command that would produce it, that command was run against the current working tree, and the output was compared to the claim. Where a claim asserted a <em>property</em> rather than a number — "the tag is absent from the GM's prompt documentation", "the save was never edited" — a probe was written that would fail loudly if the property were false.</p>
+    <p>The five sabotage gates temporarily mutate source files in place, so they were run strictly sequentially; running them concurrently would have interleaved mutations and corrupted the tree. <code>git status</code> was re-checked afterwards to confirm restoration independently of each harness's own self-report.</p>
+    <p class="small">Three ad-hoc probes were written to the session scratchpad, not to the repository. They are reproduced verbatim in §4 so the checks can be re-run without recovering the scratch files.</p>
+  </section>
+
+  <section id="claims">
+    <h2>3. Claim-by-claim results</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:26%">Claim in handoff</th><th style="width:30%">How it was checked</th><th style="width:12%">Result</th><th>Observed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Release <code>v1.601</code>, cache marker <code>tnd-v3-20260811i</code></td>
+            <td>Read both markers in source</td>
+            <td><span class="status pass">Exact</span></td>
+            <td><code>globals.js:205</code> <code>APP_VERSION="v1.601"</code>; <code>sw.js:1</code> <code>CACHE = "tnd-v3-20260811i"</code></td>
+          </tr>
+          <tr>
+            <td>Implemented at <code>c8c37f1</code>, pushed to <code>origin/master</code></td>
+            <td><code>git rev-parse HEAD</code> vs <code>origin/master</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>Both <code>c8c37f199412f9247469424aab04ba711fee2c94</code></td>
+          </tr>
+          <tr>
+            <td>Complete suite: 1,306 assertions</td>
+            <td><code>node dev/run-tests.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td><code>ALL GREEN — 1306 assertions passed (engine tests)</code></td>
+          </tr>
+          <tr>
+            <td>W2 sabotage 9/9</td>
+            <td><code>node dev/sabotage-w2.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>9 caught, 0 missed</td>
+          </tr>
+          <tr>
+            <td>W6 sabotage 15/15</td>
+            <td><code>node dev/sabotage-w6.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>15 caught, 0 missed</td>
+          </tr>
+          <tr>
+            <td>W7 sabotage 24/24</td>
+            <td><code>node dev/sabotage-w7.js</code></td>
+            <td><span class="status flag">Understated</span></td>
+            <td><strong>25 caught</strong>, 0 missed — clause totals <code>16/16 · 2/2 · 1/1 · 2/2 · 1/1 · 3/3</code>. See <a href="#d1">D1</a>.</td>
+          </tr>
+          <tr>
+            <td>Identity spine sabotage 22/22</td>
+            <td><code>node dev/sabotage-identity.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>22 caught, 0 missed</td>
+          </tr>
+          <tr>
+            <td>Earlier drift pass 12/12</td>
+            <td><code>node dev/sabotage-drift-hardening.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>12 caught, 0 missed</td>
+          </tr>
+          <tr>
+            <td>"Every temporary source mutation was restored byte-identically"</td>
+            <td><code>git status --porcelain</code> after all five gates</td>
+            <td><span class="status pass">Confirmed</span></td>
+            <td>Only <code>M DOC/workdone_sol.html</code> plus the two untracked files the handoff itself flags. No source file left dirty.</td>
+          </tr>
+          <tr>
+            <td>W2 exact-save replay outcomes</td>
+            <td><code>node dev/replay-w2-incident.js &lt;t1667.tnd&gt;</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>Mokmurian alive · objective open · XP delta 0 · first quarantine reason preserved · stable prompt byte-identical · exclusion present in volatile half</td>
+          </tr>
+          <tr>
+            <td>W6 lifecycle replay outcomes</td>
+            <td><code>node dev/replay-w6-summary.js</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td>strikes <code>1 → 2 → safe quarantine at 3</code> · canon writes 0 · rejected prose not injected · 2 retained messages</td>
+          </tr>
+          <tr>
+            <td>"the 3.96 MB t1667 export"</td>
+            <td>File size on disk</td>
+            <td><span class="status pass">Exact</span></td>
+            <td>3,958,438 bytes = 3.96 MB decimal (3.78 MiB). Located in <code>Downloads</code>, not <code>testRuns/</code> — see <a href="#d3">D3</a>.</td>
+          </tr>
+          <tr>
+            <td>"The live t1667 save was never edited"</td>
+            <td>mtime + length before and after the replay</td>
+            <td><span class="status pass">Confirmed</span></td>
+            <td>Unchanged at <code>8/10/2026 11:35:56 PM</code>, 3,958,438 bytes. The replay is genuinely read-only.</td>
+          </tr>
+          <tr>
+            <td>Clock audit catches t1605 and independently t1366</td>
+            <td><code>node dev/clock-phase-audit.js &lt;t1667.tnd&gt;</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td><code>t1366 asserts 'Morning' vs Day 4, 4:10 pm (4h off-band)</code>; <code>t1605 asserts 'Dusk' vs Day 7, 11:10 am (7h off-band)</code></td>
+          </tr>
+          <tr>
+            <td><code>git diff --check</code> and TODO lint pass</td>
+            <td>Both run</td>
+            <td><span class="status pass">Exact</span></td>
+            <td>diff-check exit 0; <code>TODO.md tables OK (416 lines)</code></td>
+          </tr>
+          <tr>
+            <td>W7 caps: 8 / 8 / 240</td>
+            <td>Read <code>identity.js:384</code></td>
+            <td><span class="status pass">Exact</span></td>
+            <td><code>REL_AXIS_CHOICE_CAP=8, REL_BOND_CHANGE_CAP=8, REL_NOTE_COOLDOWN=3, REL_VALUE_MAX=240</code></td>
+          </tr>
+          <tr>
+            <td>W6 identity table capped at 12 rows / 1,600 chars</td>
+            <td>Resolved both constants in a loaded engine</td>
+            <td><span class="status pass">Exact</span></td>
+            <td><code>SUMMARY_IDENTITY_ROW_CAP = 12</code>, <code>SUMMARY_IDENTITY_CHAR_CAP = 1600</code>; <code>memory.archive.identityQuarantines</code> present in <code>memArchive()</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="receipt"><strong>Aggregate.</strong> 1,306 assertions and 83 sabotage mutations across five gates, zero misses, zero dirty files afterwards. Every quantitative claim reproduces; the single deviation is in the document's favour.</div>
+  </section>
+
+  <section id="probes">
+    <h2>4. Failure-condition probes</h2>
+    <p>Three claims could have been true-by-assertion. Each was instead exercised at the condition that would break it.</p>
+
+    <h3>Probe 1 — the W1 root cause, at the exact incident payload</h3>
+    <p>The whole of W1 rests on one regex no longer matching <code>wed</code> inside <code>Owed</code>. Rather than trust the word-boundary anchors by inspection, the live <code>WEIGHTY_REL_RE</code> was driven with the real t1666 string and a morphology corpus in both polarities.</p>
+    <pre>var engine=require("&lt;repo&gt;/dev/load-engine.js");engine.loadEngine();
+var must=["Wife","husband","Married in Sandpoint","wedded","wedding vows","spouse","betrothed",
+          "sworn oath","blood-bound","nemesis","widowed","avenged","lover","betrayal"];
+var mustNot=["Owed a favor","Owed a favor collected, warming","powered","showed up","flowed",
+             "crowded","screwed","wednesday? no","towed the line","allowed"];
+must.forEach(function(s){console.log((WEIGHTY_REL_RE.test(s)?"OK  match   ":"FAIL nomatch")+"  "+s);});
+mustNot.forEach(function(s){console.log((WEIGHTY_REL_RE.test(s)?"FAIL MATCH  ":"OK  no-match")+"  "+s);});</pre>
+    <pre class="out">14/14 intended forms matched · 10/10 negatives rejected
+"Owed a favor collected, warming"  →  no match
+W1 REGEX OK</pre>
+    <p>The exact string that corrupted the marriage now rejects, and no intended vocabulary was lost to the tightening. This is the claim in §3 of the handoff, proven at the failure condition.</p>
+
+    <h3>Probe 2 — operator-tag containment, against the real prompt block</h3>
+    <p>The handoff states the repair tag is "deliberately absent from the GM's normal prompt documentation". Since <code>buildStateTagsDoc()</code> is <em>derived</em> from <code>TAG_TABLE</code>, an entry could leak into the GM's instructions purely by being registered. The generated block was therefore built and searched.</p>
+    <pre>var doc=buildStateTagsDoc();
+["NPC_DEATH_RETRACTED"].forEach(...);                       // must be absent
+["SCENE_REF","SCENE_NOT","SCENE_REVEAL","CANON_TXN_BEGIN",
+ "RELATIONSHIP_BOND","RELATIONSHIP_DYNAMIC"].forEach(...);  // must be present</pre>
+    <pre class="out">OK hidden      NPC_DEATH_RETRACTED
+OK documented  SCENE_REF · SCENE_NOT · SCENE_REVEAL
+OK documented  CANON_TXN_BEGIN
+OK documented  RELATIONSHIP_BOND · RELATIONSHIP_DYNAMIC
+state-tags doc length: 22357</pre>
+    <p>The hidden/visible split is real and is a property of the generated artifact, not of a comment. The operator repair tag also appears in exactly one file — <code>tag_table.js</code> — so there is no second surface advertising it.</p>
+
+    <h3>Probe 3 — live-save integrity, measured on both sides of the replay</h3>
+    <p>The strongest safety claim in the handoff is that campaign repair and replay never touched the player's real save. The file's size and mtime were captured before and after running the replay against it.</p>
+    <pre class="out">before   3,958,438 bytes   8/10/2026 11:35:56 PM
+after    3,958,438 bytes   8/10/2026 11:35:56 PM</pre>
+    <p>Unchanged, and the mtime predates the hardening work entirely. The replay reads the export into process memory and mutates only the clone, as documented.</p>
+  </section>
+
+  <section id="discrepancies">
+    <h2>5. Discrepancies</h2>
+    <p>All four are in the handoff document, not in the shipped engine. They are ordered by how much they could mislead a reader who relies on the document as the record.</p>
+
+    <div class="finding done" id="d1">
+      <h3>D1 — The W7 sabotage count is understated <span class="status fixed">Fixed</span></h3>
+      <p><strong>Claimed:</strong> "24/24 W7 sabotages caught", stated three times — in the ledger's final-gate receipt, in the §11 mutation/sabotage card, and in the §14 W7 verification receipt.</p>
+      <p><strong>Actual:</strong> the gate proves <strong>25</strong> clauses, all caught. Per-file totals printed by the harness are <code>16/16</code>, <code>2/2</code>, <code>1/1</code>, <code>2/2</code>, <code>1/1</code>, <code>3/3</code>.</p>
+      <p><strong>Why it matters despite being in the work's favour:</strong> the number is a receipt. A receipt that disagrees with the tool it cites invites the reader to discount the neighbouring receipts too — including the ones that are exactly right. The likely cause is a clause added after the sentence was written; the fix is to re-read the harness output rather than carry the number forward.</p>
+      <div class="resolution"><strong>Resolved.</strong> All three occurrences now read <code>25/25</code>, taken from the harness output rather than carried forward. Verified mechanically: <code>24/24</code> occurrences remaining <strong>0</strong>, <code>25/25</code> present <strong>3</strong>.</div>
+    </div>
+
+    <div class="finding done" id="d2">
+      <h3>D2 — Table of contents order does not match document order <span class="status fixed">Fixed</span></h3>
+      <p>The nav promises W1 → W2 → W3 → W4 → W5 → W6 → W7 → Mokmurian. The body delivers:</p>
+      <pre>1 Executive · <em>(unnumbered)</em> Ledger · 2 Root causes · 3 W1 · 4 W3 · 5 W4 · 6 W5 ·
+7 Mokmurian · 8 W2 · 9 Invariants · 10 Deferred · 11 Verification · 12 Change surface ·
+13 Requested Fable review focus · 14 W7 · 15 W6</pre>
+      <p>Two consequences. First, the anchors work but land nowhere near where the contents page implies — "W6: summary identity" is listed sixth and is in fact the last section in the document. Second, and worse for a handoff, <strong>section 13 is the closing "here's what to review next" section and two major implementation sections follow it</strong>, so the document argues its conclusion before presenting a third of its evidence.</p>
+      <p>Separately, the "Complete W1-W7 ledger" section carries no number while every section around it is numbered 1–15, so the numbering silently skips it.</p>
+      <p><strong>Reading of the cause:</strong> W2, W7 and W6 were appended as they shipped rather than filed into position, and the TOC was updated to the intended order while the body kept the append order.</p>
+      <div class="resolution">
+        <p style="margin-top:0"><strong>Resolved.</strong> The sections were moved into the order the contents page promises and renumbered 1–16, so the review-focus section closes the document again:</p>
+        <pre style="border-left-color:#21623b;margin-bottom:10px">1 Executive · 2 Ledger · 3 Root causes · 4 W1 · 5 W2 · 6 W3 · 7 W4 · 8 W5 ·
+9 W6 · 10 W7 · 11 Mokmurian · 12 Invariants · 13 Deferred · 14 Verification ·
+15 Change surface · 16 Requested Fable review focus</pre>
+        <p style="margin-bottom:0">Done by script rather than by hand, with a content-preservation assertion: outside the <code>&lt;h2&gt;</code> headings the reordered sections normalise byte-for-byte to the originals, so no prose moved or was lost. Post-checks: nav order == body order, headings run 1–16 in document order, the ledger section is no longer unnumbered, no broken anchors, all structural tags balanced. The one stale cross-reference the move created — W7's "W6's validator is documented below" — was corrected to "in the preceding section".</p>
+      </div>
+    </div>
+
+    <div class="finding done" id="d3">
+      <h3>D3 — The cited evidence file is not reproducible from a checkout <span class="status fixed">Fixed</span></h3>
+      <p>§8's receipt and §11's exact-checks list both cite the t1667 export as the input to <code>dev/replay-w2-incident.js</code>. That file is not in <code>testRuns/</code>; it lives at:</p>
+      <pre>C:\Users\hannu\Downloads\Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</pre>
+      <p>Reproducing the handoff's headline receipt required a filesystem-wide search. CLAUDE.md's convention is explicit on both halves of this: personal <code>.tnd</code> saves live in <code>testRuns/</code> (gitignored), and <em>a save cited by an audit must keep its link working</em>. As it stands the receipt is real but nobody working from the repository can re-run it.</p>
+      <p><strong>Fix:</strong> move the export into <code>testRuns/</code> and cite that path. It is gitignored, so this costs nothing and restores the citation.</p>
+      <div class="resolution">
+        <p style="margin-top:0"><strong>Resolved.</strong> The export was moved to <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1667.tnd</code> (3,958,438 bytes before and after — byte count identical), and §5's receipt in the handoff now cites that repo-relative path.</p>
+        <p style="margin-bottom:0">Proven live rather than assumed: the replay was re-run <em>from the cited path</em> and returned <code>W2 EXACT SAVE REPLAY GREEN</code> with the same outcomes (alive · objective open · XP delta 0 · stable prompt byte-identical). <code>git check-ignore</code> confirms <code>.gitignore:18 *.tnd</code> covers it, so the citation works without the save entering version control.</p>
+      </div>
+    </div>
+
+    <div class="finding done" id="d4">
+      <h3>D4 — The document asserting "committed and pushed" is itself uncommitted <span class="status fixed">Fixed</span></h3>
+      <p>The banner reads: "W1-W7 are implemented and verified in <code>v1.601</code>, commit <code>c8c37f1</code>, and pushed to <code>origin/master</code>." That is true of the code. It is not true of the sentence making the claim — <code>DOC/workdone_sol.html</code> carries <strong>71 insertions and 27 deletions</strong> of uncommitted changes.</p>
+      <p>The uncommitted delta was inspected and is documentation-only: the consolidated W1-W7 ledger section, the section reordering described in <a href="#d2">D2</a>, and the banner rewrite itself. No claim about code behaviour differs between the committed and working copies. The version a reviewer would get from <code>git show c8c37f1</code> is the older text.</p>
+      <div class="resolution"><strong>Resolved.</strong> Both documents — the corrected handoff and this review — are committed together, so the banner's claim is now true of the file making it. Only those two paths were staged explicitly; the two untracked files the handoff flags as unrelated shared-tree work (<code>samples/the_iron_meridian.blueprint</code>, <code>testRuns/recall_gate_results_t1549.json</code>) were deliberately left alone. No <code>APP_VERSION</code> or <code>CACHE</code> bump: this pass changed documentation only, no game code.</div>
+    </div>
+  </section>
+
+  <section id="traceability">
+    <h2>6. Traceability observation</h2>
+    <p>This is not a defect and nothing needs undoing — it is recorded because the documents describe a history that git does not contain.</p>
+    <p><code>c8c37f1</code> is a single 24-file commit that bumps <code>APP_VERSION</code> from <code>v1.598</code> straight to <code>v1.601</code>, carrying W2, W6 and W7 together. Both this handoff and CLAUDE.md narrate those as three separate releases — "W7 shipped in <code>v1.600</code>", "#168 W2 referential integrity (v1.599)" — but no commit is tagged, marked or bisectable at v1.599 or v1.600. Those two version markers exist only in prose.</p>
+    <p>Against the project's own rules this touches two: tight single-concern commits, and version-marker discipline as the mechanism for confirming what is actually deployed. The practical effect is narrow but real — W7 cannot be reverted, bisected or deployed independently of W6, and a field report citing "v1.600 behaviour" cannot be resolved to a tree.</p>
+    <div class="callout"><strong>Not a recommendation to rewrite history.</strong> The commit is pushed and the code is correct. The point is forward-looking: if the three workstreams are ever discussed as separable, the documents should say they shipped together as <code>v1.601</code>.</div>
+  </section>
+
+  <section id="limits">
+    <h2>7. Limits of this check</h2>
+    <p>Stated plainly so the green verdict is not read as broader than it is.</p>
+    <ul>
+      <li><strong>Focused sub-counts were not isolated.</strong> The handoff cites "28/28" focused W7 assertions, "10/10" W6, and "22 focused" W2. These live inside the 1,306-assertion aggregate, which passes; the individual sub-counts were not separately extracted and are neither confirmed nor disputed here.</li>
+      <li><strong>The suite was run once, not twice.</strong> The handoff says it passed twice. One green run at 1,306 was observed; the second is uncontested but unverified.</li>
+      <li><strong>The gates were trusted to define their own failure conditions.</strong> That 25 mutations are caught was verified; whether those 25 are the <em>right</em> 25 is a design judgement this pass did not attempt. The handoff's own §13 asks for exactly that adversarial scrutiny, and it remains open.</li>
+      <li><strong>No live or browser verification.</strong> Everything here is headless. Nothing was deployed, no UI surface was rendered, and no GM turn was taken against a real API.</li>
+      <li><strong>Prose claims about design intent were not adjudicated.</strong> Statements such as "detection remains conservative" or "the GM remains the writer of canon" were spot-checked against code structure but not systematically proven.</li>
+    </ul>
+    <p class="small">What <em>is</em> established: every number that could be mechanically checked was checked, and the two safety properties most likely to be assumed rather than tested — operator-tag containment and live-save integrity — were tested.</p>
+  </section>
+
+  <section id="actions">
+    <h2>8. Actions taken</h2>
+    <p>All four required actions were carried out and re-verified after the fact. Each is stamped on its finding in §5 with the evidence.</p>
+    <ul class="checklist">
+      <li><strong>D1 — count corrected.</strong> <code>24/24</code> → <code>25/25</code> in the ledger receipt, the §14 verification card, and the §10 W7 receipt. Checked mechanically: zero <code>24/24</code> left, three <code>25/25</code>.</li>
+      <li><strong>D2 — sections reordered and renumbered 1–16</strong> to match the contents page, by script with a content-preservation assertion. Nav order now equals body order, headings run 1–16, the ledger is numbered, anchors resolve, tags balance, and the one cross-reference the move stranded was corrected.</li>
+      <li><strong>D3 — evidence relocated and the citation proven live.</strong> The export now sits in <code>testRuns/</code> at an identical byte count, the handoff cites that repo-relative path, and the replay was re-run from it green.</li>
+      <li><strong>D4 — both documents committed</strong> with explicitly staged paths, leaving the unrelated shared-tree files untouched. No version bump: documentation only.</li>
+    </ul>
+
+    <h3>Still open</h3>
+    <ul class="todo">
+      <li><strong>The §6 traceability wording</strong> — the v1.599 / v1.600 references in this document, the handoff, and CLAUDE.md still describe releases that exist in no commit. This was listed as optional and was deliberately <em>not</em> changed: whether that narration is useful history or misleading precision is an editorial call, and CLAUDE.md is a drift-surface contract document where an unrequested edit is the wrong reflex. Flagged, not fixed.</li>
+    </ul>
+
+    <div class="receipt"><strong>Bottom line.</strong> The hardening work was sound and its receipts were honest; the four defects were in the record, not the engine. The record now matches the engineering. The <a href="#limits">§7 limits</a> are unchanged — in particular, whether the 25 sabotage mutations are the <em>right</em> 25 is still the open adversarial question the handoff's own final section asks for.</div>
+  </section>
+
+  <footer>
+    Independent re-execution of DOC/workdone_sol.html · tree v1.601 @ c8c37f1 · 2026-08-11. No engine file, live save, or deployment was modified by this review.
+  </footer>
+</main>
+</body>
+</html>
