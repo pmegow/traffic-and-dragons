@@ -1954,6 +1954,126 @@ function runEngineTests(R){
     if(p2.volatile!==p0.volatile)return "clearing mpEnded did not restore volatile byte-identity";
     return true;
   });
+  // ── #172: narration stuck in THIRD person ───────────────────────────────────────────────────
+  // Field report 2026-08-12. The D12 exit was TIME-boxed (mpEnded cleared after 3 turns whether or
+  // not the GM complied) and single-player carries NO end-of-prompt person instruction at all, so a
+  // GM that slept through the window narrated in third person forever with nothing left to correct it.
+  var _3P='Ammut eases off the reins and lets the mare pick her own pace down off the ridge. Morwen rides beside him, saying nothing, and the light goes long and gold across the scrub behind them.';
+  var _2P='You ease off the reins and let the mare pick her own pace down off the ridge. Morwen rides beside you, saying nothing, and the light goes long and gold across the scrub.';
+  t("#172: narratesSecondPerson ignores 'you' spoken INSIDE dialogue (the whole-text test's false pass)",function(){
+    if(narratesSecondPerson('Ammut checks the strap. "You should not have come," Morwen says, and rides on ahead of him.'))
+      return "quoted dialogue counted as second-person narration — every third-person response with dialogue would read as compliant";
+    if(!narratesSecondPerson(_2P))return "genuine second-person narration read as drift";
+    if(narratesSecondPerson(_3P))return "third-person narration read as compliant";
+    if(!narratesSecondPerson('“You look terrible,” she says. Your ribs agree with her.'))return "curly-quoted dialogue swallowed the narration's own second person";
+    return true;
+  });
+  t("#172: PERSON_DRIFT_MIN consecutive third-person responses arm the note; ONE compliant response silences it",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    worldState.turn=10;personDriftDetect(_3P,false);
+    if(buildPersonDriftNudge())return "armed on the FIRST drifting response — a lone atmospheric paragraph would nag";
+    worldState.turn=11;personDriftDetect(_3P,false);
+    var note=buildPersonDriftNudge();
+    if(!note)return "two consecutive third-person responses did not arm the note";
+    if(note.indexOf("SECOND PERSON")<0||note.indexOf("PROSE directive")<0)return "note does not command second person as a prose directive: "+note;
+    if(note.indexOf("Ammut")<0)return "note does not name the hero";
+    worldState.turn=12;personDriftDetect(_2P,false);
+    if(buildPersonDriftNudge())return "a compliant response did not silence the note — this is the permanent-noise failure";
+    return true;
+  });
+  t("#172: THE FAILURE CONDITION — mpEnded now retires on COMPLIANCE, never on a turn counter",function(){
+    // The exact regression: three turns used to clear mpEnded regardless of what the GM wrote, and
+    // the campaign was then stuck with no correction left anywhere.
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;
+    worldState.mpEnded={turn:worldState.turn||0};
+    var t0=worldState.turn||0,i;
+    for(i=1;i<=6;i++){worldState.turn=t0+i;personDriftDetect(_3P,false);}
+    if(!worldState.mpEnded)return "mpEnded was retired after "+i+" non-compliant turns — the stuck-in-third-person bug";
+    if(buildEngineNotes().indexOf("NARRATION MODE CHANGE")<0)return "the exit note stopped firing while the GM was still writing third person";
+    worldState.turn=t0+7;personDriftDetect(_2P,false);
+    if(worldState.mpEnded)return "a compliant response did not retire mpEnded";
+    if(buildEngineNotes().indexOf("NARRATION MODE CHANGE")>=0)return "the exit note survived compliance";
+    return true;
+  });
+  t("#172: multiplayer is exempt — third person is the MODE there, and re-promoting disarms a pending drift",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    worldState.turn=20;personDriftDetect(_3P,false);worldState.turn=21;personDriftDetect(_3P,false);
+    if(!buildPersonDriftNudge())return "setup failed — the drift note did not arm";
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    if(buildPersonDriftNudge())return "the drift note fires during multiplayer, where third person is CORRECT";
+    personDriftDetect(_3P,false);
+    if(worldState.personDrift)return "multiplayer did not clear the pending drift state";
+    worldState.npcs.pop();
+    return true;
+  });
+  t("#172: a RE-ROLL re-judges its turn instead of adding to the run, and a gap restarts it",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    worldState.turn=40;personDriftDetect(_3P,false);
+    personDriftDetect(_3P,false);personDriftDetect(_3P,false);/* two re-rolls of the SAME turn */
+    if(worldState.personDrift.count!==1)return "a re-roll inflated the run to "+worldState.personDrift.count+" — the note would claim drift that never happened";
+    worldState.turn=41;personDriftDetect(_3P,false);
+    if(!buildPersonDriftNudge())return "two genuine turns did not arm the note";
+    /* A gap longer than PERSON_DRIFT_GAP means turns passed that this detector never judged, so the
+       run's own claim about "the last N responses" would be false — restart rather than lie. */
+    worldState.turn=41+PERSON_DRIFT_GAP+2;personDriftDetect(_3P,false);
+    if(worldState.personDrift.count!==1)return "a gap did not restart the run (count "+worldState.personDrift.count+")";
+    return true;
+  });
+  t("#172: unbalanced quotes ABSTAIN — the strip cannot be trusted, so it is neither drift nor compliance",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    var odd='Ammut steps through the doorway and the lamps gutter behind him. "Hold there, he says to nobody, and the corridor swallows the sound of it entirely.';
+    if(!personQuoteParityOdd(odd))return "setup failed — the fixture has balanced quotes";
+    worldState.turn=50;personDriftDetect(odd,false);worldState.turn=51;personDriftDetect(odd,false);
+    if(worldState.personDrift)return "an unbalanced-quote response was counted as drift evidence";
+    return true;
+  });
+  t("#172 RC-B: single-player ALWAYS carries a second-person line at the end of the prompt",function(){
+    // The empty slot was the structural half of the field report: with nothing after STYLE, the only
+    // second-person instruction sat ~100k chars earlier in the cached stable half, while the prose
+    // voice occupied the authority position. Measured: 'howard' campaigns run 2.7-5.3% second person.
+    makeWorld();worldState.personDrift=null;worldState.mpEnded=null;
+    var p=buildSysPrompt();
+    var idx=p.volatile.lastIndexOf("PERSON: second person");
+    if(idx<0)return "ordinary single-player carries NO end-of-prompt person directive";
+    if(idx<p.volatile.lastIndexOf("STYLE: "))return "the person line sits BEFORE the STYLE tail — the prose voice would win the position fight";
+    if(p.volatile.indexOf("'you' is "+worldState.character.name)<0)return "the line does not bind 'you' to the hero";
+    if(p.stable.indexOf("PERSON: second person")>=0)return "the baseline leaked into the CACHED stable half";
+    /* Multiplayer must NOT get it — there the third-person override is the mode */
+    worldState.npcs.push({name:"Morwen",partyMember:true,isPC:true,status:"ally",charSheet:{name:"Morwen",cls:"Sorcerer",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:[],conditions:[],relationships:[]}});
+    if(buildSysPrompt().volatile.indexOf("PERSON: second person")>=0)return "the second-person baseline fires during multiplayer, contradicting the third-person override";
+    worldState.npcs.pop();
+    return true;
+  });
+  t("#172: a bookkeeping or too-short response is not evidence of drift",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    worldState.turn=30;personDriftDetect(_3P,true);worldState.turn=31;personDriftDetect(_3P,true);
+    if(worldState.personDrift)return "a bookkeeping response counted as narration";
+    worldState.turn=32;personDriftDetect("Ammut nods.",false);worldState.turn=33;personDriftDetect("Ammut nods.",false);
+    if(worldState.personDrift)return "a sub-threshold fragment counted as narration";
+    return true;
+  });
+  t("#172: the drift injection is VOLATILE-only and byte-identical when disarmed (cache guard)",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.personDrift=null;worldState.mpEnded=null;
+    var p0=buildSysPrompt();
+    worldState.personDrift={count:PERSON_DRIFT_MIN,turn:worldState.turn||0};
+    var p1=buildSysPrompt();
+    if(p1.stable!==p0.stable)return "personDrift perturbed the STABLE half — every prompt-cache hit dies";
+    var idx=p1.volatile.indexOf("NARRATION MODE — SECOND PERSON:");
+    if(idx<0)return "post-STYLE second-person command missing while armed";
+    if(idx<p1.volatile.lastIndexOf("STYLE: "))return "the command sits BEFORE the STYLE tail — it would lose the position fight (the D12 lesson)";
+    worldState.personDrift=null;
+    if(buildSysPrompt().volatile!==p0.volatile)return "disarming did not restore volatile byte-identity";
+    return true;
+  });
+  t("#172: mpEnded owns the response when both are armed — one narration directive, never two",function(){
+    makeWorld();worldState.character.name="Ammut";
+    worldState.mpEnded={turn:worldState.turn||0};
+    worldState.personDrift={count:PERSON_DRIFT_MIN+3,turn:worldState.turn||0};
+    var notes=buildEngineNotes();
+    if(notes.indexOf("NARRATION MODE CHANGE")<0)return "the mp-end note should still fire";
+    if(buildPersonDriftNudge())return "both narration directives fired in one response";
+    return true;
+  });
   t("MP-P4 (D8): bare-tag misroute tripwire — warns (batched, soft) on bare sheet tags in a multi-PC round; XP exempt; single-player silent",function(){
     makeWorld();
     var warns=[],origWarn=console.warn;

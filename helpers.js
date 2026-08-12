@@ -430,6 +430,27 @@ function partyCompanionCount(){if(!worldState||!worldState.npcs)return 0;var n=0
 // no UI for that until P3's all-NPC rounds exist) + every living party member flagged isPC. Absent
 // flags = exactly 1: the single-player invariant every existing save relies on (DOC_multiplayer
 // "activePlayer() migration" anchor). Same dead-filter as partyCompanionCount above.
+// #172: does this narration still address the player in SECOND person? Quoted dialogue is stripped
+// FIRST and that is the whole trick — characters say "you" to each other constantly, so a whole-text
+// test calls every dialogue-bearing third-person response compliant. Measured over 10,055 real GM
+// responses: 97.2% carry a second-person pronoun outside quotes, and the 2.8% that do not are
+// exactly the third-person and pure-atmosphere ones.
+// Emphasis spans (*like this*) are deliberately NOT stripped: they are narration, so a second person
+// inside one is real compliance. Only DIALOGUE delimiters come out.
+var SECOND_PERSON_RE=/\b(you|your|yours|yourself|yourselves)\b/i;
+function personNarrationOnly(clean){
+  return String(clean||"").replace(/“[^”]*”/g,"  ").replace(/«[^»]*»/g,"  ").replace(/"[^"]*"/g,"  ");
+}
+function narratesSecondPerson(clean){
+  if(!clean)return false;
+  return SECOND_PERSON_RE.test(personNarrationOnly(clean));
+}
+// ABSTAIN on unbalanced straight quotes — the #93 lesson, same engine, same week: with odd parity the
+// quote spans cannot be trusted, so stripping them may delete narration or keep dialogue. An
+// abstaining response is neither evidence of drift nor evidence of compliance.
+function personQuoteParityOdd(clean){
+  return ((String(clean||"").match(/"/g)||[]).length%2)===1;
+}
 function playerCount(){
   var n=(worldState&&worldState.character&&worldState.character.isPC===false)?0:1;
   if(worldState&&worldState.npcs){var i;for(i=0;i<worldState.npcs.length;i++){var p=worldState.npcs[i];if(p&&p.partyMember&&p.isPC&&!npcIsDead(p))n++;}}

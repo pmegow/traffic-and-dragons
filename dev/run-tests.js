@@ -63,6 +63,32 @@ try {
   }
 } catch (e) { console.error("VENDOR PATCH CHECK FAILED: " + e.message); process.exit(1); }
 
+// ── NARRATION-PERSON RETIREMENT CONTRACT (#172, v1.605) ──────────────────────────────────
+// Field report 2026-08-12: "the current campaign seems stuck in 3rd person." The multiplayer-exit
+// correction (worldState.mpEnded) was retired by a TURN COUNTER in commitGmTurn — three turns after
+// the demote, whether or not the GM had ever switched back. Miss that window and the correction was
+// gone permanently, and single-player has no other end-of-prompt person instruction at all, so
+// nothing could ever ask again. Retirement must be COMPLIANCE-boxed (personDriftDetect clears it
+// when a response actually narrates in second person), never time-boxed.
+// A SOURCE CONTRACT because the regression lives in commitGmTurn, which needs the DOM and cannot be
+// driven headless — the behavioural half is the #172 engine tests.
+try {
+  var _fsN = require("fs"), _pathN = require("path");
+  var _gameN = _fsN.readFileSync(_pathN.join(__dirname, "..", "game.js"), "utf8")
+    .replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");   // strip comments: the fix DOCUMENTS the old counter
+  if (/mpEnded\s*&&\s*\([^)]*turn[^)]*\)\s*>=/.test(_gameN) || /mpEnded\.turn\s*\)\s*>=\s*\d/.test(_gameN)) {
+    console.error("NARRATION PERSON CONTRACT: game.js retires worldState.mpEnded on a TURN COUNT again. That is the #172 bug — a GM that has not switched back to second person loses the correction forever, and single-player carries no other person instruction. Retire it in personDriftDetect on observed compliance instead.");
+    process.exit(1);
+  }
+  if (_gameN.indexOf("personDriftDetect(") < 0) {
+    console.error("NARRATION PERSON CONTRACT: nothing calls personDriftDetect — the narration-person watcher is unwired, so third-person drift is undetectable again (#172).");
+    process.exit(1);
+  }
+} catch (e) {
+  console.error("NARRATION PERSON CONTRACT: could not verify game.js — " + (e && e.message));
+  process.exit(1);
+}
+
 // ── VOICE-DELETION TRUTHFULNESS CONTRACT (v1.419) ────────────────────────────────────────
 // Field-confirmed 2026-07-22 on iOS 18.7: pressing ✕ toasted "🗑 Deleted" and deleted nothing.
 // The vendored remove() deletes via `(await dir.getFileHandle(n)).remove()` — a CHROME-ONLY File

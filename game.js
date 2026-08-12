@@ -1591,7 +1591,12 @@ function commitGmTurn(resp,opts){
       else if((worldState.turn-_lp.queuedAt)>=5){worldState.pendingLegacy=null;}// expired unintroduced → un-queue WITHOUT burning them, so they can roll again later (audit E85)
     }
     if(worldState.recentSwitch&&(worldState.turn-worldState.recentSwitch.turn)>=2)worldState.recentSwitch=null; // POV reinforcement done; sessionLog now carries new-POV turns
-    if(worldState.mpEnded&&(worldState.turn-worldState.mpEnded.turn)>=3)worldState.mpEnded=null; // D12 exit reinforcement done — sessionLog now carries second-person turns again (3 not 2: the retained tail holds ~3 exchanges, so the third-person prose must be fully out of the window before the note stops firing)
+    /* #172: the D12 exit clear is COMPLIANCE-boxed, not time-boxed. It used to fire once three turns
+       had passed regardless of whether the GM ever switched back — miss that window and the campaign
+       narrated in third person forever, with nothing left to correct it (the field report). The
+       retirement now lives in personDriftDetect, which clears mpEnded the moment a response actually
+       narrates in second person. A GM that complies on turn 1 retires it a turn EARLIER than the old
+       counter did; one that never complies keeps being asked. */
     if(worldState.recentlyLeft){worldState.recentlyLeft=worldState.recentlyLeft.filter(function(x){return (worldState.turn-x.turn)<2;});if(!worldState.recentlyLeft.length)worldState.recentlyLeft=null;}
   }
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
@@ -1605,6 +1610,7 @@ function commitGmTurn(resp,opts){
   /* #105b: the time receipt. Read the clock AFTER every mutation (TIME_ADVANCE, and the [REST:long]
      dawn roll that restSpells owns) so the stamp is what the clock ACTUALLY did this turn, not what
      the tag claimed. A zero here is real signal — it means the GM billed the turn no time at all. */
+  if(typeof personDriftDetect==="function")personDriftDetect(clean,_bookkeeping);/* #172: narrative-person watcher — CLEAN text (tag payloads carry no prose person), post-applyMuts, beside the phase watcher for the same reason: sheet-sync and Table Talk never reach commitGmTurn, so only real narration is judged */
   if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: phase-mismatch watcher — post-applyMuts (the parser tail already reconciled any [TIME:], so agreement self-silences by band math), CLEAN text only (raw would match the tags' own words). Openings included; sheet-sync and TT never pass through commitGmTurn, so non-story text is never scanned. */
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping});
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
@@ -1826,6 +1832,7 @@ async function rerollLast(){
       // reroll text) can never persist a stale compressed blob.
       if(typeof serializeWorldState!=="undefined"&&serializeWorldState.invalidateTranscriptMemo)serializeWorldState.invalidateTranscriptMemo(worldState.transcript);
     }
+    if(typeof personDriftDetect==="function")personDriftDetect(clean,false);/* #172: a reroll REPLACES the canonical narration, so its PERSON is what the campaign now carries — judge the replacement, exactly as the phase watcher does */
     if(typeof clockPhaseDetect==="function")clockPhaseDetect(clean);/* #158: rerolls REPLACE canonical narration but apply NO tags at all ("no muts" above) — so a replacement that asserts a phase has no same-response tag heal, and the nudge is the only channel. Detect on the replacement CLEAN prose. */
     var story=document.getElementById("story-narrative");
     if(story){var nars=story.querySelectorAll(".msg.narrator");if(nars.length)nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);}

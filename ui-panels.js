@@ -84,9 +84,28 @@ function updateHUD(){
          "ally" in a MOOD slot (the same category error the v1.379 separation fixed) */
       cards.push({name:n.name,vitals:partyMemberVitals(n),status:n.status||n.rel||"",open:(function(nm){return function(){showNpcSheet(nm);};})(n.name)});
     });
+    /* #172: WHY IS THE NARRATION IN THIRD PERSON. buildSysPrompt flips to the multiplayer
+       third-person override whenever playerCount()>1, and until now the only place a second PC was
+       visible was inside that companion's own sheet — so one forgotten hot-seat promotion silently
+       narrated the whole campaign in third person with no indicator anywhere on the game screen
+       (the field report that opened #172). The chip names the mode, names who caused it, and opens
+       their sheet, where the PC/NPC toggle undoes it. Hidden entirely in ordinary single-player, so
+       nothing changes for the common case. */
+    var _extraPCs=(worldState.npcs||[]).filter(function(n){return n&&n.partyMember&&n.isPC&&!(typeof npcIsDead==="function"&&npcIsDead(n));});
+    if(typeof playerCount==="function"&&playerCount()>1&&_extraPCs.length){
+      var mpChip=document.createElement("div");
+      mpChip.id="hud-mp-chip";
+      mpChip.title="Multiple player characters are active, so the GM narrates everyone by name in third person instead of \"you\". Click to open "+_extraPCs[0].name+"'s sheet and switch them back to a companion.";
+      mpChip.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:12px;background:#221a10;border:1px solid var(--acc);color:rgba(255,255,255,.75);";
+      mpChip.innerHTML="<span style='color:var(--acc);font-weight:bold;'>⚑ "+playerCount()+" players</span>"
+        +"<span style='color:var(--t2);'>third-person narration · "+escHtml(_extraPCs.map(function(n){return n.name;}).join(", "))+"</span>";
+      mpChip.addEventListener("click",(function(nm){return function(){showNpcSheet(nm);};})(_extraPCs[0].name));
+      cards.unshift({__el:mpChip});
+    }
     if(cards.length){
       hudParty.style.display="flex";hudParty.innerHTML="";
       for(var pi=0;pi<cards.length;pi++){
+        if(cards[pi].__el){hudParty.appendChild(cards[pi].__el);continue;}
         var pm=cards[pi],pv=pm.vitals,pmSheet=pv.sheet;/* UA21③ */
         var card=document.createElement("div");
         card.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t1);cursor:pointer;padding:2px 8px 2px 6px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--brd);";

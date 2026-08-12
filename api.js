@@ -805,6 +805,64 @@ function buildMpEndNote(){
   var nm=worldState.character.name;
   return "[NARRATION MODE CHANGE — this note is a PROSE directive, not bookkeeping, and applies to THIS response: the multiplayer session has ended and "+nm+" is the only player character again. Write this response in SECOND PERSON: 'you' means "+nm+". The third-person narration in the recent turns above was the multiplayer mode and is now over — do not continue that style. Change the prose silently; never mention the mode change in the story.]";
 }
+// #172 (field report 2026-08-12: "the current campaign seems stuck in 3rd person"). The D12 exit
+// above was TIME-boxed — game.js cleared worldState.mpEnded once three turns had passed, whether or
+// not the GM ever complied. Miss that window and the correction was gone forever, and nothing else
+// in single-player ever asks for second person again: the post-STYLE slot is EMPTY unless
+// playerCount>1 or mpEnded is set, so the only second-person instruction left is the one buried in
+// the cached STABLE half, which is exactly what loses to the GM's own recent output (the same
+// recency mechanic D12 rounds 1-2 already lost to twice).
+// So the correction is now COMPLIANCE-boxed, the #167 lesson: it persists until a response actually
+// narrates in second person, and it re-arms on ANY drift, whatever the cause — a forgotten hot-seat
+// promotion, a prose voice that slid into third, an exit the GM slept through. Detection is
+// deterministic and self-silencing: one compliant response clears it.
+// Arming needs PERSON_DRIFT_MIN consecutive third-person responses that NAME the hero, because a
+// single atmospheric paragraph legitimately has neither "you" nor a name. Measured on the owner's
+// own 1,663-response campaign: 46 responses (2.8%) lack second person, 10 also name the hero, and
+// only 2 occur back to back — so the armed state is rare by construction, and one of those two runs
+// was the real multiplayer stint, where playerCount>1 gates this off entirely.
+var PERSON_DRIFT_MIN=2;         // consecutive drifting responses before the engine speaks
+var PERSON_DRIFT_MIN_CHARS=120; // shorter than this is not enough prose to judge
+var PERSON_DRIFT_GAP=3;         // turns of silence that break a drift run
+function personDriftDetect(clean,isBookkeeping){
+  if(typeof worldState==="undefined"||!worldState||!worldState.character)return;
+  if(typeof playerCount==="function"&&playerCount()>1){worldState.personDrift=null;return;}/* multiplayer: third person IS the mode */
+  if(isBookkeeping)return;      /* a sheet-sync/tag-only response is not narration */
+  var txt=String(clean||"");
+  if(txt.length<PERSON_DRIFT_MIN_CHARS)return;
+  if(typeof narratesSecondPerson==="function"&&narratesSecondPerson(txt)){
+    worldState.personDrift=null;
+    if(worldState.mpEnded)worldState.mpEnded=null;/* compliance, not a turn counter, is what retires the D12 exit note */
+    return;
+  }
+  if(typeof personQuoteParityOdd==="function"&&personQuoteParityOdd(txt))return;/* unbalanced quotes — the strip is untrustworthy, so abstain rather than guess (#93) */
+  var narr=(typeof personNarrationOnly==="function")?personNarrationOnly(txt):txt;
+  var first=String(worldState.character.name||"").split(/\s+/)[0];
+  /* The hero must be named in the NARRATION, not merely somewhere in the text: a name spoken only
+     inside dialogue is someone addressing them, not the camera describing them. Measured: this
+     clause is what takes the false-positive rate to zero — without it, 59 of 172 flags are pure
+     dialogue, combat readouts and atmosphere with no narration of the hero at all. */
+  if(!first||narr.indexOf(first)<0)return;
+  var now=worldState.turn||0,d=worldState.personDrift||{count:0,turn:now};
+  /* Once per TURN: a re-roll re-judges the same turn and must REPLACE its verdict, never add to it. */
+  if(d.count&&d.turn===now)return;
+  /* A gap means the run was broken by turns this detector could not judge, so the note's own claim
+     about "the last N responses" would be false. Restart rather than lie. */
+  if(d.count&&(now-d.turn)>PERSON_DRIFT_GAP)d.count=0;
+  d.count=(d.count||0)+1;d.turn=now;
+  worldState.personDrift=d;
+  if(d.count===PERSON_DRIFT_MIN)console.warn("[narration] "+d.count+" consecutive responses narrated "+worldState.character.name+" in the third person — asking the GM for second person (playerCount="+(typeof playerCount==="function"?playerCount():"?")+")");
+}
+// The engine-note half. Same channel and same reasoning as buildMpEndNote: it rides the USER
+// message, i.e. the newest tokens in context, AFTER all the third-person prose it has to overrule.
+function buildPersonDriftNudge(){
+  if(typeof worldState==="undefined"||!worldState||!worldState.personDrift||!worldState.character)return"";
+  if(typeof playerCount==="function"&&playerCount()>1)return"";
+  if((worldState.personDrift.count||0)<PERSON_DRIFT_MIN)return"";
+  if(worldState.mpEnded)return"";/* buildMpEndNote already owns this response — one directive, not two */
+  var nm=worldState.character.name;
+  return "[NARRATION MODE — SECOND PERSON (this note is a PROSE directive, not bookkeeping, and applies to THIS response): the last "+worldState.personDrift.count+" responses narrated "+nm+" in the THIRD person. There is only one player character. Write this response in SECOND PERSON: 'you' and 'your' mean "+nm+"; companions stay in third person by name, as usual. Change the prose silently — never mention the mode, the drift, or this note in the story.]";
+}
 // v1.381 — mood staleness audit. The engine-detected half of the mood/relation repair: v1.379/380
 // stopped the corruption and cleaned the data, but nothing made a stale mood HEAL. `status` was
 // write-once-per-mention and immortal otherwise, so a single emission pinned a character's
@@ -869,7 +927,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -891,7 +949,7 @@ function restoreNoteLatches(snap){
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
       if(rec.audited===undefined)delete party[j].charSheet.splitLoc.audited;else party[j].charSheet.splitLoc.audited=rec.audited;}}}
 }
-var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
+var NOTE_BUILDERS=[buildQuestEscalation,buildQuestObjectiveNudge,buildSplitAudit,buildReunionNote,buildPresenceAudit,buildStayBehindNudge,buildDeityDriftNudge,buildReconcileSkipNudge,buildPhaseMismatchNudge,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge,buildFutureResolveNudge,buildLocationTwinNudge,buildLocationDescNudge,buildLocationStateNudge,buildScheduleEscalation,buildExpiredThreadNudge,buildConditionAudit,buildReciprocityNudge,buildArcQuestNudge,buildArcStagingNudge,buildArcDriftNudge,buildRelationshipAxisNudge,buildRelationshipDowngradeNudge,buildRelationshipAudit,buildIdentityConflictNudge,buildMergeConfirmNudge,buildProvisionalNudge,buildConsumableNudge,buildDeadStatusNudge,buildMpEndNote,buildMoodAudit,buildSayComplianceNudge,buildPersonDriftNudge];/* #168 W7: axis decisions precede the legacy downgrade compatibility note. */
 // B5: the shared silence clause. Engine notes ride the USER message (highest-authority channel,
 // chosen deliberately — see buildQuestEscalation's header), and no builder ever said HOW to
 // answer: "leave the sheet alone" reads as an invitation to answer in prose, and sonnet-5 (which
@@ -1203,7 +1261,19 @@ function buildSysPrompt(){
          GM's own third-person history twice over). The reversal command needs the SAME end-of-
          prompt authority slot that makes the multiplayer override itself stick — mutually
          exclusive with it by gate (override: playerCount>1; this: mpEnded && playerCount<=1). */
-      :(worldState.mpEnded?" NARRATION MODE — SECOND PERSON RESUMED: the multiplayer session is OVER. Starting with THIS response, address "+c.name+" as 'you' again — vivid second-person prose, exactly as before multiplayer. Do NOT continue the third-person style of the recent turns; that mode has ended.":""));
+      :(worldState.mpEnded?" NARRATION MODE — SECOND PERSON RESUMED: the multiplayer session is OVER. Starting with THIS response, address "+c.name+" as 'you' again — vivid second-person prose, exactly as before multiplayer. Do NOT continue the third-person style of the recent turns; that mode has ended."
+        /* #172: the same end-of-prompt authority slot for drift with no multiplayer history behind
+           it. Gated on the armed detector, so an ordinary single-player prompt is byte-identical. */
+        :(worldState.personDrift&&(worldState.personDrift.count||0)>=PERSON_DRIFT_MIN?" NARRATION MODE — SECOND PERSON: there is only ONE player character. Address "+c.name+" as 'you' — vivid second-person prose. The recent responses drifted into narrating "+c.name+" by name in the third person; do NOT continue that style."
+          /* #172 RC-B: the slot used to be EMPTY in ordinary single-player, so the only
+             second-person instruction anywhere was in the CACHED STABLE half, ~100k characters
+             earlier — while the PROSE VOICE sits right here at the end, in the position this file
+             documents as load-bearing. Measured across 10,067 real GM responses: campaigns running
+             the 'howard' voice are 2.7-5.3% second person (third person from their THIRD response,
+             before any momentum exists), against 98-100% for 'abercrombie'. A voice that narrates
+             in third person by nature had nothing at the authority end of the prompt to answer to.
+             Deliberately SHORT — it has to hold the person without competing with the voice. */
+          :" PERSON: second person — 'you' is "+c.name+"; companions are third person by name.")));
   return {stable:stable,volatile:volatile_};
 }
 function buildSkeletonBlock(){
