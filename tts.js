@@ -3028,18 +3028,26 @@ var TTS = (function() {
     var m = /\((F|M)\)\s*$/.exec(String(label || ""));
     return m ? m[1] : "";
   }
-  // #95.7: gender-matched auto-cast — an unassigned character speaks a bench voice of their own
-  // gender instead of the narrator (the "grizzled sheriff reads as a young woman" fix). The pick
-  // is a DETERMINISTIC name-hash over the gender-filtered bench: stable across turns and reloads
+  // #95.7/#174: gender-matched auto-cast — an unassigned character speaks a bench voice of their
+  // own gender instead of the narrator. Pronouns supply gender for sheetless roster NPCs; NB uses
+  // the full bench rather than inventing a binary gender. The pick is a deterministic name-hash
   // with no state write. Editing the bench may re-deal unassigned characters (documented — pin a
   // voice on the sheet to make it permanent); explicit assignments always win and never move.
-  // NB/unknown gender or an empty matching pool returns null — the caller keeps today's narrator
-  // fallback, because guessing is exactly the failure this feature removes.
-  function autoCastVoiceId(char) {
+  // An unknown character gender or an empty matching pool returns null.
+  function _autoCastGender(char) {
     var g = char && char.gender;
-    if (g !== "M" && g !== "F") return null;
+    if (g === "M" || g === "F" || g === "NB" || g === "ANY") return g;
+    var p = String(char && char.pronouns || "").toLowerCase().replace(/\s+/g, "").split("/")[0];
+    if (p === "he" || p === "him" || p === "his") return "M";
+    if (p === "she" || p === "her" || p === "hers") return "F";
+    if (p === "they" || p === "them" || p === "theirs") return "NB";
+    return "";
+  }
+  function autoCastVoiceId(char) {
+    var g = _autoCastGender(char);
+    if (!g) return null;
     var pool = [], st = starsList(), i;
-    for (i = 0; i < st.length; i++) { if (st[i].g === g) pool.push(st[i].id); }
+    for (i = 0; i < st.length; i++) { if (g === "NB" || g === "ANY" || st[i].g === g) pool.push(st[i].id); }
     if (!pool.length) return null;
     var nm = String(char.name || ""), h = 0;
     for (i = 0; i < nm.length; i++) h = (h * 31 + nm.charCodeAt(i)) >>> 0;
@@ -3125,8 +3133,12 @@ var TTS = (function() {
     if (typeof worldState === "undefined" || !worldState) return who;
     var c = worldState.character;
     if (c && c.voiceId && voiceBaseId(c.voiceId) === want) who.push((c.name || "the player") + " (you)");
-    var ns = worldState.npcs || [], i;
-    for (i = 0; i < ns.length; i++) { if (ns[i] && ns[i].charSheet && ns[i].charSheet.voiceId && voiceBaseId(ns[i].charSheet.voiceId) === want) who.push(ns[i].name); }
+    var ns = worldState.npcs || [], i, nv;
+    for (i = 0; i < ns.length; i++) {
+      if (!ns[i]) continue;
+      nv = ns[i].charSheet && ns[i].charSheet.voiceId ? ns[i].charSheet.voiceId : ns[i].voiceId;
+      if (nv && voiceBaseId(nv) === want) who.push(ns[i].name);
+    }
     return who;
   }
   // Promise<boolean> — true = proceed with the download, false = user cancelled. Only prompts when

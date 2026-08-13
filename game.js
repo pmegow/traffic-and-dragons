@@ -656,36 +656,41 @@ function speakerVoiceMap(sp,text){
   return out;
 }
 // Alias-tolerant lookup: the model may write "Belor" for the sheet filed as "Sheriff Belor Hemlock".
-function _speakerChar(name){
+function _speakerVoiceSubject(name){
   var nm=(typeof resolveNpcName==="function")?resolveNpcName(name):name;
   if(!worldState)return null;
   var c=worldState.character;
-  if(c&&c.name===nm)return c;
-  var ns=worldState.npcs||[],i;
-  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].name===nm&&ns[i].charSheet)return ns[i].charSheet;
+  if(c&&c.name===nm)return {char:c,owner:c};
+  var ns=worldState.npcs||[],i,p,g,owner;
+  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].name===nm){
+    owner=ns[i].charSheet||ns[i];
+    p=String(owner.pronouns||ns[i].pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
+    g=owner.gender;
+    if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
+    return {char:{name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||""},owner:owner};
+  }
   return null;
 }
+function _speakerChar(name){var s=_speakerVoiceSubject(name);return s?s.char:null;}
 
-// #96b (user call 2026-07-26): PIN the auto-cast pick on first speech. The name-hash is stable
-// turn to turn, but a bench edit re-deals every unpinned character — Ameiko could change voice
-// mid-campaign. So the first time a sheet-bearing character actually SPEAKS, the auto-cast pick
-// is written to their charSheet.voiceId: permanent, rides the sync blob, and shows in the sheet's
-// voice dropdown where the player can re-pin it. Characters with an assigned voice are untouched;
-// sheet-less names and unknown-gender declines skip (nothing to pin, narrator as before).
+// #96b/#174: PIN the auto-cast pick on first speech. The name-hash is stable turn to turn, but a
+// bench edit re-deals every unpinned character. Sheetless roster NPCs keep the pin on their world
+// record; a generated sheet inherits it. Assigned voices remain untouched and user-recastable.
 function pinAutoCastVoices(sp){
   if(!sp||!sp.s||typeof TTS==="undefined"||!TTS.autoCastVoiceId)return false;
-  var seen={},pinned=false,k,nm,ch,v;
+  var seen={},pinned=false,k,nm,sub,ch,v;
   for(k in sp.s){
     nm=sp.s[k];
     if(seen[nm])continue;
     seen[nm]=1;
-    ch=_speakerChar(nm);
-    if(!ch||ch.voiceId)continue;
+    sub=_speakerVoiceSubject(nm);
+    ch=sub&&sub.char;
+    if(!sub||!ch||sub.owner.voiceId)continue;
     v=TTS.autoCastVoiceId(ch);
     if(!v)continue;
-    ch.voiceId=v;
+    sub.owner.voiceId=v;
     pinned=true;
-    console.info("[speakers] pinned voice "+v+" to "+nm+" (auto-cast, now permanent — change it on their sheet)");
+    console.info("[speakers] pinned voice "+v+" to "+nm+" (auto-cast, now permanent — change it on their NPC card)");
   }
   return pinned;
 }

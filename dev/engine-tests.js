@@ -7648,7 +7648,7 @@ function runEngineTests(R){
     if(!m2||m2.s[5]!=="Frizwick")bad.push("closed-quote variant bound unit 5 to "+((m2&&m2.s[5])||"(narrator)"));
     return bad.length?bad.join(" | "):true;
   });
-  t("#96b: first speech PINS the auto-cast pick to the sheet; assigned voices and unpinnables untouched",function(){
+  t("#96b/#174: first speech PINS the auto-cast pick; assigned voices remain untouched",function(){
     // The hash is stable but a bench edit re-deals every UNPINNED character (Ameiko changing
     // voice mid-campaign — the user's exact concern). Pinning on first speech makes the pick
     // permanent, synced (rides the sheet), and editable in the sheet's voice dropdown.
@@ -7664,10 +7664,28 @@ function runEngineTests(R){
       if(pinAutoCastVoices(sp)!==false)return "re-pinned an already-pinned character (must be a no-op)";
       delete worldState.npcs[1].charSheet.voiceId;
       worldState.npcs[1].charSheet.gender="NB";
-      if(pinAutoCastVoices(sp)!==false)return "pinned an NB character from a binary pool (guessing again)";
-      if(worldState.npcs[1].charSheet.voiceId)return "NB character got a voiceId written";
+      if(pinAutoCastVoices(sp)!==true)return "an NB character was not pinned from the complete bench";
+      var nb=worldState.npcs[1].charSheet.voiceId;
+      if(nb!=="m#1"&&nb!=="m#2")return "NB character did not use the complete bench: "+nb;
     }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
     return true;
+  });
+  t("#174: first speech auto-casts and pins a SHEETLESS roster NPC instead of using the narrator",function(){
+    makeWorld();
+    worldState.npcs=[
+      {name:"Sheriff Belor Hemlock",status:"steady",rel:"ally",pronouns:" he / him ",partyMember:false},
+      {name:"Masked Vendor",status:"watchful",rel:"unknown",partyMember:false}
+    ];
+    var oldAuto=TTS.autoCastVoiceId;
+    try{
+      TTS.autoCastVoiceId=function(ch){return ch&&ch.gender==="M"?"en_US-ryan-high":(ch&&ch.gender==="ANY"?"en_GB-alba-medium":null);};
+      var sp={n:1,s:{0:"Sheriff Belor Hemlock",1:"Masked Vendor"}};
+      if(!pinAutoCastVoices(sp))return "sheetless pin reported no change";
+      if(worldState.npcs[0].voiceId!=="en_US-ryan-high")return "voice was not persisted on the roster NPC: "+JSON.stringify(worldState.npcs[0]);
+      if(worldState.npcs[1].voiceId!=="en_GB-alba-medium")return "an unspecified NPC was not drawn from the whole bench: "+JSON.stringify(worldState.npcs[1]);
+      var vm=speakerVoiceMap({n:1,s:{0:"Sheriff Belor Hemlock"}},'"Hold there."');
+      return vm&&vm[0]==="en_US-ryan-high"?true:"sheetless speaker still resolved to narrator: "+JSON.stringify(vm);
+    }finally{TTS.autoCastVoiceId=oldAuto;}
   });
   t("#96: everything untrustworthy is DROPPED, never guessed (a wrong map is worse than none)",function(){
     _mkSpeakerWorld();
@@ -7709,13 +7727,14 @@ function runEngineTests(R){
     var ok=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
     return ok?true:"matching count was also rejected — the fuse is too eager";
   });
-  t("speakerVoiceMap: a character who LOST their voice degrades to narrator, never a wrong voice",function(){
+  t("#174: a character whose explicit voice is cleared returns to automatic casting",function(){
     _mkSpeakerWorld();
     var units=TTS._textPrep.splitSentences(_SPK_LINE,null,true);
     delete worldState.npcs[0].charSheet.voiceId;
     var vm=speakerVoiceMap({n:units.length,s:{1:"Daeris"}},_SPK_LINE);
-    var narrator=TTS.resolvePiperVoice();
-    return (!vm||!vm[1]||vm[1]===narrator)?true:"unvoiced character got: "+JSON.stringify(vm);
+    var stars=TTS.starsList(),ids=[],i;
+    for(i=0;i<stars.length;i++)ids.push(stars[i].id);
+    return vm&&ids.indexOf(vm[1])>=0?true:"cleared character was not auto-cast: "+JSON.stringify(vm);
   });
 
   // ── #57 reveal-commitment: supersession + merge hints (DOC/todo_57_reveal_commitment.md) ──
@@ -11281,6 +11300,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium#611");
       if(who.indexOf("Tess (you)")<0)return "querying by a composite missed the base-id holder: "+JSON.stringify(who);
       if(who.indexOf("Borin")<0)return "querying by a composite missed another speaker on the same model: "+JSON.stringify(who);
+      worldState.npcs.push({name:"Hemlock",voiceId:"en_US-libritts_r-medium#88"});
+      who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium");
+      if(who.indexOf("Hemlock")<0)return "a sheetless NPC assignment does not protect the base model: "+JSON.stringify(who);
       // the narrator is protected by base too (a narrator pinned to a speaker still owns the file)
       worldState={character:{name:"Tess"},npcs:[],piperVoice:"en_US-libritts_r-medium#88"};
       who=TTS._speakerTest.assignedTo("en_US-libritts_r-medium");
@@ -11341,7 +11363,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{ if(saved==null)store.del(K);else store.set(K,saved); }
     return true;
   });
-  t("#95.7: auto-cast is gender-matched and deterministic; unknown gender or an empty pool DECLINES",function(){
+  t("#174: auto-cast is gender/pronoun-matched and deterministic; NB draws without inventing a binary gender",function(){
     // Declining matters as much as picking: guessing a voice for an ungendered character is
     // exactly the grizzled-sheriff-as-young-woman failure this feature exists to remove.
     var K="tnd_speaker_stars_v1",saved=store.get(K);
@@ -11351,7 +11373,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       if(v1!=="m#1"&&v1!=="m#3")return "male character did not get a male star: "+v1;
       if(TTS.autoCastVoiceId({name:"Sheriff Hemlock",gender:"M"})!==v1)return "pick is not deterministic across calls";
       if(TTS.autoCastVoiceId({name:"Shalelu",gender:"F"})!=="m#2")return "female character did not get the female star";
-      if(TTS.autoCastVoiceId({name:"Mysterious One",gender:"NB"})!==null)return "an NB character was auto-cast from a binary pool";
+      if(TTS.autoCastVoiceId({name:"Sheriff Hemlock",pronouns:" he / him "})!==v1)return "male pronouns did not use the male pool";
+      if(TTS.autoCastVoiceId({name:"Shalelu",pronouns:"she/her"})!=="m#2")return "female pronouns did not use the female pool";
+      var nb=TTS.autoCastVoiceId({name:"Mysterious One",gender:"NB"});
+      if(nb!=="m#1"&&nb!=="m#2")return "NB character did not draw from the complete bench: "+nb;
+      var any=TTS.autoCastVoiceId({name:"Unknown Voice",gender:"ANY"});
+      if(any!=="m#1"&&any!=="m#2")return "unspecified presentation did not draw from the complete bench: "+any;
       if(TTS.autoCastVoiceId({name:"Nameless"})!==null)return "a gender-less character was auto-cast";
       store.set(K,JSON.stringify([{id:"m#2",label:"B",g:"F"}]));
       if(TTS.autoCastVoiceId({name:"Sheriff",gender:"M"})!==null)return "an empty male pool still produced a pick";

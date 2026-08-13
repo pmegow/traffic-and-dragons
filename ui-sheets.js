@@ -67,14 +67,12 @@ function rejectEpithet(owner,idx,ev){
 }
 // invOwner (#50 QOL): ""=live player sheet, "<npc name>"=live companion sheet — inventory rows
 // get a drop ×. undefined = read-only viewer (library/import preview): no drop buttons.
-// #9: per-character voice control — the AUDIO twin of the portrait, so it sits on the sheet where
-// the character is defined. Writes char.voiceId ("" = narrator default). Shown on any sheet that
-// has a character object to write to (the player always; a companion/NPC only once it HAS a
-// charSheet — a sheetless NPC stays narrator-tier by design). Reads the curated set from TTS.
+// #9/#174: per-character voice control — writes char.voiceId ("" = automatic cast). Sheetless
+// roster NPCs store the same field on their world record until a generated sheet inherits it.
 function csVoiceControlHtml(char){
   if(typeof TTS==="undefined"||typeof TTS.voices!=="function")return "";
   var vs=TTS.voices(),cur=(char&&char.voiceId)||"",i;
-  var opts="<option value=''"+(cur?"":" selected")+">Narrator voice (default)</option>";
+  var opts="<option value=''"+(cur?"":" selected")+">Automatic on first speech (default)</option>";
   /* #95 (S5): the "★ Cast voices" optgroup — the starred speaker ids from the audition satellite
      (device store tnd_speaker_stars_v1, read by TTS.starsList). Same renderer as the Voice Settings
      dropdown; "" when nothing is starred, which is the normal state. The values are ordinary
@@ -91,7 +89,7 @@ function csVoiceControlHtml(char){
   var curBase=(starHit||isComp)?null:((typeof TTS.voiceBaseId==="function")?TTS.voiceBaseId(cur):cur);
   for(i=0;i<vs.length;i++){opts+="<option value='"+escHtml(vs[i].id)+"'"+(vs[i].id===curBase?" selected":"")+">"+escHtml(vs[i].label)+"</option>";}
   return "<div class='cs-voice-row' style='display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--t1);'>"
-    +"<span title='This character speaks in this voice (rides exports and library imports)'>&#128266; Voice</span>"
+    +"<span title='This character speaks in this voice; assigned voices are saved with the campaign'>&#128266; Voice</span>"
     +"<select id='cs-voice-sel' style='flex:1;min-width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:5px 8px;cursor:pointer;'>"+opts+"</select>"
     +"<button id='cs-voice-test' type='button' style='flex-shrink:0;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;white-space:nowrap;'>&#9654; Test</button>"
     +"</div>";
@@ -107,7 +105,7 @@ function csWireVoice(char){
        but TTS.releaseVoiceIfUnused only deletes it when NO other character and NOT the narrator still
        use it (char.voiceId is already updated above, so this char no longer counts). */
     if(prev&&prev!==v&&typeof TTS!=="undefined"&&typeof TTS.releaseVoiceIfUnused==="function")TTS.releaseVoiceIfUnused(prev);
-    if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"narrator default"));
+    if(typeof showToast==="function")showToast("&#128266; Voice: "+(v&&typeof TTS!=="undefined"?TTS.voiceLabel(v):"automatic on next speech"));
   });
   // #9: Test button — auditions the CURRENTLY-selected voice ("" → narrator). First test of an
   // undownloaded voice triggers its one-time Piper download, same as the Voice Settings Test.
@@ -379,11 +377,12 @@ async function generateNpcSheet(name,doneCb){
     // their very first line. The auto-cast hash is stable, but a bench edit would re-deal an
     // unpinned voice mid-campaign. A regenerate carried the prior pin just above; only a truly
     // fresh sheet draws a new one. The player can always re-pin via the sheet's voice dropdown.
+    if(!sheet.voiceId&&wsNpc.voiceId)sheet.voiceId=wsNpc.voiceId;
     if(!sheet.voiceId&&typeof TTS!=="undefined"&&TTS.autoCastVoiceId){var _vp=TTS.autoCastVoiceId(sheet);if(_vp)sheet.voiceId=_vp;}
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
     relationshipMigrateSheet(sheet,wsNpc.name);
-    wsNpc.charSheet=sheet;
+    wsNpc.charSheet=sheet;if(wsNpc.voiceId)delete wsNpc.voiceId;
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
   }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}
@@ -503,7 +502,7 @@ function showNpcSheet(name){
   var modal=modalShell("npc-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"+(isParty&&sheet?"<div style='display:flex;gap:6px;flex-wrap:wrap;align-items:center;'><button id='npc-export-btn' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--bg2);color:var(--t1);cursor:pointer;'>Export Character</button><button id='npc-libupd-btn' title='Pull this companion&#39;s identity fields (appearance, backstory, portrait…) from their character-library copy — progression is never touched' style='font-size:11px;font-family:var(--font);padding:4px 10px;border:1px solid var(--brd);border-radius:var(--r);background:"+(storageAdapter.isServerMode()?"var(--bg2)":"var(--bg3)")+";color:"+(storageAdapter.isServerMode()?"var(--t1)":"var(--t2)")+";cursor:pointer;'>&#8635; Update from library</button></div>":"<span></span>")+"<button id='npc-x' style='background:none;border:none;color:var(--t2);font-size:24px;cursor:pointer;padding:0 4px;line-height:1;'>&#215;</button></div>"
     +"<div class='cs-hero'><div style='position:relative;flex-shrink:0;'>"+avatarHtml+"</div>"
-    +"<div class='cs-hero-info'>"+heroInfo+(sheet?csVoiceControlHtml(sheet):"")/* #9: voice only when a sheet exists to hold it (sheetless NPC = narrator tier) */+"</div></div>"
+    +"<div class='cs-hero-info'>"+heroInfo+(wsNpc?csVoiceControlHtml(sheet||wsNpc):"")+"</div></div>"
     +sheetSections
     +(sheetSections?"<div style='height:1px;background:var(--brd);margin:18px 0;'></div>":"")
     +npcSections
@@ -519,7 +518,7 @@ function showNpcSheet(name){
     saveAll();showNpcSheet(name);
   });});}
   csWireToggles(modal);
-  if(sheet)csWireVoice(sheet);/* #9: writes the companion/NPC charSheet.voiceId */
+  if(wsNpc)csWireVoice(sheet||wsNpc);
 
   // ── PC/NPC toggle (TODO #1 P1, D1/D8) ─────────────────────────────────────
   if(document.getElementById("npc-tog-pc")){
