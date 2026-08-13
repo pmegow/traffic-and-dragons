@@ -58,9 +58,12 @@ ol li,ul li{margin:6px 0;}
 <tr><th>Turn</th><th>Emitted</th><th>Landed</th><th>Lost</th></tr>
 <tr><td class="num">t1742</td><td>NPC-death · COMBAT_END · XP · QUEST · GOLD</td><td>nothing — envelope quarantined</td><td class="loss">2200 XP · 1500 gp · quest completion</td></tr>
 <tr><td class="num">t1760</td><td>GOLD · QUEST · QUEST_STEP · XP</td><td>only <code>Sub: Justice Court — Ironbriar's Chambers</code>, <code>NPC: Ironbriar</code></td><td class="loss">all four — the head-delivery payoff</td></tr>
-<tr><td class="num">t1773</td><td>ITEM_GAINED · QUEST · XP</td><td>the warded rings</td><td class="loss">QUEST</td></tr>
 <tr><td class="num">t1782</td><td>ARC_COMPLETE · QUEST · XP · GOLD</td><td>only <code>Arc complete: Mokmurian's Army</code></td><td class="loss">QUEST · XP · GOLD</td></tr>
 </table>
+
+<p><strong>Window totals</strong> (t1743–t1782, cap-aware recount): <span class="num">24</span> reward-class operations emitted · <span class="num">17</span> landed · <span class="num">7</span> discarded — XP 3/1, GOLD 7/5, QUEST 4/2, QUEST_STEP 3/2, ITEM_GAINED 7/7. Every discard falls on t1760 and t1782; with t1742's five receipt operations, the incident's full toll is <strong>12 discarded operations across 3 turns</strong>. The gold ledger for the whole window is stark: the only five gold mutations that landed are all <em>spends</em> (net <span class="num">−1247</span> gp) — zero income landed in 40 turns, across two scenes that narrate a bounty being paid.</p>
+
+<p><strong>A correction from the recount, kept here deliberately.</strong> An earlier draft listed t1773 as a fourth loss. It is not one: <code>api.js:1771</code> caps each ring entry's mutation labels at <code>slice(0,10)</code>, t1773 is the one turn in the window that hit the cap (a stack of warded-ring grants), and its quest label was <em>truncated out of the ring</em>, not discarded — the cap-aware recount shows all three of its reward tags landed. Anyone repeating this emitted-vs-landed method must check the cap first; it manufactures exactly this false positive.</p>
 
 <p><strong>Reading note for the reviewer.</strong> The t1742 numbers are exact — quoted from the receipt. The t1760/t1773/t1782 losses are established from the <em>absence</em> of a mutation label where a tag name was recorded; the ring stores labels, not amounts, so <em>how much</em> was lost on those turns is unrecoverable. The <em>fact</em> of the loss is not in doubt: §2b gives the code path that strips them, and t1760 is unambiguous on its own — the only mutations that turn are a sub-location move and an NPC touch.</p>
 
@@ -115,6 +118,21 @@ if(refusalSubject&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinar
 </ul>
 
 <p>Because the conflict cannot be resolved (below), this is a <em>permanent, spreading credit blackout</em> attached to a proper noun the campaign will keep saying.</p>
+
+<h3>2b-ii · The blackout, proven by controlled replay <span class="badge b-confirmed">Confirmed</span></h3>
+<p>The reach of the substring gate is not left as a reading of the code. A four-arm replay was run against the real save state (in-memory clone per arm, read-only; engine v1.606), each arm applying the <em>identical</em> tag payload — <code>[QUEST:&lt;title&gt;|completed][XP:2200][GOLD:+1500]</code> — varying only the quest title and one prose noun:</p>
+
+<table>
+<tr><th>Arm</th><th>Prose says</th><th>Quest completed</th><th>Result</th></tr>
+<tr><td class="num">1</td><td>"Mokmurian"</td><td>Mokmurian's Army</td><td class="loss">DISCARDED — the real t1760/t1782 shape</td></tr>
+<tr><td class="num">2</td><td>"the giant lord"</td><td>Mokmurian's Army</td><td class="loss">DISCARDED — the quest <em>title</em> alone trips it</td></tr>
+<tr><td class="num">3</td><td>"Mokmurian"</td><td>Whispers of Jorgenfist</td><td class="loss">DISCARDED — prose alone trips it, <strong>unrelated quest loses its rewards</strong></td></tr>
+<tr><td class="num">4</td><td>"the giant lord"</td><td>Whispers of Jorgenfist</td><td>LANDED — gold 2160→3660, xp 81800→84000, quest archived completed</td></tr>
+</table>
+
+<p>Every discard arm logged the same console line: <code>[identity] quest/reward consequence refused - response carries an unresolved or just-refused victim Mokmurian</code>. Arm 3 is the one that settles the worst-case question: a <em>different, legitimate</em> quest's completion and rewards are destroyed merely because the narration mentioned the conflicted name. The blackout is campaign-wide, not quest-scoped.</p>
+
+<p>One bound on the nudge side: the conflict note re-fires on a ≥3-turn throttle (<code>api.js:722</code>) with <strong>no attempt cap</strong> — which is how it reached 14 firings by t1781 and why it will keep firing indefinitely.</p>
 
 <h3>2c · Why it never healed</h3>
 <p>Two properties compound. First, the entry-13 hardening states that quarantined receipts <strong>never</strong> retire (unlike committed ones, which retire <code>CANON_TXN_RETIRE_TURNS</code>=12 turns behind a successful summary). Second, the refusal writes an <code>identityConflicts</code> row, which drives a per-turn nudge. Forty turns later that row is still live:</p>
@@ -195,17 +213,18 @@ if(refusalSubject&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinar
 <li><strong>Make quarantines expire or be repairable.</strong> A permanently poisoned id with no operator surface is the structural half of this. Options: retire quarantined receipts after N successful summaries, or surface them in a repair tool (the <code>map_cleanup.html</code> precedent).</li>
 <li><strong>Make refusals loud.</strong> A toast and a persistent marker when an envelope is refused, so the player sees the engine dropped a reward at the moment it happens rather than inferring it from broken fiction 40 turns later.</li>
 <li><strong>Bound unsatisfiable nudges.</strong> If a conflict's attempt count passes a threshold with no state change, stop asking and escalate to the player instead of the GM.</li>
-<li><strong>Repair this campaign.</strong> Independently of the fix: credit 2200 XP and 1500 gold, complete "Mokmurian's Army", and clear the conflict row. The Sync modal can do the XP/gold by hand today.</li>
+<li><strong>Repair this campaign.</strong> Independently of the fix: credit 2200 XP and 1500 gold, complete "Mokmurian's Army", and clear the conflict row. The Sync modal can do the XP/gold by hand today. The level-boundary question is answered: Ammut sits at <span class="num">81800</span> XP against an L11 gate of <span class="num">85000</span>, so the credit lands at <span class="num">84000</span> — <em>no level-up fires</em>, and the t1742 award alone closes 69% of the remaining gap. (Measured by the control-arm replay: 81800→84000, 2160→3660 gp, quest archived completed.)</li>
 </ol>
 
 <h2>7 · What a reviewer should attack first</h2>
 <ol>
 <li><strong>The causal chain from refusal to the body-double narration (§3a).</strong> The most consequential claim in the report. The two contradictory inputs are now documented facts, but that the model reconciled <em>those particular inputs</em> into <em>that particular story</em> remains an inference. The alternative worth testing: that a proxy/body-double idea already existed as a genuine plot beat before t1742 and merely collided with the refusal. Turns 1640–1742 would settle it.</li>
-<li><strong>Whether the §2b cascade is the intended reading of <code>identity.js:858</code>.</strong> I am confident about what the code does; I am less confident it is doing what entry-13 meant. The comment says "a death REFUSED in THIS response", but the predicate reaches every unresolved conflict, not just this response's refusal. If that widening was deliberate, the rationale should be recovered before it is narrowed.</li>
-<li><strong>The unbounded-blackout arithmetic.</strong> §2b claims unrelated rewards sharing a turn are destroyed. That follows from <code>_w2StripRewards</code> operating on the whole response, but I did not find a turn in this save that proves it — the three observed cases are all Mokmurian's own. A constructed replay would confirm or kill it.</li>
-<li><strong>Whether <code>ARC_COMPLETE</code> should have survived</strong> a response whose quest completion was de-authorised (§4). It is outside the stripped set, so the arc closed while its quest stayed active.</li>
-<li><strong>The repair path.</strong> Remedy 6 credits the player by hand. Someone should decide whether crediting 2200 XP pushes Ammut through a level boundary and what that does to the companion XP mirror.</li>
+<li><strong>Whether the §2b cascade is the intended reading of <code>identity.js:858</code>.</strong> I am confident about what the code does — the four-arm replay removes any doubt about behaviour — but less confident it is doing what entry-13 <em>meant</em>. The comment says "a death REFUSED in THIS response", while the predicate reaches every unresolved conflict, forever. If that widening was deliberate, the rationale should be recovered before it is narrowed.</li>
+<li><strong>Whether <code>ARC_COMPLETE</code> should have survived</strong> a response whose quest completion was de-authorised (§4). It is outside the stripped set, so the arc closed while its quest stayed active — the skeleton and the quest log now disagree about the same arc.</li>
+<li><strong>The remedy fork itself.</strong> Remedies 1 and 2 pull in opposite directions (widen the allow-list vs. change refusal scope), and both touch the W2 receipt/idempotence contract. That is the design conversation this report exists to feed, not to pre-empt.</li>
 </ol>
+
+<p><em>Resolved since the first draft, by controlled replay:</em> the unrelated-quest blackout is proven, not inferred (§2b-ii arm 3); the repair's level-boundary question is answered (remedy 6: 84000 &lt; 85000, no level-up); and the t1773 "loss" was a false positive of the ring's 10-label cap (§1).</p>
 
 <h2>8 · What this save cannot tell us <span class="badge b-gap">Gap</span></h2>
 <ul>
@@ -215,7 +234,7 @@ if(refusalSubject&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinar
 </ul>
 
 <div class="footer">
-Prepared from <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1782.tnd</code> (exported 2026-08-12 22:32). All quotes verbatim from that save's transcript, <code>tagLog</code>, <code>canonTxns</code> and <code>identityConflicts</code>. No code was changed in the course of this analysis. Engine at time of writing: v1.605.
+Prepared from <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1782.tnd</code> (exported 2026-08-12 22:32). All quotes verbatim from that save's transcript, <code>tagLog</code>, <code>canonTxns</code> and <code>identityConflicts</code>; the §2b-ii replay ran read-only against in-memory clones of the same save. No code was changed in the course of this analysis. Engine at time of writing: v1.605–v1.606 (a parallel session shipped unrelated fixes mid-analysis).
 </div>
 
 </body>
