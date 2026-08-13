@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mature-game drift — the quest ledger at t1782</title>
+<style>
+:root{--bg:#111;--panel:#181818;--t1:#ddd;--t2:#999;--acc:#b8935a;--good:#7aa86a;--warn:#c9a227;--bad:#b05252;}
+body{background:var(--bg);color:var(--t1);font:15px/1.6 Georgia,serif;max-width:900px;margin:0 auto;padding:28px 20px 80px;}
+h1{color:var(--acc);font-size:1.5em;margin:0 0 4px;}
+h2{color:var(--acc);font-size:1.15em;margin:34px 0 10px;border-bottom:1px solid #2a2a2a;padding-bottom:5px;}
+h3{color:var(--t1);font-size:1em;margin:20px 0 6px;}
+.sub{color:var(--t2);font-size:.9em;margin-bottom:24px;}
+.badge{display:inline-block;border-radius:12px;padding:2px 10px;font:bold .78em ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);}
+.b-confirmed{background:#182215;border:1px solid var(--good);}
+.b-inference{background:#221f0a;border:1px solid var(--warn);}
+.b-gap{background:#221313;border:1px solid var(--bad);}
+.tldr{background:var(--panel);border:1px solid var(--acc);border-radius:12px;padding:14px 18px;margin:18px 0;}
+blockquote{background:var(--panel);border-left:3px solid var(--acc);margin:10px 0;padding:8px 14px;color:#c9c2b4;font-style:italic;}
+blockquote .who{display:block;font-style:normal;color:var(--t2);font-size:.8em;margin-top:4px;font-family:ui-monospace,Consolas,monospace;}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.92em;}
+th,td{border:1px solid #2a2a2a;padding:6px 10px;text-align:left;vertical-align:top;}
+th{color:var(--acc);background:#161513;font-weight:normal;font-variant:small-caps;}
+code{font:.88em ui-monospace,Consolas,monospace;color:#c9a97a;background:#1d1a15;padding:1px 5px;border-radius:4px;}
+pre{background:#161513;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;overflow-x:auto;font:.84em ui-monospace,Consolas,monospace;color:#c9a97a;}
+.num{font-family:ui-monospace,Consolas,monospace;}
+ol li,ul li{margin:6px 0;}
+.footer{margin-top:50px;color:var(--t2);font-size:.82em;border-top:1px solid #2a2a2a;padding-top:12px;}
+.loss{color:var(--bad);font-weight:bold;}
+</style>
+</head>
+<body>
+
+<h1>Mature-game drift — the quest ledger at t1782</h1>
+<div class="sub">Campaign: Rise of the Runelords (Ammut) · save <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1782.tnd</code> · window t1750–t1782 (root cause reaches back to t1742) · engine v1.602–v1.605 era · prepared for Fable review · 2026-08-12</div>
+
+<div class="tldr">
+<strong>TLDR:</strong> All three symptoms the owner reported — quests <em>forgotten</em>, <em>misremembered</em>, and <em>uncredited</em> — are one incident with one cause. Mokmurian died at t1648 and the death is in canon. At t1742 the GM tried to close the arc on it, emitting the death re-assertion, the combat close, <span class="num">2200</span> XP, <span class="num">1500</span> gold and the quest completion inside one <code>CANON_TXN</code> envelope. The envelope's allow-list (<code>identity.js:827</code>) does not contain <code>COMBAT_END</code> — so the preflight refused <strong>the entire envelope</strong>, rewards included, and quarantined the receipt. Quarantined receipts never retire, so the conflict row it created is still unresolved <span class="num">40</span> turns later, having re-fired <span class="num">14</span> times with no response the GM could write to satisfy it. That row then acts as a <em>name-keyed blackout</em> (<code>identity.js:858</code>): while it lives, any response containing the string "mokmurian" that completes a quest loses its quest tags <em>and every XP, gold and item grant in that response</em> — which is why the arc's payoff scene at t1760 paid nothing. Two things then happened that a player can see: the GM rationalised the refused death into the fiction — <em>"Mokmurian himself walked out of that mountain alive… the slain leader was only a proxy"</em> (t1781) — and, when the player pushed back out of character, the GM answered by <strong>explaining the engine's internals inside the story</strong> (t1782). The bookkeeping did not just fail to record the victory; it overwrote it.
+</div>
+
+<h2>1 · What the player is owed <span class="badge b-confirmed">Confirmed</span></h2>
+
+<p>The quarantined receipt is still in the save and lists, verbatim, every operation that was thrown away:</p>
+
+<pre>{"id":"mokmurian_true_death","claim":"npc-death","subject":"Mokmurian",
+ "evidence":"-","quest":"Mokmurian's Army","status":"quarantined","turn":1742,
+ "operations":["NPC:mokmurian|dead|enemy#1",
+               "[COMBAT_END:victory]#1",
+               "XP:2200#1",
+               "QUEST:mokmurian's army|completed|#1",
+               "GOLD:1500#1"],
+ "reason":"unsupported operation COMBAT_END inside npc-death transaction",
+ "quarantinedTurn":1742}</pre>
+
+<p>The <code>#137</code> tag-provenance ring (<code>worldState.tagLog</code>, covering t1743–t1782) shows the same class of loss recurring after the original refusal. A tag name present in a turn's <code>tags</code> with no corresponding entry in that turn's mutation labels is an operation that was emitted and discarded:</p>
+
+<table>
+<tr><th>Turn</th><th>Emitted</th><th>Landed</th><th>Lost</th></tr>
+<tr><td class="num">t1742</td><td>NPC-death · COMBAT_END · XP · QUEST · GOLD</td><td>nothing — envelope quarantined</td><td class="loss">2200 XP · 1500 gp · quest completion</td></tr>
+<tr><td class="num">t1760</td><td>GOLD · QUEST · QUEST_STEP · XP</td><td>only <code>Sub: Justice Court — Ironbriar's Chambers</code>, <code>NPC: Ironbriar</code></td><td class="loss">all four — the head-delivery payoff</td></tr>
+<tr><td class="num">t1773</td><td>ITEM_GAINED · QUEST · XP</td><td>the warded rings</td><td class="loss">QUEST</td></tr>
+<tr><td class="num">t1782</td><td>ARC_COMPLETE · QUEST · XP · GOLD</td><td>only <code>Arc complete: Mokmurian's Army</code></td><td class="loss">QUEST · XP · GOLD</td></tr>
+</table>
+
+<p><strong>Reading note for the reviewer.</strong> The t1742 numbers are exact — quoted from the receipt. The t1760/t1773/t1782 losses are established from the <em>absence</em> of a mutation label where a tag name was recorded; the ring stores labels, not amounts, so <em>how much</em> was lost on those turns is unrecoverable. The <em>fact</em> of the loss is not in doubt: §2b gives the code path that strips them, and t1760 is unambiguous on its own — the only mutations that turn are a sub-location move and an NPC touch.</p>
+
+<p>t1760 is the payoff scene for the whole arc. The player delivers the head and is paid nothing:</p>
+<blockquote>"You peel back the oiled wrap yourself, giving him the full unlovely truth of it, Mokmurian's dead eyes clouded and sunken, iron collar still fused to a slab of grey stone-giant neck… <strong>'You actually did it.'</strong>"<span class="who">t1760 — GM narration. Emitted that turn: GOLD, QUEST, QUEST_STEP, XP. Applied: none of them.</span></blockquote>
+
+<h2>2 · The mechanism <span class="badge b-confirmed">Confirmed</span></h2>
+
+<p><code>identity.js:827</code>, <code>_w2TxnOpReason</code> — the allow-list a <code>CANON_TXN</code> envelope is preflighted against:</p>
+
+<pre>var allowed = meta.claim==="npc-death"
+  ? {SCENE_DEATH:1, NPC:1, QUEST_STEP:1, QUEST:1, XP:1, GOLD:1, ITEM_GAINED:1}
+  : {QUEST_STEP:1, QUEST:1, XP:1, GOLD:1, ITEM_GAINED:1};
+...
+name=_w2TagName(ops[i]);
+if(!allowed[name]) return "unsupported operation "+name+" inside "+meta.claim+" transaction";</pre>
+
+<p>The W2 contract (CLAUDE.md §"#168 W2 referential integrity") is deliberately all-or-nothing: <em>"applyMuts preflights the whole envelope… and commits state plus a semantic operation receipt only if every handler succeeds."</em> That is the right design for its purpose — it stops a half-applied death leaving a corpse with no quest consequence. But it makes the allow-list load-bearing in a way it was not sized for: <strong>any</strong> tag outside the list voids the death and every reward with it.</p>
+
+<p>And <code>COMBAT_END</code> is precisely the tag a boss kill produces. The player killed Mokmurian in combat; killing the last living foe is what ends a combat; the GM emitted <code>[COMBAT_END:victory]</code> as it is instructed to. The engine then refused the death, the completion, the XP and the gold <em>because the GM correctly closed the fight</em>.</p>
+
+<h3>2b · The cascade — why three more turns lost their rewards <span class="badge b-confirmed">Confirmed</span></h3>
+
+<p>The single refusal at t1742 is not the whole loss. The refusal wrote a row into <code>worldState.identityConflicts</code>, and a second rule keys off that row for as long as it stays unresolved. <code>identity.js:858</code>:</p>
+
+<pre>var conflict=w2TextTouchesConflict(ordinary),
+    refusalSubject=conflict?conflict.subject:refusedVictim;
+if(refusalSubject&&(/\[QUEST_STEP:[^\]]+\|(?:true|done|1|yes|x)\]/i.test(ordinary)
+                  ||/\[QUEST:[^|\]]+\|(?:completed?|done|finished|failed)/i.test(ordinary))){
+  ordinary=ordinary.replace(/\[QUEST_STEP:[^\]]+\]/g,"").replace(/\[QUEST:[^\]]+\]/g,"");
+  ordinary=_w2StripRewards(ordinary);   // strips XP, GOLD and ITEM_GAINED
+  console.warn("[identity] quest/reward consequence refused - response carries an "
+             + "unresolved or just-refused victim "+refusalSubject);
+}</pre>
+
+<p>And the predicate it depends on, <code>identity.js:783</code>, is a plain substring test against every unresolved conflict:</p>
+
+<pre>function w2TextTouchesConflict(text){
+  var q=worldState&&worldState.identityConflicts||[],low=String(text||"").toLowerCase(),i;
+  for(i=0;i&lt;q.length;i++)
+    if(!q[i].resolved &amp;&amp; q[i].subject!=="unknown" &amp;&amp; low.indexOf(String(q[i].subject).toLowerCase())&gt;=0)
+      return q[i];
+  return null;
+}</pre>
+
+<p>So while that one row lives, <strong>any</strong> response whose text contains the string <code>mokmurian</code> and which completes a quest or ticks an objective has its quest tags stripped <em>and</em> <code>_w2StripRewards</code> applied to the whole response. That is t1760, t1773 and t1782 exactly, and it explains why the arc's payoff paid nothing.</p>
+
+<p>Two properties make this materially worse than a single lost reward:</p>
+<ul>
+<li><strong>It is not scoped to the poisoned quest.</strong> <code>_w2StripRewards</code> removes every <code>XP</code>, <code>GOLD</code> and <code>ITEM_GAINED</code> in the response, so a reward for an <em>unrelated</em> quest that happens to share a turn with the word "Mokmurian" is destroyed too.</li>
+<li><strong>It is a substring match on a name.</strong> Any character whose name contains a conflicted subject's name is swept in with it.</li>
+</ul>
+
+<p>Because the conflict cannot be resolved (below), this is a <em>permanent, spreading credit blackout</em> attached to a proper noun the campaign will keep saying.</p>
+
+<h3>2c · Why it never healed</h3>
+<p>Two properties compound. First, the entry-13 hardening states that quarantined receipts <strong>never</strong> retire (unlike committed ones, which retire <code>CANON_TXN_RETIRE_TURNS</code>=12 turns behind a successful summary). Second, the refusal writes an <code>identityConflicts</code> row, which drives a per-turn nudge. Forty turns later that row is still live:</p>
+
+<pre>{"subject":"Mokmurian","handle":"-",
+ "reason":"unsupported operation COMBAT_END inside npc-death transaction",
+ "turn":1742,"lastTurn":1742,"attempts":14,"resolved":false,"lastFired":1781}</pre>
+
+<p><span class="badge b-gap">Open question</span> <strong>Fourteen attempts, zero resolutions.</strong> The nudge asks the GM to resolve a conflict whose cause is a <em>tag-shape violation in the engine's own preflight</em>. No prose, no tag, and no player action can satisfy it. This is the project's "permanent noise" class in its most damaging form: not merely a note that will not stop, but one the model keeps trying to obey.</p>
+
+<h2>3 · What the player saw <span class="badge b-confirmed">Confirmed</span></h2>
+
+<p>This is the part that matters most, and it is the reason this is filed as drift rather than as a missing-reward bug. The refusal did not stay in the bookkeeping layer. It reached the fiction.</p>
+
+<h3>3a · The victory was narrated away (t1781)</h3>
+<blockquote>"Jorgenfist is behind you. Mokmurian's head bought Ironbriar's attention and a season's grace for Sandpoint, but the giant lord's death didn't end the threat the way you'd hoped, not cleanly. <strong>Mokmurian himself walked out of that mountain alive when the courier's report proved the slain leader was only a proxy</strong>, and the horde beneath the Fogscars remains a live question."<span class="who">t1781 — GM narration</span></blockquote>
+
+<p>Two mutually contradictory facts in one paragraph: Mokmurian's <em>head</em> was delivered to Ironbriar, <em>and</em> Mokmurian walked out alive because the corpse was a body double. That is not a model failing to recall — it is a model reconciling two irreconcilable inputs.</p>
+
+<p><strong>And the engine really did serve it both.</strong> <span class="badge b-confirmed">Confirmed</span> The death is recorded in canon and has been since long before the refusal:</p>
+
+<pre>memory.npcs["Mokmurian"] = {dead:1648, events:[
+  {turn:1652, note:"Body posed to look asleep at his desk after death, with three
+                    Thassilonian tablets taken from him before the party fled"}]}</pre>
+
+<p>So at t1781 the prompt carried <em>"Mokmurian: DECEASED (t1648)"</em> from the roster and, simultaneously, an identity-conflict note in its fourteenth firing saying that same death had no valid record. The body-double is the only story that makes both true. This reframes the incident: the engine did not merely fail to credit a kill — <strong>it held two contradictory positions on the same fact and handed the model the job of reconciling them</strong>.</p>
+
+<p>It also disposes of an anomaly worth stating plainly, since it looked like a second bug: <code>dead=1648</code> is <em>not</em> a mis-scoped write. The kill happened around t1645–1648 (<em>"'Mokmurian it is,' you say. 'Cut the head off the snake.'"</em> — t1645) and was stamped correctly then. What failed at t1742 was a <em>later</em> envelope re-asserting that death in order to close the quest and pay it out — which is why the receipt is named <code>mokmurian_true_death</code>. The death was never in doubt in the data; only the credit was.</p>
+
+<h3>3b · The player had to correct the engine, out of character (t1781)</h3>
+<blockquote>"GM: The wizard is absolutely dead, his head was delivered to ironbriar."<span class="who">t1781 — the player, in the OOC register</span></blockquote>
+
+<h3>3c · The engine's internals appeared in the story (t1782)</h3>
+<blockquote>"Good, the bookkeeping matches the story. Mokmurian's death stays exactly as you narrated it… I won't restate that thread as unresolved or re-litigate the transaction; <strong>the note above was the engine flagging a technical write issue on its own end</strong>, not a request to change the fiction… I'll leave the Frizwick bond as it currently reads… <strong>that note was a stale/unconfirmed proposal</strong> from earlier and you haven't repeated it now."<span class="who">t1782 — GM response, opening</span></blockquote>
+
+<p><code>ENGINE_NOTES_PROTOCOL</code> (api.js) is explicit: <em>"The narrative must read as if the notes do not exist — never acknowledge a note, a tag, or the act of checking in the story text."</em> Here the GM discusses the note, the transaction, a second unrelated stale proposal about Frizwick's bond, and its own reasoning about which notes to obey — as the player-facing text of a turn. The protocol did not fail randomly; it failed under sustained pressure from a note that could not be satisfied.</p>
+
+<h2>4 · The live state at t1782 <span class="badge b-confirmed">Confirmed</span></h2>
+
+<p>The quest the receipt would have completed is still open, and its objective still asks the player to go and find out something they resolved forty turns ago:</p>
+
+<table>
+<tr><th>Quest</th><th>Status</th><th>Objective</th></tr>
+<tr><td>Mokmurian's Army</td><td><code>active</code> (started t1698)</td><td>"Confirm Mokmurian's current strength and whether he is splitting his forces or holding at Jorgenfist" — <em>unchecked</em></td></tr>
+<tr><td>Whispers of Jorgenfist</td><td><code>active</code> (started t1686)</td><td>"Learn whether the leaderless giant army at Jorgenfist is regrouping, scattering, or marching south"</td></tr>
+<tr><td>Sugar War</td><td><code>active</code> (started t1679)</td><td>heist objective 1 done, objective 2 open</td></tr>
+<tr><td>The Sealed Laboratory</td><td><code>active</code> (started t1737)</td><td>Runeforge search — objective filed cleanly at t1747</td></tr>
+<tr><td>The Corwyn Inquiry</td><td><code>offered</code> (t1761)</td><td>—</td></tr>
+</table>
+
+<p>Note the divergence at t1782: <code>ARC_COMPLETE</code> landed (<code>Arc complete: Mokmurian's Army</code>) while the <code>QUEST</code> completion in the same response did not. The skeleton's arc lifecycle and the quest log are now out of step — the arc is closed, the quest that names it is active. <span class="badge b-inference">Inference</span> This looks like the entry-13 rule that a refused death de-authorises the same response's quest/reward tags, with <code>ARC_COMPLETE</code> outside that envelope and therefore surviving. Worth confirming against the handler order.</p>
+
+<h2>5 · Defect classes, separated from the incident</h2>
+
+<p>The single incident is fixable in a line. These are the classes a reviewer should weigh, because they will produce different incidents next month.</p>
+
+<h3>C1 · The envelope allow-list is a whitelist over an open vocabulary <span class="badge b-confirmed">Confirmed</span></h3>
+<p>Seven tags are permitted inside a death envelope out of a vocabulary of roughly fifty-seven. Every other tag a natural boss-death response might carry — <code>COMBAT_END</code>, and plausibly <code>ENEMY_SLAIN</code>, <code>LOCATION_STATE</code>, <code>CORE_MEMORY</code>, <code>STORY_BEAT</code>, <code>LORE</code>, <code>DECISION</code>, <code>NPC_NOTE</code>, <code>FUTURE_EVENT_RESOLVED</code>, <code>TIME_ADVANCE</code>, <code>CONDITION_REMOVED</code> — is a landmine that voids the death and its rewards. The design assumed the envelope would contain only the death and its direct consequences; the GM writes whole turns.</p>
+
+<h3>C2 · A validation failure is silent to the player and permanent to the campaign <span class="badge b-confirmed">Confirmed</span></h3>
+<p>The refusal produced no toast, no visible marker, and no entry the player could act on. The only player-visible consequence was the fiction going wrong, forty turns later, in a way that reads as the GM being forgetful rather than the engine being stuck. Combined with "quarantined receipts never retire", a single malformed envelope is a permanent campaign condition. Contrast the project's own standard elsewhere: <em>"failures should be loud, visible, and attributable."</em></p>
+
+<h3>C3 · An unsatisfiable nudge degrades the prose <span class="badge b-confirmed">Confirmed</span></h3>
+<p>The nudge fired 14 times for a condition no GM output could clear, and the GM eventually answered it in the story. Every engine note should have the property that <em>some</em> response satisfies it; a note whose cause is an engine-side shape violation does not. This is a generalisation of the "permanent noise" rule the project already applies to <code>buildSayComplianceNudge</code>.</p>
+
+<h3>C4 · Refusal semantics let bookkeeping overwrite canon <span class="badge b-confirmed">Confirmed</span></h3>
+<p>The most serious class, and the one I would put in front of Fable first. The W2 envelope exists to protect canon from unsupported writes. In this incident it did the opposite: the engine held a valid death record (<code>dead=1648</code>) and an unresolved conflict asserting that death had no valid record, served both to the model in the same prompt, and the model's only available reconciliation was to <em>un-kill the boss in the fiction</em>. A guard that can cause the corruption it exists to prevent needs its failure mode designed, not just its success path.</p>
+
+<h3>C5 · A conflict row is an unbounded, name-keyed blackout <span class="badge b-confirmed">Confirmed</span></h3>
+<p>Established in §2b. One unresolved row disables quest completion and <em>all</em> reward application in any response containing that subject's name as a substring — including rewards belonging to unrelated quests. The blast radius is not the failed operation; it is every future turn that says the name. In a campaign whose central antagonist is the conflicted subject, that is most of them.</p>
+
+<h2>6 · Candidate remedies — <em>not implemented</em></h2>
+<p>No code has been changed. These are for the review conversation.</p>
+
+<ol>
+<li><strong>Widen the allow-list, or invert it.</strong> Smallest fix: add <code>COMBAT_END</code> (and audit the rest of the vocabulary for the same class). Better: treat the envelope as governing only the <em>identity-bearing</em> operations and let unrelated tags in the same response apply normally, instead of voiding the envelope. Risk: the current all-or-nothing semantics are what make replay idempotent — loosening needs care against the #168 receipt contract.</li>
+<li><strong>Refuse the operation, not the response.</strong> If an envelope carries a tag outside the list, strip that tag and warn, rather than quarantining the death and its rewards. Risk: changes the meaning of a receipt; needs the W2 tests re-derived.</li>
+<li><strong>Make quarantines expire or be repairable.</strong> A permanently poisoned id with no operator surface is the structural half of this. Options: retire quarantined receipts after N successful summaries, or surface them in a repair tool (the <code>map_cleanup.html</code> precedent).</li>
+<li><strong>Make refusals loud.</strong> A toast and a persistent marker when an envelope is refused, so the player sees the engine dropped a reward at the moment it happens rather than inferring it from broken fiction 40 turns later.</li>
+<li><strong>Bound unsatisfiable nudges.</strong> If a conflict's attempt count passes a threshold with no state change, stop asking and escalate to the player instead of the GM.</li>
+<li><strong>Repair this campaign.</strong> Independently of the fix: credit 2200 XP and 1500 gold, complete "Mokmurian's Army", and clear the conflict row. The Sync modal can do the XP/gold by hand today.</li>
+</ol>
+
+<h2>7 · What a reviewer should attack first</h2>
+<ol>
+<li><strong>The causal chain from refusal to the body-double narration (§3a).</strong> The most consequential claim in the report. The two contradictory inputs are now documented facts, but that the model reconciled <em>those particular inputs</em> into <em>that particular story</em> remains an inference. The alternative worth testing: that a proxy/body-double idea already existed as a genuine plot beat before t1742 and merely collided with the refusal. Turns 1640–1742 would settle it.</li>
+<li><strong>Whether the §2b cascade is the intended reading of <code>identity.js:858</code>.</strong> I am confident about what the code does; I am less confident it is doing what entry-13 meant. The comment says "a death REFUSED in THIS response", but the predicate reaches every unresolved conflict, not just this response's refusal. If that widening was deliberate, the rationale should be recovered before it is narrowed.</li>
+<li><strong>The unbounded-blackout arithmetic.</strong> §2b claims unrelated rewards sharing a turn are destroyed. That follows from <code>_w2StripRewards</code> operating on the whole response, but I did not find a turn in this save that proves it — the three observed cases are all Mokmurian's own. A constructed replay would confirm or kill it.</li>
+<li><strong>Whether <code>ARC_COMPLETE</code> should have survived</strong> a response whose quest completion was de-authorised (§4). It is outside the stripped set, so the arc closed while its quest stayed active.</li>
+<li><strong>The repair path.</strong> Remedy 6 credits the player by hand. Someone should decide whether crediting 2200 XP pushes Ammut through a level boundary and what that does to the companion XP mirror.</li>
+</ol>
+
+<h2>8 · What this save cannot tell us <span class="badge b-gap">Gap</span></h2>
+<ul>
+<li>The transcript stores <em>clean</em> prose only; raw responses with their tags exist just for the last few turns in <code>sessionLog</code>. Everything about emitted-but-discarded tags before t1743 is invisible except where a receipt survived.</li>
+<li><code>tagLog</code> holds 40 responses. Any earlier instance of this refusal class is unrecoverable from this export.</li>
+<li>Amounts for the t1760/t1773/t1782 losses are not recorded anywhere in the save.</li>
+</ul>
+
+<div class="footer">
+Prepared from <code>testRuns/Rise_of_the_Runelords__Ammut__Ammut_t1782.tnd</code> (exported 2026-08-12 22:32). All quotes verbatim from that save's transcript, <code>tagLog</code>, <code>canonTxns</code> and <code>identityConflicts</code>. No code was changed in the course of this analysis. Engine at time of writing: v1.605.
+</div>
+
+</body>
+</html>
