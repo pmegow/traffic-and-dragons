@@ -69,6 +69,34 @@ if(mem.lore){
   }
 }
 
+// 7 — the runeblade identity tangle (owner report 2026-08-13). Blade 1 was NAMED Cleaver in
+//     fiction and the GM added "Cleaver (…)" to the sheet WITHOUT removing the old generic string
+//     (present since ≤t1593); blade 2 — "a blade unlike Cleaver, thinner, wickedly curved" (t1754)
+//     — was then granted under that same OLD generic name and stacked onto the stale duplicate,
+//     even though the W5 duplicate warning said "verify acquisition/rename". Net: Cleaver double-
+//     counted, the companion piece nameless. One replacement fixes both: the x2 stack becomes the
+//     companion piece's own entry (one copy was Cleaver's stale pre-name residue, the other IS the
+//     companion piece). Cleaver's entry stays untouched.
+var GENERIC="Short blade — Thassilonian script along the fuller, three characters, origin unknown x2";
+var COMPANION="Curved runeblade — Cleaver's companion piece from the Runeforge chamber, wickedly curved, three Thassilonian characters along the fuller, meant to bind rather than cut";
+var gi=ws.character.inventory.indexOf(GENERIC);
+if(gi<0){console.error("  ✗ the x2 generic blade stack is not on the sheet — aborting");process.exit(1);}
+ws.character.inventory[gi]=COMPANION;
+rec("runeblade tangle: the stale 'Short blade …' x2 stack replaced by the companion piece's own entry (Cleaver keeps its slot)");
+
+// 8 — The Sealed Laboratory (owner ruling 2026-08-13: finding both blades satisfies it). The
+//     objective was doubly met in fiction — ritual components t1748 (etching tools, grey ingots),
+//     the second runeforged weapon t1754 — and never ticked. No rewards are invented.
+(function(){
+  var i,q=null;
+  for(i=0;i<ws.questLog.length;i++)if(ws.questLog[i].title==="The Sealed Laboratory"){q=ws.questLog[i];ws.questLog.splice(i,1);break;}
+  if(!q){console.error("  ✗ The Sealed Laboratory not in the live log — aborting");process.exit(1);}
+  (q.objectives||[]).forEach(function(o){o.done=true;});
+  q.status="completed";q.completedAt=1754;
+  mem.quests["The Sealed Laboratory"]=q;
+  rec("The Sealed Laboratory completed and archived @t1754 (components t1748 + the companion blade t1754; owner-ruled)");
+})();
+
 if(!ws.repairLog)ws.repairLog=[];
 ws.repairLog.push({at:"t1782",via:"repair-t1782-blackout (#175)",changes:log});
 var out=p.replace(/\.tnd$/,"_REPAIRED.tnd");
