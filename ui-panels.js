@@ -439,10 +439,16 @@ function updateHealthDot(){
   var d=document.getElementById("healthdot");if(!d)return;
   if(!worldState||typeof healthIndicators!=="function"){d.style.display="none";return;}
   var h=healthIndicators(worldState);
-  d.style.display="";
-  d.className=h.overall==="bad"?"mdot c":h.overall==="warn"?"mdot w":"mdot";
-  d.style.opacity=h.overall==="na"?"0.35":"1";
-  d.style.cursor="pointer";
+  if(h.overall==="bad"){
+    /* owner ruling 2026-08-14: a 6px red dot under-sells a real problem — bad renders as the
+       warning triangle, not a dot. warn/ok/na keep the dot family. */
+    d.className="";d.textContent="⚠";
+    d.style.cssText="display:inline-block;margin-left:4px;font-size:12px;line-height:1;color:var(--red);cursor:pointer;";
+  }else{
+    d.textContent="";
+    d.className=h.overall==="warn"?"mdot w":"mdot";
+    d.style.cssText="display:inline-block;margin-left:4px;cursor:pointer;"+(h.overall==="na"?"opacity:0.35;":"");
+  }
   d.title="Drift health: "+(h.overall==="na"?"not enough data yet":h.overall)+" — tap for detail";
   if(!d._wired){d._wired=true;d.onclick=function(){if(typeof showHealthModal==="function")showHealthModal();};}
 }
