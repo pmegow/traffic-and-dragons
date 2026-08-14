@@ -305,4 +305,34 @@ rc|=sabotage.prove({
 ]
 });
 
+/* P7: the unregistered-recurring-name detector. */
+rc|=sabotage.prove({
+  file:"memory.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "the recurring-name scan dies — unregistered characters escape identity protection again",
+        "find": "if(turnCount<RECURRING_NAME_MIN_TURNS||!c2.mid)continue;",
+        "replace": "continue;"
+    },
+    {
+        "label": "the roster/place/faction exclusion dies — known names ping as unregistered",
+        "find": "if(_recurringKnownName(nm))continue;",
+        "replace": ";"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "the twice-ignored retirement dies — the registration note becomes permanent noise",
+        "find": "  rec.count++;rec.turn=worldState.turn;",
+        "replace": "  rec.turn=worldState.turn;"
+    }
+]
+});
+
 process.exit(rc?1:0);

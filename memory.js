@@ -1246,6 +1246,56 @@ async function compileEraIfDue(){
    at a time, per-NPC cooldown, GM-decides — the engine never edits the text itself. */
 var CANON_CONTRA_RE=/\b(is (?:still )?alive|survives\b|still (?:alive|lives|breathes|commands|leads|rules)|lives on\b|walked out (?:of .{0,40})?alive)/i;
 var CANON_CONTRA_NOW_RE=/\bsurviv\w*\b[\s\S]{0,120}?\b(?:now|remains|continues|still)\b/i;
+/* P7 (workdone_sol_review; the W6 deferred item, owner go 2026-08-13): UNREGISTERED RECURRING
+   NAMES. W6 validates only registered NPCs and explicit pronouns, so a character the GM keeps
+   using without a [NPC:] tag escapes identity validation entirely. The scan walks the recent
+   transcript for a capitalized token (optionally two words) that (a) recurs in >=
+   RECURRING_NAME_MIN_TURNS distinct GM turns, (b) appears MID-SENTENCE at least once (a
+   sentence-start-only word is capitalization, not identity), and (c) is not the hero, a roster
+   NPC or alias, a map node, or a faction. Proposal-first: a GM-decides note offers [NPC:X|...]
+   or explicit ignore; two ignored nudges retire the name forever. The engine never registers. */
+var RECURRING_NAME_STOP={"Monday":1,"Tuesday":1,"Wednesday":1,"Thursday":1,"Friday":1,"Saturday":1,"Sunday":1,"Aunt":1,"Uncle":1,"Mother":1,"Father":1,"Brother":1,"Sister":1,"Cousin":1,"Lady":1,"Lord":1,"Sir":1,"Master":1,"Mistress":1,"Captain":1,"Sheriff":1,"Justice":1,"Mayor":1,"Another":1,"Something":1,"Anyone":1,"Anything":1,"One":1,"Two":1,"Three":1,"Four":1,"Five":1,"Six":1,"Seven":1,"Eight":1,"Nine":1,"Ten":1,"First":1,"Second":1,"Third":1,"Last":1,"Every":1,"Each":1,"Both":1,"Most":1,"More":1,"Some":1,"All":1,"None":1,"Half":1,"The":1,"A":1,"An":1,"You":1,"Your":1,"He":1,"She":1,"They":1,"It":1,"But":1,"And":1,"Then":1,"Now":1,"Not":1,"No":1,"Yes":1,"If":1,"When":1,"Where":1,"What":1,"Who":1,"Why":1,"How":1,"His":1,"Her":1,"Their":1,"Its":1,"This":1,"That":1,"These":1,"Those":1,"There":1,"Here":1,"Once":1,"Again":1,"Even":1,"Still":1,"Suddenly":1,"Word":1,"Nothing":1,"Nobody":1,"Someone":1,"Everything":1,"Everyone":1,"Inside":1,"Outside":1,"Beyond":1,"Behind":1,"Before":1,"After":1,"Day":1,"Night":1,"Morning":1,"Evening":1,"Dawn":1,"Dusk":1,"North":1,"South":1,"East":1,"West":1,"GM":1,"OK":1};
+function _recurringKnownName(word){
+  var low=word.toLowerCase();
+  if(worldState.character&&String(worldState.character.name||"").toLowerCase().indexOf(low)>=0)return true;
+  var i,ns=worldState.npcs||[];
+  for(i=0;i<ns.length;i++){if(String(ns[i].name).toLowerCase().indexOf(low)>=0)return true;var al=(ns[i].aliases||[]).concat((memory.npcs&&memory.npcs[ns[i].name]&&memory.npcs[ns[i].name].aliases)||[]),j;for(j=0;j<al.length;j++)if(String(al[j]).toLowerCase()===low)return true;}
+  var mk;for(mk in (memory.npcs||{}))if(mk.toLowerCase().indexOf(low)>=0)return true;
+  var nodes=(memory.map&&memory.map.nodes)||{};for(mk in nodes){var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(mk):mk;if(String(leaf).toLowerCase().indexOf(low)>=0||mk.toLowerCase().indexOf(low)>=0)return true;}
+  var fx=(memory.npcGraph&&memory.npcGraph.factions)||{};for(mk in fx)if(mk.toLowerCase().indexOf(low)>=0)return true;
+  var q=(worldState.questLog||[]),qi;for(qi=0;qi<q.length;qi++)if(String(q[qi].title).toLowerCase().indexOf(low)>=0)return true;
+  if(typeof capabilityLookup==="function"&&capabilityLookup(word))return true;/* corpus finding: spell names (Message, Silence, Phantasmal Force) recur like characters */
+  var inv=(worldState.character&&worldState.character.inventory)||[],ii;for(ii=0;ii<inv.length;ii++)if(typeof inv[ii]==="string"&&inv[ii].toLowerCase().indexOf(low)>=0)return true;/* corpus finding: a NAMED ITEM (Cleaver) recurs like a character */
+  return false;
+}
+function recurringNameScan(){
+  if(typeof worldState==="undefined"||!worldState||worldState.recurringNamePing)return;
+  var tr=(worldState.transcript||[]).slice(-16),cand={},i,j;
+  for(i=0;i<tr.length;i++){
+    var e=tr[i];if(!e||e.r!=="gm"||!e.x)continue;
+    var text=String(e.x).replace(/"[^"]*"/g," ").replace(/\u201c[^\u201d]*\u201d/g," ");
+    var re=/([A-Z][a-z\u00e0-\u00ff'\u2019-]{2,})(\s+[A-Z][a-z\u00e0-\u00ff'\u2019-]{2,})?/g,m;
+    while((m=re.exec(text))){
+      var name=m[0].replace(/[’']s?$/,""),first=m[1].replace(/[’']s?$/,"");/* corpus finding: possessives (Morwen’s) evaded the roster check and contractions (You’re) leaked through */
+      if(/[’']/.test(name))continue;
+      if(RECURRING_NAME_STOP[first])continue;
+      var midSentence=m.index>0&&!/[.!?\n]\s*$/.test(text.slice(0,m.index));
+      var c=cand[name]||(cand[name]={turns:{},mid:false});
+      c.turns[e.t||i]=1;if(midSentence)c.mid=true;
+    }
+  }
+  var names=Object.keys(cand),best=null;
+  for(i=0;i<names.length;i++){
+    var nm=names[i],c2=cand[nm],turnCount=Object.keys(c2.turns).length;
+    if(turnCount<RECURRING_NAME_MIN_TURNS||!c2.mid)continue;
+    var nudged=worldState.recurringNameNudged&&worldState.recurringNameNudged[nm];
+    if(nudged&&(nudged.count>=RECURRING_NAME_MAX_NUDGES||(worldState.turn-nudged.turn)<RECURRING_NAME_COOLDOWN))continue;
+    if(_recurringKnownName(nm))continue;
+    if(!best||turnCount>best.count)best={name:nm,count:turnCount};
+  }
+  if(best){worldState.recurringNamePing={name:best.name,count:best.count,turn:worldState.turn};
+    if(typeof console!=="undefined")console.info("[identity] unregistered recurring name detected: "+best.name+" ("+best.count+" turns) — registration note armed (P7)");}
+}
 function canonContradictionScan(){
   if(typeof worldState==="undefined"||!worldState||worldState.canonContradiction)return;
   var ns=worldState.npcs||[],i,j;
@@ -1348,6 +1398,7 @@ function applySummaryExtract(extracted,identityTable){
   if(Array.isArray(extracted.futureEvents)){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe&&fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
   canonContradictionScan();/* P5①: after all tiers land, look for the two-truths state */
+  recurringNameScan();/* P7: and for characters the GM keeps using without registering */
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
   if(extracted.chapterSummary){fileChapter(worldState.turn,extracted.chapterSummary);futureResolveAssist(extracted.chapterSummary);}

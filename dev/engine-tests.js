@@ -7585,6 +7585,59 @@ function runEngineTests(R){
     }
     return true;
   });
+  // ── P7 (workdone_sol_review): the W6 deferred item — unregistered recurring names ────────────
+  t("P7: a name recurring in ≥3 distinct GM turns with no roster entry arms the registration note",function(){
+    makeWorld();worldState.character.name="Ammut";
+    worldState.npcs.push({name:"Daeris",status:"ally",rel:"ally"});
+    worldState.transcript=[
+      {t:10,r:"gm",x:"The innkeeper nods toward Vashek, who counts coins in the corner."},
+      {t:11,r:"gm",x:"Daeris watches Vashek without turning her head."},
+      {t:12,r:"player",x:"I ask about the man in the corner."},
+      {t:13,r:"gm",x:"Word is Vashek runs the night ledgers for half the quarter."}
+    ];
+    worldState.turn=14;
+    recurringNameScan();
+    if(!worldState.recurringNamePing)return "three distinct mid-sentence appearances went undetected";
+    if(worldState.recurringNamePing.name!=="Vashek")return "wrong name: "+worldState.recurringNamePing.name;
+    var note=buildRecurringNameNudge();
+    if(!note||note.indexOf("[NPC:Vashek")<0)return "the note does not offer the registration tag: "+String(note).slice(0,120);
+    if(note.indexOf("place, thing, faction")<0&&note.indexOf("leave state unchanged")<0)return "the note does not offer the ignore path";
+    if(worldState.recurringNamePing)return "the latch was not consumed";
+    return true;
+  });
+  t("P7: roster NPCs, aliases, map nodes, factions, the hero, and sentence-start-only words never ping",function(){
+    makeWorld();worldState.character.name="Ammut";
+    worldState.npcs.push({name:"Sheriff Belor Hemlock",status:"ally",rel:"ally",aliases:["Belor"]});
+    memory.npcs["Sheriff Belor Hemlock"]={attitude:"",knowledge:[],events:[],aliases:["Belor"]};
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:9,description:null,parent:null,npcs:[],items:[]};
+    if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+    memory.npcGraph.factions["Sczarni"]={};
+    worldState.transcript=[
+      {t:10,r:"gm",x:"Belor waits by the gate. The Sczarni keep their distance in Sandpoint tonight."},
+      {t:11,r:"gm",x:"Again Belor frowns; the Sczarni watch Sandpoint from the alleys. Ammut says nothing."},
+      {t:12,r:"gm",x:"Once more Belor, the Sczarni, Sandpoint, and Ammut share an uneasy hour. Suddenly it rains."},
+      {t:13,r:"gm",x:"Suddenly the bells ring. Suddenly everyone is running."}
+    ];
+    worldState.turn=14;
+    recurringNameScan();
+    return worldState.recurringNamePing?("a known or capitalization-artifact name pinged: "+worldState.recurringNamePing.name):true;
+  });
+  t("P7: two ignored nudges retire the name for good — the note can never become permanent noise",function(){
+    makeWorld();worldState.character.name="Ammut";
+    worldState.transcript=[
+      {t:10,r:"gm",x:"They speak of Vashek in whispers."},
+      {t:11,r:"gm",x:"Even the guards defer to Vashek now."},
+      {t:12,r:"gm",x:"A runner brings word from Vashek before dawn."}
+    ];
+    worldState.turn=20;
+    recurringNameScan();if(!worldState.recurringNamePing)return "setup failed";
+    buildRecurringNameNudge();
+    worldState.turn=20+RECURRING_NAME_COOLDOWN+1;recurringNameScan();
+    if(!worldState.recurringNamePing)return "the name never re-armed after the cooldown";
+    buildRecurringNameNudge();
+    worldState.turn=20+2*(RECURRING_NAME_COOLDOWN+1);recurringNameScan();
+    return worldState.recurringNamePing?"a twice-ignored name armed a THIRD time — permanent noise":true;
+  });
   // ── P4b (#169): recognizer precision — W4 observers, W6 false-rejects, the retraction classifier ──
   t("P4b/W4: spoken intent, negation, hypotheticals and dreams do not arm the location-filing watch",function(){
     makeWorld();memory.map.nodes["Jorgenfist"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};

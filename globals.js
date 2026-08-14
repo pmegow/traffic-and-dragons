@@ -7,7 +7,10 @@ var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this re
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
 var IDENTITY_CONFLICT_STALE_ATTEMPTS=5;
 var CANON_CONTRA_COOLDOWN=25;
-var COMMITMENT_PING_MAX_AGE=10;    // P4b/#169: a dated-commitment ping older than this is stale scene context, not a live gap      // P5①: turns between canon-contradiction notes for the same NPC (the deity-drift cadence) // #175: pointed deliveries before an unanswered conflict is shelved stale (the t1742 row fired 14 times unanswerable — a note N deliveries cannot clear will not clear on N+1)
+var COMMITMENT_PING_MAX_AGE=10;
+var RECURRING_NAME_COOLDOWN=30;    // P7: turns between registration nudges for the same unregistered name
+var RECURRING_NAME_MIN_TURNS=3;    // P7: distinct GM turns a name must recur in before the engine asks
+var RECURRING_NAME_MAX_NUDGES=2;   // P7: ignored twice = the owner ruled it not-an-NPC; never ask again    // P4b/#169: a dated-commitment ping older than this is stale scene context, not a live gap      // P5①: turns between canon-contradiction notes for the same NPC (the deity-drift cadence) // #175: pointed deliveries before an unanswered conflict is shelved stale (the t1742 row fired 14 times unanswerable — a note N deliveries cannot clear will not clear on N+1)
 var SUMMARY_IDENTITY_ROW_CAP=12;// #168 W6: compact identity authorities in one extractor call; priority is player, party, scene, then mentioned NPCs.
 var SUMMARY_IDENTITY_CHAR_CAP=1600;// #168 W6: hard prompt bound for the uncached summary identity block.
 var SUMMARY_IDENTITY_QUARANTINE_CAP=12;// #168 W6: non-injected exhausted-validation receipts retained for forensics.
@@ -206,7 +209,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.611";
+var APP_VERSION="v1.612";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
