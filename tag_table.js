@@ -834,7 +834,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(!psN||!psN.partyMember||!psN.charSheet){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — not a party member with a character sheet");continue;}
   if(npcIsDead(psN)){if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"] ignored — they are dead");continue;}/* B3: flag, not status regex */
   if(/^rejoin$/i.test(psArg)){
-    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=currentNodeKey();R.muts.push(psName+" rejoins the party");}
+    if(psN.charSheet.splitLoc){delete psN.charSheet.splitLoc;if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=currentNodeKey();R.muts.push(psName+" rejoins the party");if(typeof showToast==="function")showToast("⇠ "+psName+" rejoins the party");/* #189: transitions are LOUD — the muts line alone was invisible at the moment it mattered */}
     else if(typeof console!=="undefined")console.warn("[multiplayer] [PARTY_SPLIT:"+psName+"|rejoin] ignored — they are not split");
     continue;}
   var psPrev=pcEffectiveLoc(psN.charSheet).location;
@@ -855,6 +855,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
   if(memory.npcs[psName])memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);
   R.muts.push(psName+" splits off to "+psArg+(psSub?" ("+psSub+")":""));
+  if(typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 */
 }}},
 {t:"COMPANION_HP",apply:function(text,R){var cHpTags=text.match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);if(!cHpm)continue;var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cHpm[1].trim()+"' — companion tag dropped (#136③)");continue;}var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));R.muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}}},
 {t:"COMPANION_ITEM_GAINED",apply:function(text,R){var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[],cIgCounts={},cIgi;for(cIgi=0;cIgi<cIgTags.length;cIgi++){var c0=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(c0){var ck0=c0[1].trim()+"|"+itemBaseName(c0[2]);cIgCounts[ck0]=(cIgCounts[ck0]||0)+1;}}for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!cIgm)continue;var cOwner=cIgm[1].trim(),cIgCs=findCompanionChar(cOwner);if(!cIgCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cOwner+"' — companion tag dropped (#136③)");continue;}if(!cIgCs.inventory)cIgCs.inventory=[];duplicateItemGrantWarning(cIgCs.inventory,cIgm[2].trim(),cIgCounts[cOwner+"|"+itemBaseName(cIgm[2])],cOwner,R,text);addInventoryItem(cIgCs.inventory,cIgm[2].trim());R.muts.push(cOwner+": +"+cIgm[2].trim());}}},
@@ -967,6 +968,7 @@ function applyMutsTable(text,opts){
         if(!worldState.pendingReunion||worldState.pendingReunion.turn!==R.turn)worldState.pendingReunion={names:[],node:currentNodeKey(),turn:R.turn};
         if(worldState.pendingReunion.names.indexOf(_crm.name)<0)worldState.pendingReunion.names.push(_crm.name);
         R.muts.push(_crm.name+" rejoins the party (the split record pointed at the party's own location)");
+        if(typeof showToast==="function")showToast("⇠ "+_crm.name+" rejoins the party");/* #189: the auto-fold is the transition most likely to pass unnoticed */
         if(typeof console!=="undefined")console.warn("[multiplayer] auto-rejoined "+_crm.name+" — splitLoc matched the party's current node exactly (#133b co-location)");
       }
     }

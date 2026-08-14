@@ -14053,6 +14053,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")q=h.items[i];
     return q.level==="ok"?true:"quest with open objectives should be ok";
   });
+  // ═══ #189 hardening: split/rejoin transitions are LOUD (owner ruling 2026-08-14) ═══
+  // The #133c away-marker already shows standing state; the TRANSITIONS were muts-line-only,
+  // which is why an untagged presence fix was invisible at the moment it mattered.
+  section("#189: split/rejoin toasts");
+  t("[PARTY_SPLIT:] set, explicit |rejoin, and the #133b auto-rejoin fold each fire a toast",function(){
+    makeWorld();
+    showToast=function(m){__toasts.push(String(m));};/* re-arm the capture — earlier sections reassign the global (the line-8656 precedent) */
+    worldState.npcs.push({name:"Daeris",partyMember:true,status:"",statusTurn:0,met:1,charSheet:{name:"Daeris",cls:"Cleric",hp:10,maxHp:10,inventory:[],abilities:[],spells:[],conditions:[],relationships:[]}});
+    memory.npcs["Daeris"]={attitude:"",knowledge:[],events:[]};
+    __toasts.length=0;
+    var R0=applyMuts("[PARTY_SPLIT:Daeris|Shore District]");
+    if(!__toasts.some(function(s){return /Daeris/.test(s)&&/splits/.test(s)&&/Shore District/.test(s);}))return "no split toast: "+JSON.stringify(__toasts)+" muts="+JSON.stringify(R0.muts)+" splitLoc="+JSON.stringify((worldState.npcs.filter(function(n){return n.name==="Daeris";})[0]||{charSheet:{}}).charSheet.splitLoc||null);
+    __toasts.length=0;
+    applyMuts("[PARTY_SPLIT:Daeris|rejoin]");
+    if(!__toasts.some(function(s){return /Daeris/.test(s)&&/rejoins/.test(s);}))return "no explicit-rejoin toast: "+JSON.stringify(__toasts);
+    /* auto-rejoin: split to the party's CURRENT node; the #135 grace spares it this response,
+       the NEXT response's #133b sweep folds it (Ashfen has no known interiors in this fixture,
+       so the #164 granularity gate does not divert it to the audit) */
+    applyMuts("[PARTY_SPLIT:Daeris|"+worldState.world.location+"]");
+    __toasts.length=0;
+    applyMuts("just prose, no tags");
+    if(!__toasts.some(function(s){return /Daeris/.test(s)&&/rejoins/.test(s);}))return "no auto-rejoin toast: "+JSON.stringify(__toasts);
+    return true;
+  });
+
   // ═══ #23① stagnant-sweep teeth (Known issue #7②③) ═══
   section("#23①: sync badge + rescue-push guards");
   t("syncStatus exposes authExpired (the badge's tap-to-reconnect fork) and the server-turn probe is exported",function(){
