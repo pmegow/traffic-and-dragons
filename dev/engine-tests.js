@@ -13485,6 +13485,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var rec=memArchive().identityQuarantines[0];
     return rec.raw.length<=900?true:"raw excerpt unbounded: "+rec.raw.length+" chars";
   });
+  // #182 REACH (v1.616): the two corpus-cleared recall expansions + the guards that keep them honest.
+  t("W6 REACH (#182): a semicolon is a sentence boundary — the post-semicolon pronoun is checked",function(){
+    __w6World();var table=summaryIdentityTable("Ammut is present.");
+    var e=__w6Throws({chapterSummary:"Ammut takes the west stair; she bars the door behind her."},table);
+    return e&&e.subject==="Ammut"?true:"semicolon join escaped: "+(e?e.message:"(no rejection)");
+  });
+  t("W6 REACH (#182): a comma-conjunction clause inside an anchored sentence is checked",function(){
+    __w6World();var table=summaryIdentityTable("Ammut is present.");
+    var e=__w6Throws({chapterSummary:"Ammut falls hard, and she rises slowly."},table);
+    return e&&e.subject==="Ammut"?true:"clause-anchored contradiction escaped: "+(e?e.message:"(no rejection)");
+  });
+  t("W6 REACH (#182): precision guards hold — semicolon re-anchoring, consistent clauses, and P4b possessives stay silent",function(){
+    __w6World();var table=summaryIdentityTable("Ammut and Morwen are present.");
+    var e=__w6Throws({chapterSummary:"Ammut nods; Morwen takes the ledger. She signs it."},table);
+    if(e)return "the semicolon boundary failed to re-anchor to Morwen: "+e.message;
+    e=__w6Throws({chapterSummary:"Ammut falls hard, and he rises slowly."},table);
+    if(e)return "a CONSISTENT clause pronoun was rejected: "+e.message;
+    e=__w6Throws({chapterSummary:"Ammut's blade rings against stone. She parries the counterblow."},table);
+    return e?"P4b relitigated — a fronted possessive anchored a subject again: "+e.message:true;
+  });
   /* #183③ PINNED POLICY (owner batch 2026-08-13): the summarize() strike-3 BRANCH — the async
      network path that decides quarantine-vs-degraded-chapter on the third consecutive failure —
      is headless-untestable by construction (live model call + DOM toast chain). The REPLAY gate

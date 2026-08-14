@@ -1002,8 +1002,19 @@ function _w6SummaryTexts(extracted){
 function _w6SubjectFamily(sent){var low=String(sent||"").toLowerCase(),m=low.match(/(?:^|[,;:]\s*|\b(?:and|but|then)\s+)\s*(she|he)\b/);if(m)return m[1]==="she"?"F":"M";if(/\bshe\b[^.!?]*\bherself\b/.test(low))return"F";if(/\bhe\b[^.!?]*\bhimself\b/.test(low))return"M";/* P4b (#169): a reflexive ALONE is not subject evidence — "the stranger pulls the girl behind herself" burned a strike against a prior male anchor; the reflexive now needs its matching subject pronoun in the same sentence */return"";}
 function _w6TextConflict(text,table){
   var s=String(text||""),sq=(s.match(/"/g)||[]).length;if(sq%2||(s.match(/\u201c/g)||[]).length!==(s.match(/\u201d/g)||[]).length)return null;
-  var re=/[^.!?]+(?:[.!?]+["\u201d]*|$)/g,m,prior=null;
-  while((m=re.exec(s))){var sent=m[0],low=sent.toLowerCase(),named=[],i,f;if(/["\u201c\u201d]/.test(sent)){prior=null;continue;}for(i=0;i<table.rows.length;i++)if(_w6TextHasName(low,table.rows[i]))named.push(table.rows[i]);if(named.length===0&&prior){f=_w6SubjectFamily(sent);if((prior.family==="M"||prior.family==="F")&&f&&f!==prior.family)return {row:prior,sentence:sent.trim(),found:_w6Pronouns(f)};}prior=named.length===1&&_w6StartsWithName(sent,named[0])?named[0]:null;}
+  /* #182 (v1.616): two REACH expansions, corpus-measured before shipping (dev/w6-reach-audit.js,
+     1,589 real prose pieces across five save exports \u2014 ZERO new flags from either, each catches
+     its recall fixture): \u2460 a semicolon is a sentence boundary ("Ammut falls; she rises" was ONE
+     sentence, the post-semicolon pronoun never checked); \u2461 inside an ANCHORED sentence, a
+     comma-conjunction clause's subject pronoun is checked against the anchor ("Ammut falls
+     hard, and she rises" was invisible). The third deferred candidate \u2014 fronted possessives as
+     anchors \u2014 measured ZERO recall gain on the same corpus and conflicts with the P4b
+     owner-ruled precision fix (possessives never anchor; pinned by test + sabotage): PARKED. */
+  var re=/[^.!?;]+(?:[.!?;]+["\u201d]*|$)/g,m,prior=null;
+  while((m=re.exec(s))){var sent=m[0],low=sent.toLowerCase(),named=[],i,f;if(/["\u201c\u201d]/.test(sent)){prior=null;continue;}for(i=0;i<table.rows.length;i++)if(_w6TextHasName(low,table.rows[i]))named.push(table.rows[i]);if(named.length===0&&prior){f=_w6SubjectFamily(sent);if((prior.family==="M"||prior.family==="F")&&f&&f!==prior.family)return {row:prior,sentence:sent.trim(),found:_w6Pronouns(f)};}
+    var anchor=named.length===1&&_w6StartsWithName(sent,named[0])?named[0]:null;
+    if(anchor&&(anchor.family==="M"||anchor.family==="F")){var tails=low.split(/,\s*(?:and|but|then|so)\s+/),k;for(k=1;k<tails.length;k++){f=_w6SubjectFamily(tails[k]);if(f&&f!==anchor.family)return {row:anchor,sentence:sent.trim(),found:_w6Pronouns(f)};}}
+    prior=anchor;}
   return null;
 }
 function w6ValidateSummary(extracted,table){
