@@ -1,0 +1,643 @@
+[
+  {
+    "op": "coreMemoryPurge",
+    "detail": "player: remove 1 false t1666 'Owed a favor' moment(s)",
+    "preimage": [
+      {
+        "text": "The bond between Ammut and Frizwick became \"Owed a favor — reckless theft, for the fun of it\".",
+        "turn": 1666,
+        "kind": "bond",
+        "who": "Frizwick",
+        "camp": "Rise of the Runelords (Ammut)"
+      }
+    ]
+  },
+  {
+    "op": "coreMemoryPurge",
+    "detail": "Frizwick: remove 1 false t1666 'Owed a favor' moment(s)",
+    "preimage": [
+      {
+        "text": "The bond between Ammut and Frizwick became \"Owed a favor — reckless theft, for the fun of it\".",
+        "turn": 1666,
+        "kind": "bond",
+        "who": "Frizwick",
+        "camp": "Rise of the Runelords (Ammut)"
+      }
+    ]
+  },
+  {
+    "op": "coreMemoryPurge",
+    "detail": "Daeris: remove 1 false t1666 'Owed a favor' moment(s)",
+    "preimage": [
+      {
+        "text": "The bond between Ammut and Frizwick became \"Owed a favor — reckless theft, for the fun of it\".",
+        "turn": 1666,
+        "kind": "bond",
+        "who": "Frizwick",
+        "camp": "Rise of the Runelords (Ammut)"
+      }
+    ]
+  },
+  {
+    "op": "coreMemoryPurge",
+    "detail": "Morwen Zethran: remove 1 false t1666 'Owed a favor' moment(s)",
+    "preimage": [
+      {
+        "text": "The bond between Ammut and Frizwick became \"Owed a favor — reckless theft, for the fun of it\".",
+        "turn": 1666,
+        "kind": "bond",
+        "who": "Frizwick",
+        "camp": "Rise of the Runelords (Ammut)"
+      }
+    ]
+  },
+  {
+    "op": "frizwickBackfill",
+    "detail": "+14600 XP (peer-parity ledger: both co-companions hold 68,450; the supersede skip was the sole divergence mechanism — action plan §1.8, engine fix v1.614)",
+    "preimage": {
+      "xp": 53850,
+      "level": 9,
+      "hp": 58,
+      "maxHp": 58
+    }
+  },
+  {
+    "op": "frizwickLevelUp",
+    "detail": "post-backfill: level 10, maxHp 64, xp 68450"
+  },
+  {
+    "op": "jorgenfistRekey",
+    "detail": "38 transcript entries t1612–1650 e.l 'Fogscar Mountains - Ridge Line' → 'Jorgenfist' (Sol's evidence-supported set; 17 approach entries before t1612 stay on the ridge)",
+    "preimage": [
+      {
+        "i": 3220,
+        "t": 1612,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3222,
+        "t": 1613,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3224,
+        "t": 1614,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3226,
+        "t": 1615,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3228,
+        "t": 1616,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3230,
+        "t": 1617,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3232,
+        "t": 1618,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3234,
+        "t": 1619,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3236,
+        "t": 1620,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3238,
+        "t": 1621,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3240,
+        "t": 1622,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3242,
+        "t": 1623,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3244,
+        "t": 1624,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3246,
+        "t": 1625,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3248,
+        "t": 1626,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3250,
+        "t": 1627,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3252,
+        "t": 1628,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3254,
+        "t": 1629,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3256,
+        "t": 1630,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3258,
+        "t": 1631,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3260,
+        "t": 1632,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3262,
+        "t": 1633,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3264,
+        "t": 1634,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3266,
+        "t": 1635,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3268,
+        "t": 1636,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3270,
+        "t": 1637,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3272,
+        "t": 1638,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3274,
+        "t": 1639,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3276,
+        "t": 1640,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3278,
+        "t": 1641,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3280,
+        "t": 1642,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3282,
+        "t": 1643,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3284,
+        "t": 1644,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3286,
+        "t": 1645,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3288,
+        "t": 1646,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3290,
+        "t": 1647,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3292,
+        "t": 1648,
+        "l": "Fogscar Mountains - Ridge Line"
+      },
+      {
+        "i": 3294,
+        "t": 1649,
+        "l": "Fogscar Mountains - Ridge Line"
+      }
+    ]
+  },
+  {
+    "op": "chapterPronounFix",
+    "skipped": "no Ammut-with-feminine-pronoun sentence survives in chapters or eras — the t1644 chapter text was healed when the W6-checked era compile ran (verified no-op)"
+  },
+  {
+    "op": "shaleluObjective",
+    "skipped": "no un-done Shalelu objective found in live or archived quests"
+  },
+  {
+    "op": "locMerge",
+    "detail": "Sandpoint|Varisia → Sandpoint (inverted world twin — it IS Sandpoint; children + South Road edge come along)",
+    "preimage": {
+      "firstVisit": 353,
+      "visits": 2,
+      "description": null,
+      "parent": null,
+      "npcs": [
+        "Corven Coldwater",
+        "Sheriff Belor Hemlock"
+      ],
+      "items": [],
+      "size": null,
+      "travelMins": null
+    }
+  },
+  {
+    "op": "locMerge",
+    "detail": "Fogscar Mountains Tunnel → Varisia - North Road|Fogscar Mountains Tunnel (world-node twin of the real sublocation record (plan §5.3))",
+    "preimage": {
+      "firstVisit": 1343,
+      "visits": 2,
+      "description": null,
+      "parent": null,
+      "npcs": [
+        "Frizwick"
+      ],
+      "items": [],
+      "size": null,
+      "travelMins": null,
+      "lastVisit": 1343
+    }
+  },
+  {
+    "op": "locMerge",
+    "detail": "Fogscar Mountains - Sealed Forge Passage → Fogscar Mountains - Ridge Line|Fogscar Mountains - Sealed Forge Passage (world-node twin of the real sublocation record (plan §5.3))",
+    "preimage": {
+      "firstVisit": 1650,
+      "visits": 1,
+      "description": null,
+      "parent": null,
+      "npcs": [],
+      "items": [],
+      "size": null,
+      "travelMins": null
+    }
+  },
+  {
+    "op": "locMerge",
+    "detail": "Fogscar Mountains - Ridge Line|Justice Court — Ironbriar's Chambers → Magnimar|Justice Court — Ironbriar's Chambers (post-plan discovery: t1760 revisit misfiled under the ridge — same room, shadow class)",
+    "preimage": {
+      "firstVisit": 1760,
+      "visits": 1,
+      "description": "A square chamber of white Thassilonian-veined stone, one heavy oak desk at its center flanked by two chairs, a single tall window behind Ironbriar looking out on the great bridge, and one door leading back to the Justice Court's outer hall.",
+      "parent": "Fogscar Mountains - Ridge Line",
+      "npcs": [
+        "Ironbriar"
+      ],
+      "items": [],
+      "size": "small",
+      "travelMins": 5,
+      "lastVisit": 1760
+    }
+  },
+  {
+    "op": "locReparent",
+    "detail": "Varisia - North Road|Charred Barrel - Common Room → parent Sandpoint|Charred Barrel (plan §5.3: the Charred Barrel is in Sandpoint; the Runeforge is inside Jorgenfist)",
+    "preimage": {
+      "parent": "Varisia - North Road"
+    }
+  },
+  {
+    "op": "locReparent",
+    "detail": "Varisia - North Road|Charred Barrel - Hidden Passage → parent Sandpoint|Charred Barrel (plan §5.3: the Charred Barrel is in Sandpoint; the Runeforge is inside Jorgenfist)",
+    "preimage": {
+      "parent": "Varisia - North Road"
+    }
+  },
+  {
+    "op": "locReparent",
+    "detail": "Jorgenfist - Runeforge → parent Jorgenfist (plan §5.3: the Charred Barrel is in Sandpoint; the Runeforge is inside Jorgenfist)",
+    "preimage": {
+      "parent": null
+    }
+  },
+  {
+    "op": "locDescRescope",
+    "detail": "Varisia - North Road: strip the frozen hour-specific clause from the write-once description",
+    "preimage": {
+      "description": "The North Road runs between Magnimar and the foothills beyond, a rutted trade track flanked by scrub grass and the occasional lean-to shrine to travelers' luck. A weaponsmith's shopfront sits at the road's edge where it still hugs the city's outskirts, shuttered and dark this hour, iron grate pulled across the door."
+    }
+  },
+  {
+    "op": "edgeCleanup",
+    "detail": "8 edge(s) removed: Sandpoint<->Residential Quarter, Sandpoint (parent↔own-descendant); Residential Quarter, Sandpoint<->Sandpoint Residential Quarter - Burning Alley (parent↔own-descendant); Sandpoint Coast - Abandoned Cottage<->Sandpoint (ghost endpoint); Sandpoint<->Sandpoint|Sandpoint Temple (parent↔own-descendant); Sandpoint<->Sandpoint Catacombs - Hidden Passage (parent↔own-descendant); Varisia - North Road<->Varisia - North Road|Fogscar Mountains Tunnel (parent↔own-descendant); Fogscar Mountains - Ridge Line<->Fogscar Mountains - Ridge Line|Fogscar Mountains - Sealed Forge Passage (parent↔own-descendant); Jorgenfist<->Jorgenfist - Runeforge (parent↔own-descendant)",
+    "preimage": [
+      {
+        "edge": {
+          "from": "Sandpoint",
+          "to": "Residential Quarter, Sandpoint",
+          "turn": 3
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Residential Quarter, Sandpoint",
+          "to": "Sandpoint Residential Quarter - Burning Alley",
+          "turn": 14
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Sandpoint Coast - Abandoned Cottage",
+          "to": "Sandpoint",
+          "turn": 220
+        },
+        "why": "ghost endpoint"
+      },
+      {
+        "edge": {
+          "from": "Sandpoint",
+          "to": "Sandpoint|Sandpoint Temple",
+          "turn": 379
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Sandpoint",
+          "to": "Sandpoint Catacombs - Hidden Passage",
+          "turn": 920
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Varisia - North Road",
+          "to": "Varisia - North Road|Fogscar Mountains Tunnel",
+          "turn": 1343
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Fogscar Mountains - Ridge Line",
+          "to": "Fogscar Mountains - Ridge Line|Fogscar Mountains - Sealed Forge Passage",
+          "turn": 1650
+        },
+        "why": "parent↔own-descendant"
+      },
+      {
+        "edge": {
+          "from": "Jorgenfist",
+          "to": "Jorgenfist - Runeforge",
+          "turn": 1745
+        },
+        "why": "parent↔own-descendant"
+      }
+    ]
+  },
+  {
+    "op": "jorgenfistFirstVisit",
+    "detail": "firstVisit null → 1612 (the infiltration's first in-fortress turn)",
+    "preimage": {
+      "firstVisit": null,
+      "visits": 2
+    }
+  },
+  {
+    "op": "jorgenfistStateNote",
+    "skipped": "death note already filed in play (t1743) — richer than the plan's line, kept as is"
+  },
+  {
+    "op": "jorgenfistStateNote",
+    "detail": "append: The Thassilonian library burned during the confrontation"
+  },
+  {
+    "op": "collectorSplit",
+    "detail": "12 rows allocated — Marta keeps [0,2,4,10,11] (person: appearance, Chask identification, Whisperwood walk, warehouse role, Marasova alias); mantle gets [1,3] (seventh-cycle lore, vessel/binding nature); successor 'The Scarred Stranger (Black-Eyed Man)' gets [5,6,7,8,9] (post-t1422: Daeris's-agents ID, warehouse watch, Hemlock flank, extraction watch, knows-Ammut). Content-based allocation — rows carry no turn stamps; noted honestly.",
+    "preimage": {
+      "attitude": "unknown, watchful of party",
+      "knowledge": [
+        "Confirmed female; tall, dark hair, old burn scar on right cheek; travels as Pellwick Imports; stays at Rusty Dragon or White Deer when in Sandpoint; three days overdue on current visit",
+        "Confirmed the seventh cycle requires seven collected bodies to open a door wider for an entity called only 'Her.' The Third kept the ledger of the count, now lost. A Choir member who spoke Her true name — 'Mother of Closed Eyes' — was quietly removed afterward. Someone will replace the Third; the cycle doesn't stop for one dead collector.",
+        "Confirmed by Chask Haladan to be the operative known as the Collector, who runs collections beneath the Fish Alley warehouse for the Spire trafficking network.",
+        "Appears to be a vessel or manifestation of something older. Driven by debt, not spite. The amulet is a binding mark. It will follow the mark, not the body.",
+        "Walked into the Whisperwood with the third goblin wave six hours before the party arrived. Something in the forest is frightening her own goblin sentries.",
+        "Identified the party as Daeris's agents. Recognized the half-fey bloodline from shadow magic. Retained full tactical awareness despite both arms being disabled. Demonstrated some form of damage absorption tied to the marker stone.",
+        "He was in the warehouse the entire time. He knows about the girl. He knows about Morwen's bloodline obligation. He's willing to trade her life for information.",
+        "Used Hemlock as a flanking distraction. Has not intervened directly. Is waiting for something specific. The target is Morwen's amulet, which it calls a vessel.",
+        "Watched the full extraction. Pointed deliberately at Morwen's amulet before closing fist and withdrawing. Motivation unclear.",
+        "Knows Ammut by name. Knows the medallion was broken. Claims seventeen obligations transferred to the wife's amulet. Uses a skin template to carve runes. Voice runs on two registers. Not entirely human anymore.",
+        "The Collector is the woman who runs collections beneath Chask's warehouse for the Spire trafficking network, and is the same figure previously tracked as an investigator",
+        "Confirmed to be the same person who used the alias 'Marasova' with Chask, revealed to have already been observing and cataloguing the party rather than seeking information."
+      ],
+      "events": [],
+      "aliases": [
+        "The Scarred Man / The Collector",
+        "The Scarred Man",
+        "Scarred Man"
+      ],
+      "firstEncounter": "Frizwick speaks first. She's already dressed. Didn't sleep much, by the look of her.\n\n\"Trap for who though.\"\n\nGood question. You turn it over.\n\nThe Seventh runs the Sandpoint circuit. Appoints. Oversees. Distributes. She's not some reluctant conscript, she's the architecture."
+    }
+  },
+  {
+    "op": "collectorMantleRecord",
+    "detail": "created 'The Collector (mantle)' with rows [1,3] + succession note"
+  },
+  {
+    "op": "collectorDeathBackdate",
+    "detail": "Marta record stamped dead:414 in both stores (the t414 Whisperwood death; the live successor is 'The Scarred Stranger (Black-Eyed Man)')"
+  },
+  {
+    "op": "ilvaneGrafterMerge",
+    "detail": "[MERGE:npc|Ilvane|Grafter] through the shipping executor (armed pair) — Grafter's own row names her 'Ilvane Threcker'; alias, interrogation intel and the t1499 death stamp all survive on the canonical record",
+    "preimage": {
+      "grafter": {
+        "attitude": "cooperative under duress",
+        "knowledge": [
+          "Knows Ammut is the one who burned Chask's debt instead of paying it; knows the party killed the grafters at Fogscar and Chask; expects more of 'them' to know the party is coming.",
+          "Revealed her name is Ilvane Threcker, former physician's apprentice in Riddleport; explained the token numbering is a rank/slot system with more than seven positions, mentioned a rumored 'One'; confirmed Four was likely killed at Fogscar; explained the iron rings are keyed tracking devices the Collector uses to locate her operatives, and that anyone handling one long enough may now be trackable",
+          "Confirmed the iron rings are one-directional tracking devices reporting to a device or ledger only the Collector possesses; revealed the name Sable refers to a failed 'delivery,' with destination rumored to be 'the mountain,' tying the Collector's network to the Kodar Mountains and Jorgenfist."
+        ],
+        "events": [],
+        "aliases": [
+          "Ilvane Threcker"
+        ],
+        "firstEncounter": "You drape the robe back over her, loose, not out of any particular courtesy, just so this doesn't turn into that kind of interrogation. Then you crouch, tip her jaw up with two fingers, and give her cheek a couple of light taps.\n\n\"Come on. Wake up.",
+        "lastSeenAt": "Magnimar|The Spire — Hidden Stairwell",
+        "pronouns": "she/her"
+      }
+    }
+  },
+  {
+    "op": "ilvaneGrafterMergeResult",
+    "detail": "Merged: Grafter -> Ilvane — Grafter folded"
+  },
+  {
+    "op": "savahSplit",
+    "detail": "rows [5,6,7] (giant poison inquiry, 'erase' inquiry, ten paralytic vials) move to 'Magnimar Apothecary (Wormwood's)' — corroboration: the Wormwood's Apothecary node exists under Magnimar and the party carries 10 contact-paralytic vials + 3 giant's bane; Savah keeps the armorer/smith rows (charges, wedding ring)",
+    "preimage": {
+      "attitude": "businesslike, unbothered",
+      "knowledge": [
+        "Party heading to Fogscar pass, six-day run",
+        "Has four surplus blasting charges from a failed Magnimar mining contract; willing to sell at 8gp each or 30gp for all four.",
+        "Sold all four blasting charges to the party for 30gp. Noted they were heading for mountain work. Said nothing further.",
+        "Hired to rush-produce a matching wedding ring by nightfall for extra gold; agreed the work would show signs of haste.",
+        "Completed the wedding ring commission and received the balance of her fee from the player.",
+        "Learned the party wants poison effective against stone giants, initially floated mass-poisoning a water supply (which she refused), then reframed the request as a targeted non-lethal sedative for a giant war camp's water source if given a confirmed location and volume.",
+        "Learned Ammut wants to 'erase' a dangerous person without killing or injuring them, restoring them to a fresh start rather than removing them permanently.",
+        "Sold ten vials of contact paralytic without asking their purpose; noted they're either about to have a bad week or give one to someone else."
+      ],
+      "events": [],
+      "aliases": [],
+      "firstEncounter": "The market quarter is winding down. Traders pulling shutters. A fishmonger hosing blood off his boards.",
+      "lastSeenAt": "Magnimar|Bridge District Restaurant",
+      "pronouns": "she/her"
+    }
+  },
+  {
+    "op": "sableRegister",
+    "detail": "memory-only record created citing turns 1422, 1426, 1432, 1442, 1467, 1485, 1486, 1500, 1504, 1505, 1506, 1508, 1509, 1510, 1511, 1512, 1516, 1517, 1519, 1521, 1523, 1525, 1594, 1595, 1596, 1607, 1711 (no current-location stamp, no roster entry — Sol's constraint for offstage figures)"
+  },
+  {
+    "op": "ammutRecordDelete",
+    "detail": "player self-record removed from memory.npcs (attitude 'devoted, possessive tenderness', 12 knowledge rows) — full preimage archived; deed rows carry no turn stamps so nothing is synthesized into storyBeats (Sol: provenance cannot be reconstructed)",
+    "preimage": {
+      "attitude": "devoted, possessive tenderness",
+      "knowledge": [
+        "Successfully opened the seam-door, led the descent into the Spire's hidden stairwell, and scored a critical sneak-attack kill on a Pale Lurker in the flooded chamber below.",
+        "Scouted the flooded chamber alone, found the chained prisoner corpse, directed combat against the Drowned Grafting, and searched the body for clues, finding a brass token, cipher vellum, and an unmarked iron ring.",
+        "Located and subdued the robed grafter alone in a back workshop; found a tray of iron rings identical to those collected off bodies since Sandpoint, being strung onto leather cords.",
+        "Directly questioned Ilvane about the cost of being 'brought in proper' and the location of her graft",
+        "Extracted confirmation from Durnah that Sable is a child and learned the consequences of Sable finding the workshop compromised.",
+        "Drew a firm personal line against killing a child; insisted on confirming Sable's nature before anyone acts against her.",
+        "Found hidden second reins behind the cart's rear axle, rigged for something walking rather than riding, and read the vellum note left atop the crate: 'You were expected. Sable's fine.'",
+        "Chose to dismiss the oilcloth's 'Third confirmed her' note as meaningless and had it discarded.",
+        "Cased the canal-lock street and identified a boy and a net-mender as likely lookouts rather than idle locals; entered Wyla's shop via the back door and made first contact with Wyla directly.",
+        "Claimed the Thassilonian runeforged blade, named it Cleaver, and made it his primary weapon.",
+        "Used fey sight to identify the pale creature in the black pool as an ancient, starved Thassilonian silkworm-kin, its feeding lines long dead, confirming the forge complex was a production facility rather than a simple armory.",
+        "Scouted Jorgenfist's ritual chamber alone and discovered a human-made satchel marked with the closed-eye cipher sitting beside an old scholar-giant working glowing Thassilonian tablets, confirming the Spire's network extends directly into Mokmurian's war camp."
+      ],
+      "events": [
+        {
+          "turn": 1614,
+          "note": "Scouted the breach and giant hall alone, overheard confirmation of the forge's existence, and found a hidden service tunnel bypassing the giants"
+        },
+        {
+          "turn": 1618,
+          "note": "Found a stone disc carved with a spiral rune in the crowned skeleton's ribs, and bowed to the ancient king's remains before scouting the forge passage alone"
+        },
+        {
+          "turn": 1644,
+          "note": "Successfully infiltrated Jorgenfist's ritual chamber using a diversion and invisibility, stealing the closed-eye satchel without engaging the giants"
+        },
+        {
+          "turn": 1648,
+          "note": "Killed Mokmurian with a single unseen sneak attack using Cleaver while Morwen's Silence masked the strike"
+        },
+        {
+          "turn": 1656,
+          "note": "Freed a stone giant straggler from a rusted slaver's collar in the pines north of Sandpoint, choosing mercy over Cleaver's hunger after determining he posed no threat"
+        },
+        {
+          "turn": 1690,
+          "note": "Cased Lord Grieva Kesslian's Alabaster District manor and laid out a full robbery plan"
+        },
+        {
+          "turn": 1693,
+          "note": "Gave Frizwick her promised reckless afternoon, stealing wine and each other in a dead lord's cellar"
+        }
+      ],
+      "aliases": []
+    }
+  },
+  {
+    "op": "invDrop",
+    "detail": "\"Closed-eye satchel (Jorgenfist)\" — duplicate of the richer 'Closed-eye satchel — stolen from Jorgenfist's ritual chamber' row (plan §5.2)"
+  },
+  {
+    "op": "invBladeDedup",
+    "skipped": "already resolved in play — exactly 2 rows for 2 blades: Curved runeblade — Cleaver's companion piece from the Runeforge chamber, wickedly curved, three Thassilonian characters along the fuller, meant to bind rather than cut · Cleaver (Thassilonian runeforged blade, three characters, origin unknown)"
+  },
+  {
+    "op": "invDrop",
+    "detail": "\"Alchemist's fire x5\" — count set to 0 per canon (plan §5.2 'flasks 0' — the phantom-consumable class: uses narrated, count never decremented)"
+  },
+  {
+    "op": "invChargeCount",
+    "skipped": "LEFT AS-IS at x12 — the transcript shows MULTIPLE acquisition batches (four from Thistletop by t389, Savah's four, four more from Hemlock at t1288, a count of eleven-between-you at t767) and uncounted uses (six packed into the mechanism at t657); no single canon number is derivable, and replacing observed drift with a guess is exactly what Sol's constraint forbids"
+  },
+  {
+    "op": "invRingToDaeris",
+    "detail": "\"Wedding ring — rushed silver filigree, matching set, for Daeris\" moves Ammut → Daeris (the row names its owner; plan §5.2)"
+  },
+  {
+    "op": "invArrowToMorwen",
+    "detail": "\"Silvered arrow\" moves Ammut → Morwen (plan §5.2)"
+  },
+  {
+    "op": "invFactRowDrop",
+    "detail": "Frizwick: \"confirmed loft position clear\" removed — a fact, not an item (plan §5.2)"
+  },
+  {
+    "op": "invIronKeySettle",
+    "detail": "the Tharwick lockbox key row moves Frizwick → Ammut (the row itself records Ammut as holder — that IS the one-row evidence ledger)"
+  },
+  {
+    "op": "storyBeatsCampBackfill",
+    "detail": "130 beats stamped camp='camp_1782799175437_7288' — Ammut is this campaign's native PC (every beat turn 1–1788 falls inside this campaign's transcript; no import history), so provenance is by construction, not a guess"
+  },
+  {
+    "op": "storyBeatDedup",
+    "detail": "beats[47] t159 removed — duplicate of beats[45] t155 (plan §5.4 names this exact pair)",
+    "preimage": {
+      "text": "Ammut and Morwen consummate their connection the night the Tally Court discharged both debts",
+      "turn": 159,
+      "camp": "camp_1782799175437_7288"
+    }
+  },
+  {
+    "op": "futureEventsConsumed",
+    "skipped": "the plan's two consumed entries (black-water, bathhouse) are already gone from futureEvents — resolved in play before t1788"
+  },
+  {
+    "op": "worldTimeSync",
+    "skipped": "world.time 'dawn' is IN BAND for elapsed-of-day minute 20 (dawn-anchored) — already agrees with the clock"
+  }
+]

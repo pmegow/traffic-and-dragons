@@ -1,0 +1,164 @@
+[
+  {
+    "file": "identity.js",
+    "label": "dynamic writes clobber the durable bond again",
+    "mustFail": "W1/W7 exact t1666 replay: Owed lands only on dynamic, preserves both m",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "an existing bond replacement bypasses staged confirmation",
+    "mustFail": "RELATIONSHIP_BOND upsert + confirmed removal resolve through aliases",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "same-turn duplicate tags self-confirm a destructive bond change",
+    "status": "attributed",
+    "suggest": "#171④ (ruled loud): a same-turn duplicate bond confirmation refuses wi"
+  },
+  {
+    "file": "identity.js",
+    "label": "legacy descriptor migration stops preserving the original text",
+    "mustFail": "a failed turn's restore lets the same audit fire again",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "legacy axis decisions become unbounded",
+    "mustFail": "W7 axis-choice queue is bounded and a cap+1 legacy tag is loud without",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "portable import conflicts leak into the active campaign",
+    "mustFail": "W7 portable hybrid import carries its conflict on the character until ",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "prospective relationship values lose their length bound",
+    "mustFail": "W7 prospective relationship values over the bound are refused loudly w",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "classifying one legacy candidate erases every sibling candidate on the pair",
+    "mustFail": "W7 explicit classification clears only the matching legacy candidate, ",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "an unrelated dynamic discards the protected W1 bond preimage",
+    "mustFail": "W7 old W1 downgrade records remain protective: classifying the clobber",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "repeating the already-clobbered bond bypasses its protected preimage",
+    "mustFail": "W7 a protected W1 preimage survives an unrelated dynamic, and acceptin",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "whole-pair confirmation forgets to remove the current dynamic",
+    "mustFail": "W7 whole-pair removal preserves both preimages and requires later conf",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "identity merge leaves queued relationship owners under the duplicate alias",
+    "mustFail": "W7 entity rekeying changes only the matching endpoint or owner and rec",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "identity merge rewrites every pending key to the merged canonical pair",
+    "mustFail": "W7 entity rekeying changes only the matching endpoint or owner and rec",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "active player epithets stop canonicalizing to one relationship entity",
+    "mustFail": "W7 player name and epithet resolve to one entity on a companion sheet ",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "portable relationship proposals become unbounded",
+    "mustFail": "W7 portable cap+1 migration leaves the overflowing descriptor on its s",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "a full decision queue destroys the cap+1 legacy source descriptor",
+    "mustFail": "W7 cap+1 hybrid migration retains the unqueued legacy source and retri",
+    "status": "already-attributed"
+  },
+  {
+    "file": "game.js",
+    "label": "current dynamic can mint a permanent defining bond memory",
+    "mustFail": "weighty relationship files; mundane one does not; unchanged weighty do",
+    "status": "already-attributed"
+  },
+  {
+    "file": "game.js",
+    "label": "confirmed explicit bond changes re-arm the legacy downgrade guard",
+    "mustFail": "W7 a confirmed Wife to Friend bond change cannot be re-armed as a lega",
+    "status": "already-attributed"
+  },
+  {
+    "file": "state.js",
+    "label": "campaign load migrates relationships through the previously active alias table",
+    "mustFail": "W7 loadState migrates relationship identities against the incoming cam",
+    "status": "already-attributed"
+  },
+  {
+    "file": "tag_table.js",
+    "label": "NPC alias registration strands staged relationship decisions on the old name",
+    "mustFail": "W7 alias registration rekeys an already-staged bond decision so later ",
+    "status": "already-attributed"
+  },
+  {
+    "file": "tag_table.js",
+    "label": "NPC merge discards outgoing relationships when both records already have sheets",
+    "mustFail": "W7 NPC merge preserves outgoing relationship rows from both populated ",
+    "status": "already-attributed"
+  },
+  {
+    "file": "memory.js",
+    "label": "NPC graph authority uses current dynamic instead of durable bond",
+    "mustFail": "W7 dynamic state is visible but cannot feed roster authority, reciproc",
+    "status": "already-attributed"
+  },
+  {
+    "file": "api.js",
+    "label": "party roster authority uses current dynamic instead of durable bond",
+    "mustFail": "roster rel DERIVES from the player's bond for party members; non-party",
+    "status": "already-attributed"
+  },
+  {
+    "file": "api.js",
+    "label": "failed provider calls consume migrated axis-review nudges",
+    "status": "attributed",
+    "suggest": "(failing output had no recognizable ✗ line)"
+  },
+  {
+    "file": "api.js",
+    "label": "the delivery budget deletes the only protected W1 bond preimage",
+    "mustFail": "#167 downgrade nudge: PERSISTS until resolved",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "over-length migrated bonds become permanently unconfirmable again",
+    "mustFail": "R4: confirming a verbatim-migrated over-length bond clears its axis re",
+    "status": "already-attributed"
+  },
+  {
+    "file": "identity.js",
+    "label": "NPC merges mint self-referential relationship edges again",
+    "mustFail": "R5: an NPC merge cannot mint a self-referential relationship edge (ent",
+    "status": "already-attributed"
+  }
+]
