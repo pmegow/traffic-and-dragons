@@ -58,7 +58,8 @@ Drift-surface items route to a Fable session; tooling/voice/UI items route to th
 
 This audit is a **closed census, not a claim that the queue is closed**. The tables are the living
 status as of `e91c1c6`. When a queued guard gains proof, update its row here or supersede this
-audit with a dated census. No fixes were made in this lane.
+audit with a dated census. The census commit made no fixes; continuation receipts follow the
+ratification record below.
 
 ## PROVEN — demonstrated kills located
 
@@ -277,3 +278,28 @@ drift-critical wiring item stays queued, as the ruling required.
    manifest-derived lists, the inert stop-hook `ui.js` branch, installed-hook parity) and then
    run the ordered queue. Same lane bounds: dev/, .claude/hooks/, audits/, own TODO rows; no
    game code, no version markers; loosening or re-baselining any existing assertion stays Fable.
+
+## Continuation landing 1 — five found defects repaired (2026-08-14)
+
+**Finding.** All five reproduced exactly at the continuation baseline: each of the three
+standalone suites stopped at `api.js` before assertion one; the stop hook still read retired
+`ui.js` and swallowed the missing-file error; installed `.git/hooks/pre-commit` differed from
+the tracked gate.
+
+**Remedy.** The three suites now derive their engine order from `dev/engine-manifest.js` and the
+full unfiltered `dev/run-tests.js` gate runs them in isolated child processes. The stop hook reads
+`globals.js`'s `APP_VERSION`, exposes only test-path overrides for synthetic fixtures, and reports
+an unavailable version check instead of swallowing it. `dev/check-hook-parity.js` compares the
+tracked and installed hook bytes; `dev/session-check.js` reports drift without blocking, while
+the tracked pre-commit blocks it. `dev/check-enforcement.js`, called by `run-tests.js`, pins the
+required pre-commit and `engine-tests.yml` step order without editing the workflow.
+
+**Proof / living status.** Pre-fix: all three suites emitted `ENGINE LOAD FAILED in api.js:
+buildProvisionalNudge is not defined`. Post-fix: B9 19/19, C13 15/15, dedupA 16/16. Retained
+`sabotage-standalone-suites.js` changed bytes in disposable engine copies, produced the named
+`whoAmI`, `listCharacterLibrary`, and `normal two-word name` failures, restored every disposable
+target byte-identically, and confirmed the repository targets were never written (3/3).
+`tests-verification-enforcement.js` is 6/6: synthetic version mismatch, missing-source loudness,
+hook parity pass/fail, and ten individual CI/pre-commit step removals. The installed hook was
+reinstalled and matched tracked bytes (`8235d2f3df47`). Queue status: **N02 PROVEN**, **N10
+PROVEN**, and **N11 PARTIAL** (stop version branch proven; ES5 and touched-file cases remain).

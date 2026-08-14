@@ -2,8 +2,8 @@
 // transport methods (hasToken / whoAmI / getCampaignState / pushCampaignState /
 // putCampaignPortrait) that ui.js's six former raw-fetch sites now route through.
 //
-// UNWIRED fragment — not loaded by run-tests.js or test.html. Run standalone:
-//   node dev/_tests_B9.js
+// Standalone battery — not loaded by run-tests.js or test.html. Run directly:
+//   node dev/tests-b9-transport.js
 //
 // Engine-tests style (section/t/eq, same reporter shape as dev/run-tests.js). The suite's
 // existing adapter section (engine-tests.js ~:493-541) only exercises PURE functions
@@ -16,8 +16,9 @@
 var fs = require("fs");
 var path = require("path");
 var root = path.join(__dirname, "..");
-// Same ordered list as dev/run-tests.js:9 — the engine's `var`s become globals via indirect eval.
-var files = ["globals.js", "compress.js", "data.js", "capability_bible.js", "helpers.js", "state.js", "storage-adapter.js", "memory.js", "tag_table.js", "api.js", "campaign_generator.js", "game.js", "tts.js"];
+// The manifest is the load-order authority. A copied list made this suite die before its first
+// assertion when identity.js joined the engine (#18 census exhibit).
+var files = require("./engine-manifest.js").map(function (entry) { return entry.file; });
 var geval = eval;
 for (var i = 0; i < files.length; i++) {
   try { geval(fs.readFileSync(path.join(root, files[i]), "utf8")); }

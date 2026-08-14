@@ -2,8 +2,8 @@
 // storage-adapter JSON transport (_apiJson, exercised through the public library wrappers)
 // and the single-source blank wizard-state factory (blankWizardState).
 //
-// UNWIRED fragment — not loaded by run-tests.js or test.html. Run standalone:
-//   node dev/_tests_C.js
+// Standalone battery — not loaded by run-tests.js or test.html. Run directly:
+//   node dev/tests-c13-adapter.js
 //
 // Engine-tests style (section/t/eq, same reporter shape as dev/run-tests.js; loader copied
 // from dev/tests-b9-transport.js). _apiJson is private to the storageAdapter closure, so the
@@ -13,8 +13,9 @@
 var fs = require("fs");
 var path = require("path");
 var root = path.join(__dirname, "..");
-// Same ordered list as dev/run-tests.js:9 — the engine's `var`s become globals via indirect eval.
-var files = ["globals.js", "compress.js", "data.js", "capability_bible.js", "helpers.js", "state.js", "storage-adapter.js", "memory.js", "tag_table.js", "api.js", "campaign_generator.js", "game.js", "tts.js"];
+// The manifest is the load-order authority. A copied list made this suite die before its first
+// assertion when identity.js joined the engine (#18 census exhibit).
+var files = require("./engine-manifest.js").map(function (entry) { return entry.file; });
 var geval = eval;
 for (var i = 0; i < files.length; i++) {
   try { geval(fs.readFileSync(path.join(root, files[i]), "utf8")); }

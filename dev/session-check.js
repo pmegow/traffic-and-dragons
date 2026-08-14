@@ -4,6 +4,7 @@
 var fs = require("fs");
 var path = require("path");
 var cp = require("child_process");
+var hookParity = require("./check-hook-parity.js");
 
 function parseArgs(argv) {
   var out = { root: path.join(__dirname, ".."), laneFiles: [] };
@@ -54,6 +55,7 @@ function main() {
   var artifacts = [];
   var lanes = [];
   var inspectionErrors = [];
+  var parity = null;
   try {
     var status = git(opts.root, ["status", "--porcelain=v1", "--untracked-files=all", "--", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md"]);
     status.split(/\r?\n/).forEach(function (line) { if (line.trim()) trackers.push(line); });
@@ -64,6 +66,8 @@ function main() {
       git(opts.root, ["ls-files", "--others", "--ignored", "--exclude-standard", "--", "testRuns"])
     ]);
   } catch (e2) { inspectionErrors.push(e2.message); }
+  try { parity = hookParity.inspect(opts.root); }
+  catch (e3) { inspectionErrors.push("hook parity inspection failed: " + e3.message); }
 
   laneCandidates(opts.root, opts.laneFiles).forEach(function (file) {
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return;
@@ -72,7 +76,7 @@ function main() {
     lanes.push({ file: slash(opts.root, file), body: body || "(empty declaration)" });
   });
 
-  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length;
+  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + (parity && !parity.ok ? 1 : 0);
   if (!findings) {
     console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, and no lane declaration present (advisory; exit 0)");
     process.exit(0);
@@ -93,6 +97,7 @@ function main() {
     console.warn("  Lane declaration" + (lanes.length === 1 ? "" : "s") + ":");
     lanes.forEach(function (lane) { console.warn("    " + lane.file + " — " + lane.body); });
   }
+  if (parity && !parity.ok) console.warn("  Pre-commit hook parity: " + parity.message);
   if (inspectionErrors.length) {
     console.warn("  Inspection errors (advisory could not verify these surfaces):");
     inspectionErrors.forEach(function (msg) { console.warn("    " + msg); });

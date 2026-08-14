@@ -5,6 +5,17 @@
 // is what keeps iOS Safari from being killed by per-sentence InferenceSession creation. A
 // re-vendor that drops it resurrects the crash SILENTLY — fail the suite instead.
 try {
+  var _enforcement = require("./check-enforcement.js");
+  var _enforcementProblems = _enforcement.realProblems(require("path").join(__dirname, ".."));
+  if (_enforcementProblems.length) {
+    console.error("VERIFICATION ENFORCEMENT CONTRACT FAILED:\n  - " + _enforcementProblems.join("\n  - "));
+    process.exit(1);
+  }
+} catch (e) {
+  console.error("VERIFICATION ENFORCEMENT CONTRACT FAILED: " + e.message);
+  process.exit(1);
+}
+try {
   var _fsV = require("fs"), _pathV = require("path");
   var _vits = _fsV.readFileSync(_pathV.join(__dirname, "..", "vendor/piper/vits/vits-web.js"), "utf8");
   if (_vits.indexOf("T&D PATCH") < 0 || _vits.indexOf("tndGetSession") < 0 || _vits.indexOf("tndPhonemize") < 0) {
@@ -1424,6 +1435,19 @@ if(fails.length){
   for(var f=0;f<fails.length;f++)console.error("  ✗ "+fails[f]);
   console.error("Open test.html in a browser for the full red/green view.");
   process.exit(1);
+}
+// The three audit fragments need isolated fetch/storage globals, so the full gate runs them as
+// child processes only after the shared engine suite is green. Filtered sabotage runs skip this
+// layer: their named section must remain the only possible attribution source.
+if(!filter){
+  var _cpStandalone=require("child_process");
+  var _standalone=_cpStandalone.spawnSync(process.execPath,[path.join(__dirname,"run-standalone-suites.js")],{cwd:path.join(__dirname,".."),encoding:"utf8"});
+  process.stdout.write(String(_standalone.stdout||""));
+  process.stderr.write(String(_standalone.stderr||""));
+  if(_standalone.status!==0){
+    console.error("STANDALONE VERIFIER GATE FAILED — the isolated transport/dedup suites did not all pass.");
+    process.exit(1);
+  }
 }
 if(filter){
   console.log("FILTERED GREEN — \""+filterRaw+"\": "+matchedSections+" section(s) matched, "+pass+" assertions passed — NOT the full suite");

@@ -11,18 +11,18 @@
 // The DOM-side consolidations (cbrSegControl/cbrSegBtnStd/cbrSegBtnWide, generatePortraitImage)
 // are coordinator-smoked in the browser — deliberately NOT fake-tested headlessly.
 //
-// UNWIRED fragment — not loaded by run-tests.js or test.html. Run standalone:
-//   node dev/_tests_dedupA.js
+// Standalone battery — not loaded by run-tests.js or test.html. Run directly:
+//   node dev/tests-dedup-a.js
 //
 // Engine-tests style (section/t/eq, same reporter shape as dev/run-tests.js). ES5 throughout.
 
 var fs = require("fs");
 var path = require("path");
 var root = path.join(__dirname, "..");
-// Same ordered list as dev/run-tests.js — the engine's `var`s become globals via indirect eval.
-// ui-browsers.js appended: its top level is function declarations only (no DOM at load time),
-// and loadCampaignCharacter's local paths never touch the DOM.
-var files = ["globals.js", "compress.js", "data.js", "capability_bible.js", "helpers.js", "state.js", "storage-adapter.js", "memory.js", "tag_table.js", "api.js", "campaign_generator.js", "game.js", "tts.js", "ui-browsers.js"];
+// The manifest is the engine load-order authority. ui-browsers.js is the suite-specific append:
+// its top level is function declarations only, and the local paths under test never touch DOM.
+var files = require("./engine-manifest.js").map(function (entry) { return entry.file; });
+files.push("ui-browsers.js");
 var geval = eval;
 for (var i = 0; i < files.length; i++) {
   try { geval(fs.readFileSync(path.join(root, files[i]), "utf8")); }
