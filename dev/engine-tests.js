@@ -4131,8 +4131,13 @@ function runEngineTests(R){
     // v1.447 (#96): the one [SAY:] voice-attribution doc line (+522 chars). Golden diffed by eye.
     // This is the authoring-time replacement for the deleted LLM speaker post-pass — the GM names
     // each line's speaker as it writes, and the engine derives the voice map deterministically.
+    // v1.607 (#175): the CANON_TXN line gains the inside-the-markers boundary (+197 chars) — "put
+    // ONLY the death and its quest/objective/reward tags inside; combat, time, and every other tag
+    // belongs OUTSIDE (an out-of-place tag is applied normally, never canonized)". The instruction
+    // half of the t1742 fix: the GM followed the old text faithfully and was refused for it; the
+    // engine half (ejection) tolerates non-compliance, this half reduces its frequency.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-766346739&&d.length===22357)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
+    return (__djb2(d)===1541897722&&d.length===22554)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -12695,6 +12700,121 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return npcIsDead(wsNpcByName("Mokmurian"))&&memory.npcs.Mokmurian.dead===32?true:"prior committed reveal did not authorize the next-turn death";
   });
 
+  // ── #175: the quest-credit blackout (field, t1742-t1782) ─────────────────────────────────────
+  // A boss killed in combat emitted [COMBAT_END:victory] inside its death envelope; the allow-list
+  // refused the WHOLE envelope (2200 XP, 1500 gp, the completion — all discarded), the quarantine
+  // minted a conflict no GM output could resolve, and that conflict then stripped quest/reward tags
+  // from EVERY later response whose prose said "Mokmurian" — including an unrelated quest's
+  // completion at t1782. Full analysis: DOC/mature game drift.html.
+  t("#175①: a death envelope carrying COMBAT_END commits — incidental tags eject to ordinary application",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");
+    worldState.questLog.push({title:"Boss Hunt",status:"active",desc:"Kill Karg",objectives:[{text:"Kill Karg",done:false}],started:1});
+    w2Frame("brute","Karg",10);
+    worldState.turn=11;var g0=worldState.character.gold;applyMuts("[COMBAT_START:Karg|30|14|+4|1d8|high]");
+    applyMuts(w2Txn("karg-death","npc-death","Karg","brute","Boss Hunt","[SCENE_DEATH:brute][NPC:Karg|dead|enemy][COMBAT_END:victory][XP:100][QUEST:Boss Hunt|completed][GOLD:50]"));
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-death";})[0];
+    if(!tx)return "no receipt written";
+    if(tx.status!=="committed")return "the envelope was refused: "+tx.status+" / "+tx.reason+" — one incidental tag still voids a death and its rewards";
+    if(worldState.character.xp!==100)return "XP did not land: "+worldState.character.xp;
+    if(worldState.character.gold!==g0+50)return "GOLD did not land: "+worldState.character.gold;
+    if(!npcIsDead(wsNpcByName("Karg")))return "the death itself did not commit";
+    if(worldState.questLog.some(function(q){return q.title==="Boss Hunt";}))return "the quest completion did not archive";
+    if(worldState.combat)return "the ejected COMBAT_END was not applied as an ordinary tag";
+    if(!(tx.ejected&&tx.ejected.indexOf("COMBAT_END")>=0))return "the receipt does not record the ejection: "+JSON.stringify(tx.ejected);
+    if((worldState.identityConflicts||[]).length)return "a committed envelope minted a conflict";
+    return true;
+  });
+  t("#175①b: mismatched-subject death ops still refuse the WHOLE envelope (ejection never applies to claim substance)",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");w2Npc("Rinn Toldrath");
+    w2Frame("brute","Karg",10);w2Frame("rinn","Rinn Toldrath",10);
+    worldState.turn=12;applyMuts(w2Txn("confused","npc-death","Karg","brute","-","[SCENE_DEATH:brute][NPC:Rinn Toldrath|dead|enemy][XP:75]"));
+    if(npcIsDead(wsNpcByName("Rinn Toldrath")))return "a mismatched death op was ejected and killed the wrong NPC";
+    if(worldState.character.xp!==0)return "a confused envelope paid out";
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="confused";})[0];
+    return tx&&tx.status==="quarantined"?true:"confused claim was not quarantined: "+JSON.stringify(tx);
+  });
+  t("#175②: a subject already dead in canon authorizes a bookkeeping re-assertion envelope (the t1742 shape)",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");
+    worldState.questLog.push({title:"Mokmurian's Army",status:"active",desc:"",objectives:[{text:"Confirm strength",done:false}],started:1});
+    worldState.turn=20;applyMuts("[SCENE_REF:watcher|?]");/* sceneRefs ACTIVE, so evidence rules are in force */
+    wsNpcByName("Mokmurian").dead=15;memory.npcs.Mokmurian.dead=15;/* the death is established canon */
+    worldState.turn=21;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    applyMuts(w2Txn("true-death","npc-death","Mokmurian","-","Mokmurian's Army","[NPC:Mokmurian|dead|enemy][XP:2200][QUEST:Mokmurian's Army|completed][GOLD:1500]"));
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="true-death";})[0];
+    if(!tx||tx.status!=="committed")return "the re-assertion was refused: "+(tx?tx.reason:"no receipt")+" — closing bookkeeping on an established death is impossible";
+    if(worldState.character.xp!==xp0+2200||worldState.character.gold!==g0+1500)return "the owed rewards did not land";
+    return worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";})?"quest did not archive":true;
+  });
+  t("#175③: a VALID committed envelope resolves the subject's standing conflict — the heal path exists",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");
+    w2Frame("brute","Karg",10);
+    worldState.identityConflicts=[{subject:"Karg",handle:"-",reason:"named death has no prior positive scene binding",turn:9,lastTurn:9,attempts:3,resolved:false}];
+    worldState.turn=11;applyMuts(w2Txn("karg-heal","npc-death","Karg","brute","-","[SCENE_DEATH:brute][NPC:Karg|dead|enemy][XP:60]"));
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-heal";})[0];
+    if(!tx||tx.status!=="committed")return "valid evidence did not commit while a conflict stood: "+(tx?tx.reason:"no receipt");
+    if((worldState.identityConflicts||[]).some(function(c){return c.subject==="Karg"&&!c.resolved;}))return "the committed claim did not resolve the standing conflict — the deadlock survives";
+    return true;
+  });
+  t("#175④: a standing conflict about B does not block an envelope for A whose body mentions B",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");w2Npc("Mokmurian");
+    w2Frame("brute","Karg",10);
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"unsupported operation COMBAT_END inside npc-death transaction",turn:9,lastTurn:9,attempts:2,resolved:false}];
+    worldState.turn=11;applyMuts(w2Txn("karg-2","npc-death","Karg","brute","-","Karg falls where Mokmurian once stood. [SCENE_DEATH:brute][NPC:Karg|dead|enemy][XP:80]"));
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-2";})[0];
+    if(!tx||tx.status!=="committed")return "an unrelated subject's envelope was blocked by a name substring: "+(tx?tx.reason:"no receipt");
+    return worldState.character.xp===80?true:"the unrelated envelope's award was withheld";
+  });
+  t("#175⑤: a standing conflict strips ONLY the disputed quest's completion — the exact t1782 fixture",function(){
+    makeWorld();worldState.world.location="Magnimar";w2Npc("Mokmurian");
+    worldState.questLog.push({title:"Mokmurian's Army",status:"active",desc:"",objectives:[],started:1});
+    worldState.questLog.push({title:"Whispers of Jorgenfist",status:"active",desc:"",objectives:[],started:1});
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"unsupported operation COMBAT_END inside npc-death transaction",turn:1742,lastTurn:1742,attempts:14,resolved:false}];
+    worldState.canonTxns=[{id:"mokmurian_true_death",claim:"npc-death",subject:"Mokmurian",evidence:"-",quest:"Mokmurian's Army",status:"quarantined",operations:[],turn:1742,reason:"unsupported operation COMBAT_END inside npc-death transaction",quarantinedTurn:1742}];
+    worldState.turn=1782;var xp0=worldState.character.xp,g0=worldState.character.gold;
+    applyMuts("Mokmurian's death stays exactly as narrated. [QUEST:Mokmurian's Army|completed] [QUEST:Whispers of Jorgenfist|completed] [XP:400] [GOLD:200]");
+    if(worldState.questLog.some(function(q){return q.title==="Whispers of Jorgenfist";}))return "the UNRELATED quest's completion was destroyed by the name-keyed blackout (the t1782 field failure)";
+    /* co-emitted rewards are WITHHELD alongside the disputed completion (the pinned laundering
+       rule) — temporary by construction: a valid re-emission heals, an unanswered dispute goes stale */
+    if(worldState.character.xp!==xp0)return "a disputed completion's co-emitted reward landed: xp "+worldState.character.xp;
+    if(worldState.character.gold!==g0)return "a disputed completion's co-emitted gold landed";
+    if(!worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";}))return "the DISPUTED quest's completion landed while its claim is quarantined — the protection is gone entirely";
+    return true;
+  });
+  t("#175⑥: an unanswered conflict goes STALE after "+ (typeof IDENTITY_CONFLICT_STALE_ATTEMPTS!=="undefined"?IDENTITY_CONFLICT_STALE_ATTEMPTS:5) +" nudge firings and stops blocking",function(){
+    makeWorld();w2Npc("Mokmurian");
+    worldState.questLog.push({title:"Mokmurian's Army",status:"active",desc:"",objectives:[],started:1});
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"unsupported operation COMBAT_END inside npc-death transaction",turn:10,lastTurn:10,attempts:0,resolved:false}];
+    worldState.canonTxns=[{id:"x",claim:"npc-death",subject:"Mokmurian",evidence:"-",quest:"Mokmurian's Army",status:"quarantined",operations:[],turn:10,reason:"r",quarantinedTurn:10}];
+    var fired=0,i;
+    for(i=0;i<40;i++){worldState.turn=20+i*4;if(buildIdentityConflictNudge())fired++;}
+    var c=worldState.identityConflicts[0];
+    if(!c.stale)return "the conflict never went stale — the nudge fires forever ("+fired+" firings)";
+    if(fired>IDENTITY_CONFLICT_STALE_ATTEMPTS)return "the nudge fired "+fired+" times, past the stale cap";
+    worldState.turn=200;var xp0=worldState.character.xp;
+    applyMuts("Mokmurian is mentioned. [QUEST:Mokmurian's Army|completed] [XP:50]");
+    if(worldState.character.xp!==xp0+50)return "a STALE conflict still destroyed rewards";
+    return worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";})?"a stale conflict still blocked the quest completion":true;
+  });
+  t("#175⑧: [QUEST:title|status|] with a trailing empty desc still applies (was a SILENT no-op)",function(){
+    // Found by the t1742 replay: the optional desc group required 1+ chars, so a trailing pipe with
+    // an empty field — a perfectly natural model emission of the documented [QUEST:title|status|desc]
+    // shape — failed the whole tag match. No warn, no mutation, quest left active forever.
+    makeWorld();
+    worldState.questLog.push({title:"Boss Hunt",status:"active",desc:"",objectives:[],started:1});
+    applyMuts("[QUEST:Boss Hunt|completed|]");
+    if(worldState.questLog.some(function(q){return q.title==="Boss Hunt";}))return "the trailing-pipe completion silently no-opped again";
+    return (memory.quests&&memory.quests["Boss Hunt"]&&memory.quests["Boss Hunt"].status==="completed")?true:"quest did not archive as completed";
+  });
+  t("#175⑦: same-response refusal still de-authorizes co-emitted quest/reward tags (the entry-13 pin holds)",function(){
+    makeWorld();worldState.world.location="Jorgenfist";w2Npc("Karg");
+    worldState.questLog.push({title:"Boss Hunt",status:"active",desc:"",objectives:[],started:1});
+    worldState.turn=10;applyMuts("[SCENE_REF:watcher|?]");/* sceneRefs live, no binding for Karg */
+    worldState.turn=11;var xp0=worldState.character.xp;
+    applyMuts("Karg dies. [NPC:Karg|dead|enemy] [QUEST:Boss Hunt|completed] [XP:500]");
+    if(npcIsDead(wsNpcByName("Karg")))return "an unauthorized bare death landed";
+    if(worldState.character.xp!==xp0)return "a just-refused death still paid out";
+    return worldState.questLog.some(function(q){return q.title==="Boss Hunt";})?true:"the co-emitted completion landed despite the refusal";
+  });
   t("W2 transaction ids are idempotent while the same claim id may carry a later new operation once",function(){
     makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();w2Frame("mok","Mokmurian",40);
     worldState.turn=41;var death=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][XP:100]");

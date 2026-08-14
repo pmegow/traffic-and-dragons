@@ -720,10 +720,25 @@ function buildMergeConfirmNudge(){
 function buildIdentityConflictNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.identityConflicts||[],i,c=null;
-  for(i=0;i<q.length;i++)if(!q[i].resolved&&(!q[i].lastFired||worldState.turn-q[i].lastFired>=3)){c=q[i];break;}
+  for(i=0;i<q.length;i++)if(!q[i].resolved&&!q[i].stale&&(!q[i].lastFired||worldState.turn-q[i].lastFired>=3)){c=q[i];break;}
   if(!c)return"";c.lastFired=worldState.turn;c.attempts=(c.attempts||0)+1;
+  /* #175: the stale cap. The t1742 conflict fired 14 times with no answer any GM output could give,
+     and under that sustained pressure the GM rationalized the dispute INTO the fiction (the
+     body-double narration at t1781), then discussed the engine's notes in story text (t1782). A
+     note that N pointed deliveries cannot clear will not clear on delivery N+1 — shelve it loudly
+     and stop degrading the prose. A fresh quarantine for the same subject re-arms it (identity.js). */
+  if(c.attempts>IDENTITY_CONFLICT_STALE_ATTEMPTS){
+    c.stale=true;
+    if(typeof console!=="undefined")console.warn("[identity] conflict for "+c.subject+" shelved STALE after "+(c.attempts-1)+" unanswered deliveries — it no longer nudges or withholds; a new quarantine re-arms it (#175)");
+    if(typeof showToast==="function")showToast("Identity conflict for "+c.subject+" shelved after "+(c.attempts-1)+" attempts");
+    return"";
+  }
   var known=c.subject&&c.subject!=="unknown"&&c.subject!=="-",handle=c.handle&&c.handle!=="-";
-  return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): an irreversible write for "+(known?'"'+c.subject+'"':"an unknown actor")+(handle?' using scene handle "'+c.handle+'"':"")+" was refused because "+c.reason+". Do not re-state the death, objective, or rewards from momentum. If an on-screen reveal genuinely establishes the handle's identity, emit "+(handle&&known?"[SCENE_REVEAL:"+c.handle+"|"+c.subject+"] now; put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response":"the appropriate SCENE_REF/SCENE_REVEAL evidence first, then wait one response before any consequence")+". If the actor was not "+(known?c.subject:"a known NPC")+", leave that NPC alive and continue with the corrected fiction.]";
+  /* #175: an already-canon-dead subject gets the ONE instruction that actually works now — re-emit
+     the bookkeeping (re-assertion of an established death authorizes), incidental tags outside. */
+  if(known&&typeof _w2SubjectDeadInCanon==="function"&&_w2SubjectDeadInCanon(c.subject))
+    return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): a canon claim for \""+c.subject+"\" was refused because "+c.reason+". "+c.subject+"'s death is ALREADY canon — do not re-narrate or un-narrate it. To close its bookkeeping, emit one CANON_TXN with a NEW stable claim id containing ONLY the death re-assertion and its quest/objective/reward tags; combat, time, and every other tag must sit OUTSIDE the envelope markers. If nothing remains owed, leave state unchanged.]";
+  return "[ENGINE NOTE - IDENTITY CONSEQUENCE QUARANTINED (not a player action): an irreversible write for "+(known?'"'+c.subject+'"':"an unknown actor")+(handle?' using scene handle "'+c.handle+'"':"")+" was refused because "+c.reason+". Do not re-state the death, objective, or rewards from momentum. If an on-screen reveal genuinely establishes the handle's identity, emit "+(handle&&known?"[SCENE_REVEAL:"+c.handle+"|"+c.subject+"] now; put the death and every caused objective/reward inside one CANON_TXN with a NEW stable claim id on the NEXT response":"the appropriate SCENE_REF/SCENE_REVEAL evidence first, then wait one response before any consequence")+". Keep combat, time, and all other unrelated tags OUTSIDE the envelope markers. If the actor was not "+(known?c.subject:"a known NPC")+", leave that NPC alive and continue with the corrected fiction.]";
 }
 function buildPhaseMismatchNudge(){
   if(!worldState||worldState.combat)return"";
@@ -1758,6 +1773,13 @@ function applyMuts(text){
     }
     R.muts=R.muts.concat(_w2r.muts);
     if(_w2Stage)_w2Stage.replay();
+    /* #175: the heal. A committed claim IS the resolution of its subject's standing dispute — the
+       evidence checks just accepted what the conflict was doubting. Without this, a conflict born
+       from a refused envelope had no exit at all (the t1742 row fired 14 times unanswerable). */
+    if(_w2t.meta.subject&&_w2t.meta.subject!=="-"&&typeof _w2ResolveConflicts==="function"&&(worldState.identityConflicts||[]).some(function(c){return !c.resolved&&c.subject===_w2t.meta.subject;})){
+      _w2ResolveConflicts(_w2t.meta.subject);
+      R.muts.push("Identity conflict for "+_w2t.meta.subject+" resolved by committed canon claim "+_w2t.meta.id);
+    }
   }
   __tagUnknownScan(text);
   __mpBareTagScan(text);

@@ -14,7 +14,7 @@ rc|=sabotage.prove({
       find:"as[j].sourceTurn<worldState.turn&&(!as[j].revealed||as[j].revealTurn<worldState.turn)&&as[j].entity===canon",
       replace:"as[j].entity===canon"},
     {label:"transaction operations stop matching their declared subject and quest",
-      find:"if(!reason)reason=_w2TxnOpReason(meta,ops);",
+      find:"if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject))return{reason:\"death operation names a different NPC than the transaction subject\"};",
       replace:""},
     {label:"semantic XP fingerprints revert to raw spelling and pay +100 twice",
       find:"if(name===\"XP\"){m=tag.match(/^\\[XP:\\s*\\+?(\\d+)/);if(m)return\"XP:\"+parseInt(m[1],10);}",
@@ -66,8 +66,8 @@ rc|=sabotage.prove({
   command:["node",["dev/run-tests.js","#168R"]],
   cases:[
     {label:"a just-refused death stops de-authorizing its co-emitted rewards (the stripped-tag evidence hole reopens)",
-      find:"refusalSubject=conflict?conflict.subject:refusedVictim;",
-      replace:"refusalSubject=conflict?conflict.subject:null;"},
+      find:"if(refusedVictim&&",
+      replace:"if(false&&"},
     {label:"same-turn summary evidence self-authorizes a corpse again",
       find:"if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return false;",
       replace:""},
@@ -91,6 +91,51 @@ rc|=sabotage.prove({
       find:"if(_snn!=null)extracted.chapterSummary=_snn;",
       replace:"if(false)extracted.chapterSummary=_snn;"}
   ]
+});
+
+/* #175: the quest-credit blackout guards — each mutation must turn a focused #175 test red. */
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#175"]],
+  cases:[
+    {
+        "label": "ejection dies — one incidental tag voids the death and its rewards again (the t1742 refusal)",
+        "find": "if(!allowed[name]){eject.push(ops[i]);continue;}",
+        "replace": "if(!allowed[name])return{reason:\"unsupported operation \"+name+\" inside \"+meta.claim+\" transaction\"};"
+    },
+    {
+        "label": "already-canon-dead subjects need fresh scene evidence again (re-assertion bookkeeping impossible)",
+        "find": "else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))",
+        "replace": "else if(!w2DeathAuthorized(meta.subject,meta.evidence))"
+    },
+    {
+        "label": "the standing-conflict strip goes prose-keyed again — the name-substring blackout returns",
+        "find": ".test(payload))return true;",
+        "replace": ".test(ordinary))return true;"
+    },
+    {
+        "label": "mismatched-subject death ops get ejected instead of refusing (wrong-corpse writes launder through)",
+        "find": "if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject))return{reason:\"death operation names a different NPC than the transaction subject\"};",
+        "replace": "if(resolveNpcName(m[1].trim())!==resolveNpcName(meta.subject)){eject.push(ops[i]);continue;}"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js","#175"]],
+  cases:[
+    {
+        "label": "the heal dies — a committed claim stops resolving its subject's standing conflict",
+        "find": "      _w2ResolveConflicts(_w2t.meta.subject);",
+        "replace": "      ;"
+    },
+    {
+        "label": "the stale cap dies — an unanswerable conflict nudges forever again",
+        "find": "  if(c.attempts>IDENTITY_CONFLICT_STALE_ATTEMPTS){",
+        "replace": "  if(false){"
+    }
+]
 });
 
 process.exit(rc?1:0);
