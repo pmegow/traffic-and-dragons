@@ -1,0 +1,162 @@
+// tests-todo-hygiene.js — #20 failing-first acceptance fixtures for tracker hygiene.
+// Uses the pre-move TODO.md blob from 93c182f^ (809c9fa) and a synthetic git repo only.
+var fs = require("fs");
+var os = require("os");
+var path = require("path");
+var cp = require("child_process");
+
+var ROOT = path.join(__dirname, "..");
+var LINT = path.join(__dirname, "lint-todo.js");
+var SESSION = path.join(__dirname, "session-check.js");
+var pass = 0;
+var fail = 0;
+
+function run(cmd, args, opts) {
+  return cp.spawnSync(cmd, args, Object.assign({ encoding: "utf8" }, opts || {}));
+}
+function resultText(r) { return String(r.stdout || "") + String(r.stderr || ""); }
+function test(name, fn) {
+  try {
+    var why = fn();
+    if (why) { fail++; console.error("FAIL " + name + " — " + why); }
+    else { pass++; console.log("PASS " + name); }
+  } catch (e) {
+    fail++;
+    console.error("FAIL " + name + " — " + (e && e.stack || e));
+  }
+}
+function rowLine(text, id) {
+  var re = new RegExp("^\\|\\s*" + id + "\\s*\\|", "m");
+  var lines = text.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) if (re.test(lines[i])) return lines[i];
+  throw new Error("fixture row #" + id + " not found");
+}
+function reorderBlock(text, ids, beforeId) {
+  var lines = text.split(/\r?\n/);
+  var block = [];
+  for (var n = 0; n < ids.length; n++) {
+    var re = new RegExp("^\\|\\s*" + ids[n] + "\\s*\\|");
+    var at = -1;
+    for (var i = 0; i < lines.length; i++) if (re.test(lines[i])) { at = i; break; }
+    if (at < 0) throw new Error("fixture row #" + ids[n] + " not found for reorder");
+    block.push(lines.splice(at, 1)[0]);
+  }
+  var beforeRe = new RegExp("^\\|\\s*" + beforeId + "\\s*\\|");
+  var before = -1;
+  for (var j = 0; j < lines.length; j++) if (beforeRe.test(lines[j])) { before = j; break; }
+  if (before < 0) throw new Error("fixture insertion row #" + beforeId + " not found");
+  lines.splice.apply(lines, [before, 0].concat(block));
+  return lines.join("\n");
+}
+function replaceRow(text, id, replacement) {
+  var original = rowLine(text, id);
+  if (text.indexOf(original) < 0) throw new Error("fixture replacement target missing");
+  return text.replace(original, replacement);
+}
+function lintFixture(dir, name, headText, currentText) {
+  var headFile = path.join(dir, name + "-head.md");
+  var currentFile = path.join(dir, name + "-current.md");
+  fs.writeFileSync(headFile, headText, "utf8");
+  fs.writeFileSync(currentFile, currentText, "utf8");
+  return run(process.execPath, [LINT, "--git-aware", "--file", currentFile, "--head-file", headFile], { cwd: ROOT });
+}
+function git(dir, args) {
+  var env = Object.assign({}, process.env, { GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "NUL" });
+  var r = run("git", ["-C", dir].concat(args), { env: env });
+  if (r.status !== 0) throw new Error("git " + args.join(" ") + " failed: " + resultText(r));
+  return r;
+}
+
+var fixture = run("git", ["show", "93c182f^:TODO.md"], { cwd: ROOT });
+if (fixture.status !== 0) {
+  console.error("FAIL fixture setup — cannot read 93c182f^:TODO.md: " + resultText(fixture));
+  process.exit(1);
+}
+var head = fixture.stdout;
+var blob = run("git", ["rev-parse", "93c182f^:TODO.md"], { cwd: ROOT });
+if (blob.status !== 0 || String(blob.stdout).trim().indexOf("809c9fa") !== 0) {
+  console.error("FAIL fixture setup — expected pre-move TODO blob 809c9fa, got " + String(blob.stdout || "").trim());
+  process.exit(1);
+}
+
+var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-todo-hygiene-"));
+try {
+  var original175 = rowLine(head, "175");
+  var statusStart = original175.indexOf(" | ", original175.indexOf(" | ", original175.indexOf(" | ", original175.indexOf(" | ") + 3) + 3) + 3) + 3;
+  var rawPipe = original175.indexOf("|", statusStart);
+  if (statusStart < 3 || rawPipe < 0 || original175.slice(rawPipe - 12, rawPipe) !== "[QUEST:title") {
+    throw new Error("#175 fixture no longer reaches the incident pipe: " + original175.slice(rawPipe - 30, rawPipe + 20));
+  }
+  var truncated175 = original175.slice(0, rawPipe + 1);
+  var reordered = reorderBlock(head, ["176", "175"], "177");
+  var corrupted = replaceRow(reordered, "175", truncated175);
+
+  test("moved #175 truncation is blocked and names the row", function () {
+    var r = lintFixture(tmp, "corrupt-move", head, corrupted);
+    var out = resultText(r);
+    if (r.status === 0) return "corrupted moved row passed";
+    if (!/row #175/i.test(out)) return "failure did not name row #175: " + out;
+    if (!/missing|truncat|bytes? shorter/i.test(out)) return "failure did not summarize the missing bytes: " + out;
+    return "";
+  });
+
+  test("byte-identical row reorder passes", function () {
+    var r = lintFixture(tmp, "pure-reorder", head, reordered);
+    return r.status === 0 ? "" : resultText(r);
+  });
+
+  test("in-place status edit passes", function () {
+    var edited = replaceRow(head, "175", original175.replace("Filed 2026-08-12 analysis-first", "Filed 2026-08-12 analysis-first (fixture edit)"));
+    var r = lintFixture(tmp, "in-place-edit", head, edited);
+    return r.status === 0 ? "" : resultText(r);
+  });
+
+  test("new row passes", function () {
+    var marker = rowLine(head, "174");
+    var added = head.replace(marker, "| 999 | Synthetic new row | S | Any | Open |\n" + marker);
+    var r = lintFixture(tmp, "new-row", head, added);
+    if (r.status !== 0) return resultText(r);
+    return /1 added/.test(resultText(r)) ? "" : "new row was not classified as added: " + resultText(r);
+  });
+
+  test("deleted row passes", function () {
+    var deleted = head.replace(original175 + "\n", "");
+    var r = lintFixture(tmp, "delete-row", head, deleted);
+    if (r.status !== 0) return resultText(r);
+    return /1 deleted/.test(resultText(r)) ? "" : "old row was not classified as deleted: " + resultText(r);
+  });
+
+  test("dirty-tree session advisory is loud and exits zero", function () {
+    var repo = path.join(tmp, "dirty-repo");
+    fs.mkdirSync(repo);
+    fs.mkdirSync(path.join(repo, "DOC"));
+    fs.mkdirSync(path.join(repo, "dev"));
+    fs.mkdirSync(path.join(repo, "testRuns"));
+    fs.writeFileSync(path.join(repo, "TODO.md"), "baseline\n", "utf8");
+    fs.writeFileSync(path.join(repo, "DOC", "BUGS.md"), "bugs\n", "utf8");
+    fs.writeFileSync(path.join(repo, "todo_checkWithFable.md"), "reviews\n", "utf8");
+    fs.writeFileSync(path.join(repo, ".gitignore"), "testRuns/\n", "utf8");
+    git(repo, ["init", "-q"]);
+    git(repo, ["add", "TODO.md", "DOC/BUGS.md", "todo_checkWithFable.md", ".gitignore"]);
+    git(repo, ["-c", "user.name=Hygiene Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture baseline"]);
+    fs.appendFileSync(path.join(repo, "TODO.md"), "dirty\n", "utf8");
+    fs.writeFileSync(path.join(repo, "testRuns", "unregistered.tnd"), "synthetic\n", "utf8");
+    fs.writeFileSync(path.join(repo, "dev", "lane-declaration.json"), JSON.stringify({ lane: "fixture", owns: ["dev/"] }), "utf8");
+    var r = run(process.execPath, [SESSION, "--root", repo], { cwd: ROOT });
+    var out = resultText(r);
+    if (r.status !== 0) return "advisory blocked with exit " + r.status + ": " + out;
+    if (out.indexOf("TODO.md") < 0) return "tracker edit not reported: " + out;
+    if (out.indexOf("testRuns/unregistered.tnd") < 0) return "untracked testRuns file not reported: " + out;
+    if (out.indexOf("dev/lane-declaration.json") < 0 || out.indexOf("fixture") < 0) return "lane declaration not reported: " + out;
+    if (!/WARN|ADVIS/i.test(out)) return "output was not visibly advisory: " + out;
+    return "";
+  });
+} finally {
+  fs.rmSync(tmp, { recursive: true, force: true });
+}
+
+if (fail) {
+  console.error("TODO/session hygiene: " + fail + " failed, " + pass + " passed");
+  process.exit(1);
+}
+console.log("ALL GREEN — " + pass + " TODO/session hygiene acceptance tests");

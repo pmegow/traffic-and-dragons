@@ -3,9 +3,14 @@
 # This is the TRACKED copy; git only executes it from .git/hooks/. After a fresh clone, reinstall:
 #   cp dev/pre-commit .git/hooks/pre-commit
 # Bypassing (git commit --no-verify) is for emergencies only — a red suite means a real regression.
-node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" || {
+node "$(git rev-parse --show-toplevel)/dev/lint-todo.js" --git-aware --staged || {
   echo "" >&2
-  echo "Commit blocked: TODO.md table integrity failed — a cell newline or stray edit broke a table (findings above)." >&2
+  echo "Commit blocked: TODO.md integrity failed — table shape or moved-row bytes differ from HEAD (findings above)." >&2
+  exit 1
+}
+node "$(git rev-parse --show-toplevel)/dev/tests-todo-hygiene.js" || {
+  echo "" >&2
+  echo "Commit blocked: TODO/session hygiene acceptance fixtures failed (details above)." >&2
   exit 1
 }
 node "$(git rev-parse --show-toplevel)/dev/check-shell-markers.js" || {

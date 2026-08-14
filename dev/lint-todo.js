@@ -1,46 +1,212 @@
-// lint-todo.js — TODO.md table-integrity gate (DEV TOOL, runs in pre-commit before the engine tests).
-// Guards against the recurring "backlog rows escape the table" corruption: a cell containing a raw
-// newline splits its row across physical lines (invalid GFM), and every row below the break falls
-// out of the table. Writers that have caused it: todo-viewer.html exports (escCell didn't escape
-// newlines — fixed 2026-07-09) and hand/model edits that complete the first line of a wrapped row,
-// stranding its tail. This lint fails LOUDLY on any shape of the break, whatever wrote it.
-//   node dev/lint-todo.js          — exit 0 clean, exit 1 with line-numbered findings
+// lint-todo.js — TODO.md table-integrity gate (DEV TOOL, runs before engine tests).
 //
-// Rules (deterministic, no heuristics):
-//   1. ORPHAN TAIL — a line that does NOT start with "|" but ENDS with "|" is the spilled tail of
-//      a split row (prose never ends with a pipe in this file).
-//   2. WRAPPED ROW — a line that starts with "|" but does NOT end with "|" is a row whose cell
-//      newline pushed the rest onto later lines.
-//   3. STRANDED ROW — a "|" line whose previous line is not a "|" line must be a table HEADER,
-//      i.e. immediately followed by a |---| delimiter row; otherwise it's a row cut off from its
-//      table (renders as a loose paragraph).
+// Shape lint catches physical-line/table-boundary damage. Git-aware mode additionally catches
+// the 2026-08-14 hand-move incident: a row was reordered and truncated at a raw pipe inside its
+// status prose, leaving a shorter line that still looked like a complete GFM row.
+//
+//   node dev/lint-todo.js                         shape + moved-row verify the working file
+//   node dev/lint-todo.js --shape-only            physical table shape only
+//   node dev/lint-todo.js --git-aware --staged    verify the exact index blob (pre-commit)
+//   node dev/lint-todo.js --git-aware --file X --head-file Y   synthetic fixture seam
 var fs = require("fs");
 var path = require("path");
-var file = path.join(__dirname, "..", "TODO.md");
-var lines = fs.readFileSync(file, "utf8").split("\n");
-var errs = [];
+var cp = require("child_process");
+
+var ROOT = path.join(__dirname, "..");
+var DEFAULT_FILE = path.join(ROOT, "TODO.md");
+
 function isRow(s) { return /^\s*\|/.test(s); }
 function endsRow(s) { return /\|\s*$/.test(s); }
 function isDelim(s) { return /^\s*\|[\s:|-]+\|\s*$/.test(s); }
-for (var i = 0; i < lines.length; i++) {
-  var ln = lines[i], t = ln.trim();
-  if (!t) continue;
-  if (!isRow(t)) {
-    if (endsRow(t)) errs.push((i + 1) + ": orphaned row tail (cell text spilled out of its table row): " + t.slice(0, 80));
-    continue;
+
+function shapeErrors(text) {
+  var lines = text.split("\n");
+  var errs = [];
+  for (var i = 0; i < lines.length; i++) {
+    var ln = lines[i], t = ln.trim();
+    if (!t) continue;
+    if (!isRow(t)) {
+      if (endsRow(t)) errs.push((i + 1) + ": orphaned row tail (cell text spilled out of its table row): " + t.slice(0, 80));
+      continue;
+    }
+    if (!endsRow(t)) {
+      errs.push((i + 1) + ": wrapped row (starts with | but does not end with |): " + t.slice(0, 80));
+      continue;
+    }
+    var prevRow = i > 0 && isRow(lines[i - 1].trim()) && lines[i - 1].trim();
+    if (!prevRow && !isDelim(t)) {
+      var next = i + 1 < lines.length ? lines[i + 1].trim() : "";
+      if (!isDelim(next)) errs.push((i + 1) + ": stranded row (table row with no header/delimiter above it): " + t.slice(0, 80));
+    }
   }
-  if (!endsRow(t)) { errs.push((i + 1) + ": wrapped row (starts with | but does not end with |): " + t.slice(0, 80)); continue; }
-  var prevRow = i > 0 && isRow(lines[i - 1].trim()) && lines[i - 1].trim();
-  if (!prevRow && !isDelim(t)) {
-    var next = i + 1 < lines.length ? lines[i + 1].trim() : "";
-    if (!isDelim(next)) errs.push((i + 1) + ": stranded row (table row with no header/delimiter above it): " + t.slice(0, 80));
+  return errs;
+}
+
+function headingKey(stack) {
+  var out = [];
+  for (var i = 1; i < stack.length; i++) if (stack[i]) out.push(stack[i]);
+  return out.join(" > ");
+}
+
+function parseTables(text) {
+  var lines = text.split(/\r?\n/);
+  var headings = [];
+  var seenTables = {};
+  var tables = [];
+  for (var i = 0; i < lines.length; i++) {
+    var hm = lines[i].match(/^(#{1,6})\s+(.+?)\s*$/);
+    if (hm) {
+      var level = hm[1].length;
+      headings[level] = hm[2];
+      headings.length = level + 1;
+      continue;
+    }
+    if (!isRow(lines[i]) || i + 1 >= lines.length || !isDelim(lines[i + 1])) continue;
+    var base = headingKey(headings) + " :: " + lines[i].trim();
+    var occurrence = seenTables[base] || 0;
+    seenTables[base] = occurrence + 1;
+    var table = { key: base + " :: table " + occurrence, groupKey: base, rows: [] };
+    i += 2;
+    var ids = {};
+    while (i < lines.length && isRow(lines[i])) {
+      var raw = lines[i].replace(/\r$/, "");
+      var firstPipe = raw.indexOf("|");
+      var secondPipe = raw.indexOf("|", firstPipe + 1);
+      var id = secondPipe < 0 ? "" : raw.slice(firstPipe + 1, secondPipe).trim();
+      var nth = ids[id] || 0;
+      ids[id] = nth + 1;
+      table.rows.push({ id: id, token: id + "\u0000" + nth, raw: raw, line: i + 1 });
+      i++;
+    }
+    i--;
+    tables.push(table);
   }
+  return tables;
 }
-if (errs.length) {
-  console.error("TODO.md TABLE INTEGRITY FAILED (" + errs.length + " finding" + (errs.length > 1 ? "s" : "") + "):");
-  for (var e = 0; e < errs.length; e++) console.error("  ✗ line " + errs[e]);
-  console.error("A table cell must not contain raw newlines — use <br>. Rows must be one physical line each.");
-  process.exit(1);
+
+function tableMap(tables) {
+  var out = {};
+  for (var i = 0; i < tables.length; i++) {
+    var key = tables[i].groupKey;
+    if (!out[key]) out[key] = { key: key, rows: [] };
+    out[key].rows = out[key].rows.concat(tables[i].rows);
+  }
+  return out;
 }
-console.log("TODO.md tables OK (" + lines.length + " lines)");
-process.exit(0);
+
+function shortExcerpt(s) {
+  var clean = String(s || "").replace(/\s+/g, " ").trim();
+  if (clean.length > 100) clean = clean.slice(0, 97) + "...";
+  return JSON.stringify(clean);
+}
+
+function differenceSummary(before, after) {
+  var beforeBytes = Buffer.byteLength(before, "utf8");
+  var afterBytes = Buffer.byteLength(after, "utf8");
+  var at = 0;
+  while (at < before.length && at < after.length && before.charAt(at) === after.charAt(at)) at++;
+  var parts = ["HEAD " + beforeBytes + " bytes; candidate " + afterBytes + " bytes"];
+  if (afterBytes < beforeBytes) parts.push((beforeBytes - afterBytes) + " bytes shorter");
+  else if (afterBytes > beforeBytes) parts.push((afterBytes - beforeBytes) + " bytes longer");
+  if (at === after.length && at < before.length) parts.push("missing HEAD text begins " + shortExcerpt(before.slice(at, at + 140)));
+  else parts.push("first difference near HEAD " + shortExcerpt(before.slice(at, at + 90)) + " vs candidate " + shortExcerpt(after.slice(at, at + 90)));
+  return parts.join("; ");
+}
+
+function movedRowErrors(headText, candidateText) {
+  var headTables = tableMap(parseTables(headText));
+  var candidateTables = tableMap(parseTables(candidateText));
+  var errs = [];
+  var reordered = 0;
+  var added = 0;
+  var deleted = 0;
+  Object.keys(headTables).forEach(function (key) {
+    var beforeTable = headTables[key];
+    var afterTable = candidateTables[key];
+    if (!afterTable) return;
+    var before = {};
+    var after = {};
+    var common = [];
+    var i;
+    for (i = 0; i < beforeTable.rows.length; i++) before[beforeTable.rows[i].token] = { row: beforeTable.rows[i], order: i };
+    for (i = 0; i < afterTable.rows.length; i++) after[afterTable.rows[i].token] = { row: afterTable.rows[i], order: i };
+    Object.keys(after).forEach(function (token) { if (!before[token]) added++; });
+    Object.keys(before).forEach(function (token) { if (!after[token]) deleted++; });
+    Object.keys(before).forEach(function (token) { if (after[token]) common.push(token); });
+    var moved = {};
+    for (i = 0; i < common.length; i++) {
+      for (var j = i + 1; j < common.length; j++) {
+        var a = common[i], b = common[j];
+        var headSign = before[a].order < before[b].order;
+        var candidateSign = after[a].order < after[b].order;
+        if (headSign !== candidateSign) { moved[a] = true; moved[b] = true; }
+      }
+    }
+    Object.keys(moved).forEach(function (token) {
+      reordered++;
+      var oldRow = before[token].row;
+      var newRow = after[token].row;
+      if (oldRow.raw === newRow.raw) return;
+      errs.push("row #" + oldRow.id + " moved from HEAD line " + oldRow.line + " to candidate line " + newRow.line + " but its bytes changed (" + differenceSummary(oldRow.raw, newRow.raw) + "). A move must preserve the complete row byte-for-byte; make content edits in place before or after the reorder.");
+    });
+  });
+  return { errors: errs, reordered: reordered, added: added, deleted: deleted };
+}
+
+function readGit(spec) {
+  return cp.execFileSync("git", ["-C", ROOT, "show", spec], { encoding: "utf8" });
+}
+
+function parseArgs(argv) {
+  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "" };
+  for (var i = 0; i < argv.length; i++) {
+    if (argv[i] === "--git-aware") opts.gitAware = true;
+    else if (argv[i] === "--shape-only") opts.gitAware = false;
+    else if (argv[i] === "--staged") opts.staged = true;
+    else if (argv[i] === "--file" && argv[i + 1]) opts.file = path.resolve(argv[++i]);
+    else if (argv[i] === "--head-file" && argv[i + 1]) opts.headFile = path.resolve(argv[++i]);
+    else throw new Error("unknown or incomplete argument: " + argv[i]);
+  }
+  if (opts.staged && opts.file !== DEFAULT_FILE) throw new Error("--staged cannot be combined with --file");
+  if (opts.headFile && !opts.gitAware) throw new Error("--head-file requires git-aware mode");
+  return opts;
+}
+
+function main() {
+  var opts;
+  var candidateText;
+  var headText;
+  try {
+    opts = parseArgs(process.argv.slice(2));
+    candidateText = opts.staged ? readGit(":TODO.md") : fs.readFileSync(opts.file, "utf8");
+    if (opts.gitAware) headText = opts.headFile ? fs.readFileSync(opts.headFile, "utf8") : readGit("HEAD:TODO.md");
+  } catch (e) {
+    console.error("TODO.md TABLE INTEGRITY FAILED: could not load verification inputs — " + (e && e.message));
+    process.exit(1);
+  }
+
+  var lines = candidateText.split("\n");
+  var errs = shapeErrors(candidateText);
+  if (errs.length) {
+    console.error("TODO.md TABLE INTEGRITY FAILED (" + errs.length + " finding" + (errs.length > 1 ? "s" : "") + "):");
+    for (var e = 0; e < errs.length; e++) console.error("  ✗ line " + errs[e]);
+    console.error("A table cell must not contain raw newlines — use <br>. Rows must be one physical line each.");
+    process.exit(1);
+  }
+
+  var moves = { errors: [], reordered: 0, added: 0, deleted: 0 };
+  if (opts.gitAware) moves = movedRowErrors(headText, candidateText);
+  if (moves.errors.length) {
+    console.error("TODO.md MOVED-ROW BYTE VERIFICATION FAILED (" + moves.errors.length + " changed moved row" + (moves.errors.length > 1 ? "s" : "") + "):");
+    for (var m = 0; m < moves.errors.length; m++) console.error("  ✗ " + moves.errors[m]);
+    console.error("This is the 2026-08-14 truncation class: reordering is allowed, but every moved existing row must remain byte-identical to HEAD.");
+    process.exit(1);
+  }
+
+  var suffix = opts.gitAware ? "; git-aware moved-row verification OK (" + moves.reordered + " reordered row reference" + (moves.reordered === 1 ? "" : "s") + ", " + moves.added + " added, " + moves.deleted + " deleted)" : "";
+  console.log("TODO.md tables OK (" + lines.length + " lines)" + suffix);
+  process.exit(0);
+}
+
+if (require.main === module) main();
+module.exports = { shapeErrors: shapeErrors, parseTables: parseTables, movedRowErrors: movedRowErrors, differenceSummary: differenceSummary };
