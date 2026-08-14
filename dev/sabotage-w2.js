@@ -253,4 +253,56 @@ rc|=sabotage.prove({
 ]
 });
 
+/* P4b (#169): recognizer-precision guards. */
+rc|=sabotage.prove({
+  file:"game.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "the sentence veto dies — negation/hypotheticals/dreams arm the filing watch again",
+        "find": "if(_LOC_CUE_VETO.test(sent)||!_LOC_CUE_PARTY.test(sent))continue;\n      return nm;",
+        "replace": "return nm;"
+    },
+    {
+        "label": "dialogue stops being stripped — spoken intent arms the watch again",
+        "find": "var s=String(clean||\"\").replace(/\"[^\"]*\"/g,\" \").replace(/“[^”]*”/g,\" \");if(!s)return null;",
+        "replace": "var s=String(clean||\"\");if(!s)return null;"
+    },
+    {
+        "label": "commitment pings stop aging out",
+        "find": "if(worldState.commitmentPing&&turn-worldState.commitmentPing.turn>COMMITMENT_PING_MAX_AGE)delete worldState.commitmentPing;",
+        "replace": ";"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "sentence-initial possessives anchor subjects again (valid summaries burn strikes)",
+        "find": "if(/^['’]s\\b/.test(low.slice(n.length)))continue;",
+        "replace": ";"
+    },
+    {
+        "label": "lone reflexives count as subject evidence again (third-party false rejects return)",
+        "find": "if(/\\bshe\\b[^.!?]*\\bherself\\b/.test(low))return\"F\";",
+        "replace": "if(/\\bherself\\b/.test(low))return\"F\";"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"tag_table.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "name-led death claims survive a retraction again",
+        "find": "||new RegExp(\"^\\\\s*(?:\"+drName.replace(/[.*+?^${}()|[\\]\\\\]/g,\"\\\\$&\")+\"|he|she|they)\\\\b[^.!?]{0,60}?\\\\b(?:slain|killed|dead|deceased|died|perished)\\\\b\",\"i\").test(s);",
+        "replace": ";"
+    }
+]
+});
+
 process.exit(rc?1:0);

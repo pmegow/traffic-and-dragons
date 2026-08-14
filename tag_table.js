@@ -425,7 +425,7 @@ var TAG_TABLE=[
   var dr=drTags[dri].match(/\[NPC_DEATH_RETRACTED:([^|\]]+)\|([^|\]]+)\|([^|\]]+)\]/);if(!dr)continue;
   var drRaw=dr[1].trim(),drName=resolveNpcName(drRaw),drReason=dr[2].trim(),drLoc=locResolve(normalizeEndpointPair(dr[3].trim()));
   var drWorld=wsNpcByName(drName),drMemory=memory.npcs&&memory.npcs[drName],drNode=memory.map&&memory.map.nodes&&memory.map.nodes[drLoc];
-  var drDeathClaim=function(v){var s=String(v&&v.note!==undefined?v.note:v);return /^\s*(?:(?:(?:the|his|her|their)\s+)?(?:body|corpse)|(?:the|his|her|their)\s+remains)\b/i.test(s)||/^\s*(?:(?:(?:is|was|has been|had been)\s+)(?:slain|killed|dead|deceased|died|perished)|(?:slain|killed)\s+by|(?:dead|deceased|died|perished)\b)/i.test(s);};
+  var drDeathClaim=function(v){var s=String(v&&v.note!==undefined?v.note:v);return /^\s*(?:(?:(?:the|his|her|their)\s+)?(?:body|corpse)|(?:the|his|her|their)\s+remains)\b/i.test(s)||/^\s*(?:(?:(?:is|was|has been|had been)\s+)(?:slain|killed|dead|deceased|died|perished)|(?:slain|killed)\s+by|(?:dead|deceased|died|perished)\b)/i.test(s)||new RegExp("^\\s*(?:"+drName.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"|he|she|they)\\b[^.!?]{0,60}?\\b(?:slain|killed|dead|deceased|died|perished)\\b","i").test(s);/* P4b (#169): a NAME-led or pronoun-led death claim ("Mokmurian was slain by…") is a claim about THIS NPC and must not survive the retraction */};
   var drDeathAttitude=!!(drMemory&&/^\s*(?:dead|deceased|slain|killed|perished)\s*$/i.test(String(drMemory.attitude||""))),drNeedsCleanup=drDeathAttitude,drHasCorrection=false,drScan,drs;
   if(drMemory){drScan=drMemory.knowledge||[];for(drs=0;drs<drScan.length;drs++){if(String(drScan[drs]).indexOf("Death attribution corrected:")===0)drHasCorrection=true;if(drDeathClaim(drScan[drs]))drNeedsCleanup=true;}drScan=drMemory.events||[];for(drs=0;drs<drScan.length;drs++){if(drDeathClaim(drScan[drs]))drNeedsCleanup=true;}if(!drHasCorrection)drNeedsCleanup=true;}
   var drPriorRows=memory.archive&&memory.archive.npcDeathCorrections||[],drPrior=false,drPriorRow,drp,drAtTarget=false;
@@ -438,7 +438,7 @@ var TAG_TABLE=[
   else if(!drReason)drRefuse="a correction reason is required";
   else if(!drNode)drRefuse="the destination must be an existing map node";
   else if(locSame(drLoc,locResolve(currentNodeKey())))drRefuse="the destination must be remote from the party's current node";
-  if(drRefuse){if(typeof console!=="undefined")console.warn("[npc] NPC_DEATH_RETRACTED for '"+drRaw+"' REFUSED - "+drRefuse);continue;}
+  if(drRefuse){if(typeof console!=="undefined")console.warn("[npc] NPC_DEATH_RETRACTED for '"+drRaw+"' REFUSED - "+drRefuse);R.muts.push("Death retraction REFUSED for "+drRaw+": "+drRefuse);/* P4b (#169): refusals ride the provenance ring, not just the console */continue;}
   var drNodes=memory.map.nodes,drMemberships=[],drNodePre=[],drKey,drList,drj,drHad;
   var drDeathTurn=typeof drWorld.dead==="number"?drWorld.dead:(typeof drMemory.dead==="number"?drMemory.dead:0);
   for(drKey in drNodes){drList=drNodes[drKey].npcs||[];drHad=false;for(drj=0;drj<drList.length;drj++){if(drList[drj]===drName){drHad=true;break;}}if(drHad)drMemberships.push(drKey);if(drHad||drKey===drLoc)drNodePre.push({node:drKey,npcs:drNodes[drKey].npcs?drNodes[drKey].npcs.slice():null});}

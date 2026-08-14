@@ -1503,16 +1503,34 @@ function detectGhostConsumables(playerTxt,raw){
 // Returns the narrator message element.
 var LOCATION_FILING_TURNS=8,TRAVEL_PRICE_TURNS=12;
 function _driftEsc(s){return String(s||"").replace(/[.*+?^$\{\}()|[\]\\]/g,"\\$&");}
+/* P4b (#169): the filing cue is now SENTENCE-disciplined. Dialogue is stripped first (spoken
+   intent is not movement), and the sentence carrying the trigger must (a) be free of negation/
+   hypothetical/dream framing and (b) contain the party ("you/we/us/the party") — a courier
+   entering a fortress on the horizon is scenery, not an unfiled party location. */
+var _LOC_CUE_VETO=/\b(?:not|never|won't|will not|cannot|can't|refuse[sd]?|if|unless|would|could|might|hop(?:e|es|ed|ing)|plan(?:s|ned|ning)?|intend(?:s|ed|ing)?|dream(?:s|t|ed|ing)?|vision|imagin\w+|nightmare|memor(?:y|ies))\b/i;
+var _LOC_CUE_PARTY=/\b(?:you|your|we|us|our|the party)\b/i;
 function detectLocationFilingCue(clean){
-  var s=String(clean||"");if(!s)return null;
-  var nodes=(memory&&memory.map&&memory.map.nodes)||{},ks=Object.keys(nodes),i,k,nm,esc;
+  var s=String(clean||"").replace(/"[^"]*"/g," ").replace(/“[^”]*”/g," ");if(!s)return null;
+  var sents=s.match(/[^.!?]+[.!?]*/g)||[s];
+  var nodes=(memory&&memory.map&&memory.map.nodes)||{},ks=Object.keys(nodes),i,k,nm,esc,si,sent;
   for(i=0;i<ks.length;i++){
     k=ks[i];if(nodes[k]&&nodes[k].parent)continue;nm=(typeof locDisplayLeaf==="function")?locDisplayLeaf(k):k;esc=_driftEsc(nm);
-    if(new RegExp("\\b(?:toward|towards|remembering|recalling)\\s+(?:the\\s+)?"+esc+"\\b|\\b(?:map|drawing|sketch)\\s+of\\s+(?:the\\s+)?"+esc+"\\b","i").test(s))continue;
-    if(new RegExp("(?:\\b(?:enter(?:s|ed|ing)?|inside|within)\\b[^.!?]{0,70}\\b"+esc+"\\b|\\bthrough\\b[^.!?]{0,90}\\b"+esc+"\\b)","i").test(s))return nm;
+    var hitRe=new RegExp("(?:\\b(?:enter(?:s|ed|ing)?|inside|within)\\b[^.!?]{0,70}\\b"+esc+"\\b|\\bthrough\\b[^.!?]{0,90}\\b"+esc+"\\b)","i");
+    var refRe=new RegExp("\\b(?:toward|towards|remembering|recalling)\\s+(?:the\\s+)?"+esc+"\\b|\\b(?:map|drawing|sketch)\\s+of\\s+(?:the\\s+)?"+esc+"\\b","i");
+    for(si=0;si<sents.length;si++){
+      sent=sents[si];
+      if(!hitRe.test(sent)||refRe.test(sent))continue;
+      if(_LOC_CUE_VETO.test(sent)||!_LOC_CUE_PARTY.test(sent))continue;
+      return nm;
+    }
   }
-  var g=s.match(/\b(?:enter(?:s|ed|ing)?|step(?:s|ped|ping)?\s+into|pass(?:es|ed|ing)?\s+into|inside|through)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){0,3}(?:chamber|hall|tunnel|vault|fortress|citadel|keep))\b/i);
-  return g?g[1].replace(/^the\s+/i,"").trim():null;
+  for(si=0;si<sents.length;si++){
+    sent=sents[si];
+    if(_LOC_CUE_VETO.test(sent)||!_LOC_CUE_PARTY.test(sent))continue;
+    var g=sent.match(/\b(?:enter(?:s|ed|ing)?|step(?:s|ped|ping)?\s+into|pass(?:es|ed|ing)?\s+into|inside|through)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){0,3}(?:chamber|hall|tunnel|vault|fortress|citadel|keep))\b/i);
+    if(g)return g[1].replace(/^the\s+/i,"").trim();
+  }
+  return null;
 }
 function _driftNumber(v){var s=String(v||"").toLowerCase();return /^\d+$/.test(s)?parseInt(s,10):((typeof FUTURE_NUMBER_WORDS!=="undefined"&&FUTURE_NUMBER_WORDS[s])||0);}
 function detectTravelPrice(clean){
@@ -1541,7 +1559,7 @@ function observeDriftAxes(raw,clean){
     if(cue&&((typeof locSame==="function"&&locSame(cue,worldState.world.location))||(worldState.world.sublocation&&String(cue).toLowerCase()===String(worldState.world.sublocation).toLowerCase())))cue=null;
     var lw=worldState.locationFilingWatch;
     if(cue&&(!lw||String(lw.place).toLowerCase()!==String(cue).toLowerCase()))lw=worldState.locationFilingWatch={place:cue,firstTurn:turn,lastTurn:turn,count:1};
-    else if(lw){lw.lastTurn=turn;lw.count=(lw.count||1)+1;}
+    else if(lw){lw.lastTurn=turn;lw.count=(lw.count||1)+1;}/* P4b: counting related-but-unnamed turns is the FEATURE (the ratified fixture: an entry survives eight untagged turns) — weak cues are killed at the SOURCE by the sentence discipline above */
     if(lw&&lw.count>=LOCATION_FILING_TURNS){worldState.locationFilingPing={place:lw.place,firstTurn:lw.firstTurn,turn:turn};delete worldState.locationFilingWatch;}
   }
   var price=detectTravelPrice(clean);
@@ -1558,6 +1576,7 @@ function observeDriftAxes(raw,clean){
   var hasLifecycle=/\[(?:SCHEDULE|FUTURE_EVENT|QUEST)(?::|_)/.test(raw);
   if(hasLifecycle)delete worldState.commitmentPing;
   else{var dc=detectDatedCommitment(clean);if(dc)worldState.commitmentPing={text:dc,turn:turn};}
+  if(worldState.commitmentPing&&turn-worldState.commitmentPing.turn>COMMITMENT_PING_MAX_AGE)delete worldState.commitmentPing;/* P4b (#169): a commitment nobody could deliver a note for in 10 turns is stale context, not a live gap */
 }
 function isBookkeepingResponse(raw,clean,dice){
   if(String(clean||"").trim()||String(dice||"").trim())return false;

@@ -245,7 +245,15 @@ function nmcMergePair(canonical,dupe,log){
     for(j=0;j<n.charSheet.relationships.length;j++){
       var r=n.charSheet.relationships[j];
       if(r.entity===dupe){r.entity=canonical;relTouched++;}
-      if(!seen[r.entity]){seen[r.entity]=1;out.push(r);}
+      /* P4b (#169): first-wins used to DROP the later row wholesale — a rekeyed duplicate
+         carrying the only bond lost it silently. Empty axes now backfill from the dropped
+         row; a genuine conflict stays first-wins but says so. */
+      if(!seen[r.entity]){seen[r.entity]=r;out.push(r);}
+      else{var kept=seen[r.entity];
+        if(r.bond&&!kept.bond){kept.bond=r.bond;kept.bondTurn=r.bondTurn;}
+        if(r.dynamic&&!kept.dynamic){kept.dynamic=r.dynamic;kept.dynamicTurn=r.dynamicTurn;}
+        if(r.bond&&kept.bond&&r.bond!==kept.bond)console.warn("[merge-core] conflicting bond on "+r.entity+" dropped (kept '"+kept.bond+"', lost '"+r.bond+"')");
+      }
     }
     n.charSheet.relationships=out;
   }

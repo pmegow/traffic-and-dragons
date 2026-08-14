@@ -987,7 +987,7 @@ function buildSummaryIdentityBlock(table){
   return lines.join("\n").slice(0,SUMMARY_IDENTITY_CHAR_CAP-2)+"\n\n";
 }
 function _w6TextHasName(low,row){var a=[row.name].concat(row.aliases||[]),i;for(i=0;i<a.length;i++)if(ragHasWord(low,String(a[i]).toLowerCase()))return true;return false;}
-function _w6StartsWithName(sent,row){var low=String(sent||"").toLowerCase().replace(/^\s+/,""),a=[row.name].concat(row.aliases||[]),i,n;for(i=0;i<a.length;i++){n=String(a[i]).toLowerCase();if(low.indexOf(n)===0&&!/[a-z0-9]/.test(low.charAt(n.length)))return true;}return false;}
+function _w6StartsWithName(sent,row){var low=String(sent||"").toLowerCase().replace(/^\s+/,""),a=[row.name].concat(row.aliases||[]),i,n;for(i=0;i<a.length;i++){n=String(a[i]).toLowerCase();if(low.indexOf(n)===0&&!/[a-z0-9]/.test(low.charAt(n.length))){if(/^['’]s\b/.test(low.slice(n.length)))continue;/* P4b (#169): "Ammut's blade rings" is a POSSESSIVE — the blade is the subject, not Ammut; treating it as an anchor false-rejected valid summaries and burned strikes */return true;}}return false;}
 function _w6SummaryTexts(extracted){
   var out=[],i,x,v;function add(field,val){if(typeof val==="string"&&val.trim())out.push({field:field,text:val});}
   add("chapterSummary",extracted.chapterSummary);
@@ -999,7 +999,7 @@ function _w6SummaryTexts(extracted){
   v=extracted.npcUpdates;if(Array.isArray(v))for(i=0;i<v.length;i++){x=v[i]||{};add("npcUpdates["+i+"].attitude",x.attitude);if(typeof x.knowledgeGained==="string")add("npcUpdates["+i+"].knowledgeGained",x.knowledgeGained);else if(x.knowledgeGained)add("npcUpdates["+i+"].knowledgeGained.fact",x.knowledgeGained.fact);}
   return out;
 }
-function _w6SubjectFamily(sent){var low=String(sent||"").toLowerCase(),m=low.match(/(?:^|[,;:]\s*|\b(?:and|but|then)\s+)\s*(she|he)\b/);if(m)return m[1]==="she"?"F":"M";if(/\bherself\b/.test(low))return"F";if(/\bhimself\b/.test(low))return"M";return"";}
+function _w6SubjectFamily(sent){var low=String(sent||"").toLowerCase(),m=low.match(/(?:^|[,;:]\s*|\b(?:and|but|then)\s+)\s*(she|he)\b/);if(m)return m[1]==="she"?"F":"M";if(/\bshe\b[^.!?]*\bherself\b/.test(low))return"F";if(/\bhe\b[^.!?]*\bhimself\b/.test(low))return"M";/* P4b (#169): a reflexive ALONE is not subject evidence — "the stranger pulls the girl behind herself" burned a strike against a prior male anchor; the reflexive now needs its matching subject pronoun in the same sentence */return"";}
 function _w6TextConflict(text,table){
   var s=String(text||""),sq=(s.match(/"/g)||[]).length;if(sq%2||(s.match(/\u201c/g)||[]).length!==(s.match(/\u201d/g)||[]).length)return null;
   var re=/[^.!?]+(?:[.!?]+["\u201d]*|$)/g,m,prior=null;

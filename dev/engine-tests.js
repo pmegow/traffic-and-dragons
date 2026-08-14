@@ -7585,6 +7585,68 @@ function runEngineTests(R){
     }
     return true;
   });
+  // ── P4b (#169): recognizer precision — W4 observers, W6 false-rejects, the retraction classifier ──
+  t("P4b/W4: spoken intent, negation, hypotheticals and dreams do not arm the location-filing watch",function(){
+    makeWorld();memory.map.nodes["Jorgenfist"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};
+    var cases=[
+      '"We should enter Jorgenfist before the moon turns," Daeris says, tracing the map.',
+      'You will not enter Jorgenfist tonight; the gate is sealed.',
+      'If you entered Jorgenfist now, the sentries would see you a mile out.',
+      'In the dream you walk through Jorgenfist, its halls empty and wrong.',
+      'The couriers pass into Jorgenfist far ahead, small as ants against the gate.'
+    ];
+    var bad=[],i;
+    for(i=0;i<cases.length;i++){var cue=detectLocationFilingCue(cases[i]);if(cue)bad.push(i+": armed on "+JSON.stringify(cases[i].slice(0,50)));}
+    var real=detectLocationFilingCue("You step through the gate and enter Jorgenfist, the cold closing around you.");
+    if(!real)bad.push("the REAL entry stopped arming — precision must not cost the true positive");
+    return bad.length?bad.join(" | "):true;
+  });
+  t("P4b/W4: a WEAK cue cannot arm the watch — precision lives at the source, the ratified maturing stays",function(){
+    makeWorld();memory.map.nodes["Jorgenfist"]={firstVisit:1,visits:2,description:null,parent:null,npcs:[],items:[]};
+    worldState.turn=10;observeDriftAxes("","\"We could enter Jorgenfist,\" she says, tapping the map.");
+    if(worldState.locationFilingWatch)return "spoken speculation armed the watch";
+    observeDriftAxes("","You step inside Jorgenfist at last.");
+    if(!worldState.locationFilingWatch)return "the real entry did not arm";
+    var i;for(i=1;i<=LOCATION_FILING_TURNS;i++){worldState.turn=10+i;observeDriftAxes("","The halls close around you.");}
+    return worldState.locationFilingPing?true:"the ratified maturing (related-but-unnamed turns) broke";
+  });
+  t("P4b/W4: commitmentPing ages out instead of living forever",function(){
+    makeWorld();worldState.turn=10;
+    observeDriftAxes("","Wyla names her price: payment ready in five days, all of it.");
+    if(!worldState.commitmentPing)return "setup failed — no commitment detected";
+    worldState.turn=10+COMMITMENT_PING_MAX_AGE+1;
+    observeDriftAxes("","The road north is quiet.");
+    return worldState.commitmentPing?"a stale commitment ping survived past its maximum age":true;
+  });
+  t("P4b/W6: a sentence-initial POSSESSIVE is not a subject — 'Ammut's blade rings. She crosses…' passes",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.gender="M";
+    var txt="Ammut's blade rings against the stone. She crosses the chamber in three strides.";
+    var v=_w6TextConflict(txt,summaryIdentityTable(txt));
+    return v?("false reject: "+JSON.stringify(v.sentence)+" flagged against "+v.row.name):true;
+  });
+  t("P4b/W6: a reflexive about a THIRD PARTY is not subject evidence — abstain, never strike",function(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.gender="M";
+    var s="Ammut wrenches the door shut. The stranger pulls the girl behind herself and vanishes into smoke.";
+    var v=_w6TextConflict(s,summaryIdentityTable(s));
+    return v?("a third-party reflexive burned a strike: "+JSON.stringify(v.sentence)):true;
+  });
+  t("P4b: NPC_DEATH_RETRACTED scrubs name-led and pronoun-led death claims too, and refuses an empty reason LOUDLY",function(){
+    makeWorld();worldState.world.location="Sandpoint";/* the retraction node must be REMOTE */
+    worldState.npcs.push({name:"Mokmurian",status:"dead",dead:100,rel:"enemy"});
+    memory.npcs["Mokmurian"]={attitude:"dead",knowledge:["Mokmurian was slain by an unseen blade in his study.","He died before the tablets cooled.","Stone giant wizard of Jorgenfist."],events:[],aliases:[],dead:100,lastSeenAt:"Jorgenfist"};
+    memory.map.nodes["Jorgenfist"]={firstVisit:1,visits:2,description:null,parent:null,npcs:["Mokmurian"],items:[]};
+    worldState.turn=120;
+    applyMuts("[NPC_DEATH_RETRACTED:Mokmurian|the slain figure was a proxy|Jorgenfist]");
+    var mm=memory.npcs["Mokmurian"],left=(mm.knowledge||[]).join(" | ");
+    if(npcIsDead(wsNpcByName("Mokmurian"))||mm.dead)return "the retraction did not restore the NPC alive";
+    if(/slain by an unseen blade/.test(left))return "a NAME-led death claim survived the retraction: "+left;
+    if(/died before the tablets/.test(left))return "a PRONOUN-led death claim survived the retraction";
+    if(!/Stone giant wizard/.test(left))return "a non-death fact was scrubbed — over-reach";
+    var warns=[],ow=console.warn;console.warn=function(){warns.push(Array.prototype.join.call(arguments," "));};
+    applyMuts("[NPC_DEATH_RETRACTED:Mokmurian| |Jorgenfist]");
+    console.warn=ow;
+    return warns.some(function(w){return /REFUSED/.test(w);})?true:"the repeat-retraction refusal is still silent";
+  });
   t("P4a (owner-ruled): an UNTAGGED paragraph-opening quote gets the NARRATOR — never an inherited voice",function(){
     // The ruling that retired the #93 discriminator debate: ALL quotes must be tagged, including
     // each new paragraph of a continuing speech. An untagged continuation narrates flat (safe) and
