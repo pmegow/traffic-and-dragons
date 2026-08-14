@@ -4136,8 +4136,13 @@ function runEngineTests(R){
     // belongs OUTSIDE (an out-of-place tag is applied normally, never canonized)". The instruction
     // half of the t1742 fix: the GM followed the old text faithfully and was refused for it; the
     // engine half (ejection) tolerates non-compliance, this half reduces its frequency.
+    // v1.610 (P4a, owner ruling 2026-08-13): the [SAY:] line gains the continuation duty (+144
+    // chars) — "Tag EACH NEW PARAGRAPH of a continuing speech too — a paragraph-opening quote
+    // always takes a fresh tag; an untagged one falls to the narrator." The rule that retired the
+    // inherited-voice guess: playback gives untagged continuation paragraphs to the NARRATOR and
+    // the compliance channel demands the tag.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1541897722&&d.length===22554)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
+    return (__djb2(d)===-1765058969&&d.length===22698)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #168 W7: explicit axes, bounded values, pair removal, and compatibility no-guess proposals. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -7579,6 +7584,43 @@ function runEngineTests(R){
       if(m.s[i]!=="Daeris")return "dialogue unit "+i+" ("+JSON.stringify(u[i].text)+") lost its voice: "+(m.s[i]||"(narrator)");
     }
     return true;
+  });
+  t("P4a (owner-ruled): an UNTAGGED paragraph-opening quote gets the NARRATOR — never an inherited voice",function(){
+    // The ruling that retired the #93 discriminator debate: ALL quotes must be tagged, including
+    // each new paragraph of a continuing speech. An untagged continuation narrates flat (safe) and
+    // the compliance channel demands the tag; a TAGGED continuation keeps its voice as ever.
+    _mkSpeakerWorld();
+    var raw='[SAY:Daeris]"First part of the speech.\n\n"Second part of it."';
+    var clean=cleanTxt(raw);
+    var m=deriveSpeakerMapFromTags(raw,clean);
+    var u=TTS._textPrep.splitSentences(clean,null,true),i,bad=[];
+    for(i=0;i<u.length;i++){
+      var nm=(m&&m.s[i])||null;
+      if(/First part/.test(u[i].text)&&nm!=="Daeris")bad.push("the tagged opening lost its voice");
+      if(/Second part/.test(u[i].text)&&nm)bad.push("an untagged continuation paragraph inherited "+nm+" — the ruling says narrator");
+    }
+    var cov=sayTagCoverage(raw,clean);
+    if(!cov.missing)bad.push("the untagged continuation did not count as missing — the GM would never be asked to tag it");
+    var raw2='[SAY:Daeris]"First part of the speech.\n\n[SAY:Daeris]"Second part of it."';
+    var m2=deriveSpeakerMapFromTags(raw2,cleanTxt(raw2));
+    var u2=TTS._textPrep.splitSentences(cleanTxt(raw2),null,true);
+    for(i=0;i<u2.length;i++)if(/Second part/.test(u2[i].text)&&(!m2||m2.s[i]!=="Daeris"))bad.push("a TAGGED continuation lost its voice");
+    return bad.length?bad.join(" | "):true;
+  });
+  t("P4a: scare quotes in narration no longer count as an untagged spoken line (the /i defect)",function(){
+    _mkSpeakerWorld();
+    var raw='[SAY:Daeris]"We leave at dawn," she says.\n\nThe locals call the ruin "the Whisper Gate" and will not walk past it after sundown.';
+    var cov=sayTagCoverage(raw,cleanTxt(raw));
+    if(cov.paragraphGaps)return "a scare-quoted noun phrase counted as an untagged spoken paragraph";
+    return cov.missing?"missing="+cov.missing+" on a fully-tagged response":true;
+  });
+  t("P4a: a [SAY:] anywhere in the paragraph silences the gap — tag-inside-quote and tag-after-a-payload-quote are compliant",function(){
+    _mkSpeakerWorld();
+    var cov=sayTagCoverage('"[SAY:Daeris]Hold the door," she says.',cleanTxt('"[SAY:Daeris]Hold the door," she says.'));
+    if(cov.missing||cov.paragraphGaps)return "tag-inside-quote still nags: "+JSON.stringify(cov);
+    var raw='[LORE:The locals call the ruin "the Whisper Gate".]\n[SAY:Daeris]"We leave at dawn," she says.';
+    cov=sayTagCoverage(raw,cleanTxt(raw));
+    return (cov.missing||cov.paragraphGaps)?"a quote inside a stripped payload anchored a false gap: "+JSON.stringify(cov):true;
   });
   t("#93①b: the quoted-run mask RESETS at a paragraph break, so parity cannot leak into the next paragraph",function(){
     // The mirror of B14c on the deriver's side. splitSentences restarts _inQ per paragraph, so the

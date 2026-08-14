@@ -230,4 +230,27 @@ rc|=sabotage.prove({
 ]
 });
 
+/* P4a (batch 3): the all-quotes-tagged ruling + coverage precision. */
+rc|=sabotage.prove({
+  file:"game.js",
+  command:["node",["dev/run-tests.js","#96 [SAY:]"]],
+  cases:[
+    {
+        "label": "untagged continuation paragraphs inherit a voice again (the P4a ruling dies)",
+        "find": "if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;}",
+        "replace": "if(segs[j].name){out[i]=segs[j].name;kept++;}"
+    },
+    {
+        "label": "scare-quoted narration counts as untagged speech again (the /i defect returns)",
+        "find": "(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\\b/.test(p);",
+        "replace": "(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\\b/i.test(p);"
+    },
+    {
+        "label": "the gap check re-anchors on before-the-quote text (tag-inside-quote nags forever again)",
+        "find": "if(spoken&&!/\\[SAY:[^\\]]+\\]/.test(p))paragraphGaps++;",
+        "replace": "if(spoken&&!/\\[SAY:[^\\]]+\\]/.test(p.slice(0,qm)))paragraphGaps++;"
+    }
+]
+});
+
 process.exit(rc?1:0);

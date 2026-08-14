@@ -545,20 +545,20 @@ function _saySegScan(rawSlice,state){
   var _head=(_s.match(/^\s*/)||[""])[0];
   if(state.tail&&/\n\s*\n/.test(state.tail+_head))state.inQ=false;   // the break straddles the tag cut
   if(/\S/.test(_s))state.tail=(_s.match(/\s*$/)||[""])[0];else state.tail=(state.tail||"")+_s;
-  var chunks=_s.split(/\n\s*\n/),text="",mask=[],ci,k,ch,norm;
+  var chunks=_s.split(/\n\s*\n/),text="",mask=[],para=[],ci,k,ch,norm;
   for(ci=0;ci<chunks.length;ci++){
     if(ci>0)state.inQ=false;                          // paragraph break — parity restarts
     norm=TTS._textPrep.normalizeForTTS(chunks[ci]);
-    if(norm&&text){text+=" ";mask.push(false);}       // the break itself is one space, as _sayNorm would collapse it
+    if(norm&&text){text+=" ";mask.push(false);para.push(true);}       // the break itself is one space, as _sayNorm would collapse it
     for(k=0;k<norm.length;k++){
       ch=norm.charAt(k);
       if(ch==='"'||ch==="“"||ch==="”"){state.inQ=!state.inQ;continue;}
       if(ch===" "&&(!text||text.charAt(text.length-1)===" "))continue;
-      text+=ch.toLowerCase();mask.push(state.inQ);
+      text+=ch.toLowerCase();mask.push(state.inQ);para.push(ci>0);/* P4a: continuation paragraphs of a segment own no voice */
     }
   }
-  while(text.charAt(text.length-1)===" "){text=text.slice(0,-1);mask.pop();}
-  return {text:text,mask:mask};
+  while(text.charAt(text.length-1)===" "){text=text.slice(0,-1);mask.pop();para.pop();}
+  return {text:text,mask:mask,para:para};
 }
 function deriveSpeakerMapFromTags(raw,clean){
   if(!raw||typeof TTS==="undefined"||!TTS._textPrep)return null;
@@ -603,11 +603,16 @@ function deriveSpeakerMapFromTags(raw,clean){
     if(j>=segs.length)continue;                       // not in any segment — narrator, cursor unmoved
     si=j;off=hit+key.length;                          // forward-only: repeated identical lines bind in order
     if(_isFlat)continue;                              // cursor advanced, but a flattened unit takes no voice
-    if(segs[j].name){out[i]=segs[j].name;kept++;}
+    /* P4a (owner ruling 2026-08-13): ALL quotes must be tagged — including each new paragraph of a
+       continuing speech. A hit in a CONTINUATION paragraph of the segment consumes the cursor (it
+       is real quoted text, so later speakers cannot steal it) but takes NO voice: the narrator
+       reads it flat and sayTagCoverage counts it missing, so the compliance channel demands the
+       tag. This retired the inherited-voice guess and the parity-discriminator debate with it. */
+    if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;}
   }
   return kept?{n:units.length,s:out}:null;
 }
-function _sayCarry(seg,scan){seg.text=scan.text;seg.mask=scan.mask;return seg;}
+function _sayCarry(seg,scan){seg.text=scan.text;seg.mask=scan.mask;seg.para=scan.para;return seg;}
 
 /* #168: the SAY compliance detector reads the same dialogue units and ownership map as playback.
    Counts of quote glyphs are not evidence: a single tag can intentionally own multiple speech
@@ -619,6 +624,12 @@ function sayTagCoverage(raw,clean){
   var units=TTS._textPrep.splitSentences(clean,null,true),sp=deriveSpeakerMapFromTags(raw,clean),dialogue=0,mapped=0,i;
   for(i=0;i<units.length;i++){
     if(!units[i]||units[i].spk===null||units[i].spk===undefined)continue;
+    /* P4a: a SHORT fully-enclosed quote carrying no punctuation at all ("the Whisper Gate", a song
+       title, a nickname) is a scare/name quote, not speech — real dialogue fragments carry their
+       comma or terminal mark inside the quotes. Exempt from COVERAGE only; playback already reads
+       unmapped units in the narrator's voice, so there is nothing to mis-voice. */
+    var _ut=String(units[i].text||"");
+    if(/^["“][^"“”]{1,40}["”]$/.test(_ut)&&!/[.,!?;:…]/.test(_ut))continue;
     dialogue++;if(sp&&sp.s&&Object.prototype.hasOwnProperty.call(sp.s,i))mapped++;
   }
   var missing=Math.max(0,dialogue-mapped),paragraphGaps=0,paras=raw.replace(/\r\n/g,"\n").split(/\n\s*\n/);
@@ -627,8 +638,8 @@ function sayTagCoverage(raw,clean){
     if(qm<0||!(p.slice(qm+1).match(/["”]/)))continue;
     /* A paragraph-initial quote is a deterministic new spoken line. Attribution syntax is the
        second deterministic shape. Interior scare quotes in narration are not a speaker boundary. */
-    var spoken=/^["“]/.test(plain)||/["”]\s*,?\s*(?:(?:[A-Z][A-Za-z'’-]*|he|she|they)\s+){0,4}(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\b/i.test(p);
-    if(spoken&&!/\[SAY:[^\]]+\]/.test(p.slice(0,qm)))paragraphGaps++;
+    var spoken=/^["“]/.test(plain)||/["”]\s*,?\s*(?:(?:[A-Z][A-Za-z'’-]*|he|she|they)\s+){0,4}(?:says?|said|asks?|asked|answers?|answered|whispers?|whispered|murmurs?|murmured)\b/.test(p);/* P4a: no /i — lowercase words matched the name slot and scare-quoted nouns in narration read as speech */
+    if(spoken&&!/\[SAY:[^\]]+\]/.test(p))paragraphGaps++;/* P4a: a tag ANYWHERE in the paragraph is compliance — the old before-the-quote anchor nagged tag-inside-quote and tripped on quotes inside stripped payloads */
   }
   if(paragraphGaps>missing)missing=paragraphGaps;
   return {dialogue:dialogue,mapped:mapped,missing:missing,paragraphGaps:paragraphGaps};

@@ -950,7 +950,7 @@ function buildSayComplianceNudge(){
     if((last.match(/["“”]/g)||[]).length<2||sayCount>0)return"";
   }
   var lead=sayCount>0?"your previous response left some quoted dialogue without a [SAY:] tag, so those lines were read aloud in the NARRATOR'S voice instead of the character's":"your previous response contained quoted dialogue with NO [SAY:] tags, so every spoken line was read aloud in the NARRATOR'S voice instead of the character's";
-  return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
+  return "[ENGINE NOTE — VOICE TAGS MISSING (not a player action): "+lead+". From THIS response on, place [SAY:Character Name] immediately before EVERY line of quoted dialogue — including EACH NEW PARAGRAPH of a continuing speech, and the player character's own lines (use their character NAME, never 'you'). The tag is invisible to the player. See [SAY:] in STATE TAGS.]";
 }
 // #151 (drift pass order 7): the LATCH REGISTRY — every top-level worldState key a NOTE_BUILDERS
 // entry stamps or consumes while COMPOSING a request. sendAction snapshots these before
