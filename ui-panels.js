@@ -432,7 +432,20 @@ function updateMemStatus(){if(!worldState)return;var dot=document.getElementById
 // hand the player the 0-based number the rest of the app stopped using.
 var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
   ((typeof clockDayNumber==="function")?" | Day "+clockDayNumber():"");
-txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();}
+txt.textContent="Session: ~"+t+"tk"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+dayPart+" | "+APP_VERSION+(mdl?" | "+mdl:"");updateSyncBadge();updateHealthDot();}
+// #17 drift-health dot — thin shell over healthIndicators (helpers.js, engine-tested there).
+// Same green/amber/red classes as the token dot beside it; n/a dims. Click opens the modal.
+function updateHealthDot(){
+  var d=document.getElementById("healthdot");if(!d)return;
+  if(!worldState||typeof healthIndicators!=="function"){d.style.display="none";return;}
+  var h=healthIndicators(worldState);
+  d.style.display="";
+  d.className=h.overall==="bad"?"mdot c":h.overall==="warn"?"mdot w":"mdot";
+  d.style.opacity=h.overall==="na"?"0.35":"1";
+  d.style.cursor="pointer";
+  d.title="Drift health: "+(h.overall==="na"?"not enough data yet":h.overall)+" — tap for detail";
+  if(!d._wired){d._wired=true;d.onclick=function(){if(typeof showHealthModal==="function")showHealthModal();};}
+}
 // Sync failure badge (TODO #24) — red ☁ in the membar whenever the server-ACKed turn lags
 // the local turn or syncs are failing. Called from updateMemStatus (every turn) AND directly
 // by the storage adapter on every sync success/failure, so it never waits for a turn to refresh.

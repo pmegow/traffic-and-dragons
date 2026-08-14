@@ -13975,5 +13975,96 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return tbl.truncated===true&&tbl.rows.length<SUMMARY_IDENTITY_ROW_CAP?true:"char cap never truncated: rows="+tbl.rows.length+" truncated="+tbl.truncated;
   });
 
+  // ═══ #17: drift health readout — leading indicators from data the save already carries ═══
+  // healthIndicators (helpers.js) is the ONE renderer; the membar dot and modal are DOM shells.
+  // Every test below exercises the FAILURE condition the indicator exists to catch.
+  section("#17: drift health readout");
+  t("healthLog ring: recordUsage writes ONE entry per gameplay-turn call, capped, non-turn kinds never write",function(){
+    makeWorld();worldState.turn=50;worldState.healthLog=[];
+    var i;for(i=0;i<HEALTH_LOG_CAP+5;i++)recordUsage({in:3000,out:100,cacheRead:9000,cacheWrite:0},"turn","claude-sonnet-4-6");
+    if(worldState.healthLog.length!==HEALTH_LOG_CAP)return "cap not enforced: "+worldState.healthLog.length;
+    var e=worldState.healthLog[worldState.healthLog.length-1];
+    if(e.in!==3000||e.cr!==9000||e.t!==50)return "entry shape wrong: "+JSON.stringify(e);
+    var before=worldState.healthLog.length;
+    recordUsage({in:500,out:50,cacheRead:0,cacheWrite:0},"actions","claude-sonnet-4-6");
+    recordUsage({in:500,out:50,cacheRead:0,cacheWrite:0},"summarize","claude-sonnet-4-6");
+    return worldState.healthLog.length===before?true:"non-turn kind wrote to the ring";
+  });
+  t("ragRetrieve stamps _lastServed: false on a young transcript, tracks served/empty on later passes",function(){
+    makeWorld();delete worldState.ragMemory;/* makeWorld pins RAG off for determinism — this test needs the production default ON */
+    ragRetrieve._memo=null;ragRetrieve._lastServed=null;
+    ragRetrieve("anything");
+    if(ragRetrieve._lastServed!==false)return "young transcript should stamp false, got "+ragRetrieve._lastServed;
+    var i;for(i=0;i<8;i++)logTranscript("gm","Filler scene "+i+".","Filler scene "+i+".");
+    ragRetrieve._memo={k:_ragRetrieveKey("probe"),v:"PAST SCENE EXCERPTS block"};
+    ragRetrieve("probe");
+    if(ragRetrieve._lastServed!==true)return "served pass should stamp true";
+    ragRetrieve._memo={k:_ragRetrieveKey("probe2"),v:""};
+    ragRetrieve("probe2");
+    return ragRetrieve._lastServed===false?true:"empty pass should stamp false";
+  });
+  t("healthIndicators: dead prompt cache goes RED only on the true failure shape (3+ zero-cacheRead Anthropic turns)",function(){
+    makeWorld();
+    worldState.healthLog=[{t:1,in:5000,cr:0,rag:1,prov:"anthropic"},{t:2,in:5200,cr:0,rag:1,prov:"anthropic"},{t:3,in:5100,cr:0,rag:1,prov:"anthropic"}];
+    var h=healthIndicators(worldState),c=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="cache")c=h.items[i];
+    if(!c)return "no cache indicator";
+    if(c.level!=="bad")return "3 zero-cache Anthropic turns must be bad, got "+c.level;
+    worldState.healthLog=[{t:1,in:2000,cr:8000,rag:1,prov:"anthropic"},{t:2,in:2100,cr:8000,rag:1,prov:"anthropic"},{t:3,in:1900,cr:8200,rag:1,prov:"anthropic"}];
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="cache")c=h.items[i];
+    if(c.level!=="ok")return "healthy ratio should be ok, got "+c.level;
+    worldState.healthLog=[{t:1,in:5000,cr:0,rag:1,prov:"openai"},{t:2,in:5000,cr:0,rag:1,prov:"openai"},{t:3,in:5000,cr:0,rag:1,prov:"openai"}];
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="cache")c=h.items[i];
+    return c.level==="na"?true:"non-Anthropic entries must not be judged (their input counts include cached), got "+c.level;
+  });
+  t("healthIndicators: RAG silence — n/a young or flag-off, RED only when a mature campaign serves nothing all window",function(){
+    makeWorld();delete worldState.ragMemory;/* production default ON — the explicit-false case is the test's own last leg */
+    var i;worldState.transcript=[];for(i=0;i<40;i++)worldState.transcript.push({r:"gm",x:"scene "+i});
+    worldState.healthLog=[];for(i=0;i<12;i++)worldState.healthLog.push({t:i,in:3000,cr:5000,rag:0,prov:"anthropic"});
+    var h=healthIndicators(worldState),r=null;for(i=0;i<h.items.length;i++)if(h.items[i].id==="rag")r=h.items[i];
+    if(r.level!=="bad")return "12 silent turns on a 40-entry transcript must be bad, got "+r.level;
+    worldState.healthLog[11].rag=1;
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="rag")r=h.items[i];
+    if(r.level!=="ok")return "any served turn in window should be ok, got "+r.level;
+    worldState.transcript=worldState.transcript.slice(0,10);
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="rag")r=h.items[i];
+    if(r.level!=="na")return "young transcript must be n/a, got "+r.level;
+    worldState.ragMemory=false;worldState.transcript=[];for(i=0;i<40;i++)worldState.transcript.push({r:"gm",x:"s"+i});
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="rag")r=h.items[i];
+    return r.level==="na"?true:"diagnosis-flag OFF must be n/a, got "+r.level;
+  });
+  t("healthIndicators: zero-tag streak warns at 3, red at 5; tagged responses stay ok",function(){
+    makeWorld();var i;
+    worldState.tagLog=[];for(i=0;i<8;i++)worldState.tagLog.push({t:i,tags:["HP"],m:[]});
+    var h=healthIndicators(worldState),tg=null;for(i=0;i<h.items.length;i++)if(h.items[i].id==="tags")tg=h.items[i];
+    if(tg.level!=="ok")return "tagged responses should be ok, got "+tg.level;
+    for(i=0;i<3;i++)worldState.tagLog.push({t:10+i,tags:[],m:[]});
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="tags")tg=h.items[i];
+    if(tg.level!=="warn")return "3-streak should warn, got "+tg.level;
+    for(i=0;i<2;i++)worldState.tagLog.push({t:20+i,tags:[],m:[]});
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="tags")tg=h.items[i];
+    return tg.level==="bad"?true:"5-streak should be bad, got "+tg.level;
+  });
+  t("healthIndicators: a quest with every objective done but still active = the #20 silence class, surfaced by name",function(){
+    makeWorld();
+    worldState.questLog=[{title:"Clear the Mine",status:"active",objectives:[{text:"a",done:true},{text:"b",done:true}]}];
+    var h=healthIndicators(worldState),q=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")q=h.items[i];
+    if(q.level!=="warn"||q.detail.indexOf("Clear the Mine")<0)return "complete-but-open quest must warn and be named: "+q.level+" / "+q.detail;
+    worldState.questLog[0].objectives[1].done=false;
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")q=h.items[i];
+    return q.level==="ok"?true:"quest with open objectives should be ok";
+  });
+  t("healthIndicators: standing quarantines/conflicts are RED and drive the overall dot; strikes warn; clean is green",function(){
+    makeWorld();
+    var h=healthIndicators(worldState),a=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    if(a.level!=="ok")return "clean state should be ok, got "+a.level+" ("+a.detail+")";
+    worldState.canonTxns=[{id:"ct1",status:"quarantined"}];
+    worldState.identityConflicts=[{subject:"Mokmurian",resolved:false}];
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    if(a.level!=="bad")return "quarantine+conflict must be bad, got "+a.level;
+    if(h.overall!=="bad")return "overall must reflect the worst indicator, got "+h.overall;
+    worldState.canonTxns=[];worldState.identityConflicts=[];worldState.summaryFailure={count:2};
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    return a.level==="warn"?true:"summary strikes should warn, got "+a.level;
+  });
 
 }

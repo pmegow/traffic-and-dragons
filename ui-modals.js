@@ -601,3 +601,45 @@ function _bugReportModal(shot){
   });
   setTimeout(function(){var t=document.getElementById("bug-text");if(t)t.focus();},50);
 }
+
+// ─── #17: Drift health modal — thin DOM shell over healthIndicators() (helpers.js) ─────────
+// Opened by the membar health dot (updateHealthDot, ui-panels.js). The ⚠ Submit report button
+// files the indicator snapshot through the #16b sendUserReport path so a bad reading becomes
+// a bug report in one tap.
+function showHealthModal(){
+  closeAllMenus();
+  var old=document.getElementById("health-modal");if(old)old.remove();
+  var h=(typeof healthIndicators==="function"&&worldState)?healthIndicators(worldState):{overall:"na",items:[]};
+  function col(lv){return lv==="bad"?"var(--red)":lv==="warn"?"var(--acc)":lv==="ok"?"var(--grn)":"var(--t2)";}
+  function word(lv){return lv==="bad"?"PROBLEM":lv==="warn"?"WATCH":lv==="ok"?"HEALTHY":"N/A";}
+  var m=document.createElement("div");m.id="health-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;";
+  var rows="",i;
+  for(i=0;i<h.items.length;i++){var it=h.items[i];
+    rows+="<div style='display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid var(--brd);'>"
+      +"<div class='mdot' style='margin-top:4px;background:"+col(it.level)+";"+(it.level==="na"?"opacity:.35;":"")+"'></div>"
+      +"<div style='flex:1;'><div style='font-size:12px;color:var(--t0);'>"+escHtml(it.label)+" — <span style='color:"+col(it.level)+";'>"+word(it.level)+"</span></div>"
+      +"<div style='font-size:11px;color:var(--t2);margin-top:1px;'>"+escHtml(it.detail)+"</div></div></div>";
+  }
+  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:8px;'>Leading indicators computed from this save's own rings — green means the anti-drift stack looks alive, not that the story is good. Overall: <span style='color:"+col(h.overall)+";font-weight:bold;'>"+word(h.overall)+"</span></div>"
+    +rows
+    +"<div style='display:flex;gap:8px;margin-top:12px;justify-content:flex-end;'>"
+    +"<button id='hm-report' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>&#9888; Submit report</button>"
+    +"<button id='hm-ok' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Close</button></div></div>";
+  document.body.appendChild(m);
+  m.addEventListener("click",function(ev){if(ev.target===m)m.remove();});
+  document.getElementById("hm-close").onclick=function(){m.remove();};
+  document.getElementById("hm-ok").onclick=function(){m.remove();};
+  document.getElementById("hm-report").onclick=function(){
+    var btn=this;btn.disabled=true;btn.textContent="Sending…";
+    var lines=["HEALTH REPORT (user-initiated from the drift-health modal)","Overall: "+h.overall],j;
+    for(j=0;j<h.items.length;j++)lines.push(h.items[j].id+" ["+h.items[j].level+"]: "+h.items[j].detail);
+    if(typeof sendUserReport!=="function"){showToast("Bug reporting unavailable");btn.disabled=false;btn.innerHTML="&#9888; Submit report";return;}
+    sendUserReport(lines.join("\n"),null,function(ok,err){
+      if(ok){showToast("Health report sent ✓");m.remove();}
+      else{showToast("Report failed: "+err);btn.disabled=false;btn.innerHTML="&#9888; Submit report";}
+    });
+  };
+}

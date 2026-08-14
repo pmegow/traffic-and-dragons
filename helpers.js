@@ -1128,3 +1128,72 @@ function priorBeatBoundary(beats,currentTurn){
   }
   return b;
 }
+
+// ─── #17: drift health readout ──────────────────────────────────────────────────────────────
+// LEADING indicators over the anti-drift stack, computed from data the save already carries
+// (healthLog ring, tagLog ring, questLog, W2 state). Pure read — no writes, no prompt contact.
+// ONE renderer: the membar dot (updateHealthDot, ui-panels.js) and the detail modal
+// (showHealthModal, ui-modals.js) are thin DOM shells over this function (the csSheetSections
+// one-renderer rule). Levels: "ok" | "warn" | "bad" | "na" (not enough data / not applicable).
+// Every threshold below targets a MEASURED failure class, named inline.
+function healthIndicators(ws){
+  var items=[],i,j;
+  function push(id,label,level,detail){items.push({id:id,label:label,level:level,detail:detail});}
+  if(!ws)return {overall:"na",items:items};
+  var hl=ws.healthLog||[],tl=ws.tagLog||[];
+  // ① RAG serve rate — a mature campaign whose retrieval serves NOTHING for a full window is
+  // the wine-cellar-confabulation precondition (#188): the GM answers memory asks from vibes.
+  var tr=ws.transcript||[],ragSamples=[];
+  for(i=hl.length-1;i>=0&&ragSamples.length<12;i--)if(hl[i].rag===0||hl[i].rag===1)ragSamples.push(hl[i].rag);
+  if(ws.ragMemory===false)push("rag","Episodic recall (RAG)","na","disabled by the diagnosis flag");
+  else if(tr.length<30||ragSamples.length<4)push("rag","Episodic recall (RAG)","na","young campaign — not enough history to judge ("+ragSamples.length+" samples)");
+  else{
+    var served=0;for(i=0;i<ragSamples.length;i++)served+=ragSamples[i];
+    push("rag","Episodic recall (RAG)",served>0?"ok":(ragSamples.length>=12?"bad":"warn"),
+      served+" of last "+ragSamples.length+" turns served past-scene excerpts"+(served===0?" — a mature campaign serving nothing may mean retrieval is broken":""));
+  }
+  // ② prompt cache — the #11 killer: a perturbed stable half silently pays full price every
+  // turn. Judged for Anthropic only (its input count EXCLUDES cached tokens, so cr/(cr+in)
+  // is a real hit ratio; the OpenAI shape INCLUDES them and cannot be judged this way).
+  var cs=[];
+  for(i=hl.length-1;i>=0&&cs.length<6;i--){var he=hl[i];if(he.prov==="anthropic"&&((he.in||0)+(he.cr||0))>1000)cs.push(he);}
+  if(cs.length<2)push("cache","Prompt cache","na","not enough Anthropic gameplay calls to judge");
+  else{
+    var dead=0,low=0;
+    for(i=0;i<cs.length;i++){var ratio=(cs[i].cr||0)/((cs[i].cr||0)+(cs[i].in||0));if((cs[i].cr||0)===0)dead++;if(ratio<0.2)low++;}
+    push("cache","Prompt cache",dead>=3?"bad":(low>cs.length/2?"warn":"ok"),
+      dead>=3?dead+" recent turns read ZERO cached tokens — the stable half is not caching; every turn pays full input price":"cache reads healthy on recent turns");
+  }
+  // ③ tag discipline — consecutive tagless responses are the gpt-4o desync class: narration
+  // moves the story while the sheet stands still.
+  var zt=0;
+  for(i=tl.length-1;i>=0&&i>=tl.length-8;i--){if((tl[i].tags||[]).length===0)zt++;else break;}
+  if(tl.length<3)push("tags","State-tag emission","na","not enough responses recorded");
+  else push("tags","State-tag emission",zt>=5?"bad":(zt>=3?"warn":"ok"),
+    zt===0?"recent responses all carry state tags":zt+" consecutive responses with ZERO state tags"+(zt>=3?" — narration may be desyncing from the sheet":""));
+  // ④ quest credit — an active quest with every objective done that never completes is the
+  // #20 silence class: rewards at risk of never landing.
+  var ql=ws.questLog||[],stuck=[];
+  for(i=0;i<ql.length;i++){var q=ql[i];
+    if(q.status==="active"&&q.objectives&&q.objectives.length){
+      var d=0;for(j=0;j<q.objectives.length;j++)if(q.objectives[j].done)d++;
+      if(d===q.objectives.length)stuck.push(q.title);
+    }
+  }
+  push("quest","Quest credit",stuck.length?"warn":"ok",
+    stuck.length?("all objectives complete but quest still open: "+stuck.join(", ")):"no quest sitting complete-but-uncredited");
+  // ⑤ standing anomalies — the engine is already telling itself something is wrong; this
+  // surfaces it to the player BEFORE broken fiction does (the t1781 'survived as a proxy' class).
+  var anom=[],unresolved=0,quarantined=0;
+  var ic=ws.identityConflicts||[];for(i=0;i<ic.length;i++)if(!ic[i].resolved&&!ic[i].stale)unresolved++;
+  if(unresolved)anom.push(unresolved+" unresolved identity conflict"+(unresolved>1?"s":""));
+  var ct=ws.canonTxns||[];for(i=0;i<ct.length;i++)if(ct[i].status==="quarantined")quarantined++;
+  if(quarantined)anom.push(quarantined+" quarantined canon transaction"+(quarantined>1?"s":""));
+  if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory-filing failures in progress ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+")");
+  if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed");
+  push("anomaly","Standing anomalies",(quarantined||unresolved)?"bad":(anom.length?"warn":"ok"),
+    anom.length?anom.join("; "):"none");
+  var rank={ok:0,warn:1,bad:2},worst="ok",any=false;
+  for(i=0;i<items.length;i++){var lv=items[i].level;if(lv==="na")continue;any=true;if(rank[lv]>rank[worst])worst=lv;}
+  return {overall:any?worst:"na",items:items};
+}

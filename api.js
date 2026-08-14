@@ -1892,6 +1892,18 @@ function recordUsage(u,kind,model){
   var k=t.byKind[kind];
   k.in+=u.in||0;k.out+=u.out||0;k.cacheRead+=u.cacheRead||0;k.cacheWrite+=u.cacheWrite||0;k.calls++;
   k.costUSD+=_cost;
+  // #17 drift-health ring — ONE observational entry per GAMEPLAY-turn call: the per-turn
+  // in/cacheRead the cache-trend indicator needs (worldState.usage only accumulates), plus
+  // the turn's RAG served flag. Read by healthIndicators (helpers.js); feeds nothing else.
+  if(kind==="turn"){
+    try{
+      if(!worldState.healthLog)worldState.healthLog=[];
+      worldState.healthLog.push({t:worldState.turn||0,in:u.in||0,cr:u.cacheRead||0,
+        rag:(typeof ragRetrieve!=="undefined"&&ragRetrieve._lastServed!==null)?(ragRetrieve._lastServed?1:0):null,
+        prov:(typeof activeProvider!=="undefined")?activeProvider:null});
+      if(worldState.healthLog.length>HEALTH_LOG_CAP)worldState.healthLog=worldState.healthLog.slice(worldState.healthLog.length-HEALTH_LOG_CAP);
+    }catch(_hle){if(typeof console!=="undefined")console.warn("[health] ring write failed:",_hle&&_hle.message);}
+  }
   // #30 (v1.280): a call that carries tokens but prices at $0 means its model id missed
   // MODEL_PRICING — the exact silent-undercount class from the t198 evaluation (~1/3 of the
   // window's calls priced $0). Count it visibly (total + per-kind, healing pre-#30

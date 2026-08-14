@@ -692,18 +692,20 @@ function _ragRetrieveKey(inputText){
   return worldState.turn+"|"+tr.length+"|"+entFp(tr[0])+"|"+entFp(tr[tr.length-1])+"|"+slLen+"|"+_ragNpcsFp()+"|"+_ragDjb2(scene)+"|"+String(inputText==null?"":inputText);
 }
 function ragRetrieve(inputText){
-  if(!ragEnabled())return "";
+  if(!ragEnabled()){ragRetrieve._lastServed=false;return "";}
   var tr=worldState.transcript;
-  if(!tr||tr.length<6)return "";
+  if(!tr||tr.length<6){ragRetrieve._lastServed=false;return "";}
   var _k=_ragRetrieveKey(inputText);
   var _m=ragRetrieve._memo;
-  if(_m&&_m.k===_k)return _m.v;
+  if(_m&&_m.k===_k){ragRetrieve._lastServed=_m.v!=="";return _m.v;}
   ragRetrieve._misses++;
   var v=_ragRetrieveScore(inputText);
   ragRetrieve._memo={k:_k,v:v};
+  ragRetrieve._lastServed=v!=="";
   return v;
 }
 ragRetrieve._memo=null;ragRetrieve._misses=0; // test hooks (dev/_tests_A2.js)
+ragRetrieve._lastServed=null; // #17 health observation — did the most recent retrieval serve excerpts? (null = never ran this session); stamped on EVERY exit path above, read by recordUsage's health ring. Observational only: retrieval behavior is untouched
 // The retrieval pass — returns the PAST SCENE EXCERPTS block for buildSysPrompt's volatile
 // half, or "" (flag off / young campaign / no hits). Scores indexed GM entries by entity
 // overlap with the current scene, skips the last RAG_RECENT turns (already in sessionLog),
