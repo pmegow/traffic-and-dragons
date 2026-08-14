@@ -226,7 +226,9 @@ var storageAdapter = (function() {
   // consecutive failures; ui.js renders the red membar badge from syncStatus().
   var _lastAckTurn = -1;  // highest worldState.turn the server provably holds; -1 = unknown
   var _failCount   = 0;   // consecutive sync failures
-  var _notified401 = false;
+  var _last401At   = 0;   // #7② (#23① sweep): 401 toast repeats every RE401_TOAST_MS while the outage persists — the one-shot latch was missed twice in the field
+  var _lastFailStatus = 0; // HTTP status of the most recent sync failure; 401 here makes the badge a tap-to-reconnect
+  var RE401_TOAST_MS = 300000;
   var _conflict    = null; // CAS 409 (Known issue #5): {serverTurn} — another device is ahead; auto-sync pauses until reload/switch
 
   // Reset the per-campaign sync bookkeeping on a campaign switch (audit E32). These are module
@@ -234,7 +236,7 @@ var storageAdapter = (function() {
   // syncStatus().unsynced pinned at 0 (killing the #24 foreground self-heal), and switching the
   // other way showed a false "N turns unsynced" badge. Called from loadState (init + every switch).
   function resetSyncState() {
-    _lastAckTurn = -1; _failCount = 0; _notified401 = false; _portraitSyncedOnce = false; _conflict = null;
+    _lastAckTurn = -1; _failCount = 0; _last401At = 0; _lastFailStatus = 0; _portraitSyncedOnce = false; _conflict = null;
     _updateSyncUI();
   }
   // CAS conflict (Known issue #5): the server refused this write because another device's state
@@ -250,7 +252,7 @@ var storageAdapter = (function() {
   }
 
   function _syncOk(turnAt) {
-    _failCount = 0; _notified401 = false;
+    _failCount = 0; _last401At = 0; _lastFailStatus = 0;
     if (turnAt > _lastAckTurn) _lastAckTurn = turnAt;
     _updateSyncUI();
   }
@@ -286,11 +288,12 @@ var storageAdapter = (function() {
   }
   function _onSyncFail(msg, status) {
     _failCount++;
+    _lastFailStatus = status || 0;
     console.warn("[storage] sync failed (" + _failCount + " consecutive): " + msg);
     if (typeof showToast === "function") {
-      if (status === 401 && !_notified401) {
-        _notified401 = true;
-        showToast("&#9729; Session expired &mdash; reconnect via Dev Mode &#9656; Connect server");
+      if (status === 401 && Date.now() - _last401At > RE401_TOAST_MS) {
+        _last401At = Date.now();
+        showToast("&#9729; Session expired &mdash; tap the &#9729; badge (or Dev Mode &#9656; Connect server) to reconnect");
       } else if (_failCount === 3) {
         showToast("&#9729; Sync failing &mdash; progress is saved on this device and uploads automatically when the server is back");
       }
@@ -308,8 +311,33 @@ var storageAdapter = (function() {
       failCount:   _failCount,
       lastAckTurn: _lastAckTurn,
       conflict:    _conflict,
+      authExpired: _lastFailStatus === 401, // #7② — the badge renders this as tap-to-reconnect
       unsynced:    (_serverUrl && _lastAckTurn >= 0) ? Math.max(0, t - _lastAckTurn) : 0
     };
+  }
+
+  // #7③ (#23① sweep) — read-only server-turn probe for the manual campaign push: lets the
+  // rescue tool warn before overwriting a NEWER server copy. cb(turn|null): null means UNKNOWN
+  // (offline, no server row, or the list carries no turn field) — callers must treat null as
+  // "cannot judge" and proceed as before, never as turn 0.
+  function getServerCampaignTurn(id, cb) {
+    cb = cb || function(){};
+    if (!_serverUrl || !_token) { cb(null); return; }
+    _tFetch(_serverUrl + "/api/campaigns", {
+      headers: { "Authorization": "Bearer " + _token }
+    }, SYNC_TIMEOUT_MS).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(list) {
+      if (!Array.isArray(list)) { cb(null); return; }
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) { cb(typeof list[i].turn === "number" ? list[i].turn : null); return; }
+      }
+      cb(null);
+    }).catch(function(e) {
+      console.warn("[storage] server-turn probe failed:", e && e.message);
+      cb(null);
+    });
   }
 
   function markPortraitDirty() {
@@ -874,6 +902,7 @@ var storageAdapter = (function() {
     syncToServer:          syncToServer,
     syncNow:               syncNow,
     syncStatus:            syncStatus,
+    getServerCampaignTurn: getServerCampaignTurn,
     resetSyncState:        resetSyncState,
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)

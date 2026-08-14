@@ -213,7 +213,7 @@ function wireButtons(){
   });
   // ── Game-screen-only menu items ──
   document.getElementById("fm-export").addEventListener("click",exportSave);
-  document.getElementById("import-step1").addEventListener("change",importSave);
+  /* #23① sweep: the tone-step "↩ Import existing save" input was removed — redundant with File ▸ Import Character / Load Game (its importSave wiring went with it) */
   document.getElementById("open-blueprint-browser").addEventListener("click",showBlueprintBrowser);
   document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});

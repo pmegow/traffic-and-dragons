@@ -14053,6 +14053,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="quest")q=h.items[i];
     return q.level==="ok"?true:"quest with open objectives should be ok";
   });
+  // ═══ #23① stagnant-sweep teeth (Known issue #7②③) ═══
+  section("#23①: sync badge + rescue-push guards");
+  t("syncStatus exposes authExpired (the badge's tap-to-reconnect fork) and the server-turn probe is exported",function(){
+    var st=storageAdapter.syncStatus();
+    if(typeof st.authExpired!=="boolean")return "authExpired missing from syncStatus";
+    if(st.authExpired!==false)return "authExpired must default false before any failure";
+    return typeof storageAdapter.getServerCampaignTurn==="function"?true:"getServerCampaignTurn not exported";
+  });
+
+  section("#17: drift health readout (anomalies)");
   t("healthIndicators: standing quarantines/conflicts are RED and drive the overall dot; strikes warn; clean is green",function(){
     makeWorld();
     var h=healthIndicators(worldState),a=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];

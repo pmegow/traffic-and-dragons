@@ -65,6 +65,15 @@ function campCloudPushSilent(id,cb){
   // device that adopted it silently failed the story rebuild until UA3's tolerant inflate
   // self-healed it on the NEXT load (observed live 2026-07-10, the Ammut F5 incident).
   var wsObj;try{wsObj=parseWorldState(ws);}catch(e){if(cb)cb(false);return;}
+  // #7③ (#23① sweep): this push deliberately bypasses the CAS turn guard — it IS the manual
+  // rescue tool — but it must not clobber a NEWER server copy silently. Probe the server's turn
+  // first and confirm; null (offline / no server row / no turn field) means "cannot judge" and
+  // proceeds exactly as before, so the connect-time bulk push of local-only campaigns is untouched.
+  storageAdapter.getServerCampaignTurn(id,function(serverTurn){
+  var localTurn=(wsObj&&wsObj.turn)||0;
+  if(serverTurn!=null&&serverTurn>localTurn){
+    if(!confirm("The server holds NEWER state for this campaign (turn "+serverTurn+" vs local turn "+localTurn+").\n\nOverwrite the server copy with this device's older save?")){if(cb)cb(false);return;}
+  }
   // Transport via the adapter (audit B9): pushCampaignState ships EXACTLY this blob (no
   // live-state contamination) and applies the shared NPC-portrait strip — the PC portrait
   // stays inline (audit E27), the same single map _syncNow uses, so the copies can't fork
@@ -78,6 +87,7 @@ function campCloudPushSilent(id,cb){
     if(portrait||Object.keys(npcPortraits).length){storageAdapter.putCampaignPortrait(id,{portrait:portrait||null,npcPortraits:npcPortraits},null);}
     if(cb)cb(true);
   });
+  });/* closes the #7③ getServerCampaignTurn probe */
 }
 
 function disconnectFromServer(){
