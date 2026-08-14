@@ -1238,6 +1238,32 @@ async function compileEraIfDue(){
 // rules (the #29 resolve→expire→file order, near-dup dedupe) are testable without an API call.
 // Returns a stats object ({superseded, supersededNames}) so summarize() can surface what was
 // retired in the visible "Memory updated" line (#57 — no silent memory surgery).
+/* P5① (workdone_sol_review): the CANON-CONTRADICTION tripwire. The t1781 body-double was fed
+   by a two-truths state that sat unnoticed for ~100 turns: roster dead=1648 beside knowledge
+   text asserting present survival. Detection is deliberately narrow: a dead-stamped roster NPC
+   whose knowledge asserts PRESENT-tense survival (is alive / survives / still lives / "now
+   rallies…"). Past-tense "survived the raid as a child" is history and never trips. One latch
+   at a time, per-NPC cooldown, GM-decides — the engine never edits the text itself. */
+var CANON_CONTRA_RE=/\b(is (?:still )?alive|survives\b|still (?:alive|lives|breathes|commands|leads|rules)|lives on\b|walked out (?:of .{0,40})?alive)/i;
+var CANON_CONTRA_NOW_RE=/\bsurviv\w*\b[\s\S]{0,120}?\b(?:now|remains|continues|still)\b/i;
+function canonContradictionScan(){
+  if(typeof worldState==="undefined"||!worldState||worldState.canonContradiction)return;
+  var ns=worldState.npcs||[],i,j;
+  for(i=0;i<ns.length;i++){
+    var n=ns[i];if(!n||!npcIsDead(n))continue;
+    var mm=memory.npcs&&memory.npcs[n.name];if(!mm||!mm.knowledge)continue;
+    var cd=worldState.canonContraNudged&&worldState.canonContraNudged[n.name];
+    if(cd!=null&&(worldState.turn-cd)<CANON_CONTRA_COOLDOWN)continue;
+    for(j=0;j<mm.knowledge.length;j++){
+      var line=String(mm.knowledge[j]||"");
+      if(CANON_CONTRA_RE.test(line)||CANON_CONTRA_NOW_RE.test(line)){
+        worldState.canonContradiction={name:n.name,line:line.slice(0,200),deadTurn:n.dead||mm.dead||0,turn:worldState.turn};
+        if(typeof console!=="undefined")console.warn("[canon] contradiction: "+n.name+" is roster-DEAD but knowledge asserts survival — GM note armed (P5①)");
+        return;
+      }
+    }
+  }
+}
 function applySummaryExtract(extracted,identityTable){
   /* #168R2 (entry-13 review): the extractor may return prose tiers as ARRAYS; _w6SummaryTexts validates only
      strings, so an array-valued chapterSummary skipped identity validation entirely and filed the raw t1644
@@ -1321,6 +1347,7 @@ function applySummaryExtract(extracted,identityTable){
   expireFutureEvents();
   if(Array.isArray(extracted.futureEvents)){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe&&fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
+  canonContradictionScan();/* P5①: after all tiers land, look for the two-truths state */
   // Chapter filed LAST (audit E46) so a throw in an earlier step can't leave a duplicated chapter
   // when summarize retries the same window.
   if(extracted.chapterSummary){fileChapter(worldState.turn,extracted.chapterSummary);futureResolveAssist(extracted.chapterSummary);}
@@ -1388,7 +1415,7 @@ function summaryFailureClear(){if(worldState&&worldState.summaryFailure)delete w
 function summaryIdentityQuarantine(e,rawBits,attempts){
   var a=memArchive().identityQuarantines,msg="unknown";try{msg=(e&&e.message!=null)?String(e.message):String(e);}catch(_siq){}
   a.push({turn:(worldState&&worldState.turn)||0,kind:e&&e.summaryIdentity?"summary-validation":"referential-validation",subject:e&&e.subject?String(e.subject).slice(0,120):"",reason:msg.slice(0,400),attempts:attempts||3,raw:(rawBits||[]).join(" ... ").slice(0,900)});
-  while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP)a.shift();return a[a.length-1];
+  while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){var _ev=a.shift();if(typeof console!=="undefined")console.warn("[identity] oldest identity quarantine EVICTED (t"+(_ev&&_ev.turn)+", "+((_ev&&_ev.subject)||"-")+") — the archive is at its cap of "+SUMMARY_IDENTITY_QUARANTINE_CAP+" (P3: eviction is never silent)");}return a[a.length-1];
 }
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
@@ -1465,7 +1492,7 @@ async function summarize(){
       fileChapter(worldState.turn,_rawSum);/* audit #10: same routine as applySummaryExtract — the P12 cap/archive discipline cannot fork */
       retainSessionTail();summaryFailureClear();saveMem();saveCore();addMsg("system","Memory saved (raw).");
     }else{
-      addMsg("system","Memory filing failed ("+_eMsg+") — will retry next turn.");
+      addMsg("system","Memory filing failed ("+_eMsg+") — retry "+_sumFails+" of 3; the third failure archives this window raw."/* P3: the player sees how close the window is to degrading */);
     }
   }
 }

@@ -12915,6 +12915,55 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var e=worldState.tagLog[worldState.tagLog.length-1];
     return (e&&e.refused&&e.refused.join(" ").indexOf("[XP:40]")>=0)?true:"the stripped ops left no provenance";
   });
+  // ── P3/P5① (workdone_sol_review batch 2): W6 lifecycle loudness + the canon-contradiction tripwire ──
+  t("P3: identity-quarantine archive eviction is LOUD, never a silent shift",function(){
+    makeWorld();memory.archive={identityQuarantines:[]};
+    var warns=[],ow=console.warn;console.warn=function(){warns.push(Array.prototype.join.call(arguments," "));};
+    var i;for(i=0;i<SUMMARY_IDENTITY_QUARANTINE_CAP+2;i++)summaryIdentityQuarantine({message:"m"+i,summaryIdentity:true},["raw"],3);
+    console.warn=ow;
+    if(memory.archive.identityQuarantines.length>SUMMARY_IDENTITY_QUARANTINE_CAP)return "cap not enforced";
+    return warns.some(function(w){return /evict/i.test(w);})?true:"the oldest quarantine was evicted silently";
+  });
+  t("P5①: a dead NPC whose stored knowledge asserts PRESENT survival arms the canon-contradiction note",function(){
+    // The two-truths state that fed the t1781 body-double: roster dead=1648 beside knowledge saying
+    // "Survived the party's assault… He now rallies his army". Past-tense survival alone ("survived
+    // the raid as a child") is history, not contradiction, and must NOT arm.
+    makeWorld();
+    worldState.npcs.push({name:"Mokmurian",status:"dead",dead:1648,rel:"enemy"});
+    memory.npcs["Mokmurian"]={attitude:"",knowledge:["Survived the party's assault; he now rallies his army with renewed wariness."],events:[],aliases:[],dead:1648};
+    worldState.turn=1750;
+    applySummaryExtract({chapterSummary:"A quiet day.",npcUpdates:[],loreDiscovered:[],decisionsMade:[],futureEvents:[],resolvedEvents:[]});
+    if(!worldState.canonContradiction)return "the two-truths state went undetected";
+    if(worldState.canonContradiction.name!=="Mokmurian")return "wrong subject: "+worldState.canonContradiction.name;
+    var note=buildCanonContradictionNudge();
+    if(!note)return "the armed latch produced no note";
+    if(note.indexOf("NPC_SUPERSEDE")<0||note.indexOf("resurrected")<0)return "the note does not offer both resolutions: "+note.slice(0,150);
+    if(worldState.canonContradiction)return "the latch was not consumed by the build";
+    if(buildCanonContradictionNudge())return "the note re-fired without a re-arm";
+    return true;
+  });
+  t("P5①: past-tense survival on a dead NPC is history, not contradiction — no arm",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Old Tam",status:"dead",dead:900,rel:"ally"});
+    memory.npcs["Old Tam"]={attitude:"",knowledge:["Survived the goblin raid of his childhood; died decades later."],events:[],aliases:[],dead:900};
+    worldState.turn=950;
+    applySummaryExtract({chapterSummary:"A quiet day.",npcUpdates:[],loreDiscovered:[],decisionsMade:[],futureEvents:[],resolvedEvents:[]});
+    return worldState.canonContradiction?"past-tense history armed a false contradiction":true;
+  });
+  t("P5①: the cooldown holds — the same contradiction does not re-arm within CANON_CONTRA_COOLDOWN turns",function(){
+    makeWorld();
+    worldState.npcs.push({name:"Mokmurian",status:"dead",dead:1648,rel:"enemy"});
+    memory.npcs["Mokmurian"]={attitude:"",knowledge:["He survives and still commands the army."],events:[],aliases:[],dead:1648};
+    worldState.turn=1750;
+    var ex={chapterSummary:"A day.",npcUpdates:[],loreDiscovered:[],decisionsMade:[],futureEvents:[],resolvedEvents:[]};
+    applySummaryExtract(ex);
+    if(!worldState.canonContradiction)return "setup failed — no arm";
+    buildCanonContradictionNudge();
+    worldState.turn=1760;applySummaryExtract(ex);
+    if(worldState.canonContradiction)return "re-armed inside the cooldown — permanent noise";
+    worldState.turn=1750+CANON_CONTRA_COOLDOWN+1;applySummaryExtract(ex);
+    return worldState.canonContradiction?true:"never re-armed after the cooldown — the contradiction is forgotten";
+  });
   t("W2 transaction ids are idempotent while the same claim id may carry a later new operation once",function(){
     makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();w2Frame("mok","Mokmurian",40);
     worldState.turn=41;var death=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][XP:100]");

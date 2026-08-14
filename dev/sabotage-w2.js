@@ -195,4 +195,39 @@ rc|=sabotage.prove({
 ]
 });
 
+/* P3/P5① (batch 2): lifecycle loudness + the canon-contradiction tripwire. */
+rc|=sabotage.prove({
+  file:"memory.js",
+  command:["node",["dev/run-tests.js","#168 W2"]],
+  cases:[
+    {
+        "label": "quarantine-archive eviction goes silent again",
+        "find": "while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){var _ev=a.shift();",
+        "replace": "while(a.length>SUMMARY_IDENTITY_QUARANTINE_CAP){a.shift();var _ev=null;if(false)"
+    },
+    {
+        "label": "the canon-contradiction tripwire dies — the two-truths state goes unnoticed again",
+        "find": "if(CANON_CONTRA_RE.test(line)||CANON_CONTRA_NOW_RE.test(line)){",
+        "replace": "if(false){"
+    },
+    {
+        "label": "past-tense history starts tripping the contradiction (the false-positive class)",
+        "find": "var CANON_CONTRA_NOW_RE=/\\bsurviv\\w*\\b[\\s\\S]{0,120}?\\b(?:now|remains|continues|still)\\b/i;",
+        "replace": "var CANON_CONTRA_NOW_RE=/\\bsurviv\\w*\\b/i;"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js","#168 W2"]],
+  cases:[
+    {
+        "label": "the contradiction note stops consuming its latch (permanent noise)",
+        "find": "  delete worldState.canonContradiction;\n  if(!worldState.canonContraNudged)worldState.canonContraNudged={};",
+        "replace": "  if(!worldState.canonContraNudged)worldState.canonContraNudged={};"
+    }
+]
+});
+
 process.exit(rc?1:0);

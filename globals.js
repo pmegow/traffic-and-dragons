@@ -5,7 +5,8 @@ var SCENE_REF_SEALED_CAP=6;     // #168 W2: transitioned frames retained until a
 var CANON_TXN_CAP=24;           // #168 W2: bounded idempotency/quarantine receipts for death/quest/reward envelopes.
 var CANON_TXN_RETIRE_TURNS=12;  // #168R3: committed receipts older than this retire on structured-summary success (quarantined receipts NEVER retire — poisoning is a contract); without retirement the cap permanently killed envelopes at receipt 24.
 var IDENTITY_CONFLICT_CAP=8;    // #168 W2: unresolved referential conflicts surfaced back to the GM.
-var IDENTITY_CONFLICT_STALE_ATTEMPTS=5; // #175: pointed deliveries before an unanswered conflict is shelved stale (the t1742 row fired 14 times unanswerable — a note N deliveries cannot clear will not clear on N+1)
+var IDENTITY_CONFLICT_STALE_ATTEMPTS=5;
+var CANON_CONTRA_COOLDOWN=25;      // P5①: turns between canon-contradiction notes for the same NPC (the deity-drift cadence) // #175: pointed deliveries before an unanswered conflict is shelved stale (the t1742 row fired 14 times unanswerable — a note N deliveries cannot clear will not clear on N+1)
 var SUMMARY_IDENTITY_ROW_CAP=12;// #168 W6: compact identity authorities in one extractor call; priority is player, party, scene, then mentioned NPCs.
 var SUMMARY_IDENTITY_CHAR_CAP=1600;// #168 W6: hard prompt bound for the uncached summary identity block.
 var SUMMARY_IDENTITY_QUARANTINE_CAP=12;// #168 W6: non-injected exhausted-validation receipts retained for forensics.
@@ -204,7 +205,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.608";
+var APP_VERSION="v1.609";
 var activeProvider="anthropic"; // id into PROVIDERS
 var providerKeys={};            // {providerId: apiKey}
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
