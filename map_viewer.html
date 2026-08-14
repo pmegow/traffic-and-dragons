@@ -17,31 +17,36 @@
      Like all satellites it must ride sw.js's network-first allowlist (the bug_tracker
      stale-pin lesson) — done in the same commit that created this file. -->
 <style>
-  :root{--bg:#0d0d0d;--bg2:#161616;--bg3:#1e1e1e;--brd:#2a2a2a;--brd2:#333;--acc:#b8935a;--acc2:#d9b47c;--t0:#e8e0d0;--t1:#b0a890;--t2:#6f6a5c;--bad:#a05a5a;--good:#7aa86a;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
+  :root{--bg:#0a0a0c;--bg2:#121214;--bg3:#1b1a1c;--bg4:#232124;--brd:#29272b;--brd2:#3a3537;--acc:#b8935a;--acc2:#ddb978;--t0:#eee7db;--t1:#b9b0a0;--t2:#777064;--bad:#b86b6b;--good:#80aa70;--r:8px;--font:'Segoe UI',system-ui,sans-serif}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--t1);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  #bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--brd);flex-wrap:wrap}
-  #bar h1{font-size:15px;color:var(--acc);font-weight:600;letter-spacing:.5px}
-  #bar .muted{color:var(--t2);font-size:11px;font-weight:400}
-  #src{font-size:11px;color:var(--t2)}
+  #bar{display:flex;align-items:center;gap:18px;min-height:58px;padding:9px 18px;background:linear-gradient(180deg,#171619 0%,var(--bg2) 100%);border-bottom:1px solid var(--brd);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2}
+  #brand{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+  #brandmark{width:31px;height:31px;border:1px solid #4b402f;position:relative;transform:rotate(45deg);background:#19150f;box-shadow:inset 0 0 0 5px #121214}
+  #brandmark:after{content:"";position:absolute;inset:9px;background:var(--acc);border-radius:50%}
+  #bar h1{font-size:15px;color:var(--t0);font-weight:650;letter-spacing:.3px;line-height:1.1}
+  #bar .muted{display:block;color:var(--acc);font-size:9px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;margin-top:4px}
+  #src{min-width:0;flex:1;font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:1px solid var(--brd);padding-left:18px}
   #src.live{color:var(--good)}
   #src.err{color:var(--bad)}
-  #bar button,#bar label.btn{background:var(--bg3);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font)}
-  #bar button:hover,#bar label.btn:hover{border-color:var(--acc);color:var(--t0)}
+  #tools{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+  #bar button,#bar label.btn{background:var(--bg3);color:var(--t1);border:1px solid var(--brd2);border-radius:6px;padding:7px 11px;font-size:11px;cursor:pointer;font-family:var(--font);transition:border-color .16s,background .16s,color .16s}
+  #bar button:hover,#bar label.btn:hover{border-color:#725d3e;background:var(--bg4);color:var(--t0)}
+  #bar button:focus-visible,#bar label.btn:focus-within{outline:2px solid var(--acc);outline-offset:2px}
   #wrap{flex:1;display:flex;min-height:0}
-  #stage{flex:1;position:relative;min-width:0}
-  #stage svg{width:100%;height:100%;display:block;cursor:grab}
-  #stage svg.panning{cursor:grabbing}
-  #panel{width:340px;border-left:1px solid var(--brd);background:var(--bg2);overflow-y:auto;padding:16px;display:none}
-  #panel.open{display:block}
-  #panel h2{font-size:14px;color:var(--t0);margin-bottom:2px}
-  #panel .sub{font-size:11px;color:var(--acc);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+  #stage{flex:1;position:relative;min-width:0;background-color:var(--bg);background-image:radial-gradient(circle at 50% 45%,rgba(184,147,90,.055),transparent 36%),linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:auto,32px 32px,32px 32px}
+  #stage>#svg{width:100%;height:100%;display:block;cursor:grab}
+  #stage>#svg.panning{cursor:grabbing}
+  #panel{width:360px;flex:0 0 360px;border-left:1px solid var(--brd);background:linear-gradient(180deg,#171619 0%,var(--bg2) 150px);overflow-y:auto;padding:21px 20px 28px;display:block;scrollbar-color:#4c4742 transparent;scrollbar-width:thin}
+  #panel .panel-kicker{font-size:9px;color:var(--acc);font-weight:650;text-transform:uppercase;letter-spacing:1.7px;margin-bottom:9px}
+  #panel h2{font-size:17px;color:var(--t0);font-weight:620;line-height:1.3;margin-bottom:4px}
+  #panel .sub{font-size:10px;color:var(--t2);margin-bottom:16px;text-transform:uppercase;letter-spacing:1.15px}
   #panel .sec{margin:12px 0}
   #panel .sec h3{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
   #panel .sec div,#panel .sec li{font-size:12px;line-height:1.5;color:var(--t1)}
-  #panel .desc{font-size:12px;line-height:1.55;color:var(--t1);border-left:2px solid var(--brd2);padding-left:8px}
-  #panel .chip{display:inline-block;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:1px;padding:1px 8px;border-radius:12px;border:1px solid var(--acc);background:#221c12;margin:0 4px 4px 0;font-family:monospace;text-transform:uppercase}
-  #panel .chip.away{border-color:var(--bad);background:#221212}
+  #panel .desc{font-size:12px;line-height:1.62;color:var(--t1);border-left:2px solid #4b4133;padding-left:10px}
+  #panel .chip{display:block;font-size:10px;color:var(--acc2);letter-spacing:.8px;padding:3px 0 3px 9px;border-left:2px solid var(--acc);margin:0 0 5px;font-family:monospace;text-transform:uppercase}
+  #panel .chip.away{border-left-color:var(--bad);color:#c88787}
   #panel a{color:var(--acc2);cursor:pointer;text-decoration:none}
   #panel a:hover{text-decoration:underline}
   #panel .dead{color:var(--t2);text-decoration:line-through}
@@ -55,8 +60,21 @@
   #panel .crec .sec{margin:8px 0}
   #panel .mk{font-size:10px;color:var(--acc2)}
   #panel .mk.away{color:var(--bad)}
-  #legend{position:absolute;left:12px;bottom:12px;background:rgba(22,22,22,.92);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;font-size:10.5px;color:var(--t2);line-height:1.8;pointer-events:none}
-  #legend svg{vertical-align:middle;margin-right:5px}
+  #panel .panel-empty{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:24px 7px 60px;color:var(--t2)}
+  #panel .empty-mark{width:58px;height:58px;border:1px solid #433a2d;transform:rotate(45deg);margin:0 0 30px 10px;position:relative;background:rgba(184,147,90,.035)}
+  #panel .empty-mark:after{content:"";position:absolute;inset:20px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 7px #161514}
+  #panel .panel-empty h2{font-size:19px;margin-bottom:8px}
+  #panel .panel-empty p{font-size:12px;line-height:1.65;max-width:275px}
+  #panel .empty-meta{margin-top:20px;padding-top:13px;border-top:1px solid var(--brd);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:#8e8373}
+  #legend{position:absolute;left:16px;bottom:16px;width:292px;background:rgba(18,18,20,.94);border:1px solid var(--brd);border-radius:var(--r);padding:12px 13px 11px;font-size:10.5px;color:var(--t2);pointer-events:none;box-shadow:0 12px 30px rgba(0,0,0,.28);backdrop-filter:blur(8px)}
+  #legend .legend-title{display:flex;justify-content:space-between;align-items:baseline;color:var(--t0);font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+  #legend .legend-title span:last-child{color:var(--t2);font-size:8px;font-weight:500;letter-spacing:1.1px}
+  #legend .legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+  #legend .legend-item{display:flex;align-items:center;min-width:0;color:var(--t1);line-height:1.25}
+  #legend .legend-item span{display:block}
+  #legend .legend-item small{display:block;color:var(--t2);font-size:9px;margin-top:2px}
+  #legend svg{width:16px;height:16px;display:block;flex:0 0 16px;cursor:default;margin-right:7px;overflow:visible}
+  #legend .legend-note{border-top:1px solid var(--brd);margin-top:10px;padding-top:8px;font-size:9px;line-height:1.45;color:var(--t2)}
   #drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,13,13,.85);color:var(--acc);font-size:16px;border:2px dashed var(--acc);z-index:5;pointer-events:none}
   .nodeg{cursor:pointer}
   .nodeg text{font-family:var(--font);fill:var(--t1);pointer-events:none}
@@ -66,16 +84,35 @@
   .edge.ghosted{stroke:var(--bad);stroke-dasharray:4 3}
   .subedge{stroke:#242424;stroke-width:1}
   #empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--t2);font-size:13px;text-align:center;padding:0 40px}
+  #empty div:first-child{font-size:17px;color:var(--t0)}
+  #empty div:last-child{max-width:480px;line-height:1.6}
+  @media(max-width:900px){
+    #bar{gap:11px;padding:9px 12px;flex-wrap:wrap}
+    #src{order:3;flex-basis:100%;border-left:0;padding:0 0 2px 42px}
+    #wrap{flex-direction:column}
+    #stage{min-height:52vh}
+    #panel{width:100%;flex:0 0 36vh;border-left:0;border-top:1px solid var(--brd);padding:18px 20px}
+    #panel .panel-empty{min-height:auto;padding:12px 4px 24px}
+    #panel .empty-mark{display:none}
+  }
+  @media(max-width:620px){
+    #tools{width:100%;overflow-x:auto;padding-bottom:2px}
+    #bar button,#bar label.btn{white-space:nowrap}
+    #legend{left:10px;bottom:10px;width:255px}
+    #legend .legend-grid{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 <div id="bar">
-  <h1>Campaign Map <span class="muted">satellite · read-only</span></h1>
+  <div id="brand"><div id="brandmark" aria-hidden="true"></div><h1>Campaign Map <span class="muted">Atlas · read-only</span></h1></div>
   <span id="src">no data yet</span>
-  <label class="btn">📂 Import save<input type="file" id="file" accept=".tnd,.json" style="display:none"></label>
-  <button id="relayout">↻ Re-run layout</button>
-  <button id="fit">⤢ Fit</button>
-  <button id="expsvg">⬇ Export SVG</button>
+  <div id="tools">
+    <label class="btn">📂 Import save<input type="file" id="file" accept=".tnd,.json" style="display:none"></label>
+    <button id="relayout">↻ Re-run layout</button>
+    <button id="fit">⤢ Fit</button>
+    <button id="expsvg">⬇ Export SVG</button>
+  </div>
 </div>
 <div id="wrap">
   <div id="stage">
@@ -87,7 +124,7 @@
       <div>Open this page on the same origin as a played campaign, drop a <b>.tnd</b> export here, or use 📂 Import save.</div>
     </div>
   </div>
-  <div id="panel"></div>
+  <aside id="panel" aria-label="Location details" aria-live="polite"></aside>
 </div>
 
 <script>
@@ -110,7 +147,7 @@
     if(!mem&&data.map)mem=data;                       // a raw memory object
     if(!mem||!mem.map||!mem.map.nodes){setSrc("no map data in that source ("+label+")",true);return false;}
     CUR={mem:mem,ws:ws||{},srcLabel:label};
-    buildGraph();layout();render();fit();
+    selected=null;buildGraph();layout();render();fit();renderPanelEmpty();
     var n=G.nodes.length,e=G.edges.length;
     setSrc(label+" — "+n+" locations, "+e+" routes"+(CUR.ws&&CUR.ws.turn?", turn "+CUR.ws.turn:""),false,label.indexOf("live")===0);
     $("empty").style.display="none";
@@ -153,6 +190,7 @@
       var n={key:key,label:pipe>=0?key.slice(pipe+1):key,parent:parent,world:!parent,
              visits:src.visits||0,firstVisit:src.firstVisit,description:src.description||null,
              stateNotes:src.stateNotes||[],items:src.items||[],ghost:!!ghost,
+             guestbook:src.guestbook||null,/* #173: per-character visit provenance + residents */
              road:ROAD_RE.test(key),npcsHere:[],x:0,y:0,vx:0,vy:0};
       byKey[key]=n;nodes.push(n);return n;
     }
@@ -311,10 +349,14 @@
   }
   function renderLegend(){
     $("legend").innerHTML=
-      '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#1e1a12" stroke="#b8935a"/></svg>settlement / site &nbsp; <svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="#181818" stroke="#b8935a"/></svg>road / corridor</div>'+
-      '<div><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#d9b47c" stroke-dasharray="3 3"/></svg>party is here &nbsp; <svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#221212" stroke="#a05a5a"/></svg>split member</div>'+
-      '<div><svg width="14" height="6"><line x1="0" y1="3" x2="14" y2="3" stroke="#a05a5a" stroke-dasharray="4 3"/></svg>edge to a node the record never filed (ghost)</div>'+
-      '<div>node size = visit count · sublocations cascade in the side panel · drag to pan · wheel to zoom</div>';
+      '<div class="legend-title"><span>Map key</span><span>Drag · scroll</span></div>'+
+      '<div class="legend-grid">'+
+        '<div class="legend-item"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#1e1a12" stroke="#b8935a"/></svg><span>Location<small>settlement or site</small></span></div>'+
+        '<div class="legend-item"><svg viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" transform="rotate(45 8 8)" fill="#181818" stroke="#b8935a"/></svg><span>Route<small>road or corridor</small></span></div>'+
+        '<div class="legend-item"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="#d9b47c" stroke-dasharray="3 3"/></svg><span>Party<small>current position</small></span></div>'+
+        '<div class="legend-item"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#221212" stroke="#a05a5a"/></svg><span>Split<small>member away</small></span></div>'+
+      '</div>'+
+      '<div class="legend-note">Larger nodes mean more visits. Dashed red routes point to records that were referenced but never filed.</div>';
   }
 
   // ── node panel ─────────────────────────────────────────────────────────────
@@ -332,6 +374,24 @@
     if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
     if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
     if(n.npcsHere.length){h+='<div class="sec"><h3>NPCs last seen here</h3><ul>';for(var i4=0;i4<n.npcsHere.length;i4++){var np=n.npcsHere[i4];h+='<li'+(np.dead?' class="dead"':'')+'>· '+esc(np.name)+(np.dead?' (deceased)':'')+'</li>';}h+='</ul></div>';}
+    // #173: the guestbook — per-character recorded visits + residents. Visits render each exact
+    // turn plus the folded aggregate ("t10–t80 ×12" = 12 older turns compressed); residents are
+    // an association, never presence, and the header says so.
+    if(n.guestbook){
+      var gNames=Object.keys(n.guestbook),gVis=[],gRes=[],gi;
+      gNames.sort();
+      for(gi=0;gi<gNames.length;gi++){var gr=n.guestbook[gNames[gi]];if(!gr)continue;
+        var gT=gr.turns||[];
+        if(gT.length||gr.agg){
+          var gp=[];
+          if(gr.agg)gp.push('t'+gr.agg.first+'–t'+gr.agg.last+' ×'+gr.agg.count);
+          for(var gj=0;gj<gT.length;gj++)gp.push('t'+gT[gj]);
+          gVis.push('<li>· '+esc(gNames[gi])+' <span style="color:var(--t2)">('+esc(gp.join(', '))+')</span>'+(gr.resident?' <span class="mk">— resident</span>':'')+'</li>');
+        }else if(gr.resident)gRes.push(esc(gNames[gi]));
+      }
+      if(gVis.length)h+='<div class="sec"><h3>Recorded visits (#173 — per character)</h3><ul>'+gVis.join('')+'</ul></div>';
+      if(gRes.length)h+='<div class="sec"><h3>Residents (usual base — not presence)</h3><div>'+gRes.join(', ')+'</div></div>';
+    }
     return h;
   }
   // Every cascade entry is an accordion: summary = the name, body = the full record + its own
@@ -356,16 +416,26 @@
     if(nested)return '<div class="sec"><h3>Sublocations</h3><div class="cascade">'+tree+'</div></div>';
     return '<div class="sec"><h3>Sublocations ('+(G.descCount[key]||0)+')</h3><div class="cascade">'+tree+'</div></div>';
   }
+  function renderPanelEmpty(){
+    selected=null;
+    var loaded=!!(G&&G.worlds);
+    var title=loaded?'Choose a location':'Location details';
+    var copy=loaded?'Select any location on the map to inspect its record, durable changes, people, items, routes, and nested places.':'Import a campaign save to explore its remembered geography.';
+    var meta=loaded?G.worlds.length+' map locations · '+G.edges.length+' recorded routes':'Waiting for campaign data';
+    var pn=$("panel");
+    pn.innerHTML='<div class="panel-empty"><div class="empty-mark" aria-hidden="true"></div><div class="panel-kicker">Location details</div><h2>'+title+'</h2><p>'+copy+'</p><div class="empty-meta">'+meta+'</div></div>';
+    pn.scrollTop=0;
+  }
   function selectNode(key){
     var n=G.byKey[key];if(!n)return;
     selected=key;
     var up=n.world?null:(n.treeParent||n.rootKey);
-    var h='<h2>'+esc(n.world?n.key:n.label)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'inside <a data-go="'+esc(up)+'" style="text-transform:none;letter-spacing:0">'+esc(up)+'</a>'))+'</div>';
+    var h='<div class="panel-kicker">Location details</div><h2>'+esc(n.world?n.key:n.label)+'</h2><div class="sub">'+(n.ghost?'ghost — referenced, never filed':(n.world?(n.road?'road / corridor':'world location'):'inside <a data-go="'+esc(up)+'" style="text-transform:none;letter-spacing:0">'+esc(up)+'</a>'))+'</div>';
     h+=nodeRecordHTML(n);
     h+=cascadeSection(n.key,false);
     var conn=[];for(var i7=0;i7<G.edges.length;i7++){var E=G.edges[i7];if(E.a.key===n.key)conn.push({k:E.b.key,t:E.turn});else if(E.b.key===n.key)conn.push({k:E.a.key,t:E.turn});}
     if(conn.length){h+='<div class="sec"><h3>Connected (first travel)</h3><ul>';for(var i8=0;i8<conn.length;i8++)h+='<li>· <a data-go="'+esc(conn[i8].k)+'">'+esc(conn[i8].k)+'</a> <span style="color:var(--t2)">(t'+esc(conn[i8].t)+')</span></li>';h+='</ul></div>';}
-    var pn=$("panel");pn.innerHTML=h;pn.className="open";
+    var pn=$("panel");pn.innerHTML=h;pn.scrollTop=0;
     render();/* selected-node highlight: filled shape + enlarged label (re-render keeps SVG and panel in step) */
     var links=pn.querySelectorAll("a[data-go]");
     for(var i9=0;i9<links.length;i9++)links[i9].addEventListener("click",function(){var k2=this.getAttribute("data-go");selectNode(k2);centerOn(k2);});
@@ -379,16 +449,16 @@
   }
   (function(){
     var svg=$("svg"),drag=null;
-    svg.addEventListener("mousedown",function(ev){drag={x:ev.clientX,y:ev.clientY,vx:view.x,vy:view.y};svg.className="panning";});
+    svg.addEventListener("mousedown",function(ev){drag={x:ev.clientX,y:ev.clientY,vx:view.x,vy:view.y};svg.setAttribute("class","panning");});
     window.addEventListener("mousemove",function(ev){if(!drag)return;var sc=view.w/svg.clientWidth;view.x=drag.vx-(ev.clientX-drag.x)*sc;view.y=drag.vy-(ev.clientY-drag.y)*sc;svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);});
-    window.addEventListener("mouseup",function(){drag=null;svg.className="";});
+    window.addEventListener("mouseup",function(){drag=null;svg.removeAttribute("class");});
     svg.addEventListener("wheel",function(ev){ev.preventDefault();
       var f=ev.deltaY>0?1.15:0.87;
       var mx=view.x+ev.offsetX/svg.clientWidth*view.w,my=view.y+ev.offsetY/svg.clientHeight*view.h;
       view.w*=f;view.h*=f;view.x=mx-(mx-view.x)*f;view.y=my-(my-view.y)*f;
       svg.setAttribute("viewBox",view.x+" "+view.y+" "+view.w+" "+view.h);
     },{passive:false});
-    svg.addEventListener("click",function(){$("panel").className="";selected=null;render();});
+    svg.addEventListener("click",function(){renderPanelEmpty();render();});
   })();
   function fit(){
     if(!G||!G.worlds.length)return;
@@ -434,6 +504,7 @@
   })();
 
   // ── boot ───────────────────────────────────────────────────────────────────
+  renderPanelEmpty();
   if(!tryLocalStorage())setSrc("no campaign in this browser's storage — import a .tnd export",false);
 })();
 </script>
