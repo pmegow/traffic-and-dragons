@@ -14076,5 +14076,22 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
     return a.level==="warn"?true:"summary strikes should warn, got "+a.level;
   });
+  t("every WATCH/PROBLEM indicator carries a plain-language hint UNDER 25 words (owner ruling 2026-08-14); ok/na carry none",function(){
+    makeWorld();delete worldState.ragMemory;var i;
+    worldState.transcript=[];for(i=0;i<40;i++)worldState.transcript.push({x:"s"+i});
+    worldState.healthLog=[];for(i=0;i<12;i++)worldState.healthLog.push({t:i,in:5000,cr:0,rag:0,prov:"anthropic"});
+    worldState.tagLog=[];for(i=0;i<6;i++)worldState.tagLog.push({t:i,tags:[],m:[]});
+    worldState.questLog=[{title:"Q",status:"active",objectives:[{text:"a",done:true}]}];
+    worldState.canonTxns=[{id:"ct1",status:"quarantined"}];
+    var h=healthIndicators(worldState);
+    for(i=0;i<h.items.length;i++){var it=h.items[i];
+      if(it.level==="warn"||it.level==="bad"){
+        if(!it.hint)return it.id+" ["+it.level+"] has no hint";
+        var wc=it.hint.split(/\s+/).length;
+        if(wc>=25)return it.id+" hint is "+wc+" words — the ruling is UNDER 25";
+      }else if(it.hint)return it.id+" ["+it.level+"] should carry no hint";
+    }
+    return true;
+  });
 
 }

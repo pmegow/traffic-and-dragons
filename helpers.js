@@ -1193,6 +1193,21 @@ function healthIndicators(ws){
   if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed");
   push("anomaly","Standing anomalies",(quarantined||unresolved)?"bad":(anom.length?"warn":"ok"),
     anom.length?anom.join("; "):"none");
+  // Plain-language action hints (owner ruling 2026-08-14: every WATCH/PROBLEM carries a
+  // <25-word "what this means / what to do" line — the raw detail is accurate but useless
+  // to a player). The word cap is CONTRACT, enforced by an engine test, not by discipline.
+  var HINTS={
+    rag:{bad:"Past scenes aren't reaching the GM — memory questions get invented answers. Submit a report if this stays red.",
+         warn:"Past scenes aren't reaching the GM lately. Watch it — submit a report if it goes red."},
+    cache:{bad:"Every turn is paying full price instead of reading the prompt cache. Submit a report if this stays red across a session.",
+           warn:"Cache reads are running low — worth a report if it persists."},
+    tags:{bad:"The story may be moving without the sheet updating. Open the Sheet and tap ⟳ Sync to re-audit.",
+          warn:"The story may be moving without the sheet updating. Open the Sheet and tap ⟳ Sync to re-audit."},
+    quest:{warn:"The engine is nudging the GM to close it — if it lingers a few turns, ask about it in-story."},
+    anomaly:{bad:"A canon claim (often a death or its rewards) was refused and withheld. If the story owes you something, submit a report.",
+             warn:"Self-correcting state (memory retries or a clock check) — no action needed unless it persists; then submit a report."}
+  };
+  for(i=0;i<items.length;i++){var hh=HINTS[items[i].id];if(hh&&hh[items[i].level])items[i].hint=hh[items[i].level];}
   var rank={ok:0,warn:1,bad:2},worst="ok",any=false;
   for(i=0;i<items.length;i++){var lv=items[i].level;if(lv==="na")continue;any=true;if(rank[lv]>rank[worst])worst=lv;}
   return {overall:any?worst:"na",items:items};

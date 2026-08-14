@@ -619,7 +619,9 @@ function showHealthModal(){
     rows+="<div style='display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid var(--brd);'>"
       +"<div class='mdot' style='margin-top:4px;background:"+col(it.level)+";"+(it.level==="na"?"opacity:.35;":"")+"'></div>"
       +"<div style='flex:1;'><div style='font-size:12px;color:var(--t0);'>"+escHtml(it.label)+" — <span style='color:"+col(it.level)+";'>"+word(it.level)+"</span></div>"
-      +"<div style='font-size:11px;color:var(--t2);margin-top:1px;'>"+escHtml(it.detail)+"</div></div></div>";
+      +"<div style='font-size:11px;color:var(--t2);margin-top:1px;'>"+escHtml(it.detail)+"</div>"
+      +(it.hint?"<div style='font-size:11px;color:var(--t1);margin-top:3px;'>&#8594; "+escHtml(it.hint)+"</div>":"")
+      +"</div></div>";
   }
   m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
