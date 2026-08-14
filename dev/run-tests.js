@@ -559,6 +559,9 @@ try {
   _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }];
   if (_fmMove(_fmA, 0, _fmA, 3) !== true || _fmN(_fmA) !== "B,C,A")
     _failBE("feat move: same-list DOWNWARD move must adjust for the removed source (got " + _fmN(_fmA) + ")");
+  _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }, { nm: "D" }];
+  if (_fmMove(_fmA, 1, _fmA, 3) !== true || _fmN(_fmA) !== "A,C,B,D")
+    _failBE("feat move: same-list DOWNWARD move must preserve the requested middle drop boundary (got " + _fmN(_fmA) + ")");
   _fmA = [{ nm: "A" }, { nm: "B" }, { nm: "C" }];
   if (_fmMove(_fmA, 2, _fmA, 0) !== true || _fmN(_fmA) !== "C,A,B")
     _failBE("feat move: same-list UPWARD move broken (got " + _fmN(_fmA) + ")");
@@ -570,8 +573,14 @@ try {
   _fmA = [{ nm: "A" }]; _fmB = [];
   if (_fmMove(_fmA, 0, _fmB, 99) !== true || _fmN(_fmB) !== "A" || _fmA.length !== 0)
     _failBE("feat move: an over-long destination index must clamp to append (empty-slot drop)");
+  _fmA = [{ nm: "A" }]; _fmB = [{ nm: "X" }, { nm: "Y" }];
+  if (_fmMove(_fmA, 0, _fmB, -9) !== true || _fmN(_fmB) !== "A,X,Y")
+    _failBE("feat move: a negative destination index must clamp to the beginning");
+  _fmA = [{ nm: "A" }]; _fmB = [{ nm: "X" }, { nm: "Y" }];
+  if (_fmMove(_fmA, 0, _fmB, 99) !== true || _fmN(_fmB) !== "X,Y,A")
+    _failBE("feat move: an over-long destination index must clamp to append");
   // ...and the page must actually render the grips and route drops through moveFeat
-  if (_bePage.indexOf("data-frow") < 0 || _bePage.indexOf("class='grip'") < 0)
+  if (_bePage.indexOf("class='feat' data-frow='") < 0 || _bePage.indexOf("class='grip'") < 0)
     _failBE("the feature rows no longer carry the ⋮⋮ grip / data-frow — nothing is draggable");
   if (!/moveFeat\(/.test(_bePage.slice(_bePage.indexOf("function wireClass"))))
     _failBE("wireClass never routes a drop through moveFeat — the grips are decoration");
@@ -662,7 +671,7 @@ try {
     _failBE("cap edit: an unknown key must be refused untouched, never invented");
   var _cedCard = _slice("function showCard", "// >>> CAP EDIT");
   if (!_cedCard) _failBE("could not isolate showCard ahead of the CAP EDIT markers");
-  if (_cedCard.indexOf("m-edit") < 0 || _cedCard.indexOf("capForm(") < 0 || _cedCard.indexOf("Update Bible") < 0)
+  if (_cedCard.indexOf("id='m-edit'") < 0 || _cedCard.indexOf("capForm(") < 0 || _cedCard.indexOf("Update Bible") < 0)
     _failBE("showCard no longer offers ✎ Update Bible through capForm — the card went back to read-only");
   var _usc = _slice("function updateShippedCapability", "// ── toolbar");
   if (!_usc) _failBE("could not isolate updateShippedCapability");
@@ -672,8 +681,8 @@ try {
   if (_uscPick < 0) _failBE("updateShippedCapability lost its file-read path");
   if (_uscAsk >= 0 && _uscAsk < _uscPick)
     _failBE("updateShippedCapability prompts BEFORE the picker — that consumes user activation and the picker will never open (the v1.485 deadlock class)");
-  if (_usc.indexOf("CAPABILITY_BIBLE[key] = obj") < 0)
-    _failBE("updateShippedCapability no longer refreshes the in-page CAPABILITY_BIBLE — badges and cards would show stale values after an edit");
+  if ((_usc.match(/CAPABILITY_BIBLE\[key\]\s*=\s*obj/g) || []).length < 2)
+    _failBE("updateShippedCapability no longer refreshes both successful paths in the in-page CAPABILITY_BIBLE — badges and cards would show stale values after an edit");
   // ── WRITE-BY-DOWNLOAD (v1.516) ───────────────────────────────────────────────────────
   // Three field failures (v1.512/514/515) established that FSA WRITES are refused on the
   // author's machine while READS work, and that the save-dialog workaround minted an EMPTY
@@ -727,6 +736,13 @@ try {
     _failBE("serializeCapabilityBible's emit() no longer reproduces the file's own entry format — an edited save would reformat every entry it touches. First divergence at char " + _cd2 +
       " (…" + JSON.stringify(_capSrc.slice(Math.max(0, _cd2 - 40), _cd2 + 40)) + "\n     vs …" + JSON.stringify(_capOut2.slice(Math.max(0, _cd2 - 40), _cd2 + 40)) + ")");
   }
+  var _capEdited = _capEntries.map(function (e) { return { key: e.key, line: e.line, obj: e.obj, lead: e.lead, dirty: false }; });
+  _capEdited[0].obj = JSON.parse(JSON.stringify(_capEdited[0].obj));
+  _capEdited[0].obj.effect = String(_capEdited[0].obj.effect || "") + " [dirty-path fixture]";
+  _capEdited[0].dirty = true;
+  var _capOut3 = _capSerialize({ prefix: _capLines.slice(0, _cs + 1).join("\n") + "\n", suffix: "\n" + _capLines.slice(_ce).join("\n"), entries: _capEdited });
+  if (_capOut3 === _capSrc || _capOut3.indexOf("[dirty-path fixture]") < 0)
+    _failBE("serializeCapabilityBible's dirty edit path ignored the changed object — raw source lines are masking a dead emitter");
 } catch (e) { console.error("BIBLE EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── VOICE LAB CONTRACT (v1.492, author de-branding experiment) ───────────────────────────
@@ -976,6 +992,8 @@ try {
     _failAW("the setAppearance seam is gone from showPortraitModal — callers can no longer route the write to a durable home.");
   if (!/setAppear\(desc\)\s*===\s*false/.test(_pmAW))
     _failAW("the Replace handler no longer honours a refusal — a rejected write would clear the panel and discard a description that cost a vision call.");
+  if (!/setAppear\(\(c\.appear\?c\.appear\+\" \"\:\"\"\)\+desc\)\s*===\s*false/.test(_pmAW))
+    _failAW("the Append handler no longer honours a refusal — a sheet-less NPC would report success for a description that was never stored.");
   if (_shAW.indexOf("setAppearance:") < 0)
     _failAW("showNpcSheet no longer supplies setAppearance — the NPC path falls back to the default writer, which targets the PLAYER (the v1.43 cross-subject class).");
   if (!/wsNpc\.charSheet\.appear\s*=\s*text/.test(_shAW))
@@ -1082,7 +1100,10 @@ try {
   // ⑥ v1.436: the send-tap prewarm — without it the first unit of nearly every post-idle read
   //    pays the Fly cold boot and times out into the local ladder (the 🔋-latch field failure).
   var _gameS = _ncS(_fsS.readFileSync(_pathS.join(__dirname, "..", "game.js"), "utf8"));
-  if (_gameS.indexOf("TTS.prewarmServer()") < 0) {
+  var _sendStartS = _gameS.indexOf("async function sendAction");
+  var _sendEndS = _gameS.indexOf("function retryLast", _sendStartS);
+  var _sendS = (_sendStartS >= 0 && _sendEndS > _sendStartS) ? _gameS.slice(_sendStartS, _sendEndS) : "";
+  if (!/if\(typeof TTS!=="undefined"&&typeof TTS\.prewarmServer==="function"\)TTS\.prewarmServer\(\);/.test(_sendS)) {
     console.error("SERVER TTS CONTRACT: sendAction no longer prewarms the TTS machine on the send gesture — post-idle reads meet a cold Fly machine and degrade to local Piper every turn (v1.436).");
     process.exit(1);
   }

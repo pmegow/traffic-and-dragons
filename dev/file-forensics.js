@@ -118,6 +118,13 @@ temps.forEach(function (f) {
 // ── write lock ──────────────────────────────────────────────────────────────
 head("writability right now");
 try {
+  // Deterministic fixture seam: Node cannot request a Windows deny-write share
+  // handle, so the retained test injects the OS error at this exact boundary.
+  if (process.env.TND_FORENSICS_OPEN_ERROR) {
+    var forcedOpenError = new Error("synthetic write lock");
+    forcedOpenError.code = process.env.TND_FORENSICS_OPEN_ERROR;
+    throw forcedOpenError;
+  }
   var fd = fs.openSync(abs, "r+");
   fs.closeSync(fd);
   line("open r+", "OK — nothing is holding a lock");

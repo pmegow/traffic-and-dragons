@@ -29,6 +29,43 @@ var fs = require("fs");
 var path = require("path");
 var cp = require("child_process");
 var os = require("os");
+var ROOT = path.join(__dirname, "..");
+
+/* Repo-relative contracts run against an exact working-byte copy in a disposable clone.
+   This prevents a concurrent test process from loading the deliberate regression between
+   mutation and restore — the mechanism behind the one-off E136 "flake" in TODO #25. Absolute
+   paths remain in-place so the synthetic meta-suite can prove crash/interrupt restoration. */
+function proveScratch(opts) {
+  var scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-sabotage-proof-"));
+  try {
+    var clone = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT,
+      "-c", "safe.directory=" + path.join(ROOT, ".git"), "clone", "--quiet", "--no-hardlinks", ROOT, scratch],
+      { encoding: "utf8" });
+    if (clone.status !== 0) {
+      console.error("sabotage: scratch clone failed: " + String(clone.stderr || clone.stdout || "unknown git error"));
+      return 1;
+    }
+    function copyWorking(rel) {
+      if (!rel || path.isAbsolute(rel)) return;
+      var src = path.join(ROOT, rel), dst = path.join(scratch, rel);
+      if (!fs.existsSync(src)) return;
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(src, dst);
+    }
+    copyWorking(opts.file);
+    copyWorking("dev/run-tests.js");
+    if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
+    return prove({
+      file: path.join(scratch, opts.file),
+      command: opts.command,
+      cases: opts.cases,
+      cwd: scratch,
+      inPlace: true
+    });
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
 
 // OneDrive-resilient write (2026-08-09, #156 Phase B verification): the sync client's filter
 // driver transiently locks files (errno -4094 UNKNOWN on open), which killed a run MID-MUTATION
@@ -49,6 +86,7 @@ function writeRetry(file, data) {
 
 function prove(opts) {
   if (opts.skip) return 0; /* #170: --focused runs section-scoped groups only */
+  if (!opts.inPlace && !path.isAbsolute(opts.file)) return proveScratch(opts);
   var file = path.resolve(opts.file);
   if (!fs.existsSync(file)) { console.error("sabotage: no such file: " + file); return 1; }
 
@@ -93,7 +131,7 @@ function prove(opts) {
       }
 
       writeRetry(file, after);
-      var run = cp.spawnSync(cmd[0], cmd[1], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
+      var run = cp.spawnSync(cmd[0], cmd[1], { cwd: opts.cwd || ROOT, encoding: "utf8" });
       writeRetry(file, original);
 
       /* #170 (entry-13 brief F): an exit-status-only verdict cannot tell a REAL catch from a

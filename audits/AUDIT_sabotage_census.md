@@ -303,3 +303,50 @@ target byte-identically, and confirmed the repository targets were never written
 hook parity pass/fail, and ten individual CI/pre-commit step removals. The installed hook was
 reinstalled and matched tracked bytes (`8235d2f3df47`). Queue status: **N02 PROVEN**, **N10
 PROVEN**, and **N11 PARTIAL** (stop version branch proven; ES5 and touched-file cases remain).
+
+## Continuation landing 2 — ordered tooling/UI queue (2026-08-14)
+
+**Findings.** The queue exposed four additional verifier defects without touching game code:
+
+1. SERVER TTS clause 6 accepted a dead `TTS.prewarmServer()` branch because it searched only for
+   the call text; `&&false` stayed green.
+2. The ES5 hook classified modern `dev/` Node scripts as game-client code, and its touched-file
+   log had no deterministic fixture boundary.
+3. Eight first-pass BIBLE EDITOR mutations escaped: boundary tests were masked by native
+   `splice` clamping, two UI checks matched loose substrings, the two successful capability
+   refresh branches were not individually required, and the dirty serializer fixture never
+   changed an object—so a dead emitter reproduced the same bytes.
+4. APPEARANCE pinned refusal handling for Replace but not Append.
+
+**Remedy.** All corrections are verifier/tooling-only. The TTS prewarm check now requires the
+exact live guarded statement. The ES5 hook excludes `dev/` and shares a test-only temp boundary
+with the stop hook. FEAT MOVE gained non-empty negative/over-long and middle-drop fixtures;
+BIBLE EDITOR checks exact render/control markers, requires both capability refresh branches, and
+serializes a genuinely edited dirty object. APPEARANCE now requires refusal handling on both
+Replace and Append. `file-forensics` gained a deterministic write-lock seam, and the sabotage
+prover now runs every repo-relative mutation in a disposable local clone. Absolute synthetic
+targets retain the in-place crash/interrupt restoration path.
+
+**Living proof.** Queue receipts are:
+
+| Item | Result | Retained proof |
+|---|---:|---|
+| N01 sabotage self-trust | PROVEN | `tests-sabotage-meta.js` 5/5: NOT-APPLIED, MISATTRIBUTED, repo-relative scratch isolation, crash restore, SIGINT restore |
+| N03/N04 | ROUTED | Frozen/tag/stable-purity and TABLE TALK remain Fable drift-surface work; no assertion changed here |
+| N05 SERVER TTS | PROVEN | `sabotage-server-tts.js` 6/6, named failures, disposable clone restored |
+| N06 | ROUTED | Transcript write/compression/rescue boundaries remain Fable drift-surface work |
+| N07 historical source contracts | ACTIVE | Central scratch isolation landed; new retained per-surface batteries cover N05 and N10–N15. Remaining historical migrations stay per-surface, not a mega-battery |
+| N08/N09 | ROUTED | Extraction/snapshot and summarize/memory/output boundaries remain Fable drift-surface work |
+| N10 dead standalone suites | PROVEN | Landing 1, 3/3 deliberate regressions named |
+| N11 hooks | PROVEN | `tests-verification-enforcement.js` 8/8, including ES5 game/dev boundary and touched-warning/suppression |
+| N12 file forensics | PROVEN | `tests-file-forensics.js` 9/9: missing, zero, BOM, mixed EOL, invalid JS, untracked, swap, lock, clean |
+| N13 install bible | PROVEN | `tests-install-bible.js` 13/13; every refusal pins the target hash, plus dry-run/no-op/write boundary |
+| N14 BIBLE EDITOR remainder | PROVEN | Red-first 19/27 exposed eight gaps; retained `sabotage-bible-editor-remaining.js` is 27/27 named and restored |
+| N15 APPEARANCE remainder | PROVEN | Red-first 11/12 exposed Append; retained `sabotage-appearance-remaining.js` is 12/12 named and restored |
+| N16 | ROUTED | Sync-size/eviction/quota/reconcile identity cross ask-first data/storage surfaces; route to coordinating Fable session |
+| N17 | ROUTED/SPLIT | Drift-health prompt consumers route to Fable; any later non-drift helper cases can remain tooling-owned |
+| N18 E136 “flake” | ROOT-CAUSED | The failure text exactly matches `sabotage-identity.js` removing `fileLocation` resolution. Legacy sabotage mutated the shared tree; a concurrent baseline could load it before restore. Scratch isolation removes that race; identity sabotage 22/22, Phase B isolated 40/40, full-order baseline 5/5 |
+
+No existing assertion was loosened or re-baselined. The N14/N15 edits only added failure inputs
+or narrowed source predicates. N03/N04/N06/N08/N09/N16/N17 remain explicitly routed rather than
+silently crossed under Lane 2 authority.

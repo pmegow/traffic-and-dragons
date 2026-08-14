@@ -8,6 +8,7 @@ var cp = require("child_process");
 
 var ROOT = path.join(__dirname, "..");
 var STOP = path.join(ROOT, ".claude", "hooks", "stop-check.js");
+var ES5 = path.join(ROOT, ".claude", "hooks", "es5-check.js");
 var PARITY = path.join(__dirname, "check-hook-parity.js");
 var ENFORCE = path.join(__dirname, "check-enforcement.js");
 var pass = 0, fail = 0;
@@ -25,6 +26,12 @@ function stopRun(root, mem, tmp, sid) {
   return run(process.execPath, [STOP], {
     input: JSON.stringify({ session_id: sid }),
     env: Object.assign({}, process.env, { TND_STOP_ROOT: root, TND_STOP_MEM: mem, TND_STOP_TMP: tmp })
+  });
+}
+function es5Run(file, tmp, sid) {
+  return run(process.execPath, [ES5], {
+    input: JSON.stringify({ session_id: sid, tool_input: { file_path: file } }),
+    env: Object.assign({}, process.env, { TND_HOOK_TMP: tmp })
   });
 }
 function git(root, args) {
@@ -61,6 +68,28 @@ try {
     var out = text(result);
     if (result.status !== 0) return "blocked with exit " + result.status + ": " + out;
     return /unavailable|could not verify/i.test(out) ? "" : "missing source was silent: " + out;
+  });
+  test("ES5 hook rejects game const but permits modern dev tooling", function () {
+    var game = path.join(fakeRoot, "client.js");
+    var devDir = path.join(fakeRoot, "dev"); fs.mkdirSync(devDir);
+    var tool = path.join(devDir, "tool.js");
+    fs.writeFileSync(game, "const forbidden = 1;\n", "utf8");
+    fs.writeFileSync(tool, "const allowed = 1;\n", "utf8");
+    var bad = es5Run(game, fakeTmp, "es5-game"), good = es5Run(tool, fakeTmp, "es5-dev");
+    if (bad.status !== 2 || text(bad).indexOf("ES5 VIOLATION") < 0) return "game const was not blocked: " + text(bad);
+    return good.status === 0 ? "" : "dev tooling was incorrectly blocked: " + text(good);
+  });
+  test("ES5 touched log drives the stop warning and CLAUDE.md suppresses it", function () {
+    fs.writeFileSync(fakeMem, "**Current version:** v9.321\n", "utf8");
+    var game = path.join(fakeRoot, "client-ok.js"); fs.writeFileSync(game, "var ok = 1;\n", "utf8");
+    var first = es5Run(game, fakeTmp, "touched-warn");
+    if (first.status !== 0) return "valid game file blocked: " + text(first);
+    var warned = stopRun(fakeRoot, fakeMem, fakeTmp, "touched-warn");
+    if (warned.status !== 0 || text(warned).indexOf("Game .js was edited") < 0) return "touched warning missing: " + text(warned);
+    es5Run(game, fakeTmp, "touched-spec");
+    es5Run(path.join(fakeRoot, "CLAUDE.md"), fakeTmp, "touched-spec");
+    var suppressed = stopRun(fakeRoot, fakeMem, fakeTmp, "touched-spec");
+    return text(suppressed).indexOf("Game .js was edited") < 0 ? "" : "CLAUDE.md did not suppress the warning: " + text(suppressed);
   });
 
   var repo = path.join(tmp, "repo"); fs.mkdirSync(repo); fs.mkdirSync(path.join(repo, "dev"));

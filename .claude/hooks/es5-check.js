@@ -2,6 +2,7 @@
 // Reads the hook JSON payload from stdin, flags const/let/=> and exits 2 so the
 // violation is surfaced back to the model. Also logs touched files for stop-check.js.
 var fs = require("fs"), os = require("os"), path = require("path");
+var TMP = process.env.TND_HOOK_TMP || os.tmpdir();
 
 var raw = "";
 process.stdin.on("data", function (d) { raw += d; });
@@ -14,15 +15,16 @@ process.stdin.on("end", function () {
 
   // Record every touched file so the Stop hook can reason about the session.
   try {
-    var log = path.join(os.tmpdir(), "claude-touched-" + sid + ".log");
+    var log = path.join(TMP, "claude-touched-" + sid + ".log");
     fs.appendFileSync(log, fp + "\n");
   } catch (e2) {}
 
-  // Only enforce ES5 on game-client .js. Skip the server (modern Node),
-  // node_modules, our own .claude/hooks scripts, and vendored third-party files
+  // Only enforce ES5 on game-client .js. Skip dev tooling and the server (modern
+  // Node), node_modules, our own .claude/hooks scripts, and vendored third-party files
   // (vendor/piper/* are ES modules — import/export/const are their native shape;
   // T&D patches there match the file's own style, per the tts.js header note).
   var isGameJs = /\.js$/i.test(fp)
+    && !/[\\/]dev[\\/]/i.test(fp)
     && !/[\\/]\.claude[\\/]/i.test(fp)
     && !/[\\/]vendor[\\/]/i.test(fp)
     && !/[\\/]traffic-and-dragons-server[\\/]/i.test(fp)

@@ -9,7 +9,10 @@ var SUITES = [
   "dev/tests-b9-transport.js",
   "dev/tests-c13-adapter.js",
   "dev/tests-dedup-a.js",
-  "dev/tests-verification-enforcement.js"
+  "dev/tests-verification-enforcement.js",
+  "dev/tests-sabotage-meta.js",
+  "dev/tests-file-forensics.js",
+  "dev/tests-install-bible.js"
 ];
 
 for (var i = 0; i < SUITES.length; i++) {
