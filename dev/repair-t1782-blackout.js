@@ -84,17 +84,18 @@ if(gi<0){console.error("  ✗ the x2 generic blade stack is not on the sheet —
 ws.character.inventory[gi]=COMPANION;
 rec("runeblade tangle: the stale 'Short blade …' x2 stack replaced by the companion piece's own entry (Cleaver keeps its slot)");
 
-// 8 — The Sealed Laboratory (owner ruling 2026-08-13: finding both blades satisfies it). The
-//     objective was doubly met in fiction — ritual components t1748 (etching tools, grey ingots),
-//     the second runeforged weapon t1754 — and never ticked. No rewards are invented.
+// 8 — The Sealed Laboratory (owner ruling 2026-08-13, revised: "just mark it done"). The objective
+//     was doubly met in fiction — ritual components t1748, the second runeforged weapon t1754 —
+//     and never ticked. It stays LIVE with the objective done, so the #20 lifecycle instruction
+//     ("⚑ ALL OBJECTIVES COMPLETE — emit [QUEST:title|completed] with rewards, or add the next
+//     objective") fires every turn until the GM closes it and pays out. The engine never invents
+//     the rewards; the GM does, in-fiction, exactly as designed.
 (function(){
   var i,q=null;
-  for(i=0;i<ws.questLog.length;i++)if(ws.questLog[i].title==="The Sealed Laboratory"){q=ws.questLog[i];ws.questLog.splice(i,1);break;}
+  for(i=0;i<ws.questLog.length;i++)if(ws.questLog[i].title==="The Sealed Laboratory"){q=ws.questLog[i];break;}
   if(!q){console.error("  ✗ The Sealed Laboratory not in the live log — aborting");process.exit(1);}
   (q.objectives||[]).forEach(function(o){o.done=true;});
-  q.status="completed";q.completedAt=1754;
-  mem.quests["The Sealed Laboratory"]=q;
-  rec("The Sealed Laboratory completed and archived @t1754 (components t1748 + the companion blade t1754; owner-ruled)");
+  rec("The Sealed Laboratory objective marked DONE, quest left active — the #20 nudge now demands completion-with-rewards from the GM");
 })();
 
 if(!ws.repairLog)ws.repairLog=[];
