@@ -12895,11 +12895,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.questLog.push({title:"Mokmurian's Army",status:"active",desc:"",objectives:[{text:"Confirm strength",done:false}],started:1});
     worldState.turn=20;applyMuts("[SCENE_REF:watcher|?]");/* sceneRefs ACTIVE, so evidence rules are in force */
     wsNpcByName("Mokmurian").dead=15;memory.npcs.Mokmurian.dead=15;/* the death is established canon */
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"r",turn:16,lastTurn:16,attempts:2,resolved:false}];/* the heal must work on the RE-ASSERTION leg too — the stamp path cannot resolve an already-dead subject */
     worldState.turn=21;var xp0=worldState.character.xp,g0=worldState.character.gold;
     applyMuts(w2Txn("true-death","npc-death","Mokmurian","-","Mokmurian's Army","[NPC:Mokmurian|dead|enemy][XP:2200][QUEST:Mokmurian's Army|completed][GOLD:1500]"));
     var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="true-death";})[0];
     if(!tx||tx.status!=="committed")return "the re-assertion was refused: "+(tx?tx.reason:"no receipt")+" — closing bookkeeping on an established death is impossible";
     if(worldState.character.xp!==xp0+2200||worldState.character.gold!==g0+1500)return "the owed rewards did not land";
+    if((worldState.identityConflicts||[]).some(function(c){return c.subject==="Mokmurian"&&!c.resolved;}))return "the re-assertion commit did not heal the standing conflict (the api.js leg)";
     return worldState.questLog.some(function(q){return q.title==="Mokmurian's Army";})?"quest did not archive":true;
   });
   t("#175③: a VALID committed envelope resolves the subject's standing conflict — the heal path exists",function(){

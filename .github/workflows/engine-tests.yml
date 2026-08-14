@@ -18,3 +18,9 @@ jobs:
           node-version: 22
       - name: Run engine suite + source contracts
         run: node dev/run-tests.js
+      # #170 + owner ruling 2026-08-13: CI proves the drift guards, not just the tests. The focused
+      # battery mutates each guarded branch and requires the NAMED test to fail (mustFail
+      # attribution — an unrelated red is MISATTRIBUTED, not a pass). ~9s locally. The
+      # full-suite-per-mutation groups stay manual by the same ruling.
+      - name: Prove drift guards (focused sabotage battery)
+        run: node dev/sabotage-w2.js --focused

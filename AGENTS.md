@@ -79,3 +79,18 @@ around the boundary by duplicating its logic somewhere else.
   fixing another agent's in-flight work.
 - When a brief is ambiguous, ask the owner instead of guessing. Flagged uncertainty is valued;
   silent guessing is not.
+
+## Shipping hygiene for multi-workstream handoffs (P8, 2026-08-13)
+
+- **One commit per workstream.** The v1.601 handoff squashed W2, W6 and W7 into a single commit
+  whose own documentation admitted the three "cannot be reverted or bisected apart" — and when a
+  W2 defect later blacked out quest credit in the live campaign (#175), attribution archaeology
+  worked only because the defect happened to sit in that one commit. Stage each workstream as its
+  own commit with its own version marker resolving to a real tree; a "staged internally as
+  v1.NNN" note in prose is not a tree.
+- **A sabotage gate must name its section AND its test.** Two failure shapes shipped green
+  gates that proved nothing: a filter arg matching zero sections "passed" on the typo-guard's
+  own exit code, and an exit-status-only verdict let unrelated reds vouch for unrelated guards
+  (2 of 25 v1.601 W7 clauses were actually caught by pre-#168 sections). Use a real section name
+  in the command and a `mustFail` substring naming the guarding test — `dev/sabotage.js` reports
+  MISATTRIBUTED when the wrong red catches a mutation.

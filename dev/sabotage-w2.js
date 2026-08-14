@@ -2,10 +2,13 @@
 // Every mutation must change source bytes, turn a focused regression red, and restore the file
 // byte-identically before the next case.
 var sabotage=require("./sabotage.js"),rc=0;
+/* #170 + CI ruling (owner 2026-08-13): `--focused` runs only the section-scoped groups (fast,
+   attributable) — CI runs those on every push; the full-suite-per-mutation groups stay manual. */
+var FOCUSED=process.argv.indexOf("--focused")>=0;
 
 rc|=sabotage.prove({
   file:"identity.js",
-  command:["node",["dev/run-tests.js"]],
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"explicit scene exclusion stops blocking the claimed identity",
       find:"as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon)",
@@ -27,7 +30,7 @@ rc|=sabotage.prove({
 
 rc|=sabotage.prove({
   file:"memory.js",
-  command:["node",["dev/run-tests.js"]],
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"summary extraction writes before referent validation",
       find:"  if(typeof validateSummaryExtract===\"function\")validateSummaryExtract(extracted,identityTable);/* #168 W2/W6: whole-extraction preflight before any tier can ratchet disputed identity */\n",
@@ -37,7 +40,7 @@ rc|=sabotage.prove({
 
 rc|=sabotage.prove({
   file:"tag_table.js",
-  command:["node",["dev/run-tests.js"]],
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"combat-close propagation bypasses the scene ledger",
       find:"    if(worldState.sceneRefs&&typeof w2DeathAuthorized===\"function\"&&!w2DeathAuthorized(cn,null)){\n      if(typeof _w2Conflict===\"function\")_w2Conflict(cn,\"-\",\"registered combat foe lacks a prior positive scene binding\");\n      R.muts.push(w.name+\": combat death quarantined (identity unproven)\");\n      continue;\n    }\n",
@@ -47,7 +50,7 @@ rc|=sabotage.prove({
 
 rc|=sabotage.prove({
   file:"api.js",
-  command:["node",["dev/run-tests.js"]],
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
   cases:[
     {label:"transaction handlers mutate the authoritative state instead of a clone",
       find:"    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);",
@@ -96,20 +99,23 @@ rc|=sabotage.prove({
 /* #175: the quest-credit blackout guards — each mutation must turn a focused #175 test red. */
 rc|=sabotage.prove({
   file:"identity.js",
-  command:["node",["dev/run-tests.js","#175"]],
+  command:["node",["dev/run-tests.js","#168 W2"]],
   cases:[
     {
         "label": "ejection dies — one incidental tag voids the death and its rewards again (the t1742 refusal)",
+        "mustFail": "#175①",
         "find": "if(!allowed[name]){eject.push(ops[i]);continue;}",
         "replace": "if(!allowed[name])return{reason:\"unsupported operation \"+name+\" inside \"+meta.claim+\" transaction\"};"
     },
     {
         "label": "already-canon-dead subjects need fresh scene evidence again (re-assertion bookkeeping impossible)",
+        "mustFail": "#175②",
         "find": "else if(!_w2SubjectDeadInCanon(meta.subject)&&!w2DeathAuthorized(meta.subject,meta.evidence))",
         "replace": "else if(!w2DeathAuthorized(meta.subject,meta.evidence))"
     },
     {
         "label": "the standing-conflict strip goes prose-keyed again — the name-substring blackout returns",
+        "mustFail": "#175⑤",
         "find": ".test(payload))return true;",
         "replace": ".test(ordinary))return true;"
     },
@@ -123,15 +129,17 @@ rc|=sabotage.prove({
 
 rc|=sabotage.prove({
   file:"api.js",
-  command:["node",["dev/run-tests.js","#175"]],
+  command:["node",["dev/run-tests.js","#168 W2"]],
   cases:[
     {
-        "label": "the heal dies — a committed claim stops resolving its subject's standing conflict",
+        "label": "the heal dies on the RE-ASSERTION leg — a committed claim for an already-dead subject stops resolving its conflict",
+        "mustFail": "#175②",
         "find": "      _w2ResolveConflicts(_w2t.meta.subject);",
         "replace": "      ;"
     },
     {
         "label": "the stale cap dies — an unanswerable conflict nudges forever again",
+        "mustFail": "#175⑥",
         "find": "  if(c.attempts>IDENTITY_CONFLICT_STALE_ATTEMPTS){",
         "replace": "  if(false){"
     }
@@ -141,7 +149,7 @@ rc|=sabotage.prove({
 /* P2/#171 (workdone_sol_review batch 1): provenance + hygiene guards. */
 rc|=sabotage.prove({
   file:"identity.js",
-  command:["node",["dev/run-tests.js","#171"]],
+  command:["node",["dev/run-tests.js","#168 W2"]],
   cases:[
     {
         "label": "committed receipts demote again on a formatting-variant re-emission",
@@ -207,6 +215,7 @@ rc|=sabotage.prove({
     },
     {
         "label": "the canon-contradiction tripwire dies — the two-truths state goes unnoticed again",
+        "mustFail": "P5①: a dead NPC",
         "find": "if(CANON_CONTRA_RE.test(line)||CANON_CONTRA_NOW_RE.test(line)){",
         "replace": "if(false){"
     },
@@ -237,6 +246,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "untagged continuation paragraphs inherit a voice again (the P4a ruling dies)",
+        "mustFail": "P4a (owner-ruled)",
         "find": "if(segs[j].name&&!(segs[j].para&&segs[j].para[hit])){out[i]=segs[j].name;kept++;}",
         "replace": "if(segs[j].name){out[i]=segs[j].name;kept++;}"
     },
@@ -260,6 +270,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "the sentence veto dies — negation/hypotheticals/dreams arm the filing watch again",
+        "mustFail": "P4b/W4: spoken intent",
         "find": "if(_LOC_CUE_VETO.test(sent)||!_LOC_CUE_PARTY.test(sent))continue;\n      return nm;",
         "replace": "return nm;"
     },
@@ -312,6 +323,7 @@ rc|=sabotage.prove({
   cases:[
     {
         "label": "the recurring-name scan dies — unregistered characters escape identity protection again",
+        "mustFail": "P7: a name recurring",
         "find": "if(turnCount<RECURRING_NAME_MIN_TURNS||!c2.mid)continue;",
         "replace": "continue;"
     },

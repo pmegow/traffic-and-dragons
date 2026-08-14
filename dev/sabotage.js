@@ -48,6 +48,7 @@ function writeRetry(file, data) {
 }
 
 function prove(opts) {
+  if (opts.skip) return 0; /* #170: --focused runs section-scoped groups only */
   var file = path.resolve(opts.file);
   if (!fs.existsSync(file)) { console.error("sabotage: no such file: " + file); return 1; }
 
@@ -95,11 +96,19 @@ function prove(opts) {
       var run = cp.spawnSync(cmd[0], cmd[1], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
       writeRetry(file, original);
 
-      var caught = run.status !== 0;
+      /* #170 (entry-13 brief F): an exit-status-only verdict cannot tell a REAL catch from a
+         mutation that tripped some unrelated red — measured: 2 of 25 v1.601 W7 clauses were
+         actually caught by pre-#168 sections. A clause may now carry `mustFail`: a substring
+         (usually the guarding test's name) that must appear in the failing run's output. Wrong
+         red = MISATTRIBUTED, its own loud verdict — the guard exists but is not the one the
+         clause claims. */
+      var failed = run.status !== 0;
+      var out = String(run.stdout || "") + String(run.stderr || "");
+      var attributed = !c.mustFail || out.indexOf(c.mustFail) >= 0;
       results.push({
         label: c.label,
-        verdict: caught ? "caught" : "MISSED",
-        detail: caught ? "" : "the sabotaged file still passed — nothing is guarding this"
+        verdict: failed ? (attributed ? "caught" : "MISATTRIBUTED") : "MISSED",
+        detail: failed ? (attributed ? "" : "the run failed but NOT on \"" + c.mustFail + "\" — an unrelated red caught this mutation") : "the sabotaged file still passed — nothing is guarding this"
       });
     }
   } finally {
