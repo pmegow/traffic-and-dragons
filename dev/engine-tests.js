@@ -12502,6 +12502,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!b||!/morning/i.test(b.label))return "'Morning comes' (the true corpus class) did not parse";
     var c=clockPhaseAssertion("The afternoon march grinds on across the scree. Dusk catches you at the ridge line.");
     if(!c||!/dusk/i.test(c.label))return "multiple phases must resolve to the LAST qualifying cue (narrative recency), got: "+JSON.stringify(c);
+    var d=clockPhaseAssertion("Dawn breaks before you, grey and slow over the water.");
+    if(!d||!/dawn/i.test(d.label))return "#158b: 'Dawn breaks before you' must still ASSERT — 'before' after the cue is not government (the widened window must not leak backward)";
     return true;
   });
   t("rejections: quoted dialogue, plans, history, figurative, negation, visions, counterfactuals all stay silent",function(){
@@ -12522,7 +12524,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       ["Gone to finish it, back by first light, and slip out past the sleeping desk.","return-plan idiom (the t1413 corpus alarm)"],
       ["Whatever this afternoon was, it's over now.","retrospective this-<phase> reference (the t1586 corpus alarm)"],
       ["\"Rest. She said nothing more. Dawn comes cold over the pass.","ODD parity with a clean-looking phase sentence — one stray quote makes every outside-quotes judgment a guess, so the WHOLE entry is distrusted (parity guard's own case)"],
-      ["\"Dusk. Move.\" The word hangs there.","quoted phase with NO speech verb — only the any-quote-in-sentence rule catches it (that guard's own case)"]
+      ["\"Dusk. Move.\" The word hangs there.","quoted phase with NO speech verb — only the any-quote-in-sentence rule catches it (that guard's own case)"],
+      ["The two of you melt downhill into Magnimar's mist before the first grey hint of dawn touches the rooftops.","STRETCHED before-governed boundary (the t1806 field alarm, #158b) — a modifier run between 'before' and the cue must not defeat the government"]
     ],i;
     for(i=0;i<cases.length;i++){
       var r=clockPhaseAssertion(cases[i][0]);

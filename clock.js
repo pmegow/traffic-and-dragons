@@ -412,8 +412,12 @@ function clockPhaseAssertion(text){
         var st=pm.index,en=pm.index+pm[0].length,ov=false;
         if(/\b(?:this|that)\s+$/i.test(sent.slice(Math.max(0,st-8),st)))continue;/* #158 (t1586): "this afternoon"/"that morning" is a REFERENCE to a period, not a scene-time assertion */
         /* Reject only a cue syntactically governed by "before" ("escape before dawn"). Bare
-           `before` cannot reject the whole sentence: "Dawn breaks before you" asserts dawn. */
-        if(/\bbefore(?:\s+the)?\s+$/i.test(sent.slice(Math.max(0,st-24),st)))continue;
+           `before` cannot reject the whole sentence: "Dawn breaks before you" asserts dawn.
+           #158b (field t1806, v1.619): the governed run tolerates a short modifier phrase —
+           "before the first grey hint of dawn" armed a false dawn mismatch at 1:00 AM because
+           the old pattern allowed only an optional "the". Clause punctuation still severs
+           government ("an hour before, at dawn," keeps its assertion). */
+        if(/\bbefore\b[^.!?;,]{0,32}$/i.test(sent.slice(Math.max(0,st-40),st)))continue;
         for(j=0;j<claimed.length;j++){if(st<claimed[j].en&&en>claimed[j].st){ov=true;break;}}
         if(!ov)claimed.push({st:st,en:en,idx:i,label:pm[0]});
       }
