@@ -12,8 +12,8 @@
 //
 // ORDER IS LOAD-BEARING. TAG_TABLE array order = the exact current applyMuts execution order:
 // LOCATION before LOCATION_DESC (travel edge needs the previous node), SUBLOCATION before
-// DESC/SIZE (E9), NPC_ALIAS/NPC_MERGE before NPC (same-turn alias resolution), COMPANION_XP
-// scanned inside the XP mirror, stampQuestCompletion LAST. Never reorder without a diff-mode soak.
+// DESC/SIZE (E9), NPC_ALIAS/NPC_MERGE before NPC (same-turn alias resolution),
+// stampQuestCompletion LAST. Never reorder without a diff-mode soak.
 //
 // HANDLER CONTRACT: apply(text, R) where R is the per-response scratch:
 //   R.muts   — mutation labels for the system line
@@ -898,16 +898,15 @@ function applyMutsTable(text,opts){
   // the exact R.feGet pattern above.
   var csPos=null;
   R.combatStarts=function(){if(csPos===null)csPos=combatStartPositions(text);return csPos;};
-  var _xpSkip=null;
   R._xpMirror=function(n){
-    // UA7: the skip list is keyed by canonical NPC NAME, not charSheet object identity — the
-    // list outlives one mirror call ([XP:] can repeat) and checkCompanionLevelUp runs in
-    // between; any path that regenerates a sheet object would silently break identity keying
-    // and double-award the individually-paid companion.
-    if(_xpSkip===null){_xpSkip=[];var _mt=text.match(/\[COMPANION_XP:([^|\]]+)\|/g)||[],_mi;for(_mi=0;_mi<_mt.length;_mi++){var _mm=_mt[_mi].match(/\[COMPANION_XP:([^|\]]+)\|/);if(_mm){var _mn=findCompanionNpc(_mm[1].trim());if(_mn)_xpSkip.push(_mn.name.toLowerCase());}}}
+    // #178 (owner ruling 2026-08-13): the shared [XP:] mirror is ADDITIVE with [COMPANION_XP:].
+    // Every living companion receives every shared award; an individual bonus lands ON TOP.
+    // The old _xpSkip supersede scan silently cost a doc-obeying GM's companion the shared
+    // award (the STATE TAGS doc always said "bonus one companion earns alone" — Frizwick's
+    // 14,600 XP gap was this conflict). The double-count guard is the doc's bonus-only clause,
+    // not an engine skip.
     var _pi2,_shared=0,_xmParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — the shared [XP:] mirror skips them */
     for(_pi2=0;_pi2<_xmParty.length;_pi2++){var _pn2=_xmParty[_pi2];
-      if(_xpSkip.indexOf(_pn2.name.toLowerCase())>=0)continue;
       if(typeof _pn2.charSheet.xp!=="number")_pn2.charSheet.xp=0;
       _pn2.charSheet.xp+=n;_shared++;checkCompanionLevelUp(_pn2.charSheet);
     }

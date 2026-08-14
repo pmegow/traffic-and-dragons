@@ -3443,10 +3443,13 @@ function runEngineTests(R){
     if(worldState.npcs[1].charSheet.xp!==120)return "Bram not mirrored";
     return worldState.npcs[2].charSheet.xp===0?true:"non-party ally received XP";
   });
-  t("COMPANION_XP in the same response supersedes the mirror for that companion",function(){
+  t("#178: COMPANION_XP is ADDITIVE — the bonus lands ON TOP of the shared mirror",function(){
+    // Owner ruling 2026-08-13: the old supersede cost a doc-obeying GM's companion the shared
+    // award (Frizwick's 14,600 XP gap). Shared [XP:] reaches EVERY living companion; the
+    // individual bonus adds on top of it, never replaces it.
     partyWorld();
     applyMuts("Lyra's solo kill. [XP:100][COMPANION_XP:Lyra|250]");
-    if(worldState.npcs[0].charSheet.xp!==250)return "Lyra got "+worldState.npcs[0].charSheet.xp+", want 250 (no double award)";
+    if(worldState.npcs[0].charSheet.xp!==350)return "Lyra got "+worldState.npcs[0].charSheet.xp+", want 350 (100 shared + 250 bonus)";
     return worldState.npcs[1].charSheet.xp===100?true:"Bram mirror lost: "+worldState.npcs[1].charSheet.xp;
   });
   t("mirrored XP levels companions up",function(){
@@ -3454,18 +3457,19 @@ function runEngineTests(R){
     applyMuts("A mighty deed. [XP:350]");
     return worldState.npcs[0].charSheet.level===2?true:"Lyra level "+worldState.npcs[0].charSheet.level+" at 350 xp";
   });
-  t("UA7: XP-mirror skip list survives a mid-parse sheet clone (name-keyed, not object identity)",function(){
+  t("UA7/#178: every award lands exactly once even when a mid-parse sheet clone replaces the object",function(){
     partyWorld();
     // Simulate a FUTURE sheet-regeneration path: any checkCompanionLevelUp call (fires inside
     // the mirror loop for Bram) replaces LYRA's charSheet object with a data-identical clone.
-    // Object-identity keying then misses Lyra on the SECOND [XP:] mirror and double-awards her
-    // on top of her individual COMPANION_XP grant.
+    // Under the additive ruling there is no skip list left to corrupt, but each mirror pass and
+    // the individual grant must still land exactly once on the THEN-CURRENT sheet object —
+    // 60 + 40 shared + 50 bonus = 150, never 100 (lost award) or 200+ (double-landed).
     var _origCCLU=checkCompanionLevelUp;
     try{
       checkCompanionLevelUp=function(cs){var l=worldState.npcs[0];if(l.charSheet)l.charSheet=JSON.parse(JSON.stringify(l.charSheet));return _origCCLU(cs);};
       applyMuts("Two skirmishes. [XP:60][XP:40][COMPANION_XP:Lyra|50]");
     }finally{checkCompanionLevelUp=_origCCLU;}
-    if(worldState.npcs[0].charSheet.xp!==50)return "Lyra double-awarded: "+worldState.npcs[0].charSheet.xp+" (want 50: individual only, skipped by both mirrors)";
+    if(worldState.npcs[0].charSheet.xp!==150)return "Lyra got "+worldState.npcs[0].charSheet.xp+" (want 150: 60+40 shared + 50 bonus, each landed once)";
     return worldState.npcs[1].charSheet.xp===100?true:"Bram shared XP wrong: "+worldState.npcs[1].charSheet.xp;
   });
 
@@ -4340,7 +4344,7 @@ function runEngineTests(R){
     var b=null,i;for(i=0;i<worldState.npcs.length;i++)if(worldState.npcs[i].name==="Borin Stonehand")b=worldState.npcs[i];
     return b&&b.partyMember?true:"sanity: merge/join wrong";
   });
-  t("battery C: companion tags + shared-XP mirror + COMPANION_XP supersede",function(){
+  t("battery C: companion tags + shared-XP mirror + COMPANION_XP additive bonus (#178)",function(){
     makeWorld();
     worldState.npcs.push({name:"Lyra",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Lyra",cls:"Cleric",level:2,hp:12,maxHp:12,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
     worldState.npcs.push({name:"Bram",status:"dour",rel:"ally",met:1,partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:16,maxHp:16,xp:400,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],alignLaw:0,alignGood:0,actualAlignment:"True Neutral"}});
@@ -4350,7 +4354,7 @@ function runEngineTests(R){
       +"[COMPANION_ABILITY:Bram|Shield Wall|Adjacent allies gain +1 AC.][COMPANION_ALIGNMENT:Lyra|good+1]"
       +"[XP:100][COMPANION_XP:Lyra|50]");
     var lyra=worldState.npcs[0].charSheet,bram=worldState.npcs[1].charSheet;
-    if(lyra.hp!==8||lyra.xp!==450)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+")";
+    if(lyra.hp!==8||lyra.xp!==550)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+", want 8/550: 400 + 100 shared + 50 bonus)";
     return bram.xp===500?true:"sanity: Bram mirror wrong ("+bram.xp+")";
   });
   t("battery D: skeleton arc + act advancement",function(){
