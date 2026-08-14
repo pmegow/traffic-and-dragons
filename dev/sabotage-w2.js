@@ -138,4 +138,61 @@ rc|=sabotage.prove({
 ]
 });
 
+/* P2/#171 (workdone_sol_review batch 1): provenance + hygiene guards. */
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#171"]],
+  cases:[
+    {
+        "label": "committed receipts demote again on a formatting-variant re-emission",
+        "find": "if(status===\"quarantined\"){if(r.status===\"committed\"){",
+        "replace": "if(status===\"quarantined\"){if(false){"
+    },
+    {
+        "label": "the conflict's first actionable reason is overwritten by retries again",
+        "find": "c.lastReason=reason||c.lastReason;",
+        "replace": "c.reason=reason||c.reason;"
+    },
+    {
+        "label": "the same-turn duplicate confirm goes silent again (owner ruled it loud)",
+        "find": "if(R)R.muts.push(\"Bond change NOT confirmed (same-response duplicate): \"+(who?who+\" → \":\"\")+ent);",
+        "replace": ";"
+    },
+    {
+        "label": "confirmation stops re-verifying the staged preimage (a moved bond gets clobbered)",
+        "find": "if((row.bond||\"\")!==String(pending.prev||\"\")){",
+        "replace": "if(false){"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"identity.js",
+  command:["node",["dev/run-tests.js","#168 W2"]],
+  cases:[
+    {
+        "label": "refusal provenance dies — stripped operations vanish without a trace again (the t1760 class)",
+        "find": "function _w2RefuseLog(tags){if(!tags)return;",
+        "replace": "function _w2RefuseLog(tags){return;if(!tags)return;"
+    }
+]
+});
+
+rc|=sabotage.prove({
+  file:"api.js",
+  command:["node",["dev/run-tests.js","#168 W2"]],
+  cases:[
+    {
+        "label": "the tagLog label sentinel dies — over-cap turns silently truncate again",
+        "find": "if((R.muts||[]).length>10)_tlM.push(\"+\"+((R.muts||[]).length-10)+\" more\");",
+        "replace": ";"
+    },
+    {
+        "label": "refused provenance never reaches the ring",
+        "find": "if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);",
+        "replace": "if(false){_tlEntry.refused=_tlRef.slice(0,6);"
+    }
+]
+});
+
 process.exit(rc?1:0);

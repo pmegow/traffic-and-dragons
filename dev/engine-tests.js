@@ -12815,6 +12815,106 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.character.xp!==xp0)return "a just-refused death still paid out";
     return worldState.questLog.some(function(q){return q.title==="Boss Hunt";})?true:"the co-emitted completion landed despite the refusal";
   });
+  // ── P2/#171 (workdone_sol_review): refusal provenance + envelope hygiene tail ────────────────
+  t("P2: a refused operation's VERBATIM tags survive in the tagLog entry (the t1760 amounts died unrecorded)",function(){
+    makeWorld();w2Npc("Mokmurian");
+    worldState.questLog.push({title:"Mokmurian's Army",status:"active",desc:"",objectives:[],started:1});
+    worldState.identityConflicts=[{subject:"Mokmurian",handle:"-",reason:"r",turn:10,lastTurn:10,attempts:1,resolved:false}];
+    worldState.canonTxns=[{id:"x",claim:"npc-death",subject:"Mokmurian",evidence:"-",quest:"Mokmurian's Army",status:"quarantined",operations:[],turn:10,reason:"r",quarantinedTurn:10}];
+    worldState.turn=20;worldState.tagLog=[];
+    applyMuts("The head lands on the desk. [QUEST:Mokmurian's Army|completed] [XP:750] [GOLD:750]");
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    if(!e)return "no tagLog entry written";
+    if(!e.refused||!e.refused.length)return "the refused operations were destroyed without provenance again: "+JSON.stringify(e);
+    if(e.refused.join(" ").indexOf("[XP:750]")<0)return "the refused XP amount is not recoverable verbatim: "+JSON.stringify(e.refused);
+    if(e.refused.join(" ").indexOf("[GOLD:750]")<0)return "the refused GOLD amount is not recoverable verbatim";
+    return true;
+  });
+  t("P2: a quarantined envelope's verbatim ops land in refused provenance too",function(){
+    makeWorld();w2Npc("Karg");
+    worldState.turn=10;applyMuts("[SCENE_REF:watcher|?]");
+    worldState.turn=11;worldState.tagLog=[];
+    applyMuts(w2Txn("no-evidence","npc-death","Karg","-","-","[NPC:Karg|dead|enemy][XP:333]"));
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    if(!e||!e.refused)return "quarantine left no refused provenance";
+    return e.refused.join(" ").indexOf("[XP:333]")>=0?true:"the envelope's XP amount is unrecoverable: "+JSON.stringify(e.refused);
+  });
+  t("P5②: a turn with more than 10 mutation labels carries a '+N more' sentinel, never a silent cut",function(){
+    makeWorld();worldState.turn=30;worldState.tagLog=[];
+    var tags="",i;for(i=0;i<13;i++)tags+="[ITEM_GAINED:Trinket "+i+"]";
+    applyMuts("A crate of trinkets. "+tags);
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    if(!e)return "no tagLog entry";
+    if(e.m.length<=10)return "labels were cut with no sentinel: "+e.m.length+" entries";
+    return /^\+\d+ more$/.test(e.m[e.m.length-1])?true:"last label is not the sentinel: "+JSON.stringify(e.m[e.m.length-1]);
+  });
+  t("#171②: a committed receipt is NEVER demoted by a later formatting-variant re-emission",function(){
+    makeWorld();w2Npc("Karg");w2Frame("brute","Karg",10);
+    worldState.turn=11;applyMuts(w2Txn("karg-x","npc-death","Karg","brute","-","[SCENE_DEATH:brute][NPC:Karg|dead|enemy][XP:60]"));
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-x";})[0];
+    if(!tx||tx.status!=="committed")return "setup failed: "+(tx?tx.reason:"no receipt");
+    worldState.turn=12;applyMuts(w2Txn("karg-x","npc-death","Karg","brute","Bogus Quest","[XP:10]"));/* REAL metadata variance: the quest field moved */
+    tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="karg-x";})[0];
+    if(tx.status!=="committed")return "a formatting variance permanently demoted a COMMITTED receipt to "+tx.status;
+    if(!tx.lastAttemptReason)return "the refused re-attempt left no record on the receipt";
+    return true;
+  });
+  t("#171③: the conflict keeps its FIRST reason — retries never overwrite it with the circular id-reuse line",function(){
+    makeWorld();w2Npc("Karg");
+    worldState.turn=10;applyMuts("[SCENE_REF:watcher|?]");
+    worldState.turn=11;applyMuts(w2Txn("karg-y","npc-death","Karg","-","-","[NPC:Karg|dead|enemy][XP:5]"));
+    var c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Karg";})[0];
+    if(!c)return "setup failed — no conflict minted";
+    var first=c.reason;
+    worldState.turn=12;applyMuts(w2Txn("karg-y","npc-death","Karg","-","-","[NPC:Karg|dead|enemy][XP:5]"));
+    c=(worldState.identityConflicts||[]).filter(function(x){return x.subject==="Karg";})[0];
+    if(c.reason!==first)return "the retry overwrote the original reason with: "+c.reason;
+    return true;
+  });
+  t("#171④ (ruled loud): a same-turn duplicate bond confirmation refuses with a visible muts line",function(){
+    makeWorld();
+    worldState.character.relationships=[{entity:"Daeris",bond:"Ally",bondTurn:5,dynamic:"",dynamicTurn:null}];
+    worldState.turn=20;
+    var R1={muts:[],errors:[]};relationshipWrite(null,"Daeris","bond","Sworn enemy",R1);
+    var R2={muts:[],errors:[]};relationshipWrite(null,"Daeris","bond","Sworn enemy",R2);
+    if(worldState.character.relationships[0].bond!=="Ally")return "a same-turn duplicate CONFIRMED the destructive change";
+    return R2.muts.some(function(m){return /same-response|same-turn/i.test(m);})?true:"the refusal is still silent: "+JSON.stringify(R2.muts);
+  });
+  t("#171⑥: confirmation re-verifies the staged preimage — a bond that moved since staging refuses and restages",function(){
+    makeWorld();
+    worldState.character.relationships=[{entity:"Daeris",bond:"Ally",bondTurn:5,dynamic:"",dynamicTurn:null}];
+    worldState.turn=20;
+    var R1={muts:[],errors:[]};relationshipWrite(null,"Daeris","bond","Sworn enemy",R1);
+    worldState.character.relationships[0].bond="Wife";/* the bond moved after staging */
+    worldState.turn=22;
+    var R2={muts:[],errors:[]};relationshipWrite(null,"Daeris","bond","Sworn enemy",R2);
+    if(worldState.character.relationships[0].bond==="Sworn enemy")return "a stale preimage confirmed over a bond that had moved";
+    if(!R2.muts.some(function(m){return /preimage|moved|restage/i.test(m);}))return "the mismatch refusal is silent: "+JSON.stringify(R2.muts);
+    return true;
+  });
+  t("#171⑤: identityConflictOverflow is consumed loudly by the nudge builder, not written-and-forgotten",function(){
+    makeWorld();
+    worldState.identityConflictOverflow={turn:50,subject:"Rinn"};
+    var toasts=[],origToast=(typeof showToast!=="undefined")?showToast:undefined;
+    showToast=function(m){toasts.push(m);};
+    buildIdentityConflictNudge();
+    if(origToast!==undefined)showToast=origToast;
+    if(worldState.identityConflictOverflow)return "the overflow latch was never consumed";
+    return toasts.length?true:"consumption was silent";
+  });
+  t("#171①: an unmatched envelope marker is LOUD and leaves a quarantined receipt for its id",function(){
+    makeWorld();w2Npc("Karg");
+    worldState.turn=10;worldState.tagLog=[];
+    var toasts=[],origToast=(typeof showToast!=="undefined")?showToast:undefined;
+    showToast=function(m){toasts.push(m);};
+    applyMuts("Half an envelope. [CANON_TXN_BEGIN:orphan-1|npc-death|Karg|-|-][NPC:Karg|dead|enemy][XP:40]");
+    if(origToast!==undefined)showToast=origToast;
+    if(!toasts.length)return "the whole-response strip fired with no player-visible signal";
+    var tx=(worldState.canonTxns||[]).filter(function(r){return r.id==="orphan-1";})[0];
+    if(!tx||tx.status!=="quarantined")return "the orphan id left no receipt — it stays silently reusable";
+    var e=worldState.tagLog[worldState.tagLog.length-1];
+    return (e&&e.refused&&e.refused.join(" ").indexOf("[XP:40]")>=0)?true:"the stripped ops left no provenance";
+  });
   t("W2 transaction ids are idempotent while the same claim id may carry a later new operation once",function(){
     makeWorld();worldState.world.location="Jorgenfist";w2Npc("Mokmurian");w2Quest();w2Frame("mok","Mokmurian",40);
     worldState.turn=41;var death=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[SCENE_DEATH:mok][XP:100]");

@@ -719,6 +719,14 @@ function buildMergeConfirmNudge(){
 // explicit, and "correct the prose" is banned — the player already read the scene.
 function buildIdentityConflictNudge(){
   if(!worldState||worldState.combat)return"";
+  /* #171⑤: the overflow latch was written and read nowhere — consume it here, loudly, once. With
+     the #175 stale cap freeing slots this should be near-unreachable, which is exactly why a silent
+     latch would have rotted forever. */
+  if(worldState.identityConflictOverflow){
+    var _ov=worldState.identityConflictOverflow;delete worldState.identityConflictOverflow;
+    if(typeof console!=="undefined")console.warn("[identity] conflict list hit its cap at t"+_ov.turn+" ("+_ov.subject+" went unrecorded) — stale shelving now frees slots; review worldState.identityConflicts");
+    if(typeof showToast==="function")showToast("⚠ Identity-conflict list hit its cap — a dispute went unrecorded (see console)");
+  }
   var q=worldState.identityConflicts||[],i,c=null;
   for(i=0;i<q.length;i++)if(!q[i].resolved&&!q[i].stale&&(!q[i].lastFired||worldState.turn-q[i].lastFired>=3)){c=q[i];break;}
   if(!c)return"";c.lastFired=worldState.turn;c.attempts=(c.attempts||0)+1;
@@ -942,7 +950,7 @@ function buildSayComplianceNudge(){
 // The #151 LATCH REGISTRY CONTRACT (run-tests.js) re-censuses the builder region's writes on
 // every run — a new builder stamping an undeclared key fails the build, so this list cannot rot.
 // The ONE nested latch (charSheet.splitLoc.audited, buildSplitAudit) is captured per companion.
-var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
+var NOTE_LATCH_FIELDS=["arcDriftNudged","arcQuestNudged","arcStaged","commitmentPing","consumableChecks","consumableNudged","consumablePending","deadStatusConflicts","deityDriftNudged","futureResolveHints","identityConflictOverflow","identityConflicts","lastConditionAudit","lastMoodAudit","lastPresenceAudit","lastRelAudit","locDescNudged","locationFilingPing","locationTwinConflicts","mergeConfirmArmed","mergeHintNudged","mpEnded","personDrift","pendingLocState","pendingMergeHints","pendingReunion","phaseMismatch","presencePing","provisionalNudged","reciprocityNudged","reconcileSkip","relAuditDue","relAxisChoices","relAxisReviewFired","relBondChanges","relDowngrades","retconPin","travelPricePing"];/* #168 W7: relationship decision queues and migrated-review cooldowns are restored when a provider turn fails. */
 function snapshotNoteLatches(){
   var snap={t:{},split:[]},i;
   for(i=0;i<NOTE_LATCH_FIELDS.length;i++){var k=NOTE_LATCH_FIELDS[i];
@@ -1790,7 +1798,17 @@ function applyMuts(text){
     var _tlNames=[],_tlSeen={},_tlM=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],_tli;
     for(_tli=0;_tli<_tlM.length;_tli++){var _tn=_tlM[_tli].slice(1,-1);if(!_tlSeen[_tn]){_tlSeen[_tn]=1;_tlNames.push(_tn);}}
     if(!worldState.tagLog)worldState.tagLog=[];
-    worldState.tagLog.push({t:R.turn,tags:_tlNames,m:(R.muts||[]).slice(0,10)});
+    /* P5②: the 10-label cap manufactured a false loss-finding in the #175 forensics (t1773's quest
+       label was truncated out of the ring and read as a discard) — absence must never be ambiguous,
+       so an over-cap entry says how much it dropped. P2: refused operations ride VERBATIM (capped,
+       with the same honest sentinel) — the t1760 payout died unrecorded because refusals had no
+       provenance at all. */
+    var _tlM=(R.muts||[]).slice(0,10);
+    if((R.muts||[]).length>10)_tlM.push("+"+((R.muts||[]).length-10)+" more");
+    var _tlEntry={t:R.turn,tags:_tlNames,m:_tlM};
+    var _tlRef=(typeof w2RefusedThisResponse==="function")?w2RefusedThisResponse():[];
+    if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);if(_tlRef.length>6)_tlEntry.refused.push("+"+(_tlRef.length-6)+" more");}
+    worldState.tagLog.push(_tlEntry);
     if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
   }catch(_tle){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed:",_tle&&_tle.message);}
   if(R.muts.length)addMsg("system",escHtml(R.muts.join(" | ")));

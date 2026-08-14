@@ -543,7 +543,8 @@ function relationshipWrite(who,entity,axis,value,R){
   if(!prev&&axis==="bond"){row.bond=next;row.bondTurn=worldState.turn;row.axisReview=false;_relationshipClearAxis(who,ent,next);_relationshipClearDowngrade(who,ent);R.muts.push((who?who+": ":"")+"bond "+ent+" ("+next+")");if(typeof bondToast==="function")bondToast(who,ent,next,"new");return true;}
   var key=relationshipEdgeKey(who,ent),pending=_relationshipPending(who,ent,next,axis==="pair");
   if(pending){
-    if(pending.turn>=worldState.turn)return false;
+    if(pending.turn>=worldState.turn){/* #171④ (owner-ruled LOUD): the dedupe stays, the silence goes */_relationshipWarn("bond change for "+ent+" ignored — a same-response duplicate cannot confirm itself");if(R)R.muts.push("Bond change NOT confirmed (same-response duplicate): "+(who?who+" → ":"")+ent);return false;}
+    if((row.bond||"")!==String(pending.prev||"")){/* #171⑥: the staged preimage moved — confirming would clobber a value nobody reviewed */_relationshipWarn("bond confirmation for "+ent+" refused — the bond moved since staging ('"+pending.prev+"' is no longer current); restage if still intended");if(R)R.muts.push("Bond change DROPPED (preimage moved — restage to proceed): "+(who?who+" → ":"")+ent);_relationshipRemovePending(relationshipEdgeKey(who,ent));return false;}
     _relationshipCommitBond(who,row,next,R,axis==="pair");return true;
   }
   if(_relationshipPending(who,ent)!==null){_relationshipWarn("bond change for "+ent+" refused — a different proposal is already awaiting confirmation");return false;}
@@ -775,7 +776,7 @@ function w2DeathAuthorized(name,handle,sourceTurn){
 }
 function _w2Conflict(subject,handle,reason){
   if(!worldState)return null;if(!worldState.identityConflicts)worldState.identityConflicts=[];var s=String(subject||"unknown"),h=String(handle||"-"),i,c;
-  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&c.handle===h){c.lastTurn=worldState.turn;c.reason=reason||c.reason;if(c.stale){c.stale=false;c.attempts=0;/* #175: a fresh quarantine re-arms a shelved dispute */}return c;}}
+  for(i=0;i<worldState.identityConflicts.length;i++){c=worldState.identityConflicts[i];if(!c.resolved&&c.subject===s&&c.handle===h){c.lastTurn=worldState.turn;c.lastReason=reason||c.lastReason;/* #171③: c.reason keeps the FIRST, actionable cause — retries must not overwrite it with the circular id-reuse line */if(c.stale){c.stale=false;c.attempts=0;/* #175: a fresh quarantine re-arms a shelved dispute */}return c;}}
   if(worldState.identityConflicts.filter(function(x){return !x.stale;}).length>=IDENTITY_CONFLICT_CAP){worldState.identityConflictOverflow={turn:worldState.turn,subject:s};if(typeof console!=="undefined")console.warn("[identity] conflict cap reached - existing conflicts preserved; new conflict remains fail-closed");return null;}
   c={subject:s,handle:h,reason:reason||"identity evidence missing",turn:worldState.turn,lastTurn:worldState.turn,attempts:0,resolved:false};worldState.identityConflicts.push(c);if(typeof console!=="undefined")console.warn("[identity] irreversible write QUARANTINED for "+s+" (handle "+h+"): "+c.reason);if(typeof showToast==="function")showToast("Identity conflict: "+s+" was not changed");return c;
 }
@@ -805,7 +806,7 @@ function _w2OpFingerprint(tag){
 function _w2OpTokens(ops){var counts={},out=[],i,fp;for(i=0;i<(ops||[]).length;i++){fp=_w2OpFingerprint(ops[i]);counts[fp]=(counts[fp]||0)+1;out.push(fp+"#"+counts[fp]);}return out;}
 function _w2TxnReceipt(m,status,reason,ops,tokens){
   if(!worldState.canonTxns)worldState.canonTxns=[];var r=_w2TxnFind(m.id),wasQuarantined=!!(r&&r.status==="quarantined"),i;if(!r){if(worldState.canonTxns.length>=CANON_TXN_CAP){worldState.canonTxnOverflow={turn:worldState.turn,id:m.id};if(typeof console!=="undefined")console.warn("[identity] canon transaction receipt cap reached - new claim refused fail-closed");return null;}r={id:m.id,claim:m.claim,subject:m.subject,evidence:m.evidence,quest:m.quest,status:status,operations:[],turn:worldState.turn,reason:reason||""};if(m.ejected&&m.ejected.length)r.ejected=m.ejected.slice();worldState.canonTxns.push(r);}
-  if(status==="quarantined"){r.status="quarantined";if(!wasQuarantined){r.reason=reason||r.reason;r.quarantinedTurn=worldState.turn;}else{r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;r.attempts=(r.attempts||1)+1;}}else if(r.status!=="quarantined"){r.status="committed";r.reason="";r.committedTurn=worldState.turn;}
+  if(status==="quarantined"){if(r.status==="committed"){r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;if(typeof console!=="undefined")console.warn("[identity] refused re-attempt recorded on COMMITTED receipt "+r.id+" — committed receipts never demote (#171②)");}else{r.status="quarantined";if(!wasQuarantined){r.reason=reason||r.reason;r.quarantinedTurn=worldState.turn;}else{r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;r.attempts=(r.attempts||1)+1;}}}else if(r.status!=="quarantined"){r.status="committed";r.reason="";r.committedTurn=worldState.turn;}
   var ts=tokens||_w2OpTokens(ops);for(i=0;i<ts.length;i++)if(r.operations.indexOf(ts[i])<0)r.operations.push(ts[i]);return r;
 }
 function w2TxnCommit(meta,ops,tokens){return _w2TxnReceipt(meta,"committed","",ops,tokens);}
@@ -827,6 +828,15 @@ function _w2TagName(tag){var m=tag.match(/^\[([A-Z][A-Z_]{1,}):/);return m?m[1]:
 function _w2DeathStatusTag(tag){var m=tag.match(/^\[NPC:([^|\]]+)\|([^|\]]*)/);return m&&npcDeadStatus(m[2])?m:null;}
 function _w2QuestExists(title){var q=worldState.questLog||[],i;for(i=0;i<q.length;i++)if(String(q[i].title).toLowerCase()===String(title).toLowerCase()&&q[i].status!=="offered")return true;return false;}
 function _w2StripRewards(text){return text.replace(/\[XP:[^\]]+\]/g,"").replace(/\[GOLD:[^\]]+\]/g,"").replace(/\[ITEM_GAINED:[^\]]+\]/g,"");}
+/* P2 (workdone_sol_review): REFUSAL PROVENANCE. Every guard that strips or quarantines an
+   operation records the VERBATIM tags here; the tagLog entry for the response carries them as
+   `refused:[…]`. This exists because the t1760 payoff's amounts were destroyed before any log saw
+   them — the repair had to refuse to invent numbers the engine itself had thrown away. Reset per
+   w2PrepareResponse call (= per response); read once by the tagLog writer. */
+var _w2RefusedNow=[];
+function _w2RefuseLog(tags){if(!tags)return;if(typeof tags==="string")tags=[tags];var i;for(i=0;i<tags.length;i++)if(tags[i])_w2RefusedNow.push(String(tags[i]));}
+function w2RefusedThisResponse(){return _w2RefusedNow;}
+function _w2CollectStripped(text,res){var out=[],i,m;for(i=0;i<res.length;i++){m=text.match(res[i]);if(m)out=out.concat(m);}return out;}
 /* #175 (field, t1742): the whitelist-refusal became the defect. A boss killed in combat naturally
    emits [COMBAT_END:victory] beside its death, and "unsupported operation" then voided the death,
    2200 XP, 1500 gp and the quest completion TOGETHER — the exact atomicity built to protect canon
@@ -876,6 +886,7 @@ function _w2DisputedQuests(){
 }
 function w2PrepareResponse(text){
   text=String(text||"");var hasW2=/\[(?:SCENE_REF|SCENE_NOT|SCENE_REVEAL|SCENE_DEATH|CANON_TXN_BEGIN|CANON_TXN_END):/.test(text);if(hasW2)sceneRefsEnsure();
+  _w2RefusedNow=[];/* P2: fresh provenance per response */
   var ordinary=text,txns=[],planned={},re=/\[CANON_TXN_BEGIN:([^\]]+)\]([\s\S]*?)\[CANON_TXN_END:([^\]]+)\]/g,m;
   while((m=re.exec(text))){
     ordinary=ordinary.replace(m[0],"");var p=m[1].split("|"),meta={id:(p[0]||"").trim(),claim:(p[1]||"").trim(),subject:(p[2]||"").trim(),evidence:(p[3]||"").trim(),quest:(p[4]||"").trim()},ops=_w2Tags(m[2]),reason="",existing=_w2TxnFind(meta.id),prior=planned[meta.id]||existing,i;
@@ -892,13 +903,13 @@ function w2PrepareResponse(text){
        checks above are the real guard; a valid commit now RESOLVES the subject's conflict (the heal,
        applied at the commit site in api.js). */
     if(worldState.canonTxnOverflow&&!prior)reason="canon transaction receipt capacity is exhausted";
-    if(reason){w2TxnQuarantine(meta,reason,ops);for(i=0;i<txns.length;i++)if(txns[i].meta.id===meta.id){txns[i].body="";txns[i].ops=[];txns[i].valid=false;txns[i].reason=reason;}txns.push({meta:meta,body:"",ops:ops,valid:false,reason:reason});continue;}
+    if(reason){_w2RefuseLog(ops);/* P2: the envelope ops survive the refusal verbatim */w2TxnQuarantine(meta,reason,ops);for(i=0;i<txns.length;i++)if(txns[i].meta.id===meta.id){txns[i].body="";txns[i].ops=[];txns[i].valid=false;txns[i].reason=reason;}txns.push({meta:meta,body:"",ops:ops,valid:false,reason:reason});continue;}
     var fresh=[],freshTokens=[],seen=prior&&prior.operations?prior.operations.slice():[],allTokens=_w2OpTokens(ops);for(i=0;i<ops.length;i++){var fp=_w2OpFingerprint(ops[i]),tok=allTokens[i];if(seen.indexOf(tok)<0&&seen.indexOf(fp)<0&&seen.indexOf(ops[i])<0){fresh.push(ops[i]);freshTokens.push(tok);seen.push(tok);}}
     if(!planned[meta.id])planned[meta.id]={id:meta.id,claim:meta.claim,subject:meta.subject,evidence:meta.evidence,quest:meta.quest,status:"planned",operations:seen};else planned[meta.id].operations=seen;txns.push({meta:meta,body:fresh.join(""),ops:fresh,tokens:freshTokens,valid:true});
   }
-  if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");}
-  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
-  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){ordinary=ordinary.replace(npcTags[n],"");_w2Conflict(nm,"-","named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
+  if(/\[CANON_TXN_(?:BEGIN|END):/.test(ordinary)){/* #171①: the whole-response fail-closed strip stays, but it is no longer silent, receipt-less, or id-reusable */var _orph=ordinary.match(/\[CANON_TXN_(?:BEGIN|END):[^\]|]+/g)||[],_oi;for(_oi=0;_oi<_orph.length;_oi++){var _oid=_orph[_oi].replace(/^\[CANON_TXN_(?:BEGIN|END):/,"").trim();if(_oid&&!_w2TxnFind(_oid))w2TxnQuarantine({id:_oid,claim:"npc-death",subject:"-",evidence:"-",quest:"-"},"unmatched transaction marker",[]);}_w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g,/\[QUEST(?:_STEP)?:[^\]]+\]/g,/\[SCENE_DEATH:[^\]]+\]/g,/\[NPC:[^\]]+\]/g]));ordinary=ordinary.replace(/\[CANON_TXN_(?:BEGIN|END):[^\]]+\]/g,"");ordinary=_w2StripRewards(ordinary).replace(/\[QUEST(?:_STEP)?:[^\]]+\]/g,"").replace(/\[SCENE_DEATH:[^\]]+\]/g,"").replace(/\[NPC:[^\]]+\]/g,"");if(typeof console!=="undefined")console.warn("[identity] unmatched canon transaction marker - identity/quest/reward operations refused");if(typeof showToast==="function")showToast("⚠ Malformed canon envelope — its identity/quest/reward tags were withheld");}
+  var bareDeaths=ordinary.match(/\[SCENE_DEATH:([^\]]+)\]/g)||[],bd,refusedVictim=null;for(bd=0;bd<bareDeaths.length;bd++){var bm=bareDeaths[bd].match(/\[SCENE_DEATH:([^\]]+)\]/),bh=bm[1].trim(),ba=_sceneRefActor(bh);_w2RefuseLog(bareDeaths[bd]);ordinary=ordinary.replace(bareDeaths[bd],"");_w2Conflict(ba&&ba.actor.entity?ba.actor.entity:"unknown",bh,"scene death was emitted outside a canon transaction");refusedVictim=refusedVictim||(ba&&ba.actor.entity)||"unknown";}
+  var npcTags=ordinary.match(/\[NPC:[^\]]+\]/g)||[],n;for(n=0;n<npcTags.length;n++){var dm=_w2DeathStatusTag(npcTags[n]);if(!dm)continue;var nm=resolveNpcName(dm[1].trim()),ws=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(worldState.sceneRefs&&!npcIsDead(ws)&&!w2DeathAuthorized(nm,null)){_w2RefuseLog(npcTags[n]);ordinary=ordinary.replace(npcTags[n],"");_w2Conflict(nm,"-","named death has no prior positive scene binding");refusedVictim=refusedVictim||nm;}}
   /* #168R1 (entry-13 review), rescoped by #175: a death REFUSED in THIS response still de-authorizes
      its co-emitted quest/reward consequences — that protection is unchanged and pinned. What is GONE
      is the standing-conflict reach: the old gate substring-matched every unresolved conflict's
@@ -925,9 +936,10 @@ function w2PrepareResponse(text){
         var k;for(k=0;k<_dSubs.length;k++)if(new RegExp("\\b"+_dSubs[k].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(payload))return true;
         return false;
       };
-      ordinary=ordinary.replace(/\[QUEST:([^|\]]+)\|(completed?|done|finished|failed)[^\]]*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);return"";}return full;});
-      ordinary=ordinary.replace(/\[QUEST_STEP:([^|\]]+)\|[^\]]*\|\s*(?:true|done|1|yes|x)\s*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);return"";}return full;});
+      ordinary=ordinary.replace(/\[QUEST:([^|\]]+)\|(completed?|done|finished|failed)[^\]]*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);_w2RefuseLog(full);return"";}return full;});
+      ordinary=ordinary.replace(/\[QUEST_STEP:([^|\]]+)\|[^\]]*\|\s*(?:true|done|1|yes|x)\s*\]/gi,function(full,title){if(_payloadDisputed(full,title)){_dqStripped.push(title);_w2RefuseLog(full);return"";}return full;});
       if(_dqStripped.length){
+        _w2RefuseLog(_w2CollectStripped(ordinary,[/\[XP:[^\]]+\]/g,/\[GOLD:[^\]]+\]/g,/\[ITEM_GAINED:[^\]]+\]/g]));
         ordinary=_w2StripRewards(ordinary);
         if(typeof console!=="undefined")console.warn("[identity] completion + co-emitted rewards withheld for disputed quest(s): "+_dqStripped.join(", ")+" — a valid CANON_TXN re-emission resolves the dispute and pays out (#175)");
         if(typeof showToast==="function")showToast("⚠ Completion withheld — "+_dqStripped[0]+" is under an unresolved identity dispute");
