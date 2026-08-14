@@ -14076,6 +14076,36 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
     return a.level==="warn"?true:"summary strikes should warn, got "+a.level;
   });
+  t("anomalies are NAMED, not counted (owner ruling): subject, quest, turn, and refusal reason reach the detail line",function(){
+    makeWorld();worldState.turn=45;
+    worldState.canonTxns=[{id:"corwyn-death",claim:"death",subject:"Magistrate Corwyn",quest:"The Corwyn Inquiry",status:"quarantined",turn:41,quarantinedTurn:41,reason:"named death has no prior positive scene binding"}];
+    var h=healthIndicators(worldState),a=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    if(a.level!=="bad")return "recent quarantine must be bad, got "+a.level;
+    if(a.detail.indexOf("Magistrate Corwyn")<0)return "subject missing from detail: "+a.detail;
+    if(a.detail.indexOf("The Corwyn Inquiry")<0)return "withheld quest missing from detail: "+a.detail;
+    if(a.detail.indexOf("t41")<0)return "turn missing from detail: "+a.detail;
+    if(a.detail.indexOf("no prior positive scene binding")<0)return "refusal reason missing from detail: "+a.detail;
+    worldState.identityConflicts=[{subject:"Aldern",reason:"identity evidence missing",turn:30,lastTurn:44,attempts:2,resolved:false}];
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    return a.detail.indexOf("Aldern")>=0&&a.detail.indexOf("identity evidence missing")>=0?true:"conflict subject/reason missing: "+a.detail;
+  });
+  t("a HEALED dispute's permanent quarantine residue is historical, not a forever-red dot (the Corwyn screenshot class)",function(){
+    makeWorld();worldState.turn=60;
+    /* quarantined receipts NEVER retire by W2 contract — but one 19 turns old with no unresolved
+       conflict is a scar, not an active problem */
+    worldState.canonTxns=[{id:"old-1",claim:"death",subject:"Corwyn",quest:"The Corwyn Inquiry",status:"quarantined",turn:41,quarantinedTurn:41,reason:"refused once, since healed by re-emission"}];
+    var h=healthIndicators(worldState),a=null,i;for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    if(a.level!=="ok")return "healed historical quarantine must not stay red, got "+a.level+" ("+a.detail+")";
+    if(a.detail.indexOf("historical")<0)return "the scar should still be visible as historical: "+a.detail;
+    /* same receipt but its subject still has an OPEN dispute → active again */
+    worldState.identityConflicts=[{subject:"Corwyn",reason:"identity evidence missing",turn:41,lastTurn:59,attempts:3,resolved:false}];
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    if(a.level!=="bad")return "open conflict on the same subject must re-activate, got "+a.level;
+    /* a RECENT quarantine is active even without a conflict row */
+    worldState.identityConflicts=[];worldState.canonTxns[0].quarantinedTurn=55;worldState.canonTxns[0].lastAttemptTurn=58;
+    h=healthIndicators(worldState);for(i=0;i<h.items.length;i++)if(h.items[i].id==="anomaly")a=h.items[i];
+    return a.level==="bad"?true:"recent quarantine must be active, got "+a.level;
+  });
   t("every WATCH/PROBLEM indicator carries a plain-language hint UNDER 25 words (owner ruling 2026-08-14); ok/na carry none",function(){
     makeWorld();delete worldState.ragMemory;var i;
     worldState.transcript=[];for(i=0;i<40;i++)worldState.transcript.push({x:"s"+i});

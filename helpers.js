@@ -1184,15 +1184,32 @@ function healthIndicators(ws){
     stuck.length?("all objectives complete but quest still open: "+stuck.join(", ")):"no quest sitting complete-but-uncredited");
   // ⑤ standing anomalies — the engine is already telling itself something is wrong; this
   // surfaces it to the player BEFORE broken fiction does (the t1781 'survived as a proxy' class).
-  var anom=[],unresolved=0,quarantined=0;
-  var ic=ws.identityConflicts||[];for(i=0;i<ic.length;i++)if(!ic[i].resolved&&!ic[i].stale)unresolved++;
-  if(unresolved)anom.push(unresolved+" unresolved identity conflict"+(unresolved>1?"s":""));
-  var ct=ws.canonTxns||[];for(i=0;i<ct.length;i++)if(ct[i].status==="quarantined")quarantined++;
-  if(quarantined)anom.push(quarantined+" quarantined canon transaction"+(quarantined>1?"s":""));
-  if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory-filing failures in progress ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+")");
-  if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed");
-  push("anomaly","Standing anomalies",(quarantined||unresolved)?"bad":(anom.length?"warn":"ok"),
-    anom.length?anom.join("; "):"none");
+  // NAMED, never counted (owner ruling 2026-08-14 — "you have the information"): subject, quest,
+  // turn, and refusal reason reach the detail line. And ACTIVE vs HISTORICAL matters: quarantined
+  // receipts never retire by W2 contract (poisoning is a memory), so a long-healed refusal must
+  // read as a scar, not a forever-red dot — a quarantine is ACTIVE only while recent
+  // (within CANON_TXN_RETIRE_TURNS) or while its subject still has an open conflict.
+  var anom=[],unresolved=0,activeQ=0,histQ=0,turnNow=ws.turn||0;
+  var openSubjects={},ic=ws.identityConflicts||[];
+  for(i=0;i<ic.length;i++){var cf=ic[i];
+    if(cf.resolved||cf.stale)continue;
+    unresolved++;openSubjects[cf.subject]=1;
+    if(anom.length<3)anom.push("open identity conflict: "+(cf.subject||"?")+" — "+String(cf.reason||"no reason recorded").slice(0,90)+" (since t"+cf.turn+(cf.attempts?", "+cf.attempts+" nudges":"")+")");
+  }
+  var ct=ws.canonTxns||[];
+  for(i=0;i<ct.length;i++){var r=ct[i];
+    if(r.status!=="quarantined")continue;
+    var lastAct=r.lastAttemptTurn!=null?r.lastAttemptTurn:(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn||0);
+    var active=(turnNow-lastAct)<=CANON_TXN_RETIRE_TURNS||openSubjects[r.subject];
+    if(active){activeQ++;
+      if(anom.length<3)anom.push("refused canon claim \""+(r.id||"?")+"\": "+(r.subject&&r.subject!=="-"?r.subject:"(no subject)")+(r.quest?", withholding quest \""+r.quest+"\"":"")+" — t"+(r.quarantinedTurn!=null?r.quarantinedTurn:r.turn)+": "+String(r.reason||"no reason recorded").slice(0,90));
+    }else histQ++;
+  }
+  if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory filing failing ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+", "+(ws.summaryFailure.kind||"extraction")+": "+String(ws.summaryFailure.reason||"").slice(0,60)+")");
+  if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed (t"+(ws.phaseMismatch.turn||"?")+")");
+  var extra=histQ?((anom.length?"; ":"")+histQ+" historical refusal"+(histQ>1?"s":"")+" on record (healed — receipts never retire by contract)"):"";
+  push("anomaly","Standing anomalies",(activeQ||unresolved)?"bad":(anom.length?"warn":"ok"),
+    anom.length||extra?(anom.join("; ")+extra):"none");
   // Plain-language action hints (owner ruling 2026-08-14: every WATCH/PROBLEM carries a
   // <25-word "what this means / what to do" line — the raw detail is accurate but useless
   // to a player). The word cap is CONTRACT, enforced by an engine test, not by discipline.
